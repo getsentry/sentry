@@ -22,7 +22,7 @@ import {useTraceEventView} from 'sentry/views/performance/newTraceDetails/useTra
 import {useTraceExploreTarget} from 'sentry/views/performance/newTraceDetails/useTraceExploreTarget';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
-const COPY_ID_LABEL = t('Copy Trace ID');
+const COPY_ID_LABEL = t('Copy trace ID to clipboard');
 
 interface TraceBreadcrumbsProps {
   organization: Organization;
