@@ -8,7 +8,7 @@ import time
 from abc import ABC
 from collections.abc import Mapping, MutableMapping, Sequence
 from contextlib import nullcontext
-from datetime import datetime, timezone
+from datetime import timezone
 from typing import Any, Protocol
 
 import orjson
@@ -70,6 +70,10 @@ from sentry.organizations.services.organization.serial import serialize_rpc_orga
 from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
     get_integration_repository_provider,
+)
+from sentry.pr_metrics.lifecycle_mapping import (
+    parse_scm_timestamp,
+    pull_request_lifecycle_state_from_github,
 )
 from sentry.pr_metrics.webhooks import handle_activity as pr_metrics_handle_activity
 from sentry.pr_metrics.webhooks import handle_attribution as pr_metrics_handle_attribution
@@ -1073,27 +1077,6 @@ class IssuesEventWebhook(GitHubWebhook):
         return f"{repo_full_name}#{issue_number}"
 
 
-def _parse_github_timestamp(value: str | None) -> datetime | None:
-    """Parse a GitHub ISO-8601 timestamp into a UTC datetime, or None if absent."""
-    if not value:
-        return None
-    return parse_date(value).astimezone(timezone.utc)
-
-
-def _pull_request_lifecycle_state(pull_request: Mapping[str, Any]) -> str:
-    """Map a GitHub PR payload to a ``PullRequestLifecycleState`` value.
-
-    GitHub reports ``state`` as only "open"/"closed" alongside a separate
-    ``merged`` flag; we fold the two into the richer lifecycle enum so a merged
-    PR is stored as "merged" rather than an ambiguous "closed".
-    """
-    if pull_request.get("merged"):
-        return PullRequestLifecycleState.MERGED
-    if pull_request.get("state") == "closed":
-        return PullRequestLifecycleState.CLOSED
-    return PullRequestLifecycleState.OPEN
-
-
 class PullRequestEventWebhook(GitHubWebhook):
     """https://developer.github.com/v3/activity/events/types/#pullrequestevent"""
 
@@ -1146,10 +1129,10 @@ class PullRequestEventWebhook(GitHubWebhook):
 
         # Lifecycle facts kept current for the PR metrics pipeline.
         head_commit_sha = pull_request["head"]["sha"]
-        opened_at = _parse_github_timestamp(pull_request.get("created_at"))
-        closed_at = _parse_github_timestamp(pull_request.get("closed_at"))
-        merged_at = _parse_github_timestamp(pull_request.get("merged_at"))
-        state = _pull_request_lifecycle_state(pull_request)
+        opened_at = parse_scm_timestamp(pull_request.get("created_at"))
+        closed_at = parse_scm_timestamp(pull_request.get("closed_at"))
+        merged_at = parse_scm_timestamp(pull_request.get("merged_at"))
+        state = pull_request_lifecycle_state_from_github(pull_request)
         draft = pull_request.get("draft")
 
         author_email = "{}@localhost".format(user["login"][:65])
