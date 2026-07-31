@@ -1271,12 +1271,34 @@ class TestIsGroupEligibleForAutomation(APITestCase, SnubaTestCase):
         mock_fixability.assert_not_called()
 
     @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
-    def test_returns_false_when_autofix_run_exists(self, mock_fixability):
-        run = self.create_seer_run(organization=self.organization)
+    def test_returns_false_when_live_autofix_run_exists(self, mock_fixability):
+        run = self.create_seer_run(
+            organization=self.organization,
+            mirror_status="live",
+            seer_run_state_id=1,
+        )
         self.create_seer_agent_run(run, source="autofix", group=self.group)
         assert is_group_eligible_for_automation(self.group) is False
 
         mock_fixability.assert_not_called()
+
+    @patch("sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited")
+    @patch("sentry.quotas.backend.check_seer_quota")
+    @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
+    def test_returns_true_when_only_failed_autofix_run_exists(
+        self, mock_fixability, mock_quota, mock_rate_limit
+    ):
+        run = self.create_seer_run(
+            organization=self.organization,
+            mirror_status="failed",
+            seer_run_state_id=2,
+        )
+        self.create_seer_agent_run(run, source="autofix", group=self.group)
+        mock_fixability.return_value = 0.80
+        mock_quota.return_value = True
+        mock_rate_limit.return_value = False
+
+        assert is_group_eligible_for_automation(self.group) is True
 
     @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
     def test_returns_false_when_not_fixable(self, mock_fixability):
