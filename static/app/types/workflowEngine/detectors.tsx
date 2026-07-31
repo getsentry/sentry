@@ -230,7 +230,7 @@ interface UpdateUptimeDataSourcePayload {
 export interface BaseDetectorUpdatePayload {
   name: string;
   owner: string | null;
-  projectId: Detector['projectId'];
+  projectId: string;
   type: Detector['type'];
   workflowIds: string[];
   description?: string | null;

@@ -1,7 +1,7 @@
 import {useProjects} from 'sentry/utils/useProjects';
 
 interface Props {
-  project_id: string | undefined;
+  project_id: string | null | undefined;
 }
 
 export function useProjectFromId({project_id}: Props) {

@@ -1,14 +1,23 @@
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import type {Detector, DetectorType} from 'sentry/types/workflowEngine/detectors';
+import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useProjects} from 'sentry/utils/useProjects';
 import {detectorTypeIsUserCreateable} from 'sentry/views/detectors/utils/detectorTypeConfig';
 
-export function useCanEditDetectorWorkflowConnections({projectId}: {projectId: string}) {
+export function useCanEditDetectorWorkflowConnections({
+  projectId,
+}: {
+  projectId: string | null;
+}) {
   const organization = useOrganization();
   const project = useProjectFromId({project_id: projectId});
-  return hasEveryAccess(['alerts:write'], {organization, project});
+
+  return (
+    hasEveryAccess(['org:write'], {organization, project}) ||
+    hasEveryAccess(['alerts:write'], {organization, project})
+  );
 }
 
 export function useCanEditDetector({
@@ -16,7 +25,7 @@ export function useCanEditDetector({
   detectorType,
 }: {
   detectorType: DetectorType;
-  projectId: string;
+  projectId: string | null;
 }) {
   const organization = useOrganization();
   const project = useProjectFromId({project_id: projectId});
@@ -50,6 +59,9 @@ export function useCanEditDetectors({detectors}: {detectors: Detector[]}) {
 
   for (const detector of detectors) {
     const projectId = detector.projectId;
+    if (!defined(projectId)) {
+      return false;
+    }
     if (!projectToDetectors[projectId]) {
       projectToDetectors[projectId] = [];
     }
