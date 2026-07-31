@@ -33,7 +33,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0029_add_agent_write_grant
 
-sentry: 1147_organizationcontributors_integration_id_nullable
+sentry: 1148_organizationcontributors_remove_integration_id_field
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 
