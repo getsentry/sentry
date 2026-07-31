@@ -240,9 +240,10 @@ def _validate_events_query_params(
     except client.ApiError as e:
         if e.status_code == 400 and isinstance(e.body, dict) and "valid" in e.body:
             return ExecuteQueryErrorResponse(error=_format_events_query_validation_errors(e.body))
-        logger.exception(
+        logger.warning(
             "execute_table_query: validate request failed",
             extra={"org_id": organization.id},
+            exc_info=True,
         )
         return None
 
@@ -364,7 +365,11 @@ def execute_table_query(
     except client.ApiError as e:
         # For 400 errors, return an error string for the query builder agent.
         if e.status_code == 400:
-            logger.exception("execute_table_query: bad request", extra={"org_id": org_id})
+            logger.warning(
+                "execute_table_query: bad request",
+                extra={"org_id": org_id},
+                exc_info=True,
+            )
             error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
             return ExecuteQueryErrorResponse(
                 error=str(error_detail) if error_detail is not None else str(e.body)
@@ -457,7 +462,11 @@ def execute_timeseries_query(
         # Use a reserved "_seer_error_detail" key so it can't collide with a
         # group_by value (which becomes a top-level key in grouped responses below).
         if e.status_code == 400:
-            logger.exception("execute_timeseries_query: bad request", extra={"org_id": org_id})
+            logger.warning(
+                "execute_timeseries_query: bad request",
+                extra={"org_id": org_id},
+                exc_info=True,
+            )
             error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
             return ExecuteTimeseriesQueryErrorResponse(
                 seer_error_detail=(str(error_detail) if error_detail is not None else str(e.body))
@@ -558,8 +567,10 @@ def execute_trace_table_query(
     except client.ApiError as e:
         # For 400 errors, return an error string for the query builder agent.
         if e.status_code == 400:
-            logger.exception(
-                "execute_trace_table_query: bad request", extra={"org_id": organization_id}
+            logger.warning(
+                "execute_trace_table_query: bad request",
+                extra={"org_id": organization_id},
+                exc_info=True,
             )
             error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
             return ExecuteQueryErrorResponse(
@@ -675,21 +686,23 @@ def execute_replays_query(
         )
         processed_response = process_raw_response(response.response, fields=requested_fields)
     except KeyError as e:
-        logger.exception(
+        logger.warning(
             "execute_replays_query: unsupported response field",
             extra={
                 "org_id": organization_id,
                 "query": query,
                 "field": e.args[0] if e.args else None,
             },
+            exc_info=True,
         )
         return ExecuteQueryErrorResponse(
             error=f"Invalid replay field: {e.args[0]}" if e.args else "Invalid replay field"
         )
     except (InvalidParams, InvalidSearchQuery, SentryBadRequest, BadRequest, ParseError) as e:
-        logger.exception(
+        logger.warning(
             "execute_replays_query: bad request",
             extra={"org_id": organization_id, "query": query},
+            exc_info=True,
         )
         return ExecuteQueryErrorResponse(error=str(e))
 
