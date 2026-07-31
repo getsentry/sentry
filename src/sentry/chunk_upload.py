@@ -53,12 +53,12 @@ def get_chunk_upload_objectstore_mode(organization_id: int, use_objectstore: boo
     key = get_chunk_upload_objectstore_mode_key(organization_id)
     mode = client.get(key)
     if mode is None:
-        value = b"1" if use_objectstore else b"0"
+        value = "1" if use_objectstore else "0"
         if client.set(key, value, ex=CHUNK_UPLOAD_OBJECTSTORE_TTL, nx=True):
             return use_objectstore
         mode = client.get(key)
 
-    return mode == b"1"
+    return mode == "1"
 
 
 def get_chunk_upload_objectstore_intents(

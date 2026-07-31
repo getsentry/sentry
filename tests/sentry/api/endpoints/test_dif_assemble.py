@@ -331,7 +331,16 @@ class DifAssembleEndpoint(APITestCase):
                 use_objectstore=True,
             )
 
-        assemble_task.assert_called_once()
+        assemble_task.assert_called_once_with(
+            kwargs={
+                "project_id": self.project.id,
+                "name": "crash.sym",
+                "debug_id": None,
+                "checksum": checksum,
+                "chunks": [checksum],
+                "use_objectstore": True,
+            }
+        )
 
         dif = ProjectDebugFile.objects.get(project_id=self.project.id, checksum=checksum)
         assert dif.storage_path is not None
