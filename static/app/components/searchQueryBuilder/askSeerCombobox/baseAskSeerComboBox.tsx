@@ -459,6 +459,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
         <InvisibleInput
           {...inputProps}
           autoComplete="off"
+          hasQueryStatus={showQueryStatus}
           onClick={() => state.open()}
           placeholder={t('Ask Seer with Natural Language')}
           ref={mergeRefs(inputRef, triggerProps.ref as React.Ref<HTMLInputElement>)}
@@ -627,7 +628,7 @@ const InputWrapper = styled('div')`
   height: 100%;
 `;
 
-const InvisibleInput = styled('input')`
+const InvisibleInput = styled('input')<{hasQueryStatus: boolean}>`
   position: absolute;
   inset: 0;
   resize: none;
@@ -642,7 +643,10 @@ const InvisibleInput = styled('input')`
   padding-top: calc(${p => p.theme.space.xs} + 1px);
   padding-bottom: calc(${p => p.theme.space.xs} + 1px);
   padding-left: calc(${p => p.theme.space['3xl']} + ${p => p.theme.space.xs});
-  padding-right: calc(${p => p.theme.space['3xl']} + ${p => p.theme.space.xs});
+  padding-right: ${p =>
+    p.hasQueryStatus
+      ? `calc(${p.theme.space['3xl']} + ${p.theme.space['2xl']})`
+      : `calc(${p.theme.space['3xl']} + ${p.theme.space.xs})`};
 
   &::selection {
     background: rgba(0, 0, 0, 0.2);
