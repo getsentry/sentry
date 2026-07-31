@@ -182,9 +182,7 @@ function NativeDisplayOptionsProvider({
   );
 
   return (
-    <NativeDisplayOptionsContext.Provider value={value}>
-      {children}
-    </NativeDisplayOptionsContext.Provider>
+    <NativeDisplayOptionsContext value={value}>{children}</NativeDisplayOptionsContext>
   );
 }
 

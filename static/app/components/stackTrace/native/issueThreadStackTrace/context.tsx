@@ -171,7 +171,7 @@ export function IssueThreadStackTraceProviders({
   );
 
   return (
-    <IssueThreadStackTraceContext.Provider value={contextValue}>
+    <IssueThreadStackTraceContext value={contextValue}>
       <NativeStackTraceViewStateProvider
         platform={activeThreadModel.platform}
         hasMinifiedStacktrace={activeThreadModel.hasMinifiedStacktrace}
@@ -211,6 +211,6 @@ export function IssueThreadStackTraceProviders({
           children
         )}
       </NativeStackTraceViewStateProvider>
-    </IssueThreadStackTraceContext.Provider>
+    </IssueThreadStackTraceContext>
   );
 }

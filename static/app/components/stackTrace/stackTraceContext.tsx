@@ -45,9 +45,7 @@ export function StackTraceViewStateProvider({
   );
 
   return (
-    <StackTraceViewStateContext.Provider value={value}>
-      {children}
-    </StackTraceViewStateContext.Provider>
+    <StackTraceViewStateContext value={value}>{children}</StackTraceViewStateContext>
   );
 }
 

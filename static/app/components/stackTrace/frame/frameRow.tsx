@@ -103,11 +103,11 @@ const StackTraceFrameRowRoot = memo(function StackTraceFrameRowRoot({
   );
 
   return (
-    <StackTraceFrameContext.Provider value={value}>
+    <StackTraceFrameContext value={value}>
       <FrameRowContainer data-test-id="core-stacktrace-frame-row">
         {children}
       </FrameRowContainer>
-    </StackTraceFrameContext.Provider>
+    </StackTraceFrameContext>
   );
 });
 

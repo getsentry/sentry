@@ -181,7 +181,5 @@ export function StackTraceProvider({
     ]
   );
 
-  return (
-    <StackTraceContext.Provider value={value}>{children}</StackTraceContext.Provider>
-  );
+  return <StackTraceContext value={value}>{children}</StackTraceContext>;
 }

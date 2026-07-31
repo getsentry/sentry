@@ -118,9 +118,7 @@ export function NativeStackTraceProvider({
       rowPolicy={rowPolicy}
       stacktrace={stacktrace}
     >
-      <NativeStackTraceContext.Provider value={value}>
-        {children}
-      </NativeStackTraceContext.Provider>
+      <NativeStackTraceContext value={value}>{children}</NativeStackTraceContext>
     </StackTraceProvider>
   );
 }
