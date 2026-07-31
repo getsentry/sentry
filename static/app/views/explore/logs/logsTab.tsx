@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {Container, Grid} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -59,7 +60,6 @@ import {LogsSidebarProvider} from 'sentry/views/explore/logs/logsSidebarContext'
 import {LogsTabSeerComboBox} from 'sentry/views/explore/logs/logsTabSeerComboBox';
 import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
 import {
-  LogsFilterSection,
   LogsGraphContainer,
   LogsItemContainer,
   LogsSidebarCollapseButton,
@@ -172,7 +172,10 @@ const LogsSearchSection = memo(function LogsSearchSection({
     >
       <ExploreBodySearch>
         <Layout.Main width="full">
-          <LogsFilterSection>
+          <Grid
+            columns={{zero: '1fr', '3xl': 'minmax(300px, auto) 1fr min-content'}}
+            gap="md"
+          >
             <StyledPageFilterBar condensed>
               <ProjectPageFilter />
               <EnvironmentPageFilter />
@@ -204,7 +207,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
                 )}
               />
             )}
-          </LogsFilterSection>
+          </Grid>
         </Layout.Main>
       </ExploreBodySearch>
     </SearchQueryBuilderProvider>
@@ -409,26 +412,35 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
       <LogsSearchSection datePageFilterProps={datePageFilterProps} />
       <ViewportConstrainedPage constrained={mode === Mode.SAMPLES} hideFooter>
         <ViewportConstrainedBody>
-          <LogsControlSection expanded={sidebarOpen}>
-            {sidebarOpen ? <LogsToolbar /> : null}
-          </LogsControlSection>
+          <Container display={{zero: 'none', '3xl': 'block'}}>
+            {controlProps => (
+              <ExploreControlSection {...controlProps} expanded={sidebarOpen}>
+                {sidebarOpen ? <LogsToolbar /> : null}
+              </ExploreControlSection>
+            )}
+          </Container>
           <ExploreContentSection gap="md">
             <OverChartButtonGroup>
-              <LogsSidebarCollapseButton
-                sidebarOpen={sidebarOpen}
-                aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
-                size="xs"
-                icon={
-                  <IconChevron
-                    isDouble
-                    direction={sidebarOpen ? 'left' : 'right'}
+              <Container display={{zero: 'none', '4xl': 'inline-flex'}}>
+                {buttonProps => (
+                  <LogsSidebarCollapseButton
+                    {...buttonProps}
+                    sidebarOpen={sidebarOpen}
+                    aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
                     size="xs"
-                  />
-                }
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-              >
-                {sidebarOpen ? null : t('Advanced')}
-              </LogsSidebarCollapseButton>
+                    icon={
+                      <IconChevron
+                        isDouble
+                        direction={sidebarOpen ? 'left' : 'right'}
+                        size="xs"
+                      />
+                    }
+                    onClick={() => setSidebarOpen(!sidebarOpen)}
+                  >
+                    {sidebarOpen ? null : t('Advanced')}
+                  </LogsSidebarCollapseButton>
+                )}
+              </Container>
               {mode === Mode.AGGREGATE ? (
                 <LogsAggregateExportModalButton
                   isLoading={aggregatesTableResult.isPending}
@@ -531,10 +543,4 @@ export const LogsTabContent = registerLLMContext('logs-explorer', LogsTabContent
 const ViewportConstrainedBody = styled(ExploreBodyContent)`
   flex-direction: row;
   min-height: 0;
-`;
-
-const LogsControlSection = styled(ExploreControlSection)`
-  @container (max-width: ${p => p.theme.container['3xl']}) {
-    display: none;
-  }
 `;
