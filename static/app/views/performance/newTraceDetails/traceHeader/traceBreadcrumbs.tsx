@@ -4,10 +4,11 @@ import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconEllipsis} from 'sentry/icons';
+import {IconCopyId, IconEllipsis, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
@@ -21,7 +22,7 @@ import {useTraceEventView} from 'sentry/views/performance/newTraceDetails/useTra
 import {useTraceExploreTarget} from 'sentry/views/performance/newTraceDetails/useTraceExploreTarget';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
-const COPY_ID_LABEL = t('Copy trace ID to clipboard');
+const COPY_ID_LABEL = t('Copy Trace ID');
 
 interface TraceBreadcrumbsProps {
   organization: Organization;
@@ -92,6 +93,7 @@ export function TraceBreadcrumbs({
 
   const parentItems = useTraceParentItems(organization);
   const pagination = useTracePagination(rootEventResults);
+  const {copy} = useCopyToClipboard();
   // This header only renders on the standalone trace page, so the waterfall
   // source is always 'performance'.
   const exploreTarget = useTraceExploreTarget({
@@ -122,29 +124,33 @@ export function TraceBreadcrumbs({
               <Placeholder width="16px" height="16px" />
             ),
             pagination,
-            trailingActions: [
-              {
-                type: 'copy',
-                text: traceSlug,
-                label: COPY_ID_LABEL,
-                tooltip: COPY_ID_LABEL,
-              },
-              exploreTarget
-                ? {
-                    type: 'menu',
-                    triggerLabel: t('Trace Actions'),
-                    triggerIcon: <IconEllipsis />,
-                    items: [
+            trailingActions: {
+              type: 'menu',
+              triggerLabel: t('Trace Actions'),
+              triggerIcon: <IconEllipsis />,
+              items: [
+                {
+                  key: 'copy-trace-id',
+                  label: COPY_ID_LABEL,
+                  leadingItems: <IconCopyId variant="muted" />,
+                  onAction: () =>
+                    copy(traceSlug, {
+                      successMessage: t('Copied trace ID to clipboard'),
+                    }),
+                },
+                ...(exploreTarget
+                  ? [
                       {
                         key: 'open-in-explore',
                         label: t('Open in Explore'),
+                        leadingItems: <IconOpen variant="muted" />,
                         to: exploreTarget.to,
                         onAction: exploreTarget.onClick,
                       },
-                    ],
-                  }
-                : null,
-            ],
+                    ]
+                  : []),
+              ],
+            },
           }}
         />
       </TopBar.Slot>
