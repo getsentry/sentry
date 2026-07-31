@@ -55,7 +55,7 @@ jobs:
 
       - uses: ./.github/actions/setup-node-pnpm
 
-      - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
+      - uses: astral-sh/setup-uv@bd01e18f51369d5a26f1651c3cb451d3417e3bba # v6
         with:
           version: '0.9.28'
           # we just cache the venv-dir directly in action-setup-venv
