@@ -624,7 +624,10 @@ function UnsupportedPlatformOnboarding({
             }
           )}
         </Text>
-        <CopyLLMPromptButton platform={project.platform ?? 'unknown'} />
+        <CopyLLMPromptButton
+          platform={project.platform ?? 'unknown'}
+          product="conversations"
+        />
       </Prose>
     </ConversationOnboardingPanel>
   );
@@ -650,7 +653,10 @@ function NoDocsOnboarding({project}: {project: Project}) {
             }
           )}
         </Text>
-        <CopyLLMPromptButton platform={project.platform ?? 'unknown'} />
+        <CopyLLMPromptButton
+          platform={project.platform ?? 'unknown'}
+          product="conversations"
+        />
       </Prose>
     </ConversationOnboardingPanel>
   );
