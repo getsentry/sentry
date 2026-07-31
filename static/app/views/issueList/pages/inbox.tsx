@@ -228,7 +228,13 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
       defaultExpanded={section.defaultExpanded}
       size="sm"
     >
-      <Container padding="xs" width="100%">
+      <StickySectionHeader
+        position="sticky"
+        top={0}
+        width="100%"
+        padding="xs xs 0 xs"
+        background="primary"
+      >
         <Container width="100%" padding="sm" background="secondary" radius="sm">
           <Disclosure.Title
             trailingItems={
@@ -245,13 +251,13 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
             </Flex>
           </Disclosure.Title>
         </Container>
-      </Container>
+      </StickySectionHeader>
       <InboxSectionContent>
         {queryResult.isPending ? (
           <Stack
             aria-label={t('Loading %s issues', section.label)}
             gap="xs"
-            padding="0 xs"
+            padding="xs xs 0 xs"
           >
             {Array.from({length: ISSUE_LIMIT}).map((_, index) => (
               <Placeholder key={index} height="76px" />
@@ -273,7 +279,7 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
         ) : (
           <Stack gap="xs">
             {groups.map(group => (
-              <Container key={group.id} padding="0 xs">
+              <Container key={group.id} padding="xs xs 0 xs">
                 <InboxIssueCard
                   group={group}
                   selected={selectedIssueId === group.id}
@@ -376,6 +382,10 @@ function InboxIssueCard({
 
 const InboxSectionContent = styled(Disclosure.Content)`
   padding: 0;
+`;
+
+const StickySectionHeader = styled(Container)`
+  z-index: 1;
 `;
 
 const IssueCardLink = styled(Link)`
