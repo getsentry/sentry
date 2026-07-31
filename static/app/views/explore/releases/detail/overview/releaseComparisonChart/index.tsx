@@ -210,7 +210,7 @@ export function ReleaseComparisonChart({
         api.requestPromise(url, {
           query: {
             field: ['count()'],
-            query: new MutableSearch(`release:${release.version}`).formatString(),
+            query: new MutableSearch([`release:${release.version}`]).formatString(),
             dataset: DiscoverDatasets.ERRORS,
             ...commonQuery,
           },
