@@ -25,7 +25,12 @@ from sentry import audit_log, features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.audit_log.services.log import AuditLogEvent, log_service
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
-from sentry.auth.exceptions import AuthIdentityUserMismatch, IdentityNotValid
+from sentry.auth.exceptions import (
+    AuthIdentityUserMismatch,
+    IdentityNotValid,
+    PipelineStateExpired,
+    ProviderMismatch,
+)
 from sentry.auth.idpmigration import (
     SSO_VERIFICATION_KEY,
     get_verification_value_from_key,
@@ -850,17 +855,20 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
         state.update({"flow": self.flow, "referrer": self.referrer})
         return state
 
-    def finish_pipeline(self) -> HttpResponseBase:
-        data = self.fetch_state()
+    def resolve_identity(self) -> Mapping[str, Any]:
+        """Fetch pipeline state, validate provider, and build identity.
 
-        # The state data may have expired, in which case the state data will
-        # simply be None.
+        Raises PipelineStateExpired if state is missing/expired,
+        ProviderMismatch if the pipeline provider doesn't match the org's auth provider,
+        IdentityNotValid if the provider can't build a valid identity.
+        """
+        data: Mapping[str, Any] | None = self.fetch_state()
         if not data:
-            return self.error(ERR_INVALID_IDENTITY)
+            raise PipelineStateExpired()
 
-        # Check for provider mismatch - user authenticated with a different provider
-        # than what the organization requires. This can happen when a user has multiple
-        # SSO sessions in different tabs and completes the wrong one.
+        # Check for provider mismatch — user authenticated with a different
+        # provider than what the organization requires.  Can happen when a user
+        # has multiple SSO sessions in different tabs.
         provider_key = data.get("provider_key")
         if (
             self.state.flow == FLOW_LOGIN
@@ -868,13 +876,20 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
             and provider_key
             and provider_key != self.provider_model.provider
         ):
-            return self._handle_provider_mismatch(
-                provider_key=provider_key,
-                expected_provider_key=self.provider_model.provider,
-            )
+            raise ProviderMismatch(actual=provider_key, expected=self.provider_model.provider)
 
+        return self.provider.build_identity(data)
+
+    def finish_pipeline(self) -> HttpResponseBase:
         try:
-            identity = self.provider.build_identity(data)
+            identity = self.resolve_identity()
+        except PipelineStateExpired:
+            return self.error(ERR_INVALID_IDENTITY)
+        except ProviderMismatch as e:
+            return self._handle_provider_mismatch(
+                provider_key=e.actual,
+                expected_provider_key=e.expected,
+            )
         except IdentityNotValid as error:
             return self.error(str(error) or ERR_INVALID_IDENTITY)
 
