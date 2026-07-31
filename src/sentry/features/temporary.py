@@ -254,8 +254,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:events-endpoint-transactions-discover-blocked", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable detecting SDK crashes during event processing
     manager.add("organizations:sdk-crash-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Emit a distinct issue-search referrer for API/integration requests vs. the UI
-    manager.add("organizations:search-group-index-api-referrer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Seer Agent panel for AI-powered data exploration
     manager.add("organizations:seer-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer Agent Index job
