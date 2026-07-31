@@ -390,6 +390,11 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         queryset = self.filter_detectors(request, organization)
         queryset = exclude_disallowed_metric_detectors(queryset, organization)
 
+        # All-projects detectors (project=NULL) are system-managed and must not
+        # be enabled/disabled via this bulk endpoint. The individual details
+        # endpoint already excludes them via project__organization_id filter.
+        queryset = queryset.exclude(project__isnull=True, type=IssueStreamGroupType.slug)
+
         # If explicitly filtering by IDs and some were not found, return 400
         if request.GET.getlist("id") and len(queryset) != len(set(request.GET.getlist("id"))):
             return Response(

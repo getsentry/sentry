@@ -30,6 +30,7 @@ from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.types import (
     DATA_SOURCE_UPTIME_SUBSCRIPTION,
 )
+from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 from sentry.workflow_engine.endpoints.organization_detector_index import convert_assignee_values
 from sentry.workflow_engine.migration_helpers.alert_rule import dual_write_alert_rule
 from sentry.workflow_engine.models import (
@@ -817,8 +818,6 @@ class OrganizationDetectorIndexGetAllProjectsTest(OrganizationDetectorIndexBaseT
     """Tests that the all-projects detector is included when the feature flag is enabled."""
 
     def setUp(self) -> None:
-        from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
-
         super().setUp()
         self.all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
 
@@ -1163,6 +1162,20 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
         response = self.get_error_response(
             self.organization.slug,
             qs_params={"id": "999999"},
+            enabled=False,
+            status_code=400,
+        )
+
+        assert (
+            response.data["detail"]
+            == "Some detectors were not found or you do not have permission to update them."
+        )
+
+    def test_update_detectors_all_projects_detector_not_mutable(self) -> None:
+        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+        response = self.get_error_response(
+            self.organization.slug,
+            qs_params={"id": str(all_projects_detector.id)},
             enabled=False,
             status_code=400,
         )
