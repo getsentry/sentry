@@ -13,11 +13,6 @@ from sentry.issues.action_log.types import (
 )
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
-from sentry.models.pullrequest import (
-    PullRequest,
-    PullRequestAttribution,
-    PullRequestAttributionSignalType,
-)
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.agent.client_models import (
     CodingAgentState,
@@ -46,7 +41,6 @@ from sentry.seer.entrypoints.types import (
     SeerEntrypointKey,
     SeerOperatorCacheResult,
 )
-from sentry.seer.models.run import SeerRunPullRequest, SeerRunType
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import TestCase
@@ -385,121 +379,6 @@ class SeerOperatorTest(TestCase):
             event_payload=event_payload,
             cache_payload=cache_payload,
         )
-
-    def _pr_created_event_payload(self) -> dict:
-        return {
-            "run_id": MOCK_RUN_ID,
-            "group_id": self.group.id,
-            "pull_requests": [
-                {
-                    "provider": "unknown",
-                    "repo_name": "getsentry/sentry",
-                    "pull_request": {"pr_id": 1, "pr_number": 99, "pr_url": "https://x/99"},
-                }
-            ],
-        }
-
-    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
-    def test_process_autofix_updates_records_pr_attribution(self, _mock_has_access):
-        repo = self.create_repo(self.project, name="getsentry/sentry")
-
-        with (
-            self.feature("organizations:pr-metrics-attribution"),
-            override_options({"issues.record-seer-actions-as-activities": False}),
-            patch.dict(
-                "sentry.seer.entrypoints.operator.autofix_entrypoint_registry.registrations",
-                {},
-                clear=True,
-            ),
-        ):
-            process_autofix_updates(
-                event_type=SentryAppEventType.SEER_PR_CREATED,
-                event_payload=self._pr_created_event_payload(),
-                organization_id=self.organization.id,
-            )
-
-        pull_request = PullRequest.objects.get(repository_id=repo.id, key="99")
-        attribution = PullRequestAttribution.objects.get(pull_request=pull_request)
-        assert attribution.signal_type == PullRequestAttributionSignalType.SENTRY_APP
-        assert attribution.signal_details is not None
-        assert attribution.signal_details["run_id"] == MOCK_RUN_ID
-
-    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
-    def test_process_autofix_updates_pr_attribution_disabled(self, _mock_has_access):
-        repo = self.create_repo(self.project, name="getsentry/sentry")
-
-        # Feature flag off (default) — the attribution block must not run.
-        with (
-            override_options({"issues.record-seer-actions-as-activities": False}),
-            patch.dict(
-                "sentry.seer.entrypoints.operator.autofix_entrypoint_registry.registrations",
-                {},
-                clear=True,
-            ),
-        ):
-            process_autofix_updates(
-                event_type=SentryAppEventType.SEER_PR_CREATED,
-                event_payload=self._pr_created_event_payload(),
-                organization_id=self.organization.id,
-            )
-
-        assert not PullRequest.objects.filter(repository_id=repo.id).exists()
-        assert not PullRequestAttribution.objects.exists()
-
-    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
-    def test_process_autofix_updates_links_pull_requests(self, _mock_has_access):
-        repo = self.create_repo(self.project, name="getsentry/sentry")
-        seer_run = self.create_seer_run(
-            self.organization, type=SeerRunType.FEATURE_RUN, seer_run_state_id=MOCK_RUN_ID
-        )
-
-        with (
-            override_options({"issues.record-seer-actions-as-activities": False}),
-            patch.dict(
-                "sentry.seer.entrypoints.operator.autofix_entrypoint_registry.registrations",
-                {},
-                clear=True,
-            ),
-        ):
-            process_autofix_updates(
-                event_type=SentryAppEventType.SEER_PR_CREATED,
-                event_payload=self._pr_created_event_payload(),
-                organization_id=self.organization.id,
-            )
-
-        pull_request = PullRequest.objects.get(repository_id=repo.id, key="99")
-        link = SeerRunPullRequest.objects.get(pull_request=pull_request)
-        assert link.seer_run_id == seer_run.id
-        assert not PullRequestAttribution.objects.exists()
-
-    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
-    def test_process_autofix_updates_link_killswitch(self, _mock_has_access):
-        repo = self.create_repo(self.project, name="getsentry/sentry")
-        self.create_seer_run(
-            self.organization, type=SeerRunType.FEATURE_RUN, seer_run_state_id=MOCK_RUN_ID
-        )
-
-        with (
-            override_options(
-                {
-                    "issues.record-seer-actions-as-activities": False,
-                    "seer.pull-request-linking.killswitch.enabled": True,
-                }
-            ),
-            patch.dict(
-                "sentry.seer.entrypoints.operator.autofix_entrypoint_registry.registrations",
-                {},
-                clear=True,
-            ),
-        ):
-            process_autofix_updates(
-                event_type=SentryAppEventType.SEER_PR_CREATED,
-                event_payload=self._pr_created_event_payload(),
-                organization_id=self.organization.id,
-            )
-
-        assert not SeerRunPullRequest.objects.exists()
-        assert not PullRequest.objects.filter(repository_id=repo.id).exists()
 
     def test_process_autofix_updates_no_operator_access(self) -> None:
         mock_entrypoint_cls = Mock(spec=SeerAutofixEntrypoint)

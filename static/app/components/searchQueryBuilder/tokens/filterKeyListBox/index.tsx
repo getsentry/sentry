@@ -137,7 +137,12 @@ function RecentSearchFilterOption<T>({
   );
 
   return (
-    <RecentFilterPill key={key} data-test-id="recent-filter-key" {...optionProps}>
+    <RecentFilterPill
+      key={key}
+      ref={ref}
+      data-test-id="recent-filter-key"
+      {...optionProps}
+    >
       <InteractionStateLayer isHovered={isFocused} isPressed={isPressed} />
       <RecentFilterPillLabel {...labelProps}>
         {getKeyLabel(filter.key)}
