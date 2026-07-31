@@ -305,6 +305,16 @@ _healthcheck_filter = _FilterSpec(
 )
 
 
+# Relay `Getter` field paths that both an option-backed filter and a custom inbound
+# filter condition location glob, so the two cannot drift apart.
+LOG_BODY_FIELD = "log.body"
+TRACE_METRIC_NAME_FIELD = "trace_metric.name"
+
+
+def _glob(name: str, values: list[str]) -> RuleCondition:
+    return {"op": "glob", "name": name, "value": values}
+
+
 def _error_message_condition(
     values: Sequence[tuple[str | None, str | None]],
     match_logentry: bool = False,
@@ -323,9 +333,9 @@ def _error_message_condition(
         ty_and_value: list[RuleCondition] = []
 
         if ty is not None:
-            ty_and_value.append({"op": "glob", "name": "ty", "value": [ty]})
+            ty_and_value.append(_glob("ty", [ty]))
         if value is not None:
-            ty_and_value.append({"op": "glob", "name": "value", "value": [value]})
+            ty_and_value.append(_glob("value", [value]))
 
         if len(ty_and_value) == 1:
             conditions.append(ty_and_value[0])
@@ -340,9 +350,7 @@ def _error_message_condition(
         # A logentry message has no exception type, so only type-less patterns can match
         # it. Glob the formatted message string directly.
         if match_logentry and ty is None and value is not None:
-            message_conditions.append(
-                {"op": "glob", "name": "event.logentry.formatted", "value": [value]}
-            )
+            message_conditions.append(_glob("event.logentry.formatted", [value]))
 
     exception_condition = cast(
         RuleCondition,
@@ -430,6 +438,10 @@ ACTIVE_GENERIC_FILTERS: Sequence[tuple[str, Callable[[], RuleCondition | None]]]
 ]
 
 
+def _generic_filter(filter_id: str, condition: RuleCondition) -> GenericFilter:
+    return {"id": filter_id, "isEnabled": True, "condition": condition}
+
+
 @dataclass(frozen=True)
 class InboundFilterFeatures:
     """
@@ -474,13 +486,7 @@ def get_generic_filters(
 
         condition = generic_filter_fn()
         if condition is not None:
-            generic_filters.append(
-                {
-                    "id": generic_filter_id,
-                    "isEnabled": True,
-                    "condition": condition,
-                }
-            )
+            generic_filters.append(_generic_filter(generic_filter_id, condition))
 
     if not generic_filters:
         return None
@@ -496,17 +502,7 @@ def _log_messages_generic_filters(project: Project) -> list[GenericFilter]:
     if not log_messages:
         return []
 
-    return [
-        {
-            "id": "log-message",
-            "isEnabled": True,
-            "condition": {
-                "op": "glob",
-                "name": "log.body",
-                "value": log_messages,
-            },
-        }
-    ]
+    return [_generic_filter("log-message", _glob(LOG_BODY_FIELD, log_messages))]
 
 
 def _trace_metric_names_generic_filters(project: Project) -> list[GenericFilter]:
@@ -515,15 +511,7 @@ def _trace_metric_names_generic_filters(project: Project) -> list[GenericFilter]
         return []
 
     return [
-        {
-            "id": "trace-metric-name",
-            "isEnabled": True,
-            "condition": {
-                "op": "glob",
-                "name": "trace_metric.name",
-                "value": trace_metric_names,
-            },
-        }
+        _generic_filter("trace-metric-name", _glob(TRACE_METRIC_NAME_FIELD, trace_metric_names))
     ]
 
 
@@ -558,12 +546,12 @@ _EVENT_LOCATIONS: _ItemTypeLocations = {
 }
 
 _LOG_LOCATIONS: _ItemTypeLocations = {
-    CustomInboundFilterConditionType.LOG_MESSAGE: "log.body",
+    CustomInboundFilterConditionType.LOG_MESSAGE: LOG_BODY_FIELD,
     CustomInboundFilterConditionType.RELEASE: "log.attributes.sentry.release.value",
 }
 
 _TRACE_METRIC_LOCATIONS: _ItemTypeLocations = {
-    CustomInboundFilterConditionType.METRIC_NAME: "trace_metric.name",
+    CustomInboundFilterConditionType.METRIC_NAME: TRACE_METRIC_NAME_FIELD,
     CustomInboundFilterConditionType.RELEASE: "trace_metric.attributes.sentry.release.value",
 }
 
@@ -613,7 +601,7 @@ def _custom_filter_condition(conditions: list[dict[str, Any]]) -> RuleCondition 
         if location is None:
             return None
         if isinstance(location, str):
-            rule_conditions.append({"op": "glob", "name": location, "value": values})
+            rule_conditions.append(_glob(location, values))
         else:
             rule_conditions.append(location(values))
 
@@ -633,11 +621,7 @@ def get_custom_inbound_filter_generic_filters(project: Project) -> list[GenericF
         condition = _custom_filter_condition(custom_filter.conditions)
         if condition is not None:
             generic_filters.append(
-                {
-                    "id": f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{custom_filter.id}",
-                    "isEnabled": True,
-                    "condition": condition,
-                }
+                _generic_filter(f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{custom_filter.id}", condition)
             )
 
     return generic_filters
