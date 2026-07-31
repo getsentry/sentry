@@ -8,6 +8,7 @@ import orjson
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.utils import timezone
 from taskbroker_client.retry import Retry
 from urllib3 import BaseHTTPResponse
 from urllib3.connectionpool import HTTPConnectionPool
@@ -182,6 +183,7 @@ def _trigger_autofix_task(
         )
 
         run: SeerRun | None = None
+        triggered_at = timezone.now()
         try:
             run = trigger_autofix_agent(
                 group=group,
@@ -196,6 +198,7 @@ def _trigger_autofix_task(
                     ActivityType.TRIGGER_AUTOFIX,
                     data={"referrer": referrer.value},
                     send_notification=False,
+                    datetime=triggered_at,
                 )
         except NoSeerQuotaException:
             pass
