@@ -14,7 +14,7 @@ import {Count} from 'sentry/components/count';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconOpen, IconUser} from 'sentry/icons';
+import {IconFire, IconOpen, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -235,6 +235,15 @@ export function ConversationSummary({
         <Stat
           label={t('Errors')}
           value={<Count value={aggregates.errorCount} />}
+          icon={
+            aggregates.errorCount > 0 ? (
+              <IconFire
+                size="sm"
+                variant="danger"
+                data-test-id="conversation-error-icon"
+              />
+            ) : undefined
+          }
           to={aggregates.errorCount > 0 ? errorsUrl : undefined}
           onClick={
             aggregates.errorCount > 0
@@ -271,14 +280,30 @@ function Stat({
   isLoading,
   to,
   onClick,
+  icon,
 }: {
   label: string;
   value: React.ReactNode;
+  icon?: React.ReactNode;
   isLoading?: boolean;
   onClick?: () => void;
   to?: string;
 }) {
   const isInteractive = !!to && !isLoading;
+
+  const valueContent = (
+    <Flex align="center" gap="xs">
+      <Text
+        size="xl"
+        tabular
+        variant={isInteractive ? 'danger' : undefined}
+        wrap="nowrap"
+      >
+        {value}
+      </Text>
+      {icon}
+    </Flex>
+  );
 
   return (
     <Stack gap="xs" flexShrink={0}>
@@ -289,14 +314,10 @@ function Stat({
         <Placeholder width="32px" height="24px" />
       ) : isInteractive ? (
         <Link to={to} onClick={onClick}>
-          <Text size="xl" tabular variant="danger" wrap="nowrap">
-            {value}
-          </Text>
+          {valueContent}
         </Link>
       ) : (
-        <Text size="xl" tabular wrap="nowrap">
-          {value}
-        </Text>
+        valueContent
       )}
     </Stack>
   );
