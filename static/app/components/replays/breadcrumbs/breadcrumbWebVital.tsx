@@ -40,6 +40,10 @@ export function BreadcrumbWebVital({
     return null;
   }
 
+  if (!frame.data) {
+    return null;
+  }
+
   const selectors = extraction?.selectors;
   const webVitalData: Record<string, number | ReactNode | LayoutShift[]> = {
     value: frame.data.value,
