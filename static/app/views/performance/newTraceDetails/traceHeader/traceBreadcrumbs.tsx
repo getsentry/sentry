@@ -122,33 +122,34 @@ export function TraceBreadcrumbs({
               <Placeholder width="16px" height="16px" />
             ),
             pagination,
-            trailingActions: {
-              type: 'menu',
-              triggerLabel: t('Trace Actions'),
-              triggerIcon: <IconEllipsis />,
-              items: [
-                {
-                  key: 'copy-trace-id',
+            trailingActions: exploreTarget
+              ? {
+                  type: 'menu',
+                  triggerLabel: t('Trace Actions'),
+                  triggerIcon: <IconEllipsis />,
+                  items: [
+                    {
+                      key: 'copy-trace-id',
+                      label: COPY_ID_LABEL,
+                      leadingItems: <IconCopyId variant="muted" />,
+                      onAction: () => copy(traceSlug),
+                    },
+                    {
+                      key: 'open-in-explore',
+                      label: t('Open in Explore'),
+                      leadingItems: <IconOpen variant="muted" />,
+                      to: exploreTarget.to,
+                      onAction: exploreTarget.onClick,
+                    },
+                  ],
+                }
+              : {
+                  type: 'copy',
+                  text: traceSlug,
                   label: COPY_ID_LABEL,
-                  leadingItems: <IconCopyId variant="muted" />,
-                  onAction: () =>
-                    copy(traceSlug, {
-                      successMessage: t('Copied trace ID to clipboard'),
-                    }),
+                  tooltip: COPY_ID_LABEL,
+                  icon: <IconCopyId variant="muted" />,
                 },
-                ...(exploreTarget
-                  ? [
-                      {
-                        key: 'open-in-explore',
-                        label: t('Open in Explore'),
-                        leadingItems: <IconOpen variant="muted" />,
-                        to: exploreTarget.to,
-                        onAction: exploreTarget.onClick,
-                      },
-                    ]
-                  : []),
-              ],
-            },
           }}
         />
       </TopBar.Slot>
