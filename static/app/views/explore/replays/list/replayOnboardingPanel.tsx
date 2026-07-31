@@ -4,13 +4,16 @@ import styled from '@emotion/styled';
 import emptyStateImg from 'sentry-images/spot/replays-empty-state.svg';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container, Grid, type GridProps} from '@sentry/scraps/layout';
+import {EmptyState} from '@sentry/scraps/emptyState';
+import {Image} from '@sentry/scraps/image';
+import {Container, Grid, Stack, type GridProps} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Accordion} from 'sentry/components/container/accordion';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Panel} from 'sentry/components/panels/panel';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ReplayUnsupportedAlert} from 'sentry/components/replays/alerts/replayUnsupportedAlert';
 import {replayPlatforms} from 'sentry/data/platformCategories';
@@ -24,7 +27,6 @@ import {
   WidgetContainer,
 } from 'sentry/views/explore/profiling/landing/styles';
 import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
-import {ReplayPanel} from 'sentry/views/explore/replays/list/replayPanel';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 const OnboardingCTAHook = OverrideOrDefault({
@@ -69,14 +71,14 @@ export function ReplayOnboardingPanel() {
       {hasSelectedProjects && allSelectedProjectsUnsupported && (
         <ReplayUnsupportedAlert projectSlug={selectedProjects[0]!.slug} />
       )}
-      <ReplayPanel image={<HeroImage />}>
+      <Panel>
         <OnboardingCTAHook organization={organization}>
           <SetupReplaysCTA
             primaryAction={primaryAction}
             disabled={primaryActionDisabled}
           />
         </OnboardingCTAHook>
-      </ReplayPanel>
+      </Panel>
     </Fragment>
   );
 }
@@ -239,79 +241,53 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
 
   return (
     <Container padding="2xl">
-      <h3>{t('Get to the root cause faster')}</h3>
-      <p>
-        {t(
+      <EmptyState
+        direction={{zero: 'column', xl: 'row'}}
+        illustration={<Image src={emptyStateImg} alt="" height="180px" />}
+        title={t('Get to the root cause faster')}
+        description={t(
           'See a video-like reproduction of your user sessions so you can see what happened before, during, and after an error or latency issue occurred.'
         )}
-      </p>
-      <ButtonList>
-        {renderCTA()}
-        <LinkButton
-          href={
-            allMobileProj
-              ? 'https://docs.sentry.io/product/explore/session-replay/mobile/'
-              : 'https://docs.sentry.io/product/explore/session-replay/'
-          }
-          external
-        >
-          {t('Read Docs')}
-        </LinkButton>
-      </ButtonList>
-      <StyledWidgetContainer>
-        <StyledHeaderContainer>
-          {t('FAQ')}
-          <QuestionTooltip
-            size="xs"
-            isHoverable
-            title={tct('See a [link:full list of FAQs].', {
-              link: (
-                <ExternalLink href="https://www.sentry.help/en/articles/13964404-session-replay-faq" />
-              ),
-            })}
-          />
-        </StyledHeaderContainer>
-        <Accordion items={FAQ} expandedIndex={expanded} setExpandedIndex={setExpanded} />
-      </StyledWidgetContainer>
+        action={
+          <Stack gap="3xl" width="100%">
+            <ButtonList>
+              {renderCTA()}
+              <LinkButton
+                href={
+                  allMobileProj
+                    ? 'https://docs.sentry.io/product/explore/session-replay/mobile/'
+                    : 'https://docs.sentry.io/product/explore/session-replay/'
+                }
+                external
+              >
+                {t('Read Docs')}
+              </LinkButton>
+            </ButtonList>
+            <StyledWidgetContainer>
+              <StyledHeaderContainer>
+                {t('FAQ')}
+                <QuestionTooltip
+                  size="xs"
+                  isHoverable
+                  title={tct('See a [link:full list of FAQs].', {
+                    link: (
+                      <ExternalLink href="https://www.sentry.help/en/articles/13964404-session-replay-faq" />
+                    ),
+                  })}
+                />
+              </StyledHeaderContainer>
+              <Accordion
+                items={FAQ}
+                expandedIndex={expanded}
+                setExpandedIndex={setExpanded}
+              />
+            </StyledWidgetContainer>
+          </Stack>
+        }
+      />
     </Container>
   );
 }
-
-function HeroImage() {
-  return <StyledHeroImage src={emptyStateImg} />;
-}
-
-const StyledHeroImage = styled('img')`
-  @container (min-width: ${p => p.theme.container.xl}) {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 50%;
-    width: 220px;
-    margin-top: auto;
-    margin-bottom: auto;
-    user-select: none;
-    transform: translateX(-50%);
-  }
-
-  @container (min-width: ${p => p.theme.container['3xl']}) {
-    min-width: 300px;
-    width: 300px;
-    transform: translateX(-55%);
-  }
-
-  @container (min-width: ${p => p.theme.container['4xl']}) {
-    min-width: 380px;
-    width: 380px;
-    transform: translateX(-60%);
-  }
-
-  @container (min-width: ${p => p.theme.container['5xl']}) {
-    min-width: 420px;
-    width: 420px;
-    transform: translateX(-65%);
-  }
-`;
 
 const ButtonList = styled((props: GridProps) => (
   <Grid flow="column" align="center" gap="md" {...props} />
@@ -320,7 +296,7 @@ const ButtonList = styled((props: GridProps) => (
 `;
 
 const StyledWidgetContainer = styled(WidgetContainer)`
-  margin: ${p => p.theme.space['3xl']} 0 ${p => p.theme.space.md} 0;
+  margin: 0;
 `;
 
 const AnswerContent = styled('div')`
