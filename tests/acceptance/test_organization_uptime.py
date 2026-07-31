@@ -50,7 +50,7 @@ class OrganizationUptimeTest(AcceptanceTestCase):
         # Step 4: Fill out the uptime monitor settings form.
         # The monitor name is an editable-text field in the header.
         self.browser.click_when_visible('[data-test-id="editable-text-label"]')
-        name_input = self.browser.find_element_by_name("name")
+        name_input = self.browser.element(xpath='//input[@aria-label="Monitor Name"]')
         name_input.send_keys("My Test Uptime Monitor", Keys.ENTER)
 
         url_input = self.browser.find_element_by_name("url")
@@ -111,7 +111,7 @@ class OrganizationUptimeTest(AcceptanceTestCase):
 
         # Update the name via the editable-text field
         self.browser.click_when_visible('[data-test-id="editable-text-label"]')
-        name_input = self.browser.find_element_by_name("name")
+        name_input = self.browser.element(xpath='//input[@aria-label="Monitor Name"]')
         name_input.clear()
         name_input.send_keys("Updated Monitor Name", Keys.ENTER)
 
