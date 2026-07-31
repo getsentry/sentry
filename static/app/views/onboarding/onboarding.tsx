@@ -370,7 +370,7 @@ export function OnboardingWithoutContext() {
             organization,
             source,
           });
-          onboardingContext.setSelectedPlatform(undefined);
+          onboardingContext.resetOnboarding();
           activateSidebar({
             userClicked: false,
             source: 'targeted_onboarding_select_platform_skip',

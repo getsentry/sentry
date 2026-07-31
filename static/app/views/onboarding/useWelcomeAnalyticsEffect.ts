@@ -26,7 +26,7 @@ export function useWelcomeAnalyticsEffect() {
 
     if (onboardingContext.selectedPlatform) {
       // At this point the selectedSDK shall be undefined but just in case, cleaning this up here too
-      onboardingContext.setSelectedPlatform(undefined);
+      onboardingContext.resetOnboarding();
     }
   }, [organization, onboardingContext, hasScmOnboarding]);
 }
