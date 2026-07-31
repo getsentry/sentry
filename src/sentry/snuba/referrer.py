@@ -19,6 +19,7 @@ class Referrer(StrEnum):
     API_ALERTS_ALERT_RULE_CHART_METRICS_ENHANCED = "api.alerts.alert-rule-chart.metrics-enhanced"
     API_ALERTS_ALERT_RULE_CHART = "api.alerts.alert-rule-chart"
     API_ALERTS_CHARTCUTERIE = "api.alerts.chartcuterie"
+    API_ALERTS_RELATED_TRANSACTIONS = "api.alerts.related-transactions"
     API_ENDPOINT_REGRESSION_ALERT_CHARTCUTERIE = "api.endpoint_regression_alerts.chartcuterie"
     API_FUNCTION_REGRESSION_ALERT_CHARTCUTERIE = "api.function_regression_alerts.chartcuterie"
     API_AUTH_TOKEN_EVENTS_METRICS_ENHANCED_PRIMARY = (
@@ -129,6 +130,8 @@ class Referrer(StrEnum):
     API_EXPLORE_SPANS_AGGREGATES_TABLE = "api.explore.spans-aggregates-table"
     API_EXPLORE_SPANS_SAMPLES_TABLE = "api.explore.spans-samples-table"
     API_EXPLORE_SPANS_EXTRAPOLATION_META = "api.explore.spans-extrapolation-meta"
+    API_EXPLORE_ATTRIBUTE_DISTRIBUTION = "api.explore.attribute-distribution"
+    API_EXPLORE_METRIC_OPTIONS = "api.explore.metric-options"
     API_EXPLORE_LOGS_TABLE = "api.explore.logs-table"
     API_EXPLORE_LOGS_TABLE_ROW = "api.explore.logs-table-row"
     API_EXPLORE_SPANS_RAW_COUNT_NORMAL = "api.explore.spans.raw-count.normal"
@@ -558,9 +561,17 @@ class Referrer(StrEnum):
         "api.profiling.functions.regression.transaction-stats"
     )
     API_PROFILING_CONTINUOUS_PROFILING_FLAMECHART = "api.profiling.continuous-profiling.flamechart"
+    API_PROJECT_DETAIL_APDEX_SCORE_CARD = "api.project-detail.apdex-score-card"
     API_PROJECT_EVENTS = "api.project-events"
+    API_RELEASES_RELEASE_COMPARISON_CHART = "api.releases.release-comparison-chart"
     API_RELEASES_RELEASE_DETAILS_CHART = "api.releases.release-details-chart"
     API_REPLAY_DETAILS_PAGE = "api.replay.details-page"
+    API_STATISTICAL_DETECTOR_EVENT_COMPARISON = "api.statistical-detector.event-comparison"
+    API_TEAM_INSIGHTS_TEAM_MISERY = "api.team-insights.team-misery"
+    API_TRACE_DETAILS_AVERAGE_TRANSACTION_DURATION = (
+        "api.trace-details.average-transaction-duration"
+    )
+    API_TRANSACTION_SUMMARY_REPLAY_IDS = "api.transaction-summary.replay-ids"
     API_REPLAY_SUMMARIZE_BREADCRUMBS = "api.replay.summarize-breadcrumbs"
     API_TRACE_EXPLORER_METRICS_SPANS_LIST = "api.trace-explorer.metrics-spans-list"
     API_TRACE_EXPLORER_SPANS_LIST = "api.trace-explorer.spans-list"
