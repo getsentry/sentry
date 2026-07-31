@@ -482,8 +482,13 @@ def attach_custom_attribute_context(
     org-wide context applies (a per-project brief would otherwise be ambiguous
     across a multi-project query).
     """
+    # Keyed by (name, type), the identity rows are stored under: one name can
+    # appear twice in a page when a custom attribute was sent as both a string
+    # and a number, and each variant takes its own context.
     describable = {
-        attribute["name"]: attribute for attribute in attributes if not attribute.get("context")
+        (attribute["name"], attribute["attributeType"]): attribute
+        for attribute in attributes
+        if not attribute.get("context")
     }
     if not describable:
         return
@@ -497,18 +502,18 @@ def attach_custom_attribute_context(
         project_scope,
         organization=organization,
         item_type=TraceItemTypes.get_id_for_type_name(item_type.value),
-        attribute_key__in=list(describable),
+        attribute_key__in={name for name, _ in describable},
     )
 
     # Apply org-wide rows (project_id None) first so a project-scoped row for the
     # same attribute takes precedence.
     for row in sorted(rows, key=lambda row: row.project_id is not None):
-        attribute = describable.get(row.attribute_key)
-        # The stored type must match the attribute's own, so context authored for
-        # `number` doesn't attach to a same-named `string` attribute.
-        if attribute is None or attribute["attributeType"] != TraceItemAttributeTypes.get_type_name(
-            row.attribute_type
-        ):
+        # A row whose type matches no variant of that name is simply not applied,
+        # so context authored for `number` can't attach to a `string` attribute.
+        attribute = describable.get(
+            (row.attribute_key, TraceItemAttributeTypes.get_type_name(row.attribute_type))
+        )
+        if attribute is None:
             continue
         attribute["context"] = build_custom_attribute_context(row)
 

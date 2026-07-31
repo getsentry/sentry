@@ -769,6 +769,50 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             "brief": "Value of the cart in cents",
         }
 
+    def test_expand_context_custom_attribute_same_name_both_types(self) -> None:
+        # A custom attribute sent as a string on one span and a number on another
+        # appears twice in an all-types response, under one name. Each variant
+        # must resolve its own context rather than one clobbering the other.
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            organization_id=self.organization.id,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            tags={"cart_total": "free"},
+        )
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            organization_id=self.organization.id,
+            timestamp=before_now(days=0, minutes=9).replace(microsecond=0),
+            measurements={"cart_total": 42.0},
+        )
+        self.create_context(
+            "cart_total",
+            attribute_type=TraceItemAttributeTypes.STRING,
+            brief="Cart tier label",
+        )
+
+        response = self.do_request(
+            query={"expand": "context"},
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": True,
+            },
+        )
+        assert response.status_code == 200, response.data
+
+        attributes = {item["key"]: item for item in response.data}
+        assert attributes["cart_total"]["attributeType"] == "string"
+        assert attributes["cart_total"]["context"] == {
+            "isCustom": True,
+            "brief": "Cart tier label",
+        }
+        # The number variant has no context authored for its type.
+        assert attributes["tags[cart_total,number]"]["context"] == {}
+
     def test_expand_context_custom_attribute_requires_feature(self) -> None:
         self._store_basic_segment()
         self.create_context("foo")
