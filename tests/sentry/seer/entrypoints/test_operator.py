@@ -501,6 +501,7 @@ class SeerOperatorTest(TestCase):
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     def test_seer_event_creates_activity_solution_completed(self, _mock_has_access):
+        activity_datetime = datetime.fromisoformat("2024-01-15T10:30:00+00:00")
         event_payload = {
             "run_id": MOCK_RUN_ID,
             "group_id": self.group.id,
@@ -514,6 +515,7 @@ class SeerOperatorTest(TestCase):
             event_type=SentryAppEventType.SEER_SOLUTION_COMPLETED,
             event_payload=event_payload,
             organization_id=self.organization.id,
+            activity_datetime=activity_datetime.isoformat(),
         )
 
         activity = Activity.objects.get(
@@ -523,6 +525,7 @@ class SeerOperatorTest(TestCase):
         assert activity.data["summary"] == "Test solution summary"
         assert "solution" not in activity.data
         assert "steps" not in activity.data
+        assert activity.datetime == activity_datetime
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     def test_seer_event_creates_activity_coding_completed(self, _mock_has_access):

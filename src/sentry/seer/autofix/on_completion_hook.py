@@ -468,6 +468,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                         "event_type": sentry_app_event_type,
                         "event_payload": webhook_payload,
                         "organization_id": organization.id,
+                        "activity_datetime": state.updated_at,
                     }
                 )
         except ValueError:
