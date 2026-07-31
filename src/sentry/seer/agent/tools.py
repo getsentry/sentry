@@ -240,7 +240,14 @@ def _validate_events_query_params(
     except client.ApiError as e:
         if e.status_code == 400 and isinstance(e.body, dict) and "valid" in e.body:
             return ExecuteQueryErrorResponse(error=_format_events_query_validation_errors(e.body))
-        logger.exception(
+        if e.status_code is not None and e.status_code >= 500:
+            detail = (
+                isinstance(e.body, dict)
+                and e.body.get("detail")
+                or "The query validation request timed out or encountered a server error. Please try again with a smaller date range or fewer projects."
+            )
+            return ExecuteQueryErrorResponse(error=str(detail))
+        logger.warning(
             "execute_table_query: validate request failed",
             extra={"org_id": organization.id},
         )
