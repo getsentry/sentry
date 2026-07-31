@@ -27,7 +27,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
-import {IconClose, IconMegaphone, IconSearch, IconSync} from 'sentry/icons';
+import {IconClose, IconMegaphone, IconSearch, IconSeer, IconSync} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
@@ -422,6 +422,12 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
 
   const hasResults = queries.length > 0;
   const isDisplayingResults = !isPending && !isError && hasResults;
+  const showQueryStatus = !state.isOpen && (isPending || isError || hasResults);
+  const queryStatusLabel = isPending
+    ? t('Seer is processing your query')
+    : isError
+      ? t('Seer could not process your query')
+      : t('Seer processed your query');
 
   useEffect(() => {
     if (enableAISearch && hasAskSeerUxRework && isDisplayingResults) {
@@ -458,6 +464,14 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
         />
       </InputWrapper>
       <ButtonsWrapper>
+        {showQueryStatus ? (
+          <IconSeer
+            animation={isPending ? 'loading' : undefined}
+            aria-label={queryStatusLabel}
+            size="sm"
+            variant={isPending ? 'accent' : isError ? 'danger' : 'success'}
+          />
+        ) : null}
         <Button
           ref={buttonRef}
           size="xs"
