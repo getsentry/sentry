@@ -1,3 +1,5 @@
+import {ThemeFixture} from 'sentry-fixture/theme';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {BaseChart} from 'sentry/components/charts/baseChart';
@@ -158,7 +160,8 @@ describe('Chart embed', () => {
           name: 'Issues',
           data: [
             {x: 'Resolved', y: 70},
-            {x: 'Unresolved', y: 30},
+            {x: 'Unresolved', y: 20},
+            {x: 'Ignored', y: 10},
           ],
         },
       ],
@@ -175,13 +178,19 @@ describe('Chart embed', () => {
             name: 'Issues',
             data: [
               {name: 'Resolved', value: 70},
-              {name: 'Unresolved', value: 30},
+              {name: 'Unresolved', value: 20},
+              {name: 'Ignored', value: 10},
             ],
           }),
         ],
         xAxis: null,
         yAxis: null,
       })
+    );
+    const colors = props.colors;
+    expect(colors).toEqual(expect.any(Function));
+    expect(typeof colors === 'function' ? colors(ThemeFixture()) : undefined).toEqual(
+      ThemeFixture().chart.getColorPalette(3)
     );
     const tooltipFormatter = props.tooltip?.formatter as
       | ((params: {name: string; value: number}) => string)
