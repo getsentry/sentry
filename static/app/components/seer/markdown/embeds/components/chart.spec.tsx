@@ -49,6 +49,7 @@ describe('Chart embed', () => {
       ]);
       expect(props.start).toEqual(new Date('2026-07-30T12:00:00Z'));
       expect(props.end).toEqual(new Date('2026-07-30T14:00:00Z'));
+      expect(props.showTimeInTooltip).toBe(true);
       expect(props.tooltip).toEqual(expect.objectContaining({trigger: 'axis'}));
       if (visualization === 'area') {
         expect(props.series?.[0]).toHaveProperty('areaStyle');
@@ -147,7 +148,10 @@ describe('Chart embed', () => {
     const tooltipFormatter = props.tooltip?.formatter as
       | ((params: {value: [number, number, number]}) => string)
       | undefined;
-    expect(tooltipFormatter?.({value: [0, 0, 120]})).toContain('<strong>Chrome</strong>');
+    const tooltip = tooltipFormatter?.({value: [0, 0, 120]});
+    expect(tooltip).toContain('<strong>Chrome</strong>');
+    expect(tooltip).toContain('tooltip-series-solo');
+    expect(tooltip).toContain('tooltip-arrow');
   });
 
   it('renders a wheel from one category series', () => {
@@ -195,9 +199,13 @@ describe('Chart embed', () => {
     const tooltipFormatter = props.tooltip?.formatter as
       | ((params: {name: string; value: number}) => string)
       | undefined;
-    expect(
-      tooltipFormatter?.({name: '<img src=x onerror=alert(1)>', value: 70})
-    ).toContain('&lt;img src=x onerror=alert(1)&gt;');
+    const tooltip = tooltipFormatter?.({
+      name: '<img src=x onerror=alert(1)>',
+      value: 70,
+    });
+    expect(tooltip).toContain('&lt;img src=x onerror=alert(1)&gt;');
+    expect(tooltip).toContain('tooltip-series-solo');
+    expect(tooltip).toContain('tooltip-arrow');
   });
 
   it.each(['not-a-timestamp', 1_785_405_600])(

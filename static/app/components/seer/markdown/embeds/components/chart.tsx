@@ -64,6 +64,7 @@ export const Chart = defineSeerEmbed({
       legend: series.length > 1 ? {left: 0, top: 0} : {show: false},
       renderer: 'svg' as const,
       series: chartSeries,
+      showTimeInTooltip: xAxis === 'time',
       start,
       tooltip: {
         formatAxisLabel:

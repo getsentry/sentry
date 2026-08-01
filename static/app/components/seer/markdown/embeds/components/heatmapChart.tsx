@@ -77,7 +77,7 @@ export function HeatmapChart({series, valueFormatter, xAxis}: HeatmapChartProps)
           const [columnIndex, rowIndex, value] = params.value as [number, number, number];
           const row = escape(rows[rowIndex] ?? '');
           const column = escape(formatColumn(columns[columnIndex]!));
-          return `<div class="tooltip-series"><div><span class="tooltip-label"><strong>${row}</strong></span> ${column}: ${valueFormatter(value)}</div></div>`;
+          return `<div class="tooltip-series tooltip-series-solo"><div><span class="tooltip-label"><strong>${row}</strong></span> ${column}: ${valueFormatter(value)}</div></div><div class="tooltip-arrow"></div>`;
         },
       }}
       visualMap={{
