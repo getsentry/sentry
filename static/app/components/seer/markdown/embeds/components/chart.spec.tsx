@@ -45,6 +45,9 @@ describe('Chart embed', () => {
           type: visualization === 'bar' ? 'bar' : 'line',
         }),
       ]);
+      expect(props.start).toEqual(new Date('2026-07-30T12:00:00Z'));
+      expect(props.end).toEqual(new Date('2026-07-30T14:00:00Z'));
+      expect(props.tooltip).toEqual(expect.objectContaining({trigger: 'axis'}));
       if (visualization === 'area') {
         expect(props.series?.[0]).toHaveProperty('areaStyle');
       }

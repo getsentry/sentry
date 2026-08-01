@@ -49,17 +49,26 @@ export const Chart = defineSeerEmbed({
       }
       return {seriesName: item.name, data};
     });
+    const timestamps =
+      xAxis === 'time'
+        ? chartSeries.flatMap(item => item.data.map(point => Number(point.name)))
+        : [];
+    const start = timestamps.length > 0 ? new Date(Math.min(...timestamps)) : undefined;
+    const end = timestamps.length > 0 ? new Date(Math.max(...timestamps)) : undefined;
     const chartProps = {
       animation: false,
+      end,
       grid: {left: 12, right: 12, top: series.length > 1 ? 36 : 12, bottom: 8},
       height: 220,
       isGroupedByDate: xAxis === 'time',
       legend: series.length > 1 ? {left: 0, top: 0} : {show: false},
       renderer: 'svg' as const,
       series: chartSeries,
+      start,
       tooltip: {
         formatAxisLabel:
           xAxis === 'category' ? (value: number) => escape(String(value)) : undefined,
+        trigger: 'axis' as const,
         valueFormatter: (value: number) => formatValue(value, yAxisUnit),
       },
       xAxis:
