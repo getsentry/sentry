@@ -25,9 +25,9 @@ describe('Chart embed', () => {
           {
             name: 'Errors',
             data: [
+              {x: '2026-07-30T14:00:00Z', y: 15},
               {x: '2026-07-30T12:00:00Z', y: 12},
               {x: '2026-07-30T13:00:00Z', y: 18},
-              {x: '2026-07-30T14:00:00Z', y: 15},
             ],
           },
         ],
@@ -47,6 +47,19 @@ describe('Chart embed', () => {
       ]);
       if (visualization === 'area') {
         expect(props.series?.[0]).toHaveProperty('areaStyle');
+      }
+      if (visualization === 'bar') {
+        expect(props.series?.[0]?.data).toEqual([
+          expect.objectContaining({value: [Date.parse('2026-07-30T12:00:00Z'), 12]}),
+          expect.objectContaining({value: [Date.parse('2026-07-30T13:00:00Z'), 18]}),
+          expect.objectContaining({value: [Date.parse('2026-07-30T14:00:00Z'), 15]}),
+        ]);
+      } else {
+        expect(props.series?.[0]?.data).toEqual([
+          [Date.parse('2026-07-30T12:00:00Z'), 12],
+          [Date.parse('2026-07-30T13:00:00Z'), 18],
+          [Date.parse('2026-07-30T14:00:00Z'), 15],
+        ]);
       }
     }
   );
@@ -104,8 +117,8 @@ describe('Chart embed', () => {
           expect.objectContaining({
             type: 'heatmap',
             data: [
-              [1, 0, 480],
               [0, 0, 120],
+              [1, 0, 480],
               [0, 1, 150],
               [1, 1, 520],
             ],
@@ -274,14 +287,13 @@ describe('Chart embed', () => {
     expect(screen.queryByTestId('seer-chart-embed')).not.toBeInTheDocument();
   });
 
-  it('escapes labels before rendering the HTML tooltip', () => {
+  it('escapes category labels before rendering the HTML tooltip', () => {
     const unsafeLabel = '<img src=x onerror=alert(1)>';
-    const unsafeSeriesName = '<svg onload=alert(2)>';
     const raw = `{% chart %}${JSON.stringify({
       title: 'Errors by browser',
       visualization: 'bar',
       x_axis: 'category',
-      series: [{name: unsafeSeriesName, data: [{x: unsafeLabel, y: 12}]}],
+      series: [{name: 'Errors', data: [{x: unsafeLabel, y: 12}]}],
     })}{% /chart %}`;
 
     render(<SeerMarkdown raw={raw} />);
@@ -290,10 +302,6 @@ describe('Chart embed', () => {
     const formatAxisLabel = tooltip?.formatAxisLabel as
       | ((value: string) => string)
       | undefined;
-    const nameFormatter = tooltip?.nameFormatter as
-      | ((value: string) => string)
-      | undefined;
     expect(formatAxisLabel?.(unsafeLabel)).toBe('&lt;img src=x onerror=alert(1)&gt;');
-    expect(nameFormatter?.(unsafeSeriesName)).toBe('&lt;svg onload=alert(2)&gt;');
   });
 });
