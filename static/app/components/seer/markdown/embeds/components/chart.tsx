@@ -1,6 +1,4 @@
-import styled from '@emotion/styled';
-
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
@@ -70,7 +68,16 @@ export const Chart = defineSeerEmbed({
     };
 
     return (
-      <ChartFrame data-test-id="seer-chart-embed">
+      <Container
+        as="section"
+        background="primary"
+        border="primary"
+        data-test-id="seer-chart-embed"
+        margin="lg 0"
+        overflow="hidden"
+        padding="lg xl md"
+        radius="md"
+      >
         <Stack gap="2xs" paddingBottom="sm">
           <Heading as="h3" size="md">
             {title}
@@ -99,16 +106,7 @@ export const Chart = defineSeerEmbed({
         ) : (
           <LineChart {...chartProps} />
         )}
-      </ChartFrame>
+      </Container>
     );
   },
 });
-
-const ChartFrame = styled('section')(({theme}) => ({
-  background: theme.tokens.background.primary,
-  border: `1px solid ${theme.tokens.border.primary}`,
-  borderRadius: theme.radius.md,
-  margin: `${theme.space.lg} 0`,
-  overflow: 'hidden',
-  padding: `${theme.space.lg} ${theme.space.xl} ${theme.space.md}`,
-}));
