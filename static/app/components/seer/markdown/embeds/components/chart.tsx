@@ -42,7 +42,7 @@ export const Chart = defineSeerEmbed({
   }) {
     const chartSeries: ChartSeries[] = series.map(item => {
       const data = item.data.map(point => ({
-        name: xAxis === 'time' ? Date.parse(String(point.x)) : point.x,
+        name: xAxis === 'time' ? Date.parse(String(point.x)) : String(point.x),
         value: point.y,
       }));
       if (xAxis === 'time') {
