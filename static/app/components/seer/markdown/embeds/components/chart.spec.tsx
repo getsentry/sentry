@@ -115,6 +115,30 @@ describe('Chart embed', () => {
     expect(formatter?.(1000)).toBe('1000ms');
   });
 
+  it('normalizes numeric category values to strings', () => {
+    const raw = `{% chart %}${JSON.stringify({
+      title: 'Errors by status',
+      visualization: 'line',
+      x_axis: 'category',
+      series: [
+        {
+          name: 'Errors',
+          data: [
+            {x: 200, y: 12},
+            {x: 500, y: 4},
+          ],
+        },
+      ],
+    })}{% /chart %}`;
+
+    render(<SeerMarkdown raw={raw} />);
+
+    expect(jest.mocked(BaseChart).mock.calls.at(-1)![0].series?.[0]?.data).toEqual([
+      ['200', 12],
+      ['500', 4],
+    ]);
+  });
+
   it('renders a heatmap from the shared series schema', () => {
     const raw = `{% chart %}${JSON.stringify({
       title: 'Latency by browser',
