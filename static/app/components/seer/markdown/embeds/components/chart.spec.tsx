@@ -61,15 +61,15 @@ describe('Chart embed', () => {
         {
           name: 'Chrome',
           data: [
+            {x: '2026-07-31T12:00:00Z', y: 480},
             {x: '2026-07-30T12:00:00Z', y: 120},
-            {x: '2026-07-30T13:00:00Z', y: 480},
           ],
         },
         {
           name: 'Safari',
           data: [
             {x: '2026-07-30T12:00:00Z', y: 150},
-            {x: '2026-07-30T13:00:00Z', y: 520},
+            {x: '2026-07-31T12:00:00Z', y: 520},
           ],
         },
       ],
@@ -84,8 +84,8 @@ describe('Chart embed', () => {
           expect.objectContaining({
             type: 'heatmap',
             data: [
-              [0, 0, 120],
               [1, 0, 480],
+              [0, 0, 120],
               [0, 1, 150],
               [1, 1, 520],
             ],
@@ -94,10 +94,16 @@ describe('Chart embed', () => {
         visualMap: expect.objectContaining({min: 0, max: 520}),
         xAxis: expect.objectContaining({
           type: 'category',
-          data: [Date.parse('2026-07-30T12:00:00Z'), Date.parse('2026-07-30T13:00:00Z')],
+          data: [Date.parse('2026-07-30T12:00:00Z'), Date.parse('2026-07-31T12:00:00Z')],
         }),
         yAxis: {type: 'category', data: ['Chrome', 'Safari']},
       })
+    );
+    const formatColumn = props.xAxis?.axisLabel?.formatter as
+      | ((value: number) => string)
+      | undefined;
+    expect(formatColumn?.(Date.parse('2026-07-30T12:00:00Z'))).not.toBe(
+      formatColumn?.(Date.parse('2026-07-31T12:00:00Z'))
     );
   });
 
