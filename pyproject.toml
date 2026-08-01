@@ -1495,7 +1495,6 @@ module = [
     "sentry.utils.marketo_client",
     "sentry.utils.meta",
     "sentry.utils.mockdata.*",
-    "sentry.utils.not_set",
     "sentry.utils.options",
     "sentry.utils.outcomes",
     "sentry.utils.pagination_factory",
