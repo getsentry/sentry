@@ -190,7 +190,7 @@ describe('Chart embed', () => {
     const colors = props.colors;
     expect(colors).toEqual(expect.any(Function));
     expect(typeof colors === 'function' ? colors(ThemeFixture()) : undefined).toEqual(
-      ThemeFixture().chart.getColorPalette(3)
+      ThemeFixture().chart.getColorPalette(2)
     );
     const tooltipFormatter = props.tooltip?.formatter as
       | ((params: {name: string; value: number}) => string)
