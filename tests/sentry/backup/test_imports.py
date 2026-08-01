@@ -33,6 +33,13 @@ from sentry.backup.imports import (
 )
 from sentry.backup.scopes import ExportScope, ImportScope, RelocationScope
 from sentry.backup.services.import_export.model import RpcImportErrorKind
+from sentry.investigations.models import (
+    Investigation,
+    InvestigationCell,
+    InvestigationCellComment,
+    InvestigationCellExecution,
+    InvestigationParameter,
+)
 from sentry.models.apitoken import DEFAULT_EXPIRATION, ApiToken, generate_token
 from sentry.models.importchunk import (
     ControlImportChunk,
@@ -1463,7 +1470,15 @@ class CollisionTests(ImportTestCase):
             with open(tmp_path, "rb") as tmp_file:
                 verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
-    @expect_models(COLLISION_TESTED, Monitor)
+    @expect_models(
+        COLLISION_TESTED,
+        Monitor,
+        Investigation,
+        InvestigationCell,
+        InvestigationCellComment,
+        InvestigationCellExecution,
+        InvestigationParameter,
+    )
     def test_colliding_monitor(self, expected_models: list[type[Model]]) -> None:
         owner = self.create_exhaustive_user("owner")
         invited = self.create_exhaustive_user("invited")

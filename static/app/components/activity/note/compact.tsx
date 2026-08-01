@@ -20,6 +20,8 @@ import {useTeams} from 'sentry/utils/useTeams';
 
 type Props = {
   errorJSON?: CreateError | null;
+  /** Existing user/team actors when editing a comment. */
+  mentioned?: Mentioned[];
   /**
    * This is the id of the server's note object and is meant to indicate that
    * you are editing an existing item
@@ -38,6 +40,7 @@ type Props = {
 
 export function CompactNoteInput({
   text,
+  mentioned = [],
   onCreate,
   onChange,
   onUpdate,
@@ -58,8 +61,12 @@ export function CompactNoteInput({
 
   const [value, setValue] = useState(text ?? '');
 
-  const [memberMentions, setMemberMentions] = useState<Mentioned[]>([]);
-  const [teamMentions, setTeamMentions] = useState<Mentioned[]>([]);
+  const [memberMentions, setMemberMentions] = useState<Mentioned[]>(() =>
+    mentioned.filter(([id]) => id.startsWith('user:'))
+  );
+  const [teamMentions, setTeamMentions] = useState<Mentioned[]>(() =>
+    mentioned.filter(([id]) => id.startsWith('team:'))
+  );
   const [isSubmitVisible, setIsSubmitVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 

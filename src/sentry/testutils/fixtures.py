@@ -184,6 +184,45 @@ class Fixtures:
     def create_organization(self, *args, **kwargs):
         return Factories.create_organization(*args, **kwargs)
 
+    def create_investigation(self, *args, **kwargs):
+        return Factories.create_investigation(*args, **kwargs)
+
+    def create_investigation_permissions(self, *args, **kwargs):
+        return Factories.create_investigation_permissions(*args, **kwargs)
+
+    def create_investigation_cell(self, *args, **kwargs):
+        return Factories.create_investigation_cell(*args, **kwargs)
+
+    def create_investigation_cell_dependency(self, *args, **kwargs):
+        return Factories.create_investigation_cell_dependency(*args, **kwargs)
+
+    def create_investigation_parameter(self, *args, **kwargs):
+        return Factories.create_investigation_parameter(*args, **kwargs)
+
+    def create_investigation_cell_parameter(self, *args, **kwargs):
+        return Factories.create_investigation_cell_parameter(*args, **kwargs)
+
+    def create_investigation_cell_execution(self, *args, **kwargs):
+        return Factories.create_investigation_cell_execution(*args, **kwargs)
+
+    def create_investigation_cell_execution_project(self, *args, **kwargs):
+        return Factories.create_investigation_cell_execution_project(*args, **kwargs)
+
+    def create_investigation_cell_comment(self, *args, **kwargs):
+        return Factories.create_investigation_cell_comment(*args, **kwargs)
+
+    def create_investigation_cell_reaction(self, *args, **kwargs):
+        return Factories.create_investigation_cell_reaction(*args, **kwargs)
+
+    def create_investigation_comment_reaction(self, *args, **kwargs):
+        return Factories.create_investigation_comment_reaction(*args, **kwargs)
+
+    def create_investigation_comment_user_mention(self, *args, **kwargs):
+        return Factories.create_investigation_comment_user_mention(*args, **kwargs)
+
+    def create_investigation_comment_team_mention(self, *args, **kwargs):
+        return Factories.create_investigation_comment_team_mention(*args, **kwargs)
+
     def create_member(self, *args, **kwargs):
         return Factories.create_member(*args, **kwargs)
 

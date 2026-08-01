@@ -2777,6 +2777,20 @@ function buildRoutes(): RouteObject[] {
   const organizationRoutes: SentryRouteObject = {
     component: errorHandler(OrganizationLayout),
     children: [
+      {
+        path: '/seer/',
+        withOrgPath: true,
+        children: [
+          {
+            index: true,
+            component: make(() => import('sentry/views/seerNotebook')),
+          },
+          {
+            path: ':investigationId/',
+            component: make(() => import('sentry/views/seerNotebook/investigation')),
+          },
+        ],
+      },
       settingsRoutes,
       projectsRoutes,
       dashboardRoutes,

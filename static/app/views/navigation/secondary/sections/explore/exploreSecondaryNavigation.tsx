@@ -137,6 +137,18 @@ export function ExploreSecondaryNavigation() {
                 {t('Releases')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
+            <Feature features="investigations">
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={`/organizations/${organization.slug}/seer/`}
+                  activeTo={`/organizations/${organization.slug}/seer/`}
+                  analyticsItemName="explore_investigations"
+                  trailingItems={<FeatureBadge type="beta" />}
+                >
+                  {t('Investigations')}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
+            </Feature>
             <Feature features="gen-ai-conversations">
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link

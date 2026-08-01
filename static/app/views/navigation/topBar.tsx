@@ -26,7 +26,14 @@ import {
   TOP_BAR_HEIGHT_CSS_VAR,
 } from './constants';
 
-const Slot = slot(['breadcrumbs', 'title', 'search', 'actions', 'feedback'] as const);
+const Slot = slot([
+  'breadcrumbs',
+  'title',
+  'search',
+  'actions',
+  'assistant',
+  'feedback',
+] as const);
 
 function TopBarContent() {
   const theme = useTheme();
@@ -121,7 +128,15 @@ function TopBarContent() {
           </Slot.Outlet>
 
           <SearchButton />
-          {isSeerExplorerEnabled(organization) ? <AskSeerButton /> : null}
+          <Slot.Outlet name="assistant">
+            {props => (
+              <Flex {...props}>
+                <Slot.Fallback>
+                  {isSeerExplorerEnabled(organization) ? <AskSeerButton /> : null}
+                </Slot.Fallback>
+              </Flex>
+            )}
+          </Slot.Outlet>
 
           <Slot.Outlet name="feedback">
             {props => (

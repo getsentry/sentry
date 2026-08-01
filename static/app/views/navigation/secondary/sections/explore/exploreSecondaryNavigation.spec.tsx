@@ -8,7 +8,7 @@ import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/second
 describe('ExploreSecondaryNavigation', () => {
   const {organization} = initializeOrg({
     organization: {
-      features: ['performance-view', 'visibility-explore-view'],
+      features: ['investigations', 'performance-view', 'visibility-explore-view'],
     },
   });
 
@@ -56,6 +56,10 @@ describe('ExploreSecondaryNavigation', () => {
     );
 
     expect(screen.getByText('Traces')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: /Investigations/})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/seer/'
+    );
   });
 
   it('marks Releases as active on preprod pages', () => {

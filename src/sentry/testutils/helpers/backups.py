@@ -58,6 +58,24 @@ from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.investigations.models import (
+    Investigation,
+    InvestigationCell,
+    InvestigationCellComment,
+    InvestigationCellDependency,
+    InvestigationCellExecution,
+    InvestigationCellExecutionProject,
+    InvestigationCellParameter,
+    InvestigationCellReaction,
+    InvestigationCommentReaction,
+    InvestigationCommentTeamMention,
+    InvestigationCommentUserMention,
+    InvestigationFavoriteUser,
+    InvestigationParameter,
+    InvestigationPermissions,
+    InvestigationPermissionsTeam,
+    InvestigationProject,
+)
 from sentry.models.activity import Activity
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apidevicecode import ApiDeviceCode
@@ -840,6 +858,105 @@ class ExhaustiveFixtures(Fixtures):
             project=project,
             overrides={"write_key": "test_override_write_key"},
         )
+
+        investigation = Investigation.objects.create(
+            organization=org,
+            created_by_id=owner_id,
+            title=f"Investigation in {slug}",
+            status="archived",
+            template_key="breached_metric",
+            template_version=2,
+            source_type="breached_metric",
+            source_ref={"groupId": str(group.id)},
+            filters={"environment": ["production"]},
+            version=2,
+        )
+        InvestigationProject.objects.create(investigation=investigation, project=project)
+        InvestigationFavoriteUser.objects.create(investigation=investigation, user_id=owner_id)
+        investigation_permissions = InvestigationPermissions.objects.create(
+            investigation=investigation,
+            is_editable_by_everyone=False,
+        )
+        InvestigationPermissionsTeam.objects.create(
+            permissions=investigation_permissions, team=team
+        )
+        parameter = InvestigationParameter.objects.create(
+            investigation=investigation,
+            key="environment",
+            label="Environment",
+            description="Environment filter",
+            type="string",
+            required=True,
+            constraints={"maxLength": 64},
+            default_value="development",
+            saved_value="production",
+            source="user",
+            position=1,
+            version=2,
+        )
+        upstream_cell = InvestigationCell.objects.create(
+            investigation=investigation,
+            created_by_id=owner_id,
+            last_edited_by_id=owner_id,
+            position=1,
+            kind="text",
+            title="Upstream",
+            content="Upstream evidence",
+            prompt="Create evidence",
+            generated_content="Generated evidence",
+            config={"language": "markdown"},
+            display={"type": "markdown"},
+            version=2,
+            stale_at=timezone.now(),
+            deleted_at=timezone.now(),
+        )
+        cell = InvestigationCell.objects.create(
+            investigation=investigation,
+            created_by_id=owner_id,
+            last_edited_by_id=owner_id,
+            position=2,
+            kind="query",
+            title="Query",
+            content="count()",
+            prompt="Build a query",
+            generated_content="count()",
+            config={"dataset": "spans"},
+            display={"type": "table"},
+            version=2,
+            stale_at=timezone.now(),
+            deleted_at=timezone.now(),
+        )
+        InvestigationCellDependency.objects.create(cell=cell, depends_on=upstream_cell)
+        InvestigationCellParameter.objects.create(cell=cell, parameter=parameter)
+        execution = InvestigationCellExecution.objects.create(
+            cell=cell,
+            triggered_by_id=owner_id,
+            executor="code_mode",
+            status="completed",
+            cell_version=2,
+            input_snapshot={"environment": "production"},
+            input_fingerprint="f" * 64,
+            result_schema_version=2,
+            result={"rows": [[1]]},
+            error={"previous": "transient"},
+            started_at=timezone.now(),
+            completed_at=timezone.now(),
+        )
+        InvestigationCellExecutionProject.objects.create(execution=execution, project=project)
+        cell.current_execution = execution
+        cell.save(update_fields=["current_execution"])
+        comment = InvestigationCellComment.objects.create(
+            cell=cell,
+            author_id=owner_id,
+            body="Please review this result",
+            deleted_at=timezone.now(),
+        )
+        InvestigationCellReaction.objects.create(cell=cell, user_id=owner_id, reaction="heart")
+        InvestigationCommentReaction.objects.create(
+            comment=comment, user_id=owner_id, reaction="eyes"
+        )
+        InvestigationCommentUserMention.objects.create(comment=comment, user_id=owner_id)
+        InvestigationCommentTeamMention.objects.create(comment=comment, team=team)
 
         return org
 

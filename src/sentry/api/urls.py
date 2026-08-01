@@ -293,6 +293,21 @@ from sentry.integrations.api.endpoints.organization_repository_platforms import 
 from sentry.integrations.api.endpoints.organization_repository_settings import (
     OrganizationRepositorySettingsEndpoint,
 )
+from sentry.investigations.endpoints.organization_investigations import (
+    OrganizationInvestigationCellDetailsEndpoint,
+    OrganizationInvestigationCellOrderEndpoint,
+    OrganizationInvestigationCellReactionEndpoint,
+    OrganizationInvestigationCellsEndpoint,
+    OrganizationInvestigationCommentDetailsEndpoint,
+    OrganizationInvestigationCommentReactionEndpoint,
+    OrganizationInvestigationCommentsEndpoint,
+    OrganizationInvestigationDetailsEndpoint,
+    OrganizationInvestigationDuplicateEndpoint,
+    OrganizationInvestigationFavoriteEndpoint,
+    OrganizationInvestigationParametersEndpoint,
+    OrganizationInvestigationPermissionsEndpoint,
+    OrganizationInvestigationsEndpoint,
+)
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
     EventIdLookupEndpoint,
@@ -2351,6 +2366,71 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/sentry-apps/$",
         OrganizationSentryAppsEndpoint.as_view(),
         name="sentry-api-0-organization-sentry-apps",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/$",
+        OrganizationInvestigationsEndpoint.as_view(),
+        name="sentry-api-0-organization-investigations",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_uuid>[^/]+)/$",
+        OrganizationInvestigationDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_uuid>[^/]+)/favorite/$",
+        OrganizationInvestigationFavoriteEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-favorite",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_uuid>[^/]+)/duplicate/$",
+        OrganizationInvestigationDuplicateEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-duplicate",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_uuid>[^/]+)/cells/$",
+        OrganizationInvestigationCellsEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-cells",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_uuid>[^/]+)/cells/order/$",
+        OrganizationInvestigationCellOrderEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-cell-order",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_uuid>[^/]+)/cells/(?P<cell_uuid>[^/]+)/$",
+        OrganizationInvestigationCellDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-cell-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_uuid>[^/]+)/parameters/$",
+        OrganizationInvestigationParametersEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-parameters",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_uuid>[^/]+)/permissions/$",
+        OrganizationInvestigationPermissionsEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-permissions",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_uuid>[^/]+)/cells/(?P<cell_uuid>[^/]+)/comments/$",
+        OrganizationInvestigationCommentsEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-comments",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_uuid>[^/]+)/comments/(?P<comment_uuid>[^/]+)/$",
+        OrganizationInvestigationCommentDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-comment-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_uuid>[^/]+)/cells/(?P<cell_uuid>[^/]+)/reactions/(?P<reaction>[^/]+)/$",
+        OrganizationInvestigationCellReactionEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-cell-reaction",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_uuid>[^/]+)/comments/(?P<comment_uuid>[^/]+)/reactions/(?P<reaction>[^/]+)/$",
+        OrganizationInvestigationCommentReactionEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-comment-reaction",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/trace-explorer-ai/setup/$",

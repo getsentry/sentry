@@ -1005,6 +1005,30 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "insights.insightsstarredsegment": [
                 DateUpdatedComparator("date_updated", "date_added")
             ],
+            "investigations.investigation": [
+                DateUpdatedComparator("date_updated", "date_added"),
+                UUID4Comparator("uuid"),
+            ],
+            "investigations.investigationcell": [
+                DateUpdatedComparator("date_updated", "date_added"),
+                UUID4Comparator("uuid"),
+                IgnoredComparator("current_execution"),
+            ],
+            "investigations.investigationcellcomment": [
+                DateUpdatedComparator("date_updated", "date_added"),
+                UUID4Comparator("uuid"),
+            ],
+            "investigations.investigationfavoriteuser": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
+            "investigations.investigationcellexecution": [
+                DateUpdatedComparator("date_updated", "date_added"),
+                UUID4Comparator("uuid", "request_id"),
+            ],
+            "investigations.investigationparameter": [
+                DateUpdatedComparator("date_updated", "date_added"),
+                UUID4Comparator("uuid"),
+            ],
             "monitors.monitor": [UUID4Comparator("guid")],
             "replays.organizationmemberreplayaccess": [
                 DateUpdatedComparator("date_updated", "date_added")

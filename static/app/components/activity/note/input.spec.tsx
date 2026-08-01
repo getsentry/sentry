@@ -136,6 +136,28 @@ describe('NoteInput', () => {
       });
     });
 
+    it('preserves existing investigation mentions when editing', async () => {
+      const onUpdate = jest.fn();
+      render(
+        <NoteInput
+          noteId="item-id"
+          text="Please ask Alice and #frontend"
+          mentioned={[
+            ['user:1', 'Alice'],
+            ['team:2', '#frontend'],
+          ]}
+          onUpdate={onUpdate}
+        />
+      );
+
+      await userEvent.type(screen.getByRole('textbox'), '{Control>}{Enter}');
+
+      expect(onUpdate).toHaveBeenCalledWith({
+        text: 'Please ask Alice and #frontend',
+        mentions: ['user:1', 'team:2'],
+      });
+    });
+
     it('canels editing and moves to preview mode', async () => {
       const onCancel = jest.fn();
       render(<NoteInput {...props} onCancel={onCancel} />);

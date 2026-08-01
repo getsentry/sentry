@@ -413,6 +413,14 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
 
                 rel_model = getattr(field.remote_field, "model", None)
                 if rel_model is not None and rel_model != model:
+                    # Some cached back-references intentionally point forward in the import
+                    # order and are normalized by their model during relocation. They must not
+                    # create topological dependency cycles.
+                    ignored_foreign_keys: set[str] = getattr(
+                        model, "__relocation_ignored_foreign_keys__", set()
+                    )
+                    if field.name in ignored_foreign_keys:
+                        continue
                     if isinstance(field, FlexibleForeignKey):
                         foreign_keys[field.name] = ForeignField(
                             model=rel_model,
