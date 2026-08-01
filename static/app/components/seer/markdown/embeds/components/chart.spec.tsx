@@ -1,27 +1,10 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {AreaChart} from 'sentry/components/charts/areaChart';
-import {BarChart} from 'sentry/components/charts/barChart';
-import {LineChart} from 'sentry/components/charts/lineChart';
+import {BaseChart} from 'sentry/components/charts/baseChart';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 
-import {HeatmapChart} from './heatmapChart';
-import {WheelChart} from './wheelChart';
-
-jest.mock('sentry/components/charts/areaChart', () => ({
-  AreaChart: jest.fn(() => null),
-}));
-jest.mock('sentry/components/charts/barChart', () => ({
-  BarChart: jest.fn(() => null),
-}));
-jest.mock('sentry/components/charts/lineChart', () => ({
-  LineChart: jest.fn(() => null),
-}));
-jest.mock('./heatmapChart', () => ({
-  HeatmapChart: jest.fn(() => null),
-}));
-jest.mock('./wheelChart', () => ({
-  WheelChart: jest.fn(() => null),
+jest.mock('sentry/components/charts/baseChart', () => ({
+  BaseChart: jest.fn(() => null),
 }));
 
 describe('Chart embed', () => {
@@ -29,13 +12,9 @@ describe('Chart embed', () => {
     jest.clearAllMocks();
   });
 
-  it.each([
-    ['line', LineChart],
-    ['area', AreaChart],
-    ['bar', BarChart],
-  ] as const)(
+  it.each(['line', 'area', 'bar'] as const)(
     'renders a %s chart from a markdown extension',
-    (visualization, ChartComponent) => {
+    visualization => {
       const raw = `{% chart %}${JSON.stringify({
         title: 'Error volume',
         subtitle: 'Last three hours',
@@ -59,21 +38,16 @@ describe('Chart embed', () => {
       expect(screen.getByText('Error volume')).toBeInTheDocument();
       expect(screen.getByText('Last three hours')).toBeInTheDocument();
       expect(screen.getByTestId('seer-chart-embed')).toBeInTheDocument();
-      expect(jest.mocked(ChartComponent)).toHaveBeenCalledWith(
+      const props = jest.mocked(BaseChart).mock.calls.at(-1)![0];
+      expect(props.series).toEqual([
         expect.objectContaining({
-          series: [
-            {
-              seriesName: 'Errors',
-              data: [
-                {name: Date.parse('2026-07-30T12:00:00Z'), value: 12},
-                {name: Date.parse('2026-07-30T13:00:00Z'), value: 18},
-                {name: Date.parse('2026-07-30T14:00:00Z'), value: 15},
-              ],
-            },
-          ],
+          name: 'Errors',
+          type: visualization === 'bar' ? 'bar' : 'line',
         }),
-        undefined
-      );
+      ]);
+      if (visualization === 'area') {
+        expect(props.series?.[0]).toHaveProperty('areaStyle');
+      }
     }
   );
 
@@ -103,27 +77,27 @@ describe('Chart embed', () => {
 
     render(<SeerMarkdown raw={raw} />);
 
-    expect(jest.mocked(HeatmapChart)).toHaveBeenCalledWith(
+    const props = jest.mocked(BaseChart).mock.calls.at(-1)![0];
+    expect(props).toEqual(
       expect.objectContaining({
-        xAxis: 'time',
         series: [
-          {
-            seriesName: 'Chrome',
+          expect.objectContaining({
+            type: 'heatmap',
             data: [
-              {name: Date.parse('2026-07-30T12:00:00Z'), value: 120},
-              {name: Date.parse('2026-07-30T13:00:00Z'), value: 480},
+              [0, 0, 120],
+              [1, 0, 480],
+              [0, 1, 150],
+              [1, 1, 520],
             ],
-          },
-          {
-            seriesName: 'Safari',
-            data: [
-              {name: Date.parse('2026-07-30T12:00:00Z'), value: 150},
-              {name: Date.parse('2026-07-30T13:00:00Z'), value: 520},
-            ],
-          },
+          }),
         ],
-      }),
-      undefined
+        visualMap: expect.objectContaining({min: 0, max: 520}),
+        xAxis: expect.objectContaining({
+          type: 'category',
+          data: [Date.parse('2026-07-30T12:00:00Z'), Date.parse('2026-07-30T13:00:00Z')],
+        }),
+        yAxis: {type: 'category', data: ['Chrome', 'Safari']},
+      })
     );
   });
 
@@ -145,31 +119,39 @@ describe('Chart embed', () => {
 
     render(<SeerMarkdown raw={raw} />);
 
-    expect(jest.mocked(WheelChart)).toHaveBeenCalledWith(
+    const props = jest.mocked(BaseChart).mock.calls.at(-1)![0];
+    expect(props).toEqual(
       expect.objectContaining({
-        series: {
-          seriesName: 'Issues',
-          data: [
-            {name: 'Resolved', value: 70},
-            {name: 'Unresolved', value: 30},
-          ],
-        },
-      }),
-      undefined
+        series: [
+          expect.objectContaining({
+            type: 'pie',
+            name: 'Issues',
+            data: [
+              {name: 'Resolved', value: 70},
+              {name: 'Unresolved', value: 30},
+            ],
+          }),
+        ],
+        xAxis: null,
+        yAxis: null,
+      })
     );
   });
 
-  it('does not render invalid time-axis values', () => {
-    const raw = `{% chart %}${JSON.stringify({
-      title: 'Error volume',
-      x_axis: 'time',
-      series: [{name: 'Errors', data: [{x: 'not-a-timestamp', y: 12}]}],
-    })}{% /chart %}`;
+  it.each(['not-a-timestamp', 1_785_405_600])(
+    'does not render invalid time-axis value %s',
+    value => {
+      const raw = `{% chart %}${JSON.stringify({
+        title: 'Error volume',
+        x_axis: 'time',
+        series: [{name: 'Errors', data: [{x: value, y: 12}]}],
+      })}{% /chart %}`;
 
-    render(<SeerMarkdown raw={raw} />);
+      render(<SeerMarkdown raw={raw} />);
 
-    expect(screen.queryByTestId('seer-chart-embed')).not.toBeInTheDocument();
-  });
+      expect(screen.queryByTestId('seer-chart-embed')).not.toBeInTheDocument();
+    }
+  );
 
   it.each([
     {
@@ -267,7 +249,7 @@ describe('Chart embed', () => {
 
     render(<SeerMarkdown raw={raw} />);
 
-    const tooltip = jest.mocked(BarChart).mock.calls.at(-1)![0].tooltip;
+    const tooltip = jest.mocked(BaseChart).mock.calls.at(-1)![0].tooltip;
     const formatAxisLabel = tooltip?.formatAxisLabel as
       | ((value: string) => string)
       | undefined;

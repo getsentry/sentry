@@ -76,11 +76,11 @@ export const SEER_EMBED_SCHEMAS = {
   },
   chart: {
     description:
-      'Display numeric data as a compact Sentry-style chart. Use this when the answer ' +
-      'contains a meaningful time series or category comparison with at least three points. ' +
-      'Use x_axis "time" with ISO 8601 timestamps and "category" for named buckets. ' +
-      'For heatmaps, each series is a row and each point is a colored cell. ' +
-      'For wheels, use one category series whose points are the ring segments. ' +
+      'Display numeric data as a compact Sentry-style chart. For line, area, and bar charts, ' +
+      'prefer at least three points. Use x_axis "time" only with offset-bearing ISO 8601 ' +
+      'timestamps and "category" for named buckets. For heatmaps, each series is a row, ' +
+      'each point is a colored cell, and values must be non-negative. Wheel charts require ' +
+      'one category series with 2-12 non-negative points and a positive total. ' +
       'Duration values are milliseconds, percentage values are 0-100, and byte values are raw bytes.',
     level: ['block'],
     schema: z
@@ -118,12 +118,12 @@ export const SEER_EMBED_SCHEMAS = {
           chart.series.forEach((series, seriesIndex) => {
             series.data.forEach((point, pointIndex) => {
               if (
-                typeof point.x === 'string' &&
+                typeof point.x !== 'string' ||
                 !isoTimestampSchema.safeParse(point.x).success
               ) {
                 context.addIssue({
                   code: 'custom',
-                  message: 'Time-axis string values must be ISO 8601 timestamps',
+                  message: 'Time-axis values must be ISO 8601 timestamps',
                   path: ['series', seriesIndex, 'data', pointIndex, 'x'],
                 });
               }

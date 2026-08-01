@@ -1,5 +1,8 @@
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
@@ -41,12 +44,7 @@ export const Chart = defineSeerEmbed({
     const chartSeries: ChartSeries[] = series.map(item => ({
       seriesName: item.name,
       data: item.data.map(point => ({
-        name:
-          xAxis === 'time'
-            ? typeof point.x === 'number'
-              ? point.x
-              : Date.parse(point.x)
-            : point.x,
+        name: xAxis === 'time' ? Date.parse(String(point.x)) : point.x,
         value: point.y,
       })),
     }));
@@ -72,10 +70,16 @@ export const Chart = defineSeerEmbed({
 
     return (
       <ChartFrame data-test-id="seer-chart-embed">
-        <ChartHeader>
-          <ChartTitle>{title}</ChartTitle>
-          {subtitle && <ChartSubtitle>{subtitle}</ChartSubtitle>}
-        </ChartHeader>
+        <Stack gap="2xs" paddingBottom="sm">
+          <Heading as="h3" size="md">
+            {title}
+          </Heading>
+          {subtitle && (
+            <Text size="sm" variant="muted">
+              {subtitle}
+            </Text>
+          )}
+        </Stack>
         {visualization === 'area' ? (
           <AreaChart {...chartProps} />
         ) : visualization === 'bar' ? (
@@ -106,22 +110,4 @@ const ChartFrame = styled('section')(({theme}) => ({
   margin: `${theme.space.lg} 0`,
   overflow: 'hidden',
   padding: `${theme.space.lg} ${theme.space.xl} ${theme.space.md}`,
-}));
-
-const ChartHeader = styled('div')(({theme}) => ({
-  marginBottom: theme.space.sm,
-}));
-
-const ChartTitle = styled('div')(({theme}) => ({
-  color: theme.tokens.content.primary,
-  fontSize: theme.font.size.md,
-  fontWeight: theme.font.weight.sans.medium,
-  lineHeight: 1.4,
-}));
-
-const ChartSubtitle = styled('div')(({theme}) => ({
-  color: theme.tokens.content.secondary,
-  fontSize: theme.font.size.sm,
-  lineHeight: 1.4,
-  marginTop: theme.space.xs,
 }));
