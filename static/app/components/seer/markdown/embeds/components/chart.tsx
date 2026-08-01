@@ -62,7 +62,10 @@ export const Chart = defineSeerEmbed({
           xAxis === 'category' ? (value: number) => escape(String(value)) : undefined,
         valueFormatter: (value: number) => formatValue(value, yAxisUnit),
       },
-      xAxis: xAxis === 'category' ? {axisLabel: {formatter: String}} : undefined,
+      xAxis:
+        xAxis === 'category'
+          ? {axisLabel: {formatter: String, showMaxLabel: true, showMinLabel: true}}
+          : undefined,
       yAxis: {
         name: yAxisLabel,
         axisLabel: {formatter: (value: number) => formatValue(value, yAxisUnit)},
