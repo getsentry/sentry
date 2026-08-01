@@ -1,6 +1,8 @@
 import enum
 import logging
 import time
+from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import NamedTuple
 
@@ -10,7 +12,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from sentry.issues.derived.aggregators import AGGREGATORS
-from sentry.issues.derived.framework import Pipeline
+from sentry.issues.derived.framework import Pipeline, State
 from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.derived.tasks import process_group_log_task
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
@@ -57,6 +59,37 @@ class ProcessingStrategy(enum.Enum):
     INLINE = "inline"  # try to process all pending actions quickly; fall back to ASYNC
 
 
+@dataclass(frozen=True)
+class DerivedMetrics:
+    """Encapsulates derived-data metric reporting; incremental mode adds per-entry latency."""
+
+    mode: ProcessingStrategy
+    incremental: bool
+
+    def report_batch_processed(
+        self,
+        entries: Sequence[GroupActionLogEntry],
+        result: State,
+    ) -> None:
+        if self.incremental:
+            now = timezone.now()
+            tags = {"mode": self.mode.value}
+            for entry in entries:
+                age_seconds = (now - entry.date_added).total_seconds()
+                metrics.distribution(
+                    "issues.derived.incremental_processing_latency",
+                    age_seconds,
+                    tags=tags,
+                    unit="second",
+                )
+        for f in result.updated:
+            metrics.incr(
+                "issues.derived.feature_updated",
+                sample_rate=1.0,
+                tags={"feature": f.name},
+            )
+
+
 def _ensure_derived(group_id: int, pipeline_hash: str) -> GroupDerivedData:
     """Get or create the GroupDerivedData row for a group.
 
@@ -101,7 +134,7 @@ def _process_batch(
     batch_size: int,
     *,
     persist: bool = True,
-    processing_mode: ProcessingStrategy | None = None,
+    derived_metrics: DerivedMetrics | None = None,
 ) -> bool:
     """
     Process up to `batch_size` entries for a group. Updates derived in place.
@@ -152,22 +185,8 @@ def _process_batch(
     ).update(cursor_date=last_date, cursor_id=last_id, **state_update)
 
     if updated:
-        if processing_mode is not None:
-            now = timezone.now()
-            tags = {"mode": processing_mode.value}
-            for entry in entries:
-                age_seconds = (now - entry.date_added).total_seconds()
-                metrics.distribution(
-                    "issues.derived.incremental_processing_latency",
-                    age_seconds,
-                    tags=tags,
-                    unit="second",
-                )
-        # Features updated in this batch (not total; a feature appears at most once per batch)
-        for f in result.updated:
-            metrics.incr(
-                "issues.derived.feature_updated", sample_rate=1.0, tags={"feature": f.name}
-            )
+        if derived_metrics is not None:
+            derived_metrics.report_batch_processed(entries, result)
         derived.cursor_date = last_date
         derived.cursor_id = last_id
         GroupDerivedDataStore.apply_to_instance(derived, state_update)
@@ -216,7 +235,7 @@ def _drain_log(
     *,
     time_limit: timedelta,
     persist: bool = True,
-    processing_mode: ProcessingStrategy | None = None,
+    derived_metrics: DerivedMetrics | None = None,
 ) -> bool:
     """Process pending log entries into *derived*, batching as needed.
 
@@ -228,7 +247,7 @@ def _drain_log(
     """
     deadline = time.monotonic() + time_limit.total_seconds()
     while _process_batch(
-        pipeline, derived, batch_size, persist=persist, processing_mode=processing_mode
+        pipeline, derived, batch_size, persist=persist, derived_metrics=derived_metrics
     ):
         if time.monotonic() >= deadline:
             return False
@@ -245,7 +264,7 @@ def process_group_log(
     batch_size: int = DEFAULT_BATCH_SIZE,
     pipeline: Pipeline[GroupActionLogEntry] | None = None,
     timeout: timedelta | None = None,
-    processing_mode: ProcessingStrategy | None = None,
+    derived_metrics: DerivedMetrics | None = None,
 ) -> GroupDerivedData:
     """Fully drain all pending entries for a group's row.
 
@@ -260,13 +279,13 @@ def process_group_log(
 
     if timeout is not None:
         drained = _drain_log(
-            derived, p, batch_size, time_limit=timeout, processing_mode=processing_mode
+            derived, p, batch_size, time_limit=timeout, derived_metrics=derived_metrics
         )
         if not drained:
             raise GroupLogTimeout(group_id)
     else:
         # No timeout — drain to completion.
-        while _process_batch(p, derived, batch_size, processing_mode=processing_mode):
+        while _process_batch(p, derived, batch_size, derived_metrics=derived_metrics):
             pass
 
     return derived
@@ -288,7 +307,10 @@ def trigger_group_log_processing(group_id: int, *, strategy: ProcessingStrategy)
 
     if strategy is ProcessingStrategy.SYNC:
         try:
-            process_group_log(group_id, processing_mode=strategy)
+            process_group_log(
+                group_id,
+                derived_metrics=DerivedMetrics(mode=strategy, incremental=True),
+            )
         except ObjectDoesNotExist:
             pass
         return
@@ -304,7 +326,12 @@ def trigger_group_log_processing(group_id: int, *, strategy: ProcessingStrategy)
         except ObjectDoesNotExist:
             return
 
-        has_more = _process_batch(pipeline, derived, INLINE_BATCH_SIZE, processing_mode=strategy)
+        has_more = _process_batch(
+            pipeline,
+            derived,
+            INLINE_BATCH_SIZE,
+            derived_metrics=DerivedMetrics(mode=strategy, incremental=True),
+        )
     if has_more:
         # Derived data will be stale for any code running between now and
         # when the task completes.
@@ -448,7 +475,14 @@ def build_and_promote_derived_data(
     result = PromotionResult.CURSOR_BEHIND
     for attempt in range(MAX_PROMOTION_ATTEMPTS):
         remaining = timedelta(seconds=max(0, deadline - time.monotonic()))
-        drained = _drain_log(derived, PIPELINE, batch_size, time_limit=remaining, persist=False)
+        drained = _drain_log(
+            derived,
+            PIPELINE,
+            batch_size,
+            time_limit=remaining,
+            persist=False,
+            derived_metrics=DerivedMetrics(mode=ProcessingStrategy.ASYNC, incremental=False),
+        )
         if not drained:
             _generation_cache.set(current_gen_id, derived)
             raise GroupLogTimeout(group_id, generation_id=current_gen_id)
