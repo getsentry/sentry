@@ -36,7 +36,7 @@ export function WheelChart({series, valueFormatter}: WheelChartProps) {
           if (!params) {
             return '';
           }
-          return `<div class="tooltip-series"><div><span class="tooltip-label"><strong>${escape(String(params.name))}</strong></span> ${valueFormatter(Number(params.value))}</div></div>`;
+          return `<div class="tooltip-series tooltip-series-solo"><div><span class="tooltip-label"><strong>${escape(String(params.name))}</strong></span> ${valueFormatter(Number(params.value))}</div></div><div class="tooltip-arrow"></div>`;
         },
       }}
       xAxis={null}
