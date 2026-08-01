@@ -128,6 +128,7 @@ describe('Chart embed', () => {
         xAxis: expect.objectContaining({
           type: 'category',
           data: [Date.parse('2026-07-30T12:00:00Z'), Date.parse('2026-07-31T12:00:00Z')],
+          axisLabel: expect.objectContaining({showMaxLabel: true, showMinLabel: true}),
         }),
         yAxis: {type: 'category', data: ['Chrome', 'Safari']},
       })
@@ -303,5 +304,10 @@ describe('Chart embed', () => {
       | ((value: string) => string)
       | undefined;
     expect(formatAxisLabel?.(unsafeLabel)).toBe('&lt;img src=x onerror=alert(1)&gt;');
+    expect(jest.mocked(BaseChart).mock.calls.at(-1)![0].xAxis).toEqual(
+      expect.objectContaining({
+        axisLabel: expect.objectContaining({showMaxLabel: true, showMinLabel: true}),
+      })
+    );
   });
 });

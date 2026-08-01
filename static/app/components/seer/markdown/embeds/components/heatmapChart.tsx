@@ -90,7 +90,11 @@ export function HeatmapChart({series, valueFormatter, xAxis}: HeatmapChartProps)
       xAxis={{
         type: 'category',
         data: columns,
-        axisLabel: {formatter: value => formatColumn(value)},
+        axisLabel: {
+          formatter: value => formatColumn(value),
+          showMaxLabel: true,
+          showMinLabel: true,
+        },
       }}
       yAxis={{type: 'category', data: rows}}
     />
