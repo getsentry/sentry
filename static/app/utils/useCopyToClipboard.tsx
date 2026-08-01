@@ -35,7 +35,7 @@ export function copyToClipboard(
       }
       return text;
     })
-    .catch(error => {
+    .catch(_error => {
       if (errorMessage) {
         addErrorMessage(errorMessage);
       }

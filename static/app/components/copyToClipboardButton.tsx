@@ -28,10 +28,10 @@ export function CopyToClipboardButton({
       {...props}
       onClick={e => {
         copy(text).then(result => {
-          if (result !== undefined) {
-            onCopy?.(result);
-          } else {
+          if (result === undefined) {
             onError?.(new Error('Failed to copy to clipboard'));
+          } else {
+            onCopy?.(result);
           }
         });
         onClick?.(e);
