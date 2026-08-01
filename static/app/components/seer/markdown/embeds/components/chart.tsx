@@ -39,13 +39,16 @@ export const Chart = defineSeerEmbed({
     y_axis_label: yAxisLabel,
     series,
   }) {
-    const chartSeries: ChartSeries[] = series.map(item => ({
-      seriesName: item.name,
-      data: item.data.map(point => ({
+    const chartSeries: ChartSeries[] = series.map(item => {
+      const data = item.data.map(point => ({
         name: xAxis === 'time' ? Date.parse(String(point.x)) : point.x,
         value: point.y,
-      })),
-    }));
+      }));
+      if (xAxis === 'time') {
+        data.sort((left, right) => Number(left.name) - Number(right.name));
+      }
+      return {seriesName: item.name, data};
+    });
     const chartProps = {
       animation: false,
       grid: {left: 12, right: 12, top: series.length > 1 ? 36 : 12, bottom: 8},
@@ -57,7 +60,6 @@ export const Chart = defineSeerEmbed({
       tooltip: {
         formatAxisLabel:
           xAxis === 'category' ? (value: number) => escape(String(value)) : undefined,
-        nameFormatter: (value: string) => escape(value),
         valueFormatter: (value: number) => formatValue(value, yAxisUnit),
       },
       xAxis: xAxis === 'category' ? {axisLabel: {formatter: String}} : undefined,
