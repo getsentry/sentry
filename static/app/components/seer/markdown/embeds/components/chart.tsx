@@ -59,6 +59,7 @@ export const Chart = defineSeerEmbed({
       tooltip: {
         formatAxisLabel:
           xAxis === 'category' ? (value: number) => escape(String(value)) : undefined,
+        nameFormatter: (value: string) => escape(value),
         valueFormatter: (value: number) => formatValue(value, yAxisUnit),
       },
       xAxis: xAxis === 'category' ? {axisLabel: {formatter: String}} : undefined,

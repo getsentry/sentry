@@ -2,7 +2,7 @@ export type ChartAxis = 'time' | 'category';
 
 export type ChartUnit = 'number' | 'percentage' | 'duration' | 'bytes';
 
-export interface ChartPoint {
+interface ChartPoint {
   name: string | number;
   value: number;
 }
