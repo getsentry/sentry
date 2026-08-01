@@ -90,6 +90,31 @@ describe('Chart embed', () => {
     ]);
   });
 
+  it('uses one duration unit across the y axis', () => {
+    const raw = `{% chart %}${JSON.stringify({
+      title: 'Latency',
+      visualization: 'line',
+      x_axis: 'category',
+      y_axis_unit: 'duration',
+      series: [
+        {
+          name: 'p95',
+          data: [
+            {x: 'Chrome', y: 500},
+            {x: 'Safari', y: 1000},
+          ],
+        },
+      ],
+    })}{% /chart %}`;
+
+    render(<SeerMarkdown raw={raw} />);
+
+    const formatter = jest.mocked(BaseChart).mock.calls.at(-1)![0].yAxis?.axisLabel
+      ?.formatter as ((value: number) => string) | undefined;
+    expect(formatter?.(500)).toBe('500ms');
+    expect(formatter?.(1000)).toBe('1000ms');
+  });
+
   it('renders a heatmap from the shared series schema', () => {
     const raw = `{% chart %}${JSON.stringify({
       title: 'Latency by browser',

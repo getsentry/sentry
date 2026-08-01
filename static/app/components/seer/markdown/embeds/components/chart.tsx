@@ -7,19 +7,20 @@ import {LineChart} from 'sentry/components/charts/lineChart';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
 import {escape} from 'sentry/utils';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
-import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
+import {getDurationUnit} from 'sentry/utils/discover/charts';
+import {axisDuration} from 'sentry/utils/duration/axisDuration';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
 import type {ChartSeries, ChartUnit} from './chartTypes';
 import {HeatmapChart} from './heatmapChart';
 import {WheelChart} from './wheelChart';
 
-function formatValue(value: number, unit: ChartUnit): string {
+function formatValue(value: number, unit: ChartUnit, durationUnit?: number): string {
   switch (unit) {
     case 'percentage':
       return `${formatAbbreviatedNumber(value)}%`;
     case 'duration':
-      return formatTraceDuration(value);
+      return axisDuration(value, durationUnit);
     case 'bytes':
       return formatBytesBase2(value);
     case 'number':
@@ -49,6 +50,8 @@ export const Chart = defineSeerEmbed({
       }
       return {seriesName: item.name, data};
     });
+    const durationUnit =
+      yAxisUnit === 'duration' ? getDurationUnit(chartSeries) : undefined;
     const timestamps =
       xAxis === 'time'
         ? chartSeries.flatMap(item => item.data.map(point => Number(point.name)))
@@ -70,7 +73,7 @@ export const Chart = defineSeerEmbed({
         formatAxisLabel:
           xAxis === 'category' ? (value: number) => escape(String(value)) : undefined,
         trigger: 'axis' as const,
-        valueFormatter: (value: number) => formatValue(value, yAxisUnit),
+        valueFormatter: (value: number) => formatValue(value, yAxisUnit, durationUnit),
       },
       xAxis:
         xAxis === 'category'
@@ -78,7 +81,9 @@ export const Chart = defineSeerEmbed({
           : undefined,
       yAxis: {
         name: yAxisLabel,
-        axisLabel: {formatter: (value: number) => formatValue(value, yAxisUnit)},
+        axisLabel: {
+          formatter: (value: number) => formatValue(value, yAxisUnit, durationUnit),
+        },
       },
     };
 
@@ -109,13 +114,13 @@ export const Chart = defineSeerEmbed({
         ) : visualization === 'heatmap' ? (
           <HeatmapChart
             series={chartSeries}
-            valueFormatter={value => formatValue(value, yAxisUnit)}
+            valueFormatter={value => formatValue(value, yAxisUnit, durationUnit)}
             xAxis={xAxis}
           />
         ) : visualization === 'wheel' ? (
           <WheelChart
             series={chartSeries[0]!}
-            valueFormatter={value => formatValue(value, yAxisUnit)}
+            valueFormatter={value => formatValue(value, yAxisUnit, durationUnit)}
           />
         ) : (
           <LineChart {...chartProps} />
