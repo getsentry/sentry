@@ -4,7 +4,6 @@ from typing import Any
 from taskbroker_client.retry import Retry
 from urllib3.exceptions import HTTPError
 
-from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import deletion_tasks
@@ -36,7 +35,6 @@ def notify_seer_repository_deleted(
     # imported here to avoid circular imports
     from sentry.seer.code_review.utils import SeerEndpoint, make_seer_request
 
-    viewer_context = SeerViewerContext(organization_id=organization_id)
     make_seer_request(
         path=SeerEndpoint.REPOSITORY_OFFBOARD.value,
         payload={
@@ -45,7 +43,6 @@ def notify_seer_repository_deleted(
             "provider": provider,
             "repository_name": repository_name,
         },
-        viewer_context=viewer_context,
     )
     logger.info(
         "seer.forward_repository_delete.success",

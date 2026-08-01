@@ -13,7 +13,6 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.signed_seer_api import (
     LightweightRCAClusterRequest,
-    SeerViewerContext,
     make_lightweight_rca_cluster_request,
 )
 from sentry.seer.similarity.utils import (
@@ -164,8 +163,6 @@ def _backfill_org(
     failure_count = 0
     success_count = 0
     last_processed_group_id = last_group_id
-    viewer_context = SeerViewerContext(organization_id=organization_id)
-
     for group, serialized_event in group_event_pairs:
         try:
             body = LightweightRCAClusterRequest(
@@ -180,9 +177,7 @@ def _backfill_org(
                 organization_id=organization_id,
                 project_id=group.project_id,
             )
-            response = make_lightweight_rca_cluster_request(
-                body, timeout=30, viewer_context=viewer_context
-            )
+            response = make_lightweight_rca_cluster_request(body, timeout=30)
             if response.status >= 400:
                 logger.warning(
                     "supergroups_backfill_lightweight.seer_error",

@@ -45,7 +45,6 @@ from sentry.seer.entrypoints.operator import SeerAutofixOperator
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.models.run import SeerRun
 from sentry.seer.signed_seer_api import (
-    SeerViewerContext,
     SummarizeIssueRequest,
     make_signed_seer_api_request,
     make_summarize_issue_request,
@@ -258,8 +257,7 @@ def _call_seer(
         project_id=group.project.id,
         experiment_variant=experiment_variant,
     )
-    viewer_context = SeerViewerContext(organization_id=group.organization.id)
-    response = make_summarize_issue_request(body, timeout=30, viewer_context=viewer_context)
+    response = make_summarize_issue_request(body, timeout=30)
 
     if response.status >= 400:
         raise Exception(f"Seer request failed with status {response.status}")
@@ -285,14 +283,12 @@ def make_fixability_score_request(
     body: FixabilityScoreRequest,
     connection_pool: HTTPConnectionPool | None = None,
     timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or fixability_connection_pool,
         "/v1/automation/summarize/fixability",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         timeout=timeout,
-        viewer_context=viewer_context,
     )
 
 
@@ -308,12 +304,10 @@ def _generate_fixability_score(
     )
     if summary is not None:
         body["summary"] = summary
-    viewer_context = SeerViewerContext(organization_id=group.organization.id)
     response = make_fixability_score_request(
         body,
         connection_pool=fixability_connection_pool,
         timeout=settings.SEER_FIXABILITY_TIMEOUT,
-        viewer_context=viewer_context,
     )
     if response.status >= 400:
         raise Exception(f"Seer API error: {response.status}")
