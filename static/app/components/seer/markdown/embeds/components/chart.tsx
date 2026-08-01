@@ -79,7 +79,6 @@ export const Chart = defineSeerEmbed({
         border="primary"
         data-test-id="seer-chart-embed"
         margin="lg 0"
-        overflow="hidden"
         padding="lg xl md"
         radius="md"
       >
