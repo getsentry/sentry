@@ -4,6 +4,7 @@ import type {HeatmapSeriesOption} from 'echarts';
 import moment from 'moment-timezone';
 
 import {BaseChart} from 'sentry/components/charts/baseChart';
+import {escape} from 'sentry/utils';
 import {getTimeFormat, getUserTimezone} from 'sentry/utils/dates';
 import {HEATMAP_COLORS} from 'sentry/views/dashboards/widgets/heatMapWidget/settings';
 import {formatXAxisTimestamp} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatXAxisTimestamp';
@@ -68,14 +69,15 @@ export function HeatmapChart({series, valueFormatter, xAxis}: HeatmapChartProps)
       series={[heatmapSeries]}
       tooltip={{
         trigger: 'item',
-        renderMode: 'richText',
         formatter: rawParams => {
           const params = Array.isArray(rawParams) ? rawParams[0] : rawParams;
           if (!params) {
             return '';
           }
           const [columnIndex, rowIndex, value] = params.value as [number, number, number];
-          return `${rows[rowIndex]}\n${formatColumn(columns[columnIndex]!)}: ${valueFormatter(value)}`;
+          const row = escape(rows[rowIndex] ?? '');
+          const column = escape(formatColumn(columns[columnIndex]!));
+          return `<div class="tooltip-series"><div><span class="tooltip-label"><strong>${row}</strong></span> ${column}: ${valueFormatter(value)}</div></div>`;
         },
       }}
       visualMap={{

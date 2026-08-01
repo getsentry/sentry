@@ -89,7 +89,7 @@ export const Chart = defineSeerEmbed({
           )}
         </Stack>
         {visualization === 'area' ? (
-          <AreaChart {...chartProps} />
+          <AreaChart {...chartProps} stacked={series.length > 1} />
         ) : visualization === 'bar' ? (
           <BarChart {...chartProps} />
         ) : visualization === 'heatmap' ? (

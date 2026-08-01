@@ -3,6 +3,7 @@ import 'echarts/lib/chart/pie';
 import type {PieSeriesOption} from 'echarts';
 
 import {BaseChart} from 'sentry/components/charts/baseChart';
+import {escape} from 'sentry/utils';
 
 import type {ChartSeries} from './chartTypes';
 
@@ -29,13 +30,12 @@ export function WheelChart({series, valueFormatter}: WheelChartProps) {
       series={[wheelSeries]}
       tooltip={{
         trigger: 'item',
-        renderMode: 'richText',
         formatter: rawParams => {
           const params = Array.isArray(rawParams) ? rawParams[0] : rawParams;
           if (!params) {
             return '';
           }
-          return `${params.name}: ${valueFormatter(Number(params.value))}`;
+          return `<div class="tooltip-series"><div><span class="tooltip-label"><strong>${escape(String(params.name))}</strong></span> ${valueFormatter(Number(params.value))}</div></div>`;
         },
       }}
       xAxis={null}
