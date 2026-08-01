@@ -76,7 +76,7 @@ export function ReactionBar({disabled, onToggle, reactions}: ReactionBarProps) {
             <Button
               {...triggerProps}
               size="xs"
-              variant="transparent"
+              variant="secondary"
               icon={<IconAdd />}
               aria-label={t('Add reaction')}
             />
@@ -140,7 +140,9 @@ export function CellComments({
         <Button
           size="xs"
           variant="transparent"
-          icon={isLoading ? <LoadingIndicator size={14} /> : <IconChat />}
+          icon={
+            isLoading ? <LoadingIndicator size={14} style={{margin: 0}} /> : <IconChat />
+          }
           disabled={isLoading}
           aria-label={t('Comments, %s', cell.commentCount)}
           onClick={handleToggle}
@@ -277,7 +279,9 @@ function CommentPopover({
   return (
     <PopoverPanel role="dialog" aria-label={t('Cell comments')}>
       <PopoverHeader align="center" justify="between" gap="sm">
-        <Text bold>{t('Comments')}</Text>
+        <Text size="sm" bold>
+          {t('Comments')}
+        </Text>
         <Button
           size="xs"
           variant="transparent"
