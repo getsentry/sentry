@@ -25,6 +25,7 @@ export function WheelChart({series, valueFormatter}: WheelChartProps) {
   return (
     <BaseChart
       animation={false}
+      colors={theme => theme.chart.getColorPalette(series.data.length)}
       height={220}
       renderer="svg"
       series={[wheelSeries]}
