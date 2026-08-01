@@ -32,7 +32,7 @@ class OrganizationGroupSearchViewVisitEndpoint(OrganizationEndpoint):
         Update the last_visited timestamp for a GroupSearchView for the current organization member.
         """
         if not request.user.is_authenticated:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+            return Response(status=status.HTTP_403_FORBIDDEN)
 
         view_id_int = to_valid_int_id("view_id", view_id, raise_404=True)
         try:

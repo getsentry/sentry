@@ -129,7 +129,7 @@ class OrganizationGroupSearchViewVisitTest(GroupSearchViewAPITestCase):
             self.url,
             HTTP_AUTHORIZATION=f"Bearer {token_str}",
         )
-        assert response.status_code == 400
+        assert response.status_code == 403
         assert (
             GroupSearchViewLastVisited.objects.filter(
                 organization=self.organization,
