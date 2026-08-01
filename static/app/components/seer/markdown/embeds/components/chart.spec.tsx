@@ -51,6 +51,26 @@ describe('Chart embed', () => {
     }
   );
 
+  it('stacks multiple area series so each remains visible', () => {
+    const raw = `{% chart %}${JSON.stringify({
+      title: 'Errors by browser',
+      visualization: 'area',
+      x_axis: 'category',
+      series: [
+        {name: 'Chrome', data: [{x: 'Monday', y: 12}]},
+        {name: 'Safari', data: [{x: 'Monday', y: 8}]},
+      ],
+    })}{% /chart %}`;
+
+    render(<SeerMarkdown raw={raw} />);
+
+    const props = jest.mocked(BaseChart).mock.calls.at(-1)![0];
+    expect(props.series).toEqual([
+      expect.objectContaining({name: 'Chrome', stack: 'area'}),
+      expect.objectContaining({name: 'Safari', stack: 'area'}),
+    ]);
+  });
+
   it('renders a heatmap from the shared series schema', () => {
     const raw = `{% chart %}${JSON.stringify({
       title: 'Latency by browser',
@@ -105,6 +125,10 @@ describe('Chart embed', () => {
     expect(formatColumn?.(Date.parse('2026-07-30T12:00:00Z'))).not.toBe(
       formatColumn?.(Date.parse('2026-07-31T12:00:00Z'))
     );
+    const tooltipFormatter = props.tooltip?.formatter as
+      | ((params: {value: [number, number, number]}) => string)
+      | undefined;
+    expect(tooltipFormatter?.({value: [0, 0, 120]})).toContain('<strong>Chrome</strong>');
   });
 
   it('renders a wheel from one category series', () => {
@@ -142,6 +166,12 @@ describe('Chart embed', () => {
         yAxis: null,
       })
     );
+    const tooltipFormatter = props.tooltip?.formatter as
+      | ((params: {name: string; value: number}) => string)
+      | undefined;
+    expect(
+      tooltipFormatter?.({name: '<img src=x onerror=alert(1)>', value: 70})
+    ).toContain('&lt;img src=x onerror=alert(1)&gt;');
   });
 
   it.each(['not-a-timestamp', 1_785_405_600])(
