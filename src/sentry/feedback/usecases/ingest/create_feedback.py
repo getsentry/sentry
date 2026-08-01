@@ -27,7 +27,6 @@ from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.seer.seer_setup import has_seer_access
-from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
@@ -275,7 +274,6 @@ def create_feedback_issue(
     _seer_vc = ViewerContext(
         organization_id=project.organization_id, project_id=project.id, actor_type=ActorType.SYSTEM
     )
-    viewer_context = SeerViewerContext(organization_id=project.organization_id)
 
     # Spam detection.
     is_message_spam = None
@@ -283,9 +281,7 @@ def create_feedback_issue(
     if is_spam_enabled:
         # Will be None if the request fails
         with viewer_context_scope(_seer_vc):
-            is_message_spam = is_spam_seer(
-                feedback_message, project.organization_id, viewer_context=viewer_context
-            )
+            is_message_spam = is_spam_seer(feedback_message, project.organization_id)
 
         metrics.incr(
             "feedback.create_feedback_issue.seer_spam_detection",
@@ -315,7 +311,6 @@ def create_feedback_issue(
                 feedback_message,
                 project.organization_id,
                 use_ai_title,
-                viewer_context=viewer_context,
             )
         )
 
@@ -352,9 +347,7 @@ def create_feedback_issue(
     if should_query_seer:
         try:
             with viewer_context_scope(_seer_vc):
-                labels = generate_labels(
-                    feedback_message, project.organization_id, viewer_context=viewer_context
-                )
+                labels = generate_labels(feedback_message, project.organization_id)
             # This will rarely happen unless the user writes a really long feedback message
             if len(labels) > MAX_AI_LABELS:
                 logger.info(

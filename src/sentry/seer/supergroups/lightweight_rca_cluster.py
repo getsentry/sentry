@@ -8,7 +8,6 @@ from sentry.models.group import Group
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
     LightweightRCAClusterRequest,
-    SeerViewerContext,
     make_lightweight_rca_cluster_request,
 )
 from sentry.seer.similarity.utils import (
@@ -83,9 +82,7 @@ def trigger_lightweight_rca_cluster(group: Group) -> None:
         organization_id=group.organization.id,
         project_id=group.project.id,
     )
-    viewer_context = SeerViewerContext(organization_id=group.organization.id)
-
-    response = make_lightweight_rca_cluster_request(body, timeout=30, viewer_context=viewer_context)
+    response = make_lightweight_rca_cluster_request(body, timeout=30)
     if response.status >= 400:
         raise SeerApiError("Lightweight RCA cluster request failed", response.status)
 

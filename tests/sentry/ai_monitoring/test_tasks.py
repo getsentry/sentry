@@ -282,10 +282,7 @@ class GenerateAIConversationTitleTaskTest(TestCase):
         assert row.conversation_id_hash == conversation_id_hash("conv-1")
         assert row.title == "AI Title"
         assert row.title_source_timestamp == _ts()
-        mock_generate.assert_called_once_with(
-            "How do I reset my password?",
-            viewer_context={"organization_id": self.project.organization_id},
-        )
+        mock_generate.assert_called_once_with("How do I reset my password?")
 
     @patch("sentry.ai_monitoring.tasks.generate_conversation_title", return_value="AI Title")
     def test_stores_clamped_conversation_id_and_hashes_full(self, mock_generate: MagicMock) -> None:

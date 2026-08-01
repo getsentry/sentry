@@ -57,7 +57,7 @@ from sentry.seer.sentry_data_models import (
     UpdatePrMetricsErrorResponse,
     UpdatePrMetricsSuccessResponse,
 )
-from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
@@ -235,7 +235,6 @@ def forward_pr_to_seer_judge(pull_request: PullRequest, repository: Repository) 
         connection_pool=seer_pr_metrics_connection_pool,
         path=SEER_PR_METRICS_JUDGE_PATH,
         body=payload.json().encode("utf-8"),
-        viewer_context=SeerViewerContext(organization_id=pull_request.organization_id),
     )
     if response.status >= 500 or response.status == 429:
         raise HTTPError(f"Seer judge forward returned retryable status {response.status}")

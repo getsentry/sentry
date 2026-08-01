@@ -361,7 +361,7 @@ def make_remove_handoffs_for_integration_request(
 
 def make_agent_export_indexes_request(
     body: AgentExportIndexesRequest,
-    viewer_context: SeerViewerContext,
+    viewer_context: SeerViewerContext | None = None,
     timeout: int | float | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(

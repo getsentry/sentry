@@ -34,7 +34,6 @@ from sentry.seer.autofix.utils import (
     make_store_coding_agent_states_request,
 )
 from sentry.seer.models import SeerApiError
-from sentry.seer.signed_seer_api import SeerViewerContext
 
 logger = logging.getLogger(__name__)
 
@@ -87,12 +86,7 @@ def store_coding_agent_states_to_seer(
         run_id=run_id,
         coding_agent_states=[state.dict() for state in coding_agent_states],
     )
-    viewer_context: SeerViewerContext | None = None
-    if organization_id is not None:
-        viewer_context = SeerViewerContext(organization_id=organization_id)
-    response = make_store_coding_agent_states_request(
-        body, timeout=30, viewer_context=viewer_context
-    )
+    response = make_store_coding_agent_states_request(body, timeout=30)
 
     if response.status >= 400:
         raise SeerApiError(response.data.decode("utf-8"), response.status)
