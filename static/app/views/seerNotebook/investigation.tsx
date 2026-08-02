@@ -37,6 +37,7 @@ import {Badge} from '@sentry/scraps/badge';
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Markdown} from '@sentry/scraps/markdown';
 import {useModal} from '@sentry/scraps/modal';
@@ -1097,24 +1098,6 @@ type SortableCellPresentation = {
   isDragActive: boolean;
 };
 
-function getGeneratedQuery(output: unknown): string | null {
-  if (!output || typeof output !== 'object' || !('schemaVersion' in output)) {
-    return null;
-  }
-  if (output.schemaVersion !== 1 || !('query' in output)) {
-    return null;
-  }
-  const canonicalQuery = output.query;
-  if (
-    !canonicalQuery ||
-    typeof canonicalQuery !== 'object' ||
-    !('query' in canonicalQuery)
-  ) {
-    return null;
-  }
-  return typeof canonicalQuery.query === 'string' ? canonicalQuery.query : null;
-}
-
 function SortableCell(props: SortableCellProps) {
   const sortable = useSortable({
     id: getCellSortableId(props.cell),
@@ -1171,16 +1154,12 @@ function SortableCellContent({
   const [cellReactions, setCellReactions] = useState(cell.reactions);
   const [isReactionPickerOpen, setIsReactionPickerOpen] = useState(false);
   const [isRunRequested, setIsRunRequested] = useState(false);
-  const [queryRepresentation, setQueryRepresentation] = useState<'nlp' | 'generated'>(
-    'nlp'
-  );
   const textInputRef = useRef<HTMLTextAreaElement>(null);
   const slashMenuRef = useRef<HTMLDivElement>(null);
   const suggestionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const displaySaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isStreamingSuggestionRef = useRef(false);
   const queryIntent = draft.generationPrompt || draft.content;
-  const generatedQuery = getGeneratedQuery(cell.output);
   const savedQueryIntent = cell.generationPrompt || cell.content;
   const queryHasChanged = Boolean(cell.staleAt) || queryIntent !== savedQueryIntent;
   const isExecutionRunning = ['pending', 'running'].includes(cell.outputStatus);
@@ -1248,6 +1227,18 @@ function SortableCellContent({
 
   const saveOnBlur = () => {
     saveDraft(draft);
+  };
+
+  const persistDisplay = (display: InvestigationDisplay) => {
+    const nextDraft = {...draft, display};
+    setDraft(nextDraft);
+    if (displaySaveTimerRef.current) {
+      clearTimeout(displaySaveTimerRef.current);
+    }
+    displaySaveTimerRef.current = setTimeout(() => {
+      displaySaveTimerRef.current = null;
+      void saveDraft(nextDraft);
+    }, 400);
   };
 
   const runQuery = async () => {
@@ -1591,93 +1582,85 @@ function SortableCellContent({
           </TextCellBody>
         ) : (
           <Fragment>
-            <QueryRunButton
-              $hidden={isDragActive}
-              size="xs"
-              variant={runVariant}
-              icon={<IconPlay size="xs" />}
-              busy={isRunBusy}
-              disabled={
-                isExecutionRunning || !queryIntent.trim() || !queryExecutionEnabled
+            <QueryPromptDisclosure
+              size="sm"
+              expanded={!draft.display.queryCollapsed}
+              onExpandedChange={expanded =>
+                persistDisplay({
+                  ...draft.display,
+                  version: 1,
+                  queryCollapsed: !expanded,
+                })
               }
-              onClick={() => void runQuery()}
             >
-              {isRunBusy ? t('Running') : t('Run')}
-            </QueryRunButton>
-            {generatedQuery === null ? null : (
-              <QueryRepresentationToggle
-                role="group"
-                aria-label={t('Query representation')}
+              <Disclosure.Title
+                trailingItems={
+                  <QueryRunButton
+                    $hidden={isDragActive}
+                    size="xs"
+                    variant={runVariant}
+                    icon={<IconPlay size="xs" />}
+                    busy={isRunBusy}
+                    disabled={
+                      isExecutionRunning || !queryIntent.trim() || !queryExecutionEnabled
+                    }
+                    onClick={() => void runQuery()}
+                  >
+                    {isRunBusy ? t('Running') : t('Run')}
+                  </QueryRunButton>
+                }
               >
-                <Button
-                  size="xs"
-                  variant={queryRepresentation === 'nlp' ? 'primary' : 'secondary'}
-                  onClick={() => setQueryRepresentation('nlp')}
-                >
-                  {t('Natural language')}
-                </Button>
-                <Button
-                  size="xs"
-                  variant={queryRepresentation === 'generated' ? 'primary' : 'secondary'}
-                  onClick={() => setQueryRepresentation('generated')}
-                >
-                  {t('Generated query')}
-                </Button>
-              </QueryRepresentationToggle>
-            )}
-            <CellInput
-              ref={textInputRef}
-              $kind="query"
-              $generated={queryRepresentation === 'generated'}
-              aria-label={
-                queryRepresentation === 'generated'
-                  ? t('Generated query')
-                  : t('Query cell %s', index + 1)
-              }
-              autosize
-              rows={2}
-              maxRows={18}
-              disabled={disabled}
-              readOnly={queryRepresentation === 'generated'}
-              placeholder=""
-              value={
-                queryRepresentation === 'generated'
-                  ? generatedQuery || t('(no filter)')
-                  : queryIntent
-              }
-              onChange={event => {
-                if (queryRepresentation === 'generated') {
-                  return;
-                }
-                if (suggestionTimerRef.current) {
-                  clearInterval(suggestionTimerRef.current);
-                  suggestionTimerRef.current = null;
-                  isStreamingSuggestionRef.current = false;
-                }
-                setDraft(current => ({
-                  ...current,
-                  generationPrompt: event.target.value,
-                }));
-              }}
-              onBlur={queryRepresentation === 'nlp' ? saveOnBlur : undefined}
-            />
-            {queryIntent || queryRepresentation === 'generated' ? null : (
-              <QueryPlaceholder>
-                <Text variant="muted">
-                  {t('Describe what you want to see, or ')}
-                  {disabled ? (
-                    t('see an example')
-                  ) : (
-                    <QueryExampleButton
-                      type="button"
-                      onClick={() => streamQuerySuggestion(queryExample)}
-                    >
-                      {t('see an example')}
-                    </QueryExampleButton>
+                <QuerySummary size="sm">
+                  {draft.display.queryCollapsed
+                    ? queryIntent || t('Natural language query')
+                    : t('Natural language query')}
+                </QuerySummary>
+              </Disclosure.Title>
+              <QueryPromptContent>
+                <QueryEditorWrap>
+                  <CellInput
+                    ref={textInputRef}
+                    $kind="query"
+                    aria-label={t('Query cell %s', index + 1)}
+                    autosize
+                    rows={2}
+                    maxRows={18}
+                    disabled={disabled}
+                    placeholder=""
+                    value={queryIntent}
+                    onChange={event => {
+                      if (suggestionTimerRef.current) {
+                        clearInterval(suggestionTimerRef.current);
+                        suggestionTimerRef.current = null;
+                        isStreamingSuggestionRef.current = false;
+                      }
+                      setDraft(current => ({
+                        ...current,
+                        generationPrompt: event.target.value,
+                      }));
+                    }}
+                    onBlur={saveOnBlur}
+                  />
+                  {queryIntent ? null : (
+                    <QueryPlaceholder>
+                      <Text variant="muted">
+                        {t('Describe what you want to see, or ')}
+                        {disabled ? (
+                          t('see an example')
+                        ) : (
+                          <QueryExampleButton
+                            type="button"
+                            onClick={() => streamQuerySuggestion(queryExample)}
+                          >
+                            {t('see an example')}
+                          </QueryExampleButton>
+                        )}
+                      </Text>
+                    </QueryPlaceholder>
                   )}
-                </Text>
-              </QueryPlaceholder>
-            )}
+                </QueryEditorWrap>
+              </QueryPromptContent>
+            </QueryPromptDisclosure>
             <PersistedCellOutput
               canRetry={!disabled && queryExecutionEnabled && !isRunBusy}
               cell={{...cell, display: draft.display}}
@@ -1685,17 +1668,7 @@ function SortableCellContent({
               disabled={disabled}
               investigationId={investigationId}
               organizationSlug={organizationSlug}
-              onDisplayChange={display => {
-                const nextDraft = {...draft, display};
-                setDraft(nextDraft);
-                if (displaySaveTimerRef.current) {
-                  clearTimeout(displaySaveTimerRef.current);
-                }
-                displaySaveTimerRef.current = setTimeout(() => {
-                  displaySaveTimerRef.current = null;
-                  void saveDraft(nextDraft);
-                }, 400);
-              }}
+              onDisplayChange={persistDisplay}
               onRetry={runQuery}
               onRevisedQueryIntent={async intent => {
                 const nextDraft = {...draft, generationPrompt: intent};
@@ -2146,35 +2119,36 @@ const ReactionPill = styled('button')<{$reacted: boolean}>`
 `;
 
 const QueryRunButton = styled(Button)<{$hidden: boolean}>`
-  position: absolute;
-  z-index: 1;
-  top: ${p => p.theme.space.md};
-  right: ${p => p.theme.space.md};
-  scale: 0.9;
-  transform-origin: top right;
   opacity: ${p => (p.$hidden ? 0 : 1)};
 `;
 
-const QueryRepresentationToggle = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.xs};
-  padding-top: ${p => p.theme.space.md};
-  padding-left: ${p => p.theme.space.lg};
-  padding-right: 88px;
+const QueryPromptDisclosure = styled(Disclosure)`
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
 `;
 
-const CellInput = styled(TextArea)<{
-  $kind: InvestigationCellKind;
-  $generated?: boolean;
-}>`
+const QueryPromptContent = styled(Disclosure.Content)`
+  padding: 0;
+`;
+
+const QuerySummary = styled(Text)`
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const QueryEditorWrap = styled('div')`
+  position: relative;
+`;
+
+const CellInput = styled(TextArea)<{$kind: InvestigationCellKind}>`
   width: 100%;
   border: 0;
   border-radius: 0;
   padding: 0;
   background: transparent;
   box-shadow: none;
-  font-family: ${p =>
-    p.$generated ? p.theme.font.family.mono : p.theme.font.family.sans};
+  font-family: ${p => p.theme.font.family.sans};
   font-size: ${p => p.theme.font.size.md};
   line-height: 1.55;
   resize: none !important;
@@ -2190,9 +2164,9 @@ const CellInput = styled(TextArea)<{
     p.$kind === 'query'
       ? css`
           min-height: 68px;
-          padding-top: ${p.$generated ? p.theme.space.sm : p.theme.space.md};
+          padding-top: ${p.theme.space.md};
           padding-left: ${p.theme.space.lg};
-          padding-right: 88px;
+          padding-right: ${p.theme.space.lg};
           padding-bottom: ${p.theme.space.md};
         `
       : ''}

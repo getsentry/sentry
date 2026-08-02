@@ -59,7 +59,9 @@ describe('SeerInvestigation', () => {
       {
         organization: currentOrganization,
         initialRouterConfig: {
-          location: {pathname: `/organizations/${organization.slug}/seer/${detail.id}/`},
+          location: {
+            pathname: `/organizations/${organization.slug}/seer/${detail.id}/`,
+          },
           route: '/organizations/:orgId/seer/:investigationId/',
         },
       }
@@ -121,7 +123,9 @@ describe('SeerInvestigation', () => {
     await userEvent.click(
       await screen.findByRole('button', {name: 'Edit investigation name'})
     );
-    const title = await screen.findByRole('textbox', {name: 'Investigation name'});
+    const title = await screen.findByRole('textbox', {
+      name: 'Investigation name',
+    });
     await userEvent.clear(title);
     await userEvent.type(title, 'Checkout follow-up');
     await userEvent.keyboard('{Enter}');
@@ -156,14 +160,18 @@ describe('SeerInvestigation', () => {
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Query'}));
 
     await waitFor(() => expect(createRequest).toHaveBeenCalled());
-    const queryEditor = await screen.findByRole('textbox', {name: 'Query cell 2'});
+    const queryEditor = await screen.findByRole('textbox', {
+      name: 'Query cell 2',
+    });
     expect(queryEditor).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Run'})).toBeDisabled();
 
     const suggestion = 'Show errors over time for the selected projects';
     await userEvent.click(screen.getByRole('button', {name: 'see an example'}));
     expect(queryEditor).not.toHaveValue(suggestion);
-    await waitFor(() => expect(queryEditor).toHaveValue(suggestion), {timeout: 2000});
+    await waitFor(() => expect(queryEditor).toHaveValue(suggestion), {
+      timeout: 2000,
+    });
   });
 
   it('runs a query cell through its durable execution endpoint', async () => {
@@ -174,7 +182,10 @@ describe('SeerInvestigation', () => {
       outputStatus: 'notRun',
       version: 3,
     });
-    const withQuery = InvestigationDetailFixture({cells: [queryCell], version: 7});
+    const withQuery = InvestigationDetailFixture({
+      cells: [queryCell],
+      version: 7,
+    });
     const executeRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/investigations/${withQuery.id}/cells/${queryCell.id}/execute/`,
       method: 'POST',
@@ -222,7 +233,9 @@ describe('SeerInvestigation', () => {
 
     renderInvestigation(withRunningQuery);
 
-    const runningButton = await screen.findByRole('button', {name: 'Running'});
+    const runningButton = await screen.findByRole('button', {
+      name: 'Running',
+    });
     expect(runningButton).toBeDisabled();
     expect(runningButton).toHaveAttribute('aria-busy', 'true');
     expect(executeRequest).not.toHaveBeenCalled();
@@ -289,6 +302,44 @@ describe('SeerInvestigation', () => {
     );
 
     expect(await screen.findByRole('button', {name: 'Run'})).toBeDisabled();
+  });
+
+  it('persists collapsing only the natural language query section', async () => {
+    const queryCell = InvestigationCellFixture({
+      id: 'query-cell',
+      kind: 'query',
+      generationPrompt: 'Show error volume',
+      display: {type: 'table'},
+    });
+    const withQuery = InvestigationDetailFixture({cells: [queryCell]});
+    const updateRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/investigations/${withQuery.id}/cells/${queryCell.id}/`,
+      method: 'PUT',
+      body: {
+        ...queryCell,
+        version: queryCell.version + 1,
+        display: {version: 1, type: 'table', queryCollapsed: true},
+      },
+    });
+    renderInvestigation(withQuery);
+
+    expect(
+      await screen.findByRole('textbox', {name: 'Query cell 1'})
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Natural language query'}));
+
+    expect(screen.queryByRole('textbox', {name: 'Query cell 1'})).not.toBeInTheDocument();
+    await waitFor(() => expect(updateRequest).toHaveBeenCalled(), {
+      timeout: 2000,
+    });
+    expect(updateRequest).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          display: expect.objectContaining({version: 1, queryCollapsed: true}),
+        }),
+      })
+    );
   });
 
   it('switches a typed persisted result from table to chart without rerunning', async () => {
@@ -381,38 +432,38 @@ describe('SeerInvestigation', () => {
     expect(screen.getByRole('textbox', {name: 'Query cell 1'})).toHaveValue(
       'Show error volume'
     );
-    await userEvent.click(screen.getByRole('button', {name: 'Generated query'}));
-    expect(screen.getByRole('textbox', {name: 'Generated query'})).toHaveValue(
-      'is:unresolved'
-    );
-    expect(screen.getByRole('textbox', {name: 'Generated query'})).toHaveAttribute(
-      'readonly'
-    );
-    await userEvent.click(screen.getByRole('button', {name: 'Natural language'}));
-    expect(screen.getByRole('textbox', {name: 'Query cell 1'})).toHaveValue(
-      'Show error volume'
-    );
+    expect(
+      screen.queryByRole('button', {name: 'Generated query'})
+    ).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Query details'}));
+    expect(screen.getByText('is:unresolved')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Chart'}));
 
     expect(await screen.findByTestId('seer-chart-embed')).toBeInTheDocument();
-    expect(screen.getByText('Error volume')).toBeInTheDocument();
+    expect(screen.queryByText('Error volume')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('combobox', {name: 'X-axis field'})
+    ).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Chart settings'}));
     expect(screen.getByRole('combobox', {name: 'X-axis field'})).toBeInTheDocument();
     expect(
       screen.getByRole('combobox', {name: 'Series or color field'})
     ).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Y-axis label'})).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Chart subtitle'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('textbox', {name: 'Chart subtitle'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox', {name: 'Chart title'})).not.toBeInTheDocument();
     expect(screen.getByRole('combobox', {name: 'Series layout'})).toBeInTheDocument();
     expect(screen.getByRole('spinbutton', {name: 'Top N points'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('combobox', {name: 'Default query result view'})
-    ).toBeInTheDocument();
 
     await userEvent.selectOptions(
       screen.getByRole('combobox', {name: 'Chart sort'}),
       'descending'
     );
-    await waitFor(() => expect(updateRequest).toHaveBeenCalled(), {timeout: 2000});
+    await waitFor(() => expect(updateRequest).toHaveBeenCalled(), {
+      timeout: 2000,
+    });
     expect(updateRequest).toHaveBeenLastCalledWith(
       expect.anything(),
       expect.objectContaining({
@@ -426,6 +477,22 @@ describe('SeerInvestigation', () => {
       })
     );
     expect(executeRequest).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Close chart settings'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Both'}));
+    expect(screen.getByTestId('seer-chart-embed')).toBeInTheDocument();
+    expect(screen.getByText('Errors')).toBeInTheDocument();
+    await waitFor(() => expect(updateRequest).toHaveBeenCalledTimes(2), {
+      timeout: 2000,
+    });
+    expect(updateRequest).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          display: expect.objectContaining({defaultView: 'both'}),
+        }),
+      })
+    );
   });
 
   it('renders a table shell when a successful query returns no rows or columns', async () => {
@@ -488,9 +555,9 @@ describe('SeerInvestigation', () => {
       cells: [InvestigationCellFixture({commentCount: 1})],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/investigations/${detail.id}/cells/${
-        withComments.cells[0]!.id
-      }/comments/`,
+      url: `/organizations/${organization.slug}/investigations/${
+        detail.id
+      }/cells/${withComments.cells[0]!.id}/comments/`,
       body: [InvestigationCommentFixture()],
     });
     renderInvestigation(withComments);
@@ -503,7 +570,9 @@ describe('SeerInvestigation', () => {
 
   it('expands reactions in place as an icon-only picker', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/investigations/${detail.id}/cells/${detail.cells[0]!.id}/comments/`,
+      url: `/organizations/${organization.slug}/investigations/${
+        detail.id
+      }/cells/${detail.cells[0]!.id}/comments/`,
       body: [],
     });
     renderInvestigation();
@@ -531,9 +600,9 @@ describe('SeerInvestigation', () => {
       permissions: {...detail.permissions, canEdit: false, canManage: false},
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/investigations/${detail.id}/cells/${
-        readOnly.cells[0]!.id
-      }/comments/`,
+      url: `/organizations/${organization.slug}/investigations/${
+        detail.id
+      }/cells/${readOnly.cells[0]!.id}/comments/`,
       body: [],
     });
     renderInvestigation(readOnly);
@@ -547,7 +616,9 @@ describe('SeerInvestigation', () => {
 
   it('filters and keyboard-navigates block commands in a text cell', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/investigations/${detail.id}/cells/${detail.cells[0]!.id}/`,
+      url: `/organizations/${organization.slug}/investigations/${
+        detail.id
+      }/cells/${detail.cells[0]!.id}/`,
       method: 'PUT',
       body: InvestigationCellFixture({content: '## ', version: 2}),
     });
@@ -576,7 +647,9 @@ describe('SeerInvestigation', () => {
 
   it('renders markdown syntax in place when a text cell is committed', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/investigations/${detail.id}/cells/${detail.cells[0]!.id}/`,
+      url: `/organizations/${organization.slug}/investigations/${
+        detail.id
+      }/cells/${detail.cells[0]!.id}/`,
       method: 'PUT',
       body: InvestigationCellFixture({content: '# Hello', version: 2}),
     });
@@ -594,7 +667,10 @@ describe('SeerInvestigation', () => {
   });
 
   it('inserts a cell between existing cells and persists the new order', async () => {
-    const secondCell = InvestigationCellFixture({id: 'second-cell', position: 1});
+    const secondCell = InvestigationCellFixture({
+      id: 'second-cell',
+      position: 1,
+    });
     const withTwoCells = InvestigationDetailFixture({
       cells: [detail.cells[0]!, secondCell],
     });
@@ -634,7 +710,10 @@ describe('SeerInvestigation', () => {
   });
 
   it('reorders cells through the drag handle', async () => {
-    const secondCell = InvestigationCellFixture({id: 'second-cell', position: 1});
+    const secondCell = InvestigationCellFixture({
+      id: 'second-cell',
+      position: 1,
+    });
     const withTwoCells = InvestigationDetailFixture({
       cells: [detail.cells[0]!, secondCell],
     });
@@ -701,7 +780,9 @@ describe('SeerInvestigation', () => {
     await userEvent.click(
       await screen.findByRole('button', {name: 'Edit investigation name'})
     );
-    const title = await screen.findByRole('textbox', {name: 'Investigation name'});
+    const title = await screen.findByRole('textbox', {
+      name: 'Investigation name',
+    });
     await userEvent.clear(title);
     await userEvent.type(title, 'My local draft');
     await userEvent.keyboard('{Enter}');

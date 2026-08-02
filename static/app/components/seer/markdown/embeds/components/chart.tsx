@@ -1,3 +1,6 @@
+import {css} from '@emotion/react';
+import styled from '@emotion/styled';
+
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -40,6 +43,8 @@ export const Chart = defineSeerEmbed({
     y_axis_label: yAxisLabel,
     stacked,
     show_legend: showLegend,
+    show_title: showTitle,
+    frameless,
     series,
   }) {
     const chartSeries: ChartSeries[] = series.map(item => {
@@ -101,25 +106,28 @@ export const Chart = defineSeerEmbed({
     };
 
     return (
-      <Container
+      <ChartContainer
+        $frameless={frameless}
         as="section"
         background="primary"
-        border="primary"
+        border={frameless ? undefined : 'primary'}
         data-test-id="seer-chart-embed"
-        margin="lg 0"
+        margin={frameless ? '0' : 'lg 0'}
         padding="lg xl md"
-        radius="md"
+        radius={frameless ? undefined : 'md'}
       >
-        <Stack gap="2xs" paddingBottom="sm">
-          <Heading as="h3" size="md">
-            {title}
-          </Heading>
-          {subtitle && (
-            <Text size="sm" variant="muted">
-              {subtitle}
-            </Text>
-          )}
-        </Stack>
+        {showTitle ? (
+          <Stack gap="2xs" paddingBottom="sm">
+            <Heading as="h3" size="md">
+              {title}
+            </Heading>
+            {subtitle && (
+              <Text size="sm" variant="muted">
+                {subtitle}
+              </Text>
+            )}
+          </Stack>
+        ) : null}
         {visualization === 'area' ? (
           <AreaChart {...chartProps} stacked={stacked && series.length > 1} />
         ) : visualization === 'bar' ? (
@@ -138,7 +146,20 @@ export const Chart = defineSeerEmbed({
         ) : (
           <LineChart {...chartProps} />
         )}
-      </Container>
+      </ChartContainer>
     );
   },
 });
+
+const ChartContainer = styled(Container)<{$frameless: boolean}>`
+  ${p =>
+    p.$frameless
+      ? css`
+          border-top: 1px solid ${p.theme.tokens.border.secondary};
+          border-right: 0;
+          border-bottom: 1px solid ${p.theme.tokens.border.secondary};
+          border-left: 0;
+          border-radius: 0;
+        `
+      : undefined}
+`;

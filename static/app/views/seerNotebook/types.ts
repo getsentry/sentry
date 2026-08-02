@@ -28,7 +28,8 @@ export type InvestigationReaction = {
 export type InvestigationDisplay = {
   type: InvestigationDisplayType;
   axisLabel?: string;
-  defaultView?: 'table' | 'chart';
+  defaultView?: 'table' | 'chart' | 'both';
+  queryCollapsed?: boolean;
   seriesField?: string;
   showLegend?: boolean;
   sort?: 'none' | 'ascending' | 'descending';

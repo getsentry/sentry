@@ -1,8 +1,9 @@
 import {useEffect, useMemo, useState, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Disclosure} from '@sentry/scraps/disclosure';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -11,6 +12,7 @@ import {BarChart} from 'sentry/components/charts/barChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {Chart} from 'sentry/components/seer/markdown/embeds/components/chart';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {IconClose, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 import {suggestCellVisualization} from './api';
@@ -150,27 +152,28 @@ function TypedQueryOutput({
   onRevisedQueryIntent,
   organizationSlug,
   output,
-}: PersistedCellOutputProps & {output: InvestigationQueryResult}) {
+}: Omit<PersistedCellOutputProps, 'canRetry' | 'onRetry'> & {
+  output: InvestigationQueryResult;
+}) {
   const chartAvailable = Boolean(output.chart && output.suggestedVisualization);
   const defaultView = cell.display.defaultView ?? 'table';
-  const [activeView, setActiveView] = useState<'table' | 'chart'>(
-    defaultView === 'chart' && chartAvailable ? 'chart' : 'table'
+  const [activeView, setActiveView] = useState<'table' | 'chart' | 'both'>(
+    defaultView !== 'table' && !chartAvailable ? 'table' : defaultView
   );
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const {visualization, isFallback} = resolveVisualization(cell.display, output);
   const chartData = useMemo(
     () => (visualization ? makeChartData(output, visualization) : null),
     [output, visualization]
   );
-  const exploreUrl = makeExploreUrl(organizationSlug, output);
-
   const updateVisualization = (change: Partial<InvestigationDisplay>) => {
     if (!visualization) {
       return;
     }
     onDisplayChange({
+      ...cell.display,
       version: 1,
       type: visualization.type,
-      defaultView: 'chart',
       xAxis: visualization.xField,
       yAxes: visualization.yFields,
       unit: visualization.unit,
@@ -186,45 +189,28 @@ function TypedQueryOutput({
     });
   };
 
+  const changeView = (view: 'table' | 'chart' | 'both') => {
+    if (view !== 'table' && !chartAvailable) {
+      return;
+    }
+    setActiveView(view);
+    setIsSettingsOpen(false);
+    onDisplayChange({...cell.display, version: 1, defaultView: view});
+  };
+
+  const showChart =
+    chartAvailable &&
+    visualization !== null &&
+    chartData !== null &&
+    (activeView === 'chart' || activeView === 'both');
+  const showTable = activeView === 'table' || activeView === 'both' || !showChart;
+  const chartUnavailableTitle =
+    output.chartUnavailableReason ?? t('No meaningful chart is available.');
+
   return (
     <OutputWrap>
-      <OutputToolbar justify="between" align="center" gap="sm" wrap="wrap">
-        <Flex gap="xs">
-          <Button
-            size="xs"
-            variant={activeView === 'table' ? 'primary' : 'secondary'}
-            onClick={() => setActiveView('table')}
-          >
-            {t('Table')}
-          </Button>
-          <Tooltip
-            title={
-              chartAvailable
-                ? undefined
-                : (output.chartUnavailableReason ??
-                  t('No meaningful chart is available.'))
-            }
-          >
-            <span>
-              <Button
-                size="xs"
-                variant={activeView === 'chart' ? 'primary' : 'secondary'}
-                disabled={!chartAvailable}
-                onClick={() => setActiveView('chart')}
-              >
-                {t('Chart')}
-              </Button>
-            </span>
-          </Tooltip>
-        </Flex>
-        <Text size="xs" variant="muted">
-          {t('%s of %s rows', output.table.returnedRows, output.table.totalRows)}
-          {output.table.truncated ? ` · ${t('truncated')}` : ''}
-        </Text>
-      </OutputToolbar>
-
-      {activeView === 'chart' && visualization && chartData ? (
-        <Stack gap="md">
+      {showChart ? (
+        <ChartSurface>
           {isFallback ? (
             <InlineNotice>
               {t(
@@ -238,6 +224,8 @@ function TypedQueryOutput({
             data={{
               title: visualization.title,
               subtitle: visualization.subtitle ?? undefined,
+              show_title: false,
+              frameless: true,
               visualization: visualization.type,
               x_axis: output.chart!.xAxis,
               y_axis_unit: visualization.unit,
@@ -248,55 +236,73 @@ function TypedQueryOutput({
             }}
           />
           {disabled ? null : (
-            <VisualizationEditor
-              cellId={cell.id}
-              currentIntent={currentIntent}
-              defaultView={cell.display.defaultView ?? 'table'}
-              investigationId={investigationId}
-              onRevisedQueryIntent={onRevisedQueryIntent}
-              organizationSlug={organizationSlug}
-              output={output}
-              visualization={visualization}
-              onChange={updateVisualization}
+            <ChartSettingsButton
+              size="xs"
+              variant="secondary"
+              icon={<IconSettings />}
+              aria-label={t('Chart settings')}
+              onClick={() => setIsSettingsOpen(true)}
             />
           )}
-        </Stack>
-      ) : (
-        <TypedTable output={output} />
-      )}
-
-      <QueryDetails>
-        <summary>{t('Query details')}</summary>
-        <QueryDetailsBody gap="xs">
-          <Text size="sm">
-            <strong>{t('Dataset')}:</strong> {output.query.dataset}
-          </Text>
-          <Text size="sm">
-            <strong>{t('Generated query')}:</strong>{' '}
-            <InlineCode>{output.query.query || t('(no filter)')}</InlineCode>
-          </Text>
-          <Text size="sm">
-            <strong>{t('Scope')}:</strong>{' '}
-            {output.query.projectSlugs.join(', ') || t('All accessible projects')}
-          </Text>
-          <Text size="sm">
-            <strong>{t('Time range')}:</strong>{' '}
-            {describeTimeRange(output.query.timeRange)}
-          </Text>
-          {output.warnings.map((warning, index) => (
-            <Text size="sm" variant="muted" key={index}>
-              {warning}
-            </Text>
-          ))}
-          {exploreUrl ? (
-            <div>
-              <LinkButton size="xs" href={exploreUrl}>
-                {t('Open in Explore')}
-              </LinkButton>
-            </div>
+          {isSettingsOpen ? (
+            <ChartSettingsOverlay>
+              <Flex align="center" justify="between" gap="sm">
+                <Text bold>{t('Chart settings')}</Text>
+                <Button
+                  size="xs"
+                  variant="transparent"
+                  icon={<IconClose />}
+                  aria-label={t('Close chart settings')}
+                  onClick={() => setIsSettingsOpen(false)}
+                />
+              </Flex>
+              <VisualizationEditor
+                cellId={cell.id}
+                currentIntent={currentIntent}
+                investigationId={investigationId}
+                onRevisedQueryIntent={onRevisedQueryIntent}
+                organizationSlug={organizationSlug}
+                output={output}
+                visualization={visualization}
+                onChange={updateVisualization}
+              />
+            </ChartSettingsOverlay>
           ) : null}
-        </QueryDetailsBody>
-      </QueryDetails>
+        </ChartSurface>
+      ) : null}
+      {showTable ? <TypedTable output={output} /> : null}
+
+      <ResultFooter columns="minmax(0, 1fr) auto" align="start" gap="sm">
+        <QueryDetails size="xs">
+          <Disclosure.Title>{t('Query details')}</Disclosure.Title>
+          <QueryDetailsBody>
+            <InlineCode>{output.query.query || t('(no filter)')}</InlineCode>
+          </QueryDetailsBody>
+        </QueryDetails>
+        <ViewTabs columns="repeat(3, minmax(64px, 1fr))" gap="0">
+          {(['table', 'chart', 'both'] as const).map(view => {
+            const unavailable = view !== 'table' && !chartAvailable;
+            return (
+              <Tooltip key={view} title={unavailable ? chartUnavailableTitle : undefined}>
+                <ViewTabCell>
+                  <Button
+                    size="xs"
+                    variant={activeView === view ? 'primary' : 'secondary'}
+                    disabled={unavailable}
+                    onClick={() => changeView(view)}
+                  >
+                    {view === 'table'
+                      ? t('Table')
+                      : view === 'chart'
+                        ? t('Chart')
+                        : t('Both')}
+                  </Button>
+                </ViewTabCell>
+              </Tooltip>
+            );
+          })}
+        </ViewTabs>
+      </ResultFooter>
     </OutputWrap>
   );
 }
@@ -304,7 +310,6 @@ function TypedQueryOutput({
 function VisualizationEditor({
   cellId,
   currentIntent,
-  defaultView,
   investigationId,
   onChange,
   onRevisedQueryIntent,
@@ -314,7 +319,6 @@ function VisualizationEditor({
 }: {
   cellId: string;
   currentIntent: string;
-  defaultView: 'table' | 'chart';
   investigationId: string;
   onChange: (change: Partial<InvestigationDisplay>) => void;
   onRevisedQueryIntent: (intent: string) => Promise<void>;
@@ -470,26 +474,6 @@ function VisualizationEditor({
         </EditorLabel>
         <EditorLabel>
           <Text size="xs" variant="muted">
-            {t('Title')}
-          </Text>
-          <EditorInput
-            aria-label={t('Chart title')}
-            value={visualization.title}
-            onChange={event => onChange({title: event.target.value})}
-          />
-        </EditorLabel>
-        <EditorLabel>
-          <Text size="xs" variant="muted">
-            {t('Subtitle')}
-          </Text>
-          <EditorInput
-            aria-label={t('Chart subtitle')}
-            value={visualization.subtitle ?? ''}
-            onChange={event => onChange({subtitle: event.target.value})}
-          />
-        </EditorLabel>
-        <EditorLabel>
-          <Text size="xs" variant="muted">
             {t('Series layout')}
           </Text>
           <EditorSelect
@@ -536,21 +520,6 @@ function VisualizationEditor({
               });
             }}
           />
-        </EditorLabel>
-        <EditorLabel>
-          <Text size="xs" variant="muted">
-            {t('Default view')}
-          </Text>
-          <EditorSelect
-            aria-label={t('Default query result view')}
-            value={defaultView}
-            onChange={event =>
-              onChange({defaultView: event.target.value as 'table' | 'chart'})
-            }
-          >
-            <option value="table">{t('Table')}</option>
-            <option value="chart">{t('Chart')}</option>
-          </EditorSelect>
         </EditorLabel>
         <EditorCheckbox>
           <input
@@ -836,59 +805,8 @@ function formatValue(value: unknown): string {
     : '—';
 }
 
-function describeTimeRange(timeRange: InvestigationQueryResult['query']['timeRange']) {
-  if (timeRange.statsPeriod) {
-    return t('Last %s', timeRange.statsPeriod);
-  }
-  if (timeRange.start && timeRange.end) {
-    return `${timeRange.start} – ${timeRange.end}`;
-  }
-  return t('Default range');
-}
-
-function makeExploreUrl(organizationSlug: string, output: InvestigationQueryResult) {
-  const params = new URLSearchParams();
-  Object.entries(output.query.linkParams).forEach(([key, value]) => {
-    if (
-      value === null ||
-      value === undefined ||
-      key === 'org_slug' ||
-      key === 'dataset'
-    ) {
-      return;
-    }
-    if (Array.isArray(value)) {
-      value.forEach(item => {
-        if (
-          typeof item === 'string' ||
-          typeof item === 'number' ||
-          typeof item === 'boolean'
-        ) {
-          params.append(key, String(item));
-        }
-      });
-    } else if (
-      typeof value === 'string' ||
-      typeof value === 'number' ||
-      typeof value === 'boolean'
-    ) {
-      params.set(key, String(value));
-    }
-  });
-  const route =
-    output.query.dataset === 'issues'
-      ? 'issues'
-      : `explore/${output.query.dataset === 'errors' ? 'traces' : output.query.dataset}`;
-  return `/organizations/${organizationSlug}/${route}/?${params.toString()}`;
-}
-
 const OutputWrap = styled('section')`
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
-`;
-
-const OutputToolbar = styled(Flex)`
-  padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
-  background: ${p => p.theme.tokens.background.secondary};
 `;
 
 const OutputMessage = styled(Text)`
@@ -922,6 +840,32 @@ const ChartWrap = styled('div')`
   padding: ${p => p.theme.space.lg};
 `;
 
+const ChartSurface = styled('div')`
+  position: relative;
+  overflow: hidden;
+`;
+
+const ChartSettingsButton = styled(Button)`
+  position: absolute;
+  z-index: 2;
+  top: ${p => p.theme.space.sm};
+  right: ${p => p.theme.space.lg};
+`;
+
+const ChartSettingsOverlay = styled(Stack)`
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(380px, 100%);
+  padding: ${p => p.theme.space.lg};
+  border-left: 1px solid ${p => p.theme.tokens.border.primary};
+  background: ${p => p.theme.tokens.background.primary};
+  box-shadow: ${p => p.theme.shadow.medium};
+  overflow-y: auto;
+`;
+
 const TableScroller = styled('div')`
   overflow-x: auto;
 `;
@@ -929,21 +873,53 @@ const TableScroller = styled('div')`
 const OutputTable = styled(SimpleTable)<{$columnCount: number}>`
   min-width: 640px;
   grid-template-columns: repeat(${p => p.$columnCount}, minmax(140px, 1fr));
-`;
+  border: 0;
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
+  border-radius: 0;
 
-const QueryDetails = styled('details')`
-  padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
-  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
-
-  summary {
-    cursor: pointer;
-    color: ${p => p.theme.tokens.content.secondary};
-    font-size: ${p => p.theme.font.size.sm};
+  [role='row'] {
+    border-radius: 0;
   }
 `;
 
-const QueryDetailsBody = styled(Stack)`
-  padding: ${p => p.theme.space.sm} 0;
+const ResultFooter = styled(Grid)`
+  min-height: 44px;
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
+  background: ${p => p.theme.tokens.background.secondary};
+`;
+
+const QueryDetails = styled(Disclosure)`
+  min-width: 0;
+`;
+
+const QueryDetailsBody = styled(Disclosure.Content)`
+  max-width: 100%;
+  overflow-x: auto;
+`;
+
+const ViewTabs = styled(Grid)`
+  align-self: start;
+
+  button {
+    width: 100%;
+    border-radius: 0;
+  }
+`;
+
+const ViewTabCell = styled('span')`
+  min-width: 0;
+
+  &:first-of-type button {
+    border-radius: ${p => p.theme.radius.sm} 0 0 ${p => p.theme.radius.sm};
+  }
+
+  &:not(:first-of-type) button {
+    margin-left: -1px;
+  }
+
+  &:last-of-type button {
+    border-radius: 0 ${p => p.theme.radius.sm} ${p => p.theme.radius.sm} 0;
+  }
 `;
 
 const InlineCode = styled('code')`
@@ -955,7 +931,6 @@ const EditorGrid = styled('div')`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: ${p => p.theme.space.sm};
-  padding: 0 ${p => p.theme.space.lg} ${p => p.theme.space.lg};
 `;
 
 const EditorLabel = styled('label')`
@@ -991,7 +966,6 @@ const EditorCheckbox = styled('label')`
 
 const NlpEditor = styled(Flex)`
   gap: ${p => p.theme.space.sm};
-  padding: 0 ${p => p.theme.space.lg} ${p => p.theme.space.lg};
 
   ${EditorInput} {
     flex: 1;

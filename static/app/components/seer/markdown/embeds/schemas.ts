@@ -106,6 +106,8 @@ export const SEER_EMBED_SCHEMAS = {
         y_axis_label: z.string().optional(),
         stacked: z.boolean().default(true),
         show_legend: z.boolean().default(true),
+        show_title: z.boolean().default(true),
+        frameless: z.boolean().default(false),
         series: z
           .array(
             z.object({
