@@ -1250,6 +1250,21 @@ function SortableCellContent({
     saveDraft(draft);
   };
 
+  const runQuery = async () => {
+    if (isRunBusy || !queryIntent.trim() || !queryExecutionEnabled) {
+      return;
+    }
+    setIsRunRequested(true);
+    try {
+      await saveDraft(draft);
+      await onExecute(cell);
+    } catch {
+      addErrorMessage(t('The query could not be started.'));
+    } finally {
+      setIsRunRequested(false);
+    }
+  };
+
   const applySlashCommand = (prefix: string) => {
     const lines = draft.content.split('\n');
     lines[lines.length - 1] = prefix;
@@ -1585,17 +1600,7 @@ function SortableCellContent({
               disabled={
                 isExecutionRunning || !queryIntent.trim() || !queryExecutionEnabled
               }
-              onClick={async () => {
-                setIsRunRequested(true);
-                try {
-                  await saveDraft(draft);
-                  await onExecute(cell);
-                } catch {
-                  addErrorMessage(t('The query could not be started.'));
-                } finally {
-                  setIsRunRequested(false);
-                }
-              }}
+              onClick={() => void runQuery()}
             >
               {isRunBusy ? t('Running') : t('Run')}
             </QueryRunButton>
@@ -1674,6 +1679,7 @@ function SortableCellContent({
               </QueryPlaceholder>
             )}
             <PersistedCellOutput
+              canRetry={!disabled && queryExecutionEnabled && !isRunBusy}
               cell={{...cell, display: draft.display}}
               currentIntent={queryIntent}
               disabled={disabled}
@@ -1690,6 +1696,7 @@ function SortableCellContent({
                   void saveDraft(nextDraft);
                 }, 400);
               }}
+              onRetry={runQuery}
               onRevisedQueryIntent={async intent => {
                 const nextDraft = {...draft, generationPrompt: intent};
                 setDraft(nextDraft);

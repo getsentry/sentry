@@ -228,6 +228,50 @@ describe('SeerInvestigation', () => {
     expect(executeRequest).not.toHaveBeenCalled();
   });
 
+  it('shows a persisted query error and retries it inline', async () => {
+    const queryCell = InvestigationCellFixture({
+      id: 'query-cell',
+      kind: 'query',
+      generationPrompt: 'Show unresolved errors over the last day',
+      outputStatus: 'failed',
+      currentExecution: {
+        id: 'execution-1',
+        status: 'failed',
+        executor: 'code_mode',
+        schemaVersion: 1,
+        error: {
+          code: 'seer_execution_failed',
+          message: 'agent_run_errored',
+        },
+        startedAt: '2026-08-02T05:40:19Z',
+        completedAt: '2026-08-02T05:40:40Z',
+      },
+    });
+    const withFailedQuery = InvestigationDetailFixture({cells: [queryCell]});
+    const executeRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/investigations/${withFailedQuery.id}/cells/${queryCell.id}/execute/`,
+      method: 'POST',
+      body: {id: 'execution-2', status: 'running'},
+    });
+
+    renderInvestigation(withFailedQuery);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Query failed');
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      "We couldn't finish this query. Try running it again."
+    );
+    expect(screen.getByRole('alert')).not.toHaveTextContent('agent_run_errored');
+    await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
+
+    await waitFor(() => expect(executeRequest).toHaveBeenCalled());
+    expect(executeRequest).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({requestId: expect.any(String)}),
+      })
+    );
+  });
+
   it('does not expose inline execution when the execution flag is explicitly off', async () => {
     const queryCell = InvestigationCellFixture({
       id: 'query-cell',

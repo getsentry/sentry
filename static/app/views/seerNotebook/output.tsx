@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useState, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -29,11 +30,13 @@ type LegacyTableOutput = {
 };
 
 type PersistedCellOutputProps = {
+  canRetry: boolean;
   cell: InvestigationCell;
   currentIntent: string;
   disabled: boolean;
   investigationId: string;
   onDisplayChange: (display: InvestigationDisplay) => void;
+  onRetry: () => Promise<void>;
   onRevisedQueryIntent: (intent: string) => Promise<void>;
   organizationSlug: string;
 };
@@ -46,11 +49,13 @@ export function getOutputColumns(output: unknown): string[] {
 }
 
 export function PersistedCellOutput({
+  canRetry,
   cell,
   currentIntent,
   disabled,
   investigationId,
   onDisplayChange,
+  onRetry,
   onRevisedQueryIntent,
   organizationSlug,
 }: PersistedCellOutputProps) {
@@ -65,11 +70,35 @@ export function PersistedCellOutput({
     );
   }
   if (cell.outputStatus === 'failed') {
+    const persistedMessage =
+      cell.currentExecution?.error?.message ?? t('The persisted cell execution failed.');
+    const message =
+      persistedMessage === 'agent_run_errored' ||
+      persistedMessage.startsWith('unexpected_terminal_status:')
+        ? t("We couldn't finish this query. Try running it again.")
+        : persistedMessage;
     return (
-      <OutputMessage>
-        {cell.currentExecution?.error?.message ??
-          t('The persisted cell execution failed.')}
-      </OutputMessage>
+      <ErrorOutput role="alert">
+        <Alert.Container>
+          <Alert
+            variant="danger"
+            trailingItems={
+              <Alert.Button
+                variant="secondary"
+                disabled={!canRetry}
+                onClick={() => void onRetry()}
+              >
+                {t('Retry')}
+              </Alert.Button>
+            }
+          >
+            <Stack gap="xs">
+              <Text bold>{t('Query failed')}</Text>
+              <Text size="sm">{message}</Text>
+            </Stack>
+          </Alert>
+        </Alert.Container>
+      </ErrorOutput>
     );
   }
   if (cell.outputStatus !== 'available') {
@@ -876,6 +905,12 @@ const OutputMessage = styled(Text)`
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   background: ${p => p.theme.tokens.background.secondary};
   color: ${p => p.theme.tokens.content.secondary};
+`;
+
+const ErrorOutput = styled('section')`
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
+  background: ${p => p.theme.tokens.background.secondary};
 `;
 
 const InlineNotice = styled(Text)`
