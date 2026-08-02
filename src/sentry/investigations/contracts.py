@@ -82,7 +82,7 @@ class TableColumnSerializer(StrictContractSerializer):
 
 
 class TableResultSerializer(StrictContractSerializer):
-    columns = TableColumnSerializer(many=True)
+    columns = serializers.ListField(child=TableColumnSerializer(), min_length=1)
     rows = serializers.ListField(child=serializers.ListField(), max_length=MAX_TABLE_ROWS)
     totalRows = serializers.IntegerField(min_value=0)
     returnedRows = serializers.IntegerField(min_value=0)

@@ -1095,6 +1095,24 @@ type SortableCellPresentation = {
   isDragActive: boolean;
 };
 
+function getGeneratedQuery(output: unknown): string | null {
+  if (!output || typeof output !== 'object' || !('schemaVersion' in output)) {
+    return null;
+  }
+  if (output.schemaVersion !== 1 || !('query' in output)) {
+    return null;
+  }
+  const canonicalQuery = output.query;
+  if (
+    !canonicalQuery ||
+    typeof canonicalQuery !== 'object' ||
+    !('query' in canonicalQuery)
+  ) {
+    return null;
+  }
+  return typeof canonicalQuery.query === 'string' ? canonicalQuery.query : null;
+}
+
 function SortableCell(props: SortableCellProps) {
   const sortable = useSortable({
     id: getCellSortableId(props.cell),
@@ -1151,12 +1169,16 @@ function SortableCellContent({
   const [cellReactions, setCellReactions] = useState(cell.reactions);
   const [isReactionPickerOpen, setIsReactionPickerOpen] = useState(false);
   const [isRunRequested, setIsRunRequested] = useState(false);
+  const [queryRepresentation, setQueryRepresentation] = useState<'nlp' | 'generated'>(
+    'nlp'
+  );
   const textInputRef = useRef<HTMLTextAreaElement>(null);
   const slashMenuRef = useRef<HTMLDivElement>(null);
   const suggestionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const displaySaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isStreamingSuggestionRef = useRef(false);
   const queryIntent = draft.generationPrompt || draft.content;
+  const generatedQuery = getGeneratedQuery(cell.output);
   const savedQueryIntent = cell.generationPrompt || cell.content;
   const queryHasChanged = Boolean(cell.staleAt) || queryIntent !== savedQueryIntent;
   const runVariant = queryHasChanged
@@ -1571,17 +1593,51 @@ function SortableCellContent({
             >
               {t('Run')}
             </QueryRunButton>
+            {generatedQuery === null ? null : (
+              <QueryRepresentationToggle
+                role="group"
+                aria-label={t('Query representation')}
+              >
+                <Button
+                  size="xs"
+                  variant={queryRepresentation === 'nlp' ? 'primary' : 'secondary'}
+                  onClick={() => setQueryRepresentation('nlp')}
+                >
+                  {t('Natural language')}
+                </Button>
+                <Button
+                  size="xs"
+                  variant={queryRepresentation === 'generated' ? 'primary' : 'secondary'}
+                  onClick={() => setQueryRepresentation('generated')}
+                >
+                  {t('Generated query')}
+                </Button>
+              </QueryRepresentationToggle>
+            )}
             <CellInput
               ref={textInputRef}
               $kind="query"
-              aria-label={t('Query cell %s', index + 1)}
+              $generated={queryRepresentation === 'generated'}
+              aria-label={
+                queryRepresentation === 'generated'
+                  ? t('Generated query')
+                  : t('Query cell %s', index + 1)
+              }
               autosize
               rows={2}
               maxRows={18}
               disabled={disabled}
+              readOnly={queryRepresentation === 'generated'}
               placeholder=""
-              value={queryIntent}
+              value={
+                queryRepresentation === 'generated'
+                  ? generatedQuery || t('(no filter)')
+                  : queryIntent
+              }
               onChange={event => {
+                if (queryRepresentation === 'generated') {
+                  return;
+                }
                 if (suggestionTimerRef.current) {
                   clearInterval(suggestionTimerRef.current);
                   suggestionTimerRef.current = null;
@@ -1592,9 +1648,9 @@ function SortableCellContent({
                   generationPrompt: event.target.value,
                 }));
               }}
-              onBlur={saveOnBlur}
+              onBlur={queryRepresentation === 'nlp' ? saveOnBlur : undefined}
             />
-            {queryIntent ? null : (
+            {queryIntent || queryRepresentation === 'generated' ? null : (
               <QueryPlaceholder>
                 <Text variant="muted">
                   {t('Describe what you want to see, or ')}
@@ -2086,14 +2142,26 @@ const QueryRunButton = styled(Button)<{$hidden: boolean}>`
   opacity: ${p => (p.$hidden ? 0 : 1)};
 `;
 
-const CellInput = styled(TextArea)<{$kind: InvestigationCellKind}>`
+const QueryRepresentationToggle = styled('div')`
+  display: flex;
+  gap: ${p => p.theme.space.xs};
+  padding-top: ${p => p.theme.space.md};
+  padding-left: ${p => p.theme.space.lg};
+  padding-right: 88px;
+`;
+
+const CellInput = styled(TextArea)<{
+  $kind: InvestigationCellKind;
+  $generated?: boolean;
+}>`
   width: 100%;
   border: 0;
   border-radius: 0;
   padding: 0;
   background: transparent;
   box-shadow: none;
-  font-family: ${p => p.theme.font.family.sans};
+  font-family: ${p =>
+    p.$generated ? p.theme.font.family.mono : p.theme.font.family.sans};
   font-size: ${p => p.theme.font.size.md};
   line-height: 1.55;
   resize: none !important;
@@ -2109,7 +2177,7 @@ const CellInput = styled(TextArea)<{$kind: InvestigationCellKind}>`
     p.$kind === 'query'
       ? css`
           min-height: 68px;
-          padding-top: ${p.theme.space.md};
+          padding-top: ${p.$generated ? p.theme.space.sm : p.theme.space.md};
           padding-left: ${p.theme.space.lg};
           padding-right: 88px;
           padding-bottom: ${p.theme.space.md};

@@ -299,6 +299,20 @@ describe('SeerInvestigation', () => {
     renderInvestigation(withResult);
 
     expect(await screen.findByText('Errors')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Query cell 1'})).toHaveValue(
+      'Show error volume'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Generated query'}));
+    expect(screen.getByRole('textbox', {name: 'Generated query'})).toHaveValue(
+      'is:unresolved'
+    );
+    expect(screen.getByRole('textbox', {name: 'Generated query'})).toHaveAttribute(
+      'readonly'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Natural language'}));
+    expect(screen.getByRole('textbox', {name: 'Query cell 1'})).toHaveValue(
+      'Show error volume'
+    );
     await userEvent.click(screen.getByRole('button', {name: 'Chart'}));
 
     expect(await screen.findByTestId('seer-chart-embed')).toBeInTheDocument();
@@ -333,6 +347,50 @@ describe('SeerInvestigation', () => {
       })
     );
     expect(executeRequest).not.toHaveBeenCalled();
+  });
+
+  it('renders a table shell when a successful query returns no rows or columns', async () => {
+    const queryCell = InvestigationCellFixture({
+      id: 'query-cell',
+      kind: 'query',
+      generationPrompt: 'Show errors from a nonexistent release',
+      outputStatus: 'available',
+      display: {version: 1, type: 'table', defaultView: 'table'},
+      output: {
+        schemaVersion: 1,
+        query: {
+          dataset: 'errors',
+          query: 'release:does-not-exist',
+          mode: 'samples',
+          fields: [],
+          yAxes: [],
+          groupBy: [],
+          sort: '',
+          timeRange: {statsPeriod: '24h'},
+          projectIds: [1],
+          projectSlugs: ['frontend'],
+          linkParams: {},
+        },
+        table: {
+          columns: [],
+          rows: [],
+          totalRows: 0,
+          returnedRows: 0,
+          truncated: false,
+        },
+        chart: null,
+        suggestedVisualization: null,
+        chartUnavailableReason: 'No meaningful chart data was returned.',
+        warnings: [],
+        dataProjectIds: [1],
+      },
+    });
+
+    renderInvestigation(InvestigationDetailFixture({cells: [queryCell]}));
+
+    expect(await screen.findByText('Result')).toBeInTheDocument();
+    expect(screen.getByText('No data returned for this query.')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Chart'})).toBeDisabled();
   });
 
   it('opens the lazy add-cell menu from the keyboard', async () => {

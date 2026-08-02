@@ -577,21 +577,28 @@ function VisualizationEditor({
 }
 
 function TypedTable({output}: {output: InvestigationQueryResult}) {
+  const columns = output.table.columns.length
+    ? output.table.columns
+    : [{key: 'result', label: t('Result'), type: 'string' as const}];
+
   return (
     <TableScroller>
-      <OutputTable $columnCount={output.table.columns.length}>
+      <OutputTable $columnCount={columns.length}>
         <SimpleTable.Header>
-          {output.table.columns.map(column => (
+          {columns.map(column => (
             <SimpleTable.HeaderCell key={column.key}>
               {column.label}
             </SimpleTable.HeaderCell>
           ))}
         </SimpleTable.Header>
+        {output.table.rows.length === 0 ? (
+          <SimpleTable.Empty>{t('No data returned for this query.')}</SimpleTable.Empty>
+        ) : null}
         {output.table.rows.map((row, index) => (
           <SimpleTable.Row key={index}>
             {row.map((value, valueIndex) => (
               <SimpleTable.RowCell key={valueIndex}>
-                {formatTypedValue(output.table.columns[valueIndex]!, value)}
+                {formatTypedValue(columns[valueIndex]!, value)}
               </SimpleTable.RowCell>
             ))}
           </SimpleTable.Row>
