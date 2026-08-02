@@ -163,6 +163,23 @@ class InvestigationCellEndpointTest(APITestCase):
         )
         assert response.status_code == 400
 
+        response = self.client.post(
+            self.cells_url(),
+            data={
+                "investigationVersion": self.investigation.version,
+                "kind": "query",
+                "content": "Show error volume",
+                "display": {
+                    "version": 1,
+                    "type": "table",
+                    "defaultView": "both",
+                    "queryCollapsed": True,
+                },
+            },
+            format="json",
+        )
+        assert response.status_code == 201, response.data
+
     def test_drag_reorder_requires_exact_permutation(self) -> None:
         cells = [
             self.create_investigation_cell(

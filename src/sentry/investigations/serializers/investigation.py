@@ -102,13 +102,16 @@ def validate_display(kind: str, display: dict[str, Any]) -> dict[str, Any]:
         "sort",
         "topN",
         "defaultView",
+        "queryCollapsed",
     }
     if display.get("version") != 1 or set(display) - allowed:
         raise serializers.ValidationError("Invalid versioned query-cell display.")
     if display_type not in {"table", "line", "bar", "area", "heatmap", "wheel"}:
         raise serializers.ValidationError("Invalid visualization type.")
-    if display.get("defaultView", "table") not in {"table", "chart"}:
-        raise serializers.ValidationError("defaultView must be table or chart.")
+    if display.get("defaultView", "table") not in {"table", "chart", "both"}:
+        raise serializers.ValidationError("defaultView must be table, chart, or both.")
+    if "queryCollapsed" in display and not isinstance(display["queryCollapsed"], bool):
+        raise serializers.ValidationError("queryCollapsed must be a boolean.")
     if display.get("unit", "number") not in {"number", "percentage", "duration", "bytes"}:
         raise serializers.ValidationError("Invalid visualization unit.")
     if display.get("sort", "none") not in {"none", "ascending", "descending"}:

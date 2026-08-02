@@ -617,12 +617,22 @@ class OrganizationInvestigationCellExecuteEndpoint(OrganizationInvestigationCell
 
         if created:
             snapshot = execution.input_snapshot
+            raw_filters = snapshot.get("filters", {})
+            filters = raw_filters if isinstance(raw_filters, dict) else {}
+            raw_datetime_filter = filters.get("datetime", {})
+            datetime_filter = raw_datetime_filter if isinstance(raw_datetime_filter, dict) else {}
             payload = {
                 "organization_slug": organization.slug,
                 "prompt": snapshot["prompt"],
                 "project_ids": snapshot["projectIds"],
                 "project_slugs": snapshot["projectSlugs"],
                 "timezone": "UTC",
+                "environments": filters.get("environments", []),
+                "releases": filters.get("releases", []),
+                "interval": filters.get("interval"),
+                "stats_period": datetime_filter.get("period"),
+                "start": datetime_filter.get("start"),
+                "end": datetime_filter.get("end"),
                 "investigation_id": str(investigation.uuid),
                 "cell_id": str(cell.uuid),
                 "execution_id": str(execution.uuid),

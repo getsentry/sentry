@@ -87,6 +87,13 @@ class InvestigationQueryExecutionEndpointTest(APITestCase):
 
     @patch("sentry.investigations.endpoints.organization_investigations.SeerAgentClient")
     def test_starts_and_persists_an_immutable_execution(self, mock_client) -> None:
+        self.investigation.filters = {
+            "datetime": {"period": "24h"},
+            "environments": ["production"],
+            "interval": "1h",
+            "releases": ["backend@1.2.3"],
+        }
+        self.investigation.save(update_fields=["filters"])
         run = self.create_seer_run(organization=self.organization, type=SeerRunType.FEATURE_RUN)
 
         def start_feature_run(**kwargs):
@@ -114,6 +121,10 @@ class InvestigationQueryExecutionEndpointTest(APITestCase):
         payload = mock_client.return_value.start_feature_run.call_args.kwargs["payload"]
         assert "dataset_hint" not in payload
         assert payload["project_ids"] == [self.project.id]
+        assert payload["environments"] == ["production"]
+        assert payload["releases"] == ["backend@1.2.3"]
+        assert payload["stats_period"] == "24h"
+        assert payload["interval"] == "1h"
         assert mock_client.return_value.start_feature_run.call_args.kwargs["flush"] is True
 
     @patch("sentry.investigations.endpoints.organization_investigations.SeerAgentClient")
