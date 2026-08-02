@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 
-import {clamp} from 'sentry/utils/number/clamp';
 import {localStorageWrapper as localStorage} from 'sentry/utils/localStorage';
+import {clamp} from 'sentry/utils/number/clamp';
 import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
 
 type TraceLayoutPreferences = 'drawer left' | 'drawer bottom' | 'drawer right';
