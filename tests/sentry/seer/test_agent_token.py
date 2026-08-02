@@ -3,9 +3,11 @@ from __future__ import annotations
 import contextlib
 from collections.abc import Iterable
 from datetime import datetime, timedelta
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
+from django.contrib.auth.models import AnonymousUser
 from django.contrib.sessions.backends.base import SessionBase
 from django.core.cache import cache
 from django.test import RequestFactory, override_settings
@@ -89,6 +91,39 @@ class AgentTokenAuthAndGateTest(TestCase):
 
     # ----- authentication -----
 
+    def test_minting_principal_resolves_only_users(self) -> None:
+        resolved = agent_token.resolve_minting_principal(self.owner, None)
+        assert resolved == agent_token.AgentPrincipal(
+            agent_token.AgentPrincipalType.USER,
+            self.owner.id,
+        )
+
+        unsupported = agent_token.resolve_minting_principal(AnonymousUser(), None)
+        assert unsupported is agent_token.MintingPrincipalRejection.UNSUPPORTED
+
+    def test_minting_principal_rejects_integrations_and_agents(self) -> None:
+        integration_user = SimpleNamespace(is_authenticated=True, is_sentry_app=True)
+        integration = agent_token.resolve_minting_principal(integration_user, None)
+        assert integration is agent_token.MintingPrincipalRejection.INTEGRATION
+
+        agent = agent_token.resolve_minting_principal(
+            AnonymousUser(),
+            SimpleNamespace(kind=agent_token.AGENT_TOKEN_KIND),
+        )
+        assert agent is agent_token.MintingPrincipalRejection.AGENT
+
+    def test_principal_subject_round_trips(self) -> None:
+        principal = agent_token.AgentPrincipal(agent_token.AgentPrincipalType.USER, self.owner.id)
+        subject = agent_token.encode_principal_subject(principal)
+
+        assert subject == f"user:{self.owner.id}"
+        assert agent_token.decode_principal_subject(subject) == principal
+
+    def test_principal_subject_rejects_invalid_or_unsupported_types(self) -> None:
+        for subject in ("1", "user:", "user:not-an-id", "service_account:1"):
+            with pytest.raises(jwt.DecodeError):
+                agent_token.decode_principal_subject(subject)
+
     def test_valid_token_authenticates_as_non_user_actor(self) -> None:
         # The agent is a non-user actor: the request user is anonymous and the credential
         # records the delegating user it acts on behalf of.
@@ -123,6 +158,60 @@ class AgentTokenAuthAndGateTest(TestCase):
 
         assert token.count(".") == 2
         assert jwt.peek_header(token)["typ"] == agent_token.AGENT_TOKEN_TYPE
+        wire_claims = jwt.decode(
+            token,
+            SECRET,
+            audience=agent_token.AGENT_TOKEN_AUDIENCE,
+            algorithms=["HS256"],
+        )
+        assert wire_claims["sub"] == str(self.owner.id)
+        claims = agent_token.decode_agent_token(token)
+        assert claims["ver"] == agent_token.AGENT_TOKEN_VERSION
+        assert claims["sub"] == f"user:{self.owner.id}"
+
+    def test_legacy_numeric_user_subject_is_normalized(self) -> None:
+        now = int(timezone.now().timestamp())
+        token = self._typed_token(
+            {
+                "aud": agent_token.AGENT_TOKEN_AUDIENCE,
+                "sub": str(self.owner.id),
+                "org": self.org.id,
+                "scopes": ["org:read"],
+                "sid": "s1",
+                "iat": now,
+                "exp": now + 300,
+            }
+        )
+
+        claims = agent_token.decode_agent_token(token)
+        assert claims["ver"] == agent_token.AGENT_TOKEN_VERSION
+        assert claims["sub"] == f"user:{self.owner.id}"
+        result = self._auth(token)
+        assert result is not None
+        assert result[1].user_id == self.owner.id
+
+    def test_unsupported_token_principal_is_rejected(self) -> None:
+        now = int(timezone.now().timestamp())
+        for version, subject in (
+            (agent_token.AGENT_TOKEN_VERSION + 1, "user:1"),
+            (True, "user:1"),
+            (agent_token.AGENT_TOKEN_VERSION, "service_account:1"),
+        ):
+            token = self._typed_token(
+                {
+                    "ver": version,
+                    "aud": agent_token.AGENT_TOKEN_AUDIENCE,
+                    "sub": subject,
+                    "org": self.org.id,
+                    "scopes": ["org:read"],
+                    "sid": "s1",
+                    "iat": now,
+                    "exp": now + 300,
+                }
+            )
+
+            with pytest.raises(AuthenticationFailed):
+                self._auth(token)
 
     def test_non_agent_bearer_is_deferred(self) -> None:
         # An ordinary database-backed token stays with the existing authenticator.

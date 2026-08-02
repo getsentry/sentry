@@ -40,7 +40,8 @@ class OrganizationAgentTokenTest(APITestCase):
             resp = self._mint(sessionId="s1")
         assert resp.status_code == 200, resp.content
         claims = agent_token.decode_agent_token(resp.data["token"])
-        assert claims["sub"] == str(self.owner.id)
+        assert claims["ver"] == agent_token.AGENT_TOKEN_VERSION
+        assert claims["sub"] == f"user:{self.owner.id}"
         assert claims["org"] == self.org.id
         assert claims["sid"] == "s1"
         assert "org:write" not in claims["scopes"]
@@ -84,8 +85,28 @@ class OrganizationAgentTokenTest(APITestCase):
         with self.feature(FLAG):
             resp = self._mint(sessionId="s1", userId=other.id, org=999999)
         claims = agent_token.decode_agent_token(resp.data["token"])
-        assert claims["sub"] == str(self.owner.id)
+        assert claims["sub"] == f"user:{self.owner.id}"
         assert claims["org"] == self.org.id
+
+    def test_sentry_app_installation_token_cannot_mint(self) -> None:
+        integration = self.create_internal_integration(
+            organization=self.org,
+            scopes=("org:read",),
+        )
+        token = self.create_internal_integration_token(
+            user=self.owner,
+            internal_integration=integration,
+        )
+
+        with self.feature(FLAG):
+            response = self.client.post(
+                f"/api/0/organizations/{self.org.slug}/agent/token/",
+                data={"sessionId": "s1"},
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            )
+
+        assert response.status_code == 403, response.content
 
     def test_approved_grant_is_folded_into_token(self) -> None:
         self._grant(session_id="s1", scopes=["org:write"])

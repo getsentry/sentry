@@ -7,7 +7,9 @@ only :class:`SeerAgentWriteGrant`, the durable record of user consent, persists.
 from __future__ import annotations
 
 from collections.abc import Iterable
+from dataclasses import dataclass
 from datetime import datetime, timedelta
+from enum import StrEnum
 from typing import Any, TypedDict
 
 from django.conf import settings
@@ -34,9 +36,34 @@ AGENT_TOKEN_TYPE = "sentry-agent+jwt"
 DEFAULT_TOKEN_TTL = timedelta(minutes=5)
 
 AGENT_TOKEN_KIND = "agent_token"
+AGENT_TOKEN_VERSION = 1
+
+
+class AgentPrincipalType(StrEnum):
+    USER = "user"
+
+
+SUPPORTED_AGENT_PRINCIPAL_TYPES = frozenset({AgentPrincipalType.USER})
+MINTABLE_AGENT_PRINCIPAL_TYPES = frozenset({AgentPrincipalType.USER})
+
+
+class MintingPrincipalRejection(StrEnum):
+    INTEGRATION = "integration"
+    AGENT = "agent"
+    UNSUPPORTED = "unsupported"
+
+
+@dataclass(frozen=True)
+class AgentPrincipal:
+    type: AgentPrincipalType
+    id: int
+
+
+type MintingPrincipal = AgentPrincipal | MintingPrincipalRejection
 
 
 class AgentTokenClaims(TypedDict):
+    ver: int
     aud: str
     sub: str
     org: int
@@ -56,6 +83,43 @@ def _signing_key() -> str:
 def readonly_scopes() -> frozenset[str]:
     # Not demo_mode.get_readonly_scopes(): that also allows project:releases, a write.
     return frozenset(settings.SENTRY_READONLY_SCOPES)
+
+
+def resolve_minting_principal(user: Any, auth: Any) -> MintingPrincipal:
+    if is_agent_auth(auth):
+        return MintingPrincipalRejection.AGENT
+    if getattr(user, "is_sentry_app", False):
+        return MintingPrincipalRejection.INTEGRATION
+    if not getattr(user, "is_authenticated", False):
+        return MintingPrincipalRejection.UNSUPPORTED
+
+    user_id = getattr(user, "id", None)
+    if not isinstance(user_id, int) or isinstance(user_id, bool):
+        return MintingPrincipalRejection.UNSUPPORTED
+    return AgentPrincipal(AgentPrincipalType.USER, user_id)
+
+
+def encode_principal_subject(principal: AgentPrincipal) -> str:
+    return f"{principal.type.value}:{principal.id}"
+
+
+def decode_principal_subject(subject: str) -> AgentPrincipal:
+    principal_type, separator, principal_id = subject.partition(":")
+    if separator != ":":
+        raise jwt.DecodeError("invalid agent token subject")
+    try:
+        parsed_type = AgentPrincipalType(principal_type)
+    except ValueError:
+        raise jwt.DecodeError("unsupported agent token principal")
+    if parsed_type not in SUPPORTED_AGENT_PRINCIPAL_TYPES:
+        raise jwt.DecodeError("unsupported agent token principal")
+    if not principal_id.isdigit():
+        raise jwt.DecodeError("invalid agent token subject")
+    return AgentPrincipal(parsed_type, int(principal_id))
+
+
+def principal_from_claims(claims: AgentTokenClaims) -> AgentPrincipal:
+    return decode_principal_subject(claims["sub"])
 
 
 def active_grant_scopes(organization_id: int, user_id: int, session_id: str) -> set[str]:
@@ -101,9 +165,12 @@ def encode_agent_token(
     """Mint a signed agent token. Returns the JWT and its expiry. No DB write."""
     now = timezone.now()
     expires_at = now + ttl
+    principal = AgentPrincipal(AgentPrincipalType.USER, user_id)
     payload: AgentTokenClaims = {
+        "ver": AGENT_TOKEN_VERSION,
         "aud": AGENT_TOKEN_AUDIENCE,
-        "sub": str(user_id),
+        # Keep the numeric wire subject until typed-subject decoding has reached every instance.
+        "sub": str(principal.id),
         "org": organization_id,
         "scopes": sorted(scopes),
         "sid": session_id,
@@ -137,8 +204,23 @@ def _validate_claims(claims: dict[str, Any]) -> AgentTokenClaims:
         raise jwt.DecodeError("missing agent token claim")
     if claims["aud"] != AGENT_TOKEN_AUDIENCE:
         raise jwt.DecodeError("invalid agent token audience")
-    if not isinstance(claims["sub"], str) or not claims["sub"].isdigit():
+    version = claims.get("ver")
+    subject = claims["sub"]
+    if version is None:
+        if not isinstance(subject, str) or not subject.isdigit():
+            raise jwt.DecodeError("invalid agent token subject")
+        subject = encode_principal_subject(AgentPrincipal(AgentPrincipalType.USER, int(subject)))
+        version = AGENT_TOKEN_VERSION
+    elif (
+        not isinstance(version, int) or isinstance(version, bool) or version != AGENT_TOKEN_VERSION
+    ):
+        raise jwt.DecodeError("unsupported agent token version")
+    if not isinstance(subject, str):
         raise jwt.DecodeError("invalid agent token subject")
+    if subject.isdigit():
+        # Rolling deployments may still emit numeric subjects. Their five-minute expiry bounds
+        # this compatibility path until typed-subject emission is enabled separately.
+        subject = encode_principal_subject(AgentPrincipal(AgentPrincipalType.USER, int(subject)))
     if not isinstance(claims["org"], int) or isinstance(claims["org"], bool):
         raise jwt.DecodeError("invalid agent token organization")
     scopes = claims["scopes"]
@@ -157,15 +239,18 @@ def _validate_claims(claims: dict[str, Any]) -> AgentTokenClaims:
             raise jwt.DecodeError(f"invalid agent token {claim_name}")
     if claims["exp"] <= claims["iat"]:
         raise jwt.DecodeError("invalid agent token lifetime")
-    return {
+    validated_claims: AgentTokenClaims = {
+        "ver": version,
         "aud": claims["aud"],
-        "sub": claims["sub"],
+        "sub": subject,
         "org": claims["org"],
         "scopes": scopes,
         "sid": session_id,
         "iat": claims["iat"],
         "exp": claims["exp"],
     }
+    principal_from_claims(validated_claims)
+    return validated_claims
 
 
 def decode_agent_token(token_str: str) -> AgentTokenClaims:
@@ -189,10 +274,11 @@ def is_agent_auth(auth: Any) -> bool:
 
 def build_authenticated_token(claims: AgentTokenClaims) -> AuthenticatedToken:
     """Build a delegated-user credential from claims verified by ``decode_agent_token``."""
+    principal = principal_from_claims(claims)
     return AuthenticatedToken(
         kind=AGENT_TOKEN_KIND,
         scopes=claims["scopes"],
-        user_id=int(claims["sub"]),
+        user_id=principal.id,
         organization_id=claims["org"],
     )
 
