@@ -2,6 +2,27 @@ import {z} from 'zod';
 
 const isoTimestampSchema = z.iso.datetime({offset: true});
 
+const chartSeriesDataSchema = z
+  .array(
+    z.object({
+      x: z.union([z.string(), z.number()]),
+      y: z.number(),
+    })
+  )
+  .min(1)
+  .max(200);
+
+const chartSeriesSchema = z.union([
+  z.object({
+    label: z.string().describe('Legend label for the series'),
+    data: chartSeriesDataSchema,
+  }),
+  z.object({
+    name: z.string().describe('Legacy alias for label'),
+    data: chartSeriesDataSchema,
+  }),
+]);
+
 type SeerEmbedLevel = 'inline' | 'block';
 
 export interface SeerEmbedExample {
@@ -114,42 +135,29 @@ export const SEER_EMBED_SCHEMAS = {
     description:
       'Display numeric data as a compact Sentry-style chart. For line, area, and bar charts, ' +
       'prefer at least three points. Use x_axis "time" only with offset-bearing ISO 8601 ' +
-      'timestamps and "category" for named buckets. For heatmaps, each series is a row, ' +
-      'each point is a colored cell, and values must be non-negative. Wheel charts require ' +
-      'one category series with 2-12 non-negative points and a positive total. ' +
+      'timestamps. Category axes are supported for bar charts only. ' +
       'Duration values are milliseconds, percentage values are 0-100, and byte values are raw bytes.',
     level: ['block'],
     schema: z
       .object({
         title: z.string().min(1),
         subtitle: z.string().optional(),
-        visualization: z
-          .enum(['line', 'area', 'bar', 'heatmap', 'wheel'])
-          .default('line'),
+        visualization: z.enum(['line', 'area', 'bar']).default('line'),
         x_axis: z.enum(['time', 'category']).default('time'),
         y_axis_unit: z
           .enum(['number', 'percentage', 'duration', 'bytes'])
           .default('number'),
-        y_axis_label: z.string().optional(),
-        series: z
-          .array(
-            z.object({
-              name: z.string(),
-              data: z
-                .array(
-                  z.object({
-                    x: z.union([z.string(), z.number()]),
-                    y: z.number(),
-                  })
-                )
-                .min(1)
-                .max(200),
-            })
-          )
-          .min(1)
-          .max(5),
+        series: z.array(chartSeriesSchema).min(1).max(5),
       })
       .superRefine((chart, context) => {
+        if (chart.x_axis === 'category' && chart.visualization !== 'bar') {
+          context.addIssue({
+            code: 'custom',
+            message: 'Category axes are only supported for bar charts',
+            path: ['x_axis'],
+          });
+        }
+
         if (chart.x_axis === 'time') {
           chart.series.forEach((series, seriesIndex) => {
             series.data.forEach((point, pointIndex) => {
@@ -166,66 +174,6 @@ export const SEER_EMBED_SCHEMAS = {
             });
           });
         }
-
-        if (chart.visualization === 'heatmap') {
-          chart.series.forEach((series, seriesIndex) => {
-            series.data.forEach((point, pointIndex) => {
-              if (point.y >= 0) {
-                return;
-              }
-              context.addIssue({
-                code: 'custom',
-                message: 'Heatmap values must be non-negative',
-                path: ['series', seriesIndex, 'data', pointIndex, 'y'],
-              });
-            });
-          });
-        }
-
-        if (chart.visualization !== 'wheel') {
-          return;
-        }
-
-        if (chart.x_axis !== 'category') {
-          context.addIssue({
-            code: 'custom',
-            message: 'Wheel charts require a category x-axis',
-            path: ['x_axis'],
-          });
-        }
-        if (chart.series.length !== 1) {
-          context.addIssue({
-            code: 'custom',
-            message: 'Wheel charts require exactly one series',
-            path: ['series'],
-          });
-        }
-
-        const points = chart.series[0]?.data ?? [];
-        if (points.length < 2 || points.length > 12) {
-          context.addIssue({
-            code: 'custom',
-            message: 'Wheel charts require between 2 and 12 points',
-            path: ['series', 0, 'data'],
-          });
-        }
-        points.forEach((point, pointIndex) => {
-          if (point.y >= 0) {
-            return;
-          }
-          context.addIssue({
-            code: 'custom',
-            message: 'Wheel chart values must be non-negative',
-            path: ['series', 0, 'data', pointIndex, 'y'],
-          });
-        });
-        if (points.reduce((total, point) => total + point.y, 0) <= 0) {
-          context.addIssue({
-            code: 'custom',
-            message: 'Wheel chart values must have a positive total',
-            path: ['series', 0, 'data'],
-          });
-        }
       }),
     examples: [
       {
@@ -238,7 +186,7 @@ export const SEER_EMBED_SCHEMAS = {
           y_axis_unit: 'number',
           series: [
             {
-              name: 'Errors',
+              label: 'Errors',
               data: [
                 {x: '2026-07-30T12:00:00Z', y: 12},
                 {x: '2026-07-30T13:00:00Z', y: 18},

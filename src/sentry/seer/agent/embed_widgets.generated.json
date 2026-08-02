@@ -188,7 +188,7 @@
   },
   {
     "name": "chart",
-    "description": "Display numeric data as a compact Sentry-style chart. For line, area, and bar charts, prefer at least three points. Use x_axis \"time\" only with offset-bearing ISO 8601 timestamps and \"category\" for named buckets. For heatmaps, each series is a row, each point is a colored cell, and values must be non-negative. Wheel charts require one category series with 2-12 non-negative points and a positive total. Duration values are milliseconds, percentage values are 0-100, and byte values are raw bytes.",
+    "description": "Display numeric data as a compact Sentry-style chart. For line, area, and bar charts, prefer at least three points. Use x_axis \"time\" only with offset-bearing ISO 8601 timestamps. Category axes are supported for bar charts only. Duration values are milliseconds, percentage values are 0-100, and byte values are raw bytes.",
     "level": ["block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -204,7 +204,7 @@
         "visualization": {
           "default": "line",
           "type": "string",
-          "enum": ["line", "area", "bar", "heatmap", "wheel"]
+          "enum": ["line", "area", "bar"]
         },
         "x_axis": {
           "default": "time",
@@ -216,47 +216,85 @@
           "type": "string",
           "enum": ["number", "percentage", "duration", "bytes"]
         },
-        "y_axis_label": {
-          "type": "string"
-        },
         "series": {
           "minItems": 1,
           "maxItems": 5,
           "type": "array",
           "items": {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string"
-              },
-              "data": {
-                "minItems": 1,
-                "maxItems": 200,
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "x": {
-                      "anyOf": [
-                        {
-                          "type": "string"
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "description": "Legend label for the series"
+                  },
+                  "data": {
+                    "minItems": 1,
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "x": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "number"
+                            }
+                          ]
                         },
-                        {
+                        "y": {
                           "type": "number"
                         }
-                      ]
-                    },
-                    "y": {
-                      "type": "number"
+                      },
+                      "required": ["x", "y"],
+                      "additionalProperties": false
                     }
+                  }
+                },
+                "required": ["label", "data"],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Legacy alias for label"
                   },
-                  "required": ["x", "y"],
-                  "additionalProperties": false
-                }
+                  "data": {
+                    "minItems": 1,
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "x": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "number"
+                            }
+                          ]
+                        },
+                        "y": {
+                          "type": "number"
+                        }
+                      },
+                      "required": ["x", "y"],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": ["name", "data"],
+                "additionalProperties": false
               }
-            },
-            "required": ["name", "data"],
-            "additionalProperties": false
+            ]
           }
         }
       },
@@ -274,7 +312,7 @@
           "y_axis_unit": "number",
           "series": [
             {
-              "name": "Errors",
+              "label": "Errors",
               "data": [
                 {
                   "x": "2026-07-30T12:00:00Z",

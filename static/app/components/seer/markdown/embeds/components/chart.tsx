@@ -1,32 +1,50 @@
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {AreaChart} from 'sentry/components/charts/areaChart';
-import {BarChart} from 'sentry/components/charts/barChart';
-import {LineChart} from 'sentry/components/charts/lineChart';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
-import {escape} from 'sentry/utils';
-import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
-import {getDurationUnit} from 'sentry/utils/discover/charts';
-import {axisDuration} from 'sentry/utils/duration/axisDuration';
-import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
+import {DisplayType} from 'sentry/views/dashboards/types';
+import {CategoricalSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/categoricalSeriesWidgetVisualization';
+import {Bars as CategoricalBars} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/plottables/bars';
+import type {
+  CategoricalSeries,
+  TimeSeries,
+} from 'sentry/views/dashboards/widgets/common/types';
+import {createPlottableFromTimeSeries} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/createPlottableFromTimeSeries';
+import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
+import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 
-import type {ChartSeries, ChartUnit} from './chartTypes';
-import {HeatmapChart} from './heatmapChart';
-import {WheelChart} from './wheelChart';
+import type {ChartUnit} from './chartTypes';
 
-function formatValue(value: number, unit: ChartUnit, durationUnit?: number): string {
-  switch (unit) {
-    case 'percentage':
-      return `${formatAbbreviatedNumber(value)}%`;
-    case 'duration':
-      return axisDuration(value, durationUnit);
-    case 'bytes':
-      return formatBytesBase2(value);
-    case 'number':
-    default:
-      return formatAbbreviatedNumber(value);
-  }
+type TimeSeriesVisualization = 'line' | 'area' | 'bar';
+
+const UNIT_METADATA = {
+  number: {valueType: 'number', valueUnit: null},
+  percentage: {valueType: 'percentage', valueUnit: null},
+  duration: {valueType: 'duration', valueUnit: DurationUnit.MILLISECOND},
+  bytes: {valueType: 'size', valueUnit: SizeUnit.BYTE},
+} satisfies Record<ChartUnit, Pick<TimeSeries['meta'], 'valueType' | 'valueUnit'>>;
+
+const DISPLAY_TYPES = {
+  line: DisplayType.LINE,
+  area: DisplayType.AREA,
+  bar: DisplayType.BAR,
+} satisfies Record<TimeSeriesVisualization, DisplayType>;
+
+function getInterval(timestamps: number[]): number {
+  const intervals = timestamps
+    .slice(1)
+    .map((timestamp, index) => timestamp - timestamps[index]!)
+    .filter(interval => interval > 0);
+  return intervals.length > 0 ? Math.min(...intervals) : 0;
+}
+
+function normalizeValue(value: number, unit: ChartUnit): number {
+  return unit === 'percentage' ? value / 100 : value;
+}
+
+function getSeriesLabel(series: {label: string} | {name: string}): string {
+  return 'label' in series ? series.label : series.name;
 }
 
 export const Chart = defineSeerEmbed({
@@ -37,55 +55,81 @@ export const Chart = defineSeerEmbed({
     visualization,
     x_axis: xAxis,
     y_axis_unit: yAxisUnit,
-    y_axis_label: yAxisLabel,
     series,
   }) {
-    const chartSeries: ChartSeries[] = series.map(item => {
-      const data = item.data.map(point => ({
-        name: xAxis === 'time' ? Date.parse(String(point.x)) : String(point.x),
-        value: point.y,
-      }));
-      if (xAxis === 'time') {
-        data.sort((left, right) => Number(left.name) - Number(right.name));
-      }
-      return {seriesName: item.name, data};
-    });
-    const durationUnit =
-      yAxisUnit === 'duration' ? getDurationUnit(chartSeries) : undefined;
-    const timestamps =
-      xAxis === 'time'
-        ? chartSeries.flatMap(item => item.data.map(point => Number(point.name)))
-        : [];
-    const start = timestamps.length > 0 ? new Date(Math.min(...timestamps)) : undefined;
-    const end = timestamps.length > 0 ? new Date(Math.max(...timestamps)) : undefined;
-    const chartProps = {
-      animation: false,
-      end,
-      grid: {left: 12, right: 12, top: series.length > 1 ? 36 : 12, bottom: 8},
-      height: 220,
-      isGroupedByDate: xAxis === 'time',
-      legend: series.length > 1 ? {left: 0, top: 0} : {show: false},
-      renderer: 'svg' as const,
-      series: chartSeries,
-      showTimeInTooltip: xAxis === 'time',
-      start,
-      tooltip: {
-        formatAxisLabel:
-          xAxis === 'category' ? (value: number) => escape(String(value)) : undefined,
-        trigger: 'axis' as const,
-        valueFormatter: (value: number) => formatValue(value, yAxisUnit, durationUnit),
-      },
-      xAxis:
-        xAxis === 'category'
-          ? {axisLabel: {formatter: String, showMaxLabel: true, showMinLabel: true}}
-          : undefined,
-      yAxis: {
-        name: yAxisLabel,
-        axisLabel: {
-          formatter: (value: number) => formatValue(value, yAxisUnit, durationUnit),
-        },
-      },
-    };
+    const metadata = UNIT_METADATA[yAxisUnit];
+
+    const visualizationComponent =
+      xAxis === 'category' ? (
+        <CategoricalSeriesWidgetVisualization
+          plottables={series.map((item, index) => {
+            const categoricalSeries: CategoricalSeries = {
+              valueAxis: `seer-chart-series-${index}`,
+              meta: metadata,
+              values: item.data.map(point => ({
+                category: point.x,
+                value: normalizeValue(point.y, yAxisUnit),
+              })),
+            };
+            return new CategoricalBars(categoricalSeries, {
+              alias: getSeriesLabel(item),
+            });
+          })}
+        />
+      ) : (
+        <TimeSeriesWidgetVisualization
+          onZoom={() => {}}
+          pageFilters={{
+            datetime: {
+              start: new Date(
+                Math.min(
+                  ...series.flatMap(item =>
+                    item.data.map(point => Date.parse(String(point.x)))
+                  )
+                )
+              ).toISOString(),
+              end: new Date(
+                Math.max(
+                  ...series.flatMap(item =>
+                    item.data.map(point => Date.parse(String(point.x)))
+                  )
+                )
+              ).toISOString(),
+              period: null,
+              utc: true,
+            },
+            environments: [],
+            projects: [],
+          }}
+          plottables={series
+            .map((item, index) => {
+              const values = item.data
+                .map(point => ({
+                  timestamp: Date.parse(String(point.x)),
+                  value: normalizeValue(point.y, yAxisUnit),
+                }))
+                .toSorted((left, right) => left.timestamp - right.timestamp);
+              const timeSeries: TimeSeries = {
+                yAxis: `seer-chart-series-${index}`,
+                meta: {
+                  ...metadata,
+                  interval: getInterval(values.map(point => point.timestamp)),
+                },
+                values,
+              };
+              return createPlottableFromTimeSeries(
+                DISPLAY_TYPES[visualization],
+                timeSeries,
+                {
+                  alias: getSeriesLabel(item),
+                  name: `seer-chart-series-${index}`,
+                }
+              );
+            })
+            .filter((plottable): plottable is Plottable => plottable !== null)}
+          showReleaseAs="none"
+        />
+      );
 
     return (
       <Container
@@ -107,24 +151,7 @@ export const Chart = defineSeerEmbed({
             </Text>
           )}
         </Stack>
-        {visualization === 'area' ? (
-          <AreaChart {...chartProps} stacked={series.length > 1} />
-        ) : visualization === 'bar' ? (
-          <BarChart {...chartProps} />
-        ) : visualization === 'heatmap' ? (
-          <HeatmapChart
-            series={chartSeries}
-            valueFormatter={value => formatValue(value, yAxisUnit, durationUnit)}
-            xAxis={xAxis}
-          />
-        ) : visualization === 'wheel' ? (
-          <WheelChart
-            series={chartSeries[0]!}
-            valueFormatter={value => formatValue(value, yAxisUnit, durationUnit)}
-          />
-        ) : (
-          <LineChart {...chartProps} />
-        )}
+        <Container height="220px">{visualizationComponent}</Container>
       </Container>
     );
   },
