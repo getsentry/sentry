@@ -1,7 +1,6 @@
 import {useEffect, useMemo, useState, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -78,26 +77,19 @@ export function PersistedCellOutput({
         ? t("We couldn't finish this query. Try running it again.")
         : persistedMessage;
     return (
-      <ErrorOutput role="alert">
-        <Alert.Container>
-          <Alert
-            variant="danger"
-            trailingItems={
-              <Alert.Button
-                variant="secondary"
-                disabled={!canRetry}
-                onClick={() => void onRetry()}
-              >
-                {t('Retry')}
-              </Alert.Button>
-            }
-          >
-            <Stack gap="xs">
-              <Text bold>{t('Query failed')}</Text>
-              <Text size="sm">{message}</Text>
-            </Stack>
-          </Alert>
-        </Alert.Container>
+      <ErrorOutput role="alert" align="center" justify="between" gap="lg" wrap="wrap">
+        <Stack gap="xs">
+          <Text bold>{t('Query failed')}</Text>
+          <Text size="sm">{message}</Text>
+        </Stack>
+        <Button
+          size="xs"
+          variant="secondary"
+          disabled={!canRetry}
+          onClick={() => void onRetry()}
+        >
+          {t('Retry')}
+        </Button>
       </ErrorOutput>
     );
   }
@@ -907,10 +899,10 @@ const OutputMessage = styled(Text)`
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
-const ErrorOutput = styled('section')`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
-  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
-  background: ${p => p.theme.tokens.background.secondary};
+const ErrorOutput = styled(Flex)`
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
+  border-top: 1px solid ${p => p.theme.tokens.border.danger.moderate};
+  background: ${p => p.theme.tokens.background.transparent.danger.muted};
 `;
 
 const InlineNotice = styled(Text)`
