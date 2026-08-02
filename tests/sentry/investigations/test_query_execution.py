@@ -42,7 +42,7 @@ def query_result(project_id: int) -> dict[str, object]:
             "xAxis": "time",
             "series": [
                 {
-                    "name": "Errors",
+                    "name": "count()",
                     "data": [{"x": "2026-07-31T12:00:00Z", "y": 12}],
                 }
             ],

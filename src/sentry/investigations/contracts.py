@@ -168,11 +168,19 @@ class InvestigationQueryResultSerializer(StrictContractSerializer):
             raise serializers.ValidationError("A missing chart requires chartUnavailableReason.")
         if attrs.get("chart") is not None and attrs.get("suggestedVisualization") is None:
             raise serializers.ValidationError("Chart data requires suggestedVisualization.")
+        chart = attrs.get("chart")
+        visualization = attrs.get("suggestedVisualization")
+        if chart is not None and visualization is not None:
+            available_series = {series["name"] for series in chart["series"]}
+            if any(field not in available_series for field in visualization["yFields"]):
+                raise serializers.ValidationError(
+                    "suggestedVisualization may only reference returned chart series."
+                )
         return attrs
 
 
 def validate_query_result(value: Any) -> dict[str, Any]:
-    if len(json.dumps(value, separators=(",", ":")).encode()) > MAX_ARTIFACT_BYTES:
+    if len(json.dumps(value).encode()) > MAX_ARTIFACT_BYTES:
         raise serializers.ValidationError("Query result exceeds the maximum artifact size.")
     serializer = InvestigationQueryResultSerializer(data=value)
     serializer.is_valid(raise_exception=True)

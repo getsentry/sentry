@@ -127,7 +127,7 @@ def test_query_result_contract_accepts_the_versioned_wire_shape() -> None:
                 "xAxis": "time",
                 "series": [
                     {
-                        "name": "Errors",
+                        "name": "count()",
                         "data": [{"x": "2026-07-31T12:00:00Z", "y": 12}],
                     }
                 ],
@@ -173,3 +173,12 @@ def test_shared_golden_payload_round_trips_without_contract_drift() -> None:
     payload = json.loads(fixture.read_text())
 
     assert validate_query_result(payload) == payload
+
+
+def test_query_result_contract_rejects_an_unavailable_suggested_series() -> None:
+    fixture = Path(__file__).parents[2] / "fixtures" / "investigation_query_result_v1.json"
+    payload = json.loads(fixture.read_text())
+    payload["suggestedVisualization"]["yFields"] = ["missing()"]
+
+    with pytest.raises(ValidationError, match="returned chart series"):
+        validate_query_result(payload)

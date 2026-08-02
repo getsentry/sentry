@@ -22,7 +22,7 @@ from sentry.utils import json
 
 
 def _fingerprint(snapshot: dict[str, Any]) -> str:
-    serialized = json.dumps(snapshot, sort_keys=True, separators=(",", ":"), default=str)
+    serialized = json.dumps(snapshot, sort_keys=True)
     return hashlib.sha256(serialized.encode()).hexdigest()
 
 
