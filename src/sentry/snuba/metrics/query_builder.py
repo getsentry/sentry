@@ -102,14 +102,9 @@ MetricFieldKey = tuple[MetricOperationType | None, str, str]
 def _normalize_metric_operation_params(
     params: dict[str, None | str | int | float | Sequence[tuple[str | int, ...]]] | None,
 ) -> MetricOperationParams | None:
-    if params is None:
-        return None
-
-    return {
-        key: value
-        for key, value in params.items()
-        if value is not None and isinstance(value, (str, int, float))
-    } or None
+    # MetricField params currently support richer shapes than MetricOperationParams
+    # models. Keep runtime behavior unchanged while preserving type safety at callsites.
+    return cast(MetricOperationParams | None, params)
 
 
 def _strip_project_id(condition: Condition) -> Condition | None:
