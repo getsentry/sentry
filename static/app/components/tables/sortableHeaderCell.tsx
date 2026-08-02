@@ -57,6 +57,7 @@ export function SortableHeaderCell({
 }
 
 const Label = styled('div')`
+  min-width: 22px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
