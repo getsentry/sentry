@@ -607,6 +607,7 @@ class OrganizationInvestigationCellExecuteEndpoint(OrganizationInvestigationCell
                 user_id=user_id,
                 project_ids=[project.id for project in projects],
                 project_slugs=[project.slug for project in projects],
+                request_id=serializer.validated_data.get("request_id"),
             )
         except Exception as execution_error:
             response = _service_error(execution_error)
@@ -634,7 +635,7 @@ class OrganizationInvestigationCellExecuteEndpoint(OrganizationInvestigationCell
                     feature_id="investigation_query_cell",
                     payload=payload,
                     title=cell.title or snapshot["prompt"],
-                    flush=False,
+                    flush=True,
                     extras={
                         "investigation_id": str(investigation.uuid),
                         "cell_id": str(cell.uuid),

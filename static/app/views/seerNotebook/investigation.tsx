@@ -28,6 +28,7 @@ import {
 import {CSS} from '@dnd-kit/utilities';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {uuid4} from '@sentry/core';
 import {useQuery} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 
@@ -828,6 +829,7 @@ function SeerInvestigationContent({onCellListRender}: SeerInvestigationProps) {
                           persistedCell.id,
                           {
                             investigationVersion: current.version,
+                            requestId: uuid4(),
                             version: persistedCell.version,
                           }
                         );

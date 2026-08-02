@@ -243,6 +243,7 @@ class CellDeleteSerializer(StrictCamelSnakeSerializer):
 class CellExecutionStartSerializer(StrictCamelSnakeSerializer):
     investigation_version = serializers.IntegerField(min_value=1)
     version = serializers.IntegerField(min_value=1)
+    request_id = serializers.UUIDField(required=False)
 
 
 class VisualizationSuggestionSerializer(StrictCamelSnakeSerializer):

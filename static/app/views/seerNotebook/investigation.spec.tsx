@@ -188,7 +188,11 @@ describe('SeerInvestigation', () => {
     expect(executeRequest).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        data: {investigationVersion: 7, version: 3},
+        data: {
+          investigationVersion: 7,
+          requestId: expect.any(String),
+          version: 3,
+        },
       })
     );
   });

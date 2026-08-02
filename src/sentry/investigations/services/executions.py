@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 from typing import Any
+from uuid import UUID
 
 from django.db import router, transaction
 from django.utils import timezone
@@ -66,8 +67,9 @@ def create_query_execution(
     user_id: int,
     project_ids: list[int],
     project_slugs: list[str],
+    request_id: UUID | None = None,
 ) -> tuple[InvestigationCellExecution, bool]:
-    """Create and select an immutable execution, or return the matching active retry."""
+    """Create a new immutable execution, or return the same explicit request retry."""
     database = router.db_for_write(InvestigationCellExecution)
     with transaction.atomic(using=database):
         locked = (
@@ -97,9 +99,21 @@ def create_query_execution(
         snapshot, fingerprint = build_query_execution_snapshot(
             cell=locked, project_ids=project_ids, project_slugs=project_slugs
         )
+        if request_id is not None:
+            requested_execution = InvestigationCellExecution.objects.filter(
+                request_id=request_id
+            ).first()
+            if requested_execution is not None:
+                if requested_execution.cell_id != locked.id:
+                    raise InvestigationValidationError(
+                        {"requestId": "This execution request ID is already in use."}
+                    )
+                return requested_execution, False
+
         current = locked.current_execution
         if (
-            current is not None
+            request_id is None
+            and current is not None
             and current.cell_version == locked.version
             and current.input_fingerprint == fingerprint
             and current.status
@@ -119,20 +133,23 @@ def create_query_execution(
             "metrics",
         }:
             raise InvestigationValidationError({"detail": "The template dataset hint is invalid."})
-        execution = InvestigationCellExecution.objects.create(
-            cell=locked,
-            triggered_by_id=user_id,
-            executor=(
+        execution_values: dict[str, Any] = {
+            "cell": locked,
+            "triggered_by_id": user_id,
+            "executor": (
                 InvestigationCellExecutor.ASSISTED_QUERY
                 if dataset_hint is not None
                 else InvestigationCellExecutor.CODE_MODE
             ),
-            status=InvestigationCellExecutionStatus.PENDING,
-            cell_version=locked.version,
-            input_snapshot=snapshot,
-            input_fingerprint=fingerprint,
-            result_schema_version=1,
-        )
+            "status": InvestigationCellExecutionStatus.PENDING,
+            "cell_version": locked.version,
+            "input_snapshot": snapshot,
+            "input_fingerprint": fingerprint,
+            "result_schema_version": 1,
+        }
+        if request_id is not None:
+            execution_values["request_id"] = request_id
+        execution = InvestigationCellExecution.objects.create(**execution_values)
         locked.current_execution = execution
         locked.save(update_fields=["current_execution", "date_updated"])
         return execution, True

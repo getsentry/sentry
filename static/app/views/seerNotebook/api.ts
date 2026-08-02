@@ -206,7 +206,7 @@ export function executeCell(
   organizationSlug: string,
   investigationId: string,
   cellId: string,
-  data: {investigationVersion: number; version: number}
+  data: {investigationVersion: number; requestId: string; version: number}
 ) {
   return fetchMutation<{id: string; status: string}>({
     url: `/organizations/${organizationSlug}/investigations/${investigationId}/cells/${cellId}/execute/`,

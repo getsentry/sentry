@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from unittest.mock import patch
+from uuid import uuid4
 
 from django.urls import reverse
 
@@ -113,6 +114,7 @@ class InvestigationQueryExecutionEndpointTest(APITestCase):
         payload = mock_client.return_value.start_feature_run.call_args.kwargs["payload"]
         assert "dataset_hint" not in payload
         assert payload["project_ids"] == [self.project.id]
+        assert mock_client.return_value.start_feature_run.call_args.kwargs["flush"] is True
 
     @patch("sentry.investigations.endpoints.organization_investigations.SeerAgentClient")
     def test_retry_while_running_returns_the_same_execution(self, mock_client) -> None:
@@ -125,6 +127,7 @@ class InvestigationQueryExecutionEndpointTest(APITestCase):
         mock_client.return_value.start_feature_run.side_effect = start_feature_run
         body = {
             "investigationVersion": self.investigation.version,
+            "requestId": str(uuid4()),
             "version": self.cell.version,
         }
         first = self.client.post(self.url, data=body, format="json")
@@ -133,6 +136,32 @@ class InvestigationQueryExecutionEndpointTest(APITestCase):
         assert first.status_code == second.status_code == 202
         assert first.data["id"] == second.data["id"]
         assert mock_client.return_value.start_feature_run.call_count == 1
+
+    @patch("sentry.investigations.endpoints.organization_investigations.SeerAgentClient")
+    def test_new_run_request_supersedes_an_identical_running_execution(self, mock_client) -> None:
+        runs = [
+            self.create_seer_run(organization=self.organization, type=SeerRunType.FEATURE_RUN),
+            self.create_seer_run(organization=self.organization, type=SeerRunType.FEATURE_RUN),
+        ]
+
+        def start_feature_run(**kwargs):
+            run = runs.pop(0)
+            kwargs["on_run_created"](run)
+            return run
+
+        mock_client.return_value.start_feature_run.side_effect = start_feature_run
+        body = {
+            "investigationVersion": self.investigation.version,
+            "version": self.cell.version,
+        }
+        first = self.client.post(self.url, data={**body, "requestId": str(uuid4())}, format="json")
+        second = self.client.post(self.url, data={**body, "requestId": str(uuid4())}, format="json")
+
+        assert first.status_code == second.status_code == 202
+        assert first.data["id"] != second.data["id"]
+        assert mock_client.return_value.start_feature_run.call_count == 2
+        self.cell.refresh_from_db()
+        assert str(self.cell.current_execution.uuid) == second.data["id"]
 
     @patch("sentry.investigations.endpoints.organization_investigations.SeerAgentClient")
     def test_hidden_template_hint_is_forwarded_without_a_request_dataset(self, mock_client) -> None:
