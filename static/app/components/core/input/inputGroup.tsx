@@ -213,8 +213,15 @@ function LeadingItems({children, disablePointerEvents, ...props}: InputItemsProp
     if (!ref.current) {
       return;
     }
-    setLeadingWidth?.(ref.current.offsetWidth);
-  }, [children, setLeadingWidth, size]);
+    const observer = new ResizeObserver(entries => {
+      const width = entries[0]?.borderBoxSize[0]?.inlineSize ?? ref.current?.offsetWidth;
+      if (width !== undefined) {
+        setLeadingWidth?.(width);
+      }
+    });
+    observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [setLeadingWidth]);
 
   return (
     <StyledLeadingItemsWrap
@@ -248,8 +255,15 @@ function TrailingItems({children, disablePointerEvents, ...props}: InputItemsPro
     if (!ref.current) {
       return;
     }
-    setTrailingWidth?.(ref.current.offsetWidth);
-  }, [children, setTrailingWidth, size]);
+    const observer = new ResizeObserver(entries => {
+      const width = entries[0]?.borderBoxSize[0]?.inlineSize ?? ref.current?.offsetWidth;
+      if (width !== undefined) {
+        setTrailingWidth?.(width);
+      }
+    });
+    observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [setTrailingWidth]);
 
   return (
     <StyledTrailingItemsWrap
