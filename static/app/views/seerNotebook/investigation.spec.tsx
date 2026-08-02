@@ -49,7 +49,7 @@ describe('SeerInvestigation', () => {
 
   afterEach(() => PageFiltersStore.reset());
 
-  function renderInvestigation(response = detail) {
+  function renderInvestigation(response = detail, currentOrganization = organization) {
     MockApiClient.addMockResponse({url: detailUrl, body: response});
     return render(
       <TopBar.Slot.Provider>
@@ -57,7 +57,7 @@ describe('SeerInvestigation', () => {
         <SeerInvestigation />
       </TopBar.Slot.Provider>,
       {
-        organization,
+        organization: currentOrganization,
         initialRouterConfig: {
           location: {pathname: `/organizations/${organization.slug}/seer/${detail.id}/`},
           route: '/organizations/:orgId/seer/:investigationId/',
@@ -191,6 +191,25 @@ describe('SeerInvestigation', () => {
         data: {investigationVersion: 7, version: 3},
       })
     );
+  });
+
+  it('does not expose inline execution when the execution flag is explicitly off', async () => {
+    const queryCell = InvestigationCellFixture({
+      id: 'query-cell',
+      kind: 'query',
+      generationPrompt: 'Show unresolved errors over the last day',
+    });
+    const organizationWithoutExecution = OrganizationFixture({
+      slug: organization.slug,
+      features: ['investigations'],
+    });
+
+    renderInvestigation(
+      InvestigationDetailFixture({cells: [queryCell]}),
+      organizationWithoutExecution
+    );
+
+    expect(await screen.findByRole('button', {name: 'Run'})).toBeDisabled();
   });
 
   it('switches a typed persisted result from table to chart without rerunning', async () => {
