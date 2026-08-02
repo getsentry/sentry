@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 from django.db import IntegrityError, router, transaction
+from rest_framework.exceptions import ValidationError
 
+from sentry.investigations.contracts import validate_query_result
 from sentry.investigations.models import (
     Investigation,
     InvestigationCell,
@@ -14,6 +18,7 @@ from sentry.investigations.models import (
     InvestigationCommentUserMention,
 )
 from sentry.testutils.cases import TestCase
+from sentry.utils import json
 
 
 class InvestigationModelTest(TestCase):
@@ -94,3 +99,77 @@ class InvestigationModelTest(TestCase):
             InvestigationCommentUserMention,
         )
         assert {model._meta.app_label for model in models} == {"investigations"}
+
+
+def test_query_result_contract_accepts_the_versioned_wire_shape() -> None:
+    result = validate_query_result(
+        {
+            "schemaVersion": 1,
+            "query": {
+                "dataset": "errors",
+                "query": "is:unresolved",
+                "mode": "aggregates",
+                "yAxes": ["count()"],
+                "timeRange": {"statsPeriod": "24h"},
+                "projectIds": [1],
+            },
+            "table": {
+                "columns": [
+                    {"key": "timestamp", "label": "Time", "type": "datetime"},
+                    {"key": "count()", "label": "Errors", "type": "number"},
+                ],
+                "rows": [["2026-07-31T12:00:00Z", 12]],
+                "totalRows": 1,
+                "returnedRows": 1,
+                "truncated": False,
+            },
+            "chart": {
+                "xAxis": "time",
+                "series": [
+                    {
+                        "name": "Errors",
+                        "data": [{"x": "2026-07-31T12:00:00Z", "y": 12}],
+                    }
+                ],
+            },
+            "suggestedVisualization": {
+                "type": "area",
+                "title": "Errors over time",
+                "xField": "timestamp",
+                "yFields": ["count()"],
+            },
+            "dataProjectIds": [1],
+        }
+    )
+
+    assert result["schemaVersion"] == 1
+    assert result["query"]["dataset"] == "errors"
+
+
+def test_query_result_contract_rejects_unknown_versions() -> None:
+    with pytest.raises(ValidationError):
+        validate_query_result(
+            {
+                "schemaVersion": 2,
+                "query": {
+                    "dataset": "errors",
+                    "query": "",
+                    "mode": "aggregates",
+                    "timeRange": {},
+                },
+                "table": {
+                    "columns": [],
+                    "rows": [],
+                    "totalRows": 0,
+                    "returnedRows": 0,
+                },
+                "chartUnavailableReason": "No numeric result.",
+            }
+        )
+
+
+def test_shared_golden_payload_round_trips_without_contract_drift() -> None:
+    fixture = Path(__file__).parents[2] / "fixtures" / "investigation_query_result_v1.json"
+    payload = json.loads(fixture.read_text())
+
+    assert validate_query_result(payload) == payload

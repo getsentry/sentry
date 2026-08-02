@@ -50,7 +50,8 @@ BREACHED_METRIC_TEMPLATE = InvestigationTemplateSpec(
                 "Build a Sentry query that compares the breached metric before and after "
                 "the breach for the selected time range and environments."
             ),
-            display={"type": "table"},
+            config={"datasetHint": "metrics"},
+            display={"version": 1, "type": "table", "defaultView": "table"},
             dependencies=("goal",),
             parameters=("timeRange", "environments"),
         ),
@@ -62,6 +63,7 @@ BREACHED_METRIC_TEMPLATE = InvestigationTemplateSpec(
                 "Explain the most important change in the metric trend and summarize the "
                 "likely contributing dimensions."
             ),
+            config={"datasetHint": "metrics"},
             display={"type": "markdown"},
             dependencies=("trend",),
             parameters=("timeRange", "environments"),
@@ -74,7 +76,7 @@ BREACHED_METRIC_TEMPLATE = InvestigationTemplateSpec(
                 "Build a follow-up Sentry query that breaks the regression down by release, "
                 "environment, and transaction."
             ),
-            display={"type": "table"},
+            display={"version": 1, "type": "table", "defaultView": "table"},
             dependencies=("trend", "explanation"),
             parameters=("timeRange", "environments"),
         ),

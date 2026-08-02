@@ -20,6 +20,7 @@ from sentry.investigations.models import (
     Investigation,
     InvestigationCell,
     InvestigationCellComment,
+    InvestigationCellExecution,
     InvestigationFavoriteUser,
     InvestigationReaction,
     InvestigationStatus,
@@ -31,6 +32,7 @@ from sentry.investigations.permissions import (
 from sentry.investigations.serializers import (
     CellCreateSerializer,
     CellDeleteSerializer,
+    CellExecutionStartSerializer,
     CellOrderSerializer,
     CellUpdateSerializer,
     CommentSerializer,
@@ -40,6 +42,7 @@ from sentry.investigations.serializers import (
     InvestigationUpdateSerializer,
     ParameterValuesSerializer,
     PermissionsUpdateSerializer,
+    VisualizationSuggestionSerializer,
     comments_with_serialization_data,
     serialize_cell,
     serialize_comment,
@@ -55,10 +58,13 @@ from sentry.investigations.services import (
     create_cell,
     create_comment,
     create_manual_investigation,
+    create_query_execution,
     create_template_investigation,
     delete_cell,
     delete_comment,
     duplicate_investigation,
+    mark_query_execution_dispatch_failed,
+    mark_query_execution_dispatched,
     reorder_cells,
     set_cell_reaction,
     set_comment_reaction,
@@ -69,14 +75,23 @@ from sentry.investigations.services import (
     update_permissions,
     validate_mentions,
 )
+from sentry.investigations.visualizations import suggest_visualization_change
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.models.team import Team
+from sentry.seer.agent.client import SeerAgentClient
+from sentry.utils import metrics
 
 FEATURE = "organizations:investigations"
+QUERY_EXECUTION_FEATURE = "organizations:investigations-query-execution"
 
 
 def _feature_enabled(request: Request, organization: Organization) -> bool:
     return features.has(FEATURE, organization, actor=request.user)
+
+
+def _query_execution_enabled(request: Request, organization: Organization) -> bool:
+    return features.has(QUERY_EXECUTION_FEATURE, organization, actor=request.user)
 
 
 def _service_error(error: Exception) -> Response | None:
@@ -540,6 +555,139 @@ class OrganizationInvestigationCellDetailsEndpoint(OrganizationInvestigationCell
                 return response
             raise
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@extend_schema(tags=["Investigations"])
+@cell_silo_endpoint
+class OrganizationInvestigationCellExecuteEndpoint(OrganizationInvestigationCellBase):
+    publish_status = {"POST": ApiPublishStatus.PRIVATE}
+
+    def post(
+        self,
+        request: Request,
+        organization: Organization,
+        investigation: Investigation,
+        cell: InvestigationCell,
+    ) -> Response:
+        user_id = _require_authenticated_user(request)
+        if not _query_execution_enabled(request, organization):
+            raise ResourceDoesNotExist
+        serializer = CellExecutionStartSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        accessible_project_ids = _accessible_project_ids(self, request, organization)
+        selected_project_ids = set(
+            investigation.projects.order_by("id").values_list("id", flat=True)
+        )
+        if selected_project_ids:
+            if not selected_project_ids.issubset(accessible_project_ids):
+                return Response(
+                    {"detail": "One or more investigation projects are inaccessible."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+            project_ids = sorted(selected_project_ids)
+        else:
+            project_ids = sorted(accessible_project_ids)
+        projects = list(
+            Project.objects.filter(
+                organization=organization,
+                id__in=project_ids,
+            ).order_by("id")
+        )
+
+        # Constructing the client performs the normal Seer entitlement check before
+        # we create durable state that could never be dispatched.
+        client = SeerAgentClient(organization, request.user)
+        try:
+            execution, created = create_query_execution(
+                cell=cell,
+                expected_investigation_version=serializer.validated_data["investigation_version"],
+                expected_cell_version=serializer.validated_data["version"],
+                user_id=user_id,
+                project_ids=[project.id for project in projects],
+                project_slugs=[project.slug for project in projects],
+            )
+        except Exception as execution_error:
+            response = _service_error(execution_error)
+            if response is not None:
+                return response
+            raise
+
+        if created:
+            snapshot = execution.input_snapshot
+            payload = {
+                "organization_slug": organization.slug,
+                "prompt": snapshot["prompt"],
+                "project_ids": snapshot["projectIds"],
+                "project_slugs": snapshot["projectSlugs"],
+                "timezone": "UTC",
+                "investigation_id": str(investigation.uuid),
+                "cell_id": str(cell.uuid),
+                "execution_id": str(execution.uuid),
+                "input_fingerprint": execution.input_fingerprint,
+            }
+            if "datasetHint" in snapshot:
+                payload["dataset_hint"] = snapshot["datasetHint"]
+            try:
+                client.start_feature_run(
+                    feature_id="investigation_query_cell",
+                    payload=payload,
+                    title=cell.title or snapshot["prompt"],
+                    flush=False,
+                    extras={
+                        "investigation_id": str(investigation.uuid),
+                        "cell_id": str(cell.uuid),
+                        "execution_id": str(execution.uuid),
+                    },
+                    on_run_created=lambda run: mark_query_execution_dispatched(
+                        execution, seer_run_id=run.id
+                    ),
+                )
+                metrics.incr(
+                    "investigations.query_execution.started",
+                    tags={"executor": execution.executor},
+                )
+            except Exception as dispatch_error:
+                mark_query_execution_dispatch_failed(execution, error=str(dispatch_error))
+                metrics.incr("investigations.query_execution.dispatch_failed")
+                raise
+
+        execution = InvestigationCellExecution.objects.get(id=execution.id)
+        return Response(
+            {"id": str(execution.uuid), "status": execution.status},
+            status=status.HTTP_202_ACCEPTED,
+        )
+
+
+@extend_schema(tags=["Investigations"])
+@cell_silo_endpoint
+class OrganizationInvestigationCellVisualizationSuggestionEndpoint(
+    OrganizationInvestigationCellBase
+):
+    publish_status = {"POST": ApiPublishStatus.PRIVATE}
+
+    def post(
+        self,
+        request: Request,
+        organization: Organization,
+        investigation: Investigation,
+        cell: InvestigationCell,
+    ) -> Response:
+        if not _query_execution_enabled(request, organization):
+            raise ResourceDoesNotExist
+        serializer = VisualizationSuggestionSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        values = serializer.validated_data
+        return Response(
+            suggest_visualization_change(
+                result=values["current_result"],
+                visualization=values["visualization"],
+                requested_change=values["requested_change"],
+                current_intent=values["current_intent"],
+            )
+        )
 
 
 @extend_schema(tags=["Investigations"])

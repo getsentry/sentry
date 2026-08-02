@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "query": {
+    "dataset": "errors",
+    "query": "is:unresolved",
+    "mode": "aggregates",
+    "fields": ["timestamp", "count()"],
+    "yAxes": ["count()"],
+    "groupBy": [],
+    "sort": "-count()",
+    "interval": "1h",
+    "timeRange": {"statsPeriod": "24h"},
+    "projectIds": [1],
+    "projectSlugs": ["backend"],
+    "linkParams": {
+      "dataset": "errors",
+      "query": "is:unresolved",
+      "stats_period": "24h",
+      "project_slugs": ["backend"]
+    }
+  },
+  "table": {
+    "columns": [
+      {"key": "timestamp", "label": "Time", "type": "datetime"},
+      {"key": "count()", "label": "Errors", "type": "number"}
+    ],
+    "rows": [["2026-07-31T12:00:00Z", 12]],
+    "totalRows": 1,
+    "returnedRows": 1,
+    "truncated": false
+  },
+  "chart": {
+    "xAxis": "time",
+    "series": [
+      {
+        "name": "count()",
+        "data": [{"x": "2026-07-31T12:00:00Z", "y": 12.0}]
+      }
+    ],
+    "truncated": false
+  },
+  "suggestedVisualization": {
+    "type": "area",
+    "title": "Errors over time",
+    "xField": "timestamp",
+    "yFields": ["count()"],
+    "unit": "number",
+    "stacked": false,
+    "showLegend": true,
+    "sort": "none"
+  },
+  "warnings": [],
+  "dataProjectIds": [1]
+}

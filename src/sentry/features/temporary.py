@@ -113,6 +113,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:gen-ai-features", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable organization investigation notebooks.
     manager.add("organizations:investigations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:investigations-query-execution", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the 'translate' functionality for GenAI on the explore > traces page
     manager.add("organizations:gen-ai-search-agent-translate", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable AI search bar on the explore > metrics tab

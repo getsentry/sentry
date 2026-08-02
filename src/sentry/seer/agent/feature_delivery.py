@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any, Protocol
 from uuid import UUID
 
+from sentry.investigations.delivery import deliver_investigation_query_result
 from sentry.seer.agent.types import FeatureRunStatus
 from sentry.seer.night_shift.delivery import deliver_night_shift_result
 from sentry.seer.smart_assignment.delivery import deliver_smart_assignment_result
@@ -24,6 +25,7 @@ class FeatureDeliveryFn(Protocol):
 
 
 DELIVERY_HANDLERS: dict[str, FeatureDeliveryFn] = {
+    "investigation_query_cell": deliver_investigation_query_result,
     "night_shift": deliver_night_shift_result,
     "smart_assignment": deliver_smart_assignment_result,
 }

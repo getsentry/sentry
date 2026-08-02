@@ -295,9 +295,11 @@ from sentry.integrations.api.endpoints.organization_repository_settings import (
 )
 from sentry.investigations.endpoints.organization_investigations import (
     OrganizationInvestigationCellDetailsEndpoint,
+    OrganizationInvestigationCellExecuteEndpoint,
     OrganizationInvestigationCellOrderEndpoint,
     OrganizationInvestigationCellReactionEndpoint,
     OrganizationInvestigationCellsEndpoint,
+    OrganizationInvestigationCellVisualizationSuggestionEndpoint,
     OrganizationInvestigationCommentDetailsEndpoint,
     OrganizationInvestigationCommentReactionEndpoint,
     OrganizationInvestigationCommentsEndpoint,
@@ -2401,6 +2403,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_uuid>[^/]+)/cells/(?P<cell_uuid>[^/]+)/$",
         OrganizationInvestigationCellDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-cell-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_uuid>[^/]+)/cells/(?P<cell_uuid>[^/]+)/execute/$",
+        OrganizationInvestigationCellExecuteEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-cell-execute",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_uuid>[^/]+)/cells/(?P<cell_uuid>[^/]+)/visualization-suggestion/$",
+        OrganizationInvestigationCellVisualizationSuggestionEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-cell-visualization-suggestion",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_uuid>[^/]+)/parameters/$",

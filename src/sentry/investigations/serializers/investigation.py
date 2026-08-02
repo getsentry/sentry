@@ -14,6 +14,7 @@ from sentry.api.serializers.rest_framework.base import (
     convert_dict_key_case,
     snake_to_camel_case,
 )
+from sentry.investigations.contracts import VisualizationSerializer, validate_query_result
 from sentry.investigations.models import (
     Investigation,
     InvestigationCell,
@@ -71,15 +72,58 @@ def validate_display(kind: str, display: dict[str, Any]) -> dict[str, Any]:
 
     if display_type == "table" and set(display) == {"type"}:
         return display
-    if display_type not in {"line", "bar", "area"}:
-        raise serializers.ValidationError("Query cells must use table, line, bar, or area.")
-    if set(display) != {"type", "xAxis", "yAxes"}:
-        raise serializers.ValidationError("Charts require exactly type, xAxis, and yAxes.")
-    if not isinstance(display["xAxis"], str) or not display["xAxis"]:
+    if "version" not in display:
+        if display_type not in {"line", "bar", "area"}:
+            raise serializers.ValidationError("Invalid legacy query-cell display.")
+        if set(display) != {"type", "xAxis", "yAxes"}:
+            raise serializers.ValidationError("Charts require exactly type, xAxis, and yAxes.")
+        if not isinstance(display["xAxis"], str) or not display["xAxis"]:
+            raise serializers.ValidationError("xAxis must be a non-empty string.")
+        if (
+            not isinstance(display["yAxes"], list)
+            or not display["yAxes"]
+            or any(not isinstance(axis, str) or not axis for axis in display["yAxes"])
+        ):
+            raise serializers.ValidationError("yAxes must be a non-empty list of strings.")
+        return display
+
+    allowed = {
+        "version",
+        "type",
+        "xAxis",
+        "yAxes",
+        "seriesField",
+        "unit",
+        "axisLabel",
+        "stacked",
+        "showLegend",
+        "title",
+        "subtitle",
+        "sort",
+        "topN",
+        "defaultView",
+    }
+    if display.get("version") != 1 or set(display) - allowed:
+        raise serializers.ValidationError("Invalid versioned query-cell display.")
+    if display_type not in {"table", "line", "bar", "area", "heatmap", "wheel"}:
+        raise serializers.ValidationError("Invalid visualization type.")
+    if display.get("defaultView", "table") not in {"table", "chart"}:
+        raise serializers.ValidationError("defaultView must be table or chart.")
+    if display.get("unit", "number") not in {"number", "percentage", "duration", "bytes"}:
+        raise serializers.ValidationError("Invalid visualization unit.")
+    if display.get("sort", "none") not in {"none", "ascending", "descending"}:
+        raise serializers.ValidationError("Invalid visualization sort.")
+    if "topN" in display and (
+        not isinstance(display["topN"], int) or not 1 <= display["topN"] <= 20
+    ):
+        raise serializers.ValidationError("topN must be between 1 and 20.")
+    if display_type == "table":
+        return display
+    if not isinstance(display.get("xAxis"), str) or not display["xAxis"]:
         raise serializers.ValidationError("xAxis must be a non-empty string.")
     if (
-        not isinstance(display["yAxes"], list)
-        or not display["yAxes"]
+        not isinstance(display.get("yAxes"), list)
+        or not display.get("yAxes")
         or any(not isinstance(axis, str) or not axis for axis in display["yAxes"])
     ):
         raise serializers.ValidationError("yAxes must be a non-empty list of strings.")
@@ -158,7 +202,11 @@ class CellCreateSerializer(StrictCamelSnakeSerializer):
         kind = attrs["kind"]
         display = attrs.get(
             "display",
-            {"type": "markdown"} if kind == InvestigationCellKind.TEXT else {"type": "table"},
+            (
+                {"type": "markdown"}
+                if kind == InvestigationCellKind.TEXT
+                else {"version": 1, "type": "table", "defaultView": "table"}
+            ),
         )
         if not isinstance(display, dict):
             raise serializers.ValidationError({"display": "Must be an object."})
@@ -190,6 +238,29 @@ class CellUpdateSerializer(StrictCamelSnakeSerializer):
 class CellDeleteSerializer(StrictCamelSnakeSerializer):
     investigation_version = serializers.IntegerField(min_value=1)
     version = serializers.IntegerField(min_value=1)
+
+
+class CellExecutionStartSerializer(StrictCamelSnakeSerializer):
+    investigation_version = serializers.IntegerField(min_value=1)
+    version = serializers.IntegerField(min_value=1)
+
+
+class VisualizationSuggestionSerializer(StrictCamelSnakeSerializer):
+    current_result = serializers.JSONField()
+    visualization = serializers.JSONField()
+    requested_change = serializers.CharField(max_length=1000)
+    current_intent = serializers.CharField(max_length=10_000)
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        attrs["current_result"] = validate_query_result(attrs["current_result"])
+        visualization = VisualizationSerializer(data=attrs["visualization"])
+        visualization.is_valid(raise_exception=True)
+        attrs["visualization"] = dict(visualization.validated_data)
+        if not attrs["requested_change"].strip():
+            raise serializers.ValidationError(
+                {"requestedChange": "Describe the visualization change."}
+            )
+        return attrs
 
 
 class CellOrderSerializer(StrictCamelSnakeSerializer):
@@ -321,6 +392,19 @@ def serialize_cell(
         "generatedContent": cell.generated_content,
         "output": output,
         "outputStatus": output_status,
+        "currentExecution": (
+            {
+                "id": str(execution.uuid),
+                "status": execution.status,
+                "executor": execution.executor,
+                "schemaVersion": execution.result_schema_version,
+                "startedAt": execution.started_at,
+                "completedAt": execution.completed_at,
+                "error": execution.error,
+            }
+            if execution is not None
+            else None
+        ),
         "config": cell.config,
         "display": cell.display,
         "dependencies": [
