@@ -197,6 +197,37 @@ describe('SeerInvestigation', () => {
     );
   });
 
+  it('restores a running button after reload without starting another execution', async () => {
+    const queryCell = InvestigationCellFixture({
+      id: 'query-cell',
+      kind: 'query',
+      generationPrompt: 'Show unresolved errors over the last day',
+      outputStatus: 'running',
+      currentExecution: {
+        id: 'execution-1',
+        status: 'running',
+        executor: 'code_mode',
+        schemaVersion: 1,
+        error: null,
+        startedAt: '2026-08-02T05:40:19Z',
+        completedAt: null,
+      },
+    });
+    const withRunningQuery = InvestigationDetailFixture({cells: [queryCell]});
+    const executeRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/investigations/${withRunningQuery.id}/cells/${queryCell.id}/execute/`,
+      method: 'POST',
+      body: {id: 'unexpected', status: 'running'},
+    });
+
+    renderInvestigation(withRunningQuery);
+
+    const runningButton = await screen.findByRole('button', {name: 'Running'});
+    expect(runningButton).toBeDisabled();
+    expect(runningButton).toHaveAttribute('aria-busy', 'true');
+    expect(executeRequest).not.toHaveBeenCalled();
+  });
+
   it('does not expose inline execution when the execution flag is explicitly off', async () => {
     const queryCell = InvestigationCellFixture({
       id: 'query-cell',

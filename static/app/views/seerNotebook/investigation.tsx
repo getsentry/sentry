@@ -1183,6 +1183,8 @@ function SortableCellContent({
   const generatedQuery = getGeneratedQuery(cell.output);
   const savedQueryIntent = cell.generationPrompt || cell.content;
   const queryHasChanged = Boolean(cell.staleAt) || queryIntent !== savedQueryIntent;
+  const isExecutionRunning = ['pending', 'running'].includes(cell.outputStatus);
+  const isRunBusy = isRunRequested || isExecutionRunning;
   const runVariant = queryHasChanged
     ? 'warning'
     : cell.outputStatus === 'available'
@@ -1579,8 +1581,10 @@ function SortableCellContent({
               size="xs"
               variant={runVariant}
               icon={<IconPlay size="xs" />}
-              busy={isRunRequested}
-              disabled={!queryIntent.trim() || !queryExecutionEnabled}
+              busy={isRunBusy}
+              disabled={
+                isExecutionRunning || !queryIntent.trim() || !queryExecutionEnabled
+              }
               onClick={async () => {
                 setIsRunRequested(true);
                 try {
@@ -1593,7 +1597,7 @@ function SortableCellContent({
                 }
               }}
             >
-              {t('Run')}
+              {isRunBusy ? t('Running') : t('Run')}
             </QueryRunButton>
             {generatedQuery === null ? null : (
               <QueryRepresentationToggle
