@@ -75,12 +75,12 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SortableReleasesSelect} from 'sentry/views/dashboards/sortableReleasesSelect';
 import {DashboardFilterKeys} from 'sentry/views/dashboards/types';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 import {
   archiveInvestigation,
   createCell,
   deleteCell,
+  executeCell,
   investigationDetailQueryOptions,
   reorderCells,
   setCellReaction,
@@ -246,7 +246,10 @@ function SeerInvestigationContent({onCellListRender}: SeerInvestigationProps) {
             ? {
                 ...result.cell,
                 position: cell.position,
-                config: {...result.cell.config, optimisticKey: result.optimisticCellId},
+                config: {
+                  ...result.cell.config,
+                  optimisticKey: result.optimisticCellId,
+                },
               }
             : cell
         ),
@@ -337,6 +340,17 @@ function SeerInvestigationContent({onCellListRender}: SeerInvestigationProps) {
     }
   }, [refetchDetail]);
 
+  const hasPendingExecution = detail?.cells.some(cell =>
+    ['pending', 'running'].includes(cell.outputStatus)
+  );
+  useEffect(() => {
+    if (!hasPendingExecution) {
+      return;
+    }
+    const timer = window.setInterval(() => void refreshDetail(), 1500);
+    return () => window.clearInterval(timer);
+  }, [hasPendingExecution, refreshDetail]);
+
   if (!investigationId) {
     return <LoadingError message={t('No investigation was selected.')} />;
   }
@@ -376,6 +390,7 @@ function SeerInvestigationContent({onCellListRender}: SeerInvestigationProps) {
       kind,
       title: '',
       content: '',
+      currentExecution: null,
       generationPrompt: '',
       generatedContent: '',
       output: null,
@@ -770,6 +785,9 @@ function SeerInvestigationContent({onCellListRender}: SeerInvestigationProps) {
                       canManage={detail.permissions.canManage}
                       investigationId={detail.id}
                       organizationSlug={organization.slug}
+                      queryExecutionEnabled={organization.features.includes(
+                        'investigations-query-execution'
+                      )}
                       onInsertAfter={kind => insertCell(kind, index + 1)}
                       onSave={(currentCell, values) =>
                         enqueue(async version => {
@@ -794,6 +812,27 @@ function SeerInvestigationContent({onCellListRender}: SeerInvestigationProps) {
                           };
                         })
                       }
+                      onExecute={async currentCell => {
+                        const current = detailRef.current;
+                        const persistedCell = current?.cells.find(
+                          value =>
+                            value.id === currentCell.id ||
+                            value.config.optimisticKey === currentCell.id
+                        );
+                        if (!current || !persistedCell) {
+                          return;
+                        }
+                        await executeCell(
+                          organization.slug,
+                          current.id,
+                          persistedCell.id,
+                          {
+                            investigationVersion: current.version,
+                            version: persistedCell.version,
+                          }
+                        );
+                        await refreshDetail();
+                      }}
                       onDelete={() =>
                         openConfirmModal({
                           message: t('Delete this cell?'),
@@ -1034,6 +1073,7 @@ type SortableCellProps = {
   investigationId: string;
   onCommentCountChange: (delta: number) => void;
   onDelete: () => void;
+  onExecute: (cell: InvestigationCell) => Promise<void>;
   onInsertAfter: (kind: InvestigationCellKind) => Promise<void>;
   onRefreshCell: () => Promise<void>;
   onSave: (
@@ -1046,6 +1086,7 @@ type SortableCellProps = {
     }
   ) => Promise<unknown>;
   organizationSlug: string;
+  queryExecutionEnabled: boolean;
 };
 
 type SortableCellState = ReturnType<typeof useSortable>;
@@ -1093,9 +1134,10 @@ function SortableCellContent({
   onDelete,
   onCommentCountChange,
   onRefreshCell,
+  onExecute,
+  queryExecutionEnabled,
   sortable,
 }: SortableCellProps & SortableCellPresentation & {sortable: SortableCellState}) {
-  const {openSeerExplorer} = useSeerExplorerContext();
   const [draft, setDraft] = useState({
     title: cell.title,
     content: cell.content,
@@ -1108,11 +1150,15 @@ function SortableCellContent({
   const [slashCommandIndex, setSlashCommandIndex] = useState(0);
   const [cellReactions, setCellReactions] = useState(cell.reactions);
   const [isReactionPickerOpen, setIsReactionPickerOpen] = useState(false);
+  const [isRunRequested, setIsRunRequested] = useState(false);
   const textInputRef = useRef<HTMLTextAreaElement>(null);
   const slashMenuRef = useRef<HTMLDivElement>(null);
   const suggestionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const displaySaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isStreamingSuggestionRef = useRef(false);
-  const queryHasChanged = Boolean(cell.staleAt) || draft.content !== cell.content;
+  const queryIntent = draft.generationPrompt || draft.content;
+  const savedQueryIntent = cell.generationPrompt || cell.content;
+  const queryHasChanged = Boolean(cell.staleAt) || queryIntent !== savedQueryIntent;
   const runVariant = queryHasChanged
     ? 'warning'
     : cell.outputStatus === 'available'
@@ -1123,16 +1169,26 @@ function SortableCellContent({
     (values: typeof draft) => {
       const serialized = JSON.stringify(values);
       if (serialized === saved.current || disabled) {
-        return;
+        return Promise.resolve();
       }
 
       const previousSaved = saved.current;
       saved.current = serialized;
-      onSave(cell, values).catch(() => {
+      const request = onSave(cell, values);
+      request.catch(() => {
         saved.current = previousSaved;
       });
+      return request;
     },
     [cell, disabled, onSave]
+  );
+  useEffect(
+    () => () => {
+      if (displaySaveTimerRef.current) {
+        clearTimeout(displaySaveTimerRef.current);
+      }
+    },
+    []
   );
 
   useEffect(() => {
@@ -1191,7 +1247,12 @@ function SortableCellContent({
     {key: 'quote', label: t('Quote'), hint: '>', prefix: '> '},
     {key: 'code', label: t('Code block'), hint: '```', prefix: '```\n\n```'},
     {key: 'divider', label: t('Divider'), hint: '—', prefix: '---'},
-    {key: 'query', label: t('Query cell'), hint: t('Insert below'), prefix: ''},
+    {
+      key: 'query',
+      label: t('Query cell'),
+      hint: t('Insert below'),
+      prefix: '',
+    },
   ];
   const slashQuery =
     draft.content.split('\n').at(-1)?.slice(1).trim().toLowerCase() ?? '';
@@ -1280,7 +1341,11 @@ function SortableCellContent({
       ref={sortable.setNodeRef}
       style={{
         transform: sortable.transform
-          ? `${CSS.Transform.toString({...sortable.transform, scaleX: 1, scaleY: 1})} rotate(${sortable.isDragging ? 1.5 : 0}deg)`
+          ? `${CSS.Transform.toString({
+              ...sortable.transform,
+              scaleX: 1,
+              scaleY: 1,
+            })} rotate(${sortable.isDragging ? 1.5 : 0}deg)`
           : undefined,
         transition: sortable.transition,
       }}
@@ -1490,13 +1555,19 @@ function SortableCellContent({
               size="xs"
               variant={runVariant}
               icon={<IconPlay size="xs" />}
-              disabled={!draft.content.trim()}
-              onClick={() =>
-                openSeerExplorer({
-                  initialQuery: draft.content.trim(),
-                  startNewRun: true,
-                })
-              }
+              busy={isRunRequested}
+              disabled={!queryIntent.trim() || !queryExecutionEnabled}
+              onClick={async () => {
+                setIsRunRequested(true);
+                try {
+                  await saveDraft(draft);
+                  await onExecute(cell);
+                } catch {
+                  addErrorMessage(t('The query could not be started.'));
+                } finally {
+                  setIsRunRequested(false);
+                }
+              }}
             >
               {t('Run')}
             </QueryRunButton>
@@ -1509,18 +1580,21 @@ function SortableCellContent({
               maxRows={18}
               disabled={disabled}
               placeholder=""
-              value={draft.content}
+              value={queryIntent}
               onChange={event => {
                 if (suggestionTimerRef.current) {
                   clearInterval(suggestionTimerRef.current);
                   suggestionTimerRef.current = null;
                   isStreamingSuggestionRef.current = false;
                 }
-                setDraft(current => ({...current, content: event.target.value}));
+                setDraft(current => ({
+                  ...current,
+                  generationPrompt: event.target.value,
+                }));
               }}
               onBlur={saveOnBlur}
             />
-            {draft.content ? null : (
+            {queryIntent ? null : (
               <QueryPlaceholder>
                 <Text variant="muted">
                   {t('Describe what you want to see, or ')}
@@ -1537,7 +1611,30 @@ function SortableCellContent({
                 </Text>
               </QueryPlaceholder>
             )}
-            <PersistedCellOutput cell={{...cell, display: draft.display}} />
+            <PersistedCellOutput
+              cell={{...cell, display: draft.display}}
+              currentIntent={queryIntent}
+              disabled={disabled}
+              investigationId={investigationId}
+              organizationSlug={organizationSlug}
+              onDisplayChange={display => {
+                const nextDraft = {...draft, display};
+                setDraft(nextDraft);
+                if (displaySaveTimerRef.current) {
+                  clearTimeout(displaySaveTimerRef.current);
+                }
+                displaySaveTimerRef.current = setTimeout(() => {
+                  displaySaveTimerRef.current = null;
+                  void saveDraft(nextDraft);
+                }, 400);
+              }}
+              onRevisedQueryIntent={async intent => {
+                const nextDraft = {...draft, generationPrompt: intent};
+                setDraft(nextDraft);
+                await saveDraft(nextDraft);
+                await onExecute(cell);
+              }}
+            />
           </Fragment>
         )}
       </CellSurface>
@@ -1553,7 +1650,8 @@ function areSortableCellPropsEqual(previous: SortableCellProps, next: SortableCe
     previous.collaborationDisabled === next.collaborationDisabled &&
     previous.canManage === next.canManage &&
     previous.investigationId === next.investigationId &&
-    previous.organizationSlug === next.organizationSlug
+    previous.organizationSlug === next.organizationSlug &&
+    previous.queryExecutionEnabled === next.queryExecutionEnabled
   );
 }
 

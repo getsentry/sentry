@@ -1,6 +1,13 @@
 export type InvestigationStatus = 'active' | 'archived';
 export type InvestigationCellKind = 'text' | 'query';
-export type InvestigationDisplayType = 'markdown' | 'table' | 'line' | 'bar' | 'area';
+export type InvestigationDisplayType =
+  | 'markdown'
+  | 'table'
+  | 'line'
+  | 'bar'
+  | 'area'
+  | 'heatmap'
+  | 'wheel';
 
 export type InvestigationReactionName =
   | 'thumbs-up'
@@ -20,8 +27,113 @@ export type InvestigationReaction = {
 
 export type InvestigationDisplay = {
   type: InvestigationDisplayType;
+  axisLabel?: string;
+  defaultView?: 'table' | 'chart';
+  seriesField?: string;
+  showLegend?: boolean;
+  sort?: 'none' | 'ascending' | 'descending';
+  stacked?: boolean;
+  subtitle?: string;
+  title?: string;
+  topN?: number;
+  unit?: InvestigationChartUnit;
+  version?: 1;
   xAxis?: string;
   yAxes?: string[];
+};
+
+export type InvestigationChartUnit = 'number' | 'percentage' | 'duration' | 'bytes';
+
+export type InvestigationTableColumnType =
+  | 'string'
+  | 'number'
+  | 'boolean'
+  | 'datetime'
+  | 'duration'
+  | 'percentage'
+  | 'bytes'
+  | 'issue'
+  | 'trace'
+  | 'event'
+  | 'project'
+  | 'release';
+
+export type InvestigationTableColumn = {
+  key: string;
+  label: string;
+  type: InvestigationTableColumnType;
+  unit?: string | null;
+};
+
+export type InvestigationChartSeries = {
+  data: Array<{x: string | number; y: number}>;
+  name: string;
+};
+
+export type InvestigationVisualization = {
+  showLegend: boolean;
+  sort: 'none' | 'ascending' | 'descending';
+  stacked: boolean;
+  title: string;
+  type: Exclude<InvestigationDisplayType, 'markdown' | 'table'>;
+  unit: InvestigationChartUnit;
+  xField: string;
+  yFields: string[];
+  axisLabel?: string | null;
+  seriesField?: string | null;
+  subtitle?: string | null;
+  topN?: number | null;
+};
+
+export type InvestigationQueryResult = {
+  chart: {
+    series: InvestigationChartSeries[];
+    truncated: boolean;
+    xAxis: 'time' | 'category';
+  } | null;
+  chartUnavailableReason: string | null;
+  dataProjectIds: number[];
+  query: {
+    dataset: 'errors' | 'issues' | 'spans' | 'logs' | 'metrics';
+    fields: string[];
+    groupBy: string[];
+    linkParams: Record<string, unknown>;
+    mode: string;
+    projectIds: number[];
+    projectSlugs: string[];
+    query: string;
+    sort: string;
+    timeRange: {
+      end?: string | null;
+      start?: string | null;
+      statsPeriod?: string | null;
+    };
+    yAxes: string[];
+    interval?: string | null;
+    logQuery?: string | null;
+    metricQuery?: string | null;
+    spanQuery?: string | null;
+  };
+  schemaVersion: 1;
+  suggestedVisualization: InvestigationVisualization | null;
+  table: {
+    columns: InvestigationTableColumn[];
+    returnedRows: number;
+    rows: Array<Array<string | number | boolean | null>>;
+    totalRows: number;
+    truncated: boolean;
+  };
+  warnings: string[];
+};
+
+export type InvestigationCellExecution = {
+  completedAt: string | null;
+  error: {code?: string; message?: string} | null;
+  executor: string;
+  id: string;
+  schemaVersion: number;
+  startedAt: string | null;
+  status: string;
 };
 
 export type InvestigationPermissions = {
@@ -77,6 +189,7 @@ export type InvestigationCell = {
   staleAt: string | null;
   title: string;
   version: number;
+  currentExecution?: InvestigationCellExecution | null;
 };
 
 export type InvestigationListItem = {

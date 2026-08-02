@@ -38,6 +38,8 @@ export const Chart = defineSeerEmbed({
     x_axis: xAxis,
     y_axis_unit: yAxisUnit,
     y_axis_label: yAxisLabel,
+    stacked,
+    show_legend: showLegend,
     series,
   }) {
     const chartSeries: ChartSeries[] = series.map(item => {
@@ -61,10 +63,15 @@ export const Chart = defineSeerEmbed({
     const chartProps = {
       animation: false,
       end,
-      grid: {left: 12, right: 12, top: series.length > 1 ? 36 : 12, bottom: 8},
+      grid: {
+        left: 12,
+        right: 12,
+        top: series.length > 1 ? 36 : 12,
+        bottom: 8,
+      },
       height: 220,
       isGroupedByDate: xAxis === 'time',
-      legend: series.length > 1 ? {left: 0, top: 0} : {show: false},
+      legend: showLegend && series.length > 1 ? {left: 0, top: 0} : {show: false},
       renderer: 'svg' as const,
       series: chartSeries,
       showTimeInTooltip: xAxis === 'time',
@@ -77,7 +84,13 @@ export const Chart = defineSeerEmbed({
       },
       xAxis:
         xAxis === 'category'
-          ? {axisLabel: {formatter: String, showMaxLabel: true, showMinLabel: true}}
+          ? {
+              axisLabel: {
+                formatter: String,
+                showMaxLabel: true,
+                showMinLabel: true,
+              },
+            }
           : undefined,
       yAxis: {
         name: yAxisLabel,
@@ -108,9 +121,9 @@ export const Chart = defineSeerEmbed({
           )}
         </Stack>
         {visualization === 'area' ? (
-          <AreaChart {...chartProps} stacked={series.length > 1} />
+          <AreaChart {...chartProps} stacked={stacked && series.length > 1} />
         ) : visualization === 'bar' ? (
-          <BarChart {...chartProps} />
+          <BarChart {...chartProps} stacked={stacked} />
         ) : visualization === 'heatmap' ? (
           <HeatmapChart
             series={chartSeries}

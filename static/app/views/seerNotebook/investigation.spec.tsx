@@ -23,7 +23,9 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import SeerInvestigation from 'sentry/views/seerNotebook/investigation';
 
 describe('SeerInvestigation', () => {
-  const organization = OrganizationFixture({features: ['investigations']});
+  const organization = OrganizationFixture({
+    features: ['investigations', 'investigations-query-execution'],
+  });
   const detail = InvestigationDetailFixture();
   const detailUrl = `/organizations/${organization.slug}/investigations/${detail.id}/`;
 
@@ -162,6 +164,156 @@ describe('SeerInvestigation', () => {
     await userEvent.click(screen.getByRole('button', {name: 'see an example'}));
     expect(queryEditor).not.toHaveValue(suggestion);
     await waitFor(() => expect(queryEditor).toHaveValue(suggestion), {timeout: 2000});
+  });
+
+  it('runs a query cell through its durable execution endpoint', async () => {
+    const queryCell = InvestigationCellFixture({
+      id: 'query-cell',
+      kind: 'query',
+      generationPrompt: 'Show unresolved errors over the last day',
+      outputStatus: 'notRun',
+      version: 3,
+    });
+    const withQuery = InvestigationDetailFixture({cells: [queryCell], version: 7});
+    const executeRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/investigations/${withQuery.id}/cells/${queryCell.id}/execute/`,
+      method: 'POST',
+      body: {id: 'execution-1', status: 'running'},
+    });
+    renderInvestigation(withQuery);
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Run'}));
+
+    await waitFor(() => expect(executeRequest).toHaveBeenCalled());
+    expect(executeRequest).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: {investigationVersion: 7, version: 3},
+      })
+    );
+  });
+
+  it('switches a typed persisted result from table to chart without rerunning', async () => {
+    const queryCell = InvestigationCellFixture({
+      id: 'query-cell',
+      kind: 'query',
+      generationPrompt: 'Show error volume',
+      outputStatus: 'available',
+      display: {version: 1, type: 'table', defaultView: 'table'},
+      output: {
+        schemaVersion: 1,
+        query: {
+          dataset: 'errors',
+          query: 'is:unresolved',
+          mode: 'aggregates',
+          fields: [],
+          yAxes: ['count()'],
+          groupBy: [],
+          sort: '',
+          timeRange: {statsPeriod: '24h'},
+          projectIds: [1],
+          projectSlugs: ['frontend'],
+          linkParams: {},
+        },
+        table: {
+          columns: [{key: 'count()', label: 'Errors', type: 'number'}],
+          rows: [[12]],
+          totalRows: 1,
+          returnedRows: 1,
+          truncated: false,
+        },
+        chart: {
+          xAxis: 'time',
+          truncated: false,
+          series: [
+            {
+              name: 'count()',
+              data: [
+                {x: '2026-07-31T12:00:00Z', y: 12},
+                {x: '2026-07-31T13:00:00Z', y: 18},
+                {x: '2026-07-31T14:00:00Z', y: 15},
+              ],
+            },
+          ],
+        },
+        suggestedVisualization: {
+          type: 'area',
+          title: 'Error volume',
+          xField: 'timestamp',
+          yFields: ['count()'],
+          unit: 'number',
+          stacked: false,
+          showLegend: true,
+          sort: 'none',
+        },
+        chartUnavailableReason: null,
+        warnings: [],
+        dataProjectIds: [1],
+      },
+    });
+    const withResult = InvestigationDetailFixture({cells: [queryCell]});
+    const executeRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/investigations/${withResult.id}/cells/${queryCell.id}/execute/`,
+      method: 'POST',
+      body: {id: 'unexpected', status: 'running'},
+    });
+    const updateRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/investigations/${withResult.id}/cells/${queryCell.id}/`,
+      method: 'PUT',
+      body: {
+        ...queryCell,
+        version: queryCell.version + 1,
+        display: {
+          version: 1,
+          type: 'area',
+          defaultView: 'table',
+          xAxis: 'timestamp',
+          yAxes: ['count()'],
+          unit: 'number',
+          stacked: false,
+          showLegend: true,
+          title: 'Error volume',
+          sort: 'descending',
+        },
+      },
+    });
+    renderInvestigation(withResult);
+
+    expect(await screen.findByText('Errors')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Chart'}));
+
+    expect(await screen.findByTestId('seer-chart-embed')).toBeInTheDocument();
+    expect(screen.getByText('Error volume')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'X-axis field'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('combobox', {name: 'Series or color field'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Y-axis label'})).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Chart subtitle'})).toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Series layout'})).toBeInTheDocument();
+    expect(screen.getByRole('spinbutton', {name: 'Top N points'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('combobox', {name: 'Default query result view'})
+    ).toBeInTheDocument();
+
+    await userEvent.selectOptions(
+      screen.getByRole('combobox', {name: 'Chart sort'}),
+      'descending'
+    );
+    await waitFor(() => expect(updateRequest).toHaveBeenCalled(), {timeout: 2000});
+    expect(updateRequest).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          display: expect.objectContaining({
+            sort: 'descending',
+            xAxis: 'timestamp',
+            yAxes: ['count()'],
+          }),
+        }),
+      })
+    );
+    expect(executeRequest).not.toHaveBeenCalled();
   });
 
   it('opens the lazy add-cell menu from the keyboard', async () => {

@@ -11,8 +11,10 @@ import type {
   InvestigationFilters,
   InvestigationListItem,
   InvestigationPermissions,
+  InvestigationQueryResult,
   InvestigationReactionName,
   InvestigationStatus,
+  InvestigationVisualization,
 } from './types';
 
 const COLLECTION_PATH = '/organizations/$organizationIdOrSlug/investigations/' as const;
@@ -196,6 +198,41 @@ export function deleteCell(
   return fetchMutation<void>({
     url: `/organizations/${organizationSlug}/investigations/${investigationId}/cells/${cellId}/`,
     method: 'DELETE',
+    data,
+  });
+}
+
+export function executeCell(
+  organizationSlug: string,
+  investigationId: string,
+  cellId: string,
+  data: {investigationVersion: number; version: number}
+) {
+  return fetchMutation<{id: string; status: string}>({
+    url: `/organizations/${organizationSlug}/investigations/${investigationId}/cells/${cellId}/execute/`,
+    method: 'POST',
+    data,
+  });
+}
+
+export function suggestCellVisualization(
+  organizationSlug: string,
+  investigationId: string,
+  cellId: string,
+  data: {
+    currentIntent: string;
+    currentResult: InvestigationQueryResult;
+    requestedChange: string;
+    visualization: InvestigationVisualization;
+  }
+) {
+  return fetchMutation<{
+    existingResultSufficient: boolean;
+    visualization: InvestigationVisualization;
+    revisedQueryIntent?: string;
+  }>({
+    url: `/organizations/${organizationSlug}/investigations/${investigationId}/cells/${cellId}/visualization-suggestion/`,
+    method: 'POST',
     data,
   });
 }
