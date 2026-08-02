@@ -213,8 +213,15 @@ function LeadingItems({children, disablePointerEvents, ...props}: InputItemsProp
     if (!ref.current) {
       return;
     }
-    setLeadingWidth?.(ref.current.offsetWidth);
-  }, [children, setLeadingWidth, size]);
+    const el = ref.current;
+    const observer = new ResizeObserver(() => {
+      if (el) {
+        setLeadingWidth?.(el.offsetWidth);
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [setLeadingWidth]);
 
   return (
     <StyledLeadingItemsWrap
@@ -248,8 +255,15 @@ function TrailingItems({children, disablePointerEvents, ...props}: InputItemsPro
     if (!ref.current) {
       return;
     }
-    setTrailingWidth?.(ref.current.offsetWidth);
-  }, [children, setTrailingWidth, size]);
+    const el = ref.current;
+    const observer = new ResizeObserver(() => {
+      if (el) {
+        setTrailingWidth?.(el.offsetWidth);
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [setTrailingWidth]);
 
   return (
     <StyledTrailingItemsWrap
