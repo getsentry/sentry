@@ -17,7 +17,7 @@ from sentry.investigations.models import (
 )
 from sentry.models.project import Project
 from sentry.seer.agent.types import FeatureRunStatus
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 
@@ -125,6 +125,24 @@ def deliver_investigation_query_result(
             ],
             ignore_conflicts=True,
         )
+        metrics.distribution(
+            "investigations.query_execution.result_size",
+            len(json.dumps(validated).encode()),
+            unit="byte",
+            tags={
+                "chart_available": str(validated.get("chart") is not None).lower(),
+                "truncated": str(validated["table"]["truncated"]).lower(),
+            },
+        )
+        metrics.distribution(
+            "investigations.query_execution.result_rows",
+            validated["table"]["returnedRows"],
+        )
+        if execution.started_at is not None:
+            metrics.timing(
+                "investigations.query_execution.latency",
+                (execution.completed_at - execution.started_at).total_seconds(),
+            )
 
         cell = InvestigationCell.objects.select_for_update().get(id=execution.cell_id)
         if cell.current_execution_id == execution.id and cell.version == execution.cell_version:
