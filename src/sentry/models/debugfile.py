@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import enum
 import errno
 import hashlib
@@ -626,20 +627,11 @@ def create_dif_from_id(
     if objectstore_write:
         session = get_debug_files_session(project.organization_id, project.id)
         try:
-            if file is not None:
-                with file.getfile() as source:
-                    storage_path = _upload_dif_to_objectstore(
-                        session,
-                        source,
-                        content_type,
-                        file_size,
-                        _get_dif_download_filename(meta),
-                    )
-            else:
-                assert fileobj is not None
+            source_cm = file.getfile() if file is not None else contextlib.nullcontext(fileobj)
+            with source_cm as source:
                 storage_path = _upload_dif_to_objectstore(
                     session,
-                    fileobj,
+                    source,
                     content_type,
                     file_size,
                     _get_dif_download_filename(meta),
