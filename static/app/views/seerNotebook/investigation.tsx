@@ -89,13 +89,13 @@ import type {
   InvestigationCellKind,
   InvestigationDetail,
   InvestigationFilters,
-  InvestigationPermissions,
   InvestigationReactionName,
 } from './types';
 import {INVESTIGATION_REACTIONS} from './types';
 
 type SeerInvestigationProps = {
   onCellListRender?: ProfilerOnRenderCallback;
+  onCellRender?: (clientKey: string) => void;
 };
 
 export default function SeerInvestigation() {
@@ -106,8 +106,9 @@ export function SeerInvestigationPerformanceHarness(props: SeerInvestigationProp
   return <SeerInvestigationView {...props} />;
 }
 
-function SeerInvestigationView({onCellListRender}: SeerInvestigationProps) {
+function SeerInvestigationView({onCellListRender, onCellRender}: SeerInvestigationProps) {
   const organization = useOrganization();
+  const {investigationId} = useParams<{investigationId: string}>();
   if (!organization.features.includes('investigations')) {
     return (
       <FeatureDisabled
@@ -116,10 +117,19 @@ function SeerInvestigationView({onCellListRender}: SeerInvestigationProps) {
       />
     );
   }
-  return <SeerInvestigationContent onCellListRender={onCellListRender} />;
+  return (
+    <SeerInvestigationContent
+      key={investigationId ?? 'missing'}
+      onCellListRender={onCellListRender}
+      onCellRender={onCellRender}
+    />
+  );
 }
 
-function SeerInvestigationContent({onCellListRender}: SeerInvestigationProps) {
+function SeerInvestigationContent({
+  onCellListRender,
+  onCellRender,
+}: SeerInvestigationProps) {
   const {investigationId} = useParams<{investigationId: string}>();
   const organization = useOrganization();
   const queryClient = useQueryClient();
@@ -151,13 +161,17 @@ function SeerInvestigationContent({onCellListRender}: SeerInvestigationProps) {
 
   return (
     <NotebookStoreProvider store={store}>
-      <InvestigationEditor onCellListRender={onCellListRender} />
+      <InvestigationEditor
+        onCellListRender={onCellListRender}
+        onCellRender={onCellRender}
+      />
     </NotebookStoreProvider>
   );
 }
 
 const InvestigationEditor = observer(function InvestigationEditor({
   onCellListRender,
+  onCellRender,
 }: SeerInvestigationProps) {
   const store = useNotebookStore();
   const organization = useOrganization();
@@ -202,8 +216,7 @@ const InvestigationEditor = observer(function InvestigationEditor({
       modalProps => (
         <InvestigationSettingsModal
           {...modalProps}
-          detail={detail}
-          onSavePermissions={permissions => store.updateAccess(permissions)}
+          store={store}
           onArchive={() => {
             openConfirmModal({
               message: t('Archive this investigation? It will become read-only.'),
@@ -212,7 +225,6 @@ const InvestigationEditor = observer(function InvestigationEditor({
               onConfirm: () => store.archive(),
             });
           }}
-          onRestore={() => store.restoreInvestigation()}
         />
       ),
       {
@@ -294,11 +306,7 @@ const InvestigationEditor = observer(function InvestigationEditor({
               })
             }
           />
-          <InvestigationParameters
-            parameters={detail.parameters}
-            disabled={readOnly}
-            onSave={values => store.updateParameterValues(values)}
-          />
+          <InvestigationParameters store={store} />
         </FilterControls>
         <CompactSelect
           value={detail.filters.interval ?? '10m'}
@@ -392,6 +400,7 @@ const InvestigationEditor = observer(function InvestigationEditor({
                       disabled={readOnly}
                       collaborationDisabled={detail.status === 'archived'}
                       onInsertAfter={kind => store.insertCell(kind, index + 1)}
+                      onRender={onCellRender}
                       onDelete={() =>
                         openConfirmModal({
                           message: t('Delete this cell?'),
@@ -532,15 +541,11 @@ function InvestigationSettingsModal({
   Body,
   Footer,
   closeModal,
-  detail,
-  onSavePermissions,
+  store,
   onArchive,
-  onRestore,
 }: ModalRenderProps & {
-  detail: InvestigationDetail;
   onArchive: () => void;
-  onRestore: () => Promise<void>;
-  onSavePermissions: (permissions: InvestigationPermissions) => Promise<void>;
+  store: NotebookStore;
 }) {
   return (
     <Fragment>
@@ -548,12 +553,7 @@ function InvestigationSettingsModal({
         <Heading as="h4">{t('Investigation settings')}</Heading>
       </Header>
       <Body>
-        <InvestigationSettings
-          detail={detail}
-          onSavePermissions={onSavePermissions}
-          onArchive={onArchive}
-          onRestore={onRestore}
-        />
+        <InvestigationSettings store={store} onArchive={onArchive} />
       </Body>
       <Footer>
         <Button size="sm" onClick={closeModal}>
@@ -606,6 +606,7 @@ type SortableCellProps = {
   index: number;
   onDelete: () => void;
   onInsertAfter: (kind: InvestigationCellKind) => Promise<void>;
+  onRender?: (clientKey: string) => void;
 };
 
 type SortableCellState = ReturnType<typeof useSortable>;
@@ -647,8 +648,10 @@ function SortableCellContent({
   collaborationDisabled,
   onInsertAfter,
   onDelete,
+  onRender,
   sortable,
 }: SortableCellProps & SortableCellPresentation & {sortable: SortableCellState}) {
+  onRender?.(cell.clientKey);
   const draft = {
     title: cell.title,
     content: cell.content,
@@ -706,10 +709,6 @@ function SortableCellContent({
     void cell
       .flush()
       .catch(() => addErrorMessage(t('The cell change could not be saved.')));
-  };
-
-  const persistDisplay = (display: typeof cell.display) => {
-    cell.updateDisplay(display);
   };
 
   const runCell = async () => {
@@ -921,11 +920,7 @@ function SortableCellContent({
               size="sm"
               expanded={!draft.display.promptCollapsed}
               onExpandedChange={expanded =>
-                persistDisplay({
-                  ...draft.display,
-                  version: 1,
-                  promptCollapsed: !expanded,
-                })
+                cell.setPromptSectionCollapsed('prompt', !expanded)
               }
             >
               <Disclosure.Title
@@ -1087,11 +1082,7 @@ function SortableCellContent({
               size="sm"
               expanded={!draft.display.queryCollapsed}
               onExpandedChange={expanded =>
-                persistDisplay({
-                  ...draft.display,
-                  version: 1,
-                  queryCollapsed: !expanded,
-                })
+                cell.setPromptSectionCollapsed('query', !expanded)
               }
             >
               <Disclosure.Title
@@ -1171,7 +1162,8 @@ function areSortableCellPropsEqual(previous: SortableCellProps, next: SortableCe
     previous.cell === next.cell &&
     previous.index === next.index &&
     previous.disabled === next.disabled &&
-    previous.collaborationDisabled === next.collaborationDisabled
+    previous.collaborationDisabled === next.collaborationDisabled &&
+    previous.onRender === next.onRender
   );
 }
 

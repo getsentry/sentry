@@ -1,5 +1,5 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {observer} from 'mobx-react-lite';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Input} from '@sentry/scraps/input';
@@ -8,93 +8,35 @@ import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useProjects} from 'sentry/utils/useProjects';
-
-import type {InvestigationParameter} from './types';
+import type {
+  NotebookStore,
+  ParameterValidationError,
+} from 'sentry/views/seerNotebook/stores/notebookStore';
 
 type Props = {
-  disabled: boolean;
-  onSave: (values: Record<string, unknown>) => Promise<void>;
-  parameters: InvestigationParameter[];
+  store: NotebookStore;
 };
 
-export function InvestigationParameters({disabled, parameters, onSave}: Props) {
+export const InvestigationParameters = observer(function InvestigationParameters({
+  store,
+}: Props) {
   const {projects} = useProjects();
-  const initialValues = useMemo(
-    () =>
-      Object.fromEntries(
-        parameters.map(parameter => [
-          parameter.key,
-          parameter.savedValue ?? parameter.defaultValue,
-        ])
-      ),
-    [parameters]
-  );
-  const [values, setValues] = useState(initialValues);
-  const [saveError, setSaveError] = useState<string>();
-  const debouncedValues = useDebouncedValue(values, 600);
-  const lastServerValue = useRef(JSON.stringify(initialValues));
-  const onSaveRef = useRef(onSave);
-  const errors = useMemo(
-    () => getParameterErrors(parameters, values),
-    [parameters, values]
-  );
+  const {parameters, parameterValues: values, parameterErrors: errors} = store;
+  const disabled = store.isReadOnly;
   const projectOptions = projects.map(project => ({
     label: project.slug,
     value: project.id,
   }));
 
-  useEffect(() => {
-    onSaveRef.current = onSave;
-  }, [onSave]);
-
-  useEffect(() => {
-    const serialized = JSON.stringify(initialValues);
-    lastServerValue.current = serialized;
-    setValues(initialValues);
-  }, [initialValues]);
-
-  const saveValues = useCallback(
-    (nextValues: Record<string, unknown>) => {
-      const serialized = JSON.stringify(nextValues);
-      if (
-        disabled ||
-        serialized === lastServerValue.current ||
-        Object.keys(getParameterErrors(parameters, nextValues)).length > 0
-      ) {
-        return;
-      }
-
-      const previousServerValue = lastServerValue.current;
-      lastServerValue.current = serialized;
-      onSaveRef
-        .current(nextValues)
-        .then(() => setSaveError(undefined))
-        .catch(() => {
-          lastServerValue.current = previousServerValue;
-          setSaveError(t('Some parameter values could not be saved.'));
-        });
-    },
-    [disabled, parameters]
-  );
-
-  useEffect(() => {
-    if (disabled) {
-      return;
-    }
-    saveValues(debouncedValues);
-  }, [debouncedValues, disabled, saveValues]);
-
   if (parameters.length === 0) {
     return null;
   }
 
-  const update = (key: string, value: unknown) =>
-    setValues(current => ({...current, [key]: value}));
+  const update = (key: string, value: unknown) => store.editParameterValue(key, value);
 
   return (
-    <ParameterSection onBlur={() => saveValues(values)}>
+    <ParameterSection onBlur={() => void store.flushParameterValues()}>
       {parameters.map(parameter => {
         const value = values[parameter.key];
         const options = Array.isArray(parameter.constraints.options)
@@ -214,20 +156,20 @@ export function InvestigationParameters({disabled, parameters, onSave}: Props) {
             )}
             {errors[parameter.key] ? (
               <Text size="xs" variant="danger">
-                {errors[parameter.key]}
+                {parameterErrorMessage(errors[parameter.key])}
               </Text>
             ) : null}
           </ParameterControl>
         );
       })}
-      {saveError ? (
+      {store.parameterSaveState === 'unsaved' ? (
         <Text size="sm" variant="danger">
-          {saveError}
+          {t('Some parameter values could not be saved.')}
         </Text>
       ) : null}
     </ParameterSection>
   );
-}
+});
 
 function asRange(value: unknown): {end?: string; start?: string} {
   return typeof value === 'object' && value !== null ? value : {};
@@ -250,99 +192,39 @@ function primitiveString(value: unknown): string {
   return typeof value === 'string' || typeof value === 'number' ? String(value) : '';
 }
 
-function getParameterErrors(
-  parameters: InvestigationParameter[],
-  values: Record<string, unknown>
-): Record<string, string> {
-  return Object.fromEntries(
-    parameters.flatMap(parameter => {
-      const error = validateParameter(parameter, values[parameter.key]);
-      return error ? [[parameter.key, error]] : [];
-    })
-  );
-}
-
-function validateParameter(
-  parameter: InvestigationParameter,
-  value: unknown
-): string | undefined {
-  const empty =
-    value === null ||
-    value === undefined ||
-    value === '' ||
-    (Array.isArray(value) && value.length === 0);
-  if (empty) {
-    return parameter.required ? t('This parameter is required.') : undefined;
-  }
-
-  const min = numericConstraint(parameter.constraints.min);
-  const max = numericConstraint(parameter.constraints.max);
-  if (parameter.type === 'string') {
-    const maxLength = numericConstraint(parameter.constraints.maxLength);
-    if (typeof value !== 'string') {
+function parameterErrorMessage(error?: ParameterValidationError): string {
+  switch (error?.code) {
+    case 'required':
+      return t('This parameter is required.');
+    case 'text':
       return t('Enter text.');
-    }
-    if (maxLength !== undefined && value.length > maxLength) {
-      return t('Use no more than %s characters.', maxLength);
-    }
-  }
-  if (parameter.type === 'number' || parameter.type === 'duration') {
-    if (typeof value !== 'number' || !Number.isFinite(value)) {
+    case 'max_length':
+      return t('Use no more than %s characters.', error.limit);
+    case 'number':
       return t('Enter a number.');
-    }
-    if (parameter.type === 'duration' && !Number.isInteger(value)) {
+    case 'integer_seconds':
       return t('Enter a whole number of seconds.');
-    }
-    if (min !== undefined && value < min) {
-      return t('Enter a value of at least %s.', min);
-    }
-    if (max !== undefined && value > max) {
-      return t('Enter a value of at most %s.', max);
-    }
-  }
-  if (parameter.type === 'enum') {
-    const options = Array.isArray(parameter.constraints.options)
-      ? parameter.constraints.options
-      : [];
-    if (!options.includes(value)) {
+    case 'min':
+      return t('Enter a value of at least %s.', error.limit);
+    case 'max':
+      return t('Enter a value of at most %s.', error.limit);
+    case 'enum':
       return t('Choose one of the available options.');
-    }
-  }
-  if (parameter.type === 'datetime_range') {
-    const range = asRange(value);
-    const start = range.start ? new Date(range.start) : undefined;
-    const end = range.end ? new Date(range.end) : undefined;
-    if (!start || !end || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    case 'date_range':
       return t('Choose a start and end time.');
-    }
-    if (start >= end) {
+    case 'date_order':
       return t('The start must be before the end.');
-    }
-    const maxDays = numericConstraint(parameter.constraints.maxDays);
-    if (maxDays !== undefined && end.getTime() - start.getTime() > maxDays * 86_400_000) {
-      return t('The range cannot exceed %s days.', maxDays);
-    }
-  }
-  if (parameter.type === 'environment_list' && Array.isArray(value)) {
-    const maxItems = numericConstraint(parameter.constraints.maxItems);
-    if (new Set(value).size !== value.length) {
+    case 'max_days':
+      return t('The range cannot exceed %s days.', error.limit);
+    case 'duplicate_environments':
       return t('Environment names must be unique.');
-    }
-    if (maxItems !== undefined && value.length > maxItems) {
-      return t('Choose no more than %s environments.', maxItems);
-    }
-  }
-  if (parameter.type === 'project_list' && Array.isArray(value)) {
-    if (new Set(value).size !== value.length) {
+    case 'max_environments':
+      return t('Choose no more than %s environments.', error.limit);
+    case 'duplicate_projects':
       return t('Projects must be unique.');
-    }
+    default:
+      return '';
   }
-
-  return undefined;
-}
-
-function numericConstraint(value: unknown): number | undefined {
-  return typeof value === 'number' ? value : undefined;
 }
 
 const ParameterSection = styled(Flex)`

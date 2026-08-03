@@ -6,6 +6,7 @@ import type {
   InvestigationDisplay,
   InvestigationFilters,
   InvestigationPermissions,
+  InvestigationReaction,
   InvestigationReactionName,
   InvestigationVisualization,
 } from 'sentry/views/seerNotebook/types';
@@ -159,6 +160,23 @@ export type NotebookRemoteEvent =
   | {
       cellId: string;
       eventId: string;
+      kind: 'cell.reactions.updated';
+      payload: InvestigationReaction[];
+      sequence: number;
+      clientMutationId?: string;
+    }
+  | {
+      cellId: string;
+      commentId: string;
+      eventId: string;
+      kind: 'comment.reactions.updated';
+      payload: InvestigationReaction[];
+      sequence: number;
+      clientMutationId?: string;
+    }
+  | {
+      cellId: string;
+      eventId: string;
       kind: 'cell.deleted';
       sequence: number;
       clientMutationId?: string;
@@ -210,8 +228,11 @@ export type NotebookStoreSnapshot = {
   filters: InvestigationFilters;
   investigationId: string;
   isSaving: boolean;
+  lastRemoteEventSequence: number;
   loadState: 'idle' | 'loading' | 'ready' | 'error';
   organizationSlug: string;
+  parameterSaveState: string;
+  parameterValues: Record<string, unknown>;
   projectIds: number[];
   title: string;
   version: number;

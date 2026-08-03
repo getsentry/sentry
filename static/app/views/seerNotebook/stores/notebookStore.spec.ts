@@ -253,4 +253,175 @@ describe('NotebookStore', () => {
 
     expect(store.title).toBe('Newer');
   });
+
+  it('deduplicates remote events, ignores older sequences, and keeps cell identity', async () => {
+    const detail = InvestigationDetailFixture();
+    const {store} = makeStore(detail);
+    await store.load();
+    const cell = store.cellsInOrder[0]!;
+    const remote = {...detail.cells[0]!, title: 'Remote title', version: 2};
+
+    store.applyRemoteEvent({
+      cellId: remote.id,
+      eventId: 'event-2',
+      kind: 'cell.upserted',
+      payload: remote,
+      sequence: 2,
+    });
+    store.applyRemoteEvent({
+      cellId: remote.id,
+      eventId: 'event-2',
+      kind: 'cell.upserted',
+      payload: {...remote, title: 'Duplicate'},
+      sequence: 2,
+    });
+    store.applyRemoteEvent({
+      cellId: remote.id,
+      eventId: 'event-1',
+      kind: 'cell.upserted',
+      payload: {...remote, title: 'Older'},
+      sequence: 1,
+    });
+
+    expect(store.cellsInOrder[0]).toBe(cell);
+    expect(cell.title).toBe('Remote title');
+    expect(store.lastRemoteEventSequence).toBe(2);
+  });
+
+  it('preserves dirty drafts and enters conflict for an overlapping remote edit', async () => {
+    const detail = InvestigationDetailFixture();
+    const {store} = makeStore(detail);
+    await store.load();
+    const cell = store.cellsInOrder[0]!;
+    cell.editContent('Unsaved local Markdown');
+
+    store.applyRemoteEvent({
+      cellId: cell.serverId!,
+      eventId: 'remote-edit',
+      kind: 'cell.upserted',
+      payload: {
+        ...cell.toInvestigationCell(),
+        content: 'Remote Markdown',
+        version: cell.version + 1,
+      },
+      sequence: 1,
+    });
+
+    expect(cell.content).toBe('Unsaved local Markdown');
+    expect(store.conflict).toMatchObject({operationKind: 'remote_conflict'});
+    store.dispose();
+  });
+
+  it('applies remote insertion, order, reactions, and deletion through one boundary', async () => {
+    const detail = InvestigationDetailFixture();
+    const {store} = makeStore(detail);
+    await store.load();
+    const original = store.cellsInOrder[0]!;
+    const inserted = {...detail.cells[0]!, id: 'remote-cell', position: 1};
+
+    store.applyRemoteEvent({
+      cellId: inserted.id,
+      eventId: 'insert',
+      kind: 'cell.upserted',
+      payload: inserted,
+      sequence: 1,
+    });
+    store.applyRemoteEvent({
+      cellIds: [inserted.id, original.serverId!],
+      eventId: 'order',
+      kind: 'cells.reordered',
+      sequence: 2,
+    });
+    store.applyRemoteEvent({
+      cellId: inserted.id,
+      eventId: 'reaction',
+      kind: 'cell.reactions.updated',
+      payload: [{reaction: 'heart', count: 2, reactedByMe: true}],
+      sequence: 3,
+    });
+
+    expect(store.cellsInOrder.map(cell => cell.serverId)).toEqual([
+      inserted.id,
+      original.serverId,
+    ]);
+    expect(store.cellsInOrder[0]!.reactions).toHaveLength(1);
+
+    store.applyRemoteEvent({
+      cellId: inserted.id,
+      eventId: 'delete',
+      kind: 'cell.deleted',
+      sequence: 4,
+    });
+    expect(store.findCellByServerId(inserted.id)).toBeUndefined();
+  });
+
+  it('uses a local mutation echo to attach a server id without replacing a temporary store', async () => {
+    const detail = InvestigationDetailFixture();
+    const created = deferred<(typeof detail.cells)[number]>();
+    const {store} = makeStore(detail, {
+      createCell: jest.fn().mockReturnValue(created.promise),
+    });
+    await store.load();
+
+    const inserting = store.insertCell('text', detail.cells.length);
+    await Promise.resolve();
+    const temporary = store.cellsInOrder.at(-1)!;
+    const creationOperation = [...store.pendingOperations.values()].find(
+      operation => operation.kind === 'cell.create'
+    )!;
+    const serverCell = {
+      ...detail.cells[0]!,
+      id: 'created-cell',
+      position: detail.cells.length,
+    };
+
+    store.applyRemoteEvent({
+      cellId: serverCell.id,
+      clientMutationId: creationOperation.id,
+      eventId: 'create-echo',
+      kind: 'cell.upserted',
+      payload: serverCell,
+      sequence: 1,
+    });
+
+    expect(store.findCellByServerId(serverCell.id)).toBe(temporary);
+    created.resolve(serverCell);
+    await inserting;
+    expect(store.findCellByServerId(serverCell.id)).toBe(temporary);
+  });
+
+  it('validates and retains failed parameter drafts in the store', async () => {
+    jest.useFakeTimers();
+    const parameter = {
+      constraints: {min: 1},
+      defaultValue: 1,
+      description: '',
+      id: 'parameter-1',
+      key: 'threshold',
+      label: 'Threshold',
+      position: 0,
+      required: true,
+      savedValue: 1,
+      source: 'template' as const,
+      type: 'number' as const,
+      version: 1,
+    };
+    const detail = InvestigationDetailFixture({parameters: [parameter]});
+    const updateParameters = jest.fn().mockRejectedValue(new Error('offline'));
+    const {store} = makeStore(detail, {updateParameters});
+    await store.load();
+
+    store.editParameterValue('threshold', null);
+    expect(store.parameterErrors.threshold?.code).toBe('required');
+    await jest.advanceTimersByTimeAsync(600);
+    expect(updateParameters).not.toHaveBeenCalled();
+
+    store.editParameterValue('threshold', 5);
+    await jest.advanceTimersByTimeAsync(600);
+    expect(updateParameters).toHaveBeenCalledWith(detail.version, {threshold: 5});
+    expect(store.parameterValues.threshold).toBe(5);
+    expect(store.parameterSaveState).toBe('unsaved');
+    store.dispose();
+    jest.useRealTimers();
+  });
 });

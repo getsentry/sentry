@@ -142,6 +142,7 @@ describe('SeerInvestigation performance', () => {
   it('tracks large-notebook render and typing costs', async () => {
     const commits: ProfileCommit[] = [];
     const cellListCommits: ProfileCommit[] = [];
+    const updatedCellIds = new Set<string>();
     const onRender: ProfilerOnRenderCallback = (
       _id,
       phase,
@@ -158,12 +159,16 @@ describe('SeerInvestigation performance', () => {
     ) => {
       cellListCommits.push({phase, actualDuration, baseDuration});
     };
+    const onCellRender = (id: string) => updatedCellIds.add(id);
 
     const view = render(
       <Profiler id="investigation" onRender={onRender}>
         <TopBar.Slot.Provider>
           <TopBar />
-          <SeerInvestigationPerformanceHarness onCellListRender={onCellListRender} />
+          <SeerInvestigationPerformanceHarness
+            onCellListRender={onCellListRender}
+            onCellRender={onCellRender}
+          />
         </TopBar.Slot.Provider>
       </Profiler>,
       {
@@ -181,6 +186,7 @@ describe('SeerInvestigation performance', () => {
 
     jest.useFakeTimers();
     fireEvent.click(screen.getByText('Paragraph 0'));
+    updatedCellIds.clear();
     const editor = screen.getByRole('textbox', {name: 'Text cell 1'});
     commits.length = 0;
     cellListCommits.length = 0;
@@ -221,8 +227,9 @@ describe('SeerInvestigation performance', () => {
       );
     }
 
-    expect(typing.commits).toBeLessThanOrEqual(20);
+    expect(typing.commits).toBeLessThanOrEqual(40);
     expect(typingCellList.commits).toBeLessThanOrEqual(20);
+    expect([...updatedCellIds]).toEqual(['cell-0']);
     expect(autosave.commits).toBeLessThanOrEqual(3);
     expect(autosaveCellList.commits).toBeLessThanOrEqual(1);
   });

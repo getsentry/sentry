@@ -1,3 +1,4 @@
+import isEqual from 'lodash/isEqual';
 import {action, computed, makeObservable, observable, runInAction} from 'mobx';
 
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -6,6 +7,7 @@ import type {
   InvestigationTransport,
   NotebookConflict,
   NotebookOperation,
+  NotebookRemoteEvent,
   NotebookStoreSnapshot,
   NotebookTimers,
 } from 'sentry/views/seerNotebook/stores/types';
@@ -31,6 +33,27 @@ type NotebookStoreOptions = {
   transport: InvestigationTransport;
   timers?: NotebookTimers;
 };
+
+export type ParameterValidationError = {
+  code:
+    | 'required'
+    | 'text'
+    | 'max_length'
+    | 'number'
+    | 'integer_seconds'
+    | 'min'
+    | 'max'
+    | 'enum'
+    | 'date_range'
+    | 'date_order'
+    | 'max_days'
+    | 'duplicate_environments'
+    | 'max_environments'
+    | 'duplicate_projects';
+  limit?: number;
+};
+
+type ParameterSaveState = 'idle' | 'scheduled' | 'saving' | 'unsaved' | 'invalid';
 
 export class NotebookStore {
   readonly investigationId: string;
@@ -58,6 +81,10 @@ export class NotebookStore {
   filters: InvestigationFilters = {};
   projectIds: number[] = [];
   parameters: InvestigationParameter[] = [];
+  parameterValues: Record<string, unknown> = {};
+  parameterErrors: Record<string, ParameterValidationError> = {};
+  parameterSaveState: ParameterSaveState = 'idle';
+  isUpdatingAccess = false;
   permissions: InvestigationPermissions = {
     canEdit: false,
     canManage: false,
@@ -69,6 +96,7 @@ export class NotebookStore {
   cells = new Map<string, CellStore>();
   pendingOperations = new Map<string, NotebookOperation>();
   titleDirty = false;
+  lastRemoteEventSequence = -1;
 
   private readonly idGenerator: () => string;
   private operationQueue: Promise<unknown> = Promise.resolve();
@@ -78,6 +106,10 @@ export class NotebookStore {
   private refreshRequestOrdinal = 0;
   private lastAppliedRefreshOrdinal = 0;
   private disposed = false;
+  private appliedRemoteEventIds = new Set<string>();
+  private confirmedParameterValues: Record<string, unknown> = {};
+  private parameterSaveTimer: ReturnType<typeof setTimeout> | null = null;
+  private parameterSavePromise: Promise<void> | null = null;
 
   constructor(options: NotebookStoreOptions) {
     this.investigationId = options.investigationId;
@@ -107,12 +139,17 @@ export class NotebookStore {
       filters: observable.ref,
       projectIds: observable.shallow,
       parameters: observable.shallow,
+      parameterValues: observable.ref,
+      parameterErrors: observable.ref,
+      parameterSaveState: observable,
+      isUpdatingAccess: observable,
       permissions: observable.ref,
       version: observable,
       cellKeys: observable.shallow,
       cells: observable.shallow,
       pendingOperations: observable.shallow,
       titleDirty: observable,
+      lastRemoteEventSequence: observable,
       cellsInOrder: computed,
       detail: computed,
       isReadOnly: computed,
@@ -122,6 +159,7 @@ export class NotebookStore {
       load: action,
       retryLoad: action,
       applyRemoteSnapshot: action,
+      applyRemoteEvent: action,
       dispose: action,
       reloadLatest: action,
       retryChange: action,
@@ -133,6 +171,8 @@ export class NotebookStore {
       commitTitle: action,
       toggleFavorite: action,
       saveMetadata: action,
+      editParameterValue: action,
+      flushParameterValues: action,
       updateParameterValues: action,
       updateAccess: action,
       archive: action,
@@ -255,9 +295,13 @@ export class NotebookStore {
     this.createdBy = detail.createdBy;
     this.isFavorited = detail.isFavorited;
     this.cellCount = detail.cellCount;
-    this.filters = detail.filters;
-    this.projectIds = detail.projectIds;
-    this.parameters = detail.parameters;
+    if (!this.findPendingOperation(['notebook.filters'])) {
+      this.filters = detail.filters;
+    }
+    if (!this.findPendingOperation(['notebook.projectIds'])) {
+      this.projectIds = detail.projectIds;
+    }
+    this.applyRemoteParameters(detail.parameters);
     this.permissions = detail.permissions;
     this.version = Math.max(this.version, detail.version);
 
@@ -266,6 +310,13 @@ export class NotebookStore {
     for (const incoming of detail.cells) {
       const existing = this.findCellByServerId(incoming.id);
       if (existing) {
+        if (
+          existing.isDeleted &&
+          this.findPendingOperation([`${existing.clientKey}.deleted`])
+        ) {
+          nextKeys.push(existing.clientKey);
+          continue;
+        }
         existing.applyServerSnapshot(incoming);
         nextKeys.push(existing.clientKey);
       } else {
@@ -277,9 +328,20 @@ export class NotebookStore {
 
     for (const key of this.cellKeys) {
       const cell = this.cells.get(key);
-      if (!cell || cell.isDeleted || cell.serverId === null) {
+      if (!cell?.serverId) {
         if (cell && !nextKeys.includes(key)) {
           nextKeys.push(key);
+        }
+        continue;
+      }
+      if (cell.isDeleted) {
+        if (this.findPendingOperation([`${cell.clientKey}.deleted`])) {
+          if (!nextKeys.includes(key)) {
+            nextKeys.push(key);
+          }
+        } else {
+          cell.dispose();
+          this.cells.delete(key);
         }
         continue;
       }
@@ -290,6 +352,158 @@ export class NotebookStore {
     }
     this.cellKeys = nextKeys;
     this.syncExecutionPolling();
+  }
+
+  applyRemoteEvent(event: NotebookRemoteEvent) {
+    if (
+      this.disposed ||
+      this.appliedRemoteEventIds.has(event.eventId) ||
+      event.sequence < this.lastRemoteEventSequence
+    ) {
+      return;
+    }
+    this.appliedRemoteEventIds.add(event.eventId);
+    this.lastRemoteEventSequence = Math.max(this.lastRemoteEventSequence, event.sequence);
+    const acknowledgedOperation = event.clientMutationId
+      ? (this.pendingOperations.get(event.clientMutationId) ?? null)
+      : null;
+    if (event.clientMutationId) {
+      this.pendingOperations.delete(event.clientMutationId);
+    }
+
+    if (event.kind === 'snapshot') {
+      this.applyRemoteSnapshot(event.payload);
+      return;
+    }
+    if (event.kind === 'notebook.updated') {
+      const operation = this.findPendingOperation([
+        'notebook.filters',
+        'notebook.parameters',
+        'notebook.permissions',
+        'notebook.projectIds',
+        'notebook.status',
+        'notebook.title',
+      ]);
+      if (operation && event.clientMutationId !== operation.id) {
+        this.enterRemoteConflict(operation, event.eventId);
+      }
+      if (event.payload.title !== undefined && !this.titleDirty) {
+        this.title = event.payload.title;
+        this.titleDraft = event.payload.title;
+      }
+      if (
+        event.payload.filters !== undefined &&
+        !this.findPendingOperation(['notebook.filters'])
+      ) {
+        this.filters = event.payload.filters;
+      }
+      if (
+        event.payload.projectIds !== undefined &&
+        !this.findPendingOperation(['notebook.projectIds'])
+      ) {
+        this.projectIds = event.payload.projectIds;
+      }
+      if (event.payload.parameters !== undefined) {
+        this.applyRemoteParameters(event.payload.parameters);
+      }
+      if (
+        event.payload.permissions !== undefined &&
+        !this.findPendingOperation(['notebook.permissions'])
+      ) {
+        this.permissions = event.payload.permissions;
+      }
+      if (
+        event.payload.status !== undefined &&
+        !this.findPendingOperation(['notebook.status'])
+      ) {
+        this.status = event.payload.status;
+      }
+      this.version = Math.max(this.version, event.payload.version);
+      return;
+    }
+
+    if (event.kind === 'cells.reordered') {
+      const operation = this.findPendingOperation(['notebook.cellOrder']);
+      if (operation && event.clientMutationId !== operation.id) {
+        this.enterRemoteConflict(operation, event.eventId);
+        return;
+      }
+      const ordered = event.cellIds.flatMap(id => {
+        const cell = this.findCellByServerId(id);
+        return cell ? [cell.clientKey] : [];
+      });
+      const unmentioned = this.cellKeys.filter(key => !ordered.includes(key));
+      this.cellKeys = [...ordered, ...unmentioned];
+      this.updateCellPositions();
+      return;
+    }
+
+    let cell = this.findCellByServerId(event.cellId);
+    if (event.kind === 'cell.upserted') {
+      if (!cell && acknowledgedOperation?.kind === 'cell.create') {
+        const clientKey = [...acknowledgedOperation.affectedFields]
+          .find(field => field.endsWith('.created'))
+          ?.slice(0, -'.created'.length);
+        cell = clientKey ? this.cells.get(clientKey) : undefined;
+        cell?.attachServerId(event.cellId);
+      }
+      if (cell?.isDeleted) {
+        return;
+      }
+      const conflicts = cell?.getConflictingDirtyFields(event.payload) ?? [];
+      if (conflicts.length) {
+        const operation = this.findPendingOperation(
+          conflicts.map(field => `${cell!.clientKey}.${field}`)
+        );
+        this.enterRemoteConflict(operation, event.eventId);
+      }
+      if (cell) {
+        if (acknowledgedOperation?.kind === 'cell.save') {
+          cell.acknowledgeRemoteSnapshot(event.payload);
+        } else {
+          cell.applyServerSnapshot(event.payload);
+        }
+      } else {
+        const inserted = new CellStore(this, event.payload);
+        this.cells.set(inserted.clientKey, inserted);
+        this.cellKeys = [...this.cellKeys, inserted.clientKey];
+      }
+      return;
+    }
+    if (!cell) {
+      return;
+    }
+    if (event.kind === 'cell.deleted') {
+      const operation = this.findPendingOperation([`${cell.clientKey}.`]);
+      if (cell.isDirty || operation) {
+        this.enterRemoteConflict(operation, event.eventId);
+        return;
+      }
+      cell.dispose();
+      this.cells.delete(cell.clientKey);
+      this.cellKeys = this.cellKeys.filter(key => key !== cell.clientKey);
+      return;
+    }
+    if (event.kind === 'execution.updated') {
+      cell.applyExecutionUpdate(event.payload);
+      this.syncExecutionPolling();
+      return;
+    }
+    if (event.kind === 'comment.upserted') {
+      cell.applyRemoteComment(event.comment);
+      return;
+    }
+    if (event.kind === 'comment.deleted') {
+      cell.removeRemoteComment(event.commentId);
+      return;
+    }
+    if (event.kind === 'cell.reactions.updated') {
+      cell.applyRemoteReactions(event.payload);
+      return;
+    }
+    if (event.kind === 'comment.reactions.updated') {
+      cell.applyRemoteCommentReactions(event.commentId, event.payload);
+    }
   }
 
   enqueueOperation<T>(operation: Omit<NotebookOperation<T>, 'id' | 'state'>): Promise<T> {
@@ -464,7 +678,11 @@ export class NotebookStore {
         }),
       failurePolicy: 'rollback',
       kind: 'notebook.scope',
-      onCommit: detail => this.applyRemoteSnapshot(detail),
+      onCommit: detail => {
+        this.filters = detail.filters;
+        this.projectIds = detail.projectIds;
+        this.applyRemoteSnapshot(detail);
+      },
       onRollback: () => {
         if (this.filters === nextFilters) {
           this.filters = previousFilters;
@@ -476,38 +694,110 @@ export class NotebookStore {
     }).then(() => {});
   }
 
-  updateParameterValues(values: Record<string, unknown>): Promise<void> {
-    const previous = this.parameters;
-    const next = this.parameters.map(parameter =>
-      Object.hasOwn(values, parameter.key)
-        ? {...parameter, savedValue: values[parameter.key]}
-        : parameter
-    );
-    this.parameters = next;
+  editParameterValue(key: string, value: unknown) {
+    this.parameterValues = {...this.parameterValues, [key]: value};
+    this.parameterErrors = validateParameters(this.parameters, this.parameterValues);
+    this.parameterSaveState = Object.keys(this.parameterErrors).length
+      ? 'invalid'
+      : 'scheduled';
     for (const cell of this.cellsInOrder) {
       cell.markStale();
     }
-    return this.enqueueOperation({
+    if (this.parameterSaveTimer) {
+      this.timers.clearTimeout(this.parameterSaveTimer);
+    }
+    if (this.parameterSaveState === 'scheduled') {
+      this.parameterSaveTimer = this.timers.setTimeout(() => {
+        this.parameterSaveTimer = null;
+        void this.flushParameterValues().catch(() => {});
+      }, 600);
+    }
+  }
+
+  async flushParameterValues(): Promise<void> {
+    if (this.parameterSaveTimer) {
+      this.timers.clearTimeout(this.parameterSaveTimer);
+      this.parameterSaveTimer = null;
+    }
+    if (
+      this.parameterSaveState === 'invalid' ||
+      isEqual(this.parameterValues, this.confirmedParameterValues)
+    ) {
+      if (this.parameterSaveState !== 'invalid') {
+        this.parameterSaveState = 'idle';
+      }
+      return;
+    }
+    if (this.parameterSavePromise) {
+      await this.parameterSavePromise;
+      if (!isEqual(this.parameterValues, this.confirmedParameterValues)) {
+        await this.flushParameterValues();
+      }
+      return;
+    }
+
+    const sentValues = {...this.parameterValues};
+    this.parameterSaveState = 'saving';
+    const request = this.enqueueOperation({
       affectedFields: new Set(['notebook.parameters']),
       execute: investigationVersion =>
-        this.transport.updateParameters(investigationVersion, values),
+        this.transport.updateParameters(investigationVersion, sentValues),
       failurePolicy: 'retain-draft',
       kind: 'notebook.parameters',
-      onCommit: detail => this.applyRemoteSnapshot(detail),
-      onRollback: () => {
-        if (this.parameters === next) {
-          this.parameters = previous;
+      onCommit: detail => {
+        this.parameters = detail.parameters;
+        this.confirmedParameterValues = parameterValues(detail.parameters);
+        this.version = Math.max(this.version, detail.version);
+        if (isEqual(this.parameterValues, sentValues)) {
+          this.parameterValues = this.confirmedParameterValues;
+          this.parameterErrors = validateParameters(
+            this.parameters,
+            this.parameterValues
+          );
+          this.parameterSaveState = 'idle';
+        } else {
+          this.parameterSaveState = 'scheduled';
         }
       },
     }).then(() => {});
+    this.parameterSavePromise = request;
+    try {
+      await request;
+    } catch (error) {
+      runInAction(() => {
+        this.parameterSaveState = 'unsaved';
+      });
+      throw error;
+    } finally {
+      runInAction(() => {
+        this.parameterSavePromise = null;
+      });
+    }
+    if (!isEqual(this.parameterValues, this.confirmedParameterValues)) {
+      runInAction(() => {
+        this.parameterSaveState = 'scheduled';
+      });
+      await this.flushParameterValues();
+    }
+  }
+
+  updateParameterValues(values: Record<string, unknown>): Promise<void> {
+    for (const [key, value] of Object.entries(values)) {
+      this.editParameterValue(key, value);
+    }
+    return this.flushParameterValues();
   }
 
   updateAccess(
     permissions: Pick<InvestigationPermissions, 'isEditableByEveryone' | 'teamIds'>
   ): Promise<void> {
+    if (this.isUpdatingAccess) {
+      return Promise.resolve();
+    }
     const previous = this.permissions;
     const next = {...this.permissions, ...permissions};
     this.permissions = next;
+    this.isUpdatingAccess = true;
     return this.enqueueOperation({
       affectedFields: new Set(['notebook.permissions']),
       execute: investigationVersion =>
@@ -523,7 +813,13 @@ export class NotebookStore {
           this.permissions = previous;
         }
       },
-    }).then(() => {});
+    })
+      .then(() => {})
+      .finally(() => {
+        runInAction(() => {
+          this.isUpdatingAccess = false;
+        });
+      });
   }
 
   archive(): Promise<void> {
@@ -602,7 +898,7 @@ export class NotebookStore {
     this.updateCellPositions();
 
     const creation = this.enqueueOperation({
-      affectedFields: new Set([`cell.${clientKey}`]),
+      affectedFields: new Set([`${clientKey}.created`]),
       execute: investigationVersion =>
         this.transport.createCell({
           investigationVersion,
@@ -650,7 +946,7 @@ export class NotebookStore {
     this.cellKeys = this.cellKeys.filter(key => key !== clientKey);
     this.updateCellPositions();
     return this.enqueueOperation({
-      affectedFields: new Set([`cell.${clientKey}`]),
+      affectedFields: new Set([`${clientKey}.deleted`]),
       execute: investigationVersion =>
         this.transport.deleteCell(serverId, {investigationVersion, version}),
       failurePolicy: 'rollback',
@@ -726,6 +1022,10 @@ export class NotebookStore {
 
   dispose() {
     this.disposed = true;
+    if (this.parameterSaveTimer) {
+      this.timers.clearTimeout(this.parameterSaveTimer);
+      this.parameterSaveTimer = null;
+    }
     if (this.executionPollTimer) {
       this.timers.clearInterval(this.executionPollTimer);
       this.executionPollTimer = null;
@@ -733,6 +1033,46 @@ export class NotebookStore {
     for (const cell of this.cells.values()) {
       cell.dispose();
     }
+    this.appliedRemoteEventIds.clear();
+  }
+
+  private applyRemoteParameters(parameters: InvestigationParameter[]) {
+    const incomingValues = parameterValues(parameters);
+    this.parameters = parameters;
+    this.confirmedParameterValues = incomingValues;
+    if (this.parameterSaveState === 'idle') {
+      this.parameterValues = incomingValues;
+    }
+    this.parameterErrors = validateParameters(this.parameters, this.parameterValues);
+    if (Object.keys(this.parameterErrors).length) {
+      this.parameterSaveState = 'invalid';
+    }
+  }
+
+  private findPendingOperation(fields: string[]): NotebookOperation | null {
+    return (
+      [...this.pendingOperations.values()].find(operation =>
+        [...operation.affectedFields].some(affected =>
+          fields.some(
+            field =>
+              affected === field ||
+              affected.startsWith(field) ||
+              field.startsWith(affected)
+          )
+        )
+      ) ?? null
+    );
+  }
+
+  private enterRemoteConflict(operation: NotebookOperation | null, eventId: string) {
+    if (operation) {
+      operation.state = 'conflicted';
+      this.conflictedOperation = operation;
+    }
+    this.conflict = {
+      operationId: operation?.id ?? eventId,
+      operationKind: operation?.kind ?? 'remote_conflict',
+    };
   }
 
   private syncExecutionPolling() {
@@ -756,6 +1096,9 @@ export class NotebookStore {
       investigationId: this.investigationId,
       organizationSlug: this.organizationSlug,
       loadState: this.loadState,
+      lastRemoteEventSequence: this.lastRemoteEventSequence,
+      parameterValues: {...this.parameterValues},
+      parameterSaveState: this.parameterSaveState,
       title: this.title,
       version: this.version,
       filters: this.filters,
@@ -822,6 +1165,20 @@ export class NotebookStore {
       });
       return result;
     } catch (error) {
+      let reconciliation: InvestigationDetail | null = null;
+      const isAmbiguousFailure =
+        error instanceof RequestError &&
+        (error.status === undefined || error.status === 0 || error.status >= 500);
+      if (isAmbiguousFailure) {
+        runInAction(() => {
+          this.mutationError = 'reconciling';
+        });
+        try {
+          reconciliation = await this.transport.loadDetail();
+        } catch {
+          reconciliation = null;
+        }
+      }
       runInAction(() => {
         if (error instanceof RequestError && error.status === 409) {
           operation.state = 'conflicted';
@@ -834,14 +1191,125 @@ export class NotebookStore {
         }
 
         operation.state = 'failed';
+        this.pendingOperations.delete(operation.id);
+        if (reconciliation) {
+          this.applyRemoteSnapshot(reconciliation);
+        }
         this.mutationError =
           operation.failurePolicy === 'retain-draft' ? 'unsaved' : 'mutation_failed';
-        if (operation.failurePolicy === 'rollback') {
+        if (operation.failurePolicy === 'rollback' && !reconciliation) {
           operation.onRollback?.();
         }
-        this.pendingOperations.delete(operation.id);
       });
       throw error;
     }
   }
+}
+
+function parameterValues(parameters: InvestigationParameter[]): Record<string, unknown> {
+  return Object.fromEntries(
+    parameters.map(parameter => [
+      parameter.key,
+      parameter.savedValue ?? parameter.defaultValue,
+    ])
+  );
+}
+
+function validateParameters(
+  parameters: InvestigationParameter[],
+  values: Record<string, unknown>
+): Record<string, ParameterValidationError> {
+  return Object.fromEntries(
+    parameters.flatMap(parameter => {
+      const error = validateParameter(parameter, values[parameter.key]);
+      return error ? [[parameter.key, error]] : [];
+    })
+  );
+}
+
+function validateParameter(
+  parameter: InvestigationParameter,
+  value: unknown
+): ParameterValidationError | null {
+  const empty =
+    value === null ||
+    value === undefined ||
+    value === '' ||
+    (Array.isArray(value) && value.length === 0);
+  if (empty) {
+    return parameter.required ? {code: 'required'} : null;
+  }
+
+  const min = numericConstraint(parameter.constraints.min);
+  const max = numericConstraint(parameter.constraints.max);
+  if (parameter.type === 'string') {
+    const maxLength = numericConstraint(parameter.constraints.maxLength);
+    if (typeof value !== 'string') {
+      return {code: 'text'};
+    }
+    if (maxLength !== undefined && value.length > maxLength) {
+      return {code: 'max_length', limit: maxLength};
+    }
+  }
+  if (parameter.type === 'number' || parameter.type === 'duration') {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      return {code: 'number'};
+    }
+    if (parameter.type === 'duration' && !Number.isInteger(value)) {
+      return {code: 'integer_seconds'};
+    }
+    if (min !== undefined && value < min) {
+      return {code: 'min', limit: min};
+    }
+    if (max !== undefined && value > max) {
+      return {code: 'max', limit: max};
+    }
+  }
+  if (
+    parameter.type === 'enum' &&
+    (!Array.isArray(parameter.constraints.options) ||
+      !parameter.constraints.options.includes(value))
+  ) {
+    return {code: 'enum'};
+  }
+  if (parameter.type === 'datetime_range') {
+    const range = asDateRange(value);
+    const start = range.start ? new Date(range.start) : null;
+    const end = range.end ? new Date(range.end) : null;
+    if (!start || !end || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      return {code: 'date_range'};
+    }
+    if (start >= end) {
+      return {code: 'date_order'};
+    }
+    const maxDays = numericConstraint(parameter.constraints.maxDays);
+    if (maxDays !== undefined && end.getTime() - start.getTime() > maxDays * 86_400_000) {
+      return {code: 'max_days', limit: maxDays};
+    }
+  }
+  if (parameter.type === 'environment_list' && Array.isArray(value)) {
+    if (new Set(value).size !== value.length) {
+      return {code: 'duplicate_environments'};
+    }
+    const maxItems = numericConstraint(parameter.constraints.maxItems);
+    if (maxItems !== undefined && value.length > maxItems) {
+      return {code: 'max_environments', limit: maxItems};
+    }
+  }
+  if (
+    parameter.type === 'project_list' &&
+    Array.isArray(value) &&
+    new Set(value).size !== value.length
+  ) {
+    return {code: 'duplicate_projects'};
+  }
+  return null;
+}
+
+function asDateRange(value: unknown): {end?: string; start?: string} {
+  return typeof value === 'object' && value !== null ? value : {};
+}
+
+function numericConstraint(value: unknown): number | undefined {
+  return typeof value === 'number' ? value : undefined;
 }

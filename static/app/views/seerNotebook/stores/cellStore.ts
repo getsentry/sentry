@@ -195,6 +195,7 @@ export class CellStore {
       editGenerationPrompt: action,
       editQueryIntent: action,
       updateDisplay: action,
+      setPromptSectionCollapsed: action,
       applySlashCommand: action,
       clearQueryIntent: action,
       applyDraft: action,
@@ -222,6 +223,12 @@ export class CellStore {
       confirmSave: action,
       failSave: action,
       applyServerSnapshot: action,
+      acknowledgeRemoteSnapshot: action,
+      applyExecutionUpdate: action,
+      applyRemoteComment: action,
+      removeRemoteComment: action,
+      applyRemoteReactions: action,
+      applyRemoteCommentReactions: action,
       attachServerId: action,
       markDeleted: action,
       markStale: action,
@@ -334,6 +341,14 @@ export class CellStore {
       this.activeView = value.defaultView;
     }
     this.setEditableField('display', value, 400);
+  }
+
+  setPromptSectionCollapsed(section: 'prompt' | 'query', collapsed: boolean) {
+    this.updateDisplay({
+      ...this.display,
+      version: 1,
+      [section === 'prompt' ? 'promptCollapsed' : 'queryCollapsed']: collapsed,
+    });
   }
 
   setResultView(view: ResultView) {
@@ -831,6 +846,68 @@ export class CellStore {
       this.activeView = cell.display.defaultView ?? 'table';
     }
     this.confirmed = this.confirmedFields(cell);
+  }
+
+  acknowledgeRemoteSnapshot(cell: InvestigationCell) {
+    for (const field of EDITABLE_FIELDS) {
+      if (this.dirtyFields.has(field) && isEqual(this[field], cell[field])) {
+        this.dirtyFields.delete(field);
+      }
+    }
+    this.applyServerSnapshot(cell);
+    this.saveState = this.isDirty ? 'scheduled' : 'idle';
+    this.saveError = null;
+  }
+
+  getConflictingDirtyFields(cell: InvestigationCell): CellEditableField[] {
+    return EDITABLE_FIELDS.filter(
+      field => this.dirtyFields.has(field) && !isEqual(cell[field], this.confirmed[field])
+    );
+  }
+
+  applyExecutionUpdate(
+    update: Pick<
+      InvestigationCell,
+      | 'content'
+      | 'currentExecution'
+      | 'generatedContent'
+      | 'output'
+      | 'outputStatus'
+      | 'staleAt'
+    >
+  ) {
+    if (!this.dirtyFields.has('content')) {
+      this.content = update.content;
+    }
+    this.generatedContent = update.generatedContent;
+    this.applyExecutionSnapshot({...this.toInvestigationCell(), ...update});
+  }
+
+  applyRemoteComment(comment: InvestigationComment) {
+    const existingIndex = this.comments.findIndex(item => item.id === comment.id);
+    if (existingIndex < 0) {
+      this.comments = [...this.comments, comment];
+      this.commentCount += 1;
+      return;
+    }
+    this.comments = this.comments.map(item => (item.id === comment.id ? comment : item));
+  }
+
+  removeRemoteComment(commentId: string) {
+    if (this.comments.some(comment => comment.id === commentId)) {
+      this.comments = this.comments.filter(comment => comment.id !== commentId);
+      this.commentCount = Math.max(0, this.commentCount - 1);
+    }
+  }
+
+  applyRemoteReactions(reactions: InvestigationReaction[]) {
+    this.reactions = reactions;
+  }
+
+  applyRemoteCommentReactions(commentId: string, reactions: InvestigationReaction[]) {
+    this.comments = this.comments.map(comment =>
+      comment.id === commentId ? {...comment, reactions} : comment
+    );
   }
 
   toInvestigationCell(): InvestigationCell {
