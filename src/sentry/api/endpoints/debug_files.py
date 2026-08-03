@@ -653,11 +653,11 @@ def batch_assemble(project: Project, files: AssembleRequestPayload):
             project.organization.id, chunks_to_check.keys()
         )
 
-    missing_chunks_per_checksum: dict[str, set[str]] = {}
+    missing_chunks_per_checksum: defaultdict[str, set[str]] = defaultdict(set)
     for chunk in all_missing_chunks:
         # A chunk may be referenced by multiple files in the same manifest.
         for checksum in chunks_to_check[chunk]:
-            missing_chunks_per_checksum.setdefault(checksum, set()).add(chunk)
+            missing_chunks_per_checksum[checksum].add(chunk)
 
     # 5. Report missing chunks per checksum.
     for checksum, missing_chunks in missing_chunks_per_checksum.items():
