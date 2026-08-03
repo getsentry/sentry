@@ -1,5 +1,6 @@
-import {useEffect, useMemo, useState, type ReactNode} from 'react';
+import {useEffect, useState, type ReactNode} from 'react';
 import styled from '@emotion/styled';
+import {observer} from 'mobx-react-lite';
 
 import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
@@ -14,8 +15,9 @@ import {Chart} from 'sentry/components/seer/markdown/embeds/components/chart';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconClose, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {CellStore} from 'sentry/views/seerNotebook/stores/cellStore';
+import {isQueryResult} from 'sentry/views/seerNotebook/stores/visualization';
 
-import {suggestCellVisualization} from './api';
 import type {
   InvestigationCell,
   InvestigationChartUnit,
@@ -31,15 +33,8 @@ type LegacyTableOutput = {
 };
 
 type PersistedCellOutputProps = {
-  canRetry: boolean;
-  cell: InvestigationCell;
-  currentIntent: string;
+  cell: CellStore;
   disabled: boolean;
-  investigationId: string;
-  onDisplayChange: (display: InvestigationDisplay) => void;
-  onRetry: () => Promise<void>;
-  onRevisedQueryIntent: (intent: string) => Promise<void>;
-  organizationSlug: string;
 };
 
 export function getOutputColumns(output: unknown): string[] {
@@ -49,16 +44,9 @@ export function getOutputColumns(output: unknown): string[] {
   return isLegacyTableOutput(output) ? output.columns : [];
 }
 
-export function PersistedCellOutput({
-  canRetry,
+export const PersistedCellOutput = observer(function PersistedCellOutput({
   cell,
-  currentIntent,
   disabled,
-  investigationId,
-  onDisplayChange,
-  onRetry,
-  onRevisedQueryIntent,
-  organizationSlug,
 }: PersistedCellOutputProps) {
   if (cell.outputStatus === 'notRun') {
     return null;
@@ -87,8 +75,8 @@ export function PersistedCellOutput({
         <Button
           size="xs"
           variant="secondary"
-          disabled={!canRetry}
-          onClick={() => void onRetry()}
+          disabled={disabled || !cell.canRun}
+          onClick={() => void cell.retryRun().catch(() => {})}
         >
           {t('Retry')}
         </Button>
@@ -99,21 +87,10 @@ export function PersistedCellOutput({
     return <ExecutionProgress />;
   }
   if (isQueryResult(cell.output)) {
-    return (
-      <TypedQueryOutput
-        cell={cell}
-        currentIntent={currentIntent}
-        disabled={disabled}
-        investigationId={investigationId}
-        onDisplayChange={onDisplayChange}
-        onRevisedQueryIntent={onRevisedQueryIntent}
-        organizationSlug={organizationSlug}
-        output={cell.output}
-      />
-    );
+    return <TypedQueryOutput cell={cell} disabled={disabled} output={cell.output} />;
   }
   if (isLegacyTableOutput(cell.output)) {
-    return <LegacyOutput cell={cell} output={cell.output} />;
+    return <LegacyOutput cell={cell.toInvestigationCell()} output={cell.output} />;
   }
   return (
     <RawOutput>
@@ -123,16 +100,12 @@ export function PersistedCellOutput({
       <pre>{JSON.stringify(cell.output, null, 2)}</pre>
     </RawOutput>
   );
-}
+});
 
-export function TextCellExecutionOutput({
-  canRetry,
+export const TextCellExecutionOutput = observer(function TextCellExecutionOutput({
   cell,
-  onRetry,
 }: {
-  canRetry: boolean;
-  cell: InvestigationCell;
-  onRetry: () => Promise<void>;
+  cell: CellStore;
 }) {
   if (cell.outputStatus === 'notRun' || cell.outputStatus === 'available') {
     return null;
@@ -156,8 +129,8 @@ export function TextCellExecutionOutput({
         <Button
           size="xs"
           variant="secondary"
-          disabled={!canRetry}
-          onClick={() => void onRetry()}
+          disabled={!cell.canRun}
+          onClick={() => void cell.retryRun().catch(() => {})}
         >
           {t('Retry')}
         </Button>
@@ -165,7 +138,7 @@ export function TextCellExecutionOutput({
     );
   }
   return <OutputMessage>{t('Writing Markdown…')}</OutputMessage>;
-}
+});
 
 function ExecutionProgress() {
   const stages = [
@@ -185,59 +158,22 @@ function ExecutionProgress() {
   return <OutputMessage>{stages[stage]}…</OutputMessage>;
 }
 
-function TypedQueryOutput({
+const TypedQueryOutput = observer(function TypedQueryOutput({
   cell,
-  currentIntent,
   disabled,
-  investigationId,
-  onDisplayChange,
-  onRevisedQueryIntent,
-  organizationSlug,
   output,
-}: Omit<PersistedCellOutputProps, 'canRetry' | 'onRetry'> & {
+}: PersistedCellOutputProps & {
   output: InvestigationQueryResult;
 }) {
-  const chartAvailable = Boolean(output.chart && output.suggestedVisualization);
-  const defaultView = cell.display.defaultView ?? 'table';
-  const [activeView, setActiveView] = useState<'table' | 'chart' | 'both'>(
-    defaultView !== 'table' && !chartAvailable ? 'table' : defaultView
-  );
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const {visualization, isFallback} = resolveVisualization(cell.display, output);
-  const chartData = useMemo(
-    () => (visualization ? makeChartData(output, visualization) : null),
-    [output, visualization]
-  );
-  const updateVisualization = (change: Partial<InvestigationDisplay>) => {
-    if (!visualization) {
-      return;
-    }
-    onDisplayChange({
-      ...cell.display,
-      version: 1,
-      type: visualization.type,
-      xAxis: visualization.xField,
-      yAxes: visualization.yFields,
-      unit: visualization.unit,
-      stacked: visualization.stacked,
-      showLegend: visualization.showLegend,
-      title: visualization.title,
-      subtitle: visualization.subtitle ?? undefined,
-      axisLabel: visualization.axisLabel ?? undefined,
-      seriesField: visualization.seriesField ?? undefined,
-      sort: visualization.sort,
-      topN: visualization.topN ?? undefined,
-      ...change,
-    });
-  };
+  const chartAvailable = cell.chartAvailable;
+  const activeView = cell.effectiveView;
+  const {visualization, isFallback} = cell.visualizationResolution;
+  const chartData = cell.chartData;
 
   const changeView = (view: 'table' | 'chart' | 'both') => {
-    if (view !== 'table' && !chartAvailable) {
-      return;
-    }
-    setActiveView(view);
+    cell.setResultView(view);
     setIsSettingsOpen(false);
-    onDisplayChange({...cell.display, version: 1, defaultView: view});
   };
 
   const showChart =
@@ -299,14 +235,9 @@ function TypedQueryOutput({
                 />
               </Flex>
               <VisualizationEditor
-                cellId={cell.id}
-                currentIntent={currentIntent}
-                investigationId={investigationId}
-                onRevisedQueryIntent={onRevisedQueryIntent}
-                organizationSlug={organizationSlug}
+                cell={cell}
                 output={output}
                 visualization={visualization}
-                onChange={updateVisualization}
               />
             </ChartSettingsOverlay>
           ) : null}
@@ -347,24 +278,14 @@ function TypedQueryOutput({
       </ResultFooter>
     </OutputWrap>
   );
-}
+});
 
-function VisualizationEditor({
-  cellId,
-  currentIntent,
-  investigationId,
-  onChange,
-  onRevisedQueryIntent,
-  organizationSlug,
+const VisualizationEditor = observer(function VisualizationEditor({
+  cell,
   output,
   visualization,
 }: {
-  cellId: string;
-  currentIntent: string;
-  investigationId: string;
-  onChange: (change: Partial<InvestigationDisplay>) => void;
-  onRevisedQueryIntent: (intent: string) => Promise<void>;
-  organizationSlug: string;
+  cell: CellStore;
   output: InvestigationQueryResult;
   visualization: InvestigationVisualization;
 }) {
@@ -373,51 +294,8 @@ function VisualizationEditor({
   const seriesFieldOptions = output.query.groupBy.filter(field =>
     availableColumns.has(field)
   );
-  const [requestedChange, setRequestedChange] = useState('');
-  const [revisedQueryIntent, setRevisedQueryIntent] = useState<string>();
-  const [isSuggesting, setIsSuggesting] = useState(false);
-
-  const requestSuggestion = async () => {
-    if (!requestedChange.trim()) {
-      return;
-    }
-    setIsSuggesting(true);
-    try {
-      const response = await suggestCellVisualization(
-        organizationSlug,
-        investigationId,
-        cellId,
-        {
-          currentIntent,
-          currentResult: output,
-          requestedChange: requestedChange.trim(),
-          visualization,
-        }
-      );
-      if (response.existingResultSufficient) {
-        onChange({
-          type: response.visualization.type,
-          xAxis: response.visualization.xField,
-          yAxes: response.visualization.yFields,
-          seriesField: response.visualization.seriesField ?? undefined,
-          unit: response.visualization.unit,
-          axisLabel: response.visualization.axisLabel ?? undefined,
-          stacked: response.visualization.stacked,
-          showLegend: response.visualization.showLegend,
-          title: response.visualization.title,
-          subtitle: response.visualization.subtitle ?? undefined,
-          sort: response.visualization.sort,
-          topN: response.visualization.topN ?? undefined,
-        });
-        setRequestedChange('');
-        setRevisedQueryIntent(undefined);
-      } else {
-        setRevisedQueryIntent(response.revisedQueryIntent);
-      }
-    } finally {
-      setIsSuggesting(false);
-    }
-  };
+  const onChange = (change: Partial<InvestigationDisplay>) =>
+    cell.applyVisualizationChange(change);
   return (
     <Stack gap="md">
       <EditorGrid>
@@ -576,37 +454,40 @@ function VisualizationEditor({
         <EditorInput
           aria-label={t('Describe a chart change')}
           placeholder={t('Make this a stacked area chart grouped by release')}
-          value={requestedChange}
-          onChange={event => setRequestedChange(event.target.value)}
+          value={cell.visualizationPrompt}
+          onChange={event => cell.editVisualizationPrompt(event.target.value)}
         />
         <Button
           size="xs"
-          busy={isSuggesting}
-          disabled={!requestedChange.trim()}
-          onClick={() => void requestSuggestion()}
+          busy={cell.visualizationSuggestionState === 'loading'}
+          disabled={!cell.visualizationPrompt.trim()}
+          onClick={() => void cell.requestVisualizationSuggestion()}
         >
           {t('Apply')}
         </Button>
-        {revisedQueryIntent ? (
+        {cell.revisedQueryIntent ? (
           <Button
             size="xs"
             variant="warning"
-            onClick={() => void onRevisedQueryIntent(revisedQueryIntent)}
+            onClick={() => void cell.confirmRevisedQuery().catch(() => {})}
           >
             {t('Update query and run')}
           </Button>
         ) : null}
       </NlpEditor>
-      {revisedQueryIntent ? (
+      {cell.revisedQueryIntent ? (
         <InlineNotice>
           {t(
             'This change needs data that is not in the saved result. No query has run yet.'
           )}
         </InlineNotice>
       ) : null}
+      {cell.visualizationError ? (
+        <InlineNotice>{visualizationErrorMessage(cell.visualizationError)}</InlineNotice>
+      ) : null}
     </Stack>
   );
-}
+});
 
 function TypedTable({output}: {output: InvestigationQueryResult}) {
   const columns = output.table.columns.length
@@ -695,23 +576,6 @@ function LegacyOutput({
   );
 }
 
-function isQueryResult(value: unknown): value is InvestigationQueryResult {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'schemaVersion' in value &&
-    value.schemaVersion === 1 &&
-    'query' in value &&
-    'table' in value &&
-    typeof value.table === 'object' &&
-    value.table !== null &&
-    'columns' in value.table &&
-    'rows' in value.table &&
-    Array.isArray(value.table.columns) &&
-    Array.isArray(value.table.rows)
-  );
-}
-
 function isLegacyTableOutput(value: unknown): value is LegacyTableOutput {
   return (
     typeof value === 'object' &&
@@ -725,61 +589,14 @@ function isLegacyTableOutput(value: unknown): value is LegacyTableOutput {
   );
 }
 
-function resolveVisualization(
-  display: InvestigationDisplay,
-  output: InvestigationQueryResult
-) {
-  const suggestion = output.suggestedVisualization;
-  if (!suggestion) {
-    return {visualization: null, isFallback: false};
+function visualizationErrorMessage(code: string): string {
+  if (code === 'unavailable_y_axis' || code === 'unavailable_series_field') {
+    return t('That setting needs a field that is not in this saved result.');
   }
-  if (!display.version || display.type === 'table' || display.type === 'markdown') {
-    return {visualization: suggestion, isFallback: false};
+  if (code === 'suggestion_failed') {
+    return t('The chart suggestion could not be generated. Try again.');
   }
-  const availableSeries = new Set(output.chart?.series.map(series => series.name));
-  const requestedSeries = display.yAxes?.length ? display.yAxes : suggestion.yFields;
-  if (requestedSeries.some(series => !availableSeries.has(series))) {
-    return {visualization: suggestion, isFallback: true};
-  }
-  return {
-    isFallback: false,
-    visualization: {
-      ...suggestion,
-      type: display.type,
-      title: display.title ?? suggestion.title,
-      subtitle: display.subtitle ?? suggestion.subtitle,
-      xField: display.xAxis ?? suggestion.xField,
-      yFields: requestedSeries,
-      seriesField: display.seriesField ?? suggestion.seriesField,
-      unit: display.unit ?? suggestion.unit,
-      axisLabel: display.axisLabel ?? suggestion.axisLabel,
-      stacked: display.stacked ?? suggestion.stacked,
-      showLegend: display.showLegend ?? suggestion.showLegend,
-      sort: display.sort ?? suggestion.sort,
-      topN: display.topN ?? suggestion.topN,
-    },
-  };
-}
-
-function makeChartData(
-  output: InvestigationQueryResult,
-  visualization: InvestigationVisualization
-) {
-  const requested = new Set(visualization.yFields);
-  return (output.chart?.series ?? [])
-    .filter(series => requested.has(series.name))
-    .map(series => {
-      const data = [...series.data];
-      if (visualization.sort !== 'none') {
-        data.sort((left, right) =>
-          visualization.sort === 'ascending' ? left.y - right.y : right.y - left.y
-        );
-      }
-      return {
-        name: series.name,
-        data: data.slice(0, visualization.topN ?? data.length),
-      };
-    });
+  return t('This chart setting is not valid for the saved result.');
 }
 
 function formatTypedValue(

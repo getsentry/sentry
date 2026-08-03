@@ -1,6 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {useInfiniteQuery, useMutation, useQueryClient} from '@tanstack/react-query';
+import {observer} from 'mobx-react-lite';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -16,19 +16,9 @@ import {t} from 'sentry/locale';
 import {useMembers} from 'sentry/utils/members/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useUser} from 'sentry/utils/useUser';
+import type {CellStore} from 'sentry/views/seerNotebook/stores/cellStore';
 
-import {
-  createComment,
-  deleteComment,
-  investigationCommentsQueryOptions,
-  setCommentReaction,
-  updateComment,
-} from './api';
-import type {
-  InvestigationCell,
-  InvestigationReaction,
-  InvestigationReactionName,
-} from './types';
+import type {InvestigationReaction, InvestigationReactionName} from './types';
 import {INVESTIGATION_REACTIONS} from './types';
 
 type ReactionBarProps = {
@@ -88,51 +78,31 @@ export function ReactionBar({disabled, onToggle, reactions}: ReactionBarProps) {
 }
 
 type Props = {
-  canManage: boolean;
-  cell: InvestigationCell;
+  cell: CellStore;
   disabled: boolean;
-  investigationId: string;
-  onCommentCountChange: (delta: number) => void;
-  organizationSlug: string;
 };
 
-export function CellComments({
-  cell,
-  disabled,
-  investigationId,
-  organizationSlug,
-  canManage,
-  onCommentCountChange,
-}: Props) {
+export const CellComments = observer(function CellComments({cell, disabled}: Props) {
   const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const queryClient = useQueryClient();
 
   const handleToggle = async () => {
     if (isOpen) {
       setIsOpen(false);
       return;
     }
-    if (isLoading) {
+    if (cell.commentsLoadState === 'loading') {
       return;
     }
 
-    setIsLoading(true);
     try {
-      await queryClient.fetchInfiniteQuery(
-        investigationCommentsQueryOptions({
-          cellId: cell.id,
-          investigationId,
-          organizationSlug,
-        })
-      );
+      await cell.loadComments();
       setIsOpen(true);
     } catch {
       addErrorMessage(t('Unable to load comments.'));
-    } finally {
-      setIsLoading(false);
     }
   };
+
+  const isLoading = cell.commentsLoadState === 'loading';
 
   return (
     <Fragment>
@@ -153,16 +123,12 @@ export function CellComments({
         <CommentPopover
           cell={cell}
           disabled={disabled}
-          investigationId={investigationId}
-          organizationSlug={organizationSlug}
-          canManage={canManage}
           onClose={() => setIsOpen(false)}
-          onCommentCountChange={onCommentCountChange}
         />
       ) : null}
     </Fragment>
   );
-}
+});
 
 const CommentTrigger = styled('span')`
   position: relative;
@@ -188,31 +154,16 @@ const CommentCount = styled('span')`
   pointer-events: none;
 `;
 
-function CommentPopover({
+const CommentPopover = observer(function CommentPopover({
   cell,
   disabled,
-  investigationId,
-  organizationSlug,
-  canManage,
   onClose,
-  onCommentCountChange,
 }: Props & {onClose: () => void}) {
   const [editingId, setEditingId] = useState<string>();
-  const [commentReactionOverrides, setCommentReactionOverrides] = useState<
-    Record<string, InvestigationReaction[]>
-  >({});
   const user = useUser();
   const {teams} = useTeams();
-  const commentsOptions = investigationCommentsQueryOptions({
-    organizationSlug,
-    investigationId,
-    cellId: cell.id,
-  });
-  const commentsQuery = useInfiniteQuery(commentsOptions);
-  const comments = useMemo(
-    () => commentsQuery.data?.pages.flatMap(page => page.json) ?? [],
-    [commentsQuery.data?.pages]
-  );
+  const canManage = cell.notebook.permissions.canManage;
+  const comments = cell.comments;
   const memberIds = useMemo(
     () =>
       comments.flatMap(comment => [
@@ -230,52 +181,6 @@ function CommentPopover({
   const memberById = new Map(members.map(member => [String(member.id), member]));
   const teamById = new Map(teams.map(team => [String(team.id), team]));
 
-  const refresh = async () => {
-    await commentsQuery.refetch();
-  };
-
-  const createMutation = useMutation({
-    mutationFn: (data: {text: string; mentions?: string[]}) =>
-      createComment(organizationSlug, investigationId, cell.id, {
-        body: data.text,
-        mentions: data.mentions ?? [],
-      }),
-    onSuccess: async () => {
-      onCommentCountChange(1);
-      await refresh();
-    },
-    onError: () => addErrorMessage(t('Unable to add the comment.')),
-  });
-  const updateMutation = useMutation({
-    mutationFn: ({
-      commentId,
-      text,
-      mentions,
-    }: {
-      commentId: string;
-      text: string;
-      mentions?: string[];
-    }) =>
-      updateComment(organizationSlug, investigationId, commentId, {
-        body: text,
-        mentions: mentions ?? [],
-      }),
-    onSuccess: async () => {
-      setEditingId(undefined);
-      await refresh();
-    },
-    onError: () => addErrorMessage(t('Unable to update the comment.')),
-  });
-  const deleteMutation = useMutation({
-    mutationFn: (commentId: string) =>
-      deleteComment(organizationSlug, investigationId, commentId),
-    onSuccess: async () => {
-      onCommentCountChange(-1);
-      await refresh();
-    },
-    onError: () => addErrorMessage(t('Unable to delete the comment.')),
-  });
-
   return (
     <PopoverPanel role="dialog" aria-label={t('Cell comments')}>
       <PopoverHeader align="center" justify="between" gap="sm">
@@ -291,11 +196,11 @@ function CommentPopover({
         />
       </PopoverHeader>
       <PopoverBody>
-        {commentsQuery.isPending ? (
+        {cell.commentsLoadState === 'loading' ? (
           <Text variant="muted">{t('Loading comments…')}</Text>
         ) : null}
-        {commentsQuery.isError ? (
-          <Button size="xs" onClick={() => commentsQuery.refetch()}>
+        {cell.commentsLoadState === 'error' ? (
+          <Button size="xs" onClick={() => void cell.loadComments()}>
             {t('Retry loading comments')}
           </Button>
         ) : null}
@@ -310,20 +215,36 @@ function CommentPopover({
                 : (memberById.get(mention.id)?.name ?? mention.id);
             return [`${mention.type}:${mention.id}`, display] as [string, string];
           });
+          const storedDraft = cell.commentDrafts.get(comment.id);
 
           return (
             <Comment key={comment.id}>
               {editingId === comment.id && comment.body ? (
                 <CompactNoteInput
+                  controlled
                   noteId={comment.id}
-                  text={comment.body}
+                  text={storedDraft?.body ?? comment.body}
                   mentioned={initialMentions}
                   onCancel={() => setEditingId(undefined)}
+                  onChange={event =>
+                    cell.editExistingCommentDraft(
+                      comment.id,
+                      event.target.value,
+                      storedDraft?.mentions ?? initialMentions.map(([id]) => id)
+                    )
+                  }
                   onUpdate={async data => {
-                    await updateMutation.mutateAsync({
-                      commentId: comment.id,
-                      ...data,
-                    });
+                    try {
+                      await cell.updateComment(
+                        comment.id,
+                        data.text,
+                        data.mentions ?? []
+                      );
+                      setEditingId(undefined);
+                    } catch {
+                      addErrorMessage(t('Unable to update the comment.'));
+                      throw new Error('comment_update_failed');
+                    }
                   }}
                 />
               ) : (
@@ -337,7 +258,14 @@ function CommentPopover({
                           variant="transparent"
                           icon={<IconEdit />}
                           aria-label={t('Edit comment')}
-                          onClick={() => setEditingId(comment.id)}
+                          onClick={() => {
+                            cell.editExistingCommentDraft(
+                              comment.id,
+                              comment.body ?? '',
+                              initialMentions.map(([id]) => id)
+                            );
+                            setEditingId(comment.id);
+                          }}
                         />
                       ) : null}
                       {mayDelete ? (
@@ -351,7 +279,13 @@ function CommentPopover({
                               message: t('Delete this comment?'),
                               confirmText: t('Delete'),
                               priority: 'danger',
-                              onConfirm: () => deleteMutation.mutateAsync(comment.id),
+                              onConfirm: async () => {
+                                try {
+                                  await cell.deleteComment(comment.id);
+                                } catch {
+                                  addErrorMessage(t('Unable to delete the comment.'));
+                                }
+                              },
                             })
                           }
                         />
@@ -366,34 +300,12 @@ function CommentPopover({
                     </Text>
                   )}
                   <ReactionBar
-                    reactions={commentReactionOverrides[comment.id] ?? comment.reactions}
+                    reactions={comment.reactions}
                     disabled={disabled || Boolean(comment.deletedAt)}
                     onToggle={async (reaction, enabled) => {
-                      const previous =
-                        commentReactionOverrides[comment.id] ?? comment.reactions;
-                      setCommentReactionOverrides(current => ({
-                        ...current,
-                        [comment.id]: toggleReaction(previous, reaction, enabled),
-                      }));
                       try {
-                        await setCommentReaction(
-                          organizationSlug,
-                          investigationId,
-                          comment.id,
-                          reaction,
-                          enabled
-                        );
-                        await refresh();
-                        setCommentReactionOverrides(current => {
-                          const next = {...current};
-                          delete next[comment.id];
-                          return next;
-                        });
+                        await cell.toggleCommentReaction(comment.id, reaction, enabled);
                       } catch {
-                        setCommentReactionOverrides(current => ({
-                          ...current,
-                          [comment.id]: previous,
-                        }));
                         addErrorMessage(t('Unable to update the reaction.'));
                       }
                     }}
@@ -403,18 +315,18 @@ function CommentPopover({
             </Comment>
           );
         })}
-        {comments.length === 0 && !commentsQuery.isPending ? (
+        {comments.length === 0 && cell.commentsLoadState !== 'loading' ? (
           <EmptyComments>
             <Text size="sm" variant="muted">
               {t('No comments yet.')}
             </Text>
           </EmptyComments>
         ) : null}
-        {commentsQuery.hasNextPage ? (
+        {cell.commentsNextCursor ? (
           <Button
             size="xs"
-            busy={commentsQuery.isFetchingNextPage}
-            onClick={() => commentsQuery.fetchNextPage()}
+            busy={cell.commentsLoadState === 'loading'}
+            onClick={() => void cell.loadMoreComments()}
           >
             {t('Load more comments')}
           </Button>
@@ -422,9 +334,17 @@ function CommentPopover({
         {disabled ? null : (
           <CommentComposer>
             <CompactNoteInput
+              controlled
+              text={cell.commentDraft}
               placeholder={t('Write a comment… Tag with @ or #')}
+              onChange={event => cell.editCommentDraft(event.target.value)}
               onCreate={async data => {
-                await createMutation.mutateAsync(data);
+                try {
+                  await cell.createComment(data.text, data.mentions ?? []);
+                } catch {
+                  addErrorMessage(t('Unable to add the comment.'));
+                  throw new Error('comment_create_failed');
+                }
               }}
             />
           </CommentComposer>
@@ -432,27 +352,7 @@ function CommentPopover({
       </PopoverBody>
     </PopoverPanel>
   );
-}
-
-function toggleReaction(
-  reactions: InvestigationReaction[],
-  name: InvestigationReactionName,
-  enabled: boolean
-): InvestigationReaction[] {
-  const existing = reactions.find(reaction => reaction.reaction === name);
-  if (!existing) {
-    return enabled
-      ? [...reactions, {reaction: name, count: 1, reactedByMe: true}]
-      : reactions;
-  }
-
-  const count = Math.max(0, existing.count + (enabled ? 1 : -1));
-  return reactions
-    .map(reaction =>
-      reaction.reaction === name ? {...reaction, count, reactedByMe: enabled} : reaction
-    )
-    .filter(reaction => reaction.count > 0);
-}
+});
 
 const PopoverPanel = styled('section')`
   position: absolute;

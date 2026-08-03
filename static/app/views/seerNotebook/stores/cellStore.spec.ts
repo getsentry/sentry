@@ -2,13 +2,63 @@ import {InvestigationDetailFixture} from 'sentry-fixture/investigation';
 
 import {NotebookStore} from 'sentry/views/seerNotebook/stores/notebookStore';
 import type {InvestigationTransport} from 'sentry/views/seerNotebook/stores/types';
+import type {
+  InvestigationComment,
+  InvestigationQueryResult,
+} from 'sentry/views/seerNotebook/types';
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
-  const promise = new Promise<T>(resolvePromise => {
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
     resolve = resolvePromise;
+    reject = rejectPromise;
   });
-  return {promise, resolve};
+  return {promise, reject, resolve};
+}
+
+function queryResult(): InvestigationQueryResult {
+  return {
+    schemaVersion: 1,
+    query: {
+      dataset: 'errors',
+      query: 'is:unresolved',
+      mode: 'aggregates',
+      fields: [],
+      yAxes: ['count()'],
+      groupBy: [],
+      sort: '',
+      timeRange: {statsPeriod: '24h'},
+      projectIds: [1],
+      projectSlugs: ['frontend'],
+      linkParams: {},
+    },
+    table: {
+      columns: [{key: 'count()', label: 'Errors', type: 'number'}],
+      rows: [[12]],
+      totalRows: 1,
+      returnedRows: 1,
+      truncated: false,
+    },
+    chart: {
+      xAxis: 'time',
+      truncated: false,
+      series: [{name: 'count()', data: [{x: '2026-08-03T00:00:00Z', y: 12}]}],
+    },
+    suggestedVisualization: {
+      type: 'area',
+      title: 'Errors',
+      xField: 'timestamp',
+      yFields: ['count()'],
+      unit: 'number',
+      stacked: false,
+      showLegend: true,
+      sort: 'none',
+    },
+    chartUnavailableReason: null,
+    warnings: [],
+    dataProjectIds: [1],
+  };
 }
 
 function makeStore() {
@@ -202,5 +252,108 @@ describe('CellStore', () => {
 
     expect(cell.outputStatus).toBe('available');
     expect(cell.output).toEqual({table: 'result'});
+  });
+
+  it('owns result views and retains the last valid visualization', () => {
+    const {cell} = makeStore();
+    cell.applyServerSnapshot({
+      ...cell.toInvestigationCell(),
+      display: {version: 1, type: 'table', defaultView: 'table'},
+      output: queryResult(),
+      outputStatus: 'available',
+    });
+
+    cell.setResultView('chart');
+    expect(cell.effectiveView).toBe('chart');
+    expect(cell.chartData).toHaveLength(1);
+
+    const previousDisplay = cell.display;
+    const previousVisualization = cell.visualizationResolution.visualization;
+    cell.applyVisualizationChange({yAxes: ['missing()']});
+
+    expect(cell.visualizationError).toBe('unavailable_y_axis');
+    expect(cell.display).toBe(previousDisplay);
+    expect(cell.visualizationResolution.visualization).toEqual(previousVisualization);
+  });
+
+  it('applies display-only suggestions and defers data-changing suggestions', async () => {
+    const {cell, store} = makeStore();
+    const output = queryResult();
+    cell.applyServerSnapshot({
+      ...cell.toInvestigationCell(),
+      output,
+      outputStatus: 'available',
+    });
+    store.transport.suggestVisualization = jest
+      .fn()
+      .mockResolvedValueOnce({
+        existingResultSufficient: true,
+        visualization: {...output.suggestedVisualization!, type: 'bar'},
+      })
+      .mockResolvedValueOnce({
+        existingResultSufficient: false,
+        revisedQueryIntent: 'Group errors by release',
+        visualization: output.suggestedVisualization!,
+      });
+
+    cell.editVisualizationPrompt('Make it a bar chart');
+    await cell.requestVisualizationSuggestion();
+    expect(cell.display.type).toBe('bar');
+    expect(cell.revisedQueryIntent).toBeNull();
+
+    cell.editVisualizationPrompt('Group it by release');
+    await cell.requestVisualizationSuggestion();
+    expect(cell.revisedQueryIntent).toBe('Group errors by release');
+    expect(store.transport.executeCell).toBeUndefined();
+  });
+
+  it('optimistically manages comments while preserving failed composer drafts', async () => {
+    const {cell, store} = makeStore();
+    const comment: InvestigationComment = {
+      author: '1',
+      body: 'Existing',
+      dateCreated: '2026-08-03T00:00:00Z',
+      dateUpdated: '2026-08-03T00:00:00Z',
+      deletedAt: null,
+      id: 'comment-1',
+      mentions: [],
+      reactions: [],
+    };
+    store.transport.loadComments = jest
+      .fn()
+      .mockResolvedValue({items: [comment], nextCursor: 'next'});
+    await cell.loadComments();
+    expect(cell.comments).toEqual([comment]);
+    expect(cell.commentsNextCursor).toBe('next');
+
+    const creation = deferred<InvestigationComment>();
+    store.transport.createComment = jest.fn().mockReturnValue(creation.promise);
+    const creating = cell.createComment('Keep this draft', []);
+    expect(cell.comments.at(-1)?.id).toContain('optimistic-comment-');
+    expect(cell.commentCount).toBeGreaterThan(0);
+    creation.reject(new Error('offline'));
+    await expect(creating).rejects.toThrow('offline');
+
+    expect(cell.commentDraft).toBe('Keep this draft');
+    expect(cell.comments).toEqual([comment]);
+    expect(cell.commentMutationError).toBe('comment_create_failed');
+  });
+
+  it('conditionally rolls back failed cell reactions', async () => {
+    const {cell, store} = makeStore();
+    store.transport.setCellReaction = jest.fn().mockRejectedValue(new Error('offline'));
+
+    const toggling = cell.toggleReaction('heart', true);
+    expect(cell.reactions).toContainEqual({
+      reaction: 'heart',
+      count: 1,
+      reactedByMe: true,
+    });
+    await expect(toggling).rejects.toThrow('offline');
+
+    expect(cell.reactions).not.toContainEqual(
+      expect.objectContaining({reaction: 'heart'})
+    );
+    expect(cell.reactionError).toBe('reaction_failed');
   });
 });

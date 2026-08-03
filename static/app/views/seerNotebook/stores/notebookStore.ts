@@ -183,6 +183,10 @@ export class NotebookStore {
     return !this.isReadOnly && this.queryExecutionEnabled;
   }
 
+  createClientId(): string {
+    return this.idGenerator();
+  }
+
   get hasPendingExecution(): boolean {
     return this.cellsInOrder.some(cell => cell.isExecutionRunning);
   }

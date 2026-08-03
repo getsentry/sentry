@@ -19,6 +19,7 @@ import {useMemberMentionData} from 'sentry/utils/members/useMemberMentionData';
 import {useTeams} from 'sentry/utils/useTeams';
 
 type Props = {
+  controlled?: boolean;
   errorJSON?: CreateError | null;
   /** Existing user/team actors when editing a comment. */
   mentioned?: Mentioned[];
@@ -48,6 +49,7 @@ export function CompactNoteInput({
   noteId,
   errorJSON,
   placeholder,
+  controlled = false,
 }: Props) {
   const theme = useTheme();
 
@@ -59,7 +61,8 @@ export function CompactNoteInput({
     display: `#${team.slug}`,
   }));
 
-  const [value, setValue] = useState(text ?? '');
+  const [uncontrolledValue, setUncontrolledValue] = useState(text ?? '');
+  const value = controlled ? (text ?? '') : uncontrolledValue;
 
   const [memberMentions, setMemberMentions] = useState<Mentioned[]>(() =>
     mentioned.filter(([id]) => id.startsWith('user:'))
@@ -128,10 +131,12 @@ export function CompactNoteInput({
 
   const handleChange = useCallback<NonNullable<MentionsInputProps['onChange']>>(
     e => {
-      setValue(e.target.value);
+      if (!controlled) {
+        setUncontrolledValue(e.target.value);
+      }
       onChange?.(e, {updating: existingItem});
     },
-    [existingItem, onChange]
+    [controlled, existingItem, onChange]
   );
 
   const handleKeyDown = useCallback<NonNullable<MentionsInputProps['onKeyDown']>>(

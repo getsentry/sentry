@@ -81,7 +81,6 @@ import {
 } from 'sentry/views/seerNotebook/stores/storeContext';
 import {QueryClientInvestigationTransport} from 'sentry/views/seerNotebook/stores/transport';
 
-import {setCellReaction} from './api';
 import {CellComments} from './comments';
 import {PersistedCellOutput, TextCellExecutionOutput} from './output';
 import {InvestigationParameters} from './parameters';
@@ -91,7 +90,6 @@ import type {
   InvestigationDetail,
   InvestigationFilters,
   InvestigationPermissions,
-  InvestigationReaction,
   InvestigationReactionName,
 } from './types';
 import {INVESTIGATION_REACTIONS} from './types';
@@ -657,16 +655,12 @@ function SortableCellContent({
     generationPrompt: cell.generationPrompt,
     display: cell.display,
   };
-  const cellDto = cell.toInvestigationCell();
   const {notebook} = cell;
-  const canManage = notebook.permissions.canManage;
-  const investigationId = notebook.investigationId;
-  const organizationSlug = notebook.organizationSlug;
   const queryExecutionEnabled = notebook.queryExecutionEnabled;
   const [isEditingText, setIsEditingText] = useState(!cell.content && !disabled);
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const [slashCommandIndex, setSlashCommandIndex] = useState(0);
-  const [cellReactions, setCellReactions] = useState(cell.reactions);
+  const cellReactions = cell.reactions;
   const [isReactionPickerOpen, setIsReactionPickerOpen] = useState(false);
   const textInputRef = useRef<HTMLTextAreaElement>(null);
   const slashMenuRef = useRef<HTMLDivElement>(null);
@@ -724,14 +718,6 @@ function SortableCellContent({
     }
     try {
       await cell.run();
-    } catch {
-      addErrorMessage(t('The query could not be started.'));
-    }
-  };
-
-  const retryCell = async () => {
-    try {
-      await cell.retryRun();
     } catch {
       addErrorMessage(t('The query could not be started.'));
     }
@@ -810,33 +796,14 @@ function SortableCellContent({
     reaction: InvestigationReactionName,
     enabled: boolean
   ) => {
-    const previous = cellReactions;
-    setCellReactions(updateReaction(previous, reaction, enabled));
     try {
-      await setCellReaction(
-        organizationSlug,
-        investigationId,
-        cellDto.id,
-        reaction,
-        enabled
-      );
-      await notebook.refreshDetail();
+      await cell.toggleReaction(reaction, enabled);
     } catch {
-      setCellReactions(previous);
       addErrorMessage(t('Unable to update the reaction.'));
     }
   };
 
-  const comments = (
-    <CellComments
-      cell={cellDto}
-      disabled={collaborationDisabled}
-      investigationId={investigationId}
-      organizationSlug={organizationSlug}
-      canManage={canManage}
-      onCommentCountChange={delta => cell.changeCommentCount(delta)}
-    />
-  );
+  const comments = <CellComments cell={cell} disabled={collaborationDisabled} />;
 
   return (
     <CellCard
@@ -1008,11 +975,7 @@ function SortableCellContent({
                 </QueryEditorWrap>
               </QueryPromptContent>
             </QueryPromptDisclosure>
-            <TextCellExecutionOutput
-              canRetry={!disabled && queryExecutionEnabled && !isRunBusy}
-              cell={cellDto}
-              onRetry={retryCell}
-            />
+            <TextCellExecutionOutput cell={cell} />
             <TextCellBody>
               {isEditingText ? (
                 <TextEditorWrap>
@@ -1195,21 +1158,7 @@ function SortableCellContent({
                 </QueryEditorWrap>
               </QueryPromptContent>
             </QueryPromptDisclosure>
-            <PersistedCellOutput
-              canRetry={!disabled && queryExecutionEnabled && !isRunBusy}
-              cell={cellDto}
-              currentIntent={queryIntent}
-              disabled={disabled}
-              investigationId={investigationId}
-              organizationSlug={organizationSlug}
-              onDisplayChange={persistDisplay}
-              onRetry={retryCell}
-              onRevisedQueryIntent={async intent => {
-                cell.editQueryIntent(intent);
-                await cell.flush();
-                await cell.run();
-              }}
-            />
+            <PersistedCellOutput cell={cell} disabled={disabled} />
           </Fragment>
         )}
       </CellSurface>
@@ -1275,25 +1224,6 @@ function CellTypeMenu({
       trigger={trigger}
     />
   );
-}
-
-function updateReaction(
-  reactions: InvestigationReaction[],
-  name: InvestigationReactionName,
-  enabled: boolean
-): InvestigationReaction[] {
-  const existing = reactions.find(reaction => reaction.reaction === name);
-  if (!existing) {
-    return enabled
-      ? [...reactions, {reaction: name, count: 1, reactedByMe: true}]
-      : reactions;
-  }
-  const count = Math.max(0, existing.count + (enabled ? 1 : -1));
-  return reactions
-    .map(reaction =>
-      reaction.reaction === name ? {...reaction, count, reactedByMe: enabled} : reaction
-    )
-    .filter(reaction => reaction.count > 0);
 }
 
 function ReactionIcon() {

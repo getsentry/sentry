@@ -1,12 +1,23 @@
 import isEqual from 'lodash/isEqual';
-import {action, computed, makeObservable, observable} from 'mobx';
+import {action, computed, makeObservable, observable, runInAction} from 'mobx';
 
 import type {NotebookStore} from 'sentry/views/seerNotebook/stores/notebookStore';
+import {
+  displayFromVisualization,
+  isQueryResult,
+  makeChartData,
+  resolveVisualization,
+  validateVisualizationDisplay,
+} from 'sentry/views/seerNotebook/stores/visualization';
 import type {
   InvestigationCell,
   InvestigationCellExecution,
+  InvestigationComment,
   InvestigationDisplay,
+  InvestigationMention,
   InvestigationReaction,
+  InvestigationReactionName,
+  InvestigationVisualization,
 } from 'sentry/views/seerNotebook/types';
 
 const EDITABLE_FIELDS = ['content', 'display', 'generationPrompt', 'title'] as const;
@@ -18,12 +29,16 @@ type ConfirmedCellFields = Pick<
 >;
 
 export type CellStoreSnapshot = InvestigationCell & {
+  activeView: ResultView;
   clientKey: string;
+  comments: InvestigationComment[];
   dirtyFields: CellEditableField[];
   saveState: CellSaveState;
 };
 
 export type CellSaveState = 'idle' | 'scheduled' | 'saving' | 'unsaved';
+export type ResultView = 'table' | 'chart' | 'both';
+export type CommentLoadState = 'idle' | 'loading' | 'ready' | 'error';
 
 type ExecutionProjection = Pick<
   CellStore,
@@ -64,6 +79,21 @@ export class CellStore {
   runError: string | null = null;
   runRequestId: string | null = null;
   failedRunRequestId: string | null = null;
+  activeView: ResultView;
+  lastValidVisualization: InvestigationVisualization | null = null;
+  visualizationError: string | null = null;
+  visualizationPrompt = '';
+  visualizationSuggestionState: 'idle' | 'loading' | 'error' = 'idle';
+  revisedQueryIntent: string | null = null;
+  comments: InvestigationComment[] = [];
+  commentsNextCursor: string | null = null;
+  commentsPageCount = 0;
+  commentsLoadState: CommentLoadState = 'idle';
+  commentDraft = '';
+  commentDraftMentions: string[] = [];
+  commentDrafts = new Map<string, {body: string; mentions: string[]}>();
+  commentMutationError: string | null = null;
+  reactionError: string | null = null;
 
   private confirmed: ConfirmedCellFields;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -94,6 +124,13 @@ export class CellStore {
     this.lastEditedBy = cell.lastEditedBy;
     this.reactions = cell.reactions;
     this.commentCount = cell.commentCount;
+    this.activeView = cell.display.defaultView ?? 'table';
+    if (isQueryResult(cell.output)) {
+      this.lastValidVisualization = resolveVisualization(
+        cell.display,
+        cell.output
+      ).visualization;
+    }
     this.confirmed = this.confirmedFields(cell);
 
     makeObservable(this, {
@@ -125,6 +162,21 @@ export class CellStore {
       runError: observable,
       runRequestId: observable,
       failedRunRequestId: observable,
+      activeView: observable,
+      lastValidVisualization: observable.ref,
+      visualizationError: observable,
+      visualizationPrompt: observable,
+      visualizationSuggestionState: observable,
+      revisedQueryIntent: observable,
+      comments: observable.shallow,
+      commentsNextCursor: observable,
+      commentsPageCount: observable,
+      commentsLoadState: observable,
+      commentDraft: observable,
+      commentDraftMentions: observable.shallow,
+      commentDrafts: observable.shallow,
+      commentMutationError: observable,
+      reactionError: observable,
       isPersisted: computed,
       isDirty: computed,
       queryIntent: computed,
@@ -133,6 +185,11 @@ export class CellStore {
       isExecutionRunning: computed,
       canRun: computed,
       runButtonVariant: computed,
+      queryResult: computed,
+      chartAvailable: computed,
+      visualizationResolution: computed,
+      chartData: computed,
+      effectiveView: computed,
       editTitle: action,
       editContent: action,
       editGenerationPrompt: action,
@@ -147,6 +204,20 @@ export class CellStore {
       markExecutionPending: action,
       failRunRequest: action,
       finishRunRequest: action,
+      setResultView: action,
+      applyVisualizationChange: action,
+      editVisualizationPrompt: action,
+      requestVisualizationSuggestion: action,
+      confirmRevisedQuery: action,
+      toggleReaction: action,
+      loadComments: action,
+      loadMoreComments: action,
+      editCommentDraft: action,
+      editExistingCommentDraft: action,
+      createComment: action,
+      updateComment: action,
+      deleteComment: action,
+      toggleCommentReaction: action,
       markSaveStarted: action,
       confirmSave: action,
       failSave: action,
@@ -203,6 +274,32 @@ export class CellStore {
     return this.outputStatus === 'available' ? 'secondary' : 'primary';
   }
 
+  get queryResult() {
+    return isQueryResult(this.output) ? this.output : null;
+  }
+
+  get chartAvailable(): boolean {
+    return Boolean(this.queryResult?.chart && this.queryResult.suggestedVisualization);
+  }
+
+  get visualizationResolution() {
+    return this.queryResult
+      ? resolveVisualization(this.display, this.queryResult)
+      : {visualization: null, isFallback: false};
+  }
+
+  get chartData() {
+    const output = this.queryResult;
+    const visualization = this.visualizationResolution.visualization;
+    return output && visualization ? makeChartData(output, visualization) : null;
+  }
+
+  get effectiveView(): ResultView {
+    return this.activeView !== 'table' && !this.chartAvailable
+      ? 'table'
+      : this.activeView;
+  }
+
   editTitle(value: string) {
     this.setEditableField('title', value, 600);
   }
@@ -233,7 +330,100 @@ export class CellStore {
   }
 
   updateDisplay(value: InvestigationDisplay) {
+    if (value.defaultView) {
+      this.activeView = value.defaultView;
+    }
     this.setEditableField('display', value, 400);
+  }
+
+  setResultView(view: ResultView) {
+    if (view !== 'table' && !this.chartAvailable) {
+      return;
+    }
+    this.activeView = view;
+    this.updateDisplay({...this.display, version: 1, defaultView: view});
+  }
+
+  applyVisualizationChange(change: Partial<InvestigationDisplay>) {
+    const output = this.queryResult;
+    const visualization = this.visualizationResolution.visualization;
+    if (!output || !visualization) {
+      this.visualizationError = 'chart_unavailable';
+      return;
+    }
+    const proposed = displayFromVisualization(this.display, visualization, change);
+    const error = validateVisualizationDisplay(proposed, output);
+    if (error) {
+      this.visualizationError = error;
+      return;
+    }
+    this.visualizationError = null;
+    this.lastValidVisualization = resolveVisualization(proposed, output).visualization;
+    this.updateDisplay(proposed);
+  }
+
+  editVisualizationPrompt(value: string) {
+    this.visualizationPrompt = value;
+    this.visualizationError = null;
+  }
+
+  async requestVisualizationSuggestion(): Promise<void> {
+    const requestedChange = this.visualizationPrompt.trim();
+    const output = this.queryResult;
+    const visualization = this.visualizationResolution.visualization;
+    if (!requestedChange || !output || !visualization || !this.serverId) {
+      return;
+    }
+    this.visualizationSuggestionState = 'loading';
+    this.visualizationError = null;
+    try {
+      const response = await this.notebook.transport.suggestVisualization(this.serverId, {
+        currentIntent: this.queryIntent,
+        currentResult: output,
+        requestedChange,
+        visualization,
+      });
+      runInAction(() => {
+        if (response.existingResultSufficient) {
+          const proposed = displayFromVisualization(this.display, response.visualization);
+          const error = validateVisualizationDisplay(proposed, output);
+          if (error) {
+            this.visualizationError = error;
+            this.visualizationSuggestionState = 'error';
+            return;
+          }
+          this.lastValidVisualization = response.visualization;
+          this.visualizationPrompt = '';
+          this.revisedQueryIntent = null;
+          this.visualizationSuggestionState = 'idle';
+          this.updateDisplay(proposed);
+        } else {
+          this.revisedQueryIntent = response.revisedQueryIntent ?? null;
+          this.visualizationSuggestionState = 'idle';
+        }
+      });
+    } catch {
+      runInAction(() => {
+        this.visualizationSuggestionState = 'error';
+        this.visualizationError = 'suggestion_failed';
+      });
+    }
+  }
+
+  async confirmRevisedQuery(): Promise<void> {
+    const intent = this.revisedQueryIntent;
+    if (!intent) {
+      return;
+    }
+    this.editQueryIntent(intent);
+    await this.flush();
+    await this.run();
+    runInAction(() => {
+      if (this.revisedQueryIntent === intent) {
+        this.revisedQueryIntent = null;
+        this.visualizationPrompt = '';
+      }
+    });
   }
 
   clearQueryIntent() {
@@ -282,6 +472,203 @@ export class CellStore {
 
   changeCommentCount(delta: number) {
     this.commentCount = Math.max(0, this.commentCount + delta);
+  }
+
+  async toggleReaction(reaction: InvestigationReactionName, enabled: boolean) {
+    if (!this.serverId) {
+      return;
+    }
+    const previous = this.reactions;
+    const optimistic = updateReaction(previous, reaction, enabled);
+    this.reactions = optimistic;
+    this.reactionError = null;
+    try {
+      await this.notebook.transport.setCellReaction(this.serverId, reaction, enabled);
+      await this.notebook.refreshDetail();
+    } catch (error) {
+      runInAction(() => {
+        if (isEqual(this.reactions, optimistic)) {
+          this.reactions = previous;
+        }
+        this.reactionError = 'reaction_failed';
+      });
+      throw error;
+    }
+  }
+
+  loadComments(): Promise<void> {
+    return this.loadCommentPage(false);
+  }
+
+  loadMoreComments(): Promise<void> {
+    if (!this.commentsNextCursor || this.commentsLoadState === 'loading') {
+      return Promise.resolve();
+    }
+    return this.loadCommentPage(true);
+  }
+
+  editCommentDraft(body: string, mentions: string[] = this.commentDraftMentions) {
+    this.commentDraft = body;
+    this.commentDraftMentions = mentions;
+    this.commentMutationError = null;
+  }
+
+  editExistingCommentDraft(commentId: string, body: string, mentions: string[]) {
+    this.commentDrafts.set(commentId, {body, mentions});
+    this.commentMutationError = null;
+  }
+
+  async createComment(body: string, mentions: string[]): Promise<void> {
+    if (!this.serverId || !body.trim()) {
+      return;
+    }
+    this.editCommentDraft(body, mentions);
+    const temporaryId = `optimistic-comment-${this.notebook.createClientId()}`;
+    const now = new Date().toISOString();
+    const temporary: InvestigationComment = {
+      author: null,
+      body,
+      dateCreated: now,
+      dateUpdated: now,
+      deletedAt: null,
+      id: temporaryId,
+      mentions: mentionsFromTokens(mentions),
+      reactions: [],
+    };
+    this.comments = [...this.comments, temporary];
+    this.commentCount += 1;
+    this.commentMutationError = null;
+    try {
+      const created = await this.notebook.transport.createComment(this.serverId, {
+        body,
+        mentions,
+      });
+      runInAction(() => {
+        this.comments = this.comments.map(comment =>
+          comment.id === temporaryId ? created : comment
+        );
+        if (this.commentDraft === body) {
+          this.commentDraft = '';
+          this.commentDraftMentions = [];
+        }
+      });
+    } catch (error) {
+      runInAction(() => {
+        if (this.comments.some(comment => comment.id === temporaryId)) {
+          this.comments = this.comments.filter(comment => comment.id !== temporaryId);
+          this.commentCount = Math.max(0, this.commentCount - 1);
+        }
+        this.commentMutationError = 'comment_create_failed';
+      });
+      throw error;
+    }
+  }
+
+  async updateComment(
+    commentId: string,
+    body: string,
+    mentions: string[]
+  ): Promise<void> {
+    const previous = this.comments.find(comment => comment.id === commentId);
+    if (!previous || !body.trim()) {
+      return;
+    }
+    this.editExistingCommentDraft(commentId, body, mentions);
+    const optimistic = {
+      ...previous,
+      body,
+      dateUpdated: new Date().toISOString(),
+      mentions: mentionsFromTokens(mentions),
+    };
+    this.comments = this.comments.map(comment =>
+      comment.id === commentId ? optimistic : comment
+    );
+    try {
+      const updated = await this.notebook.transport.updateComment(commentId, {
+        body,
+        mentions,
+      });
+      runInAction(() => {
+        this.comments = this.comments.map(comment =>
+          comment.id === commentId ? updated : comment
+        );
+        this.commentDrafts.delete(commentId);
+      });
+    } catch (error) {
+      runInAction(() => {
+        const current = this.comments.find(comment => comment.id === commentId);
+        if (isEqual(current, optimistic)) {
+          this.comments = this.comments.map(comment =>
+            comment.id === commentId ? previous : comment
+          );
+        }
+        this.commentMutationError = 'comment_update_failed';
+      });
+      throw error;
+    }
+  }
+
+  async deleteComment(commentId: string): Promise<void> {
+    const previous = this.comments.find(comment => comment.id === commentId);
+    if (!previous) {
+      return;
+    }
+    const tombstone = {...previous, body: null, deletedAt: 'optimistic'};
+    this.comments = this.comments.map(comment =>
+      comment.id === commentId ? tombstone : comment
+    );
+    this.commentCount = Math.max(0, this.commentCount - 1);
+    try {
+      await this.notebook.transport.deleteComment(commentId);
+      runInAction(() => {
+        this.comments = this.comments.filter(comment => comment.id !== commentId);
+        this.commentDrafts.delete(commentId);
+      });
+    } catch (error) {
+      runInAction(() => {
+        const current = this.comments.find(comment => comment.id === commentId);
+        if (isEqual(current, tombstone)) {
+          this.comments = this.comments.map(comment =>
+            comment.id === commentId ? previous : comment
+          );
+          this.commentCount += 1;
+        }
+        this.commentMutationError = 'comment_delete_failed';
+      });
+      throw error;
+    }
+  }
+
+  async toggleCommentReaction(
+    commentId: string,
+    reaction: InvestigationReactionName,
+    enabled: boolean
+  ): Promise<void> {
+    const previous = this.comments.find(comment => comment.id === commentId);
+    if (!previous) {
+      return;
+    }
+    const optimistic = {
+      ...previous,
+      reactions: updateReaction(previous.reactions, reaction, enabled),
+    };
+    this.comments = this.comments.map(comment =>
+      comment.id === commentId ? optimistic : comment
+    );
+    try {
+      await this.notebook.transport.setCommentReaction(commentId, reaction, enabled);
+    } catch (error) {
+      runInAction(() => {
+        const current = this.comments.find(comment => comment.id === commentId);
+        if (isEqual(current, optimistic)) {
+          this.comments = this.comments.map(comment =>
+            comment.id === commentId ? previous : comment
+          );
+        }
+        this.commentMutationError = 'comment_reaction_failed';
+      });
+      throw error;
+    }
   }
 
   beginRunRequest(requestId: string) {
@@ -440,6 +827,9 @@ export class CellStore {
         this[field] = cell[field] as never;
       }
     }
+    if (!this.dirtyFields.has('display')) {
+      this.activeView = cell.display.defaultView ?? 'table';
+    }
     this.confirmed = this.confirmedFields(cell);
   }
 
@@ -471,7 +861,9 @@ export class CellStore {
   toSnapshot(): CellStoreSnapshot {
     return {
       ...this.toInvestigationCell(),
+      activeView: this.activeView,
       clientKey: this.clientKey,
+      comments: [...this.comments],
       dirtyFields: [...this.dirtyFields],
       saveState: this.saveState,
     };
@@ -504,10 +896,38 @@ export class CellStore {
     this.parameterKeys = cell.parameterKeys;
     this.version = cell.version;
     this.applyExecutionSnapshot(cell);
+    if (isQueryResult(this.output)) {
+      this.lastValidVisualization = resolveVisualization(
+        this.display,
+        this.output
+      ).visualization;
+    }
     this.createdBy = cell.createdBy;
     this.lastEditedBy = cell.lastEditedBy;
     this.reactions = cell.reactions;
     this.commentCount = cell.commentCount;
+  }
+
+  private async loadCommentPage(loadMore: boolean): Promise<void> {
+    if (!this.serverId || this.commentsLoadState === 'loading') {
+      return;
+    }
+    const pageCount = loadMore ? this.commentsPageCount + 1 : 1;
+    this.commentsLoadState = 'loading';
+    try {
+      const page = await this.notebook.transport.loadComments(this.serverId, pageCount);
+      runInAction(() => {
+        this.comments = page.items;
+        this.commentsNextCursor = page.nextCursor;
+        this.commentsPageCount = pageCount;
+        this.commentsLoadState = 'ready';
+      });
+    } catch (error) {
+      runInAction(() => {
+        this.commentsLoadState = 'error';
+      });
+      throw error;
+    }
   }
 
   private applyExecutionSnapshot(cell: InvestigationCell) {
@@ -573,4 +993,30 @@ export class CellStore {
       this.saveTimer = null;
     }
   }
+}
+
+function updateReaction(
+  reactions: InvestigationReaction[],
+  name: InvestigationReactionName,
+  enabled: boolean
+): InvestigationReaction[] {
+  const existing = reactions.find(reaction => reaction.reaction === name);
+  if (!existing) {
+    return enabled
+      ? [...reactions, {reaction: name, count: 1, reactedByMe: true}]
+      : reactions;
+  }
+  const count = Math.max(0, existing.count + (enabled ? 1 : -1));
+  return reactions
+    .map(reaction =>
+      reaction.reaction === name ? {...reaction, count, reactedByMe: enabled} : reaction
+    )
+    .filter(reaction => reaction.count > 0);
+}
+
+function mentionsFromTokens(tokens: string[]): InvestigationMention[] {
+  return tokens.flatMap(token => {
+    const [type, id] = token.split(':', 2);
+    return (type === 'user' || type === 'team') && id ? [{id, type}] : [];
+  });
 }
