@@ -2419,10 +2419,13 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Providers whose mailbox drains skip a failed message and keep going instead of
+# aborting. Only safe for providers whose cell-side handlers tolerate reordering,
+# since a skipped message is retried after the ones behind it.
 register(
     "hybridcloud.webhookpayload.skip_on_failure_providers",
     type=Sequence,
-    default=["github"],
+    default=["github", "github_enterprise", "bitbucket", "bitbucket_server"],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Break glass controls
