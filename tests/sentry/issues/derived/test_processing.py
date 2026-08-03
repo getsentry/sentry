@@ -287,14 +287,17 @@ class ProcessGroupLogTest(TestCase):
         invalidate_group_derived_data(group.id)
         assert not GroupDerivedData.objects.filter(group_id=group.id).exists()
 
-    def test_invalidate_with_cursor_deletes_if_past(self) -> None:
+    def test_invalidate_with_cursor_rebuilds_if_past(self) -> None:
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         derived = process_group_log(group.id)
 
-        # Cursor at the processed entry — row should be deleted.
-        invalidate_group_derived_data(group.id, cursor=(derived.cursor_date, derived.cursor_id))
-        assert not GroupDerivedData.objects.filter(group_id=group.id).exists()
+        # Cursor at the processed entry — a full rebuild is scheduled (the row is
+        # left in place; the rebuild promotes over it).
+        with patch("sentry.issues.derived.processing.generate_group_derived_data") as mock_generate:
+            invalidate_group_derived_data(group.id, cursor=(derived.cursor_date, derived.cursor_id))
+        mock_generate.delay.assert_called_once_with(group.id)
+        assert GroupDerivedData.objects.filter(group_id=group.id).exists()
 
     def test_invalidate_with_cursor_noop_if_not_reached(self) -> None:
         group = self.create_group()
