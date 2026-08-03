@@ -440,11 +440,7 @@ class JiraIntegration(IssueSyncIntegration):
         project_mappings: Mapping[str, Any],
     ) -> dict[str, tuple[str, str]]:
         """
-        Normalize the `sync_status_forward` payload into `{external_id: (resolved, unresolved)}`.
-
-        External IDs are coerced to strings because the model stores them as a `CharField` but
-        clients may send them as numbers, which would make an existing mapping look both new
-        and removed.
+        Normalize the `sync_status_forward` payload into `{external_id:string : {on_resolve: string, on_unresolve: string}}`.
         """
         validated: dict[str, tuple[str, str]] = {}
         for external_id, statuses in project_mappings.items():
@@ -461,15 +457,8 @@ class JiraIntegration(IssueSyncIntegration):
         self, project_mappings: Mapping[str, Any]
     ) -> dict[str, Any]:
         """
-        Bring the stored `IntegrationExternalProject` rows in line with `project_mappings`.
+        Get the desired mappings(project mappings in the right format[i.e has on_resolve and on_unresolve]) and the existing mappings(IEPs).
 
-        The payload is the caller's complete desired state, so mappings missing from it are
-        removed. That makes a truncated payload destructive, so rather than deleting every row
-        and recreating it, this reconciles a diff inside a transaction: an unrelated mapping is
-        only ever touched when the caller explicitly dropped it, and a failure part-way through
-        rolls the whole save back.
-
-        Returns the diff for the caller to record on an audit log entry.
         """
         desired = self._validate_project_status_mappings(project_mappings)
 
