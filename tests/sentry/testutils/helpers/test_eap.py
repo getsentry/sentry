@@ -75,3 +75,10 @@ def test_applies_to_query_string() -> None:
     params = QueryDict(result)
     assert params["dataset"] == "spans"
     assert params["statsPeriod"] == EAP_DEFAULT_STATS_PERIOD
+
+
+def test_preserves_query_string_when_no_default_needed() -> None:
+    # Re-encoding would turn ``#`` into ``%23`` and break non-EAP redirect tests.
+    original = "param=test#hash"
+    assert apply_eap_default_stats_period(original) is original
+    assert apply_eap_default_stats_period(original, path="/settings/integrations/") is original

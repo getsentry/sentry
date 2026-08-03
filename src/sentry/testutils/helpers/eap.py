@@ -82,26 +82,28 @@ def _should_apply_default(query: Mapping[str, Any], path: str | None) -> bool:
     return any(fragment in path for fragment in _EAP_PATH_FRAGMENTS)
 
 
-def _set_default_stats_period(query: MutableMapping[str, Any], path: str | None) -> None:
-    if _should_apply_default(query, path):
-        query["statsPeriod"] = EAP_DEFAULT_STATS_PERIOD
-
-
 def apply_eap_default_stats_period(query: Any, *, path: str | None = None) -> Any:
-    """Default EAP requests to a window that Snuba won't downsample."""
+    """Default EAP requests to a window that Snuba won't downsample.
+
+    Returns the original object unchanged when no default is needed so we don't
+    re-encode query strings (which would turn ``#`` into ``%23``, etc.).
+    """
     if isinstance(query, str):
         params = QueryDict(query, mutable=True)
-        _set_default_stats_period(params, path)
+        if not _should_apply_default(params, path):
+            return query
+        params["statsPeriod"] = EAP_DEFAULT_STATS_PERIOD
         return params.urlencode()
 
     if isinstance(query, MutableMapping):
-        _set_default_stats_period(query, path)
+        if _should_apply_default(query, path):
+            query["statsPeriod"] = EAP_DEFAULT_STATS_PERIOD
         return query
 
     if isinstance(query, Mapping):
-        params_dict: dict[str, Any] = dict(query)
-        _set_default_stats_period(params_dict, path)
-        return params_dict
+        if not _should_apply_default(query, path):
+            return query
+        return {**query, "statsPeriod": EAP_DEFAULT_STATS_PERIOD}
 
     return query
 
