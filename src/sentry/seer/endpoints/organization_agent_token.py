@@ -73,10 +73,7 @@ class OrganizationAgentTokenEndpoint(OrganizationEndpoint):
             raise ResourceDoesNotExist
 
         minting_principal = agent_token.resolve_minting_principal(request.user, request.auth)
-        if (
-            not isinstance(minting_principal, agent_token.AgentPrincipal)
-            or minting_principal.type not in agent_token.MINTABLE_AGENT_PRINCIPAL_TYPES
-        ):
+        if not agent_token.is_mintable_agent_principal(minting_principal):
             raise PermissionDenied("Minting requires a user principal.")
 
         data: Any = request.data

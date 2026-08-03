@@ -10,7 +10,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
-from typing import Any, TypedDict
+from typing import Any, TypedDict, TypeGuard
 
 from django.conf import settings
 from django.db import router, transaction
@@ -37,6 +37,7 @@ DEFAULT_TOKEN_TTL = timedelta(minutes=5)
 
 AGENT_TOKEN_KIND = "agent_token"
 AGENT_TOKEN_VERSION = 1
+AGENT_PRINCIPAL_SUBJECT_SEPARATOR = ":"
 
 
 class AgentPrincipalType(StrEnum):
@@ -99,13 +100,19 @@ def resolve_minting_principal(user: Any, auth: Any) -> MintingPrincipal:
     return AgentPrincipal(AgentPrincipalType.USER, user_id)
 
 
+def is_mintable_agent_principal(principal: MintingPrincipal) -> TypeGuard[AgentPrincipal]:
+    return (
+        isinstance(principal, AgentPrincipal) and principal.type in MINTABLE_AGENT_PRINCIPAL_TYPES
+    )
+
+
 def encode_principal_subject(principal: AgentPrincipal) -> str:
-    return f"{principal.type.value}:{principal.id}"
+    return f"{principal.type.value}{AGENT_PRINCIPAL_SUBJECT_SEPARATOR}{principal.id}"
 
 
 def decode_principal_subject(subject: str) -> AgentPrincipal:
-    principal_type, separator, principal_id = subject.partition(":")
-    if separator != ":":
+    principal_type, separator, principal_id = subject.partition(AGENT_PRINCIPAL_SUBJECT_SEPARATOR)
+    if separator != AGENT_PRINCIPAL_SUBJECT_SEPARATOR:
         raise jwt.DecodeError("invalid agent token subject")
     try:
         parsed_type = AgentPrincipalType(principal_type)

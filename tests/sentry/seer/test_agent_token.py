@@ -97,26 +97,30 @@ class AgentTokenAuthAndGateTest(TestCase):
             agent_token.AgentPrincipalType.USER,
             self.owner.id,
         )
+        assert agent_token.is_mintable_agent_principal(resolved)
 
         unsupported = agent_token.resolve_minting_principal(AnonymousUser(), None)
         assert unsupported is agent_token.MintingPrincipalRejection.UNSUPPORTED
+        assert not agent_token.is_mintable_agent_principal(unsupported)
 
     def test_minting_principal_rejects_integrations_and_agents(self) -> None:
         integration_user = SimpleNamespace(is_authenticated=True, is_sentry_app=True)
         integration = agent_token.resolve_minting_principal(integration_user, None)
         assert integration is agent_token.MintingPrincipalRejection.INTEGRATION
+        assert not agent_token.is_mintable_agent_principal(integration)
 
         agent = agent_token.resolve_minting_principal(
             AnonymousUser(),
             SimpleNamespace(kind=agent_token.AGENT_TOKEN_KIND),
         )
         assert agent is agent_token.MintingPrincipalRejection.AGENT
+        assert not agent_token.is_mintable_agent_principal(agent)
 
     def test_principal_subject_round_trips(self) -> None:
         principal = agent_token.AgentPrincipal(agent_token.AgentPrincipalType.USER, self.owner.id)
         subject = agent_token.encode_principal_subject(principal)
 
-        assert subject == f"user:{self.owner.id}"
+        assert subject == (f"user{agent_token.AGENT_PRINCIPAL_SUBJECT_SEPARATOR}{self.owner.id}")
         assert agent_token.decode_principal_subject(subject) == principal
 
     def test_principal_subject_rejects_invalid_or_unsupported_types(self) -> None:
