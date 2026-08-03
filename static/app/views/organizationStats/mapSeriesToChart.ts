@@ -104,13 +104,13 @@ export function mapSeriesToChart({
       // to get the `accepted_stored` count
       if (category === 'span_indexed') {
         if (outcome === Outcome.ACCEPTED) {
-          countAcceptedStored += group.totals['sum(quantity)']!;
+          countAcceptedStored += group.totals?.['sum(quantity)'] ?? 0;
         }
       } else {
         if (outcome !== Outcome.CLIENT_DISCARD) {
-          count.total += group.totals['sum(quantity)']!;
+          count.total += group.totals?.['sum(quantity)'] ?? 0;
         }
-        (count as any)[outcome!] += group.totals['sum(quantity)']!;
+        (count as any)[outcome!] += group.totals?.['sum(quantity)'] ?? 0;
       }
 
       if (category === 'span_indexed' && outcome !== Outcome.ACCEPTED) {
@@ -118,7 +118,7 @@ export function mapSeriesToChart({
         return;
       }
 
-      group.series['sum(quantity)']!.forEach((stat, i) => {
+      (group.series?.['sum(quantity)'] ?? []).forEach((stat, i) => {
         const dataObject = {name: orgStats.intervals[i]!, value: stat};
 
         const strigfiedReason = String(group.by.reason ?? '');
@@ -135,7 +135,7 @@ export function mapSeriesToChart({
 
           if (existingSubLabel) {
             // Check if the existing sub-label's data length matches the intervals length
-            if (existingSubLabel.data.length === group.series['sum(quantity)']!.length) {
+            if (existingSubLabel.data.length === (group.series?.['sum(quantity)'] ?? []).length) {
               // Update the value of the current interval
               existingSubLabel.data[i]!.value += stat;
             } else {
