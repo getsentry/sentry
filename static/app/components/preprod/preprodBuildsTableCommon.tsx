@@ -192,22 +192,30 @@ export function PreprodBuildsRowCells({
           {visibleInstallGroups.length > 0 && (
             <Flex align="center" gap="xs" minWidth={0} width="100%" wrap="wrap">
               {visibleInstallGroups.map(group => (
-                <Tag key={group} style={{maxWidth: '100%'}} title={group} variant="muted">
-                  {group}
+                <Tag
+                  key={group}
+                  style={{maxWidth: '100%', minWidth: 0}}
+                  title={group}
+                  variant="muted"
+                >
+                  <Text ellipsis variant="inherit">
+                    {group}
+                  </Text>
                 </Tag>
               ))}
               {hiddenInstallGroups.length > 0 && (
-                <Tag
-                  aria-label={tn(
-                    '%s more install group',
-                    '%s more install groups',
-                    hiddenInstallGroups.length
-                  )}
-                  title={hiddenInstallGroups.join(', ')}
-                  variant="muted"
-                >
-                  +{hiddenInstallGroups.length}
-                </Tag>
+                <Tooltip title={hiddenInstallGroups.join(', ')}>
+                  <Tag
+                    aria-label={tn(
+                      '%s more install group',
+                      '%s more install groups',
+                      hiddenInstallGroups.length
+                    )}
+                    variant="muted"
+                  >
+                    +{hiddenInstallGroups.length}
+                  </Tag>
+                </Tooltip>
               )}
             </Flex>
           )}

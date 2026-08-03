@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
@@ -127,7 +127,7 @@ describe('PreprodBuildsTable', () => {
     expect(screen.queryByLabelText(/more install groups/)).not.toBeInTheDocument();
   });
 
-  it('collapses install groups beyond the visible limit', () => {
+  it('collapses install groups beyond the visible limit', async () => {
     const buildWithManyGroups = {
       ...baseBuild,
       distribution_info: {
@@ -154,7 +154,11 @@ describe('PreprodBuildsTable', () => {
 
     const overflow = screen.getByLabelText('2 more install groups');
     expect(overflow).toHaveTextContent('+2');
-    expect(overflow).toHaveAttribute('title', 'design-review, release-candidate');
+
+    await userEvent.hover(overflow);
+    expect(
+      await screen.findByText('design-review, release-candidate')
+    ).toBeInTheDocument();
   });
 
   it('does not render install groups in the size view', () => {
