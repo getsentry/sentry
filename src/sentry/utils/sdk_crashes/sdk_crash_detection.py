@@ -163,7 +163,10 @@ class SDKCrashDetection:
 
         metrics.incr("post_process.sdk_crash_monitoring.detecting_sdk_crash", tags=metric_tags)
 
-        if sdk_crash_detector.is_sdk_crash(frames):
+        exception_type = get_path(event.data, "exception", "values", -1, "type")
+        exception_module = get_path(event.data, "exception", "values", -1, "module")
+
+        if sdk_crash_detector.is_sdk_crash(frames, exception_type, exception_module):
             # The sample rate is backwards on purpose, because we return None if we don't want to sample an event.
             if random.random() > sample_rate:
                 return None

@@ -35,6 +35,16 @@ class FunctionAndModulePattern:
     function_pattern: str
 
 
+@dataclass(frozen=True)
+class ExceptionAndFramePattern:
+    """Pattern for conditionally ignoring SDK frames for specific exception types."""
+
+    exception_module_pattern: str
+    exception_type_pattern: str
+    frame_path_pattern: str
+    frame_function_pattern: str
+
+
 @dataclass
 class SDKFrameConfig:
     function_patterns: set[str]
@@ -94,6 +104,12 @@ class SDKCrashDetectionConfig:
     """The package names that identify the customer-facing hybrid SDK for an SDK event.
     Maps the event SDK name to the hybrid SDK name and package name."""
     hybrid_sdk_packages: dict[str, tuple[str, str]] = field(default_factory=dict)
+    """The frame patterns to ignore when they are the only SDK frames and the exception matches.
+    This is for pass-through instrumentation wrappers where the exception type tells us the crash
+    originated in the wrapped subsystem instead of the SDK."""
+    sdk_crash_ignore_when_only_sdk_frame_and_exception_matchers: set[ExceptionAndFramePattern] = (
+        field(default_factory=set)
+    )
 
 
 class SDKCrashDetectionOptions(TypedDict):
@@ -395,6 +411,38 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 FunctionAndModulePattern(
                     module_pattern="io.sentry.android.sqlite.SentryCrossProcessCursor",
                     function_pattern="move*",
+                ),
+            },
+            sdk_crash_ignore_when_only_sdk_frame_and_exception_matchers={
+                # Android SQLite wrappers add spans around app database calls. SQLiteException
+                # subclasses originate in Android/AndroidX SQLite or app database usage; when the
+                # only SDK frames are these wrappers, do not classify the event as an SDK crash.
+                ExceptionAndFramePattern(
+                    exception_module_pattern="android.database.sqlite",
+                    exception_type_pattern="SQLite*",
+                    frame_path_pattern="io.sentry.android.sqlite.*",
+                    frame_function_pattern="*",
+                ),
+                ExceptionAndFramePattern(
+                    exception_module_pattern="android.database.sqlite",
+                    exception_type_pattern="SQLite*",
+                    frame_path_pattern="io.sentry.sqlite.*",
+                    frame_function_pattern="*",
+                ),
+                # AndroidX SQLite's multiplatform SQLiteException is an Android typealias to
+                # android.database.SQLException. Newer AndroidX driver paths throw this for
+                # wrapper-level misuse/range errors such as closed statements or invalid columns.
+                ExceptionAndFramePattern(
+                    exception_module_pattern="android.database",
+                    exception_type_pattern="SQLException",
+                    frame_path_pattern="io.sentry.android.sqlite.*",
+                    frame_function_pattern="*",
+                ),
+                ExceptionAndFramePattern(
+                    exception_module_pattern="android.database",
+                    exception_type_pattern="SQLException",
+                    frame_path_pattern="io.sentry.sqlite.*",
+                    frame_function_pattern="*",
                 ),
             },
         )

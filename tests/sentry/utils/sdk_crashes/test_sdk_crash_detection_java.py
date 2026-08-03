@@ -7,6 +7,7 @@ import pytest
 from fixtures.sdk_crash_detection.crash_event_android import (
     get_apex_crash_event,
     get_crash_event,
+    get_crash_event_with_frames,
     get_exception,
     get_frames,
 )
@@ -400,5 +401,210 @@ def test_appexitinfo_detected(mock_sdk_crash_reporter, mock_random, store_event,
         event=event,
         configs=configs,
     )
+
+    assert mock_sdk_crash_reporter.report.call_count == 1
+
+
+def get_sqlite_wrapper_frames(
+    include_non_sqlite_sdk_frame: bool = False,
+    sdk_frame_path_field: str = "module",
+) -> list[dict[str, str]]:
+    frames = [
+        {
+            "function": "saveThing",
+            "module": "com.example.app.DatabaseWriter",
+            "filename": "DatabaseWriter.kt",
+        },
+        {
+            "function": "execSQL",
+            sdk_frame_path_field: "io.sentry.android.sqlite.SentrySupportSQLiteDatabase",
+            "filename": "SentrySupportSQLiteDatabase.kt",
+        },
+        {
+            "function": "performSql",
+            sdk_frame_path_field: "io.sentry.android.sqlite.OpenHelperSpans",
+            "filename": "OpenHelperSpans.kt",
+        },
+        {
+            "function": "execSQL",
+            "module": "androidx.sqlite.db.framework.FrameworkSQLiteDatabase",
+            "filename": "FrameworkSQLiteDatabase.kt",
+        },
+        {
+            "function": "execute",
+            "module": "android.database.sqlite.SQLiteConnection",
+            "filename": "SQLiteConnection.java",
+        },
+    ]
+    if include_non_sqlite_sdk_frame:
+        frames.insert(
+            1,
+            {
+                "function": "captureException",
+                "module": "io.sentry.Hub",
+                "filename": "Hub.java",
+            },
+        )
+    return frames
+
+
+def get_sqlite_driver_wrapper_frames(
+    include_non_sqlite_sdk_frame: bool = False,
+    sdk_frame_path_field: str = "module",
+) -> list[dict[str, str]]:
+    frames = [
+        {
+            "function": "insertUser",
+            "module": "com.example.app.UserDao",
+            "filename": "UserDao.kt",
+        },
+        {
+            "function": "step",
+            sdk_frame_path_field: "io.sentry.sqlite.SentrySQLiteStatement",
+            "filename": "SentrySQLiteStatement.kt",
+        },
+        {
+            "function": "record",
+            sdk_frame_path_field: "io.sentry.sqlite.DriverSpans",
+            "filename": "DriverSpans.kt",
+        },
+        {
+            "function": "step",
+            "module": "androidx.sqlite.driver.bundled.BundledSQLiteStatement",
+            "filename": "BundledSQLiteStatement.jvmAndAndroid.kt",
+        },
+        {
+            "function": "nativeStep",
+            "module": "androidx.sqlite.driver.bundled.BundledSQLiteStatementKt",
+            "filename": "BundledSQLiteStatement.jvmAndAndroid.kt",
+        },
+    ]
+    if include_non_sqlite_sdk_frame:
+        frames.insert(
+            1,
+            {
+                "function": "captureException",
+                "module": "io.sentry.Hub",
+                "filename": "Hub.java",
+            },
+        )
+    return frames
+
+
+@pytest.mark.parametrize(
+    ["frames", "exception_type", "exception_module"],
+    [
+        (
+            get_sqlite_wrapper_frames,
+            "SQLiteFullException",
+            "android.database.sqlite",
+        ),
+        (
+            get_sqlite_driver_wrapper_frames,
+            "SQLiteException",
+            "android.database.sqlite",
+        ),
+        (
+            get_sqlite_wrapper_frames,
+            "SQLException",
+            "android.database",
+        ),
+        (
+            get_sqlite_driver_wrapper_frames,
+            "SQLException",
+            "android.database",
+        ),
+    ],
+)
+@pytest.mark.parametrize("sdk_frame_path_field", ["module", "package"])
+@decorators
+def test_android_sqlite_wrapper_only_crash_not_detected(
+    mock_sdk_crash_reporter,
+    mock_random,
+    store_event,
+    configs,
+    frames,
+    exception_type: str,
+    exception_module: str,
+    sdk_frame_path_field: str,
+) -> None:
+    event_data = get_crash_event_with_frames(frames(sdk_frame_path_field=sdk_frame_path_field))
+    set_path(event_data, "exception", "values", -1, "type", value=exception_type)
+    set_path(event_data, "exception", "values", -1, "module", value=exception_module)
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
+
+    assert mock_sdk_crash_reporter.report.call_count == 0
+
+
+@decorators
+def test_android_sqlite_package_wrappers_do_not_hide_non_sqlite_exceptions(
+    mock_sdk_crash_reporter, mock_random, store_event, configs
+) -> None:
+    event_data = get_crash_event_with_frames(
+        get_sqlite_wrapper_frames(sdk_frame_path_field="package")
+    )
+    set_path(event_data, "exception", "values", -1, "type", value="NullPointerException")
+    set_path(event_data, "exception", "values", -1, "module", value="java.lang")
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
+
+    assert mock_sdk_crash_reporter.report.call_count == 1
+
+
+@decorators
+def test_android_sqlite_package_wrappers_do_not_hide_other_sdk_frames(
+    mock_sdk_crash_reporter, mock_random, store_event, configs
+) -> None:
+    event_data = get_crash_event_with_frames(
+        get_sqlite_wrapper_frames(include_non_sqlite_sdk_frame=True, sdk_frame_path_field="package")
+    )
+    set_path(event_data, "exception", "values", -1, "type", value="SQLiteFullException")
+    set_path(event_data, "exception", "values", -1, "module", value="android.database.sqlite")
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
+
+    assert mock_sdk_crash_reporter.report.call_count == 1
+
+
+@decorators
+def test_android_sqlite_wrappers_do_not_hide_non_sqlite_exceptions(
+    mock_sdk_crash_reporter, mock_random, store_event, configs
+) -> None:
+    event_data = get_crash_event_with_frames(get_sqlite_wrapper_frames())
+    set_path(event_data, "exception", "values", -1, "type", value="NullPointerException")
+    set_path(event_data, "exception", "values", -1, "module", value="java.lang")
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
+
+    assert mock_sdk_crash_reporter.report.call_count == 1
+
+
+@decorators
+def test_android_sqlite_wrappers_do_not_hide_other_sdk_frames(
+    mock_sdk_crash_reporter, mock_random, store_event, configs
+) -> None:
+    event_data = get_crash_event_with_frames(
+        get_sqlite_wrapper_frames(include_non_sqlite_sdk_frame=True)
+    )
+    set_path(event_data, "exception", "values", -1, "type", value="SQLiteFullException")
+    set_path(event_data, "exception", "values", -1, "module", value="android.database.sqlite")
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
 
     assert mock_sdk_crash_reporter.report.call_count == 1

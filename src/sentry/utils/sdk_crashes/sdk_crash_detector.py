@@ -7,6 +7,7 @@ from sentry.db.models import NodeData
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
+    ExceptionAndFramePattern,
     FunctionAndModulePattern,
     SDKCrashDetectionConfig,
 )
@@ -71,7 +72,12 @@ class SDKCrashDetector:
 
         return False
 
-    def is_sdk_crash(self, frames: Sequence[Mapping[str, Any]]) -> bool:
+    def is_sdk_crash(
+        self,
+        frames: Sequence[Mapping[str, Any]],
+        exception_type: str | None = None,
+        exception_module: str | None = None,
+    ) -> bool:
         """
         Returns true if the stacktrace stems from an SDK crash.
 
@@ -133,7 +139,9 @@ class SDKCrashDetector:
             if self.is_sdk_frame(frame):
                 if self._matches_sdk_crash_ignore(frame):
                     continue
-                if self._matches_ignore_when_only_sdk_frame(frame):
+                if self._matches_ignore_when_only_sdk_frame(
+                    frame, exception_type, exception_module
+                ):
                     has_conditional_sdk_frame = True
                 else:
                     has_non_conditional_sdk_frame = True
@@ -145,10 +153,58 @@ class SDKCrashDetector:
         # Passed all ignore checks: this is an SDK crash.
         return True
 
-    def _matches_ignore_when_only_sdk_frame(self, frame: Mapping[str, Any]) -> bool:
-        return self._matches_frame_pattern(
+    def _matches_ignore_when_only_sdk_frame(
+        self,
+        frame: Mapping[str, Any],
+        exception_type: str | None,
+        exception_module: str | None,
+    ) -> bool:
+        if self._matches_frame_pattern(
             frame, self.config.sdk_crash_ignore_when_only_sdk_frame_matchers
+        ):
+            return True
+
+        return self._matches_exception_and_frame_pattern(
+            frame,
+            exception_type,
+            exception_module,
+            self.config.sdk_crash_ignore_when_only_sdk_frame_and_exception_matchers,
         )
+
+    def _matches_exception_and_frame_pattern(
+        self,
+        frame: Mapping[str, Any],
+        exception_type: str | None,
+        exception_module: str | None,
+        matchers: set[ExceptionAndFramePattern],
+    ) -> bool:
+        if not exception_type or not exception_module:
+            return False
+
+        frame_function = frame.get("function")
+        if not frame_function:
+            return False
+
+        for matcher in matchers:
+            exception_type_matches = glob_match(
+                exception_type, matcher.exception_type_pattern, ignorecase=True
+            )
+            exception_module_matches = glob_match(
+                exception_module, matcher.exception_module_pattern, ignorecase=True
+            )
+            frame_function_matches = glob_match(
+                frame_function, matcher.frame_function_pattern, ignorecase=True
+            )
+            frame_path_matches = self._path_patters_match_frame({matcher.frame_path_pattern}, frame)
+            if (
+                exception_type_matches
+                and exception_module_matches
+                and frame_function_matches
+                and frame_path_matches
+            ):
+                return True
+
+        return False
 
     def _matches_sdk_crash_ignore(self, frame: Mapping[str, Any]) -> bool:
         return self._matches_frame_pattern(frame, self.config.sdk_crash_ignore_matchers)
