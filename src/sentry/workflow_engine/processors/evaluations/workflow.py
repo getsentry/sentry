@@ -114,19 +114,16 @@ def log_workflow_evaluations(
     if not should_log:
         return False
 
-    evaluation_logs = {
-        workflow_id: evaluation.to_log() for workflow_id, evaluation in evaluations.items()
-    }
-    triggered_workflow_ids = sorted(
-        workflow_id
-        for workflow_id, evaluation_log in evaluation_logs.items()
-        if evaluation_log["triggered"]
-    )
-    triggered_action_ids = sorted(
-        action_id
-        for evaluation_log in evaluation_logs.values()
-        for action_id in evaluation_log["triggered_action_ids"]
-    )
+    triggered_workflow_ids: list[WorkflowId] = []
+    triggered_action_ids: list[int] = []
+    for workflow_id, evaluation in evaluations.items():
+        evaluation_log = evaluation.to_log()
+        if evaluation_log["triggered"]:
+            triggered_workflow_ids.append(workflow_id)
+        triggered_action_ids.extend(evaluation_log["triggered_action_ids"])
+
+    triggered_workflow_ids.sort()
+    triggered_action_ids.sort()
 
     log_name = "workflow_engine.process_workflows.evaluation"
     if triggered_action_ids:

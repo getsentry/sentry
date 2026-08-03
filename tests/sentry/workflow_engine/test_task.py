@@ -136,7 +136,7 @@ class TestProcessWorkflowActivity(TestCase):
         "sentry.workflow_engine.processors.action.filter_recently_fired_workflow_actions",
         return_value=([], {}),
     )
-    @mock.patch("sentry.workflow_engine.processors.workflow.logger")
+    @mock.patch("sentry.workflow_engine.tasks.workflows.logger")
     def test_process_workflow_activity(
         self, mock_logger: mock.MagicMock, mock_filter_actions: mock.MagicMock
     ) -> None:
