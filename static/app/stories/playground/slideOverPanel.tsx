@@ -84,7 +84,7 @@ export function SkeletonPanelContents({onClick}: PanelContentsProps) {
 function ManySlowComponents() {
   return (
     <Fragment>
-      {Array.from(Array.from({length: 100}), (_, index) => (
+      {Array.from({length: 100}, (_, index) => (
         <VerySlowComponent key={index} />
       ))}
     </Fragment>
