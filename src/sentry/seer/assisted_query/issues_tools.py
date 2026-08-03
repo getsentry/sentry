@@ -731,7 +731,7 @@ def execute_issues_query(
             error = str(error_detail) if error_detail is not None else str(e.body)
             logger.warning(
                 "execute_issues_query: validation failed",
-                extra={"org_id": organization.id, "error": error},
+                extra={"org_id": organization.id, "error_detail": error},
             )
             return ExecuteQueryErrorResponse(error=error)
         raise

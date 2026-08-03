@@ -241,7 +241,7 @@ def _validate_events_query_params(
             error = _format_events_query_validation_errors(resp.data)
             logger.warning(
                 "execute_table_query: validation failed",
-                extra={"org_id": organization.id, "error": error},
+                extra={"org_id": organization.id, "error_detail": error},
             )
             return ExecuteQueryErrorResponse(error=error)
         return None
@@ -250,7 +250,7 @@ def _validate_events_query_params(
             error = _format_events_query_validation_errors(e.body)
             logger.warning(
                 "execute_table_query: validation failed",
-                extra={"org_id": organization.id, "error": error},
+                extra={"org_id": organization.id, "error_detail": error},
             )
             return ExecuteQueryErrorResponse(error=error)
         logger.exception(
@@ -381,7 +381,7 @@ def execute_table_query(
             error = str(error_detail) if error_detail is not None else str(e.body)
             logger.warning(
                 "execute_table_query: validation failed",
-                extra={"org_id": org_id, "error": error},
+                extra={"org_id": org_id, "error_detail": error},
             )
             return ExecuteQueryErrorResponse(error=error)
         raise
@@ -476,7 +476,7 @@ def execute_timeseries_query(
             error = str(error_detail) if error_detail is not None else str(e.body)
             logger.warning(
                 "execute_timeseries_query: validation failed",
-                extra={"org_id": org_id, "error": error},
+                extra={"org_id": org_id, "error_detail": error},
             )
             return ExecuteTimeseriesQueryErrorResponse(seer_error_detail=error)
         raise
@@ -579,7 +579,7 @@ def execute_trace_table_query(
             error = str(error_detail) if error_detail is not None else str(e.body)
             logger.warning(
                 "execute_trace_table_query: validation failed",
-                extra={"org_id": organization_id, "error": error},
+                extra={"org_id": organization_id, "error_detail": error},
             )
             return ExecuteQueryErrorResponse(error=error)
         raise
@@ -636,7 +636,7 @@ def execute_replays_query(
         error = "Session Replay is not enabled for this organization."
         logger.warning(
             "execute_replays_query: validation failed",
-            extra={"org_id": organization_id, "error": error},
+            extra={"org_id": organization_id, "error_detail": error},
         )
         return ExecuteQueryErrorResponse(error=error)
 
@@ -644,7 +644,7 @@ def execute_replays_query(
         error = "Pass either project_ids or project_slugs, not both."
         logger.warning(
             "execute_replays_query: validation failed",
-            extra={"org_id": organization_id, "error": error},
+            extra={"org_id": organization_id, "error_detail": error},
         )
         return ExecuteQueryErrorResponse(error=error)
 
@@ -670,7 +670,7 @@ def execute_replays_query(
         error = f"Invalid replay field(s): {', '.join(invalid_fields)}"
         logger.warning(
             "execute_replays_query: validation failed",
-            extra={"org_id": organization_id, "error": error},
+            extra={"org_id": organization_id, "error_detail": error},
         )
         return ExecuteQueryErrorResponse(error=error)
 
@@ -708,7 +708,7 @@ def execute_replays_query(
                 "org_id": organization_id,
                 "query": query,
                 "field": e.args[0] if e.args else None,
-                "error": error,
+                "error_detail": error,
             },
         )
         return ExecuteQueryErrorResponse(error=error)
@@ -716,7 +716,7 @@ def execute_replays_query(
         error = str(e)
         logger.warning(
             "execute_replays_query: validation failed",
-            extra={"org_id": organization_id, "query": query, "error": error},
+            extra={"org_id": organization_id, "query": query, "error_detail": error},
         )
         return ExecuteQueryErrorResponse(error=error)
 
