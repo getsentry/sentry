@@ -454,24 +454,21 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
           <ExploreContentSection gap="md">
             <OverChartButtonGroup>
               <Container display={{zero: 'none', '4xl': 'inline-flex'}}>
-                {buttonProps => (
-                  <LogsSidebarCollapseButton
-                    {...buttonProps}
-                    sidebarOpen={sidebarOpen}
-                    aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
-                    size="xs"
-                    icon={
-                      <IconChevron
-                        isDouble
-                        direction={sidebarOpen ? 'left' : 'right'}
-                        size="xs"
-                      />
-                    }
-                    onClick={() => setSidebarOpen(!sidebarOpen)}
-                  >
-                    {sidebarOpen ? null : t('Advanced')}
-                  </LogsSidebarCollapseButton>
-                )}
+                <LogsSidebarCollapseButton
+                  sidebarOpen={sidebarOpen}
+                  aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
+                  size="xs"
+                  icon={
+                    <IconChevron
+                      isDouble
+                      direction={sidebarOpen ? 'left' : 'right'}
+                      size="xs"
+                    />
+                  }
+                  onClick={() => setSidebarOpen(!sidebarOpen)}
+                >
+                  {sidebarOpen ? null : t('Advanced')}
+                </LogsSidebarCollapseButton>
               </Container>
               {mode === Mode.AGGREGATE ? (
                 <LogsAggregateExportModalButton
