@@ -5,6 +5,7 @@ from typing import Any
 
 from sentry.integrations.source_code_management.status_check import (
     AggregateChecksStatus,
+    AggregateReviewStatus,
     PullRequestStatusRequest,
     PullRequestStatusResult,
 )
@@ -12,6 +13,7 @@ from sentry.utils.safe import get_path
 
 PULL_REQUEST_STATUS_FRAGMENT = """
 fragment PullRequestStatusFields on PullRequest {
+  reviewDecision
   commits(last: 1) {
     nodes {
       commit {
@@ -30,6 +32,12 @@ _CHECKS_STATUS_BY_STATE: dict[str, AggregateChecksStatus] = {
     "ERROR": AggregateChecksStatus.FAILURE,
     "PENDING": AggregateChecksStatus.PENDING,
     "EXPECTED": AggregateChecksStatus.PENDING,
+}
+
+_REVIEW_STATUS_BY_DECISION: dict[str, AggregateReviewStatus] = {
+    "APPROVED": AggregateReviewStatus.APPROVED,
+    "CHANGES_REQUESTED": AggregateReviewStatus.CHANGES_REQUESTED,
+    "REVIEW_REQUIRED": AggregateReviewStatus.REVIEW_REQUIRED,
 }
 
 
@@ -82,12 +90,16 @@ def create_pull_request_status_query(
 
 def _extract_pull_request_status(pull_request: Any) -> PullRequestStatusResult:
     state = get_path(pull_request, "commits", "nodes", 0, "commit", "statusCheckRollup", "state")
-    return PullRequestStatusResult(checks=_CHECKS_STATUS_BY_STATE.get(state))
+    decision = get_path(pull_request, "reviewDecision")
+    return PullRequestStatusResult(
+        checks=_CHECKS_STATUS_BY_STATE.get(state),
+        review=_REVIEW_STATUS_BY_DECISION.get(decision),
+    )
 
 
 def extract_pull_request_status_from_response(response: Any) -> PullRequestStatusResult:
     """
-    Read checks state from the legacy single-repository response shape.
+    Read checks and review state from the legacy single-repository response shape.
 
     Every level of the response is nullable and unrecognized values map to no state, so
     a repository without CI, or a value GitHub adds later, reports nothing rather than

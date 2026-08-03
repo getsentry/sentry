@@ -46,11 +46,20 @@ class AggregateChecksStatus(enum.StrEnum):
     PENDING = "pending"
 
 
+class AggregateReviewStatus(enum.StrEnum):
+    """The provider's effective review decision for a pull request."""
+
+    APPROVED = "approved"
+    CHANGES_REQUESTED = "changes_requested"
+    REVIEW_REQUIRED = "review_required"
+
+
 @dataclass(frozen=True)
 class PullRequestStatusResult:
-    """A pull request's checks state, as far as the provider reports it."""
+    """A pull request's checks and review state, as far as the provider reports it."""
 
     checks: AggregateChecksStatus | None = None
+    review: AggregateReviewStatus | None = None
 
 
 @dataclass(frozen=True)
