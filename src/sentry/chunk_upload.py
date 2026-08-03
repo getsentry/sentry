@@ -1,35 +1,25 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
+from datetime import datetime
 
 from django.utils import timezone
 
-from sentry.objectstore import get_chunk_upload_session
+from sentry.objectstore import (
+    CHUNK_UPLOAD_EXPIRY_SAFETY_WINDOW,
+    CHUNK_UPLOAD_INTENT_TTL,
+    get_chunk_upload_session,
+)
+from sentry.tasks.assemble import _get_redis_cluster_for_assemble
 from sentry.utils.tracing import set_span_data, set_span_tag, start_span
 
-if TYPE_CHECKING:
-    from sentry_redis_tools.clients import RedisCluster
 
-
-CHUNK_UPLOAD_OBJECTSTORE_TTL = timedelta(days=1)
-CHUNK_UPLOAD_OBJECTSTORE_EXPIRY_SAFETY_WINDOW = timedelta(hours=1)
-
-
-def get_chunk_upload_objectstore_intent_key(organization_id: int, checksum: str) -> str:
+def _get_intent_key(organization_id: int, checksum: str) -> str:
     return f"chunk-upload-objectstore:{organization_id}:{checksum}"
 
 
-def get_chunk_upload_objectstore_mode_key(organization_id: int) -> str:
+def _get_mode_key(organization_id: int) -> str:
     return f"chunk-upload-objectstore-mode:{organization_id}"
-
-
-def _get_assemble_redis_cluster() -> RedisCluster:
-    # Objectstore upload intents share the assemble status cluster.
-    from sentry.tasks.assemble import _get_redis_cluster_for_assemble
-
-    return _get_redis_cluster_for_assemble()
 
 
 def set_chunk_upload_objectstore_intents(organization_id: int, checksums: Iterable[str]) -> None:
@@ -37,24 +27,24 @@ def set_chunk_upload_objectstore_intents(organization_id: int, checksums: Iterab
     if not checksums:
         return
 
-    pipeline = _get_assemble_redis_cluster().pipeline(transaction=False)
+    pipeline = _get_redis_cluster_for_assemble().pipeline(transaction=False)
     for checksum in checksums:
         pipeline.set(
-            name=get_chunk_upload_objectstore_intent_key(organization_id, checksum),
+            name=_get_intent_key(organization_id, checksum),
             value="1",
-            ex=CHUNK_UPLOAD_OBJECTSTORE_TTL,
+            ex=CHUNK_UPLOAD_INTENT_TTL,
         )
     pipeline.execute()
 
 
 def get_chunk_upload_objectstore_mode(organization_id: int, use_objectstore: bool) -> bool:
     """Pins the Objectstore assembly mode for an organization during the rollout."""
-    client = _get_assemble_redis_cluster()
-    key = get_chunk_upload_objectstore_mode_key(organization_id)
+    client = _get_redis_cluster_for_assemble()
+    key = _get_mode_key(organization_id)
     mode = client.get(key)
     if mode is None:
         value = "1" if use_objectstore else "0"
-        if client.set(key, value, ex=CHUNK_UPLOAD_OBJECTSTORE_TTL, nx=True):
+        if client.set(key, value, ex=CHUNK_UPLOAD_INTENT_TTL, nx=True):
             return use_objectstore
         mode = client.get(key)
 
@@ -68,10 +58,10 @@ def get_chunk_upload_objectstore_intents(
     if not checksums:
         return set()
 
-    pipeline = _get_assemble_redis_cluster().pipeline(transaction=False)
+    pipeline = _get_redis_cluster_for_assemble().pipeline(transaction=False)
     ordered_checksums = list(checksums)
     for checksum in ordered_checksums:
-        pipeline.get(name=get_chunk_upload_objectstore_intent_key(organization_id, checksum))
+        pipeline.get(name=_get_intent_key(organization_id, checksum))
     return {
         checksum
         for checksum, intent in zip(ordered_checksums, pipeline.execute(), strict=True)
@@ -84,9 +74,9 @@ def delete_chunk_upload_objectstore_intents(organization_id: int, checksums: Ite
     if not checksums:
         return
 
-    pipeline = _get_assemble_redis_cluster().pipeline(transaction=False)
+    pipeline = _get_redis_cluster_for_assemble().pipeline(transaction=False)
     for checksum in checksums:
-        pipeline.delete(get_chunk_upload_objectstore_intent_key(organization_id, checksum))
+        pipeline.delete(_get_intent_key(organization_id, checksum))
     pipeline.execute()
 
 
@@ -94,7 +84,7 @@ def _has_valid_chunk_expiry(time_expires: datetime | None, now: datetime) -> boo
     return (
         time_expires is not None
         and timezone.is_aware(time_expires)
-        and time_expires >= now + CHUNK_UPLOAD_OBJECTSTORE_EXPIRY_SAFETY_WINDOW
+        and time_expires >= now + CHUNK_UPLOAD_EXPIRY_SAFETY_WINDOW
     )
 
 
@@ -113,7 +103,7 @@ def find_missing_objectstore_chunks(organization_id: int, chunks: Iterable[str])
         session = get_chunk_upload_session(organization_id)
         now = timezone.now()
         missing_chunks = []
-        # TODO: Replace this with Objectstore batch HEAD once client and server support it.
+        # TODO: Replace this with Objectstore batch HEAD once the client supports it.
         for chunk in chunks:
             metadata = session.head(chunk)
             if metadata is None or not _has_valid_chunk_expiry(metadata.time_expires, now):

@@ -68,13 +68,18 @@ class SentryMetricsBackend(MetricsBackend):
         sentry_metrics.distribution(name, value, tags=tags, unit=unit)
 
 
+CHUNK_UPLOAD_INTENT_TTL = timedelta(days=1)
+CHUNK_UPLOAD_EXPIRY_SAFETY_WINDOW = timedelta(hours=1)
+
 _OBJECTSTORE_CLIENT: Client | None = None
 _ATTACHMENTS_USECASE: Usecase | None = None
 _DEBUG_FILES_USECASE = Usecase(
     "debug_files", compression="none", expiration_policy=TimeToIdle(timedelta(days=90))
 )
 _CHUNK_UPLOAD_USECASE = Usecase(
-    "chunk-upload", compression="none", expiration_policy=TimeToLive(timedelta(hours=25))
+    "chunk-upload",
+    compression="none",
+    expiration_policy=TimeToLive(CHUNK_UPLOAD_INTENT_TTL + CHUNK_UPLOAD_EXPIRY_SAFETY_WINDOW),
 )
 _PROFILE_ATTACHMENTS_USECASE: Usecase | None = None
 _PREPROD_USECASE = Usecase("preprod", expiration_policy=TimeToIdle(timedelta(days=30)))
