@@ -4,6 +4,7 @@ import type {Location, Query} from 'history';
 import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 
 import type {Client} from 'sentry/api';
@@ -362,7 +363,16 @@ class QueryList extends Component<Props> {
     const {pageLinks} = this.props;
     return (
       <Fragment>
-        <QueryGrid>{this.renderQueries()}</QueryGrid>
+        <Grid
+          columns={{
+            zero: 'minmax(100px, 1fr)',
+            '3xl': 'repeat(2, minmax(100px, 1fr))',
+            '4xl': 'repeat(3, minmax(100px, 1fr))',
+          }}
+          gap="xl"
+        >
+          {this.renderQueries()}
+        </Grid>
         <PaginationRow
           pageLinks={pageLinks}
           onCursor={(cursor, path, query, direction) => {
@@ -388,20 +398,6 @@ class QueryList extends Component<Props> {
 
 const PaginationRow = styled(Pagination)`
   margin-bottom: 20px;
-`;
-
-const QueryGrid = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(100px, 1fr);
-  gap: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: repeat(2, minmax(100px, 1fr));
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: repeat(3, minmax(100px, 1fr));
-  }
 `;
 
 const DropdownTrigger = styled(Button)`
