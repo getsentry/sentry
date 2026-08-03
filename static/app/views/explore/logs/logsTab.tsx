@@ -193,7 +193,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
             gap="md"
             width="100%"
           >
-            <Container area="filters" justifySelf="start">
+            <Container area="filters" justifySelf={{zero: 'stretch', xl: 'start'}}>
               <StyledPageFilterBar condensed>
                 <ProjectPageFilter />
                 <EnvironmentPageFilter />
@@ -209,23 +209,32 @@ const LogsSearchSection = memo(function LogsSearchSection({
               />
             </Container>
             {saveAsItems.length > 0 && (
-              <Flex area="actions" align="start" justifySelf="end">
+              <Flex
+                area="actions"
+                align="start"
+                justifySelf={{zero: 'stretch', xl: 'end'}}
+              >
                 <DropdownMenu
                   items={saveAsItems}
                   trigger={triggerProps => (
-                    <Button
-                      {...triggerProps}
-                      variant="primary"
-                      aria-label={t('Save as')}
-                      onClick={e => {
-                        e.stopPropagation();
-                        e.preventDefault();
+                    <Container width={{zero: '100%', xl: 'auto'}}>
+                      {buttonProps => (
+                        <Button
+                          {...buttonProps}
+                          {...triggerProps}
+                          variant="primary"
+                          aria-label={t('Save as')}
+                          onClick={e => {
+                            e.stopPropagation();
+                            e.preventDefault();
 
-                        triggerProps.onClick?.(e);
-                      }}
-                    >
-                      {t('Save as')}
-                    </Button>
+                            triggerProps.onClick?.(e);
+                          }}
+                        >
+                          {t('Save as')}
+                        </Button>
+                      )}
+                    </Container>
                   )}
                 />
               </Flex>
