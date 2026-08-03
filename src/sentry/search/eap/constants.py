@@ -139,22 +139,12 @@ TYPE_MAP: dict[SearchType, AttributeKey.Type.ValueType] = {
     "array": ARRAY,
 }
 
-# How far back EAP keeps full-fidelity (tier 1) data. Downsampled tiers retain items for
-# much longer, but Snuba routes any query whose window starts beyond this boundary to a
-# sampled tier, so this is the widest window that still sees every item.
+# Widest window that still hits tier 1. Snuba downsamples queries starting >31d ago.
 EAP_FULL_FIDELITY_RETENTION_DAYS = 30
-
-# Snuba downsamples EAP queries starting more than 31 days ago, so a 30 day lookback that
-# then gets floored to midnight (see `adjust_start_end_window`) leaves as little as a
-# second of headroom just before midnight UTC. We accept that risk to keep the full 30 day
-# window: a query issued in that last second (or with enough clock skew between here and
-# Snuba) gets routed to a sampled tier instead.
+# Equal to retention; midnight flooring can leave ~1s of headroom before the boundary.
 EAP_FULL_FIDELITY_QUERY_DAYS = EAP_FULL_FIDELITY_RETENTION_DAYS
 
-# Item types Snuba keeps at full retention on tier 1, so their queries are never routed to a
-# downsampled tier no matter how far back the window starts. Mirrors
-# `ITEM_TYPE_FULL_RETENTION` in
-# snuba/web/rpc/storage_routing/routing_strategies/common.py.
+# Never downsampled. Mirrors snuba ITEM_TYPE_FULL_RETENTION.
 FULL_RETENTION_ITEM_TYPES = frozenset(
     {
         SupportedTraceItemType.UPTIME_RESULTS,

@@ -150,7 +150,7 @@ from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.eap import SentryAPIClient
+from sentry.testutils.helpers.eap import EAPClient
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.response import is_drf_response
 from sentry.testutils.helpers.slack import install_slack
@@ -723,9 +723,7 @@ class APITestCase(BaseTestCase, BaseAPITestCase, APITestCaseMixin):
     # We need Django to flush all databases.
     databases: set[str] | str = "__all__"
 
-    # Keeps EAP queries inside the full-fidelity (tier 1) window by default so tests
-    # don't silently hit Snuba's downsampled tiers. See sentry.testutils.helpers.eap.
-    client_class = SentryAPIClient
+    client_class = EAPClient
     method = "get"
 
 
@@ -733,7 +731,7 @@ class APITransactionTestCase(BaseTestCase, BaseAPITransactionTestCase, APITestCa
     # We need Django to flush all databases.
     databases: set[str] | str = "__all__"
 
-    client_class = SentryAPIClient
+    client_class = EAPClient
     method = "get"
 
 

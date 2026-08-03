@@ -11,27 +11,16 @@ from sentry.search.eap.constants import EAP_FULL_FIDELITY_QUERY_DAYS, FULL_RETEN
 
 __all__ = [
     "EAP_DEFAULT_STATS_PERIOD",
-    "SentryAPIClient",
+    "EAPClient",
     "apply_eap_default_stats_period",
     "is_eap_dataset",
 ]
 
-# Snuba's OutcomesBasedRoutingStrategy routes any EAP query whose window starts more
-# than 31 days ago to the TIER_8 downsampled table. Test fixtures are only written to
-# the tier 1 table; the downsampled tables are populated by a materialized view that
-# keeps roughly 1 in 8 items (``cityHash64(item_id + 8) % 8 = 0``), so a query that
-# gets downsampled sees an arbitrary subset of the items a test just stored.
-#
-# The API defaults to a 90 day window when no ``statsPeriod``/``start``/``end`` is
-# given (``sentry.api.utils.MAX_STATS_PERIOD``), which is past that boundary. Tests
-# that don't care about the window should use EAP's full-fidelity window instead.
-#
-# ``SentryAPIClient`` (wired as the default test API client) applies this automatically
-# so individual tests don't need to remember. Opt out by setting an explicit window key.
+# Snuba downsamples EAP queries whose window starts >31d ago. Test fixtures only land
+# in tier 1, so the API's 90d default would make tests see an arbitrary subset of rows.
+# EAPClient applies this automatically; set an explicit window key to opt out.
 EAP_DEFAULT_STATS_PERIOD = f"{EAP_FULL_FIDELITY_QUERY_DAYS}d"
 
-# Keys that pin down the query window. If a test sets any of these it has opted into a
-# specific window and we must not override it.
 _WINDOW_KEYS = frozenset(
     {
         "statsPeriod",
@@ -40,33 +29,25 @@ _WINDOW_KEYS = frozenset(
         "start",
         "end",
         "range",
-        # The trace endpoints derive a narrow window around a single event/trace.
         "timestamp",
     }
 )
 
-
-# ``dataset`` / ``itemType`` query param labels for the item types Snuba keeps at full
-# retention, whose queries are never downsampled no matter how far back the window
-# starts. ``preprod`` is spelled ``preprodSize`` as a dataset label.
+# preprod is spelled preprodSize as a dataset label.
 _FULL_RETENTION_DATASETS = frozenset(
     {item_type.value for item_type in FULL_RETENTION_ITEM_TYPES} | {"preprodSize"}
 )
 
-# URL path fragments that always hit EAP (or default to an EAP dataset). Used when a
-# request doesn't pass ``dataset``/``itemType`` but still needs the tier-1 window —
-# e.g. trace-item stats defaults to spans, ai-conversations always queries spans.
+# Paths that hit EAP even without dataset/itemType (or default to an EAP dataset).
 _EAP_PATH_FRAGMENTS = (
     "/trace-items/",
     "/ai-conversations/",
     "/spans/fields/",
-    # OrganizationTracesEndpoint defaults dataset to spans.
     "/traces/",
 )
 
 
 def _eap_dataset_labels() -> frozenset[str]:
-    """Labels in the ``dataset``/``itemType`` query params that resolve to EAP."""
     from sentry.snuba.utils import DATASET_OPTIONS, RPC_DATASETS
 
     return frozenset(label for label, dataset in DATASET_OPTIONS.items() if dataset in RPC_DATASETS)
@@ -85,7 +66,6 @@ def _dataset_from_query(query: Mapping[str, Any]) -> str | None:
         value = query.get(key)
         if value is None:
             continue
-        # QueryDict/MultiValueDict may return a list for multi-valued keys.
         if isinstance(value, (list, tuple)):
             return value[0] if value else None
         return value
@@ -105,26 +85,14 @@ def _should_apply_default(query: Mapping[str, Any], path: str | None) -> bool:
     dataset = _dataset_from_query(query)
     if _is_full_retention_dataset(dataset):
         return False
-
     if is_eap_dataset(dataset):
         return True
-
-    # Path-only EAP endpoints (no dataset/itemType, or an unrecognized value that the
-    # endpoint will default) still need the tier-1 window.
     return _is_eap_path(path)
 
 
 def apply_eap_default_stats_period(query: Any, *, path: str | None = None) -> Any:
-    """Default EAP requests to a window that Snuba won't downsample.
-
-    Applies when the request targets a downsampled EAP dataset (via ``dataset``/
-    ``itemType``) or an EAP-only path, and doesn't already pin the window down.
-    See ``EAP_DEFAULT_STATS_PERIOD`` for why.
-
-    Mutates mapping-like inputs in place. Encoded query strings are re-encoded.
-    """
+    """Default EAP requests to a window that Snuba won't downsample."""
     if isinstance(query, str):
-        # Django accepts a pre-encoded query string as ``data``.
         params = QueryDict(query, mutable=True)
         if _should_apply_default(params, path):
             params["statsPeriod"] = EAP_DEFAULT_STATS_PERIOD
@@ -144,12 +112,8 @@ def _apply_to_query_string(query_string: str, *, path: str | None) -> str:
     return urlencode(params)
 
 
-class SentryAPIClient(APIClient):
-    """DRF API client that keeps EAP test queries inside the full-fidelity window.
-
-    Individual tests should not need to set ``statsPeriod`` for EAP datasets unless
-    they intentionally want a different window.
-    """
+class EAPClient(APIClient):
+    """API client that defaults EAP queries to the full-fidelity window."""
 
     def get(self, path: str, data=None, follow: bool = False, **extra):
         if data is not None:

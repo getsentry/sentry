@@ -517,10 +517,8 @@ def execute_trace_table_query(
         project_ids: The IDs of the projects to query. Cannot be provided with project_slugs.
         project_slugs: The slugs of the projects to query. Cannot be provided with project_ids.
         If neither project_ids nor project_slugs are provided, all active projects will be queried.
-        Start/end params take precedence over stats_period. When neither is given, the window
-        defaults to EAP's full-fidelity retention rather than the endpoint's 90 day default:
-        Snuba routes any span query starting beyond that boundary to a downsampled tier, which
-        would return an arbitrary fraction of matching traces.
+        Start/end params take precedence over stats_period. Defaults to EAP full-fidelity
+        retention when neither is given, to avoid Snuba's downsampled tiers.
     """
     try:
         organization = Organization.objects.get(id=organization_id)

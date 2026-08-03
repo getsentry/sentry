@@ -920,12 +920,7 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
         assert result.org_id == self.organization.id
 
     def test_get_trace_waterfall_sliding_window_last_full_fidelity_window(self) -> None:
-        """Test that sliding window finds traces in the last window not subject to downsampling
-
-        Snuba routes EAP queries whose window starts more than 31 days ago to a downsampled
-        table that only holds a fraction of the stored items, so the short-id lookup can't
-        reliably find a trace stored beyond that boundary.
-        """
+        """Sliding window finds traces near the end of the full-fidelity range."""
         transaction_name = "api/users/profile"
         trace_id = uuid.uuid4().hex
         twenty_seven_days_ago = before_now(days=27)

@@ -1347,21 +1347,10 @@ def adjust_start_end_window(start_date: datetime, end_date: datetime) -> tuple[d
 
 
 def full_retention_window(item_type: SupportedTraceItemType) -> tuple[datetime, datetime]:
-    """
-    The widest window we can query at full fidelity, used by context existence
-    checks that must always look at all of an org's data regardless of any
-    `statsPeriod`/`start`/`end` filters passed on the request, so a narrow
-    user-supplied range can't cause a false negative.
+    """Widest full-fidelity window for context existence checks.
 
-    For downsampled item types this is anchored to EAP's full-fidelity (tier 1)
-    retention rather than the 90 day API default. Tier 1 only holds ~30 days, so
-    a wider window can't surface anything extra -- it only pushes the query past
-    Snuba's downsampling boundary, which routes it to a sampled tier that holds a
-    fraction of the items and would make existence checks return false negatives.
-
-    Item types in `FULL_RETENTION_ITEM_TYPES` are never downsampled, so they keep
-    the full API window; capping them at tier 1 retention would hide older data
-    that is still stored at full fidelity.
+    Ignores request time filters so a narrow range can't false-negative. Downsampled
+    item types use tier-1 retention; full-retention types keep the API max window.
     """
     default_stats_period = (
         MAX_STATS_PERIOD
