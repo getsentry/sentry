@@ -202,7 +202,7 @@ describe('projectPerformance', () => {
       {id: DynamicSamplingBiasType.BOOST_LOW_VOLUME_TRANSACTIONS, active: false},
       {id: DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS, active: false},
     ];
-    const detailedProject = ProjectFixture({dynamicSamplingBiases});
+    const detailedProject = {...ProjectFixture(), dynamicSamplingBiases};
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
       method: 'GET',
