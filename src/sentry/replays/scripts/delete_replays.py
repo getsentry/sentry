@@ -4,7 +4,18 @@ import logging
 from collections.abc import Sequence
 from datetime import datetime, timezone
 
-from snuba_sdk import Column, Condition, Entity, Function, Granularity, Limit, Offset, Op, Query
+from snuba_sdk import (
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Granularity,
+    Limit,
+    Op,
+    OrderBy,
+    Query,
+)
 
 from sentry.api.event_search import QueryToken, parse_search_query
 from sentry.models.organization import Organization
@@ -27,19 +38,21 @@ def delete_replays(
 ) -> None:
     """Delete a set of replays from a query."""
     search_filters = translate_cli_tags_param_to_snuba_tag_param(tags)
-    offset = 0
 
     start_utc = start_utc.replace(tzinfo=timezone.utc)
     end_utc = end_utc.replace(tzinfo=timezone.utc)
 
+    # Keyset (seek) pagination cursor - page by the last replay_id we saw
+    last_replay_id = None
+
     has_more = True
     while has_more:
-        replays, has_more = _get_rows_matching_deletion_pattern(
+        replays, has_more, last_replay_id = _get_rows_matching_deletion_pattern(
             project_id=project_id,
             start=start_utc,
             end=end_utc,
             limit=batch_size,
-            offset=offset,
+            after_replay_id=last_replay_id,
             search_filters=search_filters,
             environment=environment,
         )
@@ -48,8 +61,6 @@ def delete_replays(
         if not replays:
             return None
 
-        offset += len(replays)
-
         logging_context = {
             "project_id": project_id,
             "dry_run": dry_run,
@@ -57,7 +68,6 @@ def delete_replays(
             "tags": tags,
             "start_utc": start_utc,
             "end_utc": end_utc,
-            "offset": offset,
             "has_more": has_more,
         }
         if dry_run:
@@ -113,16 +123,20 @@ def delete_replay_ids(project_id: int, rows: list[tuple[int, str, int]]) -> None
 def _get_rows_matching_deletion_pattern(
     project_id: int,
     limit: int,
-    offset: int,
+    after_replay_id: str | None,
     end: datetime,
     start: datetime,
     search_filters: Sequence[QueryToken],
     environment: list[str],
-) -> tuple[list[tuple[int, str, int]], bool]:
+) -> tuple[list[tuple[int, str, int]], bool, str | None]:
     where = handle_search_filters(scalar_search_config, search_filters)
 
     if environment:
         where.append(Condition(Column("environment"), Op.IN, environment))
+
+    # Keyset cursor in order to walk result set in fixed-cost pages. Need the ORDER BY to keep it deterministic
+    if after_replay_id is not None:
+        where.append(Condition(Column("replay_id"), Op.GT, after_replay_id))
 
     query = Query(
         match=Entity("replays"),
@@ -138,9 +152,9 @@ def _get_rows_matching_deletion_pattern(
             *where,
         ],
         groupby=[Column("replay_id")],
+        orderby=[OrderBy(Column("replay_id"), Direction.ASC)],
         granularity=Granularity(3600),
         limit=Limit(limit),
-        offset=Offset(offset),
     )
 
     response = execute_query(
@@ -152,10 +166,14 @@ def _get_rows_matching_deletion_pattern(
     data = response.get("data", [])
     has_more = len(data) == limit
 
+    # The next page seeks past the last raw replay_id in this page
+    next_cursor = data[-1]["replay_id"] if data else None
+
     return (
         [
             (item["retention_days"], item["replay_id"].replace("-", ""), item["max_segment_id"])
             for item in data
         ],
         has_more,
+        next_cursor,
     )
