@@ -28,8 +28,7 @@ class Migration(CheckedMigration):
 
     operations = [
         # `id` backs the primary key, so the raw ALTER is required to get past the safety
-        # framework. The table is ~1 GB total in the largest region; a same-shaped table
-        # rewrites in ~7s against the 10s statement timeout, so the headroom is thin.
+        # framework.
         migrations.SeparateDatabaseAndState(
             state_operations=[
                 migrations.AlterField(
