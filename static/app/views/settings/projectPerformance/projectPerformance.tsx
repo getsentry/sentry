@@ -1412,34 +1412,32 @@ function DetectorThresholdsSection({
   return (
     <Container id={projectDetectorSettingsId}>
       <FieldGroup title={t('Performance Issues - Detector Threshold Settings')}>
-        <Stack gap="sm">
-          {detectorGroups.map(group => (
-            <Disclosure key={group.title} defaultExpanded={!group.initiallyCollapsed}>
-              <Disclosure.Title>{group.title}</Disclosure.Title>
-              <Disclosure.Content>
-                <Stack gap="sm">
-                  {group.fields.map(field => (
-                    <DetectorAutoSaveField
-                      key={field.name}
-                      field={field}
-                      initialValue={
-                        performanceIssueSettings[field.name] ??
-                        field.defaultValue ??
-                        (field.type === 'boolean'
-                          ? false
-                          : field.type === 'string'
-                            ? ''
-                            : 0)
-                      }
-                      endpoint={endpoint}
-                      projectSlug={projectSlug}
-                    />
-                  ))}
-                </Stack>
-              </Disclosure.Content>
-            </Disclosure>
-          ))}
-        </Stack>
+        {detectorGroups.map(group => (
+          <Disclosure key={group.title} defaultExpanded={!group.initiallyCollapsed}>
+            <Disclosure.Title>{group.title}</Disclosure.Title>
+            <Disclosure.Content>
+              <Stack gap="sm">
+                {group.fields.map(field => (
+                  <DetectorAutoSaveField
+                    key={field.name}
+                    field={field}
+                    initialValue={
+                      performanceIssueSettings[field.name] ??
+                      field.defaultValue ??
+                      (field.type === 'boolean'
+                        ? false
+                        : field.type === 'string'
+                          ? ''
+                          : 0)
+                    }
+                    endpoint={endpoint}
+                    projectSlug={projectSlug}
+                  />
+                ))}
+              </Stack>
+            </Disclosure.Content>
+          </Disclosure>
+        ))}
         <Flex justify="end">
           <Confirm
             message={t('Are you sure you wish to reset all detector thresholds?')}
