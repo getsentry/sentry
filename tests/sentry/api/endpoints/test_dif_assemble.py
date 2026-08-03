@@ -437,7 +437,7 @@ class DifAssembleEndpoint(APITestCase):
             assert first_dif.file_id == second_dif.file_id
             assert File.objects.filter(type="project.dif", checksum=checksum).count() == 1
 
-    def test_objectstore_assemble_reuses_existing_proguard_without_file(self) -> None:
+    def test_objectstore_assemble_clones_existing_proguard_to_new_objectstore_file(self) -> None:
         file_contents = b"proguard mapping"
         checksum = sha1(file_contents).hexdigest()
         get_chunk_upload_session(self.organization.id).put(file_contents, key=checksum)
