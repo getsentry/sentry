@@ -150,16 +150,10 @@ export function initializeSdk(config: Config) {
       /AbortError: signal is aborted without reason/i,
       /AbortError: The user aborted a request/i,
       /**
-       * Script https://org-slug.sentry.io/service-worker.js load failed
-       * ServiceWorker script at https://org-slug.sentry.io/service-worker.js
-       *   encountered an error during installation.
-       * Failed to register a ServiceWorker with script
-       *   https://org-slug.sentry.io/service-worker.js: unsupported MIME type
-       * Failed to update a ServiceWorker for scope https://org-slug.sentry.io/
-       *   with script https://org-slug.sentry.io/service-worker.js:
-       *   ServiceWorker cannot be started (Chrome Mobile, storage/environment issues)
+       * Ignore known browser failures while loading, installing, or starting
+       * the service worker.
        */
-      /service-worker\.js.*(?:load failed|error during installation|unsupported MIME type|cannot be started)/i,
+      /service-worker\.js.*(?:failed|error|unsupported|bad HTTP|cannot|redirect)/i,
       /**
        * React internal error thrown when something outside react modifies the DOM
        * This is usually because of a browser extension or chrome translate page

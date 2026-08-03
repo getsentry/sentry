@@ -419,12 +419,11 @@ function PanelContainer({children}: {children: React.ReactNode}) {
 const MessageText = styled(Text)`
   word-break: break-word;
 
-  /* Wide block content (tables, code) scrolls within the bubble instead of
-   * overflowing it or forcing it wider. */
-  table,
-  pre {
-    display: block;
-    max-width: 100%;
-    overflow-x: auto;
+  /* word-break: break-word is legacy for overflow-wrap: anywhere, which counts
+   * toward min-content intrinsic size. Inherited into cells, it collapses them to
+   * about one character: the table then fits any container, columns squish, and
+   * its scroll container never overflows. Tables scroll on their own. */
+  table {
+    word-break: normal;
   }
 `;

@@ -5,19 +5,22 @@ from dataclasses import dataclass
 from enum import StrEnum
 from functools import cached_property
 
+import sentry_sdk
+
 from sentry import features, options, quotas
 from sentry.constants import (
     HIDE_AI_FEATURES_DEFAULT,
     DataCategory,
 )
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.utils.hostname import InstanceHostnameError, instance_hostname
 from sentry.models.organization import Organization
+from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import (
     CodeReviewSettings,
     RepositorySettings,
 )
-from sentry.seer.code_review.contributor_seats import get_canonical_contributor
 
 
 class PreflightDenialReason(StrEnum):
@@ -105,12 +108,20 @@ class CodeReviewPreflightService:
         if self.integration is None or self.pr_author_external_id is None:
             return PreflightDenialReason.BILLING_MISSING_CONTRIBUTOR_INFO
 
-        contributor = get_canonical_contributor(
-            organization_id=self.organization.id,
-            integration=self.integration,
-            external_identifier=self.pr_author_external_id,
-        )
-        if contributor is None:
+        try:
+            hostname = instance_hostname(self.integration)
+        except InstanceHostnameError as e:
+            sentry_sdk.capture_exception(e)
+            return PreflightDenialReason.BILLING_MISSING_CONTRIBUTOR_INFO
+
+        try:
+            contributor = OrganizationContributors.objects.get(
+                organization_id=self.organization.id,
+                provider=self.integration.provider,
+                hostname=hostname,
+                external_identifier=self.pr_author_external_id,
+            )
+        except OrganizationContributors.DoesNotExist:
             return PreflightDenialReason.ORG_CONTRIBUTOR_NOT_FOUND
 
         # Excluded author check applies to all organization types

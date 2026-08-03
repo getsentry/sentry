@@ -30,6 +30,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {IssuePreview} from 'sentry/views/issueDetails/issuePreview/issuePreview';
 import {IssueListContainer} from 'sentry/views/issueList';
+import {useInboxPreviewPrefetch} from 'sentry/views/issueList/pages/useInboxPreviewPrefetch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {getProgressIcon} from 'sentry/views/issueList/utils/progress';
 
@@ -39,7 +40,7 @@ const SELECTED_ISSUE_QUERY_PARAM = 'preview';
 const ASSIGNMENT_QUERY_PARAM = 'assignment';
 const ASSIGNMENT_FILTERS = ['me', 'my_teams', 'all'] as const;
 type AssignmentFilter = (typeof ASSIGNMENT_FILTERS)[number];
-const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
+export const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
   me: ' assigned:me',
   my_teams: ' assigned:[me,my_teams]',
   all: '',
@@ -54,7 +55,7 @@ interface InboxSectionConfig {
   query: string;
 }
 
-const SECTIONS: InboxSectionConfig[] = [
+export const SECTIONS: InboxSectionConfig[] = [
   {
     key: 'fix-proposed',
     label: t('Fix Proposed'),
@@ -227,7 +228,13 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
       defaultExpanded={section.defaultExpanded}
       size="sm"
     >
-      <Container padding="xs" width="100%">
+      <StickySectionHeader
+        position="sticky"
+        top={0}
+        width="100%"
+        padding="xs xs 0 xs"
+        background="primary"
+      >
         <Container width="100%" padding="sm" background="secondary" radius="sm">
           <Disclosure.Title
             trailingItems={
@@ -244,7 +251,7 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
             </Flex>
           </Disclosure.Title>
         </Container>
-      </Container>
+      </StickySectionHeader>
       <InboxSectionContent>
         {queryResult.isPending ? (
           <Stack
@@ -315,9 +322,11 @@ function InboxIssueCard({
   const location = useLocation();
   const {title} = getTitle(group);
   const message = getMessage(group);
+  const prefetchHoverProps = useInboxPreviewPrefetch(group.id);
 
   return (
     <IssueCardLink
+      {...prefetchHoverProps}
       aria-current={selected ? 'true' : undefined}
       data-selected={selected}
       to={{
@@ -372,7 +381,11 @@ function InboxIssueCard({
 }
 
 const InboxSectionContent = styled(Disclosure.Content)`
-  padding: 0;
+  padding: ${p => p.theme.space.xs} 0 0 0;
+`;
+
+const StickySectionHeader = styled(Container)`
+  z-index: 1;
 `;
 
 const IssueCardLink = styled(Link)`

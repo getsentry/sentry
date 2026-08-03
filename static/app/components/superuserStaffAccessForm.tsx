@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import {useMutation, useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -94,12 +94,6 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
 
   const autoSubmittedRef = useRef(false);
 
-  const {mutateAsync: authenticate} = useMutation({
-    // authUrl is a runtime branch (/auth/ or /staff-auth/), not a known URL
-    // literal, so it's passed to fetchMutation as a plain string.
-    mutationFn: (data: AuthPayload) => fetchMutation({method: 'PUT', url: authUrl, data}),
-  });
-
   const handleError = useCallback((err: unknown) => {
     setState({
       step: 'access',
@@ -107,6 +101,14 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
         err instanceof RequestError ? getErrorType(err) : ErrorCodes.UNKNOWN_ERROR,
     });
   }, []);
+
+  const {mutateAsync: authenticate} = useMutation({
+    // authUrl is a runtime branch (/auth/ or /staff-auth/), not a known URL
+    // literal, so it's passed to fetchMutation as a plain string.
+    mutationFn: (data: AuthPayload) => fetchMutation({method: 'PUT', url: authUrl, data}),
+    onSuccess: reloadPage,
+    onError: handleError,
+  });
 
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -130,10 +132,8 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
 
       try {
         await authenticate({isSuperuserModal: true, ...access});
-        reloadPage();
-      } catch (err) {
+      } catch {
         form.reset();
-        handleError(err);
       }
     },
   });
@@ -153,15 +153,13 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
       }
       try {
         await authenticate(payload);
-        reloadPage();
       } catch (err) {
         form.reset();
-        handleError(err);
         // u2fInterface relies on this
         throw err;
       }
     },
-    [authenticate, form, handleError, hasStaff, webAuthnAccess]
+    [authenticate, form, hasStaff, webAuthnAccess]
   );
 
   // Staff local dev with U2F disabled: submit immediately on mount (once).
@@ -170,10 +168,8 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
       return;
     }
     autoSubmittedRef.current = true;
-    authenticate({superuserAccessCategory: '', superuserReason: ''})
-      .then(reloadPage)
-      .catch(handleError);
-  }, [authenticate, handleError, shouldAutoSubmit]);
+    authenticate({superuserAccessCategory: '', superuserReason: ''}).catch(() => {});
+  }, [authenticate, shouldAutoSubmit]);
 
   const requiresAuthenticator = !disableU2FForSUForm;
   const noAuthenticator =
@@ -231,28 +227,39 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
       <Stack gap="xl">
         {errorAlert}
         {state.step === 'access' ? (
-          <form.AppField name="superuserAccessCategory">
-            {accessCategoryField => (
-              <form.AppField name="superuserReason">
-                {reasonField => (
-                  // TODO(scraps-forms): This override is shared with sudoModal, which
-                  // still uses the legacy FormModel. Keep Scraps as the source of truth
-                  // and bridge values and errors until both consumers migrate together.
-                  <Override
-                    name="component:superuser-access-category"
-                    accessCategory={accessCategoryField.state.value}
-                    accessCategoryError={
-                      accessCategoryField.state.meta.errors[0]?.message
-                    }
-                    reason={reasonField.state.value}
-                    reasonError={reasonField.state.meta.errors[0]?.message}
-                    onAccessCategoryChange={accessCategoryField.handleChange}
-                    onReasonChange={reasonField.handleChange}
+          <Fragment>
+            <form.AppField name="superuserAccessCategory">
+              {field => (
+                <field.Radio.Group
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                >
+                  <field.Layout.Stack
+                    label={t('Categories of Superuser Access')}
+                    required
+                  >
+                    <Override
+                      name="component:superuser-access-category"
+                      RadioItem={field.Radio.Item}
+                    />
+                  </field.Layout.Stack>
+                </field.Radio.Group>
+              )}
+            </form.AppField>
+            <form.AppField name="superuserReason">
+              {field => (
+                <field.Layout.Stack label={t('Reason for Access')} required>
+                  <field.Input
+                    maxLength={128}
+                    minLength={4}
+                    placeholder={t('e.g. disabling SSO enforcement')}
+                    value={field.state.value}
+                    onChange={field.handleChange}
                   />
-                )}
-              </form.AppField>
-            )}
-          </form.AppField>
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
+          </Fragment>
         ) : (
           <WebAuthn
             mode="sudo"
@@ -263,16 +270,16 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
       </Stack>
       {state.step === 'access' ? (
         <Flex justify="between" align="center" gap="md" margin="xl 0 0">
-          <Button
+          <form.SubmitButton
+            variant="secondary"
             disabled={!authenticatorsReady}
             onClick={() => {
               form.setFieldValue('superuserAccessCategory', 'cops_csm');
               form.setFieldValue('superuserReason', 'COPS and CSM use');
-              form.handleSubmit();
             }}
           >
             {t('COPS/CSM')}
-          </Button>
+          </form.SubmitButton>
           <form.SubmitButton disabled={!authenticatorsReady}>
             {t('Continue')}
           </form.SubmitButton>

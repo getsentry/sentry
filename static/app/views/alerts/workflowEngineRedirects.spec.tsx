@@ -1,11 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {
-  render,
-  screen,
-  waitFor,
-  type RouterConfig,
-} from 'sentry-test/reactTestingLibrary';
+import {render, waitFor, type RouterConfig} from 'sentry-test/reactTestingLibrary';
 
 import {
   withAutomationDetailsRedirect,
@@ -32,10 +27,9 @@ describe('workflowEngineRedirects', () => {
   });
 
   describe('withAutomationDetailsRedirect', () => {
-    it('redirects alert rules to automation details with workflow-engine-ui flag', async () => {
+    it('redirects alert rules to automation details', async () => {
       const organization = OrganizationFixture({
         slug: 'org-slug',
-        features: ['workflow-engine-ui'],
       });
 
       MockApiClient.addMockResponse({
@@ -64,7 +58,6 @@ describe('workflowEngineRedirects', () => {
     it('redirects detector edit when detectorId is present', async () => {
       const organization = OrganizationFixture({
         slug: 'org-slug',
-        features: ['workflow-engine-ui'],
       });
 
       const Wrapped = withDetectorEditRedirect(TestComponent);
@@ -85,7 +78,6 @@ describe('workflowEngineRedirects', () => {
     it('fetches detector id and redirects to edit', async () => {
       const organization = OrganizationFixture({
         slug: 'org-slug',
-        features: ['workflow-engine-ui'],
       });
 
       MockApiClient.addMockResponse({
@@ -150,10 +142,9 @@ describe('workflowEngineRedirects', () => {
   });
 
   describe('withDetectorDetailsRedirect', () => {
-    it('redirects to detector details page when workflow-engine-ui is enabled', async () => {
+    it('redirects to detector details page', async () => {
       const organization = OrganizationFixture({
         slug: 'org-slug',
-        features: ['workflow-engine-ui'],
       });
 
       MockApiClient.addMockResponse({
@@ -180,7 +171,6 @@ describe('workflowEngineRedirects', () => {
     it('redirects to issue details page when alert and notification UUID query params are present', async () => {
       const organization = OrganizationFixture({
         slug: 'org-slug',
-        features: ['workflow-engine-ui'],
       });
 
       MockApiClient.addMockResponse({
@@ -218,34 +208,12 @@ describe('workflowEngineRedirects', () => {
         notification_uuid: 'notification-uuid',
       });
     });
-
-    it('does not redirect without workflow-engine-ui flag', async () => {
-      const organization = OrganizationFixture({
-        slug: 'org-slug',
-        features: [],
-      });
-
-      const Wrapped = withDetectorDetailsRedirect(TestComponent);
-      const initialRouterConfig: RouterConfig = {
-        route: '/organizations/:orgId/alerts/:ruleId/',
-        location: {pathname: `/organizations/${organization.slug}/alerts/1/`},
-      };
-
-      const {router} = render(<Wrapped />, {organization, initialRouterConfig});
-
-      // Path stays the same and we render the wrapped component
-      await screen.findByText('Wrapped content');
-      expect(router.location.pathname).toBe(
-        `/organizations/${organization.slug}/alerts/1/`
-      );
-    });
   });
 
   describe('withDetectorCreateRedirect', () => {
     it('redirects detector create with a detector type', async () => {
       const organization = OrganizationFixture({
         slug: 'org-slug',
-        features: ['workflow-engine-ui'],
       });
 
       const Wrapped = withDetectorCreateRedirect(TestComponent);
@@ -270,7 +238,6 @@ describe('workflowEngineRedirects', () => {
     it('redirects open period routes to issue details', async () => {
       const organization = OrganizationFixture({
         slug: 'org-slug',
-        features: ['workflow-engine-ui'],
       });
 
       MockApiClient.addMockResponse({

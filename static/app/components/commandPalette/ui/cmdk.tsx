@@ -1,8 +1,10 @@
-import {useQuery} from '@tanstack/react-query';
+import {skipToken, useQuery} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
 
-import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
-import type {CMDKQueryOptions} from 'sentry/components/commandPalette/types';
+import type {
+  CMDKQueryOptions,
+  CommandPaletteAction,
+} from 'sentry/components/commandPalette/types';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 
 import {makeCollection} from './collection';
@@ -10,6 +12,7 @@ import {
   CommandPaletteStateProvider,
   useCommandPaletteState,
 } from './commandPaletteStateContext';
+
 export interface CMDKResourceContext {
   /** 'selected' when the user has drilled into this action, otherwise undefined. */
   state: 'selected' | undefined;
@@ -90,20 +93,15 @@ interface CMDKActionProps<TData = unknown> {
 
 interface CMDKActionWithResourceProps<TData = unknown> {
   nodeKey: string;
-  query: string;
-  resource: (query: string, context: CMDKResourceContext) => CMDKQueryOptions<TData>;
-  state: 'selected' | undefined;
+  resourceOptions: CMDKQueryOptions<TData>;
   children?: React.ReactNode | ((data: CommandPaletteAction[]) => React.ReactNode);
 }
 
 function CMDKActionWithResource<TData = unknown>({
   nodeKey,
-  query,
-  state,
-  resource,
+  resourceOptions,
   children,
 }: CMDKActionWithResourceProps<TData>) {
-  const resourceOptions = resource(query, {state});
   const {data} = useQuery({
     ...resourceOptions,
     enabled: resourceOptions.enabled ?? true,
@@ -176,13 +174,20 @@ export function CMDKAction<TData = unknown>({
   }
 
   if (resource) {
+    const resourceOptions = resource(query, {state});
+
+    // perf: an explicitly disabled resource still registers its action, but does not
+    // need a disabled QueryObserver which can be expensive if registered for e.g. thousands of attributes
+    if (resourceOptions.enabled === false || resourceOptions.queryFn === skipToken) {
+      return (
+        <CMDKCollection.Context.Provider value={key}>
+          {typeof children === 'function' ? null : children}
+        </CMDKCollection.Context.Provider>
+      );
+    }
+
     return (
-      <CMDKActionWithResource
-        nodeKey={key}
-        query={query}
-        state={state}
-        resource={resource}
-      >
+      <CMDKActionWithResource nodeKey={key} resourceOptions={resourceOptions}>
         {children}
       </CMDKActionWithResource>
     );

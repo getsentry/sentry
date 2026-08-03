@@ -33,7 +33,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0029_add_agent_write_grant
 
-sentry: 1146_add_gcp_service_account
+sentry: 1148_organizationcontributors_remove_integration_id_field
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 
@@ -41,4 +41,4 @@ tempest: 0001_squashed_0003_use_encrypted_char_field
 
 uptime: 0001_squashed_0055_backfill_2xx_status_assertion
 
-workflow_engine: 0115_add_group_index_to_wfh
+workflow_engine: 0116_detector_nullable_project

@@ -13,15 +13,20 @@ export function SelectorList({frame}: {frame: ClickFrame}) {
   const location = useLocation();
   const organization = useOrganization();
 
-  // There's a rare case where `frame.data` is undefined, either SDK error or
-  // user creating bad breadcrumbs
-  const componentName = frame.data?.node?.attributes['data-sentry-component'];
-  const indexOfArrow = frame.message?.lastIndexOf('>') ?? -1;
-  const lastComponentIndex = indexOfArrow === -1 ? 0 : indexOfArrow + 2;
+  // These fields can be missing when an SDK emits a malformed breadcrumb.
+  const componentName = frame.data?.node?.attributes?.['data-sentry-component'];
 
-  return componentName ? (
+  if (!componentName) {
+    return frame.message;
+  }
+
+  const lastSeparatorIndex = frame.message?.lastIndexOf('>') ?? -1;
+  const selectorPrefix =
+    lastSeparatorIndex < 0 ? '' : frame.message?.slice(0, lastSeparatorIndex + 2);
+
+  return (
     <Fragment>
-      <span>{frame.message?.substring(0, lastComponentIndex)}</span>
+      <span>{selectorPrefix}</span>
       <Tooltip
         title={t('Search by this component')}
         containerDisplayMode="inline"
@@ -43,7 +48,5 @@ export function SelectorList({frame}: {frame: ClickFrame}) {
         </Link>
       </Tooltip>
     </Fragment>
-  ) : (
-    frame.message
   );
 }
