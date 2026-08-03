@@ -111,7 +111,7 @@ function getAutofixPrimaryAction(
       kind: 'link',
       label: completedPullRequestLink.label,
       href: completedPullRequestLink.url,
-      icon: completedPullRequestLink.repoProvider === 'github' ? 'github' : undefined,
+      icon: 'github',
     };
   }
 

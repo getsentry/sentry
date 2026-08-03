@@ -32,7 +32,6 @@ const repoPRStateSchema = z.object({
   pr_id: z.number().nullable(),
   pr_number: z.number().nullable(),
   pr_url: z.string().nullable(),
-  provider: z.string().nullable().optional(),
   repo_name: z.string(),
   title: z.string().nullable(),
 });

@@ -83,7 +83,6 @@ export function AutofixRepoPRStateFixture(
     pr_id: 1,
     pr_number: 10,
     pr_url: 'https://github.com/org/repository/pull/10',
-    provider: 'github',
     repo_name: 'org/repository',
     title: 'Fix issue',
     ...params,

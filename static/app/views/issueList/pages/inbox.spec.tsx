@@ -714,36 +714,6 @@ describe('InboxPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('does not use the GitHub icon for a completed GitLab merge request', async () => {
-    mockSuccessfulSections();
-    mockIssuePreview();
-    mockAutofixResponse(
-      ExplorerAutofixResponseFixture({
-        autofix: ExplorerAutofixStateFixture({
-          repo_pr_states: {
-            'org/repository': AutofixRepoPRStateFixture({
-              provider: 'gitlab',
-              pr_url: 'https://gitlab.com/org/repository/-/merge_requests/10',
-            }),
-          },
-        }),
-      })
-    );
-
-    render(<InboxPage />, {
-      organization: seerOrganization,
-      initialRouterConfig,
-    });
-
-    const preview = await openFixProposedPreview();
-    const mergeRequestButton = await within(preview).findByRole('button', {
-      name: 'View org/repository#10',
-    });
-    expect(
-      within(mergeRequestButton).queryByTestId('pull-request-github')
-    ).not.toBeInTheDocument();
-  });
-
   it('retries a failed Autofix pull request', async () => {
     mockSuccessfulSections();
     mockIssuePreview();
