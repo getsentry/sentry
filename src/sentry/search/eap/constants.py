@@ -139,6 +139,19 @@ TYPE_MAP: dict[SearchType, AttributeKey.Type.ValueType] = {
     "array": ARRAY,
 }
 
+# Widest window that still hits tier 1. Snuba downsamples queries starting >31d ago.
+EAP_FULL_FIDELITY_RETENTION_DAYS = 30
+# Equal to retention; midnight flooring can leave ~1s of headroom before the boundary.
+EAP_FULL_FIDELITY_QUERY_DAYS = EAP_FULL_FIDELITY_RETENTION_DAYS
+
+# Never downsampled. Mirrors snuba ITEM_TYPE_FULL_RETENTION.
+FULL_RETENTION_ITEM_TYPES = frozenset(
+    {
+        SupportedTraceItemType.UPTIME_RESULTS,
+        SupportedTraceItemType.PREPROD,
+    }
+)
+
 # https://github.com/getsentry/snuba/blob/master/snuba/web/rpc/v1/endpoint_time_series.py
 # The RPC limits us to 10100 points per timeseries
 # MAX 1 minute granularity over 7 days (10080 buckets) + extra buckets to allow for partial time buckets on

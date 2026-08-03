@@ -210,15 +210,28 @@ class AlertRuleTriggerActionTargetTest(TestCase):
         assert trigger.target is None
 
     def test_team(self) -> None:
-        trigger = AlertRuleTriggerAction(
-            target_type=AlertRuleTriggerAction.TargetType.TEAM.value,
+        trigger = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=self.alert_rule_trigger,
+            target_type=AlertRuleTriggerAction.TargetType.TEAM,
             target_identifier=str(self.team.id),
         )
         assert trigger.target == self.team
 
+    def test_team_from_another_organization(self) -> None:
+        other_organization = self.create_organization()
+        other_team = self.create_team(organization=other_organization)
+        trigger = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=self.alert_rule_trigger,
+            target_type=AlertRuleTriggerAction.TargetType.TEAM,
+            target_identifier=str(other_team.id),
+        )
+        assert trigger.target is None
+
     def test_invalid_team(self) -> None:
-        trigger = AlertRuleTriggerAction(
-            target_type=AlertRuleTriggerAction.TargetType.TEAM.value, target_identifier="10000000"
+        trigger = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=self.alert_rule_trigger,
+            target_type=AlertRuleTriggerAction.TargetType.TEAM,
+            target_identifier="10000000",
         )
         assert trigger.target is None
 

@@ -17,30 +17,28 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {formatDuration} from 'sentry/utils/duration/formatDuration';
 
+import {getAssignedActivityItem} from './activityItem/assignment';
+import {getResolvedInCommitDetails} from './activityItem/commitDetails';
+import {getProviderName} from './activityItem/provider';
+import {getResolvedInReleaseDetails} from './activityItem/releaseDetails';
 import {CommitChip} from './chips/commitChip';
 import {ExternalIssueChip} from './chips/externalIssueChip';
 import {getIntegrationChip} from './chips/integrationChip';
 import {ActivityPriorityChip} from './chips/priorityChip';
 import {PullRequestChip, SeerPullRequestChip} from './chips/pullRequestChip';
 import {ActivityRelease} from './chips/releaseChip';
-import {getAssignedActivityItem} from './compactActivityItem/assignment';
-import {getResolvedInCommitDetails} from './compactActivityItem/commitDetails';
-import {getProviderName} from './compactActivityItem/provider';
-import {getResolvedInReleaseDetails} from './compactActivityItem/releaseDetails';
-import type {CompactGroupActivityItem} from './compactActivityItem/types';
 import type {ActivityFeedItem, CollapsedSeerActivity} from './activityFeedItem';
 import {getArchiveDetails} from './archiveDetails';
 
-export type {CompactGroupActivityItem} from './compactActivityItem/types';
+interface ActivityItem {
+  title: React.ReactNode;
+  details?: React.ReactNode;
+}
 
-function getNoteAuthorName(item: GroupActivity) {
-  if (item.sentry_app) {
-    return item.sentry_app.name;
-  }
-  if (item.user) {
-    return item.user.name;
-  }
-  return 'Sentry';
+export function getActivityNoteAuthor(
+  activity: Extract<GroupActivity, {type: GroupActivityType.NOTE}>
+) {
+  return activity.sentry_app?.name ?? activity.user?.name ?? 'Sentry';
 }
 
 function getPullRequestProvider(pullRequest: PullRequest) {
@@ -125,7 +123,7 @@ function getPriorityDetails(
   }
 }
 
-interface GetCompactGroupActivityItemParams {
+interface GetActivityItemParams {
   issueCategory: IssueCategory;
   item: ActivityFeedItem;
   organization: Organization;
@@ -164,12 +162,12 @@ function getCollapsedSeerIterationReferrer(item: ActivityFeedItem) {
   return getSeerIterationReferrer(item.startedActivity.data.referrer);
 }
 
-export function getCompactGroupActivityItem({
+export function getActivityItem({
   item,
   organization,
   project,
   issueCategory,
-}: GetCompactGroupActivityItemParams): CompactGroupActivityItem {
+}: GetActivityItemParams): ActivityItem {
   const {activity} = item;
   const issuesLink = `/organizations/${organization.slug}/issues/`;
   const activityContext = {id: activity.id, type: activity.type};
@@ -179,7 +177,7 @@ export function getCompactGroupActivityItem({
   switch (activity.type) {
     case GroupActivityType.NOTE:
       return {
-        title: getNoteAuthorName(activity),
+        title: getActivityNoteAuthor(activity),
       };
     case GroupActivityType.SET_RESOLVED: {
       const integrationChip = getIntegrationChip({data: activity.data, organization});
@@ -329,7 +327,7 @@ export function getCompactGroupActivityItem({
       return {
         title:
           issueCategory === IssueCategoryEnum.FEEDBACK
-            ? t('Marked as spam')
+            ? t('Marked as Spam')
             : t('Archived'),
         details: getArchiveDetails(activity.data, issueCategory),
       };

@@ -126,6 +126,7 @@ export type ReplayEventParameters = {
     project_id: string | undefined;
   };
   'replay.render-missing-replay-alert': {
+    is_404: boolean;
     surface: string;
   };
   'replay.search': {

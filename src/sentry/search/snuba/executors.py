@@ -343,9 +343,9 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
         return aggregations
 
-    def _prepare_params_for_category(
+    def _prepare_params_for_categories(
         self,
-        group_category: int,
+        group_categories: Sequence[int],
         visible_group_type_ids: Collection[int],
         query_partial: IntermediateSearchQueryPartial,
         organization: Organization,
@@ -362,14 +362,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         actor: Any | None = None,
         aggregate_kwargs: TrendsSortWeights | None = None,
     ) -> SnubaQueryParams | None:
-        """
-        :raises UnsupportedSearchQuery: when search_filters includes conditions on a dataset that doesn't support it
-        """
-
-        if group_category in SEARCH_FILTER_UPDATERS:
-            # remove filters not relevant to the group_category
-            search_filters = SEARCH_FILTER_UPDATERS[group_category](search_filters)
-
         # convert search_filters to snuba format
         converted_filters = self._convert_search_filters(
             organization.id, project_ids, environments, search_filters
@@ -386,7 +378,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 else:
                     conditions.append(converted_filter)
 
-        use_issue_platform = group_category is not GroupCategory.ERROR.value
+        use_issue_platform = GroupCategory.ERROR.value not in group_categories
         aggregations = self._prepare_aggregations(
             sort_field, start, end, having, aggregate_kwargs, use_issue_platform
         )
@@ -402,7 +394,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         else:
             # Get the top matching groups by score, i.e. the actual search results
             # in the order that we want them.
-            orderby = [f"-{sort_field}", "group_id"]  # ensure stable sort within the same score
+            group_id_sort = "-group_id" if len(group_categories) > 1 else "group_id"
+            orderby = [f"-{sort_field}", group_id_sort]
 
         pinned_query_partial: SearchQueryPartial = cast(
             SearchQueryPartial,
@@ -414,7 +407,10 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             ),
         )
 
-        query_builder = get_search_strategy(GroupCategory(group_category), visible_group_type_ids)
+        query_builder = get_search_strategy(
+            [GroupCategory(group_category) for group_category in group_categories],
+            visible_group_type_ids,
+        )
         snuba_query_params = query_builder(
             pinned_query_partial,
             selected_columns,
@@ -502,12 +498,38 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             if group_categories - {GroupCategory.ERROR.value}
             else set()
         )
-        query_params_for_categories = {}
-
-        for gc in group_categories:
+        merge_generic_categories = features.has(
+            "organizations:issue-search-merged-generic-query", organization, actor=actor
+        )
+        category_filter_groups: list[tuple[list[int], Sequence[SearchFilter]]] = []
+        for group_category in sorted(group_categories):
             try:
-                query_params = self._prepare_params_for_category(
-                    gc,
+                category_search_filters = (
+                    SEARCH_FILTER_UPDATERS[group_category](snuba_search_filters)
+                    if group_category in SEARCH_FILTER_UPDATERS
+                    else snuba_search_filters
+                )
+            except UnsupportedSearchQuery:
+                continue
+
+            if merge_generic_categories and group_category != GroupCategory.ERROR.value:
+                for grouped_categories, grouped_search_filters in category_filter_groups:
+                    if (
+                        GroupCategory.ERROR.value not in grouped_categories
+                        and category_search_filters == grouped_search_filters
+                    ):
+                        grouped_categories.append(group_category)
+                        break
+                else:
+                    category_filter_groups.append(([group_category], category_search_filters))
+            else:
+                category_filter_groups.append(([group_category], category_search_filters))
+
+        query_params_for_categories: dict[tuple[int, ...], SnubaQueryParams] = {}
+        for grouped_categories, category_search_filters in category_filter_groups:
+            try:
+                query_params = self._prepare_params_for_categories(
+                    grouped_categories,
                     visible_group_type_ids,
                     query_partial,
                     organization,
@@ -515,7 +537,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                     environments,
                     group_ids,
                     filters,
-                    snuba_search_filters,
+                    category_search_filters,
                     sort_field,
                     start,
                     end,
@@ -524,15 +546,13 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                     actor,
                     aggregate_kwargs,
                 )
-            except UnsupportedSearchQuery:
-                pass
             except EmptyGroupIdIntersectionError:
                 # Postgres candidates and the snuba group_id condition are
                 # disjoint for this category — it can't match anything. Skip it.
-                pass
-            else:
-                if query_params is not None:
-                    query_params_for_categories[gc] = query_params
+                continue
+
+            if query_params is not None:
+                query_params_for_categories[tuple(grouped_categories)] = query_params
 
         callsite = "PostgresSnubaQueryExecutor.snuba_search"
 
@@ -546,14 +566,16 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                     "snuba.search.group_category_bulk",
                     tags={
                         GroupCategory(gc_val).name.lower(): True
-                        for gc_val, _ in query_params_for_categories.items()
+                        for group_category_values in query_params_for_categories
+                        for gc_val in group_category_values
                     },
                 )
                 # one of the parallel bulk raw queries failed (maybe the issue platform dataset),
                 # we'll fallback to querying for errors only
-                if GroupCategory.ERROR.value in query_params_for_categories.keys():
+                error_query_params = query_params_for_categories.get((GroupCategory.ERROR.value,))
+                if error_query_params is not None:
                     bulk_query_results = bulk_raw_query(
-                        [query_params_for_categories[GroupCategory.ERROR.value]],
+                        [error_query_params],
                         referrer=referrer,
                     )
                 else:

@@ -37,7 +37,7 @@ describe('ProgressActivityTooltip', () => {
 
     await userEvent.hover(screen.getByRole('button', {name: 'Progress'}));
 
-    expect(await screen.findByText('Unresolved')).toBeInTheDocument();
+    expect(await screen.findByText('Marked as unresolved')).toBeInTheDocument();
   });
 
   it('filters out non-progress activity', async () => {
@@ -63,7 +63,7 @@ describe('ProgressActivityTooltip', () => {
 
     await userEvent.hover(screen.getByRole('button', {name: 'Progress'}));
 
-    expect(await screen.findByText('Unresolved')).toBeInTheDocument();
+    expect(await screen.findByText('Marked as unresolved')).toBeInTheDocument();
     expect(screen.queryByText(/Merge/)).not.toBeInTheDocument();
   });
 
@@ -91,5 +91,34 @@ describe('ProgressActivityTooltip', () => {
     await userEvent.hover(screen.getByRole('button', {name: 'Progress'}));
 
     expect(await screen.findByText(/Merge/)).toBeInTheDocument();
+  });
+
+  it('shows comment text', async () => {
+    const noteActivity: GroupActivity = {
+      id: 'activity-4',
+      type: GroupActivityType.NOTE,
+      data: {text: 'This is the useful part of the comment.'},
+      dateCreated: '2024-01-04T00:00:00.000Z',
+      user: null,
+    };
+
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1337/activities/',
+      body: {activity: [noteActivity]},
+    });
+
+    render(
+      <ProgressActivityTooltip group={group}>
+        <button>Progress</button>
+      </ProgressActivityTooltip>
+    );
+
+    await userEvent.hover(screen.getByRole('button', {name: 'Progress'}));
+
+    expect(
+      await screen.findByText('This is the useful part of the comment.')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Sentry')).toBeInTheDocument();
   });
 });
