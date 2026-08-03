@@ -193,6 +193,11 @@ const thresholdSettingsSchema = z.object({
   threshold: z.string(),
 });
 
+const CALCULATION_METHOD_OPTIONS = [
+  {value: 'duration', label: t('Transaction Duration')},
+  {value: 'lcp', label: t('Largest Contentful Paint')},
+] as const;
+
 const regressionAdminSchema = z.object({
   transaction_duration_regression_detection_enabled: z.boolean(),
   function_duration_regression_detection_enabled: z.boolean(),
@@ -1175,10 +1180,7 @@ function ThresholdSettingsSection({
               value={field.state.value}
               onChange={field.handleChange}
               disabled={!hasWriteAccess}
-              options={[
-                {value: 'duration' as const, label: t('Transaction Duration')},
-                {value: 'lcp' as const, label: t('Largest Contentful Paint')},
-              ]}
+              options={CALCULATION_METHOD_OPTIONS}
             />
           </field.Layout.Row>
         )}
