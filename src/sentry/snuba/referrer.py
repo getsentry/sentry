@@ -996,6 +996,6 @@ def validate_referrer(referrer: str | None) -> bool:
         raise Exception(error_message)
     except Exception:
         metrics.incr("snql.sdk.api.new_referrers", tags={"referrer": referrer})
-        logger.warning(error_message, exc_info=True)
+        logger.warning(error_message, extra={"referrer": referrer}, exc_info=True)
 
     return False
