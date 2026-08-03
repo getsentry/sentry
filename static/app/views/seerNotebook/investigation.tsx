@@ -4,7 +4,6 @@ import {
   Profiler,
   type ProfilerOnRenderCallback,
   type ReactNode,
-  useCallback,
   useEffect,
   useRef,
   useState,
@@ -74,6 +73,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SortableReleasesSelect} from 'sentry/views/dashboards/sortableReleasesSelect';
 import {DashboardFilterKeys} from 'sentry/views/dashboards/types';
 import {TopBar} from 'sentry/views/navigation/topBar';
+import type {CellStore} from 'sentry/views/seerNotebook/stores/cellStore';
 import {NotebookStore} from 'sentry/views/seerNotebook/stores/notebookStore';
 import {
   NotebookStoreProvider,
@@ -87,10 +87,8 @@ import {PersistedCellOutput, TextCellExecutionOutput} from './output';
 import {InvestigationParameters} from './parameters';
 import {InvestigationSettings} from './settings';
 import type {
-  InvestigationCell,
   InvestigationCellKind,
   InvestigationDetail,
-  InvestigationDisplay,
   InvestigationFilters,
   InvestigationPermissions,
   InvestigationReaction,
@@ -391,20 +389,11 @@ const InvestigationEditor = observer(function InvestigationEditor({
                       />
                     ) : null}
                     <MemoizedSortableCell
-                      cell={cellStore.toInvestigationCell()}
+                      cell={cellStore}
                       index={index}
                       disabled={readOnly}
                       collaborationDisabled={detail.status === 'archived'}
-                      canManage={detail.permissions.canManage}
-                      investigationId={detail.id}
-                      organizationSlug={organization.slug}
-                      queryExecutionEnabled={store.queryExecutionEnabled}
                       onInsertAfter={kind => store.insertCell(kind, index + 1)}
-                      onSave={(_currentCell, values) => {
-                        cellStore.applyDraft(values);
-                        return cellStore.flush();
-                      }}
-                      onExecute={() => cellStore.run()}
                       onDelete={() =>
                         openConfirmModal({
                           message: t('Delete this cell?'),
@@ -413,8 +402,6 @@ const InvestigationEditor = observer(function InvestigationEditor({
                           onConfirm: () => store.deleteCell(cellStore.clientKey),
                         })
                       }
-                      onCommentCountChange={delta => cellStore.changeCommentCount(delta)}
-                      onRefreshCell={() => store.refreshDetail()}
                     />
                   </Fragment>
                 ))}
@@ -615,28 +602,12 @@ function InvestigationHistoryModal({
 }
 
 type SortableCellProps = {
-  canManage: boolean;
-  cell: InvestigationCell;
+  cell: CellStore;
   collaborationDisabled: boolean;
   disabled: boolean;
   index: number;
-  investigationId: string;
-  onCommentCountChange: (delta: number) => void;
   onDelete: () => void;
-  onExecute: (cell: InvestigationCell) => Promise<void>;
   onInsertAfter: (kind: InvestigationCellKind) => Promise<void>;
-  onRefreshCell: () => Promise<void>;
-  onSave: (
-    cell: InvestigationCell,
-    values: {
-      content: string;
-      display: InvestigationDisplay;
-      generationPrompt: string;
-      title: string;
-    }
-  ) => Promise<unknown>;
-  organizationSlug: string;
-  queryExecutionEnabled: boolean;
 };
 
 type SortableCellState = ReturnType<typeof useSortable>;
@@ -647,7 +618,7 @@ type SortableCellPresentation = {
 
 function SortableCell(props: SortableCellProps) {
   const sortable = useSortable({
-    id: getCellSortableId(props.cell),
+    id: props.cell.clientKey,
     disabled: props.disabled,
   });
   const isDragActive = sortable.activeIndex >= 0;
@@ -676,89 +647,35 @@ function SortableCellContent({
   isDragActive,
   disabled,
   collaborationDisabled,
-  canManage,
-  investigationId,
-  organizationSlug,
   onInsertAfter,
-  onSave,
   onDelete,
-  onCommentCountChange,
-  onRefreshCell,
-  onExecute,
-  queryExecutionEnabled,
   sortable,
 }: SortableCellProps & SortableCellPresentation & {sortable: SortableCellState}) {
-  const [draft, setDraft] = useState({
+  const draft = {
     title: cell.title,
     content: cell.content,
     generationPrompt: cell.generationPrompt,
     display: cell.display,
-  });
-  const saved = useRef(JSON.stringify(draft));
+  };
+  const cellDto = cell.toInvestigationCell();
+  const {notebook} = cell;
+  const canManage = notebook.permissions.canManage;
+  const investigationId = notebook.investigationId;
+  const organizationSlug = notebook.organizationSlug;
+  const queryExecutionEnabled = notebook.queryExecutionEnabled;
   const [isEditingText, setIsEditingText] = useState(!cell.content && !disabled);
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const [slashCommandIndex, setSlashCommandIndex] = useState(0);
   const [cellReactions, setCellReactions] = useState(cell.reactions);
   const [isReactionPickerOpen, setIsReactionPickerOpen] = useState(false);
-  const [isRunRequested, setIsRunRequested] = useState(false);
   const textInputRef = useRef<HTMLTextAreaElement>(null);
   const slashMenuRef = useRef<HTMLDivElement>(null);
   const suggestionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const displaySaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isStreamingSuggestionRef = useRef(false);
   const previousOutputStatusRef = useRef(cell.outputStatus);
-  const queryIntent = draft.generationPrompt || draft.content;
-  const savedQueryIntent = cell.generationPrompt || cell.content;
-  const executionIntent = cell.kind === 'query' ? queryIntent : draft.generationPrompt;
-  const savedExecutionIntent =
-    cell.kind === 'query' ? savedQueryIntent : cell.generationPrompt;
-  const executionHasChanged =
-    Boolean(cell.staleAt) || executionIntent !== savedExecutionIntent;
-  const isExecutionRunning = ['pending', 'running'].includes(cell.outputStatus);
-  const isRunBusy = isRunRequested || isExecutionRunning;
-  const runVariant = executionHasChanged
-    ? 'warning'
-    : cell.outputStatus === 'available'
-      ? 'secondary'
-      : 'primary';
-
-  const saveDraft = useCallback(
-    (values: typeof draft) => {
-      const serialized = JSON.stringify(values);
-      if (serialized === saved.current || disabled) {
-        return Promise.resolve();
-      }
-
-      const previousSaved = saved.current;
-      saved.current = serialized;
-      const request = onSave(cell, values);
-      request.catch(() => {
-        saved.current = previousSaved;
-      });
-      return request;
-    },
-    [cell, disabled, onSave]
-  );
-
-  useEffect(() => {
-    const incoming = {
-      title: cell.title,
-      content: cell.content,
-      generationPrompt: cell.generationPrompt,
-      display: cell.display,
-    };
-    const incomingSerialized = JSON.stringify(incoming);
-    setDraft(current => {
-      if (
-        JSON.stringify(current) !== saved.current ||
-        incomingSerialized === saved.current
-      ) {
-        return current;
-      }
-      saved.current = incomingSerialized;
-      return incoming;
-    });
-  }, [cell.content, cell.display, cell.generationPrompt, cell.title]);
+  const queryIntent = cell.queryIntent;
+  const isExecutionRunning = cell.isExecutionRunning;
+  const isRunBusy = cell.isRunRequested || isExecutionRunning;
+  const runVariant = cell.runButtonVariant;
 
   useEffect(() => {
     const previousStatus = previousOutputStatusRef.current;
@@ -771,24 +688,6 @@ function SortableCellContent({
       setIsEditingText(false);
     }
   }, [cell.kind, cell.outputStatus]);
-  useEffect(
-    () => () => {
-      if (displaySaveTimerRef.current) {
-        clearTimeout(displaySaveTimerRef.current);
-      }
-    },
-    []
-  );
-
-  useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      if (!isStreamingSuggestionRef.current) {
-        saveDraft(draft);
-      }
-    }, 600);
-    return () => window.clearTimeout(timeout);
-  }, [draft, saveDraft]);
-
   useEffect(
     () => () => {
       if (suggestionTimerRef.current) {
@@ -810,45 +709,40 @@ function SortableCellContent({
   }, [isEditingText]);
 
   const saveOnBlur = () => {
-    saveDraft(draft);
+    void cell
+      .flush()
+      .catch(() => addErrorMessage(t('The cell change could not be saved.')));
   };
 
-  const persistDisplay = (display: InvestigationDisplay) => {
-    const nextDraft = {...draft, display};
-    setDraft(nextDraft);
-    if (displaySaveTimerRef.current) {
-      clearTimeout(displaySaveTimerRef.current);
-    }
-    displaySaveTimerRef.current = setTimeout(() => {
-      displaySaveTimerRef.current = null;
-      void saveDraft(nextDraft);
-    }, 400);
+  const persistDisplay = (display: typeof cell.display) => {
+    cell.updateDisplay(display);
   };
 
   const runCell = async () => {
-    if (isRunBusy || !executionIntent.trim() || !queryExecutionEnabled) {
+    if (!cell.canRun) {
       return;
     }
-    setIsRunRequested(true);
     try {
-      await saveDraft(draft);
-      await onExecute(cell);
+      await cell.run();
     } catch {
       addErrorMessage(t('The query could not be started.'));
-    } finally {
-      setIsRunRequested(false);
+    }
+  };
+
+  const retryCell = async () => {
+    try {
+      await cell.retryRun();
+    } catch {
+      addErrorMessage(t('The query could not be started.'));
     }
   };
 
   const applySlashCommand = (prefix: string) => {
-    const lines = draft.content.split('\n');
-    lines[lines.length - 1] = prefix;
-    const nextDraft = {...draft, content: lines.join('\n')};
-    setDraft(nextDraft);
+    cell.applySlashCommand(prefix);
     setShowSlashMenu(false);
     requestAnimationFrame(() => {
       textInputRef.current?.focus();
-      const position = nextDraft.content.length;
+      const position = cell.content.length;
       textInputRef.current?.setSelectionRange(position, position);
     });
   };
@@ -882,8 +776,8 @@ function SortableCellContent({
         ...draft,
         content: draft.content.replace(/\/[^\n]*$/, ''),
       };
-      setDraft(nextDraft);
-      saveDraft(nextDraft);
+      cell.editContent(nextDraft.content);
+      void cell.flush();
       setShowSlashMenu(false);
       void onInsertAfter('query');
       return;
@@ -897,22 +791,17 @@ function SortableCellContent({
     if (suggestionTimerRef.current) {
       clearInterval(suggestionTimerRef.current);
     }
-    isStreamingSuggestionRef.current = true;
     let characterIndex = 0;
-    setDraft(current => ({...current, content: ''}));
+    cell.clearQueryIntent();
     textInputRef.current?.focus();
     suggestionTimerRef.current = setInterval(() => {
       characterIndex += 1;
-      setDraft(current => ({
-        ...current,
-        content: suggestion.slice(0, characterIndex),
-      }));
+      cell.editQueryIntent(suggestion.slice(0, characterIndex));
       if (characterIndex >= suggestion.length) {
         if (suggestionTimerRef.current) {
           clearInterval(suggestionTimerRef.current);
           suggestionTimerRef.current = null;
         }
-        isStreamingSuggestionRef.current = false;
       }
     }, 6);
   };
@@ -927,11 +816,11 @@ function SortableCellContent({
       await setCellReaction(
         organizationSlug,
         investigationId,
-        cell.id,
+        cellDto.id,
         reaction,
         enabled
       );
-      await onRefreshCell();
+      await notebook.refreshDetail();
     } catch {
       setCellReactions(previous);
       addErrorMessage(t('Unable to update the reaction.'));
@@ -940,12 +829,12 @@ function SortableCellContent({
 
   const comments = (
     <CellComments
-      cell={cell}
+      cell={cellDto}
       disabled={collaborationDisabled}
       investigationId={investigationId}
       organizationSlug={organizationSlug}
       canManage={canManage}
-      onCommentCountChange={onCommentCountChange}
+      onCommentCountChange={delta => cell.changeCommentCount(delta)}
     />
   );
 
@@ -1108,12 +997,7 @@ function SortableCellContent({
                     disabled={disabled}
                     placeholder={t('Describe the Markdown you want the agent to write')}
                     value={draft.generationPrompt}
-                    onChange={event =>
-                      setDraft(current => ({
-                        ...current,
-                        generationPrompt: event.target.value,
-                      }))
-                    }
+                    onChange={event => cell.editGenerationPrompt(event.target.value)}
                     onBlur={saveOnBlur}
                   />
                   {cell.dependencies.length ? (
@@ -1126,8 +1010,8 @@ function SortableCellContent({
             </QueryPromptDisclosure>
             <TextCellExecutionOutput
               canRetry={!disabled && queryExecutionEnabled && !isRunBusy}
-              cell={{...cell, display: draft.display}}
-              onRetry={runCell}
+              cell={cellDto}
+              onRetry={retryCell}
             />
             <TextCellBody>
               {isEditingText ? (
@@ -1146,7 +1030,7 @@ function SortableCellContent({
                       const content = event.target.value;
                       const nextShowSlashMenu =
                         content.split('\n').at(-1)?.startsWith('/') ?? false;
-                      setDraft(current => ({...current, content}));
+                      cell.editContent(content);
                       if (showSlashMenu !== nextShowSlashMenu) {
                         setShowSlashMenu(nextShowSlashMenu);
                       }
@@ -1286,13 +1170,8 @@ function SortableCellContent({
                       if (suggestionTimerRef.current) {
                         clearInterval(suggestionTimerRef.current);
                         suggestionTimerRef.current = null;
-                        isStreamingSuggestionRef.current = false;
                       }
-                      setDraft(current => ({
-                        ...current,
-                        content: '',
-                        generationPrompt: event.target.value,
-                      }));
+                      cell.editQueryIntent(event.target.value);
                     }}
                     onBlur={saveOnBlur}
                   />
@@ -1318,18 +1197,17 @@ function SortableCellContent({
             </QueryPromptDisclosure>
             <PersistedCellOutput
               canRetry={!disabled && queryExecutionEnabled && !isRunBusy}
-              cell={{...cell, display: draft.display}}
+              cell={cellDto}
               currentIntent={queryIntent}
               disabled={disabled}
               investigationId={investigationId}
               organizationSlug={organizationSlug}
               onDisplayChange={persistDisplay}
-              onRetry={runCell}
+              onRetry={retryCell}
               onRevisedQueryIntent={async intent => {
-                const nextDraft = {...draft, content: '', generationPrompt: intent};
-                setDraft(nextDraft);
-                await saveDraft(nextDraft);
-                await onExecute(cell);
+                cell.editQueryIntent(intent);
+                await cell.flush();
+                await cell.run();
               }}
             />
           </Fragment>
@@ -1344,16 +1222,12 @@ function areSortableCellPropsEqual(previous: SortableCellProps, next: SortableCe
     previous.cell === next.cell &&
     previous.index === next.index &&
     previous.disabled === next.disabled &&
-    previous.collaborationDisabled === next.collaborationDisabled &&
-    previous.canManage === next.canManage &&
-    previous.investigationId === next.investigationId &&
-    previous.organizationSlug === next.organizationSlug &&
-    previous.queryExecutionEnabled === next.queryExecutionEnabled
+    previous.collaborationDisabled === next.collaborationDisabled
   );
 }
 
 const MemoizedSortableCellContent = memo(
-  SortableCellContent,
+  observer(SortableCellContent),
   (previous, next) =>
     areSortableCellPropsEqual(previous, next) &&
     previous.dropIndicator === next.dropIndicator &&
@@ -1420,12 +1294,6 @@ function updateReaction(
       reaction.reaction === name ? {...reaction, count, reactedByMe: enabled} : reaction
     )
     .filter(reaction => reaction.count > 0);
-}
-
-function getCellSortableId(cell: InvestigationCell) {
-  return typeof cell.config.optimisticKey === 'string'
-    ? cell.config.optimisticKey
-    : cell.id;
 }
 
 function ReactionIcon() {

@@ -25,6 +25,13 @@ export type CellStoreSnapshot = InvestigationCell & {
 
 export type CellSaveState = 'idle' | 'scheduled' | 'saving' | 'unsaved';
 
+type ExecutionProjection = Pick<
+  CellStore,
+  'currentExecution' | 'output' | 'outputStatus' | 'staleAt'
+>;
+
+const TERMINAL_OUTPUT_STATUSES = new Set(['available', 'failed', 'restricted']);
+
 export class CellStore {
   readonly clientKey: string;
   readonly notebook: NotebookStore;
@@ -54,10 +61,14 @@ export class CellStore {
   saveError: string | null = null;
   saveState: CellSaveState = 'idle';
   isRunRequested = false;
+  runError: string | null = null;
+  runRequestId: string | null = null;
+  failedRunRequestId: string | null = null;
 
   private confirmed: ConfirmedCellFields;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private savePromise: Promise<void> | null = null;
+  private executionBeforeRun: ExecutionProjection | null = null;
   private disposed = false;
 
   constructor(notebook: NotebookStore, cell: InvestigationCell, clientKey = cell.id) {
@@ -111,22 +122,31 @@ export class CellStore {
       saveError: observable,
       saveState: observable,
       isRunRequested: observable,
+      runError: observable,
+      runRequestId: observable,
+      failedRunRequestId: observable,
       isPersisted: computed,
       isDirty: computed,
       queryIntent: computed,
       executionIntent: computed,
       executionHasChanged: computed,
       isExecutionRunning: computed,
+      canRun: computed,
+      runButtonVariant: computed,
       editTitle: action,
       editContent: action,
       editGenerationPrompt: action,
+      editQueryIntent: action,
       updateDisplay: action,
       applySlashCommand: action,
       clearQueryIntent: action,
       applyDraft: action,
       changeCommentCount: action,
       markExecutionAccepted: action,
-      setRunRequested: action,
+      beginRunRequest: action,
+      markExecutionPending: action,
+      failRunRequest: action,
+      finishRunRequest: action,
       markSaveStarted: action,
       confirmSave: action,
       failSave: action,
@@ -167,6 +187,22 @@ export class CellStore {
     return ['pending', 'running'].includes(this.outputStatus);
   }
 
+  get canRun(): boolean {
+    return (
+      this.notebook.canExecuteQueries &&
+      !this.isExecutionRunning &&
+      !this.isRunRequested &&
+      Boolean(this.executionIntent.trim())
+    );
+  }
+
+  get runButtonVariant(): 'primary' | 'secondary' | 'warning' {
+    if (this.executionHasChanged) {
+      return 'warning';
+    }
+    return this.outputStatus === 'available' ? 'secondary' : 'primary';
+  }
+
   editTitle(value: string) {
     this.setEditableField('title', value, 600);
   }
@@ -177,6 +213,23 @@ export class CellStore {
 
   editGenerationPrompt(value: string) {
     this.setEditableField('generationPrompt', value, 600);
+  }
+
+  editQueryIntent(value: string) {
+    const clearsLegacyIntent =
+      value === '' && Boolean(this.content || this.confirmed.content);
+    this.content = '';
+    this.generationPrompt = value;
+    if (clearsLegacyIntent) {
+      this.dirtyFields.add('content');
+      this.dirtyFields.add('generationPrompt');
+      this.saveError = null;
+      this.saveState = 'scheduled';
+    } else {
+      this.markDirty('content');
+      this.markDirty('generationPrompt');
+    }
+    this.scheduleSave(600);
   }
 
   updateDisplay(value: InvestigationDisplay) {
@@ -231,8 +284,21 @@ export class CellStore {
     this.commentCount = Math.max(0, this.commentCount + delta);
   }
 
-  setRunRequested(value: boolean) {
-    this.isRunRequested = value;
+  beginRunRequest(requestId: string) {
+    this.isRunRequested = true;
+    this.runError = null;
+    this.runRequestId = requestId;
+  }
+
+  markExecutionPending() {
+    this.executionBeforeRun = {
+      currentExecution: this.currentExecution,
+      output: this.output,
+      outputStatus: this.outputStatus,
+      staleAt: this.staleAt,
+    };
+    this.outputStatus = 'pending';
+    this.output = null;
   }
 
   markExecutionAccepted(execution: {id: string; status: string}) {
@@ -246,10 +312,38 @@ export class CellStore {
       completedAt: null,
       error: null,
     };
+    this.failedRunRequestId = null;
+    this.executionBeforeRun = null;
+  }
+
+  failRunRequest(requestId: string) {
+    if (this.runRequestId !== requestId) {
+      return;
+    }
+    if (this.executionBeforeRun) {
+      this.currentExecution = this.executionBeforeRun.currentExecution;
+      this.output = this.executionBeforeRun.output;
+      this.outputStatus = this.executionBeforeRun.outputStatus;
+      this.staleAt = this.executionBeforeRun.staleAt;
+    }
+    this.executionBeforeRun = null;
+    this.failedRunRequestId = requestId;
+    this.runError = 'execution_start_failed';
+  }
+
+  finishRunRequest(requestId: string) {
+    if (this.runRequestId === requestId) {
+      this.isRunRequested = false;
+      this.runRequestId = null;
+    }
   }
 
   run(): Promise<void> {
-    return this.notebook.runCell(this);
+    return this.notebook.runCell(this, {retry: false});
+  }
+
+  retryRun(): Promise<void> {
+    return this.notebook.runCell(this, {retry: true});
   }
 
   async flush(): Promise<void> {
@@ -409,14 +503,36 @@ export class CellStore {
     this.dependencies = cell.dependencies;
     this.parameterKeys = cell.parameterKeys;
     this.version = cell.version;
-    this.staleAt = cell.staleAt;
-    this.output = cell.output;
-    this.outputStatus = cell.outputStatus;
-    this.currentExecution = cell.currentExecution ?? null;
+    this.applyExecutionSnapshot(cell);
     this.createdBy = cell.createdBy;
     this.lastEditedBy = cell.lastEditedBy;
     this.reactions = cell.reactions;
     this.commentCount = cell.commentCount;
+  }
+
+  private applyExecutionSnapshot(cell: InvestigationCell) {
+    const incomingExecution = cell.currentExecution ?? null;
+    const currentExecutionId = this.currentExecution?.id ?? null;
+    const incomingExecutionId = incomingExecution?.id ?? null;
+    const sameExecution =
+      currentExecutionId !== null && currentExecutionId === incomingExecutionId;
+
+    if (
+      (incomingExecutionId === null && this.isExecutionRunning) ||
+      (sameExecution &&
+        TERMINAL_OUTPUT_STATUSES.has(this.outputStatus) &&
+        ['pending', 'running'].includes(cell.outputStatus))
+    ) {
+      return;
+    }
+
+    this.staleAt = cell.staleAt;
+    this.output = cell.output;
+    this.outputStatus = cell.outputStatus;
+    this.currentExecution = incomingExecution;
+    if (incomingExecutionId !== null) {
+      this.executionBeforeRun = null;
+    }
   }
 
   private setEditableField<Field extends CellEditableField>(

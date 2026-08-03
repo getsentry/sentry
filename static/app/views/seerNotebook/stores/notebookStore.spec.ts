@@ -180,4 +180,77 @@ describe('NotebookStore', () => {
     expect(store.conflict).toMatchObject({operationKind: 'rename'});
     expect(store.isSaving).toBe(true);
   });
+
+  it('hydrates running executions and polls until they are terminal', async () => {
+    jest.useFakeTimers();
+    const base = InvestigationDetailFixture();
+    const running = {
+      ...base,
+      cells: base.cells.map((cell, index) =>
+        index === 0
+          ? {
+              ...cell,
+              currentExecution: {
+                completedAt: null,
+                error: null,
+                executor: 'seer',
+                id: 'execution-1',
+                schemaVersion: 1,
+                startedAt: '2026-08-03T00:00:00Z',
+                status: 'running',
+              },
+              outputStatus: 'running',
+            }
+          : cell
+      ),
+    };
+    const completed = {
+      ...running,
+      cells: running.cells.map((cell, index) =>
+        index === 0
+          ? {
+              ...cell,
+              currentExecution: {...cell.currentExecution!, status: 'completed'},
+              output: {table: 'result'},
+              outputStatus: 'available',
+            }
+          : cell
+      ),
+    };
+    const {store, transport} = makeStore(running, {
+      loadDetail: jest.fn().mockResolvedValueOnce(running).mockResolvedValue(completed),
+    });
+
+    await store.load();
+    expect(store.hasPendingExecution).toBe(true);
+    await jest.advanceTimersByTimeAsync(1500);
+
+    expect(transport.loadDetail).toHaveBeenCalledTimes(2);
+    expect(store.cellsInOrder[0]!.outputStatus).toBe('available');
+    expect(store.hasPendingExecution).toBe(false);
+    store.dispose();
+    jest.useRealTimers();
+  });
+
+  it('ignores an older detail refresh that finishes last', async () => {
+    const detail = InvestigationDetailFixture({title: 'Initial'});
+    const older = deferred<InvestigationDetail>();
+    const newer = deferred<InvestigationDetail>();
+    const loadDetail = jest
+      .fn()
+      .mockResolvedValueOnce(detail)
+      .mockReturnValueOnce(older.promise)
+      .mockReturnValueOnce(newer.promise);
+    const {store} = makeStore(detail, {loadDetail});
+    await store.load();
+
+    const firstRefresh = store.refreshDetail();
+    const secondRefresh = store.refreshDetail();
+    newer.resolve({...detail, title: 'Newer', version: detail.version + 2});
+    await secondRefresh;
+    older.resolve({...detail, title: 'Older', version: detail.version + 1});
+    await firstRefresh;
+
+    expect(store.title).toBe('Newer');
+  });
 });

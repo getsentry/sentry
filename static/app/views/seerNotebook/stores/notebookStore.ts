@@ -74,6 +74,9 @@ export class NotebookStore {
   private operationQueue: Promise<unknown> = Promise.resolve();
   private conflictedOperation: NotebookOperation | null = null;
   private cellCreationPromises = new Map<string, Promise<void>>();
+  private executionPollTimer: ReturnType<typeof setInterval> | null = null;
+  private refreshRequestOrdinal = 0;
+  private lastAppliedRefreshOrdinal = 0;
   private disposed = false;
 
   constructor(options: NotebookStoreOptions) {
@@ -115,6 +118,7 @@ export class NotebookStore {
       isReadOnly: computed,
       isSaving: computed,
       canExecuteQueries: computed,
+      hasPendingExecution: computed,
       load: action,
       retryLoad: action,
       applyRemoteSnapshot: action,
@@ -179,6 +183,10 @@ export class NotebookStore {
     return !this.isReadOnly && this.queryExecutionEnabled;
   }
 
+  get hasPendingExecution(): boolean {
+    return this.cellsInOrder.some(cell => cell.isExecutionRunning);
+  }
+
   async load(): Promise<void> {
     if (this.disposed) {
       return;
@@ -211,9 +219,15 @@ export class NotebookStore {
     if (this.disposed || this.conflict) {
       return;
     }
+    const requestOrdinal = ++this.refreshRequestOrdinal;
     const detail = await this.transport.loadDetail();
     runInAction(() => {
-      if (!this.disposed && !this.conflict) {
+      if (
+        !this.disposed &&
+        !this.conflict &&
+        requestOrdinal >= this.lastAppliedRefreshOrdinal
+      ) {
+        this.lastAppliedRefreshOrdinal = requestOrdinal;
         this.applyRemoteSnapshot(detail);
       }
     });
@@ -271,6 +285,7 @@ export class NotebookStore {
       }
     }
     this.cellKeys = nextKeys;
+    this.syncExecutionPolling();
   }
 
   enqueueOperation<T>(operation: Omit<NotebookOperation<T>, 'id' | 'state'>): Promise<T> {
@@ -323,7 +338,7 @@ export class NotebookStore {
       });
   }
 
-  async runCell(cell: CellStore): Promise<void> {
+  async runCell(cell: CellStore, options: {retry: boolean}): Promise<void> {
     if (
       this.isReadOnly ||
       !this.queryExecutionEnabled ||
@@ -332,21 +347,31 @@ export class NotebookStore {
     ) {
       return;
     }
-    cell.setRunRequested(true);
+    const requestId =
+      options.retry && cell.failedRunRequestId
+        ? cell.failedRunRequestId
+        : this.idGenerator();
+    cell.beginRunRequest(requestId);
     try {
       await cell.flush();
       if (!cell.serverId) {
         throw new Error('The cell must be persisted before it can run.');
       }
+      runInAction(() => cell.markExecutionPending());
       const result = await this.transport.executeCell(cell.serverId, {
         investigationVersion: this.version,
-        requestId: this.idGenerator(),
+        requestId,
         version: cell.version,
       });
-      runInAction(() => cell.markExecutionAccepted(result));
-      await this.refreshDetail();
+      runInAction(() => {
+        cell.markExecutionAccepted(result);
+        this.syncExecutionPolling();
+      });
+    } catch (error) {
+      runInAction(() => cell.failRunRequest(requestId));
+      throw error;
     } finally {
-      runInAction(() => cell.setRunRequested(false));
+      runInAction(() => cell.finishRunRequest(requestId));
     }
   }
 
@@ -697,9 +722,29 @@ export class NotebookStore {
 
   dispose() {
     this.disposed = true;
+    if (this.executionPollTimer) {
+      this.timers.clearInterval(this.executionPollTimer);
+      this.executionPollTimer = null;
+    }
     for (const cell of this.cells.values()) {
       cell.dispose();
     }
+  }
+
+  private syncExecutionPolling() {
+    if (this.disposed || !this.hasPendingExecution) {
+      if (this.executionPollTimer) {
+        this.timers.clearInterval(this.executionPollTimer);
+        this.executionPollTimer = null;
+      }
+      return;
+    }
+    if (this.executionPollTimer) {
+      return;
+    }
+    this.executionPollTimer = this.timers.setInterval(() => {
+      void this.refreshDetail().catch(() => {});
+    }, 1500);
   }
 
   toSnapshot(): NotebookStoreSnapshot {

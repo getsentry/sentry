@@ -135,4 +135,72 @@ describe('CellStore', () => {
       })
     );
   });
+
+  it('flushes before running and reuses a failed request id only for retry', async () => {
+    const {cell, updateCell, store} = makeStore();
+    const executeCell = jest
+      .fn()
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce({id: 'execution-1', status: 'pending'})
+      .mockResolvedValueOnce({id: 'execution-2', status: 'pending'});
+    store.transport.executeCell = executeCell;
+    cell.editGenerationPrompt('Generate a report');
+
+    await expect(cell.run()).rejects.toThrow('offline');
+
+    expect(updateCell).toHaveBeenCalledTimes(1);
+    expect(executeCell).toHaveBeenCalledTimes(1);
+    expect(cell.outputStatus).toBe('notRun');
+    expect(cell.failedRunRequestId).toBeTruthy();
+    const failedRequestId = executeCell.mock.calls[0]![1].requestId;
+
+    await cell.retryRun();
+    expect(executeCell.mock.calls[1]![1].requestId).toBe(failedRequestId);
+    expect(cell.outputStatus).toBe('pending');
+
+    cell.applyServerSnapshot({
+      ...cell.toInvestigationCell(),
+      currentExecution: {
+        completedAt: '2026-08-03T00:00:00Z',
+        error: null,
+        executor: 'seer',
+        id: 'execution-1',
+        schemaVersion: 1,
+        startedAt: '2026-08-03T00:00:00Z',
+        status: 'completed',
+      },
+      outputStatus: 'available',
+    });
+    await cell.run();
+    expect(executeCell.mock.calls[2]![1].requestId).not.toBe(failedRequestId);
+  });
+
+  it('does not regress a terminal execution from an older running snapshot', () => {
+    const {cell} = makeStore();
+    const execution = {
+      completedAt: '2026-08-03T00:00:00Z',
+      error: null,
+      executor: 'seer',
+      id: 'execution-1',
+      schemaVersion: 1,
+      startedAt: '2026-08-03T00:00:00Z',
+      status: 'completed',
+    };
+    cell.applyServerSnapshot({
+      ...cell.toInvestigationCell(),
+      currentExecution: execution,
+      output: {table: 'result'},
+      outputStatus: 'available',
+    });
+
+    cell.applyServerSnapshot({
+      ...cell.toInvestigationCell(),
+      currentExecution: {...execution, completedAt: null, status: 'running'},
+      output: null,
+      outputStatus: 'running',
+    });
+
+    expect(cell.outputStatus).toBe('available');
+    expect(cell.output).toEqual({table: 'result'});
+  });
 });
