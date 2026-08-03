@@ -26,7 +26,7 @@ const enum EventNavOptions {
   CUSTOM = 'custom',
 }
 
-const EventNavOrder = [
+const EventNavPresetOrder = [
   EventNavOptions.OLDEST,
   EventNavOptions.LATEST,
   EventNavOptions.RECOMMENDED,
@@ -168,7 +168,7 @@ export function IssueDetailsEventNavigation({
       </Navigation>
       <Tabs value={selectedOption} disableOverflow onChange={onTabChange} size="xs">
         <TabList variant="floating">
-          {EventNavOrder.map(label => {
+          {EventNavPresetOrder.map(label => {
             const eventPath =
               label === selectedOption
                 ? undefined
