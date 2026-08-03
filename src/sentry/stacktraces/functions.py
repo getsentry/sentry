@@ -40,6 +40,7 @@ _anon_namespace_re = re.compile(
     \?A0x[a-f0-9]{8}::
     """
 )
+_function_token_break_re = re.compile(r"\s|[({<\[]")
 
 
 PAIRS = {"(": ")", "{": "}", "[": "]", "<": ">"}
@@ -75,6 +76,9 @@ def replace_enclosed_string(
 
 
 def split_func_tokens(s):
+    if s and _function_token_break_re.search(s) is None:
+        return [s]
+
     buf = []
     rv = []
     stack = []
@@ -173,7 +177,7 @@ def trim_native_function_name(function, platform, normalize_lambdas=True):
     # something like `lambda_deadbeefeefffeeffeeff` whereas clang for
     # instance will name it `main::$_0` which will tell us in which outer
     # function it was declared.
-    if normalize_lambdas:
+    if normalize_lambdas and ("lambda" in function or "$_" in function):
         function = _lambda_re.sub("lambda", function)
 
     # Normalize MSVC anonymous namespaces from inline functions.  For inline
@@ -181,7 +185,7 @@ def trim_native_function_name(function, platform, normalize_lambdas=True):
     # their hash.  For regular functions,  "`anonymous namespace'" is used.
     # The regular expression matches the trailing "::" to avoid accidental
     # replacement in mangled function names.
-    if normalize_lambdas:
+    if normalize_lambdas and "?A0x" in function:
         function = _anon_namespace_re.sub("〔anonymousnamespace〕::", function)
 
     # Remove the arguments if there is one.
@@ -274,13 +278,15 @@ def trim_native_function_name(function, platform, normalize_lambdas=True):
         function = original_function
 
     # trim off rust markers
-    function = _rust_hash.sub("", function)
+    if "::h" in function:
+        function = _rust_hash.sub("", function)
 
     # trim off gnu symbol versioning info
-    function = _gnu_version.sub("", function)
+    if "@GLIBC_" in function:
+        function = _gnu_version.sub("", function)
 
     # trim off windows decl markers
-    return _windecl_hash.sub("\\1", function)
+    return _windecl_hash.sub("\\1", function) if "@" in function else function
 
 
 def get_function_name_for_frame(frame, platform=None):
