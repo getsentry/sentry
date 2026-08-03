@@ -144,7 +144,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
   [
     DataConditionType.REGRESSION_EVENT,
     {
-      label: t('A resolved issue becomes unresolved'),
+      label: t('A resolved issue regresses'),
       validate: undefined,
     },
   ],
