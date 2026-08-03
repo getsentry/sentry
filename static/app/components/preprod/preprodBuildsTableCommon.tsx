@@ -190,7 +190,7 @@ export function PreprodBuildsRowCells({
             )}
           </Flex>
           {visibleInstallGroups.length > 0 && (
-            <Flex align="center" gap="xs" minWidth={0} width="100%" wrap="wrap">
+            <Flex align="center" gap="xs" wrap="wrap">
               {visibleInstallGroups.map(group => (
                 <Tag
                   key={group}
