@@ -1,5 +1,10 @@
 import {Fragment, useState} from 'react';
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {
+  useIsMutating,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -1274,6 +1279,8 @@ function SamplingPrioritiesSection({
     orgSlug: organization.slug,
     projectSlug,
   });
+  const mutationKey = ['project-sampling-priorities', project.id];
+  const isUpdatingSamplingPriority = useIsMutating({mutationKey}) > 0;
 
   const isPriorityActive = (name: DynamicSamplingBiasType) =>
     project.dynamicSamplingBiases?.find(bias => bias.id === name)?.active ?? false;
@@ -1288,6 +1295,7 @@ function SamplingPrioritiesSection({
             schema={z.object({[priority.name]: z.boolean()})}
             initialValue={isPriorityActive(priority.name)}
             mutationOptions={{
+              mutationKey,
               mutationFn: (data: Record<string, boolean>) =>
                 fetchMutation<DetailedProject>({
                   url: endpoint,
@@ -1322,7 +1330,7 @@ function SamplingPrioritiesSection({
                 <field.Switch
                   checked={field.state.value}
                   onChange={field.handleChange}
-                  disabled={!hasWriteAccess}
+                  disabled={!hasWriteAccess || isUpdatingSamplingPriority}
                 />
               </field.Layout.Row>
             )}

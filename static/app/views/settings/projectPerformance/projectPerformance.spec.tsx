@@ -208,6 +208,8 @@ describe('projectPerformance', () => {
       method: 'GET',
       body: detailedProject,
     });
+    let resolveFirstUpdate!: (projectResponse: typeof detailedProject) => void;
+    let updateCount = 0;
     const projectPutMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
       method: 'PUT',
@@ -216,7 +218,14 @@ describe('projectPerformance', () => {
         options: {data: {dynamicSamplingBiases: typeof dynamicSamplingBiases}}
       ) => {
         dynamicSamplingBiases = options.data.dynamicSamplingBiases;
-        return {...detailedProject, dynamicSamplingBiases};
+        const projectResponse = {...detailedProject, dynamicSamplingBiases};
+        updateCount += 1;
+        if (updateCount === 1) {
+          return new Promise(resolve => {
+            resolveFirstUpdate = resolve;
+          });
+        }
+        return projectResponse;
       },
     });
 
@@ -229,9 +238,27 @@ describe('projectPerformance', () => {
       await screen.findByRole('checkbox', {name: 'Prioritize new releases'})
     );
     await waitFor(() => {
+      expect(projectPutMock).toHaveBeenCalledTimes(1);
+      expect(
+        screen.getByRole('checkbox', {name: 'Prioritize dev environments'})
+      ).toBeDisabled();
+    });
+
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: 'Prioritize dev environments'})
+    );
+    expect(projectPutMock).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      resolveFirstUpdate({...detailedProject, dynamicSamplingBiases});
+    });
+    await waitFor(() => {
       expect(
         screen.getByRole('checkbox', {name: 'Prioritize new releases'})
       ).toBeChecked();
+      expect(
+        screen.getByRole('checkbox', {name: 'Prioritize dev environments'})
+      ).toBeEnabled();
     });
 
     await userEvent.click(
