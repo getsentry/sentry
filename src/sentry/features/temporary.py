@@ -205,6 +205,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:performance-transaction-deprecation-banner", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Create issue activities for pull request lifecycle events
     manager.add("organizations:pr-lifecycle-activity", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Fetch and store per-file PR diff stats from the SCM provider for autofix-linked PRs
+    manager.add("organizations:pr-file-stats", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Write PullRequestActivity rows from GitHub PR lifecycle webhooks
     manager.add("organizations:pr-metrics-activity", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Fold PR activity into a single PullRequestActivityLog document instead of one row per event
