@@ -399,7 +399,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_multiple_conversations(self) -> None:
         """Test multiple conversations are returned correctly"""
-        now = before_now(days=40).replace(microsecond=0)
+        now = before_now(days=24).replace(microsecond=0)
         conversation_id_1 = uuid4().hex
         conversation_id_2 = uuid4().hex
 
@@ -440,7 +440,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_pagination(self) -> None:
         """Test pagination works correctly"""
-        now = before_now(days=50).replace(microsecond=0)
+        now = before_now(days=25).replace(microsecond=0)
 
         for i in range(3):
             conversation_id = uuid4().hex
@@ -476,7 +476,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_zero_values(self) -> None:
         """Test conversations with zero values for token metrics but with input/output"""
-        now = before_now(days=60).replace(microsecond=0)
+        now = before_now(days=26).replace(microsecond=0)
         conversation_id = uuid4().hex
 
         self.store_ai_span(
@@ -515,7 +515,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_mixed_error_statuses(self) -> None:
         """Test that various error statuses are counted correctly"""
-        now = before_now(days=70).replace(microsecond=0)
+        now = before_now(days=27).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -558,7 +558,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_flow_ordering(self) -> None:
         """Test that flow agents are ordered by timestamp"""
-        now = before_now(days=80).replace(microsecond=0)
+        now = before_now(days=28).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -1239,7 +1239,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_tool_errors_counted(self) -> None:
         """Test that toolErrors counts only failed tool spans"""
-        now = before_now(days=35).replace(microsecond=0)
+        now = before_now(days=29).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 

@@ -505,108 +505,25 @@ class TransactionBalancingCalculationsTest(TestCase):
         assert extras[1]["is_equal"] is False
 
 
-def _branch3_project_volume(project_id: int) -> ProjectVolume:
-    """The full-project totals that drive TransactionsRebalancingModel into
-    branch 3 (explicit pool too small to absorb its budget share), producing an
-    implicit rate below the base sample rate."""
-    return ProjectVolume(
-        project_id=project_id, total=1000, keep=0, drop=0, num_distinct_transactions=10
-    )
-
-
-def _branch3_transactions(org_id: int, project_id: int) -> ProjectTransactionCounts:
-    return ProjectTransactionCounts(
-        org_id=org_id, project_id=project_id, transaction_counts=[("tiny", 5.0)]
-    )
-
-
-class TransactionBalancingImplicitFactorFloorTest(TestCase):
-    """Tests for the implicit factor floor that clamps the implicit factor
-    via budget redistribution from the explicit pool."""
-
-    def test_factor_one_lifts_implicit_rate_to_base(self) -> None:
+class TransactionBalancingModelOutputTest(TestCase):
+    def test_model_output_is_stored_as_is(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         config = Mock()
         config.organization = org
         config.get_project_sample_rates.return_value = {project.id: 0.1}
 
-        result = run_transaction_balancing(
-            config,
-            [_branch3_project_volume(project.id)],
-            [_branch3_transactions(org.id, project.id)],
-        )
-
-        named_rates, implicit_rate = result[project.id]
-        assert implicit_rate == pytest.approx(0.1)
-        # Explicit rate is reduced from 1.0 to absorb the extra implicit budget,
-        # so the overall budget remains at total * base_sample_rate = 100.
-        assert len(named_rates) == 1
-        new_explicit_rate = named_rates[0].new_sample_rate
-        total = 1000.0
-        total_explicit = 5.0
-        total_implicit = total - total_explicit
-        kept = new_explicit_rate * total_explicit + implicit_rate * total_implicit
-        assert kept == pytest.approx(total * 0.1, abs=1e-6)
-
-    def test_no_change_when_implicit_already_above_floor(self) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-        config = Mock()
-        config.organization = org
-        config.get_project_sample_rates.return_value = {project.id: 0.1}
-
-        # Branch 2 scenario: small long tail relative to its share → implicit_rate=1.0,
-        # which is already well above any factor floor we'd set.
+        # Branch 3 of TransactionsRebalancingModel: the explicit pool is too small to absorb
+        # its budget share, so the model returns an implicit rate below the project rate.
         project_volume = ProjectVolume(
-            project_id=project.id, total=1010, keep=0, drop=0, num_distinct_transactions=11
+            project_id=project.id, total=1000, keep=0, drop=0, num_distinct_transactions=10
         )
         project_transactions = ProjectTransactionCounts(
-            org_id=org.id, project_id=project.id, transaction_counts=[("heavy", 1000.0)]
+            org_id=org.id, project_id=project.id, transaction_counts=[("tiny", 5.0)]
         )
 
         result = run_transaction_balancing(config, [project_volume], [project_transactions])
 
-        _, implicit_rate = result[project.id]
-        assert implicit_rate == 1.0
-
-    @override_options({"dynamic-sampling.per_org.apply-implicit-sample-rate-floor": False})
-    def test_disabled_option_leaves_the_model_output_untouched(self) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-        config = Mock()
-        config.organization = org
-        config.get_project_sample_rates.return_value = {project.id: 0.1}
-
-        result = run_transaction_balancing(
-            config,
-            [_branch3_project_volume(project.id)],
-            [_branch3_transactions(org.id, project.id)],
-        )
-
         named_rates, implicit_rate = result[project.id]
-        # With the floor on, the implicit rate is lifted to 0.1 and the explicit rate drops
-        # below 1.0 to pay for it. Off, the model's own output is stored as-is, matching the
-        # legacy pipeline.
         assert implicit_rate == pytest.approx(0.09547738693467336)
         assert [item.new_sample_rate for item in named_rates] == [1.0]
-
-    @override_options({"dynamic-sampling.per_org.apply-implicit-sample-rate-floor": False})
-    def test_disabled_option_is_a_noop_when_the_floor_would_not_engage(self) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-        config = Mock()
-        config.organization = org
-        config.get_project_sample_rates.return_value = {project.id: 0.1}
-
-        project_volume = ProjectVolume(
-            project_id=project.id, total=1010, keep=0, drop=0, num_distinct_transactions=11
-        )
-        project_transactions = ProjectTransactionCounts(
-            org_id=org.id, project_id=project.id, transaction_counts=[("heavy", 1000.0)]
-        )
-
-        result = run_transaction_balancing(config, [project_volume], [project_transactions])
-
-        _, implicit_rate = result[project.id]
-        assert implicit_rate == 1.0

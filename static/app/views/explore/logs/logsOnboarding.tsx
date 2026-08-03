@@ -156,8 +156,8 @@ function OnboardingPanel({
         <AuthTokenGeneratorProvider projectSlug={project?.slug}>
           <TabSelectionScope>
             <div>
-              <HeaderWrapper>
-                <HeaderText>
+              <Flex justify="between" gap="2xl" radius="md" padding="3xl">
+                <Container flex={{zero: 1, xl: 0.65}}>
                   <Title>{t('Logs in Sentry')}</Title>
                   <SubTitle>
                     {t('Search and visualize application logs at scale.')}
@@ -169,9 +169,11 @@ function OnboardingPanel({
                       {t('Build alerts and dashboard widgets based on log queries')}
                     </li>
                   </BulletList>
-                </HeaderText>
-                <Image src={connectDotsImg} />
-              </HeaderWrapper>
+                </Container>
+                <Container display={{zero: 'none', xl: 'block'}}>
+                  {imageProps => <Image {...imageProps} src={connectDotsImg} />}
+                </Container>
+              </Flex>
               <Divider />
               <Body>
                 <Setup>
@@ -502,22 +504,6 @@ const BulletList = styled('ul')`
   }
 `;
 
-const HeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  gap: ${p => p.theme.space['2xl']};
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${p => p.theme.space['3xl']};
-`;
-
-const HeaderText = styled('div')`
-  flex: 0.65;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    flex: 1;
-  }
-`;
-
 const Setup = styled('div')`
   padding: ${p => p.theme.space['3xl']};
 
@@ -563,14 +549,9 @@ const Body = styled('div')`
 `;
 
 const Image = styled('img')`
-  display: block;
   pointer-events: none;
   height: 120px;
   overflow: hidden;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
 `;
 
 const Divider = styled('hr')`
