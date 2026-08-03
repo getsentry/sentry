@@ -123,6 +123,21 @@ def link_pull_request_to_seer_run(
             "seer.pr_link.created",
             extra={**log_context, "pull_request_id": resolved.pull_request.id},
         )
+        # Imported here, not at module scope: this module is imported from
+        # SeerConfig.ready(), and pr_metrics.tasks transitively pulls in the Jira
+        # integration, which reads an option at import time -- before the options
+        # cache exists. A top-level import breaks app startup.
+        from sentry.pr_metrics.tasks import fetch_pr_file_stats_task
+
+        # The link is often written after the PR's `opened` webhook, which skips
+        # not-yet-linked PRs. Enqueue here to cover that race; gating on `created`
+        # keeps redeliveries from re-enqueueing, and the task re-checks the flag,
+        # the rate-limit guard, and row existence itself.
+        fetch_pr_file_stats_task.delay(
+            pull_request_id=resolved.pull_request.id,
+            organization_id=organization.id,
+            repository_id=resolved.pull_request.repository_id,
+        )
 
     return resolved.pull_request
 
