@@ -602,6 +602,8 @@ def process_workflows(
         )
         return {}
 
+    workflow_ids = [workflow.id for workflow in workflows]
+
     triggered_workflows, queue_items_by_workflow_id, trigger_stats, trigger_evals = (
         evaluate_workflow_triggers(workflows, event_data, event_start_time)
     )
@@ -622,7 +624,7 @@ def process_workflows(
             event_data=event_data,
             evaluations=workflow_evaluations,
             detector=associated_detector,
-            workflow_ids=[workflow.id for workflow in workflows],
+            workflow_ids=workflow_ids,
             debug_msg="No items were triggered or queued for slow evaluation",
         )
         return workflow_evaluations
@@ -650,6 +652,8 @@ def process_workflows(
         actions=actions,
         action_to_workflow_id=action_to_workflow_id,
     )
+    delayed_condition_keys = [item.buffer_key() for item in queue_items_by_workflow_id.values()]
+    action_filter_group_ids = [group.id for group in actions_to_trigger]
 
     triggered_actions = set(actions)
     sentry_sdk.set_tag("workflow_engine.triggered_actions", len(triggered_actions))
@@ -662,9 +666,9 @@ def process_workflows(
             event_data=event_data,
             evaluations=workflow_evaluations,
             detector=associated_detector,
-            workflow_ids=[workflow.id for workflow in workflows],
-            delayed_conditions=[item.buffer_key() for item in queue_items_by_workflow_id.values()],
-            action_filter_group_ids=[group.id for group in actions_to_trigger],
+            workflow_ids=workflow_ids,
+            delayed_conditions=delayed_condition_keys,
+            action_filter_group_ids=action_filter_group_ids,
             debug_msg="No actions to evaluate; filtered or not triggered",
         )
         return workflow_evaluations
@@ -696,8 +700,8 @@ def process_workflows(
         event_data=event_data,
         evaluations=workflow_evaluations,
         detector=associated_detector,
-        workflow_ids=[workflow.id for workflow in workflows],
-        delayed_conditions=[item.buffer_key() for item in queue_items_by_workflow_id.values()],
-        action_filter_group_ids=[group.id for group in actions_to_trigger],
+        workflow_ids=workflow_ids,
+        delayed_conditions=delayed_condition_keys,
+        action_filter_group_ids=action_filter_group_ids,
     )
     return workflow_evaluations
