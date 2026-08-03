@@ -45,6 +45,9 @@ def delete_replays(
     # Keyset (seek) pagination cursor - page by the last replay_id we saw
     last_replay_id = None
 
+    # Running tally of replays to be deleted, accumulated across pages
+    total_replays = 0
+
     has_more = True
     while has_more:
         replays, has_more, last_replay_id = _get_rows_matching_deletion_pattern(
@@ -61,6 +64,8 @@ def delete_replays(
         if not replays:
             return None
 
+        total_replays += len(replays)
+
         logging_context = {
             "project_id": project_id,
             "dry_run": dry_run,
@@ -69,22 +74,26 @@ def delete_replays(
             "start_utc": start_utc,
             "end_utc": end_utc,
             "has_more": has_more,
+            "total_replays": total_replays,
         }
         if dry_run:
             logger.info(f"Replays to be deleted (dry run): {len(replays)}", extra=logging_context)
         else:
-            delete_replay_ids(project_id, replays)
+            delete_replay_ids(project_id, replays, total_replays=total_replays)
 
 
 def translate_cli_tags_param_to_snuba_tag_param(tags: list[str]) -> Sequence[QueryToken]:
     return parse_search_query(" AND ".join(tags), config=replay_url_parser_config)
 
 
-def delete_replay_ids(project_id: int, rows: list[tuple[int, str, int]]) -> None:
+def delete_replay_ids(
+    project_id: int, rows: list[tuple[int, str, int]], total_replays: int
+) -> None:
     """Delete a set of replay-ids for a specific project."""
     logging_context = {
         "project_id": project_id,
         "num_replays": len(rows),
+        "total_replays": total_replays,
     }
     logger.info("Archiving %d replays.", len(rows), extra=logging_context)
 
