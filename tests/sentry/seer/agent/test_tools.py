@@ -47,6 +47,7 @@ from sentry.seer.agent.tools import (
 )
 from sentry.seer.sentry_data_models import (
     EAPTrace,
+    ExecuteTimeseriesQueryErrorResponse,
     ExecuteTimeseriesQuerySuccessResponse,
     IssueDetailsResponse,
 )
@@ -2270,6 +2271,26 @@ class TestGetEventDetails(
 
 class TestGetIssueEventTimeseries(APITransactionTestCase, SnubaTestCase):
     """Tests for _get_issue_event_timeseries — resolution selection and API call params."""
+
+    @patch("sentry.seer.agent.tools.execute_timeseries_query")
+    def test_returns_none_on_query_error(self, mock_execute: Mock) -> None:
+        mock_execute.return_value = ExecuteTimeseriesQueryErrorResponse(
+            seer_error_detail="Invalid query: bad field"
+        )
+        group = self.create_group(project=self.project)
+
+        result = _get_issue_event_timeseries(group=group, organization=self.organization)
+
+        assert result is None
+
+    @patch("sentry.seer.agent.tools.execute_timeseries_query")
+    def test_returns_none_when_no_data(self, mock_execute: Mock) -> None:
+        mock_execute.return_value = None
+        group = self.create_group(project=self.project)
+
+        result = _get_issue_event_timeseries(group=group, organization=self.organization)
+
+        assert result is None
 
     @patch("sentry.seer.agent.tools.client")
     def test_no_start_end_uses_group_date_range(self, mock_api_client):
