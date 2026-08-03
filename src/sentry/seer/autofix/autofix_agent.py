@@ -8,6 +8,7 @@ from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal, cast
 
 import sentry_sdk
+from django.utils import timezone
 from pydantic import BaseModel
 from rest_framework.exceptions import PermissionDenied
 from scm.types import GetBranchProtocol, GetRepositoryProtocol
@@ -490,6 +491,8 @@ def trigger_autofix_agent(
             insert_index=insert_index,
         )
 
+    activity_datetime = timezone.now().isoformat()
+
     # Emit the started event after run_id is resolved so it can be joined to
     # downstream completed/PR events.
     if config.started_event is not None:
@@ -523,6 +526,7 @@ def trigger_autofix_agent(
                 "event_type": sentry_app_event_type,
                 "event_payload": payload,
                 "organization_id": group.organization.id,
+                "activity_datetime": activity_datetime,
             }
             if is_iteration_step:
                 activity_attribution: SeerActivityAttribution = {

@@ -4,7 +4,7 @@ import functools
 import logging
 import time
 from abc import ABCMeta, abstractmethod
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass
 from dataclasses import field as dataclass_field
 from datetime import datetime, timedelta
@@ -25,6 +25,7 @@ from sentry.api.serializers.models.group import SKIP_SNUBA_FIELDS
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import registry as group_type_registry
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.issues.progress_state import IssueProgressState
 from sentry.issues.search import (
@@ -33,7 +34,7 @@ from sentry.issues.search import (
     MergeableRow,
     SearchQueryPartial,
     UnsupportedSearchQuery,
-    get_search_strategies,
+    get_search_strategy,
     group_categories_from,
     group_types_from,
 )
@@ -64,6 +65,12 @@ from sentry.utils.tracing import set_span_data, start_span
 logger = logging.getLogger(__name__)
 
 FIRST_RELEASE_FILTERS = ["first_release", "firstRelease"]
+DEFAULT_GROUP_SEARCH_CATEGORY_IDS = frozenset(
+    category.value
+    for category in GroupCategory
+    # Hide certain categories from the default issue stream
+    if category not in {GroupCategory.FEEDBACK, GroupCategory.CONFIGURATION}
+)
 
 
 class TrendsSortWeights(TypedDict):
@@ -194,14 +201,9 @@ def get_search_filter(
 
 def group_categories_from_search_filters(search_filters: Sequence[SearchFilter]) -> set[int]:
     group_categories = group_categories_from(search_filters)
-
-    if not group_categories:
-        group_categories = set(get_search_strategies().keys())
-        # Hide certain categories from the default issue stream
-        group_categories.discard(GroupCategory.FEEDBACK.value)
-        group_categories.discard(GroupCategory.CONFIGURATION.value)
-
-    return group_categories
+    if group_categories:
+        return group_categories
+    return set(DEFAULT_GROUP_SEARCH_CATEGORY_IDS)
 
 
 class AbstractQueryExecutor(metaclass=ABCMeta):
@@ -344,6 +346,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
     def _prepare_params_for_category(
         self,
         group_category: int,
+        visible_group_type_ids: Collection[int],
         query_partial: IntermediateSearchQueryPartial,
         organization: Organization,
         project_ids: Sequence[int],
@@ -411,8 +414,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             ),
         )
 
-        strategy = get_search_strategies()[group_category]
-        snuba_query_params = strategy(
+        query_builder = get_search_strategy(GroupCategory(group_category), visible_group_type_ids)
+        snuba_query_params = query_builder(
             pinned_query_partial,
             selected_columns,
             aggregations,
@@ -491,13 +494,21 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         )
 
         group_categories = group_categories_from_search_filters(search_filters or ())
-
+        visible_group_type_ids = (
+            {
+                group_type.type_id
+                for group_type in group_type_registry.get_visible(organization, actor)
+            }
+            if group_categories - {GroupCategory.ERROR.value}
+            else set()
+        )
         query_params_for_categories = {}
 
         for gc in group_categories:
             try:
                 query_params = self._prepare_params_for_category(
                     gc,
+                    visible_group_type_ids,
                     query_partial,
                     organization,
                     project_ids,

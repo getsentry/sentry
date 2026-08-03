@@ -147,7 +147,6 @@ export function useLogsSearchQueryBuilderProps({
       stringSecondaryAliases,
       caseInsensitive,
       onCaseInsensitiveClick: setCaseInsensitive,
-      defaultToAskSeerOnFreeTextSearch: true,
       replaceRawSearchKeys: ['message'],
       matchKeySuggestions: [{key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/}],
       hiddenAttributeKeys: HiddenLogSearchFields,

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {LogoSentry} from 'sentry/components/logoSentry';
@@ -35,12 +35,12 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useBackActions} from 'sentry/views/onboarding/useBackActions';
 
+import {FOOTER_HEIGHT} from './components/genericFooter';
 import {NewWelcomeUI} from './components/newWelcome';
 import {OnboardingSkipButton} from './components/onboardingSkipButton';
 import {PlatformSelection} from './platformSelection';
 import {ScmConnect} from './scmConnect';
 import {ScmPlatformFeatures} from './scmPlatformFeatures';
-import {ScmProjectDetails} from './scmProjectDetails';
 import {SetupDocs} from './setupDocs';
 import {OnboardingStepId, type StepDescriptor, type StepProps} from './types';
 
@@ -106,7 +106,6 @@ function ScmPlatformFeaturesAdapter({onComplete, genBackButton}: StepProps) {
     setSelectedPlatform,
     selectedFeatures,
     setSelectedFeatures,
-    setProjectDetailsForm,
     createdProjectSlug,
     setCreatedProjectSlug,
   } = useOnboardingContext();
@@ -119,34 +118,7 @@ function ScmPlatformFeaturesAdapter({onComplete, genBackButton}: StepProps) {
       createdProjectSlug={createdProjectSlug}
       onPlatformChange={setSelectedPlatform}
       onFeaturesChange={setSelectedFeatures}
-      onClearProjectDetailsForm={() => setProjectDetailsForm(undefined)}
       onProjectCreated={setCreatedProjectSlug}
-      onComplete={onComplete}
-      genBackButton={genBackButton}
-    />
-  );
-}
-
-function ScmProjectDetailsAdapter({onComplete, genBackButton}: StepProps) {
-  const {
-    selectedPlatform,
-    selectedFeatures,
-    selectedRepository,
-    createdProjectSlug,
-    setCreatedProjectSlug,
-    projectDetailsForm,
-    setProjectDetailsForm,
-  } = useOnboardingContext();
-
-  return (
-    <ScmProjectDetails
-      selectedPlatform={selectedPlatform}
-      selectedFeatures={selectedFeatures}
-      selectedRepository={selectedRepository}
-      createdProjectSlug={createdProjectSlug}
-      projectDetailsForm={projectDetailsForm}
-      onProjectCreated={setCreatedProjectSlug}
-      onProjectDetailsFormChange={setProjectDetailsForm}
       onComplete={onComplete}
       genBackButton={genBackButton}
     />
@@ -170,13 +142,6 @@ const scmOnboardingSteps: StepDescriptor[] = [
     id: OnboardingStepId.SCM_PLATFORM_FEATURES,
     title: t('Create your first project'),
     Component: ScmPlatformFeaturesAdapter,
-    cornerVariant: 'top-left',
-  },
-  {
-    id: OnboardingStepId.SCM_PROJECT_DETAILS,
-    title: t('Project details'),
-    Component: ScmProjectDetailsAdapter,
-    hasFooter: true,
     cornerVariant: 'top-left',
   },
   {
@@ -265,18 +230,7 @@ export function OnboardingWithoutContext() {
     reportExposure: isNewOrgOnboarding,
   });
 
-  // Only report exposure for users who are actually in SCM onboarding —
-  // the assignment is irrelevant for legacy onboarding.
-  const {inExperiment: hasProjectDetailsStep} = useExperiment({
-    feature: 'onboarding-scm-project-details-experiment',
-    reportExposure: hasScmOnboarding && isNewOrgOnboarding,
-  });
-
-  const scmSteps = hasProjectDetailsStep
-    ? scmOnboardingSteps
-    : scmOnboardingSteps.filter(s => s.id !== OnboardingStepId.SCM_PROJECT_DETAILS);
-
-  const onboardingSteps = hasScmOnboarding ? scmSteps : legacyOnboardingSteps;
+  const onboardingSteps = hasScmOnboarding ? scmOnboardingSteps : legacyOnboardingSteps;
 
   useReplayForCriticalFlow({
     flowName: 'scm_onboarding',
@@ -487,10 +441,17 @@ export function OnboardingWithoutContext() {
         hasScmOnboarding={hasScmOnboarding}
       >
         {hasScmOnboarding ? null : (
-          <AdaptivePageCorners
-            // Controls the current corner variant
-            animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
-          />
+          <Container
+            position="absolute"
+            inset={0}
+            pointerEvents="none"
+            containerType="inline-size"
+          >
+            <AdaptivePageCorners
+              // Controls the current corner variant
+              animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
+            />
+          </Container>
         )}
         {stepIndex > 0 && !hasScmOnboarding && (
           <BackMotionDiv
@@ -565,7 +526,7 @@ const OnboardingContainerNewWelcomeUI = styled('div')<{
 
   width: 100%;
   margin: 0 auto;
-  margin-bottom: ${p => p.hasFooter && '72px'};
+  margin-bottom: ${p => p.hasFooter && FOOTER_HEIGHT};
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     padding: ${p => p.theme.space['3xl']} ${p => p.theme.space['2xl']};
@@ -585,8 +546,8 @@ const OnboardingContainer = styled('div')<{
   padding: ${p => (p.hasScmOnboarding ? '60px' : '120px')} ${p => p.theme.space['2xl']};
   width: 100%;
   margin: 0 auto;
-  padding-bottom: ${p => p.hasFooter && '72px'};
-  margin-bottom: ${p => p.hasFooter && '72px'};
+  padding-bottom: ${p => p.hasFooter && FOOTER_HEIGHT};
+  margin-bottom: ${p => p.hasFooter && FOOTER_HEIGHT};
 `;
 
 const Header = styled(Grid)`
@@ -622,7 +583,7 @@ const OnboardingStepNewUi = styled(motion.div)`
 const AdaptivePageCorners = styled(PageCorners)`
   --corner-scale: 1;
   overflow: hidden;
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     --corner-scale: 0.5;
   }
 `;

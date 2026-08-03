@@ -11,6 +11,8 @@ resources:
 import {ProjectsBadge} from '@sentry/scraps/badge';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {IconEllipsis, IconGlobe} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
@@ -314,7 +316,13 @@ edit affordance.
 The `page-title` item accepts an optional `pagination` prop for pages where the
 user can step through a list of items, such as issues, replays, or traces. Each
 direction has an `ariaLabel`, an optional `to` URL, an optional `disabled` flag,
-and an optional rich `tooltip`. When `to` is omitted, that chevron is disabled.
+and an optional `tooltip`. When `to` is omitted, that chevron is disabled.
+
+Keep `pagination` present even when neither direction is navigable, rather than
+dropping it once the data resolves — the chevrons hold their space from the first
+render, so the title doesn't shift when a destination appears. Give the disabled
+state a `tooltip` too: it is what explains the feature to someone whose current
+item happens to have no neighbours.
 
 <Storybook.Demo>
   <BreadcrumbListDemo
@@ -353,6 +361,68 @@ and an optional rich `tooltip`. When `to` is omitted, that chevron is disabled.
 </TopBar.Slot>
 ```
 
+The `tooltip` accepts rich content, not just a string. Pagination tooltips are
+always hoverable, so links and text inside stay reachable and selectable — hover
+a chevron below and move onto the tooltip to reach the link.
+
+<Storybook.Demo>
+  <BreadcrumbListDemo
+    items={[{type: 'link', label: 'Traces', to: '/organizations/org-slug/traces/'}]}
+    title={
+      <BreadcrumbList.Title
+        item={{
+          type: 'page-title',
+          label: 'Trace details',
+          pagination: {
+            previous: {
+              ariaLabel: 'Previous trace',
+              to: '/traces/abc123/',
+              tooltip: (
+                <span>
+                  Go to the previous trace of the same session.{' '}
+                  <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/">
+                    Learn More
+                  </ExternalLink>
+                </span>
+              ),
+            },
+            next: {
+              ariaLabel: 'Next trace',
+              to: '/traces/def456/',
+              tooltip: (
+                <span>
+                  Go to the next trace of the same session.{' '}
+                  <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/">
+                    Learn More
+                  </ExternalLink>
+                </span>
+              ),
+            },
+          },
+        }}
+      />
+    }
+  />
+</Storybook.Demo>
+```tsx
+<BreadcrumbList.Title
+  item={{
+    type: 'page-title',
+    label: 'Trace details',
+    pagination: {
+      previous: {
+        ariaLabel: 'Previous trace',
+        to: previousTraceUrl,
+        tooltip: tct('Go to the previous trace of the same session. [link:Learn More]', {
+          link: <ExternalLink href={TRACE_DOCS_URL} />,
+        }),
+      },
+      next: {ariaLabel: 'Next trace', to: nextTraceUrl},
+    },
+  }}
+/>
+```
+
 ## Trailing actions
 
 The `page-title` item accepts a `trailingActions` slot rendered after the label,
@@ -360,6 +430,11 @@ for example a copy action or page-level menu. The slot is bounded to
 typed `copy`, `menu`, or `button` objects. Falsy entries are dropped so
 consumers can inline conditionals. Actions are always visible and keyboard
 accessible.
+
+Reach for a standalone `copy` action only when it is the page's single trailing
+action. As soon as the title also needs a menu, put the copy entry inside it
+rather than beside it — one affordance next to the title reads more clearly than
+a row of icons competing for the same space.
 
 <Storybook.Demo>
   <BreadcrumbListDemo

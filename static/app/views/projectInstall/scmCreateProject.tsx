@@ -12,13 +12,13 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Access} from 'sentry/components/acl/access';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import type {ProjectDetailsFormState} from 'sentry/components/onboarding/onboardingContext';
 import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
 import {ScmAlertFrequencySection} from 'sentry/components/onboarding/scm/scmAlertFrequencySection';
 import {ScmFeatureSelectionPanel} from 'sentry/components/onboarding/scm/scmFeatureSelectionPanel';
 import {ScmIntegrationConnect} from 'sentry/components/onboarding/scm/scmIntegrationConnect';
 import {ScmPlatformFeaturesCore} from 'sentry/components/onboarding/scm/scmPlatformFeaturesCore';
 import {ScmProjectDetailsCore} from 'sentry/components/onboarding/scm/scmProjectDetailsCore';
+import type {ProjectDetailsFormState} from 'sentry/components/onboarding/scm/scmProjectDetailsTypes';
 import {useScmPlatformDetection} from 'sentry/components/onboarding/scm/useScmPlatformDetection';
 import {
   type ScmProjectDetailsCompletion,
@@ -221,8 +221,6 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
   );
 
   const form = useScmProjectDetails({
-    analyticsFlow: 'project-creation',
-    allowMemberWithoutTeam: true,
     selectedPlatform,
     selectedRepository,
     createdProjectSlug,
@@ -319,7 +317,6 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
 
               <motion.div layout="position">
                 <ScmProjectDetailsCore
-                  analyticsFlow="project-creation"
                   projectName={form.projectName}
                   onProjectNameChange={form.onProjectNameChange}
                   onProjectNameBlur={form.onProjectNameBlur}

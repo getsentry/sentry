@@ -113,6 +113,25 @@ describe('AskSeerComboBox', () => {
     expect(input).toHaveValue('test ');
   });
 
+  it('applies a class name to the combobox wrapper', async () => {
+    render(
+      <SearchQueryBuilderProvider {...defaultProps}>
+        <AskSeerComboBox
+          className="search-grid-item"
+          initialQuery="test"
+          askSeerMutationOptions={askSeerMutationOptions}
+          applySeerSearchQuery={() => {}}
+        />
+      </SearchQueryBuilderProvider>,
+      {organization}
+    );
+
+    const input = await screen.findByRole('combobox', {
+      name: 'Ask Seer with Natural Language',
+    });
+    expect(input.closest('.search-grid-item')).toBeInTheDocument();
+  });
+
   it('sets the passed initial query as the input value', async () => {
     render(
       <SearchQueryBuilderProvider {...defaultProps}>
@@ -287,8 +306,8 @@ describe('AskSeerComboBox', () => {
     expect(screen.queryByText('Time Range')).not.toBeInTheDocument();
   });
 
-  it('wraps long query tokens', async () => {
-    const longValue = 'a'.repeat(400);
+  it('middle-ellipsizes long query tokens', async () => {
+    const longValue = '/api/0/organizations/{organization_id_or_slug}/events/';
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-explorer-ai/query/',
       method: 'POST',
@@ -315,15 +334,10 @@ describe('AskSeerComboBox', () => {
     });
     await userEvent.type(input, 'test{Enter}');
 
-    const value = await screen.findByText(longValue);
-    expect(getEmotionRules(value).join(' ')).toContain('overflow-wrap: anywhere');
-
-    const formattedQuery = screen
-      .getAllByLabelText(`message:${longValue}`)
-      .find(element => element.parentElement?.tagName === 'SPAN')!;
-    expect(getEmotionRules(formattedQuery.parentElement!).join(' ')).toContain(
-      'width: fit-content'
-    );
+    expect(
+      await screen.findByText('/api/0…{organization_id_or_slug}/events/')
+    ).toBeInTheDocument();
+    expect(screen.queryByText(longValue)).not.toBeInTheDocument();
   });
 
   it('sizes parameter chips to their content', async () => {
@@ -470,7 +484,46 @@ describe('AskSeerComboBox', () => {
     expect(screen.getByRole('grid')).not.toHaveFocus();
   });
 
-  it('renders an error message when the Seer search fails', async () => {
+  it('renders the error actions and retries a failed Seer search', async () => {
+    const queryRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-explorer-ai/query/',
+      method: 'POST',
+      statusCode: 500,
+    });
+    const reworkedOrganization = {
+      ...organization,
+      features: [...organization.features, 'gen-ai-ask-seer-ux-rework'],
+    };
+
+    render(
+      <SearchQueryBuilderProvider {...defaultProps}>
+        <AskSeerComboBox
+          initialQuery=""
+          askSeerMutationOptions={askSeerMutationOptions}
+          applySeerSearchQuery={() => {}}
+        />
+      </SearchQueryBuilderProvider>,
+      {organization: reworkedOrganization, additionalWrapper: FeedbackProvider}
+    );
+
+    const input = await screen.findByRole('combobox', {
+      name: 'Ask Seer with Natural Language',
+    });
+    await userEvent.type(input, 'test{Enter}');
+
+    const errorMessage = await screen.findByText(
+      'An error occurred while fetching Seer queries'
+    );
+    expect(errorMessage).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: 'Error'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Give Feedback'})).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Try again'}));
+
+    await waitFor(() => expect(queryRequest).toHaveBeenCalledTimes(2));
+  });
+
+  it('preserves the legacy error state when the rework is disabled', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-explorer-ai/query/',
       method: 'POST',
@@ -485,7 +538,7 @@ describe('AskSeerComboBox', () => {
           applySeerSearchQuery={() => {}}
         />
       </SearchQueryBuilderProvider>,
-      {organization}
+      {organization, additionalWrapper: FeedbackProvider}
     );
 
     const input = await screen.findByRole('combobox', {
@@ -493,10 +546,12 @@ describe('AskSeerComboBox', () => {
     });
     await userEvent.type(input, 'test{Enter}');
 
-    const errorMessage = await screen.findByText(
-      'An error occurred while fetching Seer queries'
-    );
-    expect(errorMessage).toBeInTheDocument();
+    expect(
+      await screen.findByText('An error occurred while fetching Seer queries')
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('img', {name: 'Error'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Try again'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Give Feedback'})).toBeInTheDocument();
   });
 
   it('does not render if the organization does not have the gen-ai-features feature', () => {
