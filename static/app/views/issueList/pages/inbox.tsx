@@ -23,6 +23,7 @@ import {IconArrow, IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {ProgressState, type Group} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
+import {apiFetchInfinite} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useMembers} from 'sentry/utils/members/useMembers';
@@ -35,7 +36,8 @@ import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {getProgressIcon} from 'sentry/views/issueList/utils/progress';
 
 const TITLE = t('Inbox');
-const ISSUE_LIMIT = 10;
+const INITIAL_ISSUE_LIMIT = 5;
+const PAGINATION_ISSUE_LIMIT = 10;
 const SELECTED_ISSUE_QUERY_PARAM = 'preview';
 const ASSIGNMENT_QUERY_PARAM = 'assignment';
 const ASSIGNMENT_FILTERS = ['me', 'my_teams', 'all'] as const;
@@ -208,11 +210,26 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
         project: [-1],
         query: `${section.query}${ASSIGNMENT_QUERY_SUFFIXES[assignmentFilter]}`,
         sort: IssueSortOptions.PROGRESS,
-        limit: ISSUE_LIMIT,
+        limit: INITIAL_ISSUE_LIMIT,
         collapse: ['stats', 'unhandled'],
       },
       staleTime: 0,
     }),
+    queryFn: context =>
+      apiFetchInfinite<Group[]>({
+        ...context,
+        queryKey: [
+          context.queryKey[0],
+          {
+            ...context.queryKey[1],
+            query: {
+              ...context.queryKey[1].query,
+              limit: context.pageParam ? PAGINATION_ISSUE_LIMIT : INITIAL_ISSUE_LIMIT,
+            },
+          },
+          context.queryKey[2],
+        ],
+      }),
     refetchOnWindowFocus: true,
   });
   const groups = queryResult.data?.pages.flatMap(page => page.json) ?? [];
@@ -253,7 +270,7 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
             gap="xs"
             padding="0 xs"
           >
-            {Array.from({length: ISSUE_LIMIT}).map((_, index) => (
+            {Array.from({length: INITIAL_ISSUE_LIMIT}).map((_, index) => (
               <Placeholder key={index} height="76px" />
             ))}
           </Stack>
@@ -293,7 +310,7 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
                   onClick={() => void queryResult.fetchNextPage()}
                   icon={<IconChevron direction="down" />}
                 >
-                  {tn('Show %s more', 'Show %s more', ISSUE_LIMIT)}
+                  {tn('Show %s more', 'Show %s more', PAGINATION_ISSUE_LIMIT)}
                 </Button>
               </Flex>
             )}
