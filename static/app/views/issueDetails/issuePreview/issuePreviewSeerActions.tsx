@@ -34,7 +34,7 @@ interface SeerAction {
   kind: SeerActionKind;
   label: string;
   href?: string;
-  isPullRequest?: boolean;
+  icon?: 'github';
   repoName?: string;
   tooltip?: string | null;
 }
@@ -111,7 +111,7 @@ function getAutofixPrimaryAction(
       kind: 'link',
       label: completedPullRequestLink.label,
       href: completedPullRequestLink.url,
-      isPullRequest: true,
+      icon: 'github',
     };
   }
 
@@ -153,7 +153,10 @@ function getAutofixPrimaryAction(
           kind: 'link',
           label: resultLink.label,
           href: resultLink.url,
-          isPullRequest: !resultLink.url.includes('/tree/'),
+          icon:
+            resultLink.kind === 'pullRequest' && resultLink.repoProvider === 'github'
+              ? 'github'
+              : undefined,
         };
       }
 
@@ -271,7 +274,7 @@ function IssuePreviewSeerButton({
         variant="primary"
         size="sm"
         icon={
-          action.isPullRequest ? (
+          action.icon === 'github' ? (
             <IconGithub data-test-id="pull-request-github" />
           ) : (
             <IconOpen />

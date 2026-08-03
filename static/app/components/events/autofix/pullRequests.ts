@@ -11,8 +11,10 @@ type CodingAgentResult = NonNullable<ExplorerCodingAgentState['results']>[number
  * shapes Seer reports one in so that every surface renders the same label.
  */
 interface AutofixResultLink {
+  kind: 'branch' | 'pullRequest';
   label: string;
   url: string;
+  repoProvider?: string;
 }
 
 /** The PR Seer opened for this repo, or null if there isn't a finished one. */
@@ -27,6 +29,7 @@ export function getRepoPullRequestLink(state: RepoPRState): AutofixResultLink | 
   }
 
   return {
+    kind: 'pullRequest',
     label: t('View %s#%s', state.repo_name, state.pr_number),
     url: state.pr_url,
   };
@@ -45,8 +48,12 @@ export function getCodingAgentResultLink(
     return null;
   }
 
+  const kind = result.pr_url.includes('/tree/') ? 'branch' : 'pullRequest';
+
   return {
-    label: result.pr_url.includes('/tree/') ? t('View Branch') : t('View Pull Request'),
+    kind,
+    label: kind === 'branch' ? t('View Branch') : t('View Pull Request'),
+    repoProvider: result.repo_provider,
     url: result.pr_url,
   };
 }
