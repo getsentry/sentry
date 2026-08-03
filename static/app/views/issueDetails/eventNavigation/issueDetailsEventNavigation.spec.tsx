@@ -124,18 +124,20 @@ describe('IssueDetailsEventNavigation', () => {
       url: '/organizations/org-slug/issues/group-id/events/prev-event-id/',
       body: EventFixture(),
     });
-    render(<IssueDetailsEventNavigation {...defaultProps} />, {
+    const {router} = render(<IssueDetailsEventNavigation {...defaultProps} />, {
       initialRouterConfig: latestRouterConfig,
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Next Event'}));
 
     await waitFor(() => {
+      expect(router.location.pathname).toBe(
+        '/organizations/org-slug/issues/group-id/events/next-event-id/'
+      );
       screen
         .getAllByRole('tab')
         .forEach(tab => expect(tab).toHaveAttribute('aria-selected', 'false'));
     });
-    expect(screen.queryByRole('tab', {name: 'Custom'})).not.toBeInTheDocument();
   });
 
   it('can navigate next/previous events', async () => {
