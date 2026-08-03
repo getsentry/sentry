@@ -75,7 +75,7 @@ describe('InboxPage', () => {
       hasOpenFixPr: true,
       isAssigned: true,
       hasRootCause: true,
-      lastProgressedAt: null,
+      lastProgressedAt: '2026-07-20T12:00:00Z',
     },
   });
   const diagnosedGroup = GroupFixture({
@@ -256,6 +256,7 @@ describe('InboxPage', () => {
 
   it('loads and renders the three progress sections with filtered issue metadata', async () => {
     const requests = mockSuccessfulSections();
+    mockIssuePreview();
 
     render(<InboxPage />, {organization, initialRouterConfig});
 
@@ -286,6 +287,7 @@ describe('InboxPage', () => {
               sort: 'progress',
               limit: 10,
               collapse: ['stats', 'unhandled'],
+              expand: ['derivedData'],
             },
           })
         )
@@ -320,7 +322,11 @@ describe('InboxPage', () => {
     );
     expect(within(fixSection).getByLabelText('Unread issue')).toBeInTheDocument();
     expect(within(fixSection).queryByRole('checkbox')).not.toBeInTheDocument();
-    expect(fixSection.querySelector('time')).not.toBeInTheDocument();
+    const lastProgressedTime = fixSection.querySelector('time');
+    expect(lastProgressedTime).toHaveAttribute('datetime', '2026-07-20T12:00:00.000Z');
+    await userEvent.hover(lastProgressedTime!);
+    const progressStatus = await screen.findByText('Fix Proposed', {selector: 'strong'});
+    expect(progressStatus.parentElement).toHaveTextContent('Changed to Fix Proposed');
     expect(screen.queryByRole('button', {name: '7D'})).not.toBeInTheDocument();
   });
 
@@ -346,6 +352,7 @@ describe('InboxPage', () => {
 
   it('expands and collapses progress sections', async () => {
     mockSuccessfulSections();
+    mockIssuePreview();
 
     render(<InboxPage />, {organization, initialRouterConfig});
 
@@ -372,6 +379,7 @@ describe('InboxPage', () => {
 
   it('filters sections by the selected assignee', async () => {
     mockSuccessfulSections();
+    mockIssuePreview();
     const meRequests = [
       mockSection('issue.progress:fix_proposed assigned:me', [fixProposedGroup]),
       mockSection('issue.progress:diagnosed assigned:me', [diagnosedGroup]),
