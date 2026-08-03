@@ -51,7 +51,7 @@ export const allowedCountValues: number[] = [5, 10, 20, 50, 100];
 
 export const projectDetectorSettingsId = 'detector-threshold-settings';
 
-export type ProjectPerformanceSettingValue = boolean | number | string;
+type ProjectPerformanceSettingValue = boolean | number | string;
 export type ProjectPerformanceSettings = Record<string, ProjectPerformanceSettingValue>;
 
 type DetectorDefinition = {
