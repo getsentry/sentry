@@ -25,12 +25,18 @@ import {
 import type {ToolUseBlockProps} from './shared';
 import {MessagePlaceholder, getBlockStatus, hasValidContent} from './shared';
 
+// Result-status metadata rather than part of a link's identity: two entries pointing at the same
+// target are the same link whether or not one side also reports the call failed or came back empty.
+// Excluded from linkKey so the dedupe still matches a twin when only one channel carries them.
+const LINK_STATUS_PARAMS = new Set(['is_error', 'empty_results']);
+
 // Identity for deduping a bus link against the positional row link. Params are sorted so the key
 // does not depend on object key order — today both channels derive params from the same object, but
 // this keeps the dedupe correct if that ever stops being true.
 function linkKey(link: ToolLink) {
   const params = link.params ?? {};
   const sorted = Object.keys(params)
+    .filter(k => !LINK_STATUS_PARAMS.has(k))
     .sort()
     .map(k => `${k}=${JSON.stringify(params[k])}`)
     .join(',');
@@ -100,6 +106,20 @@ function useToolLinks(block: Block) {
     return map;
   }, [block.tool_links, block.tool_results]);
 
+  // The positional links as seer sent them, before getValidToolLinks drops errored/unbuildable
+  // ones. Used only to dedupe the bus against the positional channel: an errored link still has to
+  // suppress its bus twin even though it never renders as a row link itself.
+  const rawToolLinkByCallId = useMemo(() => {
+    const map = new Map<string, ToolLink>();
+    (block.tool_results || []).forEach((result, idx) => {
+      const link = block.tool_links?.[idx];
+      if (result?.tool_call_id && link) {
+        map.set(result.tool_call_id, link);
+      }
+    });
+    return map;
+  }, [block.tool_links, block.tool_results]);
+
   // The links bus (code-mode-effects-registry): a tool result carries its own deep-links in
   // structuredContent.links as a {kind, params} list. Keyed by tool_call_id, so a result can hold
   // many with no index alignment. When present, this is the source of truth for that result's
@@ -119,6 +139,7 @@ function useToolLinks(block: Block) {
     sortedToolLinks,
     toolCallToLinkIndexMap,
     toolLinkByCallId,
+    rawToolLinkByCallId,
     busLinksByCallId,
     organization,
     projects,
@@ -136,6 +157,7 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
     sortedToolLinks,
     toolCallToLinkIndexMap,
     toolLinkByCallId,
+    rawToolLinkByCallId,
     busLinksByCallId,
     organization,
     projects,
@@ -195,7 +217,15 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
         // populate both channels during migration), so a Code Mode execute's many links surface
         // while classic single-link rendering is unchanged. Errored links are dropped here for
         // the same reason getValidToolLinks drops them from the positional channel.
-        const positionalKey = positionalLink ? linkKey(positionalLink) : null;
+        //
+        // Dedupe against the *raw* positional link, not the filtered `positionalLink`:
+        // getValidToolLinks drops errored (and unbuildable) links, so a failed classic tool has no
+        // `positionalLink` at all. Keying off that would leave its bus twin unmatched and render it
+        // as a success link under a row that failed.
+        const rawPositionalLink = toolCall.id
+          ? rawToolLinkByCallId.get(toolCall.id)
+          : undefined;
+        const positionalKey = rawPositionalLink ? linkKey(rawPositionalLink) : null;
         const navItems = (toolCall.id ? (busLinksByCallId.get(toolCall.id) ?? []) : [])
           .filter(link => link.params?.is_error !== true)
           .filter(link => linkKey(link) !== positionalKey)
