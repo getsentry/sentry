@@ -144,7 +144,7 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
           <Tooltip title={t('Platform')}>
             <Flex gap="2xs" align="center">
               <Flex align="center" justify="center" width="24px" height="24px">
-                <PlatformIcon platform={appInfo.platform} />
+                <PlatformIcon platform={appInfo.platform} alt="" />
               </Flex>
               <Text size="sm" variant="muted">
                 {getReadablePlatformLabel(appInfo.platform)}

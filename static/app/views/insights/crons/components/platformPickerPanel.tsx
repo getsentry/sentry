@@ -36,7 +36,7 @@ export function PlatformPickerPanel({onSelect}: Props) {
                 onClick={() => onSelect(platform)}
                 aria-label={t('Create %s Monitor', platform)}
               >
-                <PlatformIcon platform={platform} format="lg" size="100%" />
+                <PlatformIcon platform={platform} format="lg" size="100%" alt="" />
               </PlatformButton>
               <div>{label}</div>
             </PlatformOption>

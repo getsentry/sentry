@@ -96,7 +96,7 @@ export function InstrumentationGuide() {
     const item = {
       key: c.platform,
       label: c.label,
-      leadingItems: <PlatformIcon platform={c.platform} size={20} />,
+      leadingItems: <PlatformIcon platform={c.platform} size={20} alt="" />,
     };
 
     // If platform has exactly one guide, select it directly

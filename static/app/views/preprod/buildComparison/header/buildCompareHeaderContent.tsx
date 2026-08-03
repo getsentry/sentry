@@ -100,7 +100,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
           <Flex gap="sm" align="center">
             <InfoIcon>
               {buildDetails.app_info.platform ? (
-                <PlatformIcon platform={buildDetails.app_info.platform} />
+                <PlatformIcon platform={buildDetails.app_info.platform} alt="" />
               ) : null}
             </InfoIcon>
             <Text>

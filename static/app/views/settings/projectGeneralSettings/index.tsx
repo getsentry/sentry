@@ -679,7 +679,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
           value: id,
           label: (
             <Flex align="center" gap="md">
-              <PlatformIcon platform={id} />
+              <PlatformIcon platform={id} alt="" />
               {name}
             </Flex>
           ),

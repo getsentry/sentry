@@ -267,7 +267,7 @@ export function Onboarding() {
             label: DEPLOYMENT_TARGET_LABELS[target],
             value: target,
             leadingItems: (
-              <PlatformIcon platform={DEPLOYMENT_TARGET_ICONS[target]} size={16} />
+              <PlatformIcon platform={DEPLOYMENT_TARGET_ICONS[target]} size={16} alt="" />
             ),
           })),
         },
@@ -310,6 +310,7 @@ export function Onboarding() {
                 : AGENT_INTEGRATION_ICONS[integration]
             }
             size={16}
+            alt=""
           />
         ),
       })),

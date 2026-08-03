@@ -185,7 +185,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       textValue: platform.name,
       label: (
         <Flex align="center" gap="md">
-          <PlatformIcon platform={platform.id} size={16} />
+          <PlatformIcon platform={platform.id} size={16} alt="" />
           <TextOverflow>{platform.name}</TextOverflow>
         </Flex>
       ),
