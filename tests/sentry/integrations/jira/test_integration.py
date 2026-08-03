@@ -1380,13 +1380,64 @@ class JiraIntegrationTest(APITestCase):
         assert audit_data == {
             "sync_status_forward": {
                 "added_count": 1,
+                "updated_count": 1,
                 "removed_count": 1,
                 "added_project_mappings": [
                     {"external_id": "4", "on_resolve": "shipped", "on_unresolve": "todo"}
                 ],
+                "updated_project_mappings": [
+                    {
+                        "external_id": "2",
+                        "on_resolve": "closed",
+                        "on_unresolve": "open",
+                        "previous_on_resolve": "done",
+                        "previous_on_unresolve": "in_progress",
+                    }
+                ],
                 "removed_project_mappings": [
                     {"external_id": "3", "on_resolve": "done", "on_unresolve": "in_progress"}
                 ],
+            }
+        }
+
+    def test_update_organization_config_audits_a_status_only_change(self) -> None:
+        """
+        Overwriting an existing mapping's statuses is audited too.
+
+        Nothing is added or removed in this case, but the prior statuses are gone from the
+        database -- so they have to be recorded or the change is unrecoverable.
+        """
+        integration = self.create_provider_integration(provider="jira", name="Example Jira")
+        integration.add_organization(self.organization, self.user)
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+            external_id="1",
+            resolved_status="done",
+            unresolved_status="in_progress",
+        )
+
+        installation = integration.get_installation(self.organization.id)
+        audit_data = installation.update_organization_config(
+            {"sync_status_forward": {"1": {"on_resolve": "closed", "on_unresolve": "open"}}}
+        )
+
+        assert audit_data == {
+            "sync_status_forward": {
+                "added_count": 0,
+                "updated_count": 1,
+                "removed_count": 0,
+                "added_project_mappings": [],
+                "updated_project_mappings": [
+                    {
+                        "external_id": "1",
+                        "on_resolve": "closed",
+                        "on_unresolve": "open",
+                        "previous_on_resolve": "done",
+                        "previous_on_unresolve": "in_progress",
+                    }
+                ],
+                "removed_project_mappings": [],
             }
         }
 

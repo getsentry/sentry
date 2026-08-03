@@ -245,7 +245,7 @@ default_manager.add(
         # mapping cleared by mistake can be rebuilt from this entry.
         template=(
             "updated project status mappings for the {provider} integration "
-            "({added_count} added, {removed_count} removed)"
+            "({added_count} added, {updated_count} updated, {removed_count} removed)"
         ),
     )
 )

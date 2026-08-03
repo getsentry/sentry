@@ -392,7 +392,7 @@ class JiraIntegration(IssueSyncIntegration):
         if self.outbound_status_key in data:
             project_mappings = data.pop(self.outbound_status_key)
             mapping_changes = self._reconcile_project_status_mappings(project_mappings)
-            if mapping_changes["added_count"] or mapping_changes["removed_count"]:
+            if mapping_changes is not None:
                 # Keyed by the config field it describes so the caller knows what it is looking at.
                 audit_data[self.outbound_status_key] = mapping_changes
             data[self.outbound_status_key] = bool(project_mappings)
@@ -455,7 +455,7 @@ class JiraIntegration(IssueSyncIntegration):
 
     def _reconcile_project_status_mappings(
         self, project_mappings: Mapping[str, Any]
-    ) -> dict[str, Any]:
+    ) -> dict[str, Any] | None:
         """
         Get the desired mappings(project mappings in the right format[i.e has on_resolve and on_unresolve]) and the existing mappings(IEPs).
 
@@ -470,6 +470,16 @@ class JiraIntegration(IssueSyncIntegration):
         }
         removals = [iep for external_id, iep in existing.items() if external_id not in desired]
         additions = [external_id for external_id in desired if external_id not in existing]
+        # external_id -> prior statuses, captured before the rows below are mutated.
+        updates = {
+            external_id: (iep.resolved_status, iep.unresolved_status)
+            for external_id, iep in existing.items()
+            if external_id in desired
+            and (iep.resolved_status, iep.unresolved_status) != desired[external_id]
+        }
+
+        if not (removals or additions or updates):
+            return None
 
         with transaction.atomic(router.db_for_write(IntegrationExternalProject)):
             if removals:
@@ -477,27 +487,28 @@ class JiraIntegration(IssueSyncIntegration):
                     id__in=[iep.id for iep in removals]
                 ).delete()
 
-            for external_id, (resolved_status, unresolved_status) in desired.items():
-                current = existing.get(external_id)
-                if current is None:
-                    IntegrationExternalProject.objects.create(
-                        organization_integration_id=self.org_integration.id,
-                        external_id=external_id,
-                        resolved_status=resolved_status,
-                        unresolved_status=unresolved_status,
-                    )
-                elif (
-                    current.resolved_status != resolved_status
-                    or current.unresolved_status != unresolved_status
-                ):
-                    current.update(
-                        resolved_status=resolved_status,
-                        unresolved_status=unresolved_status,
-                        date_updated=timezone.now(),
-                    )
+            for external_id in additions:
+                resolved_status, unresolved_status = desired[external_id]
+                IntegrationExternalProject.objects.create(
+                    organization_integration_id=self.org_integration.id,
+                    external_id=external_id,
+                    resolved_status=resolved_status,
+                    unresolved_status=unresolved_status,
+                )
 
+            for external_id in updates:
+                resolved_status, unresolved_status = desired[external_id]
+                existing[external_id].update(
+                    resolved_status=resolved_status,
+                    unresolved_status=unresolved_status,
+                    date_updated=timezone.now(),
+                )
+
+        # Prior statuses are recorded alongside the new ones so a mapping removed or
+        # overwritten by mistake can be rebuilt from the audit log.
         return {
             "added_count": len(additions),
+            "updated_count": len(updates),
             "removed_count": len(removals),
             "added_project_mappings": [
                 {
@@ -507,7 +518,19 @@ class JiraIntegration(IssueSyncIntegration):
                 }
                 for external_id in additions
             ],
-            # Prior values, so a mapping removed by mistake can be rebuilt from the audit log.
+            "updated_project_mappings": [
+                {
+                    "external_id": external_id,
+                    "on_resolve": desired[external_id][0],
+                    "on_unresolve": desired[external_id][1],
+                    "previous_on_resolve": previous_resolved,
+                    "previous_on_unresolve": previous_unresolved,
+                }
+                for external_id, (
+                    previous_resolved,
+                    previous_unresolved,
+                ) in updates.items()
+            ],
             "removed_project_mappings": [
                 {
                     "external_id": iep.external_id,

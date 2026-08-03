@@ -105,7 +105,8 @@ class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest)
             {"external_id": "2", "on_resolve": "done", "on_unresolve": "in_progress"},
         ]
         assert audit_log.get(entry.event).render(entry) == (
-            "updated project status mappings for the jira integration (0 added, 2 removed)"
+            "updated project status mappings for the jira integration "
+            "(0 added, 0 updated, 2 removed)"
         )
 
     def test_update_config_skips_project_mapping_entry_when_unchanged(self) -> None:
