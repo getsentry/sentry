@@ -11,10 +11,39 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {
   getPerformanceIssueSettingsQueryOptions,
-  type DetectorFieldConfig,
+  type DetectorConfigAdmin,
+  type DetectorConfigCustomer,
   type ProjectPerformanceSettings,
-  type ProjectPerformanceSettingValue,
 } from './detectorSettings';
+
+type DetectorFieldName = DetectorConfigAdmin | DetectorConfigCustomer;
+
+type CommonDetectorFieldProps = {
+  disabled: boolean | string;
+  endpoint: string;
+  initialValue: boolean | number | string;
+  label: string;
+  name: DetectorFieldName;
+  projectSlug: string;
+  help?: string;
+};
+
+export type DetectorBooleanFieldProps = Omit<CommonDetectorFieldProps, 'initialValue'> & {
+  initialValue: boolean;
+};
+
+export type DetectorStringFieldProps = Omit<CommonDetectorFieldProps, 'initialValue'> & {
+  initialValue: string;
+  placeholder?: string;
+};
+
+export type DetectorRangeFieldProps = Omit<CommonDetectorFieldProps, 'initialValue'> & {
+  allowedValues: readonly number[];
+  initialValue: number;
+  formatLabel?: (value: number | '') => React.ReactNode;
+  showTickLabels?: boolean;
+  tickValues?: number[];
+};
 
 function useDetectorFieldMutationOptions(endpoint: string, projectSlug: string) {
   const organization = useOrganization();
@@ -48,108 +77,110 @@ function useDetectorFieldMutationOptions(endpoint: string, projectSlug: string) 
   };
 }
 
-type DetectorFieldProps<TValue> = {
-  disabled: boolean | string;
-  field: DetectorFieldConfig;
-  initialValue: TValue;
-  mutationOptions: ReturnType<typeof useDetectorFieldMutationOptions>;
-};
-
-function DetectorBooleanField({
+export function DetectorBooleanField({
   disabled,
-  field,
+  endpoint,
+  help,
   initialValue,
-  mutationOptions,
-}: DetectorFieldProps<boolean>) {
+  label,
+  name,
+  projectSlug,
+}: DetectorBooleanFieldProps) {
+  const mutationOptions = useDetectorFieldMutationOptions(endpoint, projectSlug);
   return (
     <AutoSaveForm
-      name={field.name}
-      schema={z.object({[field.name]: z.boolean()})}
+      name={name}
+      schema={z.object({[name]: z.boolean()})}
       initialValue={initialValue}
       mutationOptions={mutationOptions}
     >
-      {formField => (
-        <formField.Layout.Row label={field.label} hintText={field.help}>
-          <formField.Switch
-            checked={formField.state.value}
-            onChange={formField.handleChange}
+      {field => (
+        <field.Layout.Row label={label} hintText={help}>
+          <field.Switch
+            checked={field.state.value}
+            onChange={field.handleChange}
             disabled={disabled}
           />
-        </formField.Layout.Row>
+        </field.Layout.Row>
       )}
     </AutoSaveForm>
   );
 }
 
-function DetectorStringField({
+export function DetectorStringField({
   disabled,
-  field,
+  endpoint,
+  help,
   initialValue,
-  mutationOptions,
-}: DetectorFieldProps<string>) {
+  label,
+  name,
+  placeholder,
+  projectSlug,
+}: DetectorStringFieldProps) {
+  const mutationOptions = useDetectorFieldMutationOptions(endpoint, projectSlug);
   return (
     <AutoSaveForm
-      name={field.name}
-      schema={z.object({[field.name]: z.string()})}
+      name={name}
+      schema={z.object({[name]: z.string()})}
       initialValue={initialValue}
       mutationOptions={mutationOptions}
     >
-      {formField => (
-        <formField.Layout.Row label={field.label} hintText={field.help}>
-          <formField.Input
-            value={formField.state.value}
-            onChange={formField.handleChange}
-            placeholder={field.placeholder}
+      {field => (
+        <field.Layout.Row label={label} hintText={help}>
+          <field.Input
+            value={field.state.value}
+            onChange={field.handleChange}
+            placeholder={placeholder}
             disabled={disabled}
           />
-        </formField.Layout.Row>
+        </field.Layout.Row>
       )}
     </AutoSaveForm>
   );
 }
 
-/**
- * The slider is indexed against `allowedValues` rather than bound to the raw
- * threshold, so only the sanctioned steps are reachable.
- */
-function DetectorRangeField({
+export function DetectorRangeField({
+  allowedValues,
   disabled,
-  field,
+  endpoint,
+  formatLabel,
+  help,
   initialValue,
-  mutationOptions,
-}: DetectorFieldProps<number>) {
-  const allowedValues = field.allowedValues ?? [];
-
+  label,
+  name,
+  projectSlug,
+  showTickLabels,
+  tickValues,
+}: DetectorRangeFieldProps) {
+  const mutationOptions = useDetectorFieldMutationOptions(endpoint, projectSlug);
   return (
     <AutoSaveForm
-      name={field.name}
-      schema={z.object({[field.name]: z.number()})}
+      name={name}
+      schema={z.object({[name]: z.number()})}
       initialValue={initialValue}
       mutationOptions={mutationOptions}
     >
-      {formField => {
-        const valueIndex = Math.max(allowedValues.indexOf(formField.state.value), 0);
-        const formattedValue = field.formatLabel?.(formField.state.value);
+      {field => {
+        const valueIndex = Math.max(allowedValues.indexOf(field.state.value), 0);
+        const formattedValue = formatLabel?.(field.state.value);
 
         return (
-          <formField.Layout.Row label={field.label} hintText={field.help}>
+          <field.Layout.Row label={label} hintText={help}>
             <Stack flexGrow={1} gap="xs">
-              <formField.Range
-                aria-label={field.label}
+              <field.Range
+                aria-label={label}
                 value={valueIndex}
                 onChange={index => {
                   const value = allowedValues[index];
                   if (value !== undefined) {
-                    formField.handleChange(value);
+                    field.handleChange(value);
                   }
                 }}
                 min={0}
                 max={Math.max(allowedValues.length - 1, 0)}
                 step={1}
                 ticks={
-                  field.tickValues
-                    ? {values: field.tickValues, labels: field.showTickLabels}
-                    : undefined
+                  tickValues ? {values: tickValues, labels: showTickLabels} : undefined
                 }
                 formatOptions="hidden"
                 aria-valuetext={
@@ -158,65 +189,12 @@ function DetectorRangeField({
                 disabled={disabled}
               />
               <Text align="right" size="sm" variant="muted">
-                {formattedValue ?? formField.state.value}
+                {formattedValue ?? field.state.value}
               </Text>
             </Stack>
-          </formField.Layout.Row>
+          </field.Layout.Row>
         );
       }}
     </AutoSaveForm>
-  );
-}
-
-export function DetectorAutoSaveField({
-  endpoint,
-  field,
-  initialValue,
-  projectSlug,
-}: {
-  endpoint: string;
-  field: DetectorFieldConfig;
-  initialValue: ProjectPerformanceSettingValue;
-  projectSlug: string;
-}) {
-  const mutationOptions = useDetectorFieldMutationOptions(endpoint, projectSlug);
-
-  if (field.visible === false) {
-    return null;
-  }
-
-  const disabled = field.disabled ? (field.disabledReason ?? true) : false;
-
-  if (field.type === 'boolean') {
-    return (
-      <DetectorBooleanField
-        field={field}
-        initialValue={Boolean(initialValue)}
-        disabled={disabled}
-        mutationOptions={mutationOptions}
-      />
-    );
-  }
-
-  if (field.type === 'string') {
-    return (
-      <DetectorStringField
-        field={field}
-        initialValue={typeof initialValue === 'string' ? initialValue : ''}
-        disabled={disabled}
-        mutationOptions={mutationOptions}
-      />
-    );
-  }
-
-  return (
-    <DetectorRangeField
-      field={field}
-      initialValue={
-        typeof initialValue === 'number' ? initialValue : Number(field.defaultValue)
-      }
-      disabled={disabled}
-      mutationOptions={mutationOptions}
-    />
   );
 }

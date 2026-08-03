@@ -13,6 +13,15 @@ import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
+import {
+  DetectorBooleanField,
+  DetectorRangeField,
+  DetectorStringField,
+  type DetectorBooleanFieldProps,
+  type DetectorRangeFieldProps,
+  type DetectorStringFieldProps,
+} from './detectorFields';
+
 // These labels need to be exported so that they can be used in audit logs
 export const retentionPrioritiesLabels = {
   boostLatestRelease: t('Prioritize new releases'),
@@ -45,28 +54,35 @@ export const projectDetectorSettingsId = 'detector-threshold-settings';
 export type ProjectPerformanceSettingValue = boolean | number | string;
 export type ProjectPerformanceSettings = Record<string, ProjectPerformanceSettingValue>;
 
-export type DetectorFieldConfig = {
-  label: string;
-  name: DetectorConfigAdmin | DetectorConfigCustomer;
-  type: 'boolean' | 'range' | 'string';
-  allowedValues?: readonly number[];
-  defaultValue?: ProjectPerformanceSettingValue;
+type DetectorDefinition = {
   disabled?: boolean;
   disabledReason?: string | null;
-  flexibleControlStateSize?: boolean;
-  formatLabel?: (value: number | '') => React.ReactNode;
-  help?: string;
-  placeholder?: string;
-  showTickLabels?: boolean;
-  tickValues?: number[];
   visible?: boolean;
 };
 
 export type DetectorFieldGroup = {
-  fields: DetectorFieldConfig[];
+  fields: React.ReactNode[];
   title: string;
   initiallyCollapsed?: boolean;
 };
+
+type DetectorBooleanDefinition = Omit<
+  DetectorBooleanFieldProps,
+  'disabled' | 'endpoint' | 'initialValue' | 'projectSlug'
+> &
+  DetectorDefinition & {defaultValue: boolean; name: DetectorConfigAdmin};
+
+type DetectorRangeDefinition = Omit<
+  DetectorRangeFieldProps,
+  'disabled' | 'endpoint' | 'initialValue' | 'projectSlug'
+> &
+  DetectorDefinition & {defaultValue: number; name: DetectorConfigCustomer};
+
+type DetectorStringDefinition = Omit<
+  DetectorStringFieldProps,
+  'disabled' | 'endpoint' | 'initialValue' | 'projectSlug'
+> &
+  DetectorDefinition & {name: DetectorConfigCustomer; defaultValue?: string};
 
 type RetentionPriorityField = {
   hintText: string;
@@ -247,11 +263,14 @@ export function getRetentionPriorityFields(
 }
 
 type DetectorSettingsOptions = {
+  endpoint: string;
   hasAIIssueDetection: boolean;
   hasAccess: boolean;
   hasWebVitalsSeerSuggestions: boolean;
   organization: Organization;
   performanceIssueSettings: ProjectPerformanceSettings;
+  projectSlug: string;
+  resetVersion: number;
 };
 
 /**
@@ -265,77 +284,65 @@ function getDetectorAdminFields({
 }: Pick<
   DetectorSettingsOptions,
   'hasAIIssueDetection' | 'hasWebVitalsSeerSuggestions' | 'organization'
->): Record<string, DetectorFieldConfig> {
+>): Record<string, DetectorBooleanDefinition> {
   return {
     [IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: {
       name: DetectorConfigAdmin.N_PLUS_DB_ENABLED,
-      type: 'boolean',
       label: t('N+1 DB Queries Detection'),
       defaultValue: true,
     },
     [IssueTitle.PERFORMANCE_SLOW_DB_QUERY]: {
       name: DetectorConfigAdmin.SLOW_DB_ENABLED,
-      type: 'boolean',
       label: t('Slow DB Queries Detection'),
       defaultValue: true,
     },
     [IssueTitle.PERFORMANCE_N_PLUS_ONE_API_CALLS]: {
       name: DetectorConfigAdmin.N_PLUS_ONE_API_CALLS_ENABLED,
-      type: 'boolean',
       label: t('N+1 API Calls Detection'),
       defaultValue: true,
     },
     [IssueTitle.PERFORMANCE_RENDER_BLOCKING_ASSET]: {
       name: DetectorConfigAdmin.RENDER_BLOCK_ASSET_ENABLED,
-      type: 'boolean',
       label: t('Large Render Blocking Asset Detection'),
       defaultValue: true,
     },
     [IssueTitle.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: {
       name: DetectorConfigAdmin.CONSECUTIVE_DB_ENABLED,
-      type: 'boolean',
       label: t('Consecutive DB Queries Detection'),
       defaultValue: true,
     },
     [IssueTitle.PERFORMANCE_LARGE_HTTP_PAYLOAD]: {
       name: DetectorConfigAdmin.LARGE_HTTP_PAYLOAD_ENABLED,
-      type: 'boolean',
       label: t('Large HTTP Payload Detection'),
       defaultValue: true,
     },
     [IssueTitle.PERFORMANCE_DB_MAIN_THREAD]: {
       name: DetectorConfigAdmin.DB_MAIN_THREAD_ENABLED,
-      type: 'boolean',
       label: t('DB on Main Thread Detection'),
       defaultValue: true,
     },
     [IssueTitle.PERFORMANCE_FILE_IO_MAIN_THREAD]: {
       name: DetectorConfigAdmin.FILE_IO_ENABLED,
-      type: 'boolean',
       label: t('File I/O on Main Thread Detection'),
       defaultValue: true,
     },
     [IssueTitle.PERFORMANCE_UNCOMPRESSED_ASSET]: {
       name: DetectorConfigAdmin.UNCOMPRESSED_ASSET_ENABLED,
-      type: 'boolean',
       label: t('Uncompressed Assets Detection'),
       defaultValue: true,
     },
     [IssueTitle.PERFORMANCE_CONSECUTIVE_HTTP]: {
       name: DetectorConfigAdmin.CONSECUTIVE_HTTP_ENABLED,
-      type: 'boolean',
       label: t('Consecutive HTTP Detection'),
       defaultValue: true,
     },
     [IssueTitle.PERFORMANCE_HTTP_OVERHEAD]: {
       name: DetectorConfigAdmin.HTTP_OVERHEAD_ENABLED,
-      type: 'boolean',
       label: t('HTTP/1.1 Overhead Detection'),
       defaultValue: true,
     },
     [IssueTitle.QUERY_INJECTION_VULNERABILITY]: {
       name: DetectorConfigAdmin.DB_QUERY_INJECTION_ENABLED,
-      type: 'boolean',
       label: t('Potential Database Query Injection Vulnerability Detection'),
       defaultValue: true,
       visible: organization.features.includes(
@@ -344,14 +351,12 @@ function getDetectorAdminFields({
     },
     [IssueTitle.WEB_VITALS]: {
       name: DetectorConfigAdmin.WEB_VITALS_ENABLED,
-      type: 'boolean',
       label: t('Web Vitals Detection'),
       defaultValue: true,
       visible: hasWebVitalsSeerSuggestions,
     },
     ['AI Detected']: {
       name: DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED,
-      type: 'boolean',
       label: t('AI Issue Detection'),
       help: t('Controls whether or not Sentry runs AI issue detection on your traces.'),
       defaultValue: true,
@@ -365,24 +370,74 @@ function getDetectorAdminFields({
  * with its admin enable/disable toggle when one exists.
  */
 export function getProjectDetectorSettings({
+  endpoint,
   hasAccess,
   hasAIIssueDetection,
   hasWebVitalsSeerSuggestions,
   organization,
   performanceIssueSettings,
+  projectSlug,
+  resetVersion,
 }: DetectorSettingsOptions): DetectorFieldGroup[] {
   const disabledReason = hasAccess
     ? t('Detection of this issue has been disabled.')
     : null;
   const issueType = safeGetQsParam('issueType');
 
+  const getDisabled = ({disabled, disabledReason: reason}: DetectorDefinition) =>
+    disabled ? (reason ?? true) : false;
+  const getNumberSetting = (name: DetectorConfigCustomer, defaultValue: number) => {
+    const value = performanceIssueSettings[name];
+    return typeof value === 'number' ? value : defaultValue;
+  };
+  const getStringSetting = (name: DetectorConfigCustomer, defaultValue: string) => {
+    const value = performanceIssueSettings[name];
+    return typeof value === 'string' ? value : defaultValue;
+  };
+  const booleanField = ({defaultValue, visible, ...props}: DetectorBooleanDefinition) =>
+    visible === false ? null : (
+      <DetectorBooleanField
+        key={`${props.name}-${resetVersion}`}
+        {...props}
+        disabled={getDisabled(props)}
+        endpoint={endpoint}
+        initialValue={Boolean(performanceIssueSettings[props.name] ?? defaultValue)}
+        projectSlug={projectSlug}
+      />
+    );
+  const rangeField = ({defaultValue, visible, ...props}: DetectorRangeDefinition) =>
+    visible === false ? null : (
+      <DetectorRangeField
+        key={`${props.name}-${resetVersion}`}
+        {...props}
+        disabled={getDisabled(props)}
+        endpoint={endpoint}
+        initialValue={getNumberSetting(props.name, defaultValue)}
+        projectSlug={projectSlug}
+      />
+    );
+  const stringField = ({
+    defaultValue = '',
+    visible,
+    ...props
+  }: DetectorStringDefinition) =>
+    visible === false ? null : (
+      <DetectorStringField
+        key={`${props.name}-${resetVersion}`}
+        {...props}
+        disabled={getDisabled(props)}
+        endpoint={endpoint}
+        initialValue={getStringSetting(props.name, defaultValue)}
+        projectSlug={projectSlug}
+      />
+    );
+
   const baseDetectorFields: DetectorFieldGroup[] = [
     {
       title: IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
       fields: [
-        {
+        rangeField({
           name: DetectorConfigCustomer.N_PLUS_DB_DURATION,
-          type: 'range',
           label: t('Minimum Total Duration'),
           defaultValue: 100, // ms
           help: t(
@@ -395,12 +450,10 @@ export function getProjectDetectorSettings({
           tickValues: [0, allowedDurationValues.length - 1],
           showTickLabels: true,
           formatLabel: formatDuration,
-          flexibleControlStateSize: true,
           disabledReason,
-        },
-        {
+        }),
+        rangeField({
           name: DetectorConfigCustomer.N_PLUS_DB_COUNT,
-          type: 'range',
           label: t('Minimum Query Count'),
           defaultValue: 5,
           help: t(
@@ -413,18 +466,16 @@ export function getProjectDetectorSettings({
           tickValues: [0, allowedCountValues.length - 1],
           showTickLabels: true,
           formatLabel: formatCount,
-          flexibleControlStateSize: true,
           disabledReason,
-        },
+        }),
       ],
       initiallyCollapsed: issueType !== IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     },
     {
       title: IssueTitle.PERFORMANCE_SLOW_DB_QUERY,
       fields: [
-        {
+        rangeField({
           name: DetectorConfigCustomer.SLOW_DB_DURATION,
-          type: 'range',
           label: t('Minimum Duration'),
           defaultValue: 1000, // ms
           help: t(
@@ -438,16 +489,15 @@ export function getProjectDetectorSettings({
           ),
           formatLabel: formatDuration,
           disabledReason,
-        },
+        }),
       ],
       initiallyCollapsed: issueType !== IssueType.PERFORMANCE_SLOW_DB_QUERY,
     },
     {
       title: IssueTitle.PERFORMANCE_N_PLUS_ONE_API_CALLS,
       fields: [
-        {
+        rangeField({
           name: DetectorConfigCustomer.N_PLUS_API_CALLS_DURATION,
-          type: 'range',
           label: t('Minimum Total Duration'),
           defaultValue: 300, // ms
           help: t(
@@ -461,18 +511,16 @@ export function getProjectDetectorSettings({
           tickValues: [0, allowedDurationValues.slice(5).length - 1],
           showTickLabels: true,
           formatLabel: formatDuration,
-          flexibleControlStateSize: true,
           disabledReason,
-        },
+        }),
       ],
       initiallyCollapsed: issueType !== IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
     },
     {
       title: IssueTitle.PERFORMANCE_RENDER_BLOCKING_ASSET,
       fields: [
-        {
+        rangeField({
           name: DetectorConfigCustomer.RENDER_BLOCKING_ASSET_RATIO,
-          type: 'range',
           label: t('Minimum FCP Ratio'),
           defaultValue: 0.33,
           help: t(
@@ -487,16 +535,15 @@ export function getProjectDetectorSettings({
           ),
           formatLabel: value => value && formatPercentage(value),
           disabledReason,
-        },
+        }),
       ],
       initiallyCollapsed: issueType !== IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
     },
     {
       title: IssueTitle.PERFORMANCE_LARGE_HTTP_PAYLOAD,
       fields: [
-        {
+        rangeField({
           name: DetectorConfigCustomer.LARGE_HTTP_PAYLOAD_SIZE,
-          type: 'range',
           label: t('Minimum Size'),
           defaultValue: 1000000, // 1MB in bytes
           help: t(
@@ -511,10 +558,9 @@ export function getProjectDetectorSettings({
           ),
           formatLabel: formatSize,
           disabledReason,
-        },
-        {
+        }),
+        stringField({
           name: DetectorConfigCustomer.LARGE_HTTP_PAYLOAD_FILTERED_PATHS,
-          type: 'string',
           label: t('Filtered Paths'),
           placeholder: t('/api/download/, /download/file'),
           help: t(
@@ -526,16 +572,15 @@ export function getProjectDetectorSettings({
           ),
           disabledReason,
           visible: true,
-        },
+        }),
       ],
       initiallyCollapsed: issueType !== IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
     },
     {
       title: IssueTitle.PERFORMANCE_DB_MAIN_THREAD,
       fields: [
-        {
+        rangeField({
           name: DetectorConfigCustomer.DB_ON_MAIN_THREAD_DURATION,
-          type: 'range',
           label: t('Frame Rate Drop'),
           defaultValue: 16, // ms
           help: t(
@@ -550,16 +595,15 @@ export function getProjectDetectorSettings({
           ),
           formatLabel: formatFrameRate,
           disabledReason,
-        },
+        }),
       ],
       initiallyCollapsed: issueType !== IssueType.PERFORMANCE_DB_MAIN_THREAD,
     },
     {
       title: IssueTitle.PERFORMANCE_FILE_IO_MAIN_THREAD,
       fields: [
-        {
+        rangeField({
           name: DetectorConfigCustomer.FILE_IO_MAIN_THREAD_DURATION,
-          type: 'range',
           label: t('Frame Rate Drop'),
           defaultValue: 16, // ms
           help: t(
@@ -573,16 +617,15 @@ export function getProjectDetectorSettings({
           ),
           formatLabel: formatFrameRate,
           disabledReason,
-        },
+        }),
       ],
       initiallyCollapsed: issueType !== IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD,
     },
     {
       title: IssueTitle.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
       fields: [
-        {
+        rangeField({
           name: DetectorConfigCustomer.CONSECUTIVE_DB_MIN_TIME_SAVED,
-          type: 'range',
           label: t('Minimum Time Saved'),
           defaultValue: 100, // ms
           help: t(
@@ -597,16 +640,15 @@ export function getProjectDetectorSettings({
           ),
           formatLabel: formatDuration,
           disabledReason,
-        },
+        }),
       ],
       initiallyCollapsed: issueType !== IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
     },
     {
       title: IssueTitle.PERFORMANCE_UNCOMPRESSED_ASSET,
       fields: [
-        {
+        rangeField({
           name: DetectorConfigCustomer.UNCOMPRESSED_ASSET_SIZE,
-          type: 'range',
           label: t('Minimum Size'),
           defaultValue: 512000, // in kilobytes
           help: t(
@@ -621,10 +663,9 @@ export function getProjectDetectorSettings({
           ),
           formatLabel: formatSize,
           disabledReason,
-        },
-        {
+        }),
+        rangeField({
           name: DetectorConfigCustomer.UNCOMPRESSED_ASSET_DURATION,
-          type: 'range',
           label: t('Minimum Duration'),
           defaultValue: 500, // in ms
           help: t(
@@ -639,16 +680,15 @@ export function getProjectDetectorSettings({
           ),
           formatLabel: formatDuration,
           disabledReason,
-        },
+        }),
       ],
       initiallyCollapsed: issueType !== IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
     },
     {
       title: IssueTitle.PERFORMANCE_CONSECUTIVE_HTTP,
       fields: [
-        {
+        rangeField({
           name: DetectorConfigCustomer.CONSECUTIVE_HTTP_MIN_TIME_SAVED,
-          type: 'range',
           label: t('Minimum Time Saved'),
           defaultValue: 2000, // in ms
           help: t(
@@ -663,16 +703,15 @@ export function getProjectDetectorSettings({
           ),
           formatLabel: formatDuration,
           disabledReason,
-        },
+        }),
       ],
       initiallyCollapsed: issueType !== IssueType.PERFORMANCE_CONSECUTIVE_HTTP,
     },
     {
       title: IssueTitle.PERFORMANCE_HTTP_OVERHEAD,
       fields: [
-        {
+        rangeField({
           name: DetectorConfigCustomer.HTTP_OVERHEAD_REQUEST_DELAY,
-          type: 'range',
           label: t('Request Delay'),
           defaultValue: 500, // in ms
           help: t(
@@ -687,16 +726,15 @@ export function getProjectDetectorSettings({
           ),
           formatLabel: formatDuration,
           disabledReason,
-        },
+        }),
       ],
       initiallyCollapsed: issueType !== IssueType.PERFORMANCE_HTTP_OVERHEAD,
     },
     {
       title: IssueTitle.QUERY_INJECTION_VULNERABILITY,
       fields: [
-        {
+        rangeField({
           name: DetectorConfigCustomer.SQL_INJECTION_QUERY_VALUE_LENGTH,
-          type: 'range',
           label: t('SQL Injection Query Value Length'),
           defaultValue: 3,
           help: t(
@@ -714,16 +752,15 @@ export function getProjectDetectorSettings({
           visible: organization.features.includes(
             'issue-query-injection-vulnerability-visible'
           ),
-        },
+        }),
       ],
       initiallyCollapsed: issueType !== IssueType.QUERY_INJECTION_VULNERABILITY,
     },
     {
       title: IssueTitle.WEB_VITALS,
       fields: [
-        {
+        rangeField({
           name: DetectorConfigCustomer.WEB_VITALS_COUNT,
-          type: 'range',
           label: t('Minimum Sample Count'),
           defaultValue: 10,
           help: t(
@@ -733,22 +770,20 @@ export function getProjectDetectorSettings({
           allowedValues: allowedCountValues,
           showTickLabels: true,
           formatLabel: formatCount,
-          flexibleControlStateSize: true,
           disabled: !(
             hasAccess && performanceIssueSettings[DetectorConfigAdmin.WEB_VITALS_ENABLED]
           ),
           disabledReason,
           visible: hasWebVitalsSeerSuggestions,
-        },
+        }),
       ],
       initiallyCollapsed: issueType !== IssueType.WEB_VITALS,
     },
     {
       title: 'AI Detected',
       fields: [
-        {
+        booleanField({
           name: DetectorConfigAdmin.AI_DETECTED_HTTP_ENABLED,
-          type: 'boolean',
           label: t('HTTP Issues'),
           help: t('Allow HTTP issues to be created'),
           defaultValue: true,
@@ -758,10 +793,9 @@ export function getProjectDetectorSettings({
           ),
           disabledReason,
           visible: hasAIIssueDetection,
-        },
-        {
+        }),
+        booleanField({
           name: DetectorConfigAdmin.AI_DETECTED_DB_ENABLED,
-          type: 'boolean',
           label: t('Database Issues'),
           help: t('Allow database issues to be created'),
           defaultValue: true,
@@ -771,10 +805,9 @@ export function getProjectDetectorSettings({
           ),
           disabledReason,
           visible: hasAIIssueDetection,
-        },
-        {
+        }),
+        booleanField({
           name: DetectorConfigAdmin.AI_DETECTED_RUNTIME_PERFORMANCE_ENABLED,
-          type: 'boolean',
           label: t('Runtime Performance Issues'),
           help: t('Allow runtime performance issues to be created'),
           defaultValue: true,
@@ -784,10 +817,9 @@ export function getProjectDetectorSettings({
           ),
           disabledReason,
           visible: hasAIIssueDetection,
-        },
-        {
+        }),
+        booleanField({
           name: DetectorConfigAdmin.AI_DETECTED_SECURITY_ENABLED,
-          type: 'boolean',
           label: t('Security Issues'),
           help: t('Allow security issues to be created'),
           defaultValue: true,
@@ -797,10 +829,9 @@ export function getProjectDetectorSettings({
           ),
           disabledReason,
           visible: hasAIIssueDetection,
-        },
-        {
+        }),
+        booleanField({
           name: DetectorConfigAdmin.AI_DETECTED_CODE_HEALTH_ENABLED,
-          type: 'boolean',
           label: t('Code Health Issues'),
           help: t('Allow code health issues to be created'),
           defaultValue: true,
@@ -810,7 +841,7 @@ export function getProjectDetectorSettings({
           ),
           disabledReason,
           visible: hasAIIssueDetection,
-        },
+        }),
       ],
       initiallyCollapsed: !AI_DETECTED_ISSUE_TYPES.has(issueType as IssueType),
     },
@@ -830,12 +861,12 @@ export function getProjectDetectorSettings({
       ? {
           ...fieldGroup,
           fields: [
-            {
+            booleanField({
               help: t('Controls whether or not Sentry should detect this type of issue.'),
               ...manageField,
               disabled: !hasAccess,
               disabledReason: t('You do not have permission to manage detectors.'),
-            },
+            }),
             ...fieldGroup.fields,
           ],
         }
