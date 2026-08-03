@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any, TypedDict, cast
 
 from django.http.request import HttpRequest
@@ -19,11 +19,8 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.errors import OrganizationIntegrationNotFound
-from sentry.integrations.gcp.utils import (
-    GCP_MCP_URLS,
-    generate_sentry_sa,
-    validate_gcp_project_id,
-)
+from sentry.integrations.gcp.client import delete_sentry_sa, generate_sentry_sa
+from sentry.integrations.gcp.utils import GCP_MCP_URLS, validate_gcp_project_id
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
@@ -86,6 +83,11 @@ class GcpSaGenerationApiStep:
 
     def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
         assert pipeline.organization is not None
+
+        existing_email = pipeline.fetch_state("sentry_sa_email")
+        if existing_email:
+            return {"sentrySaEmail": existing_email}
+
         sentry_sa_email = generate_sentry_sa(pipeline.organization.id)
         pipeline.bind_state("sentry_sa_email", sentry_sa_email)
         return {"sentrySaEmail": sentry_sa_email}
@@ -132,6 +134,17 @@ class GcpIntegration(IntegrationInstallation):
         if not config:
             return None
         return cast(GcpConfig, config)
+
+    def uninstall(self) -> None:
+        config = self.gcp_config
+        if config is None:
+            return
+        sa_email = config.get("sentry_sa_email")
+        if sa_email:
+            delete_sentry_sa(sa_email, self.organization_id)
+
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        pass
 
     def get_organization_config(self) -> Sequence[Any]:
         return []

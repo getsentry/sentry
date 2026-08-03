@@ -7,8 +7,6 @@ import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {AssigneePill} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips/assigneeChip';
 import {getAssignmentIntegrationName} from 'sentry/views/issueDetails/activitySection/assignmentIntegration';
 
-import type {CompactGroupActivityItem} from './types';
-
 function getAssignee(
   data: GroupActivityAssigned['data'],
   {teams, isLoading, isError}: ReturnType<typeof useTeamsById>
@@ -75,11 +73,7 @@ function AssignedActivityDetails({activity}: {activity: GroupActivityAssigned}) 
   return tct('to [assignee]', {assignee});
 }
 
-export function getAssignedActivityItem({
-  activity,
-}: {
-  activity: GroupActivityAssigned;
-}): CompactGroupActivityItem {
+export function getAssignedActivityItem({activity}: {activity: GroupActivityAssigned}) {
   return {
     title: t('Assigned'),
     details: <AssignedActivityDetails activity={activity} />,

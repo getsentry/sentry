@@ -261,7 +261,7 @@ export function CommandPalette({
     );
   }, [actions]);
 
-  const treeState = useTreeState({
+  const treeState = useTreeState<CommandPaletteActionMenuItem>({
     disabledKeys: sectionKeys,
     children: actions.map(action => {
       const menuItem = makeMenuItemFromAction(action, prefixMap);

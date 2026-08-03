@@ -64,13 +64,9 @@ def parse_and_convert_issue_search_query(
     return search_filters
 
 
-def get_search_referrer(request: Request, organization: Organization) -> Referrer:
+def get_search_referrer(request: Request) -> Referrer:
     # Split UI (browser session) traffic from API/integration traffic so the two can be
     # measured separately in Snuba.
-    if not features.has(
-        "organizations:search-group-index-api-referrer", organization, actor=request.user
-    ):
-        return Referrer.SEARCH_GROUP_INDEX
     if isinstance(request.successful_authenticator, SessionAuthentication):
         return Referrer.SEARCH_GROUP_INDEX
     return Referrer.SEARCH_GROUP_INDEX_API
@@ -85,7 +81,7 @@ def build_query_params_from_request(
     query_kwargs: dict[str, Any] = {
         "projects": projects,
         "sort_by": request.GET.get("sort", DEFAULT_SORT_OPTION),
-        "referrer": get_search_referrer(request, organization),
+        "referrer": get_search_referrer(request),
     }
 
     limit = request.GET.get("limit")

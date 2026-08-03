@@ -205,11 +205,10 @@ class GitHubWebhookCodeReviewTestCase(GitHubWebhookTestCase):
         if pr_author_external_id:
             OrganizationContributors.objects.get_or_create(
                 organization_id=self.organization.id,
-                integration_id=integration.id,
+                provider=integration.provider,
+                hostname=instance_hostname(integration),
                 external_identifier=pr_author_external_id,
                 defaults={
-                    "provider": integration.provider,
-                    "hostname": instance_hostname(integration),
                     "alias": (
                         self.event_dict.get("sender", {}).get("login")
                         or self.event_dict.get("issue", {}).get("user", {}).get("login")

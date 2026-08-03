@@ -274,9 +274,7 @@ export function getMenuOptions(
     usesTimeSeriesData(widget.displayType) &&
     timeseriesResults?.length
   ) {
-    const newAlertLabel = organization.features.includes('workflow-engine-ui')
-      ? t('Create a Monitor for')
-      : t('Create an Alert for');
+    const newAlertLabel = t('Create a Monitor for');
 
     const alertMenuOptions = timeseriesResults
       .map((series, index) => {

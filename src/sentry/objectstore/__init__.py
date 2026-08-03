@@ -30,6 +30,11 @@ __all__ = [
 ]
 
 
+# Default validity of the token used for redirecting to Objectstore. This is a
+# short-lived token, as it is only used for a single request.
+REDIRECT_VALIDITY = timedelta(minutes=5)
+
+
 def default_attachment_retention() -> int:
     """
     Returns the default attachment retention in days, which is used if no
@@ -68,13 +73,18 @@ class SentryMetricsBackend(MetricsBackend):
         sentry_metrics.distribution(name, value, tags=tags, unit=unit)
 
 
+CHUNK_UPLOAD_INTENT_TTL = timedelta(days=1)
+CHUNK_UPLOAD_EXPIRY_SAFETY_WINDOW = timedelta(hours=1)
+
 _OBJECTSTORE_CLIENT: Client | None = None
 _ATTACHMENTS_USECASE: Usecase | None = None
 _DEBUG_FILES_USECASE = Usecase(
     "debug_files", compression="none", expiration_policy=TimeToIdle(timedelta(days=90))
 )
 _CHUNK_UPLOAD_USECASE = Usecase(
-    "chunk-upload", compression="none", expiration_policy=TimeToLive(timedelta(hours=25))
+    "chunk-upload",
+    compression="none",
+    expiration_policy=TimeToLive(CHUNK_UPLOAD_INTENT_TTL + CHUNK_UPLOAD_EXPIRY_SAFETY_WINDOW),
 )
 _PROFILE_ATTACHMENTS_USECASE: Usecase | None = None
 _PREPROD_USECASE = Usecase("preprod", expiration_policy=TimeToIdle(timedelta(days=30)))
@@ -202,16 +212,33 @@ def maybe_rewrite_url_for_symbolicator(url: str) -> str:
     return urlunparse(updated)
 
 
-def get_symbolicator_url(session: Session, key: str) -> str:
+def get_internal_download_url(
+    session: Session, key: str, token_validity: timedelta | None = None
+) -> str:
     """
-    Gets the URL that Symbolicator shall use to access the object at the given key in Objectstore.
-
-    The URL is only rewritten in dev/test mode. See `maybe_rewrite_url_for_symbolicator` for details.
+    Pre-signed URL to `key` for an INTERNAL service (e.g. Symbolicator, teapot): a direct link to
+    Objectstore that bypasses the cell proxy.
     """
-    return maybe_rewrite_url_for_symbolicator(session.object_url(key))
+    if token_validity is None:
+        token_validity = REDIRECT_VALIDITY
+
+    # Redirect to a URL pointing to the internal Objectstore ip/hostname.
+    # In dev/test, we potentially need to rewrite this URL to point to the hostname in the docker network
+    # instead, so we need to additionally wrap this with `maybe_rewrite_url_for_symbolicator`.
+    # TODO(lcian): Find a more robust way to do this. Here we assume that the caller is Symbolicator,
+    # which is currently the case in practice, but in theory it could be any other service.
+    return maybe_rewrite_url_for_symbolicator(
+        session.object_url(key, token_validity=token_validity)
+    )
 
 
-def get_download_redirect_url(request: HttpRequest, session: Session, org: int, key: str) -> str:
+def get_download_redirect_url(
+    request: HttpRequest,
+    session: Session,
+    org: int,
+    key: str,
+    token_validity: timedelta | None = None,
+) -> str:
     """
     Returns the URL that `request` should be redirected to in order to download the object at `key`
     directly from Objectstore, bypassing Sentry.
@@ -222,15 +249,13 @@ def get_download_redirect_url(request: HttpRequest, session: Session, org: int, 
     from sentry.api.utils import generate_locality_url
     from sentry.auth import system
 
-    presigned_url = session.object_url(key, token_validity=timedelta(minutes=5))
-
     if system.is_internal_ip(request):
-        # Redirect to a URL pointing to the internal Objectstore ip/hostname.
-        # In dev/test, we potentially need to rewrite this URL to point to the hostname in the docker network
-        # instead, so we need to additionally wrap this with `maybe_rewrite_url_for_symbolicator`.
-        # TODO(lcian): Find a more robust way to do this. Here we assume that the caller is Symbolicator,
-        # which is currently the case in practice, but in theory it could be any other service.
-        return maybe_rewrite_url_for_symbolicator(presigned_url)
+        return get_internal_download_url(session, key, token_validity)
+
+    if token_validity is None:
+        token_validity = REDIRECT_VALIDITY
+
+    presigned_url = session.object_url(key, token_validity=token_validity)
 
     parts = urlsplit(presigned_url)
     proxy_path = reverse(

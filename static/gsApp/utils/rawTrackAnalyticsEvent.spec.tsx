@@ -55,6 +55,52 @@ describe('rawTrackAnalyticsEvent', () => {
     expect(trackAmplitudeEvent).not.toHaveBeenCalled();
   });
 
+  it('does not track in Reload without an event key', () => {
+    rawTrackAnalyticsEvent({
+      eventName: null,
+      eventKey: undefined,
+      organization,
+      someProp: 'value',
+    });
+
+    expect(trackReloadEvent).not.toHaveBeenCalled();
+  });
+
+  it('does not consume the custom referrer without an event', () => {
+    sessionStorageWrapper.setItem(CUSTOM_REFERRER_KEY, JSON.stringify('batman'));
+
+    rawTrackAnalyticsEvent({
+      eventName: null,
+      eventKey: undefined,
+      organization,
+    });
+
+    expect(sessionStorageWrapper.getItem(CUSTOM_REFERRER_KEY)).toBe(
+      JSON.stringify('batman')
+    );
+    expect(trackReloadEvent).not.toHaveBeenCalled();
+    expect(trackAmplitudeEvent).not.toHaveBeenCalled();
+
+    sessionStorageWrapper.removeItem(CUSTOM_REFERRER_KEY);
+  });
+
+  it('tracks named events without a Reload event key', () => {
+    rawTrackAnalyticsEvent({
+      eventName: 'Test Event',
+      eventKey: undefined,
+      organization,
+      someProp: 'value',
+    });
+
+    expect(trackReloadEvent).not.toHaveBeenCalled();
+    expect(trackAmplitudeEvent).toHaveBeenCalledWith(
+      'Test Event',
+      org_id,
+      expect.objectContaining({someProp: 'value'}),
+      {time: undefined}
+    );
+  });
+
   it('coerces organization_id and project_id and honor existing analytics sessions', () => {
     sessionStorageWrapper.setItem('ANALYTICS_SESSION', '789');
     rawTrackAnalyticsEvent({
@@ -277,6 +323,7 @@ describe('rawTrackAnalyticsEvent', () => {
       {time: undefined}
     );
   });
+
   it('send to marketing', () => {
     rawTrackAnalyticsEvent({
       eventKey: 'growth.onboarding_clicked_need_help',

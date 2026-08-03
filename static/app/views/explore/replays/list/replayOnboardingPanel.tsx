@@ -25,15 +25,7 @@ import {
 } from 'sentry/views/explore/profiling/landing/styles';
 import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
 import {ReplayPanel} from 'sentry/views/explore/replays/list/replayPanel';
-import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-
-type Breakpoints = {
-  lg: string;
-  md: string;
-  sm: string;
-  xl: string;
-};
 
 const OnboardingCTAHook = OverrideOrDefault({
   overrideName: 'component:replay-onboarding-cta',
@@ -45,8 +37,6 @@ export function ReplayOnboardingPanel() {
   const projects = useProjects();
   const organization = useOrganization();
   const canUserCreateProject = useCanCreateProject();
-  const {view} = useSecondaryNavigation();
-  const isCollapsed = view !== 'expanded';
 
   const supportedPlatforms = replayPlatforms;
 
@@ -74,26 +64,12 @@ export function ReplayOnboardingPanel() {
       ? !canUserCreateProject
       : allSelectedProjectsUnsupported && hasSelectedProjects;
 
-  const breakpoints = isCollapsed
-    ? {
-        sm: '800px',
-        md: '992px',
-        lg: '1210px',
-        xl: '1450px',
-      }
-    : {
-        sm: '800px',
-        md: '1175px',
-        lg: '1375px',
-        xl: '1450px',
-      };
-
   return (
     <Fragment>
       {hasSelectedProjects && allSelectedProjectsUnsupported && (
         <ReplayUnsupportedAlert projectSlug={selectedProjects[0]!.slug} />
       )}
-      <ReplayPanel image={<HeroImage src={emptyStateImg} breakpoints={breakpoints} />}>
+      <ReplayPanel image={<HeroImage src={emptyStateImg} />}>
         <OnboardingCTAHook organization={organization}>
           <SetupReplaysCTA
             primaryAction={primaryAction}
@@ -301,35 +277,20 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
   );
 }
 
-const HeroImage = styled('img')<{breakpoints: Breakpoints}>`
-  @media (min-width: ${p => p.breakpoints.sm}) {
-    user-select: none;
-    position: absolute;
-    top: 0;
-    bottom: 0;
+const HeroImage = styled('img')`
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  margin: 0 auto;
+  user-select: none;
+
+  @container (min-width: ${p => p.theme.container.xl}) {
     width: 220px;
-    margin-top: auto;
-    margin-bottom: auto;
-    transform: translateX(-50%);
-    left: 50%;
   }
 
-  @media (min-width: ${p => p.breakpoints.md}) {
-    transform: translateX(-55%);
+  @container (min-width: ${p => p.theme.container['3xl']}) {
     width: 300px;
-    min-width: 300px;
-  }
-
-  @media (min-width: ${p => p.breakpoints.lg}) {
-    transform: translateX(-60%);
-    width: 380px;
-    min-width: 380px;
-  }
-
-  @media (min-width: ${p => p.breakpoints.xl}) {
-    transform: translateX(-65%);
-    width: 420px;
-    min-width: 420px;
   }
 `;
 
