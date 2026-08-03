@@ -6,7 +6,7 @@ from django.db import models
 
 from sentry import features, roles
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedAutoField, FlexibleForeignKey, cell_silo_model, sane_repr
+from sentry.db.models import BoundedBigAutoField, FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.hybridcloud.models.outbox import CellOutboxBase
 from sentry.hybridcloud.outbox.base import CellOutboxProducingManager, ReplicatedCellModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
@@ -25,7 +25,7 @@ class OrganizationMemberTeam(ReplicatedCellModel):
     __relocation_scope__ = RelocationScope.Organization
     category = OutboxCategory.ORGANIZATION_MEMBER_TEAM_UPDATE
 
-    id = BoundedAutoField(primary_key=True)
+    id = BoundedBigAutoField(primary_key=True)
     team = FlexibleForeignKey("sentry.Team")
     organizationmember = FlexibleForeignKey("sentry.OrganizationMember")
     # an inactive membership simply removes the team from the default list
