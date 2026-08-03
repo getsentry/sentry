@@ -684,7 +684,7 @@ def create_dif_from_id(
             **objectstore_metadata,
         )
     except Exception:
-        if exclusive_objectstore_write and storage_path is not None:
+        if storage_path is not None:
             assert session is not None
             try:
                 session.delete(storage_path)
