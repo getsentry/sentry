@@ -1,7 +1,7 @@
 import logging
 import re
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection
 from datetime import datetime
 from typing import Any, TypedDict
 
@@ -78,17 +78,6 @@ def _to_timestamp_float(ts: Any) -> float:
 
 def _compute_timestamp_ms(finish_ts: float) -> int:
     return int(finish_ts * 1000) if finish_ts else 0
-
-
-def _first_title(
-    titles: Mapping[tuple[str, int], str], conv_id: str, project_ids: Sequence[int]
-) -> str | None:
-    """Lowest project id with a stored title wins, so results are stable across requests."""
-    for project_id in project_ids:
-        title = titles.get((conv_id, project_id))
-        if title is not None:
-            return title
-    return None
 
 
 def _extract_first_user_message(messages: Any) -> str | None:
@@ -332,11 +321,9 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         # Process results
         with start_span(op="ai_conversations.process", name="Process query results"):
             conversations_map = self._build_conversations_from_aggregations(results["aggregations"])
-            project_ids_by_conversation = self._apply_enrichment(
-                conversations_map, results["enrichment"]
-            )
+            self._apply_enrichment(conversations_map, results["enrichment"])
             self._apply_first_last_io(conversations_map, results["first_last_io"])
-            self._apply_titles(conversations_map, project_ids_by_conversation)
+            self._apply_titles(conversations_map, snuba_params.project_ids)
 
         return [
             conversations_map[conv_id]
@@ -479,8 +466,8 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
 
     def _apply_enrichment(
         self, conversations_map: dict[str, dict[str, Any]], enrichment_data: EAPResponse
-    ) -> dict[str, set[int]]:
-        """Apply enrichment data, returning the project ids each conversation spans."""
+    ) -> None:
+        """Apply enrichment data from span rows onto each conversation."""
         with start_span(
             op="ai_conversations.apply_enrichment",
             name="Apply enrichment data",
@@ -492,7 +479,6 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             traces_by_conversation: dict[str, set[str]] = defaultdict(set)
             tool_names_by_conversation: dict[str, set[str]] = defaultdict(set)
             tool_errors_by_conversation: dict[str, int] = defaultdict(int)
-            project_ids_by_conversation: dict[str, set[int]] = defaultdict(set)
             # Rows are sorted by timestamp, so the first occurrence per conversation
             # is the earliest span. Track the first span's user and project.
             user_by_conversation: dict[str, UserResponse] = {}
@@ -504,10 +490,8 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                     continue
 
                 project_id = row.get("project.id")
-                if isinstance(project_id, int):
-                    project_ids_by_conversation[conv_id].add(project_id)
-                    if conv_id not in first_project_by_conversation:
-                        first_project_by_conversation[conv_id] = project_id
+                if isinstance(project_id, int) and conv_id not in first_project_by_conversation:
+                    first_project_by_conversation[conv_id] = project_id
 
                 trace_id = row.get("trace", "")
                 if trace_id:
@@ -546,8 +530,6 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 conversation["toolNames"] = sorted(tool_names_by_conversation.get(conv_id, set()))
                 conversation["toolErrors"] = tool_errors_by_conversation.get(conv_id, 0)
                 conversation["projectId"] = first_project_by_conversation.get(conv_id)
-
-            return project_ids_by_conversation
 
     def _apply_first_last_io(
         self, conversations_map: dict[str, dict[str, Any]], first_last_io_data: EAPResponse
@@ -590,29 +572,20 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     def _apply_titles(
         self,
         conversations_map: dict[str, dict[str, Any]],
-        project_ids_by_conversation: Mapping[str, set[int]],
+        project_ids: Collection[int],
     ) -> None:
         """Set each conversation's `title` from storage when present.
 
         On lookup failure, log and leave titles unset so the list response still succeeds.
         """
-        sorted_project_ids = {
-            conv_id: sorted(project_ids_by_conversation.get(conv_id, ()))
-            for conv_id in conversations_map
-        }
-        pairs = [
-            (conv_id, project_id)
-            for conv_id, project_ids in sorted_project_ids.items()
-            for project_id in project_ids
-        ]
         try:
-            titles = fetch_conversation_titles(pairs)
+            titles = fetch_conversation_titles(conversations_map.keys(), project_ids)
         except Exception:
             logger.exception(
                 "Failed to resolve titles for AI conversations",
-                extra={"project_ids": sorted({project_id for _, project_id in pairs})},
+                extra={"project_ids": sorted(project_ids)},
             )
             return
 
-        for conv_id, conversation in conversations_map.items():
-            conversation["title"] = _first_title(titles, conv_id, sorted_project_ids[conv_id])
+        for conv_id, title in titles.items():
+            conversations_map[conv_id]["title"] = title
