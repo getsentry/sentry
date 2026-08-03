@@ -129,6 +129,41 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
             ],
         )
 
+    def test_environment_not_in_db(self) -> None:
+        """Test that save_issue_occurrence creates an Environment record when the
+        event references an environment that doesn't exist in the database yet.
+        This happens for span-based performance issue detection where the
+        environment tag exists in span metadata but was never registered."""
+        env_name = "SRT"
+        event = self.store_event(
+            data={"environment": env_name}, project_id=self.project.id
+        )
+        # Delete the Environment record that store_event created, simulating the
+        # case where a span-based occurrence references an environment that was
+        # never persisted (e.g. performance issues detected from spans).
+        Environment.objects.filter(
+            organization_id=self.organization.id, name=env_name
+        ).delete()
+        assert not Environment.objects.filter(
+            organization_id=self.organization.id, name=env_name
+        ).exists()
+
+        occurrence_data = self.build_occurrence_data(event_id=event.event_id)
+        with self.tasks():
+            occurrence, group_info = save_issue_occurrence(occurrence_data, event)
+        assert group_info is not None
+        assert group_info.is_new
+        # Verify the Environment was created by save_issue_occurrence
+        assert Environment.objects.filter(
+            organization_id=self.organization.id, name=env_name
+        ).exists()
+        environment = Environment.objects.get(
+            organization_id=self.organization.id, name=env_name
+        )
+        assert GroupEnvironment.objects.filter(
+            group=group_info.group, environment=environment
+        ).exists()
+
     def test_different_ids(self) -> None:
         create_default_projects()
         event_data = load_data("generic-event-profiling")
