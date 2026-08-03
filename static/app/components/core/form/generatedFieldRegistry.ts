@@ -287,6 +287,24 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
       'We\u2019ll update any changes you make to your CODEOWNERS files during a release.'
     ),
   },
+  'autofix-agent.agentOption': {
+    name: 'agentOption',
+    formId: 'autofix-agent',
+    route: '/settings/:orgId/projects/:projectId/seer',
+    label: t('Handoff to Agent'),
+    hintText: t(
+      'Select your preferred agent to create a plan, and code up an issue fix. Seer Agent will always be used for the Root Cause Analysis step. Manage Coding Agents.'
+    ),
+  },
+  'autofix-agent.stoppingPoint': {
+    name: 'stoppingPoint',
+    formId: 'autofix-agent',
+    route: '/settings/:orgId/projects/:projectId/seer',
+    label: t('Automation Steps'),
+    hintText: t(
+      'Choose which steps Seer should run automatically on issues. Depending on how actionable the issue is, Seer may stop at an earlier step.'
+    ),
+  },
   'project-user-feedback.feedback:branding': {
     name: 'feedback:branding',
     formId: 'project-user-feedback',
