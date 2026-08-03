@@ -2111,7 +2111,14 @@ def get_event_details(
             if include_breadcrumbs
             else [section for section in EVENT_SECTIONS if section is not breadcrumbs_section]
         )
-        formatted = format_issue(serialized_event, format=format, sections=sections, limits=limits)
+        # `format` arrives as an unvalidated RPC argument, so an unknown value would otherwise
+        # escape as a ValueError and surface as a 500 on the internal endpoint
+        try:
+            formatted = format_issue(
+                serialized_event, format=format, sections=sections, limits=limits
+            )
+        except ValueError as e:
+            raise ParseError(str(e)) from e
 
     return EventDetailsResponse(
         event=serialized_event,

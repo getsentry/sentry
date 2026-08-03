@@ -7,6 +7,7 @@ import pytest
 from django.core.cache import cache
 from django.core.exceptions import BadRequest, ObjectDoesNotExist
 from pydantic import BaseModel
+from rest_framework.exceptions import ParseError
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.api import client
@@ -2105,6 +2106,19 @@ class TestGetEventDetails(
 
         assert result is not None
         assert result["formatted"] is None
+
+    def test_invalid_format_raises_parse_error(self) -> None:
+        # `format` is an unvalidated RPC argument; an unknown value must be a 400, not a 500
+        event = self._make_error_event()
+
+        with self.feature("organizations:issue-standardized-markdown-for-llm"):
+            with pytest.raises(ParseError):
+                get_event_details(
+                    organization_id=self.organization.id,
+                    event_id=event.event_id,
+                    project_slug=self.project.slug,
+                    format="yaml",  # type: ignore[arg-type]
+                )
 
     def test_include_breadcrumbs_false_drops_section(self) -> None:
         data = load_data("python", timestamp=before_now(minutes=5))
