@@ -22,6 +22,8 @@ jobs:
     name: detect what files changed
     runs-on: ubuntu-24.04
     timeout-minutes: 3
+    permissions:
+      contents: read
     # Map a step output to a job output
     outputs:
       testable_modified: ${{ steps.changes.outputs.testable_modified }}
@@ -35,10 +37,10 @@ jobs:
           fetch-depth: 1
 
       - name: Check for frontend file changes
-        uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
+        uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
         id: changes
         with:
-          token: ${{ github.token }}
+          token: ''
           filters: .github/file-filters.yml
           list-files: shell
 

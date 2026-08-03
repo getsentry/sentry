@@ -1462,6 +1462,9 @@ register("relay.allow_internal_ip_auth", default=True, flags=FLAG_AUTOMATOR_MODI
 # Example value: [{"project_id": 42}, {"project_id": 123}]
 register("relay.drop-transaction-metrics", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Tell Relay to stop extracting metrics from transaction payloads for all projects.
+register("relay.drop-transaction-metrics2", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Relay should emit a usage metric to track total spans.
 register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 

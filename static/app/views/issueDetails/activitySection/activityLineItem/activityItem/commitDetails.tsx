@@ -10,10 +10,10 @@ import {GroupActivityType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {BaseRelease} from 'sentry/types/release';
+import {getProviderName} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityItem/provider';
 import {CommitChip} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips/commitChip';
 import {getCommitRepository} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips/commitRepository';
 import {ActivityRelease} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips/releaseChip';
-import {getProviderName} from 'sentry/views/issueDetails/activitySection/activityLineItem/compactActivityItem/provider';
 
 const MAX_OTHER_RELEASES_IN_TOOLTIP = 5;
 

@@ -197,29 +197,19 @@ describe('ConversationsChart', () => {
     expect(screen.queryByRole('button', {name: 'Expand chart'})).not.toBeInTheDocument();
   });
 
-  it('links to the metric alert builder for the current visualization', async () => {
+  it('links to the metric monitor builder for the current visualization', async () => {
     render(<ConversationsChart />, {organization});
 
     await userEvent.click(screen.getByRole('button', {name: 'Chart actions'}));
 
-    const alertItem = await screen.findByRole('menuitemradio', {name: 'Create an Alert'});
+    const alertItem = await screen.findByRole('menuitemradio', {
+      name: 'Create a Monitor',
+    });
     const href = alertItem.getAttribute('href') ?? '';
-    expect(href).toContain('/alerts/new/metric/');
+    expect(href).toContain('/monitors/new/settings');
+    expect(href).toContain('detectorType=metric_issue');
     expect(href).toContain('aggregate=sum');
     expect(href).toContain('gen_ai.cost.total_tokens');
-    expect(href).toContain('dataset=events_analytics_platform');
-  });
-
-  it('shows "Create a Monitor" with the workflow-engine-ui feature', async () => {
-    render(<ConversationsChart />, {
-      organization: OrganizationFixture({features: ['workflow-engine-ui']}),
-    });
-
-    await userEvent.click(screen.getByRole('button', {name: 'Chart actions'}));
-
-    expect(
-      await screen.findByRole('menuitemradio', {name: 'Create a Monitor'})
-    ).toBeInTheDocument();
   });
 
   it('disables "Add to Dashboard" without the dashboards-edit feature', async () => {

@@ -94,7 +94,6 @@ class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
         if rpc_user is None:
             return Response({"detail": "Authentication credentials were not provided."}, status=401)
 
-        # Do not pass `user` until cells accept the new RPC arg everywhere (deploy phase 2).
         result = sentry_app_cell_service.create_external_issue(
             organization_id=installation.organization_id,
             installation=installation,
