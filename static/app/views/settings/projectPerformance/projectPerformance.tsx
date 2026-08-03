@@ -1121,10 +1121,12 @@ function GeneralSettingsSection({
 
 function ThresholdSettingsSection({
   hasWriteAccess,
+  isResetting,
   onResetAll,
   threshold,
 }: {
   hasWriteAccess: boolean;
+  isResetting: boolean;
   onResetAll: () => void;
   threshold: ProjectThreshold;
 }) {
@@ -1230,7 +1232,9 @@ function ThresholdSettingsSection({
       </AutoSaveForm>
 
       <Flex justify="end">
-        <Button onClick={onResetAll}>{t('Reset All')}</Button>
+        <Button onClick={onResetAll} busy={isResetting} disabled={!hasWriteAccess}>
+          {t('Reset All')}
+        </Button>
       </Flex>
     </FieldGroup>
   );
@@ -1384,11 +1388,13 @@ function AdminRegressionSettingsSection({
 function DetectorThresholdsSection({
   detectorGroups,
   hasWriteAccess,
+  isResetting,
   onResetAll,
   performanceIssueSettings,
 }: {
   detectorGroups: DetectorFieldGroup[];
   hasWriteAccess: boolean;
+  isResetting: boolean;
   onResetAll: () => void;
   performanceIssueSettings: ProjectPerformanceSettings;
 }) {
@@ -1437,7 +1443,7 @@ function DetectorThresholdsSection({
             onConfirm={onResetAll}
             disabled={!hasWriteAccess || areAllConfigurationsDisabled}
           >
-            <Button>{t('Reset All Thresholds')}</Button>
+            <Button busy={isResetting}>{t('Reset All Thresholds')}</Button>
           </Confirm>
         </Flex>
       </FieldGroup>
@@ -1541,9 +1547,7 @@ export function ProjectPerformance() {
     isPendingThreshold ||
     isPendingPerformanceIssueSettings ||
     isPendingGeneral ||
-    isPendingProject ||
-    isPendingResetThresholdSettings ||
-    isPendingResetThresholds
+    isPendingProject
   ) {
     return (
       <Container padding="lg">
@@ -1581,6 +1585,7 @@ export function ProjectPerformance() {
       <ThresholdSettingsSection
         threshold={threshold}
         hasWriteAccess={hasWriteAccess}
+        isResetting={isPendingResetThresholdSettings}
         onResetAll={() => resetThresholdSettings()}
       />
       <SamplingPrioritiesSection project={project} hasWriteAccess={hasWriteAccess} />
@@ -1593,6 +1598,7 @@ export function ProjectPerformance() {
         detectorGroups={detectorGroups}
         performanceIssueSettings={performanceIssueSettings}
         hasWriteAccess={hasWriteAccess}
+        isResetting={isPendingResetThresholds}
         onResetAll={() => resetThresholds()}
       />
     </Fragment>
