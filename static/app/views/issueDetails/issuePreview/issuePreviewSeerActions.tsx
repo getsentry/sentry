@@ -34,7 +34,7 @@ interface SeerAction {
   kind: SeerActionKind;
   label: string;
   href?: string;
-  icon?: 'github';
+  isPullRequest?: boolean;
   repoName?: string;
   tooltip?: string | null;
 }
@@ -111,7 +111,7 @@ function getAutofixPrimaryAction(
       kind: 'link',
       label: completedPullRequestLink.label,
       href: completedPullRequestLink.url,
-      icon: 'github',
+      isPullRequest: true,
     };
   }
 
@@ -270,7 +270,7 @@ function IssuePreviewSeerButton({
         variant="primary"
         size="sm"
         icon={
-          action.icon === 'github' ? (
+          action.isPullRequest ? (
             <IconGithub data-test-id="pull-request-github" />
           ) : (
             <IconOpen />
