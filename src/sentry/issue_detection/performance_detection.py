@@ -126,7 +126,10 @@ PERFORMANCE_WFE_DETECTOR_TYPES: frozenset[str] = frozenset(
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
 def detect_performance_problems(
-    data: dict[str, Any], project: Project, standalone: bool = False
+    data: dict[str, Any],
+    project: Project,
+    detection_settings: dict[DetectorType, dict[str, Any]] | None = None,
+    standalone: bool = False,
 ) -> list[PerformanceProblem]:
     try:
         rate = options.get("performance.issues.all.problem-detection")
@@ -138,7 +141,9 @@ def detect_performance_problems(
                 metrics.timer("performance.detect_performance_issue", sample_rate=0.01),
                 start_span(op="py.detect_performance_issue", name="none") as sdk_span,
             ):
-                return _detect_performance_problems(data, sdk_span, project, standalone=standalone)
+                return _detect_performance_problems(
+                    data, sdk_span, project, detection_settings, standalone
+                )
     except Exception:
         logging.exception("Failed to detect performance problems")
     return []
@@ -678,13 +683,18 @@ DETECTOR_CLASSES: list[type[PerformanceDetector]] = [
 
 
 def _detect_performance_problems(
-    data: dict[str, Any], sdk_span: Span | StreamedSpan, project: Project, standalone: bool = False
+    data: dict[str, Any],
+    sdk_span: Span | StreamedSpan,
+    project: Project,
+    detection_settings: dict[DetectorType, dict[str, Any]] | None = None,
+    standalone: bool = False,
 ) -> list[PerformanceProblem]:
     event_id = data.get("event_id", None)
     organization = project.organization
 
-    with start_span(op="function", name="get_detection_settings"):
-        detection_settings = get_detection_settings(project)
+    if detection_settings is None:
+        with start_span(op="function", name="get_detection_settings"):
+            detection_settings = get_detection_settings(project)
 
     # The performance detectors expect the span list to be ordered/flattened in the way they
     # are structured in the tree. This is an implicit assumption in the performance detectors.
