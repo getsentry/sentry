@@ -1431,6 +1431,7 @@ class JiraIntegrationTest(APITestCase):
 
         installation = integration.get_installation(self.organization.id)
 
+        payload: dict[str, Any]
         for payload in (
             {"2": {}},
             {"2": {"on_resolve": "done"}},
