@@ -2,7 +2,7 @@ import {useEffect, useRef} from 'react';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
-import {isNotFoundError} from 'sentry/utils/requestError/requestError';
+import {isNotFoundError, isRateLimitError} from 'sentry/utils/requestError/requestError';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
@@ -20,32 +20,30 @@ export function useLogEventReplayStatus({readerResult}: Props) {
   });
   const organization = useOrganization();
 
-  const {fetchError, attachmentError} = readerResult;
-  const hasError = Boolean(fetchError) || Boolean(attachmentError?.length);
+  const {fetchError, attachmentError, replayRecord} = readerResult;
+  const isThrottled =
+    isRateLimitError(fetchError) || Boolean(attachmentError?.some(isRateLimitError));
+  const isArchived = Boolean(replayRecord?.is_archived);
+
+  const hasError =
+    !isThrottled &&
+    !isArchived &&
+    (Boolean(fetchError) || Boolean(attachmentError?.length));
   const is404 =
     isNotFoundError(fetchError) || Boolean(attachmentError?.some(isNotFoundError));
 
   const hasLoggedRef = useRef(false);
-  const loggedIs404Ref = useRef(false);
 
   useEffect(() => {
-    if (!hasError) {
-      hasLoggedRef.current = false;
-      loggedIs404Ref.current = false;
-      return;
-    }
-
-    const shouldRefireForLate404 =
-      hasLoggedRef.current && is404 && !loggedIs404Ref.current;
-
-    if (!hasLoggedRef.current || shouldRefireForLate404) {
+    if (hasError && !hasLoggedRef.current) {
       hasLoggedRef.current = true;
-      loggedIs404Ref.current = is404;
       trackAnalytics('replay.render-missing-replay-alert', {
         organization,
         surface: 'issue details - clip preview',
         is_404: is404,
       });
+    } else if (!hasError) {
+      hasLoggedRef.current = false;
     }
   }, [organization, hasError, is404]);
 }
