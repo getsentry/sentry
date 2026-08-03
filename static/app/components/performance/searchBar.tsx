@@ -1,4 +1,4 @@
-import {useRef, useState} from 'react';
+import {useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -48,8 +48,8 @@ export function SearchBar(props: SearchBarProps) {
   const transactionCount = searchResults[0]?.children?.length || 0;
   const [highlightedItemIndex, setHighlightedItemIndex] = useState(-1);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const openDropdown = () => setIsDropdownOpen(true);
-  const closeDropdown = () => setIsDropdownOpen(false);
+  const openDropdown = useCallback(() => setIsDropdownOpen(true), []);
+  const closeDropdown = useCallback(() => setIsDropdownOpen(false), []);
   const [loading, setLoading] = useState(false);
   const [searchString, setSearchString] = useState(searchQuery);
   const containerRef = useRef<HTMLDivElement>(null);
