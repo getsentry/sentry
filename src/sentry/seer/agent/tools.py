@@ -238,13 +238,21 @@ def _validate_events_query_params(
             params=params,
         )
         if isinstance(resp.data, dict) and resp.data.get("valid") is False:
-            return ExecuteQueryErrorResponse(
-                error=_format_events_query_validation_errors(resp.data)
+            error = _format_events_query_validation_errors(resp.data)
+            logger.warning(
+                "execute_table_query: validation failed",
+                extra={"org_id": organization.id, "error": error},
             )
+            return ExecuteQueryErrorResponse(error=error)
         return None
     except client.ApiError as e:
         if e.status_code == 400 and isinstance(e.body, dict) and "valid" in e.body:
-            return ExecuteQueryErrorResponse(error=_format_events_query_validation_errors(e.body))
+            error = _format_events_query_validation_errors(e.body)
+            logger.warning(
+                "execute_table_query: validation failed",
+                extra={"org_id": organization.id, "error": error},
+            )
+            return ExecuteQueryErrorResponse(error=error)
         logger.exception(
             "execute_table_query: validate request failed",
             extra={"org_id": organization.id},
@@ -369,11 +377,13 @@ def execute_table_query(
     except client.ApiError as e:
         # For 400 errors, return an error string for the query builder agent.
         if e.status_code == 400:
-            logger.exception("execute_table_query: bad request", extra={"org_id": org_id})
             error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
-            return ExecuteQueryErrorResponse(
-                error=str(error_detail) if error_detail is not None else str(e.body)
+            error = str(error_detail) if error_detail is not None else str(e.body)
+            logger.warning(
+                "execute_table_query: validation failed",
+                extra={"org_id": org_id, "error": error},
             )
+            return ExecuteQueryErrorResponse(error=error)
         raise
 
 
@@ -462,11 +472,13 @@ def execute_timeseries_query(
         # Use a reserved "_seer_error_detail" key so it can't collide with a
         # group_by value (which becomes a top-level key in grouped responses below).
         if e.status_code == 400:
-            logger.exception("execute_timeseries_query: bad request", extra={"org_id": org_id})
             error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
-            return ExecuteTimeseriesQueryErrorResponse(
-                seer_error_detail=(str(error_detail) if error_detail is not None else str(e.body))
+            error = str(error_detail) if error_detail is not None else str(e.body)
+            logger.warning(
+                "execute_timeseries_query: validation failed",
+                extra={"org_id": org_id, "error": error},
             )
+            return ExecuteTimeseriesQueryErrorResponse(seer_error_detail=error)
         raise
     data = resp.data
 
@@ -563,13 +575,13 @@ def execute_trace_table_query(
     except client.ApiError as e:
         # For 400 errors, return an error string for the query builder agent.
         if e.status_code == 400:
-            logger.exception(
-                "execute_trace_table_query: bad request", extra={"org_id": organization_id}
-            )
             error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
-            return ExecuteQueryErrorResponse(
-                error=str(error_detail) if error_detail is not None else str(e.body)
+            error = str(error_detail) if error_detail is not None else str(e.body)
+            logger.warning(
+                "execute_trace_table_query: validation failed",
+                extra={"org_id": organization_id, "error": error},
             )
+            return ExecuteQueryErrorResponse(error=error)
         raise
 
 
@@ -621,14 +633,20 @@ def execute_replays_query(
         return None
 
     if not features.has("organizations:session-replay", organization):
-        return ExecuteQueryErrorResponse(
-            error="Session Replay is not enabled for this organization."
+        error = "Session Replay is not enabled for this organization."
+        logger.warning(
+            "execute_replays_query: validation failed",
+            extra={"org_id": organization_id, "error": error},
         )
+        return ExecuteQueryErrorResponse(error=error)
 
     if project_ids and project_slugs:
-        return ExecuteQueryErrorResponse(
-            error="Pass either project_ids or project_slugs, not both."
+        error = "Pass either project_ids or project_slugs, not both."
+        logger.warning(
+            "execute_replays_query: validation failed",
+            extra={"org_id": organization_id, "error": error},
         )
+        return ExecuteQueryErrorResponse(error=error)
 
     project_filter: dict[str, Any] = {}
     if project_ids:
@@ -649,9 +667,12 @@ def execute_replays_query(
     requested_fields = fields or DEFAULT_REPLAY_SEARCH_FIELDS
     invalid_fields = sorted(set(requested_fields) - set(REPLAY_VALID_FIELD_SET))
     if invalid_fields:
-        return ExecuteQueryErrorResponse(
-            error=f"Invalid replay field(s): {', '.join(invalid_fields)}"
+        error = f"Invalid replay field(s): {', '.join(invalid_fields)}"
+        logger.warning(
+            "execute_replays_query: validation failed",
+            extra={"org_id": organization_id, "error": error},
         )
+        return ExecuteQueryErrorResponse(error=error)
 
     date_params: dict[str, Any] = {}
     if start and end:
@@ -680,23 +701,24 @@ def execute_replays_query(
         )
         processed_response = process_raw_response(response.response, fields=requested_fields)
     except KeyError as e:
-        logger.exception(
-            "execute_replays_query: unsupported response field",
+        error = f"Invalid replay field: {e.args[0]}" if e.args else "Invalid replay field"
+        logger.warning(
+            "execute_replays_query: validation failed",
             extra={
                 "org_id": organization_id,
                 "query": query,
                 "field": e.args[0] if e.args else None,
+                "error": error,
             },
         )
-        return ExecuteQueryErrorResponse(
-            error=f"Invalid replay field: {e.args[0]}" if e.args else "Invalid replay field"
-        )
+        return ExecuteQueryErrorResponse(error=error)
     except (InvalidParams, InvalidSearchQuery, SentryBadRequest, BadRequest, ParseError) as e:
-        logger.exception(
-            "execute_replays_query: bad request",
-            extra={"org_id": organization_id, "query": query},
+        error = str(e)
+        logger.warning(
+            "execute_replays_query: validation failed",
+            extra={"org_id": organization_id, "query": query, "error": error},
         )
-        return ExecuteQueryErrorResponse(error=str(e))
+        return ExecuteQueryErrorResponse(error=error)
 
     return ExecuteQuerySuccessResponse(
         data=processed_response,

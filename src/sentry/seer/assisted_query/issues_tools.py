@@ -728,9 +728,12 @@ def execute_issues_query(
     except ApiError as e:
         if e.status_code == 400:
             error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
-            return ExecuteQueryErrorResponse(
-                error=str(error_detail) if error_detail is not None else str(e.body)
+            error = str(error_detail) if error_detail is not None else str(e.body)
+            logger.warning(
+                "execute_issues_query: validation failed",
+                extra={"org_id": organization.id, "error": error},
             )
+            return ExecuteQueryErrorResponse(error=error)
         raise
 
 
