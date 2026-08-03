@@ -18,6 +18,7 @@ from sentry.dynamic_sampling.rules.helpers.latest_releases import record_latest_
 from sentry.event_manager import INSIGHT_MODULE_TO_PROJECT_FLAG_NAME
 from sentry.insights import FilterSpan
 from sentry.insights import modules as insights_modules
+from sentry.issue_detection.base import DetectorType
 from sentry.issue_detection.detectors.span_first.run_detectors import (
     SPAN_FIRST_DETECTORS_BY_GROUPTYPE,
     compare_span_first_problems_to_control_data,
@@ -27,7 +28,10 @@ from sentry.issue_detection.detectors.span_first.span_first_utils import (
     SPAN_FIRST_DETECTORS_ENABLEMENT_OPTION,
     SpanFirstDetectorsRolloutController,
 )
-from sentry.issue_detection.performance_detection import detect_performance_problems
+from sentry.issue_detection.performance_detection import (
+    detect_performance_problems,
+    get_detection_settings,
+)
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
@@ -329,7 +333,10 @@ def _detect_performance_problems(
     try:
         # Run the legacy detectors and, if the `_performance_issues_spans` flag is set on the
         # segment span, produce occurrences from the results
-        legacy_detected_problems = _run_legacy_detectors(segment_span, spans, project)
+        detection_settings = get_detection_settings(project)
+        legacy_detected_problems = _run_legacy_detectors(
+            segment_span, spans, project, detection_settings
+        )
     except Exception:
         logger.exception("segment_consumer_legacy_issue_detectors.error")
         # If the legacy detectors error out, there's no point in running the experiment, so bail now
@@ -344,7 +351,10 @@ def _detect_performance_problems(
 
 
 def _run_legacy_detectors(
-    segment_span: CompatibleSpan, segment: list[CompatibleSpan], project: Project
+    segment_span: CompatibleSpan,
+    segment: list[CompatibleSpan],
+    project: Project,
+    detection_settings: dict[DetectorType, dict[str, Any]],
 ) -> list[PerformanceProblem]:
     """
     Run legacy issue detectors on segment data by first creating a fake transaction event. If the
@@ -353,7 +363,9 @@ def _run_legacy_detectors(
     # Create a fake transaction event out of the segment data, to match what the legacy detectors
     # are expecting
     event_data = build_shim_event_data(segment_span, segment)
-    detected_problems = detect_performance_problems(event_data, project, standalone=True)
+    detected_problems = detect_performance_problems(
+        event_data, project, detection_settings=detection_settings, standalone=True
+    )
 
     # This flag is set in Relay, and here enables producing occurrences from the legacy detector
     # results. For segments derived from transactions, it additionally suppresses the running of
