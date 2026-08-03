@@ -126,6 +126,7 @@ export function CategoricalSeriesWidgetVisualization(
   // possible to improve this by coordinating rotation and truncation together.
   const shouldRotate = allCategories.length > ROTATION_CATEGORY_THRESHOLD;
 
+  const allCategoriesKey = allCategories.join(',');
   const formattedLabels = useMemo(() => {
     const totalCharacters = allCategories.reduce((sum, c) => sum + c.length, 0);
     const shouldTrimAffixes = totalCharacters > TOTAL_CHARACTER_THRESHOLD;
@@ -160,8 +161,7 @@ export function CategoricalSeriesWidgetVisualization(
         truncationFormatter(trimmed[i]!, truncateLength, false),
       ])
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allCategories.join(','), props.truncateCategoryLabels]);
+  }, [allCategoriesKey, props.truncateCategoryLabels]);
 
   // Configure the X axis (category axis)
   const xAxis: BaseChartProps['xAxis'] = {
