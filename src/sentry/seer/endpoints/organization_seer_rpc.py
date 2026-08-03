@@ -33,7 +33,6 @@ from sentry.seer.agent.tools import (
     get_baseline_tag_distribution,
     get_dsn,
     get_event_details,
-    get_issue_and_event_details_v2,
     get_issue_committers,
     get_issue_details,
     get_issue_ownership,
@@ -135,7 +134,6 @@ public_org_seer_method_registry: dict[str, SeerRpcMethod] = {
     "execute_timeseries_query": seer_rpc(map_org_id_param(execute_timeseries_query)),
     "execute_trace_table_query": seer_rpc(execute_trace_table_query),
     "execute_issues_query": seer_rpc(map_org_id_param(execute_issues_query)),
-    "get_issue_and_event_details_v2": seer_rpc(get_issue_and_event_details_v2),
     "get_issue_details": seer_rpc(get_issue_details),
     "get_issue_committers": seer_rpc(get_issue_committers),
     "get_issue_ownership": seer_rpc(get_issue_ownership),
@@ -196,7 +194,6 @@ _issue_scoped_org_methods: frozenset[str] = frozenset(
         "get_issue_ownership",
         "get_issue_details",
         "get_event_details",
-        "get_issue_and_event_details_v2",
     }
 )
 

@@ -479,29 +479,6 @@ class IssueDetailsResponse(_DictProxyMixin):
     project_slug: str
 
 
-class IssueAndEventDetailsResponse(_DictProxyMixin):
-    """`get_issue_and_event_details_v2` returns the event fields always, plus the
-    issue fields when `include_issue=True` and a group is associated with the
-    event. `exclude_unset` keeps the issue keys absent from the wire when they
-    weren't included."""
-
-    event: dict[str, Any]
-    event_id: str
-    event_trace_id: str | None
-    project_id: int
-    project_slug: str
-    issue: dict[str, Any] | None = None
-    event_timeseries: dict[str, Any] | None = None
-    timeseries_stats_period: str | None = None
-    timeseries_interval: str | None = None
-    tags_overview: dict[str, Any] | None = None
-    user_activity: list[dict[str, Any]] | None = None
-
-    def dict(self, **kwargs: Any) -> Any:
-        kwargs.setdefault("exclude_unset", True)
-        return super().dict(**kwargs)
-
-
 class IssueCommittersResponse(_DictProxyMixin):
     """`get_issue_committers` returns the likely code authors for an issue, combining
     three commit-derived signals: `stack_commits` (frame-blame authors of the files in
