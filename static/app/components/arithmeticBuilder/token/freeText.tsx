@@ -622,7 +622,7 @@ function useReferenceItems({
       {
         key: 'references',
         label: t('references'),
-        options: [...references].map(key => ({
+        options: Array.from(references, key => ({
           key: `${TokenKind.REFERENCE}:${key}`,
           label: key,
           value: key,

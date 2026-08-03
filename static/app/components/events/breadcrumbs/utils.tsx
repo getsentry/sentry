@@ -86,7 +86,7 @@ function getBreadcrumbTypeOptions(crumbs: EnhancedCrumb[], theme: Theme) {
     return crumbTypeSet;
   }, new Set<BreadcrumbType>());
 
-  const typeOptions = [...uniqueCrumbTypes].map<SelectOption<string>>(crumbType => {
+  const typeOptions = Array.from(uniqueCrumbTypes, crumbType => {
     const crumbFilter = getBreadcrumbFilter(crumbType);
     return {
       value: crumbFilter,

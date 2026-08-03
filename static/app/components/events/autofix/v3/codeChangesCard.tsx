@@ -204,7 +204,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
         <ArtifactDetails>
           <Text>{summary}</Text>
         </ArtifactDetails>
-        {[...patchesByRepo.entries()].map(([repo, patches]) => (
+        {Array.from(patchesByRepo.entries(), ([repo, patches]) => (
           <ArtifactDetails key={repo}>
             <Flex gap="lg">
               <Text bold>{t('Repository:')}</Text>

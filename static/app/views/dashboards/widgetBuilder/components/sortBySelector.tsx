@@ -147,13 +147,16 @@ export function WidgetBuilderSortBySelector() {
               <Select
                 disabled={disableSortDirection && disableSort}
                 name="resultsLimit"
-                options={[...Array.from({length: maxLimit}).keys()].map(resultLimit => {
-                  const value = resultLimit + 1;
-                  return {
-                    label: tn('Limit to %s result', 'Limit to %s results', value),
-                    value,
-                  };
-                })}
+                options={Array.from(
+                  Array.from({length: maxLimit}).keys(),
+                  resultLimit => {
+                    const value = resultLimit + 1;
+                    return {
+                      label: tn('Limit to %s result', 'Limit to %s results', value),
+                      value,
+                    };
+                  }
+                )}
                 value={state.limit}
                 onChange={(option: SelectValue<number>) => {
                   dispatch({type: BuilderStateAction.SET_LIMIT, payload: option.value});

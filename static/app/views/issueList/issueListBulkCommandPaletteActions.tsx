@@ -232,9 +232,9 @@ function useIssueListBulkCommandPaletteActions({
 
   const selectedIssues = useMemo(
     () =>
-      [...selectedIdsSet]
-        .map(issueId => GroupStore.get(issueId))
-        .filter((issue): issue is BaseGroup => !!issue),
+      Array.from(selectedIdsSet, issueId => GroupStore.get(issueId)).filter(
+        (issue): issue is BaseGroup => !!issue
+      ),
     [selectedIdsSet]
   );
 

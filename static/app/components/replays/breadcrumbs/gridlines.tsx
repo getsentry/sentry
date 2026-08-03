@@ -25,7 +25,7 @@ function Gridlines({
 }) {
   return (
     <Timeline.Columns totalColumns={cols} remainder={remaining}>
-      {[...Array.from({length: cols})].map((_, i) => (
+      {Array.from(Array.from({length: cols}), (_, i) => (
         <DarkerLine key={i} lineStyle={lineStyle}>
           {children ? children(i) : null}
         </DarkerLine>

@@ -99,7 +99,7 @@ export function makeCollection<T>(): CollectionInstance<T> {
 
         tree(rootKey = null): Array<CollectionTreeNode<T>> {
           const childKeys = childIndex.current.get(rootKey) ?? new Set<string>();
-          return [...childKeys].map(key => {
+          return Array.from(childKeys, key => {
             const node = nodes.current.get(key)!;
             return {
               key: node.key,

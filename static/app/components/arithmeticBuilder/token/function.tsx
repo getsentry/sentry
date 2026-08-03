@@ -175,7 +175,7 @@ function ArgumentsGridList({
       {...gridProps}
       ref={ref}
     >
-      {[...state.collection].map((item, index) => {
+      {Array.from(state.collection, (item, index) => {
         const attribute = item.value;
 
         if (!defined(attribute)) {

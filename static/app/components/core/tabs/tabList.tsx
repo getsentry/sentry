@@ -325,7 +325,7 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
 
   const overflowMenuItems = useMemo(() => {
     // Sort overflow items in the order that they appear in TabList
-    const sortedKeys = [...state.collection].map(item => item.key);
+    const sortedKeys = Array.from(state.collection, item => item.key);
     const sortedOverflowTabs = overflowTabs.toSorted(
       (a, b) => sortedKeys.indexOf(a) - sortedKeys.indexOf(b)
     );
@@ -358,7 +358,7 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
         ref={tabListRef}
         variant={variant}
       >
-        {[...state.collection].map(item => (
+        {Array.from(state.collection, item => (
           <Tab
             key={item.key}
             item={item}
@@ -401,7 +401,7 @@ export function TabList({variant, ...props}: TabListProps) {
 
   const parsedItems: TabListItemProps[] = useMemo(
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    () => [...collection].map(({key, props: itemProps}) => ({key, ...itemProps})),
+    () => Array.from(collection, ({key, props: itemProps}) => ({key, ...itemProps})),
     [collection]
   );
 

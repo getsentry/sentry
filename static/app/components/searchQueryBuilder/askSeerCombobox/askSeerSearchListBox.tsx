@@ -21,7 +21,7 @@ export function AskSeerSearchListBox(props: SeerSearchListBoxProps) {
       ref={listBoxRef}
       $hasAskSeerUxRework={props.hasAskSeerUxRework}
     >
-      {[...state.collection].map(item => {
+      {Array.from(state.collection, item => {
         return (
           <SeerSearchOption
             key={item.key}
