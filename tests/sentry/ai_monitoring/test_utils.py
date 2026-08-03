@@ -5,18 +5,17 @@ from sentry.testutils.cases import TestCase
 
 
 class FetchConversationTitlesTest(TestCase):
-    def test_returns_empty_without_ids_or_projects(self) -> None:
-        assert fetch_conversation_titles([], [self.project.id]) == {}
-        assert fetch_conversation_titles(["conv-1"], []) == {}
+    def test_returns_empty_for_no_pairs(self) -> None:
+        assert fetch_conversation_titles([]) == {}
 
-    def test_returns_title_for_requested_conversation(self) -> None:
+    def test_returns_title_for_requested_pair(self) -> None:
         self.create_ai_conversation_metadata(
             project=self.project,
             conversation_id="conv-1",
             title="Reset my password",
         )
 
-        titles = fetch_conversation_titles(["conv-1"], [self.project.id])
+        titles = fetch_conversation_titles([("conv-1", self.project.id)])
 
         assert titles == {"conv-1": "Reset my password"}
 
@@ -27,7 +26,7 @@ class FetchConversationTitlesTest(TestCase):
             title=None,
         )
 
-        assert fetch_conversation_titles(["conv-1"], [self.project.id]) == {}
+        assert fetch_conversation_titles([("conv-1", self.project.id)]) == {}
 
     def test_skips_unknown_conversations(self) -> None:
         self.create_ai_conversation_metadata(
@@ -36,17 +35,37 @@ class FetchConversationTitlesTest(TestCase):
             title="Reset my password",
         )
 
-        assert fetch_conversation_titles(["conv-2"], [self.project.id]) == {}
+        assert fetch_conversation_titles([("conv-2", self.project.id)]) == {}
 
-    def test_ignores_projects_outside_scope(self) -> None:
+    def test_does_not_return_pairs_that_were_not_requested(self) -> None:
+        """A row matching the queried hashes and projects, but not as a requested pair."""
         other_project = self.create_project(organization=self.organization)
+
+        self.create_ai_conversation_metadata(
+            project=self.project,
+            conversation_id="conv-1",
+            title="Owned by project one",
+        )
         self.create_ai_conversation_metadata(
             project=other_project,
             conversation_id="conv-1",
             title="Owned by project two",
         )
+        self.create_ai_conversation_metadata(
+            project=other_project,
+            conversation_id="conv-2",
+            title="Second conversation",
+        )
 
-        assert fetch_conversation_titles(["conv-1"], [self.project.id]) == {}
+        # conv-1 is only asked about for self.project, conv-2 only for other_project.
+        titles = fetch_conversation_titles(
+            [("conv-1", self.project.id), ("conv-2", other_project.id)]
+        )
+
+        assert titles == {
+            "conv-1": "Owned by project one",
+            "conv-2": "Second conversation",
+        }
 
     def test_earliest_source_timestamp_wins(self) -> None:
         other_project = self.create_project(organization=self.organization)
@@ -63,7 +82,9 @@ class FetchConversationTitlesTest(TestCase):
             title_source_timestamp=datetime(2024, 5, 1, 11, 0, tzinfo=UTC),
         )
 
-        titles = fetch_conversation_titles(["conv-1"], [self.project.id, other_project.id])
+        titles = fetch_conversation_titles(
+            [("conv-1", self.project.id), ("conv-1", other_project.id)]
+        )
 
         assert titles == {"conv-1": "Start of the conversation"}
 
@@ -82,7 +103,9 @@ class FetchConversationTitlesTest(TestCase):
             title_source_timestamp=datetime(2024, 5, 1, 11, 0, tzinfo=UTC),
         )
 
-        titles = fetch_conversation_titles(["conv-1"], [self.project.id, other_project.id])
+        titles = fetch_conversation_titles(
+            [("conv-1", self.project.id), ("conv-1", other_project.id)]
+        )
 
         assert titles == {"conv-1": "Start of the conversation"}
 
@@ -109,28 +132,30 @@ class FetchConversationTitlesTest(TestCase):
             title_source_timestamp=source_timestamp,
         )
 
-        titles = fetch_conversation_titles(["conv-1"], [lower_project.id, higher_project.id])
+        titles = fetch_conversation_titles(
+            [("conv-1", lower_project.id), ("conv-1", higher_project.id)]
+        )
 
         assert titles == {"conv-1": "Lower project id"}
 
-    def test_multiple_conversations(self) -> None:
+    def test_unrequested_earlier_title_does_not_win(self) -> None:
         other_project = self.create_project(organization=self.organization)
         self.create_ai_conversation_metadata(
             project=self.project,
             conversation_id="conv-1",
-            title="First",
+            title="Requested project title",
+            title_source_timestamp=datetime(2024, 5, 1, 12, 0, tzinfo=UTC),
         )
         self.create_ai_conversation_metadata(
             project=other_project,
-            conversation_id="conv-2",
-            title="Second",
+            conversation_id="conv-1",
+            title="Earlier but unrequested",
+            title_source_timestamp=datetime(2024, 5, 1, 11, 0, tzinfo=UTC),
         )
 
-        titles = fetch_conversation_titles(
-            ["conv-1", "conv-2"], [self.project.id, other_project.id]
-        )
+        titles = fetch_conversation_titles([("conv-1", self.project.id)])
 
-        assert titles == {"conv-1": "First", "conv-2": "Second"}
+        assert titles == {"conv-1": "Requested project title"}
 
 
 class FetchConversationTitleTest(TestCase):

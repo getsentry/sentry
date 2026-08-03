@@ -89,35 +89,40 @@ TITLE_ORDER_BY = (F("title_source_timestamp").asc(nulls_last=True), "project_id"
 
 
 def fetch_conversation_titles(
-    conversation_ids: Collection[str],
-    project_ids: Collection[int],
+    conversation_project_pairs: Collection[tuple[str, int]],
 ) -> dict[str, str]:
-    """One title per conversation_id among the given projects.
+    """One title per conversation_id among the given (conversation_id, project_id) pairs.
 
-    Earliest ``title_source_timestamp`` wins; ``project_id`` breaks ties.
+    Only requested pairs are considered (ids are unique per project). Among those,
+    earliest ``title_source_timestamp`` wins; ``project_id`` breaks ties.
     """
-    if not conversation_ids or not project_ids:
+    if not conversation_project_pairs:
         return {}
 
+    requested_pairs = set(conversation_project_pairs)
     conversation_id_by_hash = {
         conversation_id_hash(conversation_id): conversation_id
-        for conversation_id in conversation_ids
+        for conversation_id, _ in requested_pairs
     }
 
     rows = (
         AIConversationMetadata.objects.filter(
-            project_id__in=set(project_ids),
+            project_id__in={project_id for _, project_id in requested_pairs},
             conversation_id_hash__in=conversation_id_by_hash,
             title__isnull=False,
         )
         .exclude(title="")
         .order_by(*TITLE_ORDER_BY)
-        .values_list("conversation_id_hash", "title")
+        .values_list("conversation_id_hash", "project_id", "title")
     )
 
     titles: dict[str, str] = {}
-    for row_hash, title in rows:
-        titles.setdefault(conversation_id_by_hash[row_hash], title)
+    for row_hash, project_id, title in rows:
+        if title is None:
+            continue
+        conversation_id = conversation_id_by_hash[row_hash]
+        if (conversation_id, project_id) in requested_pairs:
+            titles.setdefault(conversation_id, title)
     return titles
 
 
