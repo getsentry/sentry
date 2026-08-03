@@ -1,4 +1,4 @@
-import {useCallback, useRef, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -136,8 +136,8 @@ export function SearchBar(props: SearchBarProps) {
     }
   };
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const getSuggestedTransactions = useCallback(
+  const getSuggestedTransactions = useMemo(
+    () =>
     debounce(
       async query => {
         try {
