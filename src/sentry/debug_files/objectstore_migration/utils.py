@@ -221,6 +221,10 @@ def commit(
             file_id=None,
         )
         if not updated:
+            logger.warning(
+                "debug_files.objectstore_migration.cutover_skipped",
+                extra={"debug_file_id": dif_id, "source_file_id": source_file_id},
+            )
             return
 
         transaction.on_commit(lambda: try_cleanup_file(source_file_id), using=database)
