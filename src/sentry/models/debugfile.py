@@ -627,7 +627,12 @@ def create_dif_from_id(
     if objectstore_write:
         session = get_debug_files_session(project.organization_id, project.id)
         try:
-            source_cm = file.getfile() if file is not None else contextlib.nullcontext(fileobj)
+            source_cm: contextlib.AbstractContextManager[IO[bytes]]
+            if file is not None:
+                source_cm = file.getfile()
+            else:
+                assert fileobj is not None
+                source_cm = contextlib.nullcontext(fileobj)
             with source_cm as source:
                 storage_path = _upload_dif_to_objectstore(
                     session,
