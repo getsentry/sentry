@@ -417,7 +417,7 @@ class CreateDebugFileTest(APITestCase):
         assert dif.file_size == len(content)
         assert dif.get_file().read() == content
 
-    @patch("sentry.models.debugfile._upload_dif_to_objectstore")
+    @patch("sentry.models.debugfile.upload_dif_to_objectstore")
     def test_exclusive_objectstore_dif_is_idempotent(self, upload) -> None:
         content = b"objectstore-dif-content"
         upload.return_value = "storage-path"
@@ -432,7 +432,7 @@ class CreateDebugFileTest(APITestCase):
         upload.assert_called_once()
 
     @patch("sentry.models.debugfile.ProjectDebugFile.objects.create")
-    @patch("sentry.models.debugfile._upload_dif_to_objectstore")
+    @patch("sentry.models.debugfile.upload_dif_to_objectstore")
     @patch("sentry.models.debugfile.get_debug_files_session")
     def test_exclusive_objectstore_dif_cleans_up_after_database_error(
         self, get_session, upload, create
@@ -468,7 +468,7 @@ class CreateDebugFileTest(APITestCase):
     def test_exclusive_objectstore_write_failure_does_not_create_file(self) -> None:
         with (
             self.feature("organizations:objectstore-debugfiles-exclusive-write"),
-            patch("sentry.models.debugfile._upload_dif_to_objectstore", side_effect=RuntimeError),
+            patch("sentry.models.debugfile.upload_dif_to_objectstore", side_effect=RuntimeError),
             pytest.raises(RuntimeError),
         ):
             self.create_dif(fileobj=BytesIO(b"objectstore-dif-content"))
@@ -482,7 +482,7 @@ class CreateDebugFileTest(APITestCase):
 
         with (
             self.feature("organizations:objectstore-debugfiles-write"),
-            patch("sentry.models.debugfile._upload_dif_to_objectstore", side_effect=RuntimeError),
+            patch("sentry.models.debugfile.upload_dif_to_objectstore", side_effect=RuntimeError),
         ):
             dif, created = self.create_dif(fileobj=BytesIO(content))
 

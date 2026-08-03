@@ -270,7 +270,7 @@ class ProjectDebugFile(Model):
     def features(self) -> frozenset[str]:
         return frozenset((self.data or {}).get("features", []))
 
-    def _get_objectstore_session(self) -> Session:
+    def get_objectstore_session(self) -> Session:
         from sentry.models.project import Project
 
         try:
@@ -286,7 +286,7 @@ class ProjectDebugFile(Model):
         if self.uses_objectstore_for_read():
             assert self.storage_path is not None
             try:
-                response = self._get_objectstore_session().get(self.storage_path)
+                response = self.get_objectstore_session().get(self.storage_path)
                 if response is None:
                     raise FileNotFoundError("Debug file does not exist in objectstore")
                 return response.payload
@@ -310,7 +310,7 @@ class ProjectDebugFile(Model):
         if self.storage_path is None:
             raise ValueError("debug file is not stored in Objectstore")
 
-        session = self._get_objectstore_session()
+        session = self.get_objectstore_session()
         org_id = Project.objects.get_from_cache(id=self.project_id).organization_id
         return get_download_redirect_url(request, session, org_id, self.storage_path)
 
@@ -325,7 +325,7 @@ class ProjectDebugFile(Model):
             tmp_path = None
             try:
                 # Get the payload and save it to a temporary file.
-                response = self._get_objectstore_session().get(self.storage_path)
+                response = self.get_objectstore_session().get(self.storage_path)
                 if response is None:
                     raise FileNotFoundError("Debug file does not exist in objectstore")
                 stream = response.payload
@@ -365,7 +365,7 @@ class ProjectDebugFile(Model):
         if self.storage_path is not None:
             # Objectstore-backed files cannot be referenced by multiple debug file rows.
             try:
-                self._get_objectstore_session().delete(self.storage_path)
+                self.get_objectstore_session().delete(self.storage_path)
             except Exception:
                 logger.exception("Failed to delete ProjectDebugFile, will be cleaned up by TTI")
         if self.file is not None:
@@ -449,7 +449,7 @@ def create_dif_from_file(
     return create_dif_from_id(project, meta, file=file)
 
 
-def _upload_dif_to_objectstore(
+def upload_dif_to_objectstore(
     session: Session,
     fileobj: IO[bytes],
     content_type: str,
@@ -538,12 +538,12 @@ def _get_dif_object_name(meta: DifMeta) -> str:
     raise TypeError(f"unknown dif type {meta.file_format!r}")
 
 
-def _get_dif_download_filename(meta: DifMeta) -> str:
+def get_dif_download_filename(meta: DifMeta) -> str:
     file_type = (meta.data or {}).get("type")
     return f"{os.path.basename(meta.debug_id)}{_dif_file_extension(meta.file_format, file_type)}"
 
 
-def _find_existing_dif(project: Project, meta: DifMeta, checksum: str) -> ProjectDebugFile | None:
+def find_existing_dif(project: Project, meta: DifMeta, checksum: str) -> ProjectDebugFile | None:
     return (
         ProjectDebugFile.objects.select_related("file")
         .filter(
@@ -594,7 +594,7 @@ def create_dif_from_id(
     else:
         raise RuntimeError("missing file object")
 
-    dif = _find_existing_dif(project, meta, checksum)
+    dif = find_existing_dif(project, meta, checksum)
 
     if dif is not None:
         return dif, False
@@ -634,12 +634,12 @@ def create_dif_from_id(
                 assert fileobj is not None
                 source_cm = contextlib.nullcontext(fileobj)
             with source_cm as source:
-                storage_path = _upload_dif_to_objectstore(
+                storage_path = upload_dif_to_objectstore(
                     session,
                     source,
                     content_type,
                     file_size,
-                    _get_dif_download_filename(meta),
+                    get_dif_download_filename(meta),
                 )
         except Exception:
             if exclusive_objectstore_write:
