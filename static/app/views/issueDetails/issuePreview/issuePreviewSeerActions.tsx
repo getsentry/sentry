@@ -12,7 +12,7 @@ import {
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconOpen, IconRefresh, IconSeer} from 'sentry/icons';
+import {IconGithub, IconOpen, IconRefresh, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 
@@ -32,6 +32,7 @@ interface SeerAction {
   kind: SeerActionKind;
   label: string;
   href?: string;
+  isPullRequest?: boolean;
   repoName?: string;
   tooltip?: string | null;
 }
@@ -119,6 +120,7 @@ function getAutofixPrimaryAction(
         completedPullRequest.pr_number
       ),
       href: completedPullRequest.pr_url,
+      isPullRequest: true,
     };
   }
 
@@ -162,6 +164,7 @@ function getAutofixPrimaryAction(
           kind: 'link',
           label: getResultButtonLabel(result.pr_url),
           href: result.pr_url,
+          isPullRequest: !result.pr_url.includes('/tree/'),
         };
       }
 
@@ -279,7 +282,13 @@ function IssuePreviewSeerButton({
         external
         variant="primary"
         size="sm"
-        icon={<IconOpen />}
+        icon={
+          action.isPullRequest ? (
+            <IconGithub data-test-id="pull-request-github" />
+          ) : (
+            <IconOpen />
+          )
+        }
         href={action.href}
         disabled={disabled}
         tooltipProps={action.tooltip ? {title: action.tooltip} : undefined}

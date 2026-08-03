@@ -720,11 +720,16 @@ describe('InboxPage', () => {
     });
 
     const preview = await openFixProposedPreview();
+    const pullRequestButton = await within(preview).findByRole('button', {
+      name: 'View org/repository#10',
+    });
+    expect(pullRequestButton).toHaveAttribute(
+      'href',
+      'https://github.com/org/repository/pull/10'
+    );
     expect(
-      await within(preview).findByRole('button', {
-        name: 'View org/repository#10',
-      })
-    ).toHaveAttribute('href', 'https://github.com/org/repository/pull/10');
+      within(pullRequestButton).getByTestId('pull-request-github')
+    ).toBeInTheDocument();
   });
 
   it('retries a failed Autofix pull request', async () => {
