@@ -104,3 +104,11 @@ export interface RateLimitError extends RequestError {
 export function isRateLimitError(error: unknown): error is RateLimitError {
   return error instanceof RequestError && error.status === 429;
 }
+
+export interface NotFoundError extends RequestError {
+  status: 404;
+}
+
+export function isNotFoundError(error: unknown): error is NotFoundError {
+  return error instanceof RequestError && error.status === 404;
+}

@@ -7,7 +7,15 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {DropdownButton} from 'sentry/components/dropdownButton';
 
-import {CompactSelect, type SelectOption} from './';
+import {CompactSelect, getEscapedKey, type SelectOption} from './';
+
+describe('getEscapedKey', () => {
+  it('only escapes values that need it', () => {
+    expect(getEscapedKey('environment-123')).toBe('environment-123');
+    expect(getEscapedKey('release.version')).toBe('release\\.version');
+    expect(getEscapedKey(123)).toBe('\\31 23');
+  });
+});
 
 describe('CompactSelect', () => {
   describe('types', () => {
@@ -1530,6 +1538,35 @@ describe('CompactSelect', () => {
       // Option Three is still available via search
       await userEvent.type(screen.getByPlaceholderText('Search…'), 'three');
       expect(screen.getByRole('row', {name: 'Option Three'})).toBeInTheDocument();
+    });
+
+    it('preserves selected values outside the size limit', async () => {
+      const onChange = jest.fn();
+      render(
+        <CompactSelect
+          mode="grid"
+          multiple
+          search
+          sizeLimit={2}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+            {value: 'opt_three', label: 'Option Three'},
+          ]}
+          value={['opt_one', 'opt_two', 'opt_three']}
+          onChange={onChange}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      expect(screen.queryByRole('row', {name: 'Option Three'})).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('row', {name: 'Option One'}));
+
+      expect(onChange).toHaveBeenCalledWith([
+        {value: 'opt_two', label: 'Option Two'},
+        {value: 'opt_three', label: 'Option Three'},
+      ]);
     });
 
     it('can toggle sections', async () => {

@@ -15,7 +15,7 @@ from sentry.seer.smart_assignment.models import (
     SEER_FEATURE_ID,
     SmartAssignmentPayload,
 )
-from sentry.seer.smart_assignment.scoring import record_ground_truth
+from sentry.seer.smart_assignment.scoring import record_ground_truth, resolver_user_id
 from sentry.seer.utils import runs_for_group
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
@@ -31,7 +31,7 @@ _RATE_LIMIT_WINDOW = 86400
 def trigger_smart_assignment(
     group: Group,
     activity_type: ActivityType,
-    activity: Activity | None = None,
+    activity: Activity,
 ) -> None:
     """Trigger and/or score a Smart Assignment run for an issue.
 
@@ -56,7 +56,7 @@ def trigger_smart_assignment(
     if not features.has(FEATURE_FLAG, organization):
         return
 
-    if activity_type in RESOLUTION_ACTIVITIES and (activity is None or activity.user_id is None):
+    if activity_type in RESOLUTION_ACTIVITIES and resolver_user_id(activity) is None:
         metrics.incr(
             "smart_assignment.trigger.skipped",
             tags={"reason": "automatic_resolution"},
@@ -119,7 +119,7 @@ def _dispatch_rate_limited(organization: Organization) -> bool:
     return False
 
 
-def _dispatch(group: Group, activity_type: ActivityType, activity: Activity | None) -> None:
+def _dispatch(group: Group, activity_type: ActivityType, activity: Activity) -> None:
     """Dispatch a Seer smart-assignment run and stamp the triggering activity.
 
     The run's Sentry-side mirror (`SeerAgentRun`) is created inside `start_feature_run`
@@ -139,9 +139,10 @@ def _dispatch(group: Group, activity_type: ActivityType, activity: Activity | No
         )
         return
 
-    extras: dict[str, object] = {"trigger": activity_type.name}
-    if activity is not None:
-        extras["triggering_activity_id"] = activity.id
+    extras: dict[str, object] = {
+        "trigger": activity_type.name,
+        "triggering_activity_id": activity.id,
+    }
 
     payload = SmartAssignmentPayload(group_id=group.id, project_slug=group.project.slug)
     title = f"Smart assignment for {group.qualified_short_id or group.id}"
@@ -157,8 +158,7 @@ def _dispatch(group: Group, activity_type: ActivityType, activity: Activity | No
         logger.exception("smart_assignment.trigger.dispatch_failed", extra={"group_id": group.id})
         return
 
-    if activity is not None:
-        _stamp_activity(activity, run, activity_type)
+    _stamp_activity(activity, run, activity_type)
 
     metrics.incr(
         "smart_assignment.trigger.dispatched",

@@ -18,6 +18,7 @@ export function CopyToClipboardButton({
   onError,
   onClick,
   text,
+  icon,
   ...props
 }: CopyToClipboardButtonProps) {
   const {copy} = useCopyToClipboard();
@@ -29,7 +30,7 @@ export function CopyToClipboardButton({
         copy(text).then(onCopy).catch(onError);
         onClick?.(e);
       }}
-      icon={<IconCopy variant="muted" />}
+      icon={icon ?? <IconCopy variant="muted" />}
     />
   );
 }

@@ -4,6 +4,8 @@ import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {PullRequestFixture} from 'sentry-fixture/pullRequest';
+import {RepositoryFixture} from 'sentry-fixture/repository';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -147,5 +149,43 @@ describe('IssueDetailsSidebar', () => {
     expect(screen.getByRole('button', {name: 'View Similar Issues'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Merged Issues'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'View Merged Issues'})).toBeInTheDocument();
+  });
+
+  it('renders linked pull requests without a current event', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {
+        pullRequests: [
+          {
+            ...PullRequestFixture({
+              id: '123',
+              repository: RepositoryFixture({
+                id: '42',
+                name: 'example/widget-app',
+                provider: {id: 'integrations:github', name: 'GitHub'},
+              }),
+              externalUrl: 'https://github.com/example/widget-app/pull/123',
+            }),
+            attribution: null,
+            dateLinked: '2026-06-08T23:11:32.000000Z',
+            status: 'open',
+          },
+        ],
+      },
+    });
+
+    render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <IssueDetailsSidebar group={group} project={project} />
+      </GroupDataContextProvider>,
+      {organization}
+    );
+
+    expect(await screen.findByText('External Links')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('link', {
+        name: /Pull request #123 in example\/widget-app/,
+      })
+    ).toBeInTheDocument();
   });
 });

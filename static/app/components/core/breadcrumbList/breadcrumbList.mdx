@@ -318,6 +318,12 @@ user can step through a list of items, such as issues, replays, or traces. Each
 direction has an `ariaLabel`, an optional `to` URL, an optional `disabled` flag,
 and an optional `tooltip`. When `to` is omitted, that chevron is disabled.
 
+Keep `pagination` present even when neither direction is navigable, rather than
+dropping it once the data resolves — the chevrons hold their space from the first
+render, so the title doesn't shift when a destination appears. Give the disabled
+state a `tooltip` too: it is what explains the feature to someone whose current
+item happens to have no neighbours.
+
 <Storybook.Demo>
   <BreadcrumbListDemo
     items={[{type: 'link', label: 'Issues', to: '/organizations/org-slug/issues/'}]}
@@ -424,6 +430,11 @@ for example a copy action or page-level menu. The slot is bounded to
 typed `copy`, `menu`, or `button` objects. Falsy entries are dropped so
 consumers can inline conditionals. Actions are always visible and keyboard
 accessible.
+
+Reach for a standalone `copy` action only when it is the page's single trailing
+action. As soon as the title also needs a menu, put the copy entry inside it
+rather than beside it — one affordance next to the title reads more clearly than
+a row of icons competing for the same space.
 
 <Storybook.Demo>
   <BreadcrumbListDemo

@@ -498,6 +498,7 @@ class Referrer(StrEnum):
     API_ORGANIZATION_ISSUES_COUNT = "api.organization-issues-count"
     API_ORGANIZATION_ISSUE_REPLAY_COUNT = "api.organization-issue-replay-count"
     API_ORGANIZATION_SDK_UPDATES = "api.organization-sdk-updates"
+    API_ORGANIZATION_SPAN_REPLAY_COUNT = "api.organization-span-replay-count"
     API_ORGANIZATION_VITALS_PER_PROJECT = "api.organization-vitals-per-project"
     API_ORGANIZATION_VITALS = "api.organization-vitals"
     API_AI_CONVERSATIONS = "api.ai-conversations"
@@ -785,6 +786,7 @@ class Referrer(StrEnum):
     REPLAYS_QUERY_BROWSE_SIMPLE_AGGREGATION = "replays.query.browse_simple_aggregation"
     REPLAYS_FILE_REFERRER = "replays.query.download_replay_segments"
     REPLAYS_SCRIPTS_DELETE_REPLAYS = "replays.scripts.delete_replays"
+    REPLAYS_DELETE_REPLAYS_BULK = "replays.delete_replays_bulk"
     FEEDBACKS_LABEL_QUERY = "feedbacks.label_query"
     EU_DATA_EXPORT = "sentry.internal.eu-compliance-data-export"
     REPORTS_KEY_ERROR_ISSUES = "reports.key_errors"
@@ -994,6 +996,6 @@ def validate_referrer(referrer: str | None) -> bool:
         raise Exception(error_message)
     except Exception:
         metrics.incr("snql.sdk.api.new_referrers", tags={"referrer": referrer})
-        logger.warning(error_message, exc_info=True)
+        logger.warning(error_message, extra={"referrer": referrer}, exc_info=True)
 
     return False

@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
+import {QueryClientProvider} from '@tanstack/react-query';
 
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 jest.unmock('lodash/debounce');
@@ -990,6 +992,42 @@ describe('CommandPalette', () => {
         .map(option => option.textContent);
 
       expect(options).toEqual(['path-b', 'path-aaa', 'See all']);
+    });
+  });
+
+  describe('lazy resources', () => {
+    it('does not create a query until a disabled resource is selected', async () => {
+      const queryClient = makeTestQueryClient();
+      const queryKey = ['test-lazy-resource'];
+      const queryFn = jest.fn(() => []);
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <GlobalActionsComponent>
+            <CMDKAction display={{label: 'Resource Group'}}>
+              <CMDKAction
+                display={{label: 'Lazy Resource'}}
+                prompt="Enter a value..."
+                resource={(_query, {state}) =>
+                  cmdkQueryOptions({
+                    queryKey,
+                    queryFn,
+                    enabled: state === 'selected',
+                  })
+                }
+              />
+            </CMDKAction>
+          </GlobalActionsComponent>
+        </QueryClientProvider>
+      );
+
+      await screen.findByRole('option', {name: 'Lazy Resource'});
+      expect(queryClient.getQueryCache().find({queryKey})).toBeUndefined();
+
+      await userEvent.click(screen.getByRole('option', {name: 'Lazy Resource'}));
+
+      await waitFor(() => expect(queryFn).toHaveBeenCalledTimes(1));
+      expect(queryClient.getQueryCache().find({queryKey})).toBeDefined();
     });
   });
 

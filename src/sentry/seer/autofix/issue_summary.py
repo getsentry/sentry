@@ -8,6 +8,7 @@ import orjson
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.utils import timezone
 from taskbroker_client.retry import Retry
 from urllib3 import BaseHTTPResponse
 from urllib3.connectionpool import HTTPConnectionPool
@@ -44,6 +45,7 @@ from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.operator import SeerAutofixOperator
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.models.run import SeerRun
+from sentry.seer.seer_setup import has_seer_access
 from sentry.seer.signed_seer_api import (
     SeerViewerContext,
     SummarizeIssueRequest,
@@ -182,6 +184,7 @@ def _trigger_autofix_task(
         )
 
         run: SeerRun | None = None
+        triggered_at = timezone.now()
         try:
             run = trigger_autofix_agent(
                 group=group,
@@ -196,6 +199,7 @@ def _trigger_autofix_task(
                     ActivityType.TRIGGER_AUTOFIX,
                     data={"referrer": referrer.value},
                     send_notification=False,
+                    datetime=triggered_at,
                 )
         except NoSeerQuotaException:
             pass
@@ -407,11 +411,7 @@ def run_automation(
         }
     )
 
-    autofix_state = get_autofix_agent_state(group.organization, group.id)
-    if autofix_state:
-        return  # already have an autofix on this issue
-
-    if not is_group_triggering_automation(group):
+    if not is_group_eligible_for_automation(group):
         return
 
     # Increment the rate limit counter only when we are actually about to trigger.
@@ -430,11 +430,18 @@ def run_automation(
     )
 
 
-def is_group_triggering_automation(group: Group) -> bool:
+def is_group_eligible_for_automation(group: Group) -> bool:
     """
-    Checks if a group is going to be picked up for automation. Does not check for existing run.
-    Checks project options (fixability tuning, preferences), billing quota, and rate limiting.
+    Checks if a group is going to be picked up for automation.
+    Checks seer access, existing run, project options (fixability tuning, preferences), billing quota, and rate limiting.
     """
+    if not has_seer_access(group.organization):
+        return False
+
+    autofix_state = get_autofix_agent_state(group.organization, group.id)
+    if autofix_state:
+        return False
+
     fixability_score = get_and_update_group_fixability_score(group)
 
     if (

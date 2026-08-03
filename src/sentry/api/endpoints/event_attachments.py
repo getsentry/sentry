@@ -1,3 +1,4 @@
+import sentry_sdk
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -74,6 +75,8 @@ class EventAttachmentsEndpoint(ProjectEndpoint):
         event = eventstore.backend.get_event_by_id(project.id, event_id)
         if event is None:
             return self.respond({"detail": "Event not found"}, status=404)
+
+        sentry_sdk.set_attribute("event.type", event.get_event_type())
 
         queryset = EventAttachment.objects.filter(project_id=project.id, event_id=event.event_id)
 

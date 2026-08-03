@@ -96,12 +96,14 @@ export interface BaseAskSeerComboBoxProps<T extends QueryTokensProps> extends Om
   queries: T[];
   searchQuery: string;
   submitQuery: (query: string) => void;
+  className?: string;
   onReset?: () => void;
   unsupportedReason?: string | null;
 }
 
 export function BaseAskSeerComboBox<T extends QueryTokensProps>({
   applySeerSearchQuery,
+  className,
   emptyTitle,
   errorTitle,
   isError,
@@ -118,6 +120,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const listBoxRef = useRef<HTMLUListElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+  // Input.withComponent('div') retains Input's ref type even though this renders a div.
   const containerRef = useRef<HTMLInputElement>(null);
   const isInitialRender = useRef(true);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -194,14 +197,14 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
     ...props,
     items,
     defaultItems: [],
-    selectedKey: null,
+    value: null,
     allowsCustomValue: true,
     allowsEmptyCollection: true,
     shouldCloseOnBlur: false,
     inputValue: searchQuery,
     onInputChange: onSearchQueryChange,
     defaultFilter: () => true,
-    onSelectionChange(key) {
+    onChange(key) {
       if (typeof key !== 'string') {
         return;
       }
@@ -267,6 +270,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
       buttonRef,
       listBoxRef,
       popoverRef,
+      ariaHideOutsideRef: containerRef,
       'aria-label': t('Ask Seer with Natural Language'),
       onFocus: () => {
         state.open();
@@ -440,7 +444,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
     : Boolean(openForm);
 
   return (
-    <Wrapper ref={containerRef} isDropdownOpen={state.isOpen}>
+    <Wrapper className={className} ref={containerRef} isDropdownOpen={state.isOpen}>
       <PositionedSearchIconContainer>
         <SearchIcon size="sm" />
       </PositionedSearchIconContainer>
@@ -455,6 +459,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
       </InputWrapper>
       <ButtonsWrapper>
         <Button
+          ref={buttonRef}
           size="xs"
           icon={<IconClose />}
           onFocus={() => !state.isOpen && state.open()}
