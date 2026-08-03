@@ -284,7 +284,7 @@ describe('InboxPage', () => {
               project: [-1],
               query,
               sort: 'progress',
-              limit: 5,
+              limit: 10,
               collapse: ['stats', 'unhandled'],
             },
           })
@@ -490,7 +490,7 @@ describe('InboxPage', () => {
       body: [fixProposedGroup],
       headers: {
         'X-Hits': '2',
-        Link: '<http://localhost/?cursor=0:5:0>; rel="next"; results="true"; cursor="0:5:0"',
+        Link: '<http://localhost/?cursor=0:10:0>; rel="next"; results="true"; cursor="0:10:0"',
       },
     });
     MockApiClient.addMockResponse({
@@ -498,7 +498,7 @@ describe('InboxPage', () => {
       match: [
         MockApiClient.matchQuery({
           query: 'issue.progress:fix_proposed assigned:[me,my_teams]',
-          cursor: '0:5:0',
+          cursor: '0:10:0',
         }),
       ],
       body: [nextFixProposedGroup],
@@ -513,7 +513,7 @@ describe('InboxPage', () => {
     const fixSection = screen.getByRole('region', {name: 'Fix Proposed'});
     expect(await within(fixSection).findByText('Fix proposed issue')).toBeInTheDocument();
     const loadMoreButton = within(fixSection).getByRole('button', {
-      name: 'Show 5 more',
+      name: 'Show 10 more',
     });
 
     await userEvent.click(loadMoreButton);
@@ -524,7 +524,7 @@ describe('InboxPage', () => {
     ).toBeInTheDocument();
     expect(within(fixSection).getByText('Fix proposed issue')).toBeInTheDocument();
     expect(
-      within(fixSection).queryByRole('button', {name: 'Show 5 more'})
+      within(fixSection).queryByRole('button', {name: 'Show 10 more'})
     ).not.toBeInTheDocument();
   });
 
