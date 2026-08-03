@@ -112,7 +112,10 @@ class EAPClient(APIClient):
     """API client that defaults EAP queries to the full-fidelity window."""
 
     def generic(self, method: str, path: Any, data: Any = "", *args: Any, **extra: Any) -> Any:
-        if str(method).upper() in _QUERY_DATA_METHODS and data not in ("", None):
+        if str(method).upper() in _QUERY_DATA_METHODS:
+            # Empty GET data still needs the path-based default for EAP endpoints.
+            if data in ("", None):
+                data = {}
             data = apply_eap_default_stats_period(data, path=str(path))
 
         if "query_params" in extra and extra["query_params"] is not None:

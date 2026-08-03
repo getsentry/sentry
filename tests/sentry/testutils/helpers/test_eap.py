@@ -82,3 +82,12 @@ def test_preserves_query_string_when_no_default_needed() -> None:
     original = "param=test#hash"
     assert apply_eap_default_stats_period(original) is original
     assert apply_eap_default_stats_period(original, path="/settings/integrations/") is original
+
+
+def test_applies_default_for_empty_query_on_eap_path() -> None:
+    result = apply_eap_default_stats_period({}, path="/api/0/organizations/org/trace-items/stats/")
+    assert result["statsPeriod"] == EAP_DEFAULT_STATS_PERIOD
+
+    result = apply_eap_default_stats_period("", path="/api/0/organizations/org/ai-conversations/")
+    params = QueryDict(result)
+    assert params["statsPeriod"] == EAP_DEFAULT_STATS_PERIOD
