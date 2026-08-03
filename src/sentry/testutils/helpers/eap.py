@@ -117,19 +117,20 @@ class EAPClient(APIClient):
 
         if is_query_method and data not in ("", None):
             data = apply_eap_default_stats_period(data, path=path_str)
-        elif is_query_method and data in ("", None) and _should_apply_default({}, path_str):
-            # Empty GET must stay body-less (a dict body becomes application/octet-stream
-            # and 415s). Inject the default through query_params instead.
-            extra["query_params"] = apply_eap_default_stats_period(
-                dict(extra.get("query_params") or {}), path=path_str
-            )
-        elif "query_params" in extra and extra["query_params"] is not None:
-            extra["query_params"] = apply_eap_default_stats_period(
-                extra["query_params"], path=path_str
-            )
 
+        # Prefer QUERY_STRING / query_params over inventing a GET body. Django's Client
+        # overwrites QUERY_STRING when query_params is set, so never inject via
+        # query_params when QUERY_STRING is already present.
         query_string = extra.get("QUERY_STRING")
         if isinstance(query_string, str):
             extra["QUERY_STRING"] = apply_eap_default_stats_period(query_string, path=path_str)
+        elif extra.get("query_params") is not None:
+            extra["query_params"] = apply_eap_default_stats_period(
+                extra["query_params"], path=path_str
+            )
+        elif is_query_method and data in ("", None) and _should_apply_default({}, path_str):
+            # Empty GET on an EAP path with no query yet: set QUERY_STRING only so the
+            # request stays body-less (a dict body becomes application/octet-stream).
+            extra["QUERY_STRING"] = apply_eap_default_stats_period("", path=path_str)
 
         return super().generic(method, path, data, *args, **extra)

@@ -91,3 +91,22 @@ def test_applies_default_for_empty_query_on_eap_path() -> None:
     result = apply_eap_default_stats_period("", path="/api/0/organizations/org/ai-conversations/")
     params = QueryDict(result)
     assert params["statsPeriod"] == EAP_DEFAULT_STATS_PERIOD
+
+
+def test_preserves_existing_params_when_applying_default() -> None:
+    # Django GET moves caller data into query_params; we must not drop dataset/itemType.
+    query = {"dataset": "spans", "attributeType": "string"}
+    apply_eap_default_stats_period(query, path="/api/0/organizations/org/trace-items/attributes/")
+    assert query["dataset"] == "spans"
+    assert query["attributeType"] == "string"
+    assert query["statsPeriod"] == EAP_DEFAULT_STATS_PERIOD
+
+    result = apply_eap_default_stats_period(
+        "dataset=spans&item_type=logs&trace_id=abc",
+        path="/api/0/organizations/org/project/trace-items/1/",
+    )
+    params = QueryDict(result)
+    assert params["dataset"] == "spans"
+    assert params["item_type"] == "logs"
+    assert params["trace_id"] == "abc"
+    assert params["statsPeriod"] == EAP_DEFAULT_STATS_PERIOD
