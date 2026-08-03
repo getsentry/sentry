@@ -415,6 +415,92 @@ describe('useInfiniteLogsQuery', () => {
     );
   });
 
+  describe('frozen to a trace', () => {
+    const traceId = 'a'.repeat(32);
+    const traceLogsEndpoint = `/organizations/${organization.slug}/trace-logs/`;
+
+    function mockTraceLogsRequest() {
+      return MockApiClient.addMockResponse({
+        url: traceLogsEndpoint,
+        body: createMockLogsData([{id: '1', timestamp_precise: '100', timestamp: '100'}]),
+        headers: linkHeaders,
+      });
+    }
+
+    function createTraceWrapper(freeze: {traceId: string; traceTimestamp?: number}) {
+      return function ({children}: {children?: React.ReactNode}) {
+        return (
+          <QueryClientProvider client={queryClient}>
+            <LogsQueryParamsProvider
+              analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
+              source="location"
+              freeze={freeze}
+            >
+              {children}
+            </LogsQueryParamsProvider>
+          </QueryClientProvider>
+        );
+      };
+    }
+
+    beforeEach(() => {
+      mockUsePageFilters.mockReturnValue({
+        isReady: true,
+        pinnedFilters: new Set(),
+        shouldPersist: true,
+        selection: PageFiltersFixture({
+          datetime: {
+            start: '2025-04-03T00:00:00',
+            end: '2025-04-03T00:10:00',
+            period: null,
+            utc: null,
+          },
+        }),
+      });
+    });
+
+    it('queries as far back as logs go, narrowed by the trace timestamp', async () => {
+      const mockRequest = mockTraceLogsRequest();
+
+      renderHookWithProviders(() => useInfiniteLogsQuery(), {
+        additionalWrapper: createTraceWrapper({traceId, traceTimestamp: 1743695410}),
+        organization,
+      });
+
+      await waitFor(() => expect(mockRequest).toHaveBeenCalled());
+      expect(mockRequest).toHaveBeenCalledWith(
+        traceLogsEndpoint,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            statsPeriod: '30d',
+            timestamp: 1743695410,
+            traceId: [traceId],
+          }),
+        })
+      );
+    });
+
+    it('keeps the selected range when there is no trace timestamp to narrow by', async () => {
+      const mockRequest = mockTraceLogsRequest();
+
+      renderHookWithProviders(() => useInfiniteLogsQuery(), {
+        additionalWrapper: createTraceWrapper({traceId}),
+        organization,
+      });
+
+      await waitFor(() => expect(mockRequest).toHaveBeenCalled());
+      expect(mockRequest).toHaveBeenCalledWith(
+        traceLogsEndpoint,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            start: '2025-04-03T00:00:00.000',
+            end: '2025-04-03T00:10:00.000',
+          }),
+        })
+      );
+    });
+  });
+
   describe('high fidelity', () => {
     function makeLinkHeader(cursor: string, hasNext = true) {
       const url =

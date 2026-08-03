@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import type {Location} from 'history';
 import * as qs from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -189,10 +190,19 @@ describe('Logs Field Renderers', () => {
     const timestamp = '2024-01-15T14:30:45.123Z';
     const traceId = 'a'.repeat(32);
 
-    const renderTraceLink = (datetime: RendererExtra['datetime']) => {
-      const props = makeRendererProps(timestamp, {
-        [OurLogKnownFieldKey.TIMESTAMP]: timestamp,
-      });
+    const renderTraceLink = ({
+      datetime,
+      locationQuery = {},
+      logTimestamp,
+    }: {
+      datetime: RendererExtra['datetime'];
+      locationQuery?: Location['query'];
+      logTimestamp?: string;
+    }) => {
+      const props = makeRendererProps(
+        timestamp,
+        logTimestamp ? {[OurLogKnownFieldKey.TIMESTAMP]: logTimestamp} : {}
+      );
       const result = TraceIDRenderer!({
         ...props,
         item: {
@@ -201,36 +211,57 @@ describe('Logs Field Renderers', () => {
           metaFieldType: 'string',
           unit: null,
         } as LogRowItem,
-        extra: {...props.extra, datetime},
+        extra: {
+          ...props.extra,
+          datetime,
+          location: LocationFixture({query: locationQuery}),
+        },
         basicRendered: <span>{traceId}</span>,
       });
 
       render(<Fragment>{result}</Fragment>);
 
-      return screen.getByRole('link', {name: traceId});
+      const link = screen.getByRole('link', {name: traceId});
+
+      return qs.parse(link.getAttribute('href')!.split('?')[1]!);
     };
 
-    it('keeps the relative period when linking to the trace', () => {
-      const link = renderTraceLink({
-        period: '7d',
-        start: null,
-        end: null,
-        utc: null,
+    it('drops the date range when the log has a timestamp', () => {
+      const query = renderTraceLink({
+        datetime: {period: '10m', start: null, end: null, utc: null},
+        locationQuery: {
+          statsPeriod: '10m',
+          start: '2024-01-15T14:20:00.000',
+          end: '2024-01-15T14:40:00.000',
+          utc: 'true',
+        },
+        logTimestamp: timestamp,
       });
 
-      expect(link).toHaveAttribute('href', expect.stringContaining('statsPeriod=7d'));
+      expect(query).toEqual({
+        source: 'logs',
+        timestamp: '1705329045.123',
+      });
     });
 
-    it('keeps the absolute range when linking to the trace', () => {
-      const link = renderTraceLink({
-        period: null,
-        start: '2024-01-14T00:00:00.000',
-        end: '2024-01-16T00:00:00.000',
-        utc: true,
+    it('keeps the relative period when the log has no timestamp', () => {
+      const query = renderTraceLink({
+        datetime: {period: '7d', start: null, end: null, utc: null},
       });
 
-      const href = link.getAttribute('href')!;
-      const query = qs.parse(href.split('?')[1]!);
+      expect(query).toEqual(expect.objectContaining({statsPeriod: '7d'}));
+    });
+
+    it('keeps the absolute range when the log has no timestamp', () => {
+      const query = renderTraceLink({
+        datetime: {
+          period: null,
+          start: '2024-01-14T00:00:00.000',
+          end: '2024-01-16T00:00:00.000',
+          utc: true,
+        },
+      });
+
       expect(query).toEqual(
         expect.objectContaining({
           pageStart: '2024-01-14T00:00:00.000',

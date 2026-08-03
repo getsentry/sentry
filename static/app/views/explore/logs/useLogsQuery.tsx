@@ -6,6 +6,7 @@ import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
+import {DataCategory} from 'sentry/types/core';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {parseQueryKey, type QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
@@ -15,6 +16,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   useLogsAutoRefresh,
@@ -38,6 +40,7 @@ import {
   useLogsFrozenReplayInfo,
   useLogsFrozenSearch,
   useLogsFrozenTraceIds,
+  useLogsFrozenTraceTimestamp,
 } from 'sentry/views/explore/logs/logsFrozenContext';
 import {
   OurLogKnownFieldKey,
@@ -59,6 +62,8 @@ import {
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
 import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/useSpansQuery';
+
+const LOGS_DATA_CATEGORIES = [DataCategory.LOG_BYTE] as const;
 
 export function useExploreLogsTableRow(props: {
   logId: string | number;
@@ -95,7 +100,9 @@ function useLogsApiOptions({
   const _fields = useQueryParamsFields();
   const sortBys = useQueryParamsSortBys();
   const frozenTraceIds = useLogsFrozenTraceIds();
+  const frozenTraceTimestamp = useLogsFrozenTraceTimestamp();
   const frozenReplayInfo = useLogsFrozenReplayInfo();
+  const {maxPickableDays} = useMaxPickableDays({dataCategories: LOGS_DATA_CATEGORIES});
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const location = useLocation();
   const projectIds = useLogsFrozenProjectIds();
@@ -125,6 +132,12 @@ function useLogsApiOptions({
 
   const eventViewPayload = eventView.getEventsAPIPayload(location);
 
+  if (frozenTraceTimestamp) {
+    delete eventViewPayload.start;
+    delete eventViewPayload.end;
+    eventViewPayload.statsPeriod = `${maxPickableDays}d`;
+  }
+
   if (frozenReplayInfo.replayId) {
     delete eventViewPayload.statsPeriod;
     eventViewPayload.start = frozenReplayInfo.replayStartedAt?.toISOString();
@@ -136,6 +149,7 @@ function useLogsApiOptions({
   const baseQuery = {
     ...eventViewPayload,
     ...(frozenTraceIds ? {traceId: frozenTraceIds} : {}),
+    ...(frozenTraceTimestamp ? {timestamp: frozenTraceTimestamp} : {}),
     ...(frozenReplayInfo.replayId ? {replayId: frozenReplayInfo.replayId} : {}),
     cursor,
     orderby,

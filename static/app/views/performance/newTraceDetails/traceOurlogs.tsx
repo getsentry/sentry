@@ -24,6 +24,7 @@ import {
   getLogsUrl,
 } from 'sentry/views/explore/logs/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
 type UseTraceViewLogsDataProps = {
   children: React.ReactNode;
@@ -34,11 +35,13 @@ export function TraceViewLogsDataProvider({
   traceSlug,
   children,
 }: UseTraceViewLogsDataProps) {
+  const {timestamp} = useTraceQueryParams();
+
   return (
     <LogsQueryParamsProvider
       analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
       source="location"
-      freeze={{traceId: traceSlug}}
+      freeze={{traceId: traceSlug, traceTimestamp: timestamp}}
     >
       <LogsPageDataProvider>{children}</LogsPageDataProvider>
     </LogsQueryParamsProvider>
