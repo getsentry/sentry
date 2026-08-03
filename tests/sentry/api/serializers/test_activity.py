@@ -224,10 +224,13 @@ class GroupActivityTestCase(TestCase):
 
     def test_note_mentions_resolved_to_users(self) -> None:
         mentioned = self.create_user(email="jane@example.com", name="Jane Doe")
+        # ``name`` is optional, and falls back to something identifiable.
+        nameless = self.create_user(email="john@example.com", name="")
         team = self.create_team(organization=self.organization, slug="payments")
         note = self._create_note(
             [
                 {"id": mentioned.id, "actor_type": "User", "slug": None},
+                {"id": nameless.id, "actor_type": "User", "slug": None},
                 # A team isn't assignable, and a stale user ref resolves to nobody.
                 {"id": team.id, "actor_type": "Team", "slug": "payments"},
                 {"id": 1234567890, "actor_type": "User", "slug": None},
@@ -239,7 +242,10 @@ class GroupActivityTestCase(TestCase):
         ]["data"]
 
         assert data["text"] == "hi **@Jane Doe**"
-        assert data["mentions"] == [{"name": "Jane Doe", "email": "jane@example.com"}]
+        assert data["mentions"] == [
+            {"name": "Jane Doe", "email": "jane@example.com"},
+            {"name": "john@example.com", "email": "john@example.com"},
+        ]
         # The row keeps its actor refs; resolved users must not be written back onto it.
         assert note.data["mentions"][0] == {
             "id": mentioned.id,

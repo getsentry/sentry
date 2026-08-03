@@ -81,7 +81,7 @@ def _resolve_mentioned_users(activities: list[Activity]) -> dict[int, list[dict[
     users = {u.id: u for u in user_service.get_many_by_id(ids=list(all_user_ids))}
     return {
         activity_id: [
-            {"name": user.name, "email": user.email}
+            {"name": user.get_display_name(), "email": user.email}
             for user_id in user_ids
             if (user := users.get(user_id))
         ]
