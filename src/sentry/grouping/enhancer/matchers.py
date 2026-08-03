@@ -108,6 +108,14 @@ def _encode_if_str(value: str | bytes | None) -> bytes | None:
     return value.encode("utf-8") if isinstance(value, str) else value
 
 
+def _normalize_path(value: str | bytes | None) -> bytes | None:
+    # Path-like matchers are case-insensitive and use `/` as the file-system separator.
+    encoded_value = _encode_if_str(value)
+    if isinstance(encoded_value, bytes):
+        return encoded_value.lower().replace(b"\\", b"/")
+    return encoded_value
+
+
 def create_match_frame(frame_data: dict[str, Any], platform: str | None) -> MatchFrame:
     """Create flat dict of values relevant to matchers"""
     frame_metadata = frame_data.get("data")
@@ -117,14 +125,8 @@ def create_match_frame(frame_data: dict[str, Any], platform: str | None) -> Matc
     category = _encode_if_str(frame_metadata.get("category"))
     module = _encode_if_str(frame_data.get("module"))
 
-    # Path-like matchers are case-insensitive and normalize file-system separators to `/`.
-    package = _encode_if_str(frame_data.get("package"))
-    if isinstance(package, bytes):
-        package = package.lower().replace(b"\\", b"/")
-
-    path = _encode_if_str(frame_data.get("abs_path") or frame_data.get("filename"))
-    if isinstance(path, bytes):
-        path = path.lower().replace(b"\\", b"/")
+    package = _normalize_path(frame_data.get("package"))
+    path = _normalize_path(frame_data.get("abs_path") or frame_data.get("filename"))
 
     return MatchFrame(
         category=category,
