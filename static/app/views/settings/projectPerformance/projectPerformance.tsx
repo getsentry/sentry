@@ -1525,9 +1525,18 @@ export function ProjectPerformance() {
         });
       },
       onSuccess: () => {
-        queryClient.invalidateQueries({
-          queryKey: getThresholdQueryKey(organization.slug, projectSlug),
-        });
+        queryClient.fetchQuery(
+          apiOptions.as<ProjectThreshold>()(
+            '/projects/$organizationIdOrSlug/$projectIdOrSlug/transaction-threshold/configure/',
+            {
+              path: {
+                organizationIdOrSlug: organization.slug,
+                projectIdOrSlug: projectSlug,
+              },
+              staleTime: 0,
+            }
+          )
+        );
       },
     });
 
@@ -1540,9 +1549,15 @@ export function ProjectPerformance() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
-      });
+      queryClient.fetchQuery(
+        apiOptions.as<ProjectPerformanceSettings>()(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance-issues/configure/',
+          {
+            path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
+            staleTime: 0,
+          }
+        )
+      );
     },
   });
 
