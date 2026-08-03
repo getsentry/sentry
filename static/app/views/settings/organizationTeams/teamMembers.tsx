@@ -155,14 +155,17 @@ function AddMemberDropdown({
                 memberId: selection.value,
               })
       }
-      menuFooter={
+      menuFooter={({closeOverlay}) => (
         <MenuComponents.CTAButton
-          onClick={() => openInviteMembersModal({source: 'teams'})}
+          onClick={() => {
+            closeOverlay();
+            openInviteMembersModal({source: 'teams'});
+          }}
           data-test-id="invite-member"
         >
           {t('Invite Member')}
         </MenuComponents.CTAButton>
-      }
+      )}
       data-test-id="add-member-menu"
       disabled={isDropdownDisabled}
       menuTitle={t('Members')}
