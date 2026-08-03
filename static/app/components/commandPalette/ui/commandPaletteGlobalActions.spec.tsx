@@ -346,15 +346,29 @@ describe('GlobalCommandPaletteActions - search recall', () => {
       /Settings.*Custom Integrations/,
       /Settings.*Personal Tokens/,
     ],
+    // Users search for how to create/generate a token; route them to the token
+    // settings pages rather than returning zero results.
+    ['create new token', /Organization Tokens/, /Personal Tokens/],
+    ['sentry auth token', /Organization Tokens/, /Personal Tokens/],
+    // sentry-cli configuration env vars belong to the token settings pages,
+    // alongside SENTRY_AUTH_TOKEN.
+    ['SENTRY_ORG', /Organization Tokens/, /Personal Tokens/],
+    ['SENTRY_PROJECT', /Organization Tokens/, /Personal Tokens/],
     ['source map', /Project Settings.*Source Maps/],
     ['codeowners', /Project Settings.*Ownership Rules/],
     ['inbound', /Project Settings.*Inbound Filters/],
     ['size', /Project Settings.*Mobile Builds/],
+    // "sdk setup" should surface the project's Client Keys (DSN) page.
+    ['sdk setup', /Project Settings.*Client Keys \(DSN\)/],
     // The SDK env var name (and its spaced form) should surface Client Keys
     // (DSN), just like "dsn". The Next.js public-prefixed variant should too.
     ['SENTRY_DSN', /Project Settings.*Client Keys \(DSN\)/],
     ['sentry dsn', /Project Settings.*Client Keys \(DSN\)/],
     ['NEXT_PUBLIC_SENTRY_DSN', /Project Settings.*Client Keys \(DSN\)/],
+    // Timezone lives under Account Details.
+    ['timezone', /Account Details/],
+    // A literal "project slug" search should surface the project switcher.
+    ['project slug', /Open Project/],
   ])('finds expected actions for %s', async (query, ...expectedOptions) => {
     renderPalette();
 

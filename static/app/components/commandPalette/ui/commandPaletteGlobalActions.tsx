@@ -399,6 +399,7 @@ export function GlobalCommandPaletteActions() {
             display={{
               label: getDiscoverDeprecation(organization) ? t('Errors') : t('Discover'),
             }}
+            keywords={[t('discover')]}
             to={
               getDiscoverDeprecation(organization)
                 ? `${prefix}/explore/errors/homepage/`
@@ -973,6 +974,7 @@ export function GlobalCommandPaletteActions() {
           t('switch project'),
           t('go to project'),
           t('subproject'),
+          t('project slug'),
         ]}
         prompt={t('Search for a project...')}
         limit={4}
