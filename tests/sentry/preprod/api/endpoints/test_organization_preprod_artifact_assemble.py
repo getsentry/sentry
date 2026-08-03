@@ -229,6 +229,57 @@ class ValidatePreprodArtifactSchemaTest(TestCase):
             "build_configuration": "debug",
         }
 
+    def test_maximum_install_groups_allowed(self) -> None:
+        data = {
+            "checksum": "a" * 40,
+            "chunks": [],
+            "install_groups": [f"group-{index}" for index in range(16)],
+        }
+
+        result, error = validate_preprod_artifact_schema(orjson.dumps(data))
+
+        assert error is None
+        assert result == data
+
+    def test_too_many_install_groups_rejected(self) -> None:
+        data = {
+            "checksum": "a" * 40,
+            "chunks": [],
+            "install_groups": [f"group-{index}" for index in range(17)],
+        }
+
+        result, error = validate_preprod_artifact_schema(orjson.dumps(data))
+
+        assert error is not None
+        assert "16" in error
+        assert result == {}
+
+    def test_duplicate_install_groups_rejected(self) -> None:
+        data = {
+            "checksum": "a" * 40,
+            "chunks": [],
+            "install_groups": ["alpha", "alpha"],
+        }
+
+        result, error = validate_preprod_artifact_schema(orjson.dumps(data))
+
+        assert error is not None
+        assert "unique" in error
+        assert result == {}
+
+    def test_empty_install_group_rejected(self) -> None:
+        data = {
+            "checksum": "a" * 40,
+            "chunks": [],
+            "install_groups": ["alpha", ""],
+        }
+
+        result, error = validate_preprod_artifact_schema(orjson.dumps(data))
+
+        assert error is not None
+        assert "non-empty" in error
+        assert result == {}
+
 
 class ValidateVcsParametersTest(TestCase):
     """Unit tests for VCS parameter validation function - no database required."""

@@ -74,7 +74,7 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization: Organization | RpcOrganization) -> Response:
         stats_period = request.GET.get("groupStatsPeriod")
-        start, end = get_date_range_from_params(request.GET)
+        start, end = get_date_range_from_params(request.GET, optional=True)
 
         if stats_period not in (None, "", "24h", "14d", "auto"):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)

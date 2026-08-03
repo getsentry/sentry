@@ -97,6 +97,31 @@ describe('StructuredEventData', () => {
         within(screen.getByTestId('value-null')).getByText('null_value_output')
       ).toBeInTheDocument();
     });
+
+    it('renders scrubbed null values as redacted instead of "null"', () => {
+      const meta = {
+        '': {
+          rem: [['project:0', 'x']],
+        },
+      };
+      render(<StructuredEventData data={null} meta={meta} withAnnotatedText />);
+      expect(screen.getByText(/redacted/)).toBeInTheDocument();
+      expect(screen.queryByText('null')).not.toBeInTheDocument();
+    });
+
+    it('preserves renderNull when meta has no annotations', () => {
+      render(
+        <StructuredEventData
+          data={null}
+          config={{renderNull: () => 'None'}}
+          meta={{}}
+          withAnnotatedText
+        />
+      );
+      expect(
+        within(screen.getByTestId('value-null')).getByText('None')
+      ).toBeInTheDocument();
+    });
   });
 
   describe('collpasible values', () => {

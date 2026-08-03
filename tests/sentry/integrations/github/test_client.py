@@ -1,6 +1,7 @@
 import re
 from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
+from typing import Any
 from unittest import mock
 
 import orjson
@@ -16,10 +17,17 @@ from sentry.integrations.github.blame import create_blame_query, generate_file_p
 from sentry.integrations.github.client import GitHubApiClient, GitHubApiRequestType, GitHubReaction
 from sentry.integrations.github.constants import GITHUB_API_ACCEPT_HEADER
 from sentry.integrations.github.integration import GitHubIntegration
+from sentry.integrations.github.pull_request_status import PULL_REQUEST_STATUS_FRAGMENT
 from sentry.integrations.source_code_management.commit_context import (
     CommitInfo,
     FileBlameInfo,
     SourceLineInfo,
+)
+from sentry.integrations.source_code_management.status_check import (
+    AggregateChecksStatus,
+    AggregateReviewStatus,
+    PullRequestStatusRequest,
+    PullRequestStatusResult,
 )
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.pullrequest import PullRequest, PullRequestComment
@@ -1061,6 +1069,147 @@ class GitHubApiClientTest(TestCase):
         assert result["state"] == "open"
         assert result["head"]["sha"] == "abc123def456"
         assert result["base"]["ref"] == "main"
+
+    def add_graphql_response(self, json: dict[str, Any]) -> None:
+        responses.add(
+            responses.POST,
+            "https://api.github.com/graphql",
+            json=json,
+            content_type="application/json",
+        )
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_pull_request_status(self, get_jwt) -> None:
+        self.add_graphql_response(
+            {
+                "data": {
+                    "repository0": {
+                        "pullRequest": {
+                            "reviewDecision": "APPROVED",
+                            "commits": {
+                                "nodes": [{"commit": {"statusCheckRollup": {"state": "SUCCESS"}}}]
+                            },
+                        }
+                    }
+                }
+            }
+        )
+
+        assert self.github_client.get_pull_request_status(
+            repo=self.repo.name, pull_number="42"
+        ) == PullRequestStatusResult(
+            checks=AggregateChecksStatus.SUCCESS, review=AggregateReviewStatus.APPROVED
+        )
+
+        body = orjson.loads(responses.calls[-1].request.body)
+        assert PULL_REQUEST_STATUS_FRAGMENT in body["query"]
+        assert body["variables"] == {
+            "owner0": "Test-Organization",
+            "name0": "foo",
+            "number0": 42,
+        }
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_pull_request_statuses_batches_cache_misses(self, get_jwt) -> None:
+        self.add_graphql_response(
+            {
+                "data": {
+                    "repository0": {
+                        "pullRequest": {
+                            "reviewDecision": "APPROVED",
+                            "commits": {
+                                "nodes": [{"commit": {"statusCheckRollup": {"state": "SUCCESS"}}}]
+                            },
+                        }
+                    },
+                    "repository1": {
+                        "pullRequest": {
+                            "reviewDecision": "CHANGES_REQUESTED",
+                            "commits": {
+                                "nodes": [{"commit": {"statusCheckRollup": {"state": "FAILURE"}}}]
+                            },
+                        }
+                    },
+                }
+            }
+        )
+        first = PullRequestStatusRequest(repo=self.repo.name, pull_number="41")
+        second = PullRequestStatusRequest(repo=self.repo.name, pull_number="42")
+
+        assert self.github_client.get_pull_request_statuses([first, second]) == {
+            first: PullRequestStatusResult(
+                checks=AggregateChecksStatus.SUCCESS,
+                review=AggregateReviewStatus.APPROVED,
+            ),
+            second: PullRequestStatusResult(
+                checks=AggregateChecksStatus.FAILURE,
+                review=AggregateReviewStatus.CHANGES_REQUESTED,
+            ),
+        }
+        assert len(responses.calls) == 1
+
+        body = orjson.loads(responses.calls[-1].request.body)
+        assert body["variables"] == {
+            "owner0": "Test-Organization",
+            "name0": "foo",
+            "number0": 41,
+            "owner1": "Test-Organization",
+            "name1": "foo",
+            "number1": 42,
+        }
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_pull_request_status_caches_the_response(self, get_jwt) -> None:
+        # One provider request per pull request per window: the endpoint fetches for
+        # every linked pull request, so a repeat view must not re-query GitHub.
+        self.add_graphql_response(
+            {
+                "data": {
+                    "repository0": {
+                        "pullRequest": {
+                            "reviewDecision": "APPROVED",
+                            "commits": {
+                                "nodes": [{"commit": {"statusCheckRollup": {"state": "SUCCESS"}}}]
+                            },
+                        }
+                    }
+                }
+            }
+        )
+        expected = PullRequestStatusResult(
+            checks=AggregateChecksStatus.SUCCESS, review=AggregateReviewStatus.APPROVED
+        )
+
+        first = self.github_client.get_pull_request_status(repo=self.repo.name, pull_number="45")
+        second = self.github_client.get_pull_request_status(repo=self.repo.name, pull_number="45")
+
+        assert first == second == expected
+        assert len(responses.calls) == 1
+
+        # A different pull request keys separately, so it still reaches GitHub.
+        self.github_client.get_pull_request_status(repo=self.repo.name, pull_number="46")
+        assert len(responses.calls) == 2
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_pull_request_status_query_errors(self, get_jwt) -> None:
+        self.add_graphql_response(
+            {"data": None, "errors": [{"message": "Field 'statusCheckRollup' doesn't exist"}]}
+        )
+
+        with pytest.raises(ApiError, match="Field 'statusCheckRollup' doesn't exist"):
+            self.github_client.get_pull_request_status(repo=self.repo.name, pull_number="43")
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_pull_request_status_rate_limited(self, get_jwt) -> None:
+        self.add_graphql_response({"data": None, "errors": [{"type": "RATE_LIMITED"}]})
+
+        with pytest.raises(ApiRateLimitedError):
+            self.github_client.get_pull_request_status(repo=self.repo.name, pull_number="44")
 
 
 @control_silo_test

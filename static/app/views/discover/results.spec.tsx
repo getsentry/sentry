@@ -1535,4 +1535,92 @@ describe('Results', () => {
       ).toBeInTheDocument();
     });
   });
+
+  describe('transactions deprecation', () => {
+    const deprecationFeatures = [
+      'discover-basic',
+      'deprecate-discover',
+      'discover-saved-queries-deprecation',
+    ];
+
+    it('blocks the transactions dataset and points users to Explore', async () => {
+      const organization = OrganizationFixture({features: deprecationFeatures});
+
+      const mockRequests = renderMockRequests();
+
+      ProjectsStore.loadInitialData([ProjectFixture()]);
+
+      render(<Results />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
+            query: {...generateFields(), queryDataset: 'transaction-like'},
+          },
+          route: '/organizations/:orgId/explore/errors/results/',
+        },
+        organization,
+      });
+
+      const link = await screen.findByRole('link', {name: 'Explore Queries'});
+      expect(link).toHaveAttribute('href', '/explore/saved-queries/');
+
+      expect(mockRequests.eventsResultsMock).not.toHaveBeenCalled();
+      expect(mockRequests.eventsStatsMock).not.toHaveBeenCalled();
+      expect(mockRequests.eventsMetaMock).not.toHaveBeenCalled();
+    });
+
+    it('still renders the table for the errors dataset', async () => {
+      const organization = OrganizationFixture({features: deprecationFeatures});
+
+      const mockRequests = renderMockRequests();
+
+      ProjectsStore.loadInitialData([ProjectFixture()]);
+
+      render(<Results />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
+            query: {...generateFields(), queryDataset: 'error-events'},
+          },
+          route: '/organizations/:orgId/explore/errors/results/',
+        },
+        organization,
+      });
+
+      expect(await screen.findByText(eventTitle)).toBeInTheDocument();
+      expect(mockRequests.eventsResultsMock).toHaveBeenCalled();
+      expect(mockRequests.eventsStatsMock).toHaveBeenCalled();
+      await waitFor(() => expect(mockRequests.eventsMetaMock).toHaveBeenCalled());
+      expect(
+        screen.queryByRole('link', {name: 'Explore Queries'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('does not block transactions when the deprecation is disabled', async () => {
+      const organization = OrganizationFixture({features: ['discover-basic']});
+
+      const mockRequests = renderMockRequests();
+
+      ProjectsStore.loadInitialData([ProjectFixture()]);
+
+      render(<Results />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            query: {...generateFields(), queryDataset: 'transaction-like'},
+          },
+          route: '/organizations/:orgId/explore/discover/results/',
+        },
+        organization,
+      });
+
+      expect(await screen.findByText(eventTitle)).toBeInTheDocument();
+      expect(mockRequests.eventsResultsMock).toHaveBeenCalled();
+      expect(mockRequests.eventsStatsMock).toHaveBeenCalled();
+      await waitFor(() => expect(mockRequests.eventsMetaMock).toHaveBeenCalled());
+      expect(
+        screen.queryByRole('link', {name: 'Explore Queries'})
+      ).not.toBeInTheDocument();
+    });
+  });
 });

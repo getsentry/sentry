@@ -13,9 +13,6 @@ from sentry.replays.data_export import (
 from sentry.replays.testutils import mock_replay
 from sentry.testutils.skips import requires_snuba
 
-# TODO(EAP-627): remove once `snuba.json-response-compression.rollout` completes.
-pytestmark = [pytest.mark.django_db]
-
 
 @pytest.mark.snuba
 @requires_snuba

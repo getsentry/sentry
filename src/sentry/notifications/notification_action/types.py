@@ -218,7 +218,9 @@ class BaseIssueAlertHandler(ABC):
         environment_id = event_data.workflow_env.id if event_data.workflow_env else None
 
         data: RuleData = {
-            "actions": [cls.build_rule_action_blob(action, detector.project.organization.id)],
+            "actions": [
+                cls.build_rule_action_blob(action, detector.linked_project.organization.id)
+            ],
         }
         rule_id = None
 
@@ -253,7 +255,7 @@ class BaseIssueAlertHandler(ABC):
                 try:
                     label = Rule.objects.get(
                         id=alert_rule_workflow.rule_id,
-                        project__organization_id=detector.project.organization_id,
+                        project__organization_id=detector.linked_project.organization_id,
                     ).label
                     rule_id = alert_rule_workflow.rule_id
                 except Rule.DoesNotExist:
@@ -274,7 +276,7 @@ class BaseIssueAlertHandler(ABC):
 
         rule = Rule(
             id=action.id,
-            project=detector.project,
+            project=detector.linked_project,
             environment_id=environment_id,
             label=label,
             data=dict(data),
@@ -475,8 +477,8 @@ class BaseMetricAlertHandler(ABC):
             open_period_context=open_period_context,
             trigger_status=trigger_status,
             notification_uuid=invocation.notification_uuid,
-            organization=invocation.detector.project.organization,
-            project=invocation.detector.project,
+            organization=invocation.detector.linked_project.organization,
+            project=invocation.detector.linked_project,
         )
 
 

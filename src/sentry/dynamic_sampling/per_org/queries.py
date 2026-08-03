@@ -231,6 +231,39 @@ def get_generic_metrics_organization_volume(
     return OrganizationDataVolume(org_id=org_id, total=total, indexed=None)
 
 
+def get_generic_metrics_transaction_volumes(
+    org_id: int,
+    project_ids: set[int],
+    max_transactions: int | None = None,
+) -> dict[int, list[tuple[str, float]]]:
+    """
+    Per-transaction volumes of a set of projects from the legacy generic-metrics pipeline,
+    for side-by-side debugging against ``get_eap_transaction_volumes``. Reuses
+    ``FetchProjectTransactionVolumes`` (the same query the legacy pipeline runs) rather
+    than issuing a new one, scanning the org once for every requested project instead of
+    once per project.
+    """
+    from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import (
+        FetchProjectTransactionVolumes,
+    )
+
+    if max_transactions is None:
+        max_transactions = int(
+            options.get("dynamic-sampling.prioritise_transactions.num_explicit_large_transactions")
+        )
+
+    remaining = set(project_ids)
+    result: dict[int, list[tuple[str, float]]] = {}
+    for project_transactions in FetchProjectTransactionVolumes([org_id], max_transactions):
+        if not remaining:
+            break
+        project_id = project_transactions["project_id"]
+        if project_id in remaining:
+            result[project_id] = project_transactions["transaction_counts"]
+            remaining.discard(project_id)
+    return result
+
+
 def get_eap_project_volumes(
     config: OrganizationVolumeConfig,
     time_interval: timedelta = timedelta(hours=1),
@@ -322,7 +355,9 @@ def get_eap_transaction_volumes(
 
     end_time = datetime.now(UTC)
     start_time = end_time - time_interval
-    transaction_counts_by_project: defaultdict[int, list[tuple[str, float]]] = defaultdict(list)
+    transaction_counts_by_project: defaultdict[int, defaultdict[str, float]] = defaultdict(
+        lambda: defaultdict(float)
+    )
 
     orderby = [
         DynamicSamplingQueryFields.DSC_PROJECT_ID,
@@ -339,7 +374,7 @@ def get_eap_transaction_volumes(
                 projects=config.projects,
                 organization=config.organization,
             ),
-            "query_string": f"{DynamicSamplingQueryFilters.IS_SEGMENT} {DynamicSamplingQueryFields.DSC_PROJECT_ID}:[{root_project_filter}] has:{DynamicSamplingQueryFields.DSC_TRANSACTION}",
+            "query_string": f"{DynamicSamplingQueryFilters.IS_SEGMENT} {DynamicSamplingQueryFields.DSC_PROJECT_ID}:[{root_project_filter}]",
             "selected_columns": [
                 DynamicSamplingQueryFields.DSC_PROJECT_ID,
                 DynamicSamplingQueryFields.DSC_TRANSACTION,
@@ -358,20 +393,26 @@ def get_eap_transaction_volumes(
             "sampling_mode": SAMPLING_MODE_HIGHEST_ACCURACY,
         }
     ):
-        transaction = row.get(DynamicSamplingQueryFields.DSC_TRANSACTION)
         total = _get_aggregate_float(row, DynamicSamplingQueryFields.COUNT)
         if total <= 0:
             continue
 
+        # A root span with no transaction name and one named "" are the same unnamed
+        # transaction, but EAP returns them as separate groups. Coalescing to "" keeps
+        # them a single class in the rebalancing model instead of two, one of which
+        # would carry the misleading name "None".
+        transaction = row.get(DynamicSamplingQueryFields.DSC_TRANSACTION) or ""
+
         project_id = _get_aggregate_int(row, DynamicSamplingQueryFields.DSC_PROJECT_ID)
-        transaction_counts = transaction_counts_by_project[project_id]
-        transaction_counts.append((str(transaction), total))
+        transaction_counts_by_project[project_id][transaction] += total
 
     return [
         ProjectTransactionCounts(
             project_id=project_id,
             org_id=config.organization.id,
-            transaction_counts=transaction_counts,
+            transaction_counts=sorted(
+                transaction_counts.items(), key=lambda item: (-item[1], item[0])
+            ),
         )
         for project_id, transaction_counts in sorted(transaction_counts_by_project.items())
     ]

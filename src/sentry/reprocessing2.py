@@ -436,7 +436,9 @@ def _maybe_copy_attachment_into_cache(
         # move the attachment into objectstore and update the record
         with attachment.getfile() as fp:
             stored_id = get_attachments_session(project.organization_id, project.id).put(
-                fp, expiration_policy=TimeToLive(timedelta(days=retention_days))
+                fp,
+                filename=attachment.name,
+                expiration_policy=TimeToLive(timedelta(days=retention_days)),
             )
         attachment.blob_path = V2_PREFIX + stored_id
         attachment.save()

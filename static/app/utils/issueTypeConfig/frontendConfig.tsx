@@ -48,6 +48,7 @@ export const frontendConfig: IssueCategoryConfigMapping = {
     issueSummary: {enabled: false},
   },
   [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: {
+    defaultTimePeriod: {sinceFirstSeen: true},
     spanEvidence: {enabled: true},
     evidence: null,
     resources: {
@@ -61,6 +62,7 @@ export const frontendConfig: IssueCategoryConfigMapping = {
     autofix: true,
   },
   [IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET]: {
+    defaultTimePeriod: {sinceFirstSeen: true},
     spanEvidence: {enabled: true},
     evidence: null,
     resources: {
@@ -79,6 +81,7 @@ export const frontendConfig: IssueCategoryConfigMapping = {
     autofix: true,
   },
   [IssueType.WEB_VITALS]: {
+    defaultTimePeriod: {sinceFirstSeen: true},
     issueSummary: {enabled: true},
     autofix: true,
   },

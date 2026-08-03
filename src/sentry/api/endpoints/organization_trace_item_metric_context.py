@@ -106,7 +106,7 @@ class OrganizationTraceItemMetricContextEndpoint(OrganizationTraceItemAttributes
         # Existence is a property of all the org's data, so always check against
         # the full retention window and ignore any time range filters
         # (`statsPeriod`/`start`/`end`) on the request.
-        adjusted_start, adjusted_end = full_retention_window()
+        adjusted_start, adjusted_end = full_retention_window(SupportedTraceItemType.TRACEMETRICS)
         snuba_params.start = adjusted_start
         snuba_params.end = adjusted_end
 

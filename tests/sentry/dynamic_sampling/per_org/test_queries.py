@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
+from typing import Any
 from unittest.mock import patch
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
@@ -429,7 +430,7 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
                     project=project,
                     start_ts=timestamp + timedelta(seconds=5),
                 ),
-                # missing dsc.transaction — excluded by the has:sentry.dsc.transaction filter
+                # missing dsc.transaction — counted as the unnamed transaction ""
                 self.create_span(
                     {
                         "is_segment": True,
@@ -465,7 +466,7 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
             ProjectTransactionCounts(
                 org_id=organization.id,
                 project_id=project.id,
-                transaction_counts=[("checkout", 3), ("product", 1)],
+                transaction_counts=[("checkout", 3), ("", 1), ("product", 1)],
             ),
             ProjectTransactionCounts(
                 org_id=organization.id,
@@ -475,59 +476,54 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
         ]
         assert volumes == expected
 
-    def test_get_eap_transaction_volumes_filters_by_root_projects(self) -> None:
+    def test_get_eap_transaction_volumes_counts_every_root_project(self) -> None:
+        """
+        Two root projects share a transaction name, one carrying most of the volume.
+        Both must be counted: narrowing the query to a subset of root projects drops
+        the excluded project's segments entirely rather than merely skipping it later.
+        """
         organization = self.create_organization()
-        project = self.create_project(organization=organization)
-        other_project = self.create_project(organization=organization)
+        high_volume_project = self.create_project(organization=organization)
+        low_volume_project = self.create_project(organization=organization)
         timestamp = before_now(minutes=15)
 
-        self.store_spans(
-            [
-                # Rooted at `project` but owned by `other_project` — must still be counted
-                # even though `other_project` is not in root_projects.
-                self.create_span(
-                    {
-                        "is_segment": True,
-                        "sentry_tags": {
-                            "transaction": "checkout",
-                            "dsc.transaction": "checkout",
-                            "dsc.project_id": str(project.id),
-                        },
+        def segment(originating_project, root_project):
+            return self.create_span(
+                {
+                    "is_segment": True,
+                    "sentry_tags": {
+                        "transaction": "T",
+                        "dsc.transaction": "T",
+                        "dsc.project_id": str(root_project.id),
                     },
-                    organization=organization,
-                    project=other_project,
-                    start_ts=timestamp,
-                ),
-                # Rooted at `other_project` — excluded by root_projects.
-                self.create_span(
-                    {
-                        "is_segment": True,
-                        "sentry_tags": {
-                            "transaction": "landing",
-                            "dsc.transaction": "landing",
-                            "dsc.project_id": str(other_project.id),
-                        },
-                    },
-                    organization=organization,
-                    project=other_project,
-                    start_ts=timestamp + timedelta(seconds=1),
-                ),
-            ]
-        )
-
-        expected = [
-            ProjectTransactionCounts(
-                org_id=organization.id,
-                project_id=project.id,
-                transaction_counts=[("checkout", 1)],
+                },
+                organization=organization,
+                project=originating_project,
+                start_ts=timestamp,
             )
-        ]
 
-        volumes = get_eap_transaction_volumes(
-            self.get_config(organization),
-            root_projects=[project],
+        self.store_spans(
+            [segment(high_volume_project, high_volume_project) for _ in range(10)]
+            + [segment(low_volume_project, low_volume_project)]
         )
-        assert volumes == expected
+
+        volumes = get_eap_transaction_volumes(self.get_config(organization))
+
+        assert sorted(volumes, key=lambda volume: volume.project_id) == sorted(
+            [
+                ProjectTransactionCounts(
+                    org_id=organization.id,
+                    project_id=high_volume_project.id,
+                    transaction_counts=[("T", 10)],
+                ),
+                ProjectTransactionCounts(
+                    org_id=organization.id,
+                    project_id=low_volume_project.id,
+                    transaction_counts=[("T", 1)],
+                ),
+            ],
+            key=lambda volume: volume.project_id,
+        )
 
     def test_get_eap_transaction_volumes_without_projects(self) -> None:
         organization = self.create_organization()
@@ -666,6 +662,53 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
                 org_id=organization.id,
                 project_id=project.id,
                 transaction_counts=[("alpha", 2)],
+            )
+        ]
+
+    def test_get_eap_transaction_volumes_coalesces_empty_dsc_transaction(self) -> None:
+        """
+        A root span with an empty ``sentry.dsc.transaction`` and one with the attribute
+        absent are the same unnamed transaction, but EAP returns them as two groups. Both
+        reach the rebalancing model as a single ``""`` class holding their summed count.
+        """
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        timestamp = before_now(minutes=15)
+
+        def segment(transaction: str | None, offset: int) -> dict[str, Any]:
+            dsc_tags = {} if transaction is None else {"dsc.transaction": transaction}
+            return self.create_span(
+                {
+                    "is_segment": True,
+                    "sentry_tags": {
+                        "transaction": str(transaction),
+                        "dsc.project_id": str(project.id),
+                        **dsc_tags,
+                    },
+                },
+                organization=organization,
+                project=project,
+                start_ts=timestamp + timedelta(seconds=offset),
+            )
+
+        self.store_spans(
+            [
+                segment("checkout", 0),
+                segment("checkout", 1),
+                # Root transaction name set to the empty string.
+                segment("", 2),
+                # Root transaction name absent entirely.
+                segment(None, 3),
+            ]
+        )
+
+        volumes = get_eap_transaction_volumes(self.get_config(organization))
+
+        assert volumes == [
+            ProjectTransactionCounts(
+                org_id=organization.id,
+                project_id=project.id,
+                transaction_counts=[("", 2), ("checkout", 2)],
             )
         ]
 

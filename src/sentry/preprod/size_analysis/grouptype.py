@@ -205,7 +205,7 @@ class PreprodSizeAnalysisDetectorHandler(
             )
 
         artifact = metadata["head_artifact"]
-        organization = self.detector.project.organization
+        organization = self.detector.linked_project.organization
 
         try:
             return artifact_matches_query(artifact, query, organization)

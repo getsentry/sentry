@@ -511,6 +511,13 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Chunk size for bulk delete job
+register(
+    "replay.bulk_delete_job.chunk_size_days",
+    default=7,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Feedback Options
 register(
@@ -608,6 +615,8 @@ register("slack.debug-workspace", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Log unfurl payloads for debugging
 register("slack.log-unfurl-payload", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Log Slack webhook retry headers and slow (>3s) responses for debugging
+register("slack.log-webhook-retry-diagnostics", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Frequency of slack nudge blocks on issue alerts (0.0 to 1.0, where 0.3 = 30%)
 register(
     "slack.nudge-frequency",
@@ -949,14 +958,6 @@ register(
     type=Int,
 )
 
-# Fraction of JSON (SnQL/MQL) snuba queries that request zstd response compression via Accept-Encoding.
-register(
-    "snuba.json-response-compression.rollout",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 
 # Refresh Bundle Indexes reported as used by symbolicator
 register(
@@ -1240,6 +1241,16 @@ register(
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Deterministic % of gen_ai conversations that get Seer title generation, keyed
+# on conversation id. Requires organizations:gen-ai-conversation-title-generation.
+# 0.0 disables generation; 1.0 enables it for every conversation in flagged orgs.
+register(
+    "ai-monitoring.conversation-title-generation.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "seer.night_shift.enable",
     type=Bool,
@@ -1325,6 +1336,26 @@ register(
     "issues.backfill_pr_lifecycle_action_log.inter_batch_delay_s",
     type=Int,
     default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_pr_lifecycle_state.killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Minimum seconds between provider requests, so the backfill leaves headroom for live
+# traffic on the same installation.
+register(
+    "issues.backfill_pr_lifecycle_state.api_interval_s",
+    type=Float,
+    default=0.1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_pr_lifecycle_state.rate_limited_backoff_s",
+    type=Float,
+    default=5.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1450,6 +1481,9 @@ register("relay.allow_internal_ip_auth", default=True, flags=FLAG_AUTOMATOR_MODI
 # Tell Relay to stop extracting metrics from transaction payloads (see killswitches)
 # Example value: [{"project_id": 42}, {"project_id": 123}]
 register("relay.drop-transaction-metrics", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Tell Relay to stop extracting metrics from transaction payloads for all projects.
+register("relay.drop-transaction-metrics2", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Relay should emit a usage metric to track total spans.
 register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -2233,17 +2267,6 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Applies the implicit sample rate floor in the per-org pipeline. The transaction rebalancing
-# model can return an implicit (tail) rate below the project's overall rate; the floor lifts it
-# back to that rate and pays for it by lowering the explicit rates. The legacy pipeline has no
-# such step, so with this enabled the two pipelines write different per-transaction rates for
-# identical input. Set to False to compare them like for like.
-register(
-    "dynamic-sampling.per_org.apply-implicit-sample-rate-floor",
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Stops dynamic sampling rules from being emitted in relay config.
 # This is required for ST instances that have flakey flags as we want to be able kill DS ruining customer data if necessary.
 # It is only a killswitch for behaviour, it may actually increase infra load if flipped for a user currently being sampled.
@@ -2281,6 +2304,13 @@ register(
 
 register(
     "dynamic-sampling.per_org.project-balancing-debug-project-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "dynamic-sampling.per_org.transaction-volume-debug-project-ids",
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -3771,16 +3801,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Which issue categories should we send issue.created webhooks for
+# Which issue categories should we not send issue.created webhooks for
 register(
-    "sentry-apps.expanded-webhook-categories",
+    "sentry-apps.unsupported-webhook-categories",
     type=Sequence,
     default=[
-        1,  # ERROR
-        4,  # CRON
-        6,  # FEEDBACK
-        7,  # UPTIME
-        10,  # OUTAGE
+        9,  # TEST_NOTIFICATION
     ],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -3980,6 +4006,14 @@ register(
     "tasks.producer.processing-errors.rollout",
     type=Float,
     default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rolls out FutureTrackingProducer to spans process-segments tasks
+register(
+    "tasks.producer.process-segments.rollout",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
