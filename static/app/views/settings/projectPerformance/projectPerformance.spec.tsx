@@ -7,6 +7,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -469,18 +470,31 @@ describe('projectPerformance', () => {
   );
 
   it('test reset all detector thresholds', async () => {
-    MockApiClient.addMockResponse({
+    let detectorEnabled = true;
+    const performanceIssuesGetMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/performance-issues/configure/',
       method: 'GET',
-      body: {
-        n_plus_one_db_queries_detection_enabled: true,
-        slow_db_queries_detection_enabled: false,
-      },
+      body: () => ({
+        n_plus_one_db_queries_detection_enabled: detectorEnabled,
+        slow_db_queries_detection_enabled: true,
+      }),
       statusCode: 200,
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/performance-issues/configure/',
+      method: 'PUT',
+      body: (_url: string, options: {data: Record<string, boolean>}) => {
+        detectorEnabled = options.data.n_plus_one_db_queries_detection_enabled ?? true;
+        return {};
+      },
     });
     const delete_request_mock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/performance-issues/configure/',
       method: 'DELETE',
+      body: () => {
+        detectorEnabled = true;
+        return {};
+      },
     });
 
     render(<ProjectPerformance />, {
@@ -492,6 +506,15 @@ describe('projectPerformance', () => {
     const button = await screen.findByText('Reset All Thresholds');
     expect(button).toBeInTheDocument();
 
+    await expandAllDetectorSettings();
+    const detectorSwitch = screen.getByRole('checkbox', {
+      name: 'N+1 DB Queries Detection',
+    });
+    expect(detectorSwitch).toBeChecked();
+
+    await userEvent.click(detectorSwitch);
+    expect(detectorSwitch).not.toBeChecked();
+
     renderGlobalModal();
     await userEvent.click(button);
 
@@ -501,7 +524,13 @@ describe('projectPerformance', () => {
 
     await userEvent.click(confirmButton);
 
-    expect(delete_request_mock).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(delete_request_mock).toHaveBeenCalled();
+      expect(performanceIssuesGetMock).toHaveBeenCalledTimes(2);
+      expect(
+        screen.getByRole('checkbox', {name: 'N+1 DB Queries Detection'})
+      ).toBeChecked();
+    });
   });
 
   it.each(manageDetectorData)(

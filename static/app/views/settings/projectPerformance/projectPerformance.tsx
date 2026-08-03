@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -730,7 +730,8 @@ function getProjectDetectorSettings({
           help: t(
             'Setting the value to 3, means that the query values with length 3 or more will be assessed when creating a DB Query Injection Vulnerability issue.'
           ),
-          tickValues: [3, 10],
+          tickValues: [0, 7],
+          showTickLabels: true,
           allowedValues: [3, 4, 5, 6, 7, 8, 9, 10],
           disabled: !(
             hasAccess &&
@@ -1394,12 +1395,14 @@ function DetectorThresholdsSection({
   isResetting,
   onResetAll,
   performanceIssueSettings,
+  resetVersion,
 }: {
   detectorGroups: DetectorFieldGroup[];
   hasWriteAccess: boolean;
   isResetting: boolean;
   onResetAll: () => void;
   performanceIssueSettings: ProjectPerformanceSettings;
+  resetVersion: number;
 }) {
   const organization = useOrganization();
   const {projectId: projectSlug} = useParams<{projectId: string}>();
@@ -1421,7 +1424,7 @@ function DetectorThresholdsSection({
                 <Stack gap="lg">
                   {group.fields.map(field => (
                     <DetectorAutoSaveField
-                      key={field.name}
+                      key={`${field.name}-${resetVersion}`}
                       field={field}
                       initialValue={
                         performanceIssueSettings[field.name] ??
@@ -1458,6 +1461,7 @@ export function ProjectPerformance() {
   const organization = useOrganization();
   const {projectId: projectSlug} = useParams<{projectId: string}>();
   const queryClient = useQueryClient();
+  const [detectorResetVersion, setDetectorResetVersion] = useState(0);
 
   const thresholdEndpoint = `/projects/${organization.slug}/${projectSlug}/transaction-threshold/configure/`;
   const performanceIssuesEndpoint = `/projects/${organization.slug}/${projectSlug}/performance-issues/configure/`;
@@ -1548,8 +1552,8 @@ export function ProjectPerformance() {
         project_slug: projectSlug,
       });
     },
-    onSuccess: () => {
-      queryClient.fetchQuery(
+    onSuccess: async () => {
+      await queryClient.fetchQuery(
         apiOptions.as<ProjectPerformanceSettings>()(
           '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance-issues/configure/',
           {
@@ -1558,6 +1562,7 @@ export function ProjectPerformance() {
           }
         )
       );
+      setDetectorResetVersion(version => version + 1);
     },
   });
 
@@ -1618,6 +1623,7 @@ export function ProjectPerformance() {
         hasWriteAccess={hasWriteAccess}
         isResetting={isPendingResetThresholds}
         onResetAll={() => resetThresholds()}
+        resetVersion={detectorResetVersion}
       />
     </Fragment>
   );
