@@ -135,15 +135,11 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         from django.core.cache import cache
 
         env_name = "SRT"
-        event = self.store_event(
-            data={"environment": env_name}, project_id=self.project.id
-        )
+        event = self.store_event(data={"environment": env_name}, project_id=self.project.id)
         # Delete the Environment record and clear the cache to simulate the
         # scenario where the environment tag exists on the event but no DB
         # record was created for this organization.
-        Environment.objects.filter(
-            organization_id=self.organization.id, name=env_name
-        ).delete()
+        Environment.objects.filter(organization_id=self.organization.id, name=env_name).delete()
         cache.delete(Environment.get_cache_key(self.organization.id, env_name))
         assert not Environment.objects.filter(
             organization_id=self.organization.id, name=env_name
@@ -157,9 +153,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert Environment.objects.filter(
             organization_id=self.organization.id, name=env_name
         ).exists()
-        environment = Environment.objects.get(
-            organization_id=self.organization.id, name=env_name
-        )
+        environment = Environment.objects.get(organization_id=self.organization.id, name=env_name)
         assert GroupEnvironment.objects.filter(
             group=group_info.group, environment=environment
         ).exists()
