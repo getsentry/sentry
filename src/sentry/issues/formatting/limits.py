@@ -43,13 +43,3 @@ LIMITS_LOW = Limits(
     max_contexts_chars=2_000,
     max_evidence_chars=2_000,
 )
-
-# tighter caps for token-constrained callers; mirrors Seer's EVENT_FORMAT_LIMITS_LOW
-LIMITS_LOW = Limits(
-    max_exceptions_chars=50_000,
-    max_stacktrace_chars=10_000,
-    max_breadcrumbs_chars=5_000,
-    max_single_breadcrumb_chars=500,
-    max_request_chars=2_000,
-    max_spans_chars=5_000,
-)
