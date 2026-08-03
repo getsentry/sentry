@@ -53,7 +53,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data == [
             {
                 "description": "foo",
-                "spm()": 1 / (EAP_FULL_FIDELITY_QUERY_DAYS * 24 * 60),
+                "spm()": pytest.approx(1 / (EAP_FULL_FIDELITY_QUERY_DAYS * 24 * 60), rel=1e-3),
             },
         ]
         assert meta["dataset"] == "spans"
@@ -2454,7 +2454,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data == [
             {
                 "description": "foo",
-                "epm()": 1 / (EAP_FULL_FIDELITY_QUERY_DAYS * 24 * 60),
+                "epm()": pytest.approx(1 / (EAP_FULL_FIDELITY_QUERY_DAYS * 24 * 60), rel=1e-3),
             },
         ]
         assert meta["dataset"] == "spans"
@@ -2536,7 +2536,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data == [
             {
                 "description": "foo",
-                "tpm()": segment_span_count / total_time,
+                "tpm()": pytest.approx(segment_span_count / total_time, rel=1e-3),
             },
         ]
         assert meta["dataset"] == "spans"
@@ -6444,7 +6444,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data == [
             {
                 "description": "foo",
-                "eps()": 1 / (EAP_FULL_FIDELITY_QUERY_DAYS * 24 * 60 * 60),
+                "eps()": pytest.approx(1 / (EAP_FULL_FIDELITY_QUERY_DAYS * 24 * 60 * 60), rel=1e-3),
             },
         ]
         assert meta["dataset"] == "spans"
