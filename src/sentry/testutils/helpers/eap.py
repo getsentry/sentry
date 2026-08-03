@@ -112,19 +112,24 @@ class EAPClient(APIClient):
     """API client that defaults EAP queries to the full-fidelity window."""
 
     def generic(self, method: str, path: Any, data: Any = "", *args: Any, **extra: Any) -> Any:
-        if str(method).upper() in _QUERY_DATA_METHODS:
-            # Empty GET data still needs the path-based default for EAP endpoints.
-            if data in ("", None):
-                data = {}
-            data = apply_eap_default_stats_period(data, path=str(path))
+        path_str = str(path)
+        is_query_method = str(method).upper() in _QUERY_DATA_METHODS
 
-        if "query_params" in extra and extra["query_params"] is not None:
+        if is_query_method and data not in ("", None):
+            data = apply_eap_default_stats_period(data, path=path_str)
+        elif is_query_method and data in ("", None) and _should_apply_default({}, path_str):
+            # Empty GET must stay body-less (a dict body becomes application/octet-stream
+            # and 415s). Inject the default through query_params instead.
             extra["query_params"] = apply_eap_default_stats_period(
-                extra["query_params"], path=str(path)
+                dict(extra.get("query_params") or {}), path=path_str
+            )
+        elif "query_params" in extra and extra["query_params"] is not None:
+            extra["query_params"] = apply_eap_default_stats_period(
+                extra["query_params"], path=path_str
             )
 
         query_string = extra.get("QUERY_STRING")
         if isinstance(query_string, str):
-            extra["QUERY_STRING"] = apply_eap_default_stats_period(query_string, path=str(path))
+            extra["QUERY_STRING"] = apply_eap_default_stats_period(query_string, path=path_str)
 
         return super().generic(method, path, data, *args, **extra)
