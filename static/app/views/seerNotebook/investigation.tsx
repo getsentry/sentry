@@ -93,6 +93,9 @@ import type {
 } from './types';
 import {INVESTIGATION_REACTIONS} from './types';
 
+const QUERY_EXAMPLE_STREAM_FRAMES = 24;
+const QUERY_EXAMPLE_STREAM_INTERVAL_MS = 16;
+
 type SeerInvestigationProps = {
   onCellListRender?: ProfilerOnRenderCallback;
   onCellRender?: (clientKey: string) => void;
@@ -779,10 +782,14 @@ function SortableCellContent({
       clearInterval(suggestionTimerRef.current);
     }
     let characterIndex = 0;
+    const charactersPerFrame = Math.max(
+      1,
+      Math.ceil(suggestion.length / QUERY_EXAMPLE_STREAM_FRAMES)
+    );
     cell.clearQueryIntent();
     textInputRef.current?.focus();
     suggestionTimerRef.current = setInterval(() => {
-      characterIndex += 1;
+      characterIndex = Math.min(suggestion.length, characterIndex + charactersPerFrame);
       cell.editQueryIntent(suggestion.slice(0, characterIndex));
       if (characterIndex >= suggestion.length) {
         if (suggestionTimerRef.current) {
@@ -790,7 +797,7 @@ function SortableCellContent({
           suggestionTimerRef.current = null;
         }
       }
-    }, 6);
+    }, QUERY_EXAMPLE_STREAM_INTERVAL_MS);
   };
 
   const toggleCellReaction = async (

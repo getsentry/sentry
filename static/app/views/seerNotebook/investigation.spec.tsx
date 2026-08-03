@@ -171,7 +171,7 @@ describe('SeerInvestigation', () => {
     await userEvent.click(screen.getByRole('button', {name: 'see an example'}));
     expect(queryEditor).not.toHaveValue(suggestion);
     await waitFor(() => expect(queryEditor).toHaveValue(suggestion), {
-      timeout: 2000,
+      timeout: 1000,
     });
   });
 
