@@ -142,6 +142,13 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     },
   ],
   [
+    DataConditionType.EVERY_EVENT,
+    {
+      label: t('An event is captured'),
+      validate: undefined,
+    },
+  ],
+  [
     DataConditionType.REGRESSION_EVENT,
     {
       label: t('A resolved issue becomes unresolved'),
