@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import abc
+from base64 import b64encode
 from collections.abc import Mapping
+from io import BytesIO
 from typing import Any, NotRequired, TypedDict, _TypedDict
 from urllib.parse import urlparse
 
@@ -17,9 +19,11 @@ from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from onelogin.saml2.auth import OneLogin_Saml2_Auth, OneLogin_Saml2_Settings
 from onelogin.saml2.constants import OneLogin_Saml2_Constants
+from PIL import Image, ImageOps
 from rest_framework.request import Request
 
 from sentry import features, options
+from sentry.api.fields.avatar import MAX_DIMENSION, AvatarField
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.helper import AuthHelper
 from sentry.auth.provider import Provider
@@ -166,7 +170,14 @@ class SAML2ACSView(AuthView):
         if auth.get_errors():
             return pipeline.error(ERR_SAML_FAILED.format(reason=auth.get_last_error_reason()))
 
-        pipeline.bind_state("auth_attributes", auth.get_attributes())
+        # Pull the (potentially multi-megabyte) avatar out of the attributes and
+        # validate it down to a small image before binding, so the raw payload
+        # never lands in the pipeline's Redis state.
+        attributes = auth.get_attributes()
+        avatar = _extract_saml_avatar(provider.config, attributes)
+        pipeline.bind_state("auth_attributes", attributes)
+        if avatar:
+            pipeline.bind_state("saml_avatar", avatar)
 
         # Extract the provider key from the RelayState parameter.
         # This was encoded when the SAML flow started (in SAML2LoginView) and survives
@@ -232,6 +243,130 @@ class Attributes:
     USER_EMAIL = "user_email"
     FIRST_NAME = "first_name"
     LAST_NAME = "last_name"
+    AVATAR = "avatar"
+
+
+_ALLOWED_AVATAR_FORMATS = ["PNG", "JPEG", "GIF"]
+
+
+class _SamlAvatarField(AvatarField):
+    """
+    Reuse the avatar upload validation (base64 decode, size limit, and format
+    allowlist) so SAML avatar handling stays consistent with the rest of Sentry.
+    Identity providers send photos at arbitrary sizes and stored avatars are
+    resized on read, so the square/min/max dimension checks are intentionally
+    skipped here. The decode is restricted to the allowed formats so hostile
+    assertion bytes can't engage an unexpected Pillow decoder.
+    """
+
+    def __init__(self, **kwargs: Any) -> None:
+        kwargs.setdefault("formats", _ALLOWED_AVATAR_FORMATS)
+        super().__init__(**kwargs)
+
+    def is_valid_size(self, width: int, height: int) -> bool:
+        return True
+
+
+def _validate_saml_avatar(value: str | None) -> str | None:
+    """
+    Validate a base64-encoded image carried by a SAML assertion, returning the
+    cleaned base64 string ready to store, or ``None`` if the value is absent or
+    invalid.
+
+    This never raises: a malformed profile picture must not block SSO login. An
+    optional ``data:<mimetype>;base64,`` prefix is stripped and the size and
+    format are validated via :class:`AvatarField`. The image is then normalized
+    for storage: EXIF orientation is baked in, non-square photos are center-
+    cropped, oversized photos are downscaled, and the result is always re-encoded
+    as PNG (stripping EXIF/metadata). PNG matches the ``{user_id}.png`` filename
+    and the ``image/png`` content type the avatar view serves.
+    """
+    if not value:
+        return None
+
+    if value.startswith("data:") and "base64," in value:
+        value = value.split("base64,", 1)[1]
+
+    try:
+        # AvatarField.to_internal_value decodes the base64 payload and validates
+        # its size and format, raising on anything malformed or oversized.
+        decoded = _SamlAvatarField().to_internal_value(value)
+    except Exception:
+        # AvatarField and Pillow raise a variety of errors (ValidationError,
+        # ImageTooLarge, OSError, DecompressionBombError, etc.) on malformed or
+        # hostile image data; never let a bad profile picture block SSO login.
+        return None
+
+    if decoded is None:
+        return None
+
+    try:
+        # Restrict the decoders to the allowed formats so Pillow can't be steered
+        # into loading a different one.
+        with Image.open(decoded, formats=_ALLOWED_AVATAR_FORMATS) as image:
+            # Bake in any EXIF orientation before the metadata is dropped below,
+            # otherwise portrait photos that rely on the orientation tag would be
+            # stored (and shown) rotated.
+            oriented = ImageOps.exif_transpose(image) or image
+
+            # Normalize to a PNG-friendly mode. IdP photos can be palette, CMYK,
+            # grayscale, etc.; keep an alpha channel only when one is present.
+            has_alpha = "A" in oriented.getbands() or "transparency" in oriented.info
+            oriented = oriented.convert("RGBA" if has_alpha else "RGB")
+
+            # Avatars are served resized to a forced square (see
+            # BaseAvatar.get_cached_photo), so center-crop non-square
+            # identity-provider photos here rather than let them be stretched.
+            width, height = oriented.size
+            if width != height:
+                side = min(width, height)
+                left = (width - side) // 2
+                top = (height - side) // 2
+                oriented = oriented.crop((left, top, left + side, top + side))
+
+            # Bound the stored resolution so multi-thousand-pixel IdP photos aren't
+            # stored (and re-stored on every login) at full size.
+            if oriented.width > MAX_DIMENSION:
+                oriented = oriented.resize((MAX_DIMENSION, MAX_DIMENSION), Image.LANCZOS)
+
+            # Always store PNG: it matches the `{user_id}.png` filename and the
+            # `image/png` content type the avatar view serves, and re-encoding
+            # strips EXIF/metadata (Pillow drops it unless passed back explicitly).
+            buffer = BytesIO()
+            oriented.save(buffer, format="PNG")
+    except Exception:
+        return None
+
+    return b64encode(buffer.getvalue()).decode()
+
+
+def _extract_saml_avatar(config: Mapping[str, Any], attributes: dict[str, list[str]]) -> str | None:
+    """
+    Pull the mapped avatar attribute out of ``attributes`` and return the
+    validated, re-encoded avatar (or ``None`` when unmapped, absent, or invalid).
+
+    Extracting and validating this at assertion time keeps the raw base64 payload
+    — which identity providers can send as several megabytes — out of the
+    pipeline's Redis state, which is rewritten on every ``bind_state`` call. Only
+    the small, re-encoded result is retained.
+    """
+    mapping = config.get("attribute_mapping", {})
+    avatar_key = mapping.get(Attributes.AVATAR)
+    if not avatar_key:
+        return None
+
+    # Only remove the attribute from the pipeline state when it is exclusively the
+    # avatar source. If another (required) claim such as identifier or user_email
+    # reads the same key, popping it would blank that claim out and break login.
+    shared = any(
+        key != Attributes.AVATAR and provider_key == avatar_key
+        for key, provider_key in mapping.items()
+    )
+    raw_avatar = attributes.get(avatar_key) if shared else attributes.pop(avatar_key, None)
+    if not raw_avatar:
+        return None
+
+    return _validate_saml_avatar(raw_avatar[0])
 
 
 class SAML2Provider(Provider, abc.ABC):
@@ -339,11 +474,20 @@ class SAML2Provider(Provider, abc.ABC):
         name_gen = (attributes[k] for k in (Attributes.FIRST_NAME, Attributes.LAST_NAME))
         name = " ".join(_f for _f in name_gen if _f)
 
-        return {
+        identity = {
             "id": attributes[Attributes.IDENTIFIER],
             "email": attributes[Attributes.USER_EMAIL],
             "name": name,
         }
+
+        # Optionally sync the user's profile picture. It is extracted, validated,
+        # and re-encoded at assertion time (see SAML2ACSView) and stored under a
+        # dedicated state key so the raw payload never bloats the pipeline state.
+        avatar = state.get("saml_avatar")
+        if avatar:
+            identity["avatar"] = avatar
+
+        return identity
 
     def refresh_identity(self, auth_identity: AuthIdentity) -> None:
         # Nothing to refresh
