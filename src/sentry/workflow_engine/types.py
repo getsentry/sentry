@@ -91,6 +91,7 @@ class ConditionError:
 
 type DetectorResult = IssueOccurrence | StatusChangeMessage | None
 type WorkflowEvaluationDeferred = Literal["deferred"]
+WORKFLOW_EVALUATION_DEFERRED: WorkflowEvaluationDeferred = "deferred"
 type WorkflowEvaluationResult = Sequence[Action] | WorkflowEvaluationDeferred
 
 

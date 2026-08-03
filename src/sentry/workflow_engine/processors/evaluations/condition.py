@@ -43,10 +43,9 @@ class DataConditionEvaluation(
     result: DataConditionResult = None
     condition: DataCondition
 
-    def to_artifact(self) -> dict[str, Any]:
-        safe_input = self.data if isinstance(self.data, (bool, int, float)) else None
+    def _artifact_data(self) -> dict[str, Any]:
+        safe_input = self.data if isinstance(self.data, (bool, int, float, str)) else None
         return {
-            **self._base_artifact(),
             "condition_id": self.condition.id,
             "condition_type": self.condition.type,
             "input_type": type(self.data).__name__,

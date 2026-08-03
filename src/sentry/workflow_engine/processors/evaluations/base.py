@@ -1,14 +1,9 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field, replace
-from typing import Any, TypedDict
+from typing import Any
 
 from sentry.workflow_engine.types import ConditionError
-
-
-class EvaluationArtifact(TypedDict):
-    triggered: bool
-    error: str | None
 
 
 def _find_error(
@@ -54,15 +49,16 @@ class BaseWorkflowEngineEvaluation[R, D](ABC):
         """
         return self.error is not None
 
-    def _base_artifact(self) -> EvaluationArtifact:
+    def to_artifact(self) -> dict[str, Any]:
         return {
             "triggered": self.triggered,
             "error": self.error.msg if self.error else None,
+            **self._artifact_data(),
         }
 
     @abstractmethod
-    def to_artifact(self) -> dict[str, Any]:
-        """Return an explicit, logger-safe representation of this evaluation."""
+    def _artifact_data(self) -> dict[str, Any]:
+        """Return the evaluation-specific fields for the artifact."""
         raise NotImplementedError
 
     def with_error(self, error: ConditionError) -> "BaseWorkflowEngineEvaluation[R, D]":

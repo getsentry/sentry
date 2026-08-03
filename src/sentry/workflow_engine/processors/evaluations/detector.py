@@ -40,9 +40,8 @@ class DetectorEvaluation(
     result: DetectorResult = None
     priority: DetectorPriorityLevel
 
-    def to_artifact(self) -> dict[str, Any]:
+    def _artifact_data(self) -> dict[str, Any]:
         return {
-            **self._base_artifact(),
             "group_key": self.data["group_key"],
             "priority": self.priority.value,
             "result_type": type(self.result).__name__ if self.result is not None else None,
