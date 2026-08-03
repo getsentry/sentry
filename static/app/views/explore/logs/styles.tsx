@@ -422,14 +422,14 @@ export function LogsGraphContainer(props: FlexProps) {
   return <Stack flex="0 0 auto" overflow="visible" gap="md" {...props} />;
 }
 
-export const AutoRefreshLabel = styled('label')`
+export const TableToggleLabel = styled('label')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.xs};
   margin-bottom: 0;
 `;
 
-export const AutoRefreshText = styled('span')`
+export const TableToggleText = styled('span')`
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     display: none;
   }

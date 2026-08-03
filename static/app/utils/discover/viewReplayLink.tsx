@@ -25,7 +25,7 @@ export function ViewReplayLink({
     return (
       <Tooltip
         title={t(
-          'This replay may have been rate-limited, deleted, or not stored due to the error-based replay sampling rate.'
+          'A replay ID was recorded, but the replay itself was never stored. It may have been sampled out, rate-limited, or deleted.'
         )}
       >
         <EmptyValueContainer>{t('(missing)')}</EmptyValueContainer>

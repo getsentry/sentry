@@ -41,6 +41,7 @@ import {
   DeprecatedLogDetailFields,
   LogAttributesHumanLabel,
   LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD,
+  QUANTIZE_MINUTES,
 } from 'sentry/views/explore/logs/constants';
 import {
   getTargetWithReadableQueryParams,
@@ -331,6 +332,34 @@ export function quantizeTimestampToMinutes(
 ): number {
   const quantizeMs = quantizeMinutes * 60 * 1000;
   return Math.floor(timestampMs / quantizeMs) * quantizeMs;
+}
+
+/**
+ * Quantized so the window stays stable as rows stream in, keeping downstream replay
+ * lookups on one cache key instead of refetching on every new row.
+ */
+export function getQuantizedLogTimeRange(rows: LogTableRowItem[]): {
+  end: string | undefined;
+  start: string | undefined;
+} {
+  const timestamps = rows.map(row => getLogRowTimestampMillis(row)).filter(Boolean);
+  if (timestamps.length === 0) {
+    return {start: undefined, end: undefined};
+  }
+
+  const quantizedStart = quantizeTimestampToMinutes(
+    Math.min(...timestamps),
+    QUANTIZE_MINUTES
+  );
+  const quantizedEnd = quantizeTimestampToMinutes(
+    Math.max(...timestamps) + QUANTIZE_MINUTES * 60 * 1000,
+    QUANTIZE_MINUTES
+  );
+
+  return {
+    start: new Date(quantizedStart).toISOString(),
+    end: new Date(quantizedEnd).toISOString(),
+  };
 }
 
 export function getLogTimestampBucketIndex(

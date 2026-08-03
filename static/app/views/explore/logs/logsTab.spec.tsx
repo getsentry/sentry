@@ -23,6 +23,7 @@ import {LOGS_AGGREGATE_FIELD_KEY} from 'sentry/views/explore/logs/logsQueryParam
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {LOGS_STORED_REPLAYS_ONLY_KEY} from 'sentry/views/explore/logs/useLogsStoredReplaysOnly';
 import * as QueryParamsContext from 'sentry/views/explore/queryParams/context';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
 
@@ -590,5 +591,123 @@ describe('LogsTabContent', () => {
     });
     const refreshButton = await screen.findByRole('button', {name: 'Refresh'});
     expect(refreshButton).toBeDisabled();
+  });
+
+  describe('stored replays only toggle', () => {
+    const storedReplayId = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+    const missingReplayId = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+
+    function renderWithReplayLogs({
+      query,
+      replayCounts,
+    }: {
+      query: string;
+      replayCounts: Record<string, number>;
+    }) {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/replay-count/`,
+        method: 'GET',
+        body: replayCounts,
+      });
+
+      return render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              [LOGS_QUERY_KEY]: query,
+              [LOGS_STORED_REPLAYS_ONLY_KEY]: '1',
+            },
+          },
+        },
+        organization,
+        additionalWrapper: ProviderWrapper,
+      });
+    }
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        method: 'GET',
+        body: {
+          data: [
+            {
+              [OurLogKnownFieldKey.ID]: '019621262d117e03bce898cb8f4f6ff7',
+              [OurLogKnownFieldKey.PROJECT_ID]: 1,
+              [OurLogKnownFieldKey.TRACE_ID]: '17cc0bae407042eaa4bf6d798c37d026',
+              [OurLogKnownFieldKey.SEVERITY_NUMBER]: 9,
+              [OurLogKnownFieldKey.SEVERITY]: 'info',
+              [OurLogKnownFieldKey.TIMESTAMP]: '2025-04-10T19:21:12+00:00',
+              [OurLogKnownFieldKey.MESSAGE]: 'log with stored replay',
+              [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 1.7443128722090732e18,
+              [OurLogKnownFieldKey.REPLAY_ID]: storedReplayId,
+            },
+            {
+              [OurLogKnownFieldKey.ID]: '0196212624a17144aa392d01420256a2',
+              [OurLogKnownFieldKey.PROJECT_ID]: 1,
+              [OurLogKnownFieldKey.TRACE_ID]: 'c331c2df93d846f5a2134203416d40bb',
+              [OurLogKnownFieldKey.SEVERITY_NUMBER]: 9,
+              [OurLogKnownFieldKey.SEVERITY]: 'info',
+              [OurLogKnownFieldKey.TIMESTAMP]: '2025-04-10T19:21:10+00:00',
+              [OurLogKnownFieldKey.MESSAGE]: 'log with missing replay',
+              [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 1.744312870049196e18,
+              [OurLogKnownFieldKey.REPLAY_ID]: missingReplayId,
+            },
+          ],
+          meta: {
+            fields: {
+              [OurLogKnownFieldKey.ID]: 'string',
+              [OurLogKnownFieldKey.PROJECT_ID]: 'string',
+              [OurLogKnownFieldKey.TRACE_ID]: 'string',
+              [OurLogKnownFieldKey.SEVERITY_NUMBER]: 'integer',
+              [OurLogKnownFieldKey.SEVERITY]: 'string',
+              [OurLogKnownFieldKey.TIMESTAMP]: 'string',
+              [OurLogKnownFieldKey.MESSAGE]: 'string',
+              [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 'number',
+              [OurLogKnownFieldKey.REPLAY_ID]: 'string',
+            },
+            units: {},
+          },
+        },
+      });
+    });
+
+    it('reports how many logs it hid when a replay is missing', async () => {
+      renderWithReplayLogs({
+        query: 'has:replay_id',
+        replayCounts: {[storedReplayId]: 1, [missingReplayId]: 0},
+      });
+
+      expect(await screen.findByText('1 hidden')).toBeInTheDocument();
+    });
+
+    it('does not render the toggle when the query does not reference replays', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/replay-count/`,
+        method: 'GET',
+        body: {},
+      });
+
+      render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+        initialRouterConfig,
+        organization,
+        additionalWrapper: ProviderWrapper,
+      });
+
+      await screen.findByRole('button', {name: 'Refresh'});
+
+      expect(screen.queryByText('Stored replays only')).not.toBeInTheDocument();
+    });
+
+    it('renders the toggle when the query references replays', async () => {
+      renderWithReplayLogs({
+        query: 'has:replay_id',
+        replayCounts: {[storedReplayId]: 1, [missingReplayId]: 1},
+      });
+
+      expect(await screen.findByText('Stored replays only')).toBeInTheDocument();
+    });
   });
 });

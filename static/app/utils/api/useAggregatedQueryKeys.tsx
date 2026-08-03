@@ -182,57 +182,95 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data, ResponseData 
     }, BUFFER_WAIT_MS);
   }, [clearTimer, fetchData]);
 
+  const pendingAggregates = useRef<AggregatableQueryKey[]>([]);
+  const flushTimer = useRef<null | NodeJS.Timeout>(null);
+
+  const flushBuffer = useCallback(() => {
+    const aggregates = pendingAggregates.current;
+    pendingAggregates.current = [];
+
+    // Track AggregatableQueryKey that we care about in this hook instance
+    const queryKeys = uniq([...prevQueryKeys.current, ...aggregates]);
+    if (queryKeys.length === prevQueryKeys.current.length) {
+      return;
+    }
+    prevQueryKeys.current = queryKeys;
+
+    // Get queryKeys for any cached data related to these aggregates.
+    const existingQueryKeys = cache
+      .findAll({
+        queryKey: ['aggregate', cacheKey, url],
+        predicate: isQueryKeyInList(prevQueryKeys.current),
+      })
+      .map(({queryKey}) => queryKey[4] as AggregatableQueryKey);
+
+    // Don't request aggregates multiple times.
+    const newQueryKeys = queryKeys.filter(agg => !existingQueryKeys.includes(agg));
+
+    // Cache sentinel data for the new cacheKeys
+    newQueryKeys
+      .map(agg => ['aggregate', cacheKey, url, 'queued', agg])
+      .forEach(queryKey => queryClient.setQueryData(queryKey, true));
+
+    if (newQueryKeys.length) {
+      setData(readCache(queryKeys));
+      // Grab anything in the queue, including the newQueryKeys
+      const existingQueuedQueries = cache.findAll({
+        queryKey: ['aggregate', cacheKey, url, 'queued'],
+      });
+      if (existingQueuedQueries.length >= bufferLimit) {
+        clearTimer();
+        fetchData();
+      } else {
+        setTimer();
+      }
+    }
+  }, [
+    bufferLimit,
+    cache,
+    cacheKey,
+    clearTimer,
+    fetchData,
+    url,
+    queryClient,
+    readCache,
+    setTimer,
+  ]);
+
+  /**
+   * Callers invoke this while rendering, so it must stay free of state updates and
+   * query-client writes. Doing either here updates every other hook instance sharing
+   * the cache mid-render, which React rejects when the other instance lives in a
+   * different component. The real work is deferred to `flushBuffer`.
+   */
   const buffer = useCallback(
     (aggregates: readonly AggregatableQueryKey[]) => {
-      // Track AggregatableQueryKey that we care about in this hook instance
-      const queryKeys = uniq([...prevQueryKeys.current, ...aggregates]);
-      if (queryKeys.length === prevQueryKeys.current.length) {
+      const unseen = aggregates.filter(
+        agg =>
+          !prevQueryKeys.current.includes(agg) && !pendingAggregates.current.includes(agg)
+      );
+      if (!unseen.length) {
         return;
       }
-      prevQueryKeys.current = queryKeys;
 
-      // Get queryKeys for any cached data related to these aggregates.
-      const existingQueryKeys = cache
-        .findAll({
-          queryKey: ['aggregate', cacheKey, url],
-          predicate: isQueryKeyInList(prevQueryKeys.current),
-        })
-        .map(({queryKey}) => queryKey[4] as AggregatableQueryKey);
+      pendingAggregates.current = [...pendingAggregates.current, ...unseen];
 
-      // Don't request aggregates multiple times.
-      const newQueryKeys = queryKeys.filter(agg => !existingQueryKeys.includes(agg));
-
-      // Cache sentinel data for the new cacheKeys
-      newQueryKeys
-        .map(agg => ['aggregate', cacheKey, url, 'queued', agg])
-        .forEach(queryKey => queryClient.setQueryData(queryKey, true));
-
-      if (newQueryKeys.length) {
-        setData(readCache(queryKeys));
-        // Grab anything in the queue, including the newQueryKeys
-        const existingQueuedQueries = cache.findAll({
-          queryKey: ['aggregate', cacheKey, url, 'queued'],
-        });
-        if (existingQueuedQueries.length >= bufferLimit) {
-          clearTimer();
-          fetchData();
-        } else {
-          setTimer();
-        }
-      }
+      flushTimer.current ??= setTimeout(() => {
+        flushTimer.current = null;
+        flushBuffer();
+      }, 0);
     },
-    [
-      bufferLimit,
-      cache,
-      cacheKey,
-      clearTimer,
-      fetchData,
-      url,
-      queryClient,
-      readCache,
-      setTimer,
-    ]
+    [flushBuffer]
   );
+
+  useEffect(() => {
+    return () => {
+      if (flushTimer.current) {
+        clearTimeout(flushTimer.current);
+        flushTimer.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     return cache.subscribe(result => {

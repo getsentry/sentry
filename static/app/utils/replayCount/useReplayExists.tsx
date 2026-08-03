@@ -8,7 +8,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
  */
 export function useReplayExists({start, end}: {end?: string; start?: string} = {}) {
   const organization = useOrganization();
-  const {hasOne, hasMany} = useReplayCount({
+  const {hasOne, hasMany, getMany} = useReplayCount({
     bufferLimit: 100,
     // The dataSource doesn't matter here - queries on `replay_id` skip the
     // given dataSource and go straight to `replays`.
@@ -24,7 +24,8 @@ export function useReplayExists({start, end}: {end?: string; start?: string} = {
     () => ({
       replayExists: hasOne,
       replaysExist: hasMany,
+      getReplayCounts: getMany,
     }),
-    [hasMany, hasOne]
+    [getMany, hasMany, hasOne]
   );
 }

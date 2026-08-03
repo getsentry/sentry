@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 import {QueryClientProvider, type QueryClient} from '@tanstack/react-query';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -81,7 +81,9 @@ describe('useAggregatedQueryKeys', () => {
     );
   });
 
-  it('should send a fetch request immediatly if the buffer is full', async () => {
+  it('should skip the debounce and fetch on the next tick when the buffer is full', async () => {
+    jest.useFakeTimers();
+
     const mockRequest = MockApiClient.addMockResponse({
       url: '/api-tokens/',
     });
@@ -91,15 +93,62 @@ describe('useAggregatedQueryKeys', () => {
       initialProps: {...initialProps, bufferLimit: 2},
     });
 
+    // Buffered aggregates flush on the next tick rather than during render, so let
+    // that run before asserting. One of two slots is filled, so this is still waiting
+    // on the debounce.
     result.current.buffer(['1111']);
+    await act(async () => {
+      jest.advanceTimersByTime(0);
+      await Promise.resolve();
+    });
     expect(mockRequest).not.toHaveBeenCalled();
 
     result.current.buffer(['2222', '3333']);
+    await act(async () => {
+      jest.advanceTimersByTime(0);
+      await Promise.resolve();
+    });
+
     expect(mockRequest).toHaveBeenCalled();
 
-    await waitFor(() => {
-      expect(responseReducer).toHaveBeenCalled();
+    await act(async () => {
+      jest.runOnlyPendingTimers();
+      await Promise.resolve();
     });
+    jest.useRealTimers();
+  });
+
+  it('should fetch after the debounce when the buffer never fills', async () => {
+    jest.useFakeTimers();
+
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/api-tokens/',
+    });
+
+    const {result} = renderHook(useAggregatedQueryKeys, {
+      wrapper: makeWrapper(makeTestQueryClient()),
+      initialProps: {...initialProps, bufferLimit: 50},
+    });
+
+    result.current.buffer(['1111']);
+    await act(async () => {
+      jest.advanceTimersByTime(0);
+      await Promise.resolve();
+    });
+    expect(mockRequest).not.toHaveBeenCalled();
+
+    await act(async () => {
+      jest.advanceTimersByTime(20);
+      await Promise.resolve();
+    });
+
+    expect(mockRequest).toHaveBeenCalled();
+
+    await act(async () => {
+      jest.runOnlyPendingTimers();
+      await Promise.resolve();
+    });
+    jest.useRealTimers();
   });
 
   it('should return cached data right away, if it exists in the cache', async () => {

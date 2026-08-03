@@ -33,6 +33,7 @@ import {
   LogsInfiniteTable,
 } from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {LOGS_STORED_REPLAYS_ONLY_KEY} from 'sentry/views/explore/logs/useLogsStoredReplaysOnly';
 import {createErrorLogRow} from 'sentry/views/explore/logs/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
@@ -216,6 +217,13 @@ describe('LogsInfiniteTable', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/stats/`,
+      method: 'GET',
+      body: {},
+    });
+
+    // Any row carrying a `replay_id` triggers a buffered existence lookup.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replay-count/`,
       method: 'GET',
       body: {},
     });
@@ -545,6 +553,211 @@ describe('LogsInfiniteTable', () => {
 
     await screen.findByText('abc123de');
     await screen.findByText('abc123ee');
+  });
+
+  describe('stored replays only', () => {
+    const storedReplayId = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+    const missingReplayId = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+
+    const logsWithReplays = [
+      LogFixture({
+        [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+        [OurLogKnownFieldKey.PROJECT_ID]: String(project.id),
+        [OurLogKnownFieldKey.ID]: '1',
+        [OurLogKnownFieldKey.MESSAGE]: 'log with stored replay',
+        [OurLogKnownFieldKey.REPLAY_ID]: storedReplayId,
+      }),
+      LogFixture({
+        [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+        [OurLogKnownFieldKey.PROJECT_ID]: String(project.id),
+        [OurLogKnownFieldKey.ID]: '2',
+        [OurLogKnownFieldKey.MESSAGE]: 'log with missing replay',
+        [OurLogKnownFieldKey.REPLAY_ID]: missingReplayId,
+      }),
+    ];
+
+    const routerConfig = {
+      location: {
+        pathname: `/organizations/${organization.slug}/explore/logs/`,
+        query: {
+          [LOGS_FIELDS_KEY]: visibleColumnFields,
+          [LOGS_SORT_BYS_KEY]: '-timestamp',
+          [LOGS_QUERY_KEY]: 'has:replay_id',
+          [LOGS_STORED_REPLAYS_ONLY_KEY]: '1',
+        },
+      },
+    };
+
+    function mockLogs(data: typeof logsWithReplays) {
+      return MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        method: 'GET',
+        body: {
+          data,
+          meta: {
+            fields: {
+              [OurLogKnownFieldKey.ID]: 'string',
+              [OurLogKnownFieldKey.PROJECT_ID]: 'string',
+              [OurLogKnownFieldKey.MESSAGE]: 'string',
+              [OurLogKnownFieldKey.SEVERITY_NUMBER]: 'integer',
+              [OurLogKnownFieldKey.SEVERITY]: 'string',
+              [OurLogKnownFieldKey.TIMESTAMP]: 'string',
+              [OurLogKnownFieldKey.TRACE_ID]: 'string',
+              [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 'number',
+              [OurLogKnownFieldKey.REPLAY_ID]: 'string',
+            },
+            units: {},
+          },
+        },
+      });
+    }
+
+    beforeEach(() => {
+      MockApiClient.clearMockResponses();
+      mockLogs(logsWithReplays);
+    });
+
+    it('keeps a log when its replay was stored', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/replay-count/`,
+        method: 'GET',
+        body: {[storedReplayId]: 1, [missingReplayId]: 0},
+      });
+
+      renderWithProviders(
+        <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
+        {initialRouterConfig: routerConfig}
+      );
+
+      expect(await screen.findByText('log with stored replay')).toBeInTheDocument();
+    });
+
+    it('hides a log when its replay was never stored', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/replay-count/`,
+        method: 'GET',
+        body: {[storedReplayId]: 1, [missingReplayId]: 0},
+      });
+
+      renderWithProviders(
+        <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
+        {initialRouterConfig: routerConfig}
+      );
+
+      await screen.findByText('log with stored replay');
+
+      await waitFor(() => {
+        expect(screen.queryByText('log with missing replay')).not.toBeInTheDocument();
+      });
+    });
+
+    it('keeps a log while its replay existence is still unresolved', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/replay-count/`,
+        method: 'GET',
+        body: {},
+      });
+
+      renderWithProviders(
+        <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
+        {initialRouterConfig: routerConfig}
+      );
+
+      expect(await screen.findByText('log with missing replay')).toBeInTheDocument();
+    });
+
+    it('falls through to the empty state when every loaded log is missing its replay', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/replay-count/`,
+        method: 'GET',
+        body: {[storedReplayId]: 0, [missingReplayId]: 0},
+      });
+
+      renderWithProviders(
+        <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
+        {initialRouterConfig: routerConfig}
+      );
+
+      expect(await screen.findByText('No logs found')).toBeInTheDocument();
+    });
+
+    it('requests replay_id even when the column is not selected', async () => {
+      const eventsMock = mockLogs(logsWithReplays);
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/replay-count/`,
+        method: 'GET',
+        body: {[storedReplayId]: 1, [missingReplayId]: 0},
+      });
+
+      renderWithProviders(
+        <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
+        {initialRouterConfig: routerConfig}
+      );
+
+      await screen.findByText('log with stored replay');
+
+      expect(eventsMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/events/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: expect.arrayContaining([OurLogKnownFieldKey.REPLAY_ID]),
+          }),
+        })
+      );
+    });
+
+    it('leaves every log visible when the query no longer references replays', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/replay-count/`,
+        method: 'GET',
+        body: {[storedReplayId]: 1, [missingReplayId]: 0},
+      });
+
+      renderWithProviders(
+        <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
+        {
+          initialRouterConfig: {
+            location: {
+              ...routerConfig.location,
+              query: {
+                [LOGS_FIELDS_KEY]: visibleColumnFields,
+                [LOGS_SORT_BYS_KEY]: '-timestamp',
+                [LOGS_QUERY_KEY]: 'severity:error',
+                [LOGS_STORED_REPLAYS_ONLY_KEY]: '1',
+              },
+            },
+          },
+        }
+      );
+
+      expect(await screen.findByText('log with missing replay')).toBeInTheDocument();
+    });
+
+    it('leaves every log visible when the filter is off', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/replay-count/`,
+        method: 'GET',
+        body: {[storedReplayId]: 1, [missingReplayId]: 0},
+      });
+
+      renderWithProviders(
+        <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
+        {
+          initialRouterConfig: {
+            location: {
+              ...routerConfig.location,
+              query: {
+                [LOGS_FIELDS_KEY]: visibleColumnFields,
+                [LOGS_SORT_BYS_KEY]: '-timestamp',
+                [LOGS_QUERY_KEY]: 'has:replay_id',
+              },
+            },
+          },
+        }
+      );
+
+      expect(await screen.findByText('log with missing replay')).toBeInTheDocument();
+    });
   });
 
   it('renders a pin button on a row when hovering', async () => {
