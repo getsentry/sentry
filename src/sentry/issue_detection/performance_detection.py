@@ -678,7 +678,7 @@ DETECTOR_CLASSES: list[type[PerformanceDetector]] = [
 
 
 def _detect_performance_problems(
-    data: dict[str, Any], sdk_span: Any, project: Project, standalone: bool = False
+    data: dict[str, Any], sdk_span: Span | StreamedSpan, project: Project, standalone: bool = False
 ) -> list[PerformanceProblem]:
     event_id = data.get("event_id", None)
     organization = project.organization
