@@ -289,7 +289,7 @@ describe('InboxPage', () => {
               project: [-1],
               query,
               sort: 'progress',
-              limit: 5,
+              limit: 10,
               collapse: ['stats', 'unhandled'],
             },
           })
@@ -495,7 +495,7 @@ describe('InboxPage', () => {
       body: [fixProposedGroup],
       headers: {
         'X-Hits': '2',
-        Link: '<http://localhost/?cursor=0:5:0>; rel="next"; results="true"; cursor="0:5:0"',
+        Link: '<http://localhost/?cursor=0:10:0>; rel="next"; results="true"; cursor="0:10:0"',
       },
     });
     MockApiClient.addMockResponse({
@@ -503,8 +503,7 @@ describe('InboxPage', () => {
       match: [
         MockApiClient.matchQuery({
           query: 'issue.progress:fix_proposed assigned:[me,my_teams]',
-          cursor: '0:5:0',
-          limit: 10,
+          cursor: '0:10:0',
         }),
       ],
       body: [nextFixProposedGroup],
