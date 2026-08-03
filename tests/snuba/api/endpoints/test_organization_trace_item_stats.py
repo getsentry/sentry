@@ -10,7 +10,6 @@ from sentry.testutils.cases import (
 )
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.eap import EAP_DEFAULT_STATS_PERIOD
 from sentry.testutils.helpers.options import override_options
 
 
@@ -31,8 +30,6 @@ class OrganizationTraceItemStatsEndpointTest(
     def do_request(self, query=None, features=None, **kwargs):
         if query:
             query.setdefault("sampling", "HIGHEST_ACCURACY")
-            if not query.keys() & {"statsPeriod", "start", "end"}:
-                query["statsPeriod"] = EAP_DEFAULT_STATS_PERIOD
 
         response = self.client.get(
             reverse(

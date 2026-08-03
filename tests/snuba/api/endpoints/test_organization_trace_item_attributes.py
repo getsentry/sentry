@@ -33,7 +33,6 @@ from sentry.testutils.cases import (
 )
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.eap import apply_eap_default_stats_period
 from sentry.testutils.helpers.options import override_options
 
 
@@ -101,7 +100,6 @@ class OrganizationTraceItemAttributesEndpointTestBase(APITestCase, SnubaTestCase
             query = {}
         if "dataset" not in query:
             query["dataset"] = self.item_type.value
-        apply_eap_default_stats_period(query)
 
         if features is None:
             features = self.feature_flags
@@ -1834,7 +1832,6 @@ class OrganizationTraceItemAttributeValuesEndpointBaseTest(APITestCase, SnubaTes
             query["dataset"] = self.item_type.value
         if "attributeType" not in query:
             query["attributeType"] = "string"
-        apply_eap_default_stats_period(query)
 
         if features is None:
             features = self.feature_flags

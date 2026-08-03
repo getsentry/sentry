@@ -3,7 +3,6 @@ from datetime import timedelta
 from django.urls import reverse
 
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.eap import apply_eap_default_stats_period
 from tests.snuba.api.endpoints.test_organization_events import (
     OrganizationEventsEndpointTestBase,
 )
@@ -33,7 +32,6 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
         )
 
     def _do_request(self, data, url=None, features=None):
-        apply_eap_default_stats_period(data)
         return self.client.get(self.url if url is None else url, data=data, format="json")
 
     def test_simple(self) -> None:

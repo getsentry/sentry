@@ -8,7 +8,6 @@ from sentry.explore.models import (
 from sentry.search.eap.trace_metrics.types import TraceMetricType
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TraceMetricsTestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.eap import EAP_DEFAULT_STATS_PERIOD
 
 
 class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase, SnubaTestCase):
@@ -62,8 +61,6 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
             features = self.feature_flags
         if query is None:
             query = {"project": self.project.id}
-        if not query.keys() & {"statsPeriod", "start", "end"}:
-            query = {**query, "statsPeriod": EAP_DEFAULT_STATS_PERIOD}
         url = reverse(self.viewname, kwargs={"organization_id_or_slug": self.organization.slug})
         with self.feature(features):
             return self.client.get(
