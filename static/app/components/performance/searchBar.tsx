@@ -1,4 +1,4 @@
-import {useCallback, useRef, useState} from 'react';
+import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -53,7 +53,7 @@ export function SearchBar(props: SearchBarProps) {
   const [loading, setLoading] = useState(false);
   const [searchString, setSearchString] = useState(searchQuery);
   const containerRef = useRef<HTMLDivElement>(null);
-  useOnClickOutside(containerRef, useCallback(closeDropdown, []));
+  useOnClickOutside(containerRef, closeDropdown);
 
   const api = useApi();
   const eventView = _eventView.clone();
