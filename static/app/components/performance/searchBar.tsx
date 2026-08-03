@@ -138,6 +138,7 @@ export function SearchBar(props: SearchBarProps) {
 
   const projectIdStringsKey = projectIdStrings.join(',');
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const getSuggestedTransactions = useCallback(
     debounce(
       async query => {
