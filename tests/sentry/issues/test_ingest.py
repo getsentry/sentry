@@ -135,15 +135,11 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         This happens for span-based performance issue detection where the
         environment tag exists in span metadata but was never registered."""
         env_name = "SRT"
-        event = self.store_event(
-            data={"environment": env_name}, project_id=self.project.id
-        )
+        event = self.store_event(data={"environment": env_name}, project_id=self.project.id)
         # Delete the Environment record that store_event created, simulating the
         # case where a span-based occurrence references an environment that was
         # never persisted (e.g. performance issues detected from spans).
-        Environment.objects.filter(
-            organization_id=self.organization.id, name=env_name
-        ).delete()
+        Environment.objects.filter(organization_id=self.organization.id, name=env_name).delete()
         assert not Environment.objects.filter(
             organization_id=self.organization.id, name=env_name
         ).exists()
@@ -157,9 +153,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert Environment.objects.filter(
             organization_id=self.organization.id, name=env_name
         ).exists()
-        environment = Environment.objects.get(
-            organization_id=self.organization.id, name=env_name
-        )
+        environment = Environment.objects.get(organization_id=self.organization.id, name=env_name)
         assert GroupEnvironment.objects.filter(
             group=group_info.group, environment=environment
         ).exists()
