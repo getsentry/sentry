@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, TypeAlias, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
@@ -17,12 +17,21 @@ from sentry.types.activity import ActivityType
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 
+ActivityId: TypeAlias = int
+
 
 class _ActivitySentryAppEmbed(TypedDict):
     id: str
     name: str
     slug: str
     avatars: list[SentryAppAvatarSerializerResponse]
+
+
+class ResolvedMention(TypedDict):
+    """A Sentry user @mentioned by an activity, resolved from the stored id ref."""
+
+    name: str
+    email: str
 
 
 class ActivitySerializerResponse(TypedDict):
@@ -59,9 +68,10 @@ PULL_REQUEST_ACTIVITY_TYPES = {
 }
 
 
-def _resolve_mentioned_users(activities: list[Activity]) -> dict[int, list[dict[str, str]]]:
-    """The Sentry users each activity @mentions, as ``{"name", "email"}`` keyed by activity
-    id, resolved in one batch.
+def _resolve_mentioned_users(
+    activities: list[Activity],
+) -> dict[ActivityId, list[ResolvedMention]]:
+    """The Sentry users each activity @mentions, keyed by activity id, resolved in one batch.
 
     Mentions are stored as ``{"id", "actor_type"}`` refs; a team ref, or a row that embedded
     a whole serialized user instead of a ref, is skipped.
@@ -177,7 +187,9 @@ class ActivitySerializer(Serializer):
             ).items()
         }
 
-        mentions = _resolve_mentioned_users(item_list) if self.resolve_mentions else {}
+        mentions: dict[ActivityId, list[ResolvedMention]] = (
+            _resolve_mentioned_users(item_list) if self.resolve_mentions else {}
+        )
 
         return {
             item: {
