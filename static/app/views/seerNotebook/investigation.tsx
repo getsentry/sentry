@@ -1636,6 +1636,7 @@ function SortableCellContent({
                       }
                       setDraft(current => ({
                         ...current,
+                        content: '',
                         generationPrompt: event.target.value,
                       }));
                     }}

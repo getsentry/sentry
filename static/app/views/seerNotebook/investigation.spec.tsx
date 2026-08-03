@@ -174,6 +174,42 @@ describe('SeerInvestigation', () => {
     });
   });
 
+  it('keeps a legacy query empty after deleting all of its text', async () => {
+    const queryCell = InvestigationCellFixture({
+      id: 'query-cell',
+      kind: 'query',
+      content: 'Show unresolved errors',
+      generationPrompt: '',
+    });
+    const withLegacyQuery = InvestigationDetailFixture({cells: [queryCell]});
+    const updateRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/investigations/${withLegacyQuery.id}/cells/${queryCell.id}/`,
+      method: 'PUT',
+      body: {
+        ...queryCell,
+        content: '',
+        generationPrompt: '',
+        version: queryCell.version + 1,
+      },
+    });
+    renderInvestigation(withLegacyQuery);
+
+    const queryEditor = await screen.findByRole('textbox', {name: 'Query cell 1'});
+    expect(queryEditor).toHaveValue('Show unresolved errors');
+
+    await userEvent.clear(queryEditor);
+
+    expect(queryEditor).toHaveValue('');
+    expect(screen.getByRole('button', {name: 'Run'})).toBeDisabled();
+    await waitFor(() => expect(updateRequest).toHaveBeenCalled(), {timeout: 2000});
+    expect(updateRequest).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({content: '', generationPrompt: ''}),
+      })
+    );
+  });
+
   it('runs a query cell through its durable execution endpoint', async () => {
     const queryCell = InvestigationCellFixture({
       id: 'query-cell',
