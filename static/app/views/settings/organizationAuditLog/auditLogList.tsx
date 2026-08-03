@@ -35,7 +35,7 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {
   projectDetectorSettingsId,
   retentionPrioritiesLabels,
-} from 'sentry/views/settings/projectPerformance/projectPerformance';
+} from 'sentry/views/settings/projectPerformance';
 
 const avatarStyle = {
   width: 36,

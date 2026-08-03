@@ -22,7 +22,7 @@ import {
   allowedSizeValues,
   DetectorConfigCustomer,
   ProjectPerformance,
-} from 'sentry/views/settings/projectPerformance/projectPerformance';
+} from 'sentry/views/settings/projectPerformance';
 
 const manageDetectorData = [
   {label: 'N+1 DB Queries Detection', key: 'n_plus_one_db_queries_detection_enabled'},
