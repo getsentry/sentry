@@ -576,6 +576,7 @@ def create_dif_from_id(
     """
     if file is not None:
         file_size = file.size
+        assert file_size is not None
         checksum = file.checksum
         assert checksum is not None
     elif fileobj is not None:
@@ -619,13 +620,6 @@ def create_dif_from_id(
             file.headers["Content-Type"] = content_type
             file.save()
 
-        metrics.distribution(
-            "storage.put.size",
-            file.size,
-            tags={"usecase": "debug_files", "compression": "none"},
-            unit="byte",
-        )
-
     objectstore_metadata: dict[str, Any] = {}
     session: Session | None = None
     storage_path: str | None = None
@@ -663,13 +657,12 @@ def create_dif_from_id(
                 "date_created": timezone.now(),
             }
 
-    if exclusive_objectstore_write:
-        metrics.distribution(
-            "storage.put.size",
-            file_size,
-            tags={"usecase": "debug_files", "compression": "none"},
-            unit="byte",
-        )
+    metrics.distribution(
+        "storage.put.size",
+        file_size,
+        tags={"usecase": "debug_files", "compression": "none"},
+        unit="byte",
+    )
 
     try:
         dif = ProjectDebugFile.objects.create(
