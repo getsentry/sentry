@@ -116,11 +116,11 @@ def fetch_conversation_title(
 
 def fetch_conversation_titles(
     conversation_project_pairs: Collection[tuple[str, int]],
-) -> dict[str, str]:
-    """One winning title per conversation_id among the given pairs.
+) -> dict[tuple[str, int], str]:
+    """Look up stored titles for the given (conversation_id, project_id) pairs.
 
-    Same selection as ``fetch_conversation_title``. Only requested pairs participate;
-    untitled conversations are absent from the result.
+    A conversation id is only unique within a project, so callers must key on the
+    pair. Pairs without a titled row are simply absent from the result.
     """
     if not conversation_project_pairs:
         return {}
@@ -138,16 +138,16 @@ def fetch_conversation_titles(
             title__isnull=False,
         )
         .exclude(title="")
-        .order_by(*TITLE_ORDER_BY)
         .values_list("conversation_id_hash", "project_id", "title")
     )
 
-    # Filter is hashes × projects; drop unrequested pairs. Order makes setdefault win.
-    titles: dict[str, str] = {}
+    # The filter matches the cross product of the hashes and the projects, so drop
+    # any (conversation, project) combination the caller did not ask about.
+    titles: dict[tuple[str, int], str] = {}
     for row_hash, project_id, title in rows:
-        conversation_id = conversation_id_by_hash[row_hash]
-        if (conversation_id, project_id) in requested_pairs:
-            titles.setdefault(conversation_id, title)
+        pair = (conversation_id_by_hash[row_hash], project_id)
+        if pair in requested_pairs:
+            titles[pair] = title
 
     return titles
 
