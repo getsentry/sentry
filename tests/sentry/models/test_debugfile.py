@@ -555,7 +555,7 @@ class CreateDebugFileTest(APITestCase):
         assert created
         with (
             self.feature("organizations:objectstore-debugfiles-read"),
-            patch.object(dif, "_get_objectstore_session") as get_session,
+            patch.object(dif, "get_objectstore_session") as get_session,
         ):
             get_session.return_value.get.side_effect = RuntimeError("Objectstore unavailable")
             with pytest.raises(RuntimeError):
