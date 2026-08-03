@@ -1,6 +1,7 @@
 import json  # noqa: S003
 from datetime import timedelta
 from typing import Any
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from django.urls import reverse
@@ -1527,7 +1528,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert response.data[0]["title"] is None
 
     def test_title_for_conversation_spanning_projects(self) -> None:
-        """When a conversation spans projects, the lowest project id with a title wins."""
+        """Equal source timestamps: lowest project id breaks the tie."""
         now = before_now(days=25).replace(microsecond=0)
         conversation_id = uuid4().hex
         lower_project = self.create_project(organization=self.organization)
@@ -1565,6 +1566,45 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert len(response.data) == 1
         assert response.data[0]["title"] == "Lower project id title"
 
+    def test_title_earliest_source_timestamp_wins_across_projects(self) -> None:
+        """Across projects, earliest title_source_timestamp wins (not lowest project id)."""
+        now = before_now(days=25).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        lower_project = self.create_project(organization=self.organization)
+        higher_project = self.create_project(organization=self.organization)
+        assert lower_project.id < higher_project.id
+
+        self._store_conversation_span(
+            conversation_id, now - timedelta(seconds=2), project=lower_project
+        )
+        self._store_conversation_span(
+            conversation_id, now - timedelta(seconds=1), project=higher_project
+        )
+
+        self.create_ai_conversation_metadata(
+            project=lower_project,
+            conversation_id=conversation_id,
+            title="Later titled project",
+            title_source_timestamp=now - timedelta(seconds=1),
+        )
+        self.create_ai_conversation_metadata(
+            project=higher_project,
+            conversation_id=conversation_id,
+            title="Earlier titled project",
+            title_source_timestamp=now - timedelta(seconds=2),
+        )
+
+        query = {
+            "project": [lower_project.id, higher_project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+        assert len(response.data) == 1
+        assert response.data[0]["title"] == "Earlier titled project"
+
     def test_title_found_when_only_higher_project_id_has_one(self) -> None:
         """Every project the conversation spans is searched, not just the lowest."""
         now = before_now(days=25).replace(microsecond=0)
@@ -1597,3 +1637,27 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert response.status_code == 200, response.data
         assert len(response.data) == 1
         assert response.data[0]["title"] == "Higher project id title"
+
+    @patch(
+        "sentry.api.endpoints.organization_ai_conversations.fetch_conversation_titles",
+        side_effect=Exception("metadata unavailable"),
+    )
+    def test_title_lookup_failure_does_not_break_list(
+        self, mock_fetch_conversation_titles: MagicMock
+    ) -> None:
+        now = before_now(days=25).replace(microsecond=0)
+        conversation_id = uuid4().hex
+
+        self._store_conversation_span(conversation_id, now)
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+        assert len(response.data) == 1
+        assert response.data[0]["title"] is None
+        assert mock_fetch_conversation_titles.call_count == 1
