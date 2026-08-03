@@ -172,11 +172,15 @@ class UserResolutionTest(AuthIdentityHandlerTest):
 
 @control_silo_test
 class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
-    @mock.patch("sentry.analytics.record")
-    def test_skip_confirm_emails_suppresses_email(self, mock_record: mock.MagicMock) -> None:
+    def test_skip_confirm_emails_suppresses_email(self) -> None:
         with mock.patch.object(User, "send_confirm_emails") as mock_send:
             self.handler.handle_new_user(skip_confirm_emails=True)
         mock_send.assert_not_called()
+
+    def test_confirm_emails_sent_by_default(self) -> None:
+        with mock.patch.object(User, "send_confirm_emails") as mock_send:
+            self.handler.handle_new_user()
+        mock_send.assert_called_once()
 
     @mock.patch("sentry.analytics.record")
     def test_simple(self, mock_record: mock.MagicMock) -> None:
