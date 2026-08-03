@@ -1703,10 +1703,10 @@ register(
 )
 
 # Brownout schedule for the deprecated alerts API endpoints.
-# 5 minute blackout 24 times a day (every hour, on the hour, UTC).
+# 5 minute blackout every half hour
 register(
     "api.deprecation.alerts-cron",
-    default="0 * * * *",
+    default="0 30 * * *",
     type=String,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
