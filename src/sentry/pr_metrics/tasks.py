@@ -13,6 +13,7 @@ from taskbroker_client.retry import Retry
 from urllib3.exceptions import HTTPError
 
 from sentry import features
+from sentry.integrations.github.utils import is_github_rate_limit_sensitive
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
     PullRequest,
@@ -29,6 +30,7 @@ from sentry.pr_metrics.activity_doc import (
 )
 from sentry.pr_metrics.emit import NO_REVIEWER_ENGAGEMENT, emit_pr_metrics_row
 from sentry.pr_metrics.judge import forward_pr_to_seer_judge, reap_stuck_judge_verdicts
+from sentry.scm.pull_request_files import fetch_pr_file_stats
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_code_review_tasks
@@ -94,6 +96,68 @@ def forward_pr_to_seer_task(
         return
 
     forward_pr_to_seer_judge(pull_request, repository)
+
+
+# fetch_pr_file_stats_task blocks on a GitHub API call (ApiClient's 30s timeout).
+# Same reasoning as FORWARD_PROCESSING_DEADLINE: give the task headroom past that
+# instead of the taskbroker client's 10s default, so the broker can't decide the
+# worker is dead and redeliver — a redelivery would re-issue the GitHub call for
+# an org we just rate-limit-guarded.
+FILE_STATS_PROCESSING_DEADLINE = 45
+
+
+@instrumented_task(
+    name="sentry.pr_metrics.tasks.fetch_pr_file_stats",
+    namespace=seer_code_review_tasks,
+    processing_deadline_duration=FILE_STATS_PROCESSING_DEADLINE,
+    silo_mode=SiloMode.CELL,
+)
+def fetch_pr_file_stats_task(
+    *,
+    pull_request_id: int,
+    organization_id: int,
+    repository_id: int,
+) -> None:
+    """Fetch per-file diff stats for an autofix-linked PR and store them on its
+    existing ``PullRequestMetrics`` row.
+
+    Best-effort: every guard is an early return and the row is never created here
+    — it belongs to the ``pr-metrics-emit`` pipeline, so a PR without one is a
+    no-op rather than a partially-populated row.
+    """
+    log_extra = {
+        "pull_request_id": pull_request_id,
+        "organization_id": organization_id,
+        "repository_id": repository_id,
+    }
+    # Scope every lookup to the claimed org, matching the rest of the pipeline.
+    try:
+        organization = Organization.objects.get(id=organization_id)
+        pull_request = PullRequest.objects.get(
+            id=pull_request_id,
+            organization_id=organization_id,
+            repository_id=repository_id,
+        )
+        repository = Repository.objects.get(id=repository_id, organization_id=organization_id)
+    except (Organization.DoesNotExist, PullRequest.DoesNotExist, Repository.DoesNotExist):
+        logger.warning("pr_file_stats.task.entity_not_found", extra=log_extra)
+        return
+
+    if not features.has("organizations:pr-file-stats", organization):
+        return
+
+    # Only PRs Seer opened are worth the extra GitHub call.
+    if not pull_request.seer_run_links.exists():
+        return
+
+    if is_github_rate_limit_sensitive(organization.slug):
+        return
+
+    if not PullRequestMetrics.objects.filter(pull_request=pull_request).exists():
+        return
+
+    file_stats = fetch_pr_file_stats(organization, repository, pull_request.key)
+    PullRequestMetrics.objects.filter(pull_request=pull_request).update(file_stats=file_stats)
 
 
 @instrumented_task(
