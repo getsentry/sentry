@@ -1,8 +1,13 @@
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field, replace
-from typing import Any
+from typing import Any, TypedDict
 
 from sentry.workflow_engine.types import ConditionError
+
+
+class EvaluationLog(TypedDict):
+    triggered: bool
+    error: str | None
 
 
 def _find_error(
@@ -44,6 +49,13 @@ class BaseWorkflowEngineEvaluation[R, D]:
         evaluation.
         """
         return self.error is not None
+
+    def to_log(self) -> EvaluationLog:
+        """Return the common, logger-safe fields for an evaluation."""
+        return {
+            "triggered": self.triggered,
+            "error": self.error.msg if self.error else None,
+        }
 
     def with_error(self, error: ConditionError) -> "BaseWorkflowEngineEvaluation[R, D]":
         """
