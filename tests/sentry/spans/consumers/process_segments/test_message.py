@@ -6,6 +6,15 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 
+from sentry.issue_detection.detectors.span_first.run_detectors import run_span_first_detectors
+from sentry.issue_detection.detectors.span_first.span_first_utils import (
+    SPAN_FIRST_DETECTORS_ENABLEMENT_OPTION,
+    SpanFirstDetectorsRolloutController,
+)
+from sentry.issue_detection.performance_detection import (
+    detect_performance_problems,
+    get_detection_settings,
+)
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.environment import Environment
 from sentry.models.release import Release
@@ -277,6 +286,44 @@ class TestSpansTask(TestCase):
             ).hexdigest()
         ]
         assert performance_problem.type == PerformanceNPlusOneGroupType
+
+    def test_detector_settings_only_fetched_once(self) -> None:
+        spans = self.generate_basic_spans()
+        detection_settings = get_detection_settings(self.project)
+
+        with (
+            override_options(
+                {
+                    "spans.process-segments.detect-performance-problems.enable": True,
+                    SPAN_FIRST_DETECTORS_ENABLEMENT_OPTION: True,
+                }
+            ),
+            mock.patch.object(
+                SpanFirstDetectorsRolloutController, "should_check_experiment", return_value=True
+            ),
+            mock.patch(
+                "sentry.spans.consumers.process_segments.message.get_detection_settings",
+                return_value=detection_settings,
+            ) as mock_get_detection_settings,
+            mock.patch(
+                "sentry.spans.consumers.process_segments.message.detect_performance_problems",
+                wraps=detect_performance_problems,
+            ) as legacy_detectors_spy,
+            mock.patch(
+                "sentry.spans.consumers.process_segments.message.run_span_first_detectors",
+                wraps=run_span_first_detectors,
+            ) as span_first_detectors_spy,
+        ):
+            process_segment(spans)
+
+            assert mock_get_detection_settings.call_count == 1
+            mock_get_detection_settings.assert_called_with(self.project)
+
+            legacy_settings = legacy_detectors_spy.call_args.kwargs["detection_settings"]
+            span_first_settings = span_first_detectors_spy.call_args.args[3]
+
+            assert legacy_settings is detection_settings
+            assert span_first_settings is detection_settings
 
     @mock.patch("sentry.spans.consumers.process_segments.message.track_outcome")
     @pytest.mark.skip("temporarily disabled")
