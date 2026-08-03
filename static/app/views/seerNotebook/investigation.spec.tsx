@@ -702,6 +702,72 @@ describe('SeerInvestigation', () => {
     expect(screen.getByRole('heading', {name: 'Hello'})).toBeInTheDocument();
   });
 
+  it('runs a text-cell prompt inline and shows its linked context', async () => {
+    const textCell = InvestigationCellFixture({
+      id: 'text-cell',
+      kind: 'text',
+      content: 'Existing notes',
+      generationPrompt: 'Summarize the most important change as Markdown.',
+      dependencies: ['query-cell'],
+      outputStatus: 'notRun',
+      version: 3,
+    });
+    const withTextPrompt = InvestigationDetailFixture({
+      cells: [textCell],
+      version: 7,
+    });
+    const executeRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/investigations/${withTextPrompt.id}/cells/${textCell.id}/execute/`,
+      method: 'POST',
+      body: {id: 'execution-1', status: 'running'},
+    });
+    renderInvestigation(withTextPrompt);
+
+    expect(
+      await screen.findByRole('textbox', {name: 'Text generation prompt 1'})
+    ).toHaveValue('Summarize the most important change as Markdown.');
+    expect(screen.getByText('Uses 1 linked cell(s) as context.')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Generate'}));
+
+    await waitFor(() => expect(executeRequest).toHaveBeenCalled());
+    expect(executeRequest).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: {
+          investigationVersion: 7,
+          requestId: expect.any(String),
+          version: 3,
+        },
+      })
+    );
+  });
+
+  it('restores an in-cell text generation state after reload', async () => {
+    const textCell = InvestigationCellFixture({
+      id: 'text-cell',
+      kind: 'text',
+      content: 'Previous summary',
+      generationPrompt: 'Rewrite this summary.',
+      outputStatus: 'running',
+      currentExecution: {
+        id: 'execution-1',
+        status: 'running',
+        executor: 'text_generation',
+        schemaVersion: 1,
+        error: null,
+        startedAt: '2026-08-03T12:00:00Z',
+        completedAt: null,
+      },
+    });
+    renderInvestigation(InvestigationDetailFixture({cells: [textCell]}));
+
+    const runningButton = await screen.findByRole('button', {name: 'Running'});
+    expect(runningButton).toBeDisabled();
+    expect(runningButton).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByText('Writing Markdown…')).toBeInTheDocument();
+    expect(screen.getByText('Previous summary')).toBeInTheDocument();
+  });
+
   it('inserts a cell between existing cells and persists the new order', async () => {
     const secondCell = InvestigationCellFixture({
       id: 'second-cell',

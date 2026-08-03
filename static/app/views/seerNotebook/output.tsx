@@ -125,6 +125,48 @@ export function PersistedCellOutput({
   );
 }
 
+export function TextCellExecutionOutput({
+  canRetry,
+  cell,
+  onRetry,
+}: {
+  canRetry: boolean;
+  cell: InvestigationCell;
+  onRetry: () => Promise<void>;
+}) {
+  if (cell.outputStatus === 'notRun' || cell.outputStatus === 'available') {
+    return null;
+  }
+  if (cell.outputStatus === 'restricted') {
+    return (
+      <OutputMessage>
+        {t('This generated text uses project data you do not have permission to view.')}
+      </OutputMessage>
+    );
+  }
+  if (cell.outputStatus === 'failed') {
+    const message =
+      cell.currentExecution?.error?.message ?? t('The text generation failed.');
+    return (
+      <ErrorOutput role="alert" align="center" justify="between" gap="lg" wrap="wrap">
+        <Stack gap="xs">
+          <Text bold>{t('Generation failed')}</Text>
+          <Text size="sm">{message}</Text>
+        </Stack>
+        <Button
+          size="xs"
+          variant="secondary"
+          disabled={!canRetry}
+          onClick={() => void onRetry()}
+        >
+          {t('Retry')}
+        </Button>
+      </ErrorOutput>
+    );
+  }
+  return <OutputMessage>{t('Writing Markdown…')}</OutputMessage>;
+}
+
 function ExecutionProgress() {
   const stages = [
     t('Choosing where to look'),

@@ -29,6 +29,7 @@ export type InvestigationDisplay = {
   type: InvestigationDisplayType;
   axisLabel?: string;
   defaultView?: 'table' | 'chart' | 'both';
+  promptCollapsed?: boolean;
   queryCollapsed?: boolean;
   seriesField?: string;
   showLegend?: boolean;

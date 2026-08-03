@@ -93,7 +93,7 @@ import {
   updatePermissions,
 } from './api';
 import {CellComments} from './comments';
-import {PersistedCellOutput} from './output';
+import {PersistedCellOutput, TextCellExecutionOutput} from './output';
 import {InvestigationParameters} from './parameters';
 import {InvestigationSettings} from './settings';
 import type {
@@ -1159,12 +1159,17 @@ function SortableCellContent({
   const suggestionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const displaySaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isStreamingSuggestionRef = useRef(false);
+  const previousOutputStatusRef = useRef(cell.outputStatus);
   const queryIntent = draft.generationPrompt || draft.content;
   const savedQueryIntent = cell.generationPrompt || cell.content;
-  const queryHasChanged = Boolean(cell.staleAt) || queryIntent !== savedQueryIntent;
+  const executionIntent = cell.kind === 'query' ? queryIntent : draft.generationPrompt;
+  const savedExecutionIntent =
+    cell.kind === 'query' ? savedQueryIntent : cell.generationPrompt;
+  const executionHasChanged =
+    Boolean(cell.staleAt) || executionIntent !== savedExecutionIntent;
   const isExecutionRunning = ['pending', 'running'].includes(cell.outputStatus);
   const isRunBusy = isRunRequested || isExecutionRunning;
-  const runVariant = queryHasChanged
+  const runVariant = executionHasChanged
     ? 'warning'
     : cell.outputStatus === 'available'
       ? 'secondary'
@@ -1187,6 +1192,38 @@ function SortableCellContent({
     },
     [cell, disabled, onSave]
   );
+
+  useEffect(() => {
+    const incoming = {
+      title: cell.title,
+      content: cell.content,
+      generationPrompt: cell.generationPrompt,
+      display: cell.display,
+    };
+    const incomingSerialized = JSON.stringify(incoming);
+    setDraft(current => {
+      if (
+        JSON.stringify(current) !== saved.current ||
+        incomingSerialized === saved.current
+      ) {
+        return current;
+      }
+      saved.current = incomingSerialized;
+      return incoming;
+    });
+  }, [cell.content, cell.display, cell.generationPrompt, cell.title]);
+
+  useEffect(() => {
+    const previousStatus = previousOutputStatusRef.current;
+    previousOutputStatusRef.current = cell.outputStatus;
+    if (
+      cell.kind === 'text' &&
+      ['pending', 'running'].includes(previousStatus) &&
+      cell.outputStatus === 'available'
+    ) {
+      setIsEditingText(false);
+    }
+  }, [cell.kind, cell.outputStatus]);
   useEffect(
     () => () => {
       if (displaySaveTimerRef.current) {
@@ -1241,8 +1278,8 @@ function SortableCellContent({
     }, 400);
   };
 
-  const runQuery = async () => {
-    if (isRunBusy || !queryIntent.trim() || !queryExecutionEnabled) {
+  const runCell = async () => {
+    if (isRunBusy || !executionIntent.trim() || !queryExecutionEnabled) {
       return;
     }
     setIsRunRequested(true);
@@ -1476,110 +1513,180 @@ function SortableCellContent({
       </CellActionsRail>
       <CellSurface $kind={cell.kind} $isDragging={sortable.isDragging}>
         {cell.kind === 'text' ? (
-          <TextCellBody>
-            {isEditingText ? (
-              <TextEditorWrap>
-                <CellInput
-                  ref={textInputRef}
-                  $kind="text"
-                  aria-label={t('Text cell %s', index + 1)}
-                  autosize
-                  autoFocus={!draft.content}
-                  rows={Math.max(2, draft.content.split('\n').length)}
-                  maxRows={24}
-                  placeholder={t("Type '/' for commands")}
-                  value={draft.content}
-                  onChange={event => {
-                    const content = event.target.value;
-                    const nextShowSlashMenu =
-                      content.split('\n').at(-1)?.startsWith('/') ?? false;
-                    setDraft(current => ({...current, content}));
-                    if (showSlashMenu !== nextShowSlashMenu) {
-                      setShowSlashMenu(nextShowSlashMenu);
+          <Fragment>
+            <QueryPromptDisclosure
+              size="sm"
+              expanded={!draft.display.promptCollapsed}
+              onExpandedChange={expanded =>
+                persistDisplay({
+                  ...draft.display,
+                  version: 1,
+                  promptCollapsed: !expanded,
+                })
+              }
+            >
+              <Disclosure.Title
+                trailingItems={
+                  <QueryRunButton
+                    $hidden={isDragActive}
+                    size="xs"
+                    variant={runVariant}
+                    icon={<IconPlay size="xs" />}
+                    busy={isRunBusy}
+                    disabled={
+                      isExecutionRunning ||
+                      !draft.generationPrompt.trim() ||
+                      !queryExecutionEnabled
                     }
-                    if (nextShowSlashMenu && slashCommandIndex !== 0) {
-                      setSlashCommandIndex(0);
-                    }
-                  }}
-                  onKeyDown={event => {
-                    if (!showSlashMenu || !filteredSlashCommands.length) {
-                      return;
-                    }
-                    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-                      event.preventDefault();
-                      const direction = event.key === 'ArrowDown' ? 1 : -1;
-                      setSlashCommandIndex(
-                        current =>
-                          (current + direction + filteredSlashCommands.length) %
-                          filteredSlashCommands.length
-                      );
-                    } else if (event.key === 'Enter') {
-                      event.preventDefault();
-                      selectSlashCommand(
-                        filteredSlashCommands[
-                          Math.min(slashCommandIndex, filteredSlashCommands.length - 1)
-                        ]!
-                      );
-                    } else if (event.key === 'Escape') {
-                      event.preventDefault();
-                      setShowSlashMenu(false);
-                    }
-                  }}
-                  onBlur={event => {
-                    if (slashMenuRef.current?.contains(event.relatedTarget)) {
-                      return;
-                    }
-                    saveOnBlur();
-                    if (draft.content) {
-                      setIsEditingText(false);
-                    }
-                    setShowSlashMenu(false);
-                  }}
-                />
-                {showSlashMenu ? (
-                  <SlashCommandMenu ref={slashMenuRef} role="listbox">
-                    {filteredSlashCommands.map((command, commandIndex) => (
-                      <SlashCommandButton
-                        key={command.key}
-                        type="button"
-                        role="option"
-                        aria-selected={commandIndex === slashCommandIndex}
-                        $selected={commandIndex === slashCommandIndex}
-                        onPointerMove={() => setSlashCommandIndex(commandIndex)}
-                        onClick={() => selectSlashCommand(command)}
-                      >
-                        <Text>{command.label}</Text>
-                        <Text size="xs" variant="muted">
-                          {command.hint}
-                        </Text>
-                      </SlashCommandButton>
-                    ))}
-                    {filteredSlashCommands.length ? null : (
-                      <SlashCommandEmpty>
-                        <Text size="sm" variant="muted">
-                          {t('No matching blocks')}
-                        </Text>
-                      </SlashCommandEmpty>
-                    )}
-                  </SlashCommandMenu>
-                ) : null}
-              </TextEditorWrap>
-            ) : (
-              <RenderedMarkdown
-                role={disabled ? undefined : 'button'}
-                tabIndex={disabled ? undefined : 0}
-                onClick={() => !disabled && setIsEditingText(true)}
-                onKeyDown={event => {
-                  if (!disabled && (event.key === 'Enter' || event.key === ' ')) {
-                    event.preventDefault();
-                    setIsEditingText(true);
-                  }
-                }}
+                    onClick={() => void runCell()}
+                  >
+                    {isRunBusy ? t('Running') : t('Generate')}
+                  </QueryRunButton>
+                }
               >
-                <Markdown raw={draft.content} />
-              </RenderedMarkdown>
-            )}
-          </TextCellBody>
+                <QuerySummary size="sm">
+                  {draft.display.promptCollapsed
+                    ? draft.generationPrompt || t('Text generation prompt')
+                    : t('Text generation prompt')}
+                </QuerySummary>
+              </Disclosure.Title>
+              <QueryPromptContent>
+                <QueryEditorWrap>
+                  <CellInput
+                    $kind="query"
+                    aria-label={t('Text generation prompt %s', index + 1)}
+                    autosize
+                    rows={2}
+                    maxRows={18}
+                    disabled={disabled}
+                    placeholder={t('Describe the Markdown you want the agent to write')}
+                    value={draft.generationPrompt}
+                    onChange={event =>
+                      setDraft(current => ({
+                        ...current,
+                        generationPrompt: event.target.value,
+                      }))
+                    }
+                    onBlur={saveOnBlur}
+                  />
+                  {cell.dependencies.length ? (
+                    <ContextHint size="xs" variant="muted">
+                      {t('Uses %s linked cell(s) as context.', cell.dependencies.length)}
+                    </ContextHint>
+                  ) : null}
+                </QueryEditorWrap>
+              </QueryPromptContent>
+            </QueryPromptDisclosure>
+            <TextCellExecutionOutput
+              canRetry={!disabled && queryExecutionEnabled && !isRunBusy}
+              cell={{...cell, display: draft.display}}
+              onRetry={runCell}
+            />
+            <TextCellBody>
+              {isEditingText ? (
+                <TextEditorWrap>
+                  <CellInput
+                    ref={textInputRef}
+                    $kind="text"
+                    aria-label={t('Text cell %s', index + 1)}
+                    autosize
+                    autoFocus={!draft.content}
+                    rows={Math.max(2, draft.content.split('\n').length)}
+                    maxRows={24}
+                    placeholder={t("Type '/' for commands")}
+                    value={draft.content}
+                    onChange={event => {
+                      const content = event.target.value;
+                      const nextShowSlashMenu =
+                        content.split('\n').at(-1)?.startsWith('/') ?? false;
+                      setDraft(current => ({...current, content}));
+                      if (showSlashMenu !== nextShowSlashMenu) {
+                        setShowSlashMenu(nextShowSlashMenu);
+                      }
+                      if (nextShowSlashMenu && slashCommandIndex !== 0) {
+                        setSlashCommandIndex(0);
+                      }
+                    }}
+                    onKeyDown={event => {
+                      if (!showSlashMenu || !filteredSlashCommands.length) {
+                        return;
+                      }
+                      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                        event.preventDefault();
+                        const direction = event.key === 'ArrowDown' ? 1 : -1;
+                        setSlashCommandIndex(
+                          current =>
+                            (current + direction + filteredSlashCommands.length) %
+                            filteredSlashCommands.length
+                        );
+                      } else if (event.key === 'Enter') {
+                        event.preventDefault();
+                        selectSlashCommand(
+                          filteredSlashCommands[
+                            Math.min(slashCommandIndex, filteredSlashCommands.length - 1)
+                          ]!
+                        );
+                      } else if (event.key === 'Escape') {
+                        event.preventDefault();
+                        setShowSlashMenu(false);
+                      }
+                    }}
+                    onBlur={event => {
+                      if (slashMenuRef.current?.contains(event.relatedTarget)) {
+                        return;
+                      }
+                      saveOnBlur();
+                      if (draft.content) {
+                        setIsEditingText(false);
+                      }
+                      setShowSlashMenu(false);
+                    }}
+                  />
+                  {showSlashMenu ? (
+                    <SlashCommandMenu ref={slashMenuRef} role="listbox">
+                      {filteredSlashCommands.map((command, commandIndex) => (
+                        <SlashCommandButton
+                          key={command.key}
+                          type="button"
+                          role="option"
+                          aria-selected={commandIndex === slashCommandIndex}
+                          $selected={commandIndex === slashCommandIndex}
+                          onPointerMove={() => setSlashCommandIndex(commandIndex)}
+                          onClick={() => selectSlashCommand(command)}
+                        >
+                          <Text>{command.label}</Text>
+                          <Text size="xs" variant="muted">
+                            {command.hint}
+                          </Text>
+                        </SlashCommandButton>
+                      ))}
+                      {filteredSlashCommands.length ? null : (
+                        <SlashCommandEmpty>
+                          <Text size="sm" variant="muted">
+                            {t('No matching blocks')}
+                          </Text>
+                        </SlashCommandEmpty>
+                      )}
+                    </SlashCommandMenu>
+                  ) : null}
+                </TextEditorWrap>
+              ) : (
+                <RenderedMarkdown
+                  role={disabled ? undefined : 'button'}
+                  tabIndex={disabled ? undefined : 0}
+                  onClick={() => !disabled && setIsEditingText(true)}
+                  onKeyDown={event => {
+                    if (!disabled && (event.key === 'Enter' || event.key === ' ')) {
+                      event.preventDefault();
+                      setIsEditingText(true);
+                    }
+                  }}
+                >
+                  <Markdown raw={draft.content} />
+                </RenderedMarkdown>
+              )}
+            </TextCellBody>
+          </Fragment>
         ) : (
           <Fragment>
             <QueryPromptDisclosure
@@ -1604,7 +1711,7 @@ function SortableCellContent({
                     disabled={
                       isExecutionRunning || !queryIntent.trim() || !queryExecutionEnabled
                     }
-                    onClick={() => void runQuery()}
+                    onClick={() => void runCell()}
                   >
                     {isRunBusy ? t('Running') : t('Run')}
                   </QueryRunButton>
@@ -1670,9 +1777,9 @@ function SortableCellContent({
               investigationId={investigationId}
               organizationSlug={organizationSlug}
               onDisplayChange={persistDisplay}
-              onRetry={runQuery}
+              onRetry={runCell}
               onRevisedQueryIntent={async intent => {
-                const nextDraft = {...draft, generationPrompt: intent};
+                const nextDraft = {...draft, content: '', generationPrompt: intent};
                 setDraft(nextDraft);
                 await saveDraft(nextDraft);
                 await onExecute(cell);
@@ -2140,6 +2247,11 @@ const QuerySummary = styled(Text)`
 
 const QueryEditorWrap = styled('div')`
   position: relative;
+`;
+
+const ContextHint = styled(Text)`
+  display: block;
+  padding: 0 ${p => p.theme.space.lg} ${p => p.theme.space.md};
 `;
 
 const CellInput = styled(TextArea)<{$kind: InvestigationCellKind}>`
