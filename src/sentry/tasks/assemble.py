@@ -5,7 +5,7 @@ import logging
 import tempfile
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING, BinaryIO, NamedTuple
+from typing import TYPE_CHECKING, BinaryIO, NamedTuple, cast
 
 import orjson
 import sentry_sdk
@@ -204,7 +204,7 @@ def assemble_file_blobs(task, org_or_project, name, checksum, chunks) -> BinaryI
 
     temp_file.flush()
     temp_file.seek(0)
-    return temp_file
+    return cast(BinaryIO, temp_file)
 
 
 def _get_cache_key(task, scope, checksum):
