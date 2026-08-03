@@ -562,6 +562,12 @@ class PullRequestMetrics(DefaultFieldsModel):
     opened_by_bot = models.BooleanField(null=True)
     closed_by_bot = models.BooleanField(null=True)
     opened_and_closed_by_same_actor = models.BooleanField(null=True)
+    # Per-file diff stats sourced from the SCM provider (GitHub), churn-sorted:
+    # [{"path": str, "additions": int, "deletions": int, "status": str}, ...].
+    # null = never fetched; [] = fetched but the provider gave no usable per-file
+    # counts. Distinct from the aggregate additions/deletions/files_changed above,
+    # which stay webhook-sourced.
+    file_stats = models.JSONField(null=True)
 
     class Meta:
         app_label = "sentry"
