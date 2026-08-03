@@ -197,14 +197,15 @@ export function DetectorListTable({
               <Fragment key={col.id}>{col.renderHeaderCell()}</Fragment>
             ))}
             {hasVisualization && detectors.length > 0 && (
-              <VisualizationHeaderContainer
+              <Container
+                column="-3 / -1"
                 data-column-name="visualization"
                 ref={elementRef}
                 borderLeft="muted"
                 minHeight="50px"
               >
                 <GridLineLabels timeWindowConfig={timeWindowConfig} />
-              </VisualizationHeaderContainer>
+              </Container>
             )}
             {hasVisualization && (
               <VisualizationExpandButton
@@ -515,10 +516,6 @@ const PositionedGridLineOverlay = styled(GridLineOverlay)`
   @container (min-width: ${p => p.theme.container.xl}) {
     display: block;
   }
-`;
-
-const VisualizationHeaderContainer = styled(Container)`
-  grid-column: -3 / -1;
 `;
 
 const VisualizationExpandButton = styled(Flex)`
