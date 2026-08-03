@@ -866,8 +866,8 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
         if not data:
             raise PipelineStateExpired()
 
-        # Check for provider mismatch — user authenticated with a different
-        # provider than what the organization requires.  Can happen when a user
+        # Check for provider mismatch - user authenticated with a different
+        # provider than what the organization requires. Can happen when a user
         # has multiple SSO sessions in different tabs.
         provider_key = data.get("provider_key")
         if (

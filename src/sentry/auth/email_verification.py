@@ -36,6 +36,10 @@ def hash_email(email: str) -> str:
 def is_email_verified_by_trusted_provider(provider_key: str, identity: Mapping[str, Any]) -> bool:
     """If True: the provider's email_verified claim can be trusted, and they certify that the email is verified.
     If False: the identity requires our own verification step.
+
+    Expects a freshly built identity, where email_verified has been normalized to a
+    bool (see normalize_email_verified). The strict `is True` check does not handle
+    legacy persisted values, which may be the string "true".
     """
     return (
         provider_key in TRUSTED_EMAIL_VERIFIED_PROVIDERS and identity.get("email_verified") is True

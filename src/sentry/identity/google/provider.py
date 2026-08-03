@@ -1,3 +1,5 @@
+from typing import Any
+
 import orjson
 
 from sentry import options
@@ -11,6 +13,15 @@ from sentry.utils.signing import urlsafe_b64decode
 # account (you can register a google account with any email), but it is not a
 # gsuite account, which we want to differentiate on.
 DEFAULT_GOOGLE_DOMAIN = "gmail.com"
+
+
+def normalize_email_verified(value: Any) -> bool:
+    """Coerce Google's email_verified claim to a bool.
+
+    Google's docs define this as a bool but their example (and the tokeninfo endpoint) show the string "true".
+    Only True or "true" counts as verified.
+    """
+    return value is True or (isinstance(value, str) and value.strip().lower() == "true")
 
 
 class GoogleIdentityProvider(OAuth2Provider):
@@ -56,7 +67,7 @@ class GoogleIdentityProvider(OAuth2Provider):
             "type": "google",
             "id": user_id,
             "email": user_data["email"],
-            "email_verified": user_data["email_verified"],
+            "email_verified": normalize_email_verified(user_data["email_verified"]),
             "name": user_data["email"],
             "domain": user_data.get("hd", DEFAULT_GOOGLE_DOMAIN),
             "scopes": sorted(self.oauth_scopes),
