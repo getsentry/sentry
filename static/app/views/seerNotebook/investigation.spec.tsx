@@ -166,7 +166,8 @@ describe('SeerInvestigation', () => {
     expect(queryEditor).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Run'})).toBeDisabled();
 
-    const suggestion = 'Show errors over time for the selected projects';
+    const suggestion =
+      'Compare error volume over time across the selected projects. Show daily error counts for the last 30 days, grouped by project.';
     await userEvent.click(screen.getByRole('button', {name: 'see an example'}));
     expect(queryEditor).not.toHaveValue(suggestion);
     await waitFor(() => expect(queryEditor).toHaveValue(suggestion), {

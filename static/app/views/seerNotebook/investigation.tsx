@@ -770,7 +770,9 @@ function SortableCellContent({
     applySlashCommand(command.prefix);
   };
 
-  const queryExample = t('Show errors over time for the selected projects');
+  const queryExample = t(
+    'Compare error volume over time across the selected projects. Show daily error counts for the last 30 days, grouped by project.'
+  );
 
   const streamQuerySuggestion = (suggestion: string) => {
     if (suggestionTimerRef.current) {
