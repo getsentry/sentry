@@ -534,7 +534,7 @@ class TestSeerRpcMethods(APITestCase):
                 "event_type": SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED,
                 "event_payload": event_payload,
                 "organization_id": self.organization.id,
-                "record_activity": False,
+                "activity_already_recorded": True,
             },
         )
         mock_broadcast.assert_called_once()

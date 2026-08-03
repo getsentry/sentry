@@ -525,7 +525,7 @@ def trigger_autofix_agent(
                 "event_type": sentry_app_event_type,
                 "event_payload": payload,
                 "organization_id": group.organization.id,
-                "record_activity": False,
+                "activity_already_recorded": True,
             }
             if is_iteration_step:
                 activity_attribution = {

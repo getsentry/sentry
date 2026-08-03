@@ -470,7 +470,8 @@ class TestTriggerAutofixAgent(TestCase):
             call_kwargs = mock_broadcast.call_args.kwargs
             assert call_kwargs["event_name"] == expected_action.value
             assert (
-                mock_process_autofix_updates.call_args.kwargs["kwargs"]["record_activity"] is False
+                mock_process_autofix_updates.call_args.kwargs["kwargs"]["activity_already_recorded"]
+                is True
             )
 
     @patch("sentry.quotas.backend.record_seer_run")
