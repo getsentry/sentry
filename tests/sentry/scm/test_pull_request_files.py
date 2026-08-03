@@ -1,11 +1,15 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, PropertyMock, patch
 
 from sentry.integrations.github.client import GitHubBaseClient
+from sentry.models.repository import Repository
 from sentry.scm.pull_request_files import (
     MAX_PR_FILES,
     fetch_pr_file_stats,
     normalize_github_pr_files,
 )
+from sentry.shared_integrations.response.mapping import MappingApiResponse
+from sentry.shared_integrations.response.sequence import SequenceApiResponse
+from sentry.shared_integrations.response.text import TextApiResponse
 from sentry.testutils.cases import TestCase
 
 
@@ -87,6 +91,57 @@ class FetchPrFileStatsTest(TestCase):
         client.get_pull_request_files.return_value = []
         mock_get_client.return_value = client
         assert fetch_pr_file_stats(self.organization, self._repo(), "7") == []
+
+    @patch("sentry.scm.pull_request_files.get_github_client")
+    def test_mapping_response_returns_empty(self, mock_get_client) -> None:
+        client = MagicMock(spec=GitHubBaseClient)
+        client.get_pull_request_files.return_value = MappingApiResponse({"message": "Not Found"})
+        mock_get_client.return_value = client
+        assert fetch_pr_file_stats(self.organization, self._repo(), "7") == []
+
+    @patch("sentry.scm.pull_request_files.get_github_client")
+    def test_text_response_returns_empty(self, mock_get_client) -> None:
+        client = MagicMock(spec=GitHubBaseClient)
+        client.get_pull_request_files.return_value = TextApiResponse("", {}, 200)
+        mock_get_client.return_value = client
+        assert fetch_pr_file_stats(self.organization, self._repo(), "7") == []
+
+    @patch("sentry.scm.pull_request_files.get_github_client")
+    def test_sequence_response_is_normalized(self, mock_get_client) -> None:
+        client = MagicMock(spec=GitHubBaseClient)
+        client.get_pull_request_files.return_value = SequenceApiResponse(
+            [{"filename": "a.py", "status": "modified", "additions": 5, "deletions": 2}]
+        )
+        mock_get_client.return_value = client
+        out = fetch_pr_file_stats(self.organization, self._repo(), "7")
+        assert out == [{"path": "a.py", "additions": 5, "deletions": 2, "status": "modified"}]
+
+    @patch("sentry.scm.pull_request_files.get_github_client")
+    def test_non_dict_file_entries_return_empty(self, mock_get_client) -> None:
+        client = MagicMock(spec=GitHubBaseClient)
+        client.get_pull_request_files.return_value = ["x"]
+        mock_get_client.return_value = client
+        assert fetch_pr_file_stats(self.organization, self._repo(), "7") == []
+
+    @patch("sentry.scm.pull_request_files.get_github_client")
+    def test_non_dict_repository_config_falls_back_to_name(self, mock_get_client) -> None:
+        client = MagicMock(spec=GitHubBaseClient)
+        client.get_pull_request_files.return_value = []
+        mock_get_client.return_value = client
+
+        repo = self._repo()
+        repo.config = ["not", "a", "dict"]
+
+        assert fetch_pr_file_stats(self.organization, repo, "7") == []
+        mock_get_client.assert_called_once_with(self.organization, "owner/repo")
+
+    @patch("sentry.scm.pull_request_files.get_github_client")
+    def test_repository_config_access_error_returns_empty(self, mock_get_client) -> None:
+        repo = MagicMock(spec=Repository)
+        type(repo).config = PropertyMock(side_effect=Exception("deferred field"))
+
+        assert fetch_pr_file_stats(self.organization, repo, "7") == []
+        mock_get_client.assert_not_called()
 
     @patch("sentry.scm.pull_request_files.get_github_client")
     def test_caps_at_max_pr_files(self, mock_get_client) -> None:

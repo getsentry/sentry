@@ -61,7 +61,8 @@ def normalize_github_pr_files(files_data: Sequence[dict[str, Any]]) -> list[dict
 
 
 def _repo_name(repository: Repository) -> str:
-    config_name = repository.config.get("name")
+    config = repository.config
+    config_name = config.get("name") if isinstance(config, dict) else None
     if isinstance(config_name, str) and config_name:
         return config_name
     return repository.name
@@ -75,8 +76,8 @@ def fetch_pr_file_stats(
     Returns churn-sorted normalized stats, or ``[]`` on any failure, a non-GitHub
     provider, or a missing client. Never raises into the caller.
     """
-    repo_name = _repo_name(repository)
     try:
+        repo_name = _repo_name(repository)
         client = get_github_client(organization, repo_name)
     except Exception:
         logger.exception("pr_file_stats.client_error", extra={"repo_id": repository.id})
@@ -89,13 +90,18 @@ def fetch_pr_file_stats(
         # NOTE: get_pull_request_files returns only GitHub's first page (30 files).
         # Follow-up: push pagination into the client method for full coverage.
         raw_files = client.get_pull_request_files(repo_name, pr_key)
+        # The client returns a BaseApiResponse: a list body yields SequenceApiResponse
+        # (a list subclass), but an object body yields MappingApiResponse and an empty
+        # body yields TextApiResponse. Only a list is usable here.
+        if not isinstance(raw_files, list):
+            logger.warning(
+                "pr_file_stats.unexpected_response_type",
+                extra={"repo_id": repository.id, "pr_key": pr_key},
+            )
+            return []
+        return normalize_github_pr_files(raw_files[:MAX_PR_FILES])
     except Exception:
         logger.exception(
             "pr_file_stats.fetch_error", extra={"repo_id": repository.id, "pr_key": pr_key}
         )
         return []
-
-    if not raw_files:
-        return []
-
-    return normalize_github_pr_files(raw_files[:MAX_PR_FILES])
