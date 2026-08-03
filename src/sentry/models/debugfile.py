@@ -211,6 +211,10 @@ class ProjectDebugFile(Model):
         organization = Project.objects.get_from_cache(id=self.project_id).organization
         return features.has("organizations:objectstore-debugfiles-read", organization)
 
+    def uses_objectstore_for_write(self) -> bool:
+        """Return whether this DIF has an Objectstore copy, regardless of the read rollout."""
+        return self.storage_path is not None
+
     def get_checksum(self) -> str:
         if self.uses_objectstore_for_read():
             assert self.checksum is not None
@@ -283,19 +287,25 @@ class ProjectDebugFile(Model):
         """Returns the underlying contents as a file-like object. The caller is responsible for closing it."""
 
         if self.uses_objectstore_for_read():
-            assert self.storage_path is not None
-            try:
-                response = self._get_objectstore_session().get(self.storage_path)
-                if response is None:
-                    raise FileNotFoundError("Debug file does not exist in objectstore")
-                return response.payload
-            except Exception:
-                logger.exception("Failed to read debug file from Objectstore")
-                raise
+            return self.get_objectstore_file()
         if self.file is not None:
             with measure_storage_operation("get", "debug_files", self.get_file_size()):
                 return self.file.getfile()
         raise ValueError("ProjectDebugFile has neither file nor storage_path")
+
+    def get_objectstore_file(self) -> IO[bytes]:
+        """Return the Objectstore copy, even if Objectstore reads are not enabled."""
+        if self.storage_path is None:
+            raise ValueError("debug file is not stored in Objectstore")
+
+        try:
+            response = self._get_objectstore_session().get(self.storage_path)
+            if response is None:
+                raise FileNotFoundError("Debug file does not exist in objectstore")
+            return response.payload
+        except Exception:
+            logger.exception("Failed to read debug file from Objectstore")
+            raise
 
     def get_objectstore_presigned_url(self, request: HttpRequest) -> str:
         """
