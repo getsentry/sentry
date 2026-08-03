@@ -214,7 +214,9 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     formId: 'project-general-settings',
     route: '/settings/:orgId/projects/:projectId/',
     label: t('Debug Files Access'),
-    hintText: '',
+    hintText: t(
+      'Role required to download debug information files, proguard mappings and source maps. Overrides organization settings.'
+    ),
   },
   'project-general-settings.allowedDomains': {
     name: 'allowedDomains',
@@ -299,14 +301,16 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     formId: 'project-user-feedback',
     route: '/settings/:orgId/projects/:projectId/user-feedback/',
     label: t('Enable Crash Report Notifications'),
-    hintText: '',
+    hintText: t(
+      'Get notified on feedback submissions from the Crash Report Modal, web endpoint, and JS SDK (pre-v8). Feedback widget notifications are not affected by this setting and are on by default.'
+    ),
   },
   'project-user-feedback.sentry:feedback_ai_spam_detection': {
     name: 'sentry:feedback_ai_spam_detection',
     formId: 'project-user-feedback',
     route: '/settings/:orgId/projects/:projectId/user-feedback/',
     label: t('Enable Spam Detection'),
-    hintText: '',
+    hintText: t('Toggles whether or not to enable auto spam detection in User Feedback.'),
   },
   'project-toolbar.sentry:toolbar_allowed_origins': {
     name: 'sentry:toolbar_allowed_origins',
@@ -362,7 +366,9 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     formId: 'project-filters-settings',
     route: '/settings/:orgId/projects/:projectId/filters/',
     label: t('Filter out hydration errors'),
-    hintText: '',
+    hintText: t(
+      'React falls back to do a full re-render on a page. Hydration Errors created from captured replays are excluded from this setting.'
+    ),
   },
   'project-filters-settings.filters:chunk-load-error': {
     name: 'filters:chunk-load-error',
@@ -378,7 +384,9 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     formId: 'project-security-and-privacy',
     route: '/settings/:orgId/projects/:projectId/security-and-privacy/',
     label: t('Store Minidumps As Attachments'),
-    hintText: '',
+    hintText: t(
+      'Store minidumps as attachments for improved processing and download in issue details. Overrides organization settings.'
+    ),
   },
   'project-security-and-privacy.dataScrubber': {
     name: 'dataScrubber',
@@ -445,7 +453,9 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     formId: 'project-replays',
     route: '/settings/:orgId/projects/:projectId/replays/',
     label: t('Create Hydration Error Issues'),
-    hintText: '',
+    hintText: t(
+      'Toggles whether or not to create Session Replay Hydration Error Issues during replay ingest. Using inbound filters to filter out hydration errors does not affect this setting.'
+    ),
   },
   'csp.sentry:csp_ignored_sources_defaults': {
     name: 'sentry:csp_ignored_sources_defaults',
@@ -573,14 +583,14 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     formId: 'organization-settings-form',
     route: '/settings/organization/',
     label: t('Early Adopter'),
-    hintText: '',
+    hintText: t("Opt-in to new features before they're released to the public"),
   },
   'organization-settings-form.hideAiFeatures': {
     name: 'hideAiFeatures',
     formId: 'organization-settings-form',
     route: '/settings/organization/',
     label: t('Show Generative AI Features'),
-    hintText: '',
+    hintText: t('Allows organization members to access generative AI features'),
   },
   'organization-security-and-privacy.require2FA': {
     name: 'require2FA',
