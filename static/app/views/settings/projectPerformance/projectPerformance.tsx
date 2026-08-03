@@ -7,6 +7,7 @@ import {Disclosure} from '@sentry/scraps/disclosure';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import type {SelectValue} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -193,10 +194,12 @@ const thresholdSettingsSchema = z.object({
   threshold: z.string(),
 });
 
-const CALCULATION_METHOD_OPTIONS = [
+type ThresholdMetric = z.infer<typeof thresholdSettingsSchema>['metric'];
+
+const CALCULATION_METHOD_OPTIONS: Array<SelectValue<ThresholdMetric>> = [
   {value: 'duration', label: t('Transaction Duration')},
   {value: 'lcp', label: t('Largest Contentful Paint')},
-] as const;
+];
 
 const regressionAdminSchema = z.object({
   transaction_duration_regression_detection_enabled: z.boolean(),
@@ -772,7 +775,7 @@ function getProjectDetectorSettings({
       fields: [
         {
           name: DetectorConfigAdmin.AI_DETECTED_HTTP_ENABLED,
-          type: 'boolean' as const,
+          type: 'boolean',
           label: t('HTTP Issues'),
           help: t('Allow HTTP issues to be created'),
           defaultValue: true,
@@ -785,7 +788,7 @@ function getProjectDetectorSettings({
         },
         {
           name: DetectorConfigAdmin.AI_DETECTED_DB_ENABLED,
-          type: 'boolean' as const,
+          type: 'boolean',
           label: t('Database Issues'),
           help: t('Allow database issues to be created'),
           defaultValue: true,
@@ -798,7 +801,7 @@ function getProjectDetectorSettings({
         },
         {
           name: DetectorConfigAdmin.AI_DETECTED_RUNTIME_PERFORMANCE_ENABLED,
-          type: 'boolean' as const,
+          type: 'boolean',
           label: t('Runtime Performance Issues'),
           help: t('Allow runtime performance issues to be created'),
           defaultValue: true,
@@ -811,7 +814,7 @@ function getProjectDetectorSettings({
         },
         {
           name: DetectorConfigAdmin.AI_DETECTED_SECURITY_ENABLED,
-          type: 'boolean' as const,
+          type: 'boolean',
           label: t('Security Issues'),
           help: t('Allow security issues to be created'),
           defaultValue: true,
@@ -824,7 +827,7 @@ function getProjectDetectorSettings({
         },
         {
           name: DetectorConfigAdmin.AI_DETECTED_CODE_HEALTH_ENABLED,
-          type: 'boolean' as const,
+          type: 'boolean',
           label: t('Code Health Issues'),
           help: t('Allow code health issues to be created'),
           defaultValue: true,
@@ -1153,7 +1156,7 @@ function ThresholdSettingsSection({
             : null
         }
         mutationOptions={{
-          mutationFn: (data: {metric: 'duration' | 'lcp' | null}) =>
+          mutationFn: (data: {metric: ThresholdMetric}) =>
             fetchMutation<ProjectThreshold>({url: endpoint, method: 'POST', data}),
           onSuccess: data => {
             trackAnalytics('performance_views.project_transaction_threshold.change', {
