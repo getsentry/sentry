@@ -11,9 +11,11 @@ import orjson
 import sentry_sdk
 from django.conf import settings
 from django.core.signing import BadSignature, SignatureExpired
+from django.db import router, transaction
 from django.db.models import QuerySet
 from django.http.request import HttpRequest
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.functional import classproperty
 from django.utils.translation import gettext as _
 from rest_framework import serializers
@@ -385,29 +387,15 @@ class JiraIntegration(IssueSyncIntegration):
         Update the configuration field for an organization integration.
         """
         config = self.org_integration.config
+        audit_data: dict[str, Any] = {}
 
-        if "sync_status_forward" in data:
-            project_mappings = data.pop("sync_status_forward")
-
-            if any(
-                not mapping["on_unresolve"] or not mapping["on_resolve"]
-                for mapping in project_mappings.values()
-            ):
-                raise IntegrationError("Resolve and unresolve status are required.")
-
-            data["sync_status_forward"] = bool(project_mappings)
-
-            IntegrationExternalProject.objects.filter(
-                organization_integration_id=self.org_integration.id
-            ).delete()
-
-            for project_id, statuses in project_mappings.items():
-                IntegrationExternalProject.objects.create(
-                    organization_integration_id=self.org_integration.id,
-                    external_id=project_id,
-                    resolved_status=statuses["on_resolve"],
-                    unresolved_status=statuses["on_unresolve"],
-                )
+        if self.outbound_status_key in data:
+            project_mappings = data.pop(self.outbound_status_key)
+            mapping_changes = self._reconcile_project_status_mappings(project_mappings)
+            if mapping_changes["added_count"] or mapping_changes["removed_count"]:
+                # Keyed by the config field it describes so the caller knows what it is looking at.
+                audit_data[self.outbound_status_key] = mapping_changes
+            data[self.outbound_status_key] = bool(project_mappings)
 
         if self.issues_ignored_fields_key in data:
             ignored_fields_text = data.pop(self.issues_ignored_fields_key)
@@ -430,6 +418,8 @@ class JiraIntegration(IssueSyncIntegration):
         if org_integration is not None:
             self.org_integration = org_integration
 
+        return audit_data or None
+
     def _filter_active_projects(self, project_mappings: QuerySet[IntegrationExternalProject]):
         client = self.get_client()
         if features.has("organizations:jira-paginated-project-config", self.organization):
@@ -445,8 +435,104 @@ class JiraIntegration(IssueSyncIntegration):
         project_ids_set = {p["id"] for p in client.get_projects_list()}
         return [pm for pm in project_mappings if pm.external_id in project_ids_set]
 
+    @staticmethod
+    def _validate_project_status_mappings(
+        project_mappings: Mapping[str, Any],
+    ) -> dict[str, tuple[str, str]]:
+        """
+        Normalize the `sync_status_forward` payload into `{external_id: (resolved, unresolved)}`.
+
+        External IDs are coerced to strings because the model stores them as a `CharField` but
+        clients may send them as numbers, which would make an existing mapping look both new
+        and removed.
+        """
+        validated: dict[str, tuple[str, str]] = {}
+        for external_id, statuses in project_mappings.items():
+            resolved_status = statuses.get("on_resolve")
+            unresolved_status = statuses.get("on_unresolve")
+            if not resolved_status or not unresolved_status:
+                raise IntegrationError("Resolve and unresolve status are required.")
+
+            validated[str(external_id)] = (str(resolved_status), str(unresolved_status))
+
+        return validated
+
+    def _reconcile_project_status_mappings(
+        self, project_mappings: Mapping[str, Any]
+    ) -> dict[str, Any]:
+        """
+        Bring the stored `IntegrationExternalProject` rows in line with `project_mappings`.
+
+        The payload is the caller's complete desired state, so mappings missing from it are
+        removed. That makes a truncated payload destructive, so rather than deleting every row
+        and recreating it, this reconciles a diff inside a transaction: an unrelated mapping is
+        only ever touched when the caller explicitly dropped it, and a failure part-way through
+        rolls the whole save back.
+
+        Returns the diff for the caller to record on an audit log entry.
+        """
+        desired = self._validate_project_status_mappings(project_mappings)
+
+        existing = {
+            iep.external_id: iep
+            for iep in IntegrationExternalProject.objects.filter(
+                organization_integration_id=self.org_integration.id
+            )
+        }
+        removals = [iep for external_id, iep in existing.items() if external_id not in desired]
+        additions = [external_id for external_id in desired if external_id not in existing]
+
+        with transaction.atomic(router.db_for_write(IntegrationExternalProject)):
+            if removals:
+                IntegrationExternalProject.objects.filter(
+                    id__in=[iep.id for iep in removals]
+                ).delete()
+
+            for external_id, (resolved_status, unresolved_status) in desired.items():
+                current = existing.get(external_id)
+                if current is None:
+                    IntegrationExternalProject.objects.create(
+                        organization_integration_id=self.org_integration.id,
+                        external_id=external_id,
+                        resolved_status=resolved_status,
+                        unresolved_status=unresolved_status,
+                    )
+                elif (
+                    current.resolved_status != resolved_status
+                    or current.unresolved_status != unresolved_status
+                ):
+                    current.update(
+                        resolved_status=resolved_status,
+                        unresolved_status=unresolved_status,
+                        date_updated=timezone.now(),
+                    )
+
+        return {
+            "added_count": len(additions),
+            "removed_count": len(removals),
+            "added_project_mappings": [
+                {
+                    "external_id": external_id,
+                    "on_resolve": desired[external_id][0],
+                    "on_unresolve": desired[external_id][1],
+                }
+                for external_id in additions
+            ],
+            # Prior values, so a mapping removed by mistake can be rebuilt from the audit log.
+            "removed_project_mappings": [
+                {
+                    "external_id": iep.external_id,
+                    "on_resolve": iep.resolved_status,
+                    "on_unresolve": iep.unresolved_status,
+                }
+                for iep in removals
+            ],
+        }
+
     def get_config_data(self):
-        config = self.org_integration.config
+        # Copied because the mapping dict assembled below is only for the response; the stored
+        # value of this key is a bool.
+        config = dict(self.org_integration.config)
         project_mappings = IntegrationExternalProject.objects.filter(
             organization_integration_id=self.org_integration.id
         )
@@ -459,7 +545,7 @@ class JiraIntegration(IssueSyncIntegration):
                 "on_unresolve": pm.unresolved_status,
                 "on_resolve": pm.resolved_status,
             }
-        config["sync_status_forward"] = sync_status_forward
+        config[self.outbound_status_key] = sync_status_forward
         config[self.issues_ignored_fields_key] = ", ".join(
             config.get(self.issues_ignored_fields_key, "")
         )
