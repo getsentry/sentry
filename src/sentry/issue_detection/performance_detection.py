@@ -128,6 +128,7 @@ PERFORMANCE_WFE_DETECTOR_TYPES: frozenset[str] = frozenset(
 def detect_performance_problems(
     data: dict[str, Any],
     project: Project,
+    detector_classes: list[type[PerformanceDetector]] | None = None,
     detection_settings: dict[DetectorType, dict[str, Any]] | None = None,
     standalone: bool = False,
 ) -> list[PerformanceProblem]:
@@ -142,7 +143,7 @@ def detect_performance_problems(
                 start_span(op="py.detect_performance_issue", name="none") as sdk_span,
             ):
                 return _detect_performance_problems(
-                    data, sdk_span, project, detection_settings, standalone
+                    data, sdk_span, project, detector_classes, detection_settings, standalone
                 )
     except Exception:
         logging.exception("Failed to detect performance problems")
@@ -686,11 +687,13 @@ def _detect_performance_problems(
     data: dict[str, Any],
     sdk_span: Span | StreamedSpan,
     project: Project,
+    detector_classes: list[type[PerformanceDetector]] | None = None,
     detection_settings: dict[DetectorType, dict[str, Any]] | None = None,
     standalone: bool = False,
 ) -> list[PerformanceProblem]:
     event_id = data.get("event_id", None)
     organization = project.organization
+    detector_classes = detector_classes if detector_classes is not None else DETECTOR_CLASSES
 
     if detection_settings is None:
         with start_span(op="function", name="get_detection_settings"):
@@ -708,7 +711,7 @@ def _detect_performance_problems(
     with start_span(op="initialize", name="PerformanceDetector"):
         detectors: list[PerformanceDetector] = [
             detector_class(detection_settings[detector_class.settings_key], data)
-            for detector_class in DETECTOR_CLASSES
+            for detector_class in detector_classes
             if detector_class.is_detection_allowed_for_system()
         ]
 
