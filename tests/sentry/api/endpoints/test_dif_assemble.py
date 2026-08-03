@@ -643,7 +643,6 @@ class DifAssembleProguardCloneBackendTransitionTest(APITestCase):
         )
         assert first_dif.file_id is not None
         assert first_dif.storage_path is not None
-        assert first_dif.uses_objectstore_for_write()
         assert not first_dif.uses_objectstore_for_read()
 
         with self.feature({"organizations:objectstore-debugfiles-write": False}):
