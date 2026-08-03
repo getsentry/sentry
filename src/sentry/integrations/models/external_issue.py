@@ -72,6 +72,12 @@ class ExternalIssue(Model):
     title = models.TextField(null=True)
     description = models.TextField(null=True)
     metadata = LegacyTextJSONField(default=dict, null=True)
+    # Provider-side timestamp of the newest inbound status-change event processed for this
+    # issue. Webhook delivery is not ordered, so this is the watermark that lets
+    # `sync_status_inbound` drop replayed and reordered events. `date_added` records
+    # arrival time and cannot detect reordering. NULL until the first status event
+    # arrives, which leaves the guard inert.
+    status_updated_at = models.DateTimeField(null=True)
 
     objects: ClassVar[ExternalIssueManager] = ExternalIssueManager()
 
