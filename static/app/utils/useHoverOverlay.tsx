@@ -14,10 +14,12 @@ import {
 import type {PopperProps} from 'react-popper';
 import {usePopper} from 'react-popper';
 import {useTheme} from '@emotion/react';
-import {mergeProps, mergeRefs} from '@react-aria/utils';
+import {mergeProps} from '@react-aria/utils';
 
-import {NODE_ENV} from 'sentry/constants';
+import {NODE_ENV} from 'sentry/constants/env';
 import type {Theme} from 'sentry/utils/theme';
+
+import {useStableMergeRef} from './useStableMergeRef';
 
 function makeDefaultPopperModifiers(arrowElement: HTMLElement | null, offset: number) {
   return [
@@ -155,6 +157,7 @@ function startGroupCoolDown(group: DelayGroup) {
 }
 
 type OverlayStatus = 'idle' | 'warming' | 'open' | 'cooling';
+type UnderlineColor = 'warning' | 'danger' | 'success' | 'muted' | 'primary';
 
 interface UseHoverOverlayProps {
   /**
@@ -175,9 +178,10 @@ interface UseHoverOverlayProps {
    */
   displayTimeout?: number;
   /**
-   * Force the overlay to be visible without hovering
+   * Force the overlay to be visible without hovering. `true` opens
+   * immediately, while `delayed` uses the normal open delay.
    */
-  forceVisible?: boolean;
+  forceVisible?: boolean | 'delayed';
   /**
    * If true, user is able to hover overlay without it disappearing. (nice if
    * you want the overlay to be interactive)
@@ -200,6 +204,11 @@ interface UseHoverOverlayProps {
   onHover?: () => void;
 
   /**
+   * Called when the trigger changes between overflowing and fitting.
+   */
+  onOverflowChange?: (isOverflowing: boolean) => void;
+
+  /**
    * Position for the overlay.
    */
   position?: PopperProps<any>['placement'];
@@ -210,7 +219,7 @@ interface UseHoverOverlayProps {
   showOnlyOnOverflow?: boolean;
   /**
    * Whether to add a dotted underline to the trigger element, to indicate the
-   * presence of a overlay.
+   * presence of an overlay.
    */
   showUnderline?: boolean;
   /**
@@ -225,7 +234,7 @@ interface UseHoverOverlayProps {
   /**
    * Color of the dotted underline, if available. See also: showUnderline.
    */
-  underlineColor?: 'warning' | 'danger' | 'success' | 'muted';
+  underlineColor?: UnderlineColor;
 }
 
 export function isOverflown(el: Element): boolean {
@@ -236,6 +245,9 @@ export function isOverflown(el: Element): boolean {
       ? 2
       : 0;
   return (
+    // Components that truncate text in JavaScript can expose logical overflow
+    // even when the rendered text fits its box.
+    el.getAttribute('data-overflowing') === 'true' ||
     el.scrollWidth - el.clientWidth > tolerance ||
     Array.from(el.children).some(isOverflown)
   );
@@ -248,10 +260,7 @@ function maybeClearRefTimeout(ref: React.MutableRefObject<number | undefined>) {
   }
 }
 
-const tooltipUnderline = (
-  theme: Theme,
-  underlineColor: 'warning' | 'danger' | 'success' | 'muted' = 'muted'
-) =>
+const tooltipUnderline = (theme: Theme, underlineColor: UnderlineColor = 'muted') =>
   ({
     textDecoration: 'underline',
     textDecorationThickness: '0.75px',
@@ -265,7 +274,9 @@ const tooltipUnderline = (
             ? theme.tokens.content.success
             : underlineColor === 'muted'
               ? theme.tokens.content.secondary
-              : undefined,
+              : underlineColor === 'primary'
+                ? theme.tokens.content.primary
+                : undefined,
     textDecorationStyle: 'dotted',
   }) as const;
 
@@ -281,6 +292,7 @@ function useHoverOverlay({
   showUnderline,
   underlineColor,
   showOnlyOnOverflow,
+  onOverflowChange,
   skipWrapper,
   forceVisible,
   offset = 8,
@@ -329,7 +341,7 @@ function useHoverOverlay({
   // form-field validation errors anchored to a warning icon. They must not
   // be snap-closed when another overlay in the group opens.
   useEffect(() => {
-    if (forceVisible) {
+    if (forceVisible !== undefined && forceVisible !== false) {
       return;
     }
     const listener: OpenListener = origin => {
@@ -356,7 +368,12 @@ function useHoverOverlay({
     };
   }, [group, forceVisible, commitStatus]);
 
-  const isOpen = forceVisible ?? (status === 'open' || status === 'cooling');
+  const isOpen =
+    forceVisible === true
+      ? true
+      : forceVisible === false
+        ? false
+        : status === 'open' || status === 'cooling';
 
   // Fire onHover / onBlur on open/close transitions only. Read the callbacks
   // from refs so that a new callback identity on re-render does not retrigger
@@ -383,8 +400,59 @@ function useHoverOverlay({
   }, [isOpen]);
 
   const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
+  const [isOverflowing, setIsOverflowing] = useState(false);
+  const isOverflowingRef = useRef(false);
   const [overlayElement, setOverlayElement] = useState<HTMLElement | null>(null);
   const [arrowElement, setArrowElement] = useState<HTMLElement | null>(null);
+
+  const onOverflowChangeRef = useRef(onOverflowChange);
+  useLayoutEffect(() => {
+    onOverflowChangeRef.current = onOverflowChange;
+  });
+
+  const updateOverflow = useCallback((element: HTMLElement | null) => {
+    const nextIsOverflowing = element ? isOverflown(element) : false;
+    if (isOverflowingRef.current === nextIsOverflowing) {
+      return;
+    }
+
+    isOverflowingRef.current = nextIsOverflowing;
+    setIsOverflowing(nextIsOverflowing);
+    onOverflowChangeRef.current?.(nextIsOverflowing);
+  }, []);
+
+  const setTriggerElementRef = useCallback(
+    (element: HTMLElement | null) => {
+      setTriggerElement(element);
+      updateOverflow(showOnlyOnOverflow ? element : null);
+
+      if (!showOnlyOnOverflow || !element) {
+        return;
+      }
+
+      const resizeObserver = new ResizeObserver(() => updateOverflow(element));
+      resizeObserver.observe(element);
+
+      const mutationObserver = new MutationObserver(() => updateOverflow(element));
+      mutationObserver.observe(element, {
+        attributes: true,
+        characterData: true,
+        childList: true,
+        attributeFilter: ['data-overflowing'],
+        subtree: true,
+      });
+
+      return () => {
+        resizeObserver.disconnect();
+        mutationObserver.disconnect();
+        setTriggerElement(null);
+        updateOverflow(null);
+      };
+    },
+    [showOnlyOnOverflow, updateOverflow]
+  );
+
+  const mergeTriggerRef = useStableMergeRef(setTriggerElementRef);
 
   const modifiers = useMemo(
     () => makeDefaultPopperModifiers(arrowElement, offset),
@@ -468,6 +536,19 @@ function useHoverOverlay({
     }, displayTimeout ?? CLOSE_DELAY);
   }, [isHoverable, displayTimeout, commitStatus, group]);
 
+  const previousForceVisibleRef = useRef<boolean | 'delayed' | undefined>(undefined);
+  useEffect(() => {
+    const wasDelayed = previousForceVisibleRef.current === 'delayed';
+
+    if (forceVisible === 'delayed' && !wasDelayed) {
+      handleMouseEnter();
+    } else if (forceVisible !== 'delayed' && wasDelayed) {
+      handleMouseLeave();
+    }
+
+    previousForceVisibleRef.current = forceVisible;
+  }, [forceVisible, handleMouseEnter, handleMouseLeave]);
+
   /**
    * Wraps the passed in react elements with a container that has the proper
    * event handlers to trigger the overlay.
@@ -477,10 +558,15 @@ function useHoverOverlay({
    */
   const wrapTrigger = useCallback(
     (triggerChildren: React.ReactNode) => {
+      const shouldInteract =
+        !showOnlyOnOverflow ||
+        isOverflowing ||
+        forceVisible === true ||
+        forceVisible === 'delayed';
       const providedProps = {
-        // !!These props are always overriden!!
-        'aria-describedby': describeById,
-        ref: setTriggerElement,
+        // !!These props are always overridden!!
+        'aria-describedby': shouldInteract ? describeById : undefined,
+        ref: setTriggerElementRef,
         // The following props are composed from the componentProps trigger props
         onFocus: handleMouseEnter,
         onBlur: handleMouseLeave,
@@ -496,6 +582,10 @@ function useHoverOverlay({
         isValidElement(triggerChildren) &&
         (skipWrapper || typeof triggerChildren.type === 'string')
       ) {
+        const triggerRef = mergeTriggerRef(
+          (triggerChildren.props as any).ref as React.Ref<HTMLElement> | null | undefined
+        );
+
         if (showUnderline) {
           const triggerStyle = {
             ...(triggerChildren.props as any).style,
@@ -505,7 +595,7 @@ function useHoverOverlay({
           return cloneElement<any>(
             triggerChildren,
             Object.assign(mergeProps(triggerChildren.props as any, providedProps), {
-              ref: mergeRefs((triggerChildren.props as any).ref, setTriggerElement),
+              ref: triggerRef,
               style: triggerStyle,
             })
           );
@@ -515,7 +605,7 @@ function useHoverOverlay({
         return cloneElement<any>(
           triggerChildren,
           Object.assign(mergeProps(triggerChildren.props as any, providedProps), {
-            ref: mergeRefs((triggerChildren.props as any).ref, setTriggerElement),
+            ref: triggerRef,
             style: (triggerChildren.props as any).style,
           })
         );
@@ -541,11 +631,16 @@ function useHoverOverlay({
       handleMouseEnter,
       handleMouseLeave,
       showUnderline,
+      showOnlyOnOverflow,
       skipWrapper,
       describeById,
+      forceVisible,
       style,
       theme,
       underlineColor,
+      isOverflowing,
+      setTriggerElementRef,
+      mergeTriggerRef,
     ]
   );
 
@@ -558,6 +653,12 @@ function useHoverOverlay({
       startGroupCoolDown(group);
     }
   }, [commitStatus, group]);
+
+  useEffect(() => {
+    if (showOnlyOnOverflow && !isOverflowing) {
+      reset();
+    }
+  }, [showOnlyOnOverflow, isOverflowing, reset]);
 
   const overlayProps = useMemo(() => {
     return {

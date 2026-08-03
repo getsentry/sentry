@@ -4,7 +4,7 @@ import {DeviceName} from 'sentry/components/deviceName';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import type {EventTag} from 'sentry/types/event';
 import type {Meta} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 type Props = {
   tag: EventTag;

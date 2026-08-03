@@ -8,11 +8,15 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
-from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProjects
+from sentry.api.endpoints.organization_releases import (
+    ReleaseSerializerWithProjects,
+    debounce_update_release_health_data,
+)
 from sentry.api.release_search import FINALIZED_KEY, RELEASE_CREATED_KEY
 from sentry.api.serializers.rest_framework.release import ReleaseHeadCommitSerializer
 from sentry.auth import access
 from sentry.constants import BAD_RELEASE_CHARS, MAX_COMMIT_LENGTH, MAX_VERSION_LENGTH
+from sentry.integrations.example import ExampleRepositoryProvider
 from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
@@ -28,7 +32,6 @@ from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
-from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.search.events.constants import (
     RELEASE_ALIAS,
     RELEASE_STAGE_ALIAS,
@@ -1484,8 +1487,14 @@ class OrganizationReleaseCreateTest(APITestCase):
         org = self.create_organization()
         org.flags.allow_joinleave = False
         org.save()
+        integration = self.create_integration(
+            organization=org, provider="example", external_id="example:1"
+        )
         repo = Repository.objects.create(
-            provider="dummy", name="my-org/my-repository", organization_id=org.id
+            provider="integrations:example",
+            name="my-org/my-repository",
+            organization_id=org.id,
+            integration_id=integration.id,
         )
 
         team = self.create_team(organization=org)
@@ -1533,7 +1542,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert response.status_code == 201, response.content
 
         with self.tasks():
-            with patch.object(DummyRepositoryProvider, "compare_commits") as mock_compare_commits:
+            with patch.object(ExampleRepositoryProvider, "compare_commits") as mock_compare_commits:
                 mock_compare_commits.return_value = [
                     {"id": "c" * 40, "repository": repo.name},
                     {"id": "d" * 40, "repository": repo.name},
@@ -3118,3 +3127,46 @@ class OrganizationReleasesBaseEndpointGetProjectsTest(TestCase):
 
         # Should return the project since user is a member
         assert project in projects
+
+
+class DebounceUpdateReleaseHealthDataTest(TestCase):
+    def run_with_health_data(self, project, version="1.0"):
+        with patch(
+            "sentry.api.endpoints.organization_releases.release_health"
+        ) as mock_release_health:
+            mock_release_health.backend.get_changed_project_release_model_adoptions.return_value = [
+                (project.id, version)
+            ]
+            mock_release_health.backend.get_oldest_health_data_for_releases.return_value = {
+                (project.id, version): timezone.now()
+            }
+            debounce_update_release_health_data(project.organization, [project.id])
+
+    def test_creates_release_from_health_data(self) -> None:
+        project = self.create_project()
+
+        self.run_with_health_data(project)
+
+        release = Release.objects.get(organization_id=project.organization_id, version="1.0")
+        assert ReleaseProject.objects.filter(release=release, project=project).exists()
+
+    def test_auto_creation_disabled_skips_creation(self) -> None:
+        project = self.create_project()
+        project.update_option("sentry:enable_auto_release_creation", False)
+
+        with self.feature("organizations:auto-release-creation"):
+            self.run_with_health_data(project)
+
+        assert not Release.objects.filter(organization_id=project.organization_id).exists()
+
+    def test_auto_creation_disabled_associates_existing_release(self) -> None:
+        # A release created out-of-band (e.g. via the CLI) is still associated even
+        # when auto-creation is disabled.
+        project = self.create_project()
+        project.update_option("sentry:enable_auto_release_creation", False)
+        release = Release.objects.create(organization_id=project.organization_id, version="1.0")
+
+        with self.feature("organizations:auto-release-creation"):
+            self.run_with_health_data(project)
+
+        assert ReleaseProject.objects.filter(release=release, project=project).exists()

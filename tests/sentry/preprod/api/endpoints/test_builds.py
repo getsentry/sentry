@@ -73,6 +73,7 @@ class BuildsEndpointTest(APITestCase):
                     "name": None,
                     "version": None,
                     "build_number": None,
+                    "build_number_raw": None,
                     "date_added": ANY,
                     "date_built": None,
                     "artifact_type": 2,
@@ -90,6 +91,7 @@ class BuildsEndpointTest(APITestCase):
                     "download_count": 0,
                     "is_installable": False,
                     "release_notes": None,
+                    "install_groups": None,
                     "error_code": None,
                     "error_message": None,
                 },
@@ -862,7 +864,7 @@ class BuildsEndpointTest(APITestCase):
         self.create_preprod_artifact(app_id="test.app")
         assert self._request({"query": "distribution_error_code:bogus"}).status_code == 400
 
-    @patch("sentry.preprod.api.endpoints.builds.get_size_retention_cutoff")
+    @patch("sentry.preprod.builds_query.get_size_retention_cutoff")
     def test_excludes_expired_artifacts(self, mock_cutoff) -> None:
         mock_cutoff.return_value = before_now(days=30)
         self.create_preprod_artifact(app_id="recent.app", date_added=before_now(days=10))

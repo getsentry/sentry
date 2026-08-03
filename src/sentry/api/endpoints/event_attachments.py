@@ -1,3 +1,4 @@
+import sentry_sdk
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -33,13 +34,14 @@ EVENT_ATTACHMENTS_QUERY_PARAM = OpenApiParameter(
 @extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class EventAttachmentsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.OWNERS_INGEST
+    owner = ApiOwner.FOUNDATIONAL_STORAGE
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
 
     @extend_schema(
-        operation_id="List an Event's Attachments",
+        operation_id="listProjectEventAttachments",
+        summary="List an Event's Attachments",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -73,6 +75,8 @@ class EventAttachmentsEndpoint(ProjectEndpoint):
         event = eventstore.backend.get_event_by_id(project.id, event_id)
         if event is None:
             return self.respond({"detail": "Event not found"}, status=404)
+
+        sentry_sdk.set_attribute("event.type", event.get_event_type())
 
         queryset = EventAttachment.objects.filter(project_id=project.id, event_id=event.event_id)
 

@@ -186,6 +186,36 @@ class JiraInstalledTest(APITestCase):
             "Could not decode JWT token",
         )
 
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @responses.activate
+    def test_rejects_non_rs256_algorithm(self, mock_record_event: MagicMock) -> None:
+        """
+        Test an algorithm-confusion attack: the token carries a valid key id (kid) but is
+        signed with a symmetric algorithm (HS256) rather than RS256. since authenticate_asymmetric_jwt
+        only allows RS256 the token is rejected with a clean 400 halt rather than a 500
+        """
+        self.add_response()
+
+        token = self._jwt_token("HS256", "attacker-secret", headers={"kid": self.kid})
+        self.get_error_response(
+            **self.body(),
+            extra_headers=dict(HTTP_AUTHORIZATION="JWT " + token),
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+        assert not Integration.objects.filter(
+            provider="jira", external_id=self.external_id
+        ).exists()
+        # SLO metric asserts
+        # ENSURE_CONTROL_SILO (success) -> VERIFY_INSTALLATION (halt) -> GET_CONTROL_RESPONSE (success)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
+        assert_halt_metric(
+            mock_record_event,
+            "JWT signed with unexpected algorithm",
+        )
+
     @patch("sentry_sdk.set_tag")
     @responses.activate
     def test_with_key_id(self, mock_set_tag: MagicMock) -> None:

@@ -11,8 +11,8 @@ import {
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import type {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {defined} from 'sentry/utils/defined';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
@@ -67,7 +67,7 @@ function EventViewHierarchyContent({event, project, disableCollapsePersistence}:
 
   // Memoize the JSON parsing because downstream hooks depend on
   // referential equality of objects in the data
-  const hierarchy = useMemo<ViewHierarchyData>(() => {
+  const hierarchy = useMemo(() => {
     if (!data) {
       return null;
     }
@@ -77,7 +77,7 @@ function EventViewHierarchyContent({event, project, disableCollapsePersistence}:
     }
 
     try {
-      return JSON.parse(data);
+      return JSON.parse(data) as ViewHierarchyData;
     } catch (err) {
       Sentry.captureException(err);
       return null;

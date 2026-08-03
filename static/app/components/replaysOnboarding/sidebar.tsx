@@ -11,6 +11,7 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import type {SelectValue} from '@sentry/scraps/select';
 
 import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {IdBadge} from 'sentry/components/idBadge';
@@ -26,9 +27,9 @@ import {
   replayBackendPlatforms,
   replayFrontendPlatforms,
   replayJsLoaderInstructionsPlatformList,
-  replayMobilePlatforms,
   replayOnboardingPlatforms,
   replayPlatforms,
+  replayVideoPlatforms,
 } from 'sentry/data/platformCategories';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
@@ -37,8 +38,8 @@ import {
   OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {SelectValue} from 'sentry/types/core';
-import type {PlatformKey, Project} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
+import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function useReplaysOnboardingDrawer() {
@@ -215,8 +216,11 @@ function OnboardingContent({
 
   const backendPlatform =
     currentProject.platform && replayBackendPlatforms.includes(currentProject.platform);
-  const mobilePlatform =
-    currentProject.platform && replayMobilePlatforms.includes(currentProject.platform);
+  // Mobile SDKs and gaming engines record replays as video: they use their own
+  // native replay onboarding (not the browser JS-loader flow) and don't expose
+  // the rrweb mask/block toggles.
+  const nativeReplayPlatform =
+    currentProject.platform && replayVideoPlatforms.includes(currentProject.platform);
   const npmOnlyFramework =
     currentProject.platform &&
     replayFrontendPlatforms
@@ -312,7 +316,7 @@ function OnboardingContent({
           />
         </Container>
       ) : (
-        !mobilePlatform &&
+        !nativeReplayPlatform &&
         (docs?.platformOptions?.siblingOption || docs?.platformOptions?.packageManager) &&
         !isProjKeysLoading && (
           <Flex gap="md" align="center" wrap="wrap">
@@ -398,7 +402,7 @@ function OnboardingContent({
     <Fragment>
       {radioButtons}
       <ReplayOnboardingLayout
-        hideMaskBlockToggles={mobilePlatform}
+        hideMaskBlockToggles={nativeReplayPlatform}
         docsConfig={docs}
         dsn={dsn}
         projectKeyId={projectKeyId}
@@ -408,7 +412,7 @@ function OnboardingContent({
         configType={
           setupMode === 'npm' || // switched to NPM option
           npmOnlyFramework ||
-          mobilePlatform // even if '?mode=jsLoader', only show npm/default instructions for FE frameworks & mobile platforms
+          nativeReplayPlatform // even if '?mode=jsLoader', only show npm/default instructions for FE frameworks, mobile & gaming platforms
             ? 'replayOnboarding'
             : 'replayOnboardingJsLoader'
         }

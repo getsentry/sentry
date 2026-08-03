@@ -45,6 +45,7 @@ OPTION_KEYS = frozenset(
         "sentry:replay_rage_click_issues",
         "sentry:feedback_user_report_notifications",
         "sentry:feedback_ai_spam_detection",
+        "sentry:enable_auto_release_creation",
         "sentry:toolbar_allowed_origins",
         "sentry:token",
         "sentry:token_header",
@@ -71,6 +72,8 @@ OPTION_KEYS = frozenset(
         "sentry:debug_files_role",
         "sentry:preprod_size_status_checks_enabled",
         "sentry:preprod_size_status_checks_rules",
+        "sentry:preprod_size_pr_comments_enabled",
+        "sentry:preprod_size_pr_comments_rules",
         "sentry:preprod_size_enabled_query",
         "sentry:preprod_distribution_enabled_query",
         "sentry:preprod_size_enabled_by_customer",
@@ -249,3 +252,12 @@ class ProjectOption(Model):
             self.save()
 
         return (self.pk, ImportKind.Inserted)
+
+
+def get_option(
+    project: int | Project,
+    key: str,
+    default: Any | None = None,
+    validate: Callable[[object], bool] | None = None,
+) -> Any:
+    return ProjectOption.objects.get_value(project, key, default, validate)

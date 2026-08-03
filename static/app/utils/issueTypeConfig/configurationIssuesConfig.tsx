@@ -17,6 +17,8 @@ const staticConfigurationIssueDetails = {
 const lowValueSpanConfigurationIssueDetails = {
   ...staticConfigurationIssueDetails,
   autofix: true,
+  configurationProblem: {enabled: true},
+  configurationTroubleshooting: {enabled: true},
 };
 
 export const configurationIssuesConfig: IssueCategoryConfigMapping = {
@@ -47,6 +49,8 @@ export const configurationIssuesConfig: IssueCategoryConfigMapping = {
     regression: {enabled: false},
     eventAndUserCounts: {enabled: false},
     tags: {enabled: false},
+    trace: {enabled: false},
+    contexts: {enabled: false},
     stats: {enabled: true},
     header: {
       filterBar: {enabled: true, fixedEnvironment: true, searchBar: {enabled: false}},

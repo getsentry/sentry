@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Badge} from '@sentry/scraps/badge';
+import {Badge, FeatureBadge} from '@sentry/scraps/badge';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -10,10 +10,22 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {t, tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
+import {useInboxIssueCount} from 'sentry/views/issueList/queries/useInboxIssueCount';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
+import {IssueCount} from 'sentry/views/navigation/secondary/sections/issues/issueCount';
 import {IssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViews';
+
+function InboxCountBadge() {
+  const count = useInboxIssueCount();
+
+  if (!count) {
+    return null;
+  }
+
+  return <IssueCount count={count} />;
+}
 
 export function IssuesSecondaryNavigation() {
   const organization = useOrganization();
@@ -33,6 +45,23 @@ export function IssuesSecondaryNavigation() {
                 {t('Feed')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
+            {organization.features.includes('issue-stream-progress-ui') && (
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={`${baseUrl}/inbox/`}
+                  end
+                  analyticsItemName="issues_inbox"
+                  trailingItems={
+                    <Fragment>
+                      <FeatureBadge type="experimental" />
+                      <InboxCountBadge />
+                    </Fragment>
+                  }
+                >
+                  {t('Inbox')}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
+            )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         <SecondaryNavigation.Separator />
@@ -44,12 +73,13 @@ export function IssuesSecondaryNavigation() {
                   !featureFlags ||
                   featureFlags.some(feature => organization.features.includes(feature))
               )
-              .map(({key, label}) => (
+              .map(({key, label, badge}) => (
                 <SecondaryNavigation.ListItem key={key}>
                   <SecondaryNavigation.Link
                     to={`${baseUrl}/${key}/`}
                     end
                     analyticsItemName={`issues_types_${key}`}
+                    trailingItems={badge ? <FeatureBadge type={badge} /> : null}
                   >
                     {label}
                   </SecondaryNavigation.Link>

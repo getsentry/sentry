@@ -16,6 +16,9 @@ from sentry.integrations.project_management.metrics import (
 )
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
+from sentry.issues.action_log.publish import publish_action
+from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, CreateExternalIssueAction
+from sentry.models.activity import Activity
 from sentry.models.grouplink import GroupLink
 from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.services.eventstore.models import GroupEvent
@@ -27,6 +30,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationResourceNotFoundError,
 )
 from sentry.silo.base import cell_silo_function
+from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
 
 logger = logging.getLogger("sentry.rules")
@@ -70,6 +74,29 @@ def create_link(
         linked_id=external_issue.id,
         relationship=GroupLink.Relationship.references,
         data={"provider": integration.provider},
+    )
+    issue_url = response.get("url") or installation.get_issue_url(external_issue.key)
+    Activity.objects.create_group_activity(
+        group=event.group,
+        type=ActivityType.CREATE_ISSUE,
+        data={
+            "title": external_issue.title,
+            "provider": installation.model.get_provider().name,
+            "location": issue_url,
+            "label": installation.get_issue_display_name(external_issue) or external_issue.key,
+            "new": True,
+        },
+    )
+    # This runs from a rule/workflow firing, so there is no request user to attribute.
+    publish_action(
+        CreateExternalIssueAction(
+            provider=integration.provider,
+            external_issue_key=external_issue.key,
+        ),
+        source=ActionSource.SYSTEM,
+        group_id=event.group.id,
+        project=event.group.project,
+        actor=SYSTEM_ACTOR,
     )
 
 

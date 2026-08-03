@@ -3,8 +3,8 @@ import round from 'lodash/round';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {SessionFieldWithOperation} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {toArray} from 'sentry/utils/array/toArray';
+import {defined} from 'sentry/utils/defined';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {formatMetricUsingUnit} from 'sentry/utils/number/formatMetricUsingUnit';
@@ -20,6 +20,10 @@ import {AlertRuleStatus, CombinedAlertType} from 'sentry/views/alerts/types';
 
 export function isIssueAlert(data: CombinedAlerts) {
   return data.type === CombinedAlertType.ISSUE;
+}
+
+export function hasMetricAlerts(organization: Organization): boolean {
+  return organization.features.includes('incidents');
 }
 
 export const DATA_SOURCE_LABELS = {

@@ -16,9 +16,9 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
+import {defined} from 'sentry/utils/defined';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
@@ -46,6 +46,7 @@ import {
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 export function ToolbarSaveAs() {
@@ -159,18 +160,7 @@ export function ToolbarSaveAs() {
     },
   });
 
-  const newAlertLabel = organization.features.includes('workflow-engine-ui')
-    ? t('Monitor for')
-    : t('Alert for');
-
-  items.push({
-    key: 'create-alert',
-    label: newAlertLabel,
-    textValue: newAlertLabel,
-    children: alertsUrls ?? [],
-    disabled: !alertsUrls || alertsUrls.length === 0,
-    isSubmenu: true,
-  });
+  items.push(getSaveAsAlertMenuItem({organization, alertsUrls, submenu: true}));
 
   const disableAddToDashboard = !organization.features.includes('dashboards-edit');
 
@@ -204,7 +194,7 @@ export function ToolbarSaveAs() {
   items.push({
     key: 'add-to-dashboard',
     textValue: t('Dashboard widget'),
-    isSubmenu: chartOptions.length > 1 ? true : false,
+    submenu: chartOptions.length > 1 ? true : false,
     label: (
       <Feature
         overrideName="feature-disabled:dashboards-edit"
@@ -296,7 +286,7 @@ export function ToolbarSaveAs() {
           trigger={triggerProps => (
             <SaveAsButton
               {...triggerProps}
-              variant={shouldHighlightSaveButton ? 'primary' : 'secondary'}
+              variant="primary"
               aria-label={t('Save as')}
               onClick={e => {
                 e.stopPropagation();

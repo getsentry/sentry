@@ -15,6 +15,8 @@ from sentry.analytics.events.suspectcommit_assignment import SuspectCommitAssign
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, cell_silo_model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey
+from sentry.issues.action_log.publish import action_context_scope
+from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource
 from sentry.issues.ownership.grammar import (
     CODEOWNERS,
     Matcher,
@@ -31,6 +33,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.utils import metrics
 from sentry.utils.cache import cache
+from sentry.utils.tracing import trace
 
 if TYPE_CHECKING:
     from sentry.models.projectcodeowners import ProjectCodeOwners
@@ -183,7 +186,7 @@ class ProjectOwnership(Model):
 
     @classmethod
     @metrics.wraps("projectownership.get_issue_owners")
-    @sentry_sdk.trace
+    @trace
     def get_issue_owners(
         cls, project_id: int, data: Mapping[str, Any], limit: int = 2
     ) -> Sequence[tuple[Rule, Sequence[Team | RpcUser], str]]:
@@ -248,7 +251,11 @@ class ProjectOwnership(Model):
 
         if ownership.auto_assignment:
             autoassignment_types.extend(
-                [GroupOwnerType.OWNERSHIP_RULE.value, GroupOwnerType.CODEOWNERS.value]
+                [
+                    GroupOwnerType.OWNERSHIP_RULE.value,
+                    GroupOwnerType.CODEOWNERS.value,
+                    GroupOwnerType.SEER_SUGGESTED.value,
+                ]
             )
         return autoassignment_types
 
@@ -327,6 +334,8 @@ class ProjectOwnership(Model):
             elif issue_owner.type == GroupOwnerType.OWNERSHIP_RULE.value:
                 activity_details["integration"] = ActivityIntegration.PROJECT_OWNERSHIP.value
                 activity_details["rule"] = (issue_owner.context or {}).get("rule", "")
+            elif issue_owner.type == GroupOwnerType.SEER_SUGGESTED.value:
+                activity_details["integration"] = ActivityIntegration.SEER_SUGGESTED.value
             else:
                 activity_details["integration"] = ActivityIntegration.CODEOWNERS.value
                 activity_details["rule"] = (issue_owner.context or {}).get("rule", "")
@@ -358,13 +367,14 @@ class ProjectOwnership(Model):
             ):
                 return
 
-            assignment = GroupAssignee.objects.assign(
-                group,
-                owner,
-                create_only=not force_autoassign,
-                extra=activity_details,
-                force_autoassign=force_autoassign,
-            )
+            with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+                assignment = GroupAssignee.objects.assign(
+                    group,
+                    owner,
+                    create_only=not force_autoassign,
+                    extra=activity_details,
+                    force_autoassign=force_autoassign,
+                )
 
             if assignment["new_assignment"] or assignment["updated_assignment"]:
                 try:

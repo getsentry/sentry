@@ -89,7 +89,7 @@ function FullscreenModalContent({
   };
 
   return (
-    <Flex direction="column" gap="md" height="100%" width="100%">
+    <Stack gap="md" height="100%" width="100%">
       <InputGroup>
         <InputGroup.LeadingItems>
           <IconSearch />
@@ -123,7 +123,7 @@ function FullscreenModalContent({
           insightsAvailable={insightsAvailable}
         />
       </Container>
-    </Flex>
+    </Stack>
   );
 }
 
@@ -546,7 +546,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
   }
 
   return (
-    <Flex direction="column" gap="sm" height="100%" width="100%">
+    <Stack gap="sm" height="100%" width="100%">
       {alertMessage && (
         <ClickableAlert
           variant="warning"
@@ -577,7 +577,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
         />
         <TreemapControlButtons buttons={treemapControlButtons} />
       </Container>
-    </Flex>
+    </Stack>
   );
 }
 

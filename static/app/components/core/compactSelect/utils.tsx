@@ -6,7 +6,7 @@ import type {ListState} from '@react-stately/list';
 import type {Node, Selection} from '@react-types/shared';
 
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {fzf} from 'sentry/utils/search/fzf';
 
 import type {SelectProps} from './compactSelect';
@@ -21,6 +21,10 @@ import type {
   SelectOptionWithKey,
   SelectSectionWithKey,
 } from './types';
+
+// Avoid the relatively expensive CSS.escape call for common keys while preserving
+// full escaping for values that are not already simple CSS identifiers.
+const SIMPLE_CSS_IDENTIFIER = /^-?(?!\d)\w[-\w]*$/;
 
 /**
  * Normalises the `search` prop into a plain config object (or `undefined` if
@@ -40,7 +44,8 @@ export function getSearchConfig<Value extends SelectKey>(
 }
 
 export function getEscapedKey(value: SelectKey): string {
-  return CSS.escape(String(value));
+  const stringValue = String(value);
+  return SIMPLE_CSS_IDENTIFIER.test(stringValue) ? stringValue : CSS.escape(stringValue);
 }
 
 export function getItemsWithKeys<Value extends SelectKey>(

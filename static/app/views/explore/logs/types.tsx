@@ -25,6 +25,7 @@ export enum OurLogKnownFieldKey {
   SPAN_ID = 'span_id',
   TIMESTAMP = 'timestamp',
   TIMESTAMP_PRECISE = 'timestamp_precise',
+  TIMESTAMP_SEQUENCE = 'timestamp.sequence',
   OBSERVED_TIMESTAMP_PRECISE = 'observed_timestamp',
   LOGGER = 'logger.name',
 
@@ -78,7 +79,7 @@ type OurLogsKnownFieldResponseMap = Record<
   [OurLogKnownFieldKey.PROJECT_ID]: string;
   [OurLogKnownFieldKey.TIMESTAMP]: string;
   [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: string | number;
-  [OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE]: string | number;
+  [OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE]?: string | number;
 };
 
 type OurLogsCustomFieldResponseMap = Record<OurLogCustomFieldKey, string | number>;
@@ -119,7 +120,7 @@ export type OurLogsAggregate =
   | AggregationKey.MAX;
 
 type OurLogsAggregateKeys = `${OurLogsAggregate}(${OurLogFieldKey})`;
-type OurLogsAggregateResponseItem = Record<
+export type OurLogsAggregateResponseItem = Record<
   keyof OurLogsResponseItem | OurLogsAggregateKeys,
   string | number
 >;

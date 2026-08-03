@@ -30,8 +30,9 @@ from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime
 from sentry.utils.memory import track_memory_usage
 from sentry.workflow_engine.models import DataPacket, Detector
+from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.processors.data_packet import process_data_packet
-from sentry.workflow_engine.types import DetectorEvaluationResult, DetectorGroupKey
+from sentry.workflow_engine.types import DetectorGroupKey
 
 logger = logging.getLogger(__name__)
 REDIS_TTL = int(timedelta(days=7).total_seconds())
@@ -173,7 +174,7 @@ class SubscriptionProcessor:
         detector: Detector,
         subscription_update: QuerySubscriptionUpdate,
         aggregation_value: float,
-    ) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]]:
+    ) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluation]]]:
         detector_cfg: MetricIssueDetectorConfig = detector.config
         if detector_cfg["detection_type"] == AlertRuleDetectionType.DYNAMIC.value:
             anomaly_detection_packet = AnomalyDetectionUpdate(

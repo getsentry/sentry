@@ -14,6 +14,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Select, SelectOption} from '@sentry/scraps/select';
+import type {SelectValue} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {fetchTotalCount} from 'sentry/actionCreators/events';
@@ -23,13 +24,13 @@ import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {t, tct} from 'sentry/locale';
-import type {PageFilters, SelectValue} from 'sentry/types/core';
+import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
-import {defined} from 'sentry/utils';
 import {CAN_MARK, trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {EventView, MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
@@ -117,6 +118,7 @@ import {Actions} from 'sentry/views/discover/table/cellAction';
 import {TransactionLink} from 'sentry/views/discover/table/tableView';
 import {
   decodeColumnOrder,
+  getDiscoverDeprecation,
   getTargetForTransactionSummaryLink,
 } from 'sentry/views/discover/utils';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
@@ -792,12 +794,7 @@ function DataWidgetViewerModal(props: Props) {
     <Fragment>
       <DashboardsMEPProvider>
         <MetricsCardinalityProvider organization={organization} location={location}>
-          <MetricsDataSwitcher
-            organization={organization}
-            eventView={eventView}
-            location={location}
-            hideLoadingIndicator
-          >
+          <MetricsDataSwitcher location={location}>
             {metricsDataSide => (
               <MEPSettingProvider
                 location={location}
@@ -823,7 +820,7 @@ function DataWidgetViewerModal(props: Props) {
                 </Header>
                 <Body>{renderWidgetViewer()}</Body>
                 <Footer>
-                  <ResultsContainer>
+                  <Flex align="center" justify="between" gap="md" flex="1">
                     {renderTotalResults(totalResults, widget.widgetType)}
                     <Grid flow="column" align="center" gap="md">
                       {onEdit && widget.id && (
@@ -867,7 +864,7 @@ function DataWidgetViewerModal(props: Props) {
                         />
                       )}
                     </Grid>
-                  </ResultsContainer>
+                  </Flex>
                 </Footer>
               </MEPSettingProvider>
             )}
@@ -937,7 +934,9 @@ function OpenButton({
       return null;
     case WidgetType.DISCOVER:
     default:
-      openLabel = t('Open in Discover');
+      openLabel = getDiscoverDeprecation(organization)
+        ? t('Open in Explore')
+        : t('Open in Discover');
       path = getWidgetDiscoverUrl(
         {...widget, queries: [widget.queries[selectedQueryIndex]!]},
         dashboardFilters,
@@ -1246,19 +1245,6 @@ const HighlightContainer = styled('span')<{display?: 'block' | 'flex'}>`
   display: ${p => p.display};
   gap: ${p => p.theme.space.md};
   flex: 1;
-`;
-
-const ResultsContainer = styled('div')`
-  display: flex;
-  flex-grow: 1;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    align-items: center;
-    flex-direction: row;
-    justify-content: space-between;
-  }
 `;
 
 const EmptyQueryContainer = styled('span')`

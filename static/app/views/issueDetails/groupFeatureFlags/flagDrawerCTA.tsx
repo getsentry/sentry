@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import {useDrawerContentContext} from '@sentry/scraps/drawer';
 
 import {
@@ -5,7 +6,7 @@ import {
   FeatureFlagCTAContent,
 } from 'sentry/components/events/featureFlags/cta/featureFlagCTAContent';
 import {useFeatureFlagOnboarding} from 'sentry/components/events/featureFlags/onboarding/useFeatureFlagOnboarding';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 
 export function FlagDrawerCTA({projectPlatform}: {projectPlatform?: PlatformKey}) {
   const {activateSidebar} = useFeatureFlagOnboarding({projectPlatform});

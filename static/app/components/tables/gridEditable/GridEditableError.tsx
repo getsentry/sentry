@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import {IconWarning} from 'sentry/icons';
 
 import {GridBodyCellStatus, GridRow} from './styles';

@@ -28,10 +28,13 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
-import {DiffStatus, getImageName} from 'sentry/views/preprod/types/snapshotTypes';
+import {
+  DiffStatus,
+  getImageName,
+  isPairSidebarItem,
+} from 'sentry/views/preprod/types/snapshotTypes';
 import type {
   SidebarItem,
   SnapshotDetailsApiResponse,
@@ -49,6 +52,7 @@ import {
   type SidebarSection,
   SnapshotSidebarContent,
 } from './sidebar/snapshotSidebarContent';
+import {buildSoloImages} from './soloImages';
 import {TagFilterProvider} from './tagFilterContext';
 import {narrowItemByTags} from './tagFiltering';
 
@@ -75,20 +79,18 @@ function groupByKey<T>(items: T[], keyOf: (item: T) => string): Map<string, T[]>
 }
 
 function itemVariantCount(item: SidebarItem): number {
-  return item.type === 'changed' || item.type === 'renamed'
-    ? item.pairs.length
-    : item.images.length;
+  return isPairSidebarItem(item) ? item.pairs.length : item.images.length;
 }
 
 function itemImages(item: SidebarItem): SnapshotImage[] {
-  if (item.type === 'changed' || item.type === 'renamed') {
+  if (isPairSidebarItem(item)) {
     return item.pairs.map(p => p.head_image);
   }
   return item.images;
 }
 
 function snapshotKeyAt(item: SidebarItem, variantIdx: number): string | null {
-  if (item.type === 'changed' || item.type === 'renamed') {
+  if (isPairSidebarItem(item)) {
     return item.pairs[variantIdx]?.head_image.image_file_name ?? null;
   }
   return item.images[variantIdx]?.image_file_name ?? null;
@@ -100,10 +102,9 @@ function findSnapshotPosition(
 ): {itemIdx: number; variantIdx: number} | null {
   for (let i = 0; i < items.length; i++) {
     const item = items[i]!;
-    const variantIdx =
-      item.type === 'changed' || item.type === 'renamed'
-        ? item.pairs.findIndex(p => p.head_image.image_file_name === snapshotKey)
-        : item.images.findIndex(img => img.image_file_name === snapshotKey);
+    const variantIdx = isPairSidebarItem(item)
+      ? item.pairs.findIndex(p => p.head_image.image_file_name === snapshotKey)
+      : item.images.findIndex(img => img.image_file_name === snapshotKey);
     if (variantIdx !== -1) {
       return {itemIdx: i, variantIdx};
     }
@@ -127,7 +128,6 @@ function itemMaxDiff(item: SidebarItem): number {
 export default function SnapshotsPage() {
   const organization = useOrganization();
   const theme = useTheme();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const {snapshotId} = useParams<{
     snapshotId: string;
   }>();
@@ -172,18 +172,21 @@ export default function SnapshotsPage() {
     });
   }, [isPending, data, organization]);
 
-  const [searchQuery, setSearchQuery] = useState('');
   const pushHistory = {history: 'push' as const};
   const palette = theme.chart.getColorPalette(10);
   // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
   const [overlayColor, setOverlayColor] = useLocalStorageState<string>(
     'snapshot-overlay-color',
-    palette.at(-5) ?? palette[0]
+    palette.at(-3) ?? palette[0]
   );
   const [diffMode, setDiffMode] = useLocalStorageState<DiffMode>(
     'snapshot-diff-mode',
     'split'
+  );
+  const [overlayOpacity, setOverlayOpacity] = useLocalStorageState(
+    'snapshot-overlay-opacity',
+    50
   );
   const breakpoints = useBreakpoints();
   const effectiveDiffMode = !breakpoints.sm && diffMode === 'split' ? 'wipe' : diffMode;
@@ -194,6 +197,10 @@ export default function SnapshotsPage() {
       .withOptions(pushHistory)
   );
   const replaceHistory = {history: 'replace' as const};
+  const [searchQuery, setSearchQuery] = useQueryState(
+    'search',
+    parseAsString.withDefault('').withOptions(replaceHistory)
+  );
   const [activeStatusList, setActiveStatusList] = useQueryState(
     'selectedTypes',
     parseAsArrayOf(parseAsStringLiteral(Object.values(DiffStatus)))
@@ -288,7 +295,10 @@ export default function SnapshotsPage() {
     if (comparisonType === 'diff') {
       const items: SidebarItem[] = [];
 
-      const pushDiffPairs = (pairs: SnapshotDiffPair[], type: 'changed' | 'renamed') => {
+      const pushDiffPairs = (
+        pairs: SnapshotDiffPair[],
+        type: 'changed' | 'renamed' | 'errored'
+      ) => {
         for (const [groupKey, groupedPairs] of groupByKey(pairs, p =>
           imageGroupKey(p.head_image)
         )) {
@@ -319,6 +329,7 @@ export default function SnapshotsPage() {
 
       pushDiffPairs(data.changed, 'changed');
       pushDiffPairs(data.renamed ?? [], 'renamed');
+      pushDiffPairs(data.errored ?? [], 'errored');
       pushImages(data.added, 'added');
       pushImages(data.removed, 'removed');
       pushImages(data.unchanged, 'unchanged');
@@ -331,7 +342,7 @@ export default function SnapshotsPage() {
       return items;
     }
 
-    return [...groupByKey(data.images, imageGroupKey).entries()]
+    return [...groupByKey(buildSoloImages(data), imageGroupKey).entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([groupKey, images]) => ({
         type: 'solo' as const,
@@ -490,6 +501,7 @@ export default function SnapshotsPage() {
 
     const sectionOrder = [
       DiffStatus.CHANGED,
+      DiffStatus.ERRORED,
       DiffStatus.REMOVED,
       DiffStatus.ADDED,
       DiffStatus.RENAMED,
@@ -525,6 +537,7 @@ export default function SnapshotsPage() {
       [DiffStatus.REMOVED]: 0,
       [DiffStatus.RENAMED]: 0,
       [DiffStatus.UNCHANGED]: 0,
+      [DiffStatus.ERRORED]: 0,
       [DiffStatus.SKIPPED]: 0,
     };
     for (const item of tagFilteredItems) {
@@ -770,13 +783,11 @@ export default function SnapshotsPage() {
           flexShrink={0}
           overflow="auto"
           borderRight="primary"
-          display={{'2xs': 'none', xs: 'none', sm: 'flex'}}
-          maxWidth={{sm: '300px', md: 'none'}}
+          display={{'screen:2xs': 'none', 'screen:xs': 'none', 'screen:sm': 'flex'}}
+          maxWidth={{'screen:sm': '300px', 'screen:md': 'none'}}
           style={{
             width: sidebarWidth,
-            height: hasPageFrameFeature
-              ? 'calc(100dvh - var(--top-bar-height, 53px))'
-              : 'calc(100vh - 205px)',
+            height: 'calc(100dvh - var(--top-bar-height, 53px))',
           }}
         >
           <SnapshotSidebarContent
@@ -807,6 +818,8 @@ export default function SnapshotsPage() {
             diffImageBaseUrl={diffImageBaseUrl}
             overlayColor={overlayColor}
             onOverlayColorChange={setOverlayColor}
+            overlayOpacity={overlayOpacity}
+            onOverlayOpacityChange={setOverlayOpacity}
             diffMode={effectiveDiffMode}
             onDiffModeChange={setDiffMode}
             viewMode={viewMode}
@@ -938,7 +951,7 @@ function imageSearchKey(image: SnapshotImage): string {
 // Builds one lowercase search key per image/pair, joining all searchable metadata
 function buildMemberSearchKeys(item: SidebarItem): string[] {
   const groupNameLower = item.name ? item.name.toLowerCase() : '';
-  if (item.type === 'changed' || item.type === 'renamed') {
+  if (isPairSidebarItem(item)) {
     return item.pairs.map(pair => {
       const head = imageSearchKey(pair.head_image);
       const base = imageSearchKey(pair.base_image);
@@ -956,7 +969,7 @@ function narrowItemBySearch(
   memberSearchKeysForItem: string[],
   query: string
 ): SidebarItem | null {
-  if (item.type === 'changed' || item.type === 'renamed') {
+  if (isPairSidebarItem(item)) {
     const kept: SnapshotDiffPair[] = [];
     let allMatched = true;
     for (let i = 0; i < item.pairs.length; i++) {

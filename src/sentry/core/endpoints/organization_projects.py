@@ -2,7 +2,7 @@ import logging
 import random
 import string
 from email.headerregistry import Address
-from typing import Any, TypeIs
+from typing import Any, TypedDict, TypeIs
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
@@ -38,7 +38,13 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.examples.project_examples import ProjectExamples
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    GlobalParams,
+    OrganizationParams,
+    VisibilityParams,
+)
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.core.endpoints.team_projects import (
@@ -61,6 +67,24 @@ ERR_INVALID_STATS_PERIOD = (
     "Invalid stats_period. Valid choices are '', '1h', '24h', '7d', '14d', '30d', and '90d'"
 )
 
+
+class _LegacyParamErrorResponse(TypedDict):
+    # Legacy nested error envelope used by this endpoint's stats_period / id
+    # validation; kept as-is for wire compatibility.
+    error: dict[str, dict[str, dict[str, str]]]
+
+
+class _OrganizationProjectCreateResponse(OrganizationProjectResponse):
+    """Project-creation response: the base `OrganizationProjectResponse` shape
+    plus a `team_slug` key that the endpoint appends post-serialize to surface
+    the auto-created personal team."""
+
+    team_slug: str
+
+
+# Only applies to the error `stats`; `transactionStats` always queries spans. Kept for
+# now until we have the frontend stop sending it, though every option resolves to discover for the error query anyway since the
+# metrics datasets is not compatible with `!event.type:transaction`.
 DATASETS = {
     "": discover,  # in case they pass an empty query string fall back on default
     "discover": discover,
@@ -109,8 +133,14 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
     logger = logging.getLogger("team-project.create")
 
     @extend_schema(
-        operation_id="List an Organization's Projects",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, CursorQueryParam],
+        operation_id="listOrganizationProjects",
+        summary="List an Organization's Projects",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            CursorQueryParam,
+            VisibilityParams.PER_PAGE,
+            OrganizationParams.PROJECT_QUERY,
+        ],
         request=None,
         responses={
             200: inline_sentry_response_serializer(
@@ -122,7 +152,13 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
         },
         examples=OrganizationExamples.LIST_PROJECTS,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> (
+        Response[list[OrganizationProjectResponse]]
+        | Response[DetailResponse]
+        | Response[_LegacyParamErrorResponse]
+    ):
         """
         Return a list of projects bound to a organization.
         """
@@ -259,7 +295,8 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         tags=["Projects"],
-        operation_id="Create a Project for an Organization",
+        operation_id="createOrganizationProject",
+        summary="Create a Project for an Organization",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=ProjectPostSerializer,
         responses={
@@ -278,7 +315,9 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
             "(`disable_member_project_creation`), `org:write` scope is required."
         ),
     )
-    def post(self, request: Request, organization: Organization) -> Response:
+    def post(
+        self, request: Request, organization: Organization
+    ) -> Response[_OrganizationProjectCreateResponse]:
         """
         Create a new project for an organization.
 
@@ -414,11 +453,13 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
             "created team through project creation flow",
             extra={"team_slug": default_team_slug, "project_slug": project_name},
         )
-        serialized_response = serialize(
+        base: OrganizationProjectResponse = serialize(
             project, request.user, ProjectSummarySerializer(collapse=["unusedFeatures"])
         )
-        serialized_response["team_slug"] = team.slug
-
+        serialized_response: _OrganizationProjectCreateResponse = {
+            **base,
+            "team_slug": team.slug,
+        }
         return Response(serialized_response, status=201)
 
 

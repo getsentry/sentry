@@ -20,7 +20,7 @@ import type {
   Plan,
   Subscription,
 } from 'getsentry/types';
-import {displayBudgetName, getTrialDaysLeft} from 'getsentry/utils/billing';
+import {displayBudgetName, getTrialDaysLeft, isTrial} from 'getsentry/utils/billing';
 
 interface Props {
   organization: Organization;
@@ -48,7 +48,7 @@ export function CronsBillingBanner({organization, subscription}: Props) {
   const trialDaysLeft = getTrialDaysLeft(subscription);
   const daysSinceTrial = getDaysSinceDate(subscription.lastTrialEnd ?? '');
 
-  const {data: billingConfig} = useBillingConfig({organization, subscription});
+  const {data: billingConfig} = useBillingConfig({organization});
   const {onDemandPrice, reserved} = getCronsPricingInfo(billingConfig);
 
   const {data, isPending} = useApiQuery<MonitorCountResponse>(
@@ -86,7 +86,7 @@ export function CronsBillingBanner({organization, subscription}: Props) {
     return null;
   }
 
-  if (trialDaysLeft <= 7 && subscription.isTrial) {
+  if (trialDaysLeft <= 7 && isTrial(subscription)) {
     return (
       <TrialEndingBanner
         hasBillingAccess={hasBillingAccess}

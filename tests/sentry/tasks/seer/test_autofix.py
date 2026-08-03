@@ -1,112 +1,19 @@
-from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
-from django.test import TestCase
 
-from sentry.seer.autofix.constants import AutofixStatus, SeerAutomationSource
-from sentry.seer.autofix.utils import AutofixState, get_seer_seat_based_tier_cache_key
+from sentry.seer.autofix.constants import SeerAutomationSource
+from sentry.seer.autofix.utils import get_seer_seat_based_tier_cache_key
 from sentry.seer.models import (
     SummarizeIssueResponse,
     SummarizeIssueScores,
 )
 from sentry.tasks.seer.autofix import (
-    check_autofix_status,
     configure_seer_for_existing_org,
     generate_issue_summary_only,
 )
 from sentry.testutils.cases import TestCase as SentryTestCase
 from sentry.utils.cache import cache
-
-
-class TestCheckAutofixStatus(TestCase):
-    @patch("sentry.tasks.seer.autofix.get_autofix_state")
-    @patch("sentry.tasks.seer.autofix.logger.error")
-    def test_check_autofix_status_processing_too_long(
-        self, mock_logger: MagicMock, mock_get_autofix_state: MagicMock
-    ) -> None:
-        # Mock the get_autofix_state function to return a state that's been processing for too long
-        mock_get_autofix_state.return_value = AutofixState(
-            run_id=123,
-            request={
-                "project_id": 456,
-                "organization_id": 789,
-                "issue": {"id": 789, "title": "Test Issue"},
-                "repos": [],
-            },
-            updated_at=datetime.now() - timedelta(minutes=10),  # Naive datetime
-            status=AutofixStatus.PROCESSING,
-        )
-
-        # Call the task
-        check_autofix_status(123, 789)
-
-        # Check that the logger.error was called
-        mock_logger.assert_called_once_with(
-            "Autofix run has been processing for more than 5 minutes", extra={"run_id": 123}
-        )
-
-    @patch("sentry.tasks.seer.autofix.get_autofix_state")
-    @patch("sentry.tasks.seer.autofix.logger.error")
-    def test_check_autofix_status_processing_within_time_limit(
-        self, mock_logger, mock_get_autofix_state
-    ):
-        # Mock the get_autofix_state function to return a state that's still within the time limit
-        mock_get_autofix_state.return_value = AutofixState(
-            run_id=123,
-            request={
-                "project_id": 456,
-                "organization_id": 789,
-                "issue": {"id": 789, "title": "Test Issue"},
-                "repos": [],
-            },
-            updated_at=datetime.now() - timedelta(minutes=3),  # Naive datetime
-            status=AutofixStatus.PROCESSING,
-        )
-
-        # Call the task
-        check_autofix_status(123, 789)
-
-        # Check that the logger.error was not called
-        mock_logger.assert_not_called()
-
-    @patch("sentry.tasks.seer.autofix.get_autofix_state")
-    @patch("sentry.tasks.seer.autofix.logger.error")
-    def test_check_autofix_status_completed(
-        self, mock_logger: MagicMock, mock_get_autofix_state: MagicMock
-    ) -> None:
-        # Mock the get_autofix_state function to return a completed state
-        mock_get_autofix_state.return_value = AutofixState(
-            run_id=123,
-            request={
-                "project_id": 456,
-                "organization_id": 789,
-                "issue": {"id": 789, "title": "Test Issue"},
-                "repos": [],
-            },
-            updated_at=datetime.now() - timedelta(minutes=10),  # Naive datetime
-            status=AutofixStatus.COMPLETED,
-        )
-
-        # Call the task
-        check_autofix_status(123, 789)
-
-        # Check that the logger.error was not called
-        mock_logger.assert_not_called()
-
-    @patch("sentry.tasks.seer.autofix.get_autofix_state")
-    @patch("sentry.tasks.seer.autofix.logger.error")
-    def test_check_autofix_status_no_state(
-        self, mock_logger: MagicMock, mock_get_autofix_state: MagicMock
-    ) -> None:
-        # Mock the get_autofix_state function to return None (no state found)
-        mock_get_autofix_state.return_value = None
-
-        # Call the task
-        check_autofix_status(123, 789)
-
-        # Check that the logger.error was not called
-        mock_logger.assert_not_called()
 
 
 class TestGenerateIssueSummaryOnly(SentryTestCase):

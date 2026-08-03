@@ -52,7 +52,9 @@ logger = logging.getLogger(__name__)
 # Providers to include in the periodic sync. Each must implement
 # get_repositories() returning RepositoryInfo with all fields needed
 # by their build_repository_config.
-# Perforce is excluded because it cannot derive external_id from its API.
+# Perforce syncs at depot granularity: get_repositories() enumerates depots
+# (p4 depots) and derives a stable external_id from the depot path, matching
+# what the manual-add path stores.
 SCM_SYNC_PROVIDERS = [
     "github",
     "github_enterprise",
@@ -60,6 +62,7 @@ SCM_SYNC_PROVIDERS = [
     "bitbucket",
     "bitbucket_server",
     "vsts",
+    "perforce",
 ]
 
 SYNC_BATCH_SIZE = 100
@@ -221,11 +224,22 @@ def _sync_repos_for_org(organization_integration_id: int) -> None:
         disabled_repos = [
             r for r in all_repos if r.status == ObjectStatus.DISABLED and r.external_id
         ]
+        # Repos that are being deleted must be excluded from the "new" set so
+        # the sync doesn't attempt to re-create them while deletion is in flight.
+        pending_deletion_repos = [
+            r
+            for r in all_repos
+            if r.status in (ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS)
+            and r.external_id
+        ]
 
         sentry_active_ids = {r.external_id for r in active_repos}
         sentry_disabled_ids = {r.external_id for r in disabled_repos}
+        sentry_pending_ids = {r.external_id for r in pending_deletion_repos}
 
-        new_ids = provider_external_ids - sentry_active_ids - sentry_disabled_ids
+        new_ids = (
+            provider_external_ids - sentry_active_ids - sentry_disabled_ids - sentry_pending_ids
+        )
         # Skip removals entirely if we didn't manage to fetch all repos for this integration.
         # We have to do this, otherwise we'd incorrectly disable repos that weren't fetched
         removed_ids = set() if fetch_truncated else sentry_active_ids - provider_external_ids

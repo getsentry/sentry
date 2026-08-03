@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import TypedDict
 
 from drf_spectacular.utils import extend_schema
@@ -79,6 +80,10 @@ class ReplayDeletionJobCreateDataSerializer(serializers.Serializer):
     def validate(self, data):
         if data["rangeStart"] >= data["rangeEnd"]:
             raise serializers.ValidationError("rangeStart must be before rangeEnd")
+        if data["rangeEnd"] - data["rangeStart"] > timedelta(days=30):
+            raise serializers.ValidationError(
+                "you cannot delete more than 30 days of data at a time"
+            )
         return data
 
 
@@ -97,7 +102,8 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
     permission_classes = (ReplayDeletionJobPermission,)
 
     @extend_schema(
-        operation_id="List Replay Batch-Deletion Jobs",
+        operation_id="listProjectReplayDeletionJobs",
+        summary="List Replay Batch-Deletion Jobs",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -132,7 +138,8 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create Replay Batch Deletion Job",
+        operation_id="createProjectReplayDeletionJob",
+        summary="Create Replay Batch Deletion Job",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -203,7 +210,8 @@ class ProjectReplayDeletionJobDetailEndpoint(ProjectReplayEndpoint):
     permission_classes = (ReplayDeletionJobPermission,)
 
     @extend_schema(
-        operation_id="Retrieve a Replay Batch-Deletion Job",
+        operation_id="getProjectReplayDeletionJob",
+        summary="Retrieve a Replay Batch-Deletion Job",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

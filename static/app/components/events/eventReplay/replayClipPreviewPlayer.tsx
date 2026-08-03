@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import type {LinkButtonProps} from '@sentry/scraps/button';
+import {Alert} from '@sentry/scraps/alert';
+import {Button, type LinkButtonProps} from '@sentry/scraps/button';
 
 import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
@@ -8,6 +9,7 @@ import {ReplayPreviewPlayer} from 'sentry/components/events/eventReplay/replayPr
 import {StaticReplayPreview} from 'sentry/components/events/eventReplay/staticReplayPreview';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ArchivedReplayAlert} from 'sentry/components/replays/alerts/archivedReplayAlert';
+import {MissingReplayAlert} from 'sentry/components/replays/alerts/missingReplayAlert';
 import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
 import {t} from 'sentry/locale';
 import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
@@ -15,6 +17,8 @@ import {useLogEventReplayStatus} from 'sentry/utils/replays/hooks/useLogEventRep
 import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
 import {ReplayPlayerStateContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
 import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
+import {isNotFoundError} from 'sentry/utils/requestError/requestError';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {FluidHeight} from 'sentry/views/explore/replays/detail/layout/fluidHeight';
 
 interface Props {
@@ -30,6 +34,8 @@ export function ReplayClipPreviewPlayer({
   replayReaderResult,
   overlayContent,
 }: Props) {
+  const organization = useOrganization();
+
   useLogEventReplayStatus({
     readerResult: replayReaderResult,
   });
@@ -40,6 +46,28 @@ export function ReplayClipPreviewPlayer({
       renderArchived={() => (
         <ArchivedReplayAlert message={t('The replay for this event has been deleted.')} />
       )}
+      renderError={({fetchError, attachmentError, onRetry}) => {
+        // 404s capture most common reasons for a replay not being available
+        if (isNotFoundError(fetchError) || attachmentError?.some(isNotFoundError)) {
+          return <MissingReplayAlert orgSlug={organization.slug} />;
+        }
+
+        return (
+          <Alert.Container>
+            <Alert
+              variant="danger"
+              data-test-id="replay-error"
+              trailingItems={
+                <Button size="xs" onClick={onRetry}>
+                  {t('Retry')}
+                </Button>
+              }
+            >
+              {t('There was an error loading the replay.')}
+            </Alert>
+          </Alert.Container>
+        );
+      }}
       renderLoading={() => (
         <StyledNegativeSpaceContainer data-test-id="replay-loading-placeholder">
           <LoadingIndicator />

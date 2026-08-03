@@ -335,7 +335,7 @@ class IssueAlertMigrator:
         self, if_dcg: DataConditionGroup, actions: list[dict[str, Any]]
     ) -> None:
         notification_actions = build_notification_actions_from_rule_data_actions(
-            actions, is_dry_run=self.is_dry_run or False
+            actions, is_dry_run=self.is_dry_run or False, project=self.project
         )
         dcg_actions = [
             DataConditionGroupAction(action=action, condition_group=if_dcg)

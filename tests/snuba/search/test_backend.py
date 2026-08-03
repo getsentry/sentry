@@ -17,6 +17,7 @@ from sentry.issues.grouptype import (
 )
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.issues.issue_search import convert_query_values, issue_search_config, parse_search_query
+from sentry.issues.progress_state import IssueProgressState
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
@@ -1074,31 +1075,135 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         )
         assert set(results) == {linked_group2}
 
-    def test_issue_agent(self) -> None:
-        self.create_group_activity(group=self.group1, type=ActivityType.SEER_RCA_COMPLETED.value)
-        self.create_group_activity(group=self.group2, type=ActivityType.SEER_PR_CREATED.value)
+    def _create_merged_autofix_pr(self, group):
+        run = self.create_seer_run(organization=group.project.organization)
+        self.create_seer_agent_run(run, source="autofix", project=group.project, group=group)
+        repo = self.create_repo(group.project, name="getsentry/example")
+        pr = self.create_pull_request(
+            repository_id=repo.id,
+            organization_id=group.project.organization_id,
+            key="9001",
+        )
+        pr.update(state="merged", merged_at=timezone.now())
+        self.create_seer_run_pull_request(run, pr)
 
-        results = self.make_query(search_filter_query="issue.agent:has_root_cause")
+    def test_autofix_state_milestones(self) -> None:
+        self.create_group_activity(group=self.group1, type=ActivityType.SEER_PR_CREATED.value)
+        self.create_group_activity(
+            group=self.group2, type=ActivityType.SEER_SOLUTION_COMPLETED.value
+        )
+
+        results = self.make_query(search_filter_query="issue.autofix_state:review_pr")
         assert set(results) == {self.group1}
 
-        results = self.make_query(search_filter_query="issue.agent:pr_created")
+        results = self.make_query(search_filter_query="issue.autofix_state:solution_ready")
         assert set(results) == {self.group2}
 
-        results = self.make_query(search_filter_query="issue.agent:has_plan")
+        results = self.make_query(search_filter_query="issue.autofix_state:code_changes_ready")
         assert set(results) == set()
 
-    def test_issue_agent_multiple_values(self) -> None:
-        self.create_group_activity(group=self.group1, type=ActivityType.SEER_RCA_COMPLETED.value)
-        self.create_group_activity(group=self.group2, type=ActivityType.SEER_PR_CREATED.value)
+    def test_autofix_state_merged(self) -> None:
+        self.create_group_activity(group=self.group1, type=ActivityType.SEER_PR_CREATED.value)
+        self._create_merged_autofix_pr(self.group1)
 
-        results = self.make_query(search_filter_query="issue.agent:[has_root_cause, pr_created]")
+        assert set(self.make_query(search_filter_query="issue.autofix_state:merged")) == {
+            self.group1
+        }
+        assert set(self.make_query(search_filter_query="issue.autofix_state:review_pr")) == set()
+
+    def test_autofix_state_needs_investigation(self) -> None:
+        self.group1.update(seer_explorer_autofix_last_triggered=timezone.now() - timedelta(days=1))
+        self.group2.update(seer_explorer_autofix_last_triggered=timezone.now() - timedelta(days=45))
+
+        results = self.make_query(search_filter_query="issue.autofix_state:needs_investigation")
+        assert set(results) == {self.group1}
+
+    def test_autofix_state_multiple_values(self) -> None:
+        self.create_group_activity(group=self.group1, type=ActivityType.SEER_PR_CREATED.value)
+        self.create_group_activity(
+            group=self.group2, type=ActivityType.SEER_SOLUTION_COMPLETED.value
+        )
+
+        results = self.make_query(
+            search_filter_query="issue.autofix_state:[review_pr, solution_ready]"
+        )
         assert set(results) == {self.group1, self.group2}
 
-    def test_issue_agent_negation(self) -> None:
-        self.create_group_activity(group=self.group1, type=ActivityType.SEER_RCA_COMPLETED.value)
+    def test_autofix_state_invalid_value(self) -> None:
+        with pytest.raises(InvalidSearchQuery):
+            self.make_query(search_filter_query="issue.autofix_state:bogus")
 
-        results = self.make_query(search_filter_query="!issue.agent:has_root_cause")
+    def test_autofix_state_negation(self) -> None:
+        self.create_group_activity(group=self.group1, type=ActivityType.SEER_PR_CREATED.value)
+
+        results = self.make_query(search_filter_query="!issue.autofix_state:review_pr")
+        assert self.group1 not in set(results)
+        assert self.group2 in set(results)
+
+    def test_issue_progress(self) -> None:
+        self.create_group_derived_data(group=self.group1, progress=IssueProgressState.DIAGNOSED)
+        self.create_group_derived_data(group=self.group2, progress=IssueProgressState.FIX_PROPOSED)
+
+        results = self.make_query(
+            search_filter_query=f"issue.progress:{IssueProgressState.DIAGNOSED}"
+        )
+        assert set(results) == {self.group1}
+
+        results = self.make_query(
+            search_filter_query=f"issue.progress:{IssueProgressState.FIX_PROPOSED}"
+        )
         assert set(results) == {self.group2}
+
+        results = self.make_query(
+            search_filter_query=f"issue.progress:{IssueProgressState.FIX_APPLIED}"
+        )
+        assert set(results) == set()
+
+    def test_issue_progress_multiple_values(self) -> None:
+        self.create_group_derived_data(group=self.group1, progress=IssueProgressState.DIAGNOSED)
+        self.create_group_derived_data(group=self.group2, progress=IssueProgressState.FIX_PROPOSED)
+
+        results = self.make_query(
+            search_filter_query=(
+                f"issue.progress:[{IssueProgressState.DIAGNOSED}, {IssueProgressState.FIX_PROPOSED}]"
+            )
+        )
+        assert set(results) == {self.group1, self.group2}
+
+    def test_issue_progress_base_states(self) -> None:
+        self.create_group_derived_data(group=self.group1, progress=IssueProgressState.IDENTIFIED)
+        self.create_group_derived_data(group=self.group2, progress=IssueProgressState.ASSIGNED)
+
+        results = self.make_query(
+            search_filter_query=f"issue.progress:{IssueProgressState.IDENTIFIED}"
+        )
+        assert set(results) == {self.group1}
+
+        results = self.make_query(
+            search_filter_query=f"issue.progress:{IssueProgressState.ASSIGNED}"
+        )
+        assert set(results) == {self.group2}
+
+    def test_issue_progress_missing_row_is_identified(self) -> None:
+        # A group with no GroupDerivedData row is implicitly "identified" on the DB
+        # path, matching the sort resolver, so it's returned alongside groups with
+        # an explicit "identified" row.
+        self.create_group_derived_data(group=self.group1, progress=IssueProgressState.IDENTIFIED)
+
+        results = self.make_query(
+            search_filter_query=f"issue.progress:{IssueProgressState.IDENTIFIED}"
+        )
+        assert set(results) == {self.group1, self.group2}
+
+    def test_issue_progress_negation(self) -> None:
+        self.create_group_derived_data(group=self.group1, progress=IssueProgressState.DIAGNOSED)
+        self.create_group_derived_data(group=self.group2, progress=IssueProgressState.FIX_PROPOSED)
+
+        results = self.make_query(
+            search_filter_query=f"!issue.progress:{IssueProgressState.DIAGNOSED}"
+        )
+        assert self.group2 in set(results)
+        assert self.group1 not in set(results)
 
     def test_unassigned(self) -> None:
         results = self.make_query(search_filter_query="is:unassigned")
@@ -4149,3 +4254,119 @@ class EventsRecommendedSortTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin)
 
         scores = {gid: score for gid, score in results}
         assert scores[profile_group.id] > scores[error_group.id]
+
+    def _recommended_scores(self, group_ids: list[int]) -> dict[int, float]:
+        results = self.backend._get_query_executor().snuba_search(
+            start=None,
+            end=None,
+            project_ids=[self.project.id],
+            environment_ids=[],
+            sort_field="recommended",
+            organization=self.organization,
+            group_ids=group_ids,
+            limit=150,
+            referrer=Referrer.TESTING_TEST,
+        )[0]
+        return {gid: score for gid, score in results}
+
+    def test_recommended_message_penalty(self) -> None:
+        ts = before_now(hours=1).isoformat()
+        exception_event = self.store_event(
+            data={
+                "fingerprint": ["exception-group"],
+                "event_id": "a" * 32,
+                "timestamp": ts,
+                "message": "exception-group",
+                "level": "error",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ValueError",
+                            "value": "something broke",
+                            "stacktrace": {"frames": [{"module": "app.main"}]},
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        message_event = self.store_event(
+            data={
+                "fingerprint": ["message-group"],
+                "event_id": "b" * 32,
+                "timestamp": ts,
+                "message": "message-group",
+                "level": "error",
+            },
+            project_id=self.project.id,
+        )
+
+        with self.options({"snuba.search.recommended.message-penalty-weight": 0.10}):
+            scores = self._recommended_scores([exception_event.group.id, message_event.group.id])
+
+        assert scores[exception_event.group.id] > scores[message_event.group.id]
+
+    def test_recommended_zero_weight_factor_excluded(self) -> None:
+        ts = before_now(hours=1).isoformat()
+        for i in range(5):
+            self.store_event(
+                data={
+                    "fingerprint": ["high-vol"],
+                    "event_id": f"{'a' * 31}{i}",
+                    "message": "high-vol",
+                    "level": "info",
+                    "timestamp": ts,
+                },
+                project_id=self.project.id,
+            )
+        self.store_event(
+            data={
+                "fingerprint": ["low-vol"],
+                "event_id": "b" * 32,
+                "message": "low-vol",
+                "level": "fatal",
+                "timestamp": ts,
+            },
+            project_id=self.project.id,
+        )
+        high = Group.objects.get(project=self.project, message="high-vol")
+        low = Group.objects.get(project=self.project, message="low-vol")
+
+        options = {
+            "snuba.search.recommended.recency-weight": 0.0,
+            "snuba.search.recommended.spike-weight": 0.0,
+            "snuba.search.recommended.severity-weight": 0.0,
+            "snuba.search.recommended.user-impact-weight": 0.0,
+            "snuba.search.recommended.event-volume-weight": 0.2,
+            "snuba.search.recommended.group-type-boost": {},
+        }
+        with self.options(options):
+            scores = self._recommended_scores([high.id, low.id])
+
+        assert scores[high.id] > scores[low.id]
+
+    def test_recommended_all_factors_zero_with_boost(self) -> None:
+        # All factor weights are dropped, leaving only the group type boost. The
+        # boost can be a non-aggregate expression, so the query must still be a
+        # valid aggregation and succeed.
+        event = self.store_event(
+            data={
+                "fingerprint": ["boost-only"],
+                "event_id": "a" * 32,
+                "level": "error",
+                "timestamp": before_now(hours=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        options = {
+            "snuba.search.recommended.recency-weight": 0.0,
+            "snuba.search.recommended.spike-weight": 0.0,
+            "snuba.search.recommended.severity-weight": 0.0,
+            "snuba.search.recommended.user-impact-weight": 0.0,
+            "snuba.search.recommended.event-volume-weight": 0.0,
+            "snuba.search.recommended.group-type-boost": {1: 0.5},
+        }
+        with self.options(options):
+            scores = self._recommended_scores([event.group.id])
+
+        assert event.group.id in scores

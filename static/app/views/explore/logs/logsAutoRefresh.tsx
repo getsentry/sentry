@@ -1,5 +1,6 @@
 import {Fragment, useEffect, type ReactNode} from 'react';
 
+import {Container} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -18,7 +19,7 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {useLogsAnalyticsPageSource} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {AutoRefreshLabel, AutoRefreshText} from 'sentry/views/explore/logs/styles';
+import {AutoRefreshLabel} from 'sentry/views/explore/logs/styles';
 import {useLogsAutoRefreshInterval} from 'sentry/views/explore/logs/useLogsAutoRefreshInterval';
 import {checkSortIsTimeBasedDescending} from 'sentry/views/explore/logs/utils';
 import {
@@ -136,7 +137,9 @@ export function AutorefreshToggle({averageLogsPerSecond = 0}: AutorefreshToggleP
             }}
           />
         </Tooltip>
-        <AutoRefreshText>{t('Auto-refresh')}</AutoRefreshText>
+        <Container as="span" display={{zero: 'none', '3xl': 'inline'}}>
+          {t('Auto-refresh')}
+        </Container>
       </AutoRefreshLabel>
     </Fragment>
   );

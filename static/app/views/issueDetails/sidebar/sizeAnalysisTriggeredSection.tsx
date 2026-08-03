@@ -4,9 +4,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {t} from 'sentry/locale';
 import type {Event, EventOccurrence} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
 import type {MetricCondition} from 'sentry/types/workflowEngine/detectors';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {getCompareBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
@@ -88,7 +87,6 @@ function formatCondition({
 
 interface SizeAnalysisTriggeredSectionProps {
   event: Event;
-  group: Group;
 }
 
 export function SizeAnalysisTriggeredSection({event}: SizeAnalysisTriggeredSectionProps) {

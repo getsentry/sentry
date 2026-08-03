@@ -3,9 +3,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {Flex, type FlexProps, Stack} from '@sentry/scraps/layout';
 
-import {HighlightComponent} from 'sentry/components/highlight';
+import {MultiHighlight} from 'sentry/components/highlight';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {Panel} from 'sentry/components/panels/panel';
 import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/tables/gridEditable/styles';
@@ -23,6 +23,7 @@ import {SeverityLevel} from 'sentry/views/explore/logs/utils';
 export const LOGS_GRID_BODY_ROW_HEIGHT = GRID_BODY_ROW_HEIGHT - 16;
 
 interface LogTableRowProps {
+  error?: boolean;
   highlighted?: boolean;
   isClickable?: boolean;
   pinned?: boolean;
@@ -77,6 +78,19 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
     `}
 
   ${p =>
+    p.error &&
+    css`
+      &:not(thead > &) {
+        background-color: ${p.theme.tokens.background.transparent.danger.muted};
+        color: ${p.theme.tokens.content.danger};
+
+        &:hover {
+          background-color: ${p.theme.tokens.background.transparent.danger.muted};
+        }
+      }
+    `}
+
+  ${p =>
     p.pinned &&
     css`
       &:not(thead > &) {
@@ -88,6 +102,17 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
         }
       }
     `}
+
+  &[data-row-hover-linked='true']:not(thead > &),
+  &[data-row-linked='true']:not(thead > &) {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.accent.selected.background.active};
+
+    &:hover {
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.selected.background.active};
+    }
+  }
 
   &.beforeHoverTime + &.afterHoverTime:before {
     border-top: 1px solid ${p => p.theme.tokens.border.accent.moderate};
@@ -131,7 +156,7 @@ export const LogAttributeTreeWrapper = styled('div')`
   border-bottom: 0px;
 `;
 
-export const LogTableBodyCell = styled(TableBodyCell)`
+export const LogTableBodyCell = styled(TableBodyCell)<{reservePinGutter?: boolean}>`
   min-height: ${LOGS_GRID_BODY_ROW_HEIGHT}px;
 
   padding: 2px ${p => p.theme.space.xl};
@@ -145,7 +170,21 @@ export const LogTableBodyCell = styled(TableBodyCell)`
   }
 
   &:last-child {
-    padding: 0 ${p => p.theme.space.md};
+    padding: 0
+      ${p => (p.reservePinGutter ? 'var(--logsPinButtonArea)' : p.theme.space.md)} 0
+      ${p => p.theme.space.md};
+  }
+`;
+
+export const LogErrorLabelCell = styled(LogTableBodyCell)`
+  grid-column: 2 / -1;
+  align-items: flex-start;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &:last-child {
+    padding: 2px 0 2px ${p => p.theme.space['2xl']};
   }
 `;
 
@@ -154,6 +193,8 @@ function ContentsTable(props: React.ComponentProps<typeof Table>) {
 }
 
 export const LogTable = styled(ContentsTable)<{minWidth: string}>`
+  --logsPinEdgeGap: ${p => p.theme.space.sm};
+  --logsPinButtonArea: calc(2rem + var(--logsPinEdgeGap));
   flex: 1;
   min-height: 0;
   display: flex;
@@ -179,6 +220,8 @@ export const LogTableBody = styled(TableBody)<{
   align-content: start;
   overflow-x: hidden;
   overflow-anchor: none;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
 
   /* If a parent renderer bails out, the element might default to 0px: which causes Tanstack Virtual to stay at 0. */
   min-height: 1px;
@@ -286,7 +329,7 @@ export const LogDate = styled('span')<{align?: 'left' | 'center' | 'right'}>`
   text-align: ${p => p.align || 'left'};
 `;
 
-export const LogsHighlight = styled(HighlightComponent)`
+export const LogsHighlight = styled(MultiHighlight)`
   font-weight: ${p => p.theme.font.weight.sans.medium};
   background-color: ${p => p.theme.colors.gray200};
   margin-right: 2px;
@@ -302,7 +345,7 @@ export const LogsFilteredHelperText = styled('span')`
 
 export const LogPinButton = styled(Button)<{isPinned: boolean | undefined}>`
   position: absolute;
-  right: calc(-1 * var(--logsPinButtonArea));
+  right: calc(-1 * var(--logsPinButtonArea) + var(--logsPinEdgeGap));
   opacity: ${p => (p.isPinned ? 1 : 0)};
   transition: opacity 0.1s;
   z-index: 1;
@@ -342,6 +385,14 @@ export const FirstTableHeadCell = styled(TableHeadCell)`
   padding-left: ${p => p.theme.space.xl};
 `;
 
+export const LogTableHeadCell = styled(TableHeadCell)<{reservePinGutter?: boolean}>`
+  ${p =>
+    p.reservePinGutter &&
+    css`
+      padding-right: var(--logsPinButtonArea);
+    `}
+`;
+
 export const LogsTableBodyFirstCell = styled(LogTableBodyCell)`
   padding-right: 0;
   padding-left: ${p => p.theme.space.md};
@@ -352,15 +403,7 @@ export function TableActionsContainer(props: FlexProps) {
 }
 
 export function LogsItemContainer(props: FlexProps) {
-  return (
-    <Flex
-      direction="column"
-      minHeight="0"
-      overflow="hidden"
-      position="relative"
-      {...props}
-    />
-  );
+  return <Stack minHeight="0" overflow="hidden" position="relative" {...props} />;
 }
 
 export function LogsTableActionsContainer(props: FlexProps) {
@@ -376,9 +419,7 @@ export function LogsTableActionsContainer(props: FlexProps) {
 }
 
 export function LogsGraphContainer(props: FlexProps) {
-  return (
-    <Flex direction="column" flex="0 0 auto" overflow="visible" gap="md" {...props} />
-  );
+  return <Stack flex="0 0 auto" overflow="visible" gap="md" {...props} />;
 }
 
 export const AutoRefreshLabel = styled('label')`
@@ -386,12 +427,6 @@ export const AutoRefreshLabel = styled('label')`
   align-items: center;
   gap: ${p => p.theme.space.xs};
   margin-bottom: 0;
-`;
-
-export const AutoRefreshText = styled('span')`
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    display: none;
-  }
 `;
 
 export function getLogColors(level: SeverityLevel, theme: Theme) {
@@ -467,12 +502,6 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
 }
 
 export const LogsSidebarCollapseButton = styled(Button)<{sidebarOpen: boolean}>`
-  display: none;
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    display: inline-flex;
-  }
-
   ${p =>
     p.sidebarOpen &&
     css`
@@ -492,12 +521,14 @@ export const FloatingBackToTopContainer = styled('div')<{
   inReplay?: boolean;
   position?: 'absolute' | 'fixed';
   tableWidth?: number;
+  topOffset?: number;
 }>`
   --floatingWidth: ${p => (p.tableWidth ? `${p.tableWidth}px` : '100%')};
   position: ${p => p.position};
   z-index: 1;
   opacity: ${p => (p.inReplay ? 1 : 0.9)};
-  top: ${p => (p.inReplay ? p.theme.space.md : '65px')};
+  top: ${p =>
+    p.inReplay ? p.theme.space.md : `calc(${p.topOffset ?? 65}px + ${p.theme.space.xl})`};
   width: var(--floatingWidth);
   display: flex;
   justify-content: center;
@@ -546,15 +577,6 @@ export const StyledPageFilterBar = styled(PageFilterBar)`
   width: auto;
 `;
 
-export const LogsFilterSection = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.md};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: minmax(300px, auto) 1fr min-content;
-  }
-`;
-
 export const TraceIconStyleWrapper = styled(Flex)`
   width: 18px;
   height: 18px;
@@ -577,5 +599,24 @@ export const TraceIconStyleWrapper = styled(Flex)`
     width: 12px;
     height: 12px;
     fill: #ffffff;
+  }
+`;
+
+// The flame indicator is wider than the severity dot it replaces on log rows,
+// so pull the group left to line up the error row's project badge with them.
+export const ErrorRowIconGroup = styled(Flex)`
+  margin-left: -7px;
+
+  .TraceIcon.warning {
+    background-color: ${p => p.theme.tokens.dataviz.semantic.meh};
+  }
+
+  .TraceIcon.info,
+  .TraceIcon.sample {
+    background-color: ${p => p.theme.tokens.dataviz.semantic.accent};
+  }
+
+  .TraceIcon.unknown {
+    background-color: ${p => p.theme.tokens.dataviz.semantic.other};
   }
 `;

@@ -17,7 +17,6 @@ export enum DashboardFilter {
   SHARED = 'shared',
   EXCLUDE_PREBUILT = 'excludePrebuilt',
   ONLY_PREBUILT = 'onlyPrebuilt',
-  ALL = 'all',
   SHOW_HIDDEN = 'showHidden',
 }
 
@@ -52,6 +51,7 @@ export enum DisplayType {
   CATEGORICAL_BAR = 'categorical_bar',
   AGENTS_TRACES_TABLE = 'agents_traces_table',
   TEXT = 'text',
+  HEATMAP = 'heatmap',
 }
 
 export enum WidgetType {
@@ -182,7 +182,7 @@ export type WidgetLayout = Pick<Layout, 'h' | 'w' | 'x' | 'y'> & {
   minH: number;
 };
 
-export type WidgetPreview = {
+type WidgetPreview = {
   displayType: DisplayType;
   layout: WidgetLayout | null;
 };
@@ -205,6 +205,7 @@ export type DashboardListItem = {
   widgetPreview: WidgetPreview[];
   createdBy?: User;
   dateCreated?: string;
+  description?: string;
   isFavorited?: boolean;
   lastVisited?: string;
   permissions?: DashboardPermissions;

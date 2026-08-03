@@ -1,5 +1,5 @@
 import {Fragment, useMemo, useState, type PropsWithChildren} from 'react';
-import {css, useTheme, type Theme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 import type {LocationDescriptor} from 'history';
@@ -7,6 +7,7 @@ import type {LocationDescriptor} from 'history';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Markdown} from '@sentry/scraps/markdown';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -46,18 +47,19 @@ import {
   IconProfiling,
   IconTerminal,
 } from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {Event, EventTransaction} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
-import {MarkedText} from 'sentry/utils/marked/markedText';
+import {markdownRendersVisibleContent} from 'sentry/utils/marked/marked';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
@@ -77,6 +79,12 @@ import {
 import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfallStyles';
 import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 
+import type {DurationComparison} from './durationComparison';
+import {
+  getDurationComparison,
+  makeDurationComparisonStatusColors,
+  MIN_PCT_DURATION_DIFFERENCE,
+} from './durationComparison';
 import type {KeyValueActionParams, TraceDrawerActionKind} from './utils';
 import {getTraceKeyValueActions, TraceDrawerActionValueKind} from './utils';
 
@@ -210,8 +218,6 @@ const TitleOpText = styled('div')`
 `;
 
 const Table = styled('table')`
-  margin-bottom: 0 !important;
-
   td {
     overflow: hidden;
   }
@@ -269,82 +275,9 @@ const HeaderContainer = styled(FlexBox)`
   margin-bottom: ${p => p.theme.space.md};
 `;
 
-function makeDurationComparisonStatusColors(theme: Theme): {
-  equal: {light: string; normal: string};
-  faster: {light: string; normal: string};
-  slower: {light: string; normal: string};
-} {
-  return {
-    faster: {
-      light: theme.colors.green100,
-      normal: theme.colors.green600,
-    },
-    slower: {
-      light: theme.colors.red100,
-      normal: theme.colors.red600,
-    },
-    equal: {
-      light: theme.tokens.background.transparent.neutral.muted,
-      normal: theme.tokens.content.secondary,
-    },
-  };
-}
-
-const MIN_PCT_DURATION_DIFFERENCE = 10;
-
-type DurationComparison = {
-  deltaPct: number;
-  deltaText: React.JSX.Element;
-  status: 'faster' | 'slower' | 'equal';
-} | null;
-
-const getDurationComparison = (
-  baseline: number | undefined,
-  duration: number,
-  baseDescription?: string
-): DurationComparison => {
-  if (!baseline) {
-    return null;
-  }
-
-  const delta = duration - baseline;
-  const deltaPct = Math.round(Math.abs((delta / baseline) * 100));
-  const status = delta > 0 ? 'slower' : delta < 0 ? 'faster' : 'equal';
-
-  const formattedBaseDuration = (
-    <Tooltip
-      title={baseDescription}
-      showUnderline
-      underlineColor={
-        status === 'faster' ? 'success' : status === 'slower' ? 'danger' : 'muted'
-      }
-    >
-      {getDuration(baseline, 2, true)}
-    </Tooltip>
-  );
-
-  const deltaText =
-    status === 'equal'
-      ? tct('equal to avg [formattedBaseDuration]', {
-          formattedBaseDuration,
-        })
-      : status === 'faster'
-        ? tct('[deltaPct] faster than avg [formattedBaseDuration]', {
-            formattedBaseDuration,
-            deltaPct: `${deltaPct}%`,
-          })
-        : tct('[deltaPct] slower than avg [formattedBaseDuration]', {
-            formattedBaseDuration,
-            deltaPct: `${deltaPct}%`,
-          });
-
-  return {deltaPct, status, deltaText};
-};
-
 type DurationProps = {
   baseline: number | undefined;
   duration: number;
-  node: BaseNode;
   baseDescription?: string;
   precision?: number;
   ratio?: number;
@@ -517,7 +450,7 @@ function Highlights({
                 },
               }}
             >
-              {t('Open in AI View')}
+              {t('Open Agent Timeline')}
             </OpenInAIFocusButton>
           )}
           {!hidePanelAndBreakdown && (
@@ -696,7 +629,7 @@ const HighlightOp = styled('div')`
 
 const HighlightedAttributesWrapper = styled('div')`
   display: grid;
-  grid-template-columns: max-content 1fr;
+  grid-template-columns: max-content minmax(0, 1fr);
   column-gap: ${p => p.theme.space.lg};
   row-gap: ${p => p.theme.space.xs};
   font-size: ${p => p.theme.font.size.md};
@@ -729,10 +662,24 @@ const HighlightsWrapper = styled('div')`
   margin: ${p => p.theme.space.md} 0;
 `;
 
-function IssuesLink({node, children}: {children: React.ReactNode; node: BaseNode}) {
+function IssuesLink({
+  node,
+  children,
+  traceSlug: traceSlugProp,
+}: {
+  children: React.ReactNode;
+  node: BaseNode;
+  /**
+   * Overrides the trace slug used to build the Issues link. The slug is
+   * normally read from the `traceSlug` route param, but surfaces that render
+   * this outside the trace waterfall route (e.g. the conversations span detail)
+   * have no such param and must pass the trace id explicitly.
+   */
+  traceSlug?: string;
+}) {
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
-  const traceSlug = params.traceSlug?.trim() ?? '';
+  const traceSlug = (traceSlugProp || params.traceSlug || '').trim();
 
   // Adding a buffer of 15mins for errors only traces, where there is no concept of
   // trace duration and start equals end timestamps.
@@ -948,7 +895,6 @@ function NodeActions(props: {
   node: BaseNode;
   onTabScrollToNode: (node: BaseNode) => void;
   organization: Organization;
-  eventSize?: number | undefined;
   profileId?: string;
   profilerId?: string;
   showJSONLink?: boolean;
@@ -959,6 +905,9 @@ function NodeActions(props: {
   const params = useParams<{traceSlug?: string}>();
 
   const transactionId = props.node.transactionId ?? '';
+
+  const canShowEAPSpanJSON =
+    getDiscoverDeprecation(props.organization) && isEAPSpanNode(props.node);
 
   const transactionProfileTarget = useMemo(() => {
     if (!props.profileId) {
@@ -997,11 +946,15 @@ function NodeActions(props: {
           icon={<IconFocus />}
         />
       </Tooltip>
-      {props.showJSONLink && transactionId ? (
+      {props.showJSONLink && (canShowEAPSpanJSON || transactionId) ? (
         <Tooltip title={t('JSON')} skipWrapper>
           <ActionLinkButton
             onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
-            href={`/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/events/${transactionId}/json/`}
+            href={
+              canShowEAPSpanJSON
+                ? `/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/trace-items/${props.node.id}/?item_type=spans&trace_id=${params.traceSlug}`
+                : `/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/events/${transactionId}/json/`
+            }
             size="zero"
             aria-label={t('JSON')}
             icon={<IconJson />}
@@ -1015,6 +968,7 @@ function NodeActions(props: {
             size="zero"
             aria-label={t('Span JSON (Superuser Only)')}
             icon={<IconTerminal />}
+            external
           />
         </Tooltip>
       ) : null}
@@ -1203,102 +1157,62 @@ const CardValueText = styled('span')`
 function MultilineText({
   children,
   renderFormatted,
+  clip = true,
 }: {
   children: string;
+  /**
+   * Clips tall content behind a "Show More" button. Disable when the container
+   * scrolls on its own, so content flows instead of being clipped and hidden.
+   */
+  clip?: boolean;
   renderFormatted?: (text: string) => React.ReactNode;
 }) {
   const [showRaw, setShowRaw] = useState(false);
   const {hoverProps, isHovered} = useHover({});
   const theme = useTheme();
 
+  // Without a custom formatter we render `children` as markdown, but some
+  // markdown (e.g. a bare/empty ``` fence) renders to nothing — leaving the
+  // "Pretty" view blank. Fall back to the raw text in that case. See TET-2670.
+  const defaultFormattingIsBlank = useMemo(
+    () => !renderFormatted && !markdownRendersVisibleContent(children),
+    [renderFormatted, children]
+  );
+
+  const content = (
+    <MultilineTextWrapper {...hoverProps}>
+      <Container position="absolute" top={theme.space.xs} right={theme.space.xs}>
+        {isHovered && (
+          <SegmentedControl
+            size="xs"
+            value={showRaw ? 'raw' : 'formatted'}
+            onChange={value => setShowRaw(value === 'raw')}
+          >
+            <SegmentedControl.Item key="formatted">{t('Pretty')}</SegmentedControl.Item>
+            <SegmentedControl.Item key="raw">{t('Raw')}</SegmentedControl.Item>
+          </SegmentedControl>
+        )}
+      </Container>
+      {showRaw || defaultFormattingIsBlank
+        ? children.trim()
+        : (renderFormatted?.(children) ?? <Markdown raw={children} />)}
+    </MultilineTextWrapper>
+  );
+
+  if (!clip) {
+    return content;
+  }
+
   return (
-    <Fragment>
-      <StyledClippedBox clipHeight={150} buttonProps={{variant: 'secondary', size: 'xs'}}>
-        <MultilineTextWrapper {...hoverProps}>
-          <Container position="absolute" top={theme.space.xs} right={theme.space.xs}>
-            {isHovered && (
-              <SegmentedControl
-                size="xs"
-                value={showRaw ? 'raw' : 'formatted'}
-                onChange={value => setShowRaw(value === 'raw')}
-              >
-                <SegmentedControl.Item key="formatted">
-                  {t('Pretty')}
-                </SegmentedControl.Item>
-                <SegmentedControl.Item key="raw">{t('Raw')}</SegmentedControl.Item>
-              </SegmentedControl>
-            )}
-          </Container>
-          {showRaw
-            ? children.trim()
-            : (renderFormatted?.(children) ?? (
-                <MarkedText as={MarkdownContainer} text={children} />
-              ))}
-        </MultilineTextWrapper>
-      </StyledClippedBox>
-    </Fragment>
+    <StyledClippedBox clipHeight={150} buttonProps={{variant: 'secondary', size: 'xs'}}>
+      {content}
+    </StyledClippedBox>
   );
 }
 
 const StyledClippedBox = styled(ClippedBox)`
   padding: 0;
   margin-bottom: ${p => p.theme.space.md};
-`;
-
-/**
- * Markdown wrapper including styles for markdown elements
- * Optimized for inline use, with minimal padding and margin and smaller heading font size
- */
-const MarkdownContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.sm};
-  white-space: normal;
-  p {
-    margin: 0;
-    padding: 0;
-  }
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    font-size: ${p => p.theme.font.size.md};
-    margin: 0;
-    padding-bottom: ${p => p.theme.space.sm};
-  }
-  ul,
-  ol {
-    margin: 0;
-  }
-  blockquote {
-    margin: 0;
-    padding: ${p => p.theme.space.sm};
-    border-left: 2px solid ${p => p.theme.tokens.border.primary};
-  }
-  pre {
-    margin: 0;
-    padding: ${p => p.theme.space.sm};
-    border-radius: ${p => p.theme.radius.md};
-  }
-  img {
-    max-height: 200px;
-  }
-  hr {
-    margin: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-    border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-  table {
-    border-collapse: collapse;
-    width: auto;
-    width: max-content;
-  }
-  table th,
-  table td {
-    border: 1px solid ${p => p.theme.tokens.border.primary};
-    padding: ${p => p.theme.space.xs};
-  }
 `;
 
 const MultilineTextWrapper = styled('div')`
@@ -1311,15 +1225,29 @@ const MultilineTextWrapper = styled('div')`
   &:not(:last-child) {
     margin-bottom: ${p => p.theme.space.md};
   }
+
+  /* word-break: break-word is legacy for overflow-wrap: anywhere, which counts
+   * toward min-content intrinsic size. Inherited into cells, it collapses them to
+   * about one character: the table then fits any container, columns squish, and
+   * its scroll container never overflows. Tables scroll on their own. */
+  table {
+    word-break: normal;
+  }
 `;
 
 function MultilineJSON({
   value,
   maxDefaultDepth = 2,
   autoCollapseLimit,
+  clip = false,
 }: {
   value: any;
   autoCollapseLimit?: number;
+  /**
+   * Clips tall content behind a "Show More" button. Disable when the container
+   * scrolls on its own, so content flows instead of being clipped and hidden.
+   */
+  clip?: boolean;
   maxDefaultDepth?: number;
 }) {
   const [showRaw, setShowRaw] = useState(false);
@@ -1334,7 +1262,7 @@ function MultilineJSON({
     return Array.from(new Set(['$', ...childPaths]));
   }, [maxDefaultDepth, json, autoCollapseLimit]);
 
-  return (
+  const content = (
     <MultilineTextWrapperMonospace {...hoverProps}>
       {isHovered && (
         <Container
@@ -1376,6 +1304,16 @@ function MultilineJSON({
       )}
     </MultilineTextWrapperMonospace>
   );
+
+  if (!clip) {
+    return content;
+  }
+
+  return (
+    <StyledClippedBox clipHeight={150} buttonProps={{variant: 'secondary', size: 'xs'}}>
+      {content}
+    </StyledClippedBox>
+  );
 }
 
 const MultilineTextWrapperMonospace = styled(MultilineTextWrapper)`
@@ -1383,6 +1321,9 @@ const MultilineTextWrapperMonospace = styled(MultilineTextWrapper)`
   font-size: ${p => p.theme.font.size.sm};
   /* Reserve vertical space for the hoverable Pretty/Raw segmented control (form height + top/bottom spacing) */
   min-height: calc(${p => p.theme.form.xs.height} + (${p => p.theme.space.xs} * 2));
+  /* Reserve horizontal space so the absolutely-positioned Pretty/Raw control doesn't
+   * overlap the content when the object is narrow (e.g. inside a fit-content bubble). */
+  min-width: 210px;
   pre {
     margin: 0;
     padding: 0;
@@ -1447,5 +1388,4 @@ export const TraceDrawerComponents = {
   MultilineText,
   MultilineJSON,
   MultilineTextLabel,
-  MarkdownContainer,
 };

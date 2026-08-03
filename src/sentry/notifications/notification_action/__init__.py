@@ -27,6 +27,7 @@ __all__ = [
     "WebhookActionHandler",
     "SentryAppActionHandler",
     "SendTestNotification",
+    "EmailActionValidatorHandler",
     "SlackActionValidatorHandler",
     "SlackStagingActionValidatorHandler",
     "MSTeamsActionValidatorHandler",
@@ -40,6 +41,10 @@ __all__ = [
     "OpsgenieActionValidatorHandler",
     "SentryAppActionValidatorHandler",
     "WebhookActionValidatorHandler",
+    "DiscordActivityHandler",
+    "EmailActivityHandler",
+    "MSTeamsActivityHandler",
+    "SlackActivityHandler",
 ]
 
 from .action_handler_registry import (
@@ -50,6 +55,7 @@ from .action_handler_registry import (
 from .action_validation import (
     AzureDevOpsActionValidatorHandler,
     DiscordActionValidatorHandler,
+    EmailActionValidatorHandler,
     GithubActionValidatorHandler,
     GithubEnterpriseActionValidatorHandler,
     JiraActionValidatorHandler,
@@ -61,6 +67,12 @@ from .action_validation import (
     SlackActionValidatorHandler,
     SlackStagingActionValidatorHandler,
     WebhookActionValidatorHandler,
+)
+from .activity_registry import (
+    DiscordActivityHandler,
+    EmailActivityHandler,
+    MSTeamsActivityHandler,
+    SlackActivityHandler,
 )
 from .group_type_notification_registry import IssueAlertRegistryHandler, MetricAlertRegistryHandler
 from .grouptype import SendTestNotification

@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 from enum import Enum
 from math import floor
-from typing import TypedDict
+from typing import Any, TypedDict
 
 import sentry_sdk
 from django.db.models import Max
@@ -28,9 +28,11 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
     DatasetSourcesTypes,
+    get_max_widget_limit,
 )
 from sentry.models.team import Team
 from sentry.relay.config.metric_extraction import get_current_widget_specs, widget_exceeds_max_specs
+from sentry.search.eap.trace_metrics.validator import extract_trace_metric_from_aggregate
 from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.fields import is_function
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
@@ -43,6 +45,7 @@ from sentry.tasks.on_demand_metrics import (
 )
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.strings import oxfordize_list
+from sentry.utils.tracing import set_span_data, start_span
 
 AGGREGATE_PATTERN = r"^(\w+)\((.*)?\)$"
 AGGREGATE_BASE = r".*(\w+)\((.*)?\)"
@@ -167,6 +170,7 @@ DATASET_CONFIG: dict[int, DatasetConfig] = {
                 DashboardWidgetDisplayTypes.BAR_CHART,
                 DashboardWidgetDisplayTypes.BIG_NUMBER,
                 DashboardWidgetDisplayTypes.CATEGORICAL_BAR_CHART,
+                DashboardWidgetDisplayTypes.HEATMAP,
             }
         )
     },
@@ -403,7 +407,16 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         if widget_type_name is not None and display_type_id is not None:
             widget_type_id = DashboardWidgetTypes.get_id_for_type_name(widget_type_name)
             config = DATASET_CONFIG.get(widget_type_id)
-            if config is not None and display_type_id not in config["supported_display_types"]:
+            if (
+                config is not None
+                and display_type_id not in config["supported_display_types"]
+                # Existing tracemetrics table widgets (those sent with an ``id``)
+                # are allowed to save. The Widget Builder doesn't offer table for
+                # tracemetrics, but some widgets were created with this combo
+                # before display-type validation existed, and those dashboards
+                # must still be saveable. New widgets are still rejected.
+                and not self._is_existing_tracemetrics_table(widget_type_id, display_type_id)
+            ):
                 supported_names = sorted(
                     DashboardWidgetDisplayTypes.get_type_name(d) or str(d)
                     for d in config["supported_display_types"]
@@ -416,6 +429,13 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
         return display_type_id
 
+    def _is_existing_tracemetrics_table(self, widget_type_id, display_type_id):
+        return (
+            self.context.get("widget_id") is not None
+            and widget_type_id == DashboardWidgetTypes.TRACEMETRICS
+            and display_type_id == DashboardWidgetDisplayTypes.TABLE
+        )
+
     def _validate_widget_type(self, data):
         widget_type = DashboardWidgetTypes.get_id_for_type_name(data.get("widget_type"))
         if widget_type == DashboardWidgetTypes.DISCOVER or widget_type is None:
@@ -425,6 +445,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                     "org_slug": self.context["organization"].slug,
                 },
             )
+            sentry_sdk.set_attribute("dashboard.org_slug", self.context["organization"].slug)
             sentry_sdk.capture_message("Created or updated widget with discover dataset.")
             raise serializers.ValidationError(
                 {
@@ -450,6 +471,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         # instance across items, so stale values would otherwise leak between
         # widgets in the same request.
         self.context["widget_type"] = data.get("widget_type")
+        self.context["widget_id"] = data.get("id")
 
         if data.get("display_type"):
             additional_context["display_type"] = data.get("display_type")
@@ -487,6 +509,32 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 data["dataset_source"] = DATASET_SOURCE_MAP[dataset_source]
             except KeyError:
                 raise serializers.ValidationError({"dataset_source": "Invalid dataset source"})
+
+        return data
+
+    def _validate_tracemetrics_equation_constraints(self, data) -> dict[str, Any]:
+        if not data.get("widget_type") == DashboardWidgetTypes.TRACEMETRICS:
+            return data
+
+        # Tracemetrics timeseries widgets only support a single equation per query
+        if data.get("display_type") in {
+            DashboardWidgetDisplayTypes.LINE_CHART,
+            DashboardWidgetDisplayTypes.AREA_CHART,
+            DashboardWidgetDisplayTypes.BAR_CHART,
+        }:
+            for query in data.get("queries"):
+                aggregates = query.get("aggregates") or []
+                if any(is_equation(aggregate) for aggregate in aggregates) and len(aggregates) > 1:
+                    raise serializers.ValidationError(
+                        {"queries": "Tracemetrics timeseries widgets support at most one equation."}
+                    )
+        elif data.get("display_type") == DashboardWidgetDisplayTypes.HEATMAP:
+            for query in data.get("queries"):
+                aggregates = query.get("aggregates") or []
+                if any(is_equation(aggregate) for aggregate in aggregates):
+                    raise serializers.ValidationError(
+                        {"queries": "Heatmap widgets don't support equations."}
+                    )
 
         return data
 
@@ -538,6 +586,15 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             )
 
         if data.get("queries"):
+            if data.get("widget_type") == DashboardWidgetTypes.TRACEMETRICS:
+                self._validate_tracemetrics_equation_constraints(data)
+
+            if data.get("display_type") == DashboardWidgetDisplayTypes.HEATMAP:
+                if len(data.get("queries")) > 1:
+                    raise serializers.ValidationError(
+                        {"queries": "Heatmap widgets cannot have multiple queries"}
+                    )
+
             # Check each query to see if they have an issue or discover error depending on the type of the widget
             for query in data.get("queries"):
                 if len(query.get("columns", [])) > 0:
@@ -559,6 +616,54 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 ) and "discover_query_error" in query:
                     query_errors.append(query["discover_query_error"])
                     has_query_error = True
+
+                # Heatmap widgets aggregates and columns validation
+                elif data.get("display_type") == DashboardWidgetDisplayTypes.HEATMAP:
+                    heatmap_query_errors: dict[str, str] = {}
+                    if query.get("aggregates"):
+                        if len(query.get("aggregates")) > 1:
+                            if query.get("selected_aggregate") is None:
+                                heatmap_query_errors["selected_aggregate"] = (
+                                    "Heatmap widgets with multiple aggregates must have a selected aggregate"
+                                )
+                                has_query_error = True
+
+                        heatmap_aggregates = query.get("aggregates")
+                        for heatmap_aggregate in heatmap_aggregates:
+                            try:
+                                trace_metric = extract_trace_metric_from_aggregate(
+                                    heatmap_aggregate
+                                )
+                                if not trace_metric:
+                                    heatmap_query_errors["aggregates"] = (
+                                        "Heatmap widgets are only supported by metric aggregates"
+                                    )
+                                    has_query_error = True
+
+                                elif trace_metric.metric_type != "distribution":
+                                    heatmap_query_errors["aggregates"] = (
+                                        "Heatmap widgets are only supported by distribution type metrics"
+                                    )
+                                    has_query_error = True
+                            except InvalidSearchQuery:
+                                heatmap_query_errors["aggregates"] = (
+                                    f"Invalid aggregate: {heatmap_aggregate}"
+                                )
+                                has_query_error = True
+
+                    else:
+                        heatmap_query_errors["aggregates"] = "Heatmap widgets require an aggregate"
+                        has_query_error = True
+
+                    if query.get("columns") and len(query.get("columns")) > 0:
+                        heatmap_query_errors["columns"] = (
+                            "Heatmap widgets don't support group-by columns"
+                        )
+                        has_query_error = True
+
+                    if heatmap_query_errors:
+                        query_errors.append(heatmap_query_errors)
+
                 else:
                     query_errors.append({})
 
@@ -646,16 +751,10 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 {"limit": f"limit is required. The maximum limit is {limit}."}
             )
         # Validate limit based on display type: categorical bar charts allow up to 25,
-        # all other chart types allow up to 10.
+        # tables up to 20, all other chart types up to 10.
         widget_limit = data.get("limit")
         if widget_limit is not None:
-            display_type = data.get("display_type")
-            if display_type == DashboardWidgetDisplayTypes.CATEGORICAL_BAR_CHART:
-                max_allowed = 25
-            elif display_type == DashboardWidgetDisplayTypes.TABLE:
-                max_allowed = 20
-            else:
-                max_allowed = 10
+            max_allowed = get_max_widget_limit(data.get("display_type"))
             if widget_limit > max_allowed:
                 raise serializers.ValidationError(
                     {"limit": f"The maximum limit for this display type is {max_allowed}."}
@@ -663,6 +762,11 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
         # Validate widget thresholds
         thresholds = data.get("thresholds")
+        if data.get("display_type") == DashboardWidgetDisplayTypes.HEATMAP and thresholds:
+            raise serializers.ValidationError(
+                {"thresholds": "Heatmap widgets do not support thresholds."}
+            )
+
         if thresholds:
             max_values = thresholds.get("max_values")
             allowed_max_keys = [key.value for key in ThresholdMaxKeys]
@@ -934,7 +1038,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         return instance
 
     def update_widgets(self, instance, widget_data):
-        with sentry_sdk.start_span(op="function", name="dashboard.update_widgets"):
+        with start_span(op="function", name="dashboard.update_widgets"):
             widget_ids = [widget["id"] for widget in widget_data if "id" in widget]
 
             existing_widgets = DashboardWidget.objects.filter(dashboard=instance, id__in=widget_ids)
@@ -962,6 +1066,13 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                             "requested_widget_ids": widget_ids,
                         },
                     )
+                    sentry_sdk.set_attribute("dashboard.org_slug", instance.organization.slug)
+                    sentry_sdk.set_attribute("dashboard.dashboard_id", instance.id)
+                    sentry_sdk.set_attribute("dashboard.widget_id", widget_id)
+                    sentry_sdk.set_attribute(
+                        "dashboard.existing_widget_ids", str(list(existing_map.keys()))
+                    )
+                    sentry_sdk.set_attribute("dashboard.requested_widget_ids", str(widget_ids))
                     sentry_sdk.capture_message(
                         "Attempted to update widget not belonging to dashboard."
                     )
@@ -1077,25 +1188,24 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         organization = self.context["organization"]
         linked_dashboards = linked_dashboards or []
 
-        with sentry_sdk.start_span(
-            op="function", name="dashboard.update_or_create_field_links"
-        ) as span:
+        with start_span(op="function", name="dashboard.update_or_create_field_links") as span:
             # Get the set of fields that should exist
             new_fields = set()
             field_links_to_create = []
 
             widget_display_type = widget.display_type
             legend_type = widget.detail.get("legend_type") if widget.detail else None
-            span.set_data(
+            set_span_data(
+                span,
                 "linked_dashboards",
                 [
                     {"field": ld.get("field"), "dashboard_id": ld.get("dashboard_id")}
                     for ld in linked_dashboards
                 ],
             )
-            span.set_data("widget_display_type", widget_display_type)
-            span.set_data("query_id", query.id)
-            span.set_data("widget_id", widget.id)
+            set_span_data(span, "widget_display_type", widget_display_type)
+            set_span_data(span, "query_id", query.id)
+            set_span_data(span, "widget_id", widget.id)
 
             is_breakdown_chart = (
                 widget_display_type
@@ -1168,21 +1278,22 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                 field__in=new_fields
             ).delete()
 
-            with sentry_sdk.start_span(
+            with start_span(
                 op="db.bulk_create", name="dashboard.update_or_create_field_links.bulk_create"
             ) as span:
-                span.set_data("new_fields", list(new_fields))
-                span.set_data("query_id", query.id)
-                span.set_data("widget_id", widget.id)
-                span.set_data("widget_display_type", widget.display_type)
-                span.set_data(
+                set_span_data(span, "new_fields", list(new_fields))
+                set_span_data(span, "query_id", query.id)
+                set_span_data(span, "widget_id", widget.id)
+                set_span_data(span, "widget_display_type", widget.display_type)
+                set_span_data(
+                    span,
                     "linked_dashboards",
                     [
                         {"field": ld.get("field"), "dashboard_id": ld.get("dashboard_id")}
                         for ld in linked_dashboards
                     ],
                 )
-                span.set_data("field_links_count", len(field_links_to_create))
+                set_span_data(span, "field_links_count", len(field_links_to_create))
 
                 # Use bulk_create with update_conflicts to effectively upsert (i.e bulk update or create)
                 if field_links_to_create:

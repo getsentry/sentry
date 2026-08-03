@@ -4,7 +4,7 @@ import {AddressElement, useElements, useStripe} from '@stripe/react-stripe-js';
 import type {StripeAddressElementChangeEvent} from '@stripe/stripe-js';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
@@ -16,7 +16,7 @@ import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -131,7 +131,7 @@ function BillingDetailsFormFields({
   }, [stripe, elements, handleStripeLoadError, handleStripeLoadSuccess]);
 
   return (
-    <Flex direction="column" gap="xl">
+    <Stack gap="xl">
       {stripeIsBlocked ? (
         <Alert variant="warning">
           {t(
@@ -205,7 +205,7 @@ function BillingDetailsFormFields({
           )}
         </Fragment>
       )}
-    </Flex>
+    </Stack>
   );
 }
 
@@ -225,7 +225,7 @@ function CustomBillingDetailsFormField({
   placeholder?: string;
 }) {
   return (
-    <Flex direction="column" gap="xs">
+    <Stack gap="xs">
       <Flex align="center" gap="xs">
         <Text size="sm" variant="muted">
           {label}
@@ -239,7 +239,7 @@ function CustomBillingDetailsFormField({
         value={value}
         aria-label={label}
       />
-    </Flex>
+    </Stack>
   );
 }
 
@@ -270,12 +270,8 @@ export function BillingDetailsForm({
       data.taxNumber = null;
     }
 
-    // Clear the region if not applicable to country code.
-    if (
-      countryHasRegionChoices(data.countryCode) &&
-      !getRegionChoiceCode(data.countryCode, data.region)
-    ) {
-      data.region = undefined;
+    if (!getRegionChoiceCode(data.countryCode, data.region)) {
+      data.region = null;
     }
 
     return data;

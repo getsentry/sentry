@@ -3,14 +3,13 @@ import {lazy} from 'react';
 import {LazyLoad} from 'sentry/components/lazyLoad';
 import {registerOverride} from 'sentry/overrideRegistry';
 import type {Overrides} from 'sentry/types/overrides';
-import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
+import type {OrganizationStatsProps} from 'sentry/views/organizationStats/types';
 
 import {AiConfigureSeerQuotaSidebar} from 'getsentry/components/ai/aiConfigureSeerQuotaSidebar';
 import {AiSetupDataConsent} from 'getsentry/components/ai/AiSetupDataConsent';
 import CronsBillingBanner from 'getsentry/components/crons/cronsBillingBanner';
 import {DashboardBanner} from 'getsentry/components/dashboardBanner';
 import DataConsentBanner from 'getsentry/components/dataConsentBanner';
-import {DataConsentOrgCreationCheckbox} from 'getsentry/components/dataConsentCheckbox';
 import DataConsentPriorityLearnMore from 'getsentry/components/dataConsentPriorityLearnMore';
 import DateRangeQueryLimitFooter from 'getsentry/components/features/dateRangeQueryLimitFooter';
 import {DisabledAlertWizard} from 'getsentry/components/features/disabledAlertWizard';
@@ -80,11 +79,7 @@ import {trackMetric} from 'getsentry/utils/trackMetric';
 import {GsBillingCommandPaletteActions} from './components/gsBillingCommandPaletteActions';
 import {PrimaryNavigationQuotaExceeded} from './components/navBillingStatus';
 import {OpenInDiscoverBtn} from './components/openInDiscoverBtn';
-import {
-  ContinuousProfilingBillingRequirementBanner,
-  ProfilingBetaAlertBanner,
-} from './components/profiling/alerts';
-import ReplayOnboardingAlert from './components/replayOnboardingAlert';
+import {ContinuousProfilingBillingRequirementBanner} from './components/profiling/alerts';
 import {ReplaySettingsAlert} from './components/replaySettingsAlert';
 import {useButtonTracking} from './overrides/useButtonTracking';
 import {useGetMaxRetentionDays} from './overrides/useGetMaxRetentionDays';
@@ -158,7 +153,7 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
   ),
 
   /**
-   * Augment the global help search modal with a contat support button
+   * Augment the global help search modal with a contact support button
    */
   'help-modal:footer': ({closeModal}) => (
     <HelpSearchFooter key="help-search-footer" closeModal={closeModal} />
@@ -254,11 +249,9 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
   'component:first-party-integration-additional-cta': () =>
     FirstPartyIntegrationAdditionalCTA,
   'component:scm-github-multi-org-install': () => ScmGithubMultiOrgInstall,
-  'component:replay-onboarding-alert': () => ReplayOnboardingAlert,
   'component:replay-onboarding-cta': () => ReplayOnboardingCTA,
   'component:replay-settings-alert': () => ReplaySettingsAlert,
   'component:product-unavailable-cta': () => ProductUnavailableCTA,
-  'component:profiling-billing-banner': () => ProfilingBetaAlertBanner,
   'component:product-selection-availability': () => ProductSelectionAvailability,
   'component:superuser-access-category': SuperuserAccessCategory,
   'component:superuser-warning': p => <SuperuserWarning {...p} />,
@@ -281,7 +274,6 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
   'component:dashboards-limit-provider': () => DashboardsLimitProvider,
   'component:data-consent-banner': () => DataConsentBanner,
   'component:data-consent-priority-learn-more': () => DataConsentPriorityLearnMore,
-  'component:data-consent-org-creation-checkbox': () => DataConsentOrgCreationCheckbox,
   'component:organization-membership-settings': () => OrganizationMembershipSettingsForm,
   'component:metric-alert-quota-message': MetricAlertQuotaMessage,
   'component:metric-alert-quota-icon': MetricAlertQuotaIcon,

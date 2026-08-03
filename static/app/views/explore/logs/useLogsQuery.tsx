@@ -6,10 +6,10 @@ import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
-import {defined} from 'sentry/utils';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {parseQueryKey, type QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
+import {defined} from 'sentry/utils/defined';
 import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -133,7 +133,7 @@ function useLogsApiOptions({
 
   const orderby = eventViewPayload.sort;
 
-  const query = {
+  const baseQuery = {
     ...eventViewPayload,
     ...(frozenTraceIds ? {traceId: frozenTraceIds} : {}),
     ...(frozenReplayInfo.replayId ? {replayId: frozenReplayInfo.replayId} : {}),
@@ -145,6 +145,16 @@ function useLogsApiOptions({
     caseInsensitive: caseInsensitive ? '1' : undefined,
     truncate,
   };
+
+  const usesTraceLogsEndpoint = Boolean(frozenTraceIds || frozenReplayInfo.replayId);
+
+  // The trace-logs endpoint treats an empty `query` as a real (non-null) additional
+  // filter and would build a malformed `(...) and ` query. When there's no search to
+  // apply (e.g. a combined replay + trace freeze relies on the endpoint's native OR of
+  // the traceId/replayId params), omit the param entirely.
+  const {query: searchQuery, ...baseQueryWithoutSearch} = baseQuery;
+  const query =
+    usesTraceLogsEndpoint && !searchQuery ? baseQueryWithoutSearch : baseQuery;
 
   const path = {organizationIdOrSlug: organization.slug};
   const data = {highFidelity};
@@ -344,7 +354,9 @@ function getParamBasedQuery(
   }
 
   const comparison =
-    (pageParam.querySortDirection ?? pageParam.sortByDirection === 'asc') ? '>=' : '<=';
+    (pageParam.querySortDirection?.kind ?? pageParam.sortByDirection) === 'asc'
+      ? '>='
+      : '<=';
 
   const filter = pageParam.timestampPrecise
     ? `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:${comparison}${pageParam.timestampPrecise}`

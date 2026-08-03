@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {useHotkeys} from '@sentry/scraps/hotkey';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Stack, Grid} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Confirm} from 'sentry/components/confirm';
@@ -16,8 +16,8 @@ import {KeyValueData} from 'sentry/components/keyValueData';
 import {t, tct} from 'sentry/locale';
 import type {EventAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
+import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {ScreenshotPagination} from './screenshotPagination';
@@ -106,7 +106,7 @@ export function ScreenshotModal({
         <h5>{t('Screenshot')}</h5>
       </Header>
       <Body>
-        <Flex direction="column" gap="lg">
+        <Stack gap="lg">
           {defined(paginationProps) && <ScreenshotPagination {...paginationProps} />}
           <AttachmentComponentWrapper>
             <AttachmentComponent
@@ -150,7 +150,7 @@ export function ScreenshotModal({
               },
             ]}
           />
-        </Flex>
+        </Stack>
       </Body>
       <Footer>
         <Grid flow="column" align="center" gap="md">

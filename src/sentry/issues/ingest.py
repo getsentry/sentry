@@ -6,12 +6,11 @@ from datetime import datetime
 from hashlib import md5
 from typing import Any, TypedDict
 
-import sentry_sdk
 from django.conf import settings
 from django.db import router, transaction
 
 from sentry import eventstream
-from sentry.constants import LOG_LEVELS_MAP, MAX_CULPRIT_LENGTH
+from sentry.constants import MAX_CULPRIT_LENGTH, parse_log_level
 from sentry.event_manager import (
     GroupInfo,
     _get_or_create_group_environment,
@@ -22,6 +21,7 @@ from sentry.event_manager import (
     save_grouphash_and_group,
 )
 from sentry.incidents.grouptype import MetricIssue
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.issues.grouptype import FeedbackGroup, should_create_group
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.issues.priority import PriorityChangeReason, update_priority
@@ -35,6 +35,7 @@ from sentry.types.group import PriorityLevel
 from sentry.utils import json, metrics, redis
 from sentry.utils.strings import truncatechars
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
+from sentry.utils.tracing import set_span_tag, start_span, trace
 from sentry.workflow_engine.models import IncidentGroupOpenPeriod
 from sentry.workflow_engine.processors.detector import (
     associate_new_group_with_detector,
@@ -49,7 +50,7 @@ issue_rate_limiter = RedisSlidingWindowRateLimiter(
 logger = logging.getLogger(__name__)
 
 
-@sentry_sdk.tracing.trace
+@trace
 def save_issue_occurrence(
     occurrence_data: IssueOccurrenceData, event: Event
 ) -> tuple[IssueOccurrence, GroupInfo | None]:
@@ -121,7 +122,7 @@ class IssueArgs(TypedDict):
     priority: int | None
 
 
-@sentry_sdk.tracing.trace
+@trace
 def _create_issue_kwargs(
     occurrence: IssueOccurrence, event: Event, release: Release | None
 ) -> IssueArgs:
@@ -132,7 +133,7 @@ def _create_issue_kwargs(
         # TODO: Figure out what message should be. Or maybe we just implement a platform event and
         # define it in `search_message` there.
         "message": event.search_message,
-        "level": LOG_LEVELS_MAP.get(occurrence.level),
+        "level": parse_log_level(occurrence.level),
         "culprit": truncatechars(occurrence.culprit, MAX_CULPRIT_LENGTH),
         "last_seen": event.datetime,
         "first_seen": event.datetime,
@@ -154,7 +155,7 @@ class OccurrenceMetadata(TypedDict):
     last_received: str
 
 
-@sentry_sdk.tracing.trace
+@trace
 def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> OccurrenceMetadata:
     """
     Returns the materialized metadata to be merged with issue.
@@ -191,7 +192,7 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
     }
 
 
-@sentry_sdk.tracing.trace
+@trace
 @metrics.wraps("issues.ingest.save_issue_from_occurrence")
 def save_issue_from_occurrence(
     occurrence: IssueOccurrence, event: Event, release: Release | None
@@ -242,7 +243,10 @@ def save_issue_from_occurrence(
             return None
 
         with (
-            sentry_sdk.start_span(op="issues.save_issue_from_occurrence.transaction") as span,
+            start_span(
+                op="issues.save_issue_from_occurrence.transaction",
+                name="issues.save_issue_from_occurrence.transaction",
+            ) as span,
             metrics.timer(
                 "issues.save_issue_from_occurrence.transaction",
                 tags={"platform": event.platform or "unknown", "type": occurrence.type.type_id},
@@ -268,7 +272,7 @@ def save_issue_from_occurrence(
                     data={**open_period.data, "highest_seen_priority": highest_seen_priority}
                 )
             is_regression = False
-            span.set_tag("save_issue_from_occurrence.outcome", "new_group")
+            set_span_tag(span, "save_issue_from_occurrence.outcome", "new_group")
             metric_tags["save_issue_from_occurrence.outcome"] = "new_group"
             metrics.incr(
                 "group.created",
@@ -297,7 +301,8 @@ def save_issue_from_occurrence(
             try:
                 # Since this calls hybrid cloud it has to be run outside the transaction
                 assignee = occurrence.assignee.resolve()
-                GroupAssignee.objects.assign(group, assignee, create_only=True)
+                with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+                    GroupAssignee.objects.assign(group, assignee, create_only=True)
             except Exception:
                 logger.exception("Failed to process assignment for occurrence")
 
@@ -334,15 +339,16 @@ def save_issue_from_occurrence(
             and group.priority != issue_kwargs["priority"]
             and group.priority_locked_at is None
         ):
-            update_priority(
-                group=group,
-                priority=PriorityLevel(issue_kwargs["priority"]),
-                sender="save_issue_from_occurrence",
-                reason=PriorityChangeReason.ISSUE_PLATFORM,
-                project=project,
-                is_regression=is_regression,
-                event_id=occurrence.event_id,
-            )
+            with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+                update_priority(
+                    group=group,
+                    priority=PriorityLevel(issue_kwargs["priority"]),
+                    sender="save_issue_from_occurrence",
+                    reason=PriorityChangeReason.ISSUE_PLATFORM,
+                    project=project,
+                    is_regression=is_regression,
+                    event_id=occurrence.event_id,
+                )
 
             open_period = get_latest_open_period(group)
             if open_period is not None:
@@ -376,7 +382,7 @@ def save_issue_from_occurrence(
     return group_info
 
 
-@sentry_sdk.tracing.trace
+@trace
 def send_issue_occurrence_to_eventstream(
     event: Event, occurrence: IssueOccurrence, group_info: GroupInfo
 ) -> None:

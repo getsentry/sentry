@@ -1,15 +1,16 @@
-import dataclasses
 import logging
-from collections.abc import Callable, Iterable
-from typing import ClassVar, NoReturn, TypeVar
-
-import sentry_sdk
+from typing import TypeVar
 
 from sentry.utils.function_cache import cache_func_for_models
+from sentry.utils.tracing import trace
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup
 from sentry.workflow_engine.models.data_condition import is_slow_condition
 from sentry.workflow_engine.processors.data_condition import split_conditions_by_speed
-from sentry.workflow_engine.types import ConditionError, DataConditionResult
+from sentry.workflow_engine.processors.evaluations import (
+    DataConditionEvaluation,
+    DataConditionGroupEvaluation,
+)
+from sentry.workflow_engine.types import ConditionError
 from sentry.workflow_engine.utils import scopedstats
 
 logger = logging.getLogger(__name__)
@@ -17,182 +18,7 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T")
 
 
-def _find_error(
-    items: list["TriggerResult"], predicate: Callable[["TriggerResult"], bool]
-) -> ConditionError | None:
-    """Helper to find an error from items matching the predicate."""
-    return next((item.error for item in items if predicate(item)), None)
-
-
-@dataclasses.dataclass(frozen=True)
-class TriggerResult:
-    """
-    Represents the result of a trigger evaluation with taint tracking.
-
-    The triggered field indicates whether the trigger condition was met.
-
-    The error field contains error information if the evaluation was tainted.
-    When error is not None, it indicates that the result may not be accurate due to
-    errors encountered during evaluation. Note that there may have been additional
-    errors beyond the one captured here - this field contains a representative error
-    from the evaluation, not necessarily all errors that occurred.
-    """
-
-    triggered: bool
-    error: ConditionError | None
-
-    # Constant untainted TriggerResult values (initialized after class definition).
-    # These represent clean success/failure with no errors.
-    TRUE: ClassVar["TriggerResult"]
-    FALSE: ClassVar["TriggerResult"]
-
-    def is_tainted(self) -> bool:
-        """
-        Returns True if this result is less trustworthy due to an error during
-        evaluation.
-        """
-        return self.error is not None
-
-    def with_error(self, error: ConditionError) -> "TriggerResult":
-        """
-        Returns a new TriggerResult with the same triggered value but the given error.
-        If the result is already tainted, the error is ignored.
-        """
-        if self.is_tainted():
-            return self
-        return TriggerResult(triggered=self.triggered, error=error)
-
-    @staticmethod
-    def choose_tainted(a: "TriggerResult", b: "TriggerResult") -> "TriggerResult":
-        """
-        Returns the first tainted TriggerResult, or `a` if neither is tainted.
-        Useful for tracking whether any evaluation in a series was tainted.
-        """
-        if a.is_tainted():
-            return a
-        if b.is_tainted():
-            return b
-        return a
-
-    @staticmethod
-    def any(items: Iterable["TriggerResult"]) -> "TriggerResult":
-        """
-        Like `any()`, but for TriggerResult. If any inputs had errors that could
-        impact the result, the result will contain an error from one of them.
-        """
-        items_list = list(items)
-        result = any(item.triggered for item in items_list)
-
-        if result:
-            # Result is True. If we have any untainted True, the result is clean.
-            # Only tainted if all Trues are tainted.
-            if any(item.triggered and not item.is_tainted() for item in items_list):
-                return TriggerResult(triggered=True, error=None)
-            # All Trues are tainted
-            return TriggerResult(
-                triggered=True, error=_find_error(items_list, lambda x: x.triggered)
-            )
-        else:
-            # Result is False. Any tainted item could have changed the result.
-            return TriggerResult(
-                triggered=False,
-                error=_find_error(items_list, lambda x: x.is_tainted()),
-            )
-
-    @staticmethod
-    def all(items: Iterable["TriggerResult"]) -> "TriggerResult":
-        """
-        Like `all()`, but for TriggerResult. If any inputs had errors that could
-        impact the result, the result will contain an error from one of them.
-        """
-        items_list = list(items)
-        result = all(item.triggered for item in items_list)
-
-        if result:
-            # Result is True. Any tainted item could have changed the result.
-            return TriggerResult(
-                triggered=True,
-                error=_find_error(items_list, lambda x: x.is_tainted()),
-            )
-        else:
-            # Result is False. If we have any untainted False, the result is clean.
-            # Only tainted if all Falses are tainted.
-            if any(not item.triggered and not item.is_tainted() for item in items_list):
-                return TriggerResult(triggered=False, error=None)
-            # All Falses are tainted
-            return TriggerResult(
-                triggered=False,
-                error=_find_error(items_list, lambda x: not x.triggered),
-            )
-
-    @staticmethod
-    def none(items: Iterable["TriggerResult"]) -> "TriggerResult":
-        """
-        Like `not any()`, but for TriggerResult. If any inputs had errors that could
-        impact the result, the result will contain an error from one of them.
-        """
-        items_list = list(items)
-
-        # No items is guaranteed True, no possible error.
-        if not items_list:
-            return TriggerResult(triggered=True, error=None)
-
-        result = all(not item.triggered for item in items_list)
-
-        if result:
-            # Result is True (no conditions triggered)
-            # Any tainted item could have changed the result
-            return TriggerResult(
-                triggered=True,
-                error=_find_error(items_list, lambda x: x.is_tainted()),
-            )
-        else:
-            # Result is False (at least one condition triggered)
-            # If we have any untainted True, the result is clean
-            if any(item.triggered and not item.is_tainted() for item in items_list):
-                return TriggerResult(triggered=False, error=None)
-            # All triggered items are tainted
-            return TriggerResult(
-                triggered=False,
-                error=_find_error(items_list, lambda x: x.triggered),
-            )
-
-    def __or__(self, other: "TriggerResult") -> "TriggerResult":
-        """
-        OR operation, equivalent to TriggerResult.any([self, other]).
-        """
-        return TriggerResult.any([self, other])
-
-    def __and__(self, other: "TriggerResult") -> "TriggerResult":
-        """
-        AND operation, equivalent to TriggerResult.all([self, other]).
-        """
-        return TriggerResult.all([self, other])
-
-    def __bool__(self) -> NoReturn:
-        raise AssertionError("TriggerResult cannot be used as a boolean")
-
-
-# Constant untainted TriggerResult values for common cases.
-# These are singleton instances representing clean success/failure with no errors.
-TriggerResult.TRUE = TriggerResult(triggered=True, error=None)
-TriggerResult.FALSE = TriggerResult(triggered=False, error=None)
-
-
-@dataclasses.dataclass()
-class ProcessedDataCondition:
-    logic_result: TriggerResult
-    condition: DataCondition
-    result: DataConditionResult
-
-
-@dataclasses.dataclass()
-class ProcessedDataConditionGroup:
-    logic_result: TriggerResult
-    condition_results: list[ProcessedDataCondition]
-
-
-DataConditionGroupResult = tuple[ProcessedDataConditionGroup, list[DataCondition]]
+DataConditionGroupResult = tuple[DataConditionGroupEvaluation, list[DataCondition]]
 
 
 # We use a defined function rather than a lambda below because otherwise
@@ -219,7 +45,7 @@ def _get_data_conditions_for_group_shim(data_condition_group_id: int) -> list[Da
     return get_data_conditions_for_group(data_condition_group_id)
 
 
-@sentry_sdk.trace
+@trace
 def get_slow_conditions_for_groups(
     data_condition_group_ids: list[int],
 ) -> dict[int, list[DataCondition]]:
@@ -236,45 +62,35 @@ def get_slow_conditions_for_groups(
 
 
 def evaluate_condition_group_results(
-    condition_results: list[ProcessedDataCondition],
+    condition_results: list[DataConditionEvaluation],
     logic_type: DataConditionGroup.Type,
-) -> ProcessedDataConditionGroup:
-    logic_result = TriggerResult.FALSE
-    group_condition_results: list[ProcessedDataCondition] = []
+) -> DataConditionGroupEvaluation:
+    triggered, error = False, None
 
-    if logic_type == DataConditionGroup.Type.NONE:
-        # if we get to this point, no conditions were met
-        # because we would have short-circuited
-        logic_result = TriggerResult.none(
-            condition_result.logic_result for condition_result in condition_results
-        )
+    match logic_type:
+        case DataConditionGroup.Type.NONE:
+            triggered, error = DataConditionGroupEvaluation.none(condition_results)
+        case DataConditionGroup.Type.ANY | DataConditionGroup.Type.ANY_SHORT_CIRCUIT:
+            triggered, error = DataConditionGroupEvaluation.any(condition_results)
+        case DataConditionGroup.Type.ALL:
+            triggered, error = DataConditionGroupEvaluation.all(condition_results)
 
-    elif logic_type == DataConditionGroup.Type.ANY:
-        logic_result = TriggerResult.any(
-            condition_result.logic_result for condition_result in condition_results
-        )
+    # When the group didn't trigger, or it's a NONE group (which triggers precisely
+    # when nothing matched), this is empty.
+    passing_evaluations = (
+        [condition_result for condition_result in condition_results if condition_result.triggered]
+        if triggered
+        else []
+    )
 
-        if logic_result.triggered:
-            group_condition_results = [
-                condition_result
-                for condition_result in condition_results
-                if condition_result.logic_result.triggered
-            ]
-
-    elif logic_type == DataConditionGroup.Type.ALL:
-        conditions_met = [condition_result.logic_result for condition_result in condition_results]
-        logic_result = TriggerResult.all(conditions_met)
-
-        if logic_result.triggered:
-            group_condition_results = [
-                condition_result
-                for condition_result in condition_results
-                if condition_result.logic_result.triggered
-            ]
-
-    return ProcessedDataConditionGroup(
-        logic_result=logic_result,
-        condition_results=group_condition_results,
+    return DataConditionGroupEvaluation(
+        result=triggered,
+        data={
+            "condition_evaluations": passing_evaluations,
+            "logic_type": logic_type,
+        },
+        triggered=triggered,
+        error=error,
     )
 
 
@@ -282,60 +98,84 @@ def evaluate_condition_group_results(
 def evaluate_data_conditions(
     conditions_to_evaluate: list[tuple[DataCondition, T]],
     logic_type: DataConditionGroup.Type,
-) -> ProcessedDataConditionGroup:
+) -> DataConditionGroupEvaluation:
     """
     Evaluate a list of conditions. Each condition is a tuple with the value to evaluate the condition against.
     Next we apply the logic_type to get the results of the list of conditions.
     """
-    condition_results: list[ProcessedDataCondition] = []
+    condition_evaluations: list[DataConditionEvaluation] = []
 
-    if len(conditions_to_evaluate) == 0:
-        # if we don't have any conditions, always return True
-        return ProcessedDataConditionGroup(logic_result=TriggerResult.TRUE, condition_results=[])
+    if not conditions_to_evaluate:
+        # if there are no conditions on the group, always return True.
+        return DataConditionGroupEvaluation(
+            result=True,
+            triggered=True,
+            data={
+                "condition_evaluations": condition_evaluations,
+                "logic_type": logic_type,
+            },
+        )
 
     for condition, value in conditions_to_evaluate:
-        evaluation_result = condition.evaluate_value(value)
-        cleaned_result: DataConditionResult
-        if isinstance(evaluation_result, ConditionError):
-            cleaned_result = None
-        else:
-            cleaned_result = evaluation_result
-        trigger_result = TriggerResult(
-            triggered=cleaned_result is not None,
-            error=evaluation_result if isinstance(evaluation_result, ConditionError) else None,
-        )
+        evaluation = condition.evaluate_value(value)
 
-        if trigger_result.triggered:
-            # Check for short-circuiting evaluations
-            if logic_type == DataConditionGroup.Type.ANY_SHORT_CIRCUIT:
-                condition_result = ProcessedDataCondition(
-                    logic_result=trigger_result,
-                    condition=condition,
-                    result=cleaned_result,
-                )
+        # Check for short-circuiting evaluations
+        if evaluation.triggered:
+            match logic_type:
+                case DataConditionGroup.Type.ANY_SHORT_CIRCUIT:
+                    # The first matching condition conclusively satisfies the group.
+                    return DataConditionGroupEvaluation(
+                        result=True,
+                        triggered=True,
+                        error=evaluation.error,
+                        data={
+                            "condition_evaluations": [evaluation],
+                            "logic_type": logic_type,
+                        },
+                    )
+                case DataConditionGroup.Type.NONE:
+                    # A NONE group requires that no condition matches; a match
+                    # makes the group conclusively not triggered.
+                    return DataConditionGroupEvaluation(
+                        result=False,
+                        triggered=False,
+                        error=evaluation.error,
+                        data={
+                            "condition_evaluations": [],
+                            "logic_type": logic_type,
+                        },
+                    )
 
-                return ProcessedDataConditionGroup(
-                    logic_result=trigger_result,
-                    condition_results=[condition_result],
-                )
+        condition_evaluations.append(evaluation)
 
-            if logic_type == DataConditionGroup.Type.NONE:
-                return ProcessedDataConditionGroup(
-                    logic_result=TriggerResult(triggered=False, error=trigger_result.error),
-                    condition_results=[],
-                )
+    # Apply the grouping logic to the condition evaluation results.
+    return evaluate_condition_group_results(condition_evaluations, logic_type)
 
-        result = ProcessedDataCondition(
-            logic_result=trigger_result,
-            condition=condition,
-            result=cleaned_result,
-        )
-        condition_results.append(result)
 
-    return evaluate_condition_group_results(
-        condition_results,
-        logic_type,
-    )
+def _resolve_group_conditions(group: DataConditionGroup) -> list[DataCondition]:
+    if (
+        hasattr(group, "_prefetched_objects_cache")
+        and "conditions" in group._prefetched_objects_cache
+    ):
+        return list(group.conditions.all())
+
+    return _get_data_conditions_for_group_shim(group.id)
+
+
+def _is_conclusive_evaluation(evaluation: DataConditionGroupEvaluation) -> bool:
+    """
+    Determines if a given group evaluation is completed based on the logic_type
+    and the results of the conditions in the evaluation.
+    """
+    logic_type = evaluation.data.get("logic_type")
+
+    match logic_type:
+        case DataConditionGroup.Type.ALL | DataConditionGroup.Type.NONE:
+            return not evaluation.triggered
+        case DataConditionGroup.Type.ANY | DataConditionGroup.Type.ANY_SHORT_CIRCUIT:
+            return evaluation.triggered
+
+    return False
 
 
 @scopedstats.timer()
@@ -344,59 +184,46 @@ def process_data_condition_group(
     value: T,
     data_conditions_for_group: list[DataCondition] | None = None,
 ) -> DataConditionGroupResult:
-    condition_results: list[ProcessedDataCondition] = []
+    condition_results: list[DataConditionEvaluation] = []
+    all_conditions: list[DataCondition]
 
     try:
         logic_type = DataConditionGroup.Type(group.logic_type)
     except ValueError:
-        logger.exception(
-            "Invalid DataConditionGroup.logic_type found in process_data_condition_group",
-            extra={"logic_type": group.logic_type},
-        )
-        trigger_result = TriggerResult(
-            triggered=False, error=ConditionError(msg="Invalid DataConditionGroup.logic_type")
-        )
-        return ProcessedDataConditionGroup(logic_result=trigger_result, condition_results=[]), []
+        return DataConditionGroupEvaluation(
+            result=False,
+            triggered=False,
+            data={
+                "condition_evaluations": condition_results,
+                "logic_type": group.logic_type,
+            },
+            error=ConditionError(msg="Invalid DataConditionGroup.logic_type"),
+        ), []
 
-    # Check if conditions are already prefetched before using cache
-    all_conditions: list[DataCondition]
-    if data_conditions_for_group is not None:
-        all_conditions = data_conditions_for_group
-    elif (
-        hasattr(group, "_prefetched_objects_cache")
-        and "conditions" in group._prefetched_objects_cache
-    ):
-        all_conditions = list(group.conditions.all())
-    else:
-        all_conditions = _get_data_conditions_for_group_shim(group.id)
-
-    split_conds = split_conditions_by_speed(all_conditions)
-
-    if not split_conds.fast and split_conds.slow:
-        # there are only slow conditions to evaluate, do not evaluate an empty list of conditions
-        # which would evaluate to True
-        condition_group_result = ProcessedDataConditionGroup(
-            logic_result=TriggerResult.FALSE,
-            condition_results=condition_results,
-        )
-        return condition_group_result, split_conds.slow
-
-    conditions_to_evaluate = [(condition, value) for condition in split_conds.fast]
-    processed_condition_group = evaluate_data_conditions(conditions_to_evaluate, logic_type)
-
-    logic_result = processed_condition_group.logic_result
-
-    # Check to see if we should return any remaining conditions based on the results
-    is_short_circuit_all = not logic_result.triggered and logic_type == DataConditionGroup.Type.ALL
-    is_short_circuit_any = logic_result.triggered and logic_type in (
-        DataConditionGroup.Type.ANY,
-        DataConditionGroup.Type.ANY_SHORT_CIRCUIT,
+    all_conditions = (
+        _resolve_group_conditions(group)
+        if data_conditions_for_group is None
+        else data_conditions_for_group
     )
+    conditions = split_conditions_by_speed(all_conditions)
 
-    if is_short_circuit_all or is_short_circuit_any:
-        # if we have a logic type of all and a False result,
-        # or if we have a logic type of any and a True result, then
-        #  we can short-circuit any remaining conditions since we have a completed logic result
-        return processed_condition_group, []
+    if not conditions.fast and conditions.slow:
+        # There are only slow conditions to evaluate. Don't evaluate an empty list
+        # of fast conditions, which would incorrectly resolve to triggered=True
+        # before the slow conditions have been evaluated.
+        return DataConditionGroupEvaluation(
+            result=False,
+            triggered=False,
+            data={
+                "condition_evaluations": condition_results,
+                "logic_type": logic_type,
+            },
+        ), conditions.slow
 
-    return processed_condition_group, split_conds.slow
+    conditions_to_evaluate = [(condition, value) for condition in conditions.fast]
+    group_evaluation = evaluate_data_conditions(conditions_to_evaluate, logic_type)
+
+    if _is_conclusive_evaluation(group_evaluation):
+        return group_evaluation, []
+
+    return group_evaluation, conditions.slow

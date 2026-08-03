@@ -856,9 +856,13 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "sentry.dashboardfavoriteuser": [
                 DateUpdatedComparator("date_added", "date_updated"),
             ],
+            "sentry.dashboardlastvisited": [
+                DateUpdatedComparator("last_visited", "date_added", "date_updated"),
+            ],
             "sentry.dashboardrevision": [
                 DateUpdatedComparator("date_added", "date_updated"),
             ],
+            "sentry.custominboundfilter": [DateUpdatedComparator("date_updated", "date_added")],
             "sentry.dataforwarder": [DateUpdatedComparator("date_updated", "date_added")],
             "sentry.dataforwarderproject": [DateUpdatedComparator("date_updated", "date_added")],
             "sentry.groupsearchview": [DateUpdatedComparator("date_updated")],
@@ -990,6 +994,12 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
                 DateUpdatedComparator("date_updated", "date_added")
             ],
             "explore.exploresavedquerylastvisited": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
+            "explore.traceitemattributecontext": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
+            "explore.traceitemattributevaluecontext": [
                 DateUpdatedComparator("date_updated", "date_added")
             ],
             "insights.insightsstarredsegment": [

@@ -4,6 +4,7 @@ from django.core import mail
 
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity, PluginError
+from sentry.integrations.example import ExampleRepositoryProvider
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.locks import locks
 from sentry.models.commit import Commit
@@ -12,7 +13,7 @@ from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironm
 from sentry.models.release import Release
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
-from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.commits import (
     GITHUB_FETCH_COMMITS_COMPARE_CACHE_TTL_SECONDS,
@@ -67,8 +68,19 @@ class FetchCommitsTest(TestCase):
 
         assert key_one != key_two
 
+    def _create_example_repo(self, org):
+        integration = self.create_integration(
+            organization=org, provider="example", external_id="example:1"
+        )
+        return Repository.objects.create(
+            name="example",
+            provider="integrations:example",
+            organization_id=org.id,
+            integration_id=integration.id,
+        )
+
     def _test_simple_action(self, user, org):
-        repo = Repository.objects.create(name="example", provider="dummy", organization_id=org.id)
+        repo = self._create_example_repo(org)
         release = Release.objects.create(organization_id=org.id, version="abcabcabc")
 
         commit = Commit.objects.create(organization_id=org.id, repository_id=repo.id, key="a" * 40)
@@ -96,7 +108,6 @@ class FetchCommitsTest(TestCase):
             Commit.objects.filter(releasecommit__release=release2).order_by("releasecommit__order")
         )
 
-        # see DummyRepositoryProvider.compare_commits
         assert len(commit_list) == 3
         assert commit_list[0].repository_id == repo.id
         assert commit_list[0].organization_id == org.id
@@ -122,31 +133,42 @@ class FetchCommitsTest(TestCase):
         org = self.create_organization(owner=self.user, name="baz")
         self._test_simple_action(user=self.user, org=org)
 
-    def test_simple_passes_actor_to_plugin_provider(self, mock_record: MagicMock) -> None:
+    def test_simple_passes_actor_to_provider(self, mock_record: MagicMock) -> None:
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")
-        original_compare_commits = DummyRepositoryProvider.compare_commits
 
+        provider_instance = ExampleRepositoryProvider("integrations:example")
         with patch.object(
-            DummyRepositoryProvider,
-            "compare_commits",
-            autospec=True,
-            side_effect=original_compare_commits,
-        ) as mock_compare_commits:
+            ExampleRepositoryProvider,
+            "fetch_commits_for_compare_range",
+            side_effect=provider_instance.fetch_commits_for_compare_range,
+        ) as mock_fetch_commits_for_compare_range:
             self._test_simple_action(user=self.user, org=org)
 
         assert any(
             (actor := call.kwargs.get("actor")) is not None and actor.id == self.user.id
-            for call in mock_compare_commits.call_args_list
+            for call in mock_fetch_commits_for_compare_range.call_args_list
         )
 
     def test_duplicate_repositories(self, mock_record: MagicMock) -> None:
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")
-        Repository.objects.create(
-            name="example", provider="dummy", organization_id=org.id, status=ObjectStatus.DISABLED
+        integration = self.create_integration(
+            organization=org, provider="example", external_id="example:disabled"
         )
-        Repository.objects.create(name="example", provider="dummy", organization_id=org.id)
+        Repository.objects.create(
+            name="example",
+            provider="integrations:example",
+            organization_id=org.id,
+            integration_id=integration.id,
+            status=ObjectStatus.DISABLED,
+        )
+        Repository.objects.create(
+            name="example",
+            provider="integrations:example",
+            organization_id=org.id,
+            integration_id=integration.id,
+        )
         self._test_simple_action(user=self.user, org=org)
 
     @patch(
@@ -260,7 +282,7 @@ class FetchCommitsTest(TestCase):
     def test_release_locked(self, mock_record_event: MagicMock) -> None:
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")
-        repo = Repository.objects.create(name="example", provider="dummy", organization_id=org.id)
+        repo = self._create_example_repo(org)
 
         old_release = Release.objects.create(organization_id=org.id, version="abcabcabc")
         commit = Commit.objects.create(organization_id=org.id, repository_id=repo.id, key="a" * 40)
@@ -286,14 +308,14 @@ class FetchCommitsTest(TestCase):
         assert count_query.count() == 0
 
     @patch("sentry.tasks.commits.handle_invalid_identity")
-    @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.compare_commits")
+    @patch.object(ExampleRepositoryProvider, "compare_commits")
     def test_fetch_error_invalid_identity(
         self, mock_compare_commits, mock_handle_invalid_identity, mock_record
     ):
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")
 
-        repo = Repository.objects.create(name="example", provider="dummy", organization_id=org.id)
+        repo = self._create_example_repo(org)
         release = Release.objects.create(organization_id=org.id, version="abcabcabc")
 
         commit = Commit.objects.create(organization_id=org.id, repository_id=repo.id, key="a" * 40)
@@ -319,14 +341,14 @@ class FetchCommitsTest(TestCase):
 
         assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
 
-    @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.compare_commits")
+    @patch.object(ExampleRepositoryProvider, "compare_commits")
     def test_fetch_error_plugin_error(
         self, mock_compare_commits: MagicMock, mock_record: MagicMock
     ) -> None:
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")
 
-        repo = Repository.objects.create(name="example", provider="dummy", organization_id=org.id)
+        repo = self._create_example_repo(org)
         release = Release.objects.create(organization_id=org.id, version="abcabcabc")
 
         commit = Commit.objects.create(organization_id=org.id, repository_id=repo.id, key="a" * 40)
@@ -354,14 +376,14 @@ class FetchCommitsTest(TestCase):
 
         assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
 
-    @patch("sentry.plugins.providers.dummy.repository.DummyRepositoryProvider.compare_commits")
+    @patch.object(ExampleRepositoryProvider, "compare_commits")
     def test_fetch_error_random_exception(
         self, mock_compare_commits: MagicMock, mock_record: MagicMock
     ) -> None:
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")
 
-        repo = Repository.objects.create(name="example", provider="dummy", organization_id=org.id)
+        repo = self._create_example_repo(org)
         release = Release.objects.create(organization_id=org.id, version="abcabcabc")
 
         commit = Commit.objects.create(organization_id=org.id, repository_id=repo.id, key="a" * 40)
@@ -389,14 +411,20 @@ class FetchCommitsTest(TestCase):
 
         assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
 
-    def test_fetch_error_random_exception_integration(self, mock_record: MagicMock) -> None:
+    @patch.object(
+        ExampleRepositoryProvider,
+        "compare_commits",
+        side_effect=IntegrationError("repository not found"),
+    )
+    def test_fetch_error_random_exception_integration(
+        self, mock_compare_commits: MagicMock, mock_record: MagicMock
+    ) -> None:
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_provider_integration(provider="example", name="Example")
-            integration.add_organization(org)
-
+        integration = self.create_integration(
+            organization=org, provider="example", external_id="example:1"
+        )
         repo = Repository.objects.create(
             name="example",
             provider="integrations:example",

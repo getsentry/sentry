@@ -13,7 +13,7 @@ import isEqual from 'lodash/isEqual';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {useHotkeys} from '@sentry/scraps/hotkey';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
@@ -66,8 +66,8 @@ import {useCacheBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
-import {useIsEquationMode} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEquationMode';
 import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
+import {useTraceMetricsVisualizeModeState} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
@@ -79,13 +79,13 @@ import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLM
 type WidgetBuilderSlideoutProps = {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
-  isWidgetInvalid: boolean;
   onClose: () => void;
   onQueryConditionChange: (valid: boolean) => void;
   onSave: ({index, widget}: {index: number | undefined; widget: Widget}) => void;
   openWidgetTemplates: boolean;
   setIsPreviewDraggable: (draggable: boolean) => void;
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
+  isQueryConditionInvalid?: boolean;
   onDataFetched?: (results: OnDataFetchedParams) => void;
   thresholdMetaState?: ThresholdMetaState;
 };
@@ -97,7 +97,7 @@ function WidgetBuilderSlideoutInner({
   dashboard,
   dashboardFilters,
   setIsPreviewDraggable,
-  isWidgetInvalid,
+  isQueryConditionInvalid,
   openWidgetTemplates,
   setOpenWidgetTemplates,
   onDataFetched,
@@ -146,9 +146,11 @@ function WidgetBuilderSlideoutInner({
     convertBuilderStateToWidget(state)
   );
 
+  const traceMetricsVisualizeMode = useTraceMetricsVisualizeModeState();
+
   // Tracks whether the user has entered the metrics equation mode since we
   // do not render the filter bar. The metrics equations UI has filters built in.
-  const [isInEquationMode, setIsInEquationMode] = useIsEquationMode();
+  const isInEquationMode = traceMetricsVisualizeMode.isEquationMode;
 
   useEffect(() => {
     if (!openWidgetTemplates) {
@@ -306,7 +308,7 @@ function WidgetBuilderSlideoutInner({
       height="44px"
       padding="0 2xl"
     >
-      <Breadcrumbs crumbs={breadcrumbs} />
+      <Breadcrumbs as="nav" crumbs={breadcrumbs} />
       <CloseButton
         variant="link"
         size="zero"
@@ -326,12 +328,12 @@ function WidgetBuilderSlideoutInner({
           return (
             <Fragment>
               {header}
-              <Flex direction="column" gap="2xl" padding="2xl">
+              <Stack gap="2xl" padding="2xl">
                 <Placeholder height="50px" />
                 <Placeholder height="50px" />
                 <Placeholder height="50px" />
                 <Placeholder height="200px" />
-              </Flex>
+              </Stack>
             </Fragment>
           );
         }
@@ -406,7 +408,7 @@ function WidgetBuilderSlideoutInner({
                         <WidgetPreviewContainer
                           dashboard={dashboard}
                           dashboardFilters={dashboardFilters}
-                          isWidgetInvalid={isWidgetInvalid}
+                          isQueryConditionInvalid={isQueryConditionInvalid}
                           onDataFetched={onDataFetched}
                           openWidgetTemplates={openWidgetTemplates}
                         />
@@ -463,7 +465,7 @@ function WidgetBuilderSlideoutInner({
                           <WidgetPreviewContainer
                             dashboard={dashboard}
                             dashboardFilters={dashboardFilters}
-                            isWidgetInvalid={isWidgetInvalid}
+                            isQueryConditionInvalid={isQueryConditionInvalid}
                             onDataFetched={onDataFetched}
                             openWidgetTemplates={openWidgetTemplates}
                           />
@@ -487,8 +489,7 @@ function WidgetBuilderSlideoutInner({
                         <Visualize
                           error={error}
                           setError={setError}
-                          isEquationMode={isInEquationMode}
-                          onSetEquationMode={setIsInEquationMode}
+                          traceMetricsVisualizeMode={traceMetricsVisualizeMode}
                         />
                       </Section>
                     )}

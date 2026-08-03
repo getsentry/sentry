@@ -1,5 +1,7 @@
 import type {ReactNode} from 'react';
 
+import type {FeatureBadgeProps} from '@sentry/scraps/badge';
+
 import {t} from 'sentry/locale';
 import {IssueCategory} from 'sentry/types/group';
 
@@ -22,6 +24,7 @@ export const ISSUE_TAXONOMY_CONFIG: Record<
     description: ReactNode;
     key: string;
     label: string;
+    badge?: FeatureBadgeProps['type'];
     featureFlags?: string[];
   }
 > = {
@@ -56,8 +59,9 @@ export const ISSUE_TAXONOMY_CONFIG: Record<
   },
   [IssueTaxonomy.SENTRY_CONFIGURATION]: {
     categories: [IssueCategory.CONFIGURATION],
-    label: t('Sentry Configuration'),
+    label: t('Configuration'),
     key: 'sentry-configuration',
+    badge: 'beta',
     description: t(
       'Issues detected from SDK or tooling configuration problems that degrade your ability to debug telemetry using Sentry.'
     ),

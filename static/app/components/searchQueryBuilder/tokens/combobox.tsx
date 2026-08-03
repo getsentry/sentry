@@ -4,6 +4,7 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  type FocusEvent,
   type MouseEventHandler,
   type ReactNode,
 } from 'react';
@@ -30,6 +31,7 @@ import {Overlay} from 'sentry/components/overlay';
 import {AskSeer} from 'sentry/components/searchQueryBuilder/askSeer/askSeer';
 import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
 import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
+import {OpenAskSeerButton} from 'sentry/components/searchQueryBuilder/askSeer/openAskSeerButton';
 import {
   useSearchQueryBuilderAI,
   useSearchQueryBuilderConfig,
@@ -41,9 +43,10 @@ import {
   findItemInSections,
   itemIsSection,
 } from 'sentry/components/searchQueryBuilder/tokens/utils';
-import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
-import {defined} from 'sentry/utils';
+import {Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
+import {defined} from 'sentry/utils/defined';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay} from 'sentry/utils/useOverlay';
 
 type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<string>> = {
@@ -53,9 +56,9 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
   items: T[];
   /**
    * Called when the input is blurred.
-   * Passes the current input value.
+   * Passes the current input value and blur event.
    */
-  onCustomValueBlurred: (value: string) => void;
+  onCustomValueBlurred: (value: string, event?: FocusEvent<HTMLInputElement>) => void;
   /**
    * Called when the user commits a value with the enter key.
    * Passes the current input value.
@@ -88,6 +91,12 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
    * When passing `isOpen`, the open state is controlled by the parent.
    */
   isOpen?: boolean;
+  /**
+   * Element kept visible to screen readers (alongside the input and popover)
+   * while the menu is open. Use for content rendered next to the input, e.g.
+   * value chips, which `ariaHideOutside` would otherwise hide.
+   */
+  keepVisibleRef?: React.RefObject<HTMLElement | null>;
   maxOptions?: number;
   onClick?: (e: React.MouseEvent) => void;
   /**
@@ -124,11 +133,13 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
 type OverlayProps = ReturnType<typeof useOverlay>['overlayProps'];
 
 export type CustomComboboxMenuProps<T> = {
+  askSeerButtonRef: React.RefObject<HTMLButtonElement | null>;
   filterValue: string;
   hiddenOptions: Set<SelectKey>;
   isOpen: boolean;
   listBoxProps: AriaListBoxOptions<T>;
   listBoxRef: React.RefObject<HTMLUListElement | null>;
+  onTabForward: () => void;
   overlayProps: OverlayProps;
   popoverRef: React.RefObject<HTMLDivElement | null>;
   state: ComboBoxState<T>;
@@ -274,6 +285,7 @@ function useUpdateOverlayPositionOnContentChange({
 }
 
 function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
+  askSeerButtonRef,
   customMenu,
   filterValue,
   hiddenOptions,
@@ -281,17 +293,20 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   isLoading,
   listBoxProps,
   listBoxRef,
+  onTabForward,
   popoverRef,
   state,
   overlayProps,
   portalTarget,
   totalOptions,
 }: {
+  askSeerButtonRef: React.RefObject<HTMLButtonElement | null>;
   filterValue: string;
   hiddenOptions: Set<SelectKey>;
   isOpen: boolean;
   listBoxProps: AriaListBoxOptions<any>;
   listBoxRef: React.RefObject<HTMLUListElement | null>;
+  onTabForward: () => void;
   overlayProps: OverlayProps;
   popoverRef: React.RefObject<HTMLDivElement | null>;
   state: ComboBoxState<any>;
@@ -301,7 +316,10 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   portalTarget?: HTMLElement | null;
 }) {
   const {enableAISearch} = useSearchQueryBuilderAI();
+  const organization = useOrganization();
   const anyItemsShowing = totalOptions > hiddenOptions.size;
+  const showAskSeerFooter =
+    enableAISearch && organization.features.includes('gen-ai-ask-seer-ux-rework');
 
   if (customMenu) {
     return customMenu({
@@ -310,10 +328,12 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
       isOpen,
       hiddenOptions,
       listBoxProps,
+      onTabForward,
       state,
       overlayProps,
       filterValue,
       portalTarget,
+      askSeerButtonRef,
     });
   }
 
@@ -342,7 +362,13 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
             <LoadingIndicator size={24} style={{margin: 0}} />
           </Flex>
         ) : null}
-        {enableAISearch ? <AskSeer state={state} /> : null}
+        {showAskSeerFooter ? (
+          <Flex padding="sm" borderTop="muted">
+            <OpenAskSeerButton ref={askSeerButtonRef} onTabForward={onTabForward} />
+          </Flex>
+        ) : enableAISearch ? (
+          <AskSeer state={state} />
+        ) : null}
       </ListBoxOverlay>
     </StyledPositionWrapper>
   );
@@ -357,6 +383,7 @@ export function SearchQueryBuilderCombobox<
   children,
   description,
   items,
+  token,
   inputValue,
   filterValue = inputValue,
   placeholder,
@@ -383,10 +410,11 @@ export function SearchQueryBuilderCombobox<
   customMenu,
   isLoading: incomingIsLoading,
   isOpen: incomingIsOpen,
+  keepVisibleRef,
   ['data-test-id']: dataTestId,
   ref,
 }: SearchQueryBuilderComboboxProps<T>) {
-  const {clearSearchQuery} = useSearchQueryBuilderState();
+  const {clearSearchQuery, dispatch} = useSearchQueryBuilderState();
   const {disabled} = useSearchQueryBuilderConfig();
   const {portalTarget, wrapperRef} = useSearchQueryBuilderLayout();
   const {enableAISearch} = useSearchQueryBuilderAI();
@@ -394,6 +422,7 @@ export function SearchQueryBuilderCombobox<
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLDivElement>(null);
+  const askSeerButtonRef = useRef<HTMLButtonElement>(null);
 
   const {hiddenOptions, disabledKeys} = useHiddenItems({
     items,
@@ -403,7 +432,7 @@ export function SearchQueryBuilderCombobox<
     showAskSeerOption: enableAISearch,
   });
 
-  const onSelectionChange = useCallback(
+  const onValueChange = useCallback(
     (key: Key | null) => {
       if (!key) {
         return;
@@ -421,8 +450,8 @@ export function SearchQueryBuilderCombobox<
     items,
     autoFocus,
     inputValue: filterValue,
-    selectedKey: null,
-    onSelectionChange,
+    value: null,
+    onChange: onValueChange,
     allowsCustomValue: true,
     disabledKeys,
     isDisabled: disabled,
@@ -446,6 +475,9 @@ export function SearchQueryBuilderCombobox<
       listBoxRef,
       inputRef,
       popoverRef,
+      tabTargetRef: askSeerButtonRef,
+      // This component supplies a custom ariaHideOutside allowlist below.
+      shouldHideOutside: false,
       shouldFocusWrap: true,
       onFocus: e => {
         if (openOnFocus) {
@@ -457,7 +489,7 @@ export function SearchQueryBuilderCombobox<
         if (e.relatedTarget && !shouldCloseOnInteractOutside?.(e.relatedTarget)) {
           return;
         }
-        onCustomValueBlurred(inputValue);
+        onCustomValueBlurred(inputValue, e);
         state.close();
       },
       onKeyDown: e => {
@@ -601,12 +633,17 @@ export function SearchQueryBuilderCombobox<
   useEffect(() => {
     if (isOpen) {
       return ariaHideOutside(
-        [inputRef.current, popoverRef.current, descriptionRef.current].filter(defined)
+        [
+          inputRef.current,
+          popoverRef.current,
+          descriptionRef.current,
+          keepVisibleRef?.current,
+        ].filter(defined)
       );
     }
 
     return () => {};
-  }, [inputRef, popoverRef, isOpen, customMenu]);
+  }, [inputRef, popoverRef, isOpen, customMenu, keepVisibleRef]);
 
   const autosizeInput = useAutosizeInput({value: inputValue});
 
@@ -631,12 +668,28 @@ export function SearchQueryBuilderCombobox<
         disabled={disabled}
         onKeyDownCapture={e => {
           if (isCtrlKeyPressed(e) && (e.key === 'Backspace' || e.key === 'Delete')) {
-            e.preventDefault();
-            e.stopPropagation();
-            onSearchQueryClear?.();
-            state.close();
-            clearSearchQuery({reopenDropdown: true});
-            return;
+            if (token.type === Token.FREE_TEXT) {
+              e.preventDefault();
+              e.stopPropagation();
+              state.close();
+              dispatch({
+                type: 'DELETE_TO_CURSOR',
+                token,
+                cursorPosition: e.currentTarget.selectionStart ?? 0,
+                inputValue,
+                direction: e.key === 'Backspace' ? 'before' : 'after',
+              });
+              return;
+            }
+
+            if (!inputValue) {
+              e.preventDefault();
+              e.stopPropagation();
+              onSearchQueryClear?.();
+              state.close();
+              clearSearchQuery({reopenDropdown: true});
+              return;
+            }
           }
 
           onKeyDownCapture?.(e, {state});
@@ -655,6 +708,7 @@ export function SearchQueryBuilderCombobox<
         </StyledPositionWrapper>
       ) : null}
       <OverlayContent
+        askSeerButtonRef={askSeerButtonRef}
         customMenu={customMenu}
         filterValue={filterValue}
         hiddenOptions={hiddenOptions}
@@ -662,6 +716,11 @@ export function SearchQueryBuilderCombobox<
         isLoading={incomingIsLoading}
         listBoxProps={listBoxProps}
         listBoxRef={listBoxRef}
+        onTabForward={() => {
+          state.close();
+          state.setFocused(false);
+          onOpenChange?.(false);
+        }}
         popoverRef={popoverRef}
         state={state}
         overlayProps={overlayProps}

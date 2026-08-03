@@ -16,6 +16,11 @@ import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
 import {
+  type ScmAnalyticsFlow,
+  scmFlowVariantParams,
+  trackScmPlatformSelected,
+} from 'sentry/components/onboarding/scm/scmAnalyticsFlow';
+import {
   useCreateProjectAndRulesError,
   useIsCreatingProjectAndRules,
 } from 'sentry/components/onboarding/useCreateProjectAndRules';
@@ -26,7 +31,8 @@ import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tn} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
+import type {PlatformIntegration} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
@@ -38,6 +44,13 @@ export enum SupportedLanguages {
   JAVA = 'java',
   GO = 'go',
 }
+
+// SCM onboarding fires its modal-rendered and platform-selected events routed by
+// the active flow (new-org onboarding vs SCM-first project creation).
+const SCM_FRAMEWORK_MODAL_RENDERED_EVENT = {
+  onboarding: 'onboarding.scm_select_framework_modal_rendered',
+  'project-creation': 'project_creation.select_framework_modal_rendered',
+} as const;
 
 const topGoFrameworks: PlatformKey[] = [
   'go-echo',
@@ -124,7 +137,12 @@ interface FrameworkSuggestionModalProps extends ModalRenderProps {
   onSkip: () => void;
   organization: Organization;
   selectedPlatform: OnboardingSelectedSDK;
-  hasScmOnboarding?: boolean;
+  /**
+   * Whether the modal was opened from a shared SCM flow. `analyticsFlow`
+   * distinguishes new-org onboarding from SCM-first project creation.
+   */
+  analyticsFlow?: ScmAnalyticsFlow;
+  isScmFlow?: boolean;
   newOrg?: boolean;
 }
 
@@ -138,7 +156,8 @@ export function FrameworkSuggestionModal({
   CloseButton,
   organization,
   newOrg,
-  hasScmOnboarding,
+  isScmFlow,
+  analyticsFlow = 'onboarding',
 }: FrameworkSuggestionModalProps) {
   const isCreatingProjectAndRules = useIsCreatingProjectAndRules();
   const createProjectAndRulesError = useCreateProjectAndRulesError();
@@ -194,39 +213,56 @@ export function FrameworkSuggestionModal({
   });
 
   useEffect(() => {
-    trackAnalytics(
-      hasScmOnboarding
-        ? 'onboarding.scm_select_framework_modal_rendered'
-        : newOrg
-          ? 'onboarding.select_framework_modal_rendered'
-          : 'project_creation.select_framework_modal_rendered',
-      {
+    if (isScmFlow) {
+      trackAnalytics(SCM_FRAMEWORK_MODAL_RENDERED_EVENT[analyticsFlow], {
         platform: selectedPlatform.key,
         organization,
-      }
-    );
-  }, [selectedPlatform.key, organization, newOrg, hasScmOnboarding]);
+        ...scmFlowVariantParams(analyticsFlow),
+      });
+    } else if (newOrg) {
+      trackAnalytics('onboarding.select_framework_modal_rendered', {
+        platform: selectedPlatform.key,
+        organization,
+      });
+    } else {
+      // Legacy project-creation variant shares the base
+      // project_creation.select_framework_modal_rendered name with the SCM
+      // variant above; stamp variant:'legacy' so it isn't dropped from
+      // variant-filtered queries.
+      trackAnalytics('project_creation.select_framework_modal_rendered', {
+        platform: selectedPlatform.key,
+        organization,
+        variant: 'legacy',
+      });
+    }
+  }, [selectedPlatform.key, organization, newOrg, isScmFlow, analyticsFlow]);
 
   const handleConfigure = useCallback(() => {
     if (!selectedFramework) {
       return;
     }
 
-    if (hasScmOnboarding) {
-      trackAnalytics('onboarding.scm_platform_selected', {
+    if (isScmFlow) {
+      trackScmPlatformSelected(
+        analyticsFlow,
         organization,
-        platform: selectedFramework.key,
-        source: 'manual',
+        selectedFramework.key,
+        'manual'
+      );
+    } else if (newOrg) {
+      trackAnalytics('onboarding.select_framework_modal_configure_sdk_button_clicked', {
+        platform: selectedPlatform.key,
+        framework: selectedFramework.key,
+        organization,
       });
     } else {
       trackAnalytics(
-        newOrg
-          ? 'onboarding.select_framework_modal_configure_sdk_button_clicked'
-          : 'project_creation.select_framework_modal_configure_sdk_button_clicked',
+        'project_creation.select_framework_modal_configure_sdk_button_clicked',
         {
           platform: selectedPlatform.key,
           framework: selectedFramework.key,
           organization,
+          variant: 'legacy',
         }
       );
     }
@@ -238,29 +274,32 @@ export function FrameworkSuggestionModal({
     organization,
     onConfigure,
     newOrg,
-    hasScmOnboarding,
+    isScmFlow,
+    analyticsFlow,
   ]);
 
   const handleSkip = useCallback(() => {
-    if (hasScmOnboarding) {
-      trackAnalytics('onboarding.scm_platform_selected', {
+    if (isScmFlow) {
+      trackScmPlatformSelected(
+        analyticsFlow,
         organization,
+        selectedPlatform.key,
+        'manual'
+      );
+    } else if (newOrg) {
+      trackAnalytics('onboarding.select_framework_modal_skip_button_clicked', {
         platform: selectedPlatform.key,
-        source: 'manual',
+        organization,
       });
     } else {
-      trackAnalytics(
-        newOrg
-          ? 'onboarding.select_framework_modal_skip_button_clicked'
-          : 'project_creation.select_framework_modal_skip_button_clicked',
-        {
-          platform: selectedPlatform.key,
-          organization,
-        }
-      );
+      trackAnalytics('project_creation.select_framework_modal_skip_button_clicked', {
+        platform: selectedPlatform.key,
+        organization,
+        variant: 'legacy',
+      });
     }
     onSkip();
-  }, [selectedPlatform, organization, onSkip, newOrg, hasScmOnboarding]);
+  }, [selectedPlatform, organization, onSkip, newOrg, isScmFlow, analyticsFlow]);
 
   const handleClick = useCallback(() => {
     if (selectedFramework?.key === selectedPlatform.key) {

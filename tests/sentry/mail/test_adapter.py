@@ -51,7 +51,6 @@ from sentry.testutils.helpers.analytics import (
     assert_last_analytics_event,
 )
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -61,7 +60,6 @@ from sentry.types.rules import RuleFuture
 from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
 from sentry.utils.email import MessageBuilder, get_email_addresses
-from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 from tests.sentry.mail import make_event_data, mock_notify
 
 pytestmark = requires_snuba
@@ -561,68 +559,6 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         self.assertEqual(notification.reference, group)
         assert notification.get_subject() == "BAR-1 - hello world"
 
-        assert notification.get_context()["snooze_alert"] is True
-
-        assert group
-        mock_logger.info.assert_called_with(
-            "mail.adapter.notify",
-            extra={
-                "target_type": "IssueOwners",
-                "target_identifier": None,
-                "group": group.id,
-                "project_id": group.project.id,
-                "organization": group.organization.id,
-                "fallthrough_choice": "ActiveMembers",
-                "notification_uuid": mock.ANY,
-            },
-        )
-
-    @mock_notify
-    @mock.patch("sentry.notifications.notifications.rules.logger")
-    @with_feature("organizations:workflow-engine-ui")  # snooze
-    def test_notify_users_does_email_workflow_engine_ui(self, mock_logger, mock_func) -> None:
-        self.create_user_option(user=self.user, key="timezone", value="Europe/Vienna")
-        event_manager = EventManager({"message": "hello world", "level": "error"})
-        event_manager.normalize()
-        event_data = event_manager.get_data()
-        event_type = get_event_type(event_data)
-        event_data["type"] = event_type.key
-        event_data["metadata"] = event_type.get_metadata(event_data)
-
-        event = event_manager.save(self.project.id)
-        group = event.group
-
-        self.create_notification_settings_provider(
-            user_id=self.user.id,
-            scope_type="user",
-            scope_identifier=self.user.id,
-            provider="slack",
-            type="alerts",
-            value="never",
-        )
-        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-        rule = self.create_project_rule(
-            project=self.project, action_data=[{"workflow_id": "1234567890"}]
-        )
-        with self.tasks():
-            AlertRuleNotification(
-                Notification(event=event, rules=[rule]),
-                ActionTargetType.ISSUE_OWNERS,
-                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
-            ).send()
-
-        assert mock_func.call_count == 1
-
-        args, kwargs = mock_func.call_args
-        notification = args[1]
-
-        recipient_context = notification.get_recipient_context(Actor.from_orm_user(self.user), {})
-        assert recipient_context["timezone"] == zoneinfo.ZoneInfo("Europe/Vienna")
-
-        self.assertEqual(notification.project, self.project)
-        self.assertEqual(notification.reference, group)
-        assert notification.get_subject() == "BAR-1 - hello world"
-
         # Because we are using the workflow engine, the snooze_alert context should be False
         # This is because a user cannot snooze a workflow for themselves
         assert notification.get_context()["snooze_alert"] is False
@@ -985,32 +921,6 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             not in msg.alternatives[0][0]
         )
         assert "notification_uuid" in msg.body
-
-    def test_slack_link_with_plugin(self) -> None:
-        project = self.project
-        organization = project.organization
-        event = self.store_event(data=make_event_data("foo.jx"), project_id=project.id)
-        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-
-        OpsGeniePlugin().enable(project)
-
-        with self.tasks():
-            notification = Notification(event=event)
-            self.adapter.notify(
-                notification,
-                ActionTargetType.ISSUE_OWNERS,
-                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
-            )
-
-        assert len(mail.outbox) >= 1
-
-        msg = mail.outbox[-1]
-        assert isinstance(msg, EmailMultiAlternatives)
-        assert isinstance(msg.alternatives[0][0], str)
-        assert (
-            f"/settings/{organization.slug}/integrations/slack/?referrer=alert_email"
-            not in msg.alternatives[0][0]
-        )
 
     def test_notify_team_members(self) -> None:
         """Test that each member of a team is notified"""

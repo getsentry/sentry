@@ -8,7 +8,6 @@ from snuba_sdk import Column, Condition, Entity, Function, Granularity, Limit, O
 
 from sentry.api.event_search import QueryToken, parse_search_query
 from sentry.models.organization import Organization
-from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.replays.query import replay_url_parser_config
 from sentry.replays.tasks import archive_replay, delete_replays_script_async
 from sentry.replays.usecases.query import execute_query, handle_search_filters
@@ -51,8 +50,18 @@ def delete_replays(
 
         offset += len(replays)
 
+        logging_context = {
+            "project_id": project_id,
+            "dry_run": dry_run,
+            "batch_size": batch_size,
+            "tags": tags,
+            "start_utc": start_utc,
+            "end_utc": end_utc,
+            "offset": offset,
+            "has_more": has_more,
+        }
         if dry_run:
-            print(f"Replays to be deleted (dry run): {len(replays)}")  # NOQA
+            logger.info(f"Replays to be deleted (dry run): {len(replays)}", extra=logging_context)
         else:
             delete_replay_ids(project_id, replays)
 
@@ -63,7 +72,11 @@ def translate_cli_tags_param_to_snuba_tag_param(tags: list[str]) -> Sequence[Que
 
 def delete_replay_ids(project_id: int, rows: list[tuple[int, str, int]]) -> None:
     """Delete a set of replay-ids for a specific project."""
-    logger.info("Archiving %d replays.", len(rows))
+    logging_context = {
+        "project_id": project_id,
+        "num_replays": len(rows),
+    }
+    logger.info("Archiving %d replays.", len(rows), extra=logging_context)
 
     # Bulk produce archived replay rows to the ingest-replay-events topic before flushing.
     #
@@ -76,12 +89,10 @@ def delete_replay_ids(project_id: int, rows: list[tuple[int, str, int]]) -> None
     # This also gives us reasonable assurances that if the script ran to completion the customer
     # will not be able to access their deleted data even if the actual deletion takes place some
     # time later
-    publisher = initialize_replays_publisher(is_async=True)
     for _, replay_id, _ in rows:
-        archive_replay(publisher, project_id, replay_id)
-    publisher.flush()
+        archive_replay(project_id, replay_id)
 
-    logger.info("Scheduling %d replays for deletion.", len(rows))
+    logger.info("Scheduling %d replays for deletion.", len(rows), extra=logging_context)
 
     # Asynchronously delete RRWeb recording data.
     #
@@ -91,10 +102,11 @@ def delete_replay_ids(project_id: int, rows: list[tuple[int, str, int]]) -> None
     for retention_days, replay_id, max_segment_id in rows:
         delete_replays_script_async.delay(retention_days, project_id, replay_id, max_segment_id)
 
-    logger.info("%d replays were successfully deleted.", len(rows))
+    logger.info("%d replays were successfully deleted.", len(rows), extra=logging_context)
     logger.info(
         "The customer will no longer have access to the replays passed to this function. Deletion "
-        "of RRWeb data will complete asynchronously."
+        "of RRWeb data will complete asynchronously.",
+        extra=logging_context,
     )
 
 

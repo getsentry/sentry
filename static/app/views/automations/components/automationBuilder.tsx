@@ -2,13 +2,13 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
+import type {SelectValue} from '@sentry/scraps/select';
 
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {PurpleTextButton} from 'sentry/components/workflowEngine/ui/purpleTextButton';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import {
   DataConditionGroupLogicType,
   DataConditionHandlerGroupType,
@@ -36,7 +36,7 @@ export function AutomationBuilder() {
 
   return (
     <AutomationBuilderConflictContext.Provider value={conflictData}>
-      <Flex direction="column" gap="md">
+      <Stack gap="md">
         <Step>
           <StepLead>
             {tct(
@@ -109,7 +109,7 @@ export function AutomationBuilder() {
             {t('If/Then Block')}
           </PurpleTextButton>
         </span>
-      </Flex>
+      </Stack>
     </AutomationBuilderConflictContext.Provider>
   );
 }

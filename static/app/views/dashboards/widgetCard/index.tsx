@@ -45,6 +45,7 @@ import {
   OnDemandExtractionState,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+import {getWidgetConfigError} from 'sentry/views/dashboards/utils/getWidgetConfigError';
 import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
@@ -88,7 +89,6 @@ export const SESSION_DURATION_ALERT = (
 
 type Props = {
   api: Client;
-  isEditingDashboard: boolean;
   selection: PageFilters;
   widget: TWidget;
   widgetLegendState: WidgetLegendSelectionState;
@@ -101,10 +101,8 @@ type Props = {
   forceDescriptionTooltip?: boolean;
   hasEditAccess?: boolean;
   index?: string;
-  isEditingWidget?: boolean;
   isMobile?: boolean;
   isPreview?: boolean;
-  isWidgetInvalid?: boolean;
   legendOptions?: LegendComponentOption;
   minTableColumnWidth?: number;
   onDataFetched?: (results: OnDataFetchedParams) => void;
@@ -112,8 +110,6 @@ type Props = {
   onDuplicate?: () => void;
   onEdit?: () => void;
   onLegendSelectChanged?: () => void;
-  onSetTransactionsDataset?: () => void;
-  onUpdate?: (widget: TWidget | null) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
   onWidgetTableSort?: (sort: Sort) => void;
@@ -121,7 +117,6 @@ type Props = {
   showConfidenceWarning?: boolean;
   showContextMenu?: boolean;
   showLoadingText?: boolean;
-  showStoredAlert?: boolean;
   tableItemLimit?: number;
   widgetInterval?: string;
   windowWidth?: number;
@@ -156,6 +151,8 @@ function WidgetCard(props: Props) {
       ? DisplayType.AREA
       : props.widget.displayType;
 
+  const widgetQueryError = getWidgetConfigError(props.widget);
+
   // Push widget metadata into the LLM context tree for Seer Explorer.
   useLLMContext({
     title: props.widget.title,
@@ -168,6 +165,7 @@ function WidgetCard(props: Props) {
       columns: q.columns,
       orderby: q.orderby,
     })),
+    ...(widgetQueryError && {error: widgetQueryError}),
   });
 
   const onDataFetched = (newData: Data) => {
@@ -196,7 +194,6 @@ function WidgetCard(props: Props) {
     tableItemLimit,
     windowWidth,
     dashboardFilters,
-    isWidgetInvalid,
     onWidgetSplitDecision,
     shouldResize,
     onLegendSelectChanged,
@@ -355,10 +352,6 @@ function WidgetCard(props: Props) {
       )
     : [];
 
-  const widgetQueryError = isWidgetInvalid
-    ? t('Widget query condition is invalid.')
-    : undefined;
-
   const errorBoundaryHandler = () => {
     return (
       <Widget
@@ -417,8 +410,6 @@ function WidgetCard(props: Props) {
               selection={selection}
               dashboardFilters={dashboardFilters}
               onDataFetched={onDataFetched}
-              onWidgetTableSort={onWidgetTableSort}
-              onWidgetTableResizeColumn={onWidgetTableResizeColumn}
               onDataFetchStart={onDataFetchStart}
               tableItemLimit={tableItemLimit}
               widgetInterval={widgetInterval}
@@ -580,7 +571,9 @@ function useConflictingFilterWarning({
     }
 
     const widgetFilterKeys = widget.queries.flatMap(query => {
-      const parseResult = parseQueryBuilderValue(query.conditions, getFieldDefinition);
+      const parseResult = parseQueryBuilderValue(query.conditions, key =>
+        getFieldDefinition(key)
+      );
       if (!parseResult) {
         return [];
       }

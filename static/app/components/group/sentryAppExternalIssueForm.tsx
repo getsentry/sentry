@@ -1,5 +1,3 @@
-import type {ComponentProps} from 'react';
-
 import {useExternalIssues} from 'sentry/components/group/externalIssuesList/useExternalIssues';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -12,16 +10,19 @@ import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {getStacktraceBody} from 'sentry/utils/getStacktraceBody';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import SentryAppExternalForm, {
+import {
+  SentryAppExternalForm,
   type SchemaFormConfig,
 } from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
-import {SentryAppExternalFormNew} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm.new';
 
 type Props = {
   action: 'create' | 'link';
   appName: string;
   config: SchemaFormConfig;
-  event: Event;
+  /**
+   * Adds stack trace content to the default issue description when available.
+   */
+  event: Event | undefined;
   group: Group;
   onSubmitSuccess: (externalIssue: PlatformExternalIssue) => void;
   sentryAppInstallation: SentryAppInstallation;
@@ -43,8 +44,6 @@ export function SentryAppExternalIssueForm({
 
   const stackTrace =
     contentArr && contentArr.length > 0 ? '\n\n```\n' + contentArr[0] + '\n```' : '';
-
-  const useNewForm = organization.features.includes('sentry-app-schema-form-migration');
 
   const handleSubmitSuccess = (response: unknown) => {
     const issue = response as PlatformExternalIssue;
@@ -97,22 +96,6 @@ export function SentryAppExternalIssueForm({
         return '';
     }
   };
-
-  if (useNewForm) {
-    return (
-      <SentryAppExternalFormNew
-        sentryAppInstallationUuid={sentryAppInstallation.uuid}
-        appName={appName}
-        config={config as ComponentProps<typeof SentryAppExternalFormNew>['config']}
-        action={action}
-        element="issue-link"
-        extraFields={{groupId: group.id}}
-        extraRequestBody={{projectId: group.project.id}}
-        onSubmitSuccess={handleSubmitSuccess}
-        getFieldDefault={getFieldDefault}
-      />
-    );
-  }
 
   return (
     <SentryAppExternalForm

@@ -1,8 +1,9 @@
 import {useState} from 'react';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Placeholder} from 'sentry/components/placeholder';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
-import type {Sort} from 'sentry/utils/discover/fields';
+import {type Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -22,12 +23,18 @@ import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+
+export type WidgetPreviewStatus =
+  | {status: 'loading'}
+  | {message: string; status: 'invalid'}
+  | {status: 'ready'};
 
 interface WidgetPreviewProps {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
-  isWidgetInvalid?: boolean;
   onDataFetched?: (results: OnDataFetchedParams) => void;
+  previewStatus?: WidgetPreviewStatus;
   shouldForceDescriptionTooltip?: boolean;
 }
 
@@ -36,8 +43,8 @@ const MIN_TABLE_COLUMN_WIDTH_PX = 125;
 export function WidgetPreview({
   dashboard,
   dashboardFilters,
-  isWidgetInvalid,
   onDataFetched,
+  previewStatus = {status: 'ready'},
   shouldForceDescriptionTooltip,
 }: WidgetPreviewProps) {
   const organization = useOrganization();
@@ -93,13 +100,32 @@ export function WidgetPreview({
     setTableWidths(widths);
   }
 
+  if (previewStatus.status === 'loading') {
+    return (
+      <Widget
+        Title={<Widget.WidgetTitle title={widget.title} />}
+        Visualization={<Placeholder height="100%" />}
+        noVisualizationPadding
+      />
+    );
+  }
+
+  if (previewStatus.status === 'invalid') {
+    return (
+      <Widget
+        Title={<Widget.WidgetTitle title={widget.title} />}
+        Visualization={<Widget.WidgetError error={previewStatus.message} />}
+        noVisualizationPadding
+      />
+    );
+  }
+
   return (
     <WidgetCard
       disableFullscreen
       borderless
       // need to pass in undefined to avoid tooltip not showing up on hover
       forceDescriptionTooltip={shouldForceDescriptionTooltip ? true : undefined}
-      isWidgetInvalid={isWidgetInvalid}
       shouldResize={state.displayType !== DisplayType.TABLE}
       selection={pageFilters.selection}
       widget={
@@ -108,7 +134,6 @@ export function WidgetPreview({
           : widget
       }
       dashboardFilters={dashboardFilters}
-      isEditingDashboard={false}
       widgetLimitReached={false}
       showContextMenu={false}
       widgetInterval={chartInterval}

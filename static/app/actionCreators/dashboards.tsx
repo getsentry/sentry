@@ -8,8 +8,8 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {defined} from 'sentry/utils/defined';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -161,7 +161,7 @@ export async function updateDashboardFavorite(
       {
         method: 'PUT',
         data: {
-          isFavorited,
+          shouldFavorite: isFavorited,
         },
       }
     );

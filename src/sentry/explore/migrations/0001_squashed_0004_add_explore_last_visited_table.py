@@ -27,13 +27,6 @@ class Migration(CheckedMigration):
 
     is_post_deployment = True
 
-    replaces = [
-        ("explore", "0001_add_explore_saved_query_model"),
-        ("explore", "0002_add_starred_explore_query_model"),
-        ("explore", "0003_add_prebuilt_column_to_explore_saved_queries"),
-        ("explore", "0004_add_explore_last_visited_table"),
-    ]
-
     initial = True
 
     checked = False  # This is an initial migration and can take locks

@@ -8,17 +8,17 @@ from datetime import timedelta
 from enum import IntEnum, StrEnum
 from typing import TYPE_CHECKING, Any, ClassVar
 
-import sentry_sdk
 from django.apps import apps
 from django.db.models import Q
 from redis.client import StrictRedis
-from rediscluster import RedisCluster
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry import features
 from sentry.features.base import OrganizationFeature
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
+from sentry.utils.tracing import set_span_data, set_span_tag, start_span
 from sentry.workflow_engine.types import DetectorSettings
 
 if TYPE_CHECKING:
@@ -131,7 +131,9 @@ class GroupTypeRegistry:
     def get_visible(
         self, organization: Organization, actor: Any | None = None
     ) -> list[type[GroupType]]:
-        with sentry_sdk.start_span(op="GroupTypeRegistry.get_visible") as span:
+        with start_span(
+            op="GroupTypeRegistry.get_visible", name="GroupTypeRegistry.get_visible"
+        ) as span:
             released = [gt for gt in self.all() if gt.released]
             feature_to_grouptype: dict[str, type[GroupType]] = {}
             for gt in self.all():
@@ -151,11 +153,11 @@ class GroupTypeRegistry:
                         if gt.type_id not in seen:
                             seen.add(gt.type_id)
                             enabled.append(gt)
-            span.set_tag("organization_id", organization.id)
-            span.set_tag("has_batch_features", batch_features is not None)
-            span.set_tag("released", released)
-            span.set_tag("enabled", enabled)
-            span.set_data("feature_to_grouptype", feature_to_grouptype)
+            set_span_tag(span, "organization_id", organization.id)
+            set_span_tag(span, "has_batch_features", batch_features is not None)
+            set_span_tag(span, "released", released)
+            set_span_tag(span, "enabled", enabled)
+            set_span_data(span, "feature_to_grouptype", feature_to_grouptype)
             return released + enabled
 
     def get_all_group_type_ids(self) -> set[int]:
@@ -715,7 +717,7 @@ class AIDetectedCodeHealthGroupType(GroupType):
     type_id = 3507
     slug = "ai_detected_code_health"
     description = "AI Detected Code Health Issue"
-    category = GroupCategory.CONFIGURATION.value
+    category = GroupCategory.AI_DETECTED.value
     default_priority = PriorityLevel.MEDIUM
     released = False
     enable_auto_resolve = False

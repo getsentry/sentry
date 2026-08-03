@@ -10,6 +10,7 @@ import {
 
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
+import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 
 export type PollingState =
   | 'polling'
@@ -22,24 +23,24 @@ type ChatState = {
 };
 
 type SeerExplorerChatState = {
-  chatStates: Record<number, ChatState>;
-  runId: number | null;
+  chatStates: Record<SeerExplorerRunId, ChatState>;
+  runId: SeerExplorerRunId | null;
 };
 
 type ChatStateAction =
-  | {payload: {polling: PollingState; runId: number}; type: 'set polling'}
-  | {payload: number | null; type: 'set run id'};
+  | {payload: {polling: PollingState; runId: SeerExplorerRunId}; type: 'set polling'}
+  | {payload: SeerExplorerRunId | null; type: 'set run id'};
 
 const RUN_ID_STORAGE_KEY = 'seer-explorer-run-id';
 
-function readRunIdFromStorage(): number | null {
+function readRunIdFromStorage(): SeerExplorerRunId | null {
   const raw = sessionStorageWrapper.getItem(RUN_ID_STORAGE_KEY);
   if (raw === null || raw === 'undefined') {
     return null;
   }
   try {
     const parsed: unknown = JSON.parse(raw);
-    return typeof parsed === 'number' ? parsed : null;
+    return typeof parsed === 'number' || typeof parsed === 'string' ? parsed : null;
   } catch {
     return null;
   }
@@ -121,7 +122,7 @@ function SeerExplorerChatStatePolling({
 }: {
   children: ReactNode;
   dispatch: Dispatch<ChatStateAction>;
-  runId: number | null;
+  runId: SeerExplorerRunId | null;
 }) {
   const {pollingState} = useSeerExplorerPolling({runId});
 

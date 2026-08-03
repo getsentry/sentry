@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {OnboardingWelcomeProductId} from 'sentry/views/onboarding/types';
 
@@ -36,9 +36,7 @@ export function NewWelcomeProductCard({product}: NewWelcomeProductCardProps) {
       </Flex>
       <Flex area="cell2" gap="md">
         <Container>
-          <Text bold size="md" density="comfortable">
-            {title}
-          </Text>
+          <Heading as="h4">{title}</Heading>
         </Container>
         {badge}
       </Flex>

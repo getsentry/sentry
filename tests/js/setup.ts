@@ -11,6 +11,7 @@ import {MotionGlobalConfig} from 'framer-motion';
 import {enableFetchMocks} from 'jest-fetch-mock';
 import {ConfigFixture} from 'sentry-fixture/config';
 
+import {MockResizeObserver, resetResizeObservers} from 'sentry-test/resizeObserver';
 import {resetMockDate} from 'sentry-test/utils';
 
 // eslint-disable-next-line jest/no-mocks-import
@@ -27,7 +28,7 @@ import * as performanceForSentry from 'sentry/utils/performanceForSentry';
 setLocale(DEFAULT_LOCALE_DATA);
 
 /**
- * Setup fetch mocks (needed to define the `Request` global)
+ * Enable fetch mocks and provide fetch primitives missing from jsdom.
  */
 enableFetchMocks();
 
@@ -73,7 +74,6 @@ jest.mock('sentry/api');
 jest
   .spyOn(performanceForSentry, 'VisuallyCompleteWithData')
   .mockImplementation(props => props.children as ReactElement);
-jest.mock('scroll-to-element', () => jest.fn());
 
 jest.mock('@sentry-internal/global-search', () => ({
   SentryGlobalSearch: jest.fn().mockImplementation(() => ({
@@ -86,7 +86,10 @@ jest.mock('@stripe/stripe-js', () => ({
     Promise.resolve({
       createToken: jest.fn(() => Promise.resolve({token: {id: 'test-token'}})),
       confirmCardPayment: jest.fn(() =>
-        Promise.resolve({error: undefined, paymentIntent: {id: 'test-payment'}})
+        Promise.resolve({
+          error: undefined,
+          paymentIntent: {id: 'test-payment'},
+        })
       ),
       confirmCardSetup: jest.fn((secretKey: string) => {
         if (secretKey === 'ERROR') {
@@ -144,7 +147,10 @@ jest.mock('@stripe/react-stripe-js', () => {
     }),
     useStripe: jest.fn(() => ({
       confirmCardPayment: jest.fn(() =>
-        Promise.resolve({error: undefined, paymentIntent: {id: 'test-payment'}})
+        Promise.resolve({
+          error: undefined,
+          paymentIntent: {id: 'test-payment'},
+        })
       ),
       confirmCardSetup: jest.fn((secretKey: string) => {
         if (secretKey === 'ERROR') {
@@ -200,6 +206,7 @@ jest.mock('sentry/utils/testableWindowLocation', () => ({
 
 // Close any open modals before each test
 beforeEach(closeModal);
+afterEach(resetResizeObservers);
 
 jest.mock('echarts-for-react/lib/core', function echartsMockFactory() {
   // We need to do this because `jest.mock` gets hoisted before imports and `React` is not
@@ -257,6 +264,10 @@ jest.mock('@sentry/react', function sentryReact() {
       setStatus: jest.fn(),
       startChild: jest.fn().mockReturnValue({
         end: jest.fn(),
+      }),
+      spanContext: jest.fn().mockReturnValue({
+        spanId: 'test-span-id',
+        traceId: 'test-trace-id',
       }),
     }),
     logger: {
@@ -364,11 +375,7 @@ window.IntersectionObserver = class IntersectionObserver {
   disconnect() {}
 };
 
-window.ResizeObserver = class ResizeObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-};
+window.ResizeObserver = MockResizeObserver;
 
 // Mock the crypto.subtle API for Gravatar
 Object.defineProperty(global.self, 'crypto', {

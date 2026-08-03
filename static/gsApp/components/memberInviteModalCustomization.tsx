@@ -6,12 +6,12 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconBusiness, IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 
 import TrialStarter from 'getsentry/components/trialStarter';
 import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
 import type {Subscription} from 'getsentry/types';
-import {getTrialLength, hasJustStartedPlanTrial} from 'getsentry/utils/billing';
+import {getTrialLength, hasJustStartedPlanTrial, isTrial} from 'getsentry/utils/billing';
 
 import {withSubscription} from './withSubscription';
 
@@ -35,7 +35,7 @@ function MemberInviteModalCustomization({
   children,
   subscription,
 }: MemberInviteProps) {
-  const {totalMembers, canTrial, isTrial, totalLicenses} = subscription;
+  const {totalMembers, canTrial, totalLicenses} = subscription;
   const usedSeats = totalMembers ?? 0;
   const isOverMemberLimit = totalLicenses > 0 && usedSeats >= totalLicenses;
 
@@ -68,7 +68,7 @@ function MemberInviteModalCustomization({
     }
 
     const allowedToStartTrial = organization.access.includes('org:billing');
-    const isExpired = !canTrial && !isTrial;
+    const isExpired = !canTrial && !isTrial(subscription);
     const trialLength = getTrialLength(organization);
 
     const trialStartText = t('Start your %s day Business Plan trial today!', trialLength);

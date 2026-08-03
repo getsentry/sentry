@@ -50,7 +50,6 @@ export function DetailedProjectFixture(
   return {
     ...ProjectFixture(params),
     organization: {id: '3', slug: 'org-slug'},
-    plugins: [],
     processingIssues: 0,
     allowedDomains: ['*'],
     dataScrubber: false,
@@ -59,6 +58,7 @@ export function DetailedProjectFixture(
     digestsMaxDelay: 0,
     digestsMinDelay: 0,
     dynamicSamplingBiases: null,
+    enableAutoReleaseCreation: true,
     fingerprintingRules: '',
     groupingConfig: '',
     groupingEnhancements: '',

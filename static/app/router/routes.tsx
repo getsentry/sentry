@@ -717,20 +717,6 @@ function buildRoutes(): RouteObject[] {
             () => import('sentry/views/settings/projectSecurityHeaders/csp')
           ),
         },
-        {
-          path: 'expect-ct/',
-          name: t('Certificate Transparency'),
-          component: make(
-            () => import('sentry/views/settings/projectSecurityHeaders/expectCt')
-          ),
-        },
-        {
-          path: 'hpkp/',
-          name: t('HPKP'),
-          component: make(
-            () => import('sentry/views/settings/projectSecurityHeaders/hpkp')
-          ),
-        },
       ],
     },
     {
@@ -738,23 +724,11 @@ function buildRoutes(): RouteObject[] {
       redirectTo: '/settings/:orgId/projects/:projectId/security-headers/csp/',
     },
     {
-      path: 'plugins/',
-      name: t('Legacy Integrations'),
-      children: [
-        {
-          index: true,
-          component: make(() => import('sentry/views/settings/projectPlugins')),
-        },
-        {
-          path: ':pluginId/',
-          name: t('Integration Details'),
-          component: make(() => import('sentry/views/settings/projectPlugins/details')),
-        },
-      ],
-    },
-    {
-      path: 'issue-tracking/',
-      redirectTo: '/settings/:orgId/:projectId/plugins/',
+      path: 'legacy-webhooks/',
+      name: t('Webhooks'),
+      component: make(
+        () => import('sentry/views/settings/projectPlugins/legacyWebhookDetails')
+      ),
     },
   ];
   const projectSettingsRoutes: SentryRouteObject = {
@@ -960,20 +934,6 @@ function buildRoutes(): RouteObject[] {
       redirectTo: 'integrations/',
     },
     {
-      path: 'plugins/',
-      name: t('Integrations'),
-      children: [
-        {
-          path: ':integrationSlug/',
-          name: t('Integration Details'),
-          component: make(
-            () =>
-              import('sentry/views/settings/organizationIntegrations/pluginDetailedView')
-          ),
-        },
-      ],
-    },
-    {
       path: 'sentry-apps/',
       redirectTo: 'integrations/',
     },
@@ -1018,6 +978,14 @@ function buildRoutes(): RouteObject[] {
           component: make(
             () =>
               import('sentry/views/settings/organizationIntegrations/integrationListDirectory')
+          ),
+        },
+        {
+          path: 'legacy-webhooks/',
+          name: t('Webhooks'),
+          component: make(
+            () =>
+              import('sentry/views/settings/organizationIntegrations/webhookDetailedView')
           ),
         },
         {
@@ -1692,7 +1660,7 @@ function buildRoutes(): RouteObject[] {
     ],
   };
 
-  const discoverChildren: SentryRouteObject[] = [
+  const discoverErrorsChildren: SentryRouteObject[] = [
     {
       index: true,
       redirectTo: 'queries/',
@@ -1715,11 +1683,11 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/discover/eventDetails')),
     },
   ];
-  const discoverRoutes: SentryRouteObject = {
+  const discoverErrorsRoutes: SentryRouteObject = {
     path: '/discover/',
     component: make(() => import('sentry/views/discover')),
     withOrgPath: true,
-    children: discoverChildren,
+    children: discoverErrorsChildren,
   };
 
   const errorsChildren: SentryRouteObject[] = [
@@ -1729,7 +1697,7 @@ function buildRoutes(): RouteObject[] {
     },
   ];
   const errorsRoutes: SentryRouteObject = {
-    path: '/errors/',
+    path: '/errors-v2/',
     component: make(() => import('sentry/views/explore/errors')),
     withOrgPath: true,
     children: errorsChildren,
@@ -1759,7 +1727,9 @@ function buildRoutes(): RouteObject[] {
       moduleBaseURL
         ? {
             path: `${moduleBaseURL}/*`,
-            redirectTo: `/${DOMAIN_VIEW_BASE_URL}/${getModuleView(moduleUrlToModule[moduleBaseURL]!)}${moduleBaseURL}/:splat`,
+            redirectTo: `/${DOMAIN_VIEW_BASE_URL}/${getModuleView(
+              moduleUrlToModule[moduleBaseURL]!
+            )}${moduleBaseURL}/:splat`,
           }
         : null
     )
@@ -1788,13 +1758,6 @@ function buildRoutes(): RouteObject[] {
             component: make(
               () =>
                 import('sentry/views/performance/transactionSummary/transactionReplays')
-            ),
-          },
-          {
-            path: 'tags/',
-            handle: {tab: TransactionSummaryTab.TAGS},
-            component: make(
-              () => import('sentry/views/performance/transactionSummary/transactionTags')
             ),
           },
           {
@@ -2284,9 +2247,14 @@ function buildRoutes(): RouteObject[] {
       children: replayChildren,
     },
     {
+      path: 'errors/',
+      component: make(() => import('sentry/views/discover')),
+      children: discoverErrorsChildren,
+    },
+    {
       path: 'discover/',
       component: make(() => import('sentry/views/discover')),
-      children: discoverChildren,
+      children: discoverErrorsChildren,
     },
     {
       path: 'releases/',
@@ -2322,7 +2290,7 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
-      path: 'errors/',
+      path: 'errors-v2/',
       component: make(() => import('sentry/views/explore/errors')),
       children: errorsChildren,
     },
@@ -2330,14 +2298,22 @@ function buildRoutes(): RouteObject[] {
       path: 'saved-queries/',
       component: make(() => import('sentry/views/explore/savedQueries')),
     },
-    // These two routes have to be placed at the end of the exploreChildren
-    // array to avoid being overridden by the other routes.
+    // Unknown /explore/ subpaths redirect to the default explore view, rather
+    // than falling through to the `/:orgId/:projectId/` legacy redirect and
+    // rendering "The project you were looking for was not found".
+    //
+    // Real routes outrank these on specificity, so they win regardless of
+    // where they sit in this array. Keep these last anyway: order is the
+    // tiebreaker if a sibling ever scores the same.
     {
       path: ':catchAll/',
       component: make(() => import('sentry/views/explore/indexRedirect')),
     },
     {
-      path: ':catchAll/*',
+      // Same, for deeper paths. Not `:catchAll/*` — our SDK matches relative
+      // route paths against the full pathname, so that pattern would rename
+      // every transaction in the app to `/:catchAll/...`.
+      path: '*',
       component: make(() => import('sentry/views/explore/indexRedirect')),
     },
   ];
@@ -2380,6 +2356,12 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'snapshots/:snapshotId/',
       component: make(() => import('sentry/views/preprod/snapshots/snapshots')),
+    },
+    {
+      path: 'snapshots/latest-base/:projectId/:appId/',
+      component: make(
+        () => import('sentry/views/preprod/snapshots/latestBaseSnapshotResolver')
+      ),
     },
     // TODO(EME-735): Remove old routes after backend deployment
     {
@@ -2515,6 +2497,10 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/issueList/pages/sentryConfiguration')),
     },
     {
+      path: 'inbox/',
+      component: make(() => import('sentry/views/issueList/pages/inbox')),
+    },
+    {
       path: 'views/',
       component: make(
         () => import('sentry/views/issueList/issueViews/issueViewsList/issueViewsList')
@@ -2527,6 +2513,18 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'autofix/recent/',
       component: make(() => import('sentry/views/issueList/pages/autofix/recentlyRun')),
+    },
+    {
+      path: 'autofix/runs/',
+      component: make(() => import('sentry/views/seerRunsDemo')),
+    },
+    {
+      path: 'autofix/issues/',
+      component: make(() => import('sentry/views/autofixIssuesDemo')),
+    },
+    {
+      path: 'autofix/overview/',
+      component: make(() => import('sentry/views/seerWorkflows/overview')),
     },
     {
       path: 'views/:viewId/',
@@ -2547,11 +2545,15 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: `:groupId/${TabPaths[Tab.EVENTS]}:eventId/tags/`,
-      redirectTo: `/issues/:groupId/${TabPaths[Tab.EVENTS]}:eventId/${TabPaths[Tab.DISTRIBUTIONS]}`,
+      redirectTo: `/issues/:groupId/${TabPaths[Tab.EVENTS]}:eventId/${
+        TabPaths[Tab.DISTRIBUTIONS]
+      }`,
     },
     {
       path: `:groupId/${TabPaths[Tab.EVENTS]}:eventId/tags/:tagKey/`,
-      redirectTo: `/issues/:groupId/${TabPaths[Tab.EVENTS]}:eventId/${TabPaths[Tab.DISTRIBUTIONS]}:tagKey/`,
+      redirectTo: `/issues/:groupId/${TabPaths[Tab.EVENTS]}:eventId/${
+        TabPaths[Tab.DISTRIBUTIONS]
+      }:tagKey/`,
     },
     {
       path: ':groupId/',
@@ -2605,6 +2607,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'users/',
+      name: t('Users'),
       children: [
         {
           index: true,
@@ -2612,6 +2615,7 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: ':id',
+          name: t('Details'),
           component: make(() => import('sentry/views/admin/adminUserEdit')),
         },
       ],
@@ -2760,6 +2764,10 @@ function buildRoutes(): RouteObject[] {
         )
       ),
     },
+    {
+      path: 'events/:eventId/',
+      component: errorHandler(ProjectEventRedirect),
+    },
   ];
   const legacyOrgRedirects: SentryRouteObject = {
     path: '/:orgId/:projectId/',
@@ -2781,7 +2789,7 @@ function buildRoutes(): RouteObject[] {
       releasesRoutes,
       snapshotsRedirect,
       statsRoutes,
-      discoverRoutes,
+      discoverErrorsRoutes,
       errorsRoutes,
       performanceRoutes,
       domainViewRoutes,
@@ -2839,10 +2847,6 @@ function buildRoutes(): RouteObject[] {
             redirectTo: '/settings/projects/:orgId/projects/:projectId/tags/',
           },
           {
-            path: 'issue-tracking/',
-            redirectTo: '/settings/:orgId/projects/:projectId/issue-tracking/',
-          },
-          {
             path: 'release-tracking/',
             redirectTo: '/settings/:orgId/projects/:projectId/release-tracking/',
           },
@@ -2881,23 +2885,6 @@ function buildRoutes(): RouteObject[] {
           {
             path: 'security-headers/csp/',
             redirectTo: '/settings/:orgId/projects/:projectId/security-headers/csp/',
-          },
-          {
-            path: 'security-headers/expect-ct/',
-            redirectTo:
-              '/settings/:orgId/projects/:projectId/security-headers/expect-ct/',
-          },
-          {
-            path: 'security-headers/hpkp/',
-            redirectTo: '/settings/:orgId/projects/:projectId/security-headers/hpkp/',
-          },
-          {
-            path: 'plugins/',
-            redirectTo: '/settings/:orgId/projects/:projectId/plugins/',
-          },
-          {
-            path: 'plugins/:pluginId/',
-            redirectTo: '/settings/:orgId/projects/:projectId/plugins/:pluginId/',
           },
           {
             path: 'integrations/:providerKey/',
@@ -2940,10 +2927,6 @@ function buildRoutes(): RouteObject[] {
       {
         path: ':projectId/issues/:groupId/merged/',
         redirectTo: '/organizations/:orgId/issues/:groupId/merged/',
-      },
-      {
-        path: ':projectId/events/:eventId/',
-        component: errorHandler(ProjectEventRedirect),
       },
     ],
   };

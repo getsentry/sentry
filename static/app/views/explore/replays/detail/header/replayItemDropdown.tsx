@@ -9,14 +9,13 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {ExternalLink} from 'sentry/components/links/externalLink';
 import {IconBug, IconDelete, IconDownload, IconEllipsis, IconUpload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {downloadObjectAsJson} from 'sentry/utils/downloadObjectAsJson';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useDeleteReplay} from 'sentry/utils/replays/hooks/useDeleteReplay';
 import {useShareReplayAtTimestamp} from 'sentry/utils/replays/hooks/useShareReplayAtTimestamp';
 import type {ReplayReader} from 'sentry/utils/replays/replayReader';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
@@ -29,7 +28,6 @@ interface Props {
 }
 
 export function ReplayItemDropdown({projectSlug, replay, replayRecord}: Props) {
-  const navigate = useNavigate();
   const organization = useOrganization();
   const isEmployee = useIsSentryEmployee();
   const isSuperUser = isActiveSuperuser();
@@ -140,7 +138,7 @@ export function ReplayItemDropdown({projectSlug, replay, replayRecord}: Props) {
             </Flex>
           ),
           onAction: () =>
-            navigate(
+            window.location.assign(
               `/api/0/projects/${organization.slug}/${projectSlug}/replays/${replayId}/videos/0/`
             ),
           disabled: !canDownload,

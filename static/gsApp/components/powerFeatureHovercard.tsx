@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconLightning} from 'sentry/icons';
@@ -13,7 +13,6 @@ import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import PlanFeature from 'getsentry/components/features/planFeature';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import {PlanTier} from 'getsentry/types';
 import {displayPlanName} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
@@ -87,16 +86,12 @@ function PowerFeatureHovercard({
       organization={organization}
       subscription={subscription}
     >
-      {({plan, tierChange}) => {
-        let planName = displayPlanName(plan);
-
-        if (tierChange === PlanTier.AM1) {
-          planName = `Performance ${planName}`;
-        }
+      {({plan}) => {
+        const planName = displayPlanName(plan);
 
         return (
           <LearnMoreTextBody data-test-id="power-hovercard">
-            <Flex direction="column" gap="md">
+            <Stack gap="md">
               <div>
                 {partial
                   ? t('Better With %s Plan', planName)
@@ -111,7 +106,7 @@ function PowerFeatureHovercard({
               >
                 {t('Learn More')}
               </Button>
-            </Flex>
+            </Stack>
           </LearnMoreTextBody>
         );
       }}

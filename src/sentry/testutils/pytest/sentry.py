@@ -23,7 +23,7 @@ from sentry.testutils.cell import TestEnvCellDirectory
 from sentry.testutils.pytest import xdist
 from sentry.testutils.silo import monkey_patch_single_process_silo_mode_state
 from sentry.types import cell
-from sentry.types.cell import Cell, RegionCategory
+from sentry.types.cell import Cell
 from sentry.utils.warnings import UnsupportedBackend
 
 K = TypeVar("K")
@@ -82,11 +82,10 @@ def _configure_test_env_cells() -> None:
         cell_name,
         cell_snowflake_id,
         settings.SENTRY_OPTIONS["system.url-prefix"],
-        RegionCategory.MULTI_TENANT,
     )
 
     settings.SENTRY_LOCAL_CELL = cell_name
-    settings.SENTRY_MONOLITH_REGION = cell_name
+    settings.SENTRY_FALLBACK_CELL = cell_name
 
     # This not only populates the environment with the default cell, but also
     # ensures that a TestEnvCellDirectory instance is injected into global state.
@@ -273,15 +272,20 @@ def pytest_configure(config: pytest.Config) -> None:
     if not hasattr(settings, "SENTRY_OPTIONS"):
         settings.SENTRY_OPTIONS = {}
 
+    # These were migrated from options to Django settings. Set them directly so
+    # consumers (which now read the settings) see the test values; the
+    # option->setting bridge in bootstrap_options would otherwise let a deploy
+    # default (e.g. getsentry's dev.py) win over an option set here.
+    settings.SENTRY_BASE_HOSTNAME = "testserver"
+    settings.SENTRY_ORGANIZATION_BASE_HOSTNAME = "{slug}.testserver"
+    settings.SENTRY_ORGANIZATION_URL_TEMPLATE = "http://{hostname}"
+    settings.SENTRY_REGION_API_URL_TEMPLATE = "http://{region}.testserver"
+
     settings.SENTRY_OPTIONS.update(
         {
             "redis.clusters": {"default": {"hosts": {0: {"db": xdist.get_redis_db()}}}},
             "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
             "system.url-prefix": "http://testserver",
-            "system.base-hostname": "testserver",
-            "system.organization-base-hostname": "{slug}.testserver",
-            "system.organization-url-template": "http://{hostname}",
-            "system.region-api-url-template": "http://{region}.testserver",
             "system.secret-key": "a" * 52,
             "slack.client-id": "slack-client-id",
             "slack.client-secret": "slack-client-secret",
@@ -378,11 +382,6 @@ def pytest_configure(config: pytest.Config) -> None:
 
 
 def register_extensions() -> None:
-    from sentry.plugins.base import plugins
-    from sentry.plugins.utils import TestIssuePlugin2
-
-    plugins.register(TestIssuePlugin2)
-
     from sentry.integrations.example import (
         AlertRuleIntegrationProvider,
         AliasedIntegrationProvider,
@@ -400,9 +399,7 @@ def register_extensions() -> None:
     integrations.register(AlertRuleIntegrationProvider)
 
     from sentry.plugins.base import bindings
-    from sentry.plugins.providers.dummy import DummyRepositoryProvider
 
-    bindings.add("repository.provider", DummyRepositoryProvider, id="dummy")
     bindings.add(
         "integration-repository.provider", ExampleRepositoryProvider, id="integrations:example"
     )
@@ -417,7 +414,7 @@ def pytest_sessionstart(session: pytest.Session) -> None:
     # Prevent tests from producing real Kafka messages via the taskworker pipeline.
     # Tests use TaskRunner (TASKWORKER_ALWAYS_EAGER=True) or BurstTaskRunner
     # (_signal_send hook) which both operate before send_task in the call chain.
-    TaskNamespace.send_task = lambda self, *args, **kwargs: None  # type: ignore[method-assign]
+    TaskNamespace.send_task = lambda self, *args, **kwargs: None  # type: ignore[assignment,method-assign]
 
 
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:

@@ -1,4 +1,4 @@
-import type {ResponseMeta} from 'sentry/api';
+import type {ResponseMeta} from 'sentry/types/api';
 import type {Config} from 'sentry/types/system';
 import {extractSlug} from 'sentry/utils/extractSlug';
 import {shouldPreloadData} from 'sentry/utils/shouldPreloadData';
@@ -67,11 +67,9 @@ async function promiseRequest(url: string) {
       };
       return [json, response.statusText, responseMeta];
     }
-    // eslint-disable-next-line @typescript-eslint/only-throw-error
-    throw [response.status, response.statusText];
-  } catch (error: any) {
-    // eslint-disable-next-line @typescript-eslint/only-throw-error
-    throw [error.status, error.statusText];
+    return null;
+  } catch {
+    return null;
   }
 }
 

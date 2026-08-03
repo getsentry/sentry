@@ -1,10 +1,9 @@
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -53,7 +52,6 @@ function DetectorDetailsLoadingStates({
 }
 
 export default function DetectorDetails() {
-  useWorkflowEngineFeatureGate({redirect: true});
   const params = useParams<{detectorId: string}>();
   const {projects, fetching: isFetchingProjects} = useProjects();
 

@@ -1,33 +1,18 @@
-import {createContext, useContext, useMemo} from 'react';
+import {createContext, useContext, useEffect, useMemo, useRef} from 'react';
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {Integration, Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
-import type {AlertRuleOptions} from 'sentry/views/projectInstall/issueAlertOptions';
-
-/**
- * Persisted form state from the SCM project details step. Stored so the
- * form can be restored when the user navigates back from setup-docs.
- * Cleared by the platform features step when the platform changes, so
- * stale inputs don't carry across platform selections.
- */
-export interface ProjectDetailsFormState {
-  alertRuleConfig?: AlertRuleOptions;
-  projectName?: string;
-  teamSlug?: string;
-}
 
 type OnboardingContextProps = {
   clearDerivedState: () => void;
   setCreatedProjectSlug: (slug?: string) => void;
-  setProjectDetailsForm: (form?: ProjectDetailsFormState) => void;
   setSelectedFeatures: (features?: ProductSolution[]) => void;
   setSelectedIntegration: (integration?: Integration) => void;
   setSelectedPlatform: (selectedSDK?: OnboardingSelectedSDK) => void;
   setSelectedRepository: (repo?: Repository) => void;
   createdProjectSlug?: string;
-  projectDetailsForm?: ProjectDetailsFormState;
   selectedFeatures?: ProductSolution[];
   selectedIntegration?: Integration;
   selectedPlatform?: OnboardingSelectedSDK;
@@ -36,7 +21,6 @@ type OnboardingContextProps = {
 
 type OnboardingSessionState = {
   createdProjectSlug?: string;
-  projectDetailsForm?: ProjectDetailsFormState;
   selectedFeatures?: ProductSolution[];
   selectedIntegration?: Integration;
   selectedPlatform?: OnboardingSelectedSDK;
@@ -57,8 +41,6 @@ const OnboardingContext = createContext<OnboardingContextProps>({
   setSelectedFeatures: () => {},
   createdProjectSlug: undefined,
   setCreatedProjectSlug: () => {},
-  projectDetailsForm: undefined,
-  setProjectDetailsForm: () => {},
   clearDerivedState: () => {},
 });
 
@@ -76,6 +58,28 @@ export function OnboardingContextProvider({children, initialValue}: ProviderProp
     'onboarding',
     initialValue
   );
+
+  // An optimistic repo (empty id, see useScmRepoSelection) persisted by a
+  // refresh mid-resolution can never fetch detection and would hold the
+  // platform step in a permanent spinner. Drop it once on load, also clearing
+  // the repo-derived state so the platform step doesn't show a platform with no
+  // connected repo (mirrors clearDerivedState on a repo change). Live in-session
+  // optimistic selections arrive after mount and keep their loading state.
+  const hadStaleRepoOnLoad = useRef(
+    !!onboarding?.selectedRepository && !onboarding.selectedRepository.id
+  );
+  useEffect(() => {
+    if (hadStaleRepoOnLoad.current) {
+      hadStaleRepoOnLoad.current = false;
+      setOnboarding(prev => ({
+        ...prev,
+        selectedRepository: undefined,
+        selectedPlatform: undefined,
+        selectedFeatures: undefined,
+        createdProjectSlug: undefined,
+      }));
+    }
+  }, [setOnboarding]);
 
   const contextValue = useMemo(
     () => ({
@@ -103,10 +107,6 @@ export function OnboardingContextProvider({children, initialValue}: ProviderProp
       setCreatedProjectSlug: (createdProjectSlug?: string) => {
         setOnboarding(prev => ({...prev, createdProjectSlug}));
       },
-      projectDetailsForm: onboarding?.projectDetailsForm,
-      setProjectDetailsForm: (projectDetailsForm?: ProjectDetailsFormState) => {
-        setOnboarding(prev => ({...prev, projectDetailsForm}));
-      },
       // Clear state derived from the selected repository (platform, features,
       // created project) without wiping the entire session. Use this when the
       // repo changes so downstream steps start fresh.
@@ -116,7 +116,6 @@ export function OnboardingContextProvider({children, initialValue}: ProviderProp
           selectedPlatform: undefined,
           selectedFeatures: undefined,
           createdProjectSlug: undefined,
-          projectDetailsForm: undefined,
         }));
       },
     }),

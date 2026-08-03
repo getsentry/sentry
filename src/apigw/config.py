@@ -5,6 +5,13 @@ from emmett55 import App
 
 # NOTE: this is ugly, but necessary to use django settings and models
 def _patch_sentry_init() -> None:
+    from django.apps import apps
+
+    # Django was already initialized by the host process (e.g. pytest);
+    # don't re-bootstrap sentry on top of it.
+    if apps.ready:
+        return
+
     def _initializer() -> None:
         import sentry.runner.settings as _ss
 
@@ -34,6 +41,8 @@ def _patch_sentry_init() -> None:
 def load_config(app: App) -> None:
     _patch_sentry_init()
 
+    app.config.handle_static = False
+
     app.config.internal_hostname = os.environ.get("APIGW_INTERNAL_HOSTNAME", "localhost")
     app.config.internal_port = os.environ.get("APIGW_INTERNAL_PORT", "8000")
     app.config.internal_fqdn = f"{app.config.internal_hostname}:{app.config.internal_port}"
@@ -41,6 +50,7 @@ def load_config(app: App) -> None:
     app.config.AsyncPG.pool_size = int(os.environ.get("APIGW_DB_POOL_SIZE", 4))
 
     app.config.endpoints.control = os.environ.get("APIGW_ENDPOINT_CONTROL", "http://localhost:8002")
+    app.config.endpoints.use_cell_gw = bool(os.environ.get("APIGW_USE_CELL_GW_ENDPOINTS"))
 
     app.config.proxy.timeout = None
     app.config.proxy.max_concurrency = int(os.environ.get("APIGW_PROXY_MAX_CONCURRENCY", 512))
@@ -79,4 +89,4 @@ def load_config(app: App) -> None:
 
     from django.conf import settings
 
-    app.config.cells.default = settings.SENTRY_MONOLITH_REGION
+    app.config.cells.default = settings.SENTRY_FALLBACK_CELL

@@ -1,3 +1,6 @@
+from typing import Literal
+
+import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -33,6 +36,8 @@ class EventOwnersEndpoint(ProjectEndpoint):
         if event is None:
             return Response({"detail": "Event not found"}, status=404)
 
+        sentry_sdk.set_attribute("event.type", event.get_event_type())
+
         owners, rules = ProjectOwnership.get_owners(project.id, event.data)
 
         serialized_owners = serialize(Actor.resolve_many(owners), request.user, ActorSerializer())
@@ -41,7 +46,8 @@ class EventOwnersEndpoint(ProjectEndpoint):
         ordered_owners = []
         owner_by_id = {(o["id"], o["type"]): o for o in serialized_owners}
         for o in owners:
-            key = (str(o.id), "team" if o.is_team else "user")
+            owner_type: Literal["user", "team"] = "team" if o.is_team else "user"
+            key = (str(o.id), owner_type)
             if owner_by_id.get(key):
                 ordered_owners.append(owner_by_id[key])
 

@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Grid, type GridProps, Container} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 
 import {
@@ -15,8 +15,8 @@ import {
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSetQueryParamsSavedQuery} from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -26,7 +26,7 @@ export type SaveQueryModalProps = {
   saveQuery: (name: string, starred?: boolean) => Promise<SavedQuery>;
   traceItemDataset: TraceItemDataset;
   name?: string;
-  source?: 'toolbar' | 'table';
+  source?: 'toolbar' | 'table' | 'conversations';
 };
 
 type Props = ModalRenderProps & SaveQueryModalProps;
@@ -59,7 +59,14 @@ function SaveQueryModal({
       }
       addSuccessMessage(t('Query saved successfully'));
       if (defined(source)) {
-        if (traceItemDataset === TraceItemDataset.LOGS) {
+        if (source === 'conversations') {
+          trackAnalytics('conversations.save_query_modal', {
+            action: 'submit',
+            save_type: initialName === undefined ? 'save_new_query' : 'rename_query',
+            ui_source: 'table',
+            organization,
+          });
+        } else if (traceItemDataset === TraceItemDataset.LOGS) {
           trackAnalytics('logs.save_query_modal', {
             action: 'submit',
             save_type: initialName === undefined ? 'save_new_query' : 'rename_query',
@@ -123,14 +130,14 @@ function SaveQueryModal({
       </Body>
 
       <Footer>
-        <StyledButtonBar gap="lg">
+        <Flex gap="lg" justify="end">
           <Button onClick={closeModal} disabled={isSaving}>
             {t('Cancel')}
           </Button>
           <Button onClick={onSave} disabled={!name || isSaving} variant="primary">
             {defined(initialName) ? t('Save Changes') : t('Create a New Query')}
           </Button>
-        </StyledButtonBar>
+        </Flex>
       </Footer>
     </Fragment>
   );
@@ -146,20 +153,6 @@ const StarredWrapper = styled('div')`
 
   > h6 {
     margin-bottom: 0;
-  }
-`;
-
-const StyledButtonBar = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="md" {...props} />
-))`
-  @media (max-width: ${props => props.theme.breakpoints.sm}) {
-    grid-template-rows: repeat(2, 1fr);
-    gap: ${p => p.theme.space.lg};
-    width: 100%;
-
-    > button {
-      width: 100%;
-    }
   }
 `;
 

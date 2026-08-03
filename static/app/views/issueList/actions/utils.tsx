@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import type {QueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
+import type {ResponsiveKey} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
@@ -14,8 +15,8 @@ import type {Client} from 'sentry/api';
 import {t, tct, tn} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {PageFilters} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {defined} from 'sentry/utils/defined';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
@@ -169,18 +170,18 @@ export function getLabel(numIssues: number, allInQuerySelected: boolean) {
   };
 }
 
-// A mapping of which container sizes will trigger the column to disappear
-// e.g. 'Trend': screen.small => 'Trend' column will disappear on screen.small widths
+// The container breakpoint at which each issue-list column becomes visible.
 export const COLUMN_BREAKPOINTS = {
   ISSUE: undefined, // Issue column is always visible
-  TREND: '800px',
-  LAST_SEEN: '500px',
-  FIRST_SEEN: '900px',
-  EVENTS: '700px',
-  USERS: '900px',
-  PRIORITY: '1100px',
-  ASSIGNEE: '500px',
-};
+  TREND: 'xl',
+  LAST_SEEN: 'sm',
+  FIRST_SEEN: '2xl',
+  EVENTS: 'lg',
+  USERS: '2xl',
+  PRIORITY: '4xl',
+  PROGRESS: '2xs',
+  ASSIGNEE: 'sm',
+} as const satisfies Record<string, ResponsiveKey | undefined>;
 
 function getSelectedProjectIds({
   selectedGroupIds,

@@ -13,8 +13,10 @@ type Props = ModalRenderProps & {
   headerContent: React.ReactNode;
   providers: IntegrationProvider[];
   bodyContent?: React.ReactNode;
-  modalParams?: Record<string, string>;
   onAddIntegration?: () => void;
+  // `analyticsView` identifies the install flow; `variant` identifies the SCM or
+  // legacy project-creation experience.
+  variant?: 'scm' | 'legacy';
 };
 
 export function MessagingIntegrationModal({
@@ -24,9 +26,9 @@ export function MessagingIntegrationModal({
   headerContent,
   bodyContent,
   providers,
-  modalParams,
   onAddIntegration,
   analyticsView,
+  variant,
 }: Props) {
   return (
     <Fragment>
@@ -47,9 +49,9 @@ export function MessagingIntegrationModal({
                   analyticsParams: {
                     already_installed: false,
                     view: analyticsView,
+                    ...(variant ? {variant} : {}),
                   },
                   onAddIntegration,
-                  ...(modalParams && {modalParams}),
                 }}
               >
                 <AddIntegrationRow onClick={closeModal} />

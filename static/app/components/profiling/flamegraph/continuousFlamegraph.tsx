@@ -22,7 +22,7 @@ import {FlamegraphViewSelectMenu} from 'sentry/components/profiling/flamegraph/f
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
 import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/flamegraph/flamegraphZoomViewMinimap';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   CanvasPoolManager,
   useCanvasScheduler,
@@ -380,6 +380,10 @@ export function ContinuousFlamegraph(): ReactElement {
     const span = Sentry.withScope(scope => {
       scope.setTag('sorting', sorting.split(' ').join('_'));
       scope.setTag('view', view.split(' ').join('_'));
+      scope.setAttributes({
+        sorting: sorting.split(' ').join('_'),
+        view: view.split(' ').join('_'),
+      });
 
       return Sentry.startInactiveSpan({
         op: 'import',

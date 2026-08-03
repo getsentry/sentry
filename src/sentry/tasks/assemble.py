@@ -40,11 +40,12 @@ from sentry.taskworker.namespaces import attachments_tasks
 from sentry.utils import metrics, redis
 from sentry.utils.db import atomic_transaction
 from sentry.utils.sdk import bind_organization_context
+from sentry.utils.tracing import trace
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from rediscluster import RedisCluster
+    from sentry_redis_tools.clients import RedisCluster
 
 
 class ChunkFileState:
@@ -79,7 +80,7 @@ class AssembleResult(NamedTuple):
         self.bundle_temp_file.close()
 
 
-@sentry_sdk.tracing.trace
+@trace
 def assemble_file(task, org_or_project, name, checksum, chunks, file_type) -> AssembleResult | None:
     """
     Verifies and assembles a file model from chunks.
@@ -185,10 +186,10 @@ def _get_cache_key(task, scope, checksum):
 
 def _get_redis_cluster_for_assemble() -> RedisCluster:
     cluster_key = settings.SENTRY_ASSEMBLE_CLUSTER
-    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
+    return redis.redis_clusters.get(cluster_key)
 
 
-@sentry_sdk.tracing.trace
+@trace
 def get_assemble_status(task, scope, checksum):
     """
     Checks the current status of an assembling task.
@@ -208,7 +209,7 @@ def get_assemble_status(task, scope, checksum):
     return tuple(orjson.loads(rv))
 
 
-@sentry_sdk.tracing.trace
+@trace
 def set_assemble_status(task, scope, checksum, state, detail=None):
     """
     Updates the status of an assembling task. It is cached for 10 minutes.
@@ -218,7 +219,7 @@ def set_assemble_status(task, scope, checksum, state, detail=None):
     redis_client.set(name=cache_key, value=orjson.dumps([state, detail]), ex=600)
 
 
-@sentry_sdk.tracing.trace
+@trace
 def delete_assemble_status(task, scope, checksum):
     """
     Deletes the status of an assembling task.
@@ -242,7 +243,8 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     from sentry.models.debugfile import BadDif, create_dif_from_file
     from sentry.models.project import Project
 
-    sentry_sdk.get_isolation_scope().set_tag("project", project_id)
+    sentry_sdk.set_tag("project", project_id)
+    sentry_sdk.set_attribute("project", project_id)
 
     delete_file = False
 
@@ -277,7 +279,10 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
                 )
                 return
 
-            delete_file = False
+            # We can delete the temporary file when either the new DIF is objectstore-backed (i.e. `dif.file is None`),
+            # or when the new DIF references an already existing underlying `File` that's not this temporary one.
+            # Only if `dif.file is file` we want to avoid the deletion, given that the new DIF will be backed by `File` that up until now we considered temporary.
+            delete_file = dif.file is not file
 
             if created:
                 record_last_upload(project)
@@ -360,7 +365,7 @@ class ArtifactBundlePostAssembler:
         with metrics.timer("tasks.assemble.artifact_bundle"):
             self._create_artifact_bundle()
 
-    @sentry_sdk.tracing.trace
+    @trace
     def _create_artifact_bundle(self) -> None:
         # We want to give precedence to the request fields and only if they are unset fallback to the manifest's
         # contents.
@@ -483,7 +488,7 @@ class ArtifactBundlePostAssembler:
                 dist=(self.dist or NULL_STRING),
             )
 
-    @sentry_sdk.tracing.trace
+    @trace
     def _create_or_update_artifact_bundle(
         self, bundle_id: str, date_added: datetime
     ) -> tuple[ArtifactBundle, bool]:
@@ -566,7 +571,7 @@ class ArtifactBundlePostAssembler:
         # fire the on_delete signal.
         ArtifactBundle.objects.filter(Q(id__in=ids), organization_id=self.organization.id).delete()
 
-    @sentry_sdk.tracing.trace
+    @trace
     def _index_bundle_if_needed(self, artifact_bundle: ArtifactBundle, release: str, dist: str):
         # We collect how many times we tried to perform indexing.
         metrics.incr("tasks.assemble.artifact_bundle.try_indexing")

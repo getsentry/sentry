@@ -3,7 +3,7 @@ import type {Key} from '@react-types/shared';
 
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {Token} from 'sentry/components/arithmeticBuilder/token';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 type ArithmeticBuilderUpdateResetFocusOverrideAction = {
   type: 'RESET_FOCUS_OVERRIDE';
@@ -67,6 +67,11 @@ export function useArithmeticBuilderAction({
   };
 } {
   const [expressionString, setExpressionString] = useState(initialExpression);
+  const [prevInitialExpression, setPrevInitialExpression] = useState(initialExpression);
+  if (prevInitialExpression !== initialExpression) {
+    setPrevInitialExpression(initialExpression);
+    setExpressionString(initialExpression);
+  }
   const [focusOverride, setFocusOverride] = useState<FocusOverride | null>(null);
 
   // Recreate the Expression when the string or references change because

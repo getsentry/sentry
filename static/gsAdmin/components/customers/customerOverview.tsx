@@ -12,10 +12,10 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getLocalities} from 'sentry/utils/cells';
+import {defined} from 'sentry/utils/defined';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {getRegions} from 'sentry/utils/regions';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
@@ -30,12 +30,18 @@ import {ExtendProductTrialAction} from 'admin/components/extendProductTrialActio
 import {getLogQuery} from 'admin/utils';
 import {BILLED_DATA_CATEGORY_INFO, UNLIMITED} from 'getsentry/constants';
 import type {
+  AddOn,
   Plan,
   ReservedBudget,
   ReservedBudgetMetricHistory,
   Subscription,
 } from 'getsentry/types';
-import {AddOnCategory, BillingType, OnDemandBudgetMode} from 'getsentry/types';
+import {
+  AddOnCategory,
+  BillingType,
+  OnDemandBudgetMode,
+  ReservedBudgetCategoryType,
+} from 'getsentry/types';
 import {
   displayBudgetName,
   formatBalance,
@@ -43,6 +49,8 @@ import {
   getActiveProductTrial,
   getBilledCategory,
   getProductTrial,
+  isTrial,
+  normalizeMetricHistory,
   RETENTION_SETTINGS_CATEGORIES,
 } from 'getsentry/utils/billing';
 import {
@@ -121,20 +129,20 @@ function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
           <br />
           <small>{customer.billingInterval}</small>
         </DetailLabel>
-        {customer.contractPeriodStart && (
+        {customer.billingPeriodStart && (
           <DetailLabel title="Contract Period">
-            {`${moment(customer.contractPeriodStart).format('ll')} › `}
-            {(customer.contractInterval === 'annual' &&
+            {`${moment(customer.billingPeriodStart).format('ll')} › `}
+            {(customer.billingInterval === 'annual' &&
               customer.type === BillingType.INVOICED && (
                 <ChangeContractEndDateAction
-                  contractPeriodEnd={customer.contractPeriodEnd}
+                  contractPeriodEnd={customer.billingPeriodEnd}
                   onAction={onAction}
                 />
               )) ||
-              moment(customer.contractPeriodEnd).format('ll')}
+              moment(customer.billingPeriodEnd).format('ll')}
 
             <br />
-            <small>{customer.contractInterval}</small>
+            <small>{customer.billingInterval}</small>
           </DetailLabel>
         )}
         {/* TODO(billing): Should we start calling On-Demand periods "Pay-as-you-go" periods? */}
@@ -142,13 +150,6 @@ function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
           <OnDemandSummary customer={customer} />
         </DetailLabel>
         <DetailLabel title="Can Trial" yesNo={customer.canTrial} />
-        <DetailLabel title="Legacy Soft Cap" yesNo={customer.hasSoftCap} />
-        {customer.hasSoftCap && (
-          <DetailLabel
-            title="Overage Notifications Disabled"
-            yesNo={customer.hasOverageNotificationsDisabled}
-          />
-        )}
         <DetailLabel title="Soft Cap By Category">
           <SoftCapTypeDetail
             categories={customer.categories}
@@ -253,7 +254,7 @@ function ReservedBudgetsData({customer}: ReservedDataProps) {
   }
 
   return (
-    <Fragment>
+    <div data-test-id="reserved-budgets-data">
       {customer.reservedBudgets.map(reservedBudget => {
         return (
           <Fragment key={reservedBudget.id}>
@@ -261,7 +262,7 @@ function ReservedBudgetsData({customer}: ReservedDataProps) {
           </Fragment>
         );
       })}
-    </Fragment>
+    </div>
   );
 }
 
@@ -298,6 +299,115 @@ function ReservedBudgetData({
         </DetailLabel>
       </DetailList>
     </Fragment>
+  );
+}
+
+function seerAddOnStatus(
+  addOn: AddOn | undefined,
+  onTrial: boolean
+): {active: boolean; label: string; variant: 'success' | 'warning' | 'muted'} | null {
+  if (!addOn) {
+    return null;
+  }
+  if (addOn.enabled) {
+    return {label: 'Enabled', variant: 'success', active: true};
+  }
+  if (onTrial) {
+    return {label: 'Trial', variant: 'warning', active: true};
+  }
+  return {
+    label: addOn.isAvailable ? 'Available' : 'Unavailable',
+    variant: 'muted',
+    active: false,
+  };
+}
+
+function SeerPlanSummary({customer}: {customer: Subscription}) {
+  const seerAddOn = customer.addOns?.[AddOnCategory.SEER];
+  const legacySeerAddOn = customer.addOns?.[AddOnCategory.LEGACY_SEER];
+  const trials = customer.productTrials ?? null;
+
+  const onSeatTrial = !!getActiveProductTrial(trials, DataCategory.SEER_USER);
+  const onLegacyTrial = !!getActiveProductTrial(trials, DataCategory.SEER_AUTOFIX);
+  const seatStatus = seerAddOnStatus(seerAddOn, onSeatTrial);
+  const legacyStatus = seerAddOnStatus(legacySeerAddOn, onLegacyTrial);
+
+  const seerUsers = normalizeMetricHistory(
+    DataCategory.SEER_USER,
+    customer.categories?.[DataCategory.SEER_USER]
+  );
+  const legacyBudget = customer.reservedBudgets?.find(
+    budget => budget.apiName === ReservedBudgetCategoryType.SEER
+  );
+
+  return (
+    <div data-test-id="seer-plan-summary">
+      <h6>Seer</h6>
+      <DetailList>
+        {!seatStatus && !legacyStatus && (
+          <DetailLabel title="Plan">
+            <Tag variant="muted">
+              {customer.planDetails?.name
+                ? `Not available on the ${customer.planDetails.name} plan`
+                : 'Not available on this plan'}
+            </Tag>
+          </DetailLabel>
+        )}
+        {seatStatus && (
+          <Fragment>
+            <DetailLabel title="Seat-based">
+              <Tag variant={seatStatus.variant}>{seatStatus.label}</Tag>
+            </DetailLabel>
+            {seatStatus.active && (
+              <Fragment>
+                <DetailLabel title="Reserved Seats">
+                  {formatReservedWithUnits(seerUsers.reserved, DataCategory.SEER_USER)}
+                </DetailLabel>
+                <DetailLabel title="Active Contributors (billed this period)">
+                  {seerUsers.usage.toLocaleString()}
+                </DetailLabel>
+                <DetailLabel title="Gifted Seats">
+                  {formatReservedWithUnits(seerUsers.free, DataCategory.SEER_USER, {
+                    isGifted: true,
+                  })}
+                </DetailLabel>
+                {typeof seerUsers.customPrice === 'number' && (
+                  <DetailLabel title="Custom Price">
+                    {displayPriceWithCents({cents: seerUsers.customPrice})}
+                  </DetailLabel>
+                )}
+              </Fragment>
+            )}
+          </Fragment>
+        )}
+        {legacyStatus && (
+          <Fragment>
+            <DetailLabel title="Legacy (budget)">
+              <Tag variant={legacyStatus.variant}>{legacyStatus.label}</Tag>
+            </DetailLabel>
+            {legacyStatus.active &&
+              (legacyBudget ? (
+                <Fragment>
+                  <DetailLabel title="Reserved Budget">
+                    {displayPriceWithCents({cents: legacyBudget.reservedBudget})}
+                  </DetailLabel>
+                  <DetailLabel title="Budget Used">
+                    {displayPriceWithCents({cents: legacyBudget.totalReservedSpend})} /{' '}
+                    {displayPriceWithCents({
+                      cents: legacyBudget.reservedBudget + legacyBudget.freeBudget,
+                    })}{' '}
+                    ({(legacyBudget.percentUsed * 100).toFixed(2)}%)
+                  </DetailLabel>
+                </Fragment>
+              ) : legacySeerAddOn?.enabled ? (
+                <DetailLabel title="Budget">
+                  <Tag variant="danger">Enabled but no budget data found</Tag>
+                </DetailLabel>
+              ) : null)}
+          </Fragment>
+        )}
+      </DetailList>
+    </div>
   );
 }
 
@@ -475,11 +585,12 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
     orgUrl = `${organization.links.organizationUrl}/issues/`;
   }
 
-  const regionMap = getRegions().reduce<Record<string, string>>((acc, region) => {
-    acc[region.url] = region.name;
+  const localityMap = getLocalities().reduce<Record<string, string>>((acc, locality) => {
+    acc[locality.url] = locality.name;
     return acc;
   }, {});
-  const region = regionMap[organization.links.regionUrl] ?? '??';
+  // TODO(cells) We also should show the customer's cell.
+  const locality = localityMap[organization.links.regionUrl] ?? '??';
 
   const productTrialCategories = Object.values(BILLED_DATA_CATEGORY_INFO).filter(
     categoryInfo => {
@@ -654,7 +765,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
         <DetailList>
           <DetailLabel title="Status">
             <CustomerStatus customer={customer} />
-            {customer.isTrial && (
+            {isTrial(customer) && (
               <div>
                 <small>
                   <strong>{moment(customer.trialEnd).fromNow(true)} remaining</strong>{' '}
@@ -707,7 +818,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
             <ExternalLink href={orgUrl}>{customer.slug}</ExternalLink>
           </DetailLabel>
           <DetailLabel title="Internal ID">{customer.id}</DetailLabel>
-          <DetailLabel title="Data Storage Location">{region}</DetailLabel>
+          <DetailLabel title="Data Storage Location">{locality}</DetailLabel>
           <DetailLabel title="Data Retention">
             {customer.orgRetention?.standard ??
               customer.categories?.errors?.retention?.standard ??
@@ -778,7 +889,20 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
                     </Button>
                   </Fragment>
                 ) : (
-                  <Fragment>(migrated)</Fragment>
+                  <Fragment>
+                    (migrated)
+                    {customer.isPartner && customer.isManaged && (
+                      <Fragment>
+                        <br />
+                        <Button
+                          variant="link"
+                          onClick={() => updateCustomerStatus('deactivatePartnerAccount')}
+                        >
+                          Reset partner billing to self-serve
+                        </Button>
+                      </Fragment>
+                    )}
+                  </Fragment>
                 )}
                 <br />
                 <small>ID: {customer.partner.externalId}</small>
@@ -873,21 +997,12 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
               <tr>
                 <th>Category</th>
                 <th>Standard</th>
-                <th>Default</th>
                 <th>
                   <InfoText
                     variant="inherit"
                     title="Null means use the Downsample default"
                   >
                     Downsampled
-                  </InfoText>
-                </th>
-                <th>
-                  <InfoText
-                    variant="inherit"
-                    title="Zero means use the standard retention."
-                  >
-                    Downsample Default
                   </InfoText>
                 </th>
               </tr>
@@ -908,20 +1023,17 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
                         ? 'null'
                         : bmh.retention?.standard}
                     </td>
-                    <td>{customer.planDetails.retentions?.[bmh.category]?.standard}</td>
                     <td>
                       {bmh.retention?.downsampled === null
                         ? 'null'
                         : bmh.retention?.downsampled}
-                    </td>
-                    <td>
-                      {customer.planDetails.retentions?.[bmh.category]?.downsampled}
                     </td>
                   </tr>
                 ))}
             </tbody>
           </table>
         </Fragment>
+        <SeerPlanSummary customer={customer} />
       </div>
     </DetailsContainer>
   );

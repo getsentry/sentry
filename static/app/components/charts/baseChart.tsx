@@ -5,6 +5,9 @@ import 'echarts/lib/component/brush';
 import 'echarts/lib/component/visualMap';
 import 'echarts/theme/v5.js';
 import 'zrender/lib/svg/svg';
+// Canvas backend. Explicit so `renderer: 'canvas'` never silently relies on
+// another module importing the full `echarts` bundle.
+import 'zrender/lib/canvas/canvas';
 
 import {useId, useMemo} from 'react';
 import type {Theme} from '@emotion/react';
@@ -47,7 +50,7 @@ import type {
   EChartRestoreHandler,
   Series,
 } from 'sentry/types/echarts';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 import {Grid} from './components/grid';
 import {Legend} from './components/legend';
@@ -869,6 +872,19 @@ const ChartContainer = styled('div')<{autoHeightResize: boolean}>`
 
   .echarts-for-react text {
     font-variant-numeric: tabular-nums !important;
+  }
+
+  /*
+   * Desktop Safari runs heuristics to determine whether an incoming trackpad
+   action is going to be a drag or a select. An SVG that contains text like our
+   charts is _ambiguous_ so Safari will wait for 500ms before determining that a
+   pointer action is a drag, which stalls box selection on Heat Maps for half a
+   second, creating major jank. We need to turn off user selection manually.
+   ECharts already does this, but unprefixed, which is not supported in Safari.
+   */
+  .echarts-for-react svg {
+    -webkit-user-select: none;
+    user-select: none;
   }
 
   ${p => getTooltipStyles(p)}

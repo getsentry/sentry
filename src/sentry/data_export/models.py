@@ -167,9 +167,21 @@ class ExportedData(Model):
         from sentry.utils.email import MessageBuilder
 
         if self.user_id is None:
+            logger.warning(
+                "data-export-failure.no_user_id",
+                extra={"data_export_id": self.id, "organization_id": self.organization_id},
+            )
             return
         user = user_service.get_user(user_id=self.user_id)
         if user is None or not user.email:
+            logger.warning(
+                "data-export-failure.no_user_email",
+                extra={
+                    "data_export_id": self.id,
+                    "organization_id": self.organization_id,
+                    "user_id": self.user_id,
+                },
+            )
             return
 
         data = DataExportFailure(
@@ -199,7 +211,15 @@ class ExportedData(Model):
                     )
                 ]
             )
-
+            logger.info(
+                "data-export-failure.mail.attempted",
+                extra={
+                    "organization_id": self.organization.id,
+                    "data_export_id": self.id,
+                    "user_id": self.user_id,
+                    "via": "notification_platform",
+                },
+            )
         else:
             msg = MessageBuilder(
                 subject="We couldn't export your data.",
@@ -213,6 +233,15 @@ class ExportedData(Model):
                 html_template="sentry/emails/data-export-failure.html",
             )
             msg.send_async([user.email])
+            logger.info(
+                "data-export-failure.mail.attempted",
+                extra={
+                    "organization_id": self.organization.id,
+                    "data_export_id": self.id,
+                    "user_id": self.user_id,
+                    "via": "message_builder",
+                },
+            )
         self.delete()
 
     def _get_file(self) -> File | None:

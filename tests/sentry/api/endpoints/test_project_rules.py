@@ -19,6 +19,7 @@ from sentry.incidents.endpoints.serializers.utils import (
 from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.environment import Environment
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.rules.conditions.existing_high_priority_issue import ExistingHighPriorityIssueCondition
 from sentry.silo.base import SiloMode
@@ -84,7 +85,7 @@ class ProjectRuleBaseTestCase(APITestCase, BaseWorkflowTest):
         self.workflow_triggers = self.create_data_condition_group()
         self.workflow = self.create_workflow(
             when_condition_group=self.workflow_triggers,
-            organization=self.detector.project.organization,
+            organization=self.detector.linked_project.organization,
         )
         self.detector_workflow = self.create_detector_workflow(
             detector=self.detector, workflow=self.workflow
@@ -132,7 +133,7 @@ class ProjectRuleListTest(ProjectRuleBaseTestCase):
         workflow_triggers = self.create_data_condition_group()
         workflow = self.create_workflow(
             when_condition_group=workflow_triggers,
-            organization=detector.project.organization,
+            organization=detector.linked_project.organization,
             name="Issue resolved trigger workflow",
         )
         self.create_detector_workflow(detector=detector, workflow=workflow)
@@ -193,7 +194,7 @@ class ProjectRuleListTest(ProjectRuleBaseTestCase):
         workflow_triggers = self.create_data_condition_group()
         workflow = self.create_workflow(
             when_condition_group=workflow_triggers,
-            organization=detector.project.organization,
+            organization=detector.linked_project.organization,
             name="Issue resolved trigger workflow",
         )
         self.create_detector_workflow(detector=detector, workflow=workflow)
@@ -338,6 +339,12 @@ class GetProjectRulesTest(ProjectRuleBaseTestCase):
 
 class CreateProjectRuleTest(ProjectRuleBaseTestCase):
     method = "post"
+
+    def setUp(self) -> None:
+        super().setUp()
+        # NotifyEventAction (used by several tests) only dual-writes a WEBHOOK action when webhooks
+        # are enabled; enable it so the parity checks have a comparable action to compare.
+        ProjectOption.objects.set_value(self.project, "webhooks:enabled", True)
 
     def mock_conversations_info(self, channel):
         return patch(

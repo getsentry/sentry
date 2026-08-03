@@ -20,6 +20,10 @@ export function BreadcrumbIssueLink({frame}: Props) {
     return null;
   }
 
+  if (!frame.data?.projectSlug) {
+    return null;
+  }
+
   return <CrumbErrorIssue frame={frame} />;
 }
 

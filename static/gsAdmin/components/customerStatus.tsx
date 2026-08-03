@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {InfoText} from '@sentry/scraps/info';
 
 import type {Subscription} from 'getsentry/types';
+import {isTrial} from 'getsentry/utils/billing';
 import {formatCurrency} from 'getsentry/utils/formatCurrency';
 
 type Props = {
@@ -12,10 +13,10 @@ type Props = {
 
 const getLabel = (item: Subscription) => {
   if (item.isEnterpriseTrial) {
-    return `Trialing (${item.trialTier} enterprise)`;
+    return `Trialing (${item.trialPlan} enterprise)`;
   }
-  if (item.isTrial) {
-    return `Trialing (${item.trialTier})`;
+  if (isTrial(item)) {
+    return `Trialing (${item.trialPlan})`;
   }
   if (item.isFree) {
     return 'Free Account';
@@ -41,9 +42,7 @@ const getTooltip = ({planDetails, trialPlan}: Subscription) => (
       </Fragment>
     )}
     <dt>Base Price:</dt>
-    <dd>{formatCurrency(planDetails?.price)}</dd>
-    <dt>Contract:</dt>
-    <dd>{planDetails?.contractInterval}</dd>
+    <dd>{formatCurrency(planDetails?.totalPrice)}</dd>
     <dt>Billed:</dt>
     <dd>{planDetails?.billingInterval}</dd>
   </StatusList>
@@ -70,7 +69,7 @@ export function CustomerStatus({customer}: Props) {
       {typeof label !== 'object' && label}
       <br />
       <InfoText variant="inherit" title={getTooltip(customer)}>
-        <small>{`${customer.planDetails?.name} Plan (${customer.planTier})`}</small>
+        <small>{`${customer.planDetails?.name} Plan (${customer.planDetails?.id})`}</small>
       </InfoText>
     </Fragment>
   );

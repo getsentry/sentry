@@ -20,7 +20,7 @@ class UserIPSerializerResponse(TypedDict):
 
 
 @register(UserIP)
-class UserIPSerializer(Serializer):
+class UserIPSerializer(Serializer[UserIPSerializerResponse]):
     def serialize(
         self,
         obj: UserIP,

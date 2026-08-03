@@ -24,8 +24,7 @@ interface GroupHeaderRowProps {
   data: Group;
   eventId?: string;
   hideIcons?: boolean;
-  /** Group link clicked */
-  onClick?: () => void;
+  onClick?: React.MouseEventHandler<HTMLAnchorElement>;
   query?: string;
   source?: string;
 }
@@ -51,6 +50,7 @@ function usePreloadGroupOnHover({
             groupId,
             organizationSlug: organization.slug,
             environments: selection.environments,
+            expandDerivedData: organization.features.includes('issue-stream-progress-ui'),
           })
         );
       }, 300);

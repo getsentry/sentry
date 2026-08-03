@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, type DropdownMenuProps} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
@@ -6,7 +8,7 @@ import type {User} from 'sentry/types/user';
 import {useUser} from 'sentry/utils/useUser';
 
 type Props = {
-  onDelete: () => void;
+  onDelete: () => Promise<void>;
   onEdit: () => void;
   user?: User | null;
 };
@@ -25,7 +27,7 @@ export function CommentActionsDropdown({
   }
 
   return (
-    <DropdownMenu
+    <StyledDropdownMenu
       offset={4}
       size="sm"
       triggerProps={{
@@ -43,6 +45,7 @@ export function CommentActionsDropdown({
           tooltip: activeUser.isSuperuser
             ? t('You can edit this comment due to your superuser status')
             : undefined,
+          tooltipOptions: {delay: 1000},
         },
         {
           key: 'delete',
@@ -54,14 +57,20 @@ export function CommentActionsDropdown({
                 <strong>{t('Are you sure you want to remove this comment?')}</strong>
               ),
               confirmText: t('Remove comment'),
+              errorMessage: t('Failed to remove comment'),
               onConfirm: onDelete,
             }),
           tooltip: activeUser.isSuperuser
             ? t('You can delete this comment due to your superuser status')
             : undefined,
+          tooltipOptions: {delay: 1000},
         },
       ]}
       {...props}
     />
   );
 }
+
+const StyledDropdownMenu = styled(DropdownMenu)`
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+`;

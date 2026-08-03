@@ -2,7 +2,7 @@ import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
@@ -33,9 +33,10 @@ import {t, tn} from 'sentry/locale';
 import type {EntryThreads, Event, ExceptionType, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import type {PlatformKey, Project} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
+import type {Project} from 'sentry/types/project';
 import {StackType, StackView} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {setActiveThreadId} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
@@ -407,9 +408,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
       title={tn('Stack Trace', 'Stack Traces', threads.length)}
       disableCollapsePersistence
     >
-      <Flex direction="column" gap="xl">
-        {threadComponent}
-      </Flex>
+      <Stack gap="xl">{threadComponent}</Stack>
     </FoldSection>
   ) : (
     threadComponent

@@ -3,7 +3,6 @@ from collections.abc import Iterator, Mapping
 from typing import Any
 
 from django.db import IntegrityError, router, transaction
-from django.db.models import Q
 
 from sentry.auth.services.auth import RpcApiKey, RpcApiToken, RpcAuthIdentity, RpcAuthProvider
 from sentry.auth.services.orgauthtoken.model import RpcOrgAuthToken
@@ -13,17 +12,12 @@ from sentry.db.postgres.transactions import enforce_constraints
 from sentry.hybridcloud.models import (
     ApiKeyReplica,
     ApiTokenReplica,
-    ExternalActorReplica,
     OrgAuthTokenReplica,
 )
 from sentry.hybridcloud.outbox.base import ReplicatedCellModel, ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
-from sentry.hybridcloud.services.control_organization_provisioning import (
-    RpcOrganizationSlugReservation,
-)
 from sentry.hybridcloud.services.project_key_mapping import RpcProjectKeyMapping
 from sentry.hybridcloud.services.replica.service import CellReplicaService, ControlReplicaService
-from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
@@ -33,15 +27,8 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.authproviderreplica import AuthProviderReplica
 from sentry.models.organization import Organization
 from sentry.models.organizationavatarreplica import OrganizationAvatarReplica
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
-from sentry.models.organizationslugreservationreplica import OrganizationSlugReservationReplica
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.projectkeymapping import ProjectKeyMapping
-from sentry.models.team import Team
-from sentry.models.teamreplica import TeamReplica
-from sentry.notifications.services import RpcExternalActor
-from sentry.organizations.services.organization import RpcOrganizationMemberTeam, RpcTeam
 from sentry.users.models.user import User
 
 logger = logging.getLogger(__name__)
@@ -274,48 +261,6 @@ class DatabaseBackedCellReplicaService(CellReplicaService):
 
         handle_replication(ApiKey, destination)
 
-    def upsert_replicated_org_slug_reservation(
-        self,
-        *,
-        slug_reservation: RpcOrganizationSlugReservation,
-        cell_name: str,
-    ) -> None:
-        with enforce_constraints(
-            transaction.atomic(router.db_for_write(OrganizationSlugReservationReplica))
-        ):
-            # Delete any slug reservation that can possibly conflict, it's likely stale
-            OrganizationSlugReservationReplica.objects.filter(
-                Q(organization_slug_reservation_id=slug_reservation.id)
-                | Q(
-                    organization_id=slug_reservation.organization_id,
-                    reservation_type=slug_reservation.reservation_type,
-                )
-                | Q(slug=slug_reservation.slug)
-            ).delete()
-
-            OrganizationSlugReservationReplica.objects.create(
-                slug=slug_reservation.slug,
-                organization_id=slug_reservation.organization_id,
-                user_id=slug_reservation.user_id,
-                cell_name=slug_reservation.cell_name,
-                reservation_type=slug_reservation.reservation_type,
-                organization_slug_reservation_id=slug_reservation.id,
-            )
-
-    def delete_replicated_org_slug_reservation(
-        self,
-        *,
-        organization_slug_reservation_id: int,
-        cell_name: str,
-    ) -> None:
-        with enforce_constraints(
-            transaction.atomic(router.db_for_write(OrganizationSlugReservationReplica))
-        ):
-            org_slug_qs = OrganizationSlugReservationReplica.objects.filter(
-                organization_slug_reservation_id=organization_slug_reservation_id
-            )
-            org_slug_qs.delete()
-
     def delete_replicated_auth_provider(
         self,
         *,
@@ -327,57 +272,6 @@ class DatabaseBackedCellReplicaService(CellReplicaService):
 
 
 class DatabaseBackedControlReplicaService(ControlReplicaService):
-    def upsert_external_actor_replica(self, *, external_actor: RpcExternalActor) -> None:
-        try:
-            if external_actor.user_id is not None:
-                # Validating existence of user
-                User.objects.get(id=external_actor.user_id)
-            integration = Integration.objects.get(id=external_actor.integration_id)
-        except (User.DoesNotExist, Integration.DoesNotExist):
-            return
-
-        destination = ExternalActorReplica(
-            externalactor_id=external_actor.id,
-            external_id=external_actor.external_id,
-            external_name=external_actor.external_name,
-            organization_id=external_actor.organization_id,
-            user_id=external_actor.user_id,
-            provider=external_actor.provider,
-            team_id=external_actor.team_id,
-            integration_id=integration.id,
-        )
-        handle_replication(ExternalActor, destination, "externalactor_id")
-
-    def remove_replicated_organization_member_team(
-        self, *, organization_id: int, organization_member_team_id: int
-    ) -> None:
-        OrganizationMemberTeamReplica.objects.filter(
-            organization_id=organization_id, organizationmemberteam_id=organization_member_team_id
-        ).delete()
-
-    def upsert_replicated_organization_member_team(self, *, omt: RpcOrganizationMemberTeam) -> None:
-        destination = OrganizationMemberTeamReplica(
-            team_id=omt.team_id,
-            role=omt.role,
-            organization_id=omt.organization_id,
-            organizationmember_id=omt.organizationmember_id,
-            organizationmemberteam_id=omt.id,
-            is_active=omt.is_active,
-        )
-
-        handle_replication(OrganizationMemberTeam, destination, fk="organizationmemberteam_id")
-
-    def upsert_replicated_team(self, *, team: RpcTeam) -> None:
-        destination = TeamReplica(
-            team_id=team.id,
-            organization_id=team.organization_id,
-            slug=team.slug,
-            name=team.name,
-            status=team.status,
-        )
-
-        handle_replication(Team, destination)
-
     def upsert_project_key_mapping(self, *, project_key: RpcProjectKeyMapping) -> bool:
         try:
             with transaction.atomic(router.db_for_write(ProjectKeyMapping)):

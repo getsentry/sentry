@@ -69,7 +69,17 @@ export const SENTRY_SPAN_STRING_TAGS: string[] = [
   SpanFields.GEN_AI_RESPONSE_MODEL,
 ];
 
-export const SENTRY_SPAN_NUMBER_TAGS: string[] = [...SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS];
+export const SENTRY_SPAN_NUMBER_TAGS: string[] = [
+  ...SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS,
+  SpanFields.AI_TOTAL_COST,
+  SpanFields.GEN_AI_COST_INPUT_TOKENS,
+  SpanFields.GEN_AI_COST_OUTPUT_TOKENS,
+  SpanFields.GEN_AI_COST_TOTAL_TOKENS,
+  SpanFields.GEN_AI_USAGE_INPUT_TOKENS,
+  SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS,
+  SpanFields.GEN_AI_USAGE_TOTAL_TOKENS,
+  'gen_ai.usage.total_cost',
+];
 
 export const SENTRY_SPAN_BOOLEAN_TAGS: string[] = [
   SpanFields.IS_TRANSACTION,
@@ -102,7 +112,10 @@ export const SENTRY_PREPROD_STRING_TAGS: string[] = [
   'build_number',
   'build_version',
   'git_base_ref',
+  'git_base_sha',
   'git_head_ref',
+  'git_head_sha',
+  'install_groups',
   'platform_name',
   'snapshot_status',
 ];
@@ -146,6 +159,8 @@ export const HIDDEN_PREPROD_ATTRIBUTES = [
   'tags[metrics_artifact_type,number]',
   'tags[artifact_type,number]',
   ...PREPROD_IMAGE_FIELDS,
+  // Distribution-only; explicitly allowlisted by the Mobile Builds distribution views.
+  'install_groups',
   'snapshot_status',
 ];
 

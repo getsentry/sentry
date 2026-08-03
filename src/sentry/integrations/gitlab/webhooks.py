@@ -28,9 +28,10 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.source_code_management.webhook import SCMWebhook
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
-from sentry.integrations.utils.scope import clear_tags_and_context
+from sentry.integrations.utils.scope import clear_organization_info
 from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
+from sentry.issues.action_log import ActionSource, action_context_scope, resolve_action_actor
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.pullrequest import PullRequest
@@ -38,7 +39,16 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
-from sentry.seer.code_review.webhooks.merge_request import handle_merge_request_event
+from sentry.pr_metrics.lifecycle_mapping import map_gitlab_state_to_pullrequest_lifecycle
+from sentry.seer.code_review.webhooks.logging import debug_log
+from sentry.seer.code_review.webhooks.merge_request import (
+    handle_merge_request_event,
+    handle_merge_request_note_event,
+)
+from sentry.seer.code_review.webhooks.seat_tracking import (
+    track_gitlab_contributor_action_processor,
+    track_gitlab_contributor_seat_processor,
+)
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.webhooks")
@@ -59,6 +69,36 @@ class WebhookProcessor(Protocol):
     ) -> None: ...
 
 
+def _extract_payload_repo_info(request) -> dict[str, Any]:
+    """
+    Best-effort identifiers pulled from the webhook body.
+
+    The token (HTTP_X_GITLAB_TOKEN) is what we'd normally use to resolve the
+    integration/org, but when it's missing or malformed we can't. The payload
+    body is independent of the token, and GitLab events carry a ``project``
+    object that identifies the repo/owner — enough to track down which customer
+    a bad webhook is coming from. Returns {} if anything is off.
+    """
+    try:
+        payload = orjson.loads(request.body)
+    except (orjson.JSONDecodeError, TypeError, AttributeError):
+        return {}
+    if not isinstance(payload, dict):
+        return {}
+
+    project = payload.get("project")
+    project = project if isinstance(project, dict) else {}
+    info = {
+        # e.g. "cool-group/sentry" — the owning group/namespace plus repo
+        "webhook.repo.path": project.get("path_with_namespace"),
+        "webhook.repo.web_url": project.get("web_url"),
+        "webhook.repo.project_id": project.get("id"),
+        "webhook.object_kind": payload.get("object_kind"),
+    }
+    # Drop missing keys so the log attributes stay clean.
+    return {k: v for k, v in info.items() if v is not None}
+
+
 def get_gitlab_external_id(request, extra) -> tuple[str, str] | HttpResponse:
     token = "<unknown>"
     try:
@@ -71,17 +111,20 @@ def get_gitlab_external_id(request, extra) -> tuple[str, str] | HttpResponse:
         external_id = f"{instance}:{group_path}"
         return (external_id, secret)
     except KeyError:
-        extra["reason"] = "The customer needs to set a Secret Token in their webhook."
+        extra["webhook.reason"] = "The customer needs to set a Secret Token in their webhook."
         logger.warning("gitlab.webhook.missing-gitlab-token", extra=extra)
-        return HttpResponse(status=400, reason=extra["reason"])
+        return HttpResponse(status=400, reason=extra["webhook.reason"])
     except ValueError:
-        extra["reason"] = "The customer's Secret Token is malformed."
+        # The token is malformed so we can't resolve the integration/org from it.
+        # Fall back to identifiers in the payload body to find the source repo.
+        extra = {**extra, **_extract_payload_repo_info(request)}
+        extra["webhook.reason"] = "The customer's Secret Token is malformed."
         logger.warning("gitlab.webhook.malformed-gitlab-token", extra=extra)
-        return HttpResponse(status=400, reason=extra["reason"])
+        return HttpResponse(status=400, reason=extra["webhook.reason"])
     except Exception:
-        extra["reason"] = "Generic catch-all error."
+        extra["webhook.reason"] = "Generic catch-all error."
         logger.warning("gitlab.webhook.invalid-token", extra=extra)
-        return HttpResponse(status=400, reason=extra["reason"])
+        return HttpResponse(status=400, reason=extra["webhook.reason"])
 
 
 class GitlabWebhook(SCMWebhook, ABC):
@@ -348,7 +391,14 @@ class MergeEventWebhook(GitlabWebhook):
     """
 
     EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST
-    WEBHOOK_EVENT_PROCESSORS = (handle_merge_request_event,)
+    # Order matters: seed OrganizationContributors before the code-review
+    # handler runs preflight, otherwise the first MR open from a new
+    # contributor would be denied with ORG_CONTRIBUTOR_NOT_FOUND.
+    WEBHOOK_EVENT_PROCESSORS = (
+        track_gitlab_contributor_seat_processor,
+        track_gitlab_contributor_action_processor,
+        handle_merge_request_event,
+    )
 
     def __call__(self, event: Mapping[str, Any], **kwargs):
         if not (
@@ -359,7 +409,30 @@ class MergeEventWebhook(GitlabWebhook):
 
         repo = self.get_repo(integration, organization, event)
         if repo is None:
+            debug_log(
+                logger,
+                organization,
+                "gitlab.merge_request.repo_not_found",
+                {
+                    "integration_id": integration.id,
+                    "project_id": (event.get("project") or {}).get("id"),
+                },
+            )
             return
+
+        object_attributes = event.get("object_attributes") or {}
+        debug_log(
+            logger,
+            organization,
+            "gitlab.merge_request.received",
+            {
+                "organization_slug": organization.slug,
+                "integration_id": integration.id,
+                "repo_id": repo.id,
+                "pr_number": object_attributes.get("iid"),
+                "action": object_attributes.get("action"),
+            },
+        )
 
         # while we're here, make sure repo data is up to date
         self.update_repo_data(repo, event)
@@ -374,9 +447,19 @@ class MergeEventWebhook(GitlabWebhook):
             last_commit = event["object_attributes"]["last_commit"]
             author_email = None
             author_name = None
+            head_commit_sha = None
             if last_commit:
                 author_email = last_commit["author"]["email"]
                 author_name = last_commit["author"]["name"]
+                head_commit_sha = last_commit.get("id")
+
+            updated_at = event["object_attributes"].get("updated_at")
+            merged_at = event["object_attributes"].get("merged_at")
+            state = map_gitlab_state_to_pullrequest_lifecycle(
+                event["object_attributes"].get("state")
+            )
+            action = event["object_attributes"].get("action")
+            draft = event["object_attributes"].get("work_in_progress")
         except KeyError as e:
             logger.warning(
                 "gitlab.webhook.invalid-merge-data",
@@ -388,11 +471,48 @@ class MergeEventWebhook(GitlabWebhook):
             return
 
         if not author_email:
+            debug_log(
+                logger,
+                organization,
+                "gitlab.merge_request.missing_author_email",
+                {
+                    "integration_id": integration.id,
+                    "repo_id": repo.id,
+                    "pr_number": number,
+                },
+            )
             raise Http404()
 
         author = CommitAuthor.objects.get_or_create(
             organization_id=organization.id, email=author_email, defaults={"name": author_name}
         )[0]
+
+        opened_at = parse_date(created_at).astimezone(timezone.utc)
+        state_changed_at = parse_date(updated_at).astimezone(timezone.utc) if updated_at else None
+        merged_at_dt = parse_date(merged_at).astimezone(timezone.utc) if merged_at else None
+
+        defaults = {
+            "title": title,
+            "author": author,
+            "message": body,
+            "merge_commit_sha": merge_commit_sha,
+            "head_commit_sha": head_commit_sha,
+            "date_added": opened_at,
+            "opened_at": opened_at,
+            "merged_at": merged_at_dt,
+            "state": state,
+            "draft": draft,
+        }
+
+        # GitLab has no closed_at, so derive it from the lifecycle action. A
+        # merged merge request is also closed. Actions that don't change
+        # lifecycle state (e.g. "update") leave the stored closed_at untouched.
+        if action == "merge":
+            defaults["closed_at"] = merged_at_dt or state_changed_at
+        elif action == "close":
+            defaults["closed_at"] = state_changed_at
+        elif action in ("reopen", "open"):
+            defaults["closed_at"] = None
 
         author.preload_users()
         try:
@@ -400,16 +520,71 @@ class MergeEventWebhook(GitlabWebhook):
                 organization_id=organization.id,
                 repository_id=repo.id,
                 key=number,
-                defaults={
-                    "title": title,
-                    "author": author,
-                    "message": body,
-                    "merge_commit_sha": merge_commit_sha,
-                    "date_added": parse_date(created_at).astimezone(timezone.utc),
-                },
+                defaults=defaults,
             )
         except IntegrityError:
             pass
+
+        self._handle(
+            integration=integration,
+            event=event,
+            organization=organization,
+            repo=repo,
+        )
+
+
+class NoteEventWebhook(GitlabWebhook):
+    """
+    Handle Note Hook events (comments on MRs, issues, etc.).
+
+    Only MR notes containing the "@sentry review" command phrase are forwarded
+    to Seer; all other notes are silently dropped by ``handle_merge_request_note_event``.
+
+    See https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#comment-events
+    """
+
+    EVENT_TYPE = IntegrationWebhookEventType.ISSUE_COMMENT
+    WEBHOOK_EVENT_PROCESSORS = (handle_merge_request_note_event,)
+
+    def __call__(self, event: Mapping[str, Any], **kwargs):
+        if not (
+            (organization := kwargs.get("organization"))
+            and (integration := kwargs.get("integration"))
+        ):
+            raise ValueError("Organization and integration must be provided")
+
+        repo = self.get_repo(integration, organization, event)
+        if repo is None:
+            debug_log(
+                logger,
+                organization,
+                "gitlab.note.repo_not_found",
+                {
+                    "integration_id": integration.id,
+                    "project_id": (event.get("project") or {}).get("id"),
+                },
+            )
+            return
+
+        object_attributes = event.get("object_attributes") or {}
+        merge_request = event.get("merge_request") or {}
+        debug_log(
+            logger,
+            organization,
+            "gitlab.note.received",
+            {
+                "organization_slug": organization.slug,
+                "integration_id": integration.id,
+                "repo_id": repo.id,
+                "note_id": object_attributes.get("id"),
+                "noteable_type": object_attributes.get("noteable_type"),
+                "action": object_attributes.get("action"),
+                "mr_iid": merge_request.get("iid"),
+            },
+        )
+
+        # Keep repo metadata fresh (url and path_with_namespace).
+        self.update_repo_data(repo, event)
 
         self._handle(
             integration=integration,
@@ -501,6 +676,7 @@ class GitlabWebhookEndpoint(Endpoint):
     _handlers: dict[str, type[GitlabWebhook]] = {
         "Push Hook": PushEventWebhook,
         "Merge Request Hook": MergeEventWebhook,
+        "Note Hook": NoteEventWebhook,
         "Issue Hook": IssuesEventWebhook,
     }
 
@@ -509,16 +685,17 @@ class GitlabWebhookEndpoint(Endpoint):
         if request.method != "POST":
             return HttpResponse(status=405, reason="HTTP method not supported.")
 
-        return super().dispatch(request, *args, **kwargs)
+        with action_context_scope(ActionSource.GITLAB, resolve_action_actor(request)):
+            return super().dispatch(request, *args, **kwargs)
 
     def post(self, request: HttpRequest) -> HttpResponse:
-        clear_tags_and_context()
+        clear_organization_info()
         extra = {
             # This tells us the Gitlab version being used (e.g. current gitlab.com version -> GitLab/15.4.0-pre)
-            "user-agent": request.META.get("HTTP_USER_AGENT"),
+            "webhook.user_agent": request.META.get("HTTP_USER_AGENT"),
             # Gitlab does not seem to be the only host sending events
             # AppPlatformEvents also hit this API
-            "event-type": request.META.get("HTTP_X_GITLAB_EVENT"),
+            "webhook.event_type": request.META.get("HTTP_X_GITLAB_EVENT"),
         }
         result = get_gitlab_external_id(request=request, extra=extra)
         if isinstance(result, HttpResponse):
@@ -532,49 +709,50 @@ class GitlabWebhookEndpoint(Endpoint):
         installs = org_contexts.organization_integrations
         if integration is None:
             logger.info("gitlab.webhook.invalid-organization", extra=extra)
-            extra["reason"] = "There is no integration that matches your organization."
-            logger.warning(extra["reason"])
-            return HttpResponse(status=409, reason=extra["reason"])
+            extra["webhook.reason"] = "There is no integration that matches your organization."
+            logger.warning(extra["webhook.reason"])
+            return HttpResponse(status=409, reason=extra["webhook.reason"])
 
         extra = {
             **extra,
-            **{
-                "integration": {
-                    # The metadata could be useful to debug
-                    # domain_name -> gitlab.com/getsentry-ecosystem/foo'
-                    # scopes -> ['api']
-                    "metadata": integration.metadata,
-                    "id": integration.id,  # This is useful to query via Redash
-                    "status": integration.status,  # 0 seems to be active
-                },
-                "org_ids": [install.organization_id for install in installs],
-            },
+            # The metadata could be useful to debug
+            # domain_name -> gitlab.com/getsentry-ecosystem/foo'
+            # scopes -> ['api']
+            "webhook.integration.metadata": integration.metadata,
+            "webhook.integration.id": integration.id,  # This is useful to query via Redash
+            "webhook.integration.status": integration.status,  # 0 seems to be active
+            # Logs/EAP attributes are scalar-first; a list serializes as an
+            # "array" attribute that the Logs explorer won't expose as a
+            # queryable column. Join to a string so it's filterable. Some
+            # integrations are installed on a huge number of orgs, so cap the
+            # list to keep the log attribute from blowing up.
+            "webhook.org_ids": ",".join(str(install.organization_id) for install in installs[:25]),
         }
 
         if not constant_time_compare(secret, integration.metadata["webhook_secret"]):
             # Summary and potential workaround mentioned here:
             # https://github.com/getsentry/sentry/issues/34903#issuecomment-1262754478
-            extra["reason"] = GITLAB_WEBHOOK_SECRET_INVALID_ERROR
+            extra["webhook.reason"] = GITLAB_WEBHOOK_SECRET_INVALID_ERROR
             logger.info("gitlab.webhook.invalid-token-secret", extra=extra)
             return HttpResponse(status=409, reason=GITLAB_WEBHOOK_SECRET_INVALID_ERROR)
 
         try:
             event = orjson.loads(request.body)
         except orjson.JSONDecodeError:
-            extra["reason"] = "Data received is not JSON."
+            extra["webhook.reason"] = "Data received is not JSON."
             logger.warning("gitlab.webhook.invalid-json", extra=extra)
-            return HttpResponse(status=400, reason=extra["reason"])
+            return HttpResponse(status=400, reason=extra["webhook.reason"])
 
         try:
             handler = self._handlers[request.META["HTTP_X_GITLAB_EVENT"]]
         except KeyError:
             supported_events = ", ".join(sorted(self._handlers.keys()))
-            extra["reason"] = (
+            extra["webhook.reason"] = (
                 "The customer has edited the webhook in Gitlab to include other types of events. We only support these kinds of events: %s"
                 % supported_events
             )
             logger.warning("gitlab.webhook.wrong-event-type", extra=extra)
-            return HttpResponse(status=400, reason=extra["reason"])
+            return HttpResponse(status=400, reason=extra["webhook.reason"])
 
         for install in installs:
             org_context = organization_service.get_organization_by_id(

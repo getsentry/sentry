@@ -8,7 +8,6 @@ import {Text} from '@sentry/scraps/text';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {EditLayoutDeprecated} from 'sentry/components/workflowEngine/layout/edit';
-import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t, tct} from 'sentry/locale';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -19,7 +18,6 @@ import {
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 function NewDetectorBreadcrumbs() {
   const organization = useOrganization();
@@ -41,10 +39,8 @@ function NewDetectorBreadcrumbs() {
 export default function DetectorNew() {
   const navigate = useNavigate();
   const organization = useOrganization();
-  useWorkflowEngineFeatureGate({redirect: true});
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
-  const hasPageFrame = useHasPageFrameFeature();
   const [detectorType] = useDetectorTypeQueryState();
   const [projectId] = useQueryState('project', parseAsString);
 
@@ -68,16 +64,9 @@ export default function DetectorNew() {
       <SentryDocumentTitle title={t('New Monitor')} />
       <EditLayoutDeprecated.Header maxWidth={maxWidth}>
         <EditLayoutDeprecated.HeaderContent>
-          {hasPageFrame ? (
-            <TopBar.Slot name="title">
-              <NewDetectorBreadcrumbs />
-            </TopBar.Slot>
-          ) : (
+          <TopBar.Slot name="title">
             <NewDetectorBreadcrumbs />
-          )}
-          {!hasPageFrame && (
-            <EditLayoutDeprecated.Title title={t('Select monitor type')} />
-          )}
+          </TopBar.Slot>
           <Text as="p" size="md" variant="muted">
             {tct(
               'Monitors detect problems in your application and create Sentry Issues. [docsLink:Read the Docs].',

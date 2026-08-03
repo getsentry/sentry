@@ -19,7 +19,7 @@ from sentry.workflow_engine.models.data_condition_group import (
     DataConditionGroup,
     DataConditionGroupSnapshot,
 )
-from sentry.workflow_engine.processors.data_condition_group import TriggerResult
+from sentry.workflow_engine.processors.evaluations import DataConditionGroupEvaluation
 from sentry.workflow_engine.types import ConditionError, WorkflowEventData
 
 from .json_config import JSONConfigBase
@@ -125,10 +125,13 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         }
 
     def evaluate_trigger_conditions(
-        self, event_data: WorkflowEventData, when_data_conditions: list[DataCondition] | None = None
-    ) -> tuple[TriggerResult, list[DataCondition]]:
+        self,
+        event_data: WorkflowEventData,
+        when_data_conditions: list[DataCondition] | None = None,
+        group: DataConditionGroup | None = None,
+    ) -> tuple[DataConditionGroupEvaluation, list[DataCondition]]:
         """
-        Evaluate the conditions for the workflow trigger and return if the evaluation was successful.
+        Evaluate the conditions for the workflow trigger and return the group evaluation.
         If there aren't any workflow trigger conditions, the workflow is considered triggered.
         """
         # TODO - investigate circular import issue
@@ -137,23 +140,53 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         )
 
         if self.when_condition_group_id is None:
-            return TriggerResult.TRUE, []
+            return (
+                DataConditionGroupEvaluation(
+                    result=True,
+                    triggered=True,
+                    data={
+                        "condition_evaluations": [],
+                        "logic_type": DataConditionGroup.Type.ANY,
+                    },
+                ),
+                [],
+            )
 
         workflow_event_data = replace(event_data, workflow_env=self.environment)
-        try:
-            group = DataConditionGroup.objects.get_from_cache(id=self.when_condition_group_id)
-        except DataConditionGroup.DoesNotExist:
-            # This isn't expected under normal conditions, but weird things can happen in the
-            # midst of deletions and migrations.
-            logger.exception(
-                "DataConditionGroup does not exist",
-                extra={"id": self.when_condition_group_id},
+
+        if group is None:
+            # Callers may pass the group in (e.g. when it's been fetched as a batch to avoid an N+1),
+            # but fall back to fetching it ourselves when it isn't provided.
+            try:
+                group = DataConditionGroup.objects.get_from_cache(id=self.when_condition_group_id)
+            except DataConditionGroup.DoesNotExist:
+                # This isn't expected under normal conditions, but weird things can happen in the
+                # midst of deletions and migrations.
+                logger.exception(
+                    "DataConditionGroup does not exist",
+                    extra={"id": self.when_condition_group_id},
+                )
+                return (
+                    DataConditionGroupEvaluation(
+                        result=False,
+                        triggered=False,
+                        data={
+                            "condition_evaluations": [],
+                            "logic_type": DataConditionGroup.Type.ANY,
+                        },
+                        error=ConditionError(msg="DataConditionGroup does not exist"),
+                    ),
+                    [],
+                )
+        else:
+            assert group.id == self.when_condition_group_id, (
+                "Provided group does not match the workflow's when_condition_group_id"
             )
-            return TriggerResult(False, ConditionError(msg="DataConditionGroup does not exist")), []
+
         group_evaluation, remaining_conditions = process_data_condition_group(
             group, workflow_event_data, when_data_conditions
         )
-        return group_evaluation.logic_result, remaining_conditions
+        return group_evaluation, remaining_conditions
 
 
 def get_slow_conditions(workflow: Workflow) -> list[DataCondition]:

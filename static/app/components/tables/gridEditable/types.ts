@@ -6,6 +6,8 @@
 
 type ObjectKey = string | number;
 
+export type ColumnAlign = 'left' | 'right';
+
 export type GridColumn<K = ObjectKey> = {
   key: K;
   width?: number;
@@ -20,15 +22,6 @@ export type GridColumnOrder<K = ObjectKey> = GridColumnHeader<K>;
 
 export type GridColumnSortBy<K = ObjectKey> = GridColumn<K> & {
   order: 'desc' | 'asc';
-};
-
-/**
- * Store state at the start of "resize" action
- */
-export type ColResizeMetadata = {
-  columnIndex: number; // Column being resized
-  columnWidth: number; // Column width at start of resizing
-  cursorX: number; // X-coordinate of cursor on window
 };
 
 export type GridData<

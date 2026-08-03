@@ -4,10 +4,10 @@ import trimStart from 'lodash/trimStart';
 import uniqBy from 'lodash/uniqBy';
 
 import {Select} from '@sentry/scraps/select';
+import type {SelectValue} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import {
   EQUATION_PREFIX,

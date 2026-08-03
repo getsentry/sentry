@@ -23,8 +23,8 @@ from sentry.utils.db import atomic_transaction
 
 class AvatarBase(Model):
     """
-    Base class for UserAvatar, OrganizationAvatar, and SentryAppAvatar models. Associates those entities with their
-    avatar preferences/files. If extending this class, ensure the model has avatar_type.
+    Base class for UserAvatar, OrganizationAvatar, TeamAvatar, and SentryAppAvatar models. Associates those
+    entities with their avatar preferences/files. If extending this class, ensure the model has avatar_type.
     """
 
     __relocation_scope__ = RelocationScope.Excluded
@@ -84,8 +84,7 @@ class AvatarBase(Model):
         cache_key = self.get_cache_key(size)
         photo = cache.get(cache_key)
         if photo is None:
-            photo_file = file.getfile()
-            with Image.open(photo_file) as image:
+            with file.getfile() as photo_file, Image.open(photo_file) as image:
                 image = image.resize((size, size), Image.LANCZOS)
                 image_file = BytesIO()
                 image.save(image_file, "PNG")

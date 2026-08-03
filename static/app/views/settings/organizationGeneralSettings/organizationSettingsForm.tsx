@@ -1,6 +1,7 @@
-import {Fragment, useMemo} from 'react';
-import {mutationOptions, useQuery} from '@tanstack/react-query';
+import {Fragment, useMemo, useState} from 'react';
+import {mutationOptions, queryOptions} from '@tanstack/react-query';
 import {useMutation} from '@tanstack/react-query';
+import uniqBy from 'lodash/uniqBy';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -24,10 +25,16 @@ import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {MembershipSettingsProps} from 'sentry/types/overrides';
-import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
-import {selectUsersFromMembers} from 'sentry/utils/members/shared';
+import {
+  getLocalityDataFromOrganization,
+  shouldDisplayLocalities,
+} from 'sentry/utils/cells';
+import {
+  memberUsersQueryOptions,
+  selectUsersFromMembers,
+} from 'sentry/utils/members/shared';
+import {useMembers} from 'sentry/utils/members/useMembers';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {getRegionDataFromOrganization, getRegions} from 'sentry/utils/regions';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {slugify} from 'sentry/utils/slugify';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -83,11 +90,10 @@ export function ReplayAccessMembersField({
   organization: Organization;
 }) {
   const endpoint = `/organizations/${organization.slug}/`;
-  const {data: members = [], isPending: fetching} = useQuery({
-    ...useProjectMembersQueryOptions(),
-    select: resp => selectUsersFromMembers(resp.json),
-  });
-  const memberOptions = members.map(m => ({value: m.id, label: m.name}));
+  const initialValue = (organization.replayAccessMembers ?? []).map(String);
+
+  const [selectedIds, setSelectedIds] = useState(initialValue);
+  const {data: selectedMembers = []} = useMembers({ids: selectedIds});
 
   const replayMutationOpts = mutationOptions({
     mutationFn: (data: {replayAccessMembers: string[]}) =>
@@ -104,7 +110,7 @@ export function ReplayAccessMembersField({
       <AutoSaveForm
         name="replayAccessMembers"
         schema={membershipSchema}
-        initialValue={(organization.replayAccessMembers ?? []).map(String)}
+        initialValue={initialValue}
         mutationOptions={replayMutationOpts}
       >
         {field => (
@@ -112,13 +118,24 @@ export function ReplayAccessMembersField({
             label={t('Replay Access Members')}
             hintText={t('Select the members who will have access to replay data.')}
           >
-            <field.Select
+            <field.SelectAsync
               multiple
-              options={memberOptions}
+              queryOptions={search =>
+                queryOptions({
+                  ...memberUsersQueryOptions({orgSlug: organization.slug, search}),
+                  select: ({json}) =>
+                    uniqBy(
+                      [...selectedMembers, ...selectUsersFromMembers(json)],
+                      member => member.id
+                    ).map(member => ({value: member.id, label: member.name})),
+                })
+              }
               value={field.state.value}
-              onChange={field.handleChange}
+              onChange={next => {
+                setSelectedIds(next);
+                field.handleChange(next);
+              }}
               disabled={disabled}
-              isLoading={fetching}
             />
           </field.Layout.Row>
         )}
@@ -414,8 +431,9 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
   const access = useMemo(() => new Set(organization.access), [organization]);
   const hasWriteAccess = access.has('org:write');
   const hasGenAiFeatureFlag = organization.features.includes('gen-ai-features');
-  const regionData =
-    getRegions().length > 1 ? getRegionDataFromOrganization(organization) : null;
+  const localityData = shouldDisplayLocalities()
+    ? getLocalityDataFromOrganization(organization)
+    : null;
 
   const aiEnabled = hasGenAiFeatureFlag ? (initialData.hideAiFeatures ?? false) : false;
 
@@ -543,7 +561,7 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
           </AutoSaveForm>
 
           {/* Data Storage Region — read-only, only shown when multiple regions exist */}
-          {regionData && (
+          {localityData && (
             <Flex direction="row" gap="xl" align="center" justify="between" flexGrow={1}>
               <Stack width="50%" gap="xs">
                 <Text>{t('Data Storage Region')}</Text>
@@ -554,7 +572,7 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
                 </Text>
               </Stack>
               <Container flexGrow={1}>
-                <Text>{`${regionData?.flag ?? ''} ${regionData.displayName}`}</Text>
+                <Text>{localityData.label}</Text>
               </Container>
             </Flex>
           )}

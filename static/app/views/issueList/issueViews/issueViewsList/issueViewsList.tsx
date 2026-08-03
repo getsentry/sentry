@@ -4,7 +4,7 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 
@@ -43,7 +43,6 @@ import {
 } from 'sentry/views/issueList/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type IssueViewSectionProps = {
   createdBy: GroupSearchViewCreatedBy;
@@ -233,11 +232,15 @@ function NoViewsBanner({
   return (
     <Banner>
       <BannerTitle>{t('Create your first view')}</BannerTitle>
-      <BannerText>
+      <Container
+        maxWidth={{zero: '100%', '3xl': '75%', '4xl': '60%', '5xl': '50%'}}
+        flexShrink={0}
+        style={{fontSize: '14px', fontWeight: 400}}
+      >
         {t(
           'Your haven’t saved any issue views yet — saving views makes it easier to return to your most frequent search queries, like high priority, assigned to you, or most recent.'
         )}
-      </BannerText>
+      </Container>
       <Feature
         features="organizations:issue-views"
         overrideName="feature-disabled:issue-views"
@@ -340,7 +343,6 @@ const issueViewsFeedbackOptions = {
 };
 
 export default function IssueViewsList() {
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
@@ -378,27 +380,36 @@ export default function IssueViewsList() {
   return (
     <SentryDocumentTitle title={t('All Views')} orgSlug={organization.slug}>
       <Stack flex={1}>
-        <Layout.Header unified>
-          <Layout.HeaderContent>
-            <Layout.Title>{t('All Views')}</Layout.Title>
-          </Layout.HeaderContent>
-          {hasPageFrameFeature ? (
-            <Fragment>
-              <TopBar.Slot name="feedback">
-                <FeedbackButton
-                  size="sm"
-                  feedbackOptions={issueViewsFeedbackOptions}
-                  aria-label={t('Give Feedback')}
-                  tooltipProps={{title: t('Give Feedback')}}
-                >
-                  {null}
-                </FeedbackButton>
-              </TopBar.Slot>
-            </Fragment>
-          ) : (
-            <Layout.HeaderActions>
-              <Grid flow="column" align="center" gap="md">
-                <FeedbackButton size="sm" feedbackOptions={issueViewsFeedbackOptions} />
+        <Layout.Title>{t('All Views')}</Layout.Title>
+        <TopBar.Slot name="feedback">
+          <FeedbackButton
+            size="sm"
+            feedbackOptions={issueViewsFeedbackOptions}
+            aria-label={t('Give Feedback')}
+            tooltipProps={{title: t('Give Feedback')}}
+          >
+            {null}
+          </FeedbackButton>
+        </TopBar.Slot>
+        <Layout.Body>
+          <MainTableLayout width="full">
+            <FilterSortBar>
+              <SearchBar
+                defaultQuery={query}
+                onSearch={newQuery => {
+                  navigate({
+                    pathname: location.pathname,
+                    query: {...location.query, query: newQuery},
+                  });
+                  trackAnalytics('issue_views.table.search', {
+                    organization,
+                    query: newQuery,
+                  });
+                }}
+                placeholder={t('Search views by name or query')}
+              />
+              <Flex gap="md">
+                <SortDropdown />
                 <Feature
                   features="organizations:issue-views"
                   overrideName="feature-disabled:issue-views"
@@ -422,7 +433,6 @@ export default function IssueViewsList() {
                     <Button
                       variant="primary"
                       icon={<IconAdd />}
-                      size="sm"
                       disabled={!hasFeature || isCreatingView}
                       busy={isCreatingView}
                       onClick={() => {
@@ -436,67 +446,6 @@ export default function IssueViewsList() {
                     </Button>
                   )}
                 </Feature>
-              </Grid>
-            </Layout.HeaderActions>
-          )}
-        </Layout.Header>
-        <Layout.Body>
-          <MainTableLayout width="full">
-            <FilterSortBar>
-              <SearchBar
-                defaultQuery={query}
-                onSearch={newQuery => {
-                  navigate({
-                    pathname: location.pathname,
-                    query: {...location.query, query: newQuery},
-                  });
-                  trackAnalytics('issue_views.table.search', {
-                    organization,
-                    query: newQuery,
-                  });
-                }}
-                placeholder={t('Search views by name or query')}
-              />
-              <Flex gap="md">
-                <SortDropdown />
-                {hasPageFrameFeature ? (
-                  <Feature
-                    features="organizations:issue-views"
-                    overrideName="feature-disabled:issue-views"
-                    renderDisabled={props => (
-                      <Hovercard
-                        body={
-                          <FeatureDisabled
-                            features={props.features}
-                            hideHelpToggle
-                            featureName={t('Issue Views')}
-                          />
-                        }
-                      >
-                        {typeof props.children === 'function'
-                          ? props.children(props)
-                          : props.children}
-                      </Hovercard>
-                    )}
-                  >
-                    {({hasFeature}) => (
-                      <Button
-                        variant="primary"
-                        icon={<IconAdd />}
-                        disabled={!hasFeature || isCreatingView}
-                        busy={isCreatingView}
-                        onClick={() => {
-                          trackAnalytics('issue_views.table.create_view_clicked', {
-                            organization,
-                          });
-                          handleCreateView();
-                        }}
-                      >
-                        {t('Create View')}
-                      </Button>
-                    )}
-                  </Feature>
-                ) : null}
               </Flex>
             </FilterSortBar>
             <TableHeading>{t('Created by Me')}</TableHeading>
@@ -550,24 +499,6 @@ const Banner = styled('div')`
 const BannerTitle = styled('div')`
   font-size: ${p => p.theme.font.size.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const BannerText = styled('div')`
-  font-size: ${p => p.theme.font.size.md};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  flex-shrink: 0;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    max-width: 75%;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    max-width: 60%;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    max-width: 50%;
-  }
 `;
 
 const BannerAddViewButton = styled(Button)`

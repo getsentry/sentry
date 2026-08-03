@@ -33,6 +33,7 @@ from sentry.taskworker.namespaces import hybridcloud_control_tasks
 from sentry.types.cell import Cell, get_cell_by_name
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
+from sentry.utils.tracing import set_span_tag, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -80,11 +81,13 @@ DEFAULT_PROVIDER_PRIORITY = 10
 def _set_webhook_delivery_sentry_context(payload: WebhookPayload) -> None:
     """Set Sentry context at webhook delivery entrypoint for easier debugging."""
     sentry_sdk.set_tag("mailbox_name", payload.mailbox_name)
+    sentry_sdk.set_attribute("mailbox_name", payload.mailbox_name)
     context: dict[str, str] = {
         "mailbox_name": payload.mailbox_name,
         "provider": payload.provider or "unknown",
     }
     sentry_sdk.set_context("webhook_delivery", context)
+    sentry_sdk.set_attribute("webhook_delivery.provider", payload.provider or "unknown")
 
 
 class DeliveryFailed(Exception):
@@ -370,10 +373,11 @@ def _discard_stale_mailbox_payloads(payload: WebhookPayload) -> None:
     Remove payloads in this mailbox that are older than MAX_DELIVERY_AGE.
     Once payloads are this old they are low value, and we're better off prioritizing new work.
     """
-    with sentry_sdk.start_span(
-        op="hybridcloud.deliver_webhooks.discard_stale_mailbox_payloads"
+    with start_span(
+        op="hybridcloud.deliver_webhooks.discard_stale_mailbox_payloads",
+        name="hybridcloud.deliver_webhooks.discard_stale_mailbox_payloads",
     ) as span:
-        span.set_tag("mailbox_name", payload.mailbox_name)
+        set_span_tag(span, "mailbox_name", payload.mailbox_name)
         max_age = timezone.now() - MAX_DELIVERY_AGE
         if payload.date_added >= max_age:
             return
@@ -477,20 +481,29 @@ def _handle_parallel_delivery_result(
 
 
 def _run_parallel_delivery_batch(
-    payload: WebhookPayload, worker_threads: int
-) -> tuple[int, bool, bool]:
+    mailbox_name: str, start_id: int, worker_threads: int
+) -> tuple[int, bool, int | None]:
     """
     Run one batch of parallel deliveries for the mailbox.
-    Returns (delivered_count, request_failed, no_more_messages).
+
+    Returns (delivered_count, request_failed, next_start_id).
+    `next_start_id` is one past the highest id attempted in this batch so callers
+    can advance past failed rows when continuing (e.g. skip-on-failure providers).
+    Returns `next_start_id=None` when the mailbox has no rows at/after `start_id`.
     """
-    query = WebhookPayload.objects.filter(
-        id__gte=payload.id, mailbox_name=payload.mailbox_name
-    ).order_by("id")
+    records = list(
+        WebhookPayload.objects.filter(id__gte=start_id, mailbox_name=mailbox_name).order_by("id")[
+            :worker_threads
+        ]
+    )
+    if not records:
+        return (0, False, None)
+
+    # Capture before delivery — successful deletes clear pk on the in-memory instance.
+    next_start_id = records[-1].id + 1
 
     with ContextPropagatingThreadPoolExecutor(max_workers=worker_threads) as threadpool:
-        futures = {
-            threadpool.submit(deliver_message_parallel, record) for record in query[:worker_threads]
-        }
+        futures = {threadpool.submit(deliver_message_parallel, record) for record in records}
         delivered = 0
         request_failed = False
         for future in as_completed(futures):
@@ -503,8 +516,7 @@ def _run_parallel_delivery_batch(
                 raise err
             if err is None:
                 delivered += 1
-        no_more_messages = len(futures) < 1
-    return (delivered, request_failed, no_more_messages)
+    return (delivered, request_failed, next_start_id)
 
 
 @instrumented_task(
@@ -522,10 +534,10 @@ def drain_mailbox_parallel(payload_id: int, mailbox_name: str | None = None) -> 
     Because of the sequential delivery in a mailbox we can't get higher throughput
     by scheduling batches in parallel.
 
-    Messages will be delivered in small batches until one fails, the batch
-    delay timeout is reached, or a message with a schedule_for greater than
-    the current time is encountered. A message with a higher schedule_for value
-    indicates that we have hit the start of another batch that has been scheduled.
+    Messages will be delivered in small batches until a non-skippable failure
+    occurs or the batch delay timeout is reached. Providers in
+    `hybridcloud.webhookpayload.skip_on_failure_providers` (e.g. github) continue
+    past retryable failures in the same way as sequential `drain_mailbox`.
 
     `mailbox_name` is passed when the drain was push-triggered so the lock can be
     released on completion (mirroring `drain_mailbox`). Scheduler-triggered calls
@@ -545,9 +557,15 @@ def drain_mailbox_parallel(payload_id: int, mailbox_name: str | None = None) -> 
     _set_webhook_delivery_sentry_context(payload)
     _discard_stale_mailbox_payloads(payload)
 
+    skip_on_failure_providers = frozenset(
+        options.get("hybridcloud.webhookpayload.skip_on_failure_providers") or ()
+    )
+    skip_on_failure = payload.provider in skip_on_failure_providers
+
     worker_threads = options.get("hybridcloud.webhookpayload.worker_threads")
     deadline = timezone.now() + BATCH_SCHEDULE_OFFSET
     delivered = 0
+    current_id = payload.id
     extra = {**payload.as_dict(), "delivered": delivered}
     try:
         while True:
@@ -560,17 +578,23 @@ def drain_mailbox_parallel(payload_id: int, mailbox_name: str | None = None) -> 
                 )
                 break
 
-            delivered_batch, request_failed, no_more_messages = _run_parallel_delivery_batch(
-                payload, worker_threads
+            delivered_batch, request_failed, next_id = _run_parallel_delivery_batch(
+                payload.mailbox_name, current_id, worker_threads
             )
             delivered += delivered_batch
             extra["delivered"] = delivered
 
-            if no_more_messages:
+            if next_id is None:
                 logger.info("deliver_webhook_parallel.task_complete", extra=extra)
                 break
 
-            if request_failed:
+            # Advance past this batch so failed rows (left with a future
+            # schedule_for) are not immediately re-attempted when we continue.
+            current_id = next_id
+
+            if request_failed and not skip_on_failure:
+                # For providers that require stricter mailbox behavior, stop on
+                # the first batch that had a retryable failure.
                 logger.info("deliver_webhook_parallel.delivery_request_failed", extra=extra)
                 return
     finally:

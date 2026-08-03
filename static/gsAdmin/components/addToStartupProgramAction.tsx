@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import {useMutation} from '@tanstack/react-query';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -29,6 +29,7 @@ const STARTUP_PROGRAM_OPTIONS = [
   {value: 'betaworks', label: 'betaworks'},
   {value: 'alchemist', label: 'alchemist'},
   {value: 'antler', label: 'antler'},
+  {value: 'mass ai coalition', label: 'mass ai coalition'},
   {value: 'other', label: 'Enter custom notes'},
 ];
 
@@ -145,7 +146,7 @@ function AddToStartupProgramModal({
             notes: 'sentryforstartups',
           }}
         >
-          <Flex direction="column" gap="md">
+          <Stack gap="md">
             <NumberField
               label="Credit Amount"
               name="creditAmount"
@@ -185,7 +186,7 @@ function AddToStartupProgramModal({
                 />
               )}
             </div>
-          </Flex>
+          </Stack>
         </Form>
       </Body>
     </Fragment>

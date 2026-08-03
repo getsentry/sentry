@@ -1,3 +1,5 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
@@ -69,14 +71,12 @@ describe('AssistantBlock', () => {
       await userEvent.hover(container.firstChild as HTMLElement);
 
       expect(
-        screen.getByRole('button', {name: 'Feedback Thumbs Up'})
+        screen.getByRole('button', {name: 'I like this response'})
       ).toBeInTheDocument();
       expect(
-        screen.getByRole('button', {name: 'Feedback Thumbs Down'})
+        screen.getByRole('button', {name: "I don't like this response"})
       ).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', {name: 'Copy block content'})
-      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Copy to clipboard'})).toBeInTheDocument();
     });
 
     it('disables both thumbs after thumbs up is clicked', async () => {
@@ -86,8 +86,8 @@ describe('AssistantBlock', () => {
 
       await userEvent.hover(container.firstChild as HTMLElement);
 
-      const upButton = screen.getByRole('button', {name: 'Feedback Thumbs Up'});
-      const downButton = screen.getByRole('button', {name: 'Feedback Thumbs Down'});
+      const upButton = screen.getByRole('button', {name: 'I like this response'});
+      const downButton = screen.getByRole('button', {name: "I don't like this response"});
 
       await userEvent.click(upButton);
 
@@ -102,8 +102,8 @@ describe('AssistantBlock', () => {
 
       await userEvent.hover(container.firstChild as HTMLElement);
 
-      const upButton = screen.getByRole('button', {name: 'Feedback Thumbs Up'});
-      const downButton = screen.getByRole('button', {name: 'Feedback Thumbs Down'});
+      const upButton = screen.getByRole('button', {name: 'I like this response'});
+      const downButton = screen.getByRole('button', {name: "I don't like this response"});
 
       await userEvent.click(downButton);
 
@@ -118,8 +118,8 @@ describe('AssistantBlock', () => {
 
       await userEvent.hover(container.firstChild as HTMLElement);
 
-      const upButton = screen.getByRole('button', {name: 'Feedback Thumbs Up'});
-      const downButton = screen.getByRole('button', {name: 'Feedback Thumbs Down'});
+      const upButton = screen.getByRole('button', {name: 'I like this response'});
+      const downButton = screen.getByRole('button', {name: "I don't like this response"});
 
       await userEvent.click(upButton);
 
@@ -140,7 +140,7 @@ describe('AssistantBlock', () => {
       await userEvent.hover(container.firstChild as HTMLElement);
 
       expect(
-        screen.queryByRole('button', {name: 'Feedback Thumbs Up'})
+        screen.queryByRole('button', {name: 'I like this response'})
       ).not.toBeInTheDocument();
     });
 
@@ -152,12 +152,39 @@ describe('AssistantBlock', () => {
       await userEvent.hover(container.firstChild as HTMLElement);
 
       expect(
-        screen.queryByRole('button', {name: 'Feedback Thumbs Up'})
+        screen.queryByRole('button', {name: 'I like this response'})
       ).not.toBeInTheDocument();
       expect(
-        screen.queryByRole('button', {name: 'Copy block content'})
+        screen.queryByRole('button', {name: 'Copy to clipboard'})
       ).not.toBeInTheDocument();
     });
+  });
+
+  it('renders same-origin links as router links', () => {
+    const block = createBlock({
+      message: {
+        role: 'assistant',
+        content: `Check [this issue](${window.location.origin}/issues/ABC-123/)`,
+      },
+    });
+    render(<BlockComponent block={block} blockIndex={0} />);
+
+    const link = screen.getByRole('link', {name: 'this issue'});
+    expect(link).not.toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('href', '/issues/ABC-123/');
+  });
+
+  it('renders external links with target _blank', () => {
+    const block = createBlock({
+      message: {
+        role: 'assistant',
+        content: 'See [docs](https://docs.sentry.io/getting-started/)',
+      },
+    });
+    render(<BlockComponent block={block} blockIndex={0} />);
+
+    const link = screen.getByRole('link', {name: 'docs'});
+    expect(link).toHaveAttribute('target', '_blank');
   });
 
   it('renders nothing for empty content', () => {
@@ -166,5 +193,44 @@ describe('AssistantBlock', () => {
     });
     const {container} = render(<BlockComponent block={block} blockIndex={0} />);
     expect(container).toHaveTextContent('');
+  });
+
+  describe('streaming', () => {
+    const streamingOrg = OrganizationFixture({
+      features: ['seer-explorer-stream'],
+    });
+
+    it('renders streaming markdown for loading block with content', () => {
+      const block = createBlock({
+        loading: true,
+        message: {role: 'assistant', content: 'Partial streamed content...'},
+      });
+      render(<BlockComponent block={block} blockIndex={0} />, {
+        organization: streamingOrg,
+      });
+      expect(screen.getByText('Partial streamed content...')).toBeInTheDocument();
+    });
+
+    it('renders spinner only for loading block without content', () => {
+      const block = createBlock({
+        loading: true,
+        message: {role: 'assistant', content: ''},
+      });
+      const {container} = render(<BlockComponent block={block} blockIndex={0} />, {
+        organization: streamingOrg,
+      });
+      expect(container).toHaveTextContent('');
+    });
+
+    it('renders static markdown for completed block', () => {
+      const block = createBlock({
+        loading: false,
+        message: {role: 'assistant', content: 'Final content.'},
+      });
+      render(<BlockComponent block={block} blockIndex={0} />, {
+        organization: streamingOrg,
+      });
+      expect(screen.getByText('Final content.')).toBeInTheDocument();
+    });
   });
 });

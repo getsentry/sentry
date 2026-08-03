@@ -4,6 +4,11 @@ import logging
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
+from sentry.issues.action_log import (
+    SYSTEM_ACTOR,
+    ActionSource,
+    action_context_scope,
+)
 from sentry.models.activity import Activity
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.project import Project
@@ -166,11 +171,12 @@ def auto_update_priority(group: Group, reason: PriorityChangeReason) -> None:
         new_priority = get_priority_for_ongoing_group(group)
 
     if new_priority is not None and new_priority != group.priority:
-        update_priority(
-            group=group,
-            priority=new_priority,
-            sender="auto_update_priority",
-            reason=reason,
-            actor=None,
-            project=group.project,
-        )
+        with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+            update_priority(
+                group=group,
+                priority=new_priority,
+                sender="auto_update_priority",
+                reason=reason,
+                actor=None,
+                project=group.project,
+            )

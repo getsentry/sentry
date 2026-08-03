@@ -2,7 +2,6 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
-import debounce from 'lodash/debounce';
 import startCase from 'lodash/startCase';
 
 import {DocIntegrationAvatar, SentryAppAvatar} from '@sentry/scraps/avatar';
@@ -21,26 +20,25 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t, tct} from 'sentry/locale';
 import type {
   AppOrProviderOrPlugin,
   DocIntegration,
   Integration,
   IntegrationProvider,
-  PluginWithProjectList,
   SentryApp,
   SentryAppInstallation,
 } from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {uniq} from 'sentry/utils/array/uniq';
 import {
-  getAlertText,
   getCategoriesForIntegration,
+  getIntegrationStatus,
   getProviderIntegrationStatus,
   getSentryAppInstallStatus,
+  integrationRequiresUpgrade,
   isDocIntegration,
-  isPlugin,
   isSentryApp,
   sortIntegrations,
   trackIntegrationAnalytics,
@@ -55,26 +53,42 @@ import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/or
 import {CreateIntegrationButton} from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
 import {IntegrationRow} from 'sentry/views/settings/organizationIntegrations/integrationRow';
 import {ReinstallAlert} from 'sentry/views/settings/organizationIntegrations/reinstallAlert';
+import {legacyWebhooksQueryOptions} from 'sentry/views/settings/organizationIntegrations/webhookDetailedView';
 
 const FirstPartyIntegrationAlert = OverrideOrDefault({
   overrideName: 'component:first-party-integration-alert',
   defaultComponent: () => null,
 });
 
+const WEBHOOK_ROW_CATEGORIES = ['notification action'];
+
 /**
- * Debounce the tracking of integration search events to avoid spamming the
- * analytics endpoint.
+ * Everything the directory renders for a search: the matching integrations
+ * plus the synthetic legacy webhook row. Search analytics report numResults
+ * so the count must stay in sync with what is shown.
  */
-const TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS = 1000;
-const debouncedTrackIntegrationSearch = debounce(
-  (props: {num_results: number; organization: Organization; search_term: string}) => {
-    trackIntegrationAnalytics('integrations.directory_item_searched', {
-      view: 'integrations_directory',
-      ...props,
-    });
-  },
-  TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS
-);
+function getDisplayedResults(
+  list: AppOrProviderOrPlugin[],
+  search: string,
+  category: string,
+  hasLegacyWebhooks: boolean
+) {
+  const term = search.toLowerCase();
+  const matches = list.filter(
+    integration =>
+      integration.name.toLowerCase().includes(term) &&
+      (!category || getCategoriesForIntegration(integration).includes(category))
+  );
+  const showLegacyWebhookRow =
+    hasLegacyWebhooks &&
+    t('Webhooks (Legacy)').toLowerCase().includes(term) &&
+    (!category || WEBHOOK_ROW_CATEGORIES.includes(category));
+  return {
+    matches,
+    showLegacyWebhookRow,
+    numResults: matches.length + (showLegacyWebhookRow ? 1 : 0),
+  };
+}
 
 function useIntegrationList() {
   const queryOptions = {staleTime: 0};
@@ -136,22 +150,16 @@ function useIntegrationList() {
     queryOptions
   );
   const {
-    data: plugins = [],
-    isPending: isPluginsPending,
-    isError: isPluginsError,
-  } = useApiQuery<PluginWithProjectList[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/plugins/configs/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    queryOptions
-  );
-  const {
     data: docIntegrations = [],
     isPending: isDocIntegrationsPending,
     isError: isDocIntegrationsError,
   } = useApiQuery<DocIntegration[]>([getApiUrl('/doc-integrations/')], queryOptions);
+
+  const {
+    data: legacyWebhooks,
+    isPending: isLegacyWebhooksPending,
+    isError: isLegacyWebhooksError,
+  } = useQuery(legacyWebhooksQueryOptions(organization));
 
   // This is the only conditional query, so we need to handle the pending and error states uniquely
   const extraAppQuery = useQuery(sentryAppApiOptions({appSlug: extraAppSlug}));
@@ -165,9 +173,9 @@ function useIntegrationList() {
     isOrgOwnedAppsPending ||
     isPublishedAppsPending ||
     isAppInstallsPending ||
-    isPluginsPending ||
     isDocIntegrationsPending ||
-    isExtraAppPending;
+    isExtraAppPending ||
+    isLegacyWebhooksPending;
 
   const anyError =
     isConfigError ||
@@ -175,9 +183,9 @@ function useIntegrationList() {
     isOrgOwnedAppsError ||
     isPublishedAppsError ||
     isAppInstallsError ||
-    isPluginsError ||
     isDocIntegrationsError ||
-    isExtraAppError;
+    isExtraAppError ||
+    isLegacyWebhooksError;
 
   const sentryAppList = useMemo(() => {
     const list = orgOwnedApps ?? [];
@@ -191,14 +199,8 @@ function useIntegrationList() {
   }, [orgOwnedApps, extraApp, publishedApps]);
 
   const list = useMemo(() => {
-    return [
-      ...publishedApps,
-      ...sentryAppList,
-      ...config.providers,
-      ...plugins,
-      ...docIntegrations,
-    ];
-  }, [config.providers, publishedApps, sentryAppList, plugins, docIntegrations]);
+    return [...publishedApps, ...sentryAppList, ...config.providers, ...docIntegrations];
+  }, [config.providers, publishedApps, sentryAppList, docIntegrations]);
 
   return {
     anyPending,
@@ -208,9 +210,9 @@ function useIntegrationList() {
     integrations,
     orgOwnedApps,
     appInstalls,
-    plugins,
     publishedApps,
     list,
+    legacyWebhooks,
   };
 }
 
@@ -219,33 +221,32 @@ export default function IntegrationListDirectory() {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
-  const {appInstalls, anyPending, integrations, list, anyError, publishedApps, plugins} =
-    useIntegrationList();
+  const {
+    appInstalls,
+    anyPending,
+    integrations,
+    list,
+    anyError,
+    publishedApps,
+    legacyWebhooks,
+  } = useIntegrationList();
 
   const category = decodeScalar(location.query.category) ?? '';
   const search = decodeScalar(location.query.search) ?? '';
 
-  const displayList = useMemo(() => {
-    let listToDisplay = [...list];
+  const legacyWebhookProjectCount = legacyWebhooks?.projects?.length ?? 0;
 
-    if (search) {
-      listToDisplay = list.filter(integration =>
-        integration.name.toLowerCase().includes(search.toLowerCase())
-      );
-    }
-
-    if (category) {
-      listToDisplay = listToDisplay.filter(integration =>
-        getCategoriesForIntegration(integration).includes(category)
-      );
-    }
-
-    return sortIntegrations({
-      list: listToDisplay,
-      sentryAppInstalls: appInstalls,
-      integrationInstalls: integrations,
-    });
-  }, [list, appInstalls, integrations, category, search]);
+  const {displayList, showLegacyWebhookRow} = useMemo(() => {
+    const results = getDisplayedResults(list, search, category, !!legacyWebhooks);
+    return {
+      displayList: sortIntegrations({
+        list: results.matches,
+        sentryAppInstalls: appInstalls,
+        integrationInstalls: integrations,
+      }),
+      showLegacyWebhookRow: results.showLegacyWebhookRow,
+    };
+  }, [list, search, category, legacyWebhooks, appInstalls, integrations]);
 
   const getAppInstall = useCallback(
     (app: SentryApp) => appInstalls.find(i => i.app.slug === app.slug),
@@ -280,14 +281,16 @@ export default function IntegrationListDirectory() {
         {replace: true}
       );
       if (newSearch) {
-        debouncedTrackIntegrationSearch({
+        trackIntegrationAnalytics('integrations.directory_item_searched', {
+          view: 'integrations_directory',
           search_term: newSearch,
-          num_results: list.length,
+          num_results: getDisplayedResults(list, newSearch, category, !!legacyWebhooks)
+            .numResults,
           organization,
         });
       }
     },
-    [location, navigate, organization, list.length]
+    [location, navigate, organization, list, category, legacyWebhooks]
   );
 
   /**
@@ -305,12 +308,10 @@ export default function IntegrationListDirectory() {
       publishedApps?.filter(getAppInstall).forEach((sentryApp: SentryApp) => {
         integrationsInstalled.add(sentryApp.slug);
       });
-      // add plugins
-      plugins?.forEach((plugin: PluginWithProjectList) => {
-        if (plugin.projectList.length) {
-          integrationsInstalled.add(plugin.slug);
-        }
-      });
+      // add legacy webhooks
+      if (legacyWebhooks?.projects?.length) {
+        integrationsInstalled.add('legacy-webhooks');
+      }
 
       trackIntegrationAnalytics(
         'integrations.index_viewed',
@@ -328,8 +329,8 @@ export default function IntegrationListDirectory() {
     organization,
     integrations,
     publishedApps,
-    plugins,
     getAppInstall,
+    legacyWebhooks,
   ]);
 
   const renderProvider = useCallback(
@@ -347,9 +348,14 @@ export default function IntegrationListDirectory() {
           status={getProviderIntegrationStatus(providerIntegrations)}
           publishStatus="published"
           configurations={providerIntegrations.length}
+          disabledConfigurations={
+            providerIntegrations.filter(i => getIntegrationStatus(i) === 'disabled')
+              .length
+          }
           categories={getCategoriesForIntegration(provider)}
-          alertText={getAlertText(providerIntegrations)}
-          resolveText={t('Update Now')}
+          outdatedConfigurations={
+            providerIntegrations.filter(integrationRequiresUpgrade).length
+          }
           customAlert={
             <FirstPartyIntegrationAlert
               integrations={providerIntegrations}
@@ -360,33 +366,6 @@ export default function IntegrationListDirectory() {
       );
     },
     [organization, integrations]
-  );
-
-  const renderPlugin = useCallback(
-    (plugin: PluginWithProjectList) => {
-      const isLegacy = plugin.isHidden;
-      const displayName = `${plugin.name} ${isLegacy ? '(Legacy)' : ''}`;
-      // hide legacy integrations if we don't have any projects with them
-      if (isLegacy && !plugin.projectList.length) {
-        return null;
-      }
-      return (
-        <IntegrationRow
-          key={`row-plugin-${plugin.id}`}
-          data-test-id="integration-row"
-          organization={organization}
-          type="plugin"
-          slug={plugin.slug}
-          displayName={displayName}
-          status={plugin.projectList.length ? 'Installed' : 'Not Installed'}
-          publishStatus="published"
-          configurations={plugin.projectList.length}
-          categories={getCategoriesForIntegration(plugin)}
-          plugin={plugin}
-        />
-      );
-    },
-    [organization]
   );
 
   const renderSentryApp = useCallback(
@@ -437,15 +416,12 @@ export default function IntegrationListDirectory() {
       if (isSentryApp(integration)) {
         return renderSentryApp(integration);
       }
-      if (isPlugin(integration)) {
-        return renderPlugin(integration);
-      }
       if (isDocIntegration(integration)) {
         return renderDocIntegration(integration);
       }
       return renderProvider(integration);
     },
-    [renderSentryApp, renderPlugin, renderDocIntegration, renderProvider]
+    [renderSentryApp, renderDocIntegration, renderProvider]
   );
 
   if (anyPending) {
@@ -455,25 +431,46 @@ export default function IntegrationListDirectory() {
   return (
     <Fragment>
       <SentryDocumentTitle title={title} orgSlug={organization.slug} />
-      <IntegrationSettingsHeader
-        title={title}
-        list={list}
-        category={category}
-        onChangeCategory={onCategoryChange}
-        search={search}
-        onChangeSearch={onSearchChange}
-      />
-      <OrganizationPermissionAlert access={['org:integrations']} />
-      <ReinstallAlert integrations={integrations} />
-      <Panel>
-        <PanelBody data-test-id="integration-panel">
-          {displayList.length ? (
-            displayList.map(renderIntegration)
-          ) : (
-            <IntegrationResultsEmpty searchTerm={search} />
-          )}
-        </PanelBody>
-      </Panel>
+      <Stack gap="xl">
+        <IntegrationSettingsHeader
+          title={title}
+          list={list}
+          category={category}
+          onChangeCategory={onCategoryChange}
+          search={search}
+          onChangeSearch={onSearchChange}
+        />
+        <Stack>
+          <OrganizationPermissionAlert access={['org:integrations']} />
+          <ReinstallAlert integrations={integrations} />
+          <Panel>
+            <PanelBody data-test-id="integration-panel">
+              {displayList.length || showLegacyWebhookRow ? (
+                <Fragment>
+                  {displayList.map(renderIntegration)}
+                  {showLegacyWebhookRow && (
+                    <IntegrationRow
+                      key="row-legacy-webhooks"
+                      data-test-id="integration-row"
+                      organization={organization}
+                      type="firstParty"
+                      slug="legacy-webhooks"
+                      displayName={t('Webhooks (Legacy)')}
+                      status={legacyWebhookProjectCount ? 'Installed' : 'Not Installed'}
+                      publishStatus="published"
+                      configurations={legacyWebhookProjectCount}
+                      categories={WEBHOOK_ROW_CATEGORIES}
+                      customIcon={<PluginIcon pluginId="webhooks" size={36} />}
+                    />
+                  )}
+                </Fragment>
+              ) : (
+                <IntegrationResultsEmpty searchTerm={search} />
+              )}
+            </PanelBody>
+          </Panel>
+        </Stack>
+      </Stack>
     </Fragment>
   );
 }
@@ -505,35 +502,33 @@ function IntegrationSettingsHeader({
   }, [list, getCategoryLabel]);
 
   return (
-    <SettingsPageHeader
-      title={title}
-      body={
-        <Flex align="center" gap="md">
-          <Container width="240px">
-            <Select
-              name="select-categories"
-              onChange={onChangeCategory}
-              value={category}
-              options={categoryOptions}
+    <Fragment>
+      <SettingsPageHeader title={title} />
+      <Flex align="center" gap="md">
+        <Container width="240px">
+          <Select
+            name="select-categories"
+            onChange={onChangeCategory}
+            value={category}
+            options={categoryOptions}
+          />
+        </Container>
+        <Container flex={1}>
+          {containerProps => (
+            <SearchBar
+              {...containerProps}
+              query={search}
+              onSearch={onChangeSearch}
+              placeholder={t('Filter Integrations\u2026')}
+              aria-label={t('Filter')}
+              width="100%"
+              data-test-id="search-bar"
             />
-          </Container>
-          <Container flex={1}>
-            {({className}) => (
-              <SearchBar
-                className={className}
-                query={search}
-                onSearch={onChangeSearch}
-                placeholder={t('Filter Integrations\u2026')}
-                aria-label={t('Filter')}
-                width="100%"
-                data-test-id="search-bar"
-              />
-            )}
-          </Container>
-          <CreateIntegrationButton analyticsView="integrations_directory" size="md" />
-        </Flex>
-      }
-    />
+          )}
+        </Container>
+        <CreateIntegrationButton analyticsView="integrations_directory" size="md" />
+      </Flex>
+    </Fragment>
   );
 }
 

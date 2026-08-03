@@ -8,8 +8,8 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {showIntercom} from 'sentry/utils/intercom';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {ZendeskLink} from 'getsentry/components/zendeskLink';
 import type {Subscription} from 'getsentry/types';
+import {isTrial} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 type Props = {
@@ -18,23 +18,22 @@ type Props = {
 
 export function TrialEnded({subscription}: Props) {
   const organization = useOrganization();
-  const hasIntercom = organization.features.includes('intercom-support');
   const canRequestTrial =
     subscription.canSelfServe && subscription.planDetails?.trialPlan;
   const shouldRender = !(
-    subscription.isTrial ||
+    isTrial(subscription) ||
     subscription.canTrial ||
     !canRequestTrial
   );
 
   useEffect(() => {
-    if (shouldRender && hasIntercom) {
+    if (shouldRender) {
       trackGetsentryAnalytics('intercom_link.viewed', {
         organization,
         source: 'trial',
       });
     }
-  }, [shouldRender, hasIntercom, organization]);
+  }, [shouldRender, organization]);
 
   if (!shouldRender) {
     return null;
@@ -55,12 +54,10 @@ export function TrialEnded({subscription}: Props) {
     }
   }
 
-  const supportLink = hasIntercom ? (
+  const supportLink = (
     <Button size="zero" variant="link" onClick={handleIntercomClick}>
       {null}
     </Button>
-  ) : (
-    <ZendeskLink subject="Request Another Trial" source="trial" />
   );
 
   return (

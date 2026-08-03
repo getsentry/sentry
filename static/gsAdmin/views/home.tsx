@@ -8,7 +8,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {Truncate} from 'sentry/components/truncate';
-import {getRegions} from 'sentry/utils/regions';
+import {getCells} from 'sentry/utils/cells';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {DebounceSearch} from 'admin/components/debounceSearch';
@@ -16,10 +16,10 @@ import {Overview} from 'admin/views/overview';
 
 export function HomePage() {
   const navigate = useNavigate();
-  const regions = getRegions();
+  const cells = getCells();
   const [oldSplash, setOldSplash] = useState(false);
-  const [regionUrl, setRegionUrl] = useState(regions[0]!.url);
-  const selectedRegion = regions.find((region: any) => region.url === regionUrl);
+  const [localityUrl, setLocalityUrl] = useState(cells[0]!.locality_url);
+  const selectedCell = cells.find(cell => cell.locality_url === localityUrl);
 
   const buildOrgPath = (org: any) => `/_admin/customers/${org.slug}/`;
   const orgSelect = (org: any) => {
@@ -30,7 +30,7 @@ export function HomePage() {
       pathname: '/_admin/customers/',
       query: {
         query,
-        regionUrl,
+        regionUrl: localityUrl,
       },
     });
   };
@@ -126,13 +126,13 @@ export function HomePage() {
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps} prefix="Region" />
           )}
-          value={regionUrl}
-          options={regions.map((r: any) => ({
-            label: r.name,
-            value: r.url,
+          value={localityUrl}
+          options={cells.map(c => ({
+            label: c.name,
+            value: c.locality_url,
           }))}
           onChange={opt => {
-            setRegionUrl(opt.value);
+            setLocalityUrl(opt.value);
           }}
         />
 
@@ -140,11 +140,9 @@ export function HomePage() {
           Organizations
         </Container>
         <DebounceSearch
-          host={regionUrl}
+          host={localityUrl}
           path={
-            selectedRegion
-              ? `/_admin/cells/${selectedRegion.name}/customers/`
-              : '/customers/'
+            selectedCell ? `/_admin/cells/${selectedCell.name}/customers/` : '/customers/'
           }
           onSelectResult={orgSelect}
           onSearch={orgSubmit}
@@ -161,7 +159,7 @@ export function HomePage() {
           onSelectResult={projSelect}
           placeholder="Project ID"
           queryParam="id"
-          host={regionUrl}
+          host={localityUrl}
           path="/projects/?show=all"
           suggestionContent={renderProjSuggestion}
         />

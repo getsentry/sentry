@@ -41,15 +41,15 @@ def get_frontend_commit_sha() -> str | None:
     return None
 
 
-def get_frontend_app_asset_url(module: str, key: str) -> str:
+def get_frontend_app_asset_module_path(key: str) -> str:
     """
-    Returns an asset URL that is unversioned. These assets should have a
-    `Cache-Control: max-age=0, must-revalidate` so that clients must validate with the origin
-    server before using their locally cached asset.
+    Resolves an unversioned entrypoint key to the path of the asset within its
+    module's dist directory, mapping to the hashed entrypoint when a frontend
+    entrypoint versions config is provided.
 
     Example:
-      {% frontend_app_asset_url 'sentry' 'entrypoints/sentry.css' %}
-      =>  "/_static/dist/sentry/entrypoints/sentry.css"
+      get_frontend_app_asset_module_path('entrypoints/sentry.css')
+      =>  "entrypoints/sentry.css"  (or "entrypoints-hashed/sentry.<hash>.css")
     """
     if not key.startswith("entrypoints/"):
         raise AssertionError(f"unexpected key: {key}")
@@ -63,12 +63,24 @@ def get_frontend_app_asset_url(module: str, key: str) -> str:
         asset_path = "entrypoints-hashed"
         key = versions.entrypoints[key]
 
+    return f"{asset_path}/{key}"
+
+
+def get_frontend_app_asset_url(module: str, key: str) -> str:
+    """
+    Returns an asset URL that is unversioned. These assets should have a
+    `Cache-Control: max-age=0, must-revalidate` so that clients must validate with the origin
+    server before using their locally cached asset.
+
+    Example:
+      {% frontend_app_asset_url 'sentry' 'entrypoints/sentry.css' %}
+      =>  "/_static/dist/sentry/entrypoints/sentry.css"
+    """
     return "/".join(
         (
             settings.STATIC_FRONTEND_APP_URL.rstrip("/"),
             module,
-            asset_path,
-            key,
+            get_frontend_app_asset_module_path(key),
         )
     )
 

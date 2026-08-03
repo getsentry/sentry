@@ -4,18 +4,17 @@ from unittest.mock import Mock, patch
 
 from django.core.exceptions import ObjectDoesNotExist
 
+from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org import cache as per_org_recalibration_cache
 from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
+from sentry.dynamic_sampling.per_org.gate import is_org_in_rollout
 from sentry.dynamic_sampling.per_org.queries import (
     OUTCOMES_ORGANIZATION_VOLUME_DEFAULT_TIME_INTERVAL,
     ProjectTransactionCounts,
     ProjectVolume,
 )
 from sentry.dynamic_sampling.per_org.scheduler import (
-    BUCKET_COUNT,
-    BUCKET_CURSOR_KEY,
-    _next_bucket_index,
     run_calculations_per_org_task,
     schedule_per_org_calculations,
 )
@@ -26,10 +25,8 @@ from sentry.dynamic_sampling.tasks.helpers import (
     recalibrate_orgs as legacy_recalibration_cache,
 )
 from sentry.dynamic_sampling.types import DynamicSamplingMode
-from sentry.models.organization import OrganizationStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.helpers.task_runner import BurstTaskRunner
 
 
 def _assert_called_once_with_config(
@@ -45,12 +42,6 @@ def _assert_called_once_with_config(
 
 def _project_volume(project_id: int, total: int = 100, keep: int = 25) -> ProjectVolume:
     return ProjectVolume(project_id=project_id, total=total, keep=keep, drop=max(total - keep, 0))
-
-
-def _drain_dispatched_org_ids(burst) -> list[int]:
-    ids = [args[0] for _task, args, _kwargs in burst.queue]
-    burst.queue.clear()
-    return ids
 
 
 class PerOrgRecalibrationCacheTest(TestCase):
@@ -88,94 +79,62 @@ class PerOrgRecalibrationCacheTest(TestCase):
 
 
 class SchedulePerOrgCalculationsTest(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.redis = get_redis_client_for_ds()
-        self.redis.delete(BUCKET_CURSOR_KEY)
-        self.addCleanup(self.redis.delete, BUCKET_CURSOR_KEY)
-
-    def create_orgs_across_buckets(self, per_bucket: int = 2) -> dict[int, list[int]]:
-        by_bucket: dict[int, list[int]] = {bucket: [] for bucket in range(BUCKET_COUNT)}
-        for _ in range(BUCKET_COUNT * per_bucket * 20):
-            if all(len(ids) >= per_bucket for ids in by_bucket.values()):
-                break
-            org = self.create_organization()
-            by_bucket[org.id % BUCKET_COUNT].append(org.id)
-        assert all(len(ids) >= per_bucket for ids in by_bucket.values())
-        return by_bucket
-
-    @override_options(
-        {
-            "dynamic-sampling.per_org.killswitch": True,
-            "dynamic-sampling.per_org.rollout-rate": 1.0,
-        }
-    )
-    def test_is_noop_when_killswitch_engaged(self) -> None:
-        with BurstTaskRunner() as burst:
-            schedule_per_org_calculations()
-            dispatched = _drain_dispatched_org_ids(burst)
-
-        assert dispatched == []
-        assert self.redis.get(BUCKET_CURSOR_KEY) is None
-
-    @override_options({"dynamic-sampling.per_org.rollout-rate": 0.0})
-    def test_does_not_scan_when_rollout_zero(self) -> None:
-        self.create_organization()
-
-        with BurstTaskRunner() as burst:
-            schedule_per_org_calculations()
-            dispatched = _drain_dispatched_org_ids(burst)
-
-        assert dispatched == []
-        assert self.redis.get(BUCKET_CURSOR_KEY) is None
+    """Tests for the scheduling wrapper: rollout gating and active-org filtering."""
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_advances_bucket_cursor(self) -> None:
-        with BurstTaskRunner() as burst:
-            schedule_per_org_calculations()
-
-        assert burst.queue == []
-        cursor = self.redis.get(BUCKET_CURSOR_KEY)
-        assert cursor is not None
-        assert int(cursor) == 1
-
-    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_dispatches_only_orgs_in_target_bucket(self) -> None:
-        by_bucket = self.create_orgs_across_buckets(per_bucket=2)
-        target = 3
-        self.redis.set(BUCKET_CURSOR_KEY, target)
-
-        with BurstTaskRunner() as burst:
-            schedule_per_org_calculations()
-            dispatched = _drain_dispatched_org_ids(burst)
-
-        for org_id in dispatched:
-            assert org_id % BUCKET_COUNT == target
-        for org_id in by_bucket[target]:
-            assert org_id in dispatched
-        for bucket, org_ids in by_bucket.items():
-            if bucket == target:
-                continue
-            for org_id in org_ids:
-                assert org_id not in dispatched
-        assert len(dispatched) >= len(by_bucket[target])
-
-    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_bucket_skips_inactive_orgs(self) -> None:
+    def test_dispatches_only_active_orgs(self) -> None:
         active = self.create_organization()
+        self.create_project(organization=active)
         pending_deletion = self.create_organization()
-        pending_deletion.status = OrganizationStatus.PENDING_DELETION
+        self.create_project(organization=pending_deletion)
+        pending_deletion.status = 1  # PENDING_DELETION
         pending_deletion.save()
 
-        with BurstTaskRunner() as burst:
-            for bucket in range(BUCKET_COUNT):
-                self.redis.set(BUCKET_CURSOR_KEY, bucket)
-                schedule_per_org_calculations()
-            dispatched = _drain_dispatched_org_ids(burst)
+        with patch("sentry.dynamic_sampling.per_org.scheduler.CursoredScheduler") as MockScheduler:
+            mock_instance = MockScheduler.return_value
+            mock_instance.tick.return_value = False
+            schedule_per_org_calculations()
 
-        assert active.id in dispatched
-        assert pending_deletion.id not in dispatched
+            queryset = MockScheduler.call_args.kwargs["queryset"]
+            org_ids = set(queryset.values_list("id", flat=True))
 
+        assert active.id in org_ids
+        assert pending_deletion.id not in org_ids
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_dispatches_only_orgs_with_active_projects(self) -> None:
+        org_with_project = self.create_organization()
+        self.create_project(organization=org_with_project)
+        org_without_projects = self.create_organization()
+        org_with_inactive_project = self.create_organization()
+        inactive_project = self.create_project(organization=org_with_inactive_project)
+        inactive_project.status = ObjectStatus.PENDING_DELETION
+        inactive_project.save()
+
+        with patch("sentry.dynamic_sampling.per_org.scheduler.CursoredScheduler") as MockScheduler:
+            mock_instance = MockScheduler.return_value
+            mock_instance.tick.return_value = False
+            schedule_per_org_calculations()
+
+            queryset = MockScheduler.call_args.kwargs["queryset"]
+            org_ids = set(queryset.values_list("id", flat=True))
+
+        assert org_with_project.id in org_ids
+        assert org_without_projects.id not in org_ids
+        assert org_with_inactive_project.id not in org_ids
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_org_in_rollout_is_dispatched(self) -> None:
+        org = self.create_organization()
+        assert is_org_in_rollout(org.id) is True
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 0.0})
+    def test_org_not_in_rollout_is_skipped(self) -> None:
+        org = self.create_organization()
+        assert is_org_in_rollout(org.id) is False
+
+
+class RunCalculationsPerOrgTest(TestCase):
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_returns_no_volume_without_traffic(self) -> None:
         org = self.create_organization()
@@ -187,11 +146,11 @@ class SchedulePerOrgCalculationsTest(TestCase):
                 return_value=1.0,
             ) as get_blended_sample_rate,
             patch(
-                "sentry.dynamic_sampling.per_org.configuration.get_eap_organization_volume",
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
                 return_value=None,
             ),
             patch(
-                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_sampled_volume",
                 return_value=None,
             ),
             patch(
@@ -218,7 +177,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         get_per_org_factor.assert_not_called()
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_run_calculations_per_org_continues_with_traffic(self) -> None:
+    def test_run_calculations_per_org_skips_transaction_volumes_at_full_sample_rate(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org, teams=[])
         org_volume_5_minutes = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
@@ -233,7 +192,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
                 return_value=1.0,
             ) as get_blended_sample_rate,
             patch(
-                "sentry.dynamic_sampling.per_org.configuration.get_eap_organization_volume",
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
                 return_value=None,
             ),
             patch(
@@ -241,7 +200,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
                 return_value=org_volume_1_hour,
             ) as get_volume,
             patch(
-                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_sampled_volume",
                 return_value=org_volume_5_minutes,
             ) as get_outcome_volume,
             patch(
@@ -271,23 +230,15 @@ class SchedulePerOrgCalculationsTest(TestCase):
                 "sentry.dynamic_sampling.per_org.scheduler.compare_rebalanced_projects_with_cache"
             ) as compare_rebalanced_projects,
             patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_transaction_volumes",
-                return_value=[
-                    ProjectTransactionCounts(
-                        org_id=org.id,
-                        project_id=project.id,
-                        transaction_counts=[("checkout", 1.0)],
-                    )
-                ],
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_transaction_volumes"
             ) as get_transaction_volumes,
             patch(
-                "sentry.dynamic_sampling.per_org.scheduler.run_transaction_balancing",
-                return_value={},
+                "sentry.dynamic_sampling.per_org.scheduler.run_transaction_balancing"
             ) as transaction_balancing,
         ):
             result = run_calculations_per_org_task(org.id)
 
-        assert result is None
+        assert result == DynamicSamplingStatus.ALL_PROJECTS_AT_FULL_SAMPLE_RATE
         _assert_called_once_with_config(get_volume, org.id)
         get_outcome_volume.assert_called_once_with(
             org.id, time_interval=OUTCOMES_ORGANIZATION_VOLUME_DEFAULT_TIME_INTERVAL
@@ -297,12 +248,10 @@ class SchedulePerOrgCalculationsTest(TestCase):
         project_balancing.assert_called_once_with(project_config, project_volumes)
         get_cached_sample_rates.assert_called_once_with(org.id)
         compare_rebalanced_projects.assert_called_once_with(
-            project_config, rebalanced_projects, cached_sample_rates
+            project_config, rebalanced_projects, cached_sample_rates, project_volumes
         )
-        transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
-        transaction_balancing.assert_called_once_with(
-            transaction_config, project_volumes, get_transaction_volumes.return_value
-        )
+        get_transaction_volumes.assert_not_called()
+        transaction_balancing.assert_not_called()
         assert project_config.organization_recalibration_factor == 4.0
         set_per_org_factor.assert_called_once_with(org.id, 4.0)
 
@@ -314,7 +263,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         project = self.create_project(organization=org, teams=[])
         org_volume_1_hour = OrganizationDataVolume(org_id=org.id, total=1000, indexed=250)
         project_volumes = [_project_volume(project.id)]
-        rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=1.0)]
+        rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=0.5)]
         cached_sample_rates: dict[int, float | None] = {}
 
         with (
@@ -323,7 +272,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
                 return_value=1.0,
             ) as get_blended_sample_rate,
             patch(
-                "sentry.dynamic_sampling.per_org.configuration.get_eap_organization_volume",
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
                 return_value=None,
             ),
             patch(
@@ -331,7 +280,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
                 return_value=org_volume_1_hour,
             ) as get_volume,
             patch(
-                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_sampled_volume",
                 return_value=None,
             ) as get_outcome_volume,
             patch(
@@ -384,7 +333,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         project_balancing.assert_called_once_with(project_config, project_volumes)
         get_cached_sample_rates.assert_called_once_with(org.id)
         compare_rebalanced_projects.assert_called_once_with(
-            project_config, rebalanced_projects, cached_sample_rates
+            project_config, rebalanced_projects, cached_sample_rates, project_volumes
         )
         transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
         transaction_balancing.assert_called_once_with(
@@ -405,11 +354,11 @@ class SchedulePerOrgCalculationsTest(TestCase):
                 return_value=1.0,
             ) as get_blended_sample_rate,
             patch(
-                "sentry.dynamic_sampling.per_org.configuration.get_eap_organization_volume",
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
                 return_value=None,
             ),
             patch(
-                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_sampled_volume",
                 return_value=None,
             ),
             patch(
@@ -443,7 +392,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         project = self.create_project(organization=org, teams=[])
         org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
         project_volumes = [_project_volume(project.id)]
-        rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=1.0)]
+        rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=0.5)]
         cached_sample_rates: dict[int, float | None] = {}
 
         with (
@@ -452,11 +401,11 @@ class SchedulePerOrgCalculationsTest(TestCase):
                 return_value=1.0,
             ) as get_blended_sample_rate,
             patch(
-                "sentry.dynamic_sampling.per_org.configuration.get_eap_organization_volume",
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
                 return_value=None,
             ),
             patch(
-                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_sampled_volume",
                 return_value=None,
             ),
             patch(
@@ -492,7 +441,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         project_balancing.assert_called_once_with(project_config, project_volumes)
         get_cached_sample_rates.assert_called_once_with(org.id)
         compare_rebalanced_projects.assert_called_once_with(
-            project_config, rebalanced_projects, cached_sample_rates
+            project_config, rebalanced_projects, cached_sample_rates, project_volumes
         )
         _assert_called_once_with_config(get_transaction_volumes, org.id)
 
@@ -541,8 +490,6 @@ class SchedulePerOrgCalculationsTest(TestCase):
         assert result is None
         get_blended_sample_rate.assert_not_called()
         _assert_called_once_with_config(get_volume, org.id)
-        # Project volumes are fetched even in project mode (transaction balancing
-        # needs full per-project totals) but project balancing itself is skipped.
         _assert_called_once_with_config(get_project_volumes, org.id)
         project_balancing.assert_not_called()
         transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
@@ -557,7 +504,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         org.update_option("sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION)
         org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
         project_volumes = [_project_volume(project.id)]
-        rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=1.0)]
+        rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=0.5)]
         cached_sample_rates: dict[int, float | None] = {}
 
         with (
@@ -570,7 +517,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
                 return_value=org_volume,
             ) as get_volume,
             patch(
-                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_sampled_volume",
                 return_value=org_volume,
             ) as get_outcome_volume,
             patch(
@@ -626,7 +573,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         project_balancing.assert_called_once_with(project_config, project_volumes)
         get_cached_sample_rates.assert_called_once_with(org.id)
         compare_rebalanced_projects.assert_called_once_with(
-            project_config, rebalanced_projects, cached_sample_rates
+            project_config, rebalanced_projects, cached_sample_rates, project_volumes
         )
         transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
         transaction_balancing.assert_called_once_with(
@@ -666,7 +613,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         project = self.create_project(organization=org, teams=[])
         org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
         project_volumes = [_project_volume(project.id)]
-        rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=1.0)]
+        rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=0.5)]
         cached_sample_rates: dict[int, float | None] = {}
 
         with (
@@ -675,7 +622,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
                 return_value=1.0,
             ) as get_blended_sample_rate,
             patch(
-                "sentry.dynamic_sampling.per_org.configuration.get_eap_organization_volume",
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
                 return_value=None,
             ),
             patch(
@@ -683,7 +630,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
                 return_value=org_volume,
             ) as get_volume,
             patch(
-                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_sampled_volume",
                 return_value=org_volume,
             ) as get_outcome_volume,
             patch(
@@ -739,9 +686,13 @@ class SchedulePerOrgCalculationsTest(TestCase):
         project_balancing.assert_called_once_with(project_config, project_volumes)
         get_cached_sample_rates.assert_called_once_with(org.id)
         compare_rebalanced_projects.assert_called_once_with(
-            project_config, rebalanced_projects, cached_sample_rates
+            project_config, rebalanced_projects, cached_sample_rates, project_volumes
         )
         transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
+        # Every root project is queried, not only the ones being rebalanced. Narrowing
+        # to `projects_to_balance` drops every segment rooted at a project sampled at
+        # 100%, so those root projects report no transaction volume at all.
+        assert "root_projects" not in get_transaction_volumes.call_args.kwargs
         transaction_balancing.assert_called_once_with(
             transaction_config, project_volumes, get_transaction_volumes.return_value
         )
@@ -812,22 +763,3 @@ class SchedulePerOrgCalculationsTest(TestCase):
 
         assert result == DynamicSamplingStatus.ORG_HAS_NO_DYNAMIC_SAMPLING
         get_volume.assert_not_called()
-
-
-class NextBucketIndexTest(TestCase):
-    def test_uses_redis_cursor(self) -> None:
-        redis = get_redis_client_for_ds()
-        redis.delete(BUCKET_CURSOR_KEY)
-        self.addCleanup(redis.delete, BUCKET_CURSOR_KEY)
-
-        first_cycle = [_next_bucket_index() for _ in range(BUCKET_COUNT)]
-        cursor_after_cycle = redis.get(BUCKET_CURSOR_KEY)
-        next_cycle = [_next_bucket_index() for _ in range(2)]
-        cursor_after_next_cycle = redis.get(BUCKET_CURSOR_KEY)
-
-        assert first_cycle == list(range(BUCKET_COUNT))
-        assert cursor_after_cycle is not None
-        assert int(cursor_after_cycle) == BUCKET_COUNT
-        assert next_cycle == [0, 1]
-        assert cursor_after_next_cycle is not None
-        assert int(cursor_after_next_cycle) == BUCKET_COUNT + 2

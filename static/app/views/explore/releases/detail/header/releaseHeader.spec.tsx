@@ -64,30 +64,28 @@ describe('ReleaseHeader', () => {
   it('renders breadcrumbs with a link to releases and the release version', () => {
     renderHeader();
 
-    const breadcrumbs = screen.getByTestId('breadcrumb-list');
-    expect(within(breadcrumbs).getByRole('link', {name: 'Releases'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: 'Releases'})).toHaveAttribute(
       'href',
       `/organizations/${organization.slug}/explore/releases/?project=${project.id}`
     );
     expect(screen.getByText(release.version)).toBeInTheDocument();
   });
 
-  it('renders breadcrumbs with release version in the top bar when page frame is enabled', () => {
-    const pageFrameOrg = OrganizationFixture({features: ['page-frame']});
+  it('renders breadcrumbs with release version in the top bar', () => {
+    const pageFrameOrg = OrganizationFixture();
     renderHeader(pageFrameOrg);
 
     const topbarSlot = screen.getByTestId('topbar-title-slot');
-    const breadcrumbs = within(topbarSlot).getByTestId('breadcrumb-list');
 
-    expect(within(breadcrumbs).getByRole('link', {name: 'Releases'})).toHaveAttribute(
+    expect(within(topbarSlot).getByRole('link', {name: 'Releases'})).toHaveAttribute(
       'href',
       `/organizations/${pageFrameOrg.slug}/explore/releases/?project=${project.id}`
     );
     expect(within(topbarSlot).getByText(release.version)).toBeInTheDocument();
   });
 
-  it('renders feedback in the top bar feedback slot when page frame is enabled', () => {
-    const pageFrameOrg = OrganizationFixture({features: ['page-frame']});
+  it('renders feedback in the top bar feedback slot', () => {
+    const pageFrameOrg = OrganizationFixture();
     renderHeader(pageFrameOrg);
 
     expect(screen.getByTestId('topbar-feedback-slot')).toBeInTheDocument();

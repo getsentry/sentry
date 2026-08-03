@@ -37,7 +37,6 @@ import {
   useFlamegraph,
 } from 'sentry/views/explore/profiling/flamegraphProvider';
 import {ProfileGroupProvider} from 'sentry/views/explore/profiling/profileGroupProvider';
-import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 
 const PROFILE_TYPE = 'transaction aggregate flamegraph';
 
@@ -46,8 +45,6 @@ const DEFAULT_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
     sorting: 'left heavy' satisfies FlamegraphState['preferences']['sorting'],
   },
 };
-
-const noop = () => void 0;
 
 function isEmpty(resp: Profiling.Schema) {
   const profile = resp.profiles[0];
@@ -75,29 +72,20 @@ function isEmpty(resp: Profiling.Schema) {
 
 interface TransactionProfilesContentProps {
   query: string;
-  transaction: string;
 }
 
 export function TransactionProfilesContent(props: TransactionProfilesContentProps) {
   const organization = useOrganization();
-  const isEAP = useTransactionSummaryEAP();
 
   const query = useMemo(() => {
-    if (!isEAP) {
-      return props.query;
-    }
-
-    // EAP and profiles disagree about the attribute for HTTP method. The
-    // transaction summary uses `request.method`, but profiles uses
-    // `http.method`.
     const search = new MutableSearch(props.query);
     search.renameFilter('request.method', 'http.method');
     return search.formatString();
-  }, [props.query, isEAP]);
+  }, [props.query]);
 
   const {data, error, status} = useAggregateFlamegraphQuery({
     query,
-    ...(isEAP ? {dataSource: 'spans' as const} : {}),
+    dataSource: 'spans',
   });
 
   const [frameFilter, setFrameFilter] = useLocalStorageState<
@@ -174,8 +162,6 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
                   onVisualizationChange={onVisualizationChange}
                   frameFilter={frameFilter}
                   onFrameFilterChange={onFrameFilterChange}
-                  hideSystemFrames={false}
-                  setHideSystemFrames={noop}
                   expanded={showSidePanel}
                   setExpanded={setShowSidePanel}
                 />
@@ -238,12 +224,10 @@ interface AggregateFlamegraphToolbarProps {
   canvasPoolManager: CanvasPoolManager;
   expanded: boolean;
   frameFilter: 'system' | 'application' | 'all';
-  hideSystemFrames: boolean;
   onFrameFilterChange: (value: 'system' | 'application' | 'all') => void;
   onVisualizationChange: (value: 'flamegraph' | 'call tree') => void;
   scheduler: CanvasScheduler;
   setExpanded: (expanded: boolean) => void;
-  setHideSystemFrames: (value: boolean) => void;
   visualization: 'flamegraph' | 'call tree';
 }
 

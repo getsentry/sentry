@@ -1,6 +1,7 @@
 .env
 /v10
 .cache/
+jest-test-files.json
 .code-workspace
 .coverage*
 .DS_Store
@@ -16,6 +17,7 @@ pip-log.txt
 celerybeat-schedule
 sentry-package.json
 /.artifacts
+*.tsbuildinfo
 /coverage/
 /cover
 /build
@@ -57,6 +59,7 @@ Brewfile.lock.json
 bin/rrweb-output
 model-manifest.json
 .mypy_cache
+.mypy_worker.*.json
 .devenv
 .yalc/
 yalc.lock

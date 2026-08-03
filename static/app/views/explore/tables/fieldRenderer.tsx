@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {InfoText} from '@sentry/scraps/info';
 import {Container as ScrapsContainer} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -13,7 +14,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import {EventView} from 'sentry/utils/discover/eventView';
@@ -58,6 +59,7 @@ interface FieldProps {
   meta: MetaType;
   allowActions?: Actions[];
   column?: TableColumn<keyof TableDataRow>;
+  disableTraceLinks?: boolean;
   extraMenuItems?: MenuItemProps[];
   unit?: string;
   usePortalOnDropdown?: boolean;
@@ -69,6 +71,7 @@ export function FieldRenderer({
   unit,
   column,
   allowActions,
+  disableTraceLinks,
   extraMenuItems,
   usePortalOnDropdown,
 }: FieldProps) {
@@ -82,6 +85,7 @@ export function FieldRenderer({
       unit={unit}
       column={column}
       allowActions={allowActions}
+      disableTraceLinks={disableTraceLinks}
       extraMenuItems={extraMenuItems}
       userQuery={userQuery}
       setUserQuery={setUserQuery}
@@ -130,6 +134,7 @@ function BaseExploreFieldRenderer({
   unit,
   column,
   allowActions,
+  disableTraceLinks,
   extraMenuItems,
   userQuery,
   setUserQuery,
@@ -174,7 +179,7 @@ function BaseExploreFieldRenderer({
     rendered = <StyledTimeSince unitStyle="short" date={date} tooltipShowSeconds />;
   }
 
-  if (field === 'trace') {
+  if (field === 'trace' && !disableTraceLinks) {
     if (isPartialSpanOrTraceData(data.timestamp)) {
       const queryString = new MutableSearch('');
 
@@ -187,9 +192,7 @@ function BaseExploreFieldRenderer({
       }
       rendered = (
         <ScrapsContainer maxWidth="fit-content">
-          <Tooltip
-            isHoverable
-            showUnderline
+          <InfoText
             title={
               <Text>
                 {tct(
@@ -214,9 +217,10 @@ function BaseExploreFieldRenderer({
                 )}
               </Text>
             }
+            variant="muted"
           >
-            <Text variant="muted">{rendered}</Text>
-          </Tooltip>
+            {rendered}
+          </InfoText>
         </ScrapsContainer>
       );
     } else {
@@ -233,7 +237,7 @@ function BaseExploreFieldRenderer({
     }
   }
 
-  if (['id', 'span_id', 'transaction.id'].includes(field)) {
+  if (!disableTraceLinks && ['id', 'span_id', 'transaction.id'].includes(field)) {
     const spanId = field === 'transaction.id' ? undefined : (data.span_id ?? data.id);
 
     if (isPartialSpanOrTraceData(data.timestamp)) {
@@ -253,9 +257,7 @@ function BaseExploreFieldRenderer({
 
       rendered = (
         <ScrapsContainer maxWidth="fit-content">
-          <Tooltip
-            isHoverable
-            showUnderline
+          <InfoText
             title={
               <Text>
                 {tct('Span is older than 30 days. [similarSpans] in the past 24 hours.', {
@@ -276,9 +278,10 @@ function BaseExploreFieldRenderer({
                 })}
               </Text>
             }
+            variant="muted"
           >
-            <Text variant="muted">{rendered}</Text>
-          </Tooltip>
+            {rendered}
+          </InfoText>
         </ScrapsContainer>
       );
     } else {
@@ -295,10 +298,10 @@ function BaseExploreFieldRenderer({
 
       rendered = <Link to={target}>{rendered}</Link>;
     }
+  }
 
-    if (field === 'id') {
-      return rendered;
-    }
+  if (field === 'id') {
+    return rendered;
   }
 
   return (

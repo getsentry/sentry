@@ -15,8 +15,8 @@ import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -46,13 +46,14 @@ import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/de
 import {AIInputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
 import {AIIOAlert} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiIOAlert';
 import {AIOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
-import {Attributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/attributes';
+import {AttributesSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/attributes';
 import {Contexts} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/contexts';
 import {MCPInputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/mcpInput';
 import {MCPOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/mcpOutput';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {BreadCrumbs} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/breadCrumbs';
 import {ReplayPreview} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/replayPreview';
+import {findSpanAttributeValue} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
@@ -67,6 +68,7 @@ import {Alerts} from './sections/alerts';
 import {SpanDescription} from './sections/description';
 import {GeneralInfo} from './sections/generalInfo';
 import {hasSpanHTTPInfo, SpanHTTPInfo} from './sections/http';
+import {HttpErrorCard} from './sections/httpErrorCard';
 import {hasSpanKeys, SpanKeys} from './sections/keys';
 import {hasSpanMeasurements, Measurements} from './sections/measurements';
 import {hasSpanTags, Tags} from './sections/tags';
@@ -81,7 +83,6 @@ function SpanSections({
   node: SpanNode;
   onParentClick: (node: BaseNode) => void;
   organization: Organization;
-  project: Project | undefined;
 }) {
   const theme = useTheme();
 
@@ -122,7 +123,6 @@ function SpanSections({
 export function SpanNodeDetails(props: TraceTreeNodeDetailsProps<SpanNode>) {
   const {node, organization} = props;
   const location = useLocation();
-  const theme = useTheme();
   const {projects} = useProjects();
   const issues = node.uniqueIssues;
 
@@ -184,7 +184,6 @@ export function SpanNodeDetails(props: TraceTreeNodeDetailsProps<SpanNode>) {
                   project={project}
                   issues={issues}
                   location={location}
-                  theme={theme}
                 />
               </LogsPageDataProvider>
             </LogsQueryParamsProvider>
@@ -209,7 +208,6 @@ function SpanNodeDetailsContent({
   issues: TraceTree.TraceIssue[];
   location: Location;
   project: Project | undefined;
-  theme: Theme;
 }) {
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -239,6 +237,7 @@ function SpanNodeDetailsContent({
         {issues.length > 0 ? (
           <IssueList organization={organization} issues={issues} node={node} />
         ) : null}
+        {node.hasHttpError && issues.length === 0 ? <HttpErrorCard node={node} /> : null}
         <SpanDescription
           node={node}
           project={project}
@@ -259,7 +258,6 @@ function SpanNodeDetailsContent({
         <MCPOutputSection node={node} />
         <SpanSections
           node={node}
-          project={project}
           organization={organization}
           location={location}
           onParentClick={onParentClick}
@@ -281,8 +279,8 @@ function SpanNodeDetailsContent({
   );
 }
 
-function useAvgSpanDuration(
-  span: TraceTree.EAPSpan,
+export function useAvgSpanDuration(
+  span: TraceTree.EAPSpan | undefined,
   location: Location
 ): number | undefined {
   const dataset = useSpansDataset();
@@ -290,15 +288,15 @@ function useAvgSpanDuration(
   const eventView = useMemo(() => {
     const search = new MutableSearch('');
 
-    search.addFilterValue('span.op', span.op);
-    search.addFilterValue('span.description', span.description ?? '');
+    search.addFilterValue('span.op', span?.op ?? '');
+    search.addFilterValue('span.description', span?.description ?? '');
 
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Trace View - Span Avg Duration',
       fields: ['avg(span.duration)'],
       query: search.formatString(),
-      projects: [span.project_id],
+      projects: span ? [span.project_id] : [],
       version: 2,
       range: '24h',
       dataset,
@@ -308,7 +306,7 @@ function useAvgSpanDuration(
   }, [span, location, dataset]);
 
   const result = useSpansQueryWithoutPageFilters({
-    enabled: !!span.description && !!span.op,
+    enabled: !!span?.description && !!span?.op,
     eventView,
     initialData: [],
     referrer: 'api.explore.spans-aggregates-table', // TODO: replace with trace span details referrer
@@ -469,7 +467,7 @@ function EAPSpanNodeDetailsContent({
   );
 
   const links = traceItemData.links;
-  const isTransaction = node.value.is_transaction && !!eventTransaction;
+  const isTransaction = node.value.is_transaction;
 
   const threadIdAttribute = attributesMap['thread.id'];
   const threadId = typeof threadIdAttribute === 'string' ? threadIdAttribute : undefined;
@@ -503,13 +501,29 @@ function EAPSpanNodeDetailsContent({
     }
   }, [hasProfileDetails, hasLogDetails, organization]);
 
-  const isSdkSentV2Span =
-    // The presence of this attribute indicates that the EAP span was sent as a v2 span
-    // from SDKs rather than an SDK-sent transaction converted to EAP spans during ingestion.
-    attributesMap.observed_timestamp_nanos &&
-    // Furthermore, to distinguish between v2 and v1 web vital spans, we can check that the old
-    // report_event only sent on v1 spans attribute is undefined
-    !attributesMap.report_event;
+  const genAiOperationType = attributesMap['gen_ai.operation.type'];
+  useEffect(() => {
+    // Skip when rendered outside the waterfall drawer (e.g. the AI tab and
+    // conversations views render the same details with node actions hidden).
+    if (hideNodeActions) {
+      return;
+    }
+    if (typeof genAiOperationType === 'string' && genAiOperationType) {
+      traceAnalytics.trackGenAISpanDetailsViewed(organization, genAiOperationType);
+    }
+  }, [genAiOperationType, organization, hideNodeActions]);
+
+  const isSdkSentStreamedSpan =
+    // Sent by span-streaming-configured SDKs to explicitly indicate a streamed span:
+    attributesMap.trace_lifecycle === 'stream' ||
+    // If the attribute is not set, we fall back to infer the original span type from other attributes:
+    (!attributesMap.trace_lifecycle &&
+      // The presence of this attribute indicates that the EAP span was sent as a v2 span
+      // from SDKs rather than an SDK-sent transaction converted to EAP spans during ingestion.
+      attributesMap.observed_timestamp_nanos &&
+      // Furthermore, to distinguish between v2 and v1 web vital spans, we can check that the old
+      // report_event only sent on v1 spans attribute is undefined
+      !attributesMap.report_event);
 
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -518,7 +532,7 @@ function EAPSpanNodeDetailsContent({
           <TraceDrawerComponents.LegacyTitleText>
             <TraceDrawerComponents.TitleText>
               {t('Span')}
-              {isSdkSentV2Span && (
+              {isSdkSentStreamedSpan && (
                 <Fragment>
                   {' '}
                   <Tooltip title={t('Streamed Span')}>
@@ -538,7 +552,7 @@ function EAPSpanNodeDetailsContent({
             node={node}
             organization={organization}
             onTabScrollToNode={onTabScrollToNode}
-            showJSONLink={node.value.is_transaction}
+            showJSONLink={isTransaction}
             profileId={node.profileId}
             profilerId={node.profilerId}
             threadId={threadId}
@@ -549,6 +563,7 @@ function EAPSpanNodeDetailsContent({
         {issues.length > 0 ? (
           <IssueList organization={organization} issues={issues} node={node} />
         ) : null}
+        {node.hasHttpError && issues.length === 0 ? <HttpErrorCard node={node} /> : null}
         <EAPSpanDescription
           node={node}
           project={project}
@@ -571,7 +586,7 @@ function EAPSpanNodeDetailsContent({
         />
         <MCPInputSection node={node} attributes={attributes} />
         <MCPOutputSection node={node} attributes={attributes} />
-        <Attributes
+        <AttributesSection
           node={node}
           attributes={attributes}
           theme={theme}
@@ -580,7 +595,9 @@ function EAPSpanNodeDetailsContent({
           project={project}
         />
 
-        {isTransaction ? <Contexts event={eventTransaction} project={project} /> : null}
+        {isTransaction && eventTransaction ? (
+          <Contexts event={eventTransaction} project={project} />
+        ) : null}
 
         <LogDetails />
 
@@ -607,10 +624,17 @@ function EAPSpanNodeDetailsContent({
         ) : null}
 
         {isTransaction ? (
-          <ReplayPreview event={eventTransaction} organization={organization} />
+          <ReplayPreview
+            replayId={
+              findSpanAttributeValue(attributes, 'replay.id') ||
+              findSpanAttributeValue(attributes, 'replayId')
+            }
+            eventTimestampMs={Math.floor(node.value.start_timestamp * 1000)}
+            organization={organization}
+          />
         ) : null}
 
-        {isTransaction && project ? (
+        {isTransaction && eventTransaction && project ? (
           <EventAttachments
             event={eventTransaction}
             project={project}
@@ -618,9 +642,11 @@ function EAPSpanNodeDetailsContent({
           />
         ) : null}
 
-        {isTransaction ? <BreadCrumbs event={eventTransaction} /> : null}
+        {isTransaction && eventTransaction ? (
+          <BreadCrumbs event={eventTransaction} />
+        ) : null}
 
-        {isTransaction && project ? (
+        {isTransaction && eventTransaction && project ? (
           <EventViewHierarchy
             event={eventTransaction}
             project={project}
@@ -628,7 +654,7 @@ function EAPSpanNodeDetailsContent({
           />
         ) : null}
 
-        {isTransaction && eventTransaction.projectSlug ? (
+        {isTransaction && eventTransaction?.projectSlug ? (
           <EventRRWebIntegration
             event={eventTransaction}
             orgId={organization.slug}

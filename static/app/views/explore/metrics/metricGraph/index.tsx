@@ -4,7 +4,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
@@ -12,6 +12,8 @@ import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesW
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
+import {doesMetricSupportHeatMapVisualization} from 'sentry/views/explore/metrics/constants';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {canUseMetricsHeatMap} from 'sentry/views/explore/metrics/metricsFlags';
 import {
   useMetricLabel,
@@ -45,24 +47,50 @@ import {
   ChartType,
   useSynchronizeCharts,
 } from 'sentry/views/insights/common/components/chart';
-import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 import {WidgetWrapper} from './styles';
 
-export function getMetricsChartTypeOptions(organization: Organization) {
+export function getMetricsChartTypeOptions(
+  organization: Organization,
+  isEquation: boolean,
+  metric?: TraceMetric
+) {
   if (canUseMetricsHeatMap(organization)) {
+    const disabledReason = getVisualizationTypeDisabledReason(isEquation, metric);
     return [
       ...EXPLORE_CHART_TYPE_OPTIONS,
-      {value: ChartType.HEATMAP, label: t('Heat Map')},
+      {
+        value: ChartType.HEATMAP,
+        label: t('Heatmap'),
+        disabled: defined(disabledReason),
+        tooltip: disabledReason,
+      },
     ];
   }
   return EXPLORE_CHART_TYPE_OPTIONS;
 }
 
+function getVisualizationTypeDisabledReason(
+  isEquation: boolean,
+  metric?: TraceMetric
+): string | undefined {
+  if (isEquation) {
+    return t('Heatmaps are not available for equations.');
+  }
+  if (!metric) {
+    return t('Select a metric to visualize it as a heatmap.');
+  }
+  if (!doesMetricSupportHeatMapVisualization(metric)) {
+    return t('Heatmaps can only visualize distribution metrics.');
+  }
+  return undefined;
+}
+
 interface MetricsGraphProps {
   actions: React.ReactNode;
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  timeseriesResult: SortedTimeSeries;
   isMetricOptionsEmpty?: boolean;
   title?: string;
 }
@@ -97,7 +125,7 @@ export function MetricsGraph({
 
 interface GraphProps {
   actions: React.ReactNode;
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  timeseriesResult: SortedTimeSeries;
   visualize: ReturnType<typeof useMetricVisualize>;
   visualizes: ReturnType<typeof useMetricVisualizes>;
   isMetricOptionsEmpty?: boolean;

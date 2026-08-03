@@ -129,7 +129,6 @@ export default function ProjectAlertsEditor() {
                 organization={organization}
                 project={project}
                 onChangeTitle={setTitle}
-                userTeamIds={teams.map(({id}) => id)}
               />
             )}
             {alertType === CombinedAlertType.UPTIME && (
@@ -142,7 +141,6 @@ export default function ProjectAlertsEditor() {
                 routeParams={params}
                 organization={organization}
                 onChangeTitle={setTitle}
-                userTeamIds={teams.map(({id}) => id)}
               />
             )}
             {alertType === CombinedAlertType.CRONS && (

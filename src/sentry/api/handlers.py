@@ -5,6 +5,7 @@ from rest_framework.views import exception_handler
 from sentry.search.events.constants import RATE_LIMIT_ERROR_MESSAGE
 from sentry.types.ratelimit import SnubaRateLimitMeta
 from sentry.utils.snuba import RateLimitExceeded
+from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 
 
 def custom_exception_handler(exc, context):
@@ -32,6 +33,16 @@ def custom_exception_handler(exc, context):
                 level="warning",
             )
         # let the client know that they've been rate limited with details
+        exc = Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
+
+    if isinstance(exc, SnubaRPCRateLimitExceeded):
+        # capture the rate limited exception so we can see it in Sentry
+        with sentry_sdk.new_scope() as scope:
+            scope.fingerprint = ["snuba-rpc-rate-limit-exceeded"]
+            sentry_sdk.capture_exception(
+                exc,
+                level="warning",
+            )
         exc = Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
 
     response = exception_handler(exc, context)

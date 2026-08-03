@@ -19,7 +19,7 @@ class PlatformExternalIssueSerializerResponse(TypedDict):
 
 
 @register(PlatformExternalIssue)
-class PlatformExternalIssueSerializer(Serializer):
+class PlatformExternalIssueSerializer(Serializer[PlatformExternalIssueSerializerResponse]):
     def serialize(
         self,
         obj: PlatformExternalIssue | RpcPlatformExternalIssue,

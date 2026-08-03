@@ -7,7 +7,6 @@ from enum import StrEnum
 from typing import Any, MutableMapping
 from urllib.parse import urljoin
 
-import sentry_sdk
 from django.conf import settings
 from django.http import HttpRequest, HttpResponseBadRequest, StreamingHttpResponse
 from requests import Request, Response
@@ -40,11 +39,14 @@ from sentry.silo.util import (
     PROXY_OI_HEADER,
     PROXY_PATH,
     PROXY_SIGNATURE_HEADER,
+    PROXY_TIMEOUT_HEADER,
     clean_outbound_headers,
+    decode_proxy_timeout,
     trim_leading_slashes,
     verify_subnet_signature,
 )
 from sentry.utils import metrics
+from sentry.utils.tracing import trace
 
 logger = logging.getLogger(__name__)
 
@@ -258,13 +260,18 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             return False
         return True
 
-    @sentry_sdk.trace
+    @trace
     def _call_third_party_api(
         self, request: HttpRequest, full_url: str, headers: MutableMapping[str, str]
     ) -> StreamingHttpResponse:
         prepared_request = Request(
             method=request.method, url=full_url, headers=headers, data=request.body
         ).prepare()
+
+        # Honor the timeout the original caller forwarded so the downstream
+        # request can stay open as long as intended. Falls back to the client's
+        # default timeout when the header is absent or unparseable.
+        timeout = decode_proxy_timeout(request.headers.get(PROXY_TIMEOUT_HEADER))
 
         resp: Response = self.client.request(
             request.method,
@@ -273,6 +280,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             prepared_request=prepared_request,
             raw_response=True,
             stream=True,
+            timeout=timeout,
         )
 
         def iter_response(response: Response) -> Generator[bytes]:
@@ -293,7 +301,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             reason=resp.reason,
         )
 
-    @sentry_sdk.trace(op="integration_proxy.http_method_not_allowed")
+    @trace(op="integration_proxy.http_method_not_allowed")
     def http_method_not_allowed(self, request):
         """
         Catch-all workaround instead of explicitly setting handlers for each method (GET, POST, etc.)

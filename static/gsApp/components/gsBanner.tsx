@@ -12,13 +12,7 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
-import type {PromptData} from 'sentry/actionCreators/prompts';
-import {
-  batchedPromptsCheck,
-  promptsCheck,
-  promptsUpdate,
-} from 'sentry/actionCreators/prompts';
+import {batchedPromptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import type {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -33,20 +27,13 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {withApi} from 'sentry/utils/withApi';
 
-import {
-  openForcedTrialModal,
-  openPartnerPlanEndingModal,
-  openTrialEndingModal,
-} from 'getsentry/actionCreators/modal';
+import {openTrialEndingModal} from 'getsentry/actionCreators/modal';
 import type {EventType} from 'getsentry/components/addEventsCTA';
-import AddEventsCTA from 'getsentry/components/addEventsCTA';
 import {ProductTrialAlert} from 'getsentry/components/productTrial/productTrialAlert';
 import {getProductForPath} from 'getsentry/components/productTrial/productTrialPaths';
 import {makeLinkToOwnersAndBillingMembers} from 'getsentry/components/profiling/alerts';
 import {withSubscription} from 'getsentry/components/withSubscription';
-import {ZendeskLink} from 'getsentry/components/zendeskLink';
 import {BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
-import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {
   type BilledDataCategoryInfo,
   type Promotion,
@@ -54,27 +41,18 @@ import {
   type Subscription,
 } from 'getsentry/types';
 import {
-  getContractDaysLeft,
   getProductTrial,
-  getTrialLength,
-  hasPartnerMigrationFeature,
-  hasPerformance,
   isBusinessTrial,
-  partnerPlanEndingModalIsDismissed,
   trialPromptIsDismissed,
 } from 'getsentry/utils/billing';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 import {getPendoAccountFields} from 'getsentry/utils/pendo';
 import {claimAvailablePromotion} from 'getsentry/utils/promotionUtils';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
-import {trackMarketingEvent} from 'getsentry/utils/trackMarketingEvent';
 import {withPromotions} from 'getsentry/utils/withPromotions';
 
 enum ModalType {
-  USAGE_EXCEEDED = 'usage-exceeded',
-  GRACE_PERIOD = 'grace-period',
   PAST_DUE = 'past-due',
-  MEMBER_LIMIT = 'member-limit',
 }
 
 /**
@@ -94,8 +72,6 @@ function objectFromBilledCategories(callback: (c: BilledDataCategoryInfo) => any
   );
 }
 
-const ALERTS_OFF = objectFromBilledCategories(() => false);
-
 type SuspensionModalProps = ModalRenderProps & {
   organization: Organization;
   subscription: Subscription;
@@ -108,16 +84,12 @@ function SuspensionModal({
   organization,
   subscription,
 }: SuspensionModalProps) {
-  const hasIntercom = organization.features.includes('intercom-support');
-
   useEffect(() => {
-    if (hasIntercom) {
-      trackGetsentryAnalytics('intercom_link.viewed', {
-        organization,
-        source: 'account-suspension',
-      });
-    }
-  }, [hasIntercom, organization]);
+    trackGetsentryAnalytics('intercom_link.viewed', {
+      organization,
+      source: 'account-suspension',
+    });
+  }, [organization]);
 
   async function handleIntercomClick() {
     trackGetsentryAnalytics('intercom_link.clicked', {
@@ -154,17 +126,7 @@ function SuspensionModal({
         </p>
       </Body>
       <Footer>
-        {hasIntercom ? (
-          <Button onClick={handleIntercomClick}>{t('Contact Support')}</Button>
-        ) : (
-          <ZendeskLink
-            subject="Account Suspension"
-            Component={props => <LinkButton {...props} href={props.href ?? ''} />}
-            source="account-suspension"
-          >
-            {t('Contact Support')}
-          </ZendeskLink>
-        )}
+        <Button onClick={handleIntercomClick}>{t('Contact Support')}</Button>
       </Footer>
     </Fragment>
   );
@@ -173,7 +135,6 @@ function SuspensionModal({
 type NoticeModalProps = ModalRenderProps & {
   billingPermissions: boolean;
   organization: Organization;
-  subscription: Subscription;
   whichModal: ModalType;
 };
 
@@ -182,7 +143,6 @@ function NoticeModal({
   Body,
   Footer,
   closeModal,
-  subscription,
   organization,
   whichModal,
   billingPermissions,
@@ -226,25 +186,6 @@ function NoticeModal({
   let primaryButtonMessage: React.ReactNode;
 
   switch (whichModal) {
-    case ModalType.GRACE_PERIOD:
-      title = t('Grace period started');
-      body = tct(
-        `Your organization has depleted its error capacity for the current usage period.
-          We've put your account into a one time grace period, which will continue to accept errors at a limited rate.
-          This grace period ends on [gracePeriodEnd].`,
-        {gracePeriodEnd: moment(subscription.gracePeriodEnd).format('ll')}
-      );
-      link = normalizeUrl(`/settings/${organization.slug}/billing/overview/`);
-      primaryButtonMessage = t('Continue');
-      break;
-    case ModalType.USAGE_EXCEEDED:
-      title = t('Usage exceeded');
-      body = t(
-        'Your organization has depleted its event capacity for the current usage period and is currently not receiving new events.'
-      );
-      link = normalizeUrl(`/settings/${organization.slug}/billing/overview/`);
-      primaryButtonMessage = t('Continue');
-      break;
     case ModalType.PAST_DUE:
       title = t('Unable to bill your account');
       body = billingPermissions
@@ -263,36 +204,7 @@ function NoticeModal({
         ? t('Update Billing Details')
         : t('See Who Can Update');
       break;
-    case ModalType.MEMBER_LIMIT:
-      title = t('Member limit exceeded');
-      body = t(
-        `You organization has more members than your current subscription
-          allows. You will need to upgrade your subscription to ensure everyone
-          has access to Sentry.`
-      );
-      link = normalizeUrl(`/settings/${organization.slug}/billing/overview/`);
-      primaryButtonMessage = t('Continue');
-      break;
     default:
-  }
-
-  if (subscription.usageExceeded || subscription.isGracePeriod) {
-    if (subscription.isFree) {
-      subText = subscription.canTrial
-        ? t(
-            `Not yet ready to upgrade? You can start a free %s-day trial with
-               unlimited events to better understand your usage.`,
-            getTrialLength(organization)
-          )
-        : t('To ensure uninterrupted service, upgrade your subscription.');
-    } else {
-      subText = tct(
-        'To ensure uninterrupted service, upgrade your subscription or increase your [budgetTerm] spend limit.',
-        {
-          budgetTerm: subscription.planDetails.budgetTerm,
-        }
-      );
-    }
   }
 
   return (
@@ -336,8 +248,6 @@ type Props = {
 
 type State = {
   deactivatedMemberDismissed: boolean;
-  overageAlertDismissed: Record<EventType, boolean>;
-  overageWarningDismissed: Record<EventType, boolean>;
   productTrialDismissed: Record<EventType, boolean>;
 };
 
@@ -345,8 +255,6 @@ class GSBanner extends Component<Props, State> {
   // assume dismissed until we've checked the backend
   state: State = {
     deactivatedMemberDismissed: true,
-    overageAlertDismissed: objectFromBilledCategories(() => true),
-    overageWarningDismissed: objectFromBilledCategories(() => true),
     productTrialDismissed: objectFromBilledCategories(() => true),
   };
   async componentDidMount() {
@@ -359,28 +267,8 @@ class GSBanner extends Component<Props, State> {
       this.tryTriggerTrialEndingModal();
       this.tryTriggerSuspendedModal();
       this.tryTriggerNoticeModal();
-      this.tryTriggerForcedTrial();
-      this.tryTriggerForcedTrialModal();
-      this.tryTriggerPartnerPlanEndingModal();
     }
     await this.checkPrompts();
-
-    // must happen after prompts check
-    if (this.overageAlertType !== null) {
-      const {organization, subscription} = this.props;
-      const isWarning = this.overageAlertType === 'warning';
-      const eventTypes = Object.entries(
-        isWarning ? this.overageWarningActive : this.overageAlertActive
-      )
-        .filter(([_, value]) => value)
-        .map(([key, _]) => key as EventType);
-      trackGetsentryAnalytics('quota_alert.alert_displayed', {
-        organization,
-        subscription,
-        event_types: eventTypes.sort().join(','),
-        is_warning: isWarning,
-      });
-    }
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -478,47 +366,6 @@ class GSBanner extends Component<Props, State> {
     openTrialEndingModal({organization});
   }
 
-  async tryTriggerPartnerPlanEndingModal() {
-    const {organization, subscription, api} = this.props;
-    const hasEndingPartnerPlan = hasPartnerMigrationFeature(organization);
-    const hasPendingUpgrade =
-      subscription.pendingChanges !== null &&
-      subscription.pendingChanges?.planDetails.price > 0;
-    const daysLeft = getContractDaysLeft(subscription);
-
-    const showPartnerPlanEndingNotice =
-      subscription.partner !== null &&
-      !hasPendingUpgrade &&
-      daysLeft >= 0 &&
-      daysLeft <= 30 &&
-      subscription.partner.isActive &&
-      hasEndingPartnerPlan;
-
-    if (!showPartnerPlanEndingNotice) {
-      return;
-    }
-
-    let hasDismissed = true;
-    const prompt = await promptsCheck(api, {
-      organization,
-      feature: 'partner_plan_ending_modal',
-    });
-
-    if (daysLeft > 7) {
-      hasDismissed = partnerPlanEndingModalIsDismissed(prompt, subscription, 'month');
-    } else if (daysLeft > 2) {
-      hasDismissed = partnerPlanEndingModalIsDismissed(prompt, subscription, 'week');
-    } else if (daysLeft > 0) {
-      hasDismissed = partnerPlanEndingModalIsDismissed(prompt, subscription, 'two');
-    } else if (daysLeft === 0) {
-      hasDismissed = partnerPlanEndingModalIsDismissed(prompt, subscription, 'zero');
-    }
-
-    if (!hasDismissed) {
-      openPartnerPlanEndingModal({organization, subscription});
-    }
-  }
-
   tryTriggerSuspendedModal() {
     const {organization, subscription} = this.props;
 
@@ -538,22 +385,10 @@ class GSBanner extends Component<Props, State> {
   tryTriggerNoticeModal() {
     const {organization, subscription} = this.props;
 
-    const whichModal = subscription.isGracePeriod
-      ? ModalType.GRACE_PERIOD
-      : subscription.usageExceeded
-        ? ModalType.USAGE_EXCEEDED
-        : subscription.isPastDue && subscription.canSelfServe
-          ? ModalType.PAST_DUE
-          : null;
+    const whichModal =
+      subscription.isPastDue && subscription.canSelfServe ? ModalType.PAST_DUE : null;
 
     if (whichModal === null) {
-      return;
-    }
-    // Only show USAGE_EXCEEDED or PAST_DUE for members
-    if (
-      !this.hasBillingPerms &&
-      !(ModalType.USAGE_EXCEEDED || whichModal === ModalType.PAST_DUE)
-    ) {
       return;
     }
 
@@ -565,8 +400,6 @@ class GSBanner extends Component<Props, State> {
     }
 
     const modalAnalytics = {
-      [ModalType.GRACE_PERIOD]: 'grace_period_modal.seen',
-      [ModalType.USAGE_EXCEEDED]: 'usage_exceeded_modal.seen',
       [ModalType.PAST_DUE]: 'past_due_modal.seen',
     } as const;
 
@@ -596,72 +429,10 @@ class GSBanner extends Component<Props, State> {
 
     openModal(
       props => (
-        <NoticeModal
-          {...props}
-          {...{organization, subscription, whichModal, billingPermissions}}
-        />
+        <NoticeModal {...props} {...{organization, whichModal, billingPermissions}} />
       ),
       {onClose}
     );
-  }
-
-  async tryTriggerForcedTrial() {
-    const {organization, subscription, api} = this.props;
-    const user = ConfigStore.get('user');
-
-    // check for required conditions of triggering a forced trial of any type
-    const considerTrigger =
-      subscription.canSelfServe && // must be self serve
-      subscription.isFree && // must be on Developer plan
-      !subscription.isTrial && // don't trigger if already on a trial
-      hasPerformance(subscription.planDetails) &&
-      !subscription.isExemptFromForcedTrial && // orgs who ever did enterprise trials are exempt
-      !user?.isSuperuser; // never trigger for superusers
-
-    if (!considerTrigger) {
-      return;
-    }
-
-    // mutliple possible trial endpoints depending on the situation
-    let endpoint: string;
-    // check for restricted integration
-    if (subscription.hasRestrictedIntegration) {
-      endpoint = `/organizations/${organization.slug}/restricted-integration-trial/`;
-      // only trigger if member limit is 1 and we have multiple licenses used
-    } else if (subscription.totalLicenses === 1 && subscription.usedLicenses > 1) {
-      endpoint = `/organizations/${organization.slug}/over-member-limit-trial/`;
-    } else {
-      return;
-    }
-
-    try {
-      await api.requestPromise(endpoint, {
-        method: 'POST',
-      });
-
-      trackMarketingEvent('Start Trial');
-
-      // Refresh organization and subscription state
-      // do not mark the trial since we have this modal
-      SubscriptionStore.loadData(organization.slug, null);
-      fetchOrganizationDetails(api, organization.slug);
-
-      openForcedTrialModal({organization});
-    } catch (error) {
-      // let check fail but capture exception
-      Sentry.captureException(error);
-    }
-  }
-
-  tryTriggerForcedTrialModal() {
-    const {subscription, organization} = this.props;
-    if (
-      subscription.isTrial &&
-      subscription.isForcedTrial &&
-      !subscription.hasDismissedForcedTrialNotice
-    ) {
-      openForcedTrialModal({organization});
-    }
   }
 
   async checkPrompts() {
@@ -671,8 +442,6 @@ class GSBanner extends Component<Props, State> {
       return;
     }
 
-    const category_overage_prompts: string[] = [];
-    const category_warning_prompts: string[] = [];
     const category_product_trial_prompts: string[] = [];
 
     Object.values(BILLED_DATA_CATEGORY_INFO)
@@ -683,8 +452,6 @@ class GSBanner extends Component<Props, State> {
       )
       .forEach(categoryInfo => {
         const snakeCasePlural = snakeCase(categoryInfo.plural);
-        category_overage_prompts.push(`${snakeCasePlural}_overage_alert`);
-        category_warning_prompts.push(`${snakeCasePlural}_warning_alert`);
         if (categoryInfo.canProductTrial) {
           category_product_trial_prompts.push(`${snakeCasePlural}_product_trial_alert`);
         }
@@ -696,12 +463,6 @@ class GSBanner extends Component<Props, State> {
         [
           'deactivated_member_alert',
 
-          // overage alerts
-          ...category_overage_prompts,
-
-          // warning alerts
-          ...category_warning_prompts,
-
           // product trial alerts
           ...category_product_trial_prompts,
         ],
@@ -710,34 +471,10 @@ class GSBanner extends Component<Props, State> {
         }
       );
 
-      // overage notifications should get reset when ondemand period ends
-      const promptIsDismissedForBillingPeriod = (prompt: PromptData) => {
-        const {snoozedTime, dismissedTime} = prompt || {};
-        // TODO: dismissed prompt should always return false
-        const time = snoozedTime || dismissedTime;
-        if (!time) {
-          return false;
-        }
-        const onDemandPeriodEnd = new Date(subscription.onDemandPeriodEnd);
-        onDemandPeriodEnd.setHours(23, 59, 59);
-        return time <= onDemandPeriodEnd.getTime() / 1000;
-      };
-
       this.setState({
         // not billing related prompt checks
         deactivatedMemberDismissed: promptIsDismissed(
           checkResults.deactivated_member_alert!
-        ),
-        // billing period related prompt checks
-        overageAlertDismissed: objectFromBilledCategories(c =>
-          promptIsDismissedForBillingPeriod(
-            checkResults[`${snakeCase(c.plural)}_overage_alert`]!
-          )
-        ),
-        overageWarningDismissed: objectFromBilledCategories(c =>
-          promptIsDismissedForBillingPeriod(
-            checkResults[`${snakeCase(c.plural)}_warning_alert`]!
-          )
         ),
         productTrialDismissed: objectFromBilledCategories(c =>
           trialPromptIsDismissed(
@@ -750,104 +487,6 @@ class GSBanner extends Component<Props, State> {
       // let check fail but capture exception
       Sentry.captureException(error);
     }
-  }
-
-  get overageAlertActive(): Record<EventType, boolean> {
-    const {subscription} = this.props;
-    if (subscription.hasOverageNotificationsDisabled) {
-      return ALERTS_OFF;
-    }
-    return objectFromBilledCategories(
-      c =>
-        !this.state.overageAlertDismissed[c.singular as EventType] &&
-        !!subscription.categories[c.plural]?.usageExceeded
-    );
-  }
-
-  get overageWarningActive(): Record<EventType, boolean> {
-    const {subscription} = this.props;
-    // disable warnings if org has PAYG
-    if (
-      subscription.hasOverageNotificationsDisabled ||
-      subscription.onDemandMaxSpend > 0
-    ) {
-      return ALERTS_OFF;
-    }
-    return objectFromBilledCategories(
-      c =>
-        !this.state.overageWarningDismissed[c.singular as EventType] &&
-        !!subscription.categories[c.plural]?.sentUsageWarning
-    );
-  }
-
-  // Returns true for overage alert, false for overage warning, and null if we don't show anything.
-  get overageAlertType(): 'critical' | 'warning' | null {
-    const {subscription} = this.props;
-    if (!hasPerformance(subscription.planDetails)) {
-      return null;
-    }
-    if (!subscription.canSelfServe) {
-      return null;
-    }
-    if (Object.values(this.overageAlertActive).some(Boolean)) {
-      return 'critical';
-    }
-
-    if (Object.values(this.overageWarningActive).some(Boolean)) {
-      return 'warning';
-    }
-    return null;
-  }
-
-  renderOverageAlertPrimaryCTA(eventTypes: EventType[], isWarning: boolean) {
-    const {subscription, organization} = this.props;
-
-    // can't use as const with ternary
-    const notificationType = isWarning ? 'overage_warning' : 'overage_critical';
-
-    const props = {
-      organization,
-      subscription,
-      eventTypes,
-      notificationType,
-      referrer: `overage-alert-${eventTypes.join('-')}`,
-      source: isWarning ? 'quota-warning' : 'quota-overage',
-      handleRequestSent: () => this.handleOverageSnooze(eventTypes, isWarning),
-    } as const;
-
-    return <AddEventsCTA {...props} />;
-  }
-
-  handleOverageSnooze(eventTypes: EventType[], isWarning: boolean) {
-    const {organization, api} = this.props;
-    const dismissState = isWarning
-      ? this.state.overageWarningDismissed
-      : this.state.overageAlertDismissed;
-
-    for (const eventType of eventTypes) {
-      if (dismissState[eventType]) {
-        // This type of event is already dismissed. Skip.
-        continue;
-      }
-      const key = isWarning ? 'warning' : 'overage';
-
-      const featureMap = objectFromBilledCategories(
-        c => `${snakeCase(c.plural)}_${key}_alert`
-      );
-
-      promptsUpdate(api, {
-        organization,
-        feature: featureMap[eventType],
-        status: 'snoozed',
-      });
-    }
-
-    const dismissedState = objectFromBilledCategories(() => true);
-    // Suppress all warnings and alerts
-    this.setState({
-      overageAlertDismissed: dismissedState,
-      overageWarningDismissed: dismissedState,
-    });
   }
 
   handleSnoozeMemberDeactivatedAlert = () => {
@@ -1036,15 +675,6 @@ class GSBanner extends Component<Props, State> {
     }
 
     const productTrialAlerts = this.renderProductTrialAlerts();
-
-    const overageAlertType = this.overageAlertType;
-    if (overageAlertType !== null) {
-      return (
-        <Fragment>
-          {productTrialAlerts && productTrialAlerts.length > 0 && productTrialAlerts}
-        </Fragment>
-      );
-    }
 
     const {membersDeactivatedFromLimit} = subscription;
     const isOverMemberLimit = membersDeactivatedFromLimit > 0;

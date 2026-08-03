@@ -3,8 +3,8 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {TransactionsList} from 'sentry/components/discover/transactionsList';
 import {EventView} from 'sentry/utils/discover/eventView';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 function WrapperComponent(props: any) {
   return (
@@ -293,7 +293,7 @@ describe('TransactionsList', () => {
 
       expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
 
-      const gridCells = screen.getAllByTestId('grid-cell');
+      const gridCells = await screen.findAllByTestId('grid-cell');
       expect(gridCells.map(e => e.textContent)).toEqual(['/a', '100', '/b', '1,000']);
 
       const filterDropdown = screen.getByRole('button', {

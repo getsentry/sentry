@@ -12,6 +12,7 @@ from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegrationProvider
 from sentry.integrations.gitlab.integration import GitlabIntegration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.perforce.integration import PerforceIntegrationProvider
 from sentry.integrations.source_code_management.sync_repos import (
     sync_repos_for_org,
 )
@@ -320,6 +321,59 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
 
         with assume_test_silo_mode(SiloMode.CELL):
             assert Repository.objects.count() == 0
+
+    @responses.activate
+    def test_skips_create_for_pending_deletion_repos(self, _: MagicMock) -> None:
+        # A repo in PENDING_DELETION state should be treated as already known;
+        # the sync must not re-create it just because the provider still lists it.
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="getsentry/sentry",
+                external_id="1",
+                provider="integrations:github",
+                integration_id=self.integration.id,
+                status=ObjectStatus.PENDING_DELETION,
+            )
+
+        # Provider still returns this repo.
+        self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
+
+        with self.tasks():
+            sync_repos_for_org(self.oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            # Still exactly one row, still in PENDING_DELETION — not duplicated.
+            repos = Repository.objects.filter(organization_id=self.organization.id, external_id="1")
+            assert repos.count() == 1
+            repo.refresh_from_db()
+            assert repo.status == ObjectStatus.PENDING_DELETION
+
+    @responses.activate
+    def test_skips_create_for_deletion_in_progress_repos(self, _: MagicMock) -> None:
+        # A repo in DELETION_IN_PROGRESS state must also be excluded so the
+        # sync doesn't race with an ongoing deletion and re-create the row.
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="getsentry/sentry",
+                external_id="1",
+                provider="integrations:github",
+                integration_id=self.integration.id,
+                status=ObjectStatus.DELETION_IN_PROGRESS,
+            )
+
+        # Provider still returns this repo.
+        self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
+
+        with self.tasks():
+            sync_repos_for_org(self.oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repos = Repository.objects.filter(organization_id=self.organization.id, external_id="1")
+            assert repos.count() == 1
+            repo.refresh_from_db()
+            assert repo.status == ObjectStatus.DELETION_IN_PROGRESS
 
     @patch("sentry.integrations.github.client.GitHubBaseClient.get_repos")
     def test_truncated_fetch_skips_disable(self, mock_get_repos: MagicMock, _: MagicMock) -> None:
@@ -1272,3 +1326,75 @@ class VstsIsBrokenIntegrationErrorTestCase(TestCase):
             self.installation.is_broken_integration_error(ApiUnauthorized("bad token"))
             == "unauthorized"
         )
+
+
+@control_silo_test
+class SyncReposForOrgPerforceTestCase(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        # Registers the Perforce repository provider binding used by the
+        # create path.
+        PerforceIntegrationProvider().setup()
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="perforce",
+            name="Perforce",
+            external_id="perforce-org-1-abcdef12",
+            metadata={
+                "p4port": "ssl:perforce.example.com:1666",
+                "user": "sentry-bot",
+                "password": "secret",
+                "auth_type": "password",
+            },
+        )
+        self.oi = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=self.integration
+        )
+
+    @patch("sentry.integrations.perforce.client.PerforceClient.get_depots")
+    def test_creates_repos_for_depots(self, mock_get_depots: MagicMock) -> None:
+        # external_id is derived from the depot path so the sync diff and the
+        # manual-add path agree on the same Repository rows.
+        mock_get_depots.return_value = [
+            {"name": "depot", "type": "local", "description": ""},
+            {"name": "shared", "type": "local", "description": ""},
+        ]
+
+        with self.tasks():
+            sync_repos_for_org(self.oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repos = Repository.objects.filter(organization_id=self.organization.id).order_by(
+                "external_id"
+            )
+
+        assert [r.external_id for r in repos] == ["//depot", "//shared"]
+        assert all(r.provider == "integrations:perforce" for r in repos)
+        assert all(r.integration_id == self.integration.id for r in repos)
+
+    @patch("sentry.integrations.perforce.client.PerforceClient.get_depots")
+    def test_disables_removed_depot(self, mock_get_depots: MagicMock) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            gone = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="//gone",
+                external_id="//gone",
+                provider="integrations:perforce",
+                integration_id=self.integration.id,
+                status=ObjectStatus.ACTIVE,
+                config={"depot_path": "//gone"},
+            )
+
+        mock_get_depots.return_value = [
+            {"name": "depot", "type": "local", "description": ""},
+        ]
+
+        with self.tasks():
+            sync_repos_for_org(self.oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            gone.refresh_from_db()
+            assert gone.status == ObjectStatus.DISABLED
+            assert Repository.objects.filter(
+                organization_id=self.organization.id, external_id="//depot"
+            ).exists()

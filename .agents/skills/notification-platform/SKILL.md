@@ -13,7 +13,7 @@ Sentry's NotificationPlatform is a provider-based system for sending notificatio
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
 | `NotificationData`             | Protocol. Frozen dataclass carrying the payload for a single notification. Must declare a `source` class variable.                                                                                   | `types.py`    |
 | `NotificationTemplate`         | Abstract class. Converts `NotificationData` into a `NotificationRenderedTemplate`. Registered per `NotificationSource`.                                                                              | `types.py`    |
-| `NotificationRenderedTemplate` | Dataclass. Provider-agnostic output: subject, body blocks, actions, chart, footer, optional email paths.                                                                                             | `types.py`    |
+| `NotificationRenderedTemplate` | Dataclass. Provider-agnostic output: subject (str or text blocks), body (sections containing text blocks), actions, chart, footer (str or text blocks), optional email paths.                        | `types.py`    |
 | `NotificationProvider`         | Protocol. Knows how to validate a target, pick a renderer, and send the final renderable (Email, Slack, etc.).                                                                                       | `provider.py` |
 | `NotificationRenderer`         | Protocol. Converts a `NotificationRenderedTemplate` into a provider-specific renderable (HTML email, Slack blocks, etc.).                                                                            | `renderer.py` |
 | `NotificationTarget`           | Protocol. Identifies the recipient: email address, channel ID, or DM user ID. Two concrete classes: `GenericNotificationTarget` (email) and `IntegrationNotificationTarget` (Slack/Discord/MSTeams). | `target.py`   |
@@ -98,7 +98,7 @@ from sentry.notifications.platform.types import (
     NotificationRenderedAction,
     NotificationRenderedTemplate,
     NotificationTemplate,
-    ParagraphBlock,
+    ParagraphSection,
     PlainTextBlock,
 )
 
@@ -114,7 +114,7 @@ class MyNotificationTemplate(NotificationTemplate[MyNotificationData]):
         return NotificationRenderedTemplate(
             subject=data.title,
             body=[
-                ParagraphBlock(blocks=[PlainTextBlock(text="Something happened.")])
+                ParagraphSection(blocks=[PlainTextBlock(text="Something happened.")])
             ],
             actions=[
                 NotificationRenderedAction(label="View Details", link=data.detail_url)
@@ -122,9 +122,29 @@ class MyNotificationTemplate(NotificationTemplate[MyNotificationData]):
         )
 ```
 
-**Available body block types:**
+**Available types:**
 
-Refer to `src/sentry/notifications/platform/types.py` for the latest available block types.
+A notification is composed of **sections** and **text blocks**. Text blocks can appear in sections (for the body), and also directly in the `subject` and `footer` fields (as `list[NotificationTextBlock]` instead of plain `str`).
+
+Sections (portions of a message, used in `body`):
+
+| Section             | Description                                       |
+| ------------------- | ------------------------------------------------- |
+| `ParagraphSection`  | A block of text with a line break before.         |
+| `CodeSection`       | A code block with a line break before.            |
+| `BlockQuoteSection` | A quoted block of text, rendered as a blockquote. |
+
+Text blocks (parts of text — used inside sections, and also in `subject` and `footer`):
+
+| Block             | Description                               |
+| ----------------- | ----------------------------------------- |
+| `PlainTextBlock`  | Unformatted text.                         |
+| `BoldTextBlock`   | Bold text.                                |
+| `ItalicTextBlock` | Italic text.                              |
+| `CodeTextBlock`   | Inline code.                              |
+| `LinkTextBlock`   | A hyperlink with `text` and `url` fields. |
+
+Refer to `src/sentry/notifications/platform/types.py` for the full definitions.
 
 **Register the import** in `templates/__init__.py`:
 
@@ -186,7 +206,7 @@ if NotificationService.has_access(organization, data.source):
 
 ## Step 6: Add a Custom Renderer
 
-Custom renderers bypass the default template-to-renderable conversion for a specific provider + category combination. Use when the default block-based rendering is too limiting (e.g., interactive Slack buttons, rich card layouts).
+Custom renderers bypass the default template-to-renderable conversion for a specific provider + category combination. Use when the default section/block-based rendering is too limiting (e.g., interactive Slack buttons, rich card layouts).
 
 **When to use:**
 

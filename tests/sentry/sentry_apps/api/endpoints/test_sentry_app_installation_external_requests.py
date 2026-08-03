@@ -4,8 +4,9 @@ from django.urls import reverse
 from django.utils.http import urlencode
 from responses.matchers import query_string_matcher
 
+from sentry.models.organization import Organization
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 
 
 @control_silo_test
@@ -86,11 +87,12 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
         self.login_as(user=self.user)
         responses.add(
             method=responses.GET,
-            url=f"https://example.com/get-projects?installationId={self.project.slug}",
+            url="https://example.com/get-projects",
+            match=[query_string_matcher(f"installationId={self.install.uuid}")],
             status=500,
             content_type="application/json",
         )
-        url = self.url + f"?uri={self.project.id}"
+        url = self.url + "?uri=/get-projects"
         response = self.client.get(url, format="json")
         assert response.status_code == 500
 
@@ -99,4 +101,35 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
         url = self.url + "?projectId=not-an-int&uri=/get-projects&query=proj"
         response = self.client.get(url, format="json")
         assert response.status_code == 400
-        assert response.data["detail"] == "projectId must be an integer"
+        assert "projectId" in response.data
+
+    def test_member_without_project_access(self) -> None:
+        with assume_test_silo_mode_of(Organization):
+            self.org.flags.allow_joinleave = False
+            self.org.save()
+
+        member_team = self.create_team(organization=self.org)
+        self.create_project(organization=self.org, teams=[member_team])
+        restricted_member = self.create_user(email="restricted@example.com")
+        self.create_member(
+            organization=self.org, user=restricted_member, role="member", teams=[member_team]
+        )
+        self.login_as(restricted_member)
+
+        url = self.url + f"?projectId={self.project.id}&uri=/get-projects&query=proj"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 403
+
+    def test_rejects_uri_with_userinfo_injection(self) -> None:
+        self.login_as(user=self.user)
+        url = self.url + "?uri=@attacker.example/path"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 400
+        assert "uri" in response.data
+
+    def test_rejects_uri_without_leading_slash(self) -> None:
+        self.login_as(user=self.user)
+        url = self.url + "?uri=https://attacker.example/path"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 400
+        assert "uri" in response.data

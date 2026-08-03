@@ -16,19 +16,21 @@ interface CopyToClipboardButtonProps extends Omit<
 export function CopyToClipboardButton({
   onCopy,
   onError,
+  onClick,
   text,
+  icon,
   ...props
 }: CopyToClipboardButtonProps) {
   const {copy} = useCopyToClipboard();
 
   return (
     <Button
+      {...props}
       onClick={e => {
         copy(text).then(onCopy).catch(onError);
-        props.onClick?.(e);
+        onClick?.(e);
       }}
-      icon={<IconCopy variant="muted" />}
-      {...props}
+      icon={icon ?? <IconCopy variant="muted" />}
     />
   );
 }

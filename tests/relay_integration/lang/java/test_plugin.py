@@ -11,6 +11,7 @@ from sentry.models.files.file import File
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.objectstore import debug_files_test_both_backends
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_symbolicator
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
@@ -413,6 +414,7 @@ class AnotherClassInSameFile {
 @pytest.mark.django_db(transaction=True)
 @thread_leak_allowlist(reason="kafka testutils", issue=97046)
 @thread_leak_allowlist(reason="sentry sdk background worker", issue=97042)
+@debug_files_test_both_backends
 class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.fixture(autouse=True)
     def initialize(self, set_sentry_option, live_server):

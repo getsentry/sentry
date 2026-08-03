@@ -19,7 +19,11 @@ class GroupStatsEndpoint(GroupEndpoint, StatsMixin):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-stats"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-stats",
+        url_names=["sentry-api-0-group-stats"],
+    )
     def get(self, request: Request, group) -> Response:
         try:
             environment_id = get_environment_id(request, group.project.organization_id)

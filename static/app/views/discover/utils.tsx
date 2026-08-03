@@ -1,17 +1,19 @@
 import type {Location} from 'history';
 import * as Papa from 'papaparse';
 
+import type {SelectValue} from '@sentry/scraps/select';
+
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
-import type {PageFilters, SelectValue} from 'sentry/types/core';
+import type {PageFilters} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventData, EventView, MetaType} from 'sentry/utils/discover/eventView';
 import type {
@@ -146,15 +148,17 @@ export function generateTitle({
   eventView,
   event,
   isHomepage,
+  organization,
 }: {
   eventView: EventView;
+  organization: Organization;
   event?: Event;
   isHomepage?: boolean;
 }) {
-  const titles = [t('Discover')];
+  const titles = [getDiscoverDeprecation(organization) ? t('Errors') : t('Discover')];
 
   if (isHomepage) {
-    return t('Discover');
+    return getDiscoverDeprecation(organization) ? t('Errors') : t('Discover');
   }
 
   const eventViewName = eventView.name;
@@ -175,7 +179,10 @@ export function generateTitle({
 
 export function getPrebuiltQueries(organization: Organization) {
   const views = [...getAllViews(organization)];
-  if (organization.features.includes('performance-view')) {
+  if (
+    organization.features.includes('performance-view') &&
+    !getDiscoverDeprecation(organization)
+  ) {
     // insert transactions queries at index 2
     views.splice(2, 0, ...getTransactionViews(organization));
     views.push(...getWebVitalsViews(organization));
@@ -703,16 +710,11 @@ export function handleAddQueryToDashboard({
         queries: [
           {
             ...defaultWidgetQuery,
-            aggregates: [
-              ...(typeof yAxis === 'string' ? [yAxis] : (yAxis ?? ['count()'])),
-            ],
-            ...{
-              // The widget query params filters out aggregate fields
-              // so we can use the fields as columns. This is so yAxes
-              // can be grouped by the fields.
-              fields: widgetAsQueryParams?.field ?? [],
-              columns: widgetAsQueryParams?.field ?? [],
-            },
+            ...widgetQueryFieldsForDisplayType(
+              displayType,
+              typeof yAxis === 'string' ? [yAxis] : (yAxis ?? ['count()']),
+              widgetAsQueryParams?.field ?? []
+            ),
           },
         ],
         interval: eventView.interval!,
@@ -772,9 +774,11 @@ export function handleAddMultipleQueriesToDashboard({
       queries: [
         {
           ...defaultWidgetQuery,
-          aggregates: toArray(yAxis ?? 'count()'),
-          fields: widgetAsQueryParams?.field ?? [],
-          columns: widgetAsQueryParams?.field ?? [],
+          ...widgetQueryFieldsForDisplayType(
+            displayType,
+            toArray(yAxis ?? 'count()'),
+            widgetAsQueryParams?.field ?? []
+          ),
         },
       ],
       interval: eventView.interval!,
@@ -791,6 +795,27 @@ export function handleAddMultipleQueriesToDashboard({
     source,
     actions: ['add-and-stay-on-current-page', 'add-and-open-dashboard'],
   });
+}
+
+/**
+ * Builds the `aggregates`/`fields`/`columns` for a widget query when adding to a
+ * dashboard, given the resolved aggregates and group-by columns.
+ *
+ * Time-series widgets store aggregates in `yAxis` and use `fields`/`columns` for
+ * the group-by columns (aggregates are filtered out of `field`). Heat maps,
+ * however, have no group by and the widget builder reads their aggregate from
+ * `fields` rather than `yAxis` — so the aggregate must live in `fields`,
+ * otherwise the "Visualize" selection is lost and the saved widget is broken.
+ */
+function widgetQueryFieldsForDisplayType(
+  displayType: DisplayType,
+  aggregates: string[],
+  groupByFields: string[]
+): Pick<WidgetQuery, 'aggregates' | 'fields' | 'columns'> {
+  if (displayType === DisplayType.HEATMAP) {
+    return {aggregates, fields: aggregates, columns: []};
+  }
+  return {aggregates, fields: groupByFields, columns: groupByFields};
 }
 
 export function getTargetForTransactionSummaryLink(
@@ -901,3 +926,18 @@ export const SAVED_QUERY_DATASET_TO_WIDGET_TYPE = {
   [SavedQueryDatasets.ERRORS]: WidgetType.ERRORS,
   [SavedQueryDatasets.TRANSACTIONS]: WidgetType.TRANSACTIONS,
 };
+
+export function getTransactionsDeprecation(organization: Organization) {
+  return organization.features.includes('discover-saved-queries-deprecation');
+}
+
+export function getDiscoverDeprecationEnabled(organization: Organization) {
+  return organization.features.includes('deprecate-discover');
+}
+
+export function getDiscoverDeprecation(organization: Organization) {
+  return (
+    getDiscoverDeprecationEnabled(organization) &&
+    getTransactionsDeprecation(organization)
+  );
+}

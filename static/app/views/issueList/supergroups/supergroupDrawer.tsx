@@ -167,8 +167,8 @@ function SupergroupIssueList({
   filterWithCurrentSearch,
 }: {
   groupIds: number[];
+  memberList: IndexedMembersByProject | undefined;
   filterWithCurrentSearch?: boolean;
-  memberList?: IndexedMembersByProject;
 }) {
   const organization = useOrganization();
   const location = useLocation();
@@ -260,7 +260,9 @@ function SupergroupIssueList({
         )}
         <PanelContainer>
           <LoadingHeader>
-            <IssueLabel hideDivider>{t('Issue')}</IssueLabel>
+            <IssueStreamHeaderLabel hideDivider flex="1">
+              {t('Issue')}
+            </IssueStreamHeaderLabel>
             <DrawerColumnHeaders />
           </LoadingHeader>
           <PanelBody>
@@ -295,8 +297,8 @@ function SupergroupIssueList({
           <DrawerActionsBar groupIds={visibleGroupIds} />
           <PanelBody>
             {sortedGroups.map(group => {
-              const members = memberList?.[group.project?.slug]
-                ? memberList[group.project.slug]
+              const members = group.project
+                ? memberList?.get(group.project.slug)
                 : undefined;
               return (
                 <IssueRow key={group.id}>
@@ -487,7 +489,9 @@ function DrawerActionsBar({groupIds}: {groupIds: string[]}) {
         </HeaderButtonsWrapper>
       ) : (
         <Fragment>
-          <IssueLabel hideDivider>{t('Issue')}</IssueLabel>
+          <IssueStreamHeaderLabel hideDivider flex="1">
+            {t('Issue')}
+          </IssueStreamHeaderLabel>
           <DrawerColumnHeaders />
         </Fragment>
       )}
@@ -499,34 +503,57 @@ function DrawerColumnHeaders() {
   return (
     <Fragment>
       {DRAWER_COLUMNS.includes('lastSeen') && (
-        <ColumnLabel breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN} align="right">
+        <IssueStreamHeaderLabel
+          display={{zero: 'none', [COLUMN_BREAKPOINTS.LAST_SEEN]: 'inline-block'}}
+          align="right"
+          width="60px"
+        >
           {t('Last Seen')}
-        </ColumnLabel>
+        </IssueStreamHeaderLabel>
       )}
       {DRAWER_COLUMNS.includes('firstSeen') && (
-        <ColumnLabel breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN} align="right">
+        <IssueStreamHeaderLabel
+          display={{zero: 'none', [COLUMN_BREAKPOINTS.FIRST_SEEN]: 'inline-block'}}
+          align="right"
+          width="60px"
+        >
           {t('Age')}
-        </ColumnLabel>
+        </IssueStreamHeaderLabel>
       )}
       {DRAWER_COLUMNS.includes('graph') && (
-        <GraphColumnLabel breakpoint={COLUMN_BREAKPOINTS.TREND}>
+        <IssueStreamHeaderLabel
+          display={{zero: 'none', [COLUMN_BREAKPOINTS.TREND]: 'inline-block'}}
+          width="175px"
+        >
           {t('Graph')}
-        </GraphColumnLabel>
+        </IssueStreamHeaderLabel>
       )}
       {DRAWER_COLUMNS.includes('event') && (
-        <ColumnLabel breakpoint={COLUMN_BREAKPOINTS.EVENTS} align="right">
+        <IssueStreamHeaderLabel
+          display={{zero: 'none', [COLUMN_BREAKPOINTS.EVENTS]: 'inline-block'}}
+          align="right"
+          width="60px"
+        >
           {t('Events')}
-        </ColumnLabel>
+        </IssueStreamHeaderLabel>
       )}
       {DRAWER_COLUMNS.includes('users') && (
-        <ColumnLabel breakpoint={COLUMN_BREAKPOINTS.USERS} align="right">
+        <IssueStreamHeaderLabel
+          display={{zero: 'none', [COLUMN_BREAKPOINTS.USERS]: 'inline-block'}}
+          align="right"
+          width="60px"
+        >
           {t('Users')}
-        </ColumnLabel>
+        </IssueStreamHeaderLabel>
       )}
       {DRAWER_COLUMNS.includes('assignee') && (
-        <AssigneeColumnLabel breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE} align="right">
+        <IssueStreamHeaderLabel
+          display={{zero: 'none', [COLUMN_BREAKPOINTS.ASSIGNEE]: 'inline-block'}}
+          align="right"
+          width="66px"
+        >
           {t('Assignee')}
-        </AssigneeColumnLabel>
+        </IssueStreamHeaderLabel>
       )}
     </Fragment>
   );
@@ -549,22 +576,6 @@ const HeaderButtonsWrapper = styled('div')`
   display: flex;
   gap: ${p => p.theme.space.xs};
   white-space: nowrap;
-`;
-
-const IssueLabel = styled(IssueStreamHeaderLabel)`
-  flex: 1;
-`;
-
-const ColumnLabel = styled(IssueStreamHeaderLabel)`
-  width: 60px;
-`;
-
-const GraphColumnLabel = styled(IssueStreamHeaderLabel)`
-  width: 175px;
-`;
-
-const AssigneeColumnLabel = styled(IssueStreamHeaderLabel)`
-  width: 66px;
 `;
 
 const LoadingHeader = styled('div')`

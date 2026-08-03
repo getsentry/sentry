@@ -15,6 +15,8 @@ export const LogAttributesHumanLabel: Partial<Record<OurLogFieldKey, string>> = 
 
 export const MAX_LOG_INGEST_DELAY = 40_000;
 export const QUERY_PAGE_LIMIT = 1000; // If this does not equal the limit with auto-refresh, the query keys will diverge and they will have separate caches. We may want to make this change in the future.
+/** Matches the OurLogs `max_per_page` cap on the events endpoint (organization_events.py). */
+export const AGGREGATE_EXPORT_MAX_ROWS = 9999;
 export const QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH = 1000;
 export const LOG_ATTRIBUTE_LAZY_LOAD_HOVER_TIMEOUT = 150;
 export const DEFAULT_TRACE_ITEM_HOVER_TIMEOUT = 150;
@@ -47,7 +49,6 @@ export const AlwaysPresentLogFields: OurLogFieldKey[] = [
   OurLogKnownFieldKey.SEVERITY,
   OurLogKnownFieldKey.TIMESTAMP,
   OurLogKnownFieldKey.TIMESTAMP_PRECISE,
-  OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE,
   OurLogKnownFieldKey.TEMPLATE,
 ] as const;
 
@@ -57,6 +58,7 @@ const AlwaysHiddenLogFields: OurLogFieldKey[] = [
   OurLogKnownFieldKey.SEVERITY_NUMBER,
   OurLogKnownFieldKey.ITEM_TYPE,
   OurLogKnownFieldKey.TIMESTAMP_PRECISE,
+  OurLogKnownFieldKey.TIMESTAMP_SEQUENCE,
   'project.id',
   'project_id', // these are both aliases that might show up
 ];

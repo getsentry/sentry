@@ -9,8 +9,8 @@ import {Link} from '@sentry/scraps/link';
 
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import type {Event} from 'sentry/types/event';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {isCollapsedNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
@@ -59,8 +59,8 @@ export function IssueTraceWaterfallOverlay({
         {
           ...location,
           query: {
-            ...location.query,
             ...(groupId ? {groupId} : {}),
+            referrer: location.query.referrer,
           },
         },
         TraceViewSources.ISSUE_DETAILS

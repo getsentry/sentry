@@ -15,19 +15,9 @@ import {
   MOCK_EXCEPTION_ENTRY,
 } from 'sentry/components/events/breadcrumbs/testUtils';
 import {EntryType} from 'sentry/types/event';
+import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 
-// Needed to mock useVirtualizer lists.
-jest.spyOn(window.Element.prototype, 'getBoundingClientRect').mockImplementation(() => ({
-  x: 0,
-  y: 0,
-  width: 0,
-  height: 30,
-  left: 0,
-  top: 0,
-  right: 0,
-  bottom: 0,
-  toJSON: jest.fn(),
-}));
+mockElementSize({width: 0, height: 30});
 
 describe('BreadcrumbsDataSection', () => {
   it('renders a summary of breadcrumbs with a button to view them all', async () => {
@@ -99,6 +89,8 @@ describe('BreadcrumbsDataSection', () => {
     // From event breadcrumb
     expect(screen.getByText('May 21, 2019 6:00:48.760 PM UTC')).toBeInTheDocument();
     expect(screen.queryByText('-1min 2ms')).not.toBeInTheDocument();
+
+    expect(screen.getByRole('button', {name: 'Expand'})).toBeInTheDocument();
 
     const timeControl = screen.getByRole('button', {
       name: 'Change Time Format for Breadcrumbs',

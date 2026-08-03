@@ -3,15 +3,15 @@ import {useMemo} from 'react';
 import {Alert} from '@sentry/scraps/alert';
 
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {useQueryParamsTopEventsLimit} from 'sentry/views/explore/queryParams/context';
-import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 interface LogsDownSamplingAlertProps {
   tableResult: UseInfiniteLogsQueryResult;
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  timeseriesResult: SortedTimeSeries;
 }
 
 export function LogsDownSamplingAlert({

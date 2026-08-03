@@ -4,6 +4,8 @@ import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {PullRequestFixture} from 'sentry-fixture/pullRequest';
+import {RepositoryFixture} from 'sentry-fixture/repository';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -12,6 +14,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupActivityType} from 'sentry/types/group';
+import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 import {IssueDetailsSidebar} from 'sentry/views/issueDetails/sidebar/sidebar';
 
 describe('IssueDetailsSidebar', () => {
@@ -58,7 +61,6 @@ describe('IssueDetailsSidebar', () => {
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         integration: {ok: true, reason: null},
-        githubWriteIntegration: {ok: true, repos: []},
       }),
     });
 
@@ -83,6 +85,14 @@ describe('IssueDetailsSidebar', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/1/external-issues/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {pullRequests: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -112,9 +122,14 @@ describe('IssueDetailsSidebar', () => {
   });
 
   it('renders all the sections as expected', async () => {
-    render(<IssueDetailsSidebar group={group} project={project} event={event} />, {
-      organization,
-    });
+    render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <IssueDetailsSidebar group={group} project={project} event={event} />
+      </GroupDataContextProvider>,
+      {
+        organization,
+      }
+    );
 
     expect(await screen.findByText('Seer Autofix')).toBeInTheDocument();
 
@@ -122,10 +137,8 @@ describe('IssueDetailsSidebar', () => {
     expect(screen.getByText('Last seen')).toBeInTheDocument();
     expect(mockFirstLastRelease).toHaveBeenCalled();
 
-    expect(await screen.findByText('Issue Tracking')).toBeInTheDocument();
-    expect(
-      await screen.findByRole('button', {name: issueTrackingKey})
-    ).toBeInTheDocument();
+    expect(await screen.findByText('External Links')).toBeInTheDocument();
+    expect(await screen.findByRole('link', {name: issueTrackingKey})).toBeInTheDocument();
     expect(mockExternalIssues).toHaveBeenCalled();
 
     expect(screen.getByRole('heading', {name: 'Activity'})).toBeInTheDocument();
@@ -136,5 +149,43 @@ describe('IssueDetailsSidebar', () => {
     expect(screen.getByRole('button', {name: 'View Similar Issues'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Merged Issues'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'View Merged Issues'})).toBeInTheDocument();
+  });
+
+  it('renders linked pull requests without a current event', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {
+        pullRequests: [
+          {
+            ...PullRequestFixture({
+              id: '123',
+              repository: RepositoryFixture({
+                id: '42',
+                name: 'example/widget-app',
+                provider: {id: 'integrations:github', name: 'GitHub'},
+              }),
+              externalUrl: 'https://github.com/example/widget-app/pull/123',
+            }),
+            attribution: null,
+            dateLinked: '2026-06-08T23:11:32.000000Z',
+            status: 'open',
+          },
+        ],
+      },
+    });
+
+    render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <IssueDetailsSidebar group={group} project={project} />
+      </GroupDataContextProvider>,
+      {organization}
+    );
+
+    expect(await screen.findByText('External Links')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('link', {
+        name: /Pull request #123 in example\/widget-app/,
+      })
+    ).toBeInTheDocument();
   });
 });

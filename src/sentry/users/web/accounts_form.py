@@ -121,7 +121,7 @@ class RelocationForm(forms.Form):
         value = re.sub(r"[ \n\t\r\0]*", "", value)
         if not value:
             return None
-        if User.objects.filter(username__iexact=value).exclude(id=self.user.id).exists():
+        if not User.is_username_available(value, exclude_user_id=self.user.id):
             raise forms.ValidationError(_("An account is already registered with that username."))
         return value.lower()
 

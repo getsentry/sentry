@@ -35,6 +35,7 @@ export type GroupListColumn =
   | 'event'
   | 'users'
   | 'priority'
+  | 'progress'
   | 'assignee'
   | 'lastTriggered'
   | 'firstSeen'
@@ -81,6 +82,7 @@ type Props = {
   useTintRow?: boolean;
   withChart?: boolean;
   withColumns?: GroupListColumn[];
+  withHeader?: boolean;
   withPagination?: boolean;
 };
 
@@ -93,7 +95,14 @@ type State = {
   memberList?: ReturnType<typeof indexMembersByProject>;
 };
 
-const DEFAULT_COLUMNS: GroupListColumn[] = ['graph', 'event', 'users', 'assignee'];
+const DEFAULT_COLUMNS: GroupListColumn[] = [
+  'firstSeen',
+  'lastSeen',
+  'graph',
+  'event',
+  'users',
+  'assignee',
+];
 
 export function GroupList({
   queryParams,
@@ -112,6 +121,7 @@ export function GroupList({
   canSelectGroups = true,
   useFilteredStats = true,
   useTintRow = true,
+  withHeader = true,
 }: Props) {
   const organization = useOrganization();
   const location = useLocation();
@@ -303,10 +313,7 @@ export function GroupList({
     dataUpdatedAt,
   ]);
 
-  const columns = useMemo(
-    () => [...withColumns, 'firstSeen' as const, 'lastSeen' as const],
-    [withColumns]
-  );
+  const columns = withColumns;
 
   if (hasError) {
     if (typeof renderErrorMessage === 'function' && errorData) {
@@ -339,7 +346,7 @@ export function GroupList({
   return (
     <Fragment>
       <PanelContainer>
-        <GroupListHeader withChart={!!withChart} withColumns={columns} />
+        {withHeader && <GroupListHeader withChart={!!withChart} withColumns={columns} />}
         <PanelBody>
           {loading
             ? [...Array.from({length: numPlaceholderRows})].map((_, i) => (
@@ -348,10 +355,7 @@ export function GroupList({
                 </GroupPlaceholder>
               ))
             : groups.map(group => {
-                const members =
-                  memberList && Object.hasOwn(memberList, group.project.slug)
-                    ? memberList[group.project.slug]
-                    : undefined;
+                const members = memberList?.get(group.project.slug);
 
                 return (
                   <StreamGroup

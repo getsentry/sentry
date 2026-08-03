@@ -31,7 +31,7 @@ from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.services import eventstore
-from sentry.tasks.unmerge import unmerge
+from sentry.tasks.unmerge import start_unmerge
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
@@ -42,6 +42,7 @@ class GroupHashesResult(TypedDict):
     id: str
     latestEvent: EventSerializerResponse | SimpleEventSerializerResponse | None
     mergedBySeer: bool
+    seerMatchDistance: float | None
 
 
 @extend_schema(tags=["Events"])
@@ -54,7 +55,8 @@ class GroupHashesEndpoint(GroupEndpoint):
     }
 
     @extend_schema(
-        operation_id="List an Issue's Hashes",
+        operation_id="listOrganizationIssueHashes",
+        summary="List an Issue's Hashes",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,
@@ -79,7 +81,11 @@ class GroupHashesEndpoint(GroupEndpoint):
         },
         examples=EventExamples.GROUP_HASHES,
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-hashes"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-hashes",
+        url_names=["sentry-api-0-group-hashes"],
+    )
     def get(self, request: Request, group: Group) -> Response[list[GroupHashesResult]]:
         """
         List the hashes that make up an issue. Each hash represents a grouping
@@ -110,7 +116,11 @@ class GroupHashesEndpoint(GroupEndpoint):
             paginator=GenericOffsetPaginator(data_fn=data_fn),
         )
 
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-hashes"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-hashes",
+        url_names=["sentry-api-0-group-hashes"],
+    )
     def put(self, request: Request, group: Group) -> Response:
         """
         Perform an unmerge by reassigning events with hash values corresponding to the given
@@ -140,7 +150,7 @@ class GroupHashesEndpoint(GroupEndpoint):
             tags={"platform": group.platform or "unknown", "sdk": group.sdk or "unknown"},
         )
 
-        unmerge.delay(
+        start_unmerge.delay(
             group.project_id, group.id, None, grouphashes, request.user.id if request.user else None
         )
 
@@ -179,15 +189,19 @@ class GroupHashesEndpoint(GroupEndpoint):
         grouphash: GroupHash | None = None,
     ) -> GroupHashesResult:
         event = eventstore.backend.get_event_by_id(project_id, result["event_id"])
-        merged_by_seer = bool(
-            grouphash and grouphash.metadata and grouphash.metadata.seer_matched_grouphash
-        )
+        if grouphash and grouphash.metadata and grouphash.metadata.seer_matched_grouphash:
+            merged_by_seer = True
+            seer_match_distance = grouphash.metadata.seer_match_distance
+        else:
+            merged_by_seer = False
+            seer_match_distance = None
 
         serializer = EventSerializer if full else SimpleEventSerializer
         response: GroupHashesResult = {
             "id": result["primary_hash"],
             "latestEvent": serialize(event, user, serializer()),
             "mergedBySeer": merged_by_seer,
+            "seerMatchDistance": seer_match_distance,
         }
 
         return response

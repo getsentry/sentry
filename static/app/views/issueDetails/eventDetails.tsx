@@ -6,7 +6,6 @@ import {Sticky} from 'sentry/components/sticky';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
 import {EventMissingBanner} from 'sentry/views/issueDetails/eventMissingBanner';
 import {EventTitle} from 'sentry/views/issueDetails/eventTitle';
@@ -27,14 +26,10 @@ export function EventDetails({group, event, project}: EventDetailsContentProps) 
     );
   }
 
-  const issueTypeConfig = getConfigForIssueType(group, project);
-
   return (
     <PageErrorBoundary mini message={t('There was an error loading the event content')}>
       <GroupContent role="main">
-        {issueTypeConfig.header.eventNavigation.enabled && (
-          <StickyEventNav event={event} group={group} />
-        )}
+        <StickyEventNav event={event} group={group} />
         <ContentPadding>
           <EventDetailsContent group={group} event={event} project={project} />
         </ContentPadding>
@@ -46,8 +41,8 @@ export function EventDetails({group, event, project}: EventDetailsContentProps) 
 function StickyEventNav({event, group}: {event: Event; group: Group}) {
   const [nav, setNav] = useState<HTMLDivElement | null>(null);
   const {dispatch} = useIssueDetails();
-  const {contentTop} = useTopOffset();
-  const stickyTopOffset = Number.parseInt(contentTop, 10);
+  const {pageContentTop} = useTopOffset();
+  const stickyTopOffset = Number.parseInt(pageContentTop, 10);
 
   useLayoutEffect(() => {
     if (!nav) {

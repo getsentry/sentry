@@ -1,6 +1,7 @@
-import {useLayoutEffect} from 'react';
+import {useCallback, useLayoutEffect, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {QueryKey} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
@@ -9,6 +10,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {
   SearchQueryBuilderProvider,
   useHasSearchQueryBuilderProvider,
+  useSearchQueryBuilderAI,
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderLayout,
   useSearchQueryBuilderState,
@@ -28,7 +30,7 @@ import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {IconCase, IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {FieldKind} from 'sentry/utils/fields';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -44,7 +46,14 @@ export interface GetTagValuesParams {
   tag: Pick<Tag, 'key' | 'name'> & {kind: FieldKind | undefined};
 }
 
-export type GetTagValues = (params: GetTagValuesParams) => Promise<string[]>;
+export interface TagValueWithCount {
+  value: string;
+  count?: number;
+}
+
+export type GetTagValues = (
+  params: GetTagValuesParams
+) => Promise<Array<string | TagValueWithCount>>;
 
 export type GetTagKeys = (searchQuery: string) => Promise<Tag[]>;
 
@@ -66,6 +75,11 @@ export interface SearchQueryBuilderProps {
    * Defaults to 'beta'.
    */
   aiSearchBadgeType?: 'alpha' | 'beta';
+  /**
+   * Query key used to scope async filter key metadata. When omitted, metadata is
+   * scoped to this query builder instance.
+   */
+  asyncFilterKeyRegistryQueryKey?: QueryKey;
   autoFocus?: boolean;
   /**
    * Controls the state of the case sensitivity toggle.
@@ -74,6 +88,12 @@ export interface SearchQueryBuilderProps {
    */
   caseInsensitive?: CaseInsensitive;
   className?: string;
+  /**
+   * When true, submitting free text will open Ask Seer and submit the full query.
+   * Requires AI search to be enabled and the organization to have the
+   * gen-ai-default-to-ask-seer feature.
+   */
+  defaultToAskSeerOnFreeTextSearch?: boolean;
   disabled?: boolean;
   /**
    * When true, free text will be marked as invalid.
@@ -83,6 +103,11 @@ export interface SearchQueryBuilderProps {
    * When true, parens and logical operators (AND, OR) will be marked as invalid.
    */
   disallowLogicalOperators?: boolean;
+  /**
+   * When true, negation operators (e.g. "is not", "does not contain") are
+   * removed from the operator suggestions so only positive filters can be built.
+   */
+  disallowNegation?: boolean;
   /**
    * When true, unsupported filter keys will be highlighted as invalid.
    */
@@ -274,10 +299,24 @@ function SearchQueryBuilderUI({
 }: SearchQueryBuilderProps) {
   const {parsedQuery, query, dispatch} = useSearchQueryBuilderState();
   const {wrapperRef, actionBarRef, size} = useSearchQueryBuilderLayout();
+  const {skipNextSearchQueryBuilderAutoFocusRef} = useSearchQueryBuilderAI();
+  const autoFocusOnMount = useRef(
+    Boolean(autoFocus) && !skipNextSearchQueryBuilderAutoFocusRef.current
+  );
+
+  const setWrapperRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      wrapperRef.current = element;
+      if (element) {
+        skipNextSearchQueryBuilderAutoFocusRef.current = false;
+      }
+    },
+    [skipNextSearchQueryBuilderAutoFocusRef, wrapperRef]
+  );
 
   useOnChange({onChange});
   useLayoutEffect(() => {
-    dispatch({type: 'UPDATE_QUERY', query: initialQuery});
+    dispatch({type: 'UPDATE_QUERY', query: initialQuery, ignoreDisabled: true});
   }, [dispatch, initialQuery]);
 
   const {width: actionBarWidth} = useDimensions({elementRef: actionBarRef});
@@ -288,7 +327,7 @@ function SearchQueryBuilderUI({
       onBlur={() =>
         onBlur?.(query, {parsedQuery, queryIsValid: queryIsValid(parsedQuery)})
       }
-      ref={wrapperRef as React.RefObject<HTMLInputElement>}
+      ref={setWrapperRef}
       aria-disabled={disabled}
       data-test-id="search-query-builder"
     >
@@ -300,7 +339,7 @@ function SearchQueryBuilderUI({
           <PlainTextQueryInput label={label} />
         ) : (
           <TokenizedQueryGrid
-            autoFocus={autoFocus || false}
+            autoFocus={autoFocusOnMount.current}
             label={label}
             actionBarWidth={actionBarWidth}
           />
@@ -332,6 +371,7 @@ const Wrapper = styled(Input.withComponent('div'))`
   height: auto;
   width: 100%;
   position: relative;
+  contain: inline-size;
   font-size: ${p => p.theme.font.size.md};
   cursor: text;
 `;

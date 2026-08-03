@@ -84,7 +84,11 @@ function TextWidgetViewerModal(props: Props) {
         </Flex>
       </Body>
       <Footer>
-        <Flex flexGrow={1} align="center" justify={{sm: 'right', xs: 'center'}}>
+        <Flex
+          flexGrow={1}
+          align="center"
+          justify={{'screen:sm': 'right', 'screen:xs': 'center'}}
+        >
           {onEdit && widget.id && (
             <Button
               onClick={() => {

@@ -1,24 +1,22 @@
-import {Fragment, type ComponentProps, type ReactNode} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
 import {FeatureBadge, Tag} from '@sentry/scraps/badge';
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Flex, Grid} from '@sentry/scraps/layout';
-import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Count} from 'sentry/components/count';
-import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {useFeedbackSDKIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
-import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
-import {UnhandledTag} from 'sentry/components/group/inboxBadges/unhandledTag';
 import {TourElement} from 'sentry/components/tours/components';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {getOverride} from 'sentry/overrideRegistry';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -29,14 +27,13 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {GroupActions} from 'sentry/views/issueDetails/actions/index';
-import {Divider} from 'sentry/views/issueDetails/divider';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assigneeSelector';
-import {AttachmentsBadge} from 'sentry/views/issueDetails/header/attachmentsBadge';
-import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
-import {ReplayBadge} from 'sentry/views/issueDetails/header/replayBadge';
-import {SeerBadge} from 'sentry/views/issueDetails/header/seerBadge';
-import {UserFeedbackBadge} from 'sentry/views/issueDetails/header/userFeedbackBadge';
+import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
+import {
+  IssueIdBreadcrumb,
+  useIssueIdBreadcrumbItem,
+} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
 import {
   IssueDetailsTour,
   IssueDetailsTourContext,
@@ -48,7 +45,7 @@ import {
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 
 interface GroupHeaderProps {
   event: Event | null;
@@ -67,7 +64,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
     getOverride('react-hook:use-get-max-retention-days') ?? (() => MAX_PICKABLE_DAYS);
   const maxRetentionDays = useGetMaxRetentionDays();
   const userCountPeriod = maxRetentionDays ? `(${maxRetentionDays}d)` : '(30d)';
-  const {title: primaryTitle, subtitle} = getTitle(group);
+  const {title: primaryTitle} = getTitle(group);
   const secondaryTitle = getMessage(group);
   const isComplete = group.status === 'resolved' || group.status === 'ignored';
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
@@ -80,25 +77,54 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
 
   const isAIDetectedIssue = AI_DETECTED_ISSUE_TYPES.has(group.issueType);
 
-  const statusProps = getBadgeProperties(group.status, group.substatus);
   const issueTypeConfig = getConfigForIssueType(group, project);
 
-  const crumbs = [
-    {
-      label: 'Issues',
-      to: {pathname: `/organizations/${organization.slug}/issues/`, query},
-    },
-    {label: <IssueIdBreadcrumb project={project} group={group} />},
-  ];
+  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
+  const issueItem = useIssueIdBreadcrumbItem({project, group});
 
   return (
     <Fragment>
       <Header>
         <Flex justify="between">
           <Flex align="center" gap="md">
-            <MaybeTopBarSlot name="title">
-              <StyledBreadcrumbs crumbs={crumbs} />
-            </MaybeTopBarSlot>
+            {hasNewBreadcrumbs ? (
+              <Fragment>
+                <TopBar.Slot name="breadcrumbs">
+                  <BreadcrumbList
+                    items={[
+                      {
+                        type: 'link',
+                        label: t('Issues'),
+                        to: {
+                          pathname: `/organizations/${organization.slug}/issues/`,
+                          query,
+                        },
+                      },
+                    ]}
+                  />
+                </TopBar.Slot>
+                <TopBar.Slot name="title">
+                  <BreadcrumbList.Title item={issueItem} />
+                </TopBar.Slot>
+              </Fragment>
+            ) : (
+              <TopBar.Slot name="title">
+                <StyledBreadcrumbs
+                  crumbs={[
+                    {
+                      label: 'Issues',
+                      to: {
+                        pathname: `/organizations/${organization.slug}/issues/`,
+                        query,
+                      },
+                    },
+                    {
+                      label: <IssueIdBreadcrumb project={project} group={group} />,
+                    },
+                  ]}
+                />
+              </TopBar.Slot>
+            )}
             {hasErrorUpsampling && (
               <Tooltip
                 title={t(
@@ -156,49 +182,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
               <StatCount value={userCount} aria-label={t('User count')} />
             </Fragment>
           )}
-          <Flex gap="md" align="center">
-            {group.isUnhandled && (
-              <Fragment>
-                <UnhandledTag />
-                <Divider />
-              </Fragment>
-            )}
-            {statusProps?.status ? (
-              <Fragment>
-                <Tooltip
-                  isHoverable
-                  title={tct('[tooltip] [link:Learn more]', {
-                    tooltip: statusProps.tooltip,
-                    link: (
-                      <ExternalLink href="https://docs.sentry.io/product/issues/states-triage/" />
-                    ),
-                  })}
-                >
-                  <Subtext>{statusProps?.status}</Subtext>
-                </Tooltip>
-              </Fragment>
-            ) : null}
-            {subtitle && (
-              <Fragment>
-                <Divider />
-                <Tooltip
-                  title={subtitle}
-                  skipWrapper
-                  isHoverable
-                  showOnlyOnOverflow
-                  delay={1000}
-                >
-                  <Subtext>{subtitle}</Subtext>
-                </Tooltip>
-              </Fragment>
-            )}
-            <ErrorBoundary customComponent={null}>
-              <AttachmentsBadge group={group} />
-              <UserFeedbackBadge group={group} project={project} />
-              <ReplayBadge group={group} project={project} />
-              <SeerBadge group={group} />
-            </ErrorBoundary>
-          </Flex>
+          <GroupStatusSubtitle group={group} project={project} />
         </HeaderGrid>
       </Header>
       <TourElement<IssueDetailsTour>
@@ -241,22 +225,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
   );
 }
 
-function MaybeTopBarSlot({
-  name,
-  children,
-}: {
-  children: ReactNode;
-  name: ComponentProps<typeof TopBar.Slot>['name'];
-}) {
-  const hasPageFrameFeature = useHasPageFrameFeature();
-  if (hasPageFrameFeature) {
-    return <TopBar.Slot name={name}>{children}</TopBar.Slot>;
-  }
-  return children;
-}
-
 function HeaderActions({group}: {group: Group}) {
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const {feedback} = useFeedbackSDKIntegration();
 
   const isAIDetectedIssue = AI_DETECTED_ISSUE_TYPES.has(group.issueType);
@@ -278,16 +247,15 @@ function HeaderActions({group}: {group: Group}) {
 
   if (hasFeedbackForm && feedback) {
     return (
-      <MaybeTopBarSlot name="feedback">
+      <TopBar.Slot name="feedback">
         <FeedbackButton
           aria-label={feedbackLabel}
-          size={hasPageFrameFeature ? undefined : 'xs'}
           feedbackOptions={feedbackOptions}
-          tooltipProps={hasPageFrameFeature ? {title: feedbackLabel} : undefined}
+          tooltipProps={{title: feedbackLabel}}
         >
-          {hasPageFrameFeature ? null : t('Give Feedback')}
+          {null}
         </FeedbackButton>
-      </MaybeTopBarSlot>
+      </TopBar.Slot>
     );
   }
 
@@ -336,13 +304,6 @@ const StatCount = styled(Count)`
   font-size: 20px;
   line-height: 1;
   text-align: right;
-`;
-
-const Subtext = styled('span')`
-  color: ${p => p.theme.tokens.content.secondary};
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 `;
 
 const ActionBar = styled('div')<{isComplete: boolean}>`

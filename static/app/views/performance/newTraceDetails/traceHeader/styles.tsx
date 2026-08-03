@@ -3,48 +3,40 @@ import styled from '@emotion/styled';
 import {
   Container,
   type ContainerProps,
+  Grid,
+  type GridProps,
   Stack,
   type StackProps,
 } from '@sentry/scraps/layout';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
-const HeaderLayout = styled((props: ContainerProps) => {
-  const hasPageFrame = useHasPageFrameFeature();
+function HeaderLayout(props: ContainerProps) {
+  return <Container padding="lg xl" borderBottom="primary" flexShrink={0} {...props} />;
+}
+
+// Shared responsive shell for the header body: two columns when wide, a single
+// stacked column when narrow. The loaded header and the loading placeholder both
+// render into the same `title`/`meta`/`highlights`/`projects` areas so they can't
+// drift out of sync.
+function HeaderGrid(props: GridProps) {
   return (
-    <Container
-      as="div"
-      padding={hasPageFrame ? 'lg xl' : 'md 2xl'}
-      background={hasPageFrame ? undefined : 'primary'}
-      borderBottom="primary"
-      flexShrink={0}
-      minHeight="150px"
+    <Grid
+      columns={{zero: 'minmax(0, 1fr)', xl: 'minmax(0, 1fr) minmax(0, max-content)'}}
+      gap="md xl"
+      align="start"
+      areas={{
+        zero: `"title" "meta" "highlights" "projects"`,
+        xl: `"title meta" "highlights projects"`,
+      }}
       {...props}
     />
   );
-})``;
-
-const HeaderRow = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  gap: ${p => p.theme.space.xl};
-  align-items: center;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    gap: ${p => p.theme.space.md};
-    flex-direction: column;
-  }
-`;
+}
 
 function HeaderContent(props: StackProps) {
   return <Stack {...props} />;
 }
-
-const StyledBreak = styled('hr')`
-  margin: ${p => p.theme.space.md} 0;
-  border-color: ${p => p.theme.tokens.border.primary};
-`;
 
 const StyledPlaceholder = styled(Placeholder)<{_height: number; _width: number}>`
   border-radius: ${p => p.theme.radius.md};
@@ -54,9 +46,8 @@ const StyledPlaceholder = styled(Placeholder)<{_height: number; _width: number}>
 
 const TraceHeaderComponents = {
   HeaderLayout,
-  HeaderRow,
+  HeaderGrid,
   HeaderContent,
-  StyledBreak,
   StyledPlaceholder,
 };
 

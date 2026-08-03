@@ -15,7 +15,8 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
-from sentry.monitors.serializers import MonitorSerializer
+from sentry.apidocs.response_types import ValidationErrorResponse
+from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
 from sentry.monitors.validators import MonitorValidator
 from sentry.utils.auth import AuthenticatedHttpRequest
 
@@ -34,7 +35,8 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint, MonitorDetailsMixin):
     owner = ApiOwner.CRONS
 
     @extend_schema(
-        operation_id="Retrieve a Monitor",
+        operation_id="getOrganizationMonitor",
+        summary="Retrieve a Monitor",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             MonitorParams.MONITOR_ID_OR_SLUG,
@@ -47,14 +49,17 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint, MonitorDetailsMixin):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, organization, project, monitor) -> Response:
+    def get(
+        self, request: Request, organization, project, monitor
+    ) -> Response[MonitorSerializerResponse]:
         """
         Retrieves details for a monitor.
         """
         return self.get_monitor(request, project, monitor)
 
     @extend_schema(
-        operation_id="Update a Monitor",
+        operation_id="updateOrganizationMonitor",
+        summary="Update a Monitor",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             MonitorParams.MONITOR_ID_OR_SLUG,
@@ -68,14 +73,17 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint, MonitorDetailsMixin):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def put(self, request: AuthenticatedHttpRequest, organization, project, monitor) -> Response:
+    def put(
+        self, request: AuthenticatedHttpRequest, organization, project, monitor
+    ) -> Response[MonitorSerializerResponse] | Response[ValidationErrorResponse]:
         """
         Update a monitor.
         """
         return self.update_monitor(request, project, monitor)
 
     @extend_schema(
-        operation_id="Delete a Monitor or Monitor Environments",
+        operation_id="deleteOrganizationMonitor",
+        summary="Delete a Monitor or Monitor Environments",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             MonitorParams.MONITOR_ID_OR_SLUG,
@@ -89,7 +97,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint, MonitorDetailsMixin):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, organization, project, monitor) -> Response:
+    def delete(self, request: Request, organization, project, monitor) -> Response[None]:
         """
         Delete a monitor or monitor environments.
         """

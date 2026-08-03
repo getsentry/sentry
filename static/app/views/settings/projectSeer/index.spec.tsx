@@ -16,24 +16,34 @@ import type {SeerPreferencesResponse} from 'sentry/components/events/autofix/pre
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject} from 'sentry/types/project';
+import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import {ProjectSeerContainer as ProjectSeer} from 'sentry/views/settings/projectSeer';
 
-// Needed to mock useVirtualizer lists.
-jest.spyOn(window.Element.prototype, 'getBoundingClientRect').mockImplementation(() => ({
-  x: 0,
-  y: 0,
-  width: 0,
-  height: 30,
-  left: 0,
-  top: 0,
-  right: 0,
-  bottom: 0,
-  toJSON: jest.fn(),
-}));
+mockElementSize({width: 0, height: 30});
 
 describe('ProjectSeer', () => {
   let project: DetailedProject;
   let organization: Organization;
+
+  // The coding-agent CTAs fetch the per-project seer setting to decide whether
+  // handoff is already configured. Only fires once an integration exists, so
+  // tests that mock a coding-agent integration also need this GET mocked.
+  const mockSeerSettingsGet = (orgSlug: string) =>
+    MockApiClient.addMockResponse({
+      url: `/projects/${orgSlug}/${project.slug}/seer/settings/`,
+      method: 'GET',
+      body: {
+        projectId: project.id,
+        projectSlug: project.slug,
+        agent: 'seer',
+        integrationId: null,
+        stoppingPoint: 'root_cause',
+        autoCreatePr: null,
+        automationTuning: 'off',
+        scannerAutomation: false,
+        reposCount: 1,
+      },
+    });
 
   beforeEach(() => {
     project = DetailedProjectFixture();
@@ -86,6 +96,22 @@ describe('ProjectSeer', () => {
           external_id: '101',
         },
       ],
+      preference: {
+        repositories: [
+          {
+            organization_id: 3,
+            external_id: '101',
+            name: 'sentry',
+            owner: 'getsentry',
+            provider: 'github',
+            integration_id: '201',
+            branch_name: '',
+            instructions: '',
+            branch_overrides: [],
+          },
+        ],
+        automated_run_stopping_point: 'root_cause',
+      },
     };
 
     MockApiClient.addMockResponse({
@@ -95,11 +121,51 @@ describe('ProjectSeer', () => {
     });
 
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/projects/`,
+      method: 'GET',
+      body: [
+        {
+          projectId: project.id,
+          projectSlug: project.slug,
+          agent: 'seer',
+          integrationId: null,
+          stoppingPoint: 'root_cause',
+          autoCreatePr: null,
+          automationTuning: 'off',
+          scannerAutomation: false,
+          reposCount: 1,
+        },
+      ],
+    });
+
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/coding-agents/`,
       method: 'GET',
       body: {
         integrations: [],
       },
+    });
+
+    mockSeerSettingsGet(organization.slug);
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/seer/repos/`,
+      method: 'GET',
+      body: [
+        {
+          id: '1',
+          repositoryId: '1',
+          branchName: '',
+          branchOverrides: [],
+          instructions: '',
+          externalId: '101',
+          integrationId: '201',
+          name: 'sentry',
+          organizationId: '',
+          owner: 'getsentry',
+          provider: 'integrations:github',
+        },
+      ],
     });
   });
 
@@ -108,8 +174,8 @@ describe('ProjectSeer', () => {
   });
 
   it('can add a repository', async () => {
-    const seerPreferencesPostRequest = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+    const seerReposPostRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/seer/repos/`,
       method: 'POST',
     });
 
@@ -121,10 +187,14 @@ describe('ProjectSeer', () => {
 
     // Wait for initial repos to load
     expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
+    expect(screen.getByText('GitHub')).toBeInTheDocument();
+    expect(screen.queryByText('integrations:github')).not.toBeInTheDocument();
     expect(screen.queryByText('getsentry/seer')).not.toBeInTheDocument();
 
     // Open the add repo modal
-    await userEvent.click(screen.getByRole('button', {name: 'Add Repos'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Add Repositories to Project'})
+    );
 
     // Find and select the unselected repo in the modal
     const modal = await screen.findByRole('dialog');
@@ -134,24 +204,36 @@ describe('ProjectSeer', () => {
 
     // Override GET mock to return updated data before mutation triggers refetch
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+      url: `/projects/${organization.slug}/${project.slug}/seer/repos/`,
       method: 'GET',
-      body: {
-        code_mapping_repos: [
-          {
-            provider: 'github',
-            owner: 'getsentry',
-            name: 'sentry',
-            external_id: '101',
-          },
-          {
-            provider: 'github',
-            owner: 'getsentry',
-            name: 'seer',
-            external_id: '102',
-          },
-        ],
-      },
+      body: [
+        {
+          id: '1',
+          repositoryId: '1',
+          branchName: '',
+          branchOverrides: [],
+          instructions: '',
+          externalId: '101',
+          integrationId: '201',
+          name: 'sentry',
+          organizationId: '',
+          owner: 'getsentry',
+          provider: 'github',
+        },
+        {
+          id: '2',
+          repositoryId: '2',
+          branchName: '',
+          branchOverrides: [],
+          instructions: '',
+          externalId: '102',
+          integrationId: '202',
+          name: 'seer',
+          organizationId: '',
+          owner: 'getsentry',
+          provider: 'github',
+        },
+      ],
     });
 
     // Save changes in the modal
@@ -164,46 +246,26 @@ describe('ProjectSeer', () => {
     expect(await screen.findByText('getsentry/seer')).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(seerPreferencesPostRequest).toHaveBeenCalledWith(
+      expect(seerReposPostRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
           data: expect.objectContaining({
-            automated_run_stopping_point: 'root_cause',
-            repositories: [
-              {
-                organization_id: 3,
-                branch_name: '',
-                external_id: '101',
-                instructions: '',
-                name: 'sentry',
-                owner: 'getsentry',
-                provider: 'github',
-                integration_id: '201',
-                branch_overrides: [],
-              },
-              {
-                organization_id: 3,
-                branch_name: '',
-                external_id: '102',
-                instructions: '',
-                name: 'seer',
-                owner: 'getsentry',
-                provider: 'github',
-                integration_id: '202',
-                branch_overrides: [],
-              },
+            repos: [
+              expect.objectContaining({
+                repositoryId: '2',
+              }),
             ],
           }),
         })
       );
     });
-    expect(seerPreferencesPostRequest).toHaveBeenCalledTimes(1);
+    expect(seerReposPostRequest).toHaveBeenCalledTimes(1);
   });
 
   it('can update repository settings', async () => {
-    const seerPreferencesPostRequest = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
-      method: 'POST',
+    const seerRepoPutRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/seer/repos/1/`,
+      method: 'PUT',
     });
 
     render(<ProjectSeer />, {
@@ -217,47 +279,27 @@ describe('ProjectSeer', () => {
     // Expand the repo item
     await userEvent.click(repoItem);
 
-    // Find input fields
+    // Find input field and type a branch name (auto-saves via debounce)
     const branchInput = screen.getByPlaceholderText('Default branch');
-    const instructionsInput = screen.getByPlaceholderText(
-      'Add any general context or instructions to help Seer understand this repository...'
-    );
-
     await userEvent.type(branchInput, 'develop');
-    await userEvent.type(instructionsInput, 'Use Conventional Commits');
-
-    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await userEvent.tab(); // blur triggers AutoSaveForm submit
 
     await waitFor(() => {
-      expect(seerPreferencesPostRequest).toHaveBeenCalledWith(
+      expect(seerRepoPutRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
           data: expect.objectContaining({
-            automated_run_stopping_point: 'root_cause',
-            repositories: [
-              {
-                organization_id: 3,
-                external_id: '101',
-                name: 'sentry',
-                owner: 'getsentry',
-                provider: 'github',
-                branch_name: 'develop',
-                instructions: 'Use Conventional Commits',
-                integration_id: '201',
-                branch_overrides: [],
-              },
-            ],
+            branchName: 'develop',
           }),
         })
       );
     });
-    expect(seerPreferencesPostRequest).toHaveBeenCalledTimes(1);
   });
 
   it('can remove a repository', async () => {
-    const seerPreferencesPostRequest = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
-      method: 'POST',
+    const seerRepoDeleteRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/seer/repos/1/`,
+      method: 'DELETE',
     });
 
     render(<ProjectSeer />, {
@@ -271,16 +313,14 @@ describe('ProjectSeer', () => {
     // Open the row and click remove
     await userEvent.click(repoItem);
 
-    // Override GET mock to return updated data before mutation triggers refetch
+    // Override GET mock to return empty list after deletion
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
+      url: `/projects/${organization.slug}/${project.slug}/seer/repos/`,
       method: 'GET',
-      body: {
-        code_mapping_repos: [],
-      },
+      body: [],
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Remove Repository'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Disconnect Repository'}));
 
     await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
 
@@ -289,18 +329,7 @@ describe('ProjectSeer', () => {
       expect(screen.queryByText('getsentry/sentry')).not.toBeInTheDocument();
     });
 
-    await waitFor(() => {
-      expect(seerPreferencesPostRequest).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          data: expect.objectContaining({
-            automated_run_stopping_point: 'root_cause',
-            repositories: [],
-          }),
-        })
-      );
-    });
-    expect(seerPreferencesPostRequest).toHaveBeenCalledTimes(1);
+    expect(seerRepoDeleteRequest).toHaveBeenCalledTimes(1);
   });
 
   it('can update the autofix autorun threshold setting', async () => {
@@ -405,9 +434,9 @@ describe('ProjectSeer', () => {
       body: {},
     });
 
-    const seerPreferencesPostRequest = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
-      method: 'POST',
+    const seerSettingsPutRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/seer/settings/`,
+      method: 'PUT',
     });
 
     render(<ProjectSeer />, {
@@ -429,16 +458,18 @@ describe('ProjectSeer', () => {
     const option = await screen.findByText('Code Changes');
     await userEvent.click(option);
 
-    // The field uses getData: () => ({}) to exclude itself from the form submission
-    // Only the seer preferences POST should be called with the actual data
+    // The field uses getData: () => ({}) to exclude itself from the form submission.
+    // Settings changes now go through the dedicated seer/settings/ endpoint, not
+    // seer/preferences/, so no repository payload is involved.
     await waitFor(() => {
-      expect(seerPreferencesPostRequest).toHaveBeenCalledWith(
+      expect(seerSettingsPutRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          data: expect.objectContaining({
-            automated_run_stopping_point: 'code_changes',
-            repositories: expect.any(Array),
-          }),
+          data: {
+            agent: 'seer',
+            stoppingPoint: 'code_changes',
+            automationTuning: 'medium',
+          },
         })
       );
     });
@@ -450,6 +481,92 @@ describe('ProjectSeer', () => {
         expect.objectContaining({data: {}})
       );
     }
+  });
+
+  // Regression test for the removed `key` remount: the stopping-point field's
+  // initialValue depends on the seer settings infinite query, which resolves
+  // after mount. The select must reflect a loaded handoff without interaction —
+  // TanStack re-seeds the untouched field once the async value arrives.
+  it('reflects a handoff loaded after mount without interaction', async () => {
+    MockApiClient.clearMockResponses();
+
+    const org = OrganizationFixture({features: []});
+    const initialProject: DetailedProject = {
+      ...project,
+      autofixAutomationTuning: 'medium',
+      seerScannerAutomation: true,
+    };
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/seer/projects/`,
+      method: 'GET',
+      body: [
+        {
+          projectId: project.id,
+          projectSlug: project.slug,
+          agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+          integrationId: '123',
+          stoppingPoint: 'root_cause',
+          autoCreatePr: false,
+          automationTuning: 'medium',
+          scannerAutomation: true,
+          reposCount: 0,
+        },
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/`,
+      body: initialProject,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/seer/repos/`,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/seer/setup-check/`,
+      method: 'GET',
+      body: {billing: {hasAutofixQuota: true, hasScannerQuota: true}},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/repos/`,
+      query: {status: 'active'},
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/integrations/coding-agents/`,
+      method: 'GET',
+      body: {integrations: [{id: '123', name: 'Cursor', provider: 'cursor'}]},
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/seer/preferences/`,
+      method: 'GET',
+      body: {
+        preference: {
+          repositories: [],
+          automated_run_stopping_point: 'root_cause',
+          automation_handoff: {
+            handoff_point: 'root_cause',
+            target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+            integration_id: 123,
+            auto_create_pr: false,
+          },
+        },
+        code_mapping_repos: [],
+      },
+    });
+    mockSeerSettingsGet(org.slug);
+
+    render(<ProjectSeer />, {
+      organization: org,
+      outletContext: {project: initialProject},
+    });
+
+    // The loaded handoff shows without any user interaction...
+    expect(await screen.findByText('Hand off to Cursor Cloud Agent')).toBeInTheDocument();
+    // ...and the field is not stuck on the pre-load default.
+    expect(screen.queryByText('Root Cause (default)')).not.toBeInTheDocument();
   });
 
   it('can enable automation handoff to Cursor when Cursor integration is available', async () => {
@@ -518,9 +635,9 @@ describe('ProjectSeer', () => {
       body: {},
     });
 
-    const seerPreferencesPostRequest = MockApiClient.addMockResponse({
-      url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/seer/preferences/`,
-      method: 'POST',
+    const seerSettingsPutRequest = MockApiClient.addMockResponse({
+      url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/seer/settings/`,
+      method: 'PUT',
     });
 
     render(<ProjectSeer />, {
@@ -542,22 +659,17 @@ describe('ProjectSeer', () => {
     const cursorOption = await screen.findByText('Hand off to Cursor Cloud Agent');
     await userEvent.click(cursorOption);
 
-    // The field uses getData: () => ({}) to exclude itself from the form submission
-    // Only the seer preferences POST should be called with the actual data
     await waitFor(() => {
-      expect(seerPreferencesPostRequest).toHaveBeenCalledWith(
+      expect(seerSettingsPutRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          data: expect.objectContaining({
-            automated_run_stopping_point: 'root_cause',
-            repositories: expect.any(Array),
-            automation_handoff: {
-              handoff_point: 'root_cause',
-              target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-              integration_id: 123,
-              auto_create_pr: false,
-            },
-          }),
+          data: {
+            agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+            integrationId: '123',
+            stoppingPoint: 'root_cause',
+            autoCreatePr: false,
+            automationTuning: 'medium',
+          },
         })
       );
     });
@@ -572,10 +684,6 @@ describe('ProjectSeer', () => {
   });
 
   it('can enable automation handoff to Claude when Claude integration is available', async () => {
-    const orgWithClaudeFeature = OrganizationFixture({
-      features: ['integrations-claude-code'],
-    });
-
     const initialProject: DetailedProject = {
       ...project,
       autofixAutomationTuning: 'medium',
@@ -583,7 +691,7 @@ describe('ProjectSeer', () => {
     };
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${orgWithClaudeFeature.slug}/seer/setup-check/`,
+      url: `/organizations/${organization.slug}/seer/setup-check/`,
       method: 'GET',
       body: {
         billing: {
@@ -594,20 +702,20 @@ describe('ProjectSeer', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${orgWithClaudeFeature.slug}/repos/`,
+      url: `/organizations/${organization.slug}/repos/`,
       query: {status: 'active'},
       method: 'GET',
       body: [],
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/${orgWithClaudeFeature.slug}/${project.slug}/`,
+      url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'GET',
       body: initialProject,
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/${orgWithClaudeFeature.slug}/${project.slug}/seer/preferences/`,
+      url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
       method: 'GET',
       body: {
         code_mapping_repos: [],
@@ -617,7 +725,7 @@ describe('ProjectSeer', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${orgWithClaudeFeature.slug}/integrations/coding-agents/`,
+      url: `/organizations/${organization.slug}/integrations/coding-agents/`,
       method: 'GET',
       body: {
         integrations: [
@@ -631,18 +739,18 @@ describe('ProjectSeer', () => {
     });
 
     const projectPutRequest = MockApiClient.addMockResponse({
-      url: `/projects/${orgWithClaudeFeature.slug}/${project.slug}/`,
+      url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'PUT',
       body: {},
     });
 
-    const seerPreferencesPostRequest = MockApiClient.addMockResponse({
-      url: `/projects/${orgWithClaudeFeature.slug}/${project.slug}/seer/preferences/`,
-      method: 'POST',
+    const seerSettingsPutRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/seer/settings/`,
+      method: 'PUT',
     });
 
     render(<ProjectSeer />, {
-      organization: orgWithClaudeFeature,
+      organization,
       outletContext: {project: initialProject},
     });
 
@@ -659,19 +767,16 @@ describe('ProjectSeer', () => {
     await userEvent.click(claudeOption);
 
     await waitFor(() => {
-      expect(seerPreferencesPostRequest).toHaveBeenCalledWith(
+      expect(seerSettingsPutRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          data: expect.objectContaining({
-            automated_run_stopping_point: 'root_cause',
-            repositories: expect.any(Array),
-            automation_handoff: {
-              handoff_point: 'root_cause',
-              target: CodingAgentProvider.CLAUDE_CODE_AGENT,
-              integration_id: 456,
-              auto_create_pr: false,
-            },
-          }),
+          data: {
+            agent: CodingAgentProvider.CLAUDE_CODE_AGENT,
+            integrationId: '456',
+            stoppingPoint: 'root_cause',
+            autoCreatePr: false,
+            automationTuning: 'medium',
+          },
         })
       );
     });
@@ -711,6 +816,24 @@ describe('ProjectSeer', () => {
     it('renders and loads initial value when cursor_handoff is selected', async () => {
       MockApiClient.clearMockResponses();
 
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/projects/`,
+        method: 'GET',
+        body: [
+          {
+            projectId: project.id,
+            projectSlug: project.slug,
+            agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+            integrationId: '123',
+            stoppingPoint: 'root_cause',
+            autoCreatePr: true,
+            automationTuning: 'medium',
+            scannerAutomation: true,
+            reposCount: 0,
+          },
+        ],
+      });
+
       const orgWithCursorFeature = OrganizationFixture({
         features: [],
       });
@@ -723,6 +846,12 @@ describe('ProjectSeer', () => {
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/`,
         body: initialProject,
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/seer/repos/`,
+        method: 'GET',
+        body: [],
       });
 
       MockApiClient.addMockResponse({
@@ -775,6 +904,8 @@ describe('ProjectSeer', () => {
         },
       });
 
+      mockSeerSettingsGet(orgWithCursorFeature.slug);
+
       render(<ProjectSeer />, {
         organization: orgWithCursorFeature,
         outletContext: {project: initialProject},
@@ -794,6 +925,24 @@ describe('ProjectSeer', () => {
     it('calls update mutation when toggled', async () => {
       MockApiClient.clearMockResponses();
 
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/projects/`,
+        method: 'GET',
+        body: [
+          {
+            projectId: project.id,
+            projectSlug: project.slug,
+            agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+            integrationId: '123',
+            stoppingPoint: 'root_cause',
+            autoCreatePr: false,
+            automationTuning: 'medium',
+            scannerAutomation: true,
+            reposCount: 0,
+          },
+        ],
+      });
+
       const orgWithCursorFeature = OrganizationFixture({
         features: [],
       });
@@ -806,6 +955,12 @@ describe('ProjectSeer', () => {
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/`,
         body: initialProject,
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/seer/repos/`,
+        method: 'GET',
+        body: [],
       });
 
       MockApiClient.addMockResponse({
@@ -869,10 +1024,12 @@ describe('ProjectSeer', () => {
         body: {},
       });
 
-      const seerPreferencesPostRequest = MockApiClient.addMockResponse({
-        url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/seer/preferences/`,
-        method: 'POST',
+      const seerSettingsPutRequest = MockApiClient.addMockResponse({
+        url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/seer/settings/`,
+        method: 'PUT',
       });
+
+      mockSeerSettingsGet(orgWithCursorFeature.slug);
 
       render(<ProjectSeer />, {
         organization: orgWithCursorFeature,
@@ -887,24 +1044,176 @@ describe('ProjectSeer', () => {
 
       await userEvent.click(toggle);
 
-      // Wait for the POST request to be called
+      // Settings changes go through seer/settings/ — no repository payload involved
       await waitFor(() => {
-        expect(seerPreferencesPostRequest).toHaveBeenCalledWith(
+        expect(seerSettingsPutRequest).toHaveBeenCalledWith(
           expect.anything(),
           expect.objectContaining({
             data: expect.objectContaining({
-              automation_handoff: expect.objectContaining({
-                auto_create_pr: true,
-              }),
-              repositories: expect.any(Array),
+              autoCreatePr: true,
             }),
           })
         );
       });
     });
 
+    // Regression test for the removed `key` remount on AutoSaveForm: the toggle
+    // must re-seed when its value changes from *outside* the form. Switching the
+    // stopping point to a handoff target resets autoCreatePr to false, and the
+    // untouched toggle has to reflect that without a key-forced remount.
+    it('re-seeds the toggle when a handoff switch resets autoCreatePr', async () => {
+      MockApiClient.clearMockResponses();
+
+      const orgWithIntegrations = OrganizationFixture({features: []});
+
+      const initialProject: DetailedProject = {
+        ...project,
+        autofixAutomationTuning: 'medium',
+        seerScannerAutomation: true,
+      };
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithIntegrations.slug}/seer/projects/`,
+        method: 'GET',
+        body: [
+          {
+            projectId: project.id,
+            projectSlug: project.slug,
+            agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+            integrationId: '123',
+            stoppingPoint: 'root_cause',
+            autoCreatePr: true,
+            automationTuning: 'medium',
+            scannerAutomation: true,
+            reposCount: 0,
+          },
+        ],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${orgWithIntegrations.slug}/${project.slug}/`,
+        body: initialProject,
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${orgWithIntegrations.slug}/${project.slug}/seer/repos/`,
+        method: 'GET',
+        body: [],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithIntegrations.slug}/seer/setup-check/`,
+        method: 'GET',
+        body: {billing: {hasAutofixQuota: true, hasScannerQuota: true}},
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithIntegrations.slug}/repos/`,
+        query: {status: 'active'},
+        method: 'GET',
+        body: [],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithIntegrations.slug}/integrations/coding-agents/`,
+        method: 'GET',
+        body: {
+          integrations: [
+            {id: '123', name: 'Cursor', provider: 'cursor'},
+            {id: '456', name: 'Claude', provider: 'claude_code'},
+          ],
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${orgWithIntegrations.slug}/${project.slug}/seer/preferences/`,
+        method: 'GET',
+        body: {
+          preference: {
+            repositories: [],
+            automated_run_stopping_point: 'root_cause',
+            automation_handoff: {
+              handoff_point: 'root_cause',
+              target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+              integration_id: 123,
+              auto_create_pr: true,
+            },
+          },
+          code_mapping_repos: [],
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${orgWithIntegrations.slug}/${project.slug}/seer/settings/`,
+        method: 'PUT',
+      });
+
+      mockSeerSettingsGet(orgWithIntegrations.slug);
+
+      render(<ProjectSeer />, {
+        organization: orgWithIntegrations,
+        outletContext: {project: initialProject},
+      });
+
+      // The toggle starts checked because the cursor handoff had autoCreatePr on.
+      const toggle = await screen.findByRole('checkbox', {
+        name: /Auto-Create Pull Requests/i,
+      });
+      expect(toggle).toBeChecked();
+
+      // The settings refetch after the handoff switch reports autoCreatePr off.
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithIntegrations.slug}/seer/projects/`,
+        method: 'GET',
+        body: [
+          {
+            projectId: project.id,
+            projectSlug: project.slug,
+            agent: CodingAgentProvider.CLAUDE_CODE_AGENT,
+            integrationId: '456',
+            stoppingPoint: 'root_cause',
+            autoCreatePr: false,
+            automationTuning: 'medium',
+            scannerAutomation: true,
+            reposCount: 0,
+          },
+        ],
+      });
+
+      const select = await screen.findByRole('textbox', {
+        name: /Where should Seer stop/i,
+      });
+      await userEvent.click(select);
+      await userEvent.click(await screen.findByText('Hand off to Claude Agent'));
+
+      // Without the key remount, the untouched toggle re-seeds to unchecked.
+      await waitFor(() => {
+        expect(
+          screen.getByRole('checkbox', {name: /Auto-Create Pull Requests/i})
+        ).not.toBeChecked();
+      });
+    });
+
     it('shows integration selector when multiple cursor integrations exist', async () => {
       MockApiClient.clearMockResponses();
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/projects/`,
+        method: 'GET',
+        body: [
+          {
+            projectId: project.id,
+            projectSlug: project.slug,
+            agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+            integrationId: '123',
+            stoppingPoint: 'root_cause',
+            autoCreatePr: false,
+            automationTuning: 'medium',
+            scannerAutomation: true,
+            reposCount: 0,
+          },
+        ],
+      });
 
       const orgWithCursorFeature = OrganizationFixture({
         features: [],
@@ -918,6 +1227,12 @@ describe('ProjectSeer', () => {
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/`,
         body: initialProject,
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/seer/repos/`,
+        method: 'GET',
+        body: [],
       });
 
       MockApiClient.addMockResponse({
@@ -980,6 +1295,8 @@ describe('ProjectSeer', () => {
         body: {},
       });
 
+      mockSeerSettingsGet(orgWithCursorFeature.slug);
+
       render(<ProjectSeer />, {
         organization: orgWithCursorFeature,
         outletContext: {project: initialProject},
@@ -1000,6 +1317,24 @@ describe('ProjectSeer', () => {
     it('calls update mutation when switching integration', async () => {
       MockApiClient.clearMockResponses();
 
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/projects/`,
+        method: 'GET',
+        body: [
+          {
+            projectId: project.id,
+            projectSlug: project.slug,
+            agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+            integrationId: '123',
+            stoppingPoint: 'root_cause',
+            autoCreatePr: false,
+            automationTuning: 'medium',
+            scannerAutomation: true,
+            reposCount: 0,
+          },
+        ],
+      });
+
       const orgWithCursorFeature = OrganizationFixture({
         features: [],
       });
@@ -1012,6 +1347,12 @@ describe('ProjectSeer', () => {
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/`,
         body: initialProject,
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/seer/repos/`,
+        method: 'GET',
+        body: [],
       });
 
       MockApiClient.addMockResponse({
@@ -1081,10 +1422,12 @@ describe('ProjectSeer', () => {
         body: {},
       });
 
-      const seerPreferencesPostRequest = MockApiClient.addMockResponse({
-        url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/seer/preferences/`,
-        method: 'POST',
+      const seerSettingsPutRequest = MockApiClient.addMockResponse({
+        url: `/projects/${orgWithCursorFeature.slug}/${project.slug}/seer/settings/`,
+        method: 'PUT',
       });
+
+      mockSeerSettingsGet(orgWithCursorFeature.slug);
 
       render(<ProjectSeer />, {
         organization: orgWithCursorFeature,
@@ -1108,16 +1451,13 @@ describe('ProjectSeer', () => {
       );
       await userEvent.click(secondIntegration);
 
-      // Wait for the POST request to be called with the new integration ID
+      // Settings changes go through seer/settings/ — no repository payload involved
       await waitFor(() => {
-        expect(seerPreferencesPostRequest).toHaveBeenCalledWith(
+        expect(seerSettingsPutRequest).toHaveBeenCalledWith(
           expect.anything(),
           expect.objectContaining({
             data: expect.objectContaining({
-              automation_handoff: expect.objectContaining({
-                integration_id: 456,
-              }),
-              repositories: expect.any(Array),
+              integrationId: '456',
             }),
           })
         );
@@ -1127,8 +1467,22 @@ describe('ProjectSeer', () => {
     it('only shows same-provider integrations in selector when both cursor and claude exist', async () => {
       MockApiClient.clearMockResponses();
 
-      const orgWithBothFeatures = OrganizationFixture({
-        features: ['integrations-claude-code'],
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/projects/`,
+        method: 'GET',
+        body: [
+          {
+            projectId: project.id,
+            projectSlug: project.slug,
+            agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+            integrationId: '123',
+            stoppingPoint: 'root_cause',
+            autoCreatePr: false,
+            automationTuning: 'medium',
+            scannerAutomation: true,
+            reposCount: 0,
+          },
+        ],
       });
 
       const initialProject: DetailedProject = {
@@ -1142,7 +1496,13 @@ describe('ProjectSeer', () => {
       });
 
       MockApiClient.addMockResponse({
-        url: `/organizations/${orgWithBothFeatures.slug}/seer/setup-check/`,
+        url: `/projects/${organization.slug}/${project.slug}/seer/repos/`,
+        method: 'GET',
+        body: [],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/setup-check/`,
         method: 'GET',
         body: {
           billing: {hasAutofixQuota: true, hasScannerQuota: true},
@@ -1150,14 +1510,14 @@ describe('ProjectSeer', () => {
       });
 
       MockApiClient.addMockResponse({
-        url: `/organizations/${orgWithBothFeatures.slug}/repos/`,
+        url: `/organizations/${organization.slug}/repos/`,
         query: {status: 'active'},
         method: 'GET',
         body: [],
       });
 
       MockApiClient.addMockResponse({
-        url: `/organizations/${orgWithBothFeatures.slug}/integrations/coding-agents/`,
+        url: `/organizations/${organization.slug}/integrations/coding-agents/`,
         method: 'GET',
         body: {
           integrations: [
@@ -1176,7 +1536,7 @@ describe('ProjectSeer', () => {
       });
 
       MockApiClient.addMockResponse({
-        url: `/projects/${orgWithBothFeatures.slug}/${project.slug}/seer/preferences/`,
+        url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
         method: 'GET',
         body: {
           preference: {
@@ -1193,8 +1553,10 @@ describe('ProjectSeer', () => {
         },
       });
 
+      mockSeerSettingsGet(organization.slug);
+
       render(<ProjectSeer />, {
-        organization: orgWithBothFeatures,
+        organization,
         outletContext: {project: initialProject},
       });
 
@@ -1213,6 +1575,24 @@ describe('ProjectSeer', () => {
     it('does not show integration selector with single cursor integration', async () => {
       MockApiClient.clearMockResponses();
 
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/projects/`,
+        method: 'GET',
+        body: [
+          {
+            projectId: project.id,
+            projectSlug: project.slug,
+            agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+            integrationId: '123',
+            stoppingPoint: 'root_cause',
+            autoCreatePr: false,
+            automationTuning: 'medium',
+            scannerAutomation: true,
+            reposCount: 0,
+          },
+        ],
+      });
+
       const orgWithCursorFeature = OrganizationFixture({
         features: [],
       });
@@ -1225,6 +1605,12 @@ describe('ProjectSeer', () => {
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/`,
         body: initialProject,
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/seer/repos/`,
+        method: 'GET',
+        body: [],
       });
 
       MockApiClient.addMockResponse({
@@ -1275,6 +1661,8 @@ describe('ProjectSeer', () => {
           code_mapping_repos: [],
         },
       });
+
+      mockSeerSettingsGet(orgWithCursorFeature.slug);
 
       render(<ProjectSeer />, {
         organization: orgWithCursorFeature,
@@ -1328,11 +1716,13 @@ describe('ProjectSeer', () => {
       });
       renderGlobalModal({organization: orgWithGitlabSupport});
 
-      // Wait for repos to load (sentry is pre-selected via code_mapping_repos in beforeEach)
+      // Wait for repos to load (sentry is pre-selected via preference.repositories in beforeEach)
       expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
 
       // Open the add repo modal — it shows only unselected repos
-      await userEvent.click(screen.getByRole('button', {name: 'Add Repos'}));
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Add Repositories to Project'})
+      );
 
       const modal = await screen.findByRole('dialog');
 
@@ -1362,11 +1752,13 @@ describe('ProjectSeer', () => {
       });
       renderGlobalModal();
 
-      // Wait for repos to load (sentry is pre-selected via code_mapping_repos in beforeEach)
+      // Wait for repos to load (sentry is pre-selected via preference.repositories in beforeEach)
       expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
 
       // Open the add repo modal — it shows only unselected repos
-      await userEvent.click(screen.getByRole('button', {name: 'Add Repos'}));
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Add Repositories to Project'})
+      );
 
       const modal = await screen.findByRole('dialog');
 

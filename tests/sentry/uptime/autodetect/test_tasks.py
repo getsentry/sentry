@@ -13,7 +13,7 @@ from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.testutils.cases import UptimeTestCase
-from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers import override_blocklist, with_feature
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.uptime.autodetect.ranking import (
     NUMBER_OF_BUCKETS,
@@ -25,6 +25,8 @@ from sentry.uptime.autodetect.tasks import (
     LAST_PROCESSED_KEY,
     ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS,
     SCHEDULER_LOCK_KEY,
+    check_url_robots_txt,
+    get_robots_txt_parser,
     is_failed_url,
     monitor_url_for_project,
     process_autodetection_bucket,
@@ -353,6 +355,76 @@ class TestFailedUrl(UptimeTestCase):
         set_failed_url(url)
         assert is_failed_url(url)
         assert not is_failed_url(make_unique_test_url())
+
+
+class TestCheckUrlRobotsTxt(UptimeTestCase):
+    @override_blocklist("127.0.0.0/8")
+    def test_loopback_blocked(self) -> None:
+        assert check_url_robots_txt("http://127.0.0.1/page") is False
+
+    @override_blocklist("10.0.0.0/8")
+    def test_private_10_network_blocked(self) -> None:
+        assert check_url_robots_txt("http://10.0.0.1/page") is False
+
+    @override_blocklist("172.16.0.0/12")
+    def test_private_172_network_blocked(self) -> None:
+        assert check_url_robots_txt("http://172.16.0.1/page") is False
+
+    @override_blocklist("192.168.0.0/16")
+    def test_private_192_168_network_blocked(self) -> None:
+        assert check_url_robots_txt("http://192.168.1.1/page") is False
+
+    def test_public_robots_txt_allowed(self) -> None:
+        mock_response = mock.Mock()
+        mock_response.status_code = 200
+        mock_response.text = "User-agent: *\nAllow: /"
+        with mock.patch(
+            "sentry.uptime.autodetect.tasks.safe_urlopen",
+            return_value=mock_response,
+        ):
+            assert check_url_robots_txt("https://example.com/page") is True
+
+    def test_public_robots_txt_disallowed(self) -> None:
+        mock_response = mock.Mock()
+        mock_response.status_code = 200
+        mock_response.text = "User-agent: *\nDisallow: /"
+        with mock.patch(
+            "sentry.uptime.autodetect.tasks.safe_urlopen",
+            return_value=mock_response,
+        ):
+            assert check_url_robots_txt("https://example.com/page") is False
+
+
+class TestGetRobotsTxtParser(UptimeTestCase):
+    def test_401_treated_as_disallow_all(self) -> None:
+        mock_response = mock.Mock()
+        mock_response.status_code = 401
+        with mock.patch(
+            "sentry.uptime.autodetect.tasks.safe_urlopen",
+            return_value=mock_response,
+        ):
+            parser = get_robots_txt_parser("https://example.com/page")
+            assert parser.can_fetch("SentryUptimeBot", "https://example.com/page") is False
+
+    def test_403_treated_as_disallow_all(self) -> None:
+        mock_response = mock.Mock()
+        mock_response.status_code = 403
+        with mock.patch(
+            "sentry.uptime.autodetect.tasks.safe_urlopen",
+            return_value=mock_response,
+        ):
+            parser = get_robots_txt_parser("https://example.com/page")
+            assert parser.can_fetch("SentryUptimeBot", "https://example.com/page") is False
+
+    def test_404_treated_as_allow_all(self) -> None:
+        mock_response = mock.Mock()
+        mock_response.status_code = 404
+        with mock.patch(
+            "sentry.uptime.autodetect.tasks.safe_urlopen",
+            return_value=mock_response,
+        ):
+            parser = get_robots_txt_parser("https://example.com/page")
+            assert parser.can_fetch("SentryUptimeBot", "https://example.com/page") is True
 
 
 class TestMonitorUrlForProject(UptimeTestCase):

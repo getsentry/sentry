@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Pagination} from '@sentry/scraps/pagination';
 
+import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
@@ -27,7 +28,7 @@ interface IssueListTableProps {
   groupIds: string[];
   issuesLoading: boolean;
   issuesSuccessfullyLoaded: boolean;
-  memberList: IndexedMembersByProject;
+  memberList: IndexedMembersByProject | undefined;
   onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
   onCursor: CursorHandler;
   onDelete: () => void;
@@ -39,11 +40,11 @@ interface IssueListTableProps {
   query: string;
   queryCount: number;
   refetchGroups: (fetchAllCounts?: boolean) => void;
-  selectedProjectIds: number[];
   selection: PageFilters;
   statsLoading: boolean;
   statsPeriod: string;
   supergroupLookup?: SupergroupLookup;
+  withColumns?: GroupListColumn[];
 }
 
 export function IssueListTable({
@@ -69,6 +70,7 @@ export function IssueListTable({
   issuesSuccessfullyLoaded,
   pageSize,
   supergroupLookup,
+  withColumns,
 }: IssueListTableProps) {
   const location = useLocation();
 
@@ -94,7 +96,7 @@ export function IssueListTable({
       >
         {tourProps => (
           <div {...tourProps}>
-            <ContainerPanel>
+            <ContainerPanel data-test-id="issue-list">
               <IssueListBulkCommandPaletteActions
                 query={query}
                 queryCount={queryCount}
@@ -115,6 +117,7 @@ export function IssueListTable({
                     groupIds={groupIds}
                     allResultsVisible={allResultsVisible}
                     displayReprocessingActions={displayReprocessingActions}
+                    withColumns={withColumns}
                   />
                 </HoverOverlayGroupProvider>
               )}
@@ -139,6 +142,7 @@ export function IssueListTable({
                       refetchGroups={refetchGroups}
                       onActionTaken={onActionTaken}
                       supergroupLookup={supergroupLookup}
+                      withColumns={withColumns}
                     />
                   </VisuallyCompleteWithData>
                 </PanelBody>

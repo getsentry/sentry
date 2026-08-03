@@ -208,9 +208,7 @@ export function getFormatter({
     // If axis, timestamp comes from axis, otherwise for a single item it is defined in the data attribute.
     // The data attribute is usually a list of [name, value] but can also be an object of {name, value} when
     // there is item specific formatting being used.
-    const timestamp = Array.isArray(seriesParamsOrParam)
-      ? seriesParams[0].value[0]
-      : getSeriesValue(seriesParams[0], 0);
+    const timestamp = getSeriesValue(seriesParams[0], 0);
 
     const date =
       seriesParams.length &&
@@ -226,7 +224,9 @@ export function getFormatter({
 
     if (limit) {
       const originalLength = seriesParams.length;
-      seriesParams = seriesParams.sort((a, b) => b.value[1] - a.value[1]).slice(0, limit);
+      seriesParams = seriesParams
+        .sort((a, b) => getSeriesValue(b, 1) - getSeriesValue(a, 1))
+        .slice(0, limit);
       if (originalLength > limit) {
         seriesParams.push({
           seriesName: `+${originalLength - limit} more`,
@@ -427,18 +427,26 @@ export function computeChartTooltip(
         arrowPosition = '50%';
       }
 
+      // Prefer rendering the tooltip above the cursor.
+      let topPos = Number(pos[1]) - tipHeight - 20;
+      let arrowOnTop = false;
+      // When the tooltip is too tall to fit above the cursor (e.g. a group-by
+      // chart with many series), render it below the cursor instead of pinning
+      // it to the top edge of the window, which detaches it from the chart.
+      if (topPos + chartBoundingRect.top < CHART_TOOLTIP_VIEWPORT_OFFSET) {
+        topPos = Number(pos[1]) + 20;
+        arrowOnTop = true;
+      }
+
       const arrow = dom?.querySelector<HTMLDivElement>('.tooltip-arrow');
       if (arrow) {
         arrow.style.left = arrowPosition;
+        arrow.classList.toggle('arrow-top', arrowOnTop);
       }
 
       return {
         left: leftPos,
-        top: Math.max(
-          Number(pos[1]) - tipHeight - 20,
-          // avoid tooltip from being cut off by the top edge of the window
-          CHART_TOOLTIP_VIEWPORT_OFFSET - chartBoundingRect.top
-        ),
+        top: topPos,
       };
     },
     formatter,

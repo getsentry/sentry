@@ -1,12 +1,13 @@
 import {Fragment} from 'react';
 
+import {InfoText} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -67,11 +68,9 @@ export function IssueViewItem({view, isActive}: IssueViewItemProps) {
         });
       }}
     >
-      <Tooltip title={view.label} position="top" showOnlyOnOverflow skipWrapper>
-        <Text ellipsis variant="inherit">
-          {view.label}
-        </Text>
-      </Tooltip>
+      <InfoText title={view.label} position="top" mode="overflowOnly" variant="inherit">
+        {view.label}
+      </InfoText>
     </SecondaryNavigation.ReorderableLink>
   );
 }

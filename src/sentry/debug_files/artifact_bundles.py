@@ -8,7 +8,7 @@ from django.conf import settings
 from django.db import router
 from django.db.models import Count, Exists, OuterRef
 from django.utils import timezone
-from rediscluster import RedisCluster
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry import options
 from sentry.models.artifactbundle import (
@@ -24,6 +24,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils import metrics, redis
 from sentry.utils.db import atomic_transaction
+from sentry.utils.tracing import trace
 
 # The number of Artifact Bundles that we return in case of incomplete indexes.
 MAX_BUNDLES_QUERY = 5
@@ -42,7 +43,7 @@ INDEXING_CACHE_TIMEOUT = 600
 
 def get_redis_cluster_for_artifact_bundles() -> RedisCluster:
     cluster_key = settings.SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER
-    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
+    return redis.redis_clusters.get(cluster_key)
 
 
 def get_refresh_key() -> str:
@@ -118,7 +119,7 @@ def backfill_artifact_bundle_db_indexing(organization_id: int, release: str, dis
     index_artifact_bundles_for_release(organization_id, [(ab, None) for ab in artifact_bundles])
 
 
-@sentry_sdk.tracing.trace
+@trace
 def index_urls_in_bundle(
     organization_id: int,
     artifact_bundle: ArtifactBundle,
@@ -183,7 +184,7 @@ def index_urls_in_bundle(
 # ===== Renewal of Artifact Bundles =====
 
 
-@sentry_sdk.tracing.trace
+@trace
 def maybe_renew_artifact_bundles_from_processing(project_id: int, used_download_ids: list[str]):
     # Note: This random rollout is reversed because it is an early return
     if random.random() >= options.get("symbolicator.sourcemaps-bundle-index-refresh-sample-rate"):
@@ -205,7 +206,7 @@ def maybe_renew_artifact_bundles_from_processing(project_id: int, used_download_
     redis_client.sadd(get_refresh_key(), *artifact_bundle_ids)
 
 
-@sentry_sdk.tracing.trace
+@trace
 def refresh_artifact_bundles_in_use():
     LOOP_TIMES = 100
     IDS_PER_LOOP = 50
@@ -249,7 +250,7 @@ def maybe_renew_artifact_bundles(used_artifact_bundles: dict[int, datetime]):
             renew_artifact_bundle(artifact_bundle_id, threshold_date, now)
 
 
-@sentry_sdk.tracing.trace
+@trace
 def renew_artifact_bundle(artifact_bundle_id: int, threshold_date: datetime, now: datetime):
     metrics.incr("artifact_bundle_renewal.need_renewal")
     # We want to use a transaction, in order to keep the `date_added` consistent across multiple tables.

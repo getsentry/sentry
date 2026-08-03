@@ -7,7 +7,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import AsyncGenerator, AsyncIterator
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin
 
 import httpx
 from asgiref.sync import sync_to_async
@@ -15,10 +15,9 @@ from django.conf import settings
 from django.http import HttpRequest, HttpResponse, JsonResponse, StreamingHttpResponse
 from django.http.response import HttpResponseBase
 
-from sentry import options
-from sentry.api.exceptions import RequestTimeout
 from sentry.objectstore.endpoints.organization import get_raw_body_async
 from sentry.silo.util import (
+    PRESERVE_CONTENT_ENCODING_URL_NAMES,
     PROXY_APIGATEWAY_HEADER,
     PROXY_DIRECT_LOCATION_HEADER,
     clean_outbound_headers,
@@ -27,7 +26,6 @@ from sentry.silo.util import (
 from sentry.types.cell import (
     Cell,
     CellResolutionError,
-    get_cell_by_name,
     get_cell_for_organization,
 )
 from sentry.utils import metrics
@@ -56,7 +54,7 @@ ENDPOINT_TIMEOUT_OVERRIDE = {
     "sentry-api-0-project-preprod-artifact-download": 90.0,
     "sentry-api-0-organization-preprod-artifact-size-analysis-download": 90.0,
     "sentry-api-0-organization-objectstore": 90.0,
-    "sentry-api-0-organization-preprod-snapshots-download": 90.0,
+    "sentry-api-0-organization-preprod-snapshots-archive": 90.0,
 }
 
 # stream 0.5 MB at a time
@@ -110,37 +108,15 @@ async def proxy_request(
         logger.info("region_resolution_error", extra={"org_slug": org_id_or_slug, "error": str(e)})
         return HttpResponse(status=404)
 
-    return await proxy_cell_request(request, cell, url_name)
-
-
-async def proxy_error_embed_request(
-    request: HttpRequest, dsn: str, url_name: str
-) -> HttpResponseBase | None:
-    try:
-        parsed = urlparse(dsn)
-    except Exception as err:
-        logger.info("apigateway.error_embed.invalid_dsn", extra={"dsn": dsn, "error": err})
-        return None
-    host = parsed.netloc
-    app_host = urlparse(options.get("system.url-prefix")).netloc
-    if not host.endswith(app_host):
-        # Don't further parse URLs that aren't for us.
-        return None
-
-    app_segments = app_host.split(".")
-    host_segments = host.split(".")
-    if len(host_segments) - len(app_segments) < 3:
-        # If we don't have a o123.ingest.{cell}.{app_host} style domain
-        # we forward to the monolith cell
-        cell = get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
-        return await proxy_cell_request(request, cell, url_name)
-    try:
-        cell_offset = len(app_segments) + 1
-        cell_segment = host_segments[cell_offset * -1]
-        cell = get_cell_by_name(cell_segment)
-    except Exception:
-        return None
-
+    metrics.incr(
+        "apigateway.proxy_request",
+        tags={
+            "url_name": url_name,
+            "kind": "orgslug",
+            "destination_cell": cell.name,
+            "request_method": request.method,
+        },
+    )
     return await proxy_cell_request(request, cell, url_name)
 
 
@@ -150,8 +126,17 @@ async def proxy_cell_request(
     url_name: str,
 ) -> HttpResponseBase:
     """Take a django request object and proxy it to a cell silo"""
-    metric_tags = {"destination_cell": cell.name, "url_name": url_name}
-    target_url = urljoin(cell.address, request.path)
+    host = cell.address
+    if cell.api_gateway_address:
+        host = cell.api_gateway_address
+
+    metric_tags = {
+        "destination_cell": cell.name,
+        "url_name": url_name,
+        "destination_host": host,
+        "request_method": request.method,
+    }
+    target_url = urljoin(host, request.path)
 
     content_encoding = request.headers.get("Content-Encoding")
     content_length = request.headers.get("Content-Length")
@@ -159,7 +144,8 @@ async def proxy_cell_request(
     header_dict[PROXY_APIGATEWAY_HEADER] = "true"
 
     assert request.method is not None
-    query_params = request.GET
+    query_string = request.META.get("QUERY_STRING")
+    request_url = f"{target_url}?{query_string}" if query_string else target_url
 
     timeout = ENDPOINT_TIMEOUT_OVERRIDE.get(url_name, settings.GATEWAY_PROXY_TIMEOUT)
 
@@ -169,9 +155,10 @@ async def proxy_cell_request(
 
     try:
         async with circuitbreakers.get(cell.name) as circuitbreaker:
+            if content_encoding and url_name in PRESERVE_CONTENT_ENCODING_URL_NAMES:
+                header_dict["Content-Encoding"] = content_encoding
+
             if url_name == "sentry-api-0-organization-objectstore":
-                if content_encoding:
-                    header_dict["Content-Encoding"] = content_encoding
                 data = get_raw_body_async(request)
             else:
                 data = BodyAsyncWrapper(request.body)
@@ -186,9 +173,8 @@ async def proxy_cell_request(
                 with metrics.timer("apigateway.proxy_request.duration", tags=metric_tags):
                     req = proxy_client.build_request(
                         request.method,
-                        target_url,
+                        request_url,
                         headers=header_dict,
-                        params=dict(query_params) if query_params is not None else None,
                         content=_stream_request(data) if data else None,  # type: ignore[arg-type]
                         timeout=timeout or httpx.USE_CLIENT_DEFAULT,
                     )
@@ -196,6 +182,8 @@ async def proxy_cell_request(
                     if resp.status_code >= 502:
                         metrics.incr("apigateway.proxy.request_failed", tags=metric_tags)
                         circuitbreaker.incr_failures()
+                    else:
+                        metrics.incr("apigateway.proxy.request_succeeded", tags=metric_tags)
                     return _adapt_response(resp, target_url)
             except asyncio.CancelledError:
                 metrics.incr("apigateway.proxy.request_aborted", tags=metric_tags)
@@ -203,12 +191,17 @@ async def proxy_cell_request(
             except httpx.TimeoutException:
                 metrics.incr("apigateway.proxy.request_timeout", tags=metric_tags)
                 circuitbreaker.incr_failures()
-                # remote silo timeout. Use DRF timeout instead
-                raise RequestTimeout()
+                return JsonResponse(
+                    {"error": "apigateway", "detail": "Proxied request timed out"},
+                    status=500,
+                )
             except httpx.RequestError:
                 metrics.incr("apigateway.proxy.request_failed", tags=metric_tags)
                 circuitbreaker.incr_failures()
-                raise
+                return JsonResponse(
+                    {"error": "apigateway", "detail": "Downstream service unavailable"},
+                    status=500,
+                )
     except CircuitBreakerOverflow:
         metrics.incr("apigateway.proxy.circuit_breaker.overflow", tags=metric_tags)
         return JsonResponse(

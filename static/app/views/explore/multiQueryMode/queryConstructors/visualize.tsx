@@ -6,7 +6,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
@@ -84,6 +84,7 @@ export function VisualizeSection({query, index}: Props) {
           />
           <CompactSelect
             search={{
+              highlight: true,
               filter: (option, searchText) => {
                 return sortSearchedAttributes({
                   fieldDefinitionType: TraceItemDataset.SPANS,

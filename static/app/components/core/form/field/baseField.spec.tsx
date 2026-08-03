@@ -190,7 +190,7 @@ describe('BaseField indicator', () => {
     expect(mutationFn).toHaveBeenCalledWith({testField: 'changed'}, expect.anything());
   });
 
-  it('shows checkmark when auto-save succeeds', async () => {
+  it.isKnownFlake('shows checkmark when auto-save succeeds', async () => {
     const mutationFn = jest.fn((data: {testField: string}) => Promise.resolve(data));
 
     render(<AutoSaveTestForm mutationFn={mutationFn} initialValue="initial" />);

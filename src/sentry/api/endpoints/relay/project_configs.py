@@ -2,9 +2,10 @@ import logging
 from collections.abc import MutableMapping
 from typing import Any
 
+import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import set_tag, start_span
+from sentry_sdk import set_tag
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -19,6 +20,7 @@ from sentry.relay import config, projectconfig_cache
 from sentry.relay.globalconfig import get_global_config
 from sentry.tasks.relay import schedule_build_project_config
 from sentry.utils import metrics
+from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +50,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         version = request.GET.get("version") or "1"
         set_tag("relay_protocol_version", version)
+        sentry_sdk.set_attribute("relay_protocol_version", version)
 
         if version == "3" and request.relay_request_data.get("global"):
             response["global"] = get_global_config()
@@ -79,8 +82,10 @@ class RelayProjectConfigsEndpoint(Endpoint):
         considering them for the full build.
         """
         set_tag("relay_endpoint_version", version)
+        sentry_sdk.set_attribute("relay_endpoint_version", version)
         no_cache = request.relay_request_data.get("noCache") or False
         set_tag("relay_no_cache", no_cache)
+        sentry_sdk.set_attribute("relay_no_cache", no_cache)
 
         post_or_schedule = True
         reason = "version"
@@ -94,7 +99,9 @@ class RelayProjectConfigsEndpoint(Endpoint):
             version = "2"  # Downgrade to 2 for reporting metrics
 
         set_tag("relay_use_post_or_schedule", post_or_schedule)
+        sentry_sdk.set_attribute("relay_use_post_or_schedule", post_or_schedule)
         set_tag("relay_use_post_or_schedule_rejected", reason)
+        sentry_sdk.set_attribute("relay_use_post_or_schedule_rejected", reason)
         if version == "2":
             metrics.incr(
                 "api.endpoints.relay.project_configs.post",
@@ -150,7 +157,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         project_keys: MutableMapping[str, ProjectKey] = {}
         project_ids: set[int] = set()
 
-        with start_span(op="relay_fetch_keys"):
+        with start_span(name="relay_fetch_keys", op="relay_fetch_keys"):
             with metrics.timer("relay_project_configs.fetching_keys.duration"):
                 for key in ProjectKey.objects.get_many_from_cache(public_keys, key="public_key"):
                     if key.status != ProjectKeyStatus.ACTIVE:
@@ -162,7 +169,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         projects: MutableMapping[int, Project] = {}
         organization_ids: set[int] = set()
 
-        with start_span(op="relay_fetch_projects"):
+        with start_span(name="relay_fetch_projects", op="relay_fetch_projects"):
             with metrics.timer("relay_project_configs.fetching_projects.duration"):
                 for project in Project.objects.get_many_from_cache(project_ids):
                     projects[project.id] = project
@@ -173,13 +180,13 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         orgs: MutableMapping[int, Organization] = {}
 
-        with start_span(op="relay_fetch_orgs"):
+        with start_span(name="relay_fetch_orgs", op="relay_fetch_orgs"):
             with metrics.timer("relay_project_configs.fetching_orgs.duration"):
                 for org in Organization.objects.get_many_from_cache(organization_ids):
                     if request.relay.has_org_access(org):
                         orgs[org.id] = org
 
-        with start_span(op="relay_fetch_org_options"):
+        with start_span(name="relay_fetch_org_options", op="relay_fetch_org_options"):
             with metrics.timer("relay_project_configs.fetching_org_options.duration"):
                 for org_id in orgs:
                     OrganizationOption.objects.get_all_values(org_id)
@@ -207,7 +214,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
             # Prevent organization from being fetched again in quotas.
             project.set_cached_field_value("organization", organization)
 
-            with start_span(op="get_config"):
+            with start_span(name="get_config", op="get_config"):
                 with metrics.timer("relay_project_configs.get_config.duration"):
                     project_config = config.get_project_config(
                         project,
@@ -223,14 +230,14 @@ class RelayProjectConfigsEndpoint(Endpoint):
     def _post_by_project(self, request: Request) -> MutableMapping[str, ProjectConfig]:
         project_ids = set(request.relay_request_data.get("projects") or ())
 
-        with start_span(op="relay_fetch_projects"):
+        with start_span(name="relay_fetch_projects", op="relay_fetch_projects"):
             if project_ids:
                 with metrics.timer("relay_project_configs.fetching_projects.duration"):
                     projects = {p.id: p for p in Project.objects.get_many_from_cache(project_ids)}
             else:
                 projects = {}
 
-        with start_span(op="relay_fetch_orgs"):
+        with start_span(name="relay_fetch_orgs", op="relay_fetch_orgs"):
             # Preload all organizations and their options to prevent repeated
             # database access when computing the project configuration.
             org_ids: set[int] = {project.organization_id for project in projects.values()}
@@ -245,7 +252,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
                 for org_id in orgs.keys():
                     OrganizationOption.objects.get_all_values(org_id)
 
-        with start_span(op="relay_fetch_keys"):
+        with start_span(name="relay_fetch_keys", op="relay_fetch_keys"):
             project_keys: MutableMapping[int, list[ProjectKey]] = {}
             for key in ProjectKey.objects.filter(project_id__in=project_ids):
                 project_keys.setdefault(key.project_id, []).append(key)
@@ -269,7 +276,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
             # Prevent organization from being fetched again in quotas.
             project.set_cached_field_value("organization", organization)
 
-            with start_span(op="get_config"):
+            with start_span(name="get_config", op="get_config"):
                 with metrics.timer("relay_project_configs.get_config.duration"):
                     project_config = config.get_project_config(
                         project,

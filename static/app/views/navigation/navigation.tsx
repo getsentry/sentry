@@ -2,20 +2,13 @@ import {Fragment, type RefObject, useMemo, useRef} from 'react';
 import {mergeProps} from '@react-aria/utils';
 import {motion, type MotionProps} from 'framer-motion';
 
-import {Hotkey} from '@sentry/scraps/hotkey';
 import {Stack} from '@sentry/scraps/layout';
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 
-import {toggleCommandPalette} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import {
-  useCommandPaletteState,
-  useCommandPaletteDispatch,
-} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Override} from 'sentry/components/override';
-import {IconSearch} from 'sentry/icons';
 import {
   IconCompass,
   IconDashboard,
@@ -54,19 +47,14 @@ import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components'
 import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/content';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
-import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
-import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 export function Navigation() {
   const collapsedNavigation = useCollapsedNavigation();
-  const hasPageFrame = useHasPageFrameFeature();
   const {view} = useSecondaryNavigation();
 
   const ref = useRef<HTMLUListElement | null>(null);
 
   const {layout} = usePrimaryNavigation();
-  const isMobilePageFrame = hasPageFrame && layout === 'mobile';
 
   useNavigationTourModal();
 
@@ -97,22 +85,20 @@ export function Navigation() {
           <PrimaryNavigationItems listRef={ref} />
         </PrimaryNavigation.List>
 
-        {!isMobilePageFrame && layout === 'mobile' ? null : (
-          <SizeProvider size={hasPageFrame ? 'sm' : 'md'}>
-            <Stack
-              gap={layout === 'mobile' ? undefined : 'md'}
-              marginTop="auto"
-              paddingBottom="md"
-            >
-              <PrimaryNavigation.FooterItems>
-                <PrimaryNavigationFooterItems />
-              </PrimaryNavigation.FooterItems>
-              <PrimaryNavigation.FooterItems>
-                <PrimaryNavigationFooterItemsUserDropdown />
-              </PrimaryNavigation.FooterItems>
-            </Stack>
-          </SizeProvider>
-        )}
+        <SizeProvider size="sm">
+          <Stack
+            gap={layout === 'mobile' ? undefined : 'md'}
+            marginTop="auto"
+            paddingBottom="md"
+          >
+            <PrimaryNavigation.FooterItems>
+              <PrimaryNavigationFooterItems />
+            </PrimaryNavigation.FooterItems>
+            <PrimaryNavigation.FooterItems>
+              <PrimaryNavigationFooterItemsUserDropdown />
+            </PrimaryNavigation.FooterItems>
+          </Stack>
+        </SizeProvider>
       </PrimaryNavigation.Sidebar>
 
       {isCollapsed ? (
@@ -148,7 +134,6 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
   const prefix = `organizations/${organization.slug}`;
 
   const fallbackRef = useRef<HTMLUListElement>(null);
-  const hasPageFrame = useHasPageFrameFeature();
 
   const makeNavigationItemProps = useActivateNavigationGroupOnHover({
     ref: listRef ?? fallbackRef,
@@ -258,12 +243,6 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
         </Feature>
       )}
 
-      {hasPageFrame ? null : (
-        <PrimaryNavigation.ListItem padding="0 md">
-          <PrimaryNavigation.Separator />
-        </PrimaryNavigation.ListItem>
-      )}
-
       <Feature features={['workflow-engine-ui']}>
         <PrimaryNavigation.ListItem>
           <PrimaryNavigation.Link
@@ -307,38 +286,9 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
  */
 export function PrimaryNavigationFooterItems() {
   const organization = useOrganization();
-  const hasPageFrame = useHasPageFrameFeature();
-
-  const state = useCommandPaletteState();
-  const dispatch = useCommandPaletteDispatch();
-  const {openSeerExplorer} = useSeerExplorerContext();
 
   return (
     <Fragment>
-      {hasPageFrame ? (
-        <PrimaryNavigation.Button
-          label={
-            <Flex gap="xs" align="center">
-              {t('Open command palette')}
-              <Hotkey value="mod+k" variant="debossed" />
-            </Flex>
-          }
-          analyticsKey="search"
-          buttonProps={{
-            icon: <IconSearch />,
-            onClick: () => {
-              toggleCommandPalette(
-                {},
-                organization,
-                state,
-                dispatch,
-                'button',
-                isSeerExplorerEnabled(organization) ? openSeerExplorer : undefined
-              );
-            },
-          }}
-        />
-      ) : null}
       <ErrorBoundary customComponent={null}>
         <PrimaryNavigationOnboarding />
       </ErrorBoundary>

@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -17,55 +17,73 @@ import {
 } from 'sentry/views/detectors/pathnames';
 import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 
 type DetectorDetailsHeaderProps = {
   detector: Detector;
-  project: Project;
   useLocalDetailActions?: boolean;
 };
 
 function DetectorDetailsBreadcrumbs({detector}: {detector: Detector}) {
   const organization = useOrganization();
+  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
+
+  if (!hasNewBreadcrumbs) {
+    return (
+      <Breadcrumbs
+        crumbs={[
+          {
+            label: t('Monitors'),
+            to: makeMonitorBasePathname(organization.slug),
+          },
+          {
+            label: getDetectorTypeLabel(detector.type),
+            to: makeMonitorTypePathname(organization.slug, detector.type),
+          },
+          {label: detector.name},
+        ]}
+      />
+    );
+  }
+
   return (
-    <Breadcrumbs
-      crumbs={[
+    <BreadcrumbList
+      items={[
         {
+          type: 'link',
           label: t('Monitors'),
           to: makeMonitorBasePathname(organization.slug),
         },
         {
+          type: 'link',
           label: getDetectorTypeLabel(detector.type),
           to: makeMonitorTypePathname(organization.slug, detector.type),
         },
-        {label: detector.name},
       ]}
     />
   );
 }
 
-export function DetectorDetailsDefaultHeaderContent({
-  detector,
-  project,
-}: {
-  detector: Detector;
-  project: Project;
-}) {
-  const hasPageFrameFeature = useHasPageFrameFeature();
+function DetectorDetailsDefaultHeaderContent({detector}: {detector: Detector}) {
+  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
 
-  if (hasPageFrameFeature) {
+  if (hasNewBreadcrumbs) {
     return (
-      <TopBar.Slot name="title">
-        <DetectorDetailsBreadcrumbs detector={detector} />
-      </TopBar.Slot>
+      <Fragment>
+        <TopBar.Slot name="breadcrumbs">
+          <DetectorDetailsBreadcrumbs detector={detector} />
+        </TopBar.Slot>
+        <TopBar.Slot name="title">
+          <BreadcrumbList.Title item={{type: 'page-title', label: detector.name}} />
+        </TopBar.Slot>
+      </Fragment>
     );
   }
 
   return (
-    <DetailLayout.HeaderContent>
+    <TopBar.Slot name="title">
       <DetectorDetailsBreadcrumbs detector={detector} />
-      <DetailLayout.Title title={detector.name} project={project} />
-    </DetailLayout.HeaderContent>
+    </TopBar.Slot>
   );
 }
 
@@ -76,16 +94,14 @@ function DetectorDetailsDefaultActions({
   detector: Detector;
   useLocalDetailActions?: boolean;
 }) {
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const shouldUseLocalDetailActions =
-    hasPageFrameFeature &&
-    (useLocalDetailActions ||
-      detector.type === 'monitor_check_in_failure' ||
-      detector.type === 'metric_issue' ||
-      detector.type === 'uptime_domain_failure' ||
-      detector.type === 'preprod_size_analysis');
+    useLocalDetailActions ||
+    detector.type === 'monitor_check_in_failure' ||
+    detector.type === 'metric_issue' ||
+    detector.type === 'uptime_domain_failure' ||
+    detector.type === 'preprod_size_analysis';
 
-  return hasPageFrameFeature ? (
+  return (
     <Fragment>
       {shouldUseLocalDetailActions ? null : (
         <TopBar.Slot name="actions">
@@ -95,41 +111,20 @@ function DetectorDetailsDefaultActions({
       )}
       <MonitorFeedbackButton />
     </Fragment>
-  ) : (
-    <DetailLayout.Actions>
-      <MonitorFeedbackButton />
-      <DisableDetectorAction detector={detector} />
-      <EditDetectorAction detector={detector} />
-    </DetailLayout.Actions>
   );
 }
 
 export function DetectorDetailsHeader({
   detector,
-  project,
   useLocalDetailActions = false,
 }: DetectorDetailsHeaderProps) {
-  const hasPageFrameFeature = useHasPageFrameFeature();
-
-  if (hasPageFrameFeature) {
-    return (
-      <Fragment>
-        <DetectorDetailsDefaultHeaderContent detector={detector} project={project} />
-        <DetectorDetailsDefaultActions
-          detector={detector}
-          useLocalDetailActions={useLocalDetailActions}
-        />
-      </Fragment>
-    );
-  }
-
   return (
-    <DetailLayout.Header>
-      <DetectorDetailsDefaultHeaderContent detector={detector} project={project} />
+    <Fragment>
+      <DetectorDetailsDefaultHeaderContent detector={detector} />
       <DetectorDetailsDefaultActions
         detector={detector}
         useLocalDetailActions={useLocalDetailActions}
       />
-    </DetailLayout.Header>
+    </Fragment>
   );
 }

@@ -183,6 +183,7 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
                 data=data,
             )
             record_group_history(group, GroupHistoryStatus.ASSIGNED, actor=acting_user)
+
             GroupOwner.invalidate_assignee_exists_cache(group.id)
 
             metrics.incr("group.assignee.change", instance="assigned", skip_internal=True)

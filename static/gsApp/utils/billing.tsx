@@ -1,11 +1,9 @@
-import moment from 'moment-timezone';
-
 import type {PromptData} from 'sentry/actionCreators/prompts';
 import {IconBuilding, IconGroup, IconSeer, IconUser} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
@@ -15,7 +13,6 @@ import {
   GIGABYTE,
   MILLION,
   RESERVED_BUDGET_QUOTA,
-  TRIAL_PLANS,
   UNLIMITED,
   UNLIMITED_RESERVED,
 } from 'getsentry/constants';
@@ -25,7 +22,6 @@ import {
   FEE_INVOICE_ITEM_TYPES,
   OnDemandBudgetMode,
   PlanName,
-  PlanTier,
   ReservedBudgetCategoryType,
 } from 'getsentry/types';
 import type {
@@ -34,9 +30,8 @@ import type {
   BillingMetricHistory,
   BillingStatTotal,
   EventBucket,
-  InvoiceItem,
+  InvoiceItemType,
   Plan,
-  PreviewInvoiceItem,
   ProductTrial,
   Subscription,
 } from 'getsentry/types';
@@ -123,7 +118,7 @@ export const getSlot = (
  *                Useful for Errors/Transactions but not recommended to be used
  *                with Attachments because "1K GB" is hard to read.
  * isGifted: For gifted data volumes, 0 is displayed as 0 instead of unlimited.
- * useUnitScaling: For Attachments only. Scale from KB -> MB -> GB -> TB -> etc
+ * useUnitScaling: For Attachments only. Scale from kB -> MB -> GB -> TB -> etc
  */
 type FormatOptions = {
   fractionDigits?: number;
@@ -213,7 +208,9 @@ export function formatUsageWithUnits(
     }
     return options.isAbbreviated
       ? displayNumber(usageProfileHours, 1)
-      : usageProfileHours.toLocaleString(undefined, {maximumFractionDigits: 1});
+      : usageProfileHours.toLocaleString(undefined, {
+          maximumFractionDigits: 1,
+        });
   }
   return options.isAbbreviated
     ? displayNumber(usageQuantity, 0)
@@ -283,7 +280,7 @@ function formatReservedNumberToString(
  * sentry/utils/formatBytes.
  */
 function formatByteUnits(bytes: number, u = 0) {
-  const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+  const units = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
   const threshold = 1000;
 
   while (bytes >= threshold) {
@@ -315,14 +312,6 @@ function displayNumber(n: number, fractionDigits = 0) {
   return n.toFixed(fractionDigits).toLocaleString();
 }
 
-/**
- * Utility functions for Pricing Plans
- */
-export const isEnterprise = (plan: string) =>
-  ['e1', 'enterprise'].some(p => plan.startsWith(p)) || isAmEnterprisePlan(plan);
-
-export const isTrialPlan = (plan: string) => TRIAL_PLANS.includes(plan);
-
 export const hasPerformance = (plan?: Plan) => {
   return (
     // Older plans will have Transactions
@@ -344,40 +333,18 @@ export const isBizPlanFamily = (plan?: Plan) => plan?.name.includes(PlanName.BUS
 
 export const isTeamPlanFamily = (plan?: Plan) => plan?.name.includes(PlanName.TEAM);
 
+/**
+ * Whether the subscription is currently on a trial, derived from `trialPlan`
+ * (non-null iff trialing).
+ */
+export const isTrial = (subscription: Subscription) => defined(subscription.trialPlan);
+
 export const isBusinessTrial = (subscription: Subscription) => {
-  return (
-    subscription.isTrial &&
-    !subscription.isPerformancePlanTrial &&
-    !subscription.isEnterpriseTrial
-  );
+  return isTrial(subscription) && !subscription.isEnterpriseTrial;
 };
 
-export function isAmPlan(planId?: string) {
-  return typeof planId === 'string' && planId.startsWith('am');
-}
-
-export function isAm2Plan(planId?: string) {
-  return typeof planId === 'string' && planId.startsWith('am2');
-}
-
-export function isAm3Plan(planId?: string) {
-  return typeof planId === 'string' && planId.startsWith('am3');
-}
-
-export function isAm3DsPlan(planId?: string) {
-  return typeof planId === 'string' && planId.startsWith('am3') && planId.includes('_ds');
-}
-
-export function isAmEnterprisePlan(planId?: string) {
-  if (typeof planId !== 'string' || !isAmPlan(planId)) {
-    return false;
-  }
-
-  return planId.includes('_ent');
-}
-
 export function hasJustStartedPlanTrial(subscription: Subscription) {
-  return subscription.isTrial && subscription.isTrialStarted;
+  return isTrial(subscription) && subscription.isTrialStarted;
 }
 
 export const displayBudgetName = (
@@ -441,20 +408,7 @@ export const getOnDemandCategories = ({
 };
 
 export const displayPlanName = (plan?: Plan | null) => {
-  return isAmEnterprisePlan(plan?.id) ? 'Enterprise' : (plan?.name ?? '[unavailable]');
-};
-
-export const getAmPlanTier = (plan: string) => {
-  if (isAm3Plan(plan)) {
-    return PlanTier.AM3;
-  }
-  if (isAm2Plan(plan)) {
-    return PlanTier.AM2;
-  }
-  if (isAmPlan(plan)) {
-    return PlanTier.AM1;
-  }
-  return null;
+  return plan?.isEnterprise ? 'Enterprise' : (plan?.name ?? '[unavailable]');
 };
 
 export const isNewPayingCustomer = (
@@ -462,7 +416,7 @@ export const isNewPayingCustomer = (
   organization: Organization
 ) =>
   subscription.isFree ||
-  isTrialPlan(subscription.plan) ||
+  subscription.onTrialPlan ||
   hasPartnerMigrationFeature(organization);
 
 /**
@@ -471,14 +425,6 @@ export const isNewPayingCustomer = (
 export function getTrialDaysLeft(subscription: Subscription): number {
   // trial end is in the future
   return -1 * getDaysSinceDate(subscription.trialEnd ?? '');
-}
-
-/**
- * Get the number of days left on contract
- */
-export function getContractDaysLeft(subscription: Subscription): number {
-  // contract period end is in the future
-  return -1 * getDaysSinceDate(subscription.contractPeriodEnd ?? '');
 }
 
 /**
@@ -491,7 +437,7 @@ function sortPlansForUpgrade(billingConfig: BillingConfig, subscription: Subscri
   // contract interval. Sorted by price as features will become progressively
   // more available.
   let plans = billingConfig.planList
-    .sort((a, b) => a.price - b.price)
+    .sort((a, b) => a.totalPrice - b.totalPrice)
     .filter(p => p.userSelectable && p.billingInterval === subscription.billingInterval);
 
   // If we're dealing with plans that are *not part of a tier* Then we can
@@ -538,7 +484,7 @@ export function getBestActionToIncreaseEventLimits(
   organization: Organization,
   subscription: Subscription
 ) {
-  const isPaidPlan = subscription.planDetails?.price > 0;
+  const isPaidPlan = subscription.planDetails?.totalPrice > 0;
   const hasBillingPerms = organization.access?.includes('org:billing');
 
   // free orgs can increase event limits by trialing
@@ -638,9 +584,6 @@ export function getSoftCapType(metricHistory: BillingMetricHistory): string | nu
     return toTitleCase(metricHistory.softCapType.replace(/_/g, ' ').toLowerCase(), {
       allowInnerUpperCase: true,
     }).replace(' ', metricHistory.softCapType === 'ON_DEMAND' ? '-' : ' ');
-  }
-  if (metricHistory.trueForward) {
-    return 'True Forward';
   }
   return null;
 }
@@ -773,36 +716,6 @@ export function trialPromptIsDismissed(prompt: PromptData, subscription: Subscri
   return time >= onDemandPeriodStart.getTime() / 1000;
 }
 
-export function partnerPlanEndingModalIsDismissed(
-  prompt: PromptData,
-  subscription: Subscription,
-  timeframe: string
-) {
-  const {snoozedTime, dismissedTime} = prompt || {};
-  const time = snoozedTime || dismissedTime;
-  if (!time) {
-    return false;
-  }
-
-  const lastDaysLeft = moment(subscription.contractPeriodEnd).diff(
-    moment.unix(time),
-    'days'
-  );
-
-  switch (timeframe) {
-    case 'zero':
-      return lastDaysLeft <= 0;
-    case 'two':
-      return lastDaysLeft <= 2 && lastDaysLeft > 0;
-    case 'week':
-      return lastDaysLeft <= 7 && lastDaysLeft > 2;
-    case 'month':
-      return lastDaysLeft <= 30 && lastDaysLeft > 7;
-    default:
-      return true;
-  }
-}
-
 export function getPercentage(quantity: number, total: number | null) {
   if (typeof total === 'number' && total > 0) {
     return (Math.min(quantity, total) / total) * 100;
@@ -848,10 +761,10 @@ export const RETENTION_SETTINGS_CATEGORIES = new Set([
   DataCategory.TRANSACTIONS,
 ]);
 
-export function getCredits({
+export function getCredits<T extends {amount: number; type: InvoiceItemType}>({
   invoiceItems,
 }: {
-  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+  invoiceItems: T[];
 }) {
   return invoiceItems.filter(
     item =>
@@ -870,7 +783,7 @@ export function getCreditApplied({
   invoiceItems,
 }: {
   creditApplied: number;
-  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+  invoiceItems: Array<{amount: number; type: InvoiceItemType}>;
 }) {
   const credits = getCredits({invoiceItems});
   if (credits.some(item => item.type === 'balance_change')) {
@@ -883,10 +796,10 @@ export function getCreditApplied({
  * Returns extra fees included in the invoice or preview data, such as tax
  * or cancellation fees.
  */
-export function getFees({
+export function getFees<T extends {amount: number; type: InvoiceItemType}>({
   invoiceItems,
 }: {
-  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+  invoiceItems: T[];
 }) {
   return invoiceItems.filter(
     item =>
@@ -898,10 +811,10 @@ export function getFees({
 /**
  * Returns ondemand invoice items from the invoice or preview data.
  */
-export function getOnDemandItems({
+export function getOnDemandItems<T extends {amount: number; type: InvoiceItemType}>({
   invoiceItems,
 }: {
-  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+  invoiceItems: T[];
 }) {
   return invoiceItems.filter(item => item.type.startsWith('ondemand'));
 }
@@ -1041,9 +954,7 @@ export function productIsEnabled(
     return false;
   }
   const hasNonPaygAccess =
-    (metricHistory.prepaid ?? 0) !== 0 ||
-    !!metricHistory.softCapType ||
-    !!subscription.hasSoftCap;
+    (metricHistory.prepaid ?? 0) !== 0 || !!metricHistory.softCapType;
   const hasPaygBudget =
     metricHistory.onDemandBudget > 0 ||
     (subscription.onDemandBudgets?.budgetMode === OnDemandBudgetMode.SHARED &&
@@ -1074,9 +985,7 @@ export function normalizeMetricHistory(
       customPrice: null,
       order: 0,
       paygCpe: null,
-      sentUsageWarning: false,
       softCapType: null,
-      trueForward: false,
       usageExceeded: false,
     }
   );

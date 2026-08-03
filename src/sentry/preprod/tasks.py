@@ -38,6 +38,7 @@ from sentry.preprod.size_analysis.tasks import (
     maybe_emit_issues_from_absolute_size_results,
 )
 from sentry.preprod.size_analysis.webhooks import send_size_analysis_webhook
+from sentry.preprod.vcs.pr_comments.size_tasks import create_preprod_size_pr_comment_task
 from sentry.preprod.vcs.pr_comments.tasks import create_preprod_pr_comment_task
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 from sentry.silo.base import SiloMode
@@ -643,6 +644,12 @@ def _assemble_preprod_artifact_size_analysis(
                 "caller": "assemble_completion",
             }
         )
+        create_preprod_size_pr_comment_task.apply_async(
+            kwargs={
+                "preprod_artifact_id": artifact_id,
+                "caller": "assemble_completion",
+            }
+        )
 
     # Ideally we want to report an outcome at most once per
     # preprod_artifact. This isn't yet robust to:
@@ -958,10 +965,18 @@ def detect_expired_preprod_artifacts() -> None:
         )
         expired_size_comparisons_count = 0
 
-    # Find expired PreprodSnapshotComparisons (those in PROCESSING state for more than 30 minutes)
-    # Note: ignore snapshot comparisons in a pending state
+    # Find expired PreprodSnapshotComparisons stuck in PROCESSING or PENDING for more than
+    # 30 minutes. PENDING is included because selective-base reconstruction parks a comparison
+    # in PENDING between deferral retries; if a rescheduled task is lost the row would otherwise
+    # orphan forever. A healthy or actively-deferring row keeps date_updated fresh (normal rows
+    # leave PENDING within seconds; deferral bumps date_updated each retry), so the stale
+    # threshold only catches genuinely orphaned rows.
     expired_snapshot_comparisons = PreprodSnapshotComparison.objects.filter(
-        state=PreprodSnapshotComparison.State.PROCESSING, date_updated__lte=timeout_threshold
+        state__in=[
+            PreprodSnapshotComparison.State.PROCESSING,
+            PreprodSnapshotComparison.State.PENDING,
+        ],
+        date_updated__lte=timeout_threshold,
     )
 
     try:
@@ -969,7 +984,7 @@ def detect_expired_preprod_artifacts() -> None:
             expired_snapshot_comparisons_count = expired_snapshot_comparisons.update(
                 state=PreprodSnapshotComparison.State.FAILED,
                 error_code=PreprodSnapshotComparison.ErrorCode.TIMEOUT,
-                error_message="Snapshot comparison processing timed out after 30 minutes",
+                error_message="Snapshot comparison timed out after 30 minutes",
             )
 
             if expired_snapshot_comparisons_count > 0:

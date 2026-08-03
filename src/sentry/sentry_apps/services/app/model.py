@@ -85,6 +85,7 @@ class RpcSentryApp(RpcModel):
     uuid: str = ""
     events: list[str] = Field(default_factory=list)
     webhook_url: str | None = None
+    webhook_headers: list[str] = Field(repr=False, default_factory=list)
     is_alertable: bool = False
     is_disabled: bool = False
     is_published: bool = False
@@ -125,7 +126,7 @@ class RpcSentryAppInstallation(RpcModel):
     sentry_app: RpcSentryApp = Field(default_factory=lambda: RpcSentryApp())
     date_deleted: datetime.datetime | None = None
     uuid: str = ""
-    api_token: str | None = None
+    api_token: str | None = Field(repr=False, default=None)
 
 
 class RpcSentryAppComponent(RpcModel):

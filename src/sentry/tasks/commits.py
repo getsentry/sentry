@@ -7,6 +7,7 @@ from typing import Any, NamedTuple
 import sentry_sdk
 from django.urls import reverse
 from sentry_sdk import set_tag
+from sentry_sdk.traces import StreamedSpan
 from taskbroker_client.retry import Retry
 
 from sentry.constants import ObjectStatus
@@ -15,6 +16,9 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
 )
+from sentry.issues.action_log import GroupActionActor
+from sentry.issues.action_log.publish import action_context_scope
+from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource
 from sentry.models.deploy import Deploy
 from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironment
 from sentry.models.release import Release
@@ -33,6 +37,7 @@ from sentry.utils.cache import cache
 from sentry.utils.email import MessageBuilder
 from sentry.utils.hashlib import hash_values
 from sentry.utils.http import absolute_uri
+from sentry.utils.tracing import get_current_span
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +96,7 @@ def fetch_commits_for_compare_range(
         isinstance(repo.provider, str) and repo.provider in GITHUB_CACHEABLE_REPOSITORY_PROVIDERS
     )
     set_tag("compare_commits_cache_enabled", cache_enabled)
+    sentry_sdk.set_attribute("compare_commits_cache_enabled", cache_enabled)
     if cache_enabled:
         cache_key = get_github_compare_commits_cache_key(
             repo.organization_id, repo.id, repo.provider, start_sha, end_sha
@@ -300,8 +306,10 @@ def fetch_commits_for_ref_with_lifecycle(
             except IntegrationResourceNotFoundError:
                 repo_commits = None
             except Exception as e:
-                span = sentry_sdk.get_current_span()
-                if span:
+                span = get_current_span()
+                if isinstance(span, StreamedSpan):
+                    span.status = "error"
+                elif span:
                     span.set_status("unknown_error")
 
                 if isinstance(e, InvalidIdentity) and getattr(e, "identity", None):
@@ -353,6 +361,7 @@ def fetch_commits(
         except Release.DoesNotExist:
             pass
     set_tag("organization.slug", release.organization.slug)
+    sentry_sdk.set_attribute("organization.slug", release.organization.slug)
     extra = {
         "organization_id": release.organization_id,
         "user_id": user_id,
@@ -382,7 +391,9 @@ def fetch_commits(
         return
 
     try:
-        release.set_commits(commit_list)
+        group_action_actor = GroupActionActor.user(user_id) if user_id is not None else SYSTEM_ACTOR
+        with action_context_scope(ActionSource.SYSTEM, group_action_actor):
+            release.set_commits(commit_list)
     except ReleaseCommitError:
         # Another task or webworker is currently setting commits on this
         # release. Return early as that task will do the remaining work.

@@ -49,8 +49,11 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
     def post(self, request: Request, installation: SentryAppInstallation) -> Response:
         scope = sentry_sdk.get_isolation_scope()
         scope.set_tag("organization", installation.organization_id)
+        scope.set_attribute("organization", installation.organization_id)
         scope.set_tag("sentry_app_id", installation.sentry_app.id)
+        scope.set_attribute("sentry_app_id", installation.sentry_app.id)
         scope.set_tag("sentry_app_slug", installation.sentry_app.slug)
+        scope.set_attribute("sentry_app_slug", installation.sentry_app.slug)
 
         context = organization_service.get_organization_by_id(
             id=installation.organization_id, include_projects=False, include_teams=False

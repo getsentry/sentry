@@ -103,15 +103,15 @@ describe('LogsToolbar', () => {
       await userEvent.click(screen.getByRole('button', {name: 'count'}));
       await userEvent.click(screen.getByRole('option', {name: 'count unique'}));
       expect(router.location.query.aggregateField).toEqual(
-        [{groupBy: ''}, {yAxes: ['count_unique(message)'], visible: false}].map(
-          aggregateField => JSON.stringify(aggregateField)
+        [{groupBy: ''}, {yAxes: ['count_unique(message)']}].map(aggregateField =>
+          JSON.stringify(aggregateField)
         )
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'count unique'}));
       await userEvent.click(screen.getByRole('option', {name: 'avg'}));
       expect(router.location.query.aggregateField).toEqual(
-        [{groupBy: ''}, {yAxes: ['avg(bar)'], visible: false}].map(aggregateField =>
+        [{groupBy: ''}, {yAxes: ['avg(bar)']}].map(aggregateField =>
           JSON.stringify(aggregateField)
         )
       );
@@ -119,7 +119,7 @@ describe('LogsToolbar', () => {
       await userEvent.click(screen.getByRole('button', {name: 'avg'}));
       await userEvent.click(screen.getByRole('option', {name: 'count'}));
       expect(router.location.query.aggregateField).toEqual(
-        [{groupBy: ''}, {yAxes: ['count(message)'], visible: false}].map(aggregateField =>
+        [{groupBy: ''}, {yAxes: ['count(message)']}].map(aggregateField =>
           JSON.stringify(aggregateField)
         )
       );
@@ -143,8 +143,8 @@ describe('LogsToolbar', () => {
       expect(screen.getByRole('option', {name: 'severity'})).toBeInTheDocument();
       await userEvent.click(screen.getByRole('option', {name: 'severity'}));
       expect(router.location.query.aggregateField).toEqual(
-        [{groupBy: ''}, {yAxes: ['count_unique(severity)'], visible: false}].map(
-          aggregateField => JSON.stringify(aggregateField)
+        [{groupBy: ''}, {yAxes: ['count_unique(severity)']}].map(aggregateField =>
+          JSON.stringify(aggregateField)
         )
       );
 
@@ -156,10 +156,54 @@ describe('LogsToolbar', () => {
       expect(screen.getByRole('option', {name: 'foo'})).toBeInTheDocument();
       await userEvent.click(screen.getByRole('option', {name: 'foo'}));
       expect(router.location.query.aggregateField).toEqual(
-        [{groupBy: ''}, {yAxes: ['avg(foo)'], visible: false}].map(aggregateField =>
+        [{groupBy: ''}, {yAxes: ['avg(foo)']}].map(aggregateField =>
           JSON.stringify(aggregateField)
         )
       );
+    });
+
+    it('keeps the selected field when it is not in the default attribute list', async () => {
+      const searchAttributesMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/trace-items/attributes/`,
+        method: 'GET',
+        body: [
+          {
+            attributeType: 'number',
+            key: 'searched_number',
+            name: 'searched_number',
+            attributeSource: {source_type: 'custom'},
+          },
+        ],
+        match: [MockApiClient.matchQuery({substringMatch: 'searched'})],
+      });
+
+      const {router} = render(<LogsToolbar />, {
+        organization,
+        additionalWrapper: Wrapper,
+      });
+
+      // The default number attributes do not include `searched_number`.
+      await userEvent.click(screen.getByRole('button', {name: 'count'}));
+      await userEvent.click(screen.getByRole('option', {name: 'avg'}));
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      const searchInput = screen.getByRole('textbox');
+      await userEvent.type(searchInput, 'searched');
+      await waitFor(() => expect(searchAttributesMock).toHaveBeenCalled());
+
+      await userEvent.click(await screen.findByRole('option', {name: 'searched_number'}));
+
+      // Once the search clears, `searched_number` is no longer in the fetched
+      // attributes, but the dropdown must keep displaying the selected field
+      // rather than reverting to an empty value.
+      expect(router.location.query.aggregateField).toEqual(
+        [{groupBy: ''}, {yAxes: ['avg(searched_number)']}].map(aggregateField =>
+          JSON.stringify(aggregateField)
+        )
+      );
+      expect(
+        await screen.findByRole('button', {name: 'searched_number'})
+      ).toBeInTheDocument();
     });
 
     it('can add/delete visualizes', async () => {
@@ -173,11 +217,9 @@ describe('LogsToolbar', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Add Chart'}));
       expect(router.location.query.aggregateField).toEqual(
-        [
-          {groupBy: ''},
-          {yAxes: ['avg(bar)'], visible: false},
-          {yAxes: ['count(message)']},
-        ].map(aggregateField => JSON.stringify(aggregateField))
+        [{groupBy: ''}, {yAxes: ['avg(bar)']}, {yAxes: ['count(message)']}].map(
+          aggregateField => JSON.stringify(aggregateField)
+        )
       );
 
       await userEvent.click(screen.getAllByLabelText('Remove Overlay')[0]!);
@@ -205,8 +247,8 @@ describe('LogsToolbar', () => {
       await userEvent.click(within(editorColumn).getByRole('button', {name: '\u2014'}));
       await userEvent.click(screen.getByRole('option', {name: 'message'}));
       expect(router.location.query.aggregateField).toEqual(
-        [{groupBy: 'message'}, {yAxes: ['count(message)'], visible: false}].map(
-          aggregateField => JSON.stringify(aggregateField)
+        [{groupBy: 'message'}, {yAxes: ['count(message)']}].map(aggregateField =>
+          JSON.stringify(aggregateField)
         )
       );
 
@@ -215,8 +257,8 @@ describe('LogsToolbar', () => {
       await userEvent.click(within(editorColumn).getByRole('button', {name: 'message'}));
       await userEvent.click(screen.getByRole('option', {name: 'severity'}));
       expect(router.location.query.aggregateField).toEqual(
-        [{groupBy: 'severity'}, {yAxes: ['count(message)'], visible: false}].map(
-          aggregateField => JSON.stringify(aggregateField)
+        [{groupBy: 'severity'}, {yAxes: ['count(message)']}].map(aggregateField =>
+          JSON.stringify(aggregateField)
         )
       );
       expect(mode).toEqual(Mode.AGGREGATE);
@@ -234,19 +276,42 @@ describe('LogsToolbar', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Add Group'}));
       expect(router.location.query.aggregateField).toEqual(
-        [
-          {groupBy: 'message'},
-          {groupBy: ''},
-          {yAxes: ['count(message)'], visible: false},
-        ].map(aggregateField => JSON.stringify(aggregateField))
+        [{groupBy: 'message'}, {groupBy: ''}, {yAxes: ['count(message)']}].map(
+          aggregateField => JSON.stringify(aggregateField)
+        )
       );
 
       await userEvent.click(screen.getAllByLabelText('Remove Column')[0]!);
       expect(router.location.query.aggregateField).toEqual(
         // BUG: a little weird that the 2nd group by moves up to take its place
-        [{groupBy: ''}, {yAxes: ['count(message)'], visible: false}].map(aggregateField =>
+        [{groupBy: ''}, {yAxes: ['count(message)']}].map(aggregateField =>
           JSON.stringify(aggregateField)
         )
+      );
+    });
+
+    it('disables an attribute already selected in another group by', async () => {
+      render(<LogsToolbar />, {
+        organization,
+        additionalWrapper: Wrapper,
+      });
+
+      const firstColumn = screen.getAllByTestId('editor-column')[0]!;
+      await userEvent.click(within(firstColumn).getByRole('button', {name: '—'}));
+      await userEvent.click(screen.getByRole('option', {name: 'message'}));
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add Group'}));
+
+      const secondColumn = screen.getAllByTestId('editor-column')[1]!;
+      await userEvent.click(within(secondColumn).getByRole('button', {name: '—'}));
+
+      expect(await screen.findByRole('option', {name: 'message'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+      expect(screen.getByRole('option', {name: 'severity'})).not.toHaveAttribute(
+        'aria-disabled',
+        'true'
       );
     });
 
@@ -269,7 +334,7 @@ describe('LogsToolbar', () => {
 
       await userEvent.click(within(section).getByLabelText('Clear Group By'));
       expect(router.location.query.aggregateField).toEqual(
-        [{groupBy: ''}, {yAxes: ['count(message)'], visible: false}].map(aggregateField =>
+        [{groupBy: ''}, {yAxes: ['count(message)']}].map(aggregateField =>
           JSON.stringify(aggregateField)
         )
       );

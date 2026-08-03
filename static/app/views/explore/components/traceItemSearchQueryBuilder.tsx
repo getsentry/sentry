@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {SpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
@@ -7,12 +7,13 @@ import {
   type SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
+import {useFilterKeyRegistry} from 'sentry/components/searchQueryBuilder/hooks/useFilterKeyRegistry';
+import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import {getHasTag} from 'sentry/utils/tag';
-import {useAttributeValidation} from 'sentry/views/explore/hooks/useAttributeValidation';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGetTraceItemAttributeTagKeys} from 'sentry/views/explore/hooks/useGetTraceItemAttributeTagKeys';
 import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
@@ -32,12 +33,15 @@ export type TraceItemSearchQueryBuilderProps = {
   allowedAttributeKeys?: string[];
   attributeQuery?: string;
   caseInsensitive?: CaseInsensitive;
+  defaultToAskSeerOnFreeTextSearch?: SearchQueryBuilderProps['defaultToAskSeerOnFreeTextSearch'];
   disableRecentSearches?: boolean;
   disabled?: boolean;
   disallowFreeText?: boolean;
   disallowHas?: boolean;
   disallowLogicalOperators?: boolean;
+  disallowNegation?: boolean;
   hiddenAttributeKeys?: string[];
+  invalidFilterKeys?: string[];
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   namespace?: string;
   onCaseInsensitiveClick?: SearchQueryBuilderProps['onCaseInsensitiveClick'];
@@ -76,9 +80,9 @@ const typeMap: Partial<
 function getTraceItemFieldDefinitionFunction(
   itemType: TraceItemDataset,
   tags: TagCollection
-) {
-  return (key: string) => {
-    return getFieldDefinition(key, typeMap[itemType], tags[key]?.kind);
+): FieldDefinitionGetter {
+  return (key, options) => {
+    return getFieldDefinition(key, typeMap[itemType], options?.kind ?? tags[key]?.kind);
   };
 }
 
@@ -98,6 +102,7 @@ export function useTraceItemSearchQueryBuilderProps({
   onSearch,
   portalTarget,
   projects,
+  datetime,
   supportedAggregates = [],
   namespace,
   replaceRawSearchKeys,
@@ -107,25 +112,21 @@ export function useTraceItemSearchQueryBuilderProps({
   disallowHas,
   disallowFreeText,
   disallowLogicalOperators,
+  disallowNegation,
   disableRecentSearches,
+  disabled,
+  defaultToAskSeerOnFreeTextSearch,
   attributeQuery,
   hiddenAttributeKeys,
   allowedAttributeKeys,
+  placeholder,
+  invalidFilterKeys,
 }: TraceItemSearchQueryBuilderProps) {
-  const placeholderText = itemTypeToDefaultPlaceholder(itemType);
-
+  const placeholderText = placeholder ?? itemTypeToDefaultPlaceholder(itemType);
   const {selection} = usePageFilters();
   const effectiveProjects = projects ?? selection.projects;
-  const validationSelection = useMemo(
-    () => ({datetime: selection.datetime, projects: effectiveProjects}),
-    [selection.datetime, effectiveProjects]
-  );
+  const effectiveDatetime = datetime ?? selection.datetime;
 
-  const {invalidFilterKeys} = useAttributeValidation(
-    itemType,
-    initialQuery ?? '',
-    validationSelection
-  );
   const functionTags = useFunctionTags(itemType, supportedAggregates);
   const filterKeySections = useFilterKeySections(itemType, stringAttributes);
   const filterTags = useFilterTags({
@@ -140,6 +141,7 @@ export function useTraceItemSearchQueryBuilderProps({
     traceItemType: itemType,
     type: 'string',
     projectIds: projects,
+    datetime,
     query: attributeQuery,
   });
 
@@ -155,15 +157,46 @@ export function useTraceItemSearchQueryBuilderProps({
     extraTags: functionTags,
     query: attributeQuery,
     hiddenKeys: hiddenAttributeKeys,
+    datetime,
   });
   // When an allowlist is in effect, the static filterKeys are already curated to
   // it. Skip the dynamic EAP fetch so typed-key autocomplete only matches against
   // the allowlist (and unrecognized keys are auto-rejected).
   const getTagKeys = allowedAttributeKeys ? undefined : dynamicTagKeys;
+  const asyncFilterKeyRegistryQueryKey = useMemo(
+    () => [
+      'trace-item-search-query-builder-filter-key-registry',
+      itemType,
+      effectiveProjects,
+      selection.environments,
+      effectiveDatetime,
+      attributeQuery,
+      hiddenAttributeKeys,
+      allowedAttributeKeys,
+    ],
+    [
+      allowedAttributeKeys,
+      attributeQuery,
+      effectiveDatetime,
+      effectiveProjects,
+      hiddenAttributeKeys,
+      itemType,
+      selection.environments,
+    ]
+  );
+
+  const {filterKeyRegistryQueryOptions, registerFilterKeys} = useFilterKeyRegistry({
+    asyncFilterKeyRegistryQueryKey,
+  });
+
+  useEffect(() => {
+    registerFilterKeys(Object.values(filterTags), filterKeyRegistryQueryOptions.queryKey);
+  }, [filterKeyRegistryQueryOptions.queryKey, filterTags, registerFilterKeys]);
 
   return useMemo(
     () => ({
       placeholder: placeholderText,
+      asyncFilterKeyRegistryQueryKey,
       filterKeys: filterTags,
       initialQuery,
       fieldDefinitionGetter: getTraceItemFieldDefinitionFunction(itemType, filterTags),
@@ -179,6 +212,8 @@ export function useTraceItemSearchQueryBuilderProps({
       disallowUnsupportedFilters: !getTagKeys,
       disallowFreeText,
       disallowLogicalOperators,
+      disallowNegation,
+      defaultToAskSeerOnFreeTextSearch,
       recentSearches: disableRecentSearches
         ? undefined
         : itemTypeToRecentSearches(itemType),
@@ -193,15 +228,20 @@ export function useTraceItemSearchQueryBuilderProps({
         ...booleanSecondaryAliases,
       },
       caseInsensitive,
+      disabled,
       onCaseInsensitiveClick,
       invalidFilterKeys,
     }),
     [
+      asyncFilterKeyRegistryQueryKey,
       booleanSecondaryAliases,
       caseInsensitive,
+      disableRecentSearches,
+      disabled,
+      defaultToAskSeerOnFreeTextSearch,
       disallowFreeText,
       disallowLogicalOperators,
-      disableRecentSearches,
+      disallowNegation,
       filterKeySections,
       filterTags,
       getFilterTokenWarning,
@@ -238,7 +278,7 @@ export function TraceItemSearchQueryBuilder({
   searchSource,
   stringAttributes,
   itemType,
-  datetime: _datetime,
+  datetime,
   getFilterTokenWarning,
   onBlur,
   onChange,
@@ -247,6 +287,7 @@ export function TraceItemSearchQueryBuilder({
   projects,
   supportedAggregates = [],
   disabled,
+  defaultToAskSeerOnFreeTextSearch,
   namespace,
   caseInsensitive,
   onCaseInsensitiveClick,
@@ -255,10 +296,13 @@ export function TraceItemSearchQueryBuilder({
   disallowHas,
   disallowFreeText,
   disallowLogicalOperators,
+  disallowNegation,
   disableRecentSearches,
   attributeQuery,
   hiddenAttributeKeys,
   allowedAttributeKeys,
+  placeholder,
+  invalidFilterKeys,
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
     itemType,
@@ -269,6 +313,7 @@ export function TraceItemSearchQueryBuilder({
     numberSecondaryAliases,
     stringSecondaryAliases,
     initialQuery,
+    placeholder,
     searchSource,
     getFilterTokenWarning,
     onBlur,
@@ -285,19 +330,18 @@ export function TraceItemSearchQueryBuilder({
     disallowHas,
     disallowFreeText,
     disallowLogicalOperators,
+    disallowNegation,
     disableRecentSearches,
+    disabled,
+    defaultToAskSeerOnFreeTextSearch,
     attributeQuery,
     hiddenAttributeKeys,
     allowedAttributeKeys,
+    datetime,
+    invalidFilterKeys,
   });
 
-  return (
-    <SearchQueryBuilder
-      autoFocus={autoFocus}
-      disabled={disabled}
-      {...searchQueryBuilderProps}
-    />
-  );
+  return <SearchQueryBuilder autoFocus={autoFocus} {...searchQueryBuilderProps} />;
 }
 
 function useFunctionTags(

@@ -91,6 +91,9 @@ class SDKCrashDetectionConfig:
     sdk_crash_ignore_when_only_sdk_frame_matchers: set[FunctionAndModulePattern] = field(
         default_factory=set
     )
+    """The package names that identify the customer-facing hybrid SDK for an SDK event.
+    Maps the event SDK name to the hybrid SDK name and package name."""
+    hybrid_sdk_packages: dict[str, tuple[str, str]] = field(default_factory=dict)
 
 
 class SDKCrashDetectionOptions(TypedDict):
@@ -159,6 +162,14 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                     module_pattern="*",
                     function_pattern="**SentryCrashExceptionApplicationHelper _crashOnException**",
                 ),
+                # SentryCoreDataSwizzlingHelper sets up the swizzle that routes through
+                # SentryCoreDataTracker. It always appears alongside the tracker frame and
+                # never causes crashes itself, so it is unconditionally ignored to avoid
+                # inflating the conditional SDK frame count in the detector.
+                FunctionAndModulePattern(
+                    module_pattern="*",
+                    function_pattern="**SentryCoreDataSwizzlingHelper**",
+                ),
             },
             sdk_crash_ignore_when_only_sdk_frame_matchers={
                 # SentrySwizzleWrapper is used for method swizzling to intercept UI events.
@@ -167,6 +178,30 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 FunctionAndModulePattern(
                     module_pattern="*",
                     function_pattern="**SentrySwizzleWrapper**",
+                ),
+                # SentryCoreDataTracker swizzles NSManagedObjectContext save:/executeFetchRequest:
+                # to add tracing spans. It transparently calls the original implementation.
+                # Crashes inside CoreData internals (e.g., doesNotRecognizeSelector: during
+                # merge policy resolution or validation logging) are app-level CoreData
+                # misconfigurations, not SDK bugs.
+                FunctionAndModulePattern(
+                    module_pattern="*",
+                    function_pattern="**SentryCoreDataTracker**",
+                ),
+                # CPPExceptionTerminate is our std::terminate handler installed by
+                # SentryCrashMonitor_CPPException. It captures crash reports for unhandled
+                # C++ exceptions but doesn't cause them. The crashes originate in system/app
+                # code (Metal GPU drivers, pthread cleanup, objc_exception_rethrow).
+                FunctionAndModulePattern(
+                    module_pattern="*",
+                    function_pattern="**CPPExceptionTerminate**",
+                ),
+            },
+            hybrid_sdk_packages={
+                "sentry.cocoa.flutter": ("sentry.dart.flutter", "pub:sentry_flutter"),
+                "sentry.cocoa.react-native": (
+                    "sentry.javascript.react-native",
+                    "npm:@sentry/react-native",
                 ),
             },
         )
@@ -262,6 +297,13 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             project_id=java_options["project_id"],
             sample_rate=java_options["sample_rate"],
             organization_allowlist=java_options["organization_allowlist"],
+            hybrid_sdk_packages={
+                "sentry.java.android.flutter": ("sentry.dart.flutter", "pub:sentry_flutter"),
+                "sentry.java.android.react-native": (
+                    "sentry.javascript.react-native",
+                    "npm:@sentry/react-native",
+                ),
+            },
             sdk_names={
                 "sentry.java.android": java_min_sdk_version,
                 "sentry.java.android.capacitor": java_min_sdk_version,

@@ -13,10 +13,10 @@ from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.types.actor import Actor
 from sentry.utils import metrics
 from sentry.workflow_engine.models import DataConditionGroup, DataPacket, Detector
-from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
+from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
 from sentry.workflow_engine.types import (
-    DetectorEvaluationResult,
     DetectorGroupKey,
+    DetectorId,
     DetectorPriorityLevel,
 )
 
@@ -31,7 +31,7 @@ EventData = dict[str, Any]
 @dataclass
 class EvidenceData(Generic[DataPacketEvaluationType]):
     value: DataPacketEvaluationType
-    detector_id: int
+    detector_id: DetectorId
     data_packet_source_id: int
     conditions: list[dict[str, Any]]
     config: dict[str, Any] = dataclasses.field(default_factory=dict, kw_only=True)
@@ -82,7 +82,7 @@ class DetectorOccurrence:
 
 @dataclass(frozen=True)
 class GroupedDetectorEvaluationResult:
-    result: dict[DetectorGroupKey, DetectorEvaluationResult]
+    result: dict[DetectorGroupKey, DetectorEvaluation]
     tainted: bool
 
 
@@ -97,7 +97,7 @@ class DetectorHandler(abc.ABC, Generic[DataPacketType]):
     @abc.abstractmethod
     def evaluate(
         self, data_packet: DataPacket[DataPacketType]
-    ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
+    ) -> dict[DetectorGroupKey, DetectorEvaluation]:
         pass
 
 
@@ -113,6 +113,8 @@ class BaseDetectorHandler(
     DataPacketType is what we've embedded within the data packet.
     DataPacketEvaluationType is the type of the value to be extracted from the data packet and
     used to evaluate the conditions on the detector.
+
+    TODO - Implement a standard DetectorHandler with this base class -- a-la StatefulDetectorHandler
     """
 
     def __init__(self, detector: Detector):
@@ -139,7 +141,7 @@ class BaseDetectorHandler(
 
     def evaluate(
         self, data_packet: DataPacket[DataPacketType]
-    ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
+    ) -> dict[DetectorGroupKey, DetectorEvaluation]:
         tags = {
             "detector_type": self.detector.type,
             "result": "unknown",
@@ -160,13 +162,15 @@ class BaseDetectorHandler(
     ) -> GroupedDetectorEvaluationResult:
         """
         This method is used to evaluate the data packet's value against the conditions on the detector.
+
+        TODO - rename this to `evaluate` and change current evaluate to `_evaluate`
         """
         pass
 
     @abc.abstractmethod
     def create_occurrence(
         self,
-        evaluation_result: ProcessedDataConditionGroup,
+        evaluation: DataConditionGroupEvaluation,
         data_packet: DataPacket[DataPacketType],
         priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, EventData]:

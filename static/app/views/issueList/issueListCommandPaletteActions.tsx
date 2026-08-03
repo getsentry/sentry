@@ -127,10 +127,12 @@ function FilterActions({
         : undefined,
       statsPeriod: pageFilters.datetime.period,
     };
+    const tagKey = key === FieldKey.FIRST_RELEASE ? 'release' : key;
+
     const fetchParams = {
       api,
       orgSlug: organization.slug,
-      tagKey: key,
+      tagKey,
       search: '',
       projectIds,
       endpointParams,
@@ -142,21 +144,20 @@ function FilterActions({
       return values.map(v => v.value);
     }
 
-    if (key === FieldKey.FIRST_RELEASE) {
-      const values = await fetchTagValues({
-        ...fetchParams,
-        tagKey: 'release',
-        dataset: Dataset.ERRORS,
-      });
-      return ['latest', ...values.map(v => v.value)];
-    }
-
     const [errorsValues, platformValues] = await Promise.all([
       fetchTagValues({...fetchParams, dataset: Dataset.ERRORS}),
       fetchTagValues({...fetchParams, dataset: Dataset.ISSUE_PLATFORM}),
     ]);
 
-    return mergeAndSortTagValues(errorsValues, platformValues, 'count').map(v => v.value);
+    const values = mergeAndSortTagValues(errorsValues, platformValues, 'count').map(
+      v => v.value
+    );
+
+    if (key === FieldKey.RELEASE || key === FieldKey.FIRST_RELEASE) {
+      return ['latest', ...values];
+    }
+
+    return values;
   };
 
   const issueFields = useMemo(
@@ -277,13 +278,26 @@ function SortActions({
   query,
   onSortChange,
 }: Pick<IssueListCommandPaletteActionsProps, 'sort' | 'query' | 'onSortChange'>) {
+  const organization = useOrganization();
+  // Mirror the sort dropdown (sortOptions.tsx): Recommended is selectable when
+  // the org has the option flag, when it's the default sort, or when it's the
+  // active sort — otherwise a user defaulted to Recommended couldn't switch back.
+  const hasRecommendedSort =
+    organization.features.includes('issue-stream-recommended-sort') ||
+    organization.features.includes('issue-stream-recommended-sort-default') ||
+    sort === IssueSortOptions.RECOMMENDED;
+  const hasProgressSort =
+    organization.features.includes('issue-stream-progress-sort') ||
+    sort === IssueSortOptions.PROGRESS;
   const sortKeys = [
+    ...(hasRecommendedSort ? [IssueSortOptions.RECOMMENDED] : []),
     ...(FOR_REVIEW_QUERIES.includes(query) ? [IssueSortOptions.INBOX] : []),
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
     IssueSortOptions.TRENDS,
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
+    ...(hasProgressSort ? [IssueSortOptions.PROGRESS] : []),
   ];
 
   return (

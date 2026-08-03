@@ -11,6 +11,9 @@ from sentry.integrations.pagerduty.actions.form import PagerDutyNotifyServiceFor
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.actions.form import SlackNotifyServiceForm
 from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.team import Team
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.registry import action_validator_registry
 from sentry.rules.actions.integrations.create_ticket.form import IntegrationNotifyServiceForm
 from sentry.rules.actions.notify_event_service import NotifyEventServiceForm
@@ -19,9 +22,38 @@ from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.utils import json
 from sentry.workflow_engine.models.action import Action
-from sentry.workflow_engine.processors.action import get_notification_plugins_for_org
 
 from .types import BaseActionValidatorHandler
+
+
+@action_validator_registry.register(Action.Type.EMAIL)
+class EmailActionValidatorHandler:
+    def __init__(self, validated_data: dict[str, Any], organization: Organization) -> None:
+        self.validated_data = validated_data
+        self.organization = organization
+
+    def clean_data(self) -> dict[str, Any]:
+        config = self.validated_data["config"]
+        target_type = config["target_type"]
+        target_identifier = config.get("target_identifier")
+
+        if target_type not in (ActionTarget.TEAM, ActionTarget.USER):
+            return self.validated_data
+
+        try:
+            target_id = int(target_identifier)
+        except (TypeError, ValueError):
+            raise ValidationError("Target identifier must be a valid integer")
+
+        if target_type == ActionTarget.TEAM:
+            if not Team.objects.filter(id=target_id, organization_id=self.organization.id).exists():
+                raise ValidationError("Team does not exist")
+        elif not OrganizationMember.objects.filter(
+            user_id=target_id, organization_id=self.organization.id
+        ).exists():
+            raise ValidationError("User does not belong to this organization")
+
+        return self.validated_data
 
 
 @action_validator_registry.register(Action.Type.SLACK)
@@ -256,12 +288,7 @@ class WebhookActionValidatorHandler(BaseActionValidatorHandler):
     notify_action_form = NotifyEventServiceForm
 
     def _get_services(self) -> list[Any]:
-        plugins = get_notification_plugins_for_org(self.organization)
-        sentry_apps = app_service.find_alertable_services(organization_id=self.organization.id)
-        return [
-            *plugins,
-            *sentry_apps,
-        ]
+        return list(app_service.find_alertable_services(organization_id=self.organization.id))
 
     def generate_action_form_payload(self) -> dict[str, Any]:
         return {

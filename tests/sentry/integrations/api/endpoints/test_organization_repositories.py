@@ -6,7 +6,6 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.example import ExampleRepositoryProvider
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import CodeReviewTrigger
-from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.testutils.cases import APITestCase
 
 
@@ -15,6 +14,11 @@ class OrganizationRepositoriesListTest(APITestCase):
         super().setUp()
 
         self.org = self.create_organization(owner=self.user, name="baz")
+        self.integration = self.create_integration(
+            organization=self.org,
+            provider="example",
+            external_id="example:1",
+        )
         self.url = reverse("sentry-api-0-organization-repositories", args=[self.org.slug])
 
         self.login_as(user=self.user)
@@ -36,7 +40,8 @@ class OrganizationRepositoriesListTest(APITestCase):
             name="getsentry/example",
             organization_id=self.org.id,
             external_id=12345,
-            provider="dummy",
+            provider="integrations:example",
+            integration_id=self.integration.id,
             config={"name": "getsentry/example"},
         )
 
@@ -46,22 +51,24 @@ class OrganizationRepositoriesListTest(APITestCase):
         assert len(response.data) == 1
         first_row = response.data[0]
         assert first_row["id"] == str(repo.id)
-        assert first_row["provider"] == {"id": "dummy", "name": "Example"}
-        assert first_row["externalSlug"] == str(repo.external_id)
+        assert first_row["provider"] == {"id": "integrations:example", "name": "Example"}
+        assert first_row["externalSlug"] == repo.name
 
     def test_get_active_repos(self) -> None:
         repo1 = Repository.objects.create(
             name="getsentry/example",
             organization_id=self.org.id,
             external_id=12345,
-            provider="dummy",
+            provider="integrations:example",
+            integration_id=self.integration.id,
             config={"name": "getsentry/example"},
         )
         repo2 = Repository.objects.create(
             name="getsentry/sentry",
             organization_id=self.org.id,
             external_id=54321,
-            provider="dummy",
+            provider="integrations:example",
+            integration_id=self.integration.id,
             config={"name": "getsentry/sentry"},
         )
 
@@ -74,27 +81,29 @@ class OrganizationRepositoriesListTest(APITestCase):
 
         first_row = response.data[0]
         assert first_row["id"] == str(repo1.id)
-        assert first_row["provider"] == {"id": "dummy", "name": "Example"}
-        assert first_row["externalSlug"] == str(repo1.external_id)
+        assert first_row["provider"] == {"id": "integrations:example", "name": "Example"}
+        assert first_row["externalSlug"] == repo1.name
 
         second_row = response.data[1]
         assert second_row["id"] == str(repo2.id)
-        assert second_row["provider"] == {"id": "dummy", "name": "Example"}
-        assert second_row["externalSlug"] == str(repo2.external_id)
+        assert second_row["provider"] == {"id": "integrations:example", "name": "Example"}
+        assert second_row["externalSlug"] == repo2.name
 
     def test_get_exclude_hidden_repo(self) -> None:
         repo = Repository.objects.create(
             name="getsentry/example",
             organization_id=self.org.id,
             external_id=12345,
-            provider="dummy",
+            provider="integrations:example",
+            integration_id=self.integration.id,
             config={"name": "getsentry/example"},
         )
         Repository.objects.create(
             name="getsentry/sentry",
             organization_id=self.org.id,
             external_id=54321,
-            provider="dummy",
+            provider="integrations:example",
+            integration_id=self.integration.id,
             config={"name": "getsentry/sentry"},
             status=ObjectStatus.HIDDEN,
         )
@@ -105,22 +114,24 @@ class OrganizationRepositoriesListTest(APITestCase):
         assert len(response.data) == 1
         first_row = response.data[0]
         assert first_row["id"] == str(repo.id)
-        assert first_row["provider"] == {"id": "dummy", "name": "Example"}
-        assert first_row["externalSlug"] == str(repo.external_id)
+        assert first_row["provider"] == {"id": "integrations:example", "name": "Example"}
+        assert first_row["externalSlug"] == repo.name
 
     def test_get_all_repos(self) -> None:
         repo1 = Repository.objects.create(
             name="getsentry/example",
             organization_id=self.org.id,
             external_id=12345,
-            provider="dummy",
+            provider="integrations:example",
+            integration_id=self.integration.id,
             config={"name": "getsentry/example"},
         )
         repo2 = Repository.objects.create(
             name="getsentry/sentry",
             organization_id=self.org.id,
             external_id=54321,
-            provider="dummy",
+            provider="integrations:example",
+            integration_id=self.integration.id,
             config={"name": "getsentry/sentry"},
             status=ObjectStatus.HIDDEN,
         )
@@ -134,13 +145,13 @@ class OrganizationRepositoriesListTest(APITestCase):
 
         first_row = response.data[0]
         assert first_row["id"] == str(repo1.id)
-        assert first_row["provider"] == {"id": "dummy", "name": "Example"}
-        assert first_row["externalSlug"] == str(repo1.external_id)
+        assert first_row["provider"] == {"id": "integrations:example", "name": "Example"}
+        assert first_row["externalSlug"] == repo1.name
 
         second_row = response.data[1]
         assert second_row["id"] == str(repo2.id)
-        assert second_row["provider"] == {"id": "dummy", "name": "Example"}
-        assert second_row["externalSlug"] == str(repo2.external_id)
+        assert second_row["provider"] == {"id": "integrations:example", "name": "Example"}
+        assert second_row["externalSlug"] == repo2.name
 
     def test_passing_integration_id(self) -> None:
         integration = self.create_integration(
@@ -221,20 +232,32 @@ class OrganizationRepositoriesCreateTest(APITestCase):
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name="baz")
+        self.integration = self.create_integration(
+            organization=org, provider="example", external_id="example:1"
+        )
 
-        with patch.object(DummyRepositoryProvider, "needs_auth", return_value=False):
-            url = reverse("sentry-api-0-organization-repositories", args=[org.slug])
-            response = self.client.post(url, data={"provider": "dummy", "name": "getsentry/sentry"})
+        url = reverse("sentry-api-0-organization-repositories", args=[org.slug])
+        response = self.client.post(
+            url,
+            data={
+                "provider": "integrations:example",
+                "name": "getsentry/sentry",
+                "installation": self.integration.id,
+            },
+        )
 
         assert response.status_code == 201, (response.status_code, response.content)
         assert response.data["id"]
 
         repo = Repository.objects.get(id=response.data["id"])
-        assert repo.provider == "dummy"
+        assert repo.provider == "integrations:example"
         assert repo.name == "getsentry/sentry"
 
     def test_admin_ok(self) -> None:
         org = self.create_organization(owner=self.user, name="baz")
+        self.integration = self.create_integration(
+            organization=org, provider="example", external_id="example:1"
+        )
         team = self.create_team(name="people", organization=org)
 
         user = self.create_user(email="admin@example.org")
@@ -242,14 +265,23 @@ class OrganizationRepositoriesCreateTest(APITestCase):
 
         self.login_as(user=user)
 
-        with patch.object(DummyRepositoryProvider, "needs_auth", return_value=False):
-            url = reverse("sentry-api-0-organization-repositories", args=[org.slug])
-            response = self.client.post(url, data={"provider": "dummy", "name": "getsentry/sentry"})
+        url = reverse("sentry-api-0-organization-repositories", args=[org.slug])
+        response = self.client.post(
+            url,
+            data={
+                "provider": "integrations:example",
+                "name": "getsentry/sentry",
+                "installation": self.integration.id,
+            },
+        )
 
         assert response.status_code == 201, (response.status_code, response.content)
 
     def test_member_ok(self) -> None:
         org = self.create_organization(owner=self.user, name="baz")
+        self.integration = self.create_integration(
+            organization=org, provider="example", external_id="example:1"
+        )
         team = self.create_team(name="people", organization=org)
 
         user = self.create_user(email="member@example.org")
@@ -257,9 +289,15 @@ class OrganizationRepositoriesCreateTest(APITestCase):
 
         self.login_as(user=user)
 
-        with patch.object(DummyRepositoryProvider, "needs_auth", return_value=False):
-            url = reverse("sentry-api-0-organization-repositories", args=[org.slug])
-            response = self.client.post(url, data={"provider": "dummy", "name": "getsentry/sentry"})
+        url = reverse("sentry-api-0-organization-repositories", args=[org.slug])
+        response = self.client.post(
+            url,
+            data={
+                "provider": "integrations:example",
+                "name": "getsentry/sentry",
+                "installation": self.integration.id,
+            },
+        )
 
         assert response.status_code == 201, (response.status_code, response.content)
 

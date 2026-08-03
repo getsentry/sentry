@@ -16,11 +16,11 @@ interface AddCredentialsButtonProps {
 
 export function AddCredentialsButton({project, origin}: AddCredentialsButtonProps) {
   const organization = useOrganization();
-  const hasWriteAccess = useHasTempestWriteAccess();
+  const hasWriteAccess = useHasTempestWriteAccess(project);
 
   return (
     <Tooltip
-      title={t('You must be an organization admin to add new credentials.')}
+      title={t('You do not have permission to add new credentials.')}
       disabled={hasWriteAccess}
     >
       <Button

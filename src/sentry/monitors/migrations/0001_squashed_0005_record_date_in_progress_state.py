@@ -29,14 +29,6 @@ class Migration(CheckedMigration):
 
     is_post_deployment = True
 
-    replaces = [
-        ("monitors", "0001_initial"),
-        ("monitors", "0002_fix_drift_default_to_db_default"),
-        ("monitors", "0003_record_date_in_progress"),
-        ("monitors", "0004_record_date_in_progress_sql_only"),
-        ("monitors", "0005_record_date_in_progress_state"),
-    ]
-
     initial = True
 
     checked = False  # This is an initial migration and can take locks

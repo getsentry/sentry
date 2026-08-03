@@ -5,7 +5,7 @@ import type {AriaListBoxOptions} from '@react-aria/listbox';
 import type {ListProps} from '@react-stately/list';
 import {useListState} from '@react-stately/list';
 
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {FormSize} from 'sentry/utils/theme';
 
 import {ControlContext} from './control';
@@ -57,16 +57,6 @@ interface BaseListProps<Value extends SelectKey>
     > {
   items: Array<SelectOptionOrSectionWithKey<Value>>;
   /**
-   * Whether to render a grid list rather than a list box.
-   *
-   * Unlike list boxes, grid lists are two-dimensional. Users can press Arrow Up/Down to
-   * move between option rows, and Arrow Left/Right to move between columns. This is
-   * useful when the selector contains options with smaller, interactive elements
-   * (buttons/links) inside. Grid lists allow users to focus on those child elements and
-   * interact with them, which isn't possible with list boxes.
-   */
-  grid?: boolean;
-  /**
    * Custom function to determine whether an option is disabled. By default, an option
    * is considered disabled when it has {disabled: true}.
    */
@@ -75,6 +65,15 @@ interface BaseListProps<Value extends SelectKey>
    * Text label to be rendered as heading on top of grid list.
    */
   label?: React.ReactNode;
+  /**
+   * Controls the selection widget type.
+   *
+   * - `'list'` (default) — a one-dimensional listbox navigated with Arrow Up/Down.
+   * - `'grid'` — a two-dimensional grid list where Arrow Up/Down moves between rows
+   *   and Arrow Left/Right moves between columns. Use this when options contain
+   *   interactive child elements (buttons/links) that need to be keyboard-reachable.
+   */
+  mode?: 'list' | 'grid';
   size?: FormSize;
   /**
    * Upper limit for the number of options to display in the menu at a time. Users can
@@ -148,7 +147,7 @@ export interface MultipleListProps<Value extends SelectKey> extends BaseListProp
 }
 
 /**
- * A list containing selectable options. Depending on the `grid` prop, this may be a
+ * A list containing selectable options. Depending on the `mode` prop, this may be a
  * grid list or list box.
  *
  * In composite selectors, there may be multiple self-contained lists, each
@@ -158,7 +157,7 @@ export function List<Value extends SelectKey>({
   items,
   value,
   onChange,
-  grid,
+  mode = 'list',
   multiple,
   clearable,
   isOptionDisabled,
@@ -172,9 +171,22 @@ export function List<Value extends SelectKey>({
   const {overlayState, search, searchable, overlayIsOpen, searchMatcher} =
     useContext(ControlContext);
 
+  const hasSections = useMemo(() => items.some(item => 'options' in item), [items]);
+  // Searchable flat menus can build their initial React Aria collection from only the
+  // visible items. Once a query is entered, use the existing search path unchanged.
+  const isFlatCollectionTruncated =
+    searchable &&
+    !hasSections &&
+    !search &&
+    sizeLimit !== undefined &&
+    items.length > sizeLimit;
+
   const {hidden: hiddenOptions, scores} = useMemo(
-    () => getHiddenOptions(items, search, sizeLimit, searchMatcher),
-    [items, search, sizeLimit, searchMatcher]
+    () =>
+      isFlatCollectionTruncated
+        ? {hidden: new Set<SelectKey>(), scores: new Map<SelectKey, number>()}
+        : getHiddenOptions(items, search, sizeLimit, searchMatcher),
+    [isFlatCollectionTruncated, items, search, sizeLimit, searchMatcher]
   );
 
   const sortedItems = useMemo(
@@ -182,12 +194,16 @@ export function List<Value extends SelectKey>({
     [items, scores]
   );
 
+  const collectionItems = useMemo(
+    () => (isFlatCollectionTruncated ? sortedItems.slice(0, sizeLimit) : sortedItems),
+    [isFlatCollectionTruncated, sizeLimit, sortedItems]
+  );
   /**
    * Props to be passed into useListState()
    */
   const listStateProps = useMemo<Partial<ListProps<ListItemBase>>>(() => {
     const disabledKeys = [
-      ...getDisabledOptions(items, isOptionDisabled),
+      ...getDisabledOptions(collectionItems, isOptionDisabled),
       ...hiddenOptions,
     ];
 
@@ -240,6 +256,7 @@ export function List<Value extends SelectKey>({
     value,
     onChange,
     items,
+    collectionItems,
     isOptionDisabled,
     hiddenOptions,
     multiple,
@@ -251,7 +268,7 @@ export function List<Value extends SelectKey>({
   const listState = useListState({
     ...props,
     ...listStateProps,
-    items: sortedItems,
+    items: collectionItems,
   });
 
   // In composite selects, focus should seamlessly move from one region (list) to
@@ -291,7 +308,7 @@ export function List<Value extends SelectKey>({
    */
   const keyDownHandler = (e: React.KeyboardEvent<HTMLUListElement>) => {
     // Don't handle ArrowDown/Up key presses if focus already wraps
-    if (shouldFocusWrap && !grid) {
+    if (shouldFocusWrap && mode !== 'grid') {
       return true;
     }
 
@@ -349,7 +366,7 @@ export function List<Value extends SelectKey>({
 
   return (
     <Fragment>
-      {grid ? (
+      {mode === 'grid' ? (
         <SelectFilterContext value={hiddenOptions}>
           <GridList
             {...props}

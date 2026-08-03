@@ -9,7 +9,10 @@ import {t} from 'sentry/locale';
 import type {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {SplitDivider} from 'sentry/views/explore/replays/detail/layout/splitDivider';
 
-interface Props extends Omit<ReturnType<typeof useResizableDrawer>, 'size' | 'setSize'> {
+interface Props extends Omit<
+  ReturnType<typeof useResizableDrawer>,
+  'onPointerDown' | 'setSize' | 'size'
+> {
   onClose: () => void;
   children?: ReactNode;
 }

@@ -3,9 +3,34 @@ Prompts for Explorer-based Autofix steps.
 """
 
 from textwrap import dedent
+from typing import TYPE_CHECKING, Protocol
+
+if TYPE_CHECKING:
+    from sentry.seer.agent.client_models import SeerRunState
 
 
-def root_cause_prompt(*, short_id: str, title: str, culprit: str, artifact_key: str | None) -> str:
+class PromptBuilder(Protocol):
+    """Signature shared by all autofix step prompt builders."""
+
+    def __call__(
+        self,
+        *,
+        short_id: str,
+        title: str,
+        culprit: str,
+        artifact_key: str | None,
+        run_state: "SeerRunState | None" = None,
+    ) -> str: ...
+
+
+def root_cause_prompt(
+    *,
+    short_id: str,
+    title: str,
+    culprit: str,
+    artifact_key: str | None,
+    run_state: "SeerRunState | None" = None,
+) -> str:
     return dedent(
         f"""\
         Analyze issue {short_id}: "{title}" (culprit: {culprit})
@@ -26,11 +51,19 @@ def root_cause_prompt(*, short_id: str, title: str, culprit: str, artifact_key: 
         - five_whys: Chain of brief "why" statements leading to the root cause. (do not write the questions, only the answers; e.g. prefer "x -> y -> z", NOT "x -> why x? y -> why y? z")
         - reproduction_steps: Steps that would reproduce this issue, each under 15 words.
         - relevant_repo: The full repository name (e.g. "owner/repo") where the fix should be made. Pick the one repo most directly responsible for the root cause.
+        - fixability: Assess whether this root cause is fixable through code changes. Use "fixable" if a code fix can address it, "needs_more_context" if the analysis is plausible but too vague to act on, or "not_actionable" if it cannot be fixed through code (e.g. infrastructure, third-party outage, user misconfiguration). Include a brief reason.
         """
     )
 
 
-def solution_prompt(*, short_id: str, title: str, culprit: str, artifact_key: str | None) -> str:
+def solution_prompt(
+    *,
+    short_id: str,
+    title: str,
+    culprit: str,
+    artifact_key: str | None,
+    run_state: "SeerRunState | None" = None,
+) -> str:
     return dedent(
         f"""\
         Plan a solution for issue {short_id}: "{title}" (culprit: {culprit})
@@ -58,7 +91,12 @@ def solution_prompt(*, short_id: str, title: str, culprit: str, artifact_key: st
 
 
 def code_changes_prompt(
-    *, short_id: str, title: str, culprit: str, artifact_key: str | None
+    *,
+    short_id: str,
+    title: str,
+    culprit: str,
+    artifact_key: str | None,
+    run_state: "SeerRunState | None" = None,
 ) -> str:
     return dedent(
         f"""\
@@ -76,6 +114,55 @@ def code_changes_prompt(
         Use your coding tools to make changes directly to the codebase.
         """
     )
+
+
+def pr_iteration_prompt(
+    *,
+    short_id: str,
+    title: str,
+    culprit: str,
+    artifact_key: str | None,
+    run_state: "SeerRunState | None" = None,
+) -> str:
+    prompt = dedent(
+        f"""\
+        Iterate on the pull request for issue {short_id}: "{title}" (culprit: {culprit})
+
+        Review the existing pull request, previous code changes, and any available feedback. Update the codebase to address the requested revisions while preserving the original fix.
+
+        Steps:
+        1. Inspect the existing pull request and prior file patches
+        2. Identify the smallest set of follow-up changes needed
+        3. Use the code editing tools to revise the implementation
+
+        Use your coding tools to make changes directly to the codebase.
+        """
+    )
+
+    pr_links = pr_links_section(run_state)
+    if pr_links:
+        prompt = f"{prompt}\n{pr_links}"
+
+    return prompt
+
+
+def pr_links_section(run_state: "SeerRunState | None") -> str:
+    """Render a section linking the open pull request URLs for the run, if any."""
+    if run_state is None:
+        return ""
+
+    lines = [
+        f"- {pr.repo_name}: {pr.pr_url}" for pr in run_state.repo_pr_states.values() if pr.pr_url
+    ]
+    if not lines:
+        return ""
+
+    header = (
+        "We've created/updated the following pull request(s) as a result of your changes. "
+        "Review each one — including its description, diff, and review comments — "
+        "before making further changes:"
+    )
+    return "\n".join([header, *lines])
 
 
 def artifact_tool_str(artifact_key: str | None) -> str:

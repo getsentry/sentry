@@ -41,7 +41,7 @@ describe('formatTooltipValue', () => {
 
   describe('duration', () => {
     it.each([
-      [0, 'millisecond', '0.00ms'],
+      [0, 'millisecond', '0.00μs'],
       [0.712, 'second', '712.00ms'],
       [1231, 'second', '20.52min'],
     ])('Formats %s as %s', (value, unit, formattedValue) => {
@@ -52,7 +52,7 @@ describe('formatTooltipValue', () => {
   describe('size', () => {
     it.each([
       [0, 'byte', '0 B'],
-      [0.712, 'megabyte', '712 KB'],
+      [0.712, 'megabyte', '712 kB'],
       [1231, 'kibibyte', '1.2 MiB'],
     ])('Formats %s as %s', (value, unit, formattedValue) => {
       expect(formatTooltipValue(value, 'size', unit)).toEqual(formattedValue);

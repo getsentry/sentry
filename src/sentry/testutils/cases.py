@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import inspect
 import random
 import re
 import time
@@ -126,7 +125,6 @@ from sentry.notifications.models.notificationsettingprovider import (
 from sentry.notifications.notifications.base import alert_page_needs_org_id
 from sentry.notifications.types import FineTuningAPIKey
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
-from sentry.plugins.base import plugins
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.models import ReplayRecordingSegment
@@ -467,7 +465,7 @@ class TestCase(BaseTestCase, DjangoTestCase):
                             # TODO: Can we infer the correct region here?  would need to package up the
                             # the request dictionary into a higher level object, which also involves invoking
                             # _base_environ and maybe other logic buried in Client.....
-                            cell = get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
+                            cell = get_cell_by_name(settings.SENTRY_FALLBACK_CELL)
                         with (
                             SingleProcessSiloModeState.exit(),
                             SingleProcessSiloModeState.enter(mode, cell),
@@ -692,8 +690,7 @@ class APITestCaseMixin:
                     ret += chunk
                 return ret
 
-            def build_request(self, method, url, headers, params, content, timeout):
-                assert not params
+            def build_request(self, method, url, *, headers, content, timeout, **kwargs):
                 target = getattr(self.client, method.lower())
                 content_type = headers.pop("Content-Type", "application/octet-stream")
                 extra: Mapping[str, Any] = {
@@ -920,12 +917,6 @@ class PluginTestCase(TestCase):
     def setUp(self):
         super().setUp()
 
-        # Old plugins, plugin is a class, new plugins, it's an instance
-        # New plugins don't need to be registered
-        if inspect.isclass(self.plugin):
-            plugins.register(self.plugin)
-            self.addCleanup(plugins.unregister, self.plugin)
-
 
 class CliTestCase(TestCase):
     @cached_property
@@ -1017,14 +1008,6 @@ class IntegrationTestCase(TestCase):
             request=self.request,
             organization=rpc_organization,
             provider_key=self.provider.key,
-        )
-
-        self.init_path = reverse(
-            "sentry-organization-integrations-setup",
-            kwargs={
-                "organization_slug": self.organization.slug,
-                "provider_id": self.provider.key,
-            },
         )
 
         self.setup_path = reverse(
@@ -3451,10 +3434,13 @@ def span_to_trace_item(span) -> TraceItem:
 
     timestamp.FromMilliseconds(span["start_timestamp_ms"])
 
+    if "gen_ai.conversation.id" in span.get("data", {}) and "ai_conversation_id" not in span:
+        assert False, "gen_ai.conversation.id is deprecated.  Use the newer indexed one instead."
     return TraceItem(
         organization_id=span["organization_id"],
         project_id=span["project_id"],
         item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+        conversation_id=span.get("ai_conversation_id", ""),
         timestamp=timestamp,
         trace_id=span["trace_id"],
         item_id=hex_to_item_id(span["span_id"]),

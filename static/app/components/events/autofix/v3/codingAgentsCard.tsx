@@ -3,12 +3,13 @@ import {useMemo} from 'react';
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
+import {getCodingAgentResultLink} from 'sentry/components/events/autofix/pullRequests';
 import {
   CodingAgentStatus,
   getCodingAgentName,
-  getResultButtonLabel,
 } from 'sentry/components/events/autofix/types';
 import {
   getAutofixArtifactFromSection,
@@ -78,25 +79,26 @@ export function CodingAgentsCard({section}: CodingAgentsCardProps) {
               </Flex>
               <Tag variant={statusVariant}>{codingAgent.status}</Tag>
             </Flex>
-            <Flex direction="row" gap="md">
+            {codingAgent.results?.map((result, index) =>
+              result.description ? (
+                <Markdown key={index} raw={result.description} />
+              ) : null
+            )}
+            <Flex direction="row" gap="md" wrap="wrap">
               {codingAgent.agent_url ? (
                 <LinkButton href={codingAgent.agent_url} external icon={<IconOpen />}>
                   {t('Open in %s', agentName)}
                 </LinkButton>
               ) : null}
               {codingAgent.results?.map(result => {
-                if (!result.pr_url) {
+                const link = getCodingAgentResultLink(result);
+                if (!link) {
                   return null;
                 }
 
                 return (
-                  <LinkButton
-                    key={result.pr_url}
-                    href={result.pr_url}
-                    external
-                    icon={<IconOpen />}
-                  >
-                    {getResultButtonLabel(result.pr_url)}
+                  <LinkButton key={link.url} href={link.url} external icon={<IconOpen />}>
+                    {link.label}
                   </LinkButton>
                 );
               })}

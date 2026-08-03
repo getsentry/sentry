@@ -1,8 +1,14 @@
+from unittest import mock
+
 import pytest
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from django.test import RequestFactory, override_settings
+from jwt import InvalidAlgorithmError
 
 from sentry.integrations.utils.atlassian_connect import (
     AtlassianConnectValidationError,
+    authenticate_asymmetric_jwt,
     get_integration_from_jwt,
     get_query_hash,
     get_token,
@@ -10,6 +16,8 @@ from sentry.integrations.utils.atlassian_connect import (
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.utils import jwt
+from sentry.utils.http import absolute_uri
 
 
 class AtlassianConnectTest(TestCase):
@@ -145,3 +153,28 @@ class AtlassianConnectTest(TestCase):
         )
         integration = parse_integration_from_request(request=request, provider=self.provider)
         assert integration == self.integration
+
+
+class AuthenticateAsymmetricJwtTest(TestCase):
+    def setUp(self) -> None:
+        self.key_id = "key-123"
+        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        self.public_pem = (
+            private_key.public_key()
+            .public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
+            .decode("utf-8")
+        )
+        self.payload = {"aud": absolute_uri(), "iss": "connect:123"}
+
+    def test_rejects_non_rs256_algorithm(self) -> None:
+        """
+        Test for an algorithm-confusion attack - the attacker presents a token whose header
+        claims a symmetric algorithm (HS256) instead of RS256. since we hardcode algorithm to RS256,
+        pyjwt rejects it on the algorithm mismatch before ever checking the signature against the public key
+        """
+        forged_token = jwt.encode(self.payload, "attacker-secret", algorithm="HS256")
+
+        with mock.patch("sentry.integrations.utils.atlassian_connect.requests.get") as mock_get:
+            mock_get.return_value.content = self.public_pem.encode("utf-8")
+            with pytest.raises(InvalidAlgorithmError):
+                authenticate_asymmetric_jwt(forged_token, self.key_id)

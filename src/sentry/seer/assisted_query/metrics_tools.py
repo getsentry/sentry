@@ -1,10 +1,15 @@
 import logging
-from typing import Any, TypedDict
+from typing import Any
 
-from sentry.api import client
+from sentry.api.client import ApiClient, ApiError
 from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
+from sentry.seer.sentry_data_models import (
+    MetricMetadataErrorResponse,
+    MetricMetadataRow,
+    MetricMetadataSuccessResponse,
+)
 from sentry.snuba.referrer import Referrer
 
 logger = logging.getLogger(__name__)
@@ -14,12 +19,8 @@ API_KEY_SCOPES = ["org:read", "project:read", "event:read"]
 # Upper bound on how many substrings a caller may pass in a single request.
 MAX_SUBSTRINGS = 8
 
-
-class MetricMetadataRow(TypedDict):
-    name: str
-    type: str
-    unit: str
-    count: int
+# Default number of returned metrics when the caller doesn't specify one.
+DEFAULT_LIMIT = 20
 
 
 def _build_or_query(name_substrings: list[str]) -> str:
@@ -45,82 +46,100 @@ def get_metric_metadata(
     *,
     org_id: int,
     project_ids: list[int],
-    name_substrings: list[str],
+    name_substrings: list[str] | None = None,
     stats_period: str = "7d",
-    limit: int = 20,
-) -> dict[str, Any]:
+    limit: int = DEFAULT_LIMIT,
+    include_context: bool = False,
+    context_only: bool = False,
+) -> MetricMetadataSuccessResponse | MetricMetadataErrorResponse:
     """
-    Return distinct (metric.name, metric.type, metric.unit) tuples matching any of
-    the given name substrings, ordered by event count descending.
+    Return distinct (metric.name, metric.type, metric.unit) tuples ordered by
+    event count descending. When ``name_substrings`` are given, only metrics
+    whose name matches one of them are returned; otherwise all metrics are
+    returned (highest count first).
 
-    Intended for Seer's metrics assisted-query agent to short-circuit the
-    get_field_values(metric.name) + get_field_values(metric.type) discovery
-    loop with a single call that returns all three fields plus an event count
-    for tie-breaking.
+    Backed by the trace-items metrics endpoint (which also serves authored
+    context), so Seer can surface metric descriptions. Intended to short-circuit
+    the get_field_values(metric.name) + get_field_values(metric.type) discovery
+    loop with a single call that returns all three fields plus an event count for
+    tie-breaking, and optionally the metric's context.
 
     Args:
         org_id: Organization ID.
         project_ids: Projects to query. Empty list means all accessible projects.
         name_substrings: Up to MAX_SUBSTRINGS keyword substrings. A metric matches
-            if metric.name ILIKE %sub% for any one substring.
+            if metric.name ILIKE %sub% for any one substring. Omit (or pass an
+            empty list) to return all metrics.
         stats_period: Time window, e.g. "7d". Defaults to 7d.
-        limit: Maximum number of distinct tuples to return. Caller may over-fetch
-            to rerank on their side.
+        limit: Maximum number of distinct tuples to return. Defaults to
+            DEFAULT_LIMIT; the metrics endpoint enforces its own upper bound.
+        include_context: When True, request per-metric context from the endpoint
+            via expand=context and attach it to each candidate. Context is
+            `{"brief": str, "details": list[str]}` — the same shape the attributes
+            tool (get_attribute_names) returns — or None when the metric has none.
+        context_only: Forwarded to the metrics endpoint as `contextOnly` to
+            restrict results to metrics that have authored context.
 
     Returns:
         {
-            "candidates": [{"name", "type", "unit", "count"}, ...],
+            "candidates": [
+                {"name", "type", "unit", "count", "context"}, ...
+            ],  # context: {"brief": str, "details": list[str]} | None
             "has_more": bool,
             "error": str,  # present only on handler-side failure (e.g.
-                           # "organization_not_found", "events_query_failed").
+                           # "organization_not_found", "metrics_query_failed").
                            # Callers should treat a non-empty error as a tool
                            # failure rather than an empty result set.
         }
     """
     substrings = [s for s in (name_substrings or []) if s][:MAX_SUBSTRINGS]
-    if not substrings:
-        return {"candidates": [], "has_more": False}
-
     query = _build_or_query(substrings)
-    if not query:
-        return {"candidates": [], "has_more": False}
+    # Substrings were provided but all unusable (e.g. contained quotes) → treat as
+    # no matches. This differs from *no* substrings, which returns all metrics.
+    if substrings and not query:
+        return MetricMetadataSuccessResponse(candidates=[], has_more=False)
 
     try:
         organization = Organization.objects.get(id=org_id)
     except Organization.DoesNotExist:
         logger.warning("get_metric_metadata: organization not found", extra={"org_id": org_id})
-        return {"candidates": [], "has_more": False, "error": "organization_not_found"}
-
-    # Over-fetch by 1 to detect has_more.
-    per_page = max(1, limit) + 1
+        return MetricMetadataErrorResponse(
+            candidates=[], has_more=False, error="organization_not_found"
+        )
 
     params: dict[str, Any] = {
-        "dataset": "tracemetrics",
-        # Selecting metric.name/type/unit plus count(value) groups by the selected
-        # non-aggregate fields, giving us distinct tuples with event counts.
-        # tracemetrics requires count() to take an attribute argument — zero-arg
-        # count() parse-fails at the events layer.
-        "field": ["metric.name", "metric.type", "metric.unit", "count(value)"],
-        "query": query,
-        "sort": "-count(value)",
-        "per_page": per_page,
         "statsPeriod": stats_period,
         "project": project_ids or [ALL_ACCESS_PROJECT_ID],
+        # Highest-count metrics first; over-fetch by 1 to detect has_more.
+        "sort": "-count",
+        "per_page": limit + 1,
+        "contextOnly": context_only,
         "referrer": Referrer.SEER_EXPLORER_TOOLS,
     }
+    # Omit an empty query so the endpoint returns all metrics rather than
+    # filtering on a blank name.
+    if query:
+        params["query"] = query
+    if include_context:
+        params["expand"] = "context"
 
     try:
-        resp = client.get(
+        resp = ApiClient().get(
             auth=ApiKey(organization_id=organization.id, scope_list=API_KEY_SCOPES),
             user=None,
-            path=f"/organizations/{organization.slug}/events/",
+            path=f"/organizations/{organization.slug}/trace-items/metrics/",
             params=params,
         )
-    except client.ApiError as e:
+    except ApiError as e:
+        # A 404 means the org lacks the (feature-gated) trace-items metrics
+        # endpoint — there are no metrics to describe, so return an empty result
+        # rather than a failure (the events-backed version degraded gracefully here).
+        if getattr(e, "status_code", None) == 404:
+            return MetricMetadataSuccessResponse(candidates=[], has_more=False)
         # Surface status + body prefix in log extras so prod flakes are debuggable
         # without a new deploy. Keep the return `error` code stable for callers.
         logger.exception(
-            "get_metric_metadata: events query failed",
+            "get_metric_metadata: metrics query failed",
             extra={
                 "org_id": org_id,
                 "project_ids": project_ids,
@@ -128,9 +147,13 @@ def get_metric_metadata(
                 "body_prefix": str(getattr(e, "body", None))[:500],
             },
         )
-        return {"candidates": [], "has_more": False, "error": "events_query_failed"}
+        return MetricMetadataErrorResponse(
+            candidates=[], has_more=False, error="metrics_query_failed"
+        )
 
-    raw_rows = (resp.data or {}).get("data") or []
+    # The metrics endpoint returns a bare list of {name, type, unit, count, ...},
+    # already ordered by count descending via the sort param above.
+    raw_rows = resp.data or []
 
     # We over-fetch by 1 (per_page = limit + 1) specifically to detect whether
     # Sentry has more matches than the caller asked for. That signal must be
@@ -141,23 +164,18 @@ def get_metric_metadata(
 
     candidates: list[MetricMetadataRow] = []
     for row in raw_rows:
-        name = row.get("metric.name")
-        mtype = row.get("metric.type")
-        munit = row.get("metric.unit") or "none"
+        name = row.get("name")
+        mtype = row.get("type")
         if not name or not mtype:
             continue
-        # count(value) may come back under the full function key or the bare name
-        # depending on the dataset shape.
-        count = row.get("count(value)")
-        if count is None:
-            count = row.get("count", 0)
         candidates.append(
             MetricMetadataRow(
                 name=str(name),
                 type=str(mtype),
-                unit=str(munit),
-                count=int(count or 0),
+                unit=str(row.get("unit") or "none"),
+                count=int(row.get("count") or 0),
+                context=row.get("context"),
             )
         )
 
-    return {"candidates": candidates[:limit], "has_more": has_more}
+    return MetricMetadataSuccessResponse(candidates=candidates[:limit], has_more=has_more)

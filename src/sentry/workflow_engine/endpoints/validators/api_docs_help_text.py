@@ -42,6 +42,16 @@ WORKFLOW_TRIGGERS_HELP_TEXT = """The conditions on which the alert will trigger.
                         "type": "regression_event",
                         "comparison": true,
                         "conditionResult": true
+                    },
+                    {
+                        "type": "seer_activity_trigger",
+                        "comparison": [
+                            "rca_completed",
+                            "solution_completed",
+                            "coding_completed",
+                            "pr_created"
+                        ],
+                        "conditionResult": true
                     }
                 ],
                 "actions": []

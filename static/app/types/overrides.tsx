@@ -1,11 +1,12 @@
 import type {UIMatch} from 'react-router-dom';
 import type {Location} from 'history';
 
-import type {ButtonProps} from '@sentry/scraps/button';
+import type {TrackingProps} from '@sentry/scraps/trackingContext';
 
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
 import type {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
+import type {UseScmFeatureMetaResult} from 'sentry/components/onboarding/scm/useScmFeatureMeta';
 import type {InstallationInfo} from 'sentry/components/pipeline/integrationGitHub';
 import type {DateRange} from 'sentry/components/timeRangeSelector/dateRange';
 import type {SelectorItems} from 'sentry/components/timeRangeSelector/selectorItems';
@@ -19,9 +20,8 @@ import type {
   useMaxPickableDays,
 } from 'sentry/utils/useMaxPickableDays';
 import type {WidgetType} from 'sentry/views/dashboards/types';
-import type {AutofixContentProps} from 'sentry/views/issueDetails/sidebar/autofixSection';
-import type {UseScmFeatureMetaResult} from 'sentry/views/onboarding/components/useScmFeatureMeta';
-import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
+import type {AutofixContentProps} from 'sentry/views/issueDetails/sidebar/autofixSectionTypes';
+import type {OrganizationStatsProps} from 'sentry/views/organizationStats/types';
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
@@ -96,12 +96,14 @@ type DisabledMemberTooltipProps = {children: React.ReactNode};
 type DashboardHeadersProps = {organization: Organization};
 
 type ReplayListPageHeaderProps = {children?: React.ReactNode};
-type ReplayOnboardingAlertProps = {children: React.ReactNode};
-type ReplayOnboardingCTAProps = {children: React.ReactNode; organization: Organization};
+type ReplayOnboardingCTAProps = {
+  children: React.ReactNode;
+  organization: Organization;
+};
 type ProductUnavailableCTAProps = {organization: Organization};
 
-type ProfilingBetaAlertBannerProps = {
-  organization: Organization;
+export type SuperuserAccessCategoryProps = {
+  RadioItem: React.ComponentType<{children: React.ReactNode; value: string}>;
 };
 
 type ContinuousProfilingBillingRequirementBannerProps = {
@@ -145,6 +147,7 @@ type FirstPartyIntegrationAdditionalCTAProps = {
 type AttemptCloseAttemptProps = {
   handleRemoveAccount: () => void;
   organizationSlugs: string[];
+  userEmail: string;
 };
 
 type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
@@ -189,8 +192,9 @@ type ComponentOverrides = {
   'component:crons-onboarding-panel': () => React.ComponentType<CronsOnboardingPanelProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:dashboards-limit-provider': () => React.ComponentType<DashboardLimitProviderProps>;
-  'component:data-consent-banner': () => React.ComponentType<{source: string}> | null;
-  'component:data-consent-org-creation-checkbox': () => React.ComponentType | null;
+  'component:data-consent-banner': () => React.ComponentType<{
+    source: string;
+  }> | null;
   'component:data-consent-priority-learn-more': () => React.ComponentType | null;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
   'component:disabled-member': () => React.ComponentType;
@@ -212,15 +216,13 @@ type ComponentOverrides = {
   'component:partnership-agreement': React.ComponentType<PartnershipAgreementProps>;
   'component:product-selection-availability': () => React.ComponentType<ProductSelectionAvailabilityProps>;
   'component:product-unavailable-cta': () => React.ComponentType<ProductUnavailableCTAProps>;
-  'component:profiling-billing-banner': () => React.ComponentType<ProfilingBetaAlertBannerProps>;
   'component:replay-init': React.ComponentType;
   'component:replay-list-page-header': () => React.ComponentType<ReplayListPageHeaderProps> | null;
-  'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
   'component:replay-settings-alert': () => React.ComponentType | null;
   'component:scm-github-multi-org-install': () => React.ComponentType<ScmGithubMultiOrgInstallProps>;
   'component:seer-beta-closing-alert': () => React.ComponentType;
-  'component:superuser-access-category': React.ComponentType<any>;
+  'component:superuser-access-category': React.ComponentType<SuperuserAccessCategoryProps>;
   'component:superuser-warning': React.ComponentType<any>;
   'component:superuser-warning-excluded': SuperuserWarningExcluded;
 };
@@ -324,7 +326,7 @@ type ReactHookOverrides = {
     matches: UIMatch[];
   }) => React.ContextType<typeof RouteAnalyticsContext>;
   'react-hook:use-billing-navigation-config': () => NavigationSection | null;
-  'react-hook:use-button-tracking': (props: ButtonProps) => () => void;
+  'react-hook:use-button-tracking': () => (props: TrackingProps) => void;
   'react-hook:use-dashboard-dataset-retention-limit': (props: {
     dataset: WidgetType;
   }) => number;
@@ -431,7 +433,7 @@ type AnalyticsRawTrackEvent = (
     /**
      * The Reload event key.
      */
-    eventKey: string;
+    eventKey: string | undefined;
 
     /**
      * The Amplitude event name. Set to null if event should not go to Amplitude.

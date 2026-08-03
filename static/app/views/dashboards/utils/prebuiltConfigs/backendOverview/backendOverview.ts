@@ -7,7 +7,10 @@ import type {
   PrebuiltDashboard,
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/settings';
+import {
+  DASHBOARD_DESCRIPTION,
+  DASHBOARD_TITLE,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/settings';
 import {BASE_FILTER_STRING} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/settings';
 import {
   WIDGET_COLUMN_LABELS,
@@ -54,11 +57,11 @@ export const BACKEND_OVERVIEW_FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           name: 'Requests',
           fields: [
             `count(${SpanFields.SPAN_DURATION})`,
-            `equation|count_if(${SpanFields.TRACE_STATUS},equals,internal_error) / count(${SpanFields.SPAN_DURATION})`,
+            `equation|(count_if(${SpanFields.TRACE_STATUS},equals,internal_error) + count_if(${SpanFields.TRACE_STATUS},equals,error)) / count(${SpanFields.SPAN_DURATION})`,
           ],
           aggregates: [
             `count(${SpanFields.SPAN_DURATION})`,
-            `equation|count_if(${SpanFields.TRACE_STATUS},equals,internal_error) / count(${SpanFields.SPAN_DURATION})`,
+            `equation|(count_if(${SpanFields.TRACE_STATUS},equals,internal_error) + count_if(${SpanFields.TRACE_STATUS},equals,error)) / count(${SpanFields.SPAN_DURATION})`,
           ],
           columns: [],
           fieldAliases: [],
@@ -130,11 +133,11 @@ export const BACKEND_OVERVIEW_SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           name: '',
           fields: [
             `count(${SpanFields.SPAN_DURATION})`,
-            `equation|count_if(${SpanFields.TRACE_STATUS},equals,internal_error) / count(${SpanFields.SPAN_DURATION})`,
+            `equation|(count_if(${SpanFields.TRACE_STATUS},equals,internal_error) + count_if(${SpanFields.TRACE_STATUS},equals,error)) / count(${SpanFields.SPAN_DURATION})`,
           ],
           aggregates: [
             `count(${SpanFields.SPAN_DURATION})`,
-            `equation|count_if(${SpanFields.TRACE_STATUS},equals,internal_error) / count(${SpanFields.SPAN_DURATION})`,
+            `equation|(count_if(${SpanFields.TRACE_STATUS},equals,internal_error) + count_if(${SpanFields.TRACE_STATUS},equals,error)) / count(${SpanFields.SPAN_DURATION})`,
           ],
           columns: [],
           fieldAliases: [],
@@ -276,6 +279,7 @@ export const BACKEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
   title: DASHBOARD_TITLE,
+  description: DASHBOARD_DESCRIPTION,
   filters: {
     globalFilter: [
       {

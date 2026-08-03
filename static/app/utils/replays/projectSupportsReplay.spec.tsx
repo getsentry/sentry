@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import type {MinimalProject, PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
+import type {MinimalProject} from 'sentry/types/project';
 import {
   projectCanLinkToReplay,
   projectSupportsReplay,
@@ -59,12 +60,15 @@ describe('projectSupportsReplay & projectCanLinkToReplay', () => {
     }
   );
 
-  it.each(['apple-macos' as PlatformKey, 'unreal' as PlatformKey])(
-    'should FAIL for Desktop framework %s',
-    platform => {
-      const project = mockProjectFixture(platform);
-      expect(projectSupportsReplay(project)).toBeFalsy();
-      expect(projectCanLinkToReplay(organization, project)).toBeFalsy();
-    }
-  );
+  it('should FAIL for Desktop framework apple-macos', () => {
+    const project = mockProjectFixture('apple-macos');
+    expect(projectSupportsReplay(project)).toBeFalsy();
+    expect(projectCanLinkToReplay(organization, project)).toBeFalsy();
+  });
+
+  it('should SUPPORT & LINK gaming platform unreal', () => {
+    const project = mockProjectFixture('unreal');
+    expect(projectSupportsReplay(project)).toBeTruthy();
+    expect(projectCanLinkToReplay(organization, project)).toBeTruthy();
+  });
 });

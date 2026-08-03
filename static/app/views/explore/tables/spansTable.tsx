@@ -1,31 +1,32 @@
 import {Fragment, useMemo, useRef} from 'react';
 
 import {Pagination} from '@sentry/scraps/pagination';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
-import {IconArrow} from 'sentry/icons/iconArrow';
+import {
+  getAriaSort,
+  SortableHeaderCell,
+} from 'sentry/components/tables/sortableHeaderCell';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import type {TagCollection} from 'sentry/types/group';
+import type {MetaType} from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
-import {prettifyTagKey} from 'sentry/utils/fields';
+import {FieldValueType, getFieldDefinition, prettifyTagKey} from 'sentry/utils/fields';
 import {
   Table,
   TableBody,
   TableBodyCell,
   TableHead,
   TableHeadCell,
-  TableHeadCellContent,
   TableRow,
   TableStatus,
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
-import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {
   useQueryParamsFields,
   useQueryParamsSortBys,
@@ -35,10 +36,20 @@ import {
 import {FieldRenderer} from './fieldRenderer';
 
 interface SpansTableProps {
+  booleanTags: TagCollection;
+  numberTags: TagCollection;
   spansTableResult: SpansTableResult;
+  stringTags: TagCollection;
+  validatedFieldTypes: Partial<Record<string, FieldValueType>>;
 }
 
-export function SpansTable({spansTableResult}: SpansTableProps) {
+export function SpansTable({
+  booleanTags,
+  numberTags,
+  spansTableResult,
+  stringTags,
+  validatedFieldTypes,
+}: SpansTableProps) {
   const fields = useQueryParamsFields();
   const sortBys = useQueryParamsSortBys();
   const setSortBys = useSetQueryParamsSortBys();
@@ -50,8 +61,6 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
 
   const {result, eventView} = spansTableResult;
 
-  const columnsFromEventView = useMemo(() => eventView.getColumns(), [eventView]);
-
   const tableRef = useRef<HTMLTableElement>(null);
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(
     visibleFields,
@@ -59,11 +68,18 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
     {minimumColumnWidth: 50}
   );
 
-  const meta = result.meta ?? {};
-
-  const {attributes: numberTags} = useSpanItemAttributes({}, 'number');
-  const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
-  const {attributes: booleanTags} = useSpanItemAttributes({}, 'boolean');
+  const meta = useMemo(
+    () =>
+      addValidatedFieldTypesToMeta({
+        meta: result.meta ?? {},
+        validatedFieldTypes,
+      }),
+    [result.meta, validatedFieldTypes]
+  );
+  const columnsFromEventView = useMemo(
+    () => eventView.getColumns(meta),
+    [eventView, meta]
+  );
 
   const paginationAnalyticsEvent = usePaginationAnalytics(
     'samples',
@@ -96,24 +112,15 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
               const label = tag?.name ?? prettifyTagKey(field);
 
               return (
-                <TableHeadCell align={align} key={i} isFirst={i === 0}>
-                  <TableHeadCellContent onClick={updateSort}>
-                    <Tooltip showOnlyOnOverflow title={label}>
-                      {label}
-                    </Tooltip>
-                    {defined(direction) && (
-                      <IconArrow
-                        size="xs"
-                        direction={
-                          direction === 'desc'
-                            ? 'down'
-                            : direction === 'asc'
-                              ? 'up'
-                              : undefined
-                        }
-                      />
-                    )}
-                  </TableHeadCellContent>
+                <TableHeadCell
+                  align={align}
+                  aria-sort={getAriaSort(direction)}
+                  key={i}
+                  isFirst={i === 0}
+                >
+                  <SortableHeaderCell direction={direction} onSort={updateSort}>
+                    {label}
+                  </SortableHeaderCell>
                   {i !== visibleFields.length - 1 && (
                     <GridResizer
                       dataRows={
@@ -170,4 +177,21 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
       />
     </Fragment>
   );
+}
+
+export function addValidatedFieldTypesToMeta({
+  meta,
+  validatedFieldTypes,
+}: {
+  meta: MetaType;
+  validatedFieldTypes: Partial<Record<string, FieldValueType>>;
+}): MetaType {
+  const fields = {...meta?.fields};
+
+  for (const [field, validatedType] of Object.entries(validatedFieldTypes)) {
+    fields[field] =
+      getFieldDefinition(field, 'span')?.valueType ?? fields[field] ?? validatedType;
+  }
+
+  return {...meta, fields};
 }

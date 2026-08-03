@@ -25,6 +25,8 @@ jobs:
     name: detect what files changed
     runs-on: ubuntu-24.04
     timeout-minutes: 3
+    permissions:
+      contents: read
     # Map a step output to a job output
     outputs:
       api_docs: ${{ steps.changes.outputs.api_docs }}
@@ -39,10 +41,10 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Check for backend file changes
-        uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
+        uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
         id: changes
         with:
-          token: ${{ github.token }}
+          token: ''
           filters: .github/file-filters.yml
 
   api-docs:
@@ -53,12 +55,8 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
-        id: setup-node
-        with:
-          node-version-file: '.node-version'
+      - uses: ./.github/actions/setup-node-pnpm
 
-      - uses: pnpm/action-setup@9b5745cdf0a2e8c2620f0746130f809adb911c19 # v4
       - name: Setup sentry python env
         uses: ./.github/actions/setup-sentry
         id: setup
@@ -294,7 +292,7 @@ jobs:
         run: |
           if [ -n "${XDIST_WORKERS}" ]; then
             export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile"
-            timeout 1200 make test-python-ci || {
+            timeout -k 30 1200 make test-python-ci || {
               rc=$?
               if [ "$rc" -eq 124 ]; then
                 echo "::error::Test run timed out after 20 minutes (possible xdist hang)"
@@ -365,7 +363,7 @@ jobs:
 
       - name: run tests
         run: |
-          PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations --reruns 0 --fail-slow=120s" make test-python-ci
+          PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations --reruns 0 --fail-slow=150s" make test-python-ci
 
       - name: Report failures
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}

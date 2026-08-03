@@ -9,7 +9,6 @@ import {
   IconDocs,
   IconEllipsis,
   IconGithub,
-  IconGlobe,
   IconGroup,
   IconMegaphone,
   IconOpen,
@@ -26,11 +25,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {showIntercom} from 'sentry/utils/intercom';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {activateZendesk, hasZendesk} from 'sentry/utils/zendesk';
-import {
-  NavigationTourReminder,
-  useNavigationTour,
-} from 'sentry/views/navigation/navigationTour';
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 
 export function PrimaryNavigationHelpMenu() {
@@ -38,20 +32,16 @@ export function PrimaryNavigationHelpMenu() {
   const contactSupportItem = getContactSupportItem(organization);
   const openForm = useFeedbackForm();
   const {privacyUrl, termsUrl} = useLegacyStore(ConfigStore);
-  const hasIntercom = organization.features.includes('intercom-support');
-  const {startTour} = useNavigationTour();
 
   useEffect(() => {
-    if (hasIntercom) {
-      trackAnalytics('intercom_link.viewed', {organization, source: 'sidebar'});
-    }
-  }, [hasIntercom, organization]);
+    trackAnalytics('intercom_link.viewed', {organization, source: 'sidebar'});
+  }, [organization]);
 
   const items: MenuItemProps[] = [
     {
       key: 'resources',
       label: t('Resources'),
-      isSubmenu: true,
+      submenu: true,
       leadingItems: (
         <MenuIcon>
           <IconQuestion />
@@ -114,7 +104,7 @@ export function PrimaryNavigationHelpMenu() {
     {
       key: 'community',
       label: t('Community'),
-      isSubmenu: true,
+      submenu: true,
       leadingItems: (
         <MenuIcon>
           <IconGroup />
@@ -146,7 +136,7 @@ export function PrimaryNavigationHelpMenu() {
     {
       key: 'legal',
       label: t('Legal'),
-      isSubmenu: true,
+      submenu: true,
       hidden: !privacyUrl && !termsUrl,
       leadingItems: (
         <MenuIcon>
@@ -199,25 +189,12 @@ export function PrimaryNavigationHelpMenu() {
           },
           hidden: !openForm,
         },
-        {
-          key: 'tour',
-          label: t('Tour the new navigation'),
-          leadingItems: (
-            <MenuIcon>
-              <IconGlobe />
-            </MenuIcon>
-          ),
-          onAction() {
-            startTour();
-          },
-        },
       ],
     },
   ];
 
   return (
     <PrimaryNavigation.Menu
-      triggerWrap={NavigationTourReminder}
       items={items}
       analyticsKey="help"
       label={t('Help')}
@@ -233,48 +210,22 @@ function getContactSupportItem(organization: Organization): MenuItemProps | null
     return null;
   }
 
-  const hasIntercom = organization.features.includes('intercom-support');
-
-  // Use Intercom if feature flag is enabled (lazily initialized on first click)
-  if (hasIntercom) {
-    return {
-      key: 'support',
-      label: t('Contact Support'),
-      async onAction() {
-        trackAnalytics('intercom_link.clicked', {
-          organization,
-          source: 'sidebar',
-        });
-        try {
-          await showIntercom(organization.slug);
-        } catch {
-          // Fall back to mailto
-          window.location.href = `mailto:${supportEmail}`;
-        }
-      },
-    };
-  }
-
-  // Fall back to Zendesk if available
-  if (hasZendesk()) {
-    return {
-      key: 'support',
-      label: t('Contact Support'),
-      onAction() {
-        activateZendesk();
-        trackAnalytics('zendesk_link.clicked', {
-          organization,
-          source: 'sidebar',
-        });
-      },
-    };
-  }
-
-  // Fall back to mailto
+  // Use Intercom (lazily initialized on first click)
   return {
     key: 'support',
     label: t('Contact Support'),
-    externalHref: `mailto:${supportEmail}`,
+    async onAction() {
+      trackAnalytics('intercom_link.clicked', {
+        organization,
+        source: 'sidebar',
+      });
+      try {
+        await showIntercom(organization.slug);
+      } catch {
+        // Fall back to mailto
+        window.location.href = `mailto:${supportEmail}`;
+      }
+    },
   };
 }
 

@@ -14,11 +14,11 @@ from sentry.auth.view import AuthView
 from sentry.models.authidentity import AuthIdentity
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.provider import PipelineProvider
-from sentry.plugins.base.response import DeferredResponse
 from sentry.users.models.user import User
 
 if TYPE_CHECKING:
     from sentry.auth.helper import AuthHelper  # noqa: F401
+    from sentry.plugins.base.response import DeferredResponse
 
 
 class MigratingIdentityId(namedtuple("MigratingIdentityId", ["id", "legacy_id"])):

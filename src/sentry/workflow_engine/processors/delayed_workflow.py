@@ -26,6 +26,7 @@ from sentry.utils.iterators import chunked
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import RateLimitExceeded, SnubaError
+from sentry.utils.tracing import start_span, trace
 from sentry.workflow_engine.buffer.batch_client import (
     DelayedWorkflowClient,
     ProjectDelayedWorkflowClient,
@@ -44,11 +45,10 @@ from sentry.workflow_engine.models.data_condition import (
     Condition,
 )
 from sentry.workflow_engine.processors.data_condition_group import (
-    ProcessedDataConditionGroup,
-    TriggerResult,
     evaluate_data_conditions,
     get_slow_conditions_for_groups,
 )
+from sentry.workflow_engine.processors.evaluations import DataConditionGroupEvaluation
 from sentry.workflow_engine.processors.log_util import track_batch_performance
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.types import (
@@ -393,7 +393,7 @@ def generate_unique_queries(
     return unique_queries
 
 
-@sentry_sdk.trace
+@trace
 def get_condition_query_groups(
     data_condition_groups: list[DataConditionGroup],
     event_data: EventRedisData,
@@ -434,7 +434,7 @@ def get_condition_query_groups(
     # We want this to be accurate enough for alerting, so sample 100%
     sample_rate=1.0,
 )
-@sentry_sdk.trace
+@trace
 def get_condition_group_results(
     queries_to_groups: dict[UniqueConditionQuery, GroupQueryParams],
 ) -> dict[UniqueConditionQuery, QueryResult]:
@@ -517,7 +517,7 @@ def _evaluate_group_result_for_dcg(
     group_id: GroupId,
     workflow_env: int | None,
     condition_group_results: dict[UniqueConditionQuery, QueryResult],
-) -> ProcessedDataConditionGroup:
+) -> DataConditionGroupEvaluation:
     slow_conditions = dcg_to_slow_conditions[dcg.id]
     try:
         return _group_result_for_dcg(
@@ -531,11 +531,14 @@ def _evaluate_group_result_for_dcg(
             sample_rate=1.0,
         )
         logger.warning("workflow_engine.delayed_workflow.missing_query_result", exc_info=True)
-        return ProcessedDataConditionGroup(
-            logic_result=TriggerResult(
-                triggered=False, error=ConditionError(msg="Missing query result")
-            ),
-            condition_results=[],
+        return DataConditionGroupEvaluation(
+            result=False,
+            triggered=False,
+            data={
+                "condition_evaluations": [],
+                "logic_type": dcg.logic_type,
+            },
+            error=ConditionError(msg="Missing query result"),
         )
 
 
@@ -545,8 +548,9 @@ def _group_result_for_dcg(
     workflow_env: int | None,
     condition_group_results: dict[UniqueConditionQuery, QueryResult],
     slow_conditions: list[DataCondition],
-) -> ProcessedDataConditionGroup:
+) -> DataConditionGroupEvaluation:
     conditions_to_evaluate: list[tuple[DataCondition, list[int | float]]] = []
+
     for condition in slow_conditions:
         query_values = []
         for query in generate_unique_queries(condition, workflow_env):
@@ -606,7 +610,7 @@ class DelayedWorkflowEvaluationResult:
         }
 
 
-@sentry_sdk.trace
+@trace
 def get_groups_to_fire(
     data_condition_groups: list[DataConditionGroup],
     workflows_to_envs: Mapping[WorkflowId, int | None],
@@ -639,27 +643,35 @@ def get_groups_to_fire(
 
         evaluated_workflow_ids.add(workflow_id)
         workflow_env = workflows_to_envs[workflow_id]
-        when_result = TriggerResult.TRUE
+        # When there is no WHEN group, treat the workflow as triggered with no taint.
+        # This is the identity element for the taint-aware AND (`.all`) below.
+        when_evaluation = DataConditionGroupEvaluation(
+            result=True,
+            triggered=True,
+            data={
+                "condition_evaluations": [],
+                "logic_type": DataConditionGroup.Type.ANY,
+            },
+        )
         if when_dcg_id := event_key.when_dcg_id:
             when_dcg = data_condition_group_mapping.get(when_dcg_id)
             if not when_dcg:
                 when_dcg_missing[workflow_id].append(group_id)
                 continue
-            when_group = _evaluate_group_result_for_dcg(
+            when_evaluation = _evaluate_group_result_for_dcg(
                 when_dcg,
                 dcg_to_slow_conditions,
                 group_id,
                 workflow_env,
                 condition_group_results,
             )
-            when_result = when_group.logic_result
-            if not when_result.triggered:
+            if not when_evaluation.triggered:
                 # If we're not triggering, all action-y if conditions need to be treated
                 # as tainted or not based on the when condition result.
                 if_conds = event_key.if_dcg_ids | event_key.passing_dcg_ids
                 # Limit to those we can access to be consistent with the if conditions evaluation.
                 if_cond_count = len(if_conds & data_condition_group_mapping.keys())
-                if when_result.is_tainted():
+                if when_evaluation.is_tainted():
                     tainted += if_cond_count
                     when_failed_tainted[workflow_id].append(group_id)
                 else:
@@ -677,15 +689,19 @@ def get_groups_to_fire(
                     workflow_env,
                     condition_group_results,
                 )
-                if_result = when_result & if_group.logic_result
-                if if_result.is_tainted():
+                if_triggered, if_error = DataConditionGroupEvaluation.all(
+                    [when_evaluation, if_group]
+                )
+
+                if if_error is not None:
                     tainted += 1
                 else:
                     untainted += 1
-                if if_result.triggered:
+
+                if if_triggered:
                     groups_to_fire[group_id].add(dcg)
                     if_dcg_passed[workflow_id][group_id][dcg.id] = [
-                        pc.condition.id for pc in if_group.condition_results
+                        pc.condition.id for pc in if_group.data["condition_evaluations"]
                     ]
                 else:
                     if_dcg_failed[workflow_id][group_id].append(dcg.id)
@@ -693,10 +709,11 @@ def get_groups_to_fire(
         for if_dcg_id in event_key.passing_dcg_ids:
             if dcg := data_condition_group_mapping.get(if_dcg_id):
                 # TODO: Propagate taint with passing conditions.
-                if when_result.is_tainted():
+                if when_evaluation.is_tainted():
                     tainted += 1
                 else:
                     untainted += 1
+
                 groups_to_fire[group_id].add(dcg)
                 if_dcg_passed[workflow_id][group_id][dcg.id] = [
                     c.id for c in dcg_to_slow_conditions.get(dcg.id, [])
@@ -714,7 +731,7 @@ def get_groups_to_fire(
     )
 
 
-@sentry_sdk.trace
+@trace
 def bulk_fetch_events(event_ids: list[str], project: Project) -> dict[str, Event]:
     node_id_to_event_id = {
         Event.generate_node_id(project.id, event_id=event_id): event_id for event_id in event_ids
@@ -743,7 +760,7 @@ def bulk_fetch_events(event_ids: list[str], project: Project) -> dict[str, Event
     "workflow_engine.delayed_workflow.get_group_to_groupevent",
     sample_rate=1.0,
 )
-@sentry_sdk.trace
+@trace
 def get_group_to_groupevent(
     event_data: EventRedisData,
     groups_to_dcgs: dict[GroupId, set[DataConditionGroup]],
@@ -786,7 +803,7 @@ def get_group_to_groupevent(
     return group_to_groupevent
 
 
-@sentry_sdk.trace
+@trace
 def fire_actions_for_groups(
     organization: Organization,
     groups_to_fire: dict[GroupId, set[DataConditionGroup]],
@@ -876,7 +893,7 @@ def fire_actions_for_groups(
     )
 
 
-@sentry_sdk.trace
+@trace
 def cleanup_redis_buffer(
     client: ProjectDelayedWorkflowClient, event_keys: Iterable[EventKey], batch_key: str | None
 ) -> None:
@@ -897,7 +914,7 @@ def _summarize_by_first[T1, T2: int | str](it: Iterable[tuple[T1, T2]]) -> dict[
 
 def _process_workflows_for_project(project: Project, event_data: EventRedisData) -> None:
     """Process workflows for a project - evaluate conditions and fire actions."""
-    with sentry_sdk.start_span(op="delayed_workflow.prepare_data"):
+    with start_span(op="delayed_workflow.prepare_data", name="delayed_workflow.prepare_data"):
         if features.has(
             "organizations:workflow-engine-process-workflows-logs", project.organization
         ):
@@ -1017,7 +1034,7 @@ def _process_workflows_for_project(project: Project, event_data: EventRedisData)
         )
 
 
-@sentry_sdk.trace
+@trace
 def process_delayed_workflows(
     batch_client: DelayedWorkflowClient, project_id: int, batch_key: str | None = None
 ) -> None:

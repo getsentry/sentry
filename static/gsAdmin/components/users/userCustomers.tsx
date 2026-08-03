@@ -25,6 +25,11 @@ export function UserCustomers({userId}: Props) {
       path={`/_admin/users/${userId}/`}
       endpoint={`/users/${userId}/customers/`}
       isCellScoped
+      // Org memberships are cell-scoped, so this grid only shows the orgs in the
+      // currently selected region. Probe the other regions too and flag when the
+      // user also belongs to orgs elsewhere so admins know to look there.
+      probeAllRegions
+      probeAllRegionsHint="This user also belongs to organizations in other regions — look there too:"
       hasSearch={false}
       sortOptions={undefined}
       filters={undefined}

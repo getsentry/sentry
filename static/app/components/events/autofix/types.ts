@@ -49,13 +49,6 @@ export enum CodingAgentProvider {
   GITHUB_COPILOT_AGENT = 'github_copilot_agent',
 }
 
-export function getResultButtonLabel(url: string | null | undefined): string {
-  if (url?.includes('/tree/')) {
-    return t('View Branch');
-  }
-  return t('View Pull Request');
-}
-
 export type FilePatch = {
   added: number;
   hunks: Hunk[];
@@ -128,22 +121,26 @@ function isDiffLine(value: unknown): value is DiffLine {
   );
 }
 
-export interface AutofixRepoDefinition {
+interface AutofixRepo {
+  default_branch: string;
+  external_id: string;
+  has_read_access: boolean;
+  has_write_access: boolean;
   name: string;
   owner: string;
   provider: string;
+  repo_name: string;
+  integration_id?: number;
 }
 
-export interface BranchOverride {
+export interface AutofixReposResponse {
+  repos: AutofixRepo[];
+}
+
+interface BranchOverride {
   branch_name: string;
   tag_name: string;
   tag_value: string;
-}
-
-export interface RepoSettings {
-  branch: string;
-  branch_overrides: BranchOverride[];
-  instructions: string;
 }
 
 export interface SeerRepoDefinition {

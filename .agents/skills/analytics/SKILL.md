@@ -115,9 +115,10 @@ Every `trackAnalytics` call flows through the GetSentry override in `static/gsAp
 
 ## Non-Negotiable Constraints
 
-1. **All events must be type-safe.** Every event key must exist in a `*EventParameters` type and be registered in the domain's event map.
-2. **All events flow through `trackAnalytics()`.** Never call `window.analytics`, `Amplitude.track()`, or any other analytics SDK directly.
-3. **Organization context is automatic.** Pass `organization` to `trackAnalytics` — the override system handles the rest.
-4. **Reuse over create.** Always search for existing events before defining new ones.
-5. **One event per interaction.** Do not fire multiple events for the same user action.
-6. **No PII in event parameters.** Never include user emails, IP addresses, full names, or other personally identifiable information. Use opaque IDs (org ID, user ID) when identity context is needed.
+1. **`trackAnalytics()` calls must be type-safe.** Every event key passed to `trackAnalytics()` must exist in a `*EventParameters` type and be registered in the domain's event map. This enforces that `organization` is always passed and that call sites sharing the same event key use consistent parameters. Declarative helpers — button `analyticsEventKey`/`analyticsParams` props and `useRouteAnalyticsParams` — are exempt because each instance is a one-off: two buttons labeled "Save" are inherently different (different forms, different contexts), so there are no shared call sites and less value in centralized types.
+2. **Prefer declarative helpers.** Use button analytics props and route analytics hooks when they fit. Fall back to `trackAnalytics()` only for interactions those helpers don't cover.
+3. **All events flow through `trackAnalytics()` or built-in helpers.** Never call `window.analytics`, `Amplitude.track()`, or any other analytics SDK directly.
+4. **Organization context is automatic.** Pass `organization` to `trackAnalytics` — the override system handles the rest.
+5. **Reuse over create.** Always search for existing events before defining new ones.
+6. **One event per interaction.** Do not fire multiple events for the same user action.
+7. **No PII in event parameters.** Never include user emails, IP addresses, full names, or other personally identifiable information. Use opaque IDs (org ID, user ID) when identity context is needed.

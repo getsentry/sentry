@@ -18,8 +18,14 @@ from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.rpc import OptionValue, logger
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleActivity
 from sentry.incidents.models.incident import IncidentActivity
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.activity import Activity
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardRevision
+from sentry.models.dashboard import (
+    Dashboard,
+    DashboardFavoriteUser,
+    DashboardLastVisited,
+    DashboardRevision,
+)
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.groupsearchview import GroupSearchView
@@ -39,7 +45,6 @@ from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.rule import Rule, RuleActivity
 from sentry.models.rulesnooze import RuleSnooze
-from sentry.models.savedsearch import SavedSearch
 from sentry.models.team import Team, TeamStatus
 from sentry.monitors.models import Monitor
 from sentry.organizations.services.organization import (
@@ -585,6 +590,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 AlertRuleActivity,
                 Dashboard,
                 DashboardFavoriteUser,
+                DashboardLastVisited,
                 DashboardRevision,
                 GroupAssignee,
                 GroupBookmark,
@@ -601,7 +607,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 Rule,
                 RuleActivity,
                 RuleSnooze,
-                SavedSearch,
             ]
             for model in model_list:
                 merge_users_for_model_in_org(
@@ -719,6 +724,31 @@ class DatabaseBackedOrganizationService(OrganizationService):
             organization_id=organization_id,
             flags=F("flags").bitand(~OrganizationMember.flags["sso:linked"]),
         ).count()
+
+    def upsert_external_actor(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+        user_id: int,
+        provider: int,
+        external_name: str,
+        external_id: str | None = None,
+        source: int | None = None,
+    ) -> bool:
+        _, created = ExternalActor.objects.get_or_create(
+            organization_id=organization_id,
+            provider=provider,
+            external_name__iexact=external_name,
+            user_id=user_id,
+            defaults={
+                "external_name": external_name,
+                "integration_id": integration_id,
+                "external_id": external_id,
+                "source": source,
+            },
+        )
+        return created
 
     def delete_organization(
         self, *, organization_id: int, user: RpcUser

@@ -1,25 +1,32 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 import sentry_sdk
+from pydantic import BaseModel
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.permissions import SAFE_METHODS
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org, is_demo_user
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.agent.client import SeerAgentClient
+from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import (
     has_seer_agent_access_with_detail,
     snapshot_to_markdown,
 )
+from sentry.seer.endpoints.utils import resolve_seer_run
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -29,6 +36,11 @@ logger = logging.getLogger(__name__)
 
 
 _CODE_MODE_VALUES = frozenset({"off", "on", "only"})
+
+
+class SeerAgentChatStateResponse(BaseModel):
+    session: SeerRunState
+    sentry_run_id: str | None
 
 
 class CodeModeField(serializers.Field):
@@ -86,6 +98,11 @@ class SeerAgentChatSerializer(serializers.Serializer):
         default=None,
         help_text="The UI page name where the request originated (e.g., route string).",
     )
+    override_bash_mode_enabled = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Override bash mode tools.",
+    )
     override_ce_enable = serializers.BooleanField(
         required=False,
         default=True,
@@ -111,6 +128,26 @@ class OrganizationSeerAgentChatPermission(OrganizationPermission):
         "GET": ["org:read"],
         "POST": ["org:read"],
     }
+
+    # Allow POST requests in demo mode to showcase Seer Agent
+    DEMO_ALLOWED_METHODS = (*SAFE_METHODS, "POST")
+
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        if is_demo_user(request.user):
+            if not is_demo_mode_enabled() or request.method not in self.DEMO_ALLOWED_METHODS:
+                return False
+            return True
+        return super().has_permission(request, view)
+
+    def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:
+        if is_demo_user(request.user):
+            if not is_demo_mode_enabled() or request.method not in self.DEMO_ALLOWED_METHODS:
+                return False
+            org = obj.organization if hasattr(obj, "organization") else obj
+            if not is_demo_org(org):
+                return False
+            return True
+        return super().has_object_permission(request, view, obj)
 
 
 @cell_silo_endpoint
@@ -138,7 +175,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationSeerAgentChatPermission,)
 
     def get(
-        self, request: Request, organization: Organization, run_id: int | None = None
+        self, request: Request, organization: Organization, run_id: str | None = None
     ) -> Response:
         """
         Get the current state of a Seer Agent session.
@@ -146,20 +183,23 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         has_access, error = has_seer_agent_access_with_detail(organization, request.user)
 
         has_seer_access, _ = has_seer_access_with_detail(organization, request.user)
-        has_dashboards_ai_generate_access = has_seer_access and features.has(
-            "organizations:dashboards-ai-generate", organization, actor=request.user
-        )
 
-        if not has_access and not has_dashboards_ai_generate_access:
+        if not has_access and not has_seer_access:
             raise PermissionDenied(error)
 
         if not run_id:
             return Response({"session": None}, status=404)
 
+        resolved = resolve_seer_run(run_id, organization)
+        if isinstance(resolved, Response):
+            return resolved
+
         try:
             client = SeerAgentClient(organization, request.user)
-            state = client.get_run(run_id=int(run_id))
-            return Response({"session": state.dict()})
+            state = client.get_run(run_id=resolved.seer_run_state_id)
+            return Response(
+                SeerAgentChatStateResponse(session=state, sentry_run_id=resolved.uuid).dict()
+            )
         except SeerPermissionError as e:
             raise PermissionDenied(e.message) from e
         except SeerApiError as e:
@@ -175,7 +215,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
             return Response({"session": None}, status=404)
 
     def post(
-        self, request: Request, organization: Organization, run_id: int | None = None
+        self, request: Request, organization: Organization, run_id: str | None = None
     ) -> Response:
         """
         Start a new chat session or continue an existing one.
@@ -187,18 +227,14 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         - on_page_context: Optional context from the user's screen.
 
         Returns:
-        - run_id: The run ID.
+        - run_id: The numeric Seer run id.
+        - sentry_run_id: The run's UUID (when a mirror row exists).
         """
         has_access, error = has_seer_agent_access_with_detail(organization, request.user)
 
         has_seer_access, _ = has_seer_access_with_detail(organization, request.user)
-        has_dashboards_ai_generate_access = has_seer_access and features.has(
-            "organizations:dashboards-ai-generate", organization, actor=request.user
-        )
-        # Orgs with dashboards AI generate access can continue existing dashboard generate runs, but cannot start new runs from this endpoint.
-        can_continue_dashboards_generate_run = (
-            has_dashboards_ai_generate_access and run_id is not None
-        )
+        # Orgs with Seer access can continue existing dashboard generate runs, but cannot start new runs from this endpoint.
+        can_continue_dashboards_generate_run = has_seer_access and run_id is not None
 
         if not has_access and not can_continue_dashboards_generate_run:
             raise PermissionDenied(error)
@@ -212,6 +248,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         insert_index = validated_data.get("insert_index")
         on_page_context = validated_data.get("on_page_context")
         page_name = validated_data.get("page_name")
+        override_bash_mode_enabled = validated_data["override_bash_mode_enabled"]
         override_ce_enable = validated_data["override_ce_enable"]
         override_code_mode_enable = validated_data.get("override_code_mode_enable")
         ui_tools = (
@@ -237,6 +274,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
             ) and features.has(
                 "organizations:seer-explorer-chat-coding", organization, actor=request.user
             )
+
             has_code_mode_feature = features.has(
                 "organizations:seer-explorer-code-mode-tools", organization, actor=request.user
             )
@@ -246,18 +284,23 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 enable_code_mode_tools = override_code_mode_enable
             else:
                 enable_code_mode_tools = "on"
+
             client = SeerAgentClient(
                 organization,
                 request.user,
                 is_interactive=True,
+                enable_bash_tools=override_bash_mode_enabled,
                 enable_coding=enable_coding,
                 enable_code_mode_tools=enable_code_mode_tools,
                 reasoning_effort="medium",
             )
             if run_id:
+                resolved = resolve_seer_run(run_id, organization, for_continue=True)
+                if isinstance(resolved, Response):
+                    return resolved
                 # Continue existing conversation
-                result_run_id = client.continue_run(
-                    run_id=int(run_id),
+                client.continue_run(
+                    run_id=resolved.seer_run_state_id,
                     prompt=query,
                     insert_index=insert_index,
                     on_page_context=on_page_context,
@@ -265,18 +308,20 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                     ui_tools=ui_tools,
                     request=request,
                 )
-            else:
-                # Start new conversation
-                result_run_id = client.start_run(
-                    prompt=query,
-                    on_page_context=on_page_context,
-                    page_name=page_name,
-                    ui_tools=ui_tools,
-                    override_ce_enable=override_ce_enable,
-                    request=request,
+                return Response(
+                    {"run_id": resolved.seer_run_state_id, "sentry_run_id": resolved.uuid}
                 )
 
-            return Response({"run_id": result_run_id})
+            # Start new conversation
+            run = client.start_run(
+                prompt=query,
+                on_page_context=on_page_context,
+                page_name=page_name,
+                ui_tools=ui_tools,
+                override_ce_enable=override_ce_enable,
+                request=request,
+            )
+            return Response({"run_id": run.seer_run_state_id, "sentry_run_id": str(run.uuid)})
         except SeerPermissionError as e:
             raise PermissionDenied(e.message) from e
         except SeerApiError as e:

@@ -48,6 +48,7 @@ from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.errors import MODAL_NOT_FOUND, unpack_slack_api_error
 from sentry.integrations.types import ExternalProviderEnum, IntegrationProviderSlug
 from sentry.integrations.utils.scope import bind_org_context_from_integration
+from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
 from sentry.locks import locks
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
@@ -57,6 +58,7 @@ from sentry.notifications.services import notifications_service
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.seer.entrypoints.operator import SeerAutofixOperator
 from sentry.seer.entrypoints.slack.entrypoint import SlackAutofixEntrypoint
+from sentry.seer.entrypoints.slack.messaging import send_not_org_member_message
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.models import User
 from sentry.users.services.user import RpcUser
@@ -114,7 +116,8 @@ def update_group(
             status_code=403, body="The user does not have access to the organization."
         )
 
-    resp = update_groups(request=request, groups=[group], user=user, data=data)
+    with action_context_scope(source=ActionSource.SLACK, actor=GroupActionActor.user(user.id)):
+        resp = update_groups(request=request, groups=[group], user=user, data=data)
     if resp.status_code != 200:
         _logger.warning(
             "slack.action.update-group-error",
@@ -129,13 +132,14 @@ def update_group(
     return resp
 
 
-def get_rule(slack_request: SlackActionRequest) -> Rule | None:
+def get_rule(slack_request: SlackActionRequest, organization_id: int) -> Rule | None:
     """Get the rule that fired"""
     rule_id = slack_request.callback_data.get("rule")
     if not rule_id:
         return None
     try:
-        rule = Rule.objects.get(id=rule_id)
+        # Scope the callback-provided rule ID to the integration-validated organization
+        rule = Rule.objects.get(id=rule_id, project__organization_id=organization_id)
         # We need to add the legacy_rule_id field to the rule data since the message builder will use it to build the link to the rule
         rule.data["actions"][0]["legacy_rule_id"] = rule.id
     except Rule.DoesNotExist:
@@ -356,7 +360,7 @@ class SlackActionEndpoint(Endpoint):
         if not group:
             return self.respond(status=403)
 
-        rule = get_rule(slack_request)
+        rule = get_rule(slack_request, group.project.organization_id)
         identity = slack_request.get_identity()
         # Determine the acting user by Slack identity.
         identity_user = slack_request.get_identity_user()
@@ -495,6 +499,7 @@ class SlackActionEndpoint(Endpoint):
                             slack_request=slack_request,
                             action=action,
                             group=group,
+                            user=identity_user,
                         )
                     defer_attachment_update = True
             except client.ApiError as error:
@@ -568,6 +573,34 @@ class SlackActionEndpoint(Endpoint):
 
         return self.respond()
 
+    def _notify_not_org_member(
+        self,
+        *,
+        slack_request: SlackActionRequest,
+        entrypoint: SlackAutofixEntrypoint,
+        group: Group,
+        user: RpcUser,
+    ) -> None:
+        """
+        Let the acting Slack user know they must be a member of the group's organization to use Seer
+        """
+        _logger.info(
+            "seer.slack.autofix.user_not_org_member",
+            extra={
+                "group_id": group.id,
+                "organization_id": group.project.organization_id,
+                "user_id": user.id,
+            },
+        )
+        if entrypoint.slack_user_id:
+            send_not_org_member_message(
+                integration_id=slack_request.integration.id,
+                slack_user_id=entrypoint.slack_user_id,
+                channel_id=entrypoint.channel_id,
+                thread_ts=entrypoint.thread_ts,
+                org_name=group.organization.name,
+            )
+
     def handle_seer_autofix_start(
         self,
         *,
@@ -582,6 +615,12 @@ class SlackActionEndpoint(Endpoint):
             group=group,
             organization_id=group.project.organization_id,
         )
+        if not group.organization.has_access(user):
+            self._notify_not_org_member(
+                slack_request=slack_request, entrypoint=entrypoint, group=group, user=user
+            )
+            return
+
         stopping_point = entrypoint.autofix_stopping_point
         is_continuation = entrypoint.autofix_run_id is not None
         logging_ctx = {
@@ -623,6 +662,7 @@ class SlackActionEndpoint(Endpoint):
         slack_request: SlackActionRequest,
         action: BlockKitMessageAction,
         group: Group,
+        user: RpcUser,
     ) -> None:
         entrypoint = SlackAutofixEntrypoint(
             slack_request=slack_request,
@@ -630,6 +670,12 @@ class SlackActionEndpoint(Endpoint):
             group=group,
             organization_id=group.project.organization_id,
         )
+        if not group.organization.has_access(user):
+            self._notify_not_org_member(
+                slack_request=slack_request, entrypoint=entrypoint, group=group, user=user
+            )
+            return
+
         run_id = entrypoint.autofix_run_id
         if run_id is None:
             _logger.info(
@@ -720,6 +766,7 @@ class SlackActionEndpoint(Endpoint):
 
         bind_org_context_from_integration(slack_request.integration.id)
         sentry_sdk.set_tag("integration_id", slack_request.integration.id)
+        sentry_sdk.set_attribute("integration_id", slack_request.integration.id)
 
         # Actions list may be empty when receiving a dialog response.
 

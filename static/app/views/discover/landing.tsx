@@ -7,6 +7,7 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import type {SelectValue} from '@sentry/scraps/select';
 import {Switch} from '@sentry/scraps/switch';
 
 import Feature from 'sentry/components/acl/feature';
@@ -17,7 +18,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import type {SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
@@ -31,10 +31,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import QueryList from './queryList';
-import {getPrebuiltQueries} from './utils';
+import {getDiscoverDeprecation, getPrebuiltQueries} from './utils';
 
 const SORT_OPTIONS = [
   {label: t('My Queries'), value: 'myqueries'},
@@ -134,7 +133,6 @@ const RENDER_PREBUILT_KEY = 'discover-render-prebuilt';
 function DiscoverLanding() {
   const navigate = useNavigate();
   const organization = useOrganization();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const location = useLocation();
   const activeSort = useActiveSort();
   const savedSearchQuery = useSavedSearchQuery();
@@ -188,53 +186,27 @@ function DiscoverLanding() {
       features="discover-query"
       renderDisabled={() => <NoAccess />}
     >
-      <SentryDocumentTitle title={t('Discover')} orgSlug={organization.slug}>
+      <SentryDocumentTitle
+        title={getDiscoverDeprecation(organization) ? t('Errors') : t('Discover')}
+        orgSlug={organization.slug}
+      >
         <Stack flex={1}>
-          {hasPageFrameFeature ? (
-            <TopBar.Slot name="title">
-              <Breadcrumbs
-                crumbs={[
-                  {
-                    label: t('Discover'),
-                    to: getDiscoverLandingUrl(organization),
-                  },
-                  {label: t('Saved Queries')},
-                ]}
-              />
-            </TopBar.Slot>
-          ) : (
-            <Layout.Header>
-              <Layout.HeaderContent>
-                <Breadcrumbs
-                  crumbs={[
-                    {
-                      label: t('Discover'),
-                      to: getDiscoverLandingUrl(organization),
-                    },
-                    {label: t('Saved Queries')},
-                  ]}
-                />
-              </Layout.HeaderContent>
-              <Layout.HeaderActions>
-                <LinkButton
-                  data-test-id="build-new-query"
-                  to={to}
-                  size="sm"
-                  variant="primary"
-                  onClick={() => {
-                    trackAnalytics('discover_v2.build_new_query', {
-                      organization,
-                    });
-                  }}
-                >
-                  {t('Build a new query')}
-                </LinkButton>
-              </Layout.HeaderActions>
-            </Layout.Header>
-          )}
+          <TopBar.Slot name="title">
+            <Breadcrumbs
+              crumbs={[
+                {
+                  label: getDiscoverDeprecation(organization)
+                    ? t('Errors')
+                    : t('Discover'),
+                  to: getDiscoverLandingUrl(organization),
+                },
+                {label: t('Saved Queries')},
+              ]}
+            />
+          </TopBar.Slot>
           <Layout.Body>
             <Layout.Main width="full">
-              <StyledActions hasBuildButton={hasPageFrameFeature}>
+              <StyledActions>
                 <StyledSearchBar
                   defaultQuery=""
                   query={savedSearchQuery}
@@ -259,20 +231,18 @@ function DiscoverLanding() {
                   onChange={opt => handleSortChange(opt.value)}
                   position="bottom-end"
                 />
-                {hasPageFrameFeature && (
-                  <LinkButton
-                    data-test-id="build-new-query"
-                    to={to}
-                    variant="primary"
-                    onClick={() => {
-                      trackAnalytics('discover_v2.build_new_query', {
-                        organization,
-                      });
-                    }}
-                  >
-                    {t('Build a new query')}
-                  </LinkButton>
-                )}
+                <LinkButton
+                  data-test-id="build-new-query"
+                  to={to}
+                  variant="primary"
+                  onClick={() => {
+                    trackAnalytics('discover_v2.build_new_query', {
+                      organization,
+                    });
+                  }}
+                >
+                  {t('Build a new query')}
+                </LinkButton>
               </StyledActions>
               {status === 'pending' ? (
                 <LoadingIndicator />
@@ -280,16 +250,30 @@ function DiscoverLanding() {
                 <LoadingError message={error.message} />
               ) : (
                 <QueriesContainer>
-                  {organization.features.includes('expose-migrated-discover-queries') && (
-                    <Alert variant="info">
-                      {tct(
-                        'Your saved transactions queries are also available in the new Explore UI. Try them out in [exploreLink:Explore] instead.',
-                        {
-                          exploreLink: <Link to="/explore/saved-queries/" />,
-                        }
-                      )}
-                    </Alert>
-                  )}
+                  {organization.features.includes('expose-migrated-discover-queries') &&
+                    (getDiscoverDeprecation(organization) ? (
+                      <Alert variant="info">
+                        {tct(
+                          'Your saved transactions queries are no longer available in this UI. Try them out in the [exploreLink:Explore Queries] page instead.',
+                          {
+                            exploreLink: <Link to="/explore/saved-queries/" />,
+                          }
+                        )}
+                      </Alert>
+                    ) : (
+                      organization.features.includes(
+                        'expose-migrated-discover-queries'
+                      ) && (
+                        <Alert variant="info">
+                          {tct(
+                            'Your saved transactions queries are also available in the new Explore UI. Try them out in [exploreLink:Explore] instead.',
+                            {
+                              exploreLink: <Link to="/explore/saved-queries/" />,
+                            }
+                          )}
+                        </Alert>
+                      )
+                    ))}
                   <QueryList
                     pageLinks={savedQueriesPageLinks ?? ''}
                     savedQueries={savedQueries}
@@ -321,13 +305,10 @@ const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
 `;
 
-const StyledActions = styled('div')<{hasBuildButton: boolean}>`
+const StyledActions = styled('div')`
   display: grid;
   gap: ${p => p.theme.space.xl};
-  grid-template-columns: ${p =>
-    p.hasBuildButton
-      ? 'auto max-content min-content max-content'
-      : 'auto max-content min-content'};
+  grid-template-columns: auto max-content min-content max-content;
   align-items: center;
   margin-bottom: ${p => p.theme.space.xl};
 

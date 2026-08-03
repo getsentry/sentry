@@ -6,8 +6,9 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Grid, type GridProps, Container} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
+import type {SelectValue} from '@sentry/scraps/select';
 
 import {
   fetchDashboard,
@@ -22,7 +23,7 @@ import {
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {t, tct, tn} from 'sentry/locale';
-import type {PageFilters, SelectValue} from 'sentry/types/core';
+import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
@@ -53,7 +54,6 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {
-  eventViewFromWidget,
   getMergedDashboardFilters,
   getSavedFiltersAsPageFilters,
   getSavedPageFilters,
@@ -480,25 +480,7 @@ function AddToDashboardModal({
         </Container>
         {!hasMultipleWidgets && (
           <MetricsCardinalityProvider organization={organization} location={location}>
-            <MetricsDataSwitcher
-              organization={organization}
-              eventView={eventViewFromWidget(
-                newWidgetTitle,
-                widget.displayType === DisplayType.TEXT
-                  ? {
-                      name: '',
-                      fields: [],
-                      aggregates: [],
-                      columns: [],
-                      orderby: '',
-                      conditions: '',
-                    }
-                  : widget.queries[0]!,
-                selection
-              )}
-              location={location}
-              hideLoadingIndicator
-            >
+            <MetricsDataSwitcher location={location}>
               {metricsDataSide => (
                 <DashboardsMEPProvider>
                   <MEPSettingProvider
@@ -507,7 +489,6 @@ function AddToDashboardModal({
                   >
                     <WidgetCardWrapper>
                       <WidgetCard
-                        isEditingDashboard={false}
                         showContextMenu={false}
                         widgetLimitReached={false}
                         selection={
@@ -548,7 +529,7 @@ function AddToDashboardModal({
       </Body>
 
       <Footer>
-        <StyledButtonBar gap="lg">
+        <Flex gap="lg" justify="end">
           {actions.includes('add-and-stay-on-current-page') && (
             <Button
               onClick={handleAddAndStayOnCurrentPage}
@@ -580,27 +561,13 @@ function AddToDashboardModal({
                 : t('Open in Widget Builder')}
             </Button>
           )}
-        </StyledButtonBar>
+        </Flex>
       </Footer>
     </Fragment>
   );
 }
 
 export default AddToDashboardModal;
-
-const StyledButtonBar = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="md" {...props} />
-))`
-  @media (max-width: ${props => props.theme.breakpoints.sm}) {
-    grid-template-rows: repeat(2, 1fr);
-    gap: ${p => p.theme.space.lg};
-    width: 100%;
-
-    > button {
-      width: 100%;
-    }
-  }
-`;
 
 const WidgetCardWrapper = styled('div')`
   height: ${WIDGET_PREVIEW_HEIGHT};

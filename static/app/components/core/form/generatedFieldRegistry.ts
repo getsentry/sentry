@@ -13,6 +13,13 @@ interface FormFieldDefinition {
 }
 
 export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
+  'account-emails.email': {
+    name: 'email',
+    formId: 'account-emails',
+    route: '/settings/account/emails/',
+    label: t('Additional Email'),
+    hintText: t('Designate an alternative email for this account'),
+  },
   'account-details.name': {
     name: 'name',
     formId: 'account-details',
@@ -73,13 +80,6 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     route: '/settings/account/details/',
     label: t('Default Issue Event'),
     hintText: t('Choose what event gets displayed by default'),
-  },
-  'account-emails.email': {
-    name: 'email',
-    formId: 'account-emails',
-    route: '/settings/account/emails/',
-    label: t('Additional Email'),
-    hintText: t('Designate an alternative email for this account'),
   },
   'notification-settings.personalActivityNotifications': {
     name: 'personalActivityNotifications',
@@ -156,6 +156,121 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Authorized JavaScript Origins'),
     hintText: t('Separate multiple entries with a newline.'),
   },
+  'project-general-settings.slug': {
+    name: 'slug',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Slug'),
+    hintText: t('A unique ID used to identify this project'),
+  },
+  'project-general-settings.resolveAge': {
+    name: 'resolveAge',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Auto Resolve'),
+    hintText: t(
+      "Automatically resolve an issue if it hasn't been seen for this amount of time"
+    ),
+  },
+  'project-general-settings.securityToken': {
+    name: 'securityToken',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Security Token'),
+    hintText: '',
+  },
+  'project-general-settings.securityTokenHeader': {
+    name: 'securityTokenHeader',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Security Token Header'),
+    hintText: '',
+  },
+  'project-general-settings.platform': {
+    name: 'platform',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Platform'),
+    hintText: t('The primary platform for this project'),
+  },
+  'project-general-settings.subjectPrefix': {
+    name: 'subjectPrefix',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Subject Prefix'),
+    hintText: t('Choose a custom prefix for emails from this project'),
+  },
+  'project-general-settings.enableAutoReleaseCreation': {
+    name: 'enableAutoReleaseCreation',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Enable release auto-creation from telemetry'),
+    hintText: t(
+      'Automatically create releases when Sentry sees a new release in ingested events. When disabled, releases must be created manually (e.g. with the Sentry CLI).'
+    ),
+  },
+  'project-general-settings.debugFilesRole': {
+    name: 'debugFilesRole',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Debug Files Access'),
+    hintText: t(
+      'Role required to download debug information files, proguard mappings and source maps. Overrides organization settings.'
+    ),
+  },
+  'project-general-settings.allowedDomains': {
+    name: 'allowedDomains',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Allowed Domains'),
+    hintText: '',
+  },
+  'project-general-settings.scrapeJavaScript': {
+    name: 'scrapeJavaScript',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Enable JavaScript source fetching'),
+    hintText: t('Allow Sentry to scrape missing JavaScript source context when possible'),
+  },
+  'project-general-settings.scmSourceContextEnabled': {
+    name: 'scmSourceContextEnabled',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Enable SCM Source Context'),
+    hintText: t(
+      "Fetch source code from your connected SCM integration (e.g. GitHub, GitLab) to display in stack traces. When enabled, any project member can view source code for files matched by this project's code mappings."
+    ),
+  },
+  'project-general-settings.verifySSL': {
+    name: 'verifySSL',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Verify TLS/SSL'),
+    hintText: t('Outbound requests will verify TLS (sometimes known as SSL) connections'),
+  },
+  'settings.subjectTemplate': {
+    name: 'subjectTemplate',
+    formId: 'settings',
+    route: '/settings/:orgId/projects/:projectId/alerts/',
+    label: t('Subject Template'),
+    hintText: t(
+      'The email subject to use (excluding the prefix) for individual alerts. Usable variables include: $title, $shortID, $projectID, $orgID, and ${tag:key}, such as ${tag:environment} or ${tag:release}.'
+    ),
+  },
+  'settings.digestsMinDelay': {
+    name: 'digestsMinDelay',
+    formId: 'settings',
+    route: '/settings/:orgId/projects/:projectId/alerts/',
+    label: t('Minimum delivery interval'),
+    hintText: t('Notifications will be delivered at most this often.'),
+  },
+  'settings.digestsMaxDelay': {
+    name: 'digestsMaxDelay',
+    formId: 'settings',
+    route: '/settings/:orgId/projects/:projectId/alerts/',
+    label: t('Maximum delivery interval'),
+    hintText: t('Notifications will be delivered at least this often.'),
+  },
   'project-ownership.autoAssignment': {
     name: 'autoAssignment',
     formId: 'project-ownership',
@@ -172,6 +287,24 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
       'We\u2019ll update any changes you make to your CODEOWNERS files during a release.'
     ),
   },
+  'autofix-agent.agentOption': {
+    name: 'agentOption',
+    formId: 'autofix-agent',
+    route: '/settings/:orgId/projects/:projectId/seer',
+    label: t('Handoff to Agent'),
+    hintText: t(
+      'Select your preferred agent to create a plan, and code up an issue fix. Seer Agent will always be used for the Root Cause Analysis step. Manage Coding Agents.'
+    ),
+  },
+  'autofix-agent.stoppingPoint': {
+    name: 'stoppingPoint',
+    formId: 'autofix-agent',
+    route: '/settings/:orgId/projects/:projectId/seer',
+    label: t('Automation Steps'),
+    hintText: t(
+      'Choose which steps Seer should run automatically on issues. Depending on how actionable the issue is, Seer may stop at an earlier step.'
+    ),
+  },
   'project-user-feedback.feedback:branding': {
     name: 'feedback:branding',
     formId: 'project-user-feedback',
@@ -186,14 +319,16 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     formId: 'project-user-feedback',
     route: '/settings/:orgId/projects/:projectId/user-feedback/',
     label: t('Enable Crash Report Notifications'),
-    hintText: '',
+    hintText: t(
+      'Get notified on feedback submissions from the Crash Report Modal, web endpoint, and JS SDK (pre-v8). Feedback widget notifications are not affected by this setting and are on by default.'
+    ),
   },
   'project-user-feedback.sentry:feedback_ai_spam_detection': {
     name: 'sentry:feedback_ai_spam_detection',
     formId: 'project-user-feedback',
     route: '/settings/:orgId/projects/:projectId/user-feedback/',
     label: t('Enable Spam Detection'),
-    hintText: '',
+    hintText: t('Toggles whether or not to enable auto spam detection in User Feedback.'),
   },
   'project-toolbar.sentry:toolbar_allowed_origins': {
     name: 'sentry:toolbar_allowed_origins',
@@ -249,7 +384,9 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     formId: 'project-filters-settings',
     route: '/settings/:orgId/projects/:projectId/filters/',
     label: t('Filter out hydration errors'),
-    hintText: '',
+    hintText: t(
+      'React falls back to do a full re-render on a page. Hydration Errors created from captured replays are excluded from this setting.'
+    ),
   },
   'project-filters-settings.filters:chunk-load-error': {
     name: 'filters:chunk-load-error',
@@ -265,7 +402,9 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     formId: 'project-security-and-privacy',
     route: '/settings/:orgId/projects/:projectId/security-and-privacy/',
     label: t('Store Minidumps As Attachments'),
-    hintText: '',
+    hintText: t(
+      'Store minidumps as attachments for improved processing and download in issue details. Overrides organization settings.'
+    ),
   },
   'project-security-and-privacy.dataScrubber': {
     name: 'dataScrubber',
@@ -332,7 +471,9 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     formId: 'project-replays',
     route: '/settings/:orgId/projects/:projectId/replays/',
     label: t('Create Hydration Error Issues'),
-    hintText: '',
+    hintText: t(
+      'Toggles whether or not to create Session Replay Hydration Error Issues during replay ingest. Using inbound filters to filter out hydration errors does not affect this setting.'
+    ),
   },
   'csp.sentry:csp_ignored_sources_defaults': {
     name: 'sentry:csp_ignored_sources_defaults',
@@ -460,14 +601,14 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     formId: 'organization-settings-form',
     route: '/settings/organization/',
     label: t('Early Adopter'),
-    hintText: '',
+    hintText: t("Opt-in to new features before they're released to the public"),
   },
   'organization-settings-form.hideAiFeatures': {
     name: 'hideAiFeatures',
     formId: 'organization-settings-form',
     route: '/settings/organization/',
     label: t('Show Generative AI Features'),
-    hintText: '',
+    hintText: t('Allows organization members to access generative AI features'),
   },
   'organization-security-and-privacy.require2FA': {
     name: 'require2FA',

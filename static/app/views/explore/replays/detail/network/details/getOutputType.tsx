@@ -1,17 +1,7 @@
-import {isRequestFrame} from 'sentry/utils/replays/resourceFrame';
+import {getFrameStatus, isRequestFrame} from 'sentry/utils/replays/resourceFrame';
+import {Output} from 'sentry/views/explore/replays/detail/network/details/output';
 import type {SectionProps} from 'sentry/views/explore/replays/detail/network/details/sections';
 import type {TabKey} from 'sentry/views/explore/replays/detail/network/details/tabs';
-
-export enum Output {
-  SETUP = 'setup',
-  UNSUPPORTED = 'unsupported',
-  URL_SKIPPED = 'url_skipped',
-  BODY_SKIPPED = 'body_skipped',
-  BODY_PARSE_ERROR = 'body_parse_error',
-  BODY_PARSE_TIMEOUT = 'body_parse_timeout',
-  UNPARSEABLE_BODY_TYPE = 'unparseable_body_type',
-  DATA = 'data',
-}
 
 type Args = {
   isCaptureBodySetup: boolean;
@@ -65,6 +55,14 @@ export function getOutputType({
   if (respWarnings?.includes('UNPARSEABLE_BODY_TYPE')) {
     // Differs from BODY_PARSE_ERROR in that we did not attempt to parse it
     return Output.UNPARSEABLE_BODY_TYPE;
+  }
+
+  const didNotComplete = getFrameStatus(item) === 0;
+  const hasExplicitUrlSkip =
+    request?._meta?.warnings?.includes('URL_SKIPPED') ||
+    response?._meta?.warnings?.includes('URL_SKIPPED');
+  if (didNotComplete && !hasExplicitUrlSkip) {
+    return Output.INCOMPLETE;
   }
 
   if (isReqUrlSkipped || isRespUrlSkipped) {

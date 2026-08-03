@@ -4,8 +4,8 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {
   IntegrationProvider,
   OrganizationIntegration,
@@ -17,19 +17,22 @@ import {MessagingIntegrationModal} from 'sentry/views/alerts/rules/issue/messagi
 
 export enum MessagingIntegrationAnalyticsView {
   ALERT_RULE_CREATION = 'alert_rule_creation_messaging_integration_onboarding',
+  ONBOARDING = 'onboarding',
   PROJECT_CREATION = 'project_creation_messaging_integration_onboarding',
 }
 
 type Props = {
   analyticsView: MessagingIntegrationAnalyticsView;
-  projectId?: string;
   refetchConfigs?: () => void;
+  // `analyticsView` identifies the flow; `variant` identifies the SCM or legacy
+  // project-creation experience. Alert-rule creation leaves `variant` undefined.
+  variant?: 'scm' | 'legacy';
 };
 
 export function SetupMessagingIntegrationButton({
   refetchConfigs,
   analyticsView,
-  projectId,
+  variant,
 }: Props) {
   const {openModal} = useModal();
 
@@ -127,8 +130,8 @@ export function SetupMessagingIntegrationButton({
                     bodyContent={t('Receive alerts and digests right where you work.')}
                     providers={integrationProvidersQuery.providers}
                     onAddIntegration={onAddIntegration}
-                    {...(projectId && {modalParams: {projectId}})}
                     analyticsView={analyticsView}
+                    variant={variant}
                   />
                 ),
                 {

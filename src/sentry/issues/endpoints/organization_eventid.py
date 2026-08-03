@@ -1,5 +1,6 @@
 from typing import TypedDict
 
+import sentry_sdk
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -54,7 +55,8 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
     )
 
     @extend_schema(
-        operation_id="Resolve an Event ID",
+        operation_id="resolveOrganizationEventId",
+        summary="Resolve an Event ID",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.EVENT_ID],
         request=None,
         responses={
@@ -105,6 +107,7 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
         except IndexError:
             raise ResourceDoesNotExist()
         else:
+            sentry_sdk.set_attribute("event.type", event.get_event_type())
             return Response(
                 {
                     "organizationSlug": organization.slug,

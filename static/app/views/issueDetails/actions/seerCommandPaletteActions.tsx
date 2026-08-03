@@ -2,6 +2,7 @@ import {Fragment, useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
+import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
   organizationIntegrationsCodingAgents,
   type CodingAgentIntegration,
@@ -15,12 +16,12 @@ import {
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {IconSeer} from 'sentry/icons';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
@@ -32,7 +33,7 @@ function useSeerState(group: Group, project: Project) {
   const issueTypeConfig = getConfigForIssueType(group, project);
   const issueTypeSupportsSeer = issueTypeConfig.autofix || issueTypeConfig.issueSummary;
 
-  const autofix = useExplorerAutofix(group.id, {
+  const autofix = useExplorerAutofix(group, {
     enabled: aiConfig.areAiFeaturesAllowed,
   });
 
@@ -86,7 +87,7 @@ export function SeerCommandPaletteActions({
     hasPR,
   } = useSeerState(group, project);
 
-  const {openSeerDrawer} = useOpenSeerDrawer({group, project, event});
+  const {openSeerDrawer} = useOpenSeerDrawer({group, project});
 
   const {data: codingAgentResponse} = useQuery(
     organizationIntegrationsCodingAgents(organization)
@@ -98,7 +99,7 @@ export function SeerCommandPaletteActions({
   }
 
   const {runState, isPolling} = autofix;
-  const runId = runState?.run_id;
+  const runId = getAutofixRunId(runState);
 
   const canContinue = !isPolling && defined(runId);
 

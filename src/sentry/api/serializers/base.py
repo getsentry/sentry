@@ -4,11 +4,11 @@ import logging
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from typing import Any, Generic, TypeVar, overload
 
-import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -126,10 +126,10 @@ def serialize(
                 pass
         else:
             return objects
-    with sentry_sdk.start_span(op="serialize", name=type(serializer).__name__) as span:
-        span.set_data("Object Count", len(objects))
+    with start_span(op="serialize", name=type(serializer).__name__) as span:
+        set_span_data(span, "Object Count", len(objects))
 
-        with sentry_sdk.start_span(op="serialize.get_attrs", name=type(serializer).__name__):
+        with start_span(op="serialize.get_attrs", name=type(serializer).__name__):
             attrs = serializer.get_attrs(
                 # avoid passing NoneType's to the serializer as they're allowed and
                 # filtered out of serialize()
@@ -138,7 +138,7 @@ def serialize(
                 **kwargs,
             )
 
-        with sentry_sdk.start_span(op="serialize.iterate", name=type(serializer).__name__):
+        with start_span(op="serialize.iterate", name=type(serializer).__name__):
             return [serializer(o, attrs=attrs.get(o, {}), user=user, **kwargs) for o in objects]
 
 

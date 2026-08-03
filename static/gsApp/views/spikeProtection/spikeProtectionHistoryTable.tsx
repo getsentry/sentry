@@ -18,13 +18,14 @@ import {t, tct} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {ProjectSummaryWithOptions} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {withOrganization} from 'sentry/utils/withOrganization';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {
   formatUsageWithUnits,
   getFormatUsageOptions,
@@ -175,7 +176,9 @@ class SpikeProtectionHistoryTable extends Component<Props> {
             },
           }}
         >
-          {t('Open in Discover')}
+          {getDiscoverDeprecation(organization)
+            ? t('Open in Explore')
+            : t('Open in Discover')}
         </DiscoverButton>
       </Flex>,
     ];

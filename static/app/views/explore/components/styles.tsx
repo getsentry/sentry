@@ -1,10 +1,9 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {Stack, type FlexProps} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import {SchemaHintsSection} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {TOP_BAR_HEIGHT_CSS_VAR} from 'sentry/views/navigation/constants';
 
 export const ExploreControlSection = styled('aside')<{expanded: boolean}>`
@@ -31,13 +30,12 @@ export const ExploreControlSection = styled('aside')<{expanded: boolean}>`
 
 export function ExploreContentSection(props: FlexProps) {
   return (
-    <Flex
+    <Stack
       {...props}
       background="primary"
       flex="1 1 auto"
       minHeight="0"
       minWidth="0"
-      direction="column"
       padding="xl"
     />
   );
@@ -49,16 +47,6 @@ export const ExploreFilterSection = styled('div')`
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: minmax(300px, auto) 1fr;
-  }
-`;
-
-export const ExploreSchemaHintsSection = styled(SchemaHintsSection)`
-  margin-top: ${p => p.theme.space.md};
-  margin-bottom: 0px;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    margin-top: ${p => p.theme.space.md};
-    margin-bottom: 0px;
   }
 `;
 

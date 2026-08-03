@@ -1,4 +1,9 @@
 export type OnboardingEventParameters = {
+  'onboarding.ai_prompt_copied': {
+    platform: string;
+    product: 'logs' | 'traces' | 'conversations' | 'agents';
+    source: 'install_command' | 'prompt';
+  };
   'onboarding.back_button_clicked': {
     browserBackButton: boolean;
     from: string;
@@ -44,6 +49,12 @@ export type OnboardingEventParameters = {
     from: string;
     to: string;
   };
+  'onboarding.scm_connect_integration_selected': {
+    provider: string;
+    // 'default' when the integration was auto-selected on entry, 'manual' when
+    // the user explicitly switched via the selector.
+    source: 'default' | 'manual';
+  };
   'onboarding.scm_connect_repo_selected': {
     provider: string;
     repo: string;
@@ -86,21 +97,6 @@ export type OnboardingEventParameters = {
     platform: string;
     source: 'detected' | 'manual';
   };
-  'onboarding.scm_project_details_alert_selected': {
-    option: string;
-  };
-  'onboarding.scm_project_details_create_clicked': Record<string, unknown>;
-  'onboarding.scm_project_details_create_failed': Record<string, unknown>;
-  'onboarding.scm_project_details_create_succeeded': {
-    project_slug: string;
-  };
-  'onboarding.scm_project_details_name_edited': {
-    custom: boolean;
-  };
-  'onboarding.scm_project_details_step_viewed': Record<string, unknown>;
-  'onboarding.scm_project_details_team_selected': {
-    team: string;
-  };
   'onboarding.scm_select_framework_modal_rendered': {
     platform: string;
   };
@@ -112,6 +108,7 @@ export type OnboardingEventParameters = {
     platform: string;
     project_id: string;
   };
+  'onboarding.scm_skip_detection_clicked': Record<string, unknown>;
   'onboarding.scm_source_maps_wizard_button_copy_clicked': {
     platform: string;
     project_id: string;
@@ -164,6 +161,7 @@ export type OnboardingEventParameters = {
 };
 
 export const onboardingEventMap: Record<keyof OnboardingEventParameters, string> = {
+  'onboarding.ai_prompt_copied': 'Onboarding: AI Prompt Copied',
   'onboarding.js_loader_optional_configuration_shown':
     'Onboarding: JS Loader Optional Configuration Expanded',
   'onboarding.js_loader_npm_docs_shown':
@@ -191,6 +189,8 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.slack_setup_clicked': 'Onboarding: Slack Setup Clicked',
   'onboarding.next_step_clicked': 'Onboarding: Next Step Clicked',
   'onboarding.scm_back_button_clicked': 'Onboarding: SCM Back Button Clicked',
+  'onboarding.scm_connect_integration_selected':
+    'Onboarding: SCM Connect Integration Selected',
   'onboarding.scm_connect_repo_selected': 'Onboarding: SCM Connect Repo Selected',
   'onboarding.scm_connect_step_viewed': 'Onboarding: SCM Connect Step Viewed',
   'onboarding.scm_data_removal_modal_confirm_button_clicked':
@@ -215,20 +215,7 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.scm_platform_features_step_viewed':
     'Onboarding: SCM Platform Features Step Viewed',
   'onboarding.scm_platform_selected': 'Onboarding: SCM Platform Selected',
-  'onboarding.scm_project_details_alert_selected':
-    'Onboarding: SCM Project Details Alert Selected',
-  'onboarding.scm_project_details_create_clicked':
-    'Onboarding: SCM Project Details Create Clicked',
-  'onboarding.scm_project_details_create_failed':
-    'Onboarding: SCM Project Details Create Failed',
-  'onboarding.scm_project_details_create_succeeded':
-    'Onboarding: SCM Project Details Create Succeeded',
-  'onboarding.scm_project_details_name_edited':
-    'Onboarding: SCM Project Details Name Edited',
-  'onboarding.scm_project_details_step_viewed':
-    'Onboarding: SCM Project Details Step Viewed',
-  'onboarding.scm_project_details_team_selected':
-    'Onboarding: SCM Project Details Team Selected',
+  'onboarding.scm_skip_detection_clicked': 'Onboarding: SCM Skip Detection Clicked',
   'onboarding.scm_setup_platform_later_clicked':
     'Onboarding: SCM Setup Platform Later Clicked',
   'onboarding.scm_take_to_error_clicked': 'Onboarding: SCM Take to Error Clicked',

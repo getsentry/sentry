@@ -1,17 +1,17 @@
 import {useQuery} from '@tanstack/react-query';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {t} from 'sentry/locale';
-import {DataCategory} from 'sentry/types/core';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   FALLBACK_FEATURE_META,
   type FeatureMeta,
   type UseScmFeatureMetaResult,
-} from 'sentry/views/onboarding/components/useScmFeatureMeta';
+} from 'sentry/components/onboarding/scm/useScmFeatureMeta';
+import {t} from 'sentry/locale';
+import {DataCategory} from 'sentry/types/core';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {DEFAULT_TIER} from 'getsentry/constants';
+import {BillingConfigTier} from 'getsentry/constants';
 import type {BillingConfig, Plan} from 'getsentry/types';
 import {formatReservedWithUnits} from 'getsentry/utils/billing';
 
@@ -103,7 +103,7 @@ export function useScmFeatureMeta(): UseScmFeatureMetaResult {
       '/customers/$organizationIdOrSlug/billing-config/',
       {
         path: {organizationIdOrSlug: organization.slug},
-        query: {tier: DEFAULT_TIER},
+        query: {tier: BillingConfigTier.DEFAULT},
         staleTime: Infinity,
       }
     ),

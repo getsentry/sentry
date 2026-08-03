@@ -48,6 +48,63 @@ export function getTokenBreakdown({
 }
 
 /**
+ * Checks whether the reported token counts look wrong.
+ *
+ * Returns `true` when any value is negative or when the breakdown
+ * (input + output, after adjustments for cached/reasoning) doesn't
+ * add up to `total` within a small tolerance.
+ */
+export function hasTokenMismatch({
+  inputTokens,
+  cachedTokens,
+  outputTokens,
+  reasoningTokens,
+  totalTokens,
+}: {
+  cachedTokens: number;
+  inputTokens: number;
+  outputTokens: number;
+  reasoningTokens: number;
+  totalTokens: number;
+}): boolean {
+  if (
+    inputTokens < 0 ||
+    outputTokens < 0 ||
+    totalTokens < 0 ||
+    cachedTokens < 0 ||
+    reasoningTokens < 0
+  ) {
+    return true;
+  }
+
+  const cached = isNaN(cachedTokens) ? 0 : cachedTokens;
+  const reasoning = isNaN(reasoningTokens) ? 0 : reasoningTokens;
+
+  const adjustedInput = getAdjustedInput(inputTokens, cached, outputTokens, totalTokens);
+  const adjustedOutput = getAdjustedOutput(
+    adjustedInput,
+    outputTokens,
+    reasoning,
+    totalTokens
+  );
+
+  const sum = adjustedInput + adjustedOutput;
+
+  // Also check if the displayed values (after clamping) don't add up.
+  // netNewInput is clamped to 0 when cached > adjustedInput, so the
+  // displayed sum can differ from total even when raw values match.
+  const netNewInput = cached > 0 ? Math.max(0, adjustedInput - cached) : adjustedInput;
+  const displayedSum = netNewInput + cached + adjustedOutput;
+
+  // Allow a small tolerance for rounding
+  const tolerance = Math.max(1, totalTokens * 0.01);
+  return (
+    Math.abs(sum - totalTokens) > tolerance ||
+    Math.abs(displayedSum - totalTokens) > tolerance
+  );
+}
+
+/**
  * Some providers report `inputTokens` exclusive of cached; others inclusive.
  * We pick whichever interpretation makes `input + output` closest to `total`.
  */

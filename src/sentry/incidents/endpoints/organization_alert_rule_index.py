@@ -2,6 +2,7 @@ import logging
 from collections.abc import Sequence
 from copy import deepcopy
 from datetime import UTC, datetime
+from typing import TypedDict
 
 from django.db import connections, router, transaction
 from django.db.models import (
@@ -41,11 +42,19 @@ from sentry.api.paginator import (
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.api.utils import to_valid_int_id
-from sentry.constants import ALERTS_API_DEPRECATION_DATE, ObjectStatus
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.constants import ALERTS_API_DEPRECATION_DATE, ALERTS_API_DEPRECATION_KEY, ObjectStatus
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import InvalidParams
 from sentry.incidents.endpoints.bases import OrganizationAlertRuleBaseEndpoint
+from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
 from sentry.incidents.endpoints.serializers.workflow_engine_combined import (
     WorkflowEngineCombinedRuleSerializer,
 )
@@ -67,7 +76,6 @@ from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.middleware import is_frontend_request
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.monitors.models import (
@@ -102,6 +110,12 @@ from sentry.workflow_engine.types import DetectorPriorityLevel
 from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
 
 logger = logging.getLogger(__name__)
+
+
+class MetricAlertRuleAsyncResponse(TypedDict):
+    # Returned with HTTP 202 when the rule contains a Slack action whose channel
+    # must be resolved asynchronously; the created rule is not in the body yet.
+    uuid: str
 
 
 # Sentinel values for incident_status annotation when sorting combined rules
@@ -267,6 +281,7 @@ class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
+    @deprecated(ALERTS_API_DEPRECATION_DATE, key=ALERTS_API_DEPRECATION_KEY)
     def get(self, request: Request, organization: Organization) -> Response:
         """
         Returns the total number of on-demand alert rules for a project, along with
@@ -521,35 +536,19 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         return response
 
     @track_alert_endpoint_execution("GET", "sentry-api-0-organization-combined-rules")
+    @deprecated(
+        ALERTS_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-detector-index",
+        key=ALERTS_API_DEPRECATION_KEY,
+    )
     def get(self, request: Request, organization: Organization) -> Response:
         """
         Fetches metric, issue, crons, and uptime alert rules for an organization
         """
-        # Common setup: project resolution
-        project_ids = self.get_requested_project_ids_unchecked(request) or None
-        if project_ids == {-1}:  # All projects for org:
-            project_ids = set(
-                Project.objects.filter(
-                    organization=organization, status=ObjectStatus.ACTIVE
-                ).values_list("id", flat=True)
-            )
-        elif project_ids is None:  # All projects for user
-            org_team_list = Team.objects.filter(organization=organization).values_list(
-                "id", flat=True
-            )
-            user_team_list = OrganizationMemberTeam.objects.filter(
-                organizationmember__user_id=request.user.id, team__in=org_team_list
-            ).values_list("team", flat=True)
-            project_ids = set(
-                Project.objects.filter(
-                    teams__in=user_team_list, status=ObjectStatus.ACTIVE
-                ).values_list("id", flat=True)
-            )
-
         # Materialize the project ids here. This helps us to not overwhelm the query planner with
         # overcomplicated subqueries. Previously, this was causing Postgres to use a suboptimal
         # index to filter on. Also enforces permission checks.
-        projects = self.get_projects(request, organization, project_ids=project_ids)
+        projects = self.get_projects(request, organization)
 
         # Common setup: team parsing
         teams = request.GET.getlist("team", [])
@@ -717,10 +716,20 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
 
     @extend_schema(
         operation_id="(DEPRECATED) List an Organization's Metric Alert Rules",
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListMetricAlertRuleResponse", list[AlertRuleSerializerResponse]
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
     )
     @track_alert_endpoint_execution("GET", "sentry-api-0-organization-alert-rules")
     @deprecated(
-        ALERTS_API_DEPRECATION_DATE, suggested_api="sentry-api-0-organization-detector-index"
+        ALERTS_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-detector-index",
+        key=ALERTS_API_DEPRECATION_KEY,
     )
     def get(self, request: Request, organization: Organization) -> HttpResponseBase:
         """
@@ -742,10 +751,25 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
 
     @extend_schema(
         operation_id="(DEPRECATED) Create a Metric Alert Rule for an Organization",
+        request=DrfAlertRuleSerializer,
+        responses={
+            201: inline_sentry_response_serializer(
+                "MetricAlertRuleResponse", AlertRuleSerializerResponse
+            ),
+            202: inline_sentry_response_serializer(
+                "MetricAlertRuleAsyncResponse", MetricAlertRuleAsyncResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
     )
     @track_alert_endpoint_execution("POST", "sentry-api-0-organization-alert-rules")
     @deprecated(
-        ALERTS_API_DEPRECATION_DATE, suggested_api="sentry-api-0-organization-detector-index"
+        ALERTS_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-detector-index",
+        key=ALERTS_API_DEPRECATION_KEY,
     )
     def post(self, request: Request, organization: Organization) -> HttpResponseBase:
         """

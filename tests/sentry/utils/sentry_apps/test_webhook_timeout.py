@@ -10,7 +10,6 @@ from sentry.sentry_apps.metrics import SentryAppWebhookHaltReason
 from sentry.sentry_apps.utils.webhooks import IssueActionType, SentryAppResourceType
 from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import cell_silo_test
 from sentry.utils.sentry_apps.webhooks import WebhookTimeoutError, send_and_save_webhook_request
@@ -30,7 +29,6 @@ class WebhookTimeoutTest(TestCase):
             organization=self.organization, slug=self.sentry_app.slug
         )
 
-    @with_feature("organizations:sentry-app-webhook-hard-timeout")
     @override_options(
         {
             "sentry-apps.webhook.hard-timeout.sec": 5.0,
@@ -60,7 +58,6 @@ class WebhookTimeoutTest(TestCase):
         assert response == mock_response
         mock_safe_urlopen.assert_called_once()
 
-    @with_feature("organizations:sentry-app-webhook-hard-timeout")
     @override_options(
         {
             "sentry-apps.webhook.hard-timeout.sec": 1.0,
@@ -92,7 +89,6 @@ class WebhookTimeoutTest(TestCase):
         with pytest.raises(WebhookTimeoutError, match="Webhook request exceeded hard timeout"):
             send_and_save_webhook_request(self.sentry_app, app_platform_event)
 
-    @with_feature("organizations:sentry-app-webhook-hard-timeout")
     @override_options(
         {
             "sentry-apps.webhook.hard-timeout.sec": 1.0,
@@ -119,7 +115,6 @@ class WebhookTimeoutTest(TestCase):
         with pytest.raises(WebhookTimeoutError):
             send_and_save_webhook_request(self.sentry_app, app_platform_event)
 
-    @with_feature("organizations:sentry-app-webhook-hard-timeout")
     @override_options(
         {
             "sentry-apps.webhook.hard-timeout.sec": 1.0,
@@ -152,7 +147,6 @@ class WebhookTimeoutTest(TestCase):
             error_msg=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.HARD_TIMEOUT}",
         )
 
-    @with_feature("organizations:sentry-app-webhook-hard-timeout")
     @override_options(
         {
             "sentry-apps.webhook.hard-timeout.sec": 5.0,
@@ -187,7 +181,6 @@ class WebhookTimeoutTest(TestCase):
         signal.signal(signal.SIGALRM, current_handler)
         assert current_handler == original_handler
 
-    @with_feature("organizations:sentry-app-webhook-hard-timeout")
     @override_options(
         {
             "sentry-apps.webhook.hard-timeout.sec": 5.0,

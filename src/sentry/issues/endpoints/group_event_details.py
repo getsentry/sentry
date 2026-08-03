@@ -5,6 +5,7 @@ import logging
 from collections.abc import Sequence
 from typing import Any
 
+import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
@@ -20,7 +21,10 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.group_index import parse_and_convert_issue_search_query
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import EventSerializer, serialize
-from sentry.api.serializers.models.event import GroupEventDetailsResponse
+from sentry.api.serializers.models.event import (
+    EventSerializerResponse,
+    GroupEventDetailsResponse,
+)
 from sentry.api.utils import get_date_range_from_params
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -30,6 +34,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.event_examples import EventExamples
 from sentry.apidocs.parameters import EventParams, GlobalParams, IssueParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
@@ -139,7 +144,8 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
     )
 
     @extend_schema(
-        operation_id="Retrieve an Issue Event",
+        operation_id="getOrganizationIssueEvent",
+        summary="Retrieve an Issue Event",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,
@@ -158,8 +164,18 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
         },
         examples=EventExamples.GROUP_EVENT_DETAILS,
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-event-details"])
-    def get(self, request: Request, group: Group, event_id: str) -> Response:
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-event-details",
+        url_names=["sentry-api-0-group-event-details"],
+    )
+    def get(
+        self, request: Request, group: Group, event_id: str
+    ) -> (
+        Response[GroupEventDetailsResponse]
+        | Response[EventSerializerResponse]
+        | Response[DetailResponse]
+    ):
         """
         Retrieves the details of an issue event.
         """
@@ -196,7 +212,9 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
             conditions.append(Condition(Column("environment"), Op.IN, environment_names))
 
         metric = "api.endpoints.group_event_details.get"
-        error_response = {"detail": "Unable to apply query. Change or remove it and try again."}
+        error_response: DetailResponse = {
+            "detail": "Unable to apply query. Change or remove it and try again."
+        }
 
         event: Event | GroupEvent | None = None
 
@@ -237,9 +255,14 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
             )
             return Response({"detail": error_text}, status=404)
 
+        sentry_sdk.set_attribute("event.type", event.get_event_type())
+
         collapse = request.GET.getlist("collapse", [])
         if "stacktraceOnly" in collapse:
-            return Response(serialize(event, request.user, EventSerializer()))
+            stacktrace_body: EventSerializerResponse = serialize(
+                event, request.user, EventSerializer()
+            )
+            return Response(stacktrace_body)
 
         data = wrap_event_response(
             request_user=request.user,

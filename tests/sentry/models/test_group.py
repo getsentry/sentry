@@ -8,7 +8,7 @@ from django.core.cache import cache
 from django.db.models import ProtectedError
 from django.utils import timezone
 
-from sentry.issues.grouptype import FeedbackGroup, ProfileFileIOGroupType, ReplayHydrationErrorType
+from sentry.issues.grouptype import FeedbackGroup, ProfileFileIOGroupType
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus, get_group_with_redirect
 from sentry.models.groupopenperiod import GroupOpenPeriod
@@ -43,16 +43,6 @@ class GroupTest(TestCase, SnubaTestCase):
 
         group.status = GroupStatus.UNRESOLVED
         assert not group.is_resolved()
-
-        group.last_seen = timezone.now() - timedelta(hours=12)
-
-        group.project.update_option("sentry:resolve_age", 24)
-
-        assert not group.is_resolved()
-
-        group.project.update_option("sentry:resolve_age", 1)
-
-        assert group.is_resolved()
 
     def test_is_ignored_with_expired_snooze(self) -> None:
         group = self.create_group(status=GroupStatus.IGNORED)
@@ -139,18 +129,22 @@ class GroupTest(TestCase, SnubaTestCase):
 
         assert short_id.startswith("FOO-BAR-")
 
-        group2 = Group.objects.by_qualified_short_id(group.organization.id, short_id)
+        group2 = Group.objects.by_qualified_short_id(
+            group.organization.id, short_id, project_ids=None
+        )
 
         assert group2 == group
 
         with pytest.raises(Group.DoesNotExist):
             Group.objects.by_qualified_short_id(
-                group.organization.id, "server_name:my-server-with-dashes-0ac14dadda3b428cf"
+                group.organization.id,
+                "server_name:my-server-with-dashes-0ac14dadda3b428cf",
+                project_ids=None,
             )
 
         group.update(status=GroupStatus.PENDING_DELETION, substatus=None)
         with pytest.raises(Group.DoesNotExist):
-            Group.objects.by_qualified_short_id(group.organization.id, short_id)
+            Group.objects.by_qualified_short_id(group.organization.id, short_id, project_ids=None)
 
     def test_qualified_share_id_bulk(self) -> None:
         project = self.create_project(name="foo bar")
@@ -159,19 +153,88 @@ class GroupTest(TestCase, SnubaTestCase):
         group_short_id = group.qualified_short_id
         group_2_short_id = group_2.qualified_short_id
         assert [group] == Group.objects.by_qualified_short_id_bulk(
-            group.organization.id, [group_short_id]
+            group.organization.id, [group_short_id], project_ids=None
         )
         assert {group, group_2} == set(
             Group.objects.by_qualified_short_id_bulk(
                 group.organization.id,
                 [group_short_id, group_2_short_id],
+                project_ids=None,
             )
         )
 
         group.update(status=GroupStatus.PENDING_DELETION, substatus=None)
         with pytest.raises(Group.DoesNotExist):
             Group.objects.by_qualified_short_id_bulk(
-                group.organization.id, [group_short_id, group_2_short_id]
+                group.organization.id, [group_short_id, group_2_short_id], project_ids=None
+            )
+
+    def test_by_qualified_short_id_bulk_missing_id_colliding_short_id_across_projects(
+        self,
+    ) -> None:
+        # short ids are only unique per project, so two projects can share the integer
+        # short_id 1 (PROJ-A-1 and PROJ-B-1). A requested short id that does not resolve must
+        # raise even when another project owns the same integer short_id.
+        project_a = self.create_project(name="proj a")
+        project_b = self.create_project(name="proj b")
+        group_a = self.create_group(project=project_a, short_id=project_a.next_short_id())
+        group_b = self.create_group(project=project_b, short_id=project_b.next_short_id())
+        assert group_a.short_id == group_b.short_id  # both 1
+        org_id = self.organization.id
+
+        a_short_id = group_a.qualified_short_id
+        b_short_id = group_b.qualified_short_id
+
+        # Make PROJ-B-1 unresolvable while PROJ-A-1 still resolves to the colliding short_id.
+        group_b.update(status=GroupStatus.PENDING_DELETION, substatus=None)
+
+        with pytest.raises(Group.DoesNotExist):
+            Group.objects.by_qualified_short_id_bulk(
+                org_id, [a_short_id, b_short_id], project_ids=None
+            )
+
+    def test_by_qualified_short_id_scoped_to_projects(self) -> None:
+        project_a = self.create_project(name="proj a")
+        project_b = self.create_project(name="proj b")
+        group_a = self.create_group(project=project_a, short_id=project_a.next_short_id())
+        group_b = self.create_group(project=project_b, short_id=project_b.next_short_id())
+        org_id = self.organization.id
+
+        # In-scope short id resolves.
+        assert (
+            Group.objects.by_qualified_short_id(
+                org_id, group_a.qualified_short_id, project_ids=[project_a.id]
+            )
+            == group_a
+        )
+
+        # Out-of-scope short id does not resolve.
+        with pytest.raises(Group.DoesNotExist):
+            Group.objects.by_qualified_short_id(
+                org_id, group_b.qualified_short_id, project_ids=[project_a.id]
+            )
+
+        # An empty collection restricts to no projects (distinct from None = no restriction).
+        with pytest.raises(Group.DoesNotExist):
+            Group.objects.by_qualified_short_id(org_id, group_a.qualified_short_id, project_ids=[])
+
+    def test_by_qualified_short_id_bulk_scoped_to_projects(self) -> None:
+        project_a = self.create_project(name="proj a")
+        project_b = self.create_project(name="proj b")
+        group_a = self.create_group(project=project_a, short_id=project_a.next_short_id())
+        group_b = self.create_group(project=project_b, short_id=project_b.next_short_id())
+        org_id = self.organization.id
+
+        assert Group.objects.by_qualified_short_id_bulk(
+            org_id, [group_a.qualified_short_id], project_ids=[project_a.id]
+        ) == [group_a]
+
+        # If any requested short id falls outside the project scope, the bulk lookup raises.
+        with pytest.raises(Group.DoesNotExist):
+            Group.objects.by_qualified_short_id_bulk(
+                org_id,
+                [group_a.qualified_short_id, group_b.qualified_short_id],
+                project_ids=[project_a.id],
             )
 
     def test_by_qualified_short_id_bulk_case_insensitive_project_slug(self) -> None:
@@ -186,7 +249,9 @@ class GroupTest(TestCase, SnubaTestCase):
         short_id = group.qualified_short_id
 
         # Should resolve via case-insensitive slug fallback
-        resolved = Group.objects.by_qualified_short_id_bulk(group.organization.id, [short_id])
+        resolved = Group.objects.by_qualified_short_id_bulk(
+            group.organization.id, [short_id], project_ids=None
+        )
         assert resolved == [group]
 
     def test_first_last_release(self) -> None:
@@ -376,39 +441,6 @@ class GroupTest(TestCase, SnubaTestCase):
         for status, substatus in desired_status_substatus_pairs:
             group = self.create_group(status=status, substatus=substatus)
             assert group.substatus is substatus
-
-
-class GroupIsOverResolveAgeTest(TestCase):
-    def test_simple(self) -> None:
-        group = self.group
-        group.last_seen = timezone.now() - timedelta(hours=2)
-        group.project.update_option("sentry:resolve_age", 1)  # 1 hour
-        assert group.is_over_resolve_age() is True
-        group.last_seen = timezone.now()
-        assert group.is_over_resolve_age() is False
-
-    def test_respects_enable_auto_resolve_flag(self) -> None:
-        # Create a group and make it old enough to auto-resolve
-        group = self.group
-        group.last_seen = timezone.now() - timedelta(hours=2)
-        group.project.update_option("sentry:resolve_age", 1)  # 1 hour
-
-        # Test with a group type that has auto-resolve enabled
-        group.type = ReplayHydrationErrorType.type_id
-        group.save()
-
-        # Verify it would be auto-resolved
-        assert group.is_over_resolve_age() is True
-        assert group.get_status() == GroupStatus.RESOLVED
-
-        # Test with a group type that has auto-resolve disabled
-        group.type = FeedbackGroup.type_id
-        group.status = GroupStatus.UNRESOLVED  # Reset status
-        group.save()
-
-        # Verify it would NOT be auto-resolved, even though is_over_resolve_age is True
-        assert group.is_over_resolve_age() is True
-        assert group.get_status() == GroupStatus.UNRESOLVED
 
 
 class GroupGetLatestEventTest(TestCase, OccurrenceTestMixin):

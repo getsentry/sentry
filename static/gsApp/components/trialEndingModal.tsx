@@ -13,7 +13,7 @@ import type {Organization} from 'sentry/types/organization';
 import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import {displayPlanName, getTrialDaysLeft, isTrialPlan} from 'getsentry/utils/billing';
+import {displayPlanName, getTrialDaysLeft} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 type Props = Pick<ModalRenderProps, 'closeModal'> & {
@@ -47,7 +47,7 @@ function TrialEndingModal({organization, subscription, closeModal}: Props) {
   }
 
   // not a trial coming from a paid plan (ex: am1_team)
-  const isFreePlanTrial = isTrialPlan(subscription.plan);
+  const isFreePlanTrial = subscription.onTrialPlan;
 
   const returnPlan = t(
     '%s Plan',

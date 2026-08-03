@@ -1,4 +1,4 @@
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -9,10 +9,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 
 import {getTraceViewBreadcrumbs} from './breadcrumbs';
 import {TraceHeaderComponents} from './styles';
+import {TraceBreadcrumbs} from './traceBreadcrumbs';
 
 const traceViewFeedbackOptions = {
   messagePlaceholder: t('How can we make the trace view better for you?'),
@@ -31,16 +32,22 @@ export function PlaceHolder({
   traceSlug: string;
   project?: Project;
 }) {
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const {view} = useDomainViewFilters();
   const moduleURLBuilder = useModuleURLBuilder(true);
   const location = useLocation();
+  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
 
   return (
     <TraceHeaderComponents.HeaderLayout>
       <TraceHeaderComponents.HeaderContent>
-        <TraceHeaderComponents.HeaderRow>
-          {hasPageFrameFeature ? (
+        <Flex justify="between" align="center" gap="md">
+          {hasNewBreadcrumbs ? (
+            <TraceBreadcrumbs
+              organization={organization}
+              traceSlug={traceSlug}
+              project={project}
+            />
+          ) : (
             <TopBar.Slot name="title">
               <Breadcrumbs
                 crumbs={getTraceViewBreadcrumbs({
@@ -53,53 +60,41 @@ export function PlaceHolder({
                 })}
               />
             </TopBar.Slot>
-          ) : (
-            <Breadcrumbs
-              crumbs={getTraceViewBreadcrumbs({
-                organization,
-                location,
-                moduleURLBuilder,
-                traceSlug,
-                project,
-                view,
-              })}
-            />
           )}
           <Grid flow="column" align="center" gap="md">
-            {hasPageFrameFeature ? (
-              <TopBar.Slot name="feedback">
-                <FeedbackButton
-                  feedbackOptions={traceViewFeedbackOptions}
-                  aria-label={t('Give Feedback')}
-                  tooltipProps={{title: t('Give Feedback')}}
-                >
-                  {null}
-                </FeedbackButton>
-              </TopBar.Slot>
-            ) : (
-              <FeedbackButton size="xs" feedbackOptions={traceViewFeedbackOptions} />
-            )}
+            <TopBar.Slot name="feedback">
+              <FeedbackButton
+                feedbackOptions={traceViewFeedbackOptions}
+                aria-label={t('Give Feedback')}
+                tooltipProps={{title: t('Give Feedback')}}
+              >
+                {null}
+              </FeedbackButton>
+            </TopBar.Slot>
           </Grid>
-        </TraceHeaderComponents.HeaderRow>
-        <TraceHeaderComponents.HeaderRow>
-          <Stack gap="xs">
+        </Flex>
+        <TraceHeaderComponents.HeaderGrid>
+          <Container area="title" minWidth={0}>
             <TraceHeaderComponents.StyledPlaceholder _width={300} _height={20} />
-            <TraceHeaderComponents.StyledPlaceholder _width={200} _height={18} />
-          </Stack>
-          <Stack gap="xs">
-            <TraceHeaderComponents.StyledPlaceholder _width={300} _height={18} />
-            <TraceHeaderComponents.StyledPlaceholder _width={300} _height={24} />
-          </Stack>
-        </TraceHeaderComponents.HeaderRow>
-        <TraceHeaderComponents.StyledBreak />
-        <TraceHeaderComponents.HeaderRow>
-          <Flex align="center" gap="md">
-            <TraceHeaderComponents.StyledPlaceholder _width={150} _height={20} />
-            <TraceHeaderComponents.StyledPlaceholder _width={150} _height={20} />
-            <TraceHeaderComponents.StyledPlaceholder _width={150} _height={20} />
-          </Flex>
-          <TraceHeaderComponents.StyledPlaceholder _width={50} _height={28} />
-        </TraceHeaderComponents.HeaderRow>
+          </Container>
+          <Container area="meta" justifySelf={{zero: 'start', xl: 'end'}}>
+            <Flex align="center" gap="xl" wrap="wrap">
+              <TraceHeaderComponents.StyledPlaceholder _width={80} _height={42} />
+              <TraceHeaderComponents.StyledPlaceholder _width={80} _height={42} />
+              <TraceHeaderComponents.StyledPlaceholder _width={80} _height={42} />
+            </Flex>
+          </Container>
+          <Container area="highlights" minWidth={0} overflow="hidden">
+            <Flex align="center" gap="md">
+              <TraceHeaderComponents.StyledPlaceholder _width={150} _height={20} />
+              <TraceHeaderComponents.StyledPlaceholder _width={150} _height={20} />
+              <TraceHeaderComponents.StyledPlaceholder _width={150} _height={20} />
+            </Flex>
+          </Container>
+          <Container area="projects" justifySelf={{zero: 'start', xl: 'end'}}>
+            <TraceHeaderComponents.StyledPlaceholder _width={50} _height={28} />
+          </Container>
+        </TraceHeaderComponents.HeaderGrid>
       </TraceHeaderComponents.HeaderContent>
     </TraceHeaderComponents.HeaderLayout>
   );

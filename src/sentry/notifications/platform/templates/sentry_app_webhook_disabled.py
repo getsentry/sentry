@@ -7,7 +7,7 @@ from sentry.notifications.platform.types import (
     NotificationRenderedTemplate,
     NotificationSource,
     NotificationTemplate,
-    ParagraphBlock,
+    ParagraphSection,
     PlainTextBlock,
 )
 
@@ -34,7 +34,7 @@ class SentryAppWebhookDisabledTemplate(NotificationTemplate[SentryAppWebhookDisa
         return NotificationRenderedTemplate(
             subject=f"Webhook delivery paused for {data.sentry_app_name}",
             body=[
-                ParagraphBlock(
+                ParagraphSection(
                     blocks=[
                         PlainTextBlock(text="We're temporarily pausing webhook deliveries to "),
                         CodeTextBlock(text=data.webhook_url),

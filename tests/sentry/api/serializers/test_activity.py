@@ -38,6 +38,33 @@ class GroupActivityTestCase(TestCase):
         assert pull_request["repository"]["name"] == "organization-bar"
         assert pull_request["message"] == "kartoffel"
 
+    def test_pull_request_closed_activity(self) -> None:
+        self.org = self.create_organization(name="Rowdy Tiger")
+        user = self.create_user()
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        repo = self.create_repo(self.project, name="organization-bar")
+        pr = PullRequest.objects.create(
+            organization_id=self.org.id,
+            repository_id=repo.id,
+            key=5,
+            title="aaaa",
+            message="kartoffel",
+        )
+
+        activity = Activity.objects.create(
+            project_id=group.project_id,
+            group=group,
+            type=ActivityType.PULL_REQUEST_CLOSED.value,
+            ident=str(pr.id),
+            data={"pull_request": pr.id},
+        )
+
+        result = serialize([activity], user)[0]
+        assert result["type"] == "pull_request_closed"
+        pull_request = result["data"]["pullRequest"]
+        assert pull_request["repository"]["name"] == "organization-bar"
+        assert pull_request["message"] == "kartoffel"
+
     def test_commit_activity(self) -> None:
         self.org = self.create_organization(name="Rowdy Tiger")
         user = self.create_user()

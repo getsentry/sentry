@@ -30,30 +30,6 @@ class Migration(CheckedMigration):
 
     is_post_deployment = True
 
-    replaces = [
-        ("hybridcloud", "0001_add_api_key_replica"),
-        ("hybridcloud", "0002_add_slug_reservation_replica_model"),
-        ("hybridcloud", "0003_add_scopes_to_api_key_replica"),
-        ("hybridcloud", "0004_add_cache_version"),
-        ("hybridcloud", "0005_add_missing_org_integration_scope"),
-        ("hybridcloud", "0006_add_apitokenreplica"),
-        ("hybridcloud", "0007_add_orgauthtokenreplica"),
-        ("hybridcloud", "0008_add_externalactorreplica"),
-        ("hybridcloud", "0009_make_user_id_optional_for_slug_reservation_replica"),
-        ("hybridcloud", "0010_add_webhook_payload"),
-        ("hybridcloud", "0011_add_hybridcloudapitoken_index"),
-        ("hybridcloud", "0012_apitoken_increase_token_length"),
-        ("hybridcloud", "0013_add_orgauthtokenreplica_token_index"),
-        ("hybridcloud", "0014_apitokenreplica_add_hashed_token"),
-        ("hybridcloud", "0015_apitokenreplica_hashed_token_index"),
-        ("hybridcloud", "0016_add_control_cacheversion"),
-        ("hybridcloud", "0017_add_scoping_organization_apitokenreplica"),
-        ("hybridcloud", "0018_add_alert_and_member_invite_scopes_to_sentry_apps"),
-        ("hybridcloud", "0019_add_provider_webhook_payload"),
-        ("hybridcloud", "0020_fix_scope_list_type"),
-        ("hybridcloud", "0021_django_arrayfield_scope_list"),
-    ]
-
     initial = True
 
     checked = False  # This is an initial migration and can take locks

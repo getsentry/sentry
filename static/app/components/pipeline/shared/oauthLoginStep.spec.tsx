@@ -37,6 +37,28 @@ describe('OAuthLoginStep', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders a custom description in place of the default intro copy', () => {
+    render(
+      <OAuthLoginStep
+        serviceName="Slack"
+        oauthUrl="https://slack.com/oauth/authorize"
+        onOAuthCallback={mockOnOAuthCallback}
+        description="Reauthorize the Sentry app in your Slack Workspace so you can chat with Seer directly"
+      />
+    );
+
+    expect(
+      screen.getByText(
+        'Reauthorize the Sentry app in your Slack Workspace so you can chat with Seer directly'
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'Authorize your Slack account with Sentry to complete the integration setup.'
+      )
+    ).not.toBeInTheDocument();
+  });
+
   it('disables the authorize button when no oauthUrl is provided', () => {
     render(<OAuthLoginStep serviceName="GitHub" onOAuthCallback={mockOnOAuthCallback} />);
 

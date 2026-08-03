@@ -2,6 +2,7 @@ import {createContext, useCallback, useContext, useRef, useState} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 import type {Location} from 'history';
 
+import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
 import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -132,7 +133,9 @@ function pausedAtAllowedToContinue(pausedAt: number | undefined) {
 export function useSetLogsAutoRefresh() {
   const location = useLocation();
   const navigate = useNavigate();
-  const highFidelity = useLogsQueryHighFidelity();
+  const rawHighFidelity = useLogsQueryHighFidelity();
+  const {hasInitialized: autoRefreshHasInitialized} = useLogsAutoRefresh();
+  const highFidelity = autoRefreshHasInitialized ? false : rawHighFidelity;
   const {infiniteApiOptions} = useLogsApiOptionsWithInfinite({
     referrer: 'api.explore.logs-table',
     autoRefresh: true,
@@ -152,6 +155,7 @@ export function useSetLogsAutoRefresh() {
       const target: Location = {...location, query: {...location.query}};
       if (autoRefresh === 'paused') {
         setPausedAt(newPausedAt);
+        queryClient.removeQueries({queryKey});
       } else if (autoRefresh !== 'enabled') {
         // Any error state, or disabled state, should reset the pause state.
         setPausedAt(undefined);
@@ -163,7 +167,7 @@ export function useSetLogsAutoRefresh() {
         target.query[LOGS_AUTO_REFRESH_KEY] = autoRefresh;
       }
 
-      navigate(target);
+      navigateIfQueryChanged(navigate, location, target);
     },
     [navigate, location, queryClient, queryKey, setPausedAt, currentPausedAt]
   );

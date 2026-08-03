@@ -1,9 +1,7 @@
-import {useEffect} from 'react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {useQuery} from '@tanstack/react-query';
 import cloneDeep from 'lodash/cloneDeep';
 import some from 'lodash/some';
-import scrollToElement from 'scroll-to-element';
 
 import {Link} from '@sentry/scraps/link';
 
@@ -19,18 +17,18 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {DataCategory} from 'sentry/types/core';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {getLocalities} from 'sentry/utils/cells';
+import {defined} from 'sentry/utils/defined';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
-import {getRegions} from 'sentry/utils/regions';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {addGiftBudgetAction} from 'admin/components/addGiftBudgetAction';
 import {AddGiftEventsAction} from 'admin/components/addGiftEventsAction';
@@ -46,12 +44,9 @@ import {CustomerAuditLog} from 'admin/components/customers/customerAuditLog';
 import {CustomerCharges} from 'admin/components/customers/customerCharges';
 import {CustomerHistory} from 'admin/components/customers/customerHistory';
 import {CustomerIntegrationDebugDetails} from 'admin/components/customers/customerIntegrationDebugDetails';
-import {CustomerIntegrations} from 'admin/components/customers/customerIntegrations';
 import {CustomerInvoices} from 'admin/components/customers/customerInvoices';
 import {CustomerMembers} from 'admin/components/customers/customerMembers';
-import {CustomerOnboardingTasks} from 'admin/components/customers/customerOnboardingTasks';
 import {CustomerOverview} from 'admin/components/customers/customerOverview';
-import {CustomerPlatforms} from 'admin/components/customers/customerPlatforms';
 import {CustomerPolicies} from 'admin/components/customers/customerPolicies';
 import {CustomerProjects} from 'admin/components/customers/customerProjects';
 import {CustomerStats} from 'admin/components/customers/customerStats';
@@ -76,10 +71,11 @@ import {toggleSpendAllocationModal} from 'admin/components/toggleSpendAllocation
 import {TrialSubscriptionAction} from 'admin/components/trialSubscriptionAction';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import type {BilledDataCategoryInfo, BillingConfig, Subscription} from 'getsentry/types';
-import {PlanTier} from 'getsentry/types';
 import {
   hasActiveVCFeature,
+  hasPerformance,
   isBizPlanFamily,
+  isTrial,
   isUnlimitedReserved,
 } from 'getsentry/utils/billing';
 import {
@@ -141,12 +137,6 @@ export function CustomerDetails() {
     isError: isErrorBillingConfig,
     isPending: isPendingBillingConfig,
   } = useApiQuery<BillingConfig>(BILLING_CONFIG_QUERY_KEY, {staleTime: Infinity});
-
-  useEffect(() => {
-    if (location.query.dataType) {
-      scrollToElement('#stats-filter');
-    }
-  });
 
   const onUpdateMutation = useMutation({
     mutationFn: (params: Record<string, any>) =>
@@ -239,8 +229,8 @@ export function CustomerDetails() {
     if (!subscription?.planDetails) {
       return {};
     }
-    // We display all categories that are in either checkoutCategories or onDemandCategories,
-    // then disable the button if the category cannot be gifted to on this particular subscription (ie. unlimited quota).
+    // We display all plan categories that are giftable (have a freeEventsMultiple),
+    // then disable the button if the category cannot be gifted on this particular subscription (ie. unlimited quota).
     // Categories that are not giftable in any state for the subscription are excluded (ie. plan does not include category).
     return Object.fromEntries(
       subscription.planDetails.categories
@@ -323,17 +313,17 @@ export function CustomerDetails() {
     }
   };
 
-  const regionMap = getRegions().reduce<Record<string, string>>(
-    (acc: any, region: any) => {
-      acc[region.url] = region.name;
+  const localityMap = getLocalities().reduce<Record<string, string>>(
+    (acc: any, locality) => {
+      acc[locality.url] = locality.name;
       return acc;
     },
     {}
   );
-  const region = regionMap[organization?.links.regionUrl || 'unknown'] ?? 'unknown';
+  const localityName =
+    localityMap[organization?.links.regionUrl || 'unknown'] ?? 'unknown';
 
   const badges: BadgeItem[] = [
-    {name: 'Capacity Limit', level: 'warning', visible: subscription.usageExceeded},
     {
       name: 'Suspended',
       level: 'danger',
@@ -358,14 +348,14 @@ export function CustomerDetails() {
       key: 'invoices',
       name: 'Invoices',
       content: ({Panel}: any) => (
-        <CustomerInvoices inPanel={Panel} orgId={orgId} region={region} />
+        <CustomerInvoices inPanel={Panel} orgId={orgId} region={localityName} />
       ),
     },
     {
       key: 'charges',
       name: 'Charges',
       content: ({Panel}: any) => (
-        <CustomerCharges inPanel={Panel} orgId={orgId} region={region} />
+        <CustomerCharges inPanel={Panel} orgId={orgId} region={localityName} />
       ),
     },
   ];
@@ -375,34 +365,6 @@ export function CustomerDetails() {
       panelTitle="Billing Details"
       dropdownPrefix="Billing"
       sections={billingSections}
-    />
-  );
-
-  const productUsageSections = [
-    {
-      key: 'onboardingTasks',
-      name: 'Onboarding Tasks',
-      content: ({Panel}: any) => (
-        <CustomerOnboardingTasks inPanel={Panel} orgId={orgId} />
-      ),
-    },
-    {
-      key: 'integrations',
-      name: 'Plugins',
-      content: ({Panel}: any) => <CustomerIntegrations inPanel={Panel} orgId={orgId} />,
-    },
-    {
-      key: 'platforms',
-      name: 'Platforms',
-      content: ({Panel}: any) => <CustomerPlatforms inPanel={Panel} orgId={orgId} />,
-    },
-  ];
-
-  const productUsage = (
-    <SelectableContainer
-      panelTitle="Product Usage"
-      dropdownPrefix="Product"
-      sections={productUsageSections}
     />
   );
 
@@ -428,14 +390,14 @@ export function CustomerDetails() {
             key: 'allowTrial',
             name: 'Allow Trial',
             help: 'Allow this account to opt-in to a trial period.',
-            visible: !subscription.canTrial && !subscription.isTrial,
+            visible: !subscription.canTrial && !isTrial(subscription),
             onAction: params => onUpdateMutation.mutate({...params, canTrial: true}),
           },
           {
             key: 'endTrialEarly',
             name: 'End Trial Early',
             help: 'End the current trial immediately.',
-            disabled: !subscription.isTrial,
+            disabled: !isTrial(subscription),
             disabledReason: 'This account is not on on trial.',
             onAction: params => onUpdateMutation.mutate({...params, endTrialEarly: true}),
           },
@@ -459,18 +421,6 @@ export function CustomerDetails() {
             visible: !!subscription.pendingChanges,
             onAction: params =>
               onUpdateMutation.mutate({...params, clearPendingChanges: true}),
-          },
-          {
-            key: 'changeSoftCap',
-            name: subscription.hasSoftCap
-              ? 'Remove Legacy Soft Cap'
-              : 'Add Legacy Soft Cap',
-            help: subscription.hasSoftCap
-              ? 'Remove the legacy soft cap from this account.'
-              : 'Add legacy soft cap to this account.',
-            onAction: params =>
-              onUpdateMutation.mutate({...params, softCap: !subscription.hasSoftCap}),
-            ...actionRequiresBillingAdmin,
           },
           {
             key: 'changeBalance',
@@ -499,23 +449,6 @@ export function CustomerDetails() {
             ...actionRequiresBillingAdmin,
           },
           {
-            key: 'changeOverageNotification',
-            name: subscription.hasOverageNotificationsDisabled
-              ? 'Enable Overage Notification'
-              : 'Disable Overage Notification',
-            help: subscription.hasOverageNotificationsDisabled
-              ? 'Enable overage notifications on this account.'
-              : 'Disable overage notifications on this account.',
-            visible: subscription.hasSoftCap,
-            onAction: params =>
-              onUpdateMutation.mutate({
-                ...params,
-                overageNotificationsDisabled:
-                  !subscription.hasOverageNotificationsDisabled,
-              }),
-            ...actionRequiresBillingAdmin,
-          },
-          {
             key: 'toggleBillingPlatformMigration',
             name: subscription.hasMigratedToBillingPlatform
               ? '[Do Not Use] Unmigrate to Billing Platform'
@@ -528,6 +461,18 @@ export function CustomerDetails() {
                 ...params,
                 migratedToBillingPlatform: !subscription.hasMigratedToBillingPlatform,
               }),
+            ...actionRequiresBillingAdmin,
+          },
+          {
+            key: 'recreateBillingPlatformModels',
+            name: 'Recreate Billing Platform Models',
+            help: 'Delete this org’s billing platform models and recreate them from the legacy subscription state.',
+            confirmModalOpts: {
+              priority: 'danger',
+              confirmText: 'Recreate Billing Platform Models',
+            },
+            onAction: params =>
+              onUpdateMutation.mutate({...params, recreateBillingPlatformModels: true}),
             ...actionRequiresBillingAdmin,
           },
           {
@@ -546,7 +491,7 @@ export function CustomerDetails() {
             name: 'Terminate Contract',
             help: 'Terminate the contract (charges an early termination fee for contracts with 3 or more months remaining).',
             visible:
-              subscription.contractInterval === 'annual' &&
+              subscription.billingInterval === 'annual' &&
               subscription.canCancel &&
               !subscription.cancelAtPeriodEnd,
             onAction: params =>
@@ -616,7 +561,7 @@ export function CustomerDetails() {
           },
           {
             key: 'startTrial',
-            name: subscription.isTrial ? 'Extend Trial' : 'Start Trial',
+            name: isTrial(subscription) ? 'Extend Trial' : 'Start Trial',
             help: 'Start or extend a trial for this account.',
             confirmModalOpts: {
               renderModalSpecificContent: deps => (
@@ -891,12 +836,9 @@ export function CustomerDetails() {
             name: 'Migrate From Legacy Seer',
             help: 'Migrate a user off Legacy Seer to allow them to use the seat-based Seer plan, effective immediately or at the next billing period. Applies a prorated credit for eligible annual plans. Optionally adds a 14-day Seer seat trial.',
             disabled:
-              ![PlanTier.AM1, PlanTier.AM2, PlanTier.AM3].includes(
-                subscription.planTier as PlanTier
-              ) || !subscription.addOns?.legacySeer?.enabled,
-            disabledReason: [PlanTier.AM1, PlanTier.AM2, PlanTier.AM3].includes(
-              subscription.planTier as PlanTier
-            )
+              !hasPerformance(subscription.planDetails) ||
+              !subscription.addOns?.legacySeer?.enabled,
+            disabledReason: hasPerformance(subscription.planDetails)
               ? 'Only available for organizations with active legacy Seer that have not yet been migrated.'
               : 'Only available for AM1, AM2, and AM3 plans.',
             confirmModalOpts: {
@@ -974,10 +916,6 @@ export function CustomerDetails() {
           {
             noPanel: true,
             content: billingDetails,
-          },
-          {
-            noPanel: true,
-            content: productUsage,
           },
           {
             noPanel: true,

@@ -1,6 +1,5 @@
 import logging
 from collections.abc import Mapping
-from typing import Any
 
 import sentry_sdk
 from django.conf import settings
@@ -79,7 +78,9 @@ def is_consumer_healthy(consumer_name: str = "default") -> bool:
             )
             with sentry_sdk.isolation_scope():
                 sentry_sdk.set_tag("consumer", consumer_name)
+                sentry_sdk.set_attribute("consumer", consumer_name)
                 sentry_sdk.set_tag("reason", reason)
+                sentry_sdk.set_attribute("reason", reason)
                 logger.error(
                     "Consumer `%s` stopped for reason `%s`",
                     consumer_name,
@@ -102,7 +103,9 @@ def is_consumer_healthy(consumer_name: str = "default") -> bool:
         )
         with sentry_sdk.isolation_scope():
             sentry_sdk.set_tag("consumer", consumer_name)
+            sentry_sdk.set_attribute("consumer", consumer_name)
             sentry_sdk.set_tag("reason", "error")
+            sentry_sdk.set_attribute("reason", "error")
             logger.exception("Consumer `%s` stopped due to for reason `%s`", consumer_name, "error")
 
         return False
@@ -115,18 +118,7 @@ def record_consumer_health(unhealthy_services: Mapping[str, UnhealthyReasons]) -
         for name, unhealthy_reasons in unhealthy_services.items():
             pipeline.set(_service_key(name), "false" if unhealthy_reasons else "true", ex=key_ttl)
 
-            extra: dict[str, Any] = {}
             if unhealthy_reasons:
-                if isinstance(unhealthy_reasons, Exception):
-                    extra = {"exception": unhealthy_reasons}
-                else:
-                    for memory in unhealthy_reasons:
-                        extra[memory.name] = {
-                            "used": memory.used,
-                            "available": memory.available,
-                            "percentage": memory.percentage,
-                        }
-
                 metrics.incr("backpressure.monitor.service.unhealthy", tags={"service": name})
                 metrics.event(
                     "backpressure.monitor.service.unhealthy",
@@ -136,7 +128,7 @@ def record_consumer_health(unhealthy_services: Mapping[str, UnhealthyReasons]) -
                 )
                 with sentry_sdk.isolation_scope():
                     sentry_sdk.set_tag("service", name)
-                    logger.error("Service `%s` marked as unhealthy", name, extra=extra)
+                    sentry_sdk.set_attribute("service", name)
 
         for name, dependencies in CONSUMERS.items():
             unhealthy_dependencies = []
@@ -158,6 +150,7 @@ def record_consumer_health(unhealthy_services: Mapping[str, UnhealthyReasons]) -
                 )
                 with sentry_sdk.isolation_scope():
                     sentry_sdk.set_tag("consumer", name)
+                    sentry_sdk.set_attribute("consumer", name)
                     logger.error(
                         "Consumer `%s` marked as unhealthy",
                         name,

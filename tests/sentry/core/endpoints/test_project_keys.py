@@ -40,6 +40,39 @@ class ListProjectKeysTest(APITestCase):
         assert response.status_code == 200
         assert response.data[0]["dsn"]["playstation"] == key.playstation_endpoint
 
+    def test_relay_dsn_endpoint_override(self) -> None:
+        project = self.create_project()
+        project.organization.update_option(
+            "sentry:relay_dsn_endpoint", "https://relay.example.com/ingest"
+        )
+        key = ProjectKey.objects.get_or_create(project=project)[0]
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-project-keys",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
+        )
+        response = self.client.get(url)
+
+        assert response.status_code == 200
+        assert response.data[0]["dsn"] == {
+            "public": f"https://{key.public_key}@relay.example.com/ingest/{project.id}",
+            "secret": f"https://{key.public_key}:{key.secret_key}@relay.example.com/ingest/{project.id}",
+            "csp": f"https://relay.example.com/ingest/api/{project.id}/csp-report/?sentry_key={key.public_key}",
+            "security": f"https://relay.example.com/ingest/api/{project.id}/security/?sentry_key={key.public_key}",
+            "minidump": f"https://relay.example.com/ingest/api/{project.id}/minidump/?sentry_key={key.public_key}",
+            "nel": f"https://relay.example.com/ingest/api/{project.id}/nel/?sentry_key={key.public_key}",
+            "unreal": f"https://relay.example.com/ingest/api/{project.id}/unreal/{key.public_key}/",
+            "crons": f"https://relay.example.com/ingest/api/{project.id}/cron/___MONITOR_SLUG___/{key.public_key}/",
+            "cdn": key.js_sdk_loader_cdn_url,
+            "playstation": f"https://relay.example.com/ingest/api/{project.id}/playstation/?sentry_key={key.public_key}",
+            "integration": f"https://relay.example.com/ingest/api/{project.id}/integration/",
+            "otlp_traces": f"https://relay.example.com/ingest/api/{project.id}/integration/otlp/v1/traces",
+            "otlp_logs": f"https://relay.example.com/ingest/api/{project.id}/integration/otlp/v1/logs",
+        }
+
     def test_integration_endpoint(self) -> None:
         project = self.create_project()
         key = ProjectKey.objects.get_or_create(project=project)[0]

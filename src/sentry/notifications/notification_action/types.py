@@ -2,7 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Collection, Sequence
 from dataclasses import asdict
-from typing import Any, NotRequired, Protocol, TypedDict
+from typing import Any, ClassVar, NotRequired, Protocol, TypedDict
 
 from django.core.exceptions import ValidationError
 from taskbroker_client.retry import RetryTaskError
@@ -19,6 +19,7 @@ from sentry.incidents.typings.metric_detector import (
 )
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
+from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
@@ -217,7 +218,9 @@ class BaseIssueAlertHandler(ABC):
         environment_id = event_data.workflow_env.id if event_data.workflow_env else None
 
         data: RuleData = {
-            "actions": [cls.build_rule_action_blob(action, detector.project.organization.id)],
+            "actions": [
+                cls.build_rule_action_blob(action, detector.linked_project.organization.id)
+            ],
         }
         rule_id = None
 
@@ -252,7 +255,7 @@ class BaseIssueAlertHandler(ABC):
                 try:
                     label = Rule.objects.get(
                         id=alert_rule_workflow.rule_id,
-                        project__organization_id=detector.project.organization_id,
+                        project__organization_id=detector.linked_project.organization_id,
                     ).label
                     rule_id = alert_rule_workflow.rule_id
                 except Rule.DoesNotExist:
@@ -273,7 +276,7 @@ class BaseIssueAlertHandler(ABC):
 
         rule = Rule(
             id=action.id,
-            project=detector.project,
+            project=detector.linked_project,
             environment_id=environment_id,
             label=label,
             data=dict(data),
@@ -474,8 +477,8 @@ class BaseMetricAlertHandler(ABC):
             open_period_context=open_period_context,
             trigger_status=trigger_status,
             notification_uuid=invocation.notification_uuid,
-            organization=invocation.detector.project.organization,
-            project=invocation.detector.project,
+            organization=invocation.detector.linked_project.organization,
+            project=invocation.detector.linked_project,
         )
 
 
@@ -544,3 +547,39 @@ class BaseActionValidatorHandler(ABC):
     def update_action_data(self, cleaned_data: dict[str, Any]) -> dict[str, Any]:
         # update BaseActionValidator data with cleaned notify action form data
         pass
+
+
+class ActivityHandlerValidationError(Exception):
+    pass
+
+
+class ActivityHandler(ABC):
+    """
+    Abstract base class for handling ActionInvocations pertaining to activity.
+    Registrants pertain to one Action type, and may choose to restrict to certain Activity types.
+    """
+
+    compatible_activity_types: ClassVar[list[ActivityType]]
+
+    @classmethod
+    def validate_activity(cls, invocation: ActionInvocation) -> Activity:
+        workflow_event = invocation.event_data.event
+        if not isinstance(workflow_event, Activity):
+            raise ActivityHandlerValidationError("WorkflowEventData.event is not an Activity")
+        try:
+            activity_type = ActivityType(workflow_event.type)
+        except ValueError:
+            raise ActivityHandlerValidationError(f"Unknown activity type: {workflow_event.type}")
+        if activity_type not in cls.compatible_activity_types:
+            raise ActivityHandlerValidationError(
+                f"Activity type {activity_type} is not compatible with this handler"
+            )
+        return workflow_event
+
+    @classmethod
+    def invoke_action(cls, invocation: ActionInvocation, activity: Activity) -> None:
+        """
+        Process an ActionInvocation for a validated activity.
+        The activity is provided as a separate parameter to skip type assertions.
+        """
+        raise NotImplementedError

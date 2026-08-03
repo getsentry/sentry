@@ -1,4 +1,3 @@
-import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -33,7 +32,6 @@ function makeAiConfig(
 describe('AiConfigureSeerQuotaSidebar', () => {
   const group = GroupFixture();
   const project = ProjectFixture();
-  const event = EventFixture();
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -49,7 +47,6 @@ describe('AiConfigureSeerQuotaSidebar', () => {
         aiConfig={makeAiConfig({isAutofixSetupLoading: true})}
         group={group}
         project={project}
-        event={event}
       />,
       {organization}
     );
@@ -70,7 +67,6 @@ describe('AiConfigureSeerQuotaSidebar', () => {
         isAutofixEnabled: true,
         isCodeReviewEnabled: true,
         isSeerConfigured: true,
-        needsConfigReminder: false,
       },
     });
 
@@ -84,7 +80,6 @@ describe('AiConfigureSeerQuotaSidebar', () => {
         aiConfig={makeAiConfig({hasAutofixQuota: true})}
         group={group}
         project={project}
-        event={event}
       />,
       {organization}
     );
@@ -104,7 +99,6 @@ describe('AiConfigureSeerQuotaSidebar', () => {
         aiConfig={makeAiConfig({hasAutofixQuota: false})}
         group={group}
         project={project}
-        event={event}
       />,
       {organization}
     );
@@ -131,7 +125,6 @@ describe('AiConfigureSeerQuotaSidebar', () => {
         aiConfig={makeAiConfig({hasAutofixQuota: false})}
         group={group}
         project={project}
-        event={event}
       />,
       {organization}
     );

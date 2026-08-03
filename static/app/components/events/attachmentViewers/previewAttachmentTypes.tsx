@@ -50,9 +50,15 @@ export const getImageAttachmentRenderer = (
   return undefined;
 };
 
+const nonPreviewableExtensions = ['.prosperodmp', '.prosperomemdmp'];
+
 export const getInlineAttachmentRenderer = (
   attachment: IssueAttachment
 ): AttachmentRenderer | undefined => {
+  if (nonPreviewableExtensions.some(ext => attachment.name.endsWith(ext))) {
+    return undefined;
+  }
+
   const imageAttachmentRenderer = getImageAttachmentRenderer(attachment);
   if (imageAttachmentRenderer) {
     return imageAttachmentRenderer;
@@ -75,4 +81,13 @@ export const getInlineAttachmentRenderer = (
 
 export const hasInlineAttachmentRenderer = (attachment: IssueAttachment): boolean => {
   return !!getInlineAttachmentRenderer(attachment);
+};
+
+const MAX_TEXT_PREVIEW_SIZE = 1 * 1024 * 1024; // 1 MiB
+
+export const isAttachmentTooLargeForPreview = (attachment: IssueAttachment): boolean => {
+  if (getImageAttachmentRenderer(attachment)) {
+    return false;
+  }
+  return attachment.size > MAX_TEXT_PREVIEW_SIZE;
 };

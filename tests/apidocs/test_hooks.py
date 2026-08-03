@@ -1,6 +1,14 @@
+from typing import Any
 from unittest import TestCase
 
-from sentry.apidocs.hooks import _ENDPOINT_SERVERS, custom_postprocessing_hook
+import pytest
+
+from sentry.apidocs.hooks import (
+    _ENDPOINT_SERVERS,
+    _fix_nullable_enums,
+    custom_postprocessing_hook,
+)
+from sentry.apidocs.utils import SentryApiBuildError
 
 
 class EndpointServersTest(TestCase):
@@ -44,6 +52,39 @@ class EndpointServersTest(TestCase):
         ]
         # Servers should NOT be applied to non-matching endpoint
         assert "servers" not in processed["paths"]["/api/0/other/endpoint/"]["get"]
+
+
+class SummaryUniquenessTest(TestCase):
+    def _operation(self, summary: str) -> dict[str, Any]:
+        return {
+            "tags": ["Events"],
+            "description": "An endpoint",
+            "operationId": summary.lower().replace(" ", "-"),
+            "summary": summary,
+            "parameters": [],
+        }
+
+    def test_duplicate_summary_raises(self) -> None:
+        result = {
+            "components": {"schemas": {}},
+            "paths": {
+                "/api/0/foo/": {"get": self._operation("List Foos")},
+                "/api/0/bar/": {"get": self._operation("List Foos")},
+            },
+        }
+        with pytest.raises(SentryApiBuildError):
+            custom_postprocessing_hook(result, None)
+
+    def test_unique_summaries_pass(self) -> None:
+        result = {
+            "components": {"schemas": {}},
+            "paths": {
+                "/api/0/foo/": {"get": self._operation("List Foos")},
+                "/api/0/bar/": {"get": self._operation("List Bars")},
+            },
+        }
+        # Should not raise.
+        custom_postprocessing_hook(result, None)
 
 
 class FixIssueRoutesTest(TestCase):
@@ -126,3 +167,77 @@ class FixIssueRoutesTest(TestCase):
             "components": {"schemas": {}},
         }
         assert custom_postprocessing_hook(BEFORE, None) == AFTER
+
+
+class FixNullableEnumsTest(TestCase):
+    def test_adds_null_to_nullable_enum(self) -> None:
+        schema = {"enum": ["a", "b"], "type": "string", "nullable": True}
+        _fix_nullable_enums(schema)
+        assert schema["enum"] == ["a", "b", None]
+
+    def test_does_not_duplicate_null(self) -> None:
+        schema = {"enum": ["a", None], "type": "string", "nullable": True}
+        _fix_nullable_enums(schema)
+        assert schema["enum"] == ["a", None]
+
+    def test_ignores_non_nullable_enum(self) -> None:
+        schema = {"enum": ["a", "b"], "type": "string"}
+        _fix_nullable_enums(schema)
+        assert schema["enum"] == ["a", "b"]
+
+    def test_ignores_nullable_without_enum(self) -> None:
+        schema = {"type": "string", "nullable": True}
+        _fix_nullable_enums(schema)
+        assert schema == {"type": "string", "nullable": True}
+
+    def test_recurses_into_nested_dicts_and_lists(self) -> None:
+        result = {
+            "components": {
+                "schemas": {
+                    "Group": {
+                        "properties": {
+                            "substatus": {
+                                "enum": ["ongoing", "new"],
+                                "type": "string",
+                                "nullable": True,
+                            },
+                            "status": {
+                                "enum": ["resolved", "unresolved"],
+                                "type": "string",
+                            },
+                        }
+                    }
+                }
+            },
+            "anyOfExample": [
+                {"enum": ["x"], "nullable": True},
+                {"type": "object", "nullable": True},
+            ],
+        }
+        _fix_nullable_enums(result)
+        # Nullable enums gain null wherever they are nested (deep in dicts and inside
+        # lists); the non-nullable enum and the nullable-but-enumless schema are left
+        # untouched.
+        assert result == {
+            "components": {
+                "schemas": {
+                    "Group": {
+                        "properties": {
+                            "substatus": {
+                                "enum": ["ongoing", "new", None],
+                                "type": "string",
+                                "nullable": True,
+                            },
+                            "status": {
+                                "enum": ["resolved", "unresolved"],
+                                "type": "string",
+                            },
+                        }
+                    }
+                }
+            },
+            "anyOfExample": [
+                {"enum": ["x", None], "nullable": True},
+                {"type": "object", "nullable": True},
+            ],
+        }

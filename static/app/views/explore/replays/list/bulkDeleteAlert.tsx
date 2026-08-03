@@ -1,4 +1,4 @@
-import {useEffect, useRef} from 'react';
+import {useEffect} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -6,7 +6,10 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {replayBulkDeleteAuditLogApiOptions} from 'sentry/components/replays/bulkDelete/replayBulkDeleteAuditLogApiOptions';
+import {
+  isBulkDeleteJobRunning,
+  replayBulkDeleteAuditLogApiOptions,
+} from 'sentry/components/replays/bulkDelete/replayBulkDeleteAuditLogApiOptions';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -47,30 +50,21 @@ function useShouldRenderBulkDeleteAlert({
   const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
   const hasAdminAccess = hasEveryAccess(['project:admin'], {organization, project});
 
-  const hasAnyInProgressRef = useRef(false);
-
   const {data} = useQuery({
     ...replayBulkDeleteAuditLogApiOptions(organization, {
       projectSlug: project?.slug ?? '',
       query: {per_page: 10, offset: 0, referrer: analyticsArea},
     }),
     enabled: Boolean(project && (hasWriteAccess || hasAdminAccess)),
-    refetchInterval: hasAnyInProgressRef.current ? 1_000 : 60_000,
   });
-
-  useEffect(() => {
-    // TODO: This only looks at the first page of results.
-    // It would be better to be able to search for jobs in progress to be sure.
-    // The expectation is that only one job is running at a time.
-    hasAnyInProgressRef.current = Boolean(
-      data?.data?.some(job => ['pending', 'in-progress'].includes(job?.status ?? ''))
-    );
-  }, [data?.data]);
 
   if ((!hasWriteAccess && !hasAdminAccess) || !project) {
     return false;
   }
-  return hasAnyInProgressRef.current;
+  // TODO: This only looks at the first page of results.
+  // It would be better to be able to search for jobs in progress to be sure.
+  // The expectation is that only one job is running at a time.
+  return Boolean(data?.data.some(isBulkDeleteJobRunning));
 }
 
 function DeleteInProgressAlert({

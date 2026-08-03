@@ -104,7 +104,7 @@ class EventAttributeConditionHandler(DataConditionHandler[WorkflowEventData]):
         )
 
     @classmethod
-    def render_label(cls, condition_data: dict[str, Any]) -> str:
+    def render_label(cls, condition_data: dict[str, Any], organization_id: int) -> str:
         data = {
             "attribute": condition_data["attribute"],
             "value": condition_data["value"],

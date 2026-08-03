@@ -1,36 +1,41 @@
 import type React from 'react';
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCopy} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {IconFire, IconOpen, IconUser} from 'sentry/icons';
+import {t, tn} from 'sentry/locale';
+import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getTimeBoundsFromNodes} from 'sentry/views/explore/conversations/utils/timeBounds';
+import {
+  getUserDisplayName,
+  normalizeUserField,
+  UserNotInstrumentedTooltip,
+} from 'sentry/views/explore/conversations/components/conversationsTable';
+import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
+import type {ConversationUser} from 'sentry/views/explore/conversations/hooks/useConversations';
 import {getExploreUrl} from 'sentry/views/explore/utils';
+import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
+import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {
   getNumberAttr,
   getStringAttr,
   hasError,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
-import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
 import {
   getIsAiGenerationSpan,
   getIsExecuteToolSpan,
@@ -43,10 +48,280 @@ interface ConversationSummaryProps {
   nodes: AITraceSpanNode[];
   isLoading?: boolean;
   nodeTraceMap?: Map<string, string>;
+  /** Conversation title when Sentry has one; falls back to the id when null. */
+  title?: string | null;
 }
 
-const VISIBLE_TRACE_COUNT = 5;
-const VISIBLE_TOOL_COUNT = 4;
+const VISIBLE_TOOL_COUNT = 6;
+
+export function ConversationSummary({
+  nodes,
+  conversationId,
+  title,
+  isLoading,
+  nodeTraceMap,
+}: ConversationSummaryProps) {
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+
+  const aggregates = useMemo(() => calculateAggregates(nodes), [nodes]);
+  const user = useMemo(() => getConversationUser(nodes), [nodes]);
+  const userDisplayName = user ? getUserDisplayName(user) : null;
+
+  const displayId = isUUID(conversationId) ? conversationId.slice(0, 8) : conversationId;
+  // Prefer the human-readable title; fall back to the (possibly truncated) id.
+  const headingText = title || displayId;
+  const headingTooltip = title || conversationId;
+  // A UUID id is truncated to 8 chars, so it always needs the tooltip to reveal
+  // the full value; a title or non-UUID id only needs it when it overflows.
+  const headingTooltipOnlyOnOverflow = title ? true : !isUUID(conversationId);
+
+  const errorsUrl = getExploreUrl({
+    organization,
+    selection,
+    query: `gen_ai.conversation.id:"${escapeDoubleQuotes(conversationId)}" span.status:[internal_error,error]`,
+  });
+
+  // Distinct traces the conversation spans, keyed by trace ID with a
+  // representative span ID to deep-link into the trace view.
+  const traces = useMemo(() => {
+    if (!nodeTraceMap) {
+      return [];
+    }
+    const seen = new Map<string, string>();
+    for (const [spanId, traceId] of nodeTraceMap) {
+      if (!seen.has(traceId)) {
+        seen.set(traceId, spanId);
+      }
+    }
+    return Array.from(seen, ([traceId, spanId]) => ({traceId, spanId}));
+  }, [nodeTraceMap]);
+
+  // A single trace deep-links to the trace view; multiple traces open the
+  // traces explorer filtered to this conversation.
+  const singleTrace = traces.length === 1 ? traces[0] : undefined;
+  const tracesUrl = singleTrace
+    ? getTraceUrl(organization.slug, singleTrace.traceId, singleTrace.spanId)
+    : getExploreUrl({
+        organization,
+        selection,
+        query: `gen_ai.conversation.id:"${escapeDoubleQuotes(conversationId)}"`,
+        table: 'trace',
+      });
+
+  return (
+    <Flex
+      direction={{'screen:xs': 'column', 'screen:md': 'row'}}
+      justify="between"
+      align={{'screen:xs': 'stretch', 'screen:md': 'center'}}
+      gap="xl"
+      flex={1}
+      minWidth={0}
+    >
+      <Stack gap="md" minWidth={0} flex={1}>
+        <Container minWidth={0}>
+          {isLoading ? (
+            // The title is only known once the conversation loads, so show a
+            // skeleton rather than briefly flashing the id and swapping it out.
+            <Placeholder width="240px" height="28px" />
+          ) : (
+            <Tooltip
+              title={headingTooltip}
+              showOnlyOnOverflow={headingTooltipOnlyOnOverflow}
+            >
+              <Heading as="h2" ellipsis>
+                {headingText}
+              </Heading>
+            </Tooltip>
+          )}
+        </Container>
+        <Flex align="center" gap="xl" minWidth={0} wrap="wrap">
+          {isLoading ? (
+            <Fragment>
+              <Flex align="center" gap="xs">
+                <Placeholder width="16px" height="16px" />
+                <Placeholder width="120px" height="14px" />
+              </Flex>
+              <Flex align="center" gap="xs">
+                <Placeholder width="12px" height="12px" />
+                <Placeholder width="40px" height="14px" />
+              </Flex>
+              <Flex align="center" gap="sm">
+                <Placeholder width="72px" height="20px" />
+                <Placeholder width="72px" height="20px" />
+              </Flex>
+            </Fragment>
+          ) : (
+            <Fragment>
+              <Flex align="center" gap="xs" minWidth={0}>
+                <IconUser size="md" />
+                {userDisplayName ? (
+                  <InfoText
+                    title={userDisplayName}
+                    mode="overflowOnly"
+                    size="sm"
+                    variant="muted"
+                  >
+                    {userDisplayName}
+                  </InfoText>
+                ) : (
+                  <InfoText
+                    size="sm"
+                    variant="muted"
+                    title={<UserNotInstrumentedTooltip />}
+                  >
+                    &mdash;
+                  </InfoText>
+                )}
+              </Flex>
+              {traces.length > 0 && (
+                <Link
+                  to={tracesUrl}
+                  onClick={() =>
+                    trackAnalytics('conversations.detail.click-trace-link', {
+                      organization,
+                    })
+                  }
+                >
+                  <Flex align="center" gap="xs">
+                    <IconOpen size="xs" />
+                    <Text size="sm" variant="inherit" wrap="nowrap">
+                      {tn('Trace', 'Traces', traces.length)}
+                    </Text>
+                  </Flex>
+                </Link>
+              )}
+              {aggregates.toolNames.length > 0 && (
+                <Flex align="center" gap="sm" minWidth={0} wrap="wrap">
+                  {aggregates.toolNames.slice(0, VISIBLE_TOOL_COUNT).map(name => (
+                    <ToolTag
+                      key={name}
+                      name={name}
+                      hasError={aggregates.erroredToolNames.has(name)}
+                    />
+                  ))}
+                  {aggregates.toolNames.length > VISIBLE_TOOL_COUNT && (
+                    <InfoText
+                      size="sm"
+                      variant="muted"
+                      wrap="nowrap"
+                      title={
+                        <Flex wrap="wrap" gap="sm" paddingTop="xs" paddingBottom="xs">
+                          {aggregates.toolNames.slice(VISIBLE_TOOL_COUNT).map(name => (
+                            <ToolTag
+                              key={name}
+                              name={name}
+                              hasError={aggregates.erroredToolNames.has(name)}
+                            />
+                          ))}
+                        </Flex>
+                      }
+                    >
+                      {t('+%s more', aggregates.toolNames.length - VISIBLE_TOOL_COUNT)}
+                    </InfoText>
+                  )}
+                </Flex>
+              )}
+            </Fragment>
+          )}
+        </Flex>
+      </Stack>
+      <Flex align="start" gap="xl" wrap="wrap" flexShrink={0}>
+        <Stat
+          label={t('LLM Calls')}
+          value={<Count value={aggregates.llmCalls} />}
+          isLoading={isLoading}
+        />
+        <Stat
+          label={t('Errors')}
+          value={<Count value={aggregates.errorCount} />}
+          icon={
+            aggregates.errorCount > 0 ? (
+              <IconFire
+                size="sm"
+                variant="danger"
+                data-test-id="conversation-error-icon"
+              />
+            ) : undefined
+          }
+          to={aggregates.errorCount > 0 ? errorsUrl : undefined}
+          onClick={
+            aggregates.errorCount > 0
+              ? () =>
+                  trackAnalytics('conversations.detail.click-errors-link', {organization})
+              : undefined
+          }
+          isLoading={isLoading}
+        />
+        <Stat
+          label={t('Tokens')}
+          value={<Count value={aggregates.totalTokens} />}
+          isLoading={isLoading}
+        />
+        <Stat
+          label={t('Cost')}
+          value={
+            aggregates.totalCost < 0 ? (
+              <NegativeCostInfo cost={aggregates.totalCost} />
+            ) : (
+              <LLMCosts cost={aggregates.totalCost} />
+            )
+          }
+          isLoading={isLoading}
+        />
+      </Flex>
+    </Flex>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  isLoading,
+  to,
+  onClick,
+  icon,
+}: {
+  label: string;
+  value: React.ReactNode;
+  icon?: React.ReactNode;
+  isLoading?: boolean;
+  onClick?: () => void;
+  to?: string;
+}) {
+  const isInteractive = !!to && !isLoading;
+
+  const valueContent = (
+    <Flex align="center" gap="xs">
+      <Text
+        size="xl"
+        tabular
+        variant={isInteractive ? 'danger' : undefined}
+        wrap="nowrap"
+      >
+        {value}
+      </Text>
+      {icon}
+    </Flex>
+  );
+
+  return (
+    <Stack gap="xs" flexShrink={0}>
+      <Text size="sm" variant="muted" bold wrap="nowrap">
+        {label}
+      </Text>
+      {isLoading ? (
+        <Placeholder width="32px" height="24px" />
+      ) : isInteractive ? (
+        <Link to={to} onClick={onClick}>
+          {valueContent}
+        </Link>
+      ) : (
+        valueContent
+      )}
+    </Stack>
+  );
+}
 
 function getTraceUrl(orgSlug: string, traceId: string, spanId: string) {
   return normalizeUrl(
@@ -56,6 +331,7 @@ function getTraceUrl(orgSlug: string, traceId: string, spanId: string) {
 
 interface ConversationAggregates {
   errorCount: number;
+  erroredToolNames: Set<string>;
   llmCalls: number;
   toolCalls: number;
   toolNames: string[];
@@ -74,9 +350,11 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
   let totalTokens = 0;
   let totalCost = 0;
   const toolNameSet = new Set<string>();
+  const erroredToolNameSet = new Set<string>();
 
   for (const node of nodes) {
     const opType = getGenAiOpType(node);
+    const nodeHasError = hasError(node);
 
     if (getIsAiGenerationSpan(opType)) {
       llmCalls++;
@@ -87,10 +365,13 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
       const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
       if (toolName) {
         toolNameSet.add(toolName);
+        if (nodeHasError) {
+          erroredToolNameSet.add(toolName);
+        }
       }
     }
 
-    if (hasError(node)) {
+    if (nodeHasError) {
       errorCount++;
     }
   }
@@ -99,6 +380,7 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
     llmCalls,
     toolCalls,
     errorCount,
+    erroredToolNames: erroredToolNameSet,
     totalTokens,
     totalCost,
     toolNames: Array.from(toolNameSet).sort(),
@@ -106,8 +388,32 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
 }
 
 /**
+ * Derives the conversation's user from the first span node that carries any
+ * user identity attribute. Returns null when the spans aren't user-instrumented.
+ */
+function getConversationUser(nodes: AITraceSpanNode[]): ConversationUser | null {
+  for (const node of nodes) {
+    const email = normalizeUserField(getStringAttr(node, SpanFields.USER_EMAIL));
+    const username = normalizeUserField(getStringAttr(node, SpanFields.USER_USERNAME));
+    const ipAddress = normalizeUserField(getStringAttr(node, SpanFields.USER_IP));
+    const id = normalizeUserField(getStringAttr(node, SpanFields.USER_ID));
+    if (email || username || ipAddress || id) {
+      return {
+        email,
+        username,
+        ip_address: ipAddress,
+        id,
+      };
+    }
+  }
+  return null;
+}
+
+const AGGREGATES_BAR_VISIBLE_TOOL_COUNT = 4;
+
+/**
  * Aggregate metrics row for a conversation (LLM Calls, Errors, Tokens, Cost, Tools).
- * Used standalone in the trace AI tab, and as part of ConversationSummary on the detail page.
+ * Used standalone in the trace AI tab.
  */
 export function ConversationAggregatesBar({
   nodes,
@@ -129,7 +435,7 @@ export function ConversationAggregatesBar({
   const errorsUrl = getExploreUrl({
     organization,
     selection,
-    query: `gen_ai.conversation.id:"${conversationId.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}" span.status:internal_error`,
+    query: `gen_ai.conversation.id:"${escapeDoubleQuotes(conversationId)}" span.status:[internal_error,error]`,
   });
 
   return (
@@ -153,7 +459,13 @@ export function ConversationAggregatesBar({
       />
       <AggregateItem
         label={t('Cost')}
-        value={formatLLMCosts(aggregates.totalCost)}
+        value={
+          aggregates.totalCost < 0 ? (
+            <NegativeCostInfo cost={aggregates.totalCost} />
+          ) : (
+            <LLMCosts cost={aggregates.totalCost} />
+          )
+        }
         isLoading={isLoading}
       />
       {lastMessageDate !== undefined && (
@@ -164,7 +476,7 @@ export function ConversationAggregatesBar({
               <TimeSince date={lastMessageDate} />
             ) : (
               <Text size="sm" variant="muted">
-                {'\u2014'}
+                {'—'}
               </Text>
             )
           }
@@ -184,159 +496,39 @@ export function ConversationAggregatesBar({
             <Text size="sm" bold variant="muted" wrap="nowrap">
               {t('Used Tools')}
             </Text>
-            {aggregates.toolNames.slice(0, VISIBLE_TOOL_COUNT).map(name => (
-              <Tag key={name} variant="info">
-                {name}
-              </Tag>
-            ))}
-            {aggregates.toolNames.length > VISIBLE_TOOL_COUNT && (
+            {aggregates.toolNames
+              .slice(0, AGGREGATES_BAR_VISIBLE_TOOL_COUNT)
+              .map(name => (
+                <Tag key={name} variant="info">
+                  {name}
+                </Tag>
+              ))}
+            {aggregates.toolNames.length > AGGREGATES_BAR_VISIBLE_TOOL_COUNT && (
               <InfoText
                 size="sm"
                 variant="muted"
                 wrap="nowrap"
                 title={
                   <Flex wrap="wrap" gap="xs" paddingTop="xs" paddingBottom="xs">
-                    {aggregates.toolNames.slice(VISIBLE_TOOL_COUNT).map(name => (
-                      <Tag key={name} variant="info">
-                        {name}
-                      </Tag>
-                    ))}
+                    {aggregates.toolNames
+                      .slice(AGGREGATES_BAR_VISIBLE_TOOL_COUNT)
+                      .map(name => (
+                        <Tag key={name} variant="info">
+                          {name}
+                        </Tag>
+                      ))}
                   </Flex>
                 }
               >
-                {t('+%s more', aggregates.toolNames.length - VISIBLE_TOOL_COUNT)}
+                {t(
+                  '+%s more',
+                  aggregates.toolNames.length - AGGREGATES_BAR_VISIBLE_TOOL_COUNT
+                )}
               </InfoText>
             )}
           </ToolTagsRow>
         )
       )}
-    </Flex>
-  );
-}
-
-export function ConversationSummary({
-  nodes,
-  conversationId,
-  isLoading,
-  nodeTraceMap,
-}: ConversationSummaryProps) {
-  const organization = useOrganization();
-  const lastMessageDate = useMemo(() => {
-    const {endTimestamp} = getTimeBoundsFromNodes(nodes);
-    return endTimestamp === undefined ? null : new Date(endTimestamp);
-  }, [nodes]);
-
-  const handleCopyConversationId = () => {
-    trackAnalytics('conversations.detail.copy-conversation-id', {
-      organization,
-    });
-    copyToClipboard(conversationId, {
-      successMessage: t('Copied conversation ID to clipboard'),
-    });
-  };
-
-  const traces = useMemo(() => {
-    if (!nodeTraceMap) {
-      return [];
-    }
-    const seen = new Map<string, string>();
-    for (const [spanId, traceId] of nodeTraceMap) {
-      if (!seen.has(traceId)) {
-        seen.set(traceId, spanId);
-      }
-    }
-    return Array.from(seen, ([traceId, spanId]) => ({traceId, spanId}));
-  }, [nodeTraceMap]);
-
-  return (
-    <Flex direction="column" gap="md" flex={1}>
-      <Flex align="center" gap="sm" minWidth={0}>
-        <Tooltip
-          title={conversationId}
-          showOnlyOnOverflow
-          skipWrapper
-          disabled={isUUID(conversationId)}
-        >
-          <Heading as="h2" ellipsis style={{minWidth: 0, flexShrink: 1}}>
-            {isUUID(conversationId)
-              ? t('Conversation #%s', conversationId.slice(0, 8))
-              : t('Conversation #%s', conversationId)}
-          </Heading>
-        </Tooltip>
-        <Tooltip title={t('Copy conversation ID')}>
-          <Button
-            size="zero"
-            variant="transparent"
-            aria-label={t('Copy conversation ID')}
-            icon={<IconCopy size="xs" />}
-            onClick={handleCopyConversationId}
-          />
-        </Tooltip>
-        {traces.length > 0 && (
-          <Flex align="baseline" gap="xs">
-            <Text size="sm" variant="muted">
-              {traces.length === 1 ? t('Trace') : t('Traces')}
-            </Text>
-            {traces.slice(0, VISIBLE_TRACE_COUNT).map((trace, i) => (
-              <Flex key={trace.traceId} align="baseline" gap="xs">
-                {i > 0 && (
-                  <Text size="sm" variant="muted">
-                    {','}
-                  </Text>
-                )}
-                <StyledLink
-                  to={getTraceUrl(organization.slug, trace.traceId, trace.spanId)}
-                  onClick={() =>
-                    trackAnalytics('conversations.detail.click-trace-link', {
-                      organization,
-                    })
-                  }
-                >
-                  <Text size="sm" monospace variant="accent">
-                    {trace.traceId.slice(0, 8)}
-                  </Text>
-                </StyledLink>
-              </Flex>
-            ))}
-            {traces.length > VISIBLE_TRACE_COUNT && (
-              <DropdownMenu
-                size="sm"
-                triggerLabel={
-                  <Text size="sm" variant="muted">
-                    {t('+%s more', traces.length - VISIBLE_TRACE_COUNT)}
-                  </Text>
-                }
-                triggerProps={{
-                  size: 'zero',
-                  variant: 'transparent',
-                  showChevron: false,
-                }}
-                items={traces.slice(VISIBLE_TRACE_COUNT).map(trace => ({
-                  key: trace.traceId,
-                  label: (
-                    <Text size="sm" monospace>
-                      {trace.traceId.slice(0, 8)}
-                    </Text>
-                  ),
-                  textValue: trace.traceId,
-                  to: getTraceUrl(organization.slug, trace.traceId, trace.spanId),
-                }))}
-              />
-            )}
-          </Flex>
-        )}
-      </Flex>
-      <ConversationAggregatesBar
-        nodes={nodes}
-        conversationId={conversationId}
-        isLoading={isLoading}
-        lastMessageDate={lastMessageDate}
-        onErrorsLinkClick={() =>
-          trackAnalytics('conversations.detail.click-errors-link', {
-            organization,
-          })
-        }
-      />
     </Flex>
   );
 }

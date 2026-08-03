@@ -5,7 +5,7 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/platform';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {TransactionHeader} from 'sentry/views/performance/transactionSummary/header';
 import {Tab} from 'sentry/views/performance/transactionSummary/tabs';
@@ -82,25 +82,5 @@ describe('Performance > Transaction Summary Header', () => {
     );
 
     expect(await screen.findByRole('tab', {name: 'Overview'})).toBeInTheDocument();
-  });
-
-  it('should hide Tags tab', async () => {
-    const {project, organization, router, eventView} = initializeData();
-
-    render(
-      <TransactionHeader
-        eventView={eventView}
-        location={router.location}
-        organization={organization}
-        projects={[project]}
-        projectId={project.id}
-        transactionName="transaction_name"
-        currentTab={Tab.TRANSACTION_SUMMARY}
-      />,
-      {organization}
-    );
-
-    await screen.findByRole('tab', {name: 'Overview'});
-    expect(screen.queryByRole('tab', {name: 'Tags'})).not.toBeInTheDocument();
   });
 });

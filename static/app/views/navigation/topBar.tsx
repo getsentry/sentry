@@ -1,14 +1,16 @@
 import {useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
+import {mergeProps} from '@react-aria/utils';
 
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 import {slot, withSlots} from '@sentry/scraps/slot';
+import {Heading} from '@sentry/scraps/text';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {SearchButton} from 'sentry/views/navigation/searchButton';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 import {AskSeerButton} from 'sentry/views/seerExplorer/components/askSeerButton';
 import {useSeerExplorerChatState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
@@ -19,26 +21,25 @@ import {
 } from 'sentry/views/seerExplorer/utils';
 
 import {
-  NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
+  NAVIGATION_MOBILE_CONTENT_HEIGHT,
   PRIMARY_HEADER_HEIGHT,
   TOP_BAR_HEIGHT_CSS_VAR,
 } from './constants';
 
-const Slot = slot(['title', 'search', 'actions', 'feedback'] as const);
+const Slot = slot(['breadcrumbs', 'title', 'search', 'actions', 'feedback'] as const);
 
 function TopBarContent() {
   const theme = useTheme();
-  const hasPageFrame = useHasPageFrameFeature();
-  const {barTop, contentTop} = useTopOffset();
+  const {pageContentTop} = useTopOffset();
 
   const organization = useOrganization({allowNull: true});
 
   useEffect(() => {
-    document.documentElement.style.setProperty(TOP_BAR_HEIGHT_CSS_VAR, contentTop);
+    document.documentElement.style.setProperty(TOP_BAR_HEIGHT_CSS_VAR, pageContentTop);
     return () => {
       document.documentElement.style.removeProperty(TOP_BAR_HEIGHT_CSS_VAR);
     };
-  }, [contentTop]);
+  }, [pageContentTop]);
 
   const {isOpen: isSeerExplorerOpen} = useSeerExplorerContext();
   const {runId: seerExplorerRunId} = useSeerExplorerChatState();
@@ -50,31 +51,65 @@ function TopBarContent() {
     return {tags: {['feedback.source']: 'top_navigation'}};
   }, [isSeerExplorerOpen, seerExplorerRunId]);
 
-  if (!hasPageFrame) {
-    return null;
-  }
-
   return (
     <Flex
+      as="header"
       height={{
-        sm: `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`,
-        md: `${PRIMARY_HEADER_HEIGHT}px`,
+        'screen:sm': `${NAVIGATION_MOBILE_CONTENT_HEIGHT}px`,
+        'screen:md': `${PRIMARY_HEADER_HEIGHT}px`,
       }}
       justify="between"
       background="secondary"
       align="center"
-      padding={{sm: 'sm lg', md: 'md xl'}}
+      padding={{'screen:sm': 'sm lg', 'screen:md': 'md xl'}}
       position="sticky"
       borderBottom="primary"
-      top={barTop}
+      top={0}
       style={{
         zIndex: theme.zIndex.sidebarPanel - 1,
       }}
     >
       <SizeProvider size="sm">
-        <Slot.Outlet name="title">
-          {props => <Flex {...props} align="center" gap="sm" />}
-        </Slot.Outlet>
+        {/*
+         * Breadcrumbs and the title are separate slots so the title slot always
+         * owns the page heading. BreadcrumbList.Title renders title content
+         * without a heading, while this outlet supplies the single <h1>.
+         *
+         * The title occupies the remaining inline space (the header is
+         * justify="between", so this absorbs the empty middle; content stays
+         * left-aligned and actions stay pinned right). This is required by any
+         * title-slot child that establishes a container query.
+         */}
+        <Flex
+          align="center"
+          gap="sm"
+          minWidth="0"
+          flexGrow={1}
+          containerType="inline-size"
+        >
+          <Slot.Outlet name="breadcrumbs">
+            {(props, hasConsumers) => (
+              <Flex
+                {...props}
+                align="center"
+                gap="sm"
+                minWidth="0"
+                flex="0 1 auto"
+                display={hasConsumers ? 'flex' : 'none'}
+              />
+            )}
+          </Slot.Outlet>
+
+          <Slot.Outlet name="title">
+            {props => (
+              <Flex align="center" gap="sm" minWidth="0" flexGrow={1}>
+                {flexProps => (
+                  <Heading as="h1" variant="inherit" {...mergeProps(flexProps, props)} />
+                )}
+              </Flex>
+            )}
+          </Slot.Outlet>
+        </Flex>
 
         <Flex align="center" gap="sm">
           <Slot.Outlet name="search">
@@ -85,6 +120,7 @@ function TopBarContent() {
             {props => <Flex {...props} align="center" gap="sm" />}
           </Slot.Outlet>
 
+          <SearchButton />
           {isSeerExplorerEnabled(organization) ? <AskSeerButton /> : null}
 
           <Slot.Outlet name="feedback">
