@@ -153,10 +153,6 @@ function getAutofixPrimaryAction(
           kind: 'link',
           label: resultLink.label,
           href: resultLink.url,
-          icon:
-            resultLink.kind === 'pullRequest' && resultLink.repoProvider === 'github'
-              ? 'github'
-              : undefined,
         };
       }
 
