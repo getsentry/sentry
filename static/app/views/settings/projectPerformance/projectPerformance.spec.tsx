@@ -205,7 +205,10 @@ describe('projectPerformance', () => {
     await userEvent.clear(input);
     await userEvent.type(input, '400');
     await userEvent.tab();
-    expect(input).toHaveValue('400');
+    await waitFor(() => {
+      expect(postMock).toHaveBeenCalled();
+      expect(input).toHaveValue('400');
+    });
 
     await userEvent.click(await screen.findByRole('button', {name: 'Reset All'}));
 
@@ -484,14 +487,14 @@ describe('projectPerformance', () => {
     }
   );
 
-  it('test reset all detector thresholds', async () => {
-    let detectorEnabled = true;
+  it('resets configurable detector settings', async () => {
+    let aiDetectedHttpEnabled = true;
     const performanceIssuesGetMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/performance-issues/configure/',
       method: 'GET',
       body: () => ({
-        n_plus_one_db_queries_detection_enabled: detectorEnabled,
-        slow_db_queries_detection_enabled: true,
+        ai_issue_detection_enabled: true,
+        ai_detected_http_enabled: aiDetectedHttpEnabled,
       }),
       statusCode: 200,
     });
@@ -499,7 +502,7 @@ describe('projectPerformance', () => {
       url: '/projects/org-slug/project-slug/performance-issues/configure/',
       method: 'PUT',
       body: (_url: string, options: {data: Record<string, boolean>}) => {
-        detectorEnabled = options.data.n_plus_one_db_queries_detection_enabled ?? true;
+        aiDetectedHttpEnabled = options.data.ai_detected_http_enabled ?? true;
         return {};
       },
     });
@@ -507,14 +510,20 @@ describe('projectPerformance', () => {
       url: '/projects/org-slug/project-slug/performance-issues/configure/',
       method: 'DELETE',
       body: () => {
-        detectorEnabled = true;
+        aiDetectedHttpEnabled = true;
         return {};
       },
     });
 
     render(<ProjectPerformance />, {
-      organization: org,
-
+      organization: OrganizationFixture({
+        features: [
+          'performance-view',
+          'performance-web-vitals-seer-suggestions',
+          'gen-ai-features',
+          'ai-issue-detection',
+        ],
+      }),
       initialRouterConfig,
     });
 
@@ -523,7 +532,7 @@ describe('projectPerformance', () => {
 
     await expandAllDetectorSettings();
     const detectorSwitch = screen.getByRole('checkbox', {
-      name: 'N+1 DB Queries Detection',
+      name: 'HTTP Issues',
     });
     expect(detectorSwitch).toBeChecked();
 
@@ -542,9 +551,7 @@ describe('projectPerformance', () => {
     await waitFor(() => {
       expect(delete_request_mock).toHaveBeenCalled();
       expect(performanceIssuesGetMock).toHaveBeenCalledTimes(2);
-      expect(
-        screen.getByRole('checkbox', {name: 'N+1 DB Queries Detection'})
-      ).toBeChecked();
+      expect(screen.getByRole('checkbox', {name: 'HTTP Issues'})).toBeChecked();
     });
   });
 
