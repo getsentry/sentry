@@ -99,7 +99,9 @@ export default function InboxPage() {
 function InboxContent() {
   const organization = useOrganization();
   const hasSeer =
-    organization.features.includes('gen-ai-features') && !organization.hideAiFeatures;
+    !organization.hideAiFeatures &&
+    (organization.features.includes('seat-based-seer-enabled') ||
+      organization.features.includes('seer-added'));
   const [assignmentFilter, setAssignmentFilter] = useQueryState(
     ASSIGNMENT_QUERY_PARAM,
     parseAsStringLiteral(ASSIGNMENT_FILTERS)
