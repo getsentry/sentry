@@ -352,6 +352,7 @@ describe('InboxPage', () => {
 
   it('expands and collapses progress sections', async () => {
     mockSuccessfulSections();
+    mockIssuePreview();
 
     render(<InboxPage />, {organization, initialRouterConfig});
 
