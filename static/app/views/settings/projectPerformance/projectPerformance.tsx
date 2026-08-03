@@ -1,10 +1,5 @@
 import {Fragment} from 'react';
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-  type QueryClient,
-} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -26,8 +21,8 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Scope} from 'sentry/types/core';
 import {AI_DETECTED_ISSUE_TYPES, IssueTitle, IssueType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
-import type {DynamicSamplingBiasType} from 'sentry/types/sampling';
+import type {DetailedProject, Project} from 'sentry/types/project';
+import {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -39,7 +34,6 @@ import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {fetchMutation, setApiQueryData} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useHasSeerWebVitalsSuggestions} from 'sentry/views/insights/browser/webVitals/utils/useHasSeerWebVitalsSuggestions';
@@ -101,6 +95,12 @@ type DetectorFieldGroup = {
   initiallyCollapsed?: boolean;
 };
 
+type RetentionPriorityField = {
+  hintText: string;
+  label: string;
+  name: DynamicSamplingBiasType;
+};
+
 enum DetectorConfigAdmin {
   N_PLUS_DB_ENABLED = 'n_plus_one_db_queries_detection_enabled',
   SLOW_DB_ENABLED = 'slow_db_queries_detection_enabled',
@@ -152,6 +152,8 @@ type ProjectThreshold = {
   id?: string;
 };
 
+type GeneralSettings = {enable_images?: boolean};
+
 const getThresholdQueryKey = (orgSlug: string, projectSlug: string): ApiQueryKey => [
   getApiUrl(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/transaction-threshold/configure/',
@@ -196,328 +198,56 @@ const regressionAdminSchema = z.object({
   function_duration_regression_detection_enabled: z.boolean(),
 });
 
-type GeneralSettings = {enable_images?: boolean};
+const formatDuration = (value: number | ''): string =>
+  value ? (value < 1000 ? `${value}ms` : `${value / 1000}s`) : '';
 
-function DetectorAutoSaveField({
-  endpoint,
-  field,
-  initialValue,
-  organization,
-  organizationSlug,
-  projectSlug,
-  queryClient,
-}: {
-  endpoint: string;
-  field: DetectorFieldConfig;
-  initialValue: ProjectPerformanceSettingValue;
-  organization: Organization;
-  organizationSlug: string;
-  projectSlug: string;
-  queryClient: QueryClient;
-}) {
-  if (field.visible === false) {
-    return null;
-  }
+const formatSize = (value: number | ''): string =>
+  value ? (value < 1000000 ? `${value / 1000}kB` : `${value / 1000000}MB`) : '';
 
-  const disabled = field.disabled ? (field.disabledReason ?? true) : false;
-  const mutationOptions = {
-    mutationFn: (data: ProjectPerformanceSettings) =>
-      fetchMutation<ProjectPerformanceSettings>({
-        url: endpoint,
-        method: 'PUT',
-        data,
-      }),
-    onSuccess: (
-      _data: ProjectPerformanceSettings,
-      variables: ProjectPerformanceSettings
-    ) => {
-      setApiQueryData<ProjectPerformanceSettings>(
-        queryClient,
-        getPerformanceIssueSettingsQueryKey(organizationSlug, projectSlug),
-        previous => ({...previous, ...variables})
-      );
+const formatFrameRate = (value: number | ''): string => {
+  const fps = value && 1000 / value;
+  return fps ? `${Math.floor(fps / 5) * 5}fps` : '';
+};
 
-      const [thresholdKey, thresholdValue] = Object.entries(variables)[0] ?? [];
-      if (thresholdKey && typeof thresholdValue === 'number') {
-        trackAnalytics('performance_views.project_issue_detection_threshold_changed', {
-          organization,
-          project_slug: projectSlug,
-          threshold_key: thresholdKey,
-          threshold_value: thresholdValue,
-        });
-      }
-    },
-  };
+const formatCount = (value: number | ''): string => '' + value;
 
-  if (field.type === 'boolean') {
-    const schema = z.object({[field.name]: z.boolean()});
-    return (
-      <AutoSaveForm
-        name={field.name}
-        schema={schema}
-        initialValue={Boolean(initialValue)}
-        mutationOptions={mutationOptions}
-      >
-        {formField => (
-          <formField.Layout.Row label={field.label} hintText={field.help}>
-            <formField.Switch
-              checked={formField.state.value}
-              onChange={formField.handleChange}
-              disabled={disabled}
-            />
-          </formField.Layout.Row>
-        )}
-      </AutoSaveForm>
+function handleSuperUserError(error: Error) {
+  if (error instanceof RequestError && error.status === 403) {
+    addErrorMessage(
+      t(
+        'This action requires active super user access. Please re-authenticate to make changes.'
+      )
     );
   }
-
-  if (field.type === 'string') {
-    const schema = z.object({[field.name]: z.string()});
-    return (
-      <AutoSaveForm
-        name={field.name}
-        schema={schema}
-        initialValue={typeof initialValue === 'string' ? initialValue : ''}
-        mutationOptions={mutationOptions}
-      >
-        {formField => (
-          <formField.Layout.Row label={field.label} hintText={field.help}>
-            <formField.Input
-              value={formField.state.value}
-              onChange={formField.handleChange}
-              placeholder={field.placeholder}
-              disabled={disabled}
-            />
-          </formField.Layout.Row>
-        )}
-      </AutoSaveForm>
-    );
-  }
-
-  const allowedValues = field.allowedValues ?? [];
-  const numericValue =
-    typeof initialValue === 'number' ? initialValue : Number(field.defaultValue);
-  const schema = z.object({[field.name]: z.number()});
-
-  return (
-    <AutoSaveForm
-      name={field.name}
-      schema={schema}
-      initialValue={numericValue}
-      mutationOptions={mutationOptions}
-    >
-      {formField => {
-        const valueIndex = Math.max(allowedValues.indexOf(formField.state.value), 0);
-        const formattedValue = field.formatLabel?.(formField.state.value);
-
-        return (
-          <formField.Layout.Row label={field.label} hintText={field.help}>
-            <Stack flexGrow={1} gap="xs">
-              <formField.Range
-                aria-label={field.label}
-                value={valueIndex}
-                onChange={index => {
-                  const value = allowedValues[index];
-                  if (value !== undefined) {
-                    formField.handleChange(value);
-                  }
-                }}
-                min={0}
-                max={Math.max(allowedValues.length - 1, 0)}
-                step={1}
-                ticks={
-                  field.tickValues
-                    ? {values: field.tickValues, labels: field.showTickLabels}
-                    : undefined
-                }
-                formatOptions="hidden"
-                aria-valuetext={
-                  typeof formattedValue === 'string' ? formattedValue : undefined
-                }
-                disabled={disabled}
-              />
-              <Text align="right" size="sm" variant="muted">
-                {formattedValue ?? formField.state.value}
-              </Text>
-            </Stack>
-          </formField.Layout.Row>
-        );
-      }}
-    </AutoSaveForm>
-  );
 }
 
-export function ProjectPerformance() {
-  const api = useApi({persistInFlight: true});
-  const organization = useOrganization();
-  const {projectId: projectSlug} = useParams<{projectId: string}>();
-  const queryClient = useQueryClient();
-  const {
-    data: project,
-    isPending: isPendingProject,
-    isError: isErrorProject,
-  } = useDetailedProject({
-    projectSlug,
-    orgSlug: organization.slug,
-  });
-
-  const hasWebVitalsSeerSuggestions = useHasSeerWebVitalsSuggestions(project);
-  const hasAIIssueDetection =
-    organization.features.includes('gen-ai-features') &&
-    organization.features.includes('ai-issue-detection') &&
-    !organization.hideAiFeatures;
-
-  const {
-    data: threshold,
-    isPending: isPendingThreshold,
-    isError: isErrorThreshold,
-  } = useQuery(
-    apiOptions.as<ProjectThreshold>()(
-      '/projects/$organizationIdOrSlug/$projectIdOrSlug/transaction-threshold/configure/',
-      {
-        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
-        staleTime: 0,
-      }
-    )
-  );
-
-  const {
-    data: performanceIssueSettings,
-    isPending: isPendingPerformanceIssueSettings,
-    isError: isErrorPerformanceIssueSettings,
-  } = useQuery(
-    apiOptions.as<ProjectPerformanceSettings>()(
-      '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance-issues/configure/',
-      {
-        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
-        staleTime: 0,
-      }
-    )
-  );
-
-  const {
-    data: general,
-    isPending: isPendingGeneral,
-    isError: isErrorGeneral,
-  } = useQuery(
-    apiOptions.as<GeneralSettings>()(
-      '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance/configure/',
-      {
-        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
-        staleTime: 0,
-      }
-    )
-  );
-
-  const {mutate: resetThresholdSettings, isPending: isPendingResetThresholdSettings} =
-    useMutation({
-      mutationFn: () => {
-        return api.requestPromise(
-          `/projects/${organization.slug}/${projectSlug}/transaction-threshold/configure/`,
-          {
-            method: 'DELETE',
-          }
-        );
-      },
-      onMutate: () => {
-        trackAnalytics('performance_views.project_transaction_threshold.clear', {
-          organization,
-        });
-      },
-      onSuccess: () => {
-        queryClient.invalidateQueries({
-          queryKey: getThresholdQueryKey(organization.slug, projectSlug),
-        });
-      },
-    });
-
-  const {mutate: resetThresholds, isPending: isPendingResetThresholds} = useMutation({
-    mutationFn: () => {
-      return api.requestPromise(
-        `/projects/${organization.slug}/${projectSlug}/performance-issues/configure/`,
-        {
-          method: 'DELETE',
-        }
-      );
-    },
-    onMutate: () => {
-      trackAnalytics('performance_views.project_issue_detection_thresholds_reset', {
-        organization,
-        project_slug: projectSlug,
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
-      });
-    },
-  });
-
-  if (
-    isPendingThreshold ||
-    isPendingPerformanceIssueSettings ||
-    isPendingGeneral ||
-    isPendingProject ||
-    isPendingResetThresholdSettings ||
-    isPendingResetThresholds
-  ) {
-    return (
-      <Container padding="lg">
-        <LoadingIndicator />
-      </Container>
-    );
-  }
-
-  if (
-    isErrorThreshold ||
-    isErrorPerformanceIssueSettings ||
-    isErrorGeneral ||
-    isErrorProject
-  ) {
-    return <LoadingError />;
-  }
-
-  const requiredScopes: Scope[] = ['project:write'];
-  const projectEndpoint = `/projects/${organization.slug}/${projectSlug}/`;
-  const generalSettingsEndpoint = `/projects/${organization.slug}/${projectSlug}/performance/configure/`;
-  const thresholdEndpoint = `/projects/${organization.slug}/${projectSlug}/transaction-threshold/configure/`;
-  const performanceIssuesEndpoint = `/projects/${organization.slug}/${projectSlug}/performance-issues/configure/`;
-  const isSuperUser = isActiveSuperuser();
-  const hasWriteAccess = hasEveryAccess(requiredScopes, {organization, project});
-
-  const initialData = {
-    metric: threshold?.metric,
-    threshold: threshold?.threshold,
-  };
-
-  const areAllConfigurationsDisabled = Object.values(DetectorConfigAdmin).every(
-    th => !performanceIssueSettings[th]
-  );
-
-  const retentionPriorityFields = [
+function getRetentionPriorityFields(
+  organization: Organization
+): RetentionPriorityField[] {
+  return [
     {
-      name: 'boostLatestRelease',
+      name: DynamicSamplingBiasType.BOOST_LATEST_RELEASES,
       label: retentionPrioritiesLabels.boostLatestRelease,
       hintText: t(
         'Captures more transactions for your new releases as they are being adopted'
       ),
     },
     {
-      name: 'boostEnvironments',
+      name: DynamicSamplingBiasType.BOOST_ENVIRONMENTS,
       label: retentionPrioritiesLabels.boostEnvironments,
       hintText: t(
         'Captures more traces from environments that contain "debug", "dev", "local", "qa", and "test"'
       ),
     },
     {
-      name: 'boostLowVolumeTransactions',
+      name: DynamicSamplingBiasType.BOOST_LOW_VOLUME_TRANSACTIONS,
       label: retentionPrioritiesLabels.boostLowVolumeTransactions,
       hintText: t(
         "Balance high-volume endpoints so they don't drown out low-volume ones"
       ),
     },
     {
-      name: 'ignoreHealthChecks',
+      name: DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS,
       label: retentionPrioritiesLabels.ignoreHealthChecks,
       hintText: t('Captures fewer of your health checks transactions'),
     },
@@ -525,7 +255,7 @@ export function ProjectPerformance() {
     organization.features.includes('dynamic-sampling-minimum-sample-rate')
       ? [
           {
-            name: 'minimumSampleRate',
+            name: DynamicSamplingBiasType.MINIMUM_SAMPLE_RATE,
             label: retentionPrioritiesLabels.minimumSampleRate,
             hintText: t(
               'If higher than the trace sample rate, use the project sample rate for spans instead of the trace sample rate.'
@@ -533,9 +263,30 @@ export function ProjectPerformance() {
           },
         ]
       : []),
-  ] as const;
+  ];
+}
 
-  const performanceIssueDetectorAdminFieldMapping: Record<string, DetectorFieldConfig> = {
+type DetectorSettingsOptions = {
+  hasAIIssueDetection: boolean;
+  hasAccess: boolean;
+  hasWebVitalsSeerSuggestions: boolean;
+  organization: Organization;
+  performanceIssueSettings: ProjectPerformanceSettings;
+};
+
+/**
+ * Admin-only toggles that turn an entire detector on or off. Keyed by issue
+ * title so they can be prepended to the matching customer threshold group.
+ */
+function getDetectorAdminFields({
+  hasAIIssueDetection,
+  hasWebVitalsSeerSuggestions,
+  organization,
+}: Pick<
+  DetectorSettingsOptions,
+  'hasAIIssueDetection' | 'hasWebVitalsSeerSuggestions' | 'organization'
+>): Record<string, DetectorFieldConfig> {
+  return {
     [IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: {
       name: DetectorConfigAdmin.N_PLUS_DB_ENABLED,
       type: 'boolean',
@@ -627,540 +378,917 @@ export function ProjectPerformance() {
       visible: hasAIIssueDetection,
     },
   };
+}
 
-  const onSuperUserError = (error: Error) => {
-    if (error instanceof RequestError && error.status === 403) {
-      addErrorMessage(
-        t(
-          'This action requires active super user access. Please re-authenticate to make changes.'
-        )
+/**
+ * Customer-facing threshold groups, one per issue type. Each group is prefixed
+ * with its admin enable/disable toggle when one exists.
+ */
+function getProjectDetectorSettings({
+  hasAccess,
+  hasAIIssueDetection,
+  hasWebVitalsSeerSuggestions,
+  organization,
+  performanceIssueSettings,
+}: DetectorSettingsOptions): DetectorFieldGroup[] {
+  const disabledReason = hasAccess
+    ? t('Detection of this issue has been disabled.')
+    : null;
+  const issueType = safeGetQsParam('issueType');
+
+  const baseDetectorFields: DetectorFieldGroup[] = [
+    {
+      title: IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+      fields: [
+        {
+          name: DetectorConfigCustomer.N_PLUS_DB_DURATION,
+          type: 'range',
+          label: t('Minimum Total Duration'),
+          defaultValue: 100, // ms
+          help: t(
+            'Setting the value to 100ms, means that an eligible event will be detected as a N+1 DB Query Issue only if the total duration of the involved spans exceeds 100ms'
+          ),
+          allowedValues: allowedDurationValues,
+          disabled: !(
+            hasAccess && performanceIssueSettings[DetectorConfigAdmin.N_PLUS_DB_ENABLED]
+          ),
+          tickValues: [0, allowedDurationValues.length - 1],
+          showTickLabels: true,
+          formatLabel: formatDuration,
+          flexibleControlStateSize: true,
+          disabledReason,
+        },
+        {
+          name: DetectorConfigCustomer.N_PLUS_DB_COUNT,
+          type: 'range',
+          label: t('Minimum Query Count'),
+          defaultValue: 5,
+          help: t(
+            'Setting the value to 5 means that an eligible event will be detected as an N+1 DB Query Issue only if the number of repeated queries exceeds 5'
+          ),
+          allowedValues: allowedCountValues,
+          disabled: !(
+            hasAccess && performanceIssueSettings[DetectorConfigAdmin.N_PLUS_DB_ENABLED]
+          ),
+          tickValues: [0, allowedCountValues.length - 1],
+          showTickLabels: true,
+          formatLabel: formatCount,
+          flexibleControlStateSize: true,
+          disabledReason,
+        },
+      ],
+      initiallyCollapsed: issueType !== IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+    },
+    {
+      title: IssueTitle.PERFORMANCE_SLOW_DB_QUERY,
+      fields: [
+        {
+          name: DetectorConfigCustomer.SLOW_DB_DURATION,
+          type: 'range',
+          label: t('Minimum Duration'),
+          defaultValue: 1000, // ms
+          help: t(
+            'Setting the value to 1s, means that an eligible event will be detected as a Slow DB Query Issue only if the duration of the involved db span exceeds 1s.'
+          ),
+          tickValues: [0, allowedDurationValues.slice(5).length - 1],
+          showTickLabels: true,
+          allowedValues: allowedDurationValues.slice(5),
+          disabled: !(
+            hasAccess && performanceIssueSettings[DetectorConfigAdmin.SLOW_DB_ENABLED]
+          ),
+          formatLabel: formatDuration,
+          disabledReason,
+        },
+      ],
+      initiallyCollapsed: issueType !== IssueType.PERFORMANCE_SLOW_DB_QUERY,
+    },
+    {
+      title: IssueTitle.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+      fields: [
+        {
+          name: DetectorConfigCustomer.N_PLUS_API_CALLS_DURATION,
+          type: 'range',
+          label: t('Minimum Total Duration'),
+          defaultValue: 300, // ms
+          help: t(
+            'Setting the value to 300ms, means that an eligible event will be detected as a N+1 API Calls Issue only if the total duration of the involved spans exceeds 300ms'
+          ),
+          allowedValues: allowedDurationValues.slice(5),
+          disabled: !(
+            hasAccess &&
+            performanceIssueSettings[DetectorConfigAdmin.N_PLUS_ONE_API_CALLS_ENABLED]
+          ),
+          tickValues: [0, allowedDurationValues.slice(5).length - 1],
+          showTickLabels: true,
+          formatLabel: formatDuration,
+          flexibleControlStateSize: true,
+          disabledReason,
+        },
+      ],
+      initiallyCollapsed: issueType !== IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+    },
+    {
+      title: IssueTitle.PERFORMANCE_RENDER_BLOCKING_ASSET,
+      fields: [
+        {
+          name: DetectorConfigCustomer.RENDER_BLOCKING_ASSET_RATIO,
+          type: 'range',
+          label: t('Minimum FCP Ratio'),
+          defaultValue: 0.33,
+          help: t(
+            'Setting the value to 33%, means that an eligible event will be detected as a Large Render Blocking Asset Issue only if the duration of the involved span is at least 33% of First Contentful Paint (FCP).'
+          ),
+          allowedValues: allowedPercentageValues,
+          tickValues: [0, allowedPercentageValues.length - 1],
+          showTickLabels: true,
+          disabled: !(
+            hasAccess &&
+            performanceIssueSettings[DetectorConfigAdmin.RENDER_BLOCK_ASSET_ENABLED]
+          ),
+          formatLabel: value => value && formatPercentage(value),
+          disabledReason,
+        },
+      ],
+      initiallyCollapsed: issueType !== IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
+    },
+    {
+      title: IssueTitle.PERFORMANCE_LARGE_HTTP_PAYLOAD,
+      fields: [
+        {
+          name: DetectorConfigCustomer.LARGE_HTTP_PAYLOAD_SIZE,
+          type: 'range',
+          label: t('Minimum Size'),
+          defaultValue: 1000000, // 1MB in bytes
+          help: t(
+            'Setting the value to 1MB, means that an eligible event will be detected as a Large HTTP Payload Issue only if the involved HTTP span has a payload size that exceeds 1MB.'
+          ),
+          tickValues: [0, allowedSizeValues.slice(1).length - 1],
+          showTickLabels: true,
+          allowedValues: allowedSizeValues.slice(1),
+          disabled: !(
+            hasAccess &&
+            performanceIssueSettings[DetectorConfigAdmin.LARGE_HTTP_PAYLOAD_ENABLED]
+          ),
+          formatLabel: formatSize,
+          disabledReason,
+        },
+        {
+          name: DetectorConfigCustomer.LARGE_HTTP_PAYLOAD_FILTERED_PATHS,
+          type: 'string',
+          label: t('Filtered Paths'),
+          placeholder: t('/api/download/, /download/file'),
+          help: t(
+            'Comma-separated list of URL paths to exclude from Large HTTP Payload detection. Any spans with these paths will be excluded. Supports partial matches (e.g., "/api/" will match "/api/users").'
+          ),
+          disabled: !(
+            hasAccess &&
+            performanceIssueSettings[DetectorConfigAdmin.LARGE_HTTP_PAYLOAD_ENABLED]
+          ),
+          disabledReason,
+          visible: true,
+        },
+      ],
+      initiallyCollapsed: issueType !== IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
+    },
+    {
+      title: IssueTitle.PERFORMANCE_DB_MAIN_THREAD,
+      fields: [
+        {
+          name: DetectorConfigCustomer.DB_ON_MAIN_THREAD_DURATION,
+          type: 'range',
+          label: t('Frame Rate Drop'),
+          defaultValue: 16, // ms
+          help: t(
+            'Setting the value to 60fps, means that an eligible event will be detected as a DB on Main Thread Issue only if database spans on the main thread cause frame rate to drop below 60fps.'
+          ),
+          tickValues: [0, 3],
+          showTickLabels: true,
+          allowedValues: [10, 16, 33, 50], // representation of 100 to 20 fps in milliseconds
+          disabled: !(
+            hasAccess &&
+            performanceIssueSettings[DetectorConfigAdmin.DB_MAIN_THREAD_ENABLED]
+          ),
+          formatLabel: formatFrameRate,
+          disabledReason,
+        },
+      ],
+      initiallyCollapsed: issueType !== IssueType.PERFORMANCE_DB_MAIN_THREAD,
+    },
+    {
+      title: IssueTitle.PERFORMANCE_FILE_IO_MAIN_THREAD,
+      fields: [
+        {
+          name: DetectorConfigCustomer.FILE_IO_MAIN_THREAD_DURATION,
+          type: 'range',
+          label: t('Frame Rate Drop'),
+          defaultValue: 16, // ms
+          help: t(
+            'Setting the value to 60fps, means that an eligible event will be detected as a File I/O on Main Thread Issue only if File I/O spans on the main thread cause frame rate to drop below 60fps.'
+          ),
+          tickValues: [0, 3],
+          showTickLabels: true,
+          allowedValues: [10, 16, 33, 50], // representation of 100, 60, 30, 20 fps in milliseconds
+          disabled: !(
+            hasAccess && performanceIssueSettings[DetectorConfigAdmin.FILE_IO_ENABLED]
+          ),
+          formatLabel: formatFrameRate,
+          disabledReason,
+        },
+      ],
+      initiallyCollapsed: issueType !== IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD,
+    },
+    {
+      title: IssueTitle.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
+      fields: [
+        {
+          name: DetectorConfigCustomer.CONSECUTIVE_DB_MIN_TIME_SAVED,
+          type: 'range',
+          label: t('Minimum Time Saved'),
+          defaultValue: 100, // ms
+          help: t(
+            'Setting the value to 100ms, means that an eligible event will be detected as a Consecutive DB Queries Issue only if the time saved by parallelizing the queries exceeds 100ms.'
+          ),
+          tickValues: [0, allowedDurationValues.slice(0, 23).length - 1],
+          showTickLabels: true,
+          allowedValues: allowedDurationValues.slice(0, 23),
+          disabled: !(
+            hasAccess &&
+            performanceIssueSettings[DetectorConfigAdmin.CONSECUTIVE_DB_ENABLED]
+          ),
+          formatLabel: formatDuration,
+          disabledReason,
+        },
+      ],
+      initiallyCollapsed: issueType !== IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
+    },
+    {
+      title: IssueTitle.PERFORMANCE_UNCOMPRESSED_ASSET,
+      fields: [
+        {
+          name: DetectorConfigCustomer.UNCOMPRESSED_ASSET_SIZE,
+          type: 'range',
+          label: t('Minimum Size'),
+          defaultValue: 512000, // in kilobytes
+          help: t(
+            'Setting the value to 512KB, means that an eligible event will be detected as an Uncompressed Asset Issue only if the size of the uncompressed asset being transferred exceeds 512KB.'
+          ),
+          tickValues: [0, allowedSizeValues.slice(1).length - 1],
+          showTickLabels: true,
+          allowedValues: allowedSizeValues.slice(1),
+          disabled: !(
+            hasAccess &&
+            performanceIssueSettings[DetectorConfigAdmin.UNCOMPRESSED_ASSET_ENABLED]
+          ),
+          formatLabel: formatSize,
+          disabledReason,
+        },
+        {
+          name: DetectorConfigCustomer.UNCOMPRESSED_ASSET_DURATION,
+          type: 'range',
+          label: t('Minimum Duration'),
+          defaultValue: 500, // in ms
+          help: t(
+            'Setting the value to 500ms, means that an eligible event will be detected as an Uncompressed Asset Issue only if the duration of the span responsible for transferring the uncompressed asset exceeds 500ms.'
+          ),
+          tickValues: [0, allowedDurationValues.slice(5).length - 1],
+          showTickLabels: true,
+          allowedValues: allowedDurationValues.slice(5),
+          disabled: !(
+            hasAccess &&
+            performanceIssueSettings[DetectorConfigAdmin.UNCOMPRESSED_ASSET_ENABLED]
+          ),
+          formatLabel: formatDuration,
+          disabledReason,
+        },
+      ],
+      initiallyCollapsed: issueType !== IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
+    },
+    {
+      title: IssueTitle.PERFORMANCE_CONSECUTIVE_HTTP,
+      fields: [
+        {
+          name: DetectorConfigCustomer.CONSECUTIVE_HTTP_MIN_TIME_SAVED,
+          type: 'range',
+          label: t('Minimum Time Saved'),
+          defaultValue: 2000, // in ms
+          help: t(
+            'Setting the value to 2s, means that an eligible event will be detected as a Consecutive HTTP Issue only if the time saved by parallelizing the http spans exceeds 2s.'
+          ),
+          tickValues: [0, allowedDurationValues.slice(14).length - 1],
+          showTickLabels: true,
+          allowedValues: allowedDurationValues.slice(14),
+          disabled: !(
+            hasAccess &&
+            performanceIssueSettings[DetectorConfigAdmin.CONSECUTIVE_HTTP_ENABLED]
+          ),
+          formatLabel: formatDuration,
+          disabledReason,
+        },
+      ],
+      initiallyCollapsed: issueType !== IssueType.PERFORMANCE_CONSECUTIVE_HTTP,
+    },
+    {
+      title: IssueTitle.PERFORMANCE_HTTP_OVERHEAD,
+      fields: [
+        {
+          name: DetectorConfigCustomer.HTTP_OVERHEAD_REQUEST_DELAY,
+          type: 'range',
+          label: t('Request Delay'),
+          defaultValue: 500, // in ms
+          help: t(
+            'Setting the value to 500ms, means that the HTTP request delay (wait time) will have to exceed 500ms for an HTTP Overhead issue to be created.'
+          ),
+          tickValues: [0, allowedDurationValues.slice(6, 17).length - 1],
+          showTickLabels: true,
+          allowedValues: allowedDurationValues.slice(6, 17),
+          disabled: !(
+            hasAccess &&
+            performanceIssueSettings[DetectorConfigAdmin.HTTP_OVERHEAD_ENABLED]
+          ),
+          formatLabel: formatDuration,
+          disabledReason,
+        },
+      ],
+      initiallyCollapsed: issueType !== IssueType.PERFORMANCE_HTTP_OVERHEAD,
+    },
+    {
+      title: IssueTitle.QUERY_INJECTION_VULNERABILITY,
+      fields: [
+        {
+          name: DetectorConfigCustomer.SQL_INJECTION_QUERY_VALUE_LENGTH,
+          type: 'range',
+          label: t('SQL Injection Query Value Length'),
+          defaultValue: 3,
+          help: t(
+            'Setting the value to 3, means that the query values with length 3 or more will be assessed when creating a DB Query Injection Vulnerability issue.'
+          ),
+          tickValues: [3, 10],
+          allowedValues: [3, 4, 5, 6, 7, 8, 9, 10],
+          disabled: !(
+            hasAccess &&
+            performanceIssueSettings[DetectorConfigAdmin.DB_QUERY_INJECTION_ENABLED]
+          ),
+          formatLabel: value => value && value.toString(),
+          disabledReason,
+          visible: organization.features.includes(
+            'issue-query-injection-vulnerability-visible'
+          ),
+        },
+      ],
+      initiallyCollapsed: issueType !== IssueType.QUERY_INJECTION_VULNERABILITY,
+    },
+    {
+      title: IssueTitle.WEB_VITALS,
+      fields: [
+        {
+          name: DetectorConfigCustomer.WEB_VITALS_COUNT,
+          type: 'range',
+          label: t('Minimum Sample Count'),
+          defaultValue: 10,
+          help: t(
+            'Setting the value to 10, means that web vital issues will only be created if there are at least 10 samples of the web vital type.'
+          ),
+          tickValues: [0, allowedCountValues.length - 1],
+          allowedValues: allowedCountValues,
+          showTickLabels: true,
+          formatLabel: formatCount,
+          flexibleControlStateSize: true,
+          disabled: !(
+            hasAccess && performanceIssueSettings[DetectorConfigAdmin.WEB_VITALS_ENABLED]
+          ),
+          disabledReason,
+          visible: hasWebVitalsSeerSuggestions,
+        },
+      ],
+      initiallyCollapsed: issueType !== IssueType.WEB_VITALS,
+    },
+    {
+      title: 'AI Detected',
+      fields: [
+        {
+          name: DetectorConfigAdmin.AI_DETECTED_HTTP_ENABLED,
+          type: 'boolean' as const,
+          label: t('HTTP Issues'),
+          help: t('Allow HTTP issues to be created'),
+          defaultValue: true,
+          disabled: !(
+            hasAccess &&
+            performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
+          ),
+          disabledReason,
+          visible: hasAIIssueDetection,
+        },
+        {
+          name: DetectorConfigAdmin.AI_DETECTED_DB_ENABLED,
+          type: 'boolean' as const,
+          label: t('Database Issues'),
+          help: t('Allow database issues to be created'),
+          defaultValue: true,
+          disabled: !(
+            hasAccess &&
+            performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
+          ),
+          disabledReason,
+          visible: hasAIIssueDetection,
+        },
+        {
+          name: DetectorConfigAdmin.AI_DETECTED_RUNTIME_PERFORMANCE_ENABLED,
+          type: 'boolean' as const,
+          label: t('Runtime Performance Issues'),
+          help: t('Allow runtime performance issues to be created'),
+          defaultValue: true,
+          disabled: !(
+            hasAccess &&
+            performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
+          ),
+          disabledReason,
+          visible: hasAIIssueDetection,
+        },
+        {
+          name: DetectorConfigAdmin.AI_DETECTED_SECURITY_ENABLED,
+          type: 'boolean' as const,
+          label: t('Security Issues'),
+          help: t('Allow security issues to be created'),
+          defaultValue: true,
+          disabled: !(
+            hasAccess &&
+            performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
+          ),
+          disabledReason,
+          visible: hasAIIssueDetection,
+        },
+        {
+          name: DetectorConfigAdmin.AI_DETECTED_CODE_HEALTH_ENABLED,
+          type: 'boolean' as const,
+          label: t('Code Health Issues'),
+          help: t('Allow code health issues to be created'),
+          defaultValue: true,
+          disabled: !(
+            hasAccess &&
+            performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
+          ),
+          disabledReason,
+          visible: hasAIIssueDetection,
+        },
+      ],
+      initiallyCollapsed: !AI_DETECTED_ISSUE_TYPES.has(issueType as IssueType),
+    },
+  ];
+
+  // If the organization can manage detectors, add the admin field to the existing settings
+  const adminFields = getDetectorAdminFields({
+    hasAIIssueDetection,
+    hasWebVitalsSeerSuggestions,
+    organization,
+  });
+
+  return baseDetectorFields.map(fieldGroup => {
+    const manageField = adminFields[fieldGroup.title];
+
+    return manageField
+      ? {
+          ...fieldGroup,
+          fields: [
+            {
+              help: t('Controls whether or not Sentry should detect this type of issue.'),
+              ...manageField,
+              disabled: !hasAccess,
+              disabledReason: t('You do not have permission to manage detectors.'),
+            },
+            ...fieldGroup.fields,
+          ],
+        }
+      : fieldGroup;
+  });
+}
+
+function useDetectorFieldMutationOptions(endpoint: string, projectSlug: string) {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+
+  return {
+    mutationFn: (data: ProjectPerformanceSettings) =>
+      fetchMutation<ProjectPerformanceSettings>({url: endpoint, method: 'PUT', data}),
+    onSuccess: (
+      _data: ProjectPerformanceSettings,
+      variables: ProjectPerformanceSettings
+    ) => {
+      setApiQueryData<ProjectPerformanceSettings>(
+        queryClient,
+        getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
+        previous => ({...previous, ...variables})
       );
-    }
+
+      const [thresholdKey, thresholdValue] = Object.entries(variables)[0] ?? [];
+      if (thresholdKey && typeof thresholdValue === 'number') {
+        trackAnalytics('performance_views.project_issue_detection_threshold_changed', {
+          organization,
+          project_slug: projectSlug,
+          threshold_key: thresholdKey,
+          threshold_value: thresholdValue,
+        });
+      }
+    },
   };
+}
 
-  const getProjectDetectorSettings = (hasAccess: boolean): DetectorFieldGroup[] => {
-    const disabledText = t('Detection of this issue has been disabled.');
+type DetectorFieldProps<TValue> = {
+  disabled: boolean | string;
+  field: DetectorFieldConfig;
+  initialValue: TValue;
+  mutationOptions: ReturnType<typeof useDetectorFieldMutationOptions>;
+};
 
-    const disabledReason = hasAccess ? disabledText : null;
+function DetectorBooleanField({
+  disabled,
+  field,
+  initialValue,
+  mutationOptions,
+}: DetectorFieldProps<boolean>) {
+  return (
+    <AutoSaveForm
+      name={field.name}
+      schema={z.object({[field.name]: z.boolean()})}
+      initialValue={initialValue}
+      mutationOptions={mutationOptions}
+    >
+      {formField => (
+        <formField.Layout.Row label={field.label} hintText={field.help}>
+          <formField.Switch
+            checked={formField.state.value}
+            onChange={formField.handleChange}
+            disabled={disabled}
+          />
+        </formField.Layout.Row>
+      )}
+    </AutoSaveForm>
+  );
+}
 
-    const formatDuration = (value: number | ''): string => {
-      return value ? (value < 1000 ? `${value}ms` : `${value / 1000}s`) : '';
-    };
+function DetectorStringField({
+  disabled,
+  field,
+  initialValue,
+  mutationOptions,
+}: DetectorFieldProps<string>) {
+  return (
+    <AutoSaveForm
+      name={field.name}
+      schema={z.object({[field.name]: z.string()})}
+      initialValue={initialValue}
+      mutationOptions={mutationOptions}
+    >
+      {formField => (
+        <formField.Layout.Row label={field.label} hintText={field.help}>
+          <formField.Input
+            value={formField.state.value}
+            onChange={formField.handleChange}
+            placeholder={field.placeholder}
+            disabled={disabled}
+          />
+        </formField.Layout.Row>
+      )}
+    </AutoSaveForm>
+  );
+}
 
-    const formatSize = (value: number | ''): string => {
-      return value
-        ? value < 1000000
-          ? `${value / 1000}kB`
-          : `${value / 1000000}MB`
-        : '';
-    };
-
-    const formatFrameRate = (value: number | ''): string => {
-      const fps = value && 1000 / value;
-      return fps ? `${Math.floor(fps / 5) * 5}fps` : '';
-    };
-
-    const formatCount = (value: number | ''): string => {
-      return '' + value;
-    };
-
-    const issueType = safeGetQsParam('issueType');
-
-    const baseDetectorFields: DetectorFieldGroup[] = [
-      {
-        title: IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-        fields: [
-          {
-            name: DetectorConfigCustomer.N_PLUS_DB_DURATION,
-            type: 'range',
-            label: t('Minimum Total Duration'),
-            defaultValue: 100, // ms
-            help: t(
-              'Setting the value to 100ms, means that an eligible event will be detected as a N+1 DB Query Issue only if the total duration of the involved spans exceeds 100ms'
-            ),
-            allowedValues: allowedDurationValues,
-            disabled: !(
-              hasAccess && performanceIssueSettings[DetectorConfigAdmin.N_PLUS_DB_ENABLED]
-            ),
-            tickValues: [0, allowedDurationValues.length - 1],
-            showTickLabels: true,
-            formatLabel: formatDuration,
-            flexibleControlStateSize: true,
-            disabledReason,
-          },
-          {
-            name: DetectorConfigCustomer.N_PLUS_DB_COUNT,
-            type: 'range',
-            label: t('Minimum Query Count'),
-            defaultValue: 5,
-            help: t(
-              'Setting the value to 5 means that an eligible event will be detected as an N+1 DB Query Issue only if the number of repeated queries exceeds 5'
-            ),
-            allowedValues: allowedCountValues,
-            disabled: !(
-              hasAccess && performanceIssueSettings[DetectorConfigAdmin.N_PLUS_DB_ENABLED]
-            ),
-            tickValues: [0, allowedCountValues.length - 1],
-            showTickLabels: true,
-            formatLabel: formatCount,
-            flexibleControlStateSize: true,
-            disabledReason,
-          },
-        ],
-        initiallyCollapsed: issueType !== IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-      },
-      {
-        title: IssueTitle.PERFORMANCE_SLOW_DB_QUERY,
-        fields: [
-          {
-            name: DetectorConfigCustomer.SLOW_DB_DURATION,
-            type: 'range',
-            label: t('Minimum Duration'),
-            defaultValue: 1000, // ms
-            help: t(
-              'Setting the value to 1s, means that an eligible event will be detected as a Slow DB Query Issue only if the duration of the involved db span exceeds 1s.'
-            ),
-            tickValues: [0, allowedDurationValues.slice(5).length - 1],
-            showTickLabels: true,
-            allowedValues: allowedDurationValues.slice(5),
-            disabled: !(
-              hasAccess && performanceIssueSettings[DetectorConfigAdmin.SLOW_DB_ENABLED]
-            ),
-            formatLabel: formatDuration,
-            disabledReason,
-          },
-        ],
-        initiallyCollapsed: issueType !== IssueType.PERFORMANCE_SLOW_DB_QUERY,
-      },
-      {
-        title: IssueTitle.PERFORMANCE_N_PLUS_ONE_API_CALLS,
-        fields: [
-          {
-            name: DetectorConfigCustomer.N_PLUS_API_CALLS_DURATION,
-            type: 'range',
-            label: t('Minimum Total Duration'),
-            defaultValue: 300, // ms
-            help: t(
-              'Setting the value to 300ms, means that an eligible event will be detected as a N+1 API Calls Issue only if the total duration of the involved spans exceeds 300ms'
-            ),
-            allowedValues: allowedDurationValues.slice(5),
-            disabled: !(
-              hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.N_PLUS_ONE_API_CALLS_ENABLED]
-            ),
-            tickValues: [0, allowedDurationValues.slice(5).length - 1],
-            showTickLabels: true,
-            formatLabel: formatDuration,
-            flexibleControlStateSize: true,
-            disabledReason,
-          },
-        ],
-        initiallyCollapsed: issueType !== IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
-      },
-      {
-        title: IssueTitle.PERFORMANCE_RENDER_BLOCKING_ASSET,
-        fields: [
-          {
-            name: DetectorConfigCustomer.RENDER_BLOCKING_ASSET_RATIO,
-            type: 'range',
-            label: t('Minimum FCP Ratio'),
-            defaultValue: 0.33,
-            help: t(
-              'Setting the value to 33%, means that an eligible event will be detected as a Large Render Blocking Asset Issue only if the duration of the involved span is at least 33% of First Contentful Paint (FCP).'
-            ),
-            allowedValues: allowedPercentageValues,
-            tickValues: [0, allowedPercentageValues.length - 1],
-            showTickLabels: true,
-            disabled: !(
-              hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.RENDER_BLOCK_ASSET_ENABLED]
-            ),
-            formatLabel: value => value && formatPercentage(value),
-            disabledReason,
-          },
-        ],
-        initiallyCollapsed: issueType !== IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
-      },
-      {
-        title: IssueTitle.PERFORMANCE_LARGE_HTTP_PAYLOAD,
-        fields: [
-          {
-            name: DetectorConfigCustomer.LARGE_HTTP_PAYLOAD_SIZE,
-            type: 'range',
-            label: t('Minimum Size'),
-            defaultValue: 1000000, // 1MB in bytes
-            help: t(
-              'Setting the value to 1MB, means that an eligible event will be detected as a Large HTTP Payload Issue only if the involved HTTP span has a payload size that exceeds 1MB.'
-            ),
-            tickValues: [0, allowedSizeValues.slice(1).length - 1],
-            showTickLabels: true,
-            allowedValues: allowedSizeValues.slice(1),
-            disabled: !(
-              hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.LARGE_HTTP_PAYLOAD_ENABLED]
-            ),
-            formatLabel: formatSize,
-            disabledReason,
-          },
-          {
-            name: DetectorConfigCustomer.LARGE_HTTP_PAYLOAD_FILTERED_PATHS,
-            type: 'string',
-            label: t('Filtered Paths'),
-            placeholder: t('/api/download/, /download/file'),
-            help: t(
-              'Comma-separated list of URL paths to exclude from Large HTTP Payload detection. Any spans with these paths will be excluded. Supports partial matches (e.g., "/api/" will match "/api/users").'
-            ),
-            disabled: !(
-              hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.LARGE_HTTP_PAYLOAD_ENABLED]
-            ),
-            disabledReason,
-            visible: true,
-          },
-        ],
-        initiallyCollapsed: issueType !== IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
-      },
-      {
-        title: IssueTitle.PERFORMANCE_DB_MAIN_THREAD,
-        fields: [
-          {
-            name: DetectorConfigCustomer.DB_ON_MAIN_THREAD_DURATION,
-            type: 'range',
-            label: t('Frame Rate Drop'),
-            defaultValue: 16, // ms
-            help: t(
-              'Setting the value to 60fps, means that an eligible event will be detected as a DB on Main Thread Issue only if database spans on the main thread cause frame rate to drop below 60fps.'
-            ),
-            tickValues: [0, 3],
-            showTickLabels: true,
-            allowedValues: [10, 16, 33, 50], // representation of 100 to 20 fps in milliseconds
-            disabled: !(
-              hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.DB_MAIN_THREAD_ENABLED]
-            ),
-            formatLabel: formatFrameRate,
-            disabledReason,
-          },
-        ],
-        initiallyCollapsed: issueType !== IssueType.PERFORMANCE_DB_MAIN_THREAD,
-      },
-      {
-        title: IssueTitle.PERFORMANCE_FILE_IO_MAIN_THREAD,
-        fields: [
-          {
-            name: DetectorConfigCustomer.FILE_IO_MAIN_THREAD_DURATION,
-            type: 'range',
-            label: t('Frame Rate Drop'),
-            defaultValue: 16, // ms
-            help: t(
-              'Setting the value to 60fps, means that an eligible event will be detected as a File I/O on Main Thread Issue only if File I/O spans on the main thread cause frame rate to drop below 60fps.'
-            ),
-            tickValues: [0, 3],
-            showTickLabels: true,
-            allowedValues: [10, 16, 33, 50], // representation of 100, 60, 30, 20 fps in milliseconds
-            disabled: !(
-              hasAccess && performanceIssueSettings[DetectorConfigAdmin.FILE_IO_ENABLED]
-            ),
-            formatLabel: formatFrameRate,
-            disabledReason,
-          },
-        ],
-        initiallyCollapsed: issueType !== IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD,
-      },
-      {
-        title: IssueTitle.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
-        fields: [
-          {
-            name: DetectorConfigCustomer.CONSECUTIVE_DB_MIN_TIME_SAVED,
-            type: 'range',
-            label: t('Minimum Time Saved'),
-            defaultValue: 100, // ms
-            help: t(
-              'Setting the value to 100ms, means that an eligible event will be detected as a Consecutive DB Queries Issue only if the time saved by parallelizing the queries exceeds 100ms.'
-            ),
-            tickValues: [0, allowedDurationValues.slice(0, 23).length - 1],
-            showTickLabels: true,
-            allowedValues: allowedDurationValues.slice(0, 23),
-            disabled: !(
-              hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.CONSECUTIVE_DB_ENABLED]
-            ),
-            formatLabel: formatDuration,
-            disabledReason,
-          },
-        ],
-        initiallyCollapsed: issueType !== IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
-      },
-      {
-        title: IssueTitle.PERFORMANCE_UNCOMPRESSED_ASSET,
-        fields: [
-          {
-            name: DetectorConfigCustomer.UNCOMPRESSED_ASSET_SIZE,
-            type: 'range',
-            label: t('Minimum Size'),
-            defaultValue: 512000, // in kilobytes
-            help: t(
-              'Setting the value to 512KB, means that an eligible event will be detected as an Uncompressed Asset Issue only if the size of the uncompressed asset being transferred exceeds 512KB.'
-            ),
-            tickValues: [0, allowedSizeValues.slice(1).length - 1],
-            showTickLabels: true,
-            allowedValues: allowedSizeValues.slice(1),
-            disabled: !(
-              hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.UNCOMPRESSED_ASSET_ENABLED]
-            ),
-            formatLabel: formatSize,
-            disabledReason,
-          },
-          {
-            name: DetectorConfigCustomer.UNCOMPRESSED_ASSET_DURATION,
-            type: 'range',
-            label: t('Minimum Duration'),
-            defaultValue: 500, // in ms
-            help: t(
-              'Setting the value to 500ms, means that an eligible event will be detected as an Uncompressed Asset Issue only if the duration of the span responsible for transferring the uncompressed asset exceeds 500ms.'
-            ),
-            tickValues: [0, allowedDurationValues.slice(5).length - 1],
-            showTickLabels: true,
-            allowedValues: allowedDurationValues.slice(5),
-            disabled: !(
-              hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.UNCOMPRESSED_ASSET_ENABLED]
-            ),
-            formatLabel: formatDuration,
-            disabledReason,
-          },
-        ],
-        initiallyCollapsed: issueType !== IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
-      },
-      {
-        title: IssueTitle.PERFORMANCE_CONSECUTIVE_HTTP,
-        fields: [
-          {
-            name: DetectorConfigCustomer.CONSECUTIVE_HTTP_MIN_TIME_SAVED,
-            type: 'range',
-            label: t('Minimum Time Saved'),
-            defaultValue: 2000, // in ms
-            help: t(
-              'Setting the value to 2s, means that an eligible event will be detected as a Consecutive HTTP Issue only if the time saved by parallelizing the http spans exceeds 2s.'
-            ),
-            tickValues: [0, allowedDurationValues.slice(14).length - 1],
-            showTickLabels: true,
-            allowedValues: allowedDurationValues.slice(14),
-            disabled: !(
-              hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.CONSECUTIVE_HTTP_ENABLED]
-            ),
-            formatLabel: formatDuration,
-            disabledReason,
-          },
-        ],
-        initiallyCollapsed: issueType !== IssueType.PERFORMANCE_CONSECUTIVE_HTTP,
-      },
-      {
-        title: IssueTitle.PERFORMANCE_HTTP_OVERHEAD,
-        fields: [
-          {
-            name: DetectorConfigCustomer.HTTP_OVERHEAD_REQUEST_DELAY,
-            type: 'range',
-            label: t('Request Delay'),
-            defaultValue: 500, // in ms
-            help: t(
-              'Setting the value to 500ms, means that the HTTP request delay (wait time) will have to exceed 500ms for an HTTP Overhead issue to be created.'
-            ),
-            tickValues: [0, allowedDurationValues.slice(6, 17).length - 1],
-            showTickLabels: true,
-            allowedValues: allowedDurationValues.slice(6, 17),
-            disabled: !(
-              hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.HTTP_OVERHEAD_ENABLED]
-            ),
-            formatLabel: formatDuration,
-            disabledReason,
-          },
-        ],
-        initiallyCollapsed: issueType !== IssueType.PERFORMANCE_HTTP_OVERHEAD,
-      },
-      {
-        title: IssueTitle.QUERY_INJECTION_VULNERABILITY,
-        fields: [
-          {
-            name: DetectorConfigCustomer.SQL_INJECTION_QUERY_VALUE_LENGTH,
-            type: 'range',
-            label: t('SQL Injection Query Value Length'),
-            defaultValue: 3,
-            help: t(
-              'Setting the value to 3, means that the query values with length 3 or more will be assessed when creating a DB Query Injection Vulnerability issue.'
-            ),
-            tickValues: [3, 10],
-            allowedValues: [3, 4, 5, 6, 7, 8, 9, 10],
-            disabled: !(
-              hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.DB_QUERY_INJECTION_ENABLED]
-            ),
-            formatLabel: value => value && value.toString(),
-            disabledReason,
-            visible: organization.features.includes(
-              'issue-query-injection-vulnerability-visible'
-            ),
-          },
-        ],
-        initiallyCollapsed: issueType !== IssueType.QUERY_INJECTION_VULNERABILITY,
-      },
-      {
-        title: IssueTitle.WEB_VITALS,
-        fields: [
-          {
-            name: DetectorConfigCustomer.WEB_VITALS_COUNT,
-            type: 'range',
-            label: t('Minimum Sample Count'),
-            defaultValue: 10,
-            help: t(
-              'Setting the value to 10, means that web vital issues will only be created if there are at least 10 samples of the web vital type.'
-            ),
-            tickValues: [0, allowedCountValues.length - 1],
-            allowedValues: allowedCountValues,
-            showTickLabels: true,
-            formatLabel: formatCount,
-            flexibleControlStateSize: true,
-            disabled: !(
-              hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.WEB_VITALS_ENABLED]
-            ),
-            disabledReason,
-            visible: hasWebVitalsSeerSuggestions,
-          },
-        ],
-        initiallyCollapsed: issueType !== IssueType.WEB_VITALS,
-      },
-      {
-        title: 'AI Detected',
-        fields: [
-          {
-            name: DetectorConfigAdmin.AI_DETECTED_HTTP_ENABLED,
-            type: 'boolean' as const,
-            label: t('HTTP Issues'),
-            help: t('Allow HTTP issues to be created'),
-            defaultValue: true,
-            disabled: !(
-              hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
-            ),
-            disabledReason,
-            visible: hasAIIssueDetection,
-          },
-          {
-            name: DetectorConfigAdmin.AI_DETECTED_DB_ENABLED,
-            type: 'boolean' as const,
-            label: t('Database Issues'),
-            help: t('Allow database issues to be created'),
-            defaultValue: true,
-            disabled: !(
-              hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
-            ),
-            disabledReason,
-            visible: hasAIIssueDetection,
-          },
-          {
-            name: DetectorConfigAdmin.AI_DETECTED_RUNTIME_PERFORMANCE_ENABLED,
-            type: 'boolean' as const,
-            label: t('Runtime Performance Issues'),
-            help: t('Allow runtime performance issues to be created'),
-            defaultValue: true,
-            disabled: !(
-              hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
-            ),
-            disabledReason,
-            visible: hasAIIssueDetection,
-          },
-          {
-            name: DetectorConfigAdmin.AI_DETECTED_SECURITY_ENABLED,
-            type: 'boolean' as const,
-            label: t('Security Issues'),
-            help: t('Allow security issues to be created'),
-            defaultValue: true,
-            disabled: !(
-              hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
-            ),
-            disabledReason,
-            visible: hasAIIssueDetection,
-          },
-          {
-            name: DetectorConfigAdmin.AI_DETECTED_CODE_HEALTH_ENABLED,
-            type: 'boolean' as const,
-            label: t('Code Health Issues'),
-            help: t('Allow code health issues to be created'),
-            defaultValue: true,
-            disabled: !(
-              hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
-            ),
-            disabledReason,
-            visible: hasAIIssueDetection,
-          },
-        ],
-        initiallyCollapsed: !AI_DETECTED_ISSUE_TYPES.has(issueType as IssueType),
-      },
-    ];
-
-    // If the organization can manage detectors, add the admin field to the existing settings
-    return baseDetectorFields.map(fieldGroup => {
-      const manageField = performanceIssueDetectorAdminFieldMapping[fieldGroup.title];
-
-      return manageField
-        ? {
-            ...fieldGroup,
-            fields: [
-              {
-                help: t(
-                  'Controls whether or not Sentry should detect this type of issue.'
-                ),
-                ...manageField,
-                disabled: !hasAccess,
-                disabledReason: t('You do not have permission to manage detectors.'),
-              },
-              ...fieldGroup.fields,
-            ],
-          }
-        : fieldGroup;
-    });
-  };
+/**
+ * The slider is indexed against `allowedValues` rather than bound to the raw
+ * threshold, so only the sanctioned steps are reachable.
+ */
+function DetectorRangeField({
+  disabled,
+  field,
+  initialValue,
+  mutationOptions,
+}: DetectorFieldProps<number>) {
+  const allowedValues = field.allowedValues ?? [];
 
   return (
-    <Fragment>
-      <SentryDocumentTitle title={t('Performance')} projectSlug={projectSlug} />
-      <SettingsPageHeader title={t('Performance')} />
-      <ProjectPermissionAlert project={project} />
-      <Feature features="organizations:insight-modules">
-        <FieldGroup title={t('General')}>
+    <AutoSaveForm
+      name={field.name}
+      schema={z.object({[field.name]: z.number()})}
+      initialValue={initialValue}
+      mutationOptions={mutationOptions}
+    >
+      {formField => {
+        const valueIndex = Math.max(allowedValues.indexOf(formField.state.value), 0);
+        const formattedValue = field.formatLabel?.(formField.state.value);
+
+        return (
+          <formField.Layout.Row label={field.label} hintText={field.help}>
+            <Stack flexGrow={1} gap="xs">
+              <formField.Range
+                aria-label={field.label}
+                value={valueIndex}
+                onChange={index => {
+                  const value = allowedValues[index];
+                  if (value !== undefined) {
+                    formField.handleChange(value);
+                  }
+                }}
+                min={0}
+                max={Math.max(allowedValues.length - 1, 0)}
+                step={1}
+                ticks={
+                  field.tickValues
+                    ? {values: field.tickValues, labels: field.showTickLabels}
+                    : undefined
+                }
+                formatOptions="hidden"
+                aria-valuetext={
+                  typeof formattedValue === 'string' ? formattedValue : undefined
+                }
+                disabled={disabled}
+              />
+              <Text align="right" size="sm" variant="muted">
+                {formattedValue ?? formField.state.value}
+              </Text>
+            </Stack>
+          </formField.Layout.Row>
+        );
+      }}
+    </AutoSaveForm>
+  );
+}
+
+function DetectorAutoSaveField({
+  endpoint,
+  field,
+  initialValue,
+  projectSlug,
+}: {
+  endpoint: string;
+  field: DetectorFieldConfig;
+  initialValue: ProjectPerformanceSettingValue;
+  projectSlug: string;
+}) {
+  const mutationOptions = useDetectorFieldMutationOptions(endpoint, projectSlug);
+
+  if (field.visible === false) {
+    return null;
+  }
+
+  const disabled = field.disabled ? (field.disabledReason ?? true) : false;
+
+  if (field.type === 'boolean') {
+    return (
+      <DetectorBooleanField
+        field={field}
+        initialValue={Boolean(initialValue)}
+        disabled={disabled}
+        mutationOptions={mutationOptions}
+      />
+    );
+  }
+
+  if (field.type === 'string') {
+    return (
+      <DetectorStringField
+        field={field}
+        initialValue={typeof initialValue === 'string' ? initialValue : ''}
+        disabled={disabled}
+        mutationOptions={mutationOptions}
+      />
+    );
+  }
+
+  return (
+    <DetectorRangeField
+      field={field}
+      initialValue={
+        typeof initialValue === 'number' ? initialValue : Number(field.defaultValue)
+      }
+      disabled={disabled}
+      mutationOptions={mutationOptions}
+    />
+  );
+}
+
+function GeneralSettingsSection({
+  general,
+  hasWriteAccess,
+}: {
+  general: GeneralSettings | undefined;
+  hasWriteAccess: boolean;
+}) {
+  const organization = useOrganization();
+  const {projectId: projectSlug} = useParams<{projectId: string}>();
+  const queryClient = useQueryClient();
+  const endpoint = `/projects/${organization.slug}/${projectSlug}/performance/configure/`;
+
+  return (
+    <Feature features="organizations:insight-modules">
+      <FieldGroup title={t('General')}>
+        <AutoSaveForm
+          name="enable_images"
+          schema={generalSettingsSchema}
+          initialValue={Boolean(general?.enable_images)}
+          mutationOptions={{
+            mutationFn: (data: {enable_images: boolean}) =>
+              fetchMutation({url: endpoint, method: 'POST', data}),
+            onSuccess: (_data, variables) => {
+              setApiQueryData<GeneralSettings>(
+                queryClient,
+                getGeneralSettingsQueryKey(organization.slug, projectSlug),
+                prev => ({...prev, enable_images: variables.enable_images})
+              );
+            },
+          }}
+        >
+          {field => (
+            <field.Layout.Row
+              label={t('Images')}
+              hintText={t('Enables images from real data to be displayed')}
+            >
+              <field.Switch
+                checked={field.state.value}
+                onChange={field.handleChange}
+                disabled={!hasWriteAccess}
+              />
+            </field.Layout.Row>
+          )}
+        </AutoSaveForm>
+      </FieldGroup>
+    </Feature>
+  );
+}
+
+function ThresholdSettingsSection({
+  hasWriteAccess,
+  onResetAll,
+  threshold,
+}: {
+  hasWriteAccess: boolean;
+  onResetAll: () => void;
+  threshold: ProjectThreshold;
+}) {
+  const organization = useOrganization();
+  const {projectId: projectSlug} = useParams<{projectId: string}>();
+  const queryClient = useQueryClient();
+  const endpoint = `/projects/${organization.slug}/${projectSlug}/transaction-threshold/configure/`;
+
+  const cacheThreshold = (data: ProjectThreshold) =>
+    setApiQueryData(
+      queryClient,
+      getThresholdQueryKey(organization.slug, projectSlug),
+      data
+    );
+
+  return (
+    <FieldGroup title={t('Threshold Settings')}>
+      <AutoSaveForm
+        name="metric"
+        schema={thresholdSettingsSchema}
+        initialValue={
+          threshold.metric === 'lcp' || threshold.metric === 'duration'
+            ? threshold.metric
+            : null
+        }
+        mutationOptions={{
+          mutationFn: (data: {metric: 'duration' | 'lcp' | null}) =>
+            fetchMutation<ProjectThreshold>({url: endpoint, method: 'POST', data}),
+          onSuccess: data => {
+            trackAnalytics('performance_views.project_transaction_threshold.change', {
+              organization,
+              from: threshold.metric,
+              to: data.metric,
+              key: 'metric',
+            });
+            cacheThreshold(data);
+          },
+        }}
+      >
+        {field => (
+          <field.Layout.Row
+            label={t('Calculation Method')}
+            hintText={tct(
+              'This determines which duration is used to set your thresholds. By default, we use transaction duration which measures the entire length of the transaction. You can also set this to use a [link:Web Vital].',
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/" />
+                ),
+              }
+            )}
+          >
+            <field.Select
+              value={field.state.value}
+              onChange={field.handleChange}
+              disabled={!hasWriteAccess}
+              options={[
+                {value: 'duration' as const, label: t('Transaction Duration')},
+                {value: 'lcp' as const, label: t('Largest Contentful Paint')},
+              ]}
+            />
+          </field.Layout.Row>
+        )}
+      </AutoSaveForm>
+
+      <AutoSaveForm
+        name="threshold"
+        schema={thresholdSettingsSchema}
+        initialValue={threshold.threshold ?? ''}
+        mutationOptions={{
+          mutationFn: (data: {threshold: string}) =>
+            fetchMutation<ProjectThreshold>({url: endpoint, method: 'POST', data}),
+          onSuccess: data => {
+            trackAnalytics('performance_views.project_transaction_threshold.change', {
+              organization,
+              from: threshold.threshold,
+              to: data.threshold,
+              key: 'threshold',
+            });
+            cacheThreshold(data);
+          },
+        }}
+      >
+        {field => (
+          <field.Layout.Row
+            label={t('Response Time Threshold (ms)')}
+            hintText={tct(
+              'Define what a satisfactory response time is based on the calculation method above. This will affect how your [link1:Apdex] and [link2:User Misery] thresholds are calculated. For example, misery will be 4x your satisfactory response time.',
+              {
+                link1: (
+                  <ExternalLink href="https://docs.sentry.io/performance-monitoring/performance/metrics/#apdex" />
+                ),
+                link2: (
+                  <ExternalLink href="https://docs.sentry.io/product/performance/metrics/#user-misery" />
+                ),
+              }
+            )}
+          >
+            <field.Input
+              value={field.state.value}
+              onChange={field.handleChange}
+              placeholder={t('300')}
+              disabled={!hasWriteAccess}
+            />
+          </field.Layout.Row>
+        )}
+      </AutoSaveForm>
+
+      <Flex justify="end">
+        <Button onClick={onResetAll}>{t('Reset All')}</Button>
+      </Flex>
+    </FieldGroup>
+  );
+}
+
+function SamplingPrioritiesSection({
+  hasWriteAccess,
+  project,
+}: {
+  hasWriteAccess: boolean;
+  project: DetailedProject;
+}) {
+  const organization = useOrganization();
+  const {projectId: projectSlug} = useParams<{projectId: string}>();
+  const endpoint = `/projects/${organization.slug}/${projectSlug}/`;
+  const priorityFields = getRetentionPriorityFields(organization);
+
+  const isPriorityActive = (name: DynamicSamplingBiasType) =>
+    project.dynamicSamplingBiases?.find(bias => bias.id === name)?.active ?? false;
+
+  return (
+    <Feature features="organizations:dynamic-sampling">
+      <FieldGroup title={t('Sampling Priorities')}>
+        {priorityFields.map(priority => (
           <AutoSaveForm
-            name="enable_images"
-            schema={generalSettingsSchema}
-            initialValue={Boolean(general?.enable_images)}
+            key={priority.name}
+            name={priority.name}
+            schema={z.object({[priority.name]: z.boolean()})}
+            initialValue={isPriorityActive(priority.name)}
             mutationOptions={{
-              mutationFn: (data: {enable_images: boolean}) =>
-                fetchMutation({
-                  url: generalSettingsEndpoint,
-                  method: 'POST',
-                  data,
+              mutationFn: (data: Record<string, boolean>) =>
+                fetchMutation<Project>({
+                  url: endpoint,
+                  method: 'PUT',
+                  data: {
+                    // Submit every known priority, not just the one that changed —
+                    // the backend fills in unlisted ids from hardcoded defaults
+                    // rather than the project's current settings.
+                    dynamicSamplingBiases: priorityFields.map(({name}) => ({
+                      id: name,
+                      active:
+                        name === priority.name
+                          ? (data[priority.name] ?? false)
+                          : isPriorityActive(name),
+                    })),
+                  },
                 }),
-              onSuccess: (_data, variables) => {
-                setApiQueryData<GeneralSettings>(
-                  queryClient,
-                  getGeneralSettingsQueryKey(organization.slug, projectSlug),
-                  prev => ({...prev, enable_images: variables.enable_images})
+              onSuccess: (response, variables) => {
+                ProjectsStore.onUpdateSuccess(response);
+                trackAnalytics(
+                  variables[priority.name]
+                    ? 'dynamic_sampling_settings.priority_enabled'
+                    : 'dynamic_sampling_settings.priority_disabled',
+                  {organization, project_id: project.id, id: priority.name}
                 );
               },
             }}
           >
             {field => (
-              <field.Layout.Row
-                label={t('Images')}
-                hintText={t('Enables images from real data to be displayed')}
-              >
+              <field.Layout.Row label={priority.label} hintText={priority.hintText}>
                 <field.Switch
                   checked={field.state.value}
                   onChange={field.handleChange}
@@ -1169,322 +1297,302 @@ export function ProjectPerformance() {
               </field.Layout.Row>
             )}
           </AutoSaveForm>
-        </FieldGroup>
-      </Feature>
-
-      <FieldGroup title={t('Threshold Settings')}>
-        <AutoSaveForm
-          name="metric"
-          schema={thresholdSettingsSchema}
-          initialValue={
-            threshold?.metric === 'lcp' || threshold?.metric === 'duration'
-              ? threshold.metric
-              : null
-          }
-          mutationOptions={{
-            mutationFn: (data: {metric: 'duration' | 'lcp' | null}) =>
-              fetchMutation<ProjectThreshold>({
-                url: thresholdEndpoint,
-                method: 'POST',
-                data,
-              }),
-            onSuccess: data => {
-              trackAnalytics('performance_views.project_transaction_threshold.change', {
-                organization,
-                from: initialData.metric,
-                to: data.metric,
-                key: 'metric',
-              });
-              setApiQueryData(
-                queryClient,
-                getThresholdQueryKey(organization.slug, projectSlug),
-                data
-              );
-            },
-          }}
-        >
-          {field => (
-            <field.Layout.Row
-              label={t('Calculation Method')}
-              hintText={tct(
-                'This determines which duration is used to set your thresholds. By default, we use transaction duration which measures the entire length of the transaction. You can also set this to use a [link:Web Vital].',
-                {
-                  link: (
-                    <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/" />
-                  ),
-                }
-              )}
-            >
-              <field.Select
-                value={field.state.value}
-                onChange={field.handleChange}
-                disabled={!hasWriteAccess}
-                options={[
-                  {value: 'duration' as const, label: t('Transaction Duration')},
-                  {value: 'lcp' as const, label: t('Largest Contentful Paint')},
-                ]}
-              />
-            </field.Layout.Row>
-          )}
-        </AutoSaveForm>
-
-        <AutoSaveForm
-          name="threshold"
-          schema={thresholdSettingsSchema}
-          initialValue={threshold?.threshold ?? ''}
-          mutationOptions={{
-            mutationFn: (data: {threshold: string}) =>
-              fetchMutation<ProjectThreshold>({
-                url: thresholdEndpoint,
-                method: 'POST',
-                data,
-              }),
-            onSuccess: data => {
-              trackAnalytics('performance_views.project_transaction_threshold.change', {
-                organization,
-                from: initialData.threshold,
-                to: data.threshold,
-                key: 'threshold',
-              });
-              setApiQueryData(
-                queryClient,
-                getThresholdQueryKey(organization.slug, projectSlug),
-                data
-              );
-            },
-          }}
-        >
-          {field => (
-            <field.Layout.Row
-              label={t('Response Time Threshold (ms)')}
-              hintText={tct(
-                'Define what a satisfactory response time is based on the calculation method above. This will affect how your [link1:Apdex] and [link2:User Misery] thresholds are calculated. For example, misery will be 4x your satisfactory response time.',
-                {
-                  link1: (
-                    <ExternalLink href="https://docs.sentry.io/performance-monitoring/performance/metrics/#apdex" />
-                  ),
-                  link2: (
-                    <ExternalLink href="https://docs.sentry.io/product/performance/metrics/#user-misery" />
-                  ),
-                }
-              )}
-            >
-              <field.Input
-                value={field.state.value}
-                onChange={field.handleChange}
-                placeholder={t('300')}
-                disabled={!hasWriteAccess}
-              />
-            </field.Layout.Row>
-          )}
-        </AutoSaveForm>
-
+        ))}
         <Flex justify="end">
-          <Button onClick={() => resetThresholdSettings()}>{t('Reset All')}</Button>
+          <LinkButton
+            external
+            href="https://docs.sentry.io/product/performance/performance-at-scale/"
+          >
+            {t('Read docs')}
+          </LinkButton>
         </Flex>
       </FieldGroup>
-      <Feature features="organizations:dynamic-sampling">
-        <FieldGroup title={t('Sampling Priorities')}>
-          {retentionPriorityFields.map(priority => (
-            <AutoSaveForm
-              key={priority.name}
-              name={priority.name}
-              schema={z.object({[priority.name]: z.boolean()})}
-              initialValue={
-                project.dynamicSamplingBiases?.find(bias => bias.id === priority.name)
-                  ?.active ?? false
-              }
-              mutationOptions={{
-                mutationFn: (data: Record<string, boolean>) =>
-                  fetchMutation<Project>({
-                    url: projectEndpoint,
-                    method: 'PUT',
-                    data: {
-                      // Submit every known priority, not just the one that changed —
-                      // the backend fills in unlisted ids from hardcoded defaults
-                      // rather than the project's current settings.
-                      dynamicSamplingBiases: retentionPriorityFields.map(({name}) => ({
-                        id: name,
-                        active:
-                          name === priority.name
-                            ? (data[priority.name] ?? false)
-                            : (project.dynamicSamplingBiases?.find(
-                                bias => bias.id === name
-                              )?.active ?? false),
-                      })),
-                    },
-                  }),
-                onSuccess: (response, variables) => {
-                  ProjectsStore.onUpdateSuccess(response);
-                  const active = variables[priority.name];
-                  trackAnalytics(
-                    active
-                      ? 'dynamic_sampling_settings.priority_enabled'
-                      : 'dynamic_sampling_settings.priority_disabled',
-                    {
-                      organization,
-                      project_id: project.id,
-                      id: priority.name as DynamicSamplingBiasType,
-                    }
-                  );
-                },
-              }}
-            >
-              {field => (
-                <field.Layout.Row label={priority.label} hintText={priority.hintText}>
-                  <field.Switch
-                    checked={field.state.value}
-                    onChange={field.handleChange}
-                    disabled={!hasWriteAccess}
-                  />
-                </field.Layout.Row>
-              )}
-            </AutoSaveForm>
-          ))}
-          <Flex justify="end">
-            <LinkButton
-              external
-              href="https://docs.sentry.io/product/performance/performance-at-scale/"
-            >
-              {t('Read docs')}
-            </LinkButton>
-          </Flex>
-        </FieldGroup>
-      </Feature>
-      <Fragment>
-        {isSuperUser && (
-          <FieldGroup
-            title={t(
-              '### INTERNAL ONLY ### - Performance Issues Admin Detector Settings'
-            )}
-          >
-            <AutoSaveForm
-              name="transaction_duration_regression_detection_enabled"
-              schema={regressionAdminSchema}
-              initialValue={Boolean(
-                performanceIssueSettings[
-                  DetectorConfigAdmin.TRANSACTION_DURATION_REGRESSION_ENABLED
-                ]
-              )}
-              mutationOptions={{
-                mutationFn: (data: {
-                  transaction_duration_regression_detection_enabled: boolean;
-                }) =>
-                  fetchMutation({
-                    url: performanceIssuesEndpoint,
-                    method: 'PUT',
-                    data,
-                  }),
-                onSuccess: (_data, variables) => {
-                  setApiQueryData<ProjectPerformanceSettings>(
-                    queryClient,
-                    getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
-                    prev => ({
-                      ...prev,
-                      transaction_duration_regression_detection_enabled:
-                        variables.transaction_duration_regression_detection_enabled,
-                    })
-                  );
-                },
-                onError: onSuperUserError,
-              }}
-            >
-              {field => (
-                <field.Layout.Row label={t('Transaction Duration Regression Enabled')}>
-                  <field.Switch
-                    checked={field.state.value}
-                    onChange={field.handleChange}
-                  />
-                </field.Layout.Row>
-              )}
-            </AutoSaveForm>
-            <AutoSaveForm
-              name="function_duration_regression_detection_enabled"
-              schema={regressionAdminSchema}
-              initialValue={Boolean(
-                performanceIssueSettings[
-                  DetectorConfigAdmin.FUNCTION_DURATION_REGRESSION_ENABLED
-                ]
-              )}
-              mutationOptions={{
-                mutationFn: (data: {
-                  function_duration_regression_detection_enabled: boolean;
-                }) =>
-                  fetchMutation({
-                    url: performanceIssuesEndpoint,
-                    method: 'PUT',
-                    data,
-                  }),
-                onSuccess: (_data, variables) => {
-                  setApiQueryData<ProjectPerformanceSettings>(
-                    queryClient,
-                    getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
-                    prev => ({
-                      ...prev,
-                      function_duration_regression_detection_enabled:
-                        variables.function_duration_regression_detection_enabled,
-                    })
-                  );
-                },
-                onError: onSuperUserError,
-              }}
-            >
-              {field => (
-                <field.Layout.Row label={t('Function Duration Regression Enabled')}>
-                  <field.Switch
-                    checked={field.state.value}
-                    onChange={field.handleChange}
-                  />
-                </field.Layout.Row>
-              )}
-            </AutoSaveForm>
-          </FieldGroup>
+    </Feature>
+  );
+}
+
+function AdminRegressionSettingsSection({
+  performanceIssueSettings,
+}: {
+  performanceIssueSettings: ProjectPerformanceSettings;
+}) {
+  const organization = useOrganization();
+  const {projectId: projectSlug} = useParams<{projectId: string}>();
+  const queryClient = useQueryClient();
+  const endpoint = `/projects/${organization.slug}/${projectSlug}/performance-issues/configure/`;
+
+  const cacheSetting = (setting: ProjectPerformanceSettings) =>
+    setApiQueryData<ProjectPerformanceSettings>(
+      queryClient,
+      getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
+      prev => ({...prev, ...setting})
+    );
+
+  return (
+    <FieldGroup
+      title={t('### INTERNAL ONLY ### - Performance Issues Admin Detector Settings')}
+    >
+      <AutoSaveForm
+        name="transaction_duration_regression_detection_enabled"
+        schema={regressionAdminSchema}
+        initialValue={Boolean(
+          performanceIssueSettings[
+            DetectorConfigAdmin.TRANSACTION_DURATION_REGRESSION_ENABLED
+          ]
         )}
-        <Container id={projectDetectorSettingsId}>
-          <FieldGroup title={t('Performance Issues - Detector Threshold Settings')}>
-            <Stack gap="sm">
-              {getProjectDetectorSettings(hasWriteAccess).map(group => (
-                <Disclosure key={group.title} defaultExpanded={!group.initiallyCollapsed}>
-                  <Disclosure.Title>{group.title}</Disclosure.Title>
-                  <Disclosure.Content>
-                    <Stack gap="sm">
-                      {group.fields.map(field => (
-                        <DetectorAutoSaveField
-                          key={field.name}
-                          field={field}
-                          initialValue={
-                            performanceIssueSettings[field.name] ??
-                            field.defaultValue ??
-                            (field.type === 'boolean'
-                              ? false
-                              : field.type === 'string'
-                                ? ''
-                                : 0)
-                          }
-                          endpoint={performanceIssuesEndpoint}
-                          organization={organization}
-                          organizationSlug={organization.slug}
-                          projectSlug={projectSlug}
-                          queryClient={queryClient}
-                        />
-                      ))}
-                    </Stack>
-                  </Disclosure.Content>
-                </Disclosure>
-              ))}
-            </Stack>
-            <Flex justify="end">
-              <Confirm
-                message={t('Are you sure you wish to reset all detector thresholds?')}
-                onConfirm={() => resetThresholds()}
-                disabled={!hasWriteAccess || areAllConfigurationsDisabled}
-              >
-                <Button>{t('Reset All Thresholds')}</Button>
-              </Confirm>
-            </Flex>
-          </FieldGroup>
-        </Container>
-      </Fragment>
+        mutationOptions={{
+          mutationFn: (data: {
+            transaction_duration_regression_detection_enabled: boolean;
+          }) => fetchMutation({url: endpoint, method: 'PUT', data}),
+          onSuccess: (_data, variables) => cacheSetting(variables),
+          onError: handleSuperUserError,
+        }}
+      >
+        {field => (
+          <field.Layout.Row label={t('Transaction Duration Regression Enabled')}>
+            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+          </field.Layout.Row>
+        )}
+      </AutoSaveForm>
+      <AutoSaveForm
+        name="function_duration_regression_detection_enabled"
+        schema={regressionAdminSchema}
+        initialValue={Boolean(
+          performanceIssueSettings[
+            DetectorConfigAdmin.FUNCTION_DURATION_REGRESSION_ENABLED
+          ]
+        )}
+        mutationOptions={{
+          mutationFn: (data: {function_duration_regression_detection_enabled: boolean}) =>
+            fetchMutation({url: endpoint, method: 'PUT', data}),
+          onSuccess: (_data, variables) => cacheSetting(variables),
+          onError: handleSuperUserError,
+        }}
+      >
+        {field => (
+          <field.Layout.Row label={t('Function Duration Regression Enabled')}>
+            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+          </field.Layout.Row>
+        )}
+      </AutoSaveForm>
+    </FieldGroup>
+  );
+}
+
+function DetectorThresholdsSection({
+  detectorGroups,
+  hasWriteAccess,
+  onResetAll,
+  performanceIssueSettings,
+}: {
+  detectorGroups: DetectorFieldGroup[];
+  hasWriteAccess: boolean;
+  onResetAll: () => void;
+  performanceIssueSettings: ProjectPerformanceSettings;
+}) {
+  const organization = useOrganization();
+  const {projectId: projectSlug} = useParams<{projectId: string}>();
+  const endpoint = `/projects/${organization.slug}/${projectSlug}/performance-issues/configure/`;
+
+  const areAllConfigurationsDisabled = Object.values(DetectorConfigAdmin).every(
+    th => !performanceIssueSettings[th]
+  );
+
+  return (
+    <Container id={projectDetectorSettingsId}>
+      <FieldGroup title={t('Performance Issues - Detector Threshold Settings')}>
+        <Stack gap="sm">
+          {detectorGroups.map(group => (
+            <Disclosure key={group.title} defaultExpanded={!group.initiallyCollapsed}>
+              <Disclosure.Title>{group.title}</Disclosure.Title>
+              <Disclosure.Content>
+                <Stack gap="sm">
+                  {group.fields.map(field => (
+                    <DetectorAutoSaveField
+                      key={field.name}
+                      field={field}
+                      initialValue={
+                        performanceIssueSettings[field.name] ??
+                        field.defaultValue ??
+                        (field.type === 'boolean'
+                          ? false
+                          : field.type === 'string'
+                            ? ''
+                            : 0)
+                      }
+                      endpoint={endpoint}
+                      projectSlug={projectSlug}
+                    />
+                  ))}
+                </Stack>
+              </Disclosure.Content>
+            </Disclosure>
+          ))}
+        </Stack>
+        <Flex justify="end">
+          <Confirm
+            message={t('Are you sure you wish to reset all detector thresholds?')}
+            onConfirm={onResetAll}
+            disabled={!hasWriteAccess || areAllConfigurationsDisabled}
+          >
+            <Button>{t('Reset All Thresholds')}</Button>
+          </Confirm>
+        </Flex>
+      </FieldGroup>
+    </Container>
+  );
+}
+
+export function ProjectPerformance() {
+  const organization = useOrganization();
+  const {projectId: projectSlug} = useParams<{projectId: string}>();
+  const queryClient = useQueryClient();
+
+  const thresholdEndpoint = `/projects/${organization.slug}/${projectSlug}/transaction-threshold/configure/`;
+  const performanceIssuesEndpoint = `/projects/${organization.slug}/${projectSlug}/performance-issues/configure/`;
+
+  const {
+    data: project,
+    isPending: isPendingProject,
+    isError: isErrorProject,
+  } = useDetailedProject({projectSlug, orgSlug: organization.slug});
+
+  const hasWebVitalsSeerSuggestions = useHasSeerWebVitalsSuggestions(project);
+  const hasAIIssueDetection =
+    organization.features.includes('gen-ai-features') &&
+    organization.features.includes('ai-issue-detection') &&
+    !organization.hideAiFeatures;
+
+  const {
+    data: threshold,
+    isPending: isPendingThreshold,
+    isError: isErrorThreshold,
+  } = useQuery(
+    apiOptions.as<ProjectThreshold>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/transaction-threshold/configure/',
+      {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
+        staleTime: 0,
+      }
+    )
+  );
+
+  const {
+    data: performanceIssueSettings,
+    isPending: isPendingPerformanceIssueSettings,
+    isError: isErrorPerformanceIssueSettings,
+  } = useQuery(
+    apiOptions.as<ProjectPerformanceSettings>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance-issues/configure/',
+      {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
+        staleTime: 0,
+      }
+    )
+  );
+
+  const {
+    data: general,
+    isPending: isPendingGeneral,
+    isError: isErrorGeneral,
+  } = useQuery(
+    apiOptions.as<GeneralSettings>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance/configure/',
+      {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
+        staleTime: 0,
+      }
+    )
+  );
+
+  const {mutate: resetThresholdSettings, isPending: isPendingResetThresholdSettings} =
+    useMutation({
+      mutationFn: () => fetchMutation({url: thresholdEndpoint, method: 'DELETE'}),
+      onMutate: () => {
+        trackAnalytics('performance_views.project_transaction_threshold.clear', {
+          organization,
+        });
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: getThresholdQueryKey(organization.slug, projectSlug),
+        });
+      },
+    });
+
+  const {mutate: resetThresholds, isPending: isPendingResetThresholds} = useMutation({
+    mutationFn: () => fetchMutation({url: performanceIssuesEndpoint, method: 'DELETE'}),
+    onMutate: () => {
+      trackAnalytics('performance_views.project_issue_detection_thresholds_reset', {
+        organization,
+        project_slug: projectSlug,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
+      });
+    },
+  });
+
+  if (
+    isPendingThreshold ||
+    isPendingPerformanceIssueSettings ||
+    isPendingGeneral ||
+    isPendingProject ||
+    isPendingResetThresholdSettings ||
+    isPendingResetThresholds
+  ) {
+    return (
+      <Container padding="lg">
+        <LoadingIndicator />
+      </Container>
+    );
+  }
+
+  if (
+    isErrorThreshold ||
+    isErrorPerformanceIssueSettings ||
+    isErrorGeneral ||
+    isErrorProject
+  ) {
+    return <LoadingError />;
+  }
+
+  const requiredScopes: Scope[] = ['project:write'];
+  const hasWriteAccess = hasEveryAccess(requiredScopes, {organization, project});
+
+  const detectorGroups = getProjectDetectorSettings({
+    hasAccess: hasWriteAccess,
+    hasAIIssueDetection,
+    hasWebVitalsSeerSuggestions,
+    organization,
+    performanceIssueSettings,
+  });
+
+  return (
+    <Fragment>
+      <SentryDocumentTitle title={t('Performance')} projectSlug={projectSlug} />
+      <SettingsPageHeader title={t('Performance')} />
+      <ProjectPermissionAlert project={project} />
+      <GeneralSettingsSection general={general} hasWriteAccess={hasWriteAccess} />
+      <ThresholdSettingsSection
+        threshold={threshold}
+        hasWriteAccess={hasWriteAccess}
+        onResetAll={() => resetThresholdSettings()}
+      />
+      <SamplingPrioritiesSection project={project} hasWriteAccess={hasWriteAccess} />
+      {isActiveSuperuser() && (
+        <AdminRegressionSettingsSection
+          performanceIssueSettings={performanceIssueSettings}
+        />
+      )}
+      <DetectorThresholdsSection
+        detectorGroups={detectorGroups}
+        performanceIssueSettings={performanceIssueSettings}
+        hasWriteAccess={hasWriteAccess}
+        onResetAll={() => resetThresholds()}
+      />
     </Fragment>
   );
 }
