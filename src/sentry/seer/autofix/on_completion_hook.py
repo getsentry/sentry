@@ -50,7 +50,11 @@ from sentry.seer.autofix.utils import (
     clear_preference_automation_handoff,
     get_automation_handoff,
 )
-from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
+from sentry.seer.entrypoints.operator import (
+    SeerAutofixOperator,
+    process_autofix_updates,
+    record_seer_activity,
+)
 from sentry.seer.models import (
     SeerAutomationHandoffConfiguration,
     SeerRun,
@@ -463,11 +467,17 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     "autofix.on_completion_hook.process_autofix_updates",
                     tags={"event_type": str(event_type)},
                 )
+                record_seer_activity(
+                    group=group,
+                    event_type=sentry_app_event_type,
+                    event_payload=webhook_payload,
+                )
                 process_autofix_updates.apply_async(
                     kwargs={
                         "event_type": sentry_app_event_type,
                         "event_payload": webhook_payload,
                         "organization_id": organization.id,
+                        "record_activity": False,
                     }
                 )
         except ValueError:
