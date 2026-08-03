@@ -1300,9 +1300,17 @@ export function ProjectPerformance() {
                     url: projectEndpoint,
                     method: 'PUT',
                     data: {
-                      dynamicSamplingBiases: Object.entries(data).map(([id, active]) => ({
-                        id,
-                        active,
+                      // Submit every known priority, not just the one that changed —
+                      // the backend fills in unlisted ids from hardcoded defaults
+                      // rather than the project's current settings.
+                      dynamicSamplingBiases: retentionPriorityFields.map(({name}) => ({
+                        id: name,
+                        active:
+                          name === priority.name
+                            ? (data[priority.name] ?? false)
+                            : (project.dynamicSamplingBiases?.find(
+                                bias => bias.id === name
+                              )?.active ?? false),
                       })),
                     },
                   }),
