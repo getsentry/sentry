@@ -22,7 +22,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Scope} from 'sentry/types/core';
 import {AI_DETECTED_ISSUE_TYPES, IssueTitle, IssueType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import type {DetailedProject, Project} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
 import {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -31,7 +31,10 @@ import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/feat
 import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
+import {
+  makeDetailedProjectQueryKey,
+  useDetailedProject,
+} from 'sentry/utils/project/useDetailedProject';
 import {fetchMutation, setApiQueryData} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -1264,8 +1267,13 @@ function SamplingPrioritiesSection({
 }) {
   const organization = useOrganization();
   const {projectId: projectSlug} = useParams<{projectId: string}>();
+  const queryClient = useQueryClient();
   const endpoint = `/projects/${organization.slug}/${projectSlug}/`;
   const priorityFields = getRetentionPriorityFields(organization);
+  const projectQueryKey = makeDetailedProjectQueryKey({
+    orgSlug: organization.slug,
+    projectSlug,
+  });
 
   const isPriorityActive = (name: DynamicSamplingBiasType) =>
     project.dynamicSamplingBiases?.find(bias => bias.id === name)?.active ?? false;
@@ -1275,13 +1283,13 @@ function SamplingPrioritiesSection({
       <FieldGroup title={t('Sampling Priorities')}>
         {priorityFields.map(priority => (
           <AutoSaveForm
-            key={priority.name}
+            key={`${priority.name}-${isPriorityActive(priority.name)}`}
             name={priority.name}
             schema={z.object({[priority.name]: z.boolean()})}
             initialValue={isPriorityActive(priority.name)}
             mutationOptions={{
               mutationFn: (data: Record<string, boolean>) =>
-                fetchMutation<Project>({
+                fetchMutation<DetailedProject>({
                   url: endpoint,
                   method: 'PUT',
                   data: {
@@ -1299,6 +1307,7 @@ function SamplingPrioritiesSection({
                 }),
               onSuccess: (response, variables) => {
                 ProjectsStore.onUpdateSuccess(response);
+                setApiQueryData(queryClient, projectQueryKey, response);
                 trackAnalytics(
                   variables[priority.name]
                     ? 'dynamic_sampling_settings.priority_enabled'

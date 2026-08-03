@@ -13,6 +13,7 @@ import {
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {IssueTitle} from 'sentry/types/group';
+import {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import * as utils from 'sentry/utils/isActiveSuperuser';
 import {
   allowedCountValues,
@@ -192,6 +193,64 @@ describe('projectPerformance', () => {
     );
 
     expect(input).toHaveValue('400');
+  });
+
+  it('keeps sampling priority forms synchronized after saves', async () => {
+    let dynamicSamplingBiases = [
+      {id: DynamicSamplingBiasType.BOOST_LATEST_RELEASES, active: false},
+      {id: DynamicSamplingBiasType.BOOST_ENVIRONMENTS, active: false},
+      {id: DynamicSamplingBiasType.BOOST_LOW_VOLUME_TRANSACTIONS, active: false},
+      {id: DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS, active: false},
+    ];
+    const detailedProject = ProjectFixture({dynamicSamplingBiases});
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      method: 'GET',
+      body: detailedProject,
+    });
+    const projectPutMock = MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      method: 'PUT',
+      body: (
+        _url: string,
+        options: {data: {dynamicSamplingBiases: typeof dynamicSamplingBiases}}
+      ) => {
+        dynamicSamplingBiases = options.data.dynamicSamplingBiases;
+        return {...detailedProject, dynamicSamplingBiases};
+      },
+    });
+
+    render(<ProjectPerformance />, {
+      organization: OrganizationFixture({features: ['dynamic-sampling']}),
+      initialRouterConfig,
+    });
+
+    await userEvent.click(
+      await screen.findByRole('checkbox', {name: 'Prioritize new releases'})
+    );
+    await waitFor(() => {
+      expect(
+        screen.getByRole('checkbox', {name: 'Prioritize new releases'})
+      ).toBeChecked();
+    });
+
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: 'Prioritize dev environments'})
+    );
+
+    await waitFor(() => {
+      expect(projectPutMock).toHaveBeenLastCalledWith(
+        '/projects/org-slug/project-slug/',
+        expect.objectContaining({
+          data: {
+            dynamicSamplingBiases: expect.arrayContaining([
+              {id: DynamicSamplingBiasType.BOOST_LATEST_RELEASES, active: true},
+              {id: DynamicSamplingBiasType.BOOST_ENVIRONMENTS, active: true},
+            ]),
+          },
+        })
+      );
+    });
   });
 
   it('clears the data', async () => {
