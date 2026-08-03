@@ -26,6 +26,10 @@ export function useToggleDashboardFavorite() {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
+  const hasUserLastVisited = organization.features.includes(
+    'dashboards-user-last-visited'
+  );
+
   // Table query key for dashboards pinned by favorites.
   const listFilter = {
     queryKey: [dashboardsApiOptions(organization).queryKey[0]],
@@ -61,7 +65,7 @@ export function useToggleDashboardFavorite() {
         }
         const options = key[1] as {query?: {sort?: string}} | undefined;
         const json =
-          options?.query?.sort === 'recentlyViewed'
+          options?.query?.sort === 'recentlyViewed' && hasUserLastVisited
             ? reorderFavoriteDashboards(response.json, dashboardId, shouldFavorite)
             : response.json.map(item =>
                 item.id === dashboardId ? {...item, isFavorited: shouldFavorite} : item
