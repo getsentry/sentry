@@ -31,7 +31,6 @@ import type {DetailedProject} from 'sentry/types/project';
 import {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -40,7 +39,7 @@ import {
   makeDetailedProjectQueryKey,
   useDetailedProject,
 } from 'sentry/utils/project/useDetailedProject';
-import {fetchMutation, setApiQueryData} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -171,9 +170,6 @@ const getThresholdQueryOptions = (orgSlug: string, projectSlug: string) =>
     }
   );
 
-const getThresholdQueryKey = (orgSlug: string, projectSlug: string): ApiQueryKey =>
-  getThresholdQueryOptions(orgSlug, projectSlug).queryKey;
-
 const getPerformanceIssueSettingsQueryOptions = (orgSlug: string, projectSlug: string) =>
   apiOptions.as<ProjectPerformanceSettings>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance-issues/configure/',
@@ -183,11 +179,6 @@ const getPerformanceIssueSettingsQueryOptions = (orgSlug: string, projectSlug: s
     }
   );
 
-const getPerformanceIssueSettingsQueryKey = (
-  orgSlug: string,
-  projectSlug: string
-): ApiQueryKey => getPerformanceIssueSettingsQueryOptions(orgSlug, projectSlug).queryKey;
-
 const getGeneralSettingsQueryOptions = (orgSlug: string, projectSlug: string) =>
   apiOptions.as<GeneralSettings>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance/configure/',
@@ -196,9 +187,6 @@ const getGeneralSettingsQueryOptions = (orgSlug: string, projectSlug: string) =>
       staleTime: 0,
     }
   );
-
-const getGeneralSettingsQueryKey = (orgSlug: string, projectSlug: string): ApiQueryKey =>
-  getGeneralSettingsQueryOptions(orgSlug, projectSlug).queryKey;
 
 const generalSettingsSchema = z.object({
   enable_images: z.boolean(),
@@ -897,10 +885,12 @@ function useDetectorFieldMutationOptions(endpoint: string, projectSlug: string) 
       _data: ProjectPerformanceSettings,
       variables: ProjectPerformanceSettings
     ) => {
-      setApiQueryData<ProjectPerformanceSettings>(
-        queryClient,
-        getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
-        previous => ({...previous, ...variables})
+      queryClient.setQueryData(
+        getPerformanceIssueSettingsQueryOptions(organization.slug, projectSlug).queryKey,
+        previous =>
+          previous
+            ? {json: {...previous.json, ...variables}, headers: previous.headers}
+            : previous
       );
 
       const [thresholdKey, thresholdValue] = Object.entries(variables)[0] ?? [];
@@ -1112,10 +1102,18 @@ function GeneralSettingsSection({
             mutationFn: (data: {enable_images: boolean}) =>
               fetchMutation({url: endpoint, method: 'POST', data}),
             onSuccess: (_data, variables) => {
-              setApiQueryData<GeneralSettings>(
-                queryClient,
-                getGeneralSettingsQueryKey(organization.slug, projectSlug),
-                prev => ({...prev, enable_images: variables.enable_images})
+              queryClient.setQueryData(
+                getGeneralSettingsQueryOptions(organization.slug, projectSlug).queryKey,
+                previous =>
+                  previous
+                    ? {
+                        json: {
+                          ...previous.json,
+                          enable_images: variables.enable_images,
+                        },
+                        headers: previous.headers,
+                      }
+                    : previous
               );
             },
           }}
@@ -1157,10 +1155,9 @@ function ThresholdSettingsSection({
   const endpoint = `/projects/${organization.slug}/${projectSlug}/transaction-threshold/configure/`;
 
   const cacheThreshold = (data: ProjectThreshold) =>
-    setApiQueryData(
-      queryClient,
-      getThresholdQueryKey(organization.slug, projectSlug),
-      data
+    queryClient.setQueryData(
+      getThresholdQueryOptions(organization.slug, projectSlug).queryKey,
+      previous => ({json: data, headers: previous?.headers ?? {}})
     );
 
   return (
@@ -1315,7 +1312,10 @@ function SamplingPrioritiesSection({
                 }),
               onSuccess: (response, variables) => {
                 ProjectsStore.onUpdateSuccess(response);
-                setApiQueryData(queryClient, projectQueryKey, response);
+                queryClient.setQueryData(projectQueryKey, previous => ({
+                  json: response,
+                  headers: previous?.headers ?? {},
+                }));
                 trackAnalytics(
                   variables[priority.name]
                     ? 'dynamic_sampling_settings.priority_enabled'
@@ -1360,10 +1360,12 @@ function AdminRegressionSettingsSection({
   const endpoint = `/projects/${organization.slug}/${projectSlug}/performance-issues/configure/`;
 
   const cacheSetting = (setting: ProjectPerformanceSettings) =>
-    setApiQueryData<ProjectPerformanceSettings>(
-      queryClient,
-      getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
-      prev => ({...prev, ...setting})
+    queryClient.setQueryData(
+      getPerformanceIssueSettingsQueryOptions(organization.slug, projectSlug).queryKey,
+      previous =>
+        previous
+          ? {json: {...previous.json, ...setting}, headers: previous.headers}
+          : previous
     );
 
   return (
