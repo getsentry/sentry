@@ -211,6 +211,7 @@ export class NotebookStore {
         continue;
       }
       if (!incomingServerIds.has(cell.serverId) && !cell.isDirty) {
+        cell.dispose();
         this.cells.delete(key);
       }
     }
@@ -227,6 +228,40 @@ export class NotebookStore {
     const promise = this.operationQueue.then(() => this.executeOperation(queued));
     this.operationQueue = promise.catch(() => {});
     return promise;
+  }
+
+  saveCell(cell: CellStore): Promise<void> {
+    if (!cell.serverId) {
+      return Promise.reject(
+        new Error('The cell must be created before it can be saved.')
+      );
+    }
+    const {fields, values} = cell.getPendingSave();
+    if (fields.length === 0) {
+      return Promise.resolve();
+    }
+    cell.markSaveStarted();
+    const serverId = cell.serverId;
+    return this.enqueueOperation({
+      affectedFields: new Set(fields.map(field => `${cell.clientKey}.${field}`)),
+      execute: investigationVersion =>
+        this.transport.updateCell(serverId, {
+          investigationVersion,
+          version: cell.version,
+          ...values,
+        }),
+      failurePolicy: 'retain-draft',
+      kind: 'cell.save',
+      onCommit: result => {
+        this.version += 1;
+        cell.confirmSave(result, fields, values);
+      },
+    })
+      .then(() => {})
+      .catch(error => {
+        cell.failSave();
+        throw error;
+      });
   }
 
   async reloadLatest(): Promise<void> {
@@ -261,6 +296,9 @@ export class NotebookStore {
 
   dispose() {
     this.disposed = true;
+    for (const cell of this.cells.values()) {
+      cell.dispose();
+    }
   }
 
   toSnapshot(): NotebookStoreSnapshot {

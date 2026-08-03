@@ -1,3 +1,4 @@
+import isEqual from 'lodash/isEqual';
 import {action, computed, makeObservable, observable} from 'mobx';
 
 import type {NotebookStore} from 'sentry/views/seerNotebook/stores/notebookStore';
@@ -19,7 +20,10 @@ type ConfirmedCellFields = Pick<
 export type CellStoreSnapshot = InvestigationCell & {
   clientKey: string;
   dirtyFields: CellEditableField[];
+  saveState: CellSaveState;
 };
+
+export type CellSaveState = 'idle' | 'scheduled' | 'saving' | 'unsaved';
 
 export class CellStore {
   readonly clientKey: string;
@@ -48,8 +52,12 @@ export class CellStore {
   isDeleted = false;
   dirtyFields = new Set<CellEditableField>();
   saveError: string | null = null;
+  saveState: CellSaveState = 'idle';
 
   private confirmed: ConfirmedCellFields;
+  private saveTimer: ReturnType<typeof setTimeout> | null = null;
+  private savePromise: Promise<void> | null = null;
+  private disposed = false;
 
   constructor(notebook: NotebookStore, cell: InvestigationCell, clientKey = cell.id) {
     this.notebook = notebook;
@@ -100,12 +108,27 @@ export class CellStore {
       isDeleted: observable,
       dirtyFields: observable.shallow,
       saveError: observable,
+      saveState: observable,
       isPersisted: computed,
       isDirty: computed,
+      queryIntent: computed,
+      executionIntent: computed,
+      executionHasChanged: computed,
+      isExecutionRunning: computed,
+      editTitle: action,
+      editContent: action,
+      editGenerationPrompt: action,
+      updateDisplay: action,
+      applySlashCommand: action,
+      clearQueryIntent: action,
+      markSaveStarted: action,
+      confirmSave: action,
+      failSave: action,
       applyServerSnapshot: action,
       attachServerId: action,
       markDeleted: action,
       restore: action,
+      dispose: action,
     });
   }
 
@@ -115,6 +138,122 @@ export class CellStore {
 
   get isDirty(): boolean {
     return this.dirtyFields.size > 0;
+  }
+
+  get queryIntent(): string {
+    return this.generationPrompt || this.content;
+  }
+
+  get executionIntent(): string {
+    return this.kind === 'query' ? this.queryIntent : this.generationPrompt;
+  }
+
+  get executionHasChanged(): boolean {
+    const confirmedIntent =
+      this.kind === 'query'
+        ? this.confirmed.generationPrompt || this.confirmed.content
+        : this.confirmed.generationPrompt;
+    return Boolean(this.staleAt) || this.executionIntent !== confirmedIntent;
+  }
+
+  get isExecutionRunning(): boolean {
+    return ['pending', 'running'].includes(this.outputStatus);
+  }
+
+  editTitle(value: string) {
+    this.setEditableField('title', value, 600);
+  }
+
+  editContent(value: string) {
+    this.setEditableField('content', value, 600);
+  }
+
+  editGenerationPrompt(value: string) {
+    this.setEditableField('generationPrompt', value, 600);
+  }
+
+  updateDisplay(value: InvestigationDisplay) {
+    this.setEditableField('display', value, 400);
+  }
+
+  clearQueryIntent() {
+    this.content = '';
+    this.generationPrompt = '';
+    this.markDirty('content');
+    this.markDirty('generationPrompt');
+    this.scheduleSave(600);
+  }
+
+  applySlashCommand(prefix: string) {
+    const lines = this.content.split('\n');
+    lines[lines.length - 1] = prefix;
+    this.editContent(lines.join('\n'));
+  }
+
+  async flush(): Promise<void> {
+    if (this.disposed || !this.isDirty) {
+      return;
+    }
+    this.cancelScheduledSave();
+    if (this.savePromise) {
+      await this.savePromise;
+      if (this.isDirty) {
+        await this.flush();
+      }
+      return;
+    }
+
+    const request = this.notebook.saveCell(this);
+    this.savePromise = request;
+    try {
+      await request;
+    } finally {
+      this.savePromise = null;
+    }
+    if (this.isDirty && this.saveState !== 'unsaved') {
+      await this.flush();
+    }
+  }
+
+  getPendingSave() {
+    const fields = [...this.dirtyFields];
+    return {
+      fields,
+      values: Object.fromEntries(fields.map(field => [field, this[field]])) as Partial<
+        Pick<InvestigationCell, CellEditableField>
+      >,
+    };
+  }
+
+  markSaveStarted() {
+    this.saveState = 'saving';
+    this.saveError = null;
+  }
+
+  confirmSave(
+    cell: InvestigationCell,
+    fields: CellEditableField[],
+    sentValues: Partial<Pick<InvestigationCell, CellEditableField>>
+  ) {
+    const currentValues = Object.fromEntries(
+      EDITABLE_FIELDS.map(field => [field, this[field]])
+    ) as Pick<InvestigationCell, CellEditableField>;
+
+    this.confirmed = this.confirmedFields(cell);
+    for (const field of fields) {
+      if (isEqual(currentValues[field], sentValues[field])) {
+        this.dirtyFields.delete(field);
+        this[field] = cell[field] as never;
+      }
+    }
+    this.applyNonEditableServerFields(cell);
+    this.saveState = this.isDirty ? 'scheduled' : 'idle';
+    this.saveError = null;
+  }
+
+  failSave() {
+    this.saveState = 'unsaved';
+    this.saveError = 'save_failed';
   }
 
   attachServerId(serverId: string) {
@@ -133,19 +272,7 @@ export class CellStore {
     this.serverId = cell.id;
     this.position = cell.position;
     this.kind = cell.kind;
-    this.generatedContent = cell.generatedContent;
-    this.config = cell.config;
-    this.dependencies = cell.dependencies;
-    this.parameterKeys = cell.parameterKeys;
-    this.version = cell.version;
-    this.staleAt = cell.staleAt;
-    this.output = cell.output;
-    this.outputStatus = cell.outputStatus;
-    this.currentExecution = cell.currentExecution ?? null;
-    this.createdBy = cell.createdBy;
-    this.lastEditedBy = cell.lastEditedBy;
-    this.reactions = cell.reactions;
-    this.commentCount = cell.commentCount;
+    this.applyNonEditableServerFields(cell);
     this.isDeleted = false;
 
     for (const field of EDITABLE_FIELDS) {
@@ -186,7 +313,13 @@ export class CellStore {
       ...this.toInvestigationCell(),
       clientKey: this.clientKey,
       dirtyFields: [...this.dirtyFields],
+      saveState: this.saveState,
     };
+  }
+
+  dispose() {
+    this.disposed = true;
+    this.cancelScheduledSave();
   }
 
   protected getConfirmedFields(): ConfirmedCellFields {
@@ -202,5 +335,60 @@ export class CellStore {
       position: cell.position,
       version: cell.version,
     };
+  }
+
+  private applyNonEditableServerFields(cell: InvestigationCell) {
+    this.generatedContent = cell.generatedContent;
+    this.config = cell.config;
+    this.dependencies = cell.dependencies;
+    this.parameterKeys = cell.parameterKeys;
+    this.version = cell.version;
+    this.staleAt = cell.staleAt;
+    this.output = cell.output;
+    this.outputStatus = cell.outputStatus;
+    this.currentExecution = cell.currentExecution ?? null;
+    this.createdBy = cell.createdBy;
+    this.lastEditedBy = cell.lastEditedBy;
+    this.reactions = cell.reactions;
+    this.commentCount = cell.commentCount;
+  }
+
+  private setEditableField<Field extends CellEditableField>(
+    field: Field,
+    value: InvestigationCell[Field],
+    debounceMs: number
+  ) {
+    this[field] = value as never;
+    this.markDirty(field);
+    this.scheduleSave(debounceMs);
+  }
+
+  private markDirty(field: CellEditableField) {
+    if (isEqual(this[field], this.confirmed[field])) {
+      this.dirtyFields.delete(field);
+    } else {
+      this.dirtyFields.add(field);
+    }
+    this.saveError = null;
+    this.saveState = this.isDirty ? 'scheduled' : 'idle';
+  }
+
+  private scheduleSave(delay: number) {
+    if (this.disposed || !this.isDirty) {
+      return;
+    }
+    this.cancelScheduledSave();
+    this.saveState = 'scheduled';
+    this.saveTimer = this.notebook.timers.setTimeout(() => {
+      this.saveTimer = null;
+      void this.flush().catch(() => {});
+    }, delay);
+  }
+
+  private cancelScheduledSave() {
+    if (this.saveTimer) {
+      this.notebook.timers.clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+    }
   }
 }
