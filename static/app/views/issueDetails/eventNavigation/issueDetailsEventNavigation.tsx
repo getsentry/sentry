@@ -181,7 +181,10 @@ export function IssueDetailsEventNavigation({
               <TabList.Item
                 to={eventPath}
                 key={label}
-                hidden={label === EventNavOptions.CUSTOM}
+                hidden={
+                  label === EventNavOptions.CUSTOM &&
+                  selectedOption !== EventNavOptions.CUSTOM
+                }
                 textValue={EventNavLabels[label as keyof typeof EventNavLabels]}
               >
                 <Tooltip

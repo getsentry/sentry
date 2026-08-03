@@ -115,6 +115,27 @@ describe('IssueDetailsEventNavigation', () => {
     });
   });
 
+  it('shows the custom tab when navigating from a preset to a specific event', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/group-id/events/next-event-id/',
+      body: EventFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/group-id/events/prev-event-id/',
+      body: EventFixture(),
+    });
+    render(<IssueDetailsEventNavigation {...defaultProps} />, {
+      initialRouterConfig: latestRouterConfig,
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Next Event'}));
+
+    expect(await screen.findByRole('tab', {name: 'Custom'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+  });
+
   it('can navigate next/previous events', async () => {
     render(<IssueDetailsEventNavigation {...defaultProps} />, {
       initialRouterConfig: latestRouterConfig,
