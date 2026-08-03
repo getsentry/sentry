@@ -14,13 +14,6 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
 
 
-class _UnsetUserId:
-    pass
-
-
-_UNSET_USER_ID = _UnsetUserId()
-
-
 class ResolvedSeerRun(NamedTuple):
     seer_run_state_id: int
     # None for legacy runs created before SeerRun mirroring, which have no row.
@@ -40,14 +33,14 @@ def resolve_seer_run(
     organization: Organization,
     *,
     for_continue: bool = False,
-    user_id: int | None | _UnsetUserId = _UNSET_USER_ID,
+    user_id: int | None = None,
 ) -> ResolvedSeerRun | Response:
     """Resolve a client-facing run id (numeric ``seer_run_state_id`` or
     ``SeerRun.uuid``) to a :class:`ResolvedSeerRun`, or an error ``Response``
     (narrow with ``isinstance``). When ``user_id`` is supplied, the mirrored run
-    must belong to that user; omitting it keeps resolution organization-scoped.
-    For a not-ready run, a poll gets the 200 ``{"session": {"status": ...}}``
-    shape; ``for_continue`` instead gets 409 (still mirroring) or 422 (mirror failed).
+    must belong to that user. For a not-ready run, a poll gets the 200
+    ``{"session": {"status": ...}}`` shape; ``for_continue`` instead gets 409
+    (still mirroring) or 422 (mirror failed).
     """
     try:
         seer_run_state_id = int(run_id)
@@ -58,9 +51,7 @@ def resolve_seer_run(
         if not validate_bigint(seer_run_state_id):
             return Response({"detail": "Invalid run_id"}, status=status.HTTP_400_BAD_REQUEST)
         run = get_seer_run(seer_run_state_id, organization)
-        if not isinstance(user_id, _UnsetUserId) and (
-            user_id is None or run is None or run.user_id != user_id
-        ):
+        if user_id is not None and (run is None or run.user_id != user_id):
             return Response(
                 {"detail": "This conversation belongs to another user and is read-only."},
                 status=status.HTTP_403_FORBIDDEN,
@@ -75,7 +66,7 @@ def resolve_seer_run(
     run = SeerRun.objects.filter(uuid=run_uuid, organization=organization).first()
     if run is None:
         return Response({"session": None}, status=status.HTTP_404_NOT_FOUND)
-    if not isinstance(user_id, _UnsetUserId) and (user_id is None or run.user_id != user_id):
+    if user_id is not None and run.user_id != user_id:
         return Response(
             {"detail": "This conversation belongs to another user and is read-only."},
             status=status.HTTP_403_FORBIDDEN,
