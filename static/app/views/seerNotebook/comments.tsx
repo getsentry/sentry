@@ -251,7 +251,22 @@ const CommentPopover = observer(function CommentPopover({
                 <CommentContent>
                   <Flex align="center" justify="between" gap="xs">
                     <CommentAuthor>{author?.name ?? t('Former member')}</CommentAuthor>
-                    <CommentActions gap="xs">
+                    <CommentActions gap="xs" align="center">
+                      <ReactionBar
+                        reactions={comment.reactions}
+                        disabled={disabled || Boolean(comment.deletedAt)}
+                        onToggle={async (reaction, enabled) => {
+                          try {
+                            await cell.toggleCommentReaction(
+                              comment.id,
+                              reaction,
+                              enabled
+                            );
+                          } catch {
+                            addErrorMessage(t('Unable to update the reaction.'));
+                          }
+                        }}
+                      />
                       {mayEdit ? (
                         <Button
                           size="xs"
@@ -299,17 +314,6 @@ const CommentPopover = observer(function CommentPopover({
                       {t('This comment was deleted.')}
                     </Text>
                   )}
-                  <ReactionBar
-                    reactions={comment.reactions}
-                    disabled={disabled || Boolean(comment.deletedAt)}
-                    onToggle={async (reaction, enabled) => {
-                      try {
-                        await cell.toggleCommentReaction(comment.id, reaction, enabled);
-                      } catch {
-                        addErrorMessage(t('Unable to update the reaction.'));
-                      }
-                    }}
-                  />
                 </CommentContent>
               )}
             </Comment>

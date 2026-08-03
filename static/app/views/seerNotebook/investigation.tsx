@@ -867,7 +867,7 @@ function SortableCellContent({
           })}
         </CellReactionSummary>
       ) : null}
-      <CellActionsRail $hidden={isDragActive}>
+      <CellActionsRail $hidden={isDragActive} $pinned={isReactionPickerOpen}>
         {isReactionPickerOpen && !collaborationDisabled ? (
           <InlineReactionPicker>
             {INVESTIGATION_REACTIONS.map(reaction => (
@@ -1398,7 +1398,8 @@ const HistoryCurrent = styled(Flex)`
 `;
 
 const CellList = styled(Stack)`
-  width: 100%;
+  width: calc(100% + ${p => p.theme.space.lg} + ${p => p.theme.space.lg});
+  margin-left: -${p => p.theme.space.lg};
 `;
 
 const CellCard = styled('article')<{
@@ -1415,6 +1416,10 @@ const CellCard = styled('article')<{
         ? p.theme.shadow.low
         : p.theme.shadow.medium
       : 'none'};
+
+  &:has([aria-label='Cell comments']) {
+    z-index: 4;
+  }
 
   &::after {
     position: absolute;
@@ -1469,14 +1474,14 @@ const CellDragHandle = styled('div')<{
   }
 `;
 
-const CellActionsRail = styled(Stack)<{$hidden: boolean}>`
+const CellActionsRail = styled(Stack)<{$hidden: boolean; $pinned: boolean}>`
   position: absolute;
   z-index: 2;
   top: ${p => p.theme.space.md};
   right: -40px;
   align-items: center;
   gap: 1px;
-  opacity: ${p => (p.$hidden ? 0 : 0)};
+  opacity: ${p => (p.$hidden ? 0 : p.$pinned ? 1 : 0)};
   pointer-events: ${p => (p.$hidden ? 'none' : 'auto')};
   transition: opacity 120ms ease;
 
@@ -1534,7 +1539,7 @@ const CellReactionSummary = styled(Flex)<{$hidden: boolean}>`
   right: ${p => p.theme.space.sm};
   align-items: center;
   gap: 3px;
-  opacity: ${p => (p.$hidden ? 0 : 0.58)};
+  opacity: ${p => (p.$hidden ? 0 : 1)};
   pointer-events: ${p => (p.$hidden ? 'none' : 'auto')};
   transition: opacity 120ms ease;
 
