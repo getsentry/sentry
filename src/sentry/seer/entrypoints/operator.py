@@ -714,7 +714,7 @@ def process_autofix_updates(
     organization_id: int,
     activity_attribution: SeerActivityAttribution | None = None,
     activity_datetime: str | None = None,
-    record_activity: bool = True,
+    activity_already_recorded: bool = False,
 ) -> None:
     """
     Use the registry to iterate over all entrypoints and check if this payload's run_id or group_id
@@ -754,7 +754,7 @@ def process_autofix_updates(
             lifecycle.record_halt(halt_reason="no_operator_access")
             return
 
-        if record_activity:
+        if not activity_already_recorded:
             record_seer_activity(
                 group=group,
                 event_type=event_type,

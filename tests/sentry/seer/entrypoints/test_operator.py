@@ -382,7 +382,7 @@ class SeerOperatorTest(TestCase):
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     @patch("sentry.seer.entrypoints.cache.SeerOperatorAutofixCache.get")
-    def test_process_autofix_updates_without_recording_activity(
+    def test_process_autofix_updates_with_activity_already_recorded(
         self, mock_autofix_cache_get, _mock_has_access
     ):
         cache_payload = self.entrypoint.create_autofix_cache_payload()
@@ -403,7 +403,7 @@ class SeerOperatorTest(TestCase):
                 event_type=event_type,
                 event_payload=event_payload,
                 organization_id=self.organization.id,
-                record_activity=False,
+                activity_already_recorded=True,
             )
 
         assert not Activity.objects.filter(
