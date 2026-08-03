@@ -4,7 +4,7 @@ import hashlib
 import logging
 import uuid
 from datetime import datetime
-from typing import IO, TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING, BinaryIO, NamedTuple
 
 import orjson
 import sentry_sdk
@@ -74,7 +74,7 @@ class AssembleResult(NamedTuple):
     # File object stored in the database.
     bundle: File
     # Temporary in-memory object representing the file used for efficiency.
-    bundle_temp_file: IO
+    bundle_temp_file: BinaryIO
 
     def delete_bundle(self):
         self.bundle.delete()
