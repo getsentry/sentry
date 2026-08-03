@@ -358,7 +358,7 @@ export function hasSavedPageFilters(
 ) {
   return !(
     (dashboard.projects === undefined || dashboard.projects.length === 0) &&
-    (dashboard.environment === undefined || dashboard.environment.length === 0) &&
+    (!defined(dashboard.environment) || dashboard.environment.length === 0) &&
     dashboard.start === undefined &&
     dashboard.end === undefined &&
     dashboard.period === undefined

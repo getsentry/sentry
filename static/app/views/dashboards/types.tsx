@@ -244,7 +244,7 @@ export type DashboardDetails = {
   widgets: Widget[];
   createdBy?: User;
   end?: string;
-  environment?: string[];
+  environment?: string[] | null;
   isFavorited?: boolean;
   period?: string;
   permissions?: DashboardPermissions;
