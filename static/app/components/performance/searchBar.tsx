@@ -61,6 +61,7 @@ export function SearchBar(props: SearchBarProps) {
   const url = `/organizations/${organization.slug}/events/`;
 
   const projectIdStrings = (eventView.project as Array<Readonly<number>>)?.map(String);
+  const projectIdStringsJoined = projectIdStrings.join(',');
 
   const handleSearchChange = (query: any) => {
     setSearchString(query);
@@ -138,70 +139,70 @@ export function SearchBar(props: SearchBarProps) {
 
   const getSuggestedTransactions = useMemo(
     () =>
-    debounce(
-      async query => {
-        try {
-          setLoading(true);
-          const conditions = additionalConditions?.copy() ?? new MutableSearch('');
-          conditions.addFilterValues('transaction', [wrapQueryInWildcards(query)], false);
-          conditions.addFilterValues('event.type', ['transaction']);
+      debounce(
+        async query => {
+          try {
+            setLoading(true);
+            const conditions = additionalConditions?.copy() ?? new MutableSearch('');
+            conditions.addFilterValues('transaction', [wrapQueryInWildcards(query)], false);
+            conditions.addFilterValues('event.type', ['transaction']);
 
-          // clear any active requests
-          if (Object.keys(api.activeRequests).length) {
-            api.clear();
-          }
-          const parsedPeriodHours = eventView.statsPeriod
-            ? parsePeriodToHours(eventView.statsPeriod)
-            : 0;
-          const parsedDefaultHours = parsePeriodToHours(TRANSACTION_SEARCH_PERIOD);
-
-          const statsPeriod =
-            parsedDefaultHours > parsedPeriodHours
-              ? TRANSACTION_SEARCH_PERIOD
-              : eventView.statsPeriod;
-
-          const [results] = await doDiscoverQuery<{
-            data: DataItem[];
-          }>(api, url, {
-            field: ['transaction', 'project_id', 'count()'],
-            project: projectIdStrings,
-            sort: '-count()',
-            query: conditions.formatString(),
-            statsPeriod,
-            referrer: 'api.insights.transaction-name-search-bar',
-          });
-
-          const parsedResults = results.data.reduce(
-            (searchGroup: SearchGroup, item) => {
-              searchGroup.children.push({
-                value: encodeItemToValue(item),
-                title: item.transaction,
-                type: ItemType.LINK,
-                desc: '',
-              });
-              return searchGroup;
-            },
-            {
-              title: 'All Transactions',
-              children: [],
-              icon: null,
-              type: 'header',
+            // clear any active requests
+            if (Object.keys(api.activeRequests).length) {
+              api.clear();
             }
-          );
+            const parsedPeriodHours = eventView.statsPeriod
+              ? parsePeriodToHours(eventView.statsPeriod)
+              : 0;
+            const parsedDefaultHours = parsePeriodToHours(TRANSACTION_SEARCH_PERIOD);
 
-          setHighlightedItemIndex(-1);
+            const statsPeriod =
+              parsedDefaultHours > parsedPeriodHours
+                ? TRANSACTION_SEARCH_PERIOD
+                : eventView.statsPeriod;
 
-          setSearchResults([parsedResults]);
-        } catch (_) {
-          throw new Error('Unable to fetch event field values');
-        } finally {
-          setLoading(false);
-        }
-      },
-      DEFAULT_DEBOUNCE_DURATION,
-      {leading: true}
-    ),
-    [api, url, eventView.statsPeriod, projectIdStrings.join(',')]
+            const [results] = await doDiscoverQuery<{
+              data: DataItem[];
+            }>(api, url, {
+              field: ['transaction', 'project_id', 'count()'],
+              project: projectIdStrings,
+              sort: '-count()',
+              query: conditions.formatString(),
+              statsPeriod,
+              referrer: 'api.insights.transaction-name-search-bar',
+            });
+
+            const parsedResults = results.data.reduce(
+              (searchGroup: SearchGroup, item) => {
+                searchGroup.children.push({
+                  value: encodeItemToValue(item),
+                  title: item.transaction,
+                  type: ItemType.LINK,
+                  desc: '',
+                });
+                return searchGroup;
+              },
+              {
+                title: 'All Transactions',
+                children: [],
+                icon: null,
+                type: 'header',
+              }
+            );
+
+            setHighlightedItemIndex(-1);
+
+            setSearchResults([parsedResults]);
+          } catch (_) {
+            throw new Error('Unable to fetch event field values');
+          } finally {
+            setLoading(false);
+          }
+        },
+        DEFAULT_DEBOUNCE_DURATION,
+        {leading: true}
+      ),
+    [api, url, eventView.statsPeriod, projectIdStringsJoined, additionalConditions]
   );
 
   const handleChooseItem = (value: string) => {
