@@ -53,6 +53,7 @@ export class CellStore {
   dirtyFields = new Set<CellEditableField>();
   saveError: string | null = null;
   saveState: CellSaveState = 'idle';
+  isRunRequested = false;
 
   private confirmed: ConfirmedCellFields;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -109,6 +110,7 @@ export class CellStore {
       dirtyFields: observable.shallow,
       saveError: observable,
       saveState: observable,
+      isRunRequested: observable,
       isPersisted: computed,
       isDirty: computed,
       queryIntent: computed,
@@ -121,12 +123,17 @@ export class CellStore {
       updateDisplay: action,
       applySlashCommand: action,
       clearQueryIntent: action,
+      applyDraft: action,
+      changeCommentCount: action,
+      markExecutionAccepted: action,
+      setRunRequested: action,
       markSaveStarted: action,
       confirmSave: action,
       failSave: action,
       applyServerSnapshot: action,
       attachServerId: action,
       markDeleted: action,
+      markStale: action,
       restore: action,
       dispose: action,
     });
@@ -188,6 +195,61 @@ export class CellStore {
     const lines = this.content.split('\n');
     lines[lines.length - 1] = prefix;
     this.editContent(lines.join('\n'));
+  }
+
+  applyDraft(values: {
+    content: string;
+    display: InvestigationDisplay;
+    generationPrompt: string;
+    title: string;
+  }) {
+    const clearsLegacyQuery =
+      this.kind === 'query' &&
+      values.content === '' &&
+      values.generationPrompt === '' &&
+      Boolean(
+        this.content ||
+        this.generationPrompt ||
+        this.confirmed.content ||
+        this.confirmed.generationPrompt
+      );
+    this.editTitle(values.title);
+    if (clearsLegacyQuery) {
+      this.content = '';
+      this.generationPrompt = '';
+      this.dirtyFields.add('content');
+      this.dirtyFields.add('generationPrompt');
+      this.scheduleSave(600);
+    } else {
+      this.editContent(values.content);
+      this.editGenerationPrompt(values.generationPrompt);
+    }
+    this.updateDisplay(values.display);
+  }
+
+  changeCommentCount(delta: number) {
+    this.commentCount = Math.max(0, this.commentCount + delta);
+  }
+
+  setRunRequested(value: boolean) {
+    this.isRunRequested = value;
+  }
+
+  markExecutionAccepted(execution: {id: string; status: string}) {
+    this.outputStatus = execution.status;
+    this.currentExecution = {
+      id: execution.id,
+      status: execution.status,
+      executor: this.currentExecution?.executor ?? '',
+      schemaVersion: this.currentExecution?.schemaVersion ?? 1,
+      startedAt: this.currentExecution?.startedAt ?? null,
+      completedAt: null,
+      error: null,
+    };
+  }
+
+  run(): Promise<void> {
+    return this.notebook.runCell(this);
   }
 
   async flush(): Promise<void> {
@@ -262,6 +324,10 @@ export class CellStore {
 
   markDeleted() {
     this.isDeleted = true;
+  }
+
+  markStale() {
+    this.staleAt ??= 'optimistic';
   }
 
   restore() {

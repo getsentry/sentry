@@ -8,7 +8,6 @@ import {
   useEffect,
   useRef,
   useState,
-  useSyncExternalStore,
 } from 'react';
 import {useParams} from 'react-router-dom';
 import {
@@ -20,7 +19,6 @@ import {
   type DragEndEvent,
 } from '@dnd-kit/core';
 import {
-  arrayMove,
   SortableContext,
   useSortable,
   verticalListSortingStrategy,
@@ -29,8 +27,8 @@ import {CSS} from '@dnd-kit/utilities';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {uuid4} from '@sentry/core';
-import {useQuery} from '@tanstack/react-query';
-import isEqual from 'lodash/isEqual';
+import {useQueryClient} from '@tanstack/react-query';
+import {observer} from 'mobx-react-lite';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Badge} from '@sentry/scraps/badge';
@@ -72,26 +70,18 @@ import {
   IconStar,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SortableReleasesSelect} from 'sentry/views/dashboards/sortableReleasesSelect';
 import {DashboardFilterKeys} from 'sentry/views/dashboards/types';
 import {TopBar} from 'sentry/views/navigation/topBar';
-
+import {NotebookStore} from 'sentry/views/seerNotebook/stores/notebookStore';
 import {
-  archiveInvestigation,
-  createCell,
-  deleteCell,
-  executeCell,
-  investigationDetailQueryOptions,
-  reorderCells,
-  setCellReaction,
-  updateCell,
-  updateInvestigationFavorite,
-  updateInvestigation,
-  updateParameters,
-  updatePermissions,
-} from './api';
+  NotebookStoreProvider,
+  useNotebookStore,
+} from 'sentry/views/seerNotebook/stores/storeContext';
+import {QueryClientInvestigationTransport} from 'sentry/views/seerNotebook/stores/transport';
+
+import {setCellReaction} from './api';
 import {CellComments} from './comments';
 import {PersistedCellOutput, TextCellExecutionOutput} from './output';
 import {InvestigationParameters} from './parameters';
@@ -107,13 +97,6 @@ import type {
   InvestigationReactionName,
 } from './types';
 import {INVESTIGATION_REACTIONS} from './types';
-
-type OperationResult =
-  | {detail: InvestigationDetail; type: 'detail'}
-  | {cell: InvestigationCell; type: 'cell'}
-  | {cell: InvestigationCell; optimisticCellId: string; type: 'createdCell'}
-  | {cellId: string; type: 'deletedCell'}
-  | {permissions: InvestigationPermissions; type: 'permissions'};
 
 type SeerInvestigationProps = {
   onCellListRender?: ProfilerOnRenderCallback;
@@ -143,390 +126,78 @@ function SeerInvestigationView({onCellListRender}: SeerInvestigationProps) {
 function SeerInvestigationContent({onCellListRender}: SeerInvestigationProps) {
   const {investigationId} = useParams<{investigationId: string}>();
   const organization = useOrganization();
-  const {openModal} = useModal();
-  const detailQuery = useQuery(
-    investigationDetailQueryOptions(organization.slug, investigationId ?? 'missing')
-  );
-  const {refetch: refetchDetail} = detailQuery;
-  const [detail, setDetail] = useState<InvestigationDetail>();
-  const [isUpdatingFavorite, setIsUpdatingFavorite] = useState(false);
-  const [conflict, setConflict] = useState(false);
-  const [reloadEpoch, setReloadEpoch] = useState(0);
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [titleDraft, setTitleDraft] = useState('');
-  const detailRef = useRef<InvestigationDetail | undefined>(undefined);
-  const versionRef = useRef(1);
-  const queueRef = useRef<Promise<unknown>>(Promise.resolve());
-  const retryRef = useRef<(() => Promise<OperationResult>) | null>(null);
-  const conflictRef = useRef(false);
-  const pendingCount = useRef(0);
-  const sortableCellIdsRef = useRef<string[]>([]);
-  const savingRef = useRef(false);
-  const savingListenersRef = useRef(new Set<() => void>());
-  const optimisticIdRef = useRef(0);
-  const sensors = useSensors(
-    useSensor(PointerSensor, {activationConstraint: {distance: 6}})
-  );
-  const subscribeToSaving = useCallback((listener: () => void) => {
-    savingListenersRef.current.add(listener);
-    return () => {
-      savingListenersRef.current.delete(listener);
-    };
-  }, []);
-  const getSavingSnapshot = useCallback(() => savingRef.current, []);
-  const setSaving = useCallback((isSaving: boolean) => {
-    if (savingRef.current === isSaving) {
-      return;
-    }
-    savingRef.current = isSaving;
-    savingListenersRef.current.forEach(listener => listener());
-  }, []);
-
-  const nextSortableCellIds = detail?.cells.map(getCellSortableId) ?? [];
-  if (
-    nextSortableCellIds.length !== sortableCellIdsRef.current.length ||
-    nextSortableCellIds.some((id, index) => sortableCellIdsRef.current[index] !== id)
-  ) {
-    sortableCellIdsRef.current = nextSortableCellIds;
-  }
-
-  useEffect(() => {
-    if (detailQuery.data && !conflictRef.current) {
-      detailRef.current = detailQuery.data;
-      versionRef.current = detailQuery.data.version;
-      setDetail(detailQuery.data);
-    }
-  }, [detailQuery.data]);
-
-  const applyResult = useCallback((result: OperationResult) => {
-    const current = detailRef.current;
-    if (!current) {
-      return;
-    }
-
-    let next: InvestigationDetail;
-    if (result.type === 'detail') {
-      next = {
-        ...result.detail,
-        cells: result.detail.cells.map(cell => {
-          const previousCell = current.cells.find(value => value.id === cell.id);
-          const optimisticKey = previousCell?.config.optimisticKey;
-          const nextCell =
-            typeof optimisticKey === 'string'
-              ? {...cell, config: {...cell.config, optimisticKey}}
-              : cell;
-          return previousCell && isEqual(previousCell, nextCell)
-            ? previousCell
-            : nextCell;
-        }),
-      };
-    } else if (result.type === 'cell') {
-      const hasCell = current.cells.some(cell => cell.id === result.cell.id);
-      next = {
-        ...current,
-        version: current.version + 1,
-        cells: hasCell
-          ? current.cells.map(cell =>
-              cell.id === result.cell.id
-                ? {
-                    ...result.cell,
-                    config: {
-                      ...result.cell.config,
-                      optimisticKey: cell.config.optimisticKey,
-                    },
-                  }
-                : cell
-            )
-          : [...current.cells, result.cell].sort((a, b) => a.position - b.position),
-      };
-    } else if (result.type === 'createdCell') {
-      next = {
-        ...current,
-        version: current.version + 1,
-        cells: current.cells.map(cell =>
-          cell.id === result.optimisticCellId
-            ? {
-                ...result.cell,
-                position: cell.position,
-                config: {
-                  ...result.cell.config,
-                  optimisticKey: result.optimisticCellId,
-                },
-              }
-            : cell
+  const queryClient = useQueryClient();
+  const [store] = useState(
+    () =>
+      new NotebookStore({
+        idGenerator: uuid4,
+        investigationId: investigationId ?? 'missing',
+        organizationSlug: organization.slug,
+        queryExecutionEnabled: organization.features.includes(
+          'investigations-query-execution'
         ),
-      };
-    } else if (result.type === 'deletedCell') {
-      next = {
-        ...current,
-        version: current.version + 1,
-        cells: current.cells.filter(cell => cell.id !== result.cellId),
-      };
-    } else {
-      next = {
-        ...current,
-        version: current.version + 1,
-        permissions: result.permissions,
-      };
-    }
-
-    // Advance the shared version synchronously before the next queued write begins.
-    detailRef.current = next;
-    versionRef.current = next.version;
-    setDetail(next);
-  }, []);
-
-  const enqueue = (operation: (version: number) => Promise<OperationResult>) => {
-    const execute = async () => {
-      if (conflictRef.current) {
-        throw new Error('Investigation has a pending version conflict.');
-      }
-      pendingCount.current += 1;
-      setSaving(true);
-      try {
-        const result = await operation(versionRef.current);
-        applyResult(result);
-        return result;
-      } catch (error) {
-        if (error instanceof RequestError && error.status === 409) {
-          conflictRef.current = true;
-          retryRef.current = execute;
-          setConflict(true);
-        } else {
-          addErrorMessage(t('The investigation change could not be saved.'));
-        }
-        throw error;
-      } finally {
-        pendingCount.current -= 1;
-        if (pendingCount.current === 0) {
-          setSaving(false);
-        }
-      }
-    };
-    const queued = queueRef.current.then(execute);
-    queueRef.current = queued.catch(() => {});
-    return queued;
-  };
-
-  const reloadLatest = async () => {
-    conflictRef.current = false;
-    retryRef.current = null;
-    const response = await refetchDetail();
-    if (response.data) {
-      detailRef.current = response.data;
-      versionRef.current = response.data.version;
-      setDetail(response.data);
-      setReloadEpoch(value => value + 1);
-    }
-    setConflict(false);
-  };
-
-  const retryChange = async () => {
-    const retry = retryRef.current;
-    conflictRef.current = false;
-    setConflict(false);
-    const response = await refetchDetail();
-    if (response.data) {
-      versionRef.current = response.data.version;
-    }
-    retryRef.current = null;
-    await retry?.();
-  };
-
-  const refreshDetail = useCallback(async () => {
-    const response = await refetchDetail();
-    if (response.data && !conflictRef.current) {
-      detailRef.current = response.data;
-      versionRef.current = response.data.version;
-      setDetail(response.data);
-    }
-  }, [refetchDetail]);
-
-  const hasPendingExecution = detail?.cells.some(cell =>
-    ['pending', 'running'].includes(cell.outputStatus)
+        transport: new QueryClientInvestigationTransport(
+          queryClient,
+          organization.slug,
+          investigationId ?? 'missing'
+        ),
+      })
   );
+
   useEffect(() => {
-    if (!hasPendingExecution) {
-      return;
-    }
-    const timer = window.setInterval(() => void refreshDetail(), 1500);
-    return () => window.clearInterval(timer);
-  }, [hasPendingExecution, refreshDetail]);
+    void store.load();
+    return () => store.dispose();
+  }, [store]);
 
   if (!investigationId) {
     return <LoadingError message={t('No investigation was selected.')} />;
   }
-  if (detailQuery.isError) {
-    return <LoadingError onRetry={() => refetchDetail()} />;
+
+  return (
+    <NotebookStoreProvider store={store}>
+      <InvestigationEditor onCellListRender={onCellListRender} />
+    </NotebookStoreProvider>
+  );
+}
+
+const InvestigationEditor = observer(function InvestigationEditor({
+  onCellListRender,
+}: SeerInvestigationProps) {
+  const store = useNotebookStore();
+  const organization = useOrganization();
+  const {openModal} = useModal();
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const sensors = useSensors(
+    useSensor(PointerSensor, {activationConstraint: {distance: 6}})
+  );
+
+  if (store.loadState === 'error') {
+    return <LoadingError onRetry={() => store.retryLoad()} />;
   }
-  if (detailQuery.isPending || !detail) {
+  if (store.loadState !== 'ready') {
     return <LoadingState>{t('Loading investigation…')}</LoadingState>;
   }
 
-  const readOnly = detail.status === 'archived' || !detail.permissions.canEdit;
+  const detail = store.detail;
+  const readOnly = store.isReadOnly;
 
   const commitTitle = () => {
     setIsEditingTitle(false);
-    const nextTitle = titleDraft.trim();
-    if (!nextTitle || nextTitle === detail.title) {
-      return;
-    }
-    const current = detailRef.current ?? detail;
-    const optimisticDetail = {...current, title: nextTitle};
-    detailRef.current = optimisticDetail;
-    setDetail(optimisticDetail);
-    enqueue(async version => ({
-      type: 'detail',
-      detail: await updateInvestigation(organization.slug, detail.id, {
-        investigationVersion: version,
-        title: nextTitle,
-      }),
-    })).catch(() => {});
-  };
-
-  const insertCell = async (kind: InvestigationCellKind, index: number) => {
-    const optimisticCellId = `optimistic-cell-${optimisticIdRef.current++}`;
-    const optimisticCell: InvestigationCell = {
-      id: optimisticCellId,
-      position: index,
-      kind,
-      title: '',
-      content: '',
-      currentExecution: null,
-      generationPrompt: '',
-      generatedContent: '',
-      output: null,
-      outputStatus: 'notRun',
-      config: {optimisticKey: optimisticCellId},
-      display: {type: kind === 'text' ? 'markdown' : 'table'},
-      dependencies: [],
-      parameterKeys: [],
-      version: 0,
-      staleAt: null,
-      createdBy: null,
-      lastEditedBy: null,
-      reactions: [],
-      commentCount: 0,
-    };
-    const current = detailRef.current ?? detail;
-    const optimisticCells = [
-      ...current.cells.slice(0, index),
-      optimisticCell,
-      ...current.cells.slice(index),
-    ].map((cell, position) => (cell.position === position ? cell : {...cell, position}));
-    const optimisticDetail = {...current, cells: optimisticCells};
-    detailRef.current = optimisticDetail;
-    setDetail(optimisticDetail);
-
-    try {
-      await enqueue(async version => ({
-        type: 'createdCell' as const,
-        optimisticCellId,
-        cell: await createCell(organization.slug, detail.id, {
-          investigationVersion: version,
-          kind,
-          display: optimisticCell.display,
-        }),
-      }));
-
-      if (index < current.cells.length) {
-        const cells = detailRef.current?.cells ?? [];
-        await enqueue(async version => ({
-          type: 'detail' as const,
-          detail: await reorderCells(organization.slug, detail.id, {
-            investigationVersion: version,
-            cellIds: cells.map(cell => cell.id),
-          }),
-        }));
-      }
-    } catch {
-      const latest = detailRef.current;
-      if (latest?.cells.some(cell => cell.id === optimisticCellId)) {
-        const cells = latest.cells
-          .filter(cell => cell.id !== optimisticCellId)
-          .map((cell, position) =>
-            cell.position === position ? cell : {...cell, position}
-          );
-        const rolledBack = {...latest, cells};
-        detailRef.current = rolledBack;
-        setDetail(rolledBack);
-      }
-    }
-  };
-
-  const deleteCellOptimistically = async (cell: InvestigationCell) => {
-    const current = detailRef.current ?? detail;
-    const previousIndex = current.cells.findIndex(value => value.id === cell.id);
-    const optimisticDetail = {
-      ...current,
-      cells: current.cells
-        .filter(value => value.id !== cell.id)
-        .map((value, position) =>
-          value.position === position ? value : {...value, position}
-        ),
-    };
-    detailRef.current = optimisticDetail;
-    setDetail(optimisticDetail);
-
-    try {
-      await enqueue(async version => {
-        await deleteCell(organization.slug, detail.id, cell.id, {
-          investigationVersion: version,
-          version: cell.version,
-        });
-        return {type: 'deletedCell' as const, cellId: cell.id};
-      });
-    } catch {
-      const latest = detailRef.current;
-      if (latest && !latest.cells.some(value => value.id === cell.id)) {
-        const cells = [
-          ...latest.cells.slice(0, previousIndex),
-          cell,
-          ...latest.cells.slice(previousIndex),
-        ].map((value, position) =>
-          value.position === position ? value : {...value, position}
-        );
-        const rolledBack = {...latest, cells};
-        detailRef.current = rolledBack;
-        setDetail(rolledBack);
-      }
-    }
+    void store
+      .commitTitle()
+      .catch(() => addErrorMessage(t('The investigation change could not be saved.')));
   };
 
   const saveMetadata = (values: {
     filters?: Partial<InvestigationFilters>;
     projectIds?: number[];
-  }) =>
-    enqueue(async version => {
-      const current = detailRef.current ?? detail;
-      return {
-        type: 'detail' as const,
-        detail: await updateInvestigation(organization.slug, detail.id, {
-          investigationVersion: version,
-          filters: values.filters
-            ? {...current.filters, ...values.filters}
-            : current.filters,
-          projectIds: values.projectIds ?? current.projectIds,
-        }),
-      };
-    });
+  }) => store.saveMetadata(values);
 
   const toggleFavorite = async () => {
-    const nextFavorite = !detail.isFavorited;
-    setIsUpdatingFavorite(true);
-    setDetail(current => (current ? {...current, isFavorited: nextFavorite} : current));
     try {
-      await updateInvestigationFavorite(organization.slug, detail.id, nextFavorite);
-      if (detailRef.current) {
-        detailRef.current = {...detailRef.current, isFavorited: nextFavorite};
-      }
+      await store.toggleFavorite();
     } catch {
-      setDetail(current =>
-        current ? {...current, isFavorited: !nextFavorite} : current
-      );
       addErrorMessage(t('The investigation favorite could not be updated.'));
-    } finally {
-      setIsUpdatingFavorite(false);
     }
   };
 
@@ -536,45 +207,16 @@ function SeerInvestigationContent({onCellListRender}: SeerInvestigationProps) {
         <InvestigationSettingsModal
           {...modalProps}
           detail={detail}
-          onSavePermissions={permissions =>
-            enqueue(async version => ({
-              type: 'permissions',
-              permissions: await updatePermissions(organization.slug, detail.id, {
-                investigationVersion: version,
-                isEditableByEveryone: permissions.isEditableByEveryone,
-                teamIds: permissions.teamIds,
-              }),
-            })).then(() => {})
-          }
+          onSavePermissions={permissions => store.updateAccess(permissions)}
           onArchive={() => {
             openConfirmModal({
               message: t('Archive this investigation? It will become read-only.'),
               confirmText: t('Archive'),
               priority: 'danger',
-              onConfirm: () =>
-                enqueue(async version => {
-                  await archiveInvestigation(organization.slug, detail.id, version);
-                  const current = detailRef.current ?? detail;
-                  return {
-                    type: 'detail',
-                    detail: {
-                      ...current,
-                      status: 'archived',
-                      version: version + 1,
-                    },
-                  };
-                }).then(() => {}),
+              onConfirm: () => store.archive(),
             });
           }}
-          onRestore={() =>
-            enqueue(async version => ({
-              type: 'detail',
-              detail: await updateInvestigation(organization.slug, detail.id, {
-                investigationVersion: version,
-                status: 'active',
-              }),
-            })).then(() => {})
-          }
+          onRestore={() => store.restoreInvestigation()}
         />
       ),
       {
@@ -598,14 +240,16 @@ function SeerInvestigationContent({onCellListRender}: SeerInvestigationProps) {
 
   const editor = (
     <EditorPage>
-      {conflict ? (
+      {store.conflict ? (
         <Alert.Container>
           <Alert
             variant="warning"
             trailingItems={
               <Flex gap="sm">
-                <Alert.Button onClick={reloadLatest}>{t('Reload latest')}</Alert.Button>
-                <Alert.Button onClick={retryChange} variant="primary">
+                <Alert.Button onClick={() => void store.reloadLatest()}>
+                  {t('Reload latest')}
+                </Alert.Button>
+                <Alert.Button onClick={() => void store.retryChange()} variant="primary">
                   {t('Retry my change')}
                 </Alert.Button>
               </Flex>
@@ -655,18 +299,9 @@ function SeerInvestigationContent({onCellListRender}: SeerInvestigationProps) {
             }
           />
           <InvestigationParameters
-            key={`${detail.id}:${reloadEpoch}`}
             parameters={detail.parameters}
             disabled={readOnly}
-            onSave={values =>
-              enqueue(async version => ({
-                type: 'detail',
-                detail: await updateParameters(organization.slug, detail.id, {
-                  investigationVersion: version,
-                  values,
-                }),
-              })).then(() => {})
-            }
+            onSave={values => store.updateParameterValues(values)}
           />
         </FilterControls>
         <CompactSelect
@@ -691,14 +326,15 @@ function SeerInvestigationContent({onCellListRender}: SeerInvestigationProps) {
             <NotebookTitleInput
               autoFocus
               aria-label={t('Investigation name')}
-              value={titleDraft}
-              onChange={event => setTitleDraft(event.target.value)}
+              value={store.titleDraft}
+              onChange={event => store.editTitle(event.target.value)}
               onBlur={commitTitle}
               onKeyDown={event => {
                 if (event.key === 'Enter') {
                   event.preventDefault();
                   commitTitle();
                 } else if (event.key === 'Escape') {
+                  store.cancelTitleEdit();
                   setIsEditingTitle(false);
                 }
               }}
@@ -709,7 +345,7 @@ function SeerInvestigationContent({onCellListRender}: SeerInvestigationProps) {
               disabled={readOnly}
               aria-label={t('Edit investigation name')}
               onClick={() => {
-                setTitleDraft(detail.title);
+                store.editTitle(detail.title);
                 setIsEditingTitle(true);
               }}
             >
@@ -720,10 +356,7 @@ function SeerInvestigationContent({onCellListRender}: SeerInvestigationProps) {
             <Badge variant={detail.status === 'active' ? 'success' : 'muted'}>
               {detail.status === 'active' ? t('Active') : t('Archived')}
             </Badge>
-            <InvestigationSavingStatus
-              getSnapshot={getSavingSnapshot}
-              subscribe={subscribeToSaving}
-            />
+            <InvestigationSavingStatus store={store} />
             {detail.permissions.canEdit ? null : (
               <Badge variant="muted">{t('View only')}</Badge>
             )}
@@ -737,134 +370,51 @@ function SeerInvestigationContent({onCellListRender}: SeerInvestigationProps) {
             if (readOnly || !event.over || event.active.id === event.over.id) {
               return;
             }
-            const oldIndex = detail.cells.findIndex(
-              cell => getCellSortableId(cell) === event.active.id
-            );
-            const newIndex = detail.cells.findIndex(
-              cell => getCellSortableId(cell) === event.over?.id
-            );
-            const previousCells = detail.cells;
-            const nextCells = arrayMove(detail.cells, oldIndex, newIndex).map(
-              (cell, position) =>
-                cell.position === position ? cell : {...cell, position}
-            );
-            setDetail(current => (current ? {...current, cells: nextCells} : current));
-            enqueue(async version => ({
-              type: 'detail',
-              detail: await reorderCells(organization.slug, detail.id, {
-                investigationVersion: version,
-                cellIds: nextCells.map(cell => cell.id),
-              }),
-            })).catch(() =>
-              setDetail(current =>
-                current ? {...current, cells: previousCells} : current
-              )
-            );
+            void store
+              .moveCell(String(event.active.id), String(event.over.id))
+              .catch(() =>
+                addErrorMessage(t('The investigation change could not be saved.'))
+              );
           }}
         >
-          <SortableContext
-            items={sortableCellIdsRef.current}
-            strategy={verticalListSortingStrategy}
-          >
+          <SortableContext items={store.cellKeys} strategy={verticalListSortingStrategy}>
             <OptionalProfiler id="investigation-cell-list" onRender={onCellListRender}>
               <CellList>
-                {detail.cells.map((cell, index) => (
-                  <Fragment
-                    key={`${
-                      typeof cell.config.optimisticKey === 'string'
-                        ? cell.config.optimisticKey
-                        : cell.id
-                    }:${reloadEpoch}`}
-                  >
+                {store.cellsInOrder.map((cellStore, index) => (
+                  <Fragment key={cellStore.clientKey}>
                     {index > 0 && !readOnly ? (
-                      <MemoizedCellInsertDivider index={index} onInsert={insertCell} />
+                      <MemoizedCellInsertDivider
+                        index={index}
+                        onInsert={(kind, insertIndex) =>
+                          store.insertCell(kind, insertIndex)
+                        }
+                      />
                     ) : null}
                     <MemoizedSortableCell
-                      cell={cell}
+                      cell={cellStore.toInvestigationCell()}
                       index={index}
                       disabled={readOnly}
                       collaborationDisabled={detail.status === 'archived'}
                       canManage={detail.permissions.canManage}
                       investigationId={detail.id}
                       organizationSlug={organization.slug}
-                      queryExecutionEnabled={organization.features.includes(
-                        'investigations-query-execution'
-                      )}
-                      onInsertAfter={kind => insertCell(kind, index + 1)}
-                      onSave={(currentCell, values) =>
-                        enqueue(async version => {
-                          const persistedCell = detailRef.current?.cells.find(
-                            value =>
-                              value.id === currentCell.id ||
-                              value.config.optimisticKey === currentCell.id
-                          );
-                          const cellToUpdate = persistedCell ?? currentCell;
-                          return {
-                            type: 'cell',
-                            cell: await updateCell(
-                              organization.slug,
-                              detail.id,
-                              cellToUpdate.id,
-                              {
-                                investigationVersion: version,
-                                version: cellToUpdate.version,
-                                ...values,
-                              }
-                            ),
-                          };
-                        })
-                      }
-                      onExecute={async currentCell => {
-                        const current = detailRef.current;
-                        const persistedCell = current?.cells.find(
-                          value =>
-                            value.id === currentCell.id ||
-                            value.config.optimisticKey === currentCell.id
-                        );
-                        if (!current || !persistedCell) {
-                          return;
-                        }
-                        await executeCell(
-                          organization.slug,
-                          current.id,
-                          persistedCell.id,
-                          {
-                            investigationVersion: current.version,
-                            requestId: uuid4(),
-                            version: persistedCell.version,
-                          }
-                        );
-                        await refreshDetail();
+                      queryExecutionEnabled={store.queryExecutionEnabled}
+                      onInsertAfter={kind => store.insertCell(kind, index + 1)}
+                      onSave={(_currentCell, values) => {
+                        cellStore.applyDraft(values);
+                        return cellStore.flush();
                       }}
+                      onExecute={() => cellStore.run()}
                       onDelete={() =>
                         openConfirmModal({
                           message: t('Delete this cell?'),
                           confirmText: t('Delete'),
                           priority: 'danger',
-                          onConfirm: () => deleteCellOptimistically(cell),
+                          onConfirm: () => store.deleteCell(cellStore.clientKey),
                         })
                       }
-                      onCommentCountChange={delta =>
-                        setDetail(current =>
-                          current
-                            ? {
-                                ...current,
-                                cells: current.cells.map(value =>
-                                  value.id === cell.id
-                                    ? {
-                                        ...value,
-                                        commentCount: Math.max(
-                                          0,
-                                          value.commentCount + delta
-                                        ),
-                                      }
-                                    : value
-                                ),
-                              }
-                            : current
-                        )
-                      }
-                      onRefreshCell={refreshDetail}
+                      onCommentCountChange={delta => cellStore.changeCommentCount(delta)}
+                      onRefreshCell={() => store.refreshDetail()}
                     />
                   </Fragment>
                 ))}
@@ -877,7 +427,7 @@ function SeerInvestigationContent({onCellListRender}: SeerInvestigationProps) {
           <MemoizedCellInsertDivider
             index={detail.cells.length}
             isEnd
-            onInsert={insertCell}
+            onInsert={(kind, index) => store.insertCell(kind, index)}
           />
         )}
       </NotebookContent>
@@ -935,7 +485,7 @@ function SeerInvestigationContent({onCellListRender}: SeerInvestigationProps) {
                   variant={detail.isFavorited ? 'warning' : 'muted'}
                 />
               }
-              disabled={isUpdatingFavorite}
+              disabled={store.isUpdatingFavorite}
               onClick={toggleFavorite}
             />
           </Tooltip>
@@ -960,22 +510,19 @@ function SeerInvestigationContent({onCellListRender}: SeerInvestigationProps) {
       </SentryDocumentTitle>
     </PageFiltersContainer>
   );
-}
+});
 
-function InvestigationSavingStatus({
-  getSnapshot,
-  subscribe,
+const InvestigationSavingStatus = observer(function InvestigationSavingStatus({
+  store,
 }: {
-  getSnapshot: () => boolean;
-  subscribe: (listener: () => void) => () => void;
+  store: NotebookStore;
 }) {
-  const isSaving = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
   return (
     <Text size="sm" variant="muted">
-      {isSaving ? t('Saving…') : t('All changes saved')}
+      {store.isSaving ? t('Saving…') : t('All changes saved')}
     </Text>
   );
-}
+});
 
 function OptionalProfiler({
   children,
