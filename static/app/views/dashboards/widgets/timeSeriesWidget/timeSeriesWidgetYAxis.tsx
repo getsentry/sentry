@@ -27,7 +27,10 @@ export function TimeSeriesWidgetYAxis(
           show: false,
         },
       },
-      min: yAxisRange === 'auto' ? null : 'dataMin',
+      // "Zooms" the Y-axis to start at the minimum (approximate) of the data
+      // range. Better than using `min: "dataMin"` because `scale` ensure that
+      // the first tick is on a round value, which prevents bad axis margins.
+      scale: yAxisRange !== 'auto',
       // @ts-expect-error ECharts types are wrong here. Returning `undefined` from the `max` function is 100% allowed and is listed in the documentation. See https://github.com/apache/echarts/pull/12215/
       max: value => {
         // Handle a very specific edge case with percentage formatting.

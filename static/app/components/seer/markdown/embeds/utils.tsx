@@ -6,7 +6,7 @@ import {NODE_ENV} from 'sentry/constants/env';
 import type {SeerEmbedProps} from './registry';
 import {SEER_EMBED_SCHEMAS, type SeerEmbedName} from './schemas';
 
-type EmbedOutput<N extends SeerEmbedName> = z.output<
+export type EmbedOutput<N extends SeerEmbedName> = z.output<
   (typeof SEER_EMBED_SCHEMAS)[N]['schema']
 >;
 

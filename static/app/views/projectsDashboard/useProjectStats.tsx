@@ -7,7 +7,6 @@ import type {Project, ProjectStats} from 'sentry/types/project';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useAggregatedQueryKeys} from 'sentry/utils/api/useAggregatedQueryKeys';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 const MAX_PROJECTS_TO_FETCH = 10;
 
@@ -66,7 +65,6 @@ export function useProjectStats({hasPerformance, organization}: Props) {
               statsPeriod: '24h',
               query: ids.map(id => `id:${id}`).join(' '),
               transactionStats: hasPerformance ? '1' : undefined,
-              dataset: DiscoverDatasets.METRICS_ENHANCED,
               sessionStats: '1',
             },
             staleTime: 0,

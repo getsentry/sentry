@@ -106,7 +106,7 @@ describe('TraceDataSection', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: twoIssuesBody,
-      match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
+      match: [MockApiClient.matchQuery({dataset: 'errors', project: -1})],
     });
     render(<TraceDataSection event={event} />, {organization});
     expect(await screen.findByLabelText('Current Event')).toBeInTheDocument();
@@ -127,7 +127,7 @@ describe('TraceDataSection', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: discoverBody,
-      match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
+      match: [MockApiClient.matchQuery({dataset: 'errors', project: -1})],
     });
     const {container} = render(<TraceTimeline event={event} />, {organization});
     await waitFor(() =>
@@ -147,7 +147,7 @@ describe('TraceDataSection', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: emptyBody,
-      match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
+      match: [MockApiClient.matchQuery({dataset: 'errors', project: -1})],
     });
     const {container} = render(<TraceTimeline event={event} />, {organization});
     await waitFor(() =>
@@ -167,7 +167,7 @@ describe('TraceDataSection', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: twoIssuesBody,
-      match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
+      match: [MockApiClient.matchQuery({dataset: 'errors', project: -1})],
     });
     render(<TraceDataSection event={event} />, {organization});
     // Checking for the presence of seconds
@@ -187,7 +187,7 @@ describe('TraceDataSection', () => {
         // The event for the mainError is missing, thus, it will get added
         data: [secondError],
       },
-      match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
+      match: [MockApiClient.matchQuery({dataset: 'errors', project: -1})],
     });
     render(<TraceDataSection event={event} />, {organization});
     expect(await screen.findByLabelText('Current Event')).toBeInTheDocument();
@@ -202,7 +202,7 @@ describe('TraceDataSection', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: discoverBody,
-      match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
+      match: [MockApiClient.matchQuery({dataset: 'errors', project: -1})],
     });
     // Used to determine the project badge
     MockApiClient.addMockResponse({
@@ -261,7 +261,7 @@ describe('TraceDataSection', () => {
       url: `/organizations/${organization.slug}/events/`,
       // Only 1 issue
       body: discoverBody,
-      match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
+      match: [MockApiClient.matchQuery({dataset: 'errors', project: -1})],
     });
     // Used to determine the project badge
     MockApiClient.addMockResponse({

@@ -17,7 +17,7 @@ import {SectionKey} from 'sentry/views/issueDetails/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
 
 interface Props {
-  event: Event;
+  event: Event | undefined;
   group: Group;
 }
 

@@ -228,7 +228,13 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
       defaultExpanded={section.defaultExpanded}
       size="sm"
     >
-      <Container padding="xs" width="100%">
+      <StickySectionHeader
+        position="sticky"
+        top={0}
+        width="100%"
+        padding="xs xs 0 xs"
+        background="primary"
+      >
         <Container width="100%" padding="sm" background="secondary" radius="sm">
           <Disclosure.Title
             trailingItems={
@@ -245,7 +251,7 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
             </Flex>
           </Disclosure.Title>
         </Container>
-      </Container>
+      </StickySectionHeader>
       <InboxSectionContent>
         {queryResult.isPending ? (
           <Stack
@@ -375,7 +381,11 @@ function InboxIssueCard({
 }
 
 const InboxSectionContent = styled(Disclosure.Content)`
-  padding: 0;
+  padding: ${p => p.theme.space.xs} 0 0 0;
+`;
+
+const StickySectionHeader = styled(Container)`
+  z-index: 1;
 `;
 
 const IssueCardLink = styled(Link)`

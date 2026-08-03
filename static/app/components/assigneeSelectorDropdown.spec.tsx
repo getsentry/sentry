@@ -669,6 +669,7 @@ describe('AssigneeSelectorDropdown', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'Invite Member'}));
     expect(openInviteMembersModal).toHaveBeenCalled();
+    expect(screen.queryByRole('button', {name: 'Invite Member'})).not.toBeInTheDocument();
     jest.mocked(ConfigStore.get).mockRestore();
   });
 

@@ -109,6 +109,9 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         return validate_json_schema(value, schema)
 
     def validate_action_filters(self, value: ListInputData) -> ListInputData:
+        if "workflow" in self.context:
+            self._validate_action_filter_ownership(value)
+
         for action_filter in value:
             actions, condition_group = self._split_action_and_condition_group(action_filter)
             dcg_validator = BaseDataConditionGroupValidator(
@@ -287,8 +290,6 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
     def update_action_filters(self, action_filters: ListInputData) -> list[DataConditionGroup]:
         instance = self.context["workflow"]
         filters: list[DataConditionGroup] = []
-
-        self._validate_action_filter_ownership(action_filters)
 
         remove_items_by_api_input(
             action_filters, instance.workflowdataconditiongroup_set, "condition_group__id"

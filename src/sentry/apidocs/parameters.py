@@ -6,6 +6,7 @@ from drf_spectacular.utils import OpenApiParameter
 
 from sentry import constants
 from sentry.api.helpers.projects import PROJECT_ID_OR_SLUG_SCHEMA
+from sentry.search.eap.types import SupportedTraceItemType
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.sessions import STATS_PERIODS
 
@@ -1054,15 +1055,14 @@ class ReplayParams:
     DATA_SOURCE = OpenApiParameter(
         name="data_source",
         location="query",
-        required=False,
+        required=True,
         type=OpenApiTypes.STR,
         enum=[
-            Dataset.Discover.value,
             Dataset.Events.value,
-            Dataset.Transactions.value,
             Dataset.IssuePlatform.value,
+            SupportedTraceItemType.SPANS.value,
         ],
-        description="The data source to query replays from. Defaults to 'discover'.",
+        description="The data source to query replays from.",
     )
 
     RETURN_IDS = OpenApiParameter(
