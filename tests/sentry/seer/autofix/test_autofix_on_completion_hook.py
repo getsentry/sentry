@@ -26,6 +26,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import AutofixHandoffPoint, SeerAutomationHandoffConfiguration
+from sentry.seer.models.run import SeerRunMilestone, SeerRunMilestoneType
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -1157,3 +1158,113 @@ class TestMaybeReactToCompletedIteration(TestCase):
         # :tada: is still added, but the eyes-delete is skipped entirely.
         assert mock_react.call_args.kwargs["reaction"] == "hooray"
         mock_delete_eyes.assert_not_called()
+
+
+class TestAutofixOnCompletionHookMilestones(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+        self.group = self.create_group(project=self.project)
+        self.run_id = 123
+        self.seer_run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=self.run_id
+        )
+
+    def _recorded_milestones(self) -> set[str]:
+        return set(
+            SeerRunMilestone.objects.filter(seer_run=self.seer_run).values_list(
+                "milestone", flat=True
+            )
+        )
+
+    def _run_hook(self, state) -> None:
+        AutofixOnCompletionHook._send_step_webhook(
+            self.organization, self.run_id, state, self.group
+        )
+
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_records_reached_milestones_from_state(self, mock_broadcast):
+        # Milestones are the monotonic set the run has reached, derived from
+        # state. Firing twice is idempotent (no duplicate rows).
+        state = run_state(
+            blocks=[
+                root_cause_memory_block(),
+                solution_memory_block(),
+                code_changes_memory_block(),
+            ]
+        )
+        self._run_hook(state)
+        self._run_hook(state)
+        assert self._recorded_milestones() == {
+            SeerRunMilestoneType.ROOT_CAUSE,
+            SeerRunMilestoneType.SOLUTION,
+            SeerRunMilestoneType.CODE_CHANGES,
+        }
+        assert SeerRunMilestone.objects.filter(seer_run=self.seer_run).count() == 3
+
+    @patch("sentry.seer.autofix.on_completion_hook.analytics.record")
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_has_pull_request_is_block_derived_not_repo_pr_states(
+        self, mock_broadcast, mock_analytics
+    ):
+        # repo_pr_states persists across a re-run, so it must NOT be the source:
+        # a run with repo_pr_states but no PR-commit block records no PR milestone.
+        state = run_state(
+            blocks=[
+                root_cause_memory_block(),
+                solution_memory_block(),
+                code_changes_memory_block(),
+            ]
+        )
+        state.repo_pr_states = {
+            "test-repo": RepoPRState(
+                repo_name="test-repo",
+                pr_id=77,
+                pr_number=7,
+                pr_url="https://example.com/pull/7",
+                pr_creation_status="completed",
+                commit_sha="synced-sha",
+            )
+        }
+        self._run_hook(state)
+        assert SeerRunMilestoneType.HAS_PULL_REQUEST not in self._recorded_milestones()
+
+        # A block carrying pr_commit_shas is the actual signal.
+        state.blocks.append(pr_iteration_memory_block(commit_sha="synced-sha"))
+        self._run_hook(state)
+        assert SeerRunMilestoneType.HAS_PULL_REQUEST in self._recorded_milestones()
+
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_rerun_clears_downstream_milestones(self, mock_broadcast):
+        self._run_hook(
+            run_state(
+                blocks=[
+                    root_cause_memory_block(),
+                    solution_memory_block(),
+                    code_changes_memory_block(),
+                ]
+            )
+        )
+        # Re-running root cause truncates the run's blocks; the derived set
+        # shrinks and the downstream milestones are deleted.
+        self._run_hook(run_state(blocks=[root_cause_memory_block()]))
+        assert self._recorded_milestones() == {SeerRunMilestoneType.ROOT_CAUSE}
+
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_rerun_does_not_clear_pull_requests_merged(self, mock_broadcast):
+        # pull_requests_merged is owned by the PR-merge webhook, not Seer state,
+        # so the state reconcile must leave it in place.
+        SeerRunMilestone.objects.create(
+            seer_run=self.seer_run, milestone=SeerRunMilestoneType.PULL_REQUESTS_MERGED
+        )
+        self._run_hook(run_state(blocks=[root_cause_memory_block()]))
+        assert self._recorded_milestones() == {
+            SeerRunMilestoneType.ROOT_CAUSE,
+            SeerRunMilestoneType.PULL_REQUESTS_MERGED,
+        }
+
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_no_milestone_when_no_step_matches(self, mock_broadcast):
+        self._run_hook(run_state(blocks=[]))
+        assert self._recorded_milestones() == set()
