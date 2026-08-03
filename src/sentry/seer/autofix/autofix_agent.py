@@ -525,7 +525,6 @@ def trigger_autofix_agent(
                 "event_type": sentry_app_event_type,
                 "event_payload": payload,
                 "organization_id": group.organization.id,
-                "record_activity": False,
             }
             if is_iteration_step:
                 activity_attribution = {
@@ -533,7 +532,6 @@ def trigger_autofix_agent(
                 }
                 if actor_user_id is not None:
                     activity_attribution["actor_user_id"] = actor_user_id
-                task_kwargs["activity_attribution"] = activity_attribution
             record_seer_activity(
                 group=group,
                 event_type=sentry_app_event_type,

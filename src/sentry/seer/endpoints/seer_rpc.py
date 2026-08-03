@@ -703,7 +703,6 @@ def send_seer_webhook(
         return SendSeerWebhookErrorResponse(error="Organization not found or not active")
 
     if SeerAutofixOperator.has_access(organization=organization):
-        record_activity = True
         group_id = payload.get("group_id")
         if group_id:
             try:
@@ -719,14 +718,12 @@ def send_seer_webhook(
                     event_type=sentry_app_event_type,
                     event_payload=payload,
                 )
-                record_activity = False
 
         process_autofix_updates.apply_async(
             kwargs={
                 "event_type": sentry_app_event_type,
                 "event_payload": payload,
                 "organization_id": organization_id,
-                "record_activity": record_activity,
             }
         )
 

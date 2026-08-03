@@ -568,7 +568,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         assert call_kwargs["payload"]["pull_requests"][0]["pull_request"]["pr_number"] == 7
         mock_process_autofix_updates.assert_called_once()
         task_kwargs = mock_process_autofix_updates.call_args.kwargs["kwargs"]
-        assert task_kwargs["record_activity"] is False
+        assert "record_activity" not in task_kwargs
         assert "activity_datetime" not in task_kwargs
         assert (
             mock_analytics.call_args.args[0].referrer

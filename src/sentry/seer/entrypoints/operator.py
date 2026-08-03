@@ -1,8 +1,5 @@
 import logging
-from datetime import datetime
 from typing import Any, NotRequired, TypedDict
-
-from django.utils import timezone
 
 from sentry import features, options
 from sentry.constants import DataCategory
@@ -234,7 +231,6 @@ class SeerAutofixOperator[CachePayloadT]:
 
             try:
                 if not run_id:
-                    triggered_at = timezone.now()
                     with action_context_scope(ActionSource.SLACK, GroupActionActor.user(user.id)):
                         run = trigger_autofix_agent(
                             group=group,
@@ -250,7 +246,6 @@ class SeerAutofixOperator[CachePayloadT]:
                             user_id=user.id,
                             data={"referrer": AutofixReferrer.SLACK.value},
                             send_notification=False,
-                            datetime=triggered_at,
                         )
                 elif stopping_point == AutofixStoppingPoint.OPEN_PR:
                     trigger_push_changes(
@@ -599,7 +594,6 @@ def _create_seer_activity(
     event_type: SentryAppEventType,
     event_payload: dict[str, Any],
     activity_attribution: SeerActivityAttribution | None = None,
-    activity_datetime: datetime | None = None,
 ) -> None:
     activity_type = SEER_EVENT_TO_ACTIVITY_TYPE.get(event_type)
     if not activity_type:
@@ -647,7 +641,6 @@ def _create_seer_activity(
         user_id=actor_user_id,
         data=activity_data if activity_data else None,
         send_notification=False,
-        datetime=activity_datetime,
     )
 
 
@@ -657,7 +650,6 @@ def record_seer_activity(
     event_type: SentryAppEventType,
     event_payload: dict[str, Any],
     activity_attribution: SeerActivityAttribution | None = None,
-    activity_datetime: datetime | None = None,
 ) -> None:
     iteration_attribution: SeerActivityAttribution | None = None
     if event_type == SentryAppEventType.SEER_ITERATION_STARTED and activity_attribution:
@@ -683,13 +675,7 @@ def record_seer_activity(
 
     try:
         with action_context_scope(action_source, action_actor):
-            _create_seer_activity(
-                group,
-                event_type,
-                event_payload,
-                iteration_attribution,
-                activity_datetime,
-            )
+            _create_seer_activity(group, event_type, event_payload, iteration_attribution)
     except Exception:
         logger.exception(
             "seer.activity_creation_failed",
@@ -712,9 +698,6 @@ def process_autofix_updates(
     event_type: SentryAppEventType,
     event_payload: dict[str, Any],
     organization_id: int,
-    activity_attribution: SeerActivityAttribution | None = None,
-    activity_datetime: str | None = None,
-    record_activity: bool = True,
 ) -> None:
     """
     Use the registry to iterate over all entrypoints and check if this payload's run_id or group_id
@@ -753,17 +736,6 @@ def process_autofix_updates(
         if not SeerAutofixOperator.has_access(organization=organization):
             lifecycle.record_halt(halt_reason="no_operator_access")
             return
-
-        if record_activity:
-            record_seer_activity(
-                group=group,
-                event_type=event_type,
-                event_payload=event_payload,
-                activity_attribution=activity_attribution,
-                activity_datetime=(
-                    datetime.fromisoformat(activity_datetime) if activity_datetime else None
-                ),
-            )
 
         for entrypoint_key, entrypoint_cls in autofix_entrypoint_registry.registrations.items():
             logging_ctx = {
