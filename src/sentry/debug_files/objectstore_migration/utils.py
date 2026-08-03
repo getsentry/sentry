@@ -11,6 +11,7 @@ from typing import IO
 
 from django.db import router, transaction
 from django.db.models import ProtectedError
+from objectstore_client import GetResponse, Session
 
 from sentry.constants import KNOWN_DIF_FORMATS
 from sentry.models.debugfile import (
@@ -105,14 +106,21 @@ def _spool_to_tempfile(file: File) -> tuple[IO[bytes], str, int]:
     return tmp, digest.hexdigest(), size
 
 
-def _spool_to_tempfile_with_retry(file: File) -> tuple[IO[bytes], str, int]:
-    """Retry transient legacy-filestore reads without re-uploading the DIF."""
+def _get_object_with_retry(session: Session, storage_path: str) -> GetResponse:
+    """Retry verification reads without re-uploading the DIF."""
+
+    def get_object() -> GetResponse:
+        response = session.get(storage_path)
+        if response is None:
+            raise MigrationIntegrityError("Object not found in Objectstore")
+        return response
+
     base_delay = exponential_delay(2)
     policy = ConditionalRetryPolicy(
         test_function=lambda attempt_number, _: attempt_number <= 3,
         delay_function=lambda n: random.uniform(base_delay(n), base_delay(n) * 2),
     )
-    return policy(lambda: _spool_to_tempfile(file))
+    return policy(get_object)
 
 
 def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | None:
@@ -152,7 +160,7 @@ def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | N
             extra={"debug_file_id": debug_file.id, "file_id": file.id},
         )
 
-    tmp, local_checksum, local_size = _spool_to_tempfile_with_retry(file)
+    tmp, local_checksum, local_size = _spool_to_tempfile(file)
     try:
         expected_checksum = recorded_checksum or local_checksum
         expected_size = recorded_size if recorded_size is not None else local_size
@@ -173,9 +181,7 @@ def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | N
     finally:
         tmp.close()
 
-    response = session.get(storage_path)
-    if response is None:
-        raise MigrationIntegrityError("Object not found in Objectstore")
+    response = _get_object_with_retry(session, storage_path)
     remote_checksum, remote_size = _sha1_stream(response.payload)
     if remote_checksum != expected_checksum or remote_size != expected_size:
         try:
