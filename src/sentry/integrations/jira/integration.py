@@ -153,6 +153,11 @@ HIDDEN_ISSUE_FIELDS = ["issuelinks"]
 MAX_PER_PROJECT_QUERIES = 10
 
 
+def _stored_statuses(iep: IntegrationExternalProject) -> dict[str, str]:
+    """A stored mapping's statuses, in the same shape as the `sync_status_forward` payload."""
+    return {"on_resolve": iep.resolved_status, "on_unresolve": iep.unresolved_status}
+
+
 class JiraProjectMapping(TypedDict):
     value: str
     label: str
@@ -438,18 +443,21 @@ class JiraIntegration(IssueSyncIntegration):
     @staticmethod
     def _validate_project_status_mappings(
         project_mappings: Mapping[str, Any],
-    ) -> dict[str, tuple[str, str]]:
+    ) -> dict[str, dict[str, str]]:
         """
         Normalize the `sync_status_forward` payload into `{external_id:string : {on_resolve: string, on_unresolve: string}}`.
         """
-        validated: dict[str, tuple[str, str]] = {}
+        validated: dict[str, dict[str, str]] = {}
         for external_id, statuses in project_mappings.items():
             resolved_status = statuses.get("on_resolve")
             unresolved_status = statuses.get("on_unresolve")
             if not resolved_status or not unresolved_status:
                 raise IntegrationError("Resolve and unresolve status are required.")
 
-            validated[str(external_id)] = (str(resolved_status), str(unresolved_status))
+            validated[str(external_id)] = {
+                "on_resolve": str(resolved_status),
+                "on_unresolve": str(unresolved_status),
+            }
 
         return validated
 
@@ -468,78 +476,64 @@ class JiraIntegration(IssueSyncIntegration):
                 organization_integration_id=self.org_integration.id
             )
         }
-        removals = [iep for external_id, iep in existing.items() if external_id not in desired]
+        removals = [external_id for external_id in existing if external_id not in desired]
         additions = [external_id for external_id in desired if external_id not in existing]
-        # external_id -> prior statuses, captured before the rows below are mutated.
-        updates = {
-            external_id: (iep.resolved_status, iep.unresolved_status)
-            for external_id, iep in existing.items()
-            if external_id in desired
-            and (iep.resolved_status, iep.unresolved_status) != desired[external_id]
-        }
+        updates = [
+            external_id
+            for external_id in desired
+            if external_id in existing
+            and _stored_statuses(existing[external_id]) != desired[external_id]
+        ]
 
         if not (removals or additions or updates):
             return None
 
-        with transaction.atomic(router.db_for_write(IntegrationExternalProject)):
-            if removals:
-                IntegrationExternalProject.objects.filter(
-                    id__in=[iep.id for iep in removals]
-                ).delete()
-
-            for external_id in additions:
-                resolved_status, unresolved_status = desired[external_id]
-                IntegrationExternalProject.objects.create(
-                    organization_integration_id=self.org_integration.id,
-                    external_id=external_id,
-                    resolved_status=resolved_status,
-                    unresolved_status=unresolved_status,
-                )
-
-            for external_id in updates:
-                resolved_status, unresolved_status = desired[external_id]
-                existing[external_id].update(
-                    resolved_status=resolved_status,
-                    unresolved_status=unresolved_status,
-                    date_updated=timezone.now(),
-                )
-
-        # Prior statuses are recorded alongside the new ones so a mapping removed or
-        # overwritten by mistake can be rebuilt from the audit log.
-        return {
+        # Built before the writes below, while the existing rows still hold their prior
+        # statuses, so a mapping removed or overwritten by mistake can be rebuilt from this.
+        audit_data = {
             "added_count": len(additions),
             "updated_count": len(updates),
             "removed_count": len(removals),
             "added_project_mappings": [
-                {
-                    "external_id": external_id,
-                    "on_resolve": desired[external_id][0],
-                    "on_unresolve": desired[external_id][1],
-                }
-                for external_id in additions
+                {"external_id": external_id, **desired[external_id]} for external_id in additions
             ],
             "updated_project_mappings": [
                 {
                     "external_id": external_id,
-                    "on_resolve": desired[external_id][0],
-                    "on_unresolve": desired[external_id][1],
-                    "previous_on_resolve": previous_resolved,
-                    "previous_on_unresolve": previous_unresolved,
+                    **desired[external_id],
+                    "previous_on_resolve": existing[external_id].resolved_status,
+                    "previous_on_unresolve": existing[external_id].unresolved_status,
                 }
-                for external_id, (
-                    previous_resolved,
-                    previous_unresolved,
-                ) in updates.items()
+                for external_id in updates
             ],
             "removed_project_mappings": [
-                {
-                    "external_id": iep.external_id,
-                    "on_resolve": iep.resolved_status,
-                    "on_unresolve": iep.unresolved_status,
-                }
-                for iep in removals
+                {"external_id": external_id, **_stored_statuses(existing[external_id])}
+                for external_id in removals
             ],
         }
+
+        with transaction.atomic(router.db_for_write(IntegrationExternalProject)):
+            if removals:
+                IntegrationExternalProject.objects.filter(
+                    id__in=[existing[external_id].id for external_id in removals]
+                ).delete()
+
+            for external_id in additions:
+                IntegrationExternalProject.objects.create(
+                    organization_integration_id=self.org_integration.id,
+                    external_id=external_id,
+                    resolved_status=desired[external_id]["on_resolve"],
+                    unresolved_status=desired[external_id]["on_unresolve"],
+                )
+
+            for external_id in updates:
+                existing[external_id].update(
+                    resolved_status=desired[external_id]["on_resolve"],
+                    unresolved_status=desired[external_id]["on_unresolve"],
+                    date_updated=timezone.now(),
+                )
+
+        return audit_data
 
     def get_config_data(self):
         # Copied because the mapping dict assembled below is only for the response; the stored
