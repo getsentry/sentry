@@ -486,23 +486,22 @@ export function StreamGroup({
     return group.filtered ? group.stats?.[statsPeriod]! : [];
   }, [group, statsPeriod]);
 
-  const hasFilteredStats = Boolean(group.filtered);
-  const [discoverUrl, filteredDiscoverUrl] = useMemo(() => {
-    const buildDiscoverUrl = (filteredQuery: string): LocationDescriptor => {
-      const commonQuery = {projects: [Number(group.project.id)]};
+  const parsedSearch = useMemo(() => parseSearch(query ?? ''), [query]);
 
-      // When there is no Discover feature, open the events page.
-      if (!organization.features.includes('discover-basic')) {
-        return {
-          pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
-          query: {
-            referrer,
-            ...commonQuery,
-            query: filteredQuery,
-          },
-        };
-      }
+  const getDiscoverUrl = (isFiltered?: boolean): LocationDescriptor => {
+    // When there is no Discover feature, open the events page.
+    const hasDiscoverQuery = organization.features.includes('discover-basic');
 
+    const filteredTerms = isFiltered
+      ? parsedSearch?.filter(
+          p =>
+            !(p.type === Token.FILTER && DISCOVER_EXCLUSION_FIELDS.includes(p.key.text))
+        )
+      : [];
+    const filteredQuery = joinQuery(filteredTerms, true);
+    const commonQuery = {projects: [Number(group.project.id)]};
+
+    if (hasDiscoverQuery) {
       const stats = customStatsPeriod ?? (selection.datetime || {});
       const discoverQuery: NewQuery = {
         ...commonQuery,
@@ -530,33 +529,17 @@ export function StreamGroup({
         false,
         hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
       );
-    };
-
-    const unfilteredUrl = buildDiscoverUrl('');
-    if (!hasFilteredStats || !query) {
-      return [unfilteredUrl, unfilteredUrl] as const;
     }
 
-    const parsedResult = parseSearch(query);
-    const filteredTerms = parsedResult?.filter(
-      p => !(p.type === Token.FILTER && DISCOVER_EXCLUSION_FIELDS.includes(p.key.text))
-    );
-    const filteredQuery = joinQuery(filteredTerms, true);
-
-    return [unfilteredUrl, buildDiscoverUrl(filteredQuery)] as const;
-  }, [
-    customStatsPeriod,
-    group.id,
-    group.project.id,
-    group.shortId,
-    group.title,
-    group.type,
-    hasFilteredStats,
-    organization,
-    query,
-    referrer,
-    selection.datetime,
-  ]);
+    return {
+      pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
+      query: {
+        referrer,
+        ...commonQuery,
+        query: filteredQuery,
+      },
+    };
+  };
 
   const renderReprocessingColumns = () => {
     const {statusDetails, count} = group as GroupReprocessing;
@@ -649,14 +632,14 @@ export function StreamGroup({
           {group.filtered && (
             <Fragment>
               <div>{queryFilterDescription ?? t('Matching filters')}</div>
-              <Link to={filteredDiscoverUrl}>
+              <Link to={getDiscoverUrl(true)}>
                 <Count value={group.filtered?.count} />
               </Link>
             </Fragment>
           )}
           <Fragment>
             <div>{t('Total in %s', summary)}</div>
-            <Link to={discoverUrl}>
+            <Link to={getDiscoverUrl()}>
               <Count value={group.count} />
             </Link>
           </Fragment>
@@ -688,14 +671,14 @@ export function StreamGroup({
           {group.filtered && (
             <Fragment>
               <div>{queryFilterDescription ?? t('Matching filters')}</div>
-              <Link to={filteredDiscoverUrl}>
+              <Link to={getDiscoverUrl(true)}>
                 <Count value={group.filtered?.userCount} />
               </Link>
             </Fragment>
           )}
           <Fragment>
             <div>{t('Total in %s', summary)}</div>
-            <Link to={discoverUrl}>
+            <Link to={getDiscoverUrl()}>
               <Count value={group.userCount} />
             </Link>
           </Fragment>
