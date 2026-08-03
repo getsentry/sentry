@@ -45,7 +45,11 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.grouplink import GroupLink
-from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
+from sentry.models.pullrequest import (
+    PullRequest,
+    PullRequestLifecycleState,
+    PullRequestMetrics,
+)
 from sentry.models.repository import Repository
 from sentry.pr_metrics.webhooks import handle_check_suite as pr_metrics_handle_check_suite
 from sentry.silo.base import SiloMode
@@ -1855,6 +1859,37 @@ class PullRequestEventWebhookTest(APITestCase):
             linked_type=GroupLink.LinkedType.pull_request,
             linked_id=pr.id,
         ).exists()
+
+    def test_stale_synchronize_after_merge_does_not_regress_metrics_counters(self) -> None:
+        # The PullRequest row and the PullRequestMetrics row are written from the
+        # same payload by different processors, so they have to agree on staleness.
+        # Rejecting the replay for one and applying it to the other would leave
+        # select_verdict reading zero discussion off a PR that had reviewer
+        # engagement, while the PR row still looked correct.
+        repo = self._create_integration_and_repo()
+
+        with self.feature("organizations:pr-metrics-emit"):
+            merged = json.loads(PULL_REQUEST_CLOSED_EVENT_EXAMPLE)
+            merged["pull_request"]["updated_at"] = "2015-05-05T23:45:00Z"
+            merged["pull_request"]["merged_at"] = "2015-05-05T23:45:00Z"
+            merged["pull_request"]["comments"] = 4
+            merged["pull_request"]["review_comments"] = 6
+            self._post_pull_request_event(json.dumps(merged).encode())
+
+            stale = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            stale["action"] = "synchronize"
+            stale["pull_request"]["updated_at"] = "2015-05-05T23:41:00Z"
+            stale["pull_request"]["comments"] = 0
+            stale["pull_request"]["review_comments"] = 0
+            self._post_pull_request_event(json.dumps(stale).encode())
+
+        pr = PullRequest.objects.get(
+            repository_id=repo.id, organization_id=self.project.organization.id, key="1"
+        )
+        assert pr.state == PullRequestLifecycleState.MERGED
+        metrics_row = PullRequestMetrics.objects.get(pull_request=pr)
+        assert metrics_row.comments_count == 4
+        assert metrics_row.review_comments_count == 6
 
     def test_edit_after_merge_is_applied(self) -> None:
         # An edit after the merge is newer, keeps the merged state, and must still

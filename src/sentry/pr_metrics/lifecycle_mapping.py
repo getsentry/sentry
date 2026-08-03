@@ -52,6 +52,25 @@ def is_stale_pull_request_snapshot(
     return event_updated_at < stored.updated_at
 
 
+def is_stale_github_pull_request_payload(
+    stored: PullRequest, pull_request: Mapping[str, Any]
+) -> bool:
+    """``is_stale_pull_request_snapshot`` for callers holding only a GitHub payload.
+
+    Lets a processor running after ``PullRequestEventWebhook._handle`` reach the same
+    verdict that handler already reached, without threading the derived values through
+    the processor signature every processor shares. Safe because the derivation is pure
+    and the row is re-read in between: an accepted snapshot leaves the row carrying the
+    event's own ``updated_at``/``state`` (equal, so not stale), while a rejected one
+    leaves the newer stored values in place (still stale).
+    """
+    return is_stale_pull_request_snapshot(
+        stored,
+        event_state=pull_request_lifecycle_state_from_github(pull_request),
+        event_updated_at=parse_scm_timestamp(pull_request.get("updated_at")),
+    )
+
+
 def update_pull_request_from_scm_snapshot(
     *,
     provider: str,
