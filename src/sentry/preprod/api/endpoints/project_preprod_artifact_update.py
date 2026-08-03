@@ -28,6 +28,7 @@ from sentry.preprod.models import (
     PreprodArtifactSizeMetrics,
 )
 from sentry.preprod.quotas import PreprodFeature, should_run_distribution, should_run_size
+from sentry.preprod.vcs.pr_comments.size_tasks import create_preprod_size_pr_comment_task
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 
 logger = logging.getLogger(__name__)
@@ -468,6 +469,19 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
                     "error_code": error_code,
                     "error_message": error_message,
                 },
+            )
+
+            # The summary can only account for this artifact once the metrics row
+            # above exists, and that happens after the comment for a sibling
+            # artifact may already have been created. Re-render so the comment
+            # stops showing it as perpetually processing: SKIPPED drops the
+            # artifact from the table, NO_QUOTA switches the summary to the quota
+            # message. The status check gets the same treatment above.
+            create_preprod_size_pr_comment_task.apply_async(
+                kwargs={
+                    "preprod_artifact_id": head_artifact.id,
+                    "caller": "artifact_update_endpoint_size_skipped",
+                }
             )
 
         can_run_distro, distro_skip_reason = should_run_distribution(head_artifact)

@@ -5,8 +5,13 @@ import orjson
 from django.test import override_settings
 
 from sentry.preprod.api.endpoints.project_preprod_artifact_update import find_or_create_release
-from sentry.preprod.models import PreprodArtifact, PreprodArtifactMobileAppInfo
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactMobileAppInfo,
+    PreprodArtifactSizeMetrics,
+)
 from sentry.preprod.quotas import DISTRIBUTION_ENABLED_QUERY_KEY, SIZE_ENABLED_QUERY_KEY
+from sentry.preprod.vcs.status_checks.size.tasks import evaluate_size_and_format_messages
 from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import TestCase
 
@@ -590,6 +595,106 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert "requestedFeatures" in resp_data
         assert "size_analysis" not in resp_data["requestedFeatures"]
         assert "build_distribution" in resp_data["requestedFeatures"]
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    @patch(
+        "sentry.preprod.api.endpoints.project_preprod_artifact_update"
+        ".create_preprod_size_pr_comment_task"
+    )
+    def test_update_preprod_artifact_filtered_size_updates_pr_comment(
+        self, mock_pr_comment_task
+    ) -> None:
+        """Test that filtering size analysis re-renders the size PR comment.
+
+        Without this the comment keeps showing the filtered artifact as processing,
+        because it was rendered before the skipped metrics row existed.
+        """
+        self.preprod_artifact.app_id = "com.my.app"
+        self.preprod_artifact.save()
+
+        self.project.update_option(SIZE_ENABLED_QUERY_KEY, "app_id:com.other.app")
+
+        response = self._make_request({"artifact_type": 1})
+
+        assert response.status_code == 200
+        mock_pr_comment_task.apply_async.assert_called_once_with(
+            kwargs={
+                "preprod_artifact_id": self.preprod_artifact.id,
+                "caller": "artifact_update_endpoint_size_skipped",
+            }
+        )
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    @patch(
+        "sentry.preprod.api.endpoints.project_preprod_artifact_update"
+        ".create_preprod_size_pr_comment_task"
+    )
+    def test_update_preprod_artifact_unfiltered_size_does_not_update_pr_comment(
+        self, mock_pr_comment_task
+    ) -> None:
+        """Test that an artifact queued for size analysis does not re-render the comment."""
+        self.preprod_artifact.app_id = "com.my.app"
+        self.preprod_artifact.save()
+
+        self.project.update_option(SIZE_ENABLED_QUERY_KEY, "app_id:com.my.app")
+
+        response = self._make_request({"artifact_type": 1})
+
+        assert response.status_code == 200
+        mock_pr_comment_task.apply_async.assert_not_called()
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    @patch(
+        "sentry.preprod.api.endpoints.project_preprod_artifact_update"
+        ".create_preprod_size_pr_comment_task"
+    )
+    def test_update_preprod_artifact_filtered_size_drops_processing_row(
+        self, mock_pr_comment_task
+    ) -> None:
+        """Test that the re-render drops the filtered artifact from the summary.
+
+        This is the behavior the re-render exists for: a sibling artifact finishes
+        size analysis and the summary is rendered while the to-be-filtered artifact
+        still has a pending metrics row, so it renders as processing. Only after the
+        endpoint stamps that row skipped can it be excluded.
+        """
+        analyzed = self.create_preprod_artifact(
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            app_id="com.my.app",
+            build_version="1.0.0",
+            build_number=1,
+        )
+        self.create_preprod_artifact_size_metrics(
+            analyzed,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+        )
+
+        self.preprod_artifact.app_id = "com.my.app.universal"
+        self.preprod_artifact.save()
+        self.create_preprod_artifact_size_metrics(
+            self.preprod_artifact,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+            min_download_size=None,
+            max_download_size=None,
+            min_install_size=None,
+            max_install_size=None,
+        )
+
+        siblings = [analyzed, self.preprod_artifact]
+
+        before = evaluate_size_and_format_messages(self.project, siblings, [])
+        assert "Processing..." in before.summary
+        assert before.evaluated_artifacts == siblings
+
+        self.project.update_option(SIZE_ENABLED_QUERY_KEY, "app_id:com.my.app")
+
+        response = self._make_request({"artifact_type": 1})
+        assert response.status_code == 200
+        mock_pr_comment_task.apply_async.assert_called_once()
+
+        after = evaluate_size_and_format_messages(self.project, siblings, [])
+        assert "Processing..." not in after.summary
+        assert after.evaluated_artifacts == [analyzed]
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_update_preprod_artifact_includes_size_when_query_matches(self) -> None:
