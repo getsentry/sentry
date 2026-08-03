@@ -65,7 +65,7 @@ def produce_eap_uptime_result(
             incident_status = IncidentStatus.NO_INCIDENT
 
         trace_items = convert_uptime_result_to_trace_items(
-            detector.project, result, incident_status
+            detector.linked_project, result, incident_status
         )
         topic = get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"]
         producer = _get_producer()
@@ -86,7 +86,7 @@ def produce_eap_uptime_result(
                 "subscription_id": result["subscription_id"],
                 "check_status": result["status"],
                 "region": result["region"],
-                "project_id": detector.project.id,
+                "project_id": detector.linked_project.id,
                 "trace_item_count": len(trace_items),
                 "incident_status": incident_status.value,
             },

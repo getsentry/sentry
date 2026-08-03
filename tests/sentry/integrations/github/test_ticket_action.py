@@ -9,12 +9,14 @@ from sentry.integrations.github import client
 from sentry.integrations.github.actions.create_ticket import GitHubCreateTicketAction
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, CreateExternalIssueAction
 from sentry.models.activity import Activity
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -149,7 +151,16 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         event = self.get_group_event()
 
         # Trigger its `after`
-        self.trigger(event, rule_object)
+        with capture_action_log() as action_log:
+            self.trigger(event, rule_object)
+
+        action_log.assert_logged(
+            CreateExternalIssueAction,
+            group_id=event.group_id,
+            source=ActionSource.SYSTEM,
+            actor=SYSTEM_ACTOR,
+            provider="github",
+        )
 
         # assert ticket created in DB
         key = self.get_key(event)

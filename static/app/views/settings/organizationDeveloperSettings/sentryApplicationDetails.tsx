@@ -445,6 +445,7 @@ function ClaudeRoutineTemplateForm() {
       token: '',
       scopes: CLAUDE_ROUTINE_SCOPES,
       events: CLAUDE_ROUTINE_EVENTS,
+      isAlertable: true,
     },
     validators: {
       onDynamic: claudeRoutineSchema,

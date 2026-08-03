@@ -15,6 +15,7 @@ import type {
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {IconCopy} from 'sentry/icons/iconCopy';
+import {IconCopyId} from 'sentry/icons/iconCopyId';
 import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -139,7 +140,7 @@ function CopyDsnButton({
   return (
     <Button
       size="xs"
-      icon={<IconCopy />}
+      icon={<IconCopyId />}
       onClick={() =>
         copy(dsn.public, {successMessage: t('DSN copied to clipboard')}).then(onCopyDsn)
       }

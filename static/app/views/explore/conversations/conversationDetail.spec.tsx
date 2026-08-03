@@ -1,6 +1,13 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -41,10 +48,13 @@ const CONVERSATION_BODY = [
   }),
 ];
 
-function mockApis() {
+function mockApis(
+  title: string | null = null,
+  spans: Array<Record<string, unknown>> = CONVERSATION_BODY
+) {
   MockApiClient.addMockResponse({
     url: `/organizations/org-slug/ai-conversations/${CONVERSATION_ID}/`,
-    body: CONVERSATION_BODY,
+    body: {conversationId: CONVERSATION_ID, title, spans},
   });
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/trace-items/attributes/',
@@ -56,13 +66,14 @@ function mockApis() {
   });
 }
 
-function renderPage() {
+function renderPage(features: string[] = []) {
   return render(
     <TopBar.Slot.Provider>
+      <TopBar />
       <ConversationDetailPage />
     </TopBar.Slot.Provider>,
     {
-      organization: OrganizationFixture(),
+      organization: OrganizationFixture({features}),
       initialRouterConfig: {
         route: '/organizations/:orgId/explore/conversations/:conversationId/',
         location: {
@@ -79,7 +90,9 @@ function detailPane() {
 
 describe('ConversationDetailPage span default selection', () => {
   beforeEach(() => {
+    // jsdom implements neither scroll API the view relies on.
     Element.prototype.scrollTo = jest.fn();
+    Element.prototype.scrollIntoView = jest.fn();
     MockApiClient.clearMockResponses();
     act(() => {
       PageFiltersStore.reset();
@@ -115,5 +128,105 @@ describe('ConversationDetailPage span default selection', () => {
     expect(
       screen.queryByRole('button', {name: 'Copy Transcript'})
     ).not.toBeInTheDocument();
+  });
+});
+
+describe('ConversationDetailPage breadcrumbs', () => {
+  beforeEach(() => {
+    // jsdom implements neither scroll API the view relies on.
+    Element.prototype.scrollTo = jest.fn();
+    Element.prototype.scrollIntoView = jest.fn();
+    MockApiClient.clearMockResponses();
+    act(() => {
+      PageFiltersStore.reset();
+      PageFiltersStore.init();
+    });
+    mockApis();
+  });
+
+  it('renders the parent link, conversation id heading, and copy action with the migration flag on', async () => {
+    renderPage(['ui-migration-breadcrumbs']);
+
+    const topBar = screen.getByRole('banner');
+
+    expect(
+      await within(topBar).findByRole('link', {name: 'Conversations'})
+    ).toBeInTheDocument();
+    // The conversation id is the top-bar identifier, owned by the TopBar title
+    // slot, alongside the copy affordance.
+    expect(
+      within(topBar).getByRole('heading', {name: new RegExp(CONVERSATION_ID)})
+    ).toBeInTheDocument();
+    expect(
+      within(topBar).getByRole('button', {name: 'Copy conversation ID'})
+    ).toBeInTheDocument();
+  });
+});
+
+describe('ConversationDetailPage title', () => {
+  beforeEach(() => {
+    Element.prototype.scrollTo = jest.fn();
+    MockApiClient.clearMockResponses();
+    act(() => {
+      PageFiltersStore.reset();
+      PageFiltersStore.init();
+    });
+  });
+
+  it('shows the conversation title as the heading when present', async () => {
+    mockApis('Trip planning assistant');
+    renderPage();
+
+    expect(
+      await screen.findByRole('heading', {name: 'Trip planning assistant'})
+    ).toBeInTheDocument();
+  });
+
+  it('falls back to the conversation id heading when there is no title', async () => {
+    mockApis(null);
+    renderPage();
+
+    // Once loaded, the summary heading shows the id (no title available).
+    expect(
+      await screen.findByRole('heading', {name: new RegExp(CONVERSATION_ID)})
+    ).toBeInTheDocument();
+  });
+});
+
+describe('ConversationDetailPage summary errors', () => {
+  beforeEach(() => {
+    Element.prototype.scrollTo = jest.fn();
+    Element.prototype.scrollIntoView = jest.fn();
+    MockApiClient.clearMockResponses();
+    act(() => {
+      PageFiltersStore.reset();
+      PageFiltersStore.init();
+    });
+  });
+
+  it('renders the fire icon in the summary when a span errored', async () => {
+    mockApis(null, [
+      ...CONVERSATION_BODY,
+      spanFixture({
+        span_id: 'span-error',
+        'span.name': 'failed turn',
+        'span.status': 'internal_error',
+        'precise.start_ts': 3000,
+        'precise.finish_ts': 3000.5,
+      }),
+    ]);
+    renderPage();
+
+    // The summary renders the fire icon once the conversation finishes loading.
+    expect(await screen.findByTestId('conversation-error-icon')).toBeInTheDocument();
+  });
+
+  it('omits the fire icon in the summary when there are no errors', async () => {
+    mockApis(null);
+    renderPage();
+
+    // Wait for the conversation to load before asserting the icon's absence.
+    expect(await screen.findByText('First answer')).toBeInTheDocument();
+    expect(screen.queryByTestId('conversation-error-icon')).not.toBeInTheDocument();
   });
 });

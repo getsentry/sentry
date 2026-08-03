@@ -281,3 +281,47 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
 
         replay_recordings = ReplayRecordingSegment.objects.all()
         assert len(replay_recordings) == 0
+
+    def test_deletion_replays_multi_page_keyset_pagination(self) -> None:
+        # Store several full pages worth of deletable replays so the keyset cursor has to walk
+        # past multiple pages. This guards the property that seek pagination never skips or
+        # double-processes a replay across page boundaries.
+        num_pages = 3
+        to_delete = [uuid4().hex for _ in range(self.small_batch_size * num_pages + 1)]
+        for replay_id in to_delete:
+            self.store_replay_segments(
+                replay_id=replay_id,
+                project_id=self.project.id,
+                timestamp=datetime.datetime.now() - datetime.timedelta(seconds=10),
+            )
+
+        # Keepers that fall inside the id space but must not be touched: a replay in another
+        # project and a replay outside the deletion time range.
+        replay_id_other_project = uuid4().hex
+        self.store_replay_segments(
+            replay_id_other_project,
+            self.other_project.id,
+            datetime.datetime.now() - datetime.timedelta(seconds=10),
+        )
+        replay_id_outside_timerange = uuid4().hex
+        self.store_replay_segments(
+            replay_id_outside_timerange,
+            self.project.id,
+            datetime.datetime.now() + datetime.timedelta(seconds=10),
+        )
+
+        with TaskRunner():
+            delete_replays(
+                project_id=self.project.id,
+                batch_size=self.small_batch_size,
+                tags=[],
+                start_utc=self.default_start_time,
+                end_utc=self.default_end_time,
+                dry_run=False,
+                environment=[],
+            )
+
+        for replay_id in to_delete:
+            self.assert_recording_deleted(replay_id)
+        self.assert_recording_not_deleted(replay_id_other_project)
+        self.assert_recording_not_deleted(replay_id_outside_timerange)

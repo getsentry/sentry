@@ -18,6 +18,8 @@ jobs:
     name: check if any migration changes
     runs-on: ubuntu-24.04
     timeout-minutes: 3
+    permissions:
+      contents: read
     # Map a step output to a job output
     outputs:
       added: ${{ steps.changes.outputs.migrations_added }}
@@ -27,10 +29,10 @@ jobs:
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Match migration files
-        uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
+        uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
         id: changes
         with:
-          token: ${{ github.token }}
+          token: ''
           filters: .github/file-filters.yml
 
   sql:

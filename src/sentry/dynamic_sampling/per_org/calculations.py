@@ -11,10 +11,6 @@ import sentry_sdk
 
 from sentry import options
 from sentry.dynamic_sampling.models.common import RebalancedItem
-from sentry.dynamic_sampling.models.full_rebalancing import (
-    FullRebalancingInput,
-    FullRebalancingModel,
-)
 from sentry.dynamic_sampling.models.projects_rebalancing import (
     ProjectsRebalancingInput,
     ProjectsRebalancingModel,
@@ -29,6 +25,7 @@ from sentry.dynamic_sampling.per_org.queries import (
     ProjectVolume,
     get_eap_organization_volume,
     get_generic_metrics_organization_volume,
+    get_generic_metrics_transaction_volumes,
     get_outcomes_organization_volume,
 )
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
@@ -44,6 +41,7 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
     generate_boost_low_volume_transactions_cache_key,
 )
+from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import FALLBACK_SLIDING_WINDOW_SIZE
 from sentry.utils import metrics
 
@@ -201,6 +199,17 @@ def apply_project_sample_rate_overrides(
         else item
         for item in rebalanced_projects
     ]
+
+
+def get_cached_organization_sample_rate(org_id: int) -> float | None:
+    """
+    The organization sample rate the legacy (generic metrics) pipeline would serve: the
+    cached sliding-window rate, or the target sample rate option for custom sampling orgs.
+    Returns None on a cache miss instead of falling back to the blended rate, so the
+    comparison logging can distinguish "no cached value" from "cached value equals blended".
+    """
+    sample_rate, _ = get_org_sample_rate(org_id=org_id, default_sample_rate=None)
+    return sample_rate
 
 
 def get_cached_rebalanced_project_sample_rates(org_id: int) -> dict[int, float | None]:
@@ -370,67 +379,32 @@ def run_transaction_balancing(
                 sample_rate=sample_rate,
                 total_num_classes=project_volume.num_distinct_transactions,
                 total=project_volume.total,
-                intensity=REBALANCE_INTENSITY,
+                intensity=REBALANCE_INTENSITY,  # this should use the option like in the old pipeline
                 min_sample_rate=min_sample_rate,
             )
         )
-
-        if implicit_rate < sample_rate:
-            named_rates, implicit_rate = _apply_implicit_sample_rate_floor(
-                named_rates=named_rates,
-                implicit_sample_rate=implicit_rate,
-                floor_sample_rate=sample_rate,
-                total_volume=project_volume.total,
-                min_sample_rate=min_sample_rate,
-            )
 
         result[project_id] = (named_rates, implicit_rate)
     return result
-
-
-def _apply_implicit_sample_rate_floor(
-    named_rates: list[RebalancedItem],
-    implicit_sample_rate: float,
-    floor_sample_rate: float,
-    total_volume: int,
-    min_sample_rate: float = 0.0,
-) -> tuple[list[RebalancedItem], float]:
-    total_explicit_volume = sum(item.count for item in named_rates)
-    total_implicit_volume = total_volume - total_explicit_volume
-    if total_explicit_volume <= 0 or total_implicit_volume <= 0:
-        return named_rates, floor_sample_rate
-
-    additional_implicit_volume = (floor_sample_rate - implicit_sample_rate) * total_implicit_volume
-    previously_used_explicit_volume = sum(item.count * item.new_sample_rate for item in named_rates)
-    new_explicit_volume = previously_used_explicit_volume - additional_implicit_volume
-
-    if new_explicit_volume <= 0:
-        return [], floor_sample_rate
-
-    new_explicit_sample_rate = new_explicit_volume / total_explicit_volume
-    new_rates, _ = FullRebalancingModel().run(
-        FullRebalancingInput(
-            classes=[RebalancedItem(id=item.id, count=item.count) for item in named_rates],
-            sample_rate=new_explicit_sample_rate,
-            intensity=REBALANCE_INTENSITY,
-            # keep the head floor here too, so reclaiming budget for the implicit tail can't push the
-            # explicit rates back below the floor. Clamp to the floor rate (the overall rate here).
-            min_sample_rate=min(min_sample_rate, floor_sample_rate),
-        )
-    )
-    return new_rates, floor_sample_rate
 
 
 def get_cached_rebalanced_transaction_sample_rates(
     org_id: int, project_ids: Iterable[int]
 ) -> dict[int, tuple[dict[str, float], float] | None]:
     redis_client = get_redis_client_for_ds()
+    ordered_project_ids = list(project_ids)
+    if not ordered_project_ids:
+        return {}
+
+    with redis_client.pipeline(transaction=False) as pipeline:
+        for project_id in ordered_project_ids:
+            pipeline.get(
+                generate_boost_low_volume_transactions_cache_key(org_id=org_id, proj_id=project_id)
+            )
+        serialized_values = pipeline.execute()
+
     result: dict[int, tuple[dict[str, float], float] | None] = {}
-    for project_id in project_ids:
-        cache_key = generate_boost_low_volume_transactions_cache_key(
-            org_id=org_id, proj_id=project_id
-        )
-        serialized = redis_client.get(cache_key)
+    for project_id, serialized in zip(ordered_project_ids, serialized_values):
         if serialized is None:
             result[project_id] = None
             continue
@@ -493,3 +467,47 @@ def compare_rebalanced_transactions_with_cache(
                     ),
                 },
             )
+
+
+def log_transaction_volume_debug(
+    config: BaseDynamicSamplingConfiguration,
+    transaction_volumes: list[ProjectTransactionCounts],
+    debug_project_ids: set[int],
+) -> None:
+    """
+    Logs the raw per-transaction volumes EAP fed into balancing next to the legacy
+    generic-metrics volumes for the same window, for every transaction on either side —
+    not just the ones that survived the top-N cutoff and rebalancing model. Used to debug
+    discrepancies between the two pipelines' transaction counts directly, since
+    ``compare_rebalanced_transactions_with_cache`` only ever sees post-rebalancing sample
+    rates for the transactions EAP kept.
+    """
+    eap_counts_by_project = {
+        project_data.project_id: dict(project_data.transaction_counts)
+        for project_data in transaction_volumes
+        if project_data.project_id in debug_project_ids
+    }
+    generic_metrics_counts_by_project = get_generic_metrics_transaction_volumes(
+        config.organization.id, debug_project_ids
+    )
+
+    for project_id in sorted(debug_project_ids):
+        eap_counts = eap_counts_by_project.get(project_id, {})
+        generic_metrics_counts = dict(generic_metrics_counts_by_project.get(project_id, []))
+
+        transactions = {
+            transaction: {
+                "eap_volume": eap_counts.get(transaction),
+                "generic_metrics_volume": generic_metrics_counts.get(transaction),
+            }
+            for transaction in eap_counts.keys() | generic_metrics_counts.keys()
+        }
+
+        logger.info(
+            "dynamic_sampling.per_org.transaction_volume_debug",
+            extra={
+                "org_id": config.organization.id,
+                "ds_proj_id": project_id,
+                "transactions": transactions,
+            },
+        )

@@ -10,10 +10,12 @@ from __future__ import annotations
 
 import json  # noqa: S003 - urllib3 raises stdlib JSONDecodeError, not simplejson's
 import logging
+from datetime import datetime
 from typing import Any, assert_never, cast
 
 from django.db import IntegrityError, router, transaction
 from django.dispatch import receiver
+from django.utils import timezone
 
 from sentry.audit_log.services.log import AuditLogEvent, UserIpEvent, log_rpc_service
 from sentry.auth.services.auth import auth_service
@@ -351,6 +353,7 @@ def process_group_action_log_event(payload: GroupActionLogPayload, **kwds: Any) 
 
         group_id = payload["group_id"]
         force_async_derived = payload["force_async_derived"]
+        date_added = payload.get("date_added")
 
         try:
             with transaction.atomic(using=using):
@@ -363,6 +366,9 @@ def process_group_action_log_event(payload: GroupActionLogPayload, **kwds: Any) 
                     source=payload["source"],
                     data=payload["data"],
                     idempotency_key=payload.get("idempotency_key"),
+                    date_added=(
+                        datetime.fromisoformat(date_added) if date_added else timezone.now()
+                    ),
                 )
         except IntegrityError:
             # Idempotency conflict; we treat this as a no-op.

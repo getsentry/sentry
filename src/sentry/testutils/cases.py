@@ -150,6 +150,7 @@ from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.eap import EAPClient
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.response import is_drf_response
 from sentry.testutils.helpers.slack import install_slack
@@ -722,6 +723,7 @@ class APITestCase(BaseTestCase, BaseAPITestCase, APITestCaseMixin):
     # We need Django to flush all databases.
     databases: set[str] | str = "__all__"
 
+    client_class = EAPClient
     method = "get"
 
 
@@ -729,6 +731,7 @@ class APITransactionTestCase(BaseTestCase, BaseAPITransactionTestCase, APITestCa
     # We need Django to flush all databases.
     databases: set[str] | str = "__all__"
 
+    client_class = EAPClient
     method = "get"
 
 
@@ -3434,10 +3437,13 @@ def span_to_trace_item(span) -> TraceItem:
 
     timestamp.FromMilliseconds(span["start_timestamp_ms"])
 
+    if "gen_ai.conversation.id" in span.get("data", {}) and "ai_conversation_id" not in span:
+        assert False, "gen_ai.conversation.id is deprecated.  Use the newer indexed one instead."
     return TraceItem(
         organization_id=span["organization_id"],
         project_id=span["project_id"],
         item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+        conversation_id=span.get("ai_conversation_id", ""),
         timestamp=timestamp,
         trace_id=span["trace_id"],
         item_id=hex_to_item_id(span["span_id"]),

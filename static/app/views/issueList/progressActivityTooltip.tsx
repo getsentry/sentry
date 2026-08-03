@@ -1,4 +1,4 @@
-import {ClassNames, useTheme} from '@emotion/react';
+import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
@@ -8,17 +8,22 @@ import {Text} from '@sentry/scraps/text';
 import {NoteBody} from 'sentry/components/activity/note/body';
 import {Hovercard} from 'sentry/components/hovercard';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Timeline} from 'sentry/components/timeline';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {Group, GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useTeamsById} from 'sentry/utils/useTeamsById';
-import {getActivityColorConfig} from 'sentry/views/issueDetails/activitySection/activityColorConfig';
-import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/activitySection/groupActivityIcons';
-import {getGroupActivityItem} from 'sentry/views/issueDetails/activitySection/groupActivityItem';
+import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
+import {getActivityNoteAuthor} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityItem';
+import {
+  ActivityLineContent,
+  ActivityLineHeadline,
+  ActivityLineList,
+  ActivityLineRow,
+} from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
+import {isActivityNote} from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
+import {ActivityLineMarker} from 'sentry/views/issueDetails/activitySection/activityLineItem/progressMarker';
 
 // Only include activity items that describe issue progress changes. Other
 // activity types can be useful in the full activity feed, but are noise here.
@@ -62,53 +67,38 @@ function getProgressActivities(activities: GroupActivity[]): GroupActivity[] {
 }
 
 function ProgressActivityItem({group, item}: {group: Group; item: GroupActivity}) {
-  const organization = useOrganization();
-  const theme = useTheme();
-  const {teams} = useTeamsById();
-
-  const colorConfig = getActivityColorConfig(theme, item.type);
-  const {title, message} = getGroupActivityItem(
-    item,
-    organization,
-    group.project,
-    group.issueCategory,
-    teams
-  );
-
-  const iconMapping = groupActivityTypeIconMapping[item.type];
-  const componentFunction =
-    item.type === GroupActivityType.NOTE ? undefined : iconMapping?.componentFunction;
-  const Icon = componentFunction
-    ? componentFunction({
-        data: item.data,
-        user: item.user,
-        sentry_app: item.sentry_app,
-      })
-    : (iconMapping?.Component ?? null);
+  if (isActivityNote(item)) {
+    return <ProgressActivityNote item={item} />;
+  }
 
   return (
-    <Timeline.Item
-      title={title}
-      timestamp={<Timestamp date={item.dateCreated} unitStyle="extraShort" />}
-      colorConfig={colorConfig}
-      icon={
-        Icon && (
-          <Icon
-            {...iconMapping.defaultProps}
-            {...iconMapping.propsFunction?.(item.data)}
-            size="xs"
-          />
-        )
-      }
-    >
-      {typeof message === 'string' ? (
-        <NoteBody text={message} />
-      ) : message ? (
-        <Text as="div" size="sm">
-          {message}
-        </Text>
-      ) : null}
-    </Timeline.Item>
+    <ActivityLine
+      group={group}
+      item={{type: 'activity', activity: item}}
+      timestampUnitStyle="extraShort"
+    />
+  );
+}
+
+function ProgressActivityNote({
+  item,
+}: {
+  item: Extract<GroupActivity, {type: GroupActivityType.NOTE}>;
+}) {
+  const organization = useOrganization();
+  const showProgress = organization.features.includes('issue-activity-progress');
+
+  return (
+    <ActivityLineRow>
+      <ActivityLineMarker item={item} showProgress={showProgress} />
+      <ActivityLineHeadline
+        title={getActivityNoteAuthor(item)}
+        timestamp={<TimeSince date={item.dateCreated} unitStyle="extraShort" />}
+      />
+      <ActivityLineContent>
+        <NoteBody text={item.data.text} />
+      </ActivityLineContent>
+    </ActivityLineRow>
   );
 }
 
@@ -127,21 +117,21 @@ function ProgressActivityBody({group}: {group: Group}) {
 
   if (isPending) {
     return (
-      <TimelineContainer>
+      <ActivityListContainer>
         <Flex align="center" justify="center" minHeight="40px">
           <LoadingIndicator size={24} />
         </Flex>
-      </TimelineContainer>
+      </ActivityListContainer>
     );
   }
 
   if (isError) {
     return (
-      <TimelineContainer>
+      <ActivityListContainer>
         <Flex align="center" justify="center" minHeight="40px">
           <Text variant="muted">{t('Failed to load activity.')}</Text>
         </Flex>
-      </TimelineContainer>
+      </ActivityListContainer>
     );
   }
 
@@ -149,22 +139,22 @@ function ProgressActivityBody({group}: {group: Group}) {
 
   if (items.length === 0) {
     return (
-      <TimelineContainer>
+      <ActivityListContainer>
         <Flex align="center" justify="center" minHeight="40px">
           <Text variant="muted">{t('No activity.')}</Text>
         </Flex>
-      </TimelineContainer>
+      </ActivityListContainer>
     );
   }
 
   return (
-    <TimelineContainer>
-      <Timeline.Container>
+    <ActivityListContainer>
+      <ActivityLineList>
         {items.map(item => (
           <ProgressActivityItem key={item.id} group={group} item={item} />
         ))}
-      </Timeline.Container>
-    </TimelineContainer>
+      </ActivityLineList>
+    </ActivityListContainer>
   );
 }
 
@@ -197,12 +187,7 @@ export function ProgressActivityTooltip({children, group}: ProgressActivityToolt
   );
 }
 
-const Timestamp = styled(TimeSince)`
-  font-size: ${p => p.theme.font.size.sm};
-  white-space: nowrap;
-`;
-
-const TimelineContainer = styled('div')`
+const ActivityListContainer = styled('div')`
   width: 300px;
 `;
 
