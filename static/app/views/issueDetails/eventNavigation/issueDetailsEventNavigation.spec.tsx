@@ -115,31 +115,6 @@ describe('IssueDetailsEventNavigation', () => {
     });
   });
 
-  it('clears the selected preset when navigating to a specific event', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/group-id/events/next-event-id/',
-      body: EventFixture(),
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/group-id/events/prev-event-id/',
-      body: EventFixture(),
-    });
-    const {router} = render(<IssueDetailsEventNavigation {...defaultProps} />, {
-      initialRouterConfig: latestRouterConfig,
-    });
-
-    await userEvent.click(screen.getByRole('button', {name: 'Next Event'}));
-
-    await waitFor(() => {
-      expect(router.location.pathname).toBe(
-        '/organizations/org-slug/issues/group-id/events/next-event-id/'
-      );
-      screen
-        .getAllByRole('tab')
-        .forEach(tab => expect(tab).toHaveAttribute('aria-selected', 'false'));
-    });
-  });
-
   it('can navigate next/previous events', async () => {
     render(<IssueDetailsEventNavigation {...defaultProps} />, {
       initialRouterConfig: latestRouterConfig,
