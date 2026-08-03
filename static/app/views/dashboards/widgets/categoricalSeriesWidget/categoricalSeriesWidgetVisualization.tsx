@@ -99,7 +99,10 @@ export function CategoricalSeriesWidgetVisualization(
   // Extract all unique categories from all plottables and convert to display strings
   // for ECharts compatibility (xAxis.data expects string[])
   const allCategories = useMemo(
-    () => uniq(props.plottables.flatMap(plottable => plottable.categories.map(formatXAxisValue))),
+    () =>
+      uniq(
+        props.plottables.flatMap(plottable => plottable.categories.map(formatXAxisValue))
+      ),
     [props.plottables]
   );
 
