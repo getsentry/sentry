@@ -346,7 +346,7 @@ def _detect_performance_problems(
     # Note: Not all legacy detectors have span-first analogs yet. Results from those that don't are
     # just ignored in the comparison.
     _maybe_run_span_first_detector_parity_check(
-        segment_span, spans, project, legacy_detected_problems
+        segment_span, spans, project, legacy_detected_problems, detection_settings
     )
 
 
@@ -410,6 +410,7 @@ def _maybe_run_span_first_detector_parity_check(
     segment: list[CompatibleSpan],
     project: Project,
     all_control_problems: list[PerformanceProblem],
+    detection_settings: dict[DetectorType, dict[str, Any]],
 ) -> None:
     if not options.get(SPAN_FIRST_DETECTORS_ENABLEMENT_OPTION):
         return
