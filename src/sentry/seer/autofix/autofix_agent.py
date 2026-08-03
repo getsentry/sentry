@@ -8,7 +8,6 @@ from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal, cast
 
 import sentry_sdk
-from django.utils import timezone
 from pydantic import BaseModel
 from rest_framework.exceptions import PermissionDenied
 from scm.types import GetBranchProtocol, GetRepositoryProtocol
@@ -54,6 +53,7 @@ from sentry.seer.entrypoints.operator import (
     SeerActivityAttribution,
     SeerAutofixOperator,
     process_autofix_updates,
+    record_seer_activity,
 )
 from sentry.seer.models import SeerRepoDefinition
 from sentry.seer.models.run import SeerRun
@@ -491,8 +491,6 @@ def trigger_autofix_agent(
             insert_index=insert_index,
         )
 
-    activity_datetime = timezone.now().isoformat()
-
     # Emit the started event after run_id is resolved so it can be joined to
     # downstream completed/PR events.
     if config.started_event is not None:
@@ -522,19 +520,26 @@ def trigger_autofix_agent(
     try:
         sentry_app_event_type = SentryAppEventType(event_type)
         if SeerAutofixOperator.has_access(organization=group.organization):
+            activity_attribution: SeerActivityAttribution | None = None
             task_kwargs: dict[str, Any] = {
                 "event_type": sentry_app_event_type,
                 "event_payload": payload,
                 "organization_id": group.organization.id,
-                "activity_datetime": activity_datetime,
+                "record_activity": False,
             }
             if is_iteration_step:
-                activity_attribution: SeerActivityAttribution = {
+                activity_attribution = {
                     "referrer": referrer,
                 }
                 if actor_user_id is not None:
                     activity_attribution["actor_user_id"] = actor_user_id
                 task_kwargs["activity_attribution"] = activity_attribution
+            record_seer_activity(
+                group=group,
+                event_type=sentry_app_event_type,
+                event_payload=payload,
+                activity_attribution=activity_attribution,
+            )
             process_autofix_updates.apply_async(kwargs=task_kwargs)
     except ValueError:
         logger.exception(
