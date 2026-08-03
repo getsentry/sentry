@@ -141,6 +141,9 @@ class TestWithError:
     def test_is_noop_when_already_tainted(self) -> None:
         assert _ev(True, ERR).with_error(OTHER_ERR).error == ERR
 
+    def test_to_log_flattens_common_fields(self) -> None:
+        assert _ev(True, ERR).to_log() == {"triggered": True, "error": ERR.msg}
+
 
 class TestChooseTainted:
     def test_returns_first_tainted(self) -> None:
