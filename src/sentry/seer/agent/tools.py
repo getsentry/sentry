@@ -633,20 +633,14 @@ def execute_replays_query(
         return None
 
     if not features.has("organizations:session-replay", organization):
-        error_detail = "Session Replay is not enabled for this organization."
-        logger.warning(
-            "execute_replays_query: validation failed",
-            extra={"org_id": organization_id, "error_detail": error_detail},
+        return ExecuteQueryErrorResponse(
+            error="Session Replay is not enabled for this organization."
         )
-        return ExecuteQueryErrorResponse(error=error_detail)
 
     if project_ids and project_slugs:
-        error_detail = "Pass either project_ids or project_slugs, not both."
-        logger.warning(
-            "execute_replays_query: validation failed",
-            extra={"org_id": organization_id, "error_detail": error_detail},
+        return ExecuteQueryErrorResponse(
+            error="Pass either project_ids or project_slugs, not both."
         )
-        return ExecuteQueryErrorResponse(error=error_detail)
 
     project_filter: dict[str, Any] = {}
     if project_ids:
@@ -667,12 +661,9 @@ def execute_replays_query(
     requested_fields = fields or DEFAULT_REPLAY_SEARCH_FIELDS
     invalid_fields = sorted(set(requested_fields) - set(REPLAY_VALID_FIELD_SET))
     if invalid_fields:
-        error_detail = f"Invalid replay field(s): {', '.join(invalid_fields)}"
-        logger.warning(
-            "execute_replays_query: validation failed",
-            extra={"org_id": organization_id, "error_detail": error_detail},
+        return ExecuteQueryErrorResponse(
+            error=f"Invalid replay field(s): {', '.join(invalid_fields)}"
         )
-        return ExecuteQueryErrorResponse(error=error_detail)
 
     date_params: dict[str, Any] = {}
     if start and end:
@@ -701,17 +692,9 @@ def execute_replays_query(
         )
         processed_response = process_raw_response(response.response, fields=requested_fields)
     except KeyError as e:
-        error_detail = f"Invalid replay field: {e.args[0]}" if e.args else "Invalid replay field"
-        logger.warning(
-            "execute_replays_query: validation failed",
-            extra={
-                "org_id": organization_id,
-                "query": query,
-                "field": e.args[0] if e.args else None,
-                "error_detail": error_detail,
-            },
+        return ExecuteQueryErrorResponse(
+            error=f"Invalid replay field: {e.args[0]}" if e.args else "Invalid replay field"
         )
-        return ExecuteQueryErrorResponse(error=error_detail)
     except (InvalidParams, InvalidSearchQuery, SentryBadRequest, BadRequest, ParseError) as e:
         error_detail = str(e)
         logger.warning(
