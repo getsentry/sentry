@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import contextlib
 import enum
 import errno
 import hashlib
@@ -446,7 +445,7 @@ def create_dif_from_file(
 ) -> tuple[ProjectDebugFile, bool]:
     """Validates an existing DIF file and ensures its ProjectDebugFile exists."""
     meta = detect_single_dif_from_path(path, name=name, debug_id=debug_id)
-    return create_dif_from_id(project, meta, file=file)
+    return create_dif_from_id(project, meta, file)
 
 
 def upload_dif_to_objectstore(
@@ -557,42 +556,18 @@ def find_existing_dif(project: Project, meta: DifMeta, checksum: str) -> Project
 def create_dif_from_id(
     project: Project,
     meta: DifMeta,
-    fileobj: BinaryIO | None = None,
-    file: File | None = None,
+    file: File,
 ) -> tuple[ProjectDebugFile, bool]:
-    """Creates the :class:`ProjectDebugFile` entry for the provided DIF.
+    """Creates a ``ProjectDebugFile`` for an existing legacy ``File``.
 
-    This creates the :class:`ProjectDebugFile` entry for the DIF provided in `meta` (a
-    :class:`DifMeta` object). If the correct entry already exists, this simply returns the
-    existing entry.
-
-    It intentionally does not validate the file. Depending on the configured Objectstore write
-    flags, it creates a :class:`File` entry, an Objectstore ``storage_path``, or both.
-
-    It can be passed either an existing `File` model, or an actual stream of bytes, depending on
-    whether the `File` already exists.
-
-    Returns a tuple of `(dif, created)` where `dif` is the `ProjectDebugFile` instance and
-    `created` is a bool.
+    The existing ``File`` is always retained. If the double-write flag is enabled, its contents
+    are also uploaded to Objectstore. A failed Objectstore upload does not prevent creation of
+    the legacy-backed DIF.
     """
-    if file is not None:
-        file_size = file.size
-        assert file_size is not None
-        checksum = file.checksum
-        assert checksum is not None
-    elif fileobj is not None:
-        file_size = 0
-        h = hashlib.sha1()
-        while True:
-            chunk = fileobj.read(16384)
-            if not chunk:
-                break
-            h.update(chunk)
-            file_size += len(chunk)
-        checksum = h.hexdigest()
-        fileobj.seek(0, 0)
-    else:
-        raise RuntimeError("missing file object")
+    file_size = file.size
+    assert file_size is not None
+    checksum = file.checksum
+    assert checksum is not None
 
     dif = find_existing_dif(project, meta, checksum)
 
@@ -601,39 +576,18 @@ def create_dif_from_id(
 
     content_type = DIF_MIMETYPES[meta.file_format]
     object_name = _get_dif_object_name(meta)
-    exclusive_objectstore_write = features.has(
-        "organizations:objectstore-debugfiles-exclusive-write", project.organization
-    )
-    objectstore_write = exclusive_objectstore_write or features.has(
-        "organizations:objectstore-debugfiles-write", project.organization
-    )
 
-    if not exclusive_objectstore_write:
-        if file is None:
-            file = File.objects.create(
-                name=meta.debug_id,
-                type="project.dif",
-                headers={"Content-Type": content_type},
-            )
-            file.putfile(fileobj)
-        else:
-            file.type = "project.dif"
-            file.headers["Content-Type"] = content_type
-            file.save()
+    file.type = "project.dif"
+    file.headers["Content-Type"] = content_type
+    file.save()
 
     objectstore_metadata: dict[str, Any] = {}
     session: Session | None = None
     storage_path: str | None = None
-    if objectstore_write:
+    if features.has("organizations:objectstore-debugfiles-write", project.organization):
         session = get_debug_files_session(project.organization_id, project.id)
         try:
-            source_cm: contextlib.AbstractContextManager[IO[bytes]]
-            if file is not None:
-                source_cm = file.getfile()
-            else:
-                assert fileobj is not None
-                source_cm = contextlib.nullcontext(fileobj)
-            with source_cm as source:
+            with file.getfile() as source:
                 storage_path = upload_dif_to_objectstore(
                     session,
                     source,
@@ -642,9 +596,6 @@ def create_dif_from_id(
                     get_dif_download_filename(meta),
                 )
         except Exception:
-            if exclusive_objectstore_write:
-                logger.exception("Failed to write debug file to Objectstore")
-                raise
             logger.exception("Failed to dual-write debug file to Objectstore")
         else:
             objectstore_metadata = {
@@ -663,7 +614,91 @@ def create_dif_from_id(
 
     try:
         dif = ProjectDebugFile.objects.create(
-            file=None if exclusive_objectstore_write else file,
+            file=file,
+            checksum=checksum,
+            debug_id=meta.debug_id,
+            code_id=meta.code_id,
+            cpu_name=meta.arch,
+            object_name=object_name,
+            project_id=project.id,
+            data=meta.data,
+            **objectstore_metadata,
+        )
+    except Exception:
+        if storage_path is not None:
+            assert session is not None
+            try:
+                session.delete(storage_path)
+            except Exception:
+                logger.exception("Failed to clean up Objectstore debug file after database error")
+        raise
+
+    # The DIF we've just created might actually be removed here again. But since
+    # this can happen at any time in near or distant future, we don't care and
+    # assume a successful upload. The DIF will be reported to the uploader and
+    # reprocessing can start.
+    clean_redundant_difs(project, meta.debug_id)
+
+    return dif, True
+
+
+def create_dif_from_fileobj(
+    project: Project, meta: DifMeta, fileobj: BinaryIO
+) -> tuple[ProjectDebugFile, bool]:
+    """Creates an Objectstore-backed ``ProjectDebugFile`` from a local file object.
+
+    This function intentionally does not check feature flags: callers must only use it when
+    exclusive Objectstore writes are enabled. Objectstore upload failures are fatal.
+    """
+    file_size = 0
+    h = hashlib.sha1()
+    while True:
+        chunk = fileobj.read(16384)
+        if not chunk:
+            break
+        h.update(chunk)
+        file_size += len(chunk)
+    checksum = h.hexdigest()
+    fileobj.seek(0, 0)
+
+    dif = find_existing_dif(project, meta, checksum)
+
+    if dif is not None:
+        return dif, False
+
+    content_type = DIF_MIMETYPES[meta.file_format]
+    object_name = _get_dif_object_name(meta)
+    session = get_debug_files_session(project.organization_id, project.id)
+    storage_path: str | None = None
+    try:
+        storage_path = upload_dif_to_objectstore(
+            session,
+            fileobj,
+            content_type,
+            file_size,
+            get_dif_download_filename(meta),
+        )
+    except Exception:
+        logger.exception("Failed to write debug file to Objectstore")
+        raise
+
+    objectstore_metadata = {
+        "storage_path": storage_path,
+        "content_type": content_type,
+        "file_size": file_size,
+        "date_created": timezone.now(),
+    }
+
+    metrics.distribution(
+        "storage.put.size",
+        file_size,
+        tags={"usecase": "debug_files", "compression": "none"},
+        unit="byte",
+    )
+
+    try:
+        dif = ProjectDebugFile.objects.create(
+            file=None,
             checksum=checksum,
             debug_id=meta.debug_id,
             code_id=meta.code_id,
@@ -989,10 +1024,20 @@ def create_debug_file_from_dif(
     """Create a ProjectDebugFile from a dif (Debug Information File) and
     return an array of created objects.
     """
+    exclusive_objectstore_write = features.has(
+        "organizations:objectstore-debugfiles-exclusive-write", project.organization
+    )
     rv = []
     for meta in to_create:
         with open(meta.path, "rb") as f:
-            dif, created = create_dif_from_id(project, meta, fileobj=f)
+            if exclusive_objectstore_write:
+                dif, created = create_dif_from_fileobj(project, meta, f)
+            else:
+                file = File.objects.create(name=meta.debug_id)
+                file.putfile(f)
+                dif, created = create_dif_from_id(project, meta, file)
+                if not created:
+                    file.delete()
             if created:
                 rv.append(dif)
     return rv

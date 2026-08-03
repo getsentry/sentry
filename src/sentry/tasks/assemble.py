@@ -13,6 +13,7 @@ from django.db import router
 from django.db.models import Q
 from django.utils import timezone
 
+from sentry import features
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.debug_files.artifact_bundles import (
@@ -240,7 +241,12 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     Assembles uploaded chunks into a ``ProjectDebugFile``.
     """
     from sentry.lang.native.sources import record_last_upload
-    from sentry.models.debugfile import BadDif, create_dif_from_file
+    from sentry.models.debugfile import (
+        BadDif,
+        create_dif_from_file,
+        create_dif_from_fileobj,
+        detect_single_dif_from_path,
+    )
     from sentry.models.project import Project
 
     sentry_sdk.set_tag("project", project_id)
@@ -270,9 +276,16 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
             # We only permit split difs to hit this endpoint.
             # The client is required to split them up first or we error.
             try:
-                dif, created = create_dif_from_file(
-                    project, file, temp_file.name, name=name, debug_id=debug_id
-                )
+                if features.has(
+                    "organizations:objectstore-debugfiles-exclusive-write", project.organization
+                ):
+                    meta = detect_single_dif_from_path(temp_file.name, name=name, debug_id=debug_id)
+                    temp_file.seek(0)
+                    dif, created = create_dif_from_fileobj(project, meta, temp_file)
+                else:
+                    dif, created = create_dif_from_file(
+                        project, file, temp_file.name, name=name, debug_id=debug_id
+                    )
             except BadDif as e:
                 set_assemble_status(
                     AssembleTask.DIF, project_id, checksum, ChunkFileState.ERROR, detail=e.args[0]
