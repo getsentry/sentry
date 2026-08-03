@@ -46,7 +46,13 @@ from sentry.replays.query import (
     replay_url_parser_config,
 )
 from sentry.replays.validators import VALID_FIELD_SET as REPLAY_VALID_FIELD_SET
-from sentry.search.eap.constants import BOOLEAN, DOUBLE, INT, STRING
+from sentry.search.eap.constants import (
+    BOOLEAN,
+    DOUBLE,
+    EAP_FULL_FIDELITY_QUERY_DAYS,
+    INT,
+    STRING,
+)
 from sentry.search.eap.occurrences.query_utils import build_event_id_in_filter
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
@@ -511,7 +517,8 @@ def execute_trace_table_query(
         project_ids: The IDs of the projects to query. Cannot be provided with project_slugs.
         project_slugs: The slugs of the projects to query. Cannot be provided with project_ids.
         If neither project_ids nor project_slugs are provided, all active projects will be queried.
-        Start/end params take precedence over stats_period. Default time range is the last 24 hours.
+        Start/end params take precedence over stats_period. Defaults to EAP full-fidelity
+        retention when neither is given, to avoid Snuba's downsampled tiers.
     """
     try:
         organization = Organization.objects.get(id=organization_id)
@@ -523,6 +530,9 @@ def execute_trace_table_query(
         return None
     if not project_ids and not project_slugs:
         project_ids = [ALL_ACCESS_PROJECT_ID]
+
+    if not stats_period and not (start and end):
+        stats_period = f"{EAP_FULL_FIDELITY_QUERY_DAYS}d"
 
     params: dict[str, Any] = {
         "dataset": "spans",  # the only supported value.

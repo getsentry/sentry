@@ -9,6 +9,7 @@ from django.utils.timezone import now
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
 from sentry.insights.models import InsightsStarredSegment
+from sentry.search.eap.constants import EAP_FULL_FIDELITY_QUERY_DAYS
 from sentry.search.events.constants import RATE_LIMIT_ERROR_MESSAGE
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
@@ -52,7 +53,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data == [
             {
                 "description": "foo",
-                "spm()": 1 / (90 * 24 * 60),
+                "spm()": pytest.approx(1 / (EAP_FULL_FIDELITY_QUERY_DAYS * 24 * 60), rel=1e-3),
             },
         ]
         assert meta["dataset"] == "spans"
@@ -2453,7 +2454,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data == [
             {
                 "description": "foo",
-                "epm()": 1 / (90 * 24 * 60),
+                "epm()": pytest.approx(1 / (EAP_FULL_FIDELITY_QUERY_DAYS * 24 * 60), rel=1e-3),
             },
         ]
         assert meta["dataset"] == "spans"
@@ -2526,7 +2527,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         )
 
         segment_span_count = 1
-        total_time = 90 * 24 * 60
+        total_time = EAP_FULL_FIDELITY_QUERY_DAYS * 24 * 60
 
         assert response.status_code == 200, response.content
         data = response.data["data"]
@@ -2535,7 +2536,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data == [
             {
                 "description": "foo",
-                "tpm()": segment_span_count / total_time,
+                "tpm()": pytest.approx(segment_span_count / total_time, rel=1e-3),
             },
         ]
         assert meta["dataset"] == "spans"
@@ -6443,7 +6444,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data == [
             {
                 "description": "foo",
-                "eps()": 1 / (90 * 24 * 60 * 60),
+                "eps()": pytest.approx(1 / (EAP_FULL_FIDELITY_QUERY_DAYS * 24 * 60 * 60), rel=1e-3),
             },
         ]
         assert meta["dataset"] == "spans"
