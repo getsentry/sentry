@@ -31,6 +31,7 @@ export function getRepoPullRequestLink(state: RepoPRState): AutofixResultLink | 
   return {
     kind: 'pullRequest',
     label: t('View %s#%s', state.repo_name, state.pr_number),
+    ...(state.provider ? {repoProvider: state.provider} : {}),
     url: state.pr_url,
   };
 }

@@ -1,4 +1,30 @@
-import {getCodingAgentResultLink} from 'sentry/components/events/autofix/pullRequests';
+import {AutofixRepoPRStateFixture} from 'sentry-fixture/autofix';
+
+import {
+  getCodingAgentResultLink,
+  getRepoPullRequestLink,
+} from 'sentry/components/events/autofix/pullRequests';
+
+describe('getRepoPullRequestLink', () => {
+  it.each([
+    ['github', 'https://github.com/org/repository/pull/10'],
+    ['gitlab', 'https://gitlab.com/org/repository/-/merge_requests/10'],
+  ])('preserves the %s repository provider', (provider, url) => {
+    expect(
+      getRepoPullRequestLink(
+        AutofixRepoPRStateFixture({
+          provider,
+          pr_url: url,
+        })
+      )
+    ).toEqual({
+      kind: 'pullRequest',
+      label: 'View org/repository#10',
+      repoProvider: provider,
+      url,
+    });
+  });
+});
 
 describe('getCodingAgentResultLink', () => {
   const result = {
