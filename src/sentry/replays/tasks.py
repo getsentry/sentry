@@ -107,8 +107,11 @@ def delete_replays_script_async(
     retention_days: int,
     project_id: int,
     replay_id: str,
-    max_segment_id: int,
+    max_segment_id: int | None,
 ) -> None:
+    if max_segment_id is None:
+        return None
+
     segments = [
         RecordingSegmentStorageMeta(
             project_id=project_id,
@@ -116,7 +119,7 @@ def delete_replays_script_async(
             segment_id=i,
             retention_days=retention_days,
         )
-        for i in range(0, max_segment_id)
+        for i in range(max_segment_id + 1)
     ]
 
     rrweb_filenames = []
