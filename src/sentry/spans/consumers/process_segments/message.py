@@ -425,7 +425,7 @@ def _maybe_run_span_first_detector_parity_check(
 
     try:
         span_first_problems_by_grouptype = run_span_first_detectors(
-            sampled_grouptypes, segment_span, segment, project
+            sampled_grouptypes, segment_span, segment, detection_settings
         )
 
         compare_span_first_problems_to_control_data(
