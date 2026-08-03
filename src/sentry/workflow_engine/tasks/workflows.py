@@ -22,6 +22,7 @@ from sentry.utils.exceptions import quiet_redis_noise, quiet_retriable_timeouts
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 from sentry.workflow_engine.models import DataConditionGroup, Detector
+from sentry.workflow_engine.processors.evaluation_logging import emit_workflow_evaluation_logs
 from sentry.workflow_engine.processors.evaluations.workflow import has_triggered_actions
 from sentry.workflow_engine.tasks.utils import (
     EventNotFoundError,
@@ -72,9 +73,15 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: Dete
     )
     with quiet_redis_noise():
         batch_client = DelayedWorkflowClient()
-        process_workflows(
+        evaluations = process_workflows(
             batch_client, event_data, event_start_time=activity.datetime, detector=detector
         )
+
+    emit_workflow_evaluation_logs(
+        logger,
+        organization=event_data.event.project.organization,
+        evaluations=evaluations,
+    )
 
     metrics.incr(
         "workflow_engine.tasks.process_workflows.activity_update.executed",
@@ -169,6 +176,12 @@ def _process_workflows_event(
                     event_data.event,
                     has_triggered_actions(evaluations),
                 )
+
+    emit_workflow_evaluation_logs(
+        logger,
+        organization=event_data.event.project.organization,
+        evaluations=evaluations,
+    )
     duration = time.time() - start_time
     is_slow = duration > 1.0
     # We want full coverage for particularly slow cases, plus a random sampling.

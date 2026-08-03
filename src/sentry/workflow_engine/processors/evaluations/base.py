@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field, replace
 from typing import Any, TypedDict
@@ -5,7 +6,7 @@ from typing import Any, TypedDict
 from sentry.workflow_engine.types import ConditionError
 
 
-class EvaluationLog(TypedDict):
+class EvaluationArtifact(TypedDict):
     triggered: bool
     error: str | None
 
@@ -19,7 +20,7 @@ def _find_error(
 
 
 @dataclass(frozen=True, kw_only=True)
-class BaseWorkflowEngineEvaluation[R, D]:
+class BaseWorkflowEngineEvaluation[R, D](ABC):
     """
     This is a shared base class for all Evaluation classes.
 
@@ -35,6 +36,9 @@ class BaseWorkflowEngineEvaluation[R, D]:
     The static `any`/`all`/`none` and `choose_tainted` helpers implement taint-aware boolean
     algebra over evaluations: when an input had an error that could affect the result, the returned
     `(triggered, error)` carries a representative error so the taint propagates.
+
+    Concrete evaluations implement `to_artifact` to select safe, useful fields from their
+    result and data without generically serializing models or event payloads.
     """
 
     result: R
@@ -50,12 +54,16 @@ class BaseWorkflowEngineEvaluation[R, D]:
         """
         return self.error is not None
 
-    def to_log(self) -> EvaluationLog:
-        """Return the common, logger-safe fields for an evaluation."""
+    def _base_artifact(self) -> EvaluationArtifact:
         return {
             "triggered": self.triggered,
             "error": self.error.msg if self.error else None,
         }
+
+    @abstractmethod
+    def to_artifact(self) -> dict[str, Any]:
+        """Return an explicit, logger-safe representation of this evaluation."""
+        raise NotImplementedError
 
     def with_error(self, error: ConditionError) -> "BaseWorkflowEngineEvaluation[R, D]":
         """
