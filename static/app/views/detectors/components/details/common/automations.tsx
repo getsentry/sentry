@@ -127,7 +127,7 @@ function AutomationsTable({detectorId, emptyMessage}: AutomationsTableProps) {
   );
 
   return (
-    <Container>
+    <Container containerType="inline-size">
       <Stack gap="md">
         <AutomationSearch initialQuery={searchQuery} onSearch={onSearch} />
         {table}

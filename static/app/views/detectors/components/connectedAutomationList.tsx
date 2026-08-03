@@ -106,7 +106,7 @@ export function ConnectedAutomationsList({
         });
 
   return (
-    <Container {...props}>
+    <Container containerType="inline-size" {...props}>
       <SimpleTableWithColumns>
         <SimpleTable.Header>
           <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
