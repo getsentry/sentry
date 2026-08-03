@@ -208,10 +208,14 @@ export function DetectorListTable({
               </Container>
             )}
             {hasVisualization && (
-              <VisualizationExpandButton
+              <Flex
+                row="1"
+                column="-1"
+                padding="lg xl"
                 display={{zero: 'none', xl: 'flex'}}
                 align="center"
                 justify="center"
+                style={{zIndex: 4}}
               >
                 <Button
                   size="xs"
@@ -234,7 +238,7 @@ export function DetectorListTable({
                   }}
                   onClick={() => setIsVisualizationExpanded(v => !v)}
                 />
-              </VisualizationExpandButton>
+              </Flex>
             )}
           </SimpleTable.Header>
         ) : (
@@ -516,11 +520,4 @@ const PositionedGridLineOverlay = styled(GridLineOverlay)`
   @container (min-width: ${p => p.theme.container.xl}) {
     display: block;
   }
-`;
-
-const VisualizationExpandButton = styled(Flex)`
-  grid-row: 1;
-  grid-column: -1;
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
-  z-index: 4;
 `;
