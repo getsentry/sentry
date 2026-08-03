@@ -135,7 +135,8 @@ export function mapSeriesToChart({
 
           if (existingSubLabel) {
             // Check if the existing sub-label's data length matches the intervals length
-            if (existingSubLabel.data.length === (group.series?.['sum(quantity)'] ?? []).length) {
+            const seriesLength = group.series?.['sum(quantity)']?.length ?? 0;
+            if (existingSubLabel.data.length === seriesLength) {
               // Update the value of the current interval
               existingSubLabel.data[i]!.value += stat;
             } else {
