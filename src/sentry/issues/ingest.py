@@ -25,6 +25,7 @@ from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_
 from sentry.issues.grouptype import FeedbackGroup, should_create_group
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.issues.priority import PriorityChangeReason, update_priority
+from sentry.models.environment import Environment
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphash import GroupHash
 from sentry.models.groupopenperiod import get_latest_open_period
@@ -69,7 +70,10 @@ def save_issue_occurrence(
         release = None
     group_info = save_issue_from_occurrence(occurrence, event, release)
     if group_info:
-        environment = event.get_environment()
+        environment = Environment.get_or_create(
+            project=event.project,
+            name=event.get_tag("environment") or "",
+        )
         _get_or_create_group_environment(environment, release, [group_info], event.datetime)
         _increment_release_associated_counts(
             group_info.group.project, environment, release, [group_info]

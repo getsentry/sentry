@@ -129,6 +129,41 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
             ],
         )
 
+    def test_environment_not_in_db(self) -> None:
+        """Test that save_issue_occurrence handles the case where the event's
+        environment tag references an environment not yet in the database."""
+        from django.core.cache import cache
+
+        env_name = "SRT"
+        event = self.store_event(
+            data={"environment": env_name}, project_id=self.project.id
+        )
+        # Delete the Environment record and clear the cache to simulate the
+        # scenario where the environment tag exists on the event but no DB
+        # record was created for this organization.
+        Environment.objects.filter(
+            organization_id=self.organization.id, name=env_name
+        ).delete()
+        cache.delete(Environment.get_cache_key(self.organization.id, env_name))
+        assert not Environment.objects.filter(
+            organization_id=self.organization.id, name=env_name
+        ).exists()
+
+        occurrence_data = self.build_occurrence_data(event_id=event.event_id)
+        with self.tasks():
+            occurrence, group_info = save_issue_occurrence(occurrence_data, event)
+        assert group_info is not None
+        # The environment should have been created by save_issue_occurrence
+        assert Environment.objects.filter(
+            organization_id=self.organization.id, name=env_name
+        ).exists()
+        environment = Environment.objects.get(
+            organization_id=self.organization.id, name=env_name
+        )
+        assert GroupEnvironment.objects.filter(
+            group=group_info.group, environment=environment
+        ).exists()
+
     def test_different_ids(self) -> None:
         create_default_projects()
         event_data = load_data("generic-event-profiling")
