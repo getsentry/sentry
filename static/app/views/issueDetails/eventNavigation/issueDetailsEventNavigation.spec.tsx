@@ -115,7 +115,7 @@ describe('IssueDetailsEventNavigation', () => {
     });
   });
 
-  it('shows the custom tab when navigating from a preset to a specific event', async () => {
+  it('clears the selected preset when navigating to a specific event', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/group-id/events/next-event-id/',
       body: EventFixture(),
@@ -130,10 +130,12 @@ describe('IssueDetailsEventNavigation', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Next Event'}));
 
-    expect(await screen.findByRole('tab', {name: 'Custom'})).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
+    await waitFor(() => {
+      screen
+        .getAllByRole('tab')
+        .forEach(tab => expect(tab).toHaveAttribute('aria-selected', 'false'));
+    });
+    expect(screen.queryByRole('tab', {name: 'Custom'})).not.toBeInTheDocument();
   });
 
   it('can navigate next/previous events', async () => {

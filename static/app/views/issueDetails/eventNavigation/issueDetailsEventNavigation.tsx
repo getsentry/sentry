@@ -30,7 +30,6 @@ const EventNavOrder = [
   EventNavOptions.OLDEST,
   EventNavOptions.LATEST,
   EventNavOptions.RECOMMENDED,
-  EventNavOptions.CUSTOM,
 ];
 
 interface IssueDetailsEventNavigationProps {
@@ -181,10 +180,6 @@ export function IssueDetailsEventNavigation({
               <TabList.Item
                 to={eventPath}
                 key={label}
-                hidden={
-                  label === EventNavOptions.CUSTOM &&
-                  selectedOption !== EventNavOptions.CUSTOM
-                }
                 textValue={EventNavLabels[label as keyof typeof EventNavLabels]}
               >
                 <Tooltip
