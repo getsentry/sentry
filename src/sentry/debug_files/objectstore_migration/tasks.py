@@ -56,11 +56,12 @@ def migrate_shard(
 
     Args:
         shard_id: Partition index in ``0..num_shards-1``.
-        num_shards: Number of partitions (``id % num_shards``).
+        num_shards: Number of partitions; a DIF with ID ``id`` is assigned to
+            shard ``id % num_shards``.
         cursor: Inclusive upper bound on ``ProjectDebugFile.id``.
     """
 
-    def log_extra(**extra: int) -> dict[str, int]:
+    def log_extra(**extra: int | None) -> dict[str, int | None]:
         return {
             "shard_id": shard_id,
             "num_shards": num_shards,
@@ -84,6 +85,7 @@ def migrate_shard(
         )
         return
 
+    debug_file: ProjectDebugFile | None = None
     try:
         to_migrate = list(
             ProjectDebugFile.objects.filter(
@@ -120,7 +122,7 @@ def migrate_shard(
     except Exception:
         logger.exception(
             "debug_files.objectstore_migration.shard_failed",
-            extra=log_extra(),
+            extra=log_extra(failed_debug_file_id=debug_file.id if debug_file is not None else None),
         )
         raise
 

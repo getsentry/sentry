@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 
 def migrate_debug_file(debug_file_id: int) -> None:
-    """Migrate one File-backed debug file over to Objectstore, or skip it if already migrated."""
+    """Migrate one File-backed DIF, or drop the legacy File from a dual-written DIF."""
 
     def attempt() -> None:
         try:
@@ -38,6 +38,10 @@ def migrate_debug_file(debug_file_id: int) -> None:
 
         source_file_id = debug_file.file_id
         if source_file_id is None:
+            return
+
+        if debug_file.storage_path is not None:
+            drop_legacy_file(debug_file_id, source_file_id=source_file_id)
             return
 
         metadata = upload_and_verify(debug_file)
@@ -101,6 +105,16 @@ def _spool_to_tempfile(file: File) -> tuple[IO[bytes], str, int]:
     return tmp, digest.hexdigest(), size
 
 
+def _spool_to_tempfile_with_retry(file: File) -> tuple[IO[bytes], str, int]:
+    """Retry transient legacy-filestore reads without re-uploading the DIF."""
+    base_delay = exponential_delay(2)
+    policy = ConditionalRetryPolicy(
+        test_function=lambda attempt_number, _: attempt_number <= 3,
+        delay_function=lambda n: random.uniform(base_delay(n), base_delay(n) * 2),
+    )
+    return policy(lambda: _spool_to_tempfile(file))
+
+
 def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | None:
     """Read the File, write it to Objectstore, and verify the stored object.
 
@@ -138,7 +152,7 @@ def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | N
             extra={"debug_file_id": debug_file.id, "file_id": file.id},
         )
 
-    tmp, local_checksum, local_size = _spool_to_tempfile(file)
+    tmp, local_checksum, local_size = _spool_to_tempfile_with_retry(file)
     try:
         expected_checksum = recorded_checksum or local_checksum
         expected_size = recorded_size if recorded_size is not None else local_size
@@ -149,7 +163,12 @@ def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | N
                 f"size={local_size} expected={expected_size})"
             )
         storage_path = _upload_dif_to_objectstore(
-            session, tmp, content_type, expected_size, filename
+            session,
+            tmp,
+            content_type,
+            expected_size,
+            filename,
+            key=f"legacy.{debug_file.id}",
         )
     finally:
         tmp.close()
@@ -159,6 +178,13 @@ def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | N
         raise MigrationIntegrityError("Object not found in Objectstore")
     remote_checksum, remote_size = _sha1_stream(response.payload)
     if remote_checksum != expected_checksum or remote_size != expected_size:
+        try:
+            session.delete(storage_path)
+        except Exception:
+            logger.exception(
+                "debug_files.objectstore_migration.unverified_object_delete_failed",
+                extra={"debug_file_id": debug_file.id, "storage_path": storage_path},
+            )
         raise MigrationIntegrityError(
             f"Objectstore payload does not match File "
             f"(checksum={remote_checksum!r} expected={expected_checksum!r}, "
@@ -186,30 +212,31 @@ def commit(
     """
     database = router.db_for_write(ProjectDebugFile)
     with atomic_transaction(using=database):
-        try:
-            dif = ProjectDebugFile.objects.select_for_update().get(id=dif_id)
-        except ProjectDebugFile.DoesNotExist:
-            return
-
-        if dif.file_id is None or dif.file_id != source_file_id:
-            return
-
-        dif.storage_path = metadata.storage_path
-        dif.content_type = metadata.content_type
-        dif.file_size = metadata.file_size
-        dif.date_created = metadata.date_created
-        dif.checksum = metadata.checksum
-        dif.file = None
-        dif.save(
-            update_fields=[
-                "storage_path",
-                "content_type",
-                "file_size",
-                "date_created",
-                "checksum",
-                "file",
-            ]
+        updated = ProjectDebugFile.objects.filter(id=dif_id, file_id=source_file_id).update(
+            storage_path=metadata.storage_path,
+            content_type=metadata.content_type,
+            file_size=metadata.file_size,
+            date_created=metadata.date_created,
+            checksum=metadata.checksum,
+            file_id=None,
         )
+        if not updated:
+            return
+
+        transaction.on_commit(lambda: try_cleanup_file(source_file_id), using=database)
+
+
+def drop_legacy_file(dif_id: int, *, source_file_id: int) -> None:
+    """Clear the legacy File from a DIF that is already Objectstore-backed."""
+    database = router.db_for_write(ProjectDebugFile)
+    with atomic_transaction(using=database):
+        updated = ProjectDebugFile.objects.filter(
+            id=dif_id,
+            file_id=source_file_id,
+            storage_path__isnull=False,
+        ).update(file_id=None)
+        if not updated:
+            return
 
         transaction.on_commit(lambda: try_cleanup_file(source_file_id), using=database)
 
