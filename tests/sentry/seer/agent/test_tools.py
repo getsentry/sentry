@@ -919,11 +919,11 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
         assert result.trace_id == trace_id
         assert result.org_id == self.organization.id
 
-    def test_get_trace_waterfall_sliding_window_old_trace(self) -> None:
-        """Test that sliding window finds traces near the 90-day limit"""
+    def test_get_trace_waterfall_sliding_window_last_full_fidelity_window(self) -> None:
+        """Sliding window finds traces near the end of the full-fidelity range."""
         transaction_name = "api/users/profile"
         trace_id = uuid.uuid4().hex
-        eighty_days_ago = before_now(days=80)
+        twenty_seven_days_ago = before_now(days=27)
 
         spans: list[dict] = []
         for i in range(3):
@@ -935,7 +935,7 @@ class TestGetTraceWaterfall(APITransactionTestCase, SpanTestCase, SnubaTestCase)
                     "parent_span_id": None if i == 0 else spans[0]["span_id"],
                     "is_segment": i == 0,
                 },
-                start_ts=eighty_days_ago + timedelta(minutes=i),
+                start_ts=twenty_seven_days_ago + timedelta(minutes=i),
             )
             spans.append(span)
 
