@@ -26,17 +26,26 @@ export function useLogEventReplayStatus({readerResult}: Props) {
     isNotFoundError(fetchError) || Boolean(attachmentError?.some(isNotFoundError));
 
   const hasLoggedRef = useRef(false);
+  const loggedIs404Ref = useRef(false);
 
   useEffect(() => {
-    if (hasError && !hasLoggedRef.current) {
+    if (!hasError) {
+      hasLoggedRef.current = false;
+      loggedIs404Ref.current = false;
+      return;
+    }
+
+    const shouldRefireForLate404 =
+      hasLoggedRef.current && is404 && !loggedIs404Ref.current;
+
+    if (!hasLoggedRef.current || shouldRefireForLate404) {
       hasLoggedRef.current = true;
+      loggedIs404Ref.current = is404;
       trackAnalytics('replay.render-missing-replay-alert', {
         organization,
         surface: 'issue details - clip preview',
         is_404: is404,
       });
-    } else if (!hasError) {
-      hasLoggedRef.current = false;
     }
   }, [organization, hasError, is404]);
 }
