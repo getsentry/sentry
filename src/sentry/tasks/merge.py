@@ -296,7 +296,7 @@ def merge_groups(
             new_group.project.organization,
         ):
             # hard delete derived data on the new group - it will be rebuilt when the next action is processed
-            invalidate_group_derived_data(new_group.id)
+            invalidate_group_derived_data(new_group.id, soft=False)
 
         if eventstream_state:
             # All `from_object_ids` have been merged!
