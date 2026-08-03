@@ -98,8 +98,9 @@ export function CategoricalSeriesWidgetVisualization(
 
   // Extract all unique categories from all plottables and convert to display strings
   // for ECharts compatibility (xAxis.data expects string[])
-  const allCategories = uniq(
-    props.plottables.flatMap(plottable => plottable.categories.map(formatXAxisValue))
+  const allCategories = useMemo(
+    () => uniq(props.plottables.flatMap(plottable => plottable.categories.map(formatXAxisValue))),
+    [props.plottables]
   );
 
   // Configure the Y axis (value axis)
@@ -126,7 +127,6 @@ export function CategoricalSeriesWidgetVisualization(
   // possible to improve this by coordinating rotation and truncation together.
   const shouldRotate = allCategories.length > ROTATION_CATEGORY_THRESHOLD;
 
-  const allCategoriesKey = allCategories.join(',');
   const formattedLabels = useMemo(() => {
     const totalCharacters = allCategories.reduce((sum, c) => sum + c.length, 0);
     const shouldTrimAffixes = totalCharacters > TOTAL_CHARACTER_THRESHOLD;
@@ -161,7 +161,7 @@ export function CategoricalSeriesWidgetVisualization(
         truncationFormatter(trimmed[i]!, truncateLength, false),
       ])
     );
-  }, [allCategoriesKey, props.truncateCategoryLabels]);
+  }, [allCategories, props.truncateCategoryLabels]);
 
   // Configure the X axis (category axis)
   const xAxis: BaseChartProps['xAxis'] = {
