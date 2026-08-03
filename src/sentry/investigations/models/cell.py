@@ -25,7 +25,7 @@ class InvestigationCell(RegenerateInvestigationUUIDsOnRelocationMixin, DefaultFi
     """A user-composed cell whose content may be produced by a Seer execution."""
 
     __relocation_scope__ = RelocationScope.Organization
-    __relocation_ignored_foreign_keys__ = {"current_execution"}
+    __relocation_ignored_foreign_keys__ = {"content_execution", "current_execution"}
 
     uuid = models.UUIDField(default=uuid4, editable=False, unique=True)
     investigation = FlexibleForeignKey(
@@ -62,6 +62,15 @@ class InvestigationCell(RegenerateInvestigationUUIDsOnRelocationMixin, DefaultFi
         on_delete=models.SET_NULL,
         related_name="+",
     )
+    # The successful execution that produced the currently rendered text body.
+    # This remains stable while a newer generation is pending or fails so the
+    # existing Markdown keeps its original permission provenance.
+    content_execution = FlexibleForeignKey(
+        "investigations.InvestigationCellExecution",
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+    )
     # Set when an input changes so the UI can distinguish a valid old output
     # from a current one before a replacement execution finishes.
     stale_at = models.DateTimeField(null=True)
@@ -87,6 +96,7 @@ class InvestigationCell(RegenerateInvestigationUUIDsOnRelocationMixin, DefaultFi
             # be remapped in the import's first pass; clearing it is safer than retaining a
             # dangling source-database primary key. Execution history is still relocated.
             self.current_execution_id = None
+            self.content_execution_id = None
         return old_pk
 
 

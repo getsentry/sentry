@@ -19,7 +19,7 @@ hybridcloud: 0032_delete_externalactorreplica
 
 insights: 0001_squashed_0002_backfill_team_starred
 
-investigations: 0003_add_investigation_favorites
+investigations: 0004_add_text_generation_executor
 
 monitors: 0001_squashed_0013_delete_monitor_is_muted_field
 

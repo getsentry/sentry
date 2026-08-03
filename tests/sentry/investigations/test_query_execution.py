@@ -5,12 +5,16 @@ from uuid import uuid4
 
 from django.urls import reverse
 
-from sentry.investigations.delivery import deliver_investigation_query_result
+from sentry.investigations.delivery import (
+    deliver_investigation_query_result,
+    deliver_investigation_text_result,
+)
 from sentry.investigations.models import (
     InvestigationCellExecution,
     InvestigationCellExecutionStatus,
     InvestigationProject,
 )
+from sentry.investigations.serializers.investigation import serialize_cell
 from sentry.seer.models.run import SeerRunType
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -198,6 +202,43 @@ class InvestigationQueryExecutionEndpointTest(APITestCase):
         payload = mock_client.return_value.start_feature_run.call_args.kwargs["payload"]
         assert payload["dataset_hint"] == "metrics"
 
+    @patch("sentry.investigations.endpoints.organization_investigations.SeerAgentClient")
+    def test_sends_actual_upstream_cell_content_as_query_context(self, mock_client) -> None:
+        context_cell = self.create_investigation_cell(
+            investigation=self.investigation,
+            kind="text",
+            title="Investigation goal",
+            content="Focus on the checkout regression.",
+        )
+        self.create_investigation_cell_dependency(cell=self.cell, depends_on=context_cell)
+        run = self.create_seer_run(organization=self.organization, type=SeerRunType.FEATURE_RUN)
+
+        def start_feature_run(**kwargs):
+            kwargs["on_run_created"](run)
+            return run
+
+        mock_client.return_value.start_feature_run.side_effect = start_feature_run
+        response = self.client.post(
+            self.url,
+            data={
+                "investigationVersion": self.investigation.version,
+                "version": self.cell.version,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 202, response.data
+        payload = mock_client.return_value.start_feature_run.call_args.kwargs["payload"]
+        assert payload["context"] == [
+            {
+                "cell_id": str(context_cell.uuid),
+                "kind": "text",
+                "title": "Investigation goal",
+                "prompt": "",
+                "content": "Focus on the checkout regression.",
+            }
+        ]
+
     def test_query_execution_subflag_is_required(self) -> None:
         with self.feature({"organizations:investigations-query-execution": False}):
             response = self.client.post(
@@ -329,3 +370,146 @@ class InvestigationQueryDeliveryTest(TestCase):
         self.execution.refresh_from_db()
         assert self.execution.status == InvestigationCellExecutionStatus.COMPLETED
         assert self.cell.current_execution == newer
+
+
+@with_feature(FEATURES)
+class InvestigationTextExecutionEndpointTest(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+        self.investigation = self.create_investigation(
+            organization=self.organization,
+            created_by=self.user,
+            title="Text generation",
+        )
+        self.create_investigation_permissions(investigation=self.investigation)
+        InvestigationProject.objects.create(investigation=self.investigation, project=self.project)
+        self.context_cell = self.create_investigation_cell(
+            investigation=self.investigation,
+            kind="query",
+            title="Error trend",
+            prompt="Show errors over time",
+        )
+        context_execution = self.create_investigation_cell_execution(
+            cell=self.context_cell,
+            executor="code_mode",
+            status=InvestigationCellExecutionStatus.COMPLETED,
+            cell_version=self.context_cell.version,
+            input_snapshot={"projectIds": [self.project.id]},
+            input_fingerprint="c" * 64,
+            result=query_result(self.project.id),
+        )
+        context_execution.data_projects.add(self.project)
+        self.context_cell.current_execution = context_execution
+        self.context_cell.save(update_fields=["current_execution"])
+        self.cell = self.create_investigation_cell(
+            investigation=self.investigation,
+            kind="text",
+            title="Summary",
+            prompt="Explain the most important change.",
+        )
+        self.create_investigation_cell_dependency(cell=self.cell, depends_on=self.context_cell)
+        self.url = reverse(
+            "sentry-api-0-organization-investigation-cell-execute",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_uuid": self.investigation.uuid,
+                "cell_uuid": self.cell.uuid,
+            },
+        )
+
+    @patch("sentry.investigations.endpoints.organization_investigations.SeerAgentClient")
+    def test_starts_text_generation_with_typed_context(self, mock_client) -> None:
+        run = self.create_seer_run(organization=self.organization, type=SeerRunType.FEATURE_RUN)
+
+        def start_feature_run(**kwargs):
+            kwargs["on_run_created"](run)
+            return run
+
+        mock_client.return_value.start_feature_run.side_effect = start_feature_run
+        response = self.client.post(
+            self.url,
+            data={
+                "investigationVersion": self.investigation.version,
+                "version": self.cell.version,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 202, response.data
+        execution = InvestigationCellExecution.objects.get(uuid=response.data["id"])
+        assert execution.executor == "text_generation"
+        call = mock_client.return_value.start_feature_run.call_args.kwargs
+        assert call["feature_id"] == "investigation_text_cell"
+        assert call["payload"]["context_data_project_ids"] == [self.project.id]
+        context = call["payload"]["context"][0]
+        assert context["result"]["query"]["query"] == "is:unresolved"
+        assert context["result"]["table"]["rows"] == [[12]]
+
+
+class InvestigationTextDeliveryTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.investigation = self.create_investigation(
+            organization=self.organization, created_by=self.user, title="Text delivery"
+        )
+        self.cell = self.create_investigation_cell(
+            investigation=self.investigation,
+            kind="text",
+            prompt="Summarize the result",
+        )
+        self.dependent = self.create_investigation_cell(
+            investigation=self.investigation,
+            kind="query",
+            prompt="Break down the summary",
+        )
+        self.create_investigation_cell_dependency(cell=self.dependent, depends_on=self.cell)
+        self.run = self.create_seer_run(
+            organization=self.organization, type=SeerRunType.FEATURE_RUN
+        )
+        self.execution = self.create_investigation_cell_execution(
+            cell=self.cell,
+            seer_run=self.run,
+            executor="text_generation",
+            status=InvestigationCellExecutionStatus.RUNNING,
+            cell_version=self.cell.version,
+            input_snapshot={
+                "projectIds": [self.project.id],
+                "contextDataProjectIds": [self.project.id],
+            },
+            input_fingerprint="d" * 64,
+        )
+        self.cell.current_execution = self.execution
+        self.cell.save(update_fields=["current_execution"])
+
+    def test_delivery_populates_markdown_and_marks_dependents_stale(self) -> None:
+        original_investigation_version = self.investigation.version
+        deliver_investigation_text_result(
+            self.organization.id,
+            self.run.uuid,
+            "completed",
+            {
+                "schemaVersion": 1,
+                "markdown": "## Finding\n\nErrors increased after release 1.2.3.",
+                "dataProjectIds": [self.project.id],
+            },
+            None,
+        )
+
+        self.execution.refresh_from_db()
+        self.cell.refresh_from_db()
+        self.dependent.refresh_from_db()
+        self.investigation.refresh_from_db()
+        assert self.execution.status == InvestigationCellExecutionStatus.COMPLETED
+        assert self.cell.content == "## Finding\n\nErrors increased after release 1.2.3."
+        assert self.cell.generated_content == self.cell.content
+        assert self.cell.content_execution == self.execution
+        assert self.cell.version == self.execution.cell_version + 1
+        assert self.investigation.version == original_investigation_version + 1
+        assert self.dependent.stale_at is not None
+        assert list(self.execution.data_projects.all()) == [self.project]
+
+        restricted = serialize_cell(self.cell, user_id=self.user.id, accessible_project_ids=set())
+        assert restricted["outputStatus"] == "restricted"
+        assert restricted["content"] == ""
+        assert restricted["generatedContent"] == ""

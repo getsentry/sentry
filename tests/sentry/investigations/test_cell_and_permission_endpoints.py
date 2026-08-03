@@ -180,6 +180,24 @@ class InvestigationCellEndpointTest(APITestCase):
         )
         assert response.status_code == 201, response.data
 
+    def test_text_display_accepts_persisted_prompt_collapse(self) -> None:
+        response = self.client.post(
+            self.cells_url(),
+            data={
+                "investigationVersion": self.investigation.version,
+                "kind": "text",
+                "generationPrompt": "Summarize the context",
+                "display": {
+                    "version": 1,
+                    "type": "markdown",
+                    "promptCollapsed": True,
+                },
+            },
+            format="json",
+        )
+        assert response.status_code == 201, response.data
+        assert response.data["display"]["promptCollapsed"] is True
+
     def test_drag_reorder_requires_exact_permutation(self) -> None:
         cells = [
             self.create_investigation_cell(

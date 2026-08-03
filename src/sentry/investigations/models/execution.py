@@ -19,6 +19,7 @@ class InvestigationCellExecutor(models.TextChoices):
     DETERMINISTIC = "deterministic", "Deterministic"
     ASSISTED_QUERY = "assisted_query", "Assisted query"
     CODE_MODE = "code_mode", "Code mode"
+    TEXT_GENERATION = "text_generation", "Text generation"
 
 
 class InvestigationCellExecutionStatus(models.TextChoices):

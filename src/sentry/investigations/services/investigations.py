@@ -415,15 +415,43 @@ def update_cell(
         if locked.version != expected_cell_version:
             raise InvestigationConflictError("Cell has changed.")
         stale_fields = {"content", "prompt", "config"}
-        if stale_fields.intersection(values):
+        inputs_changed = bool(stale_fields.intersection(values))
+        if inputs_changed:
             locked.stale_at = timezone.now()
         for field, value in values.items():
             setattr(locked, field, value)
         locked.last_edited_by_id = user_id
         locked.version += 1
         locked.save()
+        if inputs_changed:
+            mark_downstream_cells_stale(
+                investigation_id=investigation.id, upstream_cell_ids={locked.id}
+            )
         bump_investigation_version(investigation)
     return locked
+
+
+def mark_downstream_cells_stale(*, investigation_id: int, upstream_cell_ids: set[int]) -> set[int]:
+    dependent_edges = InvestigationCellDependency.objects.filter(
+        cell__investigation_id=investigation_id,
+        cell__deleted_at__isnull=True,
+        depends_on__deleted_at__isnull=True,
+    ).values_list("depends_on_id", "cell_id")
+    dependents: dict[int, list[int]] = defaultdict(list)
+    for upstream_id, dependent_id in dependent_edges:
+        dependents[upstream_id].append(dependent_id)
+
+    stale_ids: set[int] = set()
+    queue = deque(upstream_cell_ids)
+    while queue:
+        upstream_id = queue.popleft()
+        for dependent_id in dependents[upstream_id]:
+            if dependent_id not in stale_ids and dependent_id not in upstream_cell_ids:
+                stale_ids.add(dependent_id)
+                queue.append(dependent_id)
+    if stale_ids:
+        InvestigationCell.objects.filter(id__in=stale_ids).update(stale_at=timezone.now())
+    return stale_ids
 
 
 def delete_cell(

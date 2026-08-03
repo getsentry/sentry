@@ -66,7 +66,14 @@ class StrictCamelSnakeSerializer(serializers.Serializer[None]):
 def validate_display(kind: str, display: dict[str, Any]) -> dict[str, Any]:
     display_type = display.get("type")
     if kind == InvestigationCellKind.TEXT:
-        if set(display) != {"type"} or display_type != "markdown":
+        if set(display) == {"type"} and display_type == "markdown":
+            return display
+        if (
+            display_type != "markdown"
+            or display.get("version") != 1
+            or set(display) - {"version", "type", "promptCollapsed"}
+            or ("promptCollapsed" in display and not isinstance(display["promptCollapsed"], bool))
+        ):
             raise serializers.ValidationError("Text cells must use the markdown display.")
         return display
 
@@ -368,6 +375,14 @@ def serialize_cell(
         comment_count = cell.comments.filter(deleted_at__isnull=True).count()
 
     execution = cell.current_execution
+    content_execution = cell.content_execution
+    content_restricted = bool(
+        cell.kind == InvestigationCellKind.TEXT
+        and content_execution is not None
+        and not {project.id for project in content_execution.data_projects.all()}.issubset(
+            accessible_project_ids
+        )
+    )
     if execution is None:
         output = None
         output_status = "notRun"
@@ -385,15 +400,24 @@ def serialize_cell(
         else:
             output = None
             output_status = execution.status
+    if content_restricted:
+        output = None
+        output_status = "restricted"
+
+    content = cell.content
+    generated_content = cell.generated_content
+    if cell.kind == InvestigationCellKind.TEXT and output_status == "restricted":
+        content = ""
+        generated_content = ""
 
     return {
         "id": str(cell.uuid),
         "position": cell.position,
         "kind": cell.kind,
         "title": cell.title,
-        "content": cell.content,
+        "content": content,
         "generationPrompt": cell.prompt,
-        "generatedContent": cell.generated_content,
+        "generatedContent": generated_content,
         "output": output,
         "outputStatus": output_status,
         "currentExecution": (
@@ -492,7 +516,7 @@ def serialize_investigation_detail(
     permissions, _ = InvestigationPermissions.objects.get_or_create(investigation=investigation)
     cells = (
         InvestigationCell.objects.filter(investigation=investigation, deleted_at__isnull=True)
-        .select_related("current_execution")
+        .select_related("content_execution", "current_execution")
         .annotate(
             active_comment_count=Count(
                 "comments", filter=Q(comments__deleted_at__isnull=True), distinct=True
@@ -519,6 +543,7 @@ def serialize_investigation_detail(
                 to_attr="serialized_reactions",
             ),
             "current_execution__data_projects",
+            "content_execution__data_projects",
         )
         .order_by("position", "id")
     )

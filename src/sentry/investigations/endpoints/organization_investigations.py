@@ -21,6 +21,7 @@ from sentry.investigations.models import (
     InvestigationCell,
     InvestigationCellComment,
     InvestigationCellExecution,
+    InvestigationCellKind,
     InvestigationFavoriteUser,
     InvestigationReaction,
     InvestigationStatus,
@@ -56,15 +57,15 @@ from sentry.investigations.services import (
     InvestigationValidationError,
     archive_investigation,
     create_cell,
+    create_cell_execution,
     create_comment,
     create_manual_investigation,
-    create_query_execution,
     create_template_investigation,
     delete_cell,
     delete_comment,
     duplicate_investigation,
-    mark_query_execution_dispatch_failed,
-    mark_query_execution_dispatched,
+    mark_cell_execution_dispatch_failed,
+    mark_cell_execution_dispatched,
     reorder_cells,
     set_cell_reaction,
     set_comment_reaction,
@@ -587,8 +588,10 @@ class OrganizationInvestigationCellExecuteEndpoint(OrganizationInvestigationCell
                     status=status.HTTP_403_FORBIDDEN,
                 )
             project_ids = sorted(selected_project_ids)
-        else:
+        elif cell.kind == InvestigationCellKind.QUERY:
             project_ids = sorted(accessible_project_ids)
+        else:
+            project_ids = []
         projects = list(
             Project.objects.filter(
                 organization=organization,
@@ -600,13 +603,14 @@ class OrganizationInvestigationCellExecuteEndpoint(OrganizationInvestigationCell
         # we create durable state that could never be dispatched.
         client = SeerAgentClient(organization, request.user)
         try:
-            execution, created = create_query_execution(
+            execution, created = create_cell_execution(
                 cell=cell,
                 expected_investigation_version=serializer.validated_data["investigation_version"],
                 expected_cell_version=serializer.validated_data["version"],
                 user_id=user_id,
                 project_ids=[project.id for project in projects],
                 project_slugs=[project.slug for project in projects],
+                accessible_project_ids=accessible_project_ids,
                 request_id=serializer.validated_data.get("request_id"),
             )
         except Exception as execution_error:
@@ -624,6 +628,9 @@ class OrganizationInvestigationCellExecuteEndpoint(OrganizationInvestigationCell
             payload = {
                 "organization_slug": organization.slug,
                 "prompt": snapshot["prompt"],
+                "parameters": snapshot["parameters"],
+                "context": snapshot["context"],
+                "context_data_project_ids": snapshot["contextDataProjectIds"],
                 "project_ids": snapshot["projectIds"],
                 "project_slugs": snapshot["projectSlugs"],
                 "timezone": "UTC",
@@ -638,11 +645,21 @@ class OrganizationInvestigationCellExecuteEndpoint(OrganizationInvestigationCell
                 "execution_id": str(execution.uuid),
                 "input_fingerprint": execution.input_fingerprint,
             }
-            if "datasetHint" in snapshot:
+            if cell.kind == InvestigationCellKind.QUERY and "datasetHint" in snapshot:
                 payload["dataset_hint"] = snapshot["datasetHint"]
+            feature_id = (
+                "investigation_query_cell"
+                if cell.kind == InvestigationCellKind.QUERY
+                else "investigation_text_cell"
+            )
+            metric_namespace = (
+                "investigations.query_execution"
+                if cell.kind == InvestigationCellKind.QUERY
+                else "investigations.text_execution"
+            )
             try:
                 client.start_feature_run(
-                    feature_id="investigation_query_cell",
+                    feature_id=feature_id,
                     payload=payload,
                     title=cell.title or snapshot["prompt"],
                     flush=True,
@@ -651,17 +668,17 @@ class OrganizationInvestigationCellExecuteEndpoint(OrganizationInvestigationCell
                         "cell_id": str(cell.uuid),
                         "execution_id": str(execution.uuid),
                     },
-                    on_run_created=lambda run: mark_query_execution_dispatched(
+                    on_run_created=lambda run: mark_cell_execution_dispatched(
                         execution, seer_run_id=run.id
                     ),
                 )
                 metrics.incr(
-                    "investigations.query_execution.started",
+                    f"{metric_namespace}.started",
                     tags={"executor": execution.executor},
                 )
             except Exception as dispatch_error:
-                mark_query_execution_dispatch_failed(execution, error=str(dispatch_error))
-                metrics.incr("investigations.query_execution.dispatch_failed")
+                mark_cell_execution_dispatch_failed(execution, error=str(dispatch_error))
+                metrics.incr(f"{metric_namespace}.dispatch_failed")
                 raise
 
         execution = InvestigationCellExecution.objects.get(id=execution.id)

@@ -10,6 +10,7 @@ MAX_TABLE_ROWS = 100
 MAX_CHART_SERIES = 5
 MAX_POINTS_PER_SERIES = 200
 MAX_ARTIFACT_BYTES = 1024 * 1024
+MAX_MARKDOWN_CHARS = 100_000
 
 
 class StrictContractSerializer(serializers.Serializer[Any]):
@@ -179,9 +180,25 @@ class InvestigationQueryResultSerializer(StrictContractSerializer):
         return attrs
 
 
+class InvestigationTextResultSerializer(StrictContractSerializer):
+    schemaVersion = serializers.IntegerField(min_value=1, max_value=1)
+    markdown = serializers.CharField(max_length=MAX_MARKDOWN_CHARS, trim_whitespace=False)
+    dataProjectIds = serializers.ListField(
+        child=serializers.IntegerField(min_value=1), required=False, default=list
+    )
+
+
 def validate_query_result(value: Any) -> dict[str, Any]:
     if len(json.dumps(value).encode()) > MAX_ARTIFACT_BYTES:
         raise serializers.ValidationError("Query result exceeds the maximum artifact size.")
     serializer = InvestigationQueryResultSerializer(data=value)
+    serializer.is_valid(raise_exception=True)
+    return dict(serializer.validated_data)
+
+
+def validate_text_result(value: Any) -> dict[str, Any]:
+    if len(json.dumps(value).encode()) > MAX_ARTIFACT_BYTES:
+        raise serializers.ValidationError("Text result exceeds the maximum artifact size.")
+    serializer = InvestigationTextResultSerializer(data=value)
     serializer.is_valid(raise_exception=True)
     return dict(serializer.validated_data)
