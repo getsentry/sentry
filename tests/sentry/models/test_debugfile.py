@@ -17,10 +17,10 @@ from django.utils import timezone
 from sentry.models.debugfile import (
     DifMeta,
     ProjectDebugFile,
-    create_dif_from_file,
     create_dif_from_fileobj,
     create_dif_from_id,
     detect_dif_from_path,
+    detect_single_dif_from_path,
     get_debug_id_from_dif_request,
 )
 from sentry.models.files.file import File
@@ -356,7 +356,7 @@ class CreateDebugFileTest(APITestCase):
         file.putfile(ContentFile(content))
         return file
 
-    def test_create_dif_from_file(self) -> None:
+    def test_create_dif_from_id(self) -> None:
         file = self.create_stored_file(b"debug symbols")
         dif, created = self.create_dif(file)
 
@@ -367,7 +367,7 @@ class CreateDebugFileTest(APITestCase):
         assert ProjectDebugFile.objects.filter(id=dif.id).exists()
 
     @requires_objectstore
-    def test_objectstore_backed_create_dif_from_file(self) -> None:
+    def test_objectstore_backed_create_dif_from_id(self) -> None:
         with open(self.file_path, "rb") as f:
             content = f.read()
 
@@ -377,7 +377,9 @@ class CreateDebugFileTest(APITestCase):
         file.putfile(ContentFile(content))
 
         with self.feature("organizations:objectstore-debugfiles-write"):
-            dif, created = create_dif_from_file(self.project, file, self.file_path)
+            dif, created = create_dif_from_id(
+                self.project, detect_single_dif_from_path(self.file_path), file
+            )
 
         assert created
         assert dif.file_id is not None

@@ -436,18 +436,6 @@ def detect_single_dif_from_path(
     return result[0]
 
 
-def create_dif_from_file(
-    project: Project,
-    file: File,
-    path: str,
-    name: str | None = None,
-    debug_id: str | None = None,
-) -> tuple[ProjectDebugFile, bool]:
-    """Validates an existing DIF file and ensures its ProjectDebugFile exists."""
-    meta = detect_single_dif_from_path(path, name=name, debug_id=debug_id)
-    return create_dif_from_id(project, meta, file)
-
-
 def upload_dif_to_objectstore(
     session: Session,
     fileobj: IO[bytes],
