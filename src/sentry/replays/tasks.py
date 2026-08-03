@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from typing import Any
 
+from django.utils import timezone
 from google.cloud.exceptions import NotFound
 from taskbroker_client.constants import CompressionType
 from taskbroker_client.retry import Retry
+from taskbroker_client.state import current_task
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
+from sentry import options
 from sentry.replays.consumers.recording import commit_message, process_message
 from sentry.replays.lib.kafka import PROCESS_REPLAY_RECORDING_TASK_NAME, publish_replay_event
 from sentry.replays.lib.storage import (
@@ -197,12 +202,17 @@ def _delete_if_exists(filename: str) -> None:
     # any activations that were enqueued before this deploy (with
     # namespace="replays") continue to resolve and execute.
     alias_namespace=replays_tasks,
-    retry=Retry(times=5),
+    retry=Retry(times=5, on=(ProcessingDeadlineExceeded,)),
     processing_deadline_duration=600,
     silo_mode=SiloMode.CELL,
 )
 def run_bulk_replay_delete_job(
-    replay_delete_job_id: int, offset: int, limit: int = 100, has_seer_data: bool = False
+    replay_delete_job_id: int,
+    offset: int,
+    limit: int = 100,
+    has_seer_data: bool = False,
+    total_deleted: int = 0,
+    window_offset_days: int = 0,
 ) -> None:
     """Replay bulk deletion task.
 
@@ -211,24 +221,30 @@ def run_bulk_replay_delete_job(
     in the model. Restarting the task will use the offset passed by the caller. If you want to
     restart the task from the previous checkpoint you must pass the checkpoint explicitly.
     """
+    chunk_size_days = options.get("replay.bulk_delete_job.chunk_size_days") or 7
     job = ReplayDeletionJobModel.objects.get(id=replay_delete_job_id)
 
     # If this is the first run of the task we set the model to in-progress.
     if job.status == DeletionJobStatus.PENDING:
+        _transition_status(job.id, DeletionJobStatus.PENDING, DeletionJobStatus.IN_PROGRESS)
         job.status = DeletionJobStatus.IN_PROGRESS
-        job.save()
 
     # Exit if the job status is failed or completed.
     if job.status != DeletionJobStatus.IN_PROGRESS:
         return None
+
+    # Derive the current window boundaries from the immutable job range and the cursor.
+    # Chunking into 7-day windows avoids full table scans in ClickHouse.
+    window_start = job.range_start + timedelta(days=window_offset_days)
+    window_end = min(window_start + timedelta(days=chunk_size_days), job.range_end)
 
     try:
         # Delete the replays within a limited range. If more replays exist an incremented offset value
         # is returned.
         results = fetch_rows_matching_pattern(
             project_id=job.project_id,
-            start=job.range_start,
-            end=job.range_end,
+            start=window_start,
+            end=window_end,
             query=job.query,
             environment=job.environments,
             limit=limit,
@@ -244,29 +260,70 @@ def run_bulk_replay_delete_job(
                     job.project_id,
                     [row["replay_id"] for row in results["rows"]],
                 )
+    except ProcessingDeadlineExceeded:
+        # A BaseException, so it escapes the handler below. Once retries run out the broker
+        # discards the activation, which leaves the job reporting "in-progress" forever with
+        # nothing left to advance it.
+        task = current_task()
+        if task is not None and not task.retries_remaining:
+            logger.warning("Bulk delete replays exhausted its processing deadline retries.")
+            _transition_status(job.id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.FAILED)
+        raise
     except Exception:
         logger.exception("Bulk delete replays failed.")
 
-        job.status = DeletionJobStatus.FAILED
-        job.save()
+        _transition_status(job.id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.FAILED)
         raise
 
-    # Compute the next offset to start from. If no further processing is required then this serves
-    # as a count of replays deleted.
-    next_offset = offset + len(results["rows"])
+    # `next_offset` is the SQL pagination cursor for the current window.
+    # `new_total` is the running count of all replays deleted across all windows.
+    num_rows_deleted = len(results["rows"])
+    next_offset = offset + num_rows_deleted
+    new_total = total_deleted + num_rows_deleted
 
     if results["has_more"]:
-        # Checkpoint before continuing.
-        job.offset = next_offset
-        job.save()
+        # Checkpoint before continuing within the same window.
+        _advance_offset(job.id, new_total)
         run_bulk_replay_delete_job.delay(
-            job.id, next_offset, limit=limit, has_seer_data=has_seer_data
+            job.id,
+            next_offset,
+            limit=limit,
+            has_seer_data=has_seer_data,
+            total_deleted=new_total,
+            window_offset_days=window_offset_days,
         )
         return None
-    else:
-        # If we've finished deleting all the replays for the selection. We can move the status to
-        # completed and exit the call chain.
-        job.offset = next_offset
-        job.status = DeletionJobStatus.COMPLETED
-        job.save()
+
+    # Current window exhausted. Check if more time windows remain.
+    if window_end < job.range_end:
+        # Advance to the next 7-day window by incrementing the cursor in the task args.
+        # job.range_start is never mutated so the API always returns the original range.
+        _advance_offset(job.id, new_total)
+        run_bulk_replay_delete_job.delay(
+            job.id,
+            0,
+            limit=limit,
+            has_seer_data=has_seer_data,
+            total_deleted=new_total,
+            window_offset_days=window_offset_days + chunk_size_days,
+        )
         return None
+
+    # All windows processed. Mark the job as completed.
+    _advance_offset(job.id, new_total)
+    _transition_status(job.id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.COMPLETED)
+    return None
+
+
+def _advance_offset(job_id: int, offset: int) -> None:
+    """Checkpoint progress, filtered so a lagging duplicate chain cannot rewind the counter."""
+    ReplayDeletionJobModel.objects.filter(id=job_id, offset__lt=offset).update(
+        offset=offset, date_updated=timezone.now()
+    )
+
+
+def _transition_status(job_id: int, expected: DeletionJobStatus, new: DeletionJobStatus) -> None:
+    """Transition status only from `expected`, and without `save()` rewriting the whole row."""
+    ReplayDeletionJobModel.objects.filter(id=job_id, status=expected).update(
+        status=new, date_updated=timezone.now()
+    )

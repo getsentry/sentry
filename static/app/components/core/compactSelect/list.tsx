@@ -171,9 +171,22 @@ export function List<Value extends SelectKey>({
   const {overlayState, search, searchable, overlayIsOpen, searchMatcher} =
     useContext(ControlContext);
 
+  const hasSections = useMemo(() => items.some(item => 'options' in item), [items]);
+  // Searchable flat menus can build their initial React Aria collection from only the
+  // visible items. Once a query is entered, use the existing search path unchanged.
+  const isFlatCollectionTruncated =
+    searchable &&
+    !hasSections &&
+    !search &&
+    sizeLimit !== undefined &&
+    items.length > sizeLimit;
+
   const {hidden: hiddenOptions, scores} = useMemo(
-    () => getHiddenOptions(items, search, sizeLimit, searchMatcher),
-    [items, search, sizeLimit, searchMatcher]
+    () =>
+      isFlatCollectionTruncated
+        ? {hidden: new Set<SelectKey>(), scores: new Map<SelectKey, number>()}
+        : getHiddenOptions(items, search, sizeLimit, searchMatcher),
+    [isFlatCollectionTruncated, items, search, sizeLimit, searchMatcher]
   );
 
   const sortedItems = useMemo(
@@ -181,12 +194,16 @@ export function List<Value extends SelectKey>({
     [items, scores]
   );
 
+  const collectionItems = useMemo(
+    () => (isFlatCollectionTruncated ? sortedItems.slice(0, sizeLimit) : sortedItems),
+    [isFlatCollectionTruncated, sizeLimit, sortedItems]
+  );
   /**
    * Props to be passed into useListState()
    */
   const listStateProps = useMemo<Partial<ListProps<ListItemBase>>>(() => {
     const disabledKeys = [
-      ...getDisabledOptions(items, isOptionDisabled),
+      ...getDisabledOptions(collectionItems, isOptionDisabled),
       ...hiddenOptions,
     ];
 
@@ -239,6 +256,7 @@ export function List<Value extends SelectKey>({
     value,
     onChange,
     items,
+    collectionItems,
     isOptionDisabled,
     hiddenOptions,
     multiple,
@@ -250,7 +268,7 @@ export function List<Value extends SelectKey>({
   const listState = useListState({
     ...props,
     ...listStateProps,
-    items: sortedItems,
+    items: collectionItems,
   });
 
   // In composite selects, focus should seamlessly move from one region (list) to

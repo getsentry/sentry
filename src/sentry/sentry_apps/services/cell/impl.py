@@ -7,9 +7,9 @@ from sentry import deletions, tsdb
 from sentry.auth.access import Access, OrganizationGlobalMembership, from_user
 from sentry.auth.services.auth.model import AuthenticationContext
 from sentry.issues.action_log import (
-    SYSTEM_ACTOR,
     ActionSource,
     GroupActionActor,
+    action_context_scope,
     publish_action,
 )
 from sentry.issues.action_log.types import (
@@ -55,7 +55,7 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
         organization_id: int,
         installation: RpcSentryAppInstallation,
         uri: str,
-        user: RpcUser | None = None,
+        user: RpcUser,
         project_id: int | None = None,
         query: str | None = None,
         dependent_data: str | None = None,
@@ -78,19 +78,18 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
                         status_code=404,
                     )
                 )
-            if user is not None:
-                access = self._access_for_installation_user(
-                    organization=project.organization,
-                    installation=installation,
-                    user=user,
-                )
-                if not access.has_project_access(project):
-                    return RpcSelectRequesterResult(
-                        error=RpcSentryAppError(
-                            message="You do not have permission to access this project.",
-                            status_code=403,
-                        )
+            access = self._access_for_installation_user(
+                organization=project.organization,
+                installation=installation,
+                user=user,
+            )
+            if not access.has_project_access(project):
+                return RpcSelectRequesterResult(
+                    error=RpcSentryAppError(
+                        message="You do not have permission to access this project.",
+                        status_code=403,
                     )
+                )
             project_slug = project.slug
 
         try:
@@ -159,15 +158,17 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
                 )
             )
 
+        actor = GroupActionActor.user(user.id)
         try:
-            external_issue = IssueLinkCreator(
-                install=installation,
-                group=group,
-                action=action,
-                fields=fields,
-                uri=uri,
-                user=user,
-            ).run()
+            with action_context_scope(source=ActionSource.API, actor=actor):
+                external_issue = IssueLinkCreator(
+                    install=installation,
+                    group=group,
+                    action=action,
+                    fields=fields,
+                    uri=uri,
+                    user=user,
+                ).run()
         except (SentryAppIntegratorError, SentryAppSentryError) as e:
             return RpcPlatformExternalIssueResult(error=RpcSentryAppError.from_exc(e))
 
@@ -185,7 +186,7 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
             source=ActionSource.API,
             group_id=group.id,
             project=group.project,
-            actor=GroupActionActor.user(user.id),
+            actor=actor,
         )
 
         return RpcPlatformExternalIssueResult(
@@ -201,7 +202,7 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
         web_url: str,
         project: str,
         identifier: str,
-        user: RpcUser | None = None,
+        user: RpcUser,
     ) -> RpcPlatformExternalIssueResult:
         """
         Matches: src/sentry/sentry_apps/api/endpoints/installation_external_issues.py @ POST
@@ -227,20 +228,20 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
                 )
             )
 
-        if user is not None:
-            access = self._access_for_installation_user(
-                organization=group.project.organization,
-                installation=installation,
-                user=user,
-            )
-            if not access.has_project_access(group.project):
-                return RpcPlatformExternalIssueResult(
-                    error=RpcSentryAppError(
-                        message="You do not have permission to create an external issue for this issue.",
-                        status_code=403,
-                    )
+        access = self._access_for_installation_user(
+            organization=group.project.organization,
+            installation=installation,
+            user=user,
+        )
+        if not access.has_project_access(group.project):
+            return RpcPlatformExternalIssueResult(
+                error=RpcSentryAppError(
+                    message="You do not have permission to create an external issue for this issue.",
+                    status_code=403,
                 )
+            )
 
+        actor = GroupActionActor.user(user.id)
         try:
             external_issue_creator = ExternalIssueCreator(
                 install=installation,
@@ -248,14 +249,15 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
                 web_url=web_url,
                 project=project,
                 identifier=identifier,
-                user_id=user.id if user is not None else None,
+                user_id=user.id,
             )
             external_issue, created = external_issue_creator.run()
         except SentryAppSentryError as e:
             return RpcPlatformExternalIssueResult(error=RpcSentryAppError.from_exc(e))
 
         if created:
-            external_issue_creator.create_issue_activity(external_issue)
+            with action_context_scope(source=ActionSource.API, actor=actor):
+                external_issue_creator.create_issue_activity(external_issue)
 
         publish_action(
             CreatePlatformExternalIssueAction(
@@ -266,7 +268,7 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
             source=ActionSource.API,
             group_id=group.id,
             project=group.project,
-            actor=GroupActionActor.user(user.id) if user is not None else SYSTEM_ACTOR,
+            actor=actor,
         )
 
         return RpcPlatformExternalIssueResult(
@@ -279,7 +281,7 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
         organization_id: int,
         installation: RpcSentryAppInstallation,
         external_issue_id: int,
-        user: RpcUser | None = None,
+        user: RpcUser,
     ) -> RpcEmptyResult:
         """
         Matches: src/sentry/sentry_apps/api/endpoints/installation_external_issue_details.py @ DELETE
@@ -316,20 +318,19 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
             )
         organization = issue_project.organization
 
-        if user is not None:
-            access = self._access_for_installation_user(
-                organization=organization,
-                installation=installation,
-                user=user,
+        access = self._access_for_installation_user(
+            organization=organization,
+            installation=installation,
+            user=user,
+        )
+        if not access.has_project_access(issue_project):
+            return RpcEmptyResult(
+                success=False,
+                error=RpcSentryAppError(
+                    message="You do not have permission to delete this external issue.",
+                    status_code=403,
+                ),
             )
-            if not access.has_project_access(issue_project):
-                return RpcEmptyResult(
-                    success=False,
-                    error=RpcSentryAppError(
-                        message="You do not have permission to delete this external issue.",
-                        status_code=403,
-                    ),
-                )
 
         publish_action(
             UnlinkPlatformExternalIssueAction(
@@ -340,7 +341,7 @@ class DatabaseBackedSentryAppCellService(SentryAppCellService):
             source=ActionSource.API,
             group_id=platform_external_issue.group_id,
             project=issue_project,
-            actor=GroupActionActor.user(user.id) if user is not None else SYSTEM_ACTOR,
+            actor=GroupActionActor.user(user.id),
         )
 
         deletions.exec_sync(platform_external_issue)

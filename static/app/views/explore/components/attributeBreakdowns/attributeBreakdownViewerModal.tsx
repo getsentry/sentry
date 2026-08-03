@@ -347,7 +347,9 @@ export default function AttributeBreakdownViewerModal(props: Props) {
                   showLegend={computedData.mode === 'comparison' ? 'always' : 'never'}
                 />
               ) : (
-                <CategoricalSeriesWidgetVisualization.NoData />
+                <Flex position="absolute" inset={0}>
+                  <CategoricalSeriesWidgetVisualization.NoData />
+                </Flex>
               )}
             </Container>
           </Container>

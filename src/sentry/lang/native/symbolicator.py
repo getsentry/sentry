@@ -6,6 +6,7 @@ import time
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import timedelta
 from enum import Enum
 from typing import Any
 from urllib.parse import urljoin
@@ -26,13 +27,19 @@ from sentry.lang.native.sources import (
 from sentry.lang.native.utils import Backoff
 from sentry.models.project import Project
 from sentry.net.http import Session
-from sentry.objectstore import get_attachments_session, get_symbolicator_url
+from sentry.objectstore import (
+    get_attachments_session,
+    get_internal_download_url,
+)
 from sentry.utils import metrics
 
 MAX_ATTEMPTS = 3
 
 BACKOFF_INITIAL = 0.1
 BACKOFF_MAX = 5
+
+# Symbolicator runs up to 3 tries with 5 minute timeouts
+TOKEN_VALIDITY = timedelta(minutes=15)
 
 logger = logging.getLogger(__name__)
 
@@ -229,8 +236,8 @@ class Symbolicator:
         scraping_config = get_scraping_config(self.project)
 
         if minidump.stored_id:
+            stored_id = minidump.stored_id
             session = get_attachments_session(self.project.organization_id, self.project.id)
-            storage_url = get_symbolicator_url(session, minidump.stored_id)
             json: dict[str, Any] = {
                 "platform": platform,
                 "sources": sources,
@@ -238,13 +245,14 @@ class Symbolicator:
                 "options": {"dif_candidates": True},
                 "symbolicate": {
                     "type": "minidump",
-                    "storage_url": storage_url,
                     "rewrite_first_module": rewrite_first_module,
                 },
             }
 
             def cb() -> dict[str, Any]:
-                json["symbolicate"]["storage_token"] = session.mint_token()
+                json["symbolicate"]["storage_url"] = get_internal_download_url(
+                    session, stored_id, token_validity=TOKEN_VALIDITY
+                )
                 return {"json": json}
 
             res = self._process("process_minidump", "symbolicate-any", kwargs_cb=cb)
@@ -267,8 +275,8 @@ class Symbolicator:
         scraping_config = get_scraping_config(self.project)
 
         if report.stored_id:
+            stored_id = report.stored_id
             session = get_attachments_session(self.project.organization_id, self.project.id)
-            storage_url = get_symbolicator_url(session, report.stored_id)
             json: dict[str, Any] = {
                 "platform": platform,
                 "sources": sources,
@@ -276,12 +284,13 @@ class Symbolicator:
                 "options": {"dif_candidates": True},
                 "symbolicate": {
                     "type": "applecrashreport",
-                    "storage_url": storage_url,
                 },
             }
 
             def cb() -> dict[str, Any]:
-                json["symbolicate"]["storage_token"] = session.mint_token()
+                json["symbolicate"]["storage_url"] = get_internal_download_url(
+                    session, stored_id, token_validity=TOKEN_VALIDITY
+                )
                 return {"json": json}
 
             res = self._process("process_applecrashreport", "symbolicate-any", kwargs_cb=cb)

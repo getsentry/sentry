@@ -204,6 +204,39 @@ describe('utils/tokenizeSearch', () => {
         },
       },
       {
+        name: 'should handle explicit typed tag keys containing colons',
+        string: 'tags[foo:bar,string]:asdf',
+        object: {
+          tokens: [{type: TokenType.FILTER, key: 'tags[foo:bar,string]', value: 'asdf'}],
+        },
+      },
+      {
+        name: 'should handle quoted filter keys containing colons',
+        string: '"imaginary.attribute:made_up_key":asdf',
+        object: {
+          tokens: [
+            {
+              type: TokenType.FILTER,
+              key: 'imaginary.attribute:made_up_key',
+              value: 'asdf',
+            },
+          ],
+        },
+      },
+      {
+        name: 'should handle negated quoted filter keys containing colons',
+        string: '!"imaginary.attribute:made_up_key":asdf',
+        object: {
+          tokens: [
+            {
+              type: TokenType.FILTER,
+              key: '!imaginary.attribute:made_up_key',
+              value: 'asdf',
+            },
+          ],
+        },
+      },
+      {
         name: 'should handle contains filter',
         string: 'message:\uF00DContains\uF00D"test value"',
         object: {
@@ -294,6 +327,22 @@ describe('utils/tokenizeSearch', () => {
 
       results.addFilterValue('e', 'e1*e2\\e3');
       expect(results.formatString()).toBe('e:"e1\\*e2\\e3"');
+    });
+
+    it('quotes filter keys containing colons', () => {
+      const results = new MutableSearch([]);
+
+      results.addFilterValue('imaginary.attribute:made_up_key', 'asdf');
+      results.addFilterValue('!imaginary.attribute:made_up_key', 'fdsa');
+      results.addFilterValue('has', 'imaginary.attribute:made_up_key');
+      results.addFilterValue('!has', 'imaginary.attribute:made_up_key');
+
+      expect(results.formatString()).toBe(
+        '"imaginary.attribute:made_up_key":asdf ' +
+          '!"imaginary.attribute:made_up_key":fdsa ' +
+          'has:"imaginary.attribute:made_up_key" ' +
+          '!has:"imaginary.attribute:made_up_key"'
+      );
     });
 
     it('add text searches to query object', () => {
