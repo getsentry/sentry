@@ -336,10 +336,13 @@ class CreateDebugFileTest(APITestCase):
         args.update(kwargs)
         return create_dif_from_id(self.project, DifMeta(**args), fileobj=fileobj, file=file)
 
+    def create_stored_file(self, content: bytes) -> File:
+        file = self.create_file(name="crash.dsym")
+        file.putfile(ContentFile(content))
+        return file
+
     def test_create_dif_from_file(self) -> None:
-        file = self.create_file(
-            name="crash.dsym", checksum="dc1e3f3e411979d336c3057cce64294f3420f93a"
-        )
+        file = self.create_stored_file(b"debug symbols")
         dif, created = self.create_dif(file=file)
 
         assert created
@@ -545,14 +548,10 @@ class CreateDebugFileTest(APITestCase):
                 dif.get_file()
 
     def test_keep_disjoint_difs(self) -> None:
-        file = self.create_file(
-            name="crash.dsym", checksum="dc1e3f3e411979d336c3057cce64294f3420f93a"
-        )
+        file = self.create_stored_file(b"unwind symbols")
         dif1, created1 = self.create_dif(file=file, data={"features": ["unwind"]})
 
-        file = self.create_file(
-            name="crash.dsym", checksum="2b92c5472f4442a27da02509951ea2e0f529511c"
-        )
+        file = self.create_stored_file(b"debug symbols")
         dif2, created2 = self.create_dif(file=file, data={"features": ["debug"]})
 
         assert created1 and created2
@@ -560,14 +559,10 @@ class CreateDebugFileTest(APITestCase):
         assert ProjectDebugFile.objects.filter(id=dif2.id).exists()
 
     def test_keep_overlapping_difs(self) -> None:
-        file = self.create_file(
-            name="crash.dsym", checksum="dc1e3f3e411979d336c3057cce64294f3420f93a"
-        )
+        file = self.create_stored_file(b"symtab unwind symbols")
         dif1, created1 = self.create_dif(file=file, data={"features": ["symtab", "unwind"]})
 
-        file = self.create_file(
-            name="crash.dsym", checksum="2b92c5472f4442a27da02509951ea2e0f529511c"
-        )
+        file = self.create_stored_file(b"symtab debug symbols")
         dif2, created2 = self.create_dif(file=file, data={"features": ["symtab", "debug"]})
 
         assert created1 and created2
@@ -575,19 +570,13 @@ class CreateDebugFileTest(APITestCase):
         assert ProjectDebugFile.objects.filter(id=dif2.id).exists()
 
     def test_keep_latest_dif(self) -> None:
-        file = self.create_file(
-            name="crash.dsym", checksum="dc1e3f3e411979d336c3057cce64294f3420f93a"
-        )
+        file = self.create_stored_file(b"debug unwind symbols")
         dif1, created1 = self.create_dif(file=file, data={"features": ["debug", "unwind"]})
 
-        file = self.create_file(
-            name="crash.dsym", checksum="2b92c5472f4442a27da02509951ea2e0f529511c"
-        )
+        file = self.create_stored_file(b"debug symbols")
         dif2, created2 = self.create_dif(file=file, data={"features": ["debug"]})
 
-        file = self.create_file(
-            name="crash.dsym", checksum="3c60980275c4adc81a657f6aae00e11ed528b538"
-        )
+        file = self.create_stored_file(b"symbols")
         dif3, created3 = self.create_dif(file=file, data={"features": []})
 
         # XXX: dif2 and dif3 would actually be redundant, but since they are more
@@ -611,14 +600,10 @@ class CreateDebugFileTest(APITestCase):
         assert dif1 == dif2
 
     def test_remove_redundant_dif(self) -> None:
-        file = self.create_file(
-            name="crash.dsym", checksum="dc1e3f3e411979d336c3057cce64294f3420f93a"
-        )
+        file = self.create_stored_file(b"first debug symbols")
         dif1, created1 = self.create_dif(file=file, data={"features": ["debug"]})
 
-        file = self.create_file(
-            name="crash.dsym", checksum="2b92c5472f4442a27da02509951ea2e0f529511c"
-        )
+        file = self.create_stored_file(b"second debug symbols")
         dif2, created2 = self.create_dif(file=file, data={"features": ["debug"]})
 
         assert created1 and created2
