@@ -117,6 +117,7 @@ def create_match_frame(frame_data: dict[str, Any], platform: str | None) -> Matc
     category = _encode_if_str(frame_metadata.get("category"))
     module = _encode_if_str(frame_data.get("module"))
 
+    # Path-like matchers are case-insensitive and normalize file-system separators to `/`.
     package = _encode_if_str(frame_data.get("package"))
     if isinstance(package, bytes):
         package = package.lower().replace(b"\\", b"/")
