@@ -220,6 +220,8 @@ class TestPollGithubCopilotAgents(TestCase):
             call_kwargs["agent_url"] == "https://github.com/getsentry/sentry/copilot/tasks/task-123"
         )
         assert call_kwargs["result"].pr_url == "https://github.com/getsentry/sentry/pull/12345"
+        # The fixture's number and URL disagree, pinning that we use the API's own field.
+        assert call_kwargs["result"].pr_number == 456
         assert call_kwargs["result"].description == "Fix the bug"
         assert call_kwargs["result"].repo_full_name == "getsentry/sentry"
 
@@ -670,42 +672,50 @@ class TestExtractResultFromEvents(TestCase):
     def test_extracts_pr_url(self) -> None:
         text = "PR created: https://github.com/org/repo/pull/123"
         events = [_make_agent_event(text)]
-        url, block, branch_name = extract_result_from_events(events)
-        assert url == "https://github.com/org/repo/pull/123"
-        assert block == text
-        assert branch_name is None
+        extracted = extract_result_from_events(events)
+        assert extracted.url == "https://github.com/org/repo/pull/123"
+        assert extracted.text_block == text
+        assert extracted.branch_name is None
+        assert extracted.pr_number == 123
+
+    def test_extracts_pr_number_past_a_trailing_segment(self) -> None:
+        events = [_make_agent_event("https://github.com/org/repo/pull/123/files")]
+        extracted = extract_result_from_events(events)
+        assert extracted.url == "https://github.com/org/repo/pull/123"
+        assert extracted.pr_number == 123
 
     def test_extracts_branch_url(self) -> None:
         text = "Pushed to https://github.com/org/repo/tree/my-branch"
         events = [_make_agent_event(text)]
-        url, block, branch_name = extract_result_from_events(events)
-        assert url == "https://github.com/org/repo/tree/my-branch"
-        assert block == text
-        assert branch_name == "my-branch"
+        extracted = extract_result_from_events(events)
+        assert extracted.url == "https://github.com/org/repo/tree/my-branch"
+        assert extracted.text_block == text
+        assert extracted.branch_name == "my-branch"
+        assert extracted.pr_number is None
 
     def test_strips_trailing_period(self) -> None:
         events = [_make_agent_event("See https://github.com/org/repo/tree/my-branch.")]
-        url, _, branch_name = extract_result_from_events(events)
-        assert url == "https://github.com/org/repo/tree/my-branch"
-        assert branch_name == "my-branch"
+        extracted = extract_result_from_events(events)
+        assert extracted.url == "https://github.com/org/repo/tree/my-branch"
+        assert extracted.branch_name == "my-branch"
 
     def test_strips_trailing_comma(self) -> None:
         events = [_make_agent_event("https://github.com/org/repo/tree/my-branch, ready")]
-        url, _, branch_name = extract_result_from_events(events)
-        assert url == "https://github.com/org/repo/tree/my-branch"
-        assert branch_name == "my-branch"
+        extracted = extract_result_from_events(events)
+        assert extracted.url == "https://github.com/org/repo/tree/my-branch"
+        assert extracted.branch_name == "my-branch"
 
     def test_branch_with_slashes(self) -> None:
         events = [_make_agent_event("https://github.com/org/repo/tree/feat/sub/thing")]
-        url, _, branch_name = extract_result_from_events(events)
-        assert url == "https://github.com/org/repo/tree/feat/sub/thing"
-        assert branch_name == "feat/sub/thing"
+        extracted = extract_result_from_events(events)
+        assert extracted.url == "https://github.com/org/repo/tree/feat/sub/thing"
+        assert extracted.branch_name == "feat/sub/thing"
 
     def test_branch_with_dots_in_name(self) -> None:
         events = [_make_agent_event("https://github.com/org/repo/tree/v1.2.3-fix")]
-        url, _, branch_name = extract_result_from_events(events)
-        assert url == "https://github.com/org/repo/tree/v1.2.3-fix"
-        assert branch_name == "v1.2.3-fix"
+        extracted = extract_result_from_events(events)
+        assert extracted.url == "https://github.com/org/repo/tree/v1.2.3-fix"
+        assert extracted.branch_name == "v1.2.3-fix"
 
     def test_pr_preferred_over_branch(self) -> None:
         events = [
@@ -714,31 +724,34 @@ class TestExtractResultFromEvents(TestCase):
                 "and PR https://github.com/org/repo/pull/42"
             )
         ]
-        url, _, branch_name = extract_result_from_events(events)
-        assert url == "https://github.com/org/repo/pull/42"
-        assert branch_name is None
+        extracted = extract_result_from_events(events)
+        assert extracted.url == "https://github.com/org/repo/pull/42"
+        assert extracted.branch_name is None
+        assert extracted.pr_number == 42
 
     def test_returns_none_when_no_url(self) -> None:
         events = [_make_agent_event("All done, no link.")]
-        url, block, branch_name = extract_result_from_events(events)
-        assert url is None
-        assert block is None
-        assert branch_name is None
+        extracted = extract_result_from_events(events)
+        assert extracted.url is None
+        assert extracted.text_block is None
+        assert extracted.branch_name is None
+        assert extracted.pr_number is None
 
     def test_returns_none_for_empty_events(self) -> None:
-        url, block, branch_name = extract_result_from_events([])
-        assert url is None
-        assert block is None
-        assert branch_name is None
+        extracted = extract_result_from_events([])
+        assert extracted.url is None
+        assert extracted.text_block is None
+        assert extracted.branch_name is None
+        assert extracted.pr_number is None
 
     def test_searches_most_recent_event_first(self) -> None:
         events = [
             _make_agent_event("https://github.com/org/repo/tree/old-branch"),
             _make_agent_event("https://github.com/org/repo/tree/new-branch"),
         ]
-        url, _, branch_name = extract_result_from_events(events)
-        assert url == "https://github.com/org/repo/tree/new-branch"
-        assert branch_name == "new-branch"
+        extracted = extract_result_from_events(events)
+        assert extracted.url == "https://github.com/org/repo/tree/new-branch"
+        assert extracted.branch_name == "new-branch"
 
     def test_skips_non_agent_events(self) -> None:
         events = [
@@ -748,10 +761,11 @@ class TestExtractResultFromEvents(TestCase):
             ),
             _make_agent_event("No URL here"),
         ]
-        url, block, branch_name = extract_result_from_events(events)
-        assert url is None
-        assert block is None
-        assert branch_name is None
+        extracted = extract_result_from_events(events)
+        assert extracted.url is None
+        assert extracted.text_block is None
+        assert extracted.branch_name is None
+        assert extracted.pr_number is None
 
 
 class TestPollClaudeCodeAgents(TestCase):
@@ -886,6 +900,8 @@ class TestPollClaudeCodeAgents(TestCase):
         assert call_kwargs["agent_id"] == "claude-session-123"
         assert call_kwargs["organization_id"] == self.organization.id
         assert call_kwargs["status"] == CodingAgentStatus.COMPLETED
+        # The client builds the result without a number; the session scrape supplies it.
+        assert call_kwargs["result"].pr_number == 999
 
     @patch("sentry.seer.autofix.coding_agent.attribute_delegated_agent_pull_request")
     @patch(MOCK_SYNC_STATUS_PATH)

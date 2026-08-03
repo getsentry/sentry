@@ -91,7 +91,6 @@ export function ActivityDrawer({project}: ActivityDrawerProps) {
         <ActivitySection
           group={group}
           variant="standalone"
-          size="md"
           filterComments={filter === 'comments'}
           minHeight={72}
           placeholder={t('Add a comment. Tag users with @, or teams with #')}

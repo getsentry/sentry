@@ -166,6 +166,7 @@ describe('TeamMembers', () => {
     await userEvent.click(screen.getByTestId('invite-member'));
 
     expect(openInviteMembersModal).toHaveBeenCalled();
+    expect(screen.queryByTestId('invite-member')).not.toBeInTheDocument();
   });
 
   it('can invite member from team dropdown with access and `Open Membership` enabled', async () => {

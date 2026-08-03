@@ -1,5 +1,7 @@
 import enum
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Any
 
 
@@ -27,3 +29,52 @@ class StatusCheckClient(ABC):
     @abstractmethod
     def get_check_runs(self, repo: str, sha: str) -> Any:
         raise NotImplementedError
+
+
+class AggregateChecksStatus(enum.StrEnum):
+    """
+    The provider's roll-up of every check on a pull request into one state.
+    StatusCheckStatus above is the state of a single check Sentry writes; this is
+    every check read back.
+
+    A repository without CI has no state at all rather than a member here, so
+    that it does not read as perpetually pending.
+    """
+
+    SUCCESS = "success"
+    FAILURE = "failure"
+    PENDING = "pending"
+
+
+class AggregateReviewStatus(enum.StrEnum):
+    """The provider's effective review decision for a pull request."""
+
+    APPROVED = "approved"
+    CHANGES_REQUESTED = "changes_requested"
+    REVIEW_REQUIRED = "review_required"
+
+
+@dataclass(frozen=True)
+class PullRequestStatusResult:
+    """A pull request's checks and review state, as far as the provider reports it."""
+
+    checks: AggregateChecksStatus | None = None
+    review: AggregateReviewStatus | None = None
+
+
+@dataclass(frozen=True)
+class PullRequestStatusRequest:
+    repo: str
+    pull_number: str
+
+
+class PullRequestStatusClient(ABC):
+    @abstractmethod
+    def get_pull_request_statuses(
+        self, pull_requests: Sequence[PullRequestStatusRequest]
+    ) -> dict[PullRequestStatusRequest, PullRequestStatusResult]:
+        raise NotImplementedError
+
+    def get_pull_request_status(self, repo: str, pull_number: str) -> PullRequestStatusResult:
+        request = PullRequestStatusRequest(repo=repo, pull_number=pull_number)
+        return self.get_pull_request_statuses([request]).get(request, PullRequestStatusResult())

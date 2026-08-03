@@ -558,6 +558,10 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         assert call_kwargs["payload"]["pull_requests"][0]["pull_request"]["pr_number"] == 7
         mock_process_autofix_updates.assert_called_once()
         assert (
+            mock_process_autofix_updates.call_args.kwargs["kwargs"]["activity_datetime"]
+            == state.updated_at
+        )
+        assert (
             mock_analytics.call_args.args[0].referrer
             == AutofixReferrer.GROUP_AUTOFIX_ENDPOINT.value
         )

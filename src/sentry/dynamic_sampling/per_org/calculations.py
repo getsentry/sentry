@@ -11,10 +11,6 @@ import sentry_sdk
 
 from sentry import options
 from sentry.dynamic_sampling.models.common import RebalancedItem
-from sentry.dynamic_sampling.models.full_rebalancing import (
-    FullRebalancingInput,
-    FullRebalancingModel,
-)
 from sentry.dynamic_sampling.models.projects_rebalancing import (
     ProjectsRebalancingInput,
     ProjectsRebalancingModel,
@@ -23,10 +19,7 @@ from sentry.dynamic_sampling.models.transactions_rebalancing import (
     TransactionsRebalancingInput,
     TransactionsRebalancingModel,
 )
-from sentry.dynamic_sampling.per_org.gate import (
-    is_implicit_sample_rate_floor_enabled,
-    project_balancing_debug_project_ids,
-)
+from sentry.dynamic_sampling.per_org.gate import project_balancing_debug_project_ids
 from sentry.dynamic_sampling.per_org.queries import (
     ProjectTransactionCounts,
     ProjectVolume,
@@ -351,7 +344,6 @@ def run_transaction_balancing(
 ) -> dict[int, tuple[list[RebalancedItem], float]]:
     sample_rates = config.get_project_sample_rates()
     min_sample_rate = options.get("dynamic-sampling.prioritise_transactions.min_sample_rate")
-    apply_implicit_floor = is_implicit_sample_rate_floor_enabled()
     result: dict[int, tuple[list[RebalancedItem], float]] = {}
     project_volume_by_id = {
         project_volume.project_id: project_volume for project_volume in project_volumes
@@ -392,50 +384,8 @@ def run_transaction_balancing(
             )
         )
 
-        if apply_implicit_floor and implicit_rate < sample_rate:
-            named_rates, implicit_rate = _apply_implicit_sample_rate_floor(
-                named_rates=named_rates,
-                implicit_sample_rate=implicit_rate,
-                floor_sample_rate=sample_rate,
-                total_volume=project_volume.total,
-                min_sample_rate=min_sample_rate,
-            )
-
         result[project_id] = (named_rates, implicit_rate)
     return result
-
-
-def _apply_implicit_sample_rate_floor(
-    named_rates: list[RebalancedItem],
-    implicit_sample_rate: float,
-    floor_sample_rate: float,
-    total_volume: int,
-    min_sample_rate: float = 0.0,
-) -> tuple[list[RebalancedItem], float]:
-    total_explicit_volume = sum(item.count for item in named_rates)
-    total_implicit_volume = total_volume - total_explicit_volume
-    if total_explicit_volume <= 0 or total_implicit_volume <= 0:
-        return named_rates, floor_sample_rate
-
-    additional_implicit_volume = (floor_sample_rate - implicit_sample_rate) * total_implicit_volume
-    previously_used_explicit_volume = sum(item.count * item.new_sample_rate for item in named_rates)
-    new_explicit_volume = previously_used_explicit_volume - additional_implicit_volume
-
-    if new_explicit_volume <= 0:
-        return [], floor_sample_rate
-
-    new_explicit_sample_rate = new_explicit_volume / total_explicit_volume
-    new_rates, _ = FullRebalancingModel().run(
-        FullRebalancingInput(
-            classes=[RebalancedItem(id=item.id, count=item.count) for item in named_rates],
-            sample_rate=new_explicit_sample_rate,
-            intensity=REBALANCE_INTENSITY,
-            # keep the head floor here too, so reclaiming budget for the implicit tail can't push the
-            # explicit rates back below the floor. Clamp to the floor rate (the overall rate here).
-            min_sample_rate=min(min_sample_rate, floor_sample_rate),
-        )
-    )
-    return new_rates, floor_sample_rate
 
 
 def get_cached_rebalanced_transaction_sample_rates(

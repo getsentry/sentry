@@ -4,7 +4,18 @@ import logging
 from collections.abc import Sequence
 from datetime import datetime, timezone
 
-from snuba_sdk import Column, Condition, Entity, Function, Granularity, Limit, Offset, Op, Query
+from snuba_sdk import (
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Granularity,
+    Limit,
+    Op,
+    OrderBy,
+    Query,
+)
 
 from sentry.api.event_search import QueryToken, parse_search_query
 from sentry.models.organization import Organization
@@ -27,19 +38,24 @@ def delete_replays(
 ) -> None:
     """Delete a set of replays from a query."""
     search_filters = translate_cli_tags_param_to_snuba_tag_param(tags)
-    offset = 0
 
     start_utc = start_utc.replace(tzinfo=timezone.utc)
     end_utc = end_utc.replace(tzinfo=timezone.utc)
 
+    # Keyset (seek) pagination cursor - page by the last replay_id we saw
+    last_replay_id = None
+
+    # Running tally of replays to be deleted, accumulated across pages
+    total_replays = 0
+
     has_more = True
     while has_more:
-        replays, has_more = _get_rows_matching_deletion_pattern(
+        replays, has_more, last_replay_id = _get_rows_matching_deletion_pattern(
             project_id=project_id,
             start=start_utc,
             end=end_utc,
             limit=batch_size,
-            offset=offset,
+            after_replay_id=last_replay_id,
             search_filters=search_filters,
             environment=environment,
         )
@@ -48,21 +64,38 @@ def delete_replays(
         if not replays:
             return None
 
-        offset += len(replays)
+        total_replays += len(replays)
 
+        logging_context = {
+            "project_id": project_id,
+            "dry_run": dry_run,
+            "batch_size": batch_size,
+            "tags": tags,
+            "start_utc": start_utc,
+            "end_utc": end_utc,
+            "has_more": has_more,
+            "total_replays": total_replays,
+        }
         if dry_run:
-            print(f"Replays to be deleted (dry run): {len(replays)}")  # NOQA
+            logger.info(f"Replays to be deleted (dry run): {len(replays)}", extra=logging_context)
         else:
-            delete_replay_ids(project_id, replays)
+            delete_replay_ids(project_id, replays, total_replays=total_replays)
 
 
 def translate_cli_tags_param_to_snuba_tag_param(tags: list[str]) -> Sequence[QueryToken]:
     return parse_search_query(" AND ".join(tags), config=replay_url_parser_config)
 
 
-def delete_replay_ids(project_id: int, rows: list[tuple[int, str, int]]) -> None:
+def delete_replay_ids(
+    project_id: int, rows: list[tuple[int, str, int]], total_replays: int
+) -> None:
     """Delete a set of replay-ids for a specific project."""
-    logger.info("Archiving %d replays.", len(rows))
+    logging_context = {
+        "project_id": project_id,
+        "num_replays": len(rows),
+        "total_replays": total_replays,
+    }
+    logger.info("Archiving %d replays.", len(rows), extra=logging_context)
 
     # Bulk produce archived replay rows to the ingest-replay-events topic before flushing.
     #
@@ -78,7 +111,7 @@ def delete_replay_ids(project_id: int, rows: list[tuple[int, str, int]]) -> None
     for _, replay_id, _ in rows:
         archive_replay(project_id, replay_id)
 
-    logger.info("Scheduling %d replays for deletion.", len(rows))
+    logger.info("Scheduling %d replays for deletion.", len(rows), extra=logging_context)
 
     # Asynchronously delete RRWeb recording data.
     #
@@ -88,26 +121,31 @@ def delete_replay_ids(project_id: int, rows: list[tuple[int, str, int]]) -> None
     for retention_days, replay_id, max_segment_id in rows:
         delete_replays_script_async.delay(retention_days, project_id, replay_id, max_segment_id)
 
-    logger.info("%d replays were successfully deleted.", len(rows))
+    logger.info("%d replays were successfully deleted.", len(rows), extra=logging_context)
     logger.info(
         "The customer will no longer have access to the replays passed to this function. Deletion "
-        "of RRWeb data will complete asynchronously."
+        "of RRWeb data will complete asynchronously.",
+        extra=logging_context,
     )
 
 
 def _get_rows_matching_deletion_pattern(
     project_id: int,
     limit: int,
-    offset: int,
+    after_replay_id: str | None,
     end: datetime,
     start: datetime,
     search_filters: Sequence[QueryToken],
     environment: list[str],
-) -> tuple[list[tuple[int, str, int]], bool]:
+) -> tuple[list[tuple[int, str, int]], bool, str | None]:
     where = handle_search_filters(scalar_search_config, search_filters)
 
     if environment:
         where.append(Condition(Column("environment"), Op.IN, environment))
+
+    # Keyset cursor in order to walk result set in fixed-cost pages. Need the ORDER BY to keep it deterministic
+    if after_replay_id is not None:
+        where.append(Condition(Column("replay_id"), Op.GT, after_replay_id))
 
     query = Query(
         match=Entity("replays"),
@@ -123,9 +161,9 @@ def _get_rows_matching_deletion_pattern(
             *where,
         ],
         groupby=[Column("replay_id")],
+        orderby=[OrderBy(Column("replay_id"), Direction.ASC)],
         granularity=Granularity(3600),
         limit=Limit(limit),
-        offset=Offset(offset),
     )
 
     response = execute_query(
@@ -137,10 +175,14 @@ def _get_rows_matching_deletion_pattern(
     data = response.get("data", [])
     has_more = len(data) == limit
 
+    # The next page seeks past the last raw replay_id in this page
+    next_cursor = data[-1]["replay_id"] if data else None
+
     return (
         [
             (item["retention_days"], item["replay_id"].replace("-", ""), item["max_segment_id"])
             for item in data
         ],
         has_more,
+        next_cursor,
     )

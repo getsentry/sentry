@@ -973,6 +973,32 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.data[1]["title"] == never_visited.title
         assert response.data[1].get("lastVisited") is None
 
+    def test_recently_viewed_sort_unvisited_stable_order_with_flag(self) -> None:
+        Dashboard.objects.all().delete()
+
+        first = Dashboard.objects.create(
+            title="First",
+            organization=self.organization,
+            created_by_id=self.user.id,
+        )
+        second = Dashboard.objects.create(
+            title="Second",
+            organization=self.organization,
+            created_by_id=self.user.id,
+        )
+        third = Dashboard.objects.create(
+            title="Third",
+            organization=self.organization,
+            created_by_id=self.user.id,
+        )
+
+        with self.feature("organizations:dashboards-user-last-visited"):
+            response = self.client.get(self.url, data={"sort": "recentlyViewed"})
+
+        assert response.status_code == 200, response.content
+        ids = [row["id"] for row in response.data]
+        assert ids == [str(third.id), str(second.id), str(first.id)]
+
     def test_post(self) -> None:
         response = self.do_request("post", self.url, data={"title": "Dashboard from Post"})
         assert response.status_code == 201
