@@ -330,7 +330,7 @@ export function TeamSelector(props: Props) {
     ];
   }
 
-  const options = useMemo(getOptions, [
+  const options = useMemo(() => getOptions(), [
     teamFilter,
     teams,
     canCreateTeam,
