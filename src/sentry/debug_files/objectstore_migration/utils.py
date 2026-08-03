@@ -117,7 +117,9 @@ def _get_object_with_retry(session: Session, storage_path: str) -> GetResponse:
 
     base_delay = exponential_delay(2)
     policy = ConditionalRetryPolicy(
-        test_function=lambda attempt_number, _: attempt_number <= 3,
+        test_function=lambda attempt_number, error: (
+            not isinstance(error, MigrationIntegrityError) and attempt_number <= 3
+        ),
         delay_function=lambda n: random.uniform(base_delay(n), base_delay(n) * 2),
     )
     return policy(get_object)
