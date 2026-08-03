@@ -1706,7 +1706,7 @@ register(
 # 5 minute blackout every half hour
 register(
     "api.deprecation.alerts-cron",
-    default="0 30 * * *",
+    default="0,30 * * *",
     type=String,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
