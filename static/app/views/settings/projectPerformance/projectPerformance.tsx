@@ -27,7 +27,6 @@ import {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -155,35 +154,43 @@ type ProjectThreshold = {
 
 type GeneralSettings = {enable_images?: boolean};
 
-const getThresholdQueryKey = (orgSlug: string, projectSlug: string): ApiQueryKey => [
-  getApiUrl(
+const getThresholdQueryOptions = (orgSlug: string, projectSlug: string) =>
+  apiOptions.as<ProjectThreshold>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/transaction-threshold/configure/',
     {
       path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
+      staleTime: 0,
     }
-  ),
-];
+  );
+
+const getThresholdQueryKey = (orgSlug: string, projectSlug: string): ApiQueryKey =>
+  getThresholdQueryOptions(orgSlug, projectSlug).queryKey;
+
+const getPerformanceIssueSettingsQueryOptions = (orgSlug: string, projectSlug: string) =>
+  apiOptions.as<ProjectPerformanceSettings>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance-issues/configure/',
+    {
+      path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
+      staleTime: 0,
+    }
+  );
 
 const getPerformanceIssueSettingsQueryKey = (
   orgSlug: string,
   projectSlug: string
-): ApiQueryKey => [
-  getApiUrl(
-    '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance-issues/configure/',
+): ApiQueryKey => getPerformanceIssueSettingsQueryOptions(orgSlug, projectSlug).queryKey;
+
+const getGeneralSettingsQueryOptions = (orgSlug: string, projectSlug: string) =>
+  apiOptions.as<GeneralSettings>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance/configure/',
     {
       path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
+      staleTime: 0,
     }
-  ),
-];
+  );
 
-const getGeneralSettingsQueryKey = (
-  orgSlug: string,
-  projectSlug: string
-): ApiQueryKey => [
-  getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/performance/configure/', {
-    path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
-  }),
-];
+const getGeneralSettingsQueryKey = (orgSlug: string, projectSlug: string): ApiQueryKey =>
+  getGeneralSettingsQueryOptions(orgSlug, projectSlug).queryKey;
 
 const generalSettingsSchema = z.object({
   enable_images: z.boolean(),
@@ -1127,11 +1134,13 @@ function ThresholdSettingsSection({
   hasWriteAccess,
   isResetting,
   onResetAll,
+  resetVersion,
   threshold,
 }: {
   hasWriteAccess: boolean;
   isResetting: boolean;
   onResetAll: () => void;
+  resetVersion: number;
   threshold: ProjectThreshold;
 }) {
   const organization = useOrganization();
@@ -1149,6 +1158,7 @@ function ThresholdSettingsSection({
   return (
     <FieldGroup title={t('Threshold Settings')}>
       <AutoSaveForm
+        key={`metric-${resetVersion}`}
         name="metric"
         schema={thresholdSettingsSchema}
         initialValue={
@@ -1193,6 +1203,7 @@ function ThresholdSettingsSection({
       </AutoSaveForm>
 
       <AutoSaveForm
+        key={`threshold-${resetVersion}`}
         name="threshold"
         schema={thresholdSettingsSchema}
         initialValue={threshold.threshold ?? ''}
@@ -1461,10 +1472,20 @@ export function ProjectPerformance() {
   const organization = useOrganization();
   const {projectId: projectSlug} = useParams<{projectId: string}>();
   const queryClient = useQueryClient();
+  const [thresholdResetVersion, setThresholdResetVersion] = useState(0);
   const [detectorResetVersion, setDetectorResetVersion] = useState(0);
 
   const thresholdEndpoint = `/projects/${organization.slug}/${projectSlug}/transaction-threshold/configure/`;
   const performanceIssuesEndpoint = `/projects/${organization.slug}/${projectSlug}/performance-issues/configure/`;
+  const thresholdQueryOptions = getThresholdQueryOptions(organization.slug, projectSlug);
+  const performanceIssueSettingsQueryOptions = getPerformanceIssueSettingsQueryOptions(
+    organization.slug,
+    projectSlug
+  );
+  const generalSettingsQueryOptions = getGeneralSettingsQueryOptions(
+    organization.slug,
+    projectSlug
+  );
 
   const {
     data: project,
@@ -1482,43 +1503,19 @@ export function ProjectPerformance() {
     data: threshold,
     isPending: isPendingThreshold,
     isError: isErrorThreshold,
-  } = useQuery(
-    apiOptions.as<ProjectThreshold>()(
-      '/projects/$organizationIdOrSlug/$projectIdOrSlug/transaction-threshold/configure/',
-      {
-        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
-        staleTime: 0,
-      }
-    )
-  );
+  } = useQuery(thresholdQueryOptions);
 
   const {
     data: performanceIssueSettings,
     isPending: isPendingPerformanceIssueSettings,
     isError: isErrorPerformanceIssueSettings,
-  } = useQuery(
-    apiOptions.as<ProjectPerformanceSettings>()(
-      '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance-issues/configure/',
-      {
-        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
-        staleTime: 0,
-      }
-    )
-  );
+  } = useQuery(performanceIssueSettingsQueryOptions);
 
   const {
     data: general,
     isPending: isPendingGeneral,
     isError: isErrorGeneral,
-  } = useQuery(
-    apiOptions.as<GeneralSettings>()(
-      '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance/configure/',
-      {
-        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
-        staleTime: 0,
-      }
-    )
-  );
+  } = useQuery(generalSettingsQueryOptions);
 
   const {mutate: resetThresholdSettings, isPending: isPendingResetThresholdSettings} =
     useMutation({
@@ -1528,19 +1525,9 @@ export function ProjectPerformance() {
           organization,
         });
       },
-      onSuccess: () => {
-        queryClient.fetchQuery(
-          apiOptions.as<ProjectThreshold>()(
-            '/projects/$organizationIdOrSlug/$projectIdOrSlug/transaction-threshold/configure/',
-            {
-              path: {
-                organizationIdOrSlug: organization.slug,
-                projectIdOrSlug: projectSlug,
-              },
-              staleTime: 0,
-            }
-          )
-        );
+      onSuccess: async () => {
+        await queryClient.fetchQuery(thresholdQueryOptions);
+        setThresholdResetVersion(version => version + 1);
       },
     });
 
@@ -1553,15 +1540,7 @@ export function ProjectPerformance() {
       });
     },
     onSuccess: async () => {
-      await queryClient.fetchQuery(
-        apiOptions.as<ProjectPerformanceSettings>()(
-          '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance-issues/configure/',
-          {
-            path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
-            staleTime: 0,
-          }
-        )
-      );
+      await queryClient.fetchQuery(performanceIssueSettingsQueryOptions);
       setDetectorResetVersion(version => version + 1);
     },
   });
@@ -1610,6 +1589,7 @@ export function ProjectPerformance() {
         hasWriteAccess={hasWriteAccess}
         isResetting={isPendingResetThresholdSettings}
         onResetAll={() => resetThresholdSettings()}
+        resetVersion={thresholdResetVersion}
       />
       <SamplingPrioritiesSection project={project} hasWriteAccess={hasWriteAccess} />
       {isActiveSuperuser() && (

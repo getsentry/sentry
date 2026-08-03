@@ -199,8 +199,23 @@ describe('projectPerformance', () => {
       initialRouterConfig,
     });
 
+    const input = await screen.findByRole('textbox', {
+      name: 'Response Time Threshold (ms)',
+    });
+    await userEvent.clear(input);
+    await userEvent.type(input, '400');
+    await userEvent.tab();
+    expect(input).toHaveValue('400');
+
     await userEvent.click(await screen.findByRole('button', {name: 'Reset All'}));
-    expect(deleteMock).toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(deleteMock).toHaveBeenCalled();
+      expect(getMock).toHaveBeenCalledTimes(2);
+      expect(
+        screen.getByRole('textbox', {name: 'Response Time Threshold (ms)'})
+      ).toHaveValue('300');
+    });
   });
 
   it('renders detector threshold configuration - admin ui', async () => {
