@@ -193,7 +193,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
             gap="md"
             width="100%"
           >
-            <Container area="filters" justifySelf={{zero: 'stretch', xl: 'start'}}>
+            <Container area="filters" justifySelf={{zero: 'stretch', sm: 'start'}}>
               <StyledPageFilterBar condensed>
                 <ProjectPageFilter />
                 <EnvironmentPageFilter />
@@ -212,12 +212,12 @@ const LogsSearchSection = memo(function LogsSearchSection({
               <Flex
                 area="actions"
                 align="start"
-                justifySelf={{zero: 'stretch', xl: 'end'}}
+                justifySelf={{zero: 'stretch', sm: 'end'}}
               >
                 <DropdownMenu
                   items={saveAsItems}
                   trigger={triggerProps => (
-                    <Container width={{zero: '100%', xl: 'auto'}}>
+                    <Container width={{zero: '100%', sm: 'auto'}}>
                       {buttonProps => (
                         <Button
                           {...buttonProps}
