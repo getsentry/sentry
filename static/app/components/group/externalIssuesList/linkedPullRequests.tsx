@@ -32,6 +32,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {
   getPullRequestStatusLabel,
+  PullRequestChecksBadge,
   PullRequestStatusBadge,
 } from './pullRequestStatusBadge';
 
@@ -99,6 +100,7 @@ function LinkedPullRequestRow({
           trackAnalytics('issue_details.external_issue_pull_request_clicked', {
             organization,
             attribution_type: pullRequest.attribution?.type,
+            checks_status: pullRequest.checksStatus,
             pull_request_id: pullRequest.id,
             pull_request_status: pullRequest.status,
             repository_id: pullRequest.repository.id,
@@ -126,6 +128,9 @@ function LinkedPullRequestRow({
             </PullRequestTitle>
             <Flex align="center" gap="xs">
               <PullRequestStatusBadge status={pullRequest.status} />
+              {pullRequest.checksStatus && (
+                <PullRequestChecksBadge status={pullRequest.checksStatus} />
+              )}
               {pullRequest.attribution ? (
                 <PullRequestAttributionAvatar attribution={pullRequest.attribution} />
               ) : author ? (
@@ -229,6 +234,7 @@ export function useLinkedPullRequests({group}: {group: Group}) {
       '/organizations/$organizationIdOrSlug/issues/$issueId/pull-requests/',
       {
         path: {organizationIdOrSlug: organization.slug, issueId: group.id},
+        query: {expand: 'checksAndReview'},
         staleTime: 30_000,
       }
     )

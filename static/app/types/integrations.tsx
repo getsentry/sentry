@@ -163,8 +163,11 @@ type SeerAttribution = {
 
 export type PullRequestAttribution = SeerAttribution;
 
+export type PullRequestChecksStatus = 'success' | 'failure' | 'pending';
+
 export interface LinkedPullRequest extends Omit<PullRequest, 'author'> {
   attribution: PullRequestAttribution | null;
+  checksStatus: PullRequestChecksStatus | null;
   dateLinked: string;
   status: PullRequestStatus;
   author?: PullRequestAuthor;
