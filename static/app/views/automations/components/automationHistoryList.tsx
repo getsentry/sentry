@@ -128,6 +128,7 @@ export function AutomationHistoryList({
                   <PlatformIcon
                     platform={row.group.project.platform ?? 'default'}
                     size={16}
+                    alt=""
                   />
                   <TruncatedText>
                     {row.group.title ? row.group.title : `#${row.group.id}`}

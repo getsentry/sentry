@@ -463,6 +463,7 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
                 : AGENT_INTEGRATION_ICONS[integration]
             }
             size={16}
+            alt=""
           />
         ),
       })),
