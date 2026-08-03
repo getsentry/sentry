@@ -709,14 +709,7 @@ def test_pr_close_with_remaining_keeps_fix_proposed() -> None:
     )
 
 
-@pytest.mark.parametrize(
-    "action_type",
-    [
-        GroupActionType.PULL_REQUEST_MERGED,
-        GroupActionType.PULL_REQUEST_UNLINKED,
-    ],
-)
-def test_pr_merged_or_unlinked_demotes_when_no_open_prs_remain(action_type: int) -> None:
+def test_pr_merged_advances_to_fix_applied() -> None:
     assert (
         _run_for_feature(
             PROGRESS,
@@ -727,23 +720,16 @@ def test_pr_merged_or_unlinked_demotes_when_no_open_prs_remain(action_type: int)
                     data=_resolved_pr_data(101),
                 ),
                 FakeEntry(
-                    type=action_type,
+                    type=GroupActionType.PULL_REQUEST_MERGED,
                     data={"pull_request": 101, "has_other_open_prs": False},
                 ),
             ],
         )
-        == IssueProgressState.DIAGNOSED
+        == IssueProgressState.FIX_APPLIED
     )
 
 
-@pytest.mark.parametrize(
-    "action_type",
-    [
-        GroupActionType.PULL_REQUEST_MERGED,
-        GroupActionType.PULL_REQUEST_UNLINKED,
-    ],
-)
-def test_pr_merged_or_unlinked_with_remaining_keeps_fix_proposed(action_type: int) -> None:
+def test_pr_unlinked_demotes_when_no_open_prs_remain() -> None:
     assert (
         _run_for_feature(
             PROGRESS,
@@ -753,13 +739,78 @@ def test_pr_merged_or_unlinked_with_remaining_keeps_fix_proposed(action_type: in
                     data=_resolved_pr_data(101),
                 ),
                 FakeEntry(
-                    type=action_type,
+                    type=GroupActionType.PULL_REQUEST_UNLINKED,
+                    data={"pull_request": 101, "has_other_open_prs": False},
+                ),
+            ],
+        )
+        == IssueProgressState.IDENTIFIED
+    )
+
+
+def test_pr_unlinked_with_remaining_keeps_fix_proposed() -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+                    data=_resolved_pr_data(101),
+                ),
+                FakeEntry(
+                    type=GroupActionType.PULL_REQUEST_UNLINKED,
                     data={"pull_request": 101, "has_other_open_prs": True},
                 ),
             ],
         )
         == IssueProgressState.FIX_PROPOSED
     )
+
+
+def test_merged_fix_persists_across_unrelated_actions() -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+                    data=_resolved_pr_data(101),
+                ),
+                FakeEntry(
+                    type=GroupActionType.PULL_REQUEST_MERGED,
+                    data={"pull_request": 101, "has_other_open_prs": False},
+                ),
+                FakeEntry(type=GroupActionType.ASSIGN),
+            ],
+        )
+        == IssueProgressState.FIX_APPLIED
+    )
+
+
+def test_merged_fix_resets_after_closed_issue_regresses() -> None:
+    p = _pipeline(targets=(PROGRESS,))
+    state = p.initial_state()
+    state = p.step(
+        state,
+        FakeEntry(
+            type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+            data=_resolved_pr_data(101),
+        ),
+    )
+    state = p.step(
+        state,
+        FakeEntry(
+            type=GroupActionType.PULL_REQUEST_MERGED,
+            data={"pull_request": 101, "has_other_open_prs": False},
+        ),
+    )
+    assert state[PROGRESS] == IssueProgressState.FIX_APPLIED
+
+    state = p.step(state, FakeEntry(type=GroupActionType.SET_RESOLVED_IN_COMMIT))
+    assert state[PROGRESS] is None
+
+    state = p.step(state, FakeEntry(type=GroupActionType.SET_REGRESSED))
+    assert state[PROGRESS] == IssueProgressState.IDENTIFIED
 
 
 def test_pr_reopened_restores_fix_proposed() -> None:
