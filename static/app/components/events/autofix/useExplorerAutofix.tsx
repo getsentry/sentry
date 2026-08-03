@@ -227,6 +227,7 @@ export interface ExplorerAutofixState {
  */
 export interface ExplorerAutofixResponse {
   autofix: ExplorerAutofixState | null;
+  formatted?: {content: string; format: string};
 }
 
 const POLL_INTERVAL = 1000;
@@ -236,7 +237,7 @@ function explorerAutofixApiOptions(orgSlug: string, groupId: string) {
     '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/',
     {
       path: {organizationIdOrSlug: orgSlug, issueId: groupId},
-      query: {mode: 'explorer'},
+      query: {mode: 'explorer', llmFormat: 'markdown'},
       staleTime: 0,
     }
   );
@@ -941,6 +942,10 @@ export function useExplorerAutofix(
      * Current autofix run state, or null if no run exists.
      */
     runState,
+    /**
+     * Formatted markdown for LLM prompts
+     */
+    autofixFormatted: apiData?.formatted?.content ?? null,
     /**
      * Whether we're fetching without an existing run to display.
      * This includes background refetches of a cached null response so callers do not
