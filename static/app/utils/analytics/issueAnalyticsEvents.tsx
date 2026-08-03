@@ -4,6 +4,7 @@ import type {
   IntegrationType,
   PullRequestAttribution,
   PullRequestChecksStatus,
+  PullRequestReviewStatus,
 } from 'sentry/types/integrations';
 import type {Broadcast} from 'sentry/types/system';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
@@ -46,6 +47,7 @@ interface ExternalIssuePullRequestParams extends CommonGroupAnalyticsData {
   pull_request_status: string;
   repository_id: string;
   repository_provider: string;
+  review_status: PullRequestReviewStatus | null;
   attribution_type?: PullRequestAttribution['type'];
 }
 
