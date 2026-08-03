@@ -33,6 +33,7 @@ from sentry.workflow_engine.processors.evaluations.workflow import (
 )
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.types import (
+    WORKFLOW_EVALUATION_DEFERRED,
     WorkflowEvaluationResult,
     WorkflowEventData,
     WorkflowId,
@@ -463,7 +464,7 @@ def _build_workflow_evaluations(
     for workflow, trigger_eval in trigger_evals.items():
         delayed_item = delayed_items.get(workflow)
         if delayed_item:
-            result: WorkflowEvaluationResult = "deferred"
+            result: WorkflowEvaluationResult = WORKFLOW_EVALUATION_DEFERRED
             deferred: DeferredWorkflowEvaluationData | None = {
                 "delayed_when_group_id": delayed_item.delayed_when_group_id,
                 "delayed_if_group_ids": sorted(delayed_item.delayed_if_group_ids),
@@ -633,7 +634,7 @@ def process_workflows(
     sentry_sdk.set_tag("workflow_engine.triggered_actions", triggered_action_count)
     sentry_sdk.set_attribute("workflow_engine.triggered_actions", triggered_action_count)
 
-    if actions:
+    if triggered_action_count:
         fire_histories = create_workflow_fire_histories(
             actions,
             event_data,

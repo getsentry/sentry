@@ -124,6 +124,17 @@ class TestWorkflowEvaluationArtifact(TestCase):
         }
         assert "user@example.com" not in str(artifact)
 
+    def test_condition_artifact_includes_string_input(self) -> None:
+        condition = self.create_data_condition()
+        evaluation = DataConditionEvaluation(
+            condition=condition,
+            result=True,
+            triggered=True,
+            data="production",
+        )
+
+        assert evaluation.to_artifact()["input"] == "production"
+
     def test_emitter_always_logs_with_feature_enabled(self) -> None:
         evaluation = self._build_evaluation()
         mock_logger = mock.MagicMock()

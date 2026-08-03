@@ -4,16 +4,22 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import TypedDict
 
-from sentry.workflow_engine.types import WorkflowEvaluationResult, WorkflowEventData, WorkflowId
+from sentry.workflow_engine.types import (
+    WORKFLOW_EVALUATION_DEFERRED,
+    DataConditionGroupId,
+    WorkflowEvaluationResult,
+    WorkflowEventData,
+    WorkflowId,
+)
 
 from .base import BaseWorkflowEngineEvaluation
 from .condition_group import DataConditionGroupEvaluation
 
 
 class DeferredWorkflowEvaluationData(TypedDict):
-    delayed_when_group_id: int | None
-    delayed_if_group_ids: list[int]
-    passing_if_group_ids: list[int]
+    delayed_when_group_id: DataConditionGroupId | None
+    delayed_if_group_ids: list[DataConditionGroupId]
+    passing_if_group_ids: list[DataConditionGroupId]
 
 
 class WorkflowEvaluationData(TypedDict):
@@ -56,8 +62,8 @@ class WorkflowEvaluation(
     detector_id: int
     detector_type: str
 
-    def to_artifact(self) -> dict[str, object]:
-        if self.result == "deferred":
+    def _artifact_data(self) -> dict[str, object]:
+        if self.result == WORKFLOW_EVALUATION_DEFERRED:
             result_type = "deferred"
             triggered_action_ids: list[int] = []
         else:
@@ -67,7 +73,6 @@ class WorkflowEvaluation(
         event_data = self.data["event"]
         event_id = getattr(event_data.event, "event_id", None)
         return {
-            **self._base_artifact(),
             "workflow_id": self.workflow_id,
             "detector_id": self.detector_id,
             "detector_type": self.detector_type,
@@ -85,6 +90,6 @@ class WorkflowEvaluation(
 
 def has_triggered_actions(evaluations: Mapping[WorkflowId, WorkflowEvaluation]) -> bool:
     return any(
-        evaluation.result != "deferred" and bool(evaluation.result)
+        evaluation.result != WORKFLOW_EVALUATION_DEFERRED and bool(evaluation.result)
         for evaluation in evaluations.values()
     )
