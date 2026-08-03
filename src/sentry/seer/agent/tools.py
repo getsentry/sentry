@@ -2,7 +2,7 @@ import logging
 import time
 import uuid
 from datetime import UTC, datetime, timedelta, timezone
-from typing import Any, Literal, TypedDict, cast
+from typing import Any, Literal, TypedDict, cast, get_args
 
 from django.core.exceptions import BadRequest
 from django.db import models
@@ -2111,14 +2111,11 @@ def get_event_details(
             if include_breadcrumbs
             else [section for section in EVENT_SECTIONS if section is not breadcrumbs_section]
         )
-        # `format` arrives as an unvalidated RPC argument, so an unknown value would otherwise
-        # escape as a ValueError and surface as a 500 on the internal endpoint
-        try:
-            formatted = format_issue(
-                serialized_event, format=format, sections=sections, limits=limits
-            )
-        except ValueError as e:
-            raise ParseError(str(e)) from e
+        # `format` arrives as an unvalidated RPC argument; reject unknown values here so they
+        # surface as a 400 rather than escaping get_formatter as a ValueError -> 500
+        if format not in get_args(Format):
+            raise ParseError(f"Unsupported format: {format!r}")
+        formatted = format_issue(serialized_event, format=format, sections=sections, limits=limits)
 
     return EventDetailsResponse(
         event=serialized_event,
