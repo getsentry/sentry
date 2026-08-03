@@ -486,23 +486,24 @@ export function StreamGroup({
     return group.filtered ? group.stats?.[statsPeriod]! : [];
   }, [group, statsPeriod]);
 
-  const getDiscoverUrl = (isFiltered?: boolean): LocationDescriptor => {
-    // when there is no discover feature open events page
-    const hasDiscoverQuery = organization.features.includes('discover-basic');
+  const hasFilteredStats = Boolean(group.filtered);
+  const [discoverUrl, filteredDiscoverUrl] = useMemo(() => {
+    const buildDiscoverUrl = (filteredQuery: string): LocationDescriptor => {
+      const commonQuery = {projects: [Number(group.project.id)]};
 
-    const parsedResult = parseSearch(
-      isFiltered && typeof query === 'string' ? query : ''
-    );
-    const filteredTerms = parsedResult?.filter(
-      p => !(p.type === Token.FILTER && DISCOVER_EXCLUSION_FIELDS.includes(p.key.text))
-    );
-    const filteredQuery = joinQuery(filteredTerms, true);
+      // When there is no Discover feature, open the events page.
+      if (!organization.features.includes('discover-basic')) {
+        return {
+          pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
+          query: {
+            referrer,
+            ...commonQuery,
+            query: filteredQuery,
+          },
+        };
+      }
 
-    const commonQuery = {projects: [Number(group.project.id)]};
-
-    if (hasDiscoverQuery) {
       const stats = customStatsPeriod ?? (selection.datetime || {});
-
       const discoverQuery: NewQuery = {
         ...commonQuery,
         id: undefined,
@@ -529,17 +530,33 @@ export function StreamGroup({
         false,
         hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
       );
+    };
+
+    const unfilteredUrl = buildDiscoverUrl('');
+    if (!hasFilteredStats || !query) {
+      return [unfilteredUrl, unfilteredUrl] as const;
     }
 
-    return {
-      pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
-      query: {
-        referrer,
-        ...commonQuery,
-        query: filteredQuery,
-      },
-    };
-  };
+    const parsedResult = parseSearch(query);
+    const filteredTerms = parsedResult?.filter(
+      p => !(p.type === Token.FILTER && DISCOVER_EXCLUSION_FIELDS.includes(p.key.text))
+    );
+    const filteredQuery = joinQuery(filteredTerms, true);
+
+    return [unfilteredUrl, buildDiscoverUrl(filteredQuery)] as const;
+  }, [
+    customStatsPeriod,
+    group.id,
+    group.project.id,
+    group.shortId,
+    group.title,
+    group.type,
+    hasFilteredStats,
+    organization,
+    query,
+    referrer,
+    selection.datetime,
+  ]);
 
   const renderReprocessingColumns = () => {
     const {statusDetails, count} = group as GroupReprocessing;
@@ -623,44 +640,42 @@ export function StreamGroup({
   );
 
   const groupCount = (
-    <GuideAnchor target="dynamic_counts" disabled={!hasGuideAnchor}>
-      <Tooltip
-        disabled={!useFilteredStats}
-        isHoverable
-        title={
-          <CountTooltipContent>
-            <h4>{issueTypeConfig.customCopy.eventUnits}</h4>
-            {group.filtered && (
-              <Fragment>
-                <div>{queryFilterDescription ?? t('Matching filters')}</div>
-                <Link to={getDiscoverUrl(true)}>
-                  <Count value={group.filtered?.count} />
-                </Link>
-              </Fragment>
-            )}
+    <Tooltip
+      disabled={!useFilteredStats}
+      isHoverable
+      title={
+        <CountTooltipContent>
+          <h4>{issueTypeConfig.customCopy.eventUnits}</h4>
+          {group.filtered && (
             <Fragment>
-              <div>{t('Total in %s', summary)}</div>
-              <Link to={getDiscoverUrl()}>
-                <Count value={group.count} />
+              <div>{queryFilterDescription ?? t('Matching filters')}</div>
+              <Link to={filteredDiscoverUrl}>
+                <Count value={group.filtered?.count} />
               </Link>
             </Fragment>
-            {group.lifetime && (
-              <Fragment>
-                <div>{t('Since issue began')}</div>
-                <Count value={group.lifetime.count} />
-              </Fragment>
-            )}
-          </CountTooltipContent>
-        }
-      >
-        <Stack position="relative">
-          <PrimaryCount value={primaryCount} />
-          {secondaryCount !== undefined && useFilteredStats && (
-            <SecondaryCount value={secondaryCount} />
           )}
-        </Stack>
-      </Tooltip>
-    </GuideAnchor>
+          <Fragment>
+            <div>{t('Total in %s', summary)}</div>
+            <Link to={discoverUrl}>
+              <Count value={group.count} />
+            </Link>
+          </Fragment>
+          {group.lifetime && (
+            <Fragment>
+              <div>{t('Since issue began')}</div>
+              <Count value={group.lifetime.count} />
+            </Fragment>
+          )}
+        </CountTooltipContent>
+      }
+    >
+      <Stack position="relative">
+        <PrimaryCount value={primaryCount} />
+        {secondaryCount !== undefined && useFilteredStats && (
+          <SecondaryCount value={secondaryCount} />
+        )}
+      </Stack>
+    </Tooltip>
   );
 
   const groupUsersCount = (
@@ -673,14 +688,14 @@ export function StreamGroup({
           {group.filtered && (
             <Fragment>
               <div>{queryFilterDescription ?? t('Matching filters')}</div>
-              <Link to={getDiscoverUrl(true)}>
+              <Link to={filteredDiscoverUrl}>
                 <Count value={group.filtered?.userCount} />
               </Link>
             </Fragment>
           )}
           <Fragment>
             <div>{t('Total in %s', summary)}</div>
-            <Link to={getDiscoverUrl()}>
+            <Link to={discoverUrl}>
               <Count value={group.userCount} />
             </Link>
           </Fragment>

@@ -51,11 +51,11 @@ describe('StreamGroup', () => {
     jest.mocked(trackAnalytics).mockClear();
   });
 
-  it('renders with anchors', async () => {
+  it('registers the issue stream guide anchor', async () => {
     render(<StreamGroup group={group1} hasGuideAnchor />);
 
     expect(await screen.findByTestId('group')).toBeInTheDocument();
-    expect(GuideStore.state.anchors).toEqual(new Set(['dynamic_counts', 'issue_stream']));
+    expect(GuideStore.state.anchors).toEqual(new Set(['issue_stream']));
   });
 
   it('shows not reviewed when group has inbox reason', async () => {
