@@ -200,8 +200,13 @@ export function getProjectDetectorSettings({
     : null;
   const issueType = safeGetQsParam('issueType');
 
-  const getDisabled = ({disabled, disabledReason: reason}: DetectorDefinition) =>
-    isResetting || disabled ? (reason ?? true) : false;
+  const getDisabled = ({disabled, disabledReason: reason}: DetectorDefinition) => {
+    if (isResetting) {
+      return true;
+    }
+
+    return disabled ? (reason ?? true) : false;
+  };
   const getNumberSetting = (name: DetectorConfigCustomer, defaultValue: number) => {
     const value = performanceIssueSettings[name];
     return typeof value === 'number' ? value : defaultValue;
