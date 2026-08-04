@@ -160,7 +160,7 @@ export function DetectorListTable({
   const hasVisualization = defined(renderVisualization);
 
   return (
-    <Container containerType="inline-size">
+    <Container>
       <DetectorListSimpleTable
         hasVisualization={hasVisualization}
         isVisualizationExpanded={isVisualizationExpanded}
