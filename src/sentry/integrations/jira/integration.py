@@ -339,10 +339,7 @@ class JiraIntegration(IssueSyncIntegration):
                 },
                 "mappedColumnLabel": _("Jira Project"),
                 "formatMessageValue": False,
-                # Removing a mapping requires an explicit `{"<project id>": null}` tombstone
-                # rather than dropping the key. Without this, the form treats the value it
-                # submits as the complete desired state, which lets a truncated read delete
-                # mappings the user never saw.
+                # For the frontend form to support explicit removals (upsert + tombstone)
                 "supportsExplicitRemovals": True,
             },
             {
