@@ -5,7 +5,6 @@ import * as qs from 'query-string';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 
 import {openBulkEditMonitorsModal} from 'sentry/actionCreators/modal';
@@ -18,16 +17,13 @@ import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
-import {
-  extractSelectionParameters,
-  normalizeDateTimeParams,
-} from 'sentry/components/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconList} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -35,7 +31,6 @@ import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnaly
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {makeMonitorTypePathname} from 'sentry/views/detectors/pathnames';
 import {CronsLandingPanel} from 'sentry/views/insights/crons/components/cronsLandingPanel';
 import {NewMonitorButton} from 'sentry/views/insights/crons/components/newMonitorButton';
 import {OverviewTimeline} from 'sentry/views/insights/crons/components/overviewTimeline';
@@ -147,26 +142,6 @@ function CronsOverview() {
           </Filters>
           <Alert.Container>
             <GlobalMonitorProcessingErrors project={project} />
-            {organization.features.includes('workflow-engine-ui') && (
-              <Alert variant="info" showIcon>
-                {tct(
-                  'Cron Monitors are moving to [link:Monitors]. Head over there for the same functionality in a new home.',
-                  {
-                    link: (
-                      <Link
-                        to={{
-                          pathname: makeMonitorTypePathname(
-                            organization.slug,
-                            'monitor_check_in_failure'
-                          ),
-                          query: extractSelectionParameters(location.query),
-                        }}
-                      />
-                    ),
-                  }
-                )}
-              </Alert>
-            )}
           </Alert.Container>
           {isPending ? (
             <LoadingIndicator />
