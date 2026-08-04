@@ -1518,7 +1518,7 @@ class JiraIntegrationTest(APITestCase):
 
         with patch.object(
             IntegrationExternalProject.objects,
-            "create",
+            "bulk_create",
             side_effect=OSError("boom"),
         ):
             with pytest.raises(OSError):
