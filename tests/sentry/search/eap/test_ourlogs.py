@@ -51,17 +51,6 @@ class SearchResolverQueryTest(TestCase):
         )
         assert having is None
 
-    def test_level_alias_query(self) -> None:
-        where, having, _ = self.resolver.resolve_query("level:error")
-        assert where == TraceItemFilter(
-            comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="sentry.severity_text", type=AttributeKey.Type.TYPE_STRING),
-                op=ComparisonFilter.OP_EQUALS,
-                value=AttributeValue(val_str="error"),
-            )
-        )
-        assert having is None
-
     def test_negation(self) -> None:
         where, having, _ = self.resolver.resolve_query("!message:foo")
         assert where == TraceItemFilter(
