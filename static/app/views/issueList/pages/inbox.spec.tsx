@@ -134,6 +134,7 @@ describe('InboxPage', () => {
   afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
+    localStorage.removeItem('inbox-split-size');
   });
 
   function mockSection(
@@ -331,6 +332,17 @@ describe('InboxPage', () => {
     const progressStatus = await screen.findByText('Fix Proposed', {selector: 'strong'});
     expect(progressStatus.parentElement).toHaveTextContent('Changed to Fix Proposed');
     expect(screen.queryByRole('button', {name: '7D'})).not.toBeInTheDocument();
+  });
+
+  it('restores the persisted Inbox pane width', () => {
+    localStorage.setItem('inbox-split-size', '550');
+    mockSuccessfulSections();
+
+    render(<InboxPage />, {organization, initialRouterConfig});
+
+    expect(screen.getByRole('region', {name: 'Issue inbox'})).toHaveStyle({
+      width: '550px',
+    });
   });
 
   it('hides the Diagnosed section without a paid Seer plan', async () => {
