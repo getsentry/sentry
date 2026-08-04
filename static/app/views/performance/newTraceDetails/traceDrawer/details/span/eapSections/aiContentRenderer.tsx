@@ -1,9 +1,10 @@
 import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
 import {
@@ -29,18 +30,30 @@ interface AIContentRendererProps {
 
 function XmlTagBlock({
   tagName,
+  attributes,
   content,
   collapsible,
 }: {
+  attributes: string;
   content: string;
   tagName: string;
   collapsible?: boolean;
 }) {
   const theme = useTheme();
+  // Show the tag as it appears in the raw text (name + attributes), kept to a
+  // single line with an ellipsis and a tooltip when it overflows.
+  const rawTag = `<${tagName}${attributes}>`;
   const label = (
-    <Text size={collapsible ? 'md' : 'xs'} variant="muted">
-      {tagName}
-    </Text>
+    <Flex flex="1" minWidth={0}>
+      {/* Not InfoText: it repurposes `variant` for the tooltip underline, so it
+          can't render the label in the muted text color used here. */}
+      {/* eslint-disable-next-line @sentry/scraps/prefer-info-text */}
+      <Tooltip title={rawTag} showOnlyOnOverflow skipWrapper>
+        <Text size={collapsible ? 'md' : 'xs'} variant="muted" ellipsis>
+          {rawTag}
+        </Text>
+      </Tooltip>
+    </Flex>
   );
   const body = (
     <MarkdownWithXmlRenderer text={content} collapsibleXmlTags={collapsible} />
@@ -89,6 +102,7 @@ function MarkdownWithXmlRenderer({
           <XmlTagBlock
             key={i}
             tagName={segment.tagName}
+            attributes={segment.attributes}
             content={segment.content}
             collapsible={collapsibleXmlTags}
           />
