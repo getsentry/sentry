@@ -2,17 +2,83 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Markdown} from '@sentry/scraps/markdown';
+import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
+import {StructuredData} from 'sentry/components/structuredEventData';
+import {getDefaultExpanded} from 'sentry/components/structuredEventData/utils';
 import {
   detectAIContentType,
   parseXmlTagSegments,
   preprocessInlineXmlTags,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {parseJsonWithFix} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+
+// Sensible defaults for JSON embedded in a larger message, distinct from a
+// whole-message JSON payload (which threads its own depth/collapse settings).
+const EMBEDDED_JSON_MAX_DEPTH = 2;
+const EMBEDDED_JSON_AUTO_COLLAPSE_LIMIT = 5;
+
+const STRUCTURED_DATA_CONFIG = {
+  isString: (v: unknown) => typeof v === 'string',
+  isBoolean: (v: unknown) => typeof v === 'boolean',
+  isNumber: (v: unknown) => typeof v === 'number',
+};
+
+/** Parses JSON leniently; returns null if the content isn't a JSON object/array. */
+function parseJson(raw: string): unknown {
+  try {
+    const parsed = JSON.parse(raw);
+    return typeof parsed === 'object' && parsed !== null ? parsed : null;
+  } catch {
+    const {parsed, fixedInvalidJson} = parseJsonWithFix(raw);
+    return fixedInvalidJson && typeof parsed === 'object' && parsed !== null
+      ? parsed
+      : null;
+  }
+}
+
+/** Renders a parsed JSON value as an interactive tree, without any surrounding chrome. */
+function JsonTree({value}: {value: unknown}) {
+  const initialExpandedPaths = Array.from(
+    new Set([
+      '$',
+      ...getDefaultExpanded(
+        EMBEDDED_JSON_MAX_DEPTH,
+        value,
+        EMBEDDED_JSON_AUTO_COLLAPSE_LIMIT
+      ),
+    ])
+  );
+  return (
+    <StructuredData
+      config={STRUCTURED_DATA_CONFIG}
+      value={value}
+      maxDefaultDepth={EMBEDDED_JSON_MAX_DEPTH}
+      autoCollapseLimit={EMBEDDED_JSON_AUTO_COLLAPSE_LIMIT}
+      initialExpandedPaths={initialExpandedPaths}
+      withAnnotatedText
+    />
+  );
+}
+
+// Renders ```json code blocks as an interactive JSON tree, falling back to a
+// highlighted code block when the content isn't valid JSON. Only fenced code
+// blocks are handled; inline `code` spans are left untouched.
+const markdownComponents: MarkdownProps['components'] = {
+  CodeBlock: ({children, lang, Default}) => {
+    if (lang?.toLowerCase() === 'json') {
+      const parsed = parseJson(children);
+      if (parsed !== null) {
+        return <JsonTree value={parsed} />;
+      }
+    }
+    return <Default lang={lang}>{children}</Default>;
+  },
+};
 
 interface AIContentRendererProps {
   text: string;
@@ -107,7 +173,7 @@ function MarkdownWithXmlRenderer({
             collapsible={collapsibleXmlTags}
           />
         ) : (
-          <Markdown key={i} raw={segment.content} />
+          <Markdown key={i} raw={segment.content} components={markdownComponents} />
         )
       )}
     </Fragment>
@@ -165,10 +231,15 @@ export function AIContentRenderer({
 
     case 'markdown':
       if (inline) {
-        return <Markdown raw={text} />;
+        return <Markdown raw={text} components={markdownComponents} />;
       }
       return (
-        <TraceDrawerComponents.MultilineText clip={clipText}>
+        <TraceDrawerComponents.MultilineText
+          clip={clipText}
+          renderFormatted={rawText => (
+            <Markdown raw={rawText} components={markdownComponents} />
+          )}
+        >
           {text}
         </TraceDrawerComponents.MultilineText>
       );
