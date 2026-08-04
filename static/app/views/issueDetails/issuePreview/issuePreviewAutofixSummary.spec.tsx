@@ -59,7 +59,28 @@ describe('IssuePreviewAutofixSummary', () => {
   it('renders summaries in the requested order with the first section expanded', async () => {
     const runState = ExplorerAutofixStateFixture({
       blocks: [
-        ExplorerAutofixBlockFixture({artifacts: [rootCauseArtifact]}),
+        ExplorerAutofixBlockFixture({
+          artifacts: [rootCauseArtifact],
+          message: {
+            content: 'Root cause complete',
+            metadata: {step: 'root_cause'},
+            role: 'assistant',
+            tool_calls: [{id: 'event-tool', function: 'get_event_details', args: '{}'}],
+          },
+          tool_results: [
+            {
+              tool_call_id: 'event-tool',
+              tool_call_function: 'get_event_details',
+              content: 'Event details',
+            },
+          ],
+          tool_links: [
+            {
+              kind: 'get_event_details',
+              params: {issue_id: '12345', event_id: 'abcd1234efgh5678'},
+            },
+          ],
+        }),
         ExplorerAutofixBlockFixture({
           id: 'solution',
           artifacts: [solutionArtifact],
@@ -103,7 +124,7 @@ describe('IssuePreviewAutofixSummary', () => {
       },
     });
 
-    render(<IssuePreviewAutofixSummary runState={runState} />);
+    render(<IssuePreviewAutofixSummary groupId="preview-group" runState={runState} />);
 
     expect(
       screen.getAllByRole('heading', {level: 3}).map(heading => heading.textContent)
@@ -161,11 +182,14 @@ describe('IssuePreviewAutofixSummary', () => {
     expect(
       within(rootCause).getByText('Request a user ID that does not exist.')
     ).toBeVisible();
+    expect(within(rootCause).getByText('Evidence')).toBeVisible();
+    expect(within(rootCause).getByText('Error: abcd1234')).toBeVisible();
   });
 
   it('renders only completed valid artifacts that exist in a partial run', () => {
     render(
       <IssuePreviewAutofixSummary
+        groupId="preview-group"
         runState={ExplorerAutofixStateFixture({
           blocks: [ExplorerAutofixBlockFixture({artifacts: [rootCauseArtifact]})],
         })}
@@ -186,6 +210,7 @@ describe('IssuePreviewAutofixSummary', () => {
   it('renders the section with a loading indicator while it is processing', () => {
     render(
       <IssuePreviewAutofixSummary
+        groupId="preview-group"
         runState={ExplorerAutofixStateFixture({
           blocks: [
             ExplorerAutofixBlockFixture({
@@ -235,7 +260,7 @@ describe('IssuePreviewAutofixSummary', () => {
       }),
     ],
   ])('renders nothing for a %s', (_label, runState) => {
-    render(<IssuePreviewAutofixSummary runState={runState} />);
+    render(<IssuePreviewAutofixSummary groupId="preview-group" runState={runState} />);
 
     expect(screen.queryByRole('region', {name: 'Proposal'})).not.toBeInTheDocument();
     expect(
