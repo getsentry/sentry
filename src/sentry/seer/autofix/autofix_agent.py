@@ -29,6 +29,7 @@ from sentry.analytics.events.autofix_events import (
 )
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory
 from sentry.integrations.services.integration import integration_service
+from sentry.scm import factory as scm_factory
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.artifact_schemas import (
@@ -334,6 +335,24 @@ def _get_group_run_state(client: SeerAgentClient, group: Group, run_id: int) -> 
 
     _validate_run_belongs_to_group(state, group)
     return state
+
+
+def _resolve_default_branch(
+    group: Group, repo: SeerRepoDefinition, referrer: AutofixReferrer
+) -> str | None:
+    if repo.repository_id is None:
+        return None
+
+    try:
+        scm = scm_factory.new(group.organization.id, repo.repository_id, referrer.value)
+        if isinstance(scm, GetRepositoryProtocol):
+            return scm.get_repository()["data"]["default_branch"]
+    except Exception:
+        logger.exception(
+            "autofix.resolve_default_branch_failed",
+            extra={"repo": f"{repo.owner}/{repo.name}", "group_id": group.id},
+        )
+    return None
 
 
 def _build_base_shas_metadata(group: Group, referrer: AutofixReferrer) -> str | None:
@@ -765,6 +784,9 @@ def trigger_coding_agent_handoff(
     state = _get_group_run_state(client, group, run_id)
 
     repo = _get_relevant_repo(state, repo_definitions, run_id, group)
+
+    if not repo.branch_name:
+        repo.branch_name = _resolve_default_branch(group, repo, referrer)
 
     short_id = group.qualified_short_id
     issue_url = group.get_absolute_url() if short_id else None
