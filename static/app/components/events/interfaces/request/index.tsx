@@ -148,46 +148,56 @@ export function Request({data, event}: RequestProps) {
     parsedUrl.href = fullUrl;
   }
 
+  let actions: React.ReactNode | null = null;
+
   const canGenerateCurlCommand = !isPartial && fullUrl;
 
-  const actions = (
-    <Flex gap="sm" align="center">
-      {canGenerateCurlCommand && (
-        <SegmentedControl
-          aria-label={t('View')}
-          size="xs"
-          value={view}
-          onChange={setView}
-        >
-          <SegmentedControl.Item key="formatted">
-            {/* Translators: this means "formatted" rendering (fancy tables) */}
-            {t('Formatted')}
-          </SegmentedControl.Item>
-          <SegmentedControl.Item key="curl" textValue="curl">
-            <Text monospace>curl</Text>
-          </SegmentedControl.Item>
-        </SegmentedControl>
-      )}
+  const shouldRenderCopyAsDropdown = fullUrl || parsedUrl?.pathname;
 
-      <CopyAsDropdown
-        size="xs"
-        items={[
-          {
-            key: 'fullUrl',
-            label: t('Full URL'),
-            onAction: () => copyToClipboard(fullUrl ?? ''),
-            disabled: !fullUrl,
-          },
-          {
-            key: 'path',
-            label: t('Path'),
-            onAction: () => copyToClipboard(parsedUrl?.pathname ?? ''),
-            disabled: !parsedUrl,
-          },
-        ]}
-      />
-    </Flex>
-  );
+  const shouldRenderActions = canGenerateCurlCommand || shouldRenderCopyAsDropdown;
+
+  if (shouldRenderActions) {
+    actions = (
+      <Flex gap="sm" align="center">
+        {canGenerateCurlCommand && (
+          <SegmentedControl
+            aria-label={t('View')}
+            size="xs"
+            value={view}
+            onChange={setView}
+          >
+            <SegmentedControl.Item key="formatted">
+              {/* Translators: this means "formatted" rendering (fancy tables) */}
+              {t('Formatted')}
+            </SegmentedControl.Item>
+            <SegmentedControl.Item key="curl" textValue="curl">
+              <Text monospace>curl</Text>
+            </SegmentedControl.Item>
+          </SegmentedControl>
+        )}
+
+        {shouldRenderCopyAsDropdown && (
+          <CopyAsDropdown
+            size="xs"
+            items={[
+              {
+                key: 'fullUrl',
+                label: t('Full URL'),
+                onAction: () => copyToClipboard(fullUrl ?? ''),
+                disabled: !fullUrl,
+              },
+              {
+                key: 'path',
+                label: t('Path'),
+                onAction: () => copyToClipboard(parsedUrl?.pathname ?? ''),
+                disabled: !parsedUrl?.pathname,
+              },
+            ]}
+          />
+        )}
+      </Flex>
+    );
+  }
 
   const title = (
     <TruncatedPathLink method={data.method} url={parsedUrl} fullUrl={fullUrl} />
