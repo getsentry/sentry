@@ -1,4 +1,4 @@
-from enum import StrEnum
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -12,14 +12,8 @@ class SolutionStep(BaseModel):
     )
 
 
-class Fixability(StrEnum):
-    FIXABLE = "fixable"
-    NEEDS_MORE_CONTEXT = "needs_more_context"
-    NOT_ACTIONABLE = "not_actionable"
-
-
 class FixabilityAssessment(BaseModel):
-    assessment: Fixability = Field(
+    assessment: Literal["fixable", "needs_more_context", "not_actionable"] = Field(
         description="Whether the root cause is fixable through code changes"
     )
     reason: str = Field(description="Brief explanation for the assessment")

@@ -5,6 +5,7 @@ from typing import Any
 from taskbroker_client.retry import Retry
 
 from sentry.auth import access
+from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
 from sentry.models.group import Group
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -46,7 +47,8 @@ def process_inbound_email(mailfrom: str, group_id: int, payload: str) -> None:
 
     form = NewNoteForm({"text": payload})
     if form.is_valid():
-        form.save(group, user)
+        with action_context_scope(ActionSource.EMAIL, GroupActionActor.user(user.id)):
+            form.save(group, user)
 
 
 class TemporaryEmailError(Exception):

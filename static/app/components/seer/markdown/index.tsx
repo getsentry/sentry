@@ -1,6 +1,8 @@
 import type {ReactNode} from 'react';
 import {createContext, Fragment, useContext} from 'react';
+import {css} from '@emotion/react';
 
+import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Heading} from '@sentry/scraps/text';
@@ -51,7 +53,21 @@ const SEER_EMBED_COMPONENTS: MarkdownProps['components'] = {
   Tag: ({name, data, level, Default, ...rest}) => {
     const Embed = SeerEmbedRegistry.get(name);
     if (Embed) {
-      return <Embed name={name} data={data} level={level} />;
+      const embed = <Embed name={name} data={data} level={level} />;
+      if (level === 'inline') {
+        return embed;
+      }
+      return (
+        <Container
+          css={theme => css`
+            &:last-child {
+              margin-bottom: ${theme.space['2xl']};
+            }
+          `}
+        >
+          {embed}
+        </Container>
+      );
     }
     return <Default name={name} data={data} level={level} {...rest} />;
   },

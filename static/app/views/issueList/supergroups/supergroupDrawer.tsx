@@ -360,8 +360,7 @@ function DrawerActionsBar({groupIds}: {groupIds: string[]}) {
     useIssueSelectionSummary();
 
   const selectedProjectSlug = useMemo(() => {
-    const projects = [...selectedIdsSet]
-      .map(id => GroupStore.get(id))
+    const projects = Array.from(selectedIdsSet, id => GroupStore.get(id))
       .filter((group): group is Group => !!group?.project)
       .map(group => group.project.slug);
     const uniqProjects = uniq(projects);

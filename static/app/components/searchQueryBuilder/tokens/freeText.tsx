@@ -1,4 +1,12 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
@@ -355,6 +363,7 @@ function SearchQueryBuilderInputInternal({
   rowRef,
 }: SearchQueryBuilderInputInternalProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const restoreFocusAfterBlurRef = useRef(false);
   const trimmedTokenValue = token.text.trim();
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState(trimmedTokenValue);
@@ -379,6 +388,7 @@ function SearchQueryBuilderInputInternal({
     placeholder,
     searchSource,
     recentSearches,
+    replaceRawSearchKeys,
   } = useSearchQueryBuilderConfig();
   const {currentInputValueRef} = useSearchQueryBuilderLayout();
   const {
@@ -423,6 +433,15 @@ function SearchQueryBuilderInputInternal({
     const collectionValue = collectionItem.value;
     return collectionValue?.type === Token.FILTER;
   });
+
+  useLayoutEffect(() => {
+    // React Aria only restores focus when the collection's focused key changes. A raw
+    // text blur updates this token in place, so restore the input focus explicitly.
+    if (restoreFocusAfterBlurRef.current && inputRef.current) {
+      restoreFocusAfterBlurRef.current = false;
+      inputRef.current.focus();
+    }
+  }, [trimmedTokenValue]);
 
   useEffect(() => {
     if (shouldReopenDropdownOnFocus && inputRef.current === document.activeElement) {
@@ -702,15 +721,24 @@ function SearchQueryBuilderInputInternal({
             new_experience: true,
           });
         }}
-        onCustomValueBlurred={value => {
+        onCustomValueBlurred={(value, event) => {
+          const focusOverride = calculateNextFocusForCommittedCustomValue({
+            currentFocusedKey: item.key.toString(),
+            value,
+          });
+          if (event) {
+            restoreFocusAfterBlurRef.current = Boolean(
+              replaceRawSearchKeys?.length &&
+              !focusOverride &&
+              !event.relatedTarget &&
+              value.trim() !== trimmedTokenValue
+            );
+          }
           dispatch({
             type: 'UPDATE_FREE_TEXT_ON_BLUR',
             tokens: [token],
             text: value,
-            focusOverride: calculateNextFocusForCommittedCustomValue({
-              currentFocusedKey: item.key.toString(),
-              value,
-            }),
+            focusOverride,
             shouldCommitQuery: false,
           });
           resetInputValue();

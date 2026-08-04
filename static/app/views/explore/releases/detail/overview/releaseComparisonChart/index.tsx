@@ -214,6 +214,7 @@ export function ReleaseComparisonChart({
               'event.type:error',
               `release:${release.version}`,
             ]).formatString(),
+            dataset: DiscoverDatasets.ERRORS,
             ...commonQuery,
           },
         }),
@@ -221,6 +222,7 @@ export function ReleaseComparisonChart({
           query: {
             field: ['count()'],
             query: new MutableSearch(['event.type:error']).formatString(),
+            dataset: DiscoverDatasets.ERRORS,
             ...commonQuery,
           },
         }),

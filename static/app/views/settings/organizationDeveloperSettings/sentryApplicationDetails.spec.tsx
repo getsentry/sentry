@@ -361,7 +361,7 @@ describe('Sentry Application Details', () => {
               ],
               events: ['issue.created'],
               scopes: ['event:read', 'event:write'],
-              isAlertable: false,
+              isAlertable: true,
               overview: '',
             }),
           })

@@ -70,7 +70,7 @@ describe('TraceLink', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: discoverBody,
-      match: [MockApiClient.matchQuery({dataset: 'discover'})],
+      match: [MockApiClient.matchQuery({dataset: 'errors'})],
     });
     render(<TraceLink event={event} />, {organization});
     expect(await screen.findByText('View Full Trace')).toBeInTheDocument();
