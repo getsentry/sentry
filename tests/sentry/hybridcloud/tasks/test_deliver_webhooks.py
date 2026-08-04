@@ -6,6 +6,8 @@ import orjson
 import pytest
 import responses
 from django.core.cache import cache
+from django.db import connections, router
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from requests.exceptions import ConnectionError, ReadTimeout
 
@@ -16,6 +18,7 @@ from sentry.hybridcloud.tasks.deliver_webhooks import (
     MAX_MAILBOX_DRAIN,
     PARALLEL_DRAIN_THRESHOLD,
     SLOW_DELIVERY_THRESHOLD,
+    _mailbox_needs_parallel_drain,
     drain_mailbox,
     drain_mailbox_parallel,
     maybe_trigger_drain,
@@ -1244,6 +1247,18 @@ class PushTriggerTest(TestCase):
 
         # Lock must be released so new webhooks and the scheduler can reach this mailbox
         assert cache.get(f"wh:drain_active:{mailbox}") is None
+
+    def test_depth_probe_query_is_bounded(self) -> None:
+        create_payloads(PARALLEL_DRAIN_THRESHOLD + 5, "github:123")
+        connection = connections[router.db_for_read(WebhookPayload)]
+
+        with CaptureQueriesContext(connection) as queries:
+            assert _mailbox_needs_parallel_drain("github:123") is True
+
+        # Mailboxes reach millions of rows, so the probe must stop at the threshold
+        # rather than counting the mailbox.
+        assert len(queries.captured_queries) == 1
+        assert f"LIMIT {PARALLEL_DRAIN_THRESHOLD}" in queries.captured_queries[0]["sql"]
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox_parallel")
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
