@@ -105,6 +105,43 @@ The disclosure can be sized by setting the `size` prop.
 </Disclosure>
 ```
 
+### Preview
+
+Use the `preview` prop to summarize the collapsed content inline, after the
+title. It truncates to the space left over and is hidden once expanded, where
+the content itself takes over.
+
+The preview sits outside the toggle button, so it is not part of the button's
+accessible name and clicking it does not expand the disclosure. Keep it to a
+short summary of what is inside — never put information there that is only
+available while collapsed.
+
+<Storybook.Demo>
+  <Flex width="100%">
+    <Disclosure size="sm">
+      <Disclosure.Title preview="The user is asking about their error rate, so I should start by...">
+        Thinking
+      </Disclosure.Title>
+      <Disclosure.Content>
+        The user is asking about their error rate, so I should start by looking at the
+        issues that regressed in the last 24 hours.
+      </Disclosure.Content>
+    </Disclosure>
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Disclosure size="sm">
+  <Disclosure.Title preview="The user is asking about their error rate, so I should start by...">
+    Thinking
+  </Disclosure.Title>
+  <Disclosure.Content>
+    The user is asking about their error rate, so I should start by looking at the issues
+    that regressed in the last 24 hours.
+  </Disclosure.Content>
+</Disclosure>
+```
+
 ### Trailing Items
 
 Add interactive elements like buttons, links or badges to the right side of disclosures using the `trailingItems` prop.
