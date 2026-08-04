@@ -299,3 +299,26 @@ def test_evidence_drops_reporter_identifiers() -> None:
     }
     m = event_response_to_model(data)
     assert m.evidence == [("message", "the button is broken")]
+
+
+def test_feedback_context_drops_reporter_identifiers() -> None:
+    # contexts.feedback carries the same contact details as evidenceDisplay, so it follows the
+    # same rule -- but only there: `name` is real data on browser/os/runtime contexts
+    data = {
+        "title": "t",
+        "contexts": {
+            "feedback": {
+                "name": "A Reporter",
+                "contact_email": "someone@example.com",
+                "message": "the button is broken",
+                "associated_event_id": "abc123",
+            },
+            "browser": {"name": "Firefox", "version": "121.0"},
+        },
+    }
+    m = event_response_to_model(data)
+    assert m.contexts["feedback"] == {
+        "message": "the button is broken",
+        "associated_event_id": "abc123",
+    }
+    assert m.contexts["browser"] == {"name": "Firefox", "version": "121.0"}
