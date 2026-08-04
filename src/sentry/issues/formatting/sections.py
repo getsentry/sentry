@@ -296,8 +296,10 @@ def spans_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
 def evidence_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
     if not model.evidence:
         return ""
+    # occurrence.evidenceDisplay is an arbitrary-length list of arbitrary-length pairs, unlike
+    # Seer's fixed four-key allowlist, so it needs the same cap the other open-ended sections get
     body = "\n".join(fmt.field(name, value) for name, value in model.evidence)
-    return fmt.block("Evidence", body)
+    return fmt.block("Evidence", _truncate(body, limits.max_evidence_chars))
 
 
 def contexts_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
