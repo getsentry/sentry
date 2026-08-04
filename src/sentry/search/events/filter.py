@@ -255,6 +255,29 @@ def _profiler_id_filter_converter(
     # alias resolves to a real, indexed column on transactions elsewhere). A missing key in
     # the contexts map reads as '' rather than NULL, so a plain '' comparison is enough to
     # express "has"/"doesn't have" a profiler id - no `ifNull` needed.
+
+    # Generic wildcard-list splitting returns nested legacy conditions, which Snuba ORs.
+    # For NOT IN, keep this as one negated regex union so `!profiler.id:[abc*, exact]`
+    # means `NOT (abc* OR exact)`.
+    if search_filter.operator == "NOT IN" and search_filter.value.is_wildcard():
+        return [
+            ["match", [PROFILER_ID_CONTEXT_COLUMN, f"'(?i){search_filter.value.value}'"]],
+            "!=",
+            1,
+        ]
+
+    if search_filter.value.is_wildcard():
+        converted_filter = convert_search_filter_to_snuba_query(
+            SearchFilter(
+                SearchKey(PROFILER_ID_CONTEXT_COLUMN),
+                search_filter.operator,
+                search_filter.value,
+            ),
+            params=params,
+        )
+        assert converted_filter is not None
+        return list(converted_filter)
+
     return [PROFILER_ID_CONTEXT_COLUMN, search_filter.operator, search_filter.value.value]
 
 
