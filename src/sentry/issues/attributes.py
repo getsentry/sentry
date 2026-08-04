@@ -22,9 +22,12 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.options.rollout import in_random_rollout
 from sentry.signals import issue_assigned, issue_deleted, issue_unassigned, post_update
-from sentry.taskworker.producer import get_task_producer
 from sentry.utils import json, metrics, snuba
-from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
+from sentry.utils.arroyo_producer import (
+    SingletonProducer,
+    get_arroyo_producer,
+    get_future_tracking_producer,
+)
 from sentry.utils.kafka_config import get_topic_definition
 from sentry.utils.snuba import _snuba_pool
 
@@ -61,7 +64,7 @@ _attribute_snapshot_producer = SingletonProducer(
     _get_attribute_snapshot_producer, max_futures=settings.SENTRY_GROUP_ATTRIBUTES_FUTURES_MAX_LIMIT
 )
 _task_producer_name = "sentry.tasks.issues.attributes"
-_attribute_snapshot_task_producer = get_task_producer(
+_attribute_snapshot_task_producer = get_future_tracking_producer(
     producer_name=_task_producer_name,
     producer_factory=partial(_get_attribute_snapshot_producer, name=_task_producer_name),
 )
