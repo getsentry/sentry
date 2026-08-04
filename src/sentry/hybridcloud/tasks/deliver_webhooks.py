@@ -107,6 +107,18 @@ class DeliveryFailed(Exception):
     pass
 
 
+DRAIN_LOCK_TTL = 90
+"""
+Seconds a mailbox drain lock survives without a refresh.
+
+A drain releases its lock explicitly when it finishes, so this TTL only fires when
+one dies without reaching that release (worker kill, OOM). It must outlast the
+longest a live drain can go between refreshes — a single delivery, which the cell
+client bounds at its 30s connect plus 30s read. A shorter TTL lets the lock expire
+under a running drain, and a second drain then starts on the same mailbox.
+"""
+
+
 def _drain_lock_key(mailbox_name: str) -> str:
     return f"wh:drain_active:{mailbox_name}"
 
@@ -114,7 +126,7 @@ def _drain_lock_key(mailbox_name: str) -> str:
 def _refresh_drain_lock(mailbox_name: str) -> None:
     """Refresh the drain lock TTL to signal the drain task is still active."""
     try:
-        cache.set(_drain_lock_key(mailbox_name), 1, timeout=15)
+        cache.set(_drain_lock_key(mailbox_name), 1, timeout=DRAIN_LOCK_TTL)
     except Exception:
         pass
 
@@ -149,9 +161,9 @@ def _mailbox_needs_parallel_drain(mailbox_name: str) -> bool:
 def maybe_trigger_drain(mailbox_name: str) -> None:
     """Trigger an immediate drain if one isn't already in-flight for this mailbox.
 
-    Uses cache.add (atomic SETNX-style) with a 15-second TTL for deduplication.
-    Only the first webhook to an idle mailbox triggers a drain; subsequent webhooks
-    within the TTL window are picked up by the already-enqueued drain task.
+    Uses cache.add (atomic SETNX-style) with DRAIN_LOCK_TTL for deduplication. Only
+    the first webhook to an idle mailbox triggers a drain; subsequent webhooks within
+    the TTL window are picked up by the already-enqueued drain task.
 
     Deep mailboxes go to the parallel drain: the drain holds the lock for its whole
     run and the scheduler skips locked mailboxes, so a sequential drain here would
@@ -165,7 +177,7 @@ def maybe_trigger_drain(mailbox_name: str) -> None:
     lock_key = _drain_lock_key(mailbox_name)
     lock_acquired = False
     try:
-        if cache.add(lock_key, 1, timeout=15):
+        if cache.add(lock_key, 1, timeout=DRAIN_LOCK_TTL):
             lock_acquired = True
             # Only drain if the true mailbox head (lowest ID) is ready to deliver.
             # We must check the head specifically — filtering by schedule_for first
@@ -594,6 +606,10 @@ def drain_mailbox_parallel(payload_id: int, mailbox_name: str | None = None) -> 
         return
 
     _set_webhook_delivery_sentry_context(payload)
+    if mailbox_name and options.get("hybridcloud.webhookpayload.push_drain_trigger"):
+        # The discard sweep deletes up to 10k rows before the loop's first refresh,
+        # and the lock has been unrefreshed since the trigger enqueued this task.
+        _refresh_drain_lock(payload.mailbox_name)
     _discard_stale_mailbox_payloads(payload)
 
     skip_on_failure_providers = frozenset(

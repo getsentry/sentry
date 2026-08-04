@@ -15,6 +15,7 @@ from sentry import options
 from sentry.hybridcloud.models.webhookpayload import MAX_ATTEMPTS, WebhookPayload
 from sentry.hybridcloud.tasks import deliver_webhooks
 from sentry.hybridcloud.tasks.deliver_webhooks import (
+    DRAIN_LOCK_TTL,
     MAX_MAILBOX_DRAIN,
     PARALLEL_DRAIN_THRESHOLD,
     SLOW_DELIVERY_THRESHOLD,
@@ -24,6 +25,7 @@ from sentry.hybridcloud.tasks.deliver_webhooks import (
     maybe_trigger_drain,
     schedule_webhook_delivery,
 )
+from sentry.silo.client import CellSiloClient
 from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
 from sentry.testutils.factories import Factories
@@ -1247,6 +1249,42 @@ class PushTriggerTest(TestCase):
 
         # Lock must be released so new webhooks and the scheduler can reach this mailbox
         assert cache.get(f"wh:drain_active:{mailbox}") is None
+
+    def test_drain_lock_ttl_outlives_a_single_delivery(self) -> None:
+        # The lock must not expire under a running drain, or a second drain starts on
+        # the same mailbox. The parallel drain refreshes once per batch and a batch
+        # runs its requests concurrently, so the widest gap between refreshes is one
+        # delivery: the cell client's connect timeout plus its read timeout.
+        assert DRAIN_LOCK_TTL > 2 * CellSiloClient.timeout
+
+    @responses.activate
+    @override_cells(cell_config)
+    @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
+    def test_parallel_drain_refreshes_lock_before_stale_discard(self) -> None:
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=200,
+            body="",
+        )
+        webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+        lock_key = f"wh:drain_active:{webhook.mailbox_name}"
+        # Nothing has refreshed the lock since the trigger enqueued this task, so treat
+        # it as already gone. The discard sweep deletes up to 10k rows, and the loop's
+        # first refresh only happens after it.
+        cache.delete(lock_key)
+        lock_during_discard = []
+
+        def record_lock(payload: WebhookPayload) -> None:
+            lock_during_discard.append(cache.get(lock_key))
+
+        with patch(
+            "sentry.hybridcloud.tasks.deliver_webhooks._discard_stale_mailbox_payloads",
+            side_effect=record_lock,
+        ):
+            drain_mailbox_parallel(webhook.id, mailbox_name=webhook.mailbox_name)
+
+        assert lock_during_discard == [1]
 
     def test_depth_probe_query_is_bounded(self) -> None:
         create_payloads(PARALLEL_DRAIN_THRESHOLD + 5, "github:123")
