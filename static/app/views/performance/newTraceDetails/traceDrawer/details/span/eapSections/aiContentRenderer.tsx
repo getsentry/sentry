@@ -15,6 +15,7 @@ import {
   preprocessInlineXmlTags,
   tryParsePythonDict,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
+import {fenceContent} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentFencing';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {parseJsonWithFix} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
@@ -87,6 +88,12 @@ const markdownComponents: MarkdownProps['components'] = {
     return <Default lang={lang}>{children}</Default>;
   },
 };
+
+/** Fences raw AI content and renders it. Memoized since fencing scans the whole string. */
+function FencedMarkdown({raw}: {raw: string}) {
+  const fenced = useMemo(() => fenceContent(raw), [raw]);
+  return <Markdown raw={fenced} components={markdownComponents} />;
+}
 
 interface AIContentRendererProps {
   text: string;
@@ -181,7 +188,7 @@ function MarkdownWithXmlRenderer({
             collapsible={collapsibleXmlTags}
           />
         ) : (
-          <Markdown key={i} raw={segment.content} components={markdownComponents} />
+          <FencedMarkdown key={i} raw={segment.content} />
         )
       )}
     </Fragment>
@@ -239,14 +246,12 @@ export function AIContentRenderer({
 
     case 'markdown':
       if (inline) {
-        return <Markdown raw={text} components={markdownComponents} />;
+        return <FencedMarkdown raw={text} />;
       }
       return (
         <TraceDrawerComponents.MultilineText
           clip={clipText}
-          renderFormatted={rawText => (
-            <Markdown raw={rawText} components={markdownComponents} />
-          )}
+          renderFormatted={rawText => <FencedMarkdown raw={rawText} />}
         >
           {text}
         </TraceDrawerComponents.MultilineText>
