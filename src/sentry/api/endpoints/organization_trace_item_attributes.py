@@ -937,6 +937,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         for attribute in rpc_response.attributes:
             if not attribute.name:
                 continue
+
+            # Remove following when we migrate to cooccurring-attrs v2. use attribute_type only.
+            # Then returned type should be same as attribute_type.
             returned_bucket = constants.PROTO_TYPE_TO_ATTRIBUTE_TYPE_MAP.get(attribute.type)
             if returned_bucket is not None and returned_bucket != attribute_type:
                 continue
