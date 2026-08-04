@@ -70,6 +70,30 @@ describe('DebugFileCustomRepository', () => {
     await waitFor(() => expect(saveButton).toBeEnabled());
   });
 
+  it('omits an empty HTTP username', async () => {
+    const onSubmit = jest.fn().mockResolvedValue(undefined);
+
+    render(
+      <Http
+        {...modalProps}
+        onSubmit={onSubmit}
+        initialData={{
+          id: 'http-repository',
+          layout: {type: 'native', casing: 'default'},
+          name: 'HTTP Repository',
+          password: {'hidden-secret': true},
+          type: CustomRepoType.HTTP,
+          url: 'https://example.com/symbols/',
+        }}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save changes'}));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit.mock.calls[0]![0]).not.toHaveProperty('username');
+  });
+
   it('preserves an unchanged S3 secret', async () => {
     const onSubmit = jest.fn().mockResolvedValue(undefined);
 

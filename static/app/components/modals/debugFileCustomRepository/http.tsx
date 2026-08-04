@@ -75,7 +75,7 @@ export function Http({Header, Body, Footer, onSubmit, initialData}: Props) {
         id: parsedValue.id,
         name: parsedValue.name,
         url: parsedValue.url,
-        username: parsedValue.username,
+        ...(parsedValue.username ? {username: parsedValue.username} : {}),
         type: CustomRepoType.HTTP,
         'layout.type': parsedValue.layoutType,
         'layout.casing': parsedValue.layoutCasing,
