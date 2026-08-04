@@ -30,6 +30,16 @@ from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
+from tests.sentry.dynamic_sampling.per_org.test_helpers import (
+    BLENDED_SAMPLE_RATE,
+    OUTCOMES_VOLUME,
+    patch_config,
+)
+
+QUERIES = "sentry.dynamic_sampling.per_org.queries"
+RUN_TABLE_QUERY = f"{QUERIES}.Spans.run_table_query"
+RUN_CHUNKED_TABLE_QUERY = f"{QUERIES}.run_eap_spans_table_query_in_chunks"
+RUN_OUTCOMES_QUERY = f"{QUERIES}.run_outcomes_query_totals"
 
 
 class EAPSpansTableQueryChunkingTest(TestCase, SnubaTestCase, SpanTestCase):
@@ -88,16 +98,7 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         self,
         organization: Organization,
     ) -> BaseDynamicSamplingConfiguration:
-        with (
-            patch(
-                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
-                return_value=1.0,
-            ),
-            patch(
-                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
-                return_value=None,
-            ),
-        ):
+        with patch_config({BLENDED_SAMPLE_RATE: 1.0, OUTCOMES_VOLUME: None}):
             return get_configuration(organization.id)
 
     def test_get_eap_organization_volume_existing_org(self) -> None:
@@ -105,7 +106,7 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         project = self.create_project(organization=organization)
 
         with patch(
-            "sentry.dynamic_sampling.per_org.queries.Spans.run_table_query",
+            RUN_TABLE_QUERY,
             return_value={"data": [{DynamicSamplingQueryFields.COUNT: 2, "count_sample()": 2}]},
         ) as run_table_query:
             org_volume = get_eap_organization_volume(
@@ -133,7 +134,7 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         self.create_project(organization=organization)
 
         with patch(
-            "sentry.dynamic_sampling.per_org.queries.Spans.run_table_query",
+            RUN_TABLE_QUERY,
             return_value={"data": [{"count()": 10, DynamicSamplingQueryFields.COUNT_SAMPLE: 1}]},
         ):
             org_volume = get_eap_organization_volume(
@@ -156,7 +157,7 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         organization = self.create_organization()
 
         with patch(
-            "sentry.dynamic_sampling.per_org.queries.Spans.run_table_query",
+            RUN_TABLE_QUERY,
             return_value={"data": []},
         ) as run_table_query:
             org_volume = get_eap_organization_volume(
@@ -176,7 +177,7 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
 
         received = (datetime.now(UTC) - timedelta(seconds=120)).timestamp()
         with patch(
-            "sentry.dynamic_sampling.per_org.queries.run_eap_spans_table_query_in_chunks",
+            RUN_CHUNKED_TABLE_QUERY,
             return_value=[
                 {
                     "sentry.dsc.project_id": project.id,
@@ -233,7 +234,7 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         self.create_project(organization=organization)
 
         with patch(
-            "sentry.dynamic_sampling.per_org.queries.run_eap_spans_table_query_in_chunks",
+            RUN_CHUNKED_TABLE_QUERY,
             return_value=[],
         ):
             project_volumes = get_eap_project_volumes(
@@ -247,7 +248,7 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         project = self.create_project(organization=organization)
 
         with patch(
-            "sentry.dynamic_sampling.per_org.queries.run_eap_spans_table_query_in_chunks",
+            RUN_CHUNKED_TABLE_QUERY,
             return_value=[
                 {
                     "sentry.dsc.project_id": project.id,
@@ -263,7 +264,7 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         project = self.create_project(organization=organization)
 
         with patch(
-            "sentry.dynamic_sampling.per_org.queries.run_eap_spans_table_query_in_chunks",
+            RUN_CHUNKED_TABLE_QUERY,
             return_value=[
                 {
                     "sentry.dsc.project_id": None,
@@ -285,7 +286,7 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         organization = self.create_organization()
 
         with patch(
-            "sentry.dynamic_sampling.per_org.queries.run_eap_spans_table_query_in_chunks",
+            RUN_CHUNKED_TABLE_QUERY,
             return_value=[],
         ) as run_table_query:
             project_volumes = get_eap_project_volumes(
@@ -301,7 +302,7 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         organization = self.create_organization()
 
         with patch(
-            "sentry.dynamic_sampling.per_org.queries.run_outcomes_query_totals",
+            RUN_OUTCOMES_QUERY,
             return_value=[{"quantity": 10}],
         ) as run_outcomes_query_totals:
             org_volume = get_outcomes_organization_volume(
@@ -318,7 +319,7 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         organization = self.create_organization()
 
         with patch(
-            "sentry.dynamic_sampling.per_org.queries.run_outcomes_query_totals",
+            RUN_OUTCOMES_QUERY,
             return_value=[],
         ):
             org_volume = get_outcomes_organization_volume(
@@ -330,10 +331,7 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
 
 class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
     def get_config(self, organization: Organization) -> BaseDynamicSamplingConfiguration:
-        with patch(
-            "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
-            return_value=1.0,
-        ):
+        with patch_config({BLENDED_SAMPLE_RATE: 1.0}):
             return get_configuration(organization.id)
 
     def test_get_eap_transaction_volumes(self) -> None:
