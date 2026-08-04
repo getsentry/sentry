@@ -18,6 +18,7 @@ import type {Member} from 'sentry/types/organization';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {IntegrationExternalMappingForm} from './integrationExternalMappingForm';
@@ -32,6 +33,7 @@ export function IntegrationExternalUserMappings(props: Props) {
 
   const {integration} = props;
   const organization = useOrganization();
+  const location = useLocation();
 
   const BASE_FORM_ENDPOINT = getApiUrl(
     '/organizations/$organizationIdOrSlug/external-users/',
@@ -50,7 +52,11 @@ export function IntegrationExternalUserMappings(props: Props) {
       '/organizations/$organizationIdOrSlug/members/',
       {
         path: {organizationIdOrSlug: organization.slug},
-        query: {query: 'hasExternalUsers:true', expand: 'externalUsers'},
+        query: {
+          ...location.query,
+          query: 'hasExternalUsers:true',
+          expand: 'externalUsers',
+        },
         staleTime: 0,
       }
     ),
