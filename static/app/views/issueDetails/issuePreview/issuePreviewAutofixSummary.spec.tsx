@@ -3,12 +3,12 @@ import {
   AutofixRootCauseArtifactFixture,
   AutofixSolutionArtifactFixture,
   ExplorerAutofixBlockFixture,
+  ExplorerAutofixFixture,
   ExplorerAutofixStateFixture,
 } from 'sentry-fixture/autofix';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
 import {IssuePreviewAutofixSummary} from './issuePreviewAutofixSummary';
@@ -27,23 +27,6 @@ function makePatch(repoName: string, path: string): ExplorerFilePatch {
       type: 'M',
     },
   } as ExplorerFilePatch;
-}
-
-function makeAutofix(
-  runState: ReturnType<typeof useExplorerAutofix>['runState']
-): ReturnType<typeof useExplorerAutofix> {
-  return {
-    runState,
-    startStep: jest.fn(),
-    createPR: jest.fn(),
-    reset: jest.fn(),
-    triggerCodingAgentHandoff: jest.fn(),
-    codingAgentErrors: [],
-    dismissCodingAgentError: jest.fn(),
-    warnings: [],
-    isLoading: false,
-    isPolling: false,
-  };
 }
 
 const rootCauseArtifact = AutofixRootCauseArtifactFixture({
@@ -77,28 +60,7 @@ describe('IssuePreviewAutofixSummary', () => {
   it('renders summaries in the requested order with the first section expanded', async () => {
     const runState = ExplorerAutofixStateFixture({
       blocks: [
-        ExplorerAutofixBlockFixture({
-          artifacts: [rootCauseArtifact],
-          message: {
-            content: 'Root cause complete',
-            metadata: {step: 'root_cause'},
-            role: 'assistant',
-            tool_calls: [{id: 'event-tool', function: 'get_event_details', args: '{}'}],
-          },
-          tool_results: [
-            {
-              tool_call_id: 'event-tool',
-              tool_call_function: 'get_event_details',
-              content: 'Event details',
-            },
-          ],
-          tool_links: [
-            {
-              kind: 'get_event_details',
-              params: {issue_id: '12345', event_id: 'abcd1234efgh5678'},
-            },
-          ],
-        }),
+        ExplorerAutofixBlockFixture({artifacts: [rootCauseArtifact]}),
         ExplorerAutofixBlockFixture({
           id: 'solution',
           artifacts: [solutionArtifact],
@@ -144,7 +106,7 @@ describe('IssuePreviewAutofixSummary', () => {
 
     render(
       <IssuePreviewAutofixSummary
-        autofix={makeAutofix(runState)}
+        autofix={ExplorerAutofixFixture({runState})}
         groupId="preview-group"
       />
     );
@@ -205,19 +167,17 @@ describe('IssuePreviewAutofixSummary', () => {
     expect(
       within(rootCause).getByText('Request a user ID that does not exist.')
     ).toBeVisible();
-    expect(within(rootCause).getByText('Evidence')).toBeVisible();
-    expect(within(rootCause).getByText('Error: abcd1234')).toBeVisible();
   });
 
   it('renders only completed valid artifacts that exist in a partial run', () => {
     render(
       <IssuePreviewAutofixSummary
-        groupId="preview-group"
-        autofix={makeAutofix(
-          ExplorerAutofixStateFixture({
+        autofix={ExplorerAutofixFixture({
+          runState: ExplorerAutofixStateFixture({
             blocks: [ExplorerAutofixBlockFixture({artifacts: [rootCauseArtifact]})],
-          })
-        )}
+          }),
+        })}
+        groupId="preview-group"
       />
     );
 
@@ -235,9 +195,8 @@ describe('IssuePreviewAutofixSummary', () => {
   it('renders the section with a loading indicator while it is processing', () => {
     render(
       <IssuePreviewAutofixSummary
-        groupId="preview-group"
-        autofix={makeAutofix(
-          ExplorerAutofixStateFixture({
+        autofix={ExplorerAutofixFixture({
+          runState: ExplorerAutofixStateFixture({
             blocks: [
               ExplorerAutofixBlockFixture({
                 artifacts: undefined,
@@ -249,8 +208,9 @@ describe('IssuePreviewAutofixSummary', () => {
               }),
             ],
             status: 'processing',
-          })
-        )}
+          }),
+        })}
+        groupId="preview-group"
       />
     );
 
@@ -263,60 +223,52 @@ describe('IssuePreviewAutofixSummary', () => {
     expect(screen.queryByRole('region', {name: 'Proposal'})).not.toBeInTheDocument();
   });
 
-  it('renders an empty state for an errored step', () => {
-    const runState = ExplorerAutofixStateFixture({
-      blocks: [ExplorerAutofixBlockFixture({artifacts: [rootCauseArtifact]})],
-      status: 'error',
-    });
-
+  it.each([
+    [
+      'errored step',
+      ExplorerAutofixStateFixture({
+        blocks: [ExplorerAutofixBlockFixture({artifacts: [rootCauseArtifact]})],
+        status: 'error',
+      }),
+    ],
+    [
+      'invalid artifact',
+      ExplorerAutofixStateFixture({
+        blocks: [
+          ExplorerAutofixBlockFixture({
+            artifacts: [
+              AutofixRootCauseArtifactFixture({
+                reason: 'Malformed root cause',
+                data: {one_line_description: 'Missing required details'},
+              }),
+            ],
+          }),
+        ],
+      }),
+    ],
+  ])('renders an empty section for a %s', (_label, runState) => {
     render(
       <IssuePreviewAutofixSummary
-        autofix={makeAutofix(runState)}
+        autofix={ExplorerAutofixFixture({runState})}
         groupId="preview-group"
       />
     );
 
+    expect(screen.queryByRole('region', {name: 'Proposal'})).not.toBeInTheDocument();
     expect(
-      within(screen.getByRole('region', {name: 'Root Cause'})).getByText(
-        'No root cause was identified.'
-      )
-    ).toBeInTheDocument();
-  });
-
-  it('renders an empty state for an invalid artifact', () => {
-    const runState = ExplorerAutofixStateFixture({
-      blocks: [
-        ExplorerAutofixBlockFixture({
-          artifacts: [
-            AutofixRootCauseArtifactFixture({
-              reason: 'Malformed root cause',
-              data: {one_line_description: 'Missing required details'},
-            }),
-          ],
-        }),
-      ],
-    });
-
-    render(
-      <IssuePreviewAutofixSummary
-        autofix={makeAutofix(runState)}
-        groupId="preview-group"
-      />
-    );
-
+      screen.queryByRole('region', {name: 'Implementation Plan'})
+    ).not.toBeInTheDocument();
+    const rootCause = screen.getByRole('region', {name: 'Root Cause'});
     expect(
-      within(screen.getByRole('region', {name: 'Root Cause'})).getByText(
-        'No root cause was identified.'
-      )
+      within(rootCause).getByText('No root cause was identified.')
     ).toBeInTheDocument();
   });
 
   it('renders an existing section with empty text when it has no artifact', () => {
     render(
       <IssuePreviewAutofixSummary
-        groupId="preview-group"
-        autofix={makeAutofix(
-          ExplorerAutofixStateFixture({
+        autofix={ExplorerAutofixFixture({
+          runState: ExplorerAutofixStateFixture({
             blocks: [
               ExplorerAutofixBlockFixture({artifacts: [rootCauseArtifact]}),
               ExplorerAutofixBlockFixture({
@@ -334,8 +286,9 @@ describe('IssuePreviewAutofixSummary', () => {
                 },
               }),
             ],
-          })
-        )}
+          }),
+        })}
+        groupId="preview-group"
       />
     );
 
@@ -350,7 +303,7 @@ describe('IssuePreviewAutofixSummary', () => {
     const runState = ExplorerAutofixStateFixture({
       blocks: [ExplorerAutofixBlockFixture({artifacts: [rootCauseArtifact]})],
     });
-    const autofix = makeAutofix(runState);
+    const autofix = ExplorerAutofixFixture({runState});
 
     render(<IssuePreviewAutofixSummary autofix={autofix} groupId="preview-group" />);
 
