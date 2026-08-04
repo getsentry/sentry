@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable
+from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
@@ -19,6 +20,11 @@ from sentry.integrations.project_management.metrics import (
 from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.integrations.tasks.sync_assignee_outbound import sync_assignee_outbound
 from sentry.integrations.types import EXTERNAL_PROVIDERS_REVERSE, ExternalProviderEnum
+from sentry.integrations.utils.assignee_sync import (
+    get_stale_organization_ids,
+    parse_provider_event_time,
+    record_provider_event_time,
+)
 from sentry.issues.action_log import SYSTEM_ACTOR, action_context_scope
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
@@ -28,6 +34,7 @@ from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.silo.base import cell_silo_function
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
+from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.integrations.services.integration import RpcIntegration
@@ -69,6 +76,46 @@ def _get_affected_groups(
         orgs_with_sync_enabled,
         external_issue_key,
     )
+
+
+def _drop_stale_groups(
+    integration: RpcIntegration | Integration,
+    external_issue_key: str | None,
+    groups: list[Group],
+    event_time: datetime | None,
+) -> list[Group]:
+    """
+    Drop groups whose linked issue has already had a newer assignment change applied.
+
+    Webhook delivery is not ordered, so a retried or reordered delivery can arrive after
+    the change that superseded it. Every provider sends the issue's full assignee snapshot,
+    so applying a late one would quietly restore a stale assignee.
+    """
+    stale_organization_ids = get_stale_organization_ids(
+        integration,
+        external_issue_key,
+        {group.project.organization_id for group in groups},
+        event_time,
+    )
+    if not stale_organization_ids:
+        return groups
+
+    metrics.incr(
+        "integrations.sync_assignee_inbound.stale_event",
+        tags={"provider": integration.provider},
+    )
+    logging.getLogger(f"sentry.integrations.{integration.provider}").info(
+        "sync_group_assignee_inbound.stale_event",
+        extra={
+            "integration_id": integration.id,
+            "issue_key": external_issue_key,
+            "event_time": event_time,
+            "stale_organization_ids": sorted(stale_organization_ids),
+        },
+    )
+    return [
+        group for group in groups if group.project.organization_id not in stale_organization_ids
+    ]
 
 
 def _handle_deassign(
@@ -140,13 +187,20 @@ def sync_group_assignee_inbound_by_external_actor(
     external_issue_key: str | None,
     assign: bool = True,
     external_user_id: str | int | None = None,
+    provider_event_time: str | None = None,
 ) -> QuerySet[Group] | list[Group]:
     logger = logging.getLogger(f"sentry.integrations.{integration.provider}")
 
     with ProjectManagementEvent(
         action_type=ProjectManagementActionType.INBOUND_ASSIGNMENT_SYNC, integration=integration
     ).capture() as lifecycle:
-        affected_groups = list(_get_affected_groups(integration, external_issue_key))
+        event_time = parse_provider_event_time(provider_event_time)
+        affected_groups = _drop_stale_groups(
+            integration,
+            external_issue_key,
+            list(_get_affected_groups(integration, external_issue_key)),
+            event_time,
+        )
         external_user_id_str = str(external_user_id) if external_user_id is not None else None
         log_context = {
             "integration_id": integration.id,
@@ -163,10 +217,17 @@ def sync_group_assignee_inbound_by_external_actor(
             logger.info("no-affected-groups", extra=log_context)
             return []
 
+        # Every group here belongs to an issue this event has now been processed for, even
+        # if no assignee could be resolved below — an older event must not undo that.
+        processed_organization_ids = {group.project.organization_id for group in affected_groups}
+
         if not assign:
             groups_deassigned = _handle_deassign(affected_groups, integration)
             log_context["unassigned_group_ids"] = [group.id for group in groups_deassigned]
             lifecycle.add_extras(log_context)
+            record_provider_event_time(
+                integration, external_issue_key, processed_organization_ids, event_time
+            )
             return groups_deassigned
 
         base_external_actors = ExternalActor.objects.filter(
@@ -205,6 +266,9 @@ def sync_group_assignee_inbound_by_external_actor(
                 ProjectManagementHaltReason.SYNC_INBOUND_ASSIGNEE_NOT_FOUND, extra=log_context
             )
 
+        record_provider_event_time(
+            integration, external_issue_key, processed_organization_ids, event_time
+        )
         return groups_assigned
 
 
@@ -214,6 +278,7 @@ def sync_group_assignee_inbound(
     email: str | None,
     external_issue_key: str | None,
     assign: bool = True,
+    provider_event_time: str | None = None,
 ) -> QuerySet[Group] | list[Group]:
     """
     Given an integration, user email address and an external issue key,
@@ -226,7 +291,13 @@ def sync_group_assignee_inbound(
     with ProjectManagementEvent(
         action_type=ProjectManagementActionType.INBOUND_ASSIGNMENT_SYNC, integration=integration
     ).capture() as lifecycle:
-        affected_groups = _get_affected_groups(integration, external_issue_key)
+        event_time = parse_provider_event_time(provider_event_time)
+        affected_groups = _drop_stale_groups(
+            integration,
+            external_issue_key,
+            list(_get_affected_groups(integration, external_issue_key)),
+            event_time,
+        )
         log_context = {
             "integration_id": integration.id,
             "email": email,
@@ -238,8 +309,16 @@ def sync_group_assignee_inbound(
             logger.info("no-affected-groups", extra=log_context)
             return []
 
+        # Every group here belongs to an issue this event has now been processed for, even
+        # if no assignee could be resolved below — an older event must not undo that.
+        processed_organization_ids = {group.project.organization_id for group in affected_groups}
+
         if not assign:
-            return _handle_deassign(affected_groups, integration)
+            groups_deassigned = _handle_deassign(affected_groups, integration)
+            record_provider_event_time(
+                integration, external_issue_key, processed_organization_ids, event_time
+            )
+            return groups_deassigned
 
         users = user_service.get_many_by_email(emails=[email], is_verified=True)
 
@@ -250,6 +329,9 @@ def sync_group_assignee_inbound(
                 ProjectManagementHaltReason.SYNC_INBOUND_ASSIGNEE_NOT_FOUND, extra=log_context
             )
 
+        record_provider_event_time(
+            integration, external_issue_key, processed_organization_ids, event_time
+        )
         return groups_assigned
 
 

@@ -224,6 +224,89 @@ class TestSyncAssigneeInbound(TestCase):
         assert isinstance(exception_param, Exception)
         assert exception_param.args[0] == "oops, something went wrong"
 
+    def test_replayed_older_event_does_not_reassign(self) -> None:
+        other_user = self.create_user("other@example.com")
+        self.create_member(organization=self.organization, user=other_user, teams=[self.team])
+        with assume_test_silo_mode_of(UserEmail):
+            UserEmail.objects.filter(user=other_user).update(is_verified=True)
+
+        external_issue = self.create_integration_external_issue(
+            group=self.group,
+            key="foo-123",
+            integration=self.example_integration,
+        )
+
+        sync_group_assignee_inbound(
+            integration=self.example_integration,
+            email="other@example.com",
+            external_issue_key=external_issue.key,
+            assign=True,
+            provider_event_time="2023-01-01T00:00:05.000+0000",
+        )
+        sync_group_assignee_inbound(
+            integration=self.example_integration,
+            email="test@example.com",
+            external_issue_key=external_issue.key,
+            assign=True,
+            provider_event_time="2023-01-01T00:00:00.000+0000",
+        )
+
+        assignee = self.group.get_assignee()
+        assert assignee is not None
+        assert assignee.id == other_user.id
+
+    def test_event_with_matching_timestamp_still_applies(self) -> None:
+        # Provider timestamps are coarse, so two distinct changes can share one. Assignment
+        # payloads are snapshots, so applying the later delivery is right either way.
+        external_issue = self.create_integration_external_issue(
+            group=self.group,
+            key="foo-123",
+            integration=self.example_integration,
+        )
+
+        sync_group_assignee_inbound(
+            integration=self.example_integration,
+            email="test@example.com",
+            external_issue_key=external_issue.key,
+            assign=True,
+            provider_event_time="2023-01-01T00:00:00.000+0000",
+        )
+        sync_group_assignee_inbound(
+            integration=self.example_integration,
+            email="test@example.com",
+            external_issue_key=external_issue.key,
+            assign=False,
+            provider_event_time="2023-01-01T00:00:00.000+0000",
+        )
+
+        assert self.group.get_assignee() is None
+
+    def test_watermark_advances_when_no_user_is_resolved(self) -> None:
+        # The event was processed even though Sentry knows no such user, so an older
+        # delivery must not go on to assign someone the provider has already replaced.
+        external_issue = self.create_integration_external_issue(
+            group=self.group,
+            key="foo-123",
+            integration=self.example_integration,
+        )
+
+        sync_group_assignee_inbound(
+            integration=self.example_integration,
+            email="unmapped@example.com",
+            external_issue_key=external_issue.key,
+            assign=True,
+            provider_event_time="2023-01-01T00:00:05.000+0000",
+        )
+        sync_group_assignee_inbound(
+            integration=self.example_integration,
+            email="test@example.com",
+            external_issue_key=external_issue.key,
+            assign=True,
+            provider_event_time="2023-01-01T00:00:00.000+0000",
+        )
+
+        assert self.group.get_assignee() is None
+
 
 @cell_silo_test
 class TestSyncAssigneeInboundByExternalActor(TestCase):

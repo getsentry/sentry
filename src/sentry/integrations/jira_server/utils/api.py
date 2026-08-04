@@ -38,9 +38,15 @@ def handle_assignee_change(
     # If there is no assignee, assume it was unassigned.
     assignee = fields.get("assignee")
     issue_key = data["issue"]["key"]
+    # `assignee` is a snapshot of the issue's current assignee, only the newest state if it
+    # is applied last. For an assignee change this is when the change happened; it orders
+    # deliveries.
+    updated = fields.get("updated")
 
     if assignee is None:
-        sync_group_assignee_inbound(integration, None, issue_key, assign=False)
+        sync_group_assignee_inbound(
+            integration, None, issue_key, assign=False, provider_event_time=updated
+        )
         return
 
     email = get_assignee_email(integration, assignee)
@@ -51,7 +57,9 @@ def handle_assignee_change(
         )
         return
 
-    sync_group_assignee_inbound(integration, email, issue_key, assign=True)
+    sync_group_assignee_inbound(
+        integration, email, issue_key, assign=True, provider_event_time=updated
+    )
 
 
 def handle_status_change(

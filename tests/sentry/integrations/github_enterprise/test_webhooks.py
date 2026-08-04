@@ -865,6 +865,7 @@ class IssuesEventWebhookTest(APITestCase):
             external_user_name="@octocat",
             external_issue_key="baxterthehacker/public-repo#2",
             assign=True,
+            provider_event_time="2015-05-05T23:40:28Z",
         )
 
         assert_success_metric(mock_record)
@@ -905,6 +906,7 @@ class IssuesEventWebhookTest(APITestCase):
             external_user_name="",
             external_issue_key="baxterthehacker/public-repo#2",
             assign=False,
+            provider_event_time="2015-05-05T23:40:28Z",
         )
 
         assert_success_metric(mock_record)
