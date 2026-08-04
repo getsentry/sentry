@@ -66,7 +66,7 @@ export const SECTIONS: InboxSectionConfig[] = [
   {
     key: 'fix-proposed',
     label: t('Fix Proposed'),
-    query: 'issue.progress:fix_proposed',
+    query: 'issue.progress:fix_proposed is:unresolved',
     emptyMessage: t('No issues with a proposed fix'),
     progress: ProgressState.FIX_PROPOSED,
     defaultExpanded: true,
@@ -74,7 +74,7 @@ export const SECTIONS: InboxSectionConfig[] = [
   {
     key: 'diagnosed',
     label: t('Diagnosed'),
-    query: 'issue.progress:diagnosed',
+    query: 'issue.progress:diagnosed is:unresolved',
     emptyMessage: t('No diagnosed issues'),
     progress: ProgressState.DIAGNOSED,
     defaultExpanded: true,
@@ -83,7 +83,7 @@ export const SECTIONS: InboxSectionConfig[] = [
   {
     key: 'assigned',
     label: t('Assigned'),
-    query: 'issue.progress:assigned',
+    query: 'issue.progress:assigned is:unresolved',
     emptyMessage: t('No assigned issues'),
     progress: ProgressState.ASSIGNED,
     defaultExpanded: false,
@@ -92,7 +92,7 @@ export const SECTIONS: InboxSectionConfig[] = [
   {
     key: 'identified',
     label: t('Identified'),
-    query: 'issue.progress:identified',
+    query: 'issue.progress:identified is:unresolved',
     emptyMessage: t('No identified issues'),
     progress: ProgressState.IDENTIFIED,
     defaultExpanded: false,
@@ -101,7 +101,7 @@ export const SECTIONS: InboxSectionConfig[] = [
   {
     key: 'fix-applied',
     label: t('Fix Applied'),
-    query: 'issue.progress:fix_applied',
+    query: 'issue.progress:fix_applied is:unresolved',
     emptyMessage: t('No issues with an applied fix'),
     progress: ProgressState.FIX_APPLIED,
     defaultExpanded: false,
@@ -239,7 +239,7 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
       path: {organizationIdOrSlug: organization.slug},
       query: {
         project: [-1],
-        query: `${section.query} is:unresolved${ASSIGNMENT_QUERY_SUFFIXES[assignmentFilter]}`,
+        query: `${section.query}${ASSIGNMENT_QUERY_SUFFIXES[assignmentFilter]}`,
         sort: IssueSortOptions.PROGRESS,
         limit: ISSUE_LIMIT,
         collapse: ['stats', 'unhandled'],
