@@ -82,6 +82,7 @@ type DetectorSettingsOptions = {
   hasAIIssueDetection: boolean;
   hasAccess: boolean;
   hasWebVitalsSeerSuggestions: boolean;
+  isResetting: boolean;
   organization: Organization;
   performanceIssueSettings: ProjectPerformanceSettings;
   projectSlug: string;
@@ -188,6 +189,7 @@ export function getProjectDetectorSettings({
   hasAccess,
   hasAIIssueDetection,
   hasWebVitalsSeerSuggestions,
+  isResetting,
   organization,
   performanceIssueSettings,
   projectSlug,
@@ -199,7 +201,7 @@ export function getProjectDetectorSettings({
   const issueType = safeGetQsParam('issueType');
 
   const getDisabled = ({disabled, disabledReason: reason}: DetectorDefinition) =>
-    disabled ? (reason ?? true) : false;
+    isResetting || disabled ? (reason ?? true) : false;
   const getNumberSetting = (name: DetectorConfigCustomer, defaultValue: number) => {
     const value = performanceIssueSettings[name];
     return typeof value === 'number' ? value : defaultValue;

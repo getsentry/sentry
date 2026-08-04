@@ -48,6 +48,8 @@ export function ProjectPerformance() {
     detectorResetVersion,
     isResettingDetectorSettings,
     isResettingThresholdSettings,
+    isSavingDetectorSettings,
+    isSavingThresholdSettings,
     resetDetectorSettings,
     resetThresholdSettings,
     thresholdResetVersion,
@@ -121,6 +123,7 @@ export function ProjectPerformance() {
     hasAccess: hasWriteAccess,
     hasAIIssueDetection,
     hasWebVitalsSeerSuggestions,
+    isResetting: isResettingDetectorSettings,
     organization,
     performanceIssueSettings,
     projectSlug,
@@ -138,11 +141,13 @@ export function ProjectPerformance() {
         threshold={threshold}
         hasWriteAccess={hasWriteAccess}
         isResetting={isResettingThresholdSettings}
+        isSaving={isSavingThresholdSettings}
         onResetAll={resetThresholdSettings}
       />
       <SamplingPrioritiesSection project={project} hasWriteAccess={hasWriteAccess} />
       {isActiveSuperuser() && (
         <AdminRegressionSettingsSection
+          isResetting={isResettingDetectorSettings}
           performanceIssueSettings={performanceIssueSettings}
         />
       )}
@@ -151,6 +156,7 @@ export function ProjectPerformance() {
         performanceIssueSettings={performanceIssueSettings}
         hasWriteAccess={hasWriteAccess}
         isResetting={isResettingDetectorSettings}
+        isSaving={isSavingDetectorSettings}
         onResetAll={resetDetectorSettings}
       />
     </Fragment>

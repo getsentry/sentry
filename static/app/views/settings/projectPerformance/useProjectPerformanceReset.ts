@@ -1,18 +1,26 @@
 import {useState} from 'react';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useIsMutating, useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
-import {getPerformanceIssueSettingsQueryOptions} from './detectors/useDetectorFieldMutationOptions';
-import {getThresholdQueryOptions} from './useThresholdSettingsMutationOptions';
+import {
+  getDetectorSettingsMutationKey,
+  getPerformanceIssueSettingsQueryOptions,
+} from './detectors/useDetectorFieldMutationOptions';
+import {
+  getThresholdQueryOptions,
+  getThresholdSettingsMutationKey,
+} from './useThresholdSettingsMutationOptions';
 
 type ProjectPerformanceReset = {
   detectorResetVersion: number;
   isResettingDetectorSettings: boolean;
   isResettingThresholdSettings: boolean;
+  isSavingDetectorSettings: boolean;
+  isSavingThresholdSettings: boolean;
   resetDetectorSettings: () => void;
   resetThresholdSettings: () => void;
   thresholdResetVersion: number;
@@ -30,6 +38,16 @@ export function useProjectPerformanceReset(): ProjectPerformanceReset {
     organization.slug,
     projectSlug
   );
+  const isSavingThresholdSettings =
+    useIsMutating({
+      mutationKey: getThresholdSettingsMutationKey(organization.slug, projectSlug),
+      exact: true,
+    }) > 0;
+  const isSavingDetectorSettings =
+    useIsMutating({
+      mutationKey: getDetectorSettingsMutationKey(organization.slug, projectSlug),
+      exact: true,
+    }) > 0;
 
   const thresholdSettingsReset = useMutation({
     mutationFn: () =>
@@ -70,8 +88,18 @@ export function useProjectPerformanceReset(): ProjectPerformanceReset {
     detectorResetVersion,
     isResettingDetectorSettings: detectorSettingsReset.isPending,
     isResettingThresholdSettings: thresholdSettingsReset.isPending,
-    resetDetectorSettings: () => detectorSettingsReset.mutate(),
-    resetThresholdSettings: () => thresholdSettingsReset.mutate(),
+    isSavingDetectorSettings,
+    isSavingThresholdSettings,
+    resetDetectorSettings: () => {
+      if (!isSavingDetectorSettings) {
+        detectorSettingsReset.mutate();
+      }
+    },
+    resetThresholdSettings: () => {
+      if (!isSavingThresholdSettings) {
+        thresholdSettingsReset.mutate();
+      }
+    },
     thresholdResetVersion,
   };
 }

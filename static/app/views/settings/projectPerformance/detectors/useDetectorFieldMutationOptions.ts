@@ -19,6 +19,9 @@ export const getPerformanceIssueSettingsQueryOptions = (
     }
   );
 
+export const getDetectorSettingsMutationKey = (orgSlug: string, projectSlug: string) =>
+  ['project-performance-detector-settings', orgSlug, projectSlug] as const;
+
 export function useDetectorFieldMutationOptions(projectSlug: string) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
@@ -28,6 +31,7 @@ export function useDetectorFieldMutationOptions(projectSlug: string) {
   );
 
   return mutationOptions({
+    mutationKey: getDetectorSettingsMutationKey(organization.slug, projectSlug),
     mutationFn: (data: ProjectPerformanceSettings) =>
       fetchMutation<ProjectPerformanceSettings>({
         url: `/projects/${organization.slug}/${projectSlug}/performance-issues/configure/`,

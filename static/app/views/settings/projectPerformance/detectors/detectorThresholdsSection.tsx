@@ -17,6 +17,7 @@ import {
 import {useDetectorFieldMutationOptions} from './useDetectorFieldMutationOptions';
 
 type AdminRegressionSettingsSectionProps = {
+  isResetting: boolean;
   performanceIssueSettings: ProjectPerformanceSettings;
 };
 
@@ -24,11 +25,13 @@ type DetectorThresholdsSectionProps = {
   detectorGroups: DetectorFieldGroup[];
   hasWriteAccess: boolean;
   isResetting: boolean;
+  isSaving: boolean;
   onResetAll: () => void;
   performanceIssueSettings: ProjectPerformanceSettings;
 };
 
 export function AdminRegressionSettingsSection({
+  isResetting,
   performanceIssueSettings,
 }: AdminRegressionSettingsSectionProps) {
   const {projectId: projectSlug} = useParams<{projectId: string}>();
@@ -50,7 +53,11 @@ export function AdminRegressionSettingsSection({
       >
         {field => (
           <field.Layout.Row label={t('Transaction Duration Regression Enabled')}>
-            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+            <field.Switch
+              checked={field.state.value}
+              onChange={field.handleChange}
+              disabled={isResetting}
+            />
           </field.Layout.Row>
         )}
       </AutoSaveForm>
@@ -66,7 +73,11 @@ export function AdminRegressionSettingsSection({
       >
         {field => (
           <field.Layout.Row label={t('Function Duration Regression Enabled')}>
-            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+            <field.Switch
+              checked={field.state.value}
+              onChange={field.handleChange}
+              disabled={isResetting}
+            />
           </field.Layout.Row>
         )}
       </AutoSaveForm>
@@ -78,6 +89,7 @@ export function DetectorThresholdsSection({
   detectorGroups,
   hasWriteAccess,
   isResetting,
+  isSaving,
   onResetAll,
   performanceIssueSettings,
 }: DetectorThresholdsSectionProps) {
@@ -102,7 +114,9 @@ export function DetectorThresholdsSection({
           <Confirm
             message={t('Are you sure you wish to reset all detector thresholds?')}
             onConfirm={onResetAll}
-            disabled={!hasWriteAccess || areAllConfigurationsDisabled}
+            disabled={
+              !hasWriteAccess || areAllConfigurationsDisabled || isResetting || isSaving
+            }
           >
             <Button busy={isResetting}>{t('Reset All Thresholds')}</Button>
           </Confirm>

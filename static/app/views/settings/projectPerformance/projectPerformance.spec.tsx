@@ -355,6 +355,57 @@ describe('projectPerformance', () => {
     });
   });
 
+  it('prevents threshold edits from racing with reset', async () => {
+    let resolveSave!: (value: {id: string; metric: string; threshold: string}) => void;
+    const thresholdPostMock = MockApiClient.addMockResponse({
+      url: configUrl,
+      method: 'POST',
+      body: () =>
+        new Promise(resolve => {
+          resolveSave = resolve;
+        }),
+    });
+    let resolveReset!: (value: Record<string, never>) => void;
+    const thresholdDeleteMock = MockApiClient.addMockResponse({
+      url: configUrl,
+      method: 'DELETE',
+      body: () =>
+        new Promise(resolve => {
+          resolveReset = resolve;
+        }),
+    });
+
+    render(<ProjectPerformance />, {initialRouterConfig});
+
+    const input = await screen.findByRole('textbox', {
+      name: 'Response Time Threshold (ms)',
+    });
+    const resetButton = screen.getByRole('button', {name: 'Reset All'});
+
+    await userEvent.clear(input);
+    await userEvent.type(input, '400');
+    await userEvent.tab();
+
+    expect(thresholdPostMock).toHaveBeenCalled();
+    expect(resetButton).toBeDisabled();
+
+    await act(async () => {
+      resolveSave({id: project.id, metric: 'duration', threshold: '400'});
+      await Promise.resolve();
+    });
+    await waitFor(() => expect(resetButton).toBeEnabled());
+
+    await userEvent.click(resetButton);
+
+    expect(thresholdDeleteMock).toHaveBeenCalled();
+    expect(input).toBeDisabled();
+
+    await act(async () => {
+      resolveReset({});
+      await Promise.resolve();
+    });
+  });
+
   it('renders detector threshold configuration - admin ui', async () => {
     jest.spyOn(utils, 'isActiveSuperuser').mockReturnValue(true);
     MockApiClient.addMockResponse({
@@ -649,12 +700,17 @@ describe('projectPerformance', () => {
         return {};
       },
     });
+    let resolveReset!: (value: Record<string, never>) => void;
     const delete_request_mock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/performance-issues/configure/',
       method: 'DELETE',
       body: () => {
-        aiDetectedHttpEnabled = true;
-        return {};
+        return new Promise(resolve => {
+          resolveReset = value => {
+            aiDetectedHttpEnabled = true;
+            resolve(value);
+          };
+        });
       },
     });
 
@@ -691,8 +747,15 @@ describe('projectPerformance', () => {
 
     await userEvent.click(confirmButton);
 
+    expect(delete_request_mock).toHaveBeenCalled();
+    expect(detectorSwitch).toBeDisabled();
+
+    await act(async () => {
+      resolveReset({});
+      await Promise.resolve();
+    });
+
     await waitFor(() => {
-      expect(delete_request_mock).toHaveBeenCalled();
       expect(performanceIssuesGetMock).toHaveBeenCalledTimes(2);
       expect(screen.getByRole('checkbox', {name: 'HTTP Issues'})).toBeChecked();
     });
@@ -808,6 +871,7 @@ describe('projectPerformance', () => {
       })
     );
     expect(threshold).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Reset All Thresholds'})).toBeDisabled();
 
     await act(async () => {
       resolveUpdate({n_plus_one_db_queries_detection_enabled: false});

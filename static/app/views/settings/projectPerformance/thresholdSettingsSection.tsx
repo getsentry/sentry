@@ -15,6 +15,7 @@ import {useThresholdSettingsMutationOptions} from './useThresholdSettingsMutatio
 type ThresholdSettingsSectionProps = {
   hasWriteAccess: boolean;
   isResetting: boolean;
+  isSaving: boolean;
   onResetAll: () => void;
   threshold: ProjectThreshold;
 };
@@ -22,6 +23,7 @@ type ThresholdSettingsSectionProps = {
 export function ThresholdSettingsSection({
   hasWriteAccess,
   isResetting,
+  isSaving,
   onResetAll,
   threshold,
 }: ThresholdSettingsSectionProps) {
@@ -55,7 +57,7 @@ export function ThresholdSettingsSection({
             <field.Select
               value={field.state.value}
               onChange={field.handleChange}
-              disabled={!hasWriteAccess}
+              disabled={!hasWriteAccess || isResetting}
               options={CALCULATION_METHOD_OPTIONS}
             />
           </field.Layout.Row>
@@ -87,14 +89,18 @@ export function ThresholdSettingsSection({
               value={field.state.value}
               onChange={field.handleChange}
               placeholder={t('300')}
-              disabled={!hasWriteAccess}
+              disabled={!hasWriteAccess || isResetting}
             />
           </field.Layout.Row>
         )}
       </AutoSaveForm>
 
       <Flex justify="end">
-        <Button onClick={onResetAll} busy={isResetting} disabled={!hasWriteAccess}>
+        <Button
+          onClick={onResetAll}
+          busy={isResetting}
+          disabled={!hasWriteAccess || isResetting || isSaving}
+        >
           {t('Reset All')}
         </Button>
       </Flex>
