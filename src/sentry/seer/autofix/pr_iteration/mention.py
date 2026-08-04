@@ -85,7 +85,7 @@ def _dispatch_autofix_iteration_from_comment(
     # log at info to make any silent drop debuggable.
     logger.info("autofix.pr_iteration.comment_trigger.received", extra=log_extra)
 
-    if not features.has("organizations:autofix-pr-iteration", organization):
+    if not features.has("organizations:autofix-pr-iteration-manual", organization):
         logger.info("autofix.pr_iteration.comment_trigger.feature_disabled", extra=log_extra)
         return None
 

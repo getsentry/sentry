@@ -496,7 +496,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 202, response.data
         action_log.assert_not_logged(TriggerAutofixAction, group_id=group.id)
 
-    @with_feature("organizations:autofix-pr-iteration")
+    @with_feature("organizations:autofix-pr-iteration-manual")
     @patch("sentry.seer.endpoints.group_ai_autofix.consume_queued_autofix_feedback")
     @patch("sentry.seer.endpoints.group_ai_autofix.try_enqueue_autofix_feedback")
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
@@ -529,7 +529,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert mock_try_enqueue.call_args.kwargs["actor_user_id"] == self.user.id
         mock_consume.apply_async.assert_called_once()
 
-    @with_feature({"organizations:autofix-pr-iteration": False})
+    @with_feature({"organizations:autofix-pr-iteration-manual": False})
     @patch("sentry.seer.endpoints.group_ai_autofix.consume_queued_autofix_feedback")
     @patch("sentry.seer.endpoints.group_ai_autofix.try_enqueue_autofix_feedback")
     def test_pr_iteration_requires_feature_flag(self, mock_try_enqueue, mock_consume):
@@ -546,7 +546,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["detail"] == "PR iteration is not enabled for this organization"
         mock_try_enqueue.assert_not_called()
 
-    @with_feature("organizations:autofix-pr-iteration")
+    @with_feature("organizations:autofix-pr-iteration-manual")
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_pr_iteration_requires_run_id(self, mock_trigger_explorer):
         group = self.create_group()
@@ -561,7 +561,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.data
         mock_trigger_explorer.assert_not_called()
 
-    @with_feature("organizations:autofix-pr-iteration")
+    @with_feature("organizations:autofix-pr-iteration-manual")
     @patch("sentry.seer.endpoints.group_ai_autofix.try_enqueue_autofix_feedback")
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
     def test_pr_iteration_requires_existing_pr(self, mock_run_state, mock_try_enqueue):

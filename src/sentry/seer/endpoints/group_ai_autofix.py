@@ -355,7 +355,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
-                if not features.has("organizations:autofix-pr-iteration", group.organization):
+                if not features.has(
+                    "organizations:autofix-pr-iteration-manual", group.organization
+                ):
                     return Response(
                         {"detail": "PR iteration is not enabled for this organization"},
                         status=status.HTTP_400_BAD_REQUEST,
@@ -574,7 +576,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                         agent_id: agent.dict() for agent_id, agent in state.coding_agents.items()
                     },
                     "pr_iteration_enabled": features.has(
-                        "organizations:autofix-pr-iteration", group.organization
+                        "organizations:autofix-pr-iteration-manual", group.organization
                     ),
                     "queued_feedback": queued_feedback,
                     "warnings": warnings,

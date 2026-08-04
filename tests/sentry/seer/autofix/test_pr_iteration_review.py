@@ -79,7 +79,7 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
         self, mock_contexts: MagicMock, mock_delay: MagicMock
     ) -> None:
         self._mock_org_contexts(mock_contexts)
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             handle_pull_request_review_for_autofix_iteration(self._event())
 
         mock_delay.assert_called_once()
@@ -102,7 +102,7 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
         self, mock_contexts: MagicMock, mock_delay: MagicMock
     ) -> None:
         self._mock_org_contexts(mock_contexts)
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             handle_pull_request_review_for_autofix_iteration(self._event(action="edited"))
         mock_delay.assert_not_called()
 
@@ -114,7 +114,7 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
         self._mock_org_contexts(mock_contexts)
         # The listener dispatches every submitted review, bots included; the repo
         # write-access gate is enforced downstream in the task, not here.
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             handle_pull_request_review_for_autofix_iteration(
                 self._event(author_id="333333", is_bot=True)
             )
@@ -137,7 +137,7 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
         self, mock_contexts: MagicMock, mock_delay: MagicMock
     ) -> None:
         mock_contexts.return_value = MagicMock(integration=None, organization_integrations=[])
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             handle_pull_request_review_for_autofix_iteration(self._event())
         mock_delay.assert_not_called()
 
@@ -145,7 +145,7 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
     @patch(f"{REVIEW_PATH}.integration_service.organization_contexts")
     def test_skips_when_missing_ids(self, mock_contexts: MagicMock, mock_delay: MagicMock) -> None:
         self._mock_org_contexts(mock_contexts)
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             handle_pull_request_review_for_autofix_iteration(self._event(installation_id=None))
         mock_delay.assert_not_called()
 

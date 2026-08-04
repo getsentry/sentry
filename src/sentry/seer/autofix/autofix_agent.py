@@ -410,7 +410,12 @@ def trigger_autofix_agent(
 
     config = STEP_CONFIGS[step]
 
-    pr_iteration_enabled = features.has("organizations:autofix-pr-iteration", group.organization)
+    # Either flag enables the PR_ITERATION step itself: automated CI iteration runs
+    # under `autofix-pr-iteration`, human-triggered iteration under the `-manual`
+    # variant. Both reach this function via `trigger_autofix_agent`.
+    pr_iteration_enabled = features.has(
+        "organizations:autofix-pr-iteration", group.organization
+    ) or features.has("organizations:autofix-pr-iteration-manual", group.organization)
     is_iteration_step = step == AutofixStep.PR_ITERATION
 
     client = get_autofix_agent_client(
@@ -879,7 +884,7 @@ def build_pr_description_suffix(group: Group) -> str | None:
             linear_id = external_issue.display_name.replace("#", "-")
             lines.append(f"Fixes [{linear_id}]({external_issue.web_url})")
 
-    if features.has("organizations:autofix-pr-iteration", group.organization):
+    if features.has("organizations:autofix-pr-iteration-manual", group.organization):
         lines.append(
             "\n<sub>Comment `@sentry <feedback>` on this PR to have Autofix iterate on the changes.</sub>"
         )
