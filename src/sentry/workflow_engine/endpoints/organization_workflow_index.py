@@ -22,7 +22,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, features
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -64,6 +64,7 @@ from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowVa
 from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
     DetectorWorkflowMutationValidator,
 )
+from sentry.workflow_engine.endpoints.validators.utils import should_include_all_projects_detector
 from sentry.workflow_engine.models import DetectorWorkflow, Workflow
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 from sentry.workflow_engine.types import DetectorId
@@ -214,7 +215,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         accessible_workflows = Q(detectorworkflow__detector__project__in=projects) | Q(
             detectorworkflow__isnull=True
         )
-        if features.has("organizations:workflow-engine-all-projects-detector", organization):
+        if should_include_all_projects_detector(request=request, organization=organization):
             accessible_workflows |= Q(
                 detectorworkflow__detector__project__isnull=True,
                 detectorworkflow__detector__type=IssueStreamGroupType.slug,

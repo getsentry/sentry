@@ -8,7 +8,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, features
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -44,6 +44,7 @@ from sentry.workflow_engine.endpoints.validators.utils import (
     can_delete_detector,
     can_edit_detector,
     get_unknown_detector_type_error,
+    should_include_all_projects_detector,
 )
 from sentry.workflow_engine.models import DataSource, Detector
 
@@ -148,8 +149,8 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         except Detector.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if detector.project is None and not features.has(
-            "organizations:workflow-engine-all-projects-detector", organization
+        if detector.project is None and should_include_all_projects_detector(
+            organization=organization, request=request
         ):
             raise PermissionDenied
 

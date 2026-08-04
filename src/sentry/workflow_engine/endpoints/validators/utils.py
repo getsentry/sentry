@@ -11,7 +11,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 
-from sentry import audit_log
+from sentry import audit_log, features
 from sentry.issues import grouptype
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -119,11 +119,11 @@ def can_edit_detector_workflow_connections(detector: Detector, request: Request)
     """
     Anyone with alert write access to the project can connect/disconnect detectors of any type,
     which is slightly different from full edit access which differs by detector type.
+    The only exception is the all project detector, which requires system-created detector scopes.
     """
-    # If this is the All Projects detector, skip the project check
     if not detector.project:
         return any(
-            request.access.has_scope(scope) for scope in USER_CREATED_DETECTOR_REQUIRED_SCOPES
+            request.access.has_scope(scope) for scope in SYSTEM_CREATED_DETECTOR_REQUIRED_SCOPES
         )
 
     return request.access.has_any_project_scope(
@@ -378,3 +378,10 @@ def get_unknown_detector_type_error(bad_value: str, organization: Organization) 
         return f"Unknown detector type '{bad_value}'. Must be one of: {available_str}"
     else:
         return f"Unknown detector type '{bad_value}'. No detector types are available."
+
+
+def should_include_all_projects_detector(request: Request, organization: Organization) -> bool:
+    return (
+        features.has("organizations:workflow-engine-all-projects-detector", organization)
+        and request.method == "GET"
+    )
