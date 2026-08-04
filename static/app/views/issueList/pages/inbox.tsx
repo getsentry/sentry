@@ -1,4 +1,4 @@
-import {Children, type ReactNode} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 import {useInfiniteQuery} from '@tanstack/react-query';
 import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
@@ -11,7 +11,6 @@ import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
-import {SplitPanel} from '@sentry/scraps/splitPanel';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -29,9 +28,10 @@ import type {User} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useMembers} from 'sentry/utils/members/useMembers';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useResizable} from 'sentry/utils/useResizable';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {IssuePreview} from 'sentry/views/issueDetails/issuePreview/issuePreview';
 import {IssueListContainer} from 'sentry/views/issueList';
 import {useInboxPreviewPrefetch} from 'sentry/views/issueList/pages/useInboxPreviewPrefetch';
@@ -47,7 +47,7 @@ const ASSIGNMENT_FILTERS = ['me', 'my_teams', 'all'] as const;
 const INBOX_SPLIT_SIZE_STORAGE_KEY = 'inbox-split-size';
 const INBOX_DEFAULT_SIZE = 480;
 const INBOX_MIN_SIZE = 320;
-const PREVIEW_MIN_SIZE = 400;
+const INBOX_MAX_SIZE = 640;
 type AssignmentFilter = (typeof ASSIGNMENT_FILTERS)[number];
 export const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
   me: ' assigned:me',
@@ -106,6 +106,9 @@ export default function InboxPage() {
 }
 
 function InboxContent() {
+  const {layout} = usePrimaryNavigation();
+  const isMobile = layout === 'mobile';
+  const resizableContainerRef = useRef<HTMLDivElement>(null);
   const organization = useOrganization();
   const hasSeer =
     !organization.hideAiFeatures &&
@@ -121,19 +124,37 @@ function InboxContent() {
     SELECTED_ISSUE_QUERY_PARAM,
     parseAsString.withOptions({history: 'replace'})
   );
+  const [storedSize, setStoredSize] = useSyncedLocalStorageState(
+    INBOX_SPLIT_SIZE_STORAGE_KEY,
+    INBOX_DEFAULT_SIZE
+  );
+  const {onMouseDown: handleStartResize, size} = useResizable({
+    ref: resizableContainerRef,
+    initialSize: storedSize,
+    minWidth: INBOX_MIN_SIZE,
+    maxWidth: INBOX_MAX_SIZE,
+    onResizeEnd: setStoredSize,
+  });
 
   return (
     <Stack flex={1} minHeight={0} contain="size" overflow="hidden">
       <Layout.Title>{TITLE}</Layout.Title>
-      <InboxLayout>
+      <Grid
+        flex={1}
+        minHeight={0}
+        columns={isMobile ? 'minmax(0, 1fr)' : 'max-content minmax(0, 1fr)'}
+      >
         <Stack
+          ref={isMobile ? undefined : resizableContainerRef}
           as="section"
           aria-label={t('Issue inbox')}
-          flex={1}
+          position="relative"
+          width={isMobile ? '100%' : `${size}px`}
           minWidth={0}
           minHeight={0}
           display={selectedIssueId ? {'screen:xs': 'none', 'screen:md': 'flex'} : 'flex'}
           background="primary"
+          borderRight="muted"
         >
           <Flex
             as="header"
@@ -172,6 +193,25 @@ function InboxContent() {
               />
             ))}
           </Stack>
+          <Container
+            top="0"
+            right="0"
+            bottom="0"
+            width="8px"
+            radius="lg"
+            position="absolute"
+            display={isMobile ? 'none' : undefined}
+          >
+            {props => (
+              <ResizeHandle
+                {...props}
+                onMouseDown={handleStartResize}
+                onDoubleClick={() => setStoredSize(INBOX_DEFAULT_SIZE)}
+                atMinWidth={size === INBOX_MIN_SIZE}
+                atMaxWidth={size === INBOX_MAX_SIZE}
+              />
+            )}
+          </Container>
         </Stack>
         <Stack
           as="aside"
@@ -200,48 +240,8 @@ function InboxContent() {
           )}
           {selectedIssueId && <IssuePreview groupId={selectedIssueId} />}
         </Stack>
-      </InboxLayout>
-    </Stack>
-  );
-}
-
-function InboxLayout({children}: {children: ReactNode}) {
-  const {layout} = usePrimaryNavigation();
-  if (layout === 'mobile') {
-    return (
-      <Grid flex={1} minHeight={0} columns="minmax(0, 1fr)">
-        {children}
       </Grid>
-    );
-  }
-
-  const [issueList, issuePreview] = Children.toArray(children);
-  return <DesktopInboxSplit issueList={issueList} issuePreview={issuePreview} />;
-}
-
-function DesktopInboxSplit({
-  issueList,
-  issuePreview,
-}: {
-  issueList: ReactNode;
-  issuePreview: ReactNode;
-}) {
-  const [size, setSize] = useLocalStorageState(
-    INBOX_SPLIT_SIZE_STORAGE_KEY,
-    INBOX_DEFAULT_SIZE
-  );
-
-  return (
-    <SplitPanel
-      orientation="horizontal"
-      defaultSize={INBOX_DEFAULT_SIZE}
-      initialSize={size}
-      minSize={INBOX_MIN_SIZE}
-      fillMinSize={PREVIEW_MIN_SIZE}
-      onResizeEnd={({endSize}) => setSize(endSize)}
-      sized={issueList}
-      fill={issuePreview}
-    />
+    </Stack>
   );
 }
 
@@ -455,6 +455,30 @@ const InboxSectionContent = styled(Disclosure.Content)`
 
 const StickySectionHeader = styled(Container)`
   z-index: 1;
+`;
+
+const ResizeHandle = styled('div')<{atMaxWidth: boolean; atMinWidth: boolean}>`
+  z-index: ${p => p.theme.zIndex.drawer + 2};
+  cursor: ${p => (p.atMinWidth ? 'e-resize' : p.atMaxWidth ? 'w-resize' : 'ew-resize')};
+
+  &:hover,
+  &:active {
+    &::after {
+      background: ${p => p.theme.tokens.graphics.accent.vibrant};
+    }
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: -2px;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    opacity: 0.8;
+    background: transparent;
+    transition: background ${p => p.theme.motion.smooth.slow} 0.1s;
+  }
 `;
 
 const IssueCardLink = styled(Link)`

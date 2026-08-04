@@ -22,10 +22,6 @@ import {ProgressState} from 'sentry/types/group';
 
 import InboxPage from './inbox';
 
-jest.mock('sentry/utils/useDimensions', () => ({
-  useDimensions: () => ({height: 800, width: 1200}),
-}));
-
 describe('InboxPage', () => {
   const organization = OrganizationFixture({
     features: ['issue-stream-progress-ui'],
@@ -344,8 +340,9 @@ describe('InboxPage', () => {
 
     render(<InboxPage />, {organization, initialRouterConfig});
 
-    expect(screen.getByRole('separator')).toHaveAttribute('aria-orientation', 'vertical');
-    expect(screen.getByRole('separator')).toHaveAttribute('aria-valuenow', '550');
+    expect(screen.getByRole('region', {name: 'Issue inbox'})).toHaveStyle({
+      width: '550px',
+    });
   });
 
   it('hides the Diagnosed section without a paid Seer plan', async () => {
