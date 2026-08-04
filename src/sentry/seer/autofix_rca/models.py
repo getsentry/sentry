@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from enum import StrEnum
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -27,24 +26,3 @@ class AutofixRCAPayload(BaseModel):
     title: str
     culprit: str
     tweaks: AutofixRCATweaks = Field(default_factory=AutofixRCATweaks)
-
-
-class IntrospectionAction(StrEnum):
-    CONTINUE = "continue"
-    NEEDS_MORE_CONTEXT = "needs_more_context"
-    REDO = "redo"
-    NOT_ACTIONABLE = "not_actionable"
-
-
-class IntrospectionDecision(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
-    action: IntrospectionAction
-    reason: str = ""
-
-
-class AutofixRCAResult(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
-    artifact: dict[str, Any] | None = None
-    introspection_decision: IntrospectionDecision | None = None

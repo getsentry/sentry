@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING
 
 from django.db import router, transaction
 from django.utils import timezone
-from pydantic import ValidationError
 from scm.manager import SourceCodeManager
 
 from sentry import analytics, features
@@ -92,6 +91,45 @@ def _record_completion_reaction(outcome: str) -> None:
         "autofix.on_completion_hook.completion_reaction",
         tags={"outcome": outcome},
     )
+
+
+def record_fixability(
+    *,
+    organization: Organization,
+    group: Group,
+    run_id: int,
+    artifact: RootCauseArtifact,
+    step: AutofixStep,
+    referrer: AutofixReferrer,
+    reached_stopping_point: bool,
+) -> FixabilityAssessment:
+    analytics.record(
+        AiAutofixIntrospectionEvent(
+            organization_id=organization.id,
+            project_id=group.project_id,
+            group_id=group.id,
+            run_id=run_id,
+            referrer=referrer.value,
+            step=step.value,
+            action=artifact.fixability.assessment,
+            reached_stopping_point=reached_stopping_point,
+        )
+    )
+    logger.info(
+        "autofix.on_completion_hook.introspection",
+        extra={
+            "organization_id": organization.id,
+            "project_id": group.project_id,
+            "group_id": group.id,
+            "referrer": referrer.value,
+            "step": step.value,
+            "action": artifact.fixability.assessment,
+            "reason": artifact.fixability.reason,
+            "reached_stopping_point": reached_stopping_point,
+        },
+    )
+
+    return artifact.fixability
 
 
 class AutofixOnCompletionHook(AgentOnCompletionHook):
@@ -744,44 +782,22 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         if step != AutofixStep.ROOT_CAUSE:
             return None
 
-        try:
-            artifact = state.get_artifact("root_cause", RootCauseArtifact)
-        except ValidationError:
-            # The agent may produce artifacts that dont follow the schema
-            return None
+        artifact = state.get_artifacts().get(AutofixStep.ROOT_CAUSE.value)
 
         if artifact is None:
             return None
 
-        fixability = artifact.fixability
+        root_cause_artifact = RootCauseArtifact.model_validate(artifact.data)
 
-        analytics.record(
-            AiAutofixIntrospectionEvent(
-                organization_id=organization.id,
-                project_id=group.project_id,
-                group_id=group.id,
-                run_id=run_id,
-                referrer=referrer.value,
-                step=step.value,
-                action=fixability.assessment,
-                reached_stopping_point=reached_stopping_point,
-            )
+        return record_fixability(
+            organization=organization,
+            group=group,
+            run_id=run_id,
+            artifact_data=root_cause_artifact,
+            step=step,
+            referrer=referrer,
+            reached_stopping_point=reached_stopping_point,
         )
-        logger.info(
-            "autofix.on_completion_hook.introspection",
-            extra={
-                "organization_id": organization.id,
-                "project_id": group.project_id,
-                "group_id": group.id,
-                "referrer": referrer.value,
-                "step": step.value,
-                "action": fixability.assessment,
-                "reason": fixability.reason,
-                "reached_stopping_point": reached_stopping_point,
-            },
-        )
-
-        return fixability
 
     @classmethod
     def _iteration_terminal_errored_repos(cls, state: SeerRunState) -> list[str]:

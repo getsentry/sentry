@@ -11,9 +11,11 @@ from django.utils import timezone
 
 from sentry.models.group import Group
 from sentry.seer.agent.types import FeatureRunStatus
+from sentry.seer.autofix.artifact_schemas import RootCauseArtifact
 from sentry.seer.autofix.autofix_agent import AutofixStep, handle_step_completed_events
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix_rca.models import FEATURE_ID, AutofixRCAResult
+from sentry.seer.autofix.on_completion_hook import record_fixability
+from sentry.seer.autofix_rca.models import FEATURE_ID
 from sentry.seer.models.run import SeerAgentRun, SeerRun
 
 logger = logging.getLogger(__name__)
@@ -76,22 +78,16 @@ def deliver_autofix_rca_result(
         logger.warning("autofix_rca.delivery.no_result", extra={**log_extra, "status": status})
         return
 
-    try:
-        rca_result = AutofixRCAResult.parse_obj(result)
-    except Exception:
-        sentry_sdk.metrics.count(
-            "autofix_rca.delivery_error", 1, attributes={"error_type": "invalid_result"}
-        )
-        logger.exception("autofix_rca.delivery.invalid_result", extra=log_extra)
-        return
+    root_cause_artifact = RootCauseArtifact.model_validate(result)
 
     # Persist the full result for offline evaluation of Seer RCA quality.
     agent_run.update(
-        extras={**(agent_run.extras or {}), "status": "completed", "result": rca_result.dict()}
+        extras={
+            **(agent_run.extras or {}),
+            "status": "completed",
+            "result": root_cause_artifact.model_dump(),
+        }
     )
-
-    decision = rca_result.introspection_decision
-    action = decision.action.value if decision is not None else "none"
 
     if agent_run.group_id is None or run_state_id is None:
         logger.warning("autofix_rca.delivery.cannot_surface", extra=log_extra)
@@ -115,23 +111,37 @@ def deliver_autofix_rca_result(
             organization_id=organization_id, seer_run_state_id=run_state_id
         ).update(last_triggered_at=now)
 
+    referrer = _resolve_referrer(agent_run.extras)
+
     handle_step_completed_events(
         group,
         AutofixStep.ROOT_CAUSE,
         run_state_id,
         str(agent_run.run.uuid),
-        _resolve_referrer(agent_run.extras),
-        artifact_data=rca_result.artifact,
+        referrer,
+        artifact_data=root_cause_artifact,
+    )
+
+    fixability = record_fixability(
+        organization=group.organization,
+        group=group,
+        run_id=run_state_id,
+        artifact_data=root_cause_artifact,
+        step=AutofixStep.ROOT_CAUSE,
+        referrer=referrer,
+        reached_stopping_point=True,
     )
 
     sentry_sdk.metrics.count(
-        "autofix_rca.delivery_completed", 1, attributes={"introspection_action": action}
+        "autofix_rca.delivery_completed",
+        1,
+        attributes={"fixability": fixability.assessment if fixability else "none"},
     )
     logger.info(
         "autofix_rca.delivery.completed",
         extra={
             **log_extra,
-            "introspection_action": action,
-            "has_artifact": rca_result.artifact is not None,
+            "fixability": fixability.assessment if fixability else None,
+            "has_artifact": result is not None,
         },
     )
