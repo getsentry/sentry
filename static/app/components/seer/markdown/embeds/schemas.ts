@@ -204,13 +204,17 @@ export const SEER_EMBED_SCHEMAS = {
   autofix: {
     featureFlag: 'organizations:seer-agent-autofix',
     description:
-      'Run Seer Autofix on an issue and render each step (root cause, ' +
-      'solution, code changes) as a collapsible block. Emit this embed ' +
-      'whenever the user signals intent to fix, solve, debug, or resolve a ' +
-      'problem — e.g. "fix this issue", "solve the problem", "find the root ' +
-      'cause", "why is this happening", "how do I resolve this error". ' +
-      'Prefer it over a plaintext explanation whenever an issue can be ' +
-      'autofixed.',
+      'Render one step of a Seer Autofix run (root cause, solution, plan, ' +
+      'or code changes) as a collapsible block linking back to the issue. ' +
+      'Emit this embed whenever the user signals intent to fix, solve, ' +
+      'debug, or resolve a problem — e.g. "fix this issue", "solve the ' +
+      'problem", "find the root cause", "why is this happening", "how do I ' +
+      'resolve this error" — or asks for the status/result of an autofix ' +
+      'run already in progress. `result` is the full markdown write-up for ' +
+      'that step; `step` is a short label such as "Root Cause", "Solution", ' +
+      '"Plan", or "Code Changes". Prefer this embed over a plaintext ' +
+      'explanation whenever an issue can be autofixed, and emit one embed ' +
+      'per step rather than combining multiple steps into one.',
     level: ['block'],
     schema: z.object({
       step: z.string(),
