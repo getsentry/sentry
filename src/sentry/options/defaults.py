@@ -615,6 +615,8 @@ register("slack.debug-workspace", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Log unfurl payloads for debugging
 register("slack.log-unfurl-payload", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Deduplicate Seer Agent Slack event_callback deliveries by event_id (SET NX)
+register("slack.dedupe-seer-webhook-events", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Log Slack webhook retry headers and slow (>3s) responses for debugging
 register("slack.log-webhook-retry-diagnostics", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Frequency of slack nudge blocks on issue alerts (0.0 to 1.0, where 0.3 = 30%)
@@ -3220,11 +3222,6 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "spans.process-segments.detect-performance-problems.enable",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "spans.process-segments.schema-validation",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -4096,4 +4093,14 @@ register(
     default=True,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Selectively allow issue detectors to run (via the create-a-fake-transaction-event shim) during
+# segment processing. Enabled detectors should be specified by their corresponding `DetectorType`
+# value. To run all possible detectors, set the value to `["*"]`.
+register(
+    "spans.process-segments.detect-performance-problems.detectors-enabled",
+    default=[],
+    type=Sequence,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )

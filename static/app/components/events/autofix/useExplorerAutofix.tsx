@@ -497,7 +497,7 @@ export function isCodingAgentsSection(section: AutofixSection): boolean {
 }
 
 export function isRunValidForPrIteration(organization: Organization): boolean {
-  return organization.features.includes('autofix-pr-iteration');
+  return organization.features.includes('autofix-pr-iteration-manual');
 }
 
 export function isLastStepPrIteration(runState: ExplorerAutofixState | null): boolean {

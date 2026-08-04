@@ -56,7 +56,7 @@ const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   },
 };
 
-export type TracePreviewSource = 'feedback' | 'issues';
+type TracePreviewSource = 'feedback' | 'issues';
 
 interface TracePreviewProps {
   event: Event;

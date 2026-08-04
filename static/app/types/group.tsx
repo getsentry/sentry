@@ -553,7 +553,7 @@ export type SuggestedOwnerReason =
   | 'codeowners';
 
 // Received from the backend to denote suggested owners of an issue
-type SuggestedOwner = {
+export type SuggestedOwner = {
   date_added: string;
   owner: string;
   type: SuggestedOwnerReason;
