@@ -410,6 +410,22 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 run_id, sentry_run_id = resolved_run_id, resolved_sentry_run_id
 
             case _:
+                # A truncating re-run would strand a PR/coding agent (they live
+                # outside the blocks). Refuse it, mirroring the frontend gate.
+                if data.get("insert_index") is not None and resolved_run_id is not None:
+                    try:
+                        run_state = get_autofix_run_state(group, resolved_run_id)
+                    except SeerPermissionError:
+                        raise PermissionDenied(SEER_PERMISSION_DENIED)
+
+                    if run_state.repo_pr_states or run_state.coding_agents:
+                        return Response(
+                            {
+                                "detail": "Cannot re-run a step after a pull request or coding agent has started"
+                            },
+                            status=status.HTTP_409_CONFLICT,
+                        )
+
                 triggered_at = timezone.now() if is_autofix_kickoff else None
                 try:
                     run = trigger_autofix_agent(
