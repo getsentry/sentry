@@ -1,6 +1,5 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
@@ -15,7 +14,10 @@ import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useLeaveTeam} from 'sentry/views/settings/organizationTeams/hooks/useLeaveTeam';
-import {RoleOverwritePanelAlert} from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
+import {
+  hasOrgRoleOverwrite,
+  RoleOverwritePanelAlert,
+} from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
 import {TeamProjectsCell} from 'sentry/views/settings/organizationTeams/teamProjectsCell';
 import {
   TeamLink,
@@ -98,14 +100,16 @@ export function YourTeamsTable({
         </SimpleTable.HeaderCell>
         <SimpleTable.HeaderCell data-column-name="actions" />
       </SimpleTable.Header>
-      <FullWidthAlert>
-        <RoleOverwritePanelAlert
-          orgRole={orgRole}
-          orgRoleList={orgRoleList}
-          teamRoleList={teamRoleList}
-          isSelf
-        />
-      </FullWidthAlert>
+      {hasOrgRoleOverwrite({orgRole, orgRoleList, teamRoleList}) && (
+        <SimpleTable.FullWidthRow>
+          <RoleOverwritePanelAlert
+            orgRole={orgRole}
+            orgRoleList={orgRoleList}
+            teamRoleList={teamRoleList}
+            isSelf
+          />
+        </SimpleTable.FullWidthRow>
+      )}
       {isLoading
         ? Array.from({length: 3}).map((_, i) => (
             <SimpleTable.Row key={i}>
@@ -167,7 +171,7 @@ function YourTeamRow({
 
   return (
     <SimpleTable.Row>
-      {canViewTeam && <InteractionStateLayer />}
+      {canViewTeam && <InteractionStateLayer as="td" />}
       <SimpleTable.RowCell>
         {canViewTeam ? (
           <TeamLink
@@ -209,7 +213,3 @@ function YourTeamRow({
     </SimpleTable.Row>
   );
 }
-
-const FullWidthAlert = styled('div')`
-  grid-column: 1 / -1;
-`;
