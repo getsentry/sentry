@@ -4,7 +4,7 @@ from unittest import TestCase
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 
 
-def _make_event_data(filenames: list[str], platform: str = "") -> dict[str, Any]:
+def _make_event_data(filenames: list[Any], platform: str = "") -> dict[str, Any]:
     return {
         "exception": {
             "values": [
@@ -19,7 +19,7 @@ def _make_event_data(filenames: list[str], platform: str = "") -> dict[str, Any]
     }
 
 
-def _get_filenames(event_data: dict[str, Any]) -> list[str]:
+def _get_filenames(event_data: dict[str, Any]) -> list[Any]:
     frames = event_data["exception"]["values"][0]["stacktrace"]["frames"]
     return [frame["filename"] for frame in frames]
 
@@ -35,6 +35,14 @@ class FilenameNormalizationTest(TestCase):
 
     def test_leaves_non_querystringed_js_filenames_alone(self) -> None:
         filenames = ["maisey.js", "charlie.js"]
+        event_data = _make_event_data(filenames, "javascript")
+
+        normalize_stacktraces_for_grouping(event_data)
+
+        assert _get_filenames(event_data) == filenames
+
+    def test_leaves_non_string_js_filenames_alone(self) -> None:
+        filenames = [None, 42]
         event_data = _make_event_data(filenames, "javascript")
 
         normalize_stacktraces_for_grouping(event_data)
