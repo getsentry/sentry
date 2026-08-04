@@ -163,6 +163,25 @@ class FetchPrFileStatsTaskTest(TestCase):
         assert metrics_row.file_stats == stats
 
     @patch("sentry.pr_metrics.tasks.fetch_pr_file_stats")
+    def test_empty_result_does_not_overwrite_prior_stats(self, mock_fetch: Any) -> None:
+        # fetch_pr_file_stats returns [] on a transient GitHub failure too, and the
+        # close-webhook run is the last write — so an empty result must never clobber
+        # stats a previous run already stored.
+        self._link_autofix()
+        prior = [{"path": "a.py", "additions": 3, "deletions": 1, "status": "modified"}]
+        metrics_row = PullRequestMetrics.objects.create(
+            pull_request=self.pull_request, file_stats=prior
+        )
+        mock_fetch.return_value = []
+
+        with self.feature("organizations:pr-file-stats"):
+            self._run()
+
+        mock_fetch.assert_called_once()
+        metrics_row.refresh_from_db()
+        assert metrics_row.file_stats == prior
+
+    @patch("sentry.pr_metrics.tasks.fetch_pr_file_stats")
     def test_no_row_is_noop(self, mock_fetch: Any) -> None:
         self._link_autofix()
         mock_fetch.return_value = [

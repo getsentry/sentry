@@ -123,7 +123,10 @@ def fetch_pr_file_stats_task(
 
     Best-effort: every guard is an early return and the row is never created here
     — it belongs to the ``pr-metrics-emit`` pipeline, so a PR without one is a
-    no-op rather than a partially-populated row.
+    no-op rather than a partially-populated row. Every exit increments
+    ``pr_file_stats.task`` with a fixed ``result`` tag so the skip mix is visible
+    during rollout (e.g. an org flagged for file stats but not ``pr-metrics-emit``
+    shows up as all ``no_row``).
     """
     log_extra = {
         "pull_request_id": pull_request_id,
@@ -141,23 +144,39 @@ def fetch_pr_file_stats_task(
         repository = Repository.objects.get(id=repository_id, organization_id=organization_id)
     except (Organization.DoesNotExist, PullRequest.DoesNotExist, Repository.DoesNotExist):
         logger.warning("pr_file_stats.task.entity_not_found", extra=log_extra)
+        metrics.incr("pr_file_stats.task", tags={"result": "entity_not_found"})
         return
 
     if not features.has("organizations:pr-file-stats", organization):
+        metrics.incr("pr_file_stats.task", tags={"result": "flag_off"})
         return
 
     # Only PRs Seer opened are worth the extra GitHub call.
     if not pull_request.seer_run_links.exists():
+        metrics.incr("pr_file_stats.task", tags={"result": "not_linked"})
         return
 
     if is_github_rate_limit_sensitive(organization.slug):
+        metrics.incr("pr_file_stats.task", tags={"result": "rate_limited"})
         return
 
     if not PullRequestMetrics.objects.filter(pull_request=pull_request).exists():
+        metrics.incr("pr_file_stats.task", tags={"result": "no_row"})
         return
 
     file_stats = fetch_pr_file_stats(organization, repository, pull_request.key)
+    # fetch_pr_file_stats swallows failures and returns [], which is
+    # indistinguishable from a genuinely empty PR. The close-webhook run is the
+    # last write and has no recovery path, so writing [] would let one transient
+    # GitHub error permanently clobber good stats — skip the write instead. An
+    # empty PR keeps file_stats=None, which the files_changed aggregate already
+    # reads as 0.
+    if not file_stats:
+        metrics.incr("pr_file_stats.task", tags={"result": "empty"})
+        return
+
     PullRequestMetrics.objects.filter(pull_request=pull_request).update(file_stats=file_stats)
+    metrics.incr("pr_file_stats.task", tags={"result": "written"})
 
 
 @instrumented_task(
