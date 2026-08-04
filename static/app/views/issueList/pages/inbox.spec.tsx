@@ -896,7 +896,7 @@ describe('InboxPage', () => {
   describe('on desktop', () => {
     beforeEach(() => {
       jest.mocked(useMedia).mockImplementation(query => query.startsWith('(min-width:'));
-      jest.spyOn(IssuePreviewModule, 'IssuePreview').mockReturnValue(null);
+      jest.spyOn(IssuePreviewModule, 'IssuePreview').mockReturnValue(<div />);
     });
 
     afterEach(() => {
