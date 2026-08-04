@@ -173,23 +173,24 @@ function getProtectedRanges(text: string): Array<{end: number; start: number}> {
 
 /**
  * Returns the offset of the bracket that closes the one at `start`, or -1 if
- * unbalanced. Tracks string state so brackets inside JSON strings don't count.
+ * unbalanced. Tracks string state so brackets inside strings don't count. Both
+ * quote styles are handled since JSON uses `"` and Python-repr dicts use `'`.
  */
 function findBalancedEnd(text: string, start: number): number {
   let depth = 0;
-  let inString = false;
+  let stringChar: '"' | "'" | null = null;
   for (let i = start; i < text.length; i++) {
     const ch = text[i];
-    if (inString) {
+    if (stringChar !== null) {
       if (ch === '\\') {
         i++; // skip escaped char
-      } else if (ch === '"') {
-        inString = false;
+      } else if (ch === stringChar) {
+        stringChar = null;
       }
       continue;
     }
-    if (ch === '"') {
-      inString = true;
+    if (ch === '"' || ch === "'") {
+      stringChar = ch;
     } else if (ch === '{' || ch === '[') {
       depth++;
     } else if (ch === '}' || ch === ']') {

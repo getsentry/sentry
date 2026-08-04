@@ -33,6 +33,28 @@ ${FENCE}
 `);
   });
 
+  it('fences a Python-repr dict with brackets inside a single-quoted value', () => {
+    const input = "{'msg': 'oops }', 'tpl': 'Hello {name}'}";
+    expect(fenceContent(input)).toBe(`
+
+${FENCE}json
+${input}
+${FENCE}
+
+`);
+  });
+
+  it('fences JSON with an apostrophe inside a double-quoted value', () => {
+    const input = '{"note": "it\'s fine", "n": 1}';
+    expect(fenceContent(input)).toBe(`
+
+${FENCE}json
+${input}
+${FENCE}
+
+`);
+  });
+
   it('fences an attributed HTML block', () => {
     expect(fenceContent('<div class="box">hi</div>')).toBe(`
 
