@@ -15,6 +15,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
@@ -94,16 +95,27 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
           </StyledPageFilterBar>
           <Flex gap="sm" align="center">
             {canUseMetricDescriptions(organization) ? (
-              <LinkButton
-                size="md"
-                icon={<IconList />}
-                to={makeMetricsPathname({
-                  organizationSlug: organization.slug,
-                  path: '/descriptions/',
-                })}
-              >
-                {t('Metric Descriptions')}
-              </LinkButton>
+              <Fragment>
+                <LinkButton
+                  size="md"
+                  icon={<IconList />}
+                  to={makeMetricsPathname({
+                    organizationSlug: organization.slug,
+                    path: '/descriptions/',
+                  })}
+                >
+                  {t('Metric Descriptions')}
+                </LinkButton>
+                <LinkButton
+                  size="md"
+                  icon={<IconList />}
+                  to={normalizeUrl(
+                    `/organizations/${organization.slug}/explore/attributes/descriptions/`
+                  )}
+                >
+                  {t('Attribute Browser')}
+                </LinkButton>
+              </Fragment>
             ) : null}
             <ToolbarVisualizeAddChart
               add={addMetricQuery}
