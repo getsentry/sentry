@@ -32,7 +32,7 @@ type ChannelListResponse = {
   results: Channel[];
 };
 
-type StaleDestinationReason = 'channel' | 'integration';
+type StaleDestinationReason = 'channel' | 'inactiveIntegration' | 'integration';
 
 interface ScmMessagingProps {
   messagingSetup: ScmMessagingSetup;
@@ -74,6 +74,11 @@ function useScmMessagingSetupValidation({
   });
 
   const isMissingIntegration = isNotFoundError(integrationQuery.error);
+  const hasInactiveIntegration =
+    !isMissingIntegration &&
+    integrationQuery.data !== undefined &&
+    (integrationQuery.data.status !== 'active' ||
+      integrationQuery.data.organizationIntegrationStatus !== 'active');
 
   const integration = useMemo(() => {
     if (!hasSelectedDestination || isMissingIntegration) {
@@ -141,7 +146,7 @@ function useScmMessagingSetupValidation({
     }
 
     if (!integration) {
-      setStaleReason('integration');
+      setStaleReason(hasInactiveIntegration ? 'inactiveIntegration' : 'integration');
       onMessagingSetupChange({mode: 'unconfigured'});
       return;
     }
@@ -182,6 +187,7 @@ function useScmMessagingSetupValidation({
     integration,
     integrationQuery.isFetching,
     integrationQuery.isSuccess,
+    hasInactiveIntegration,
     isMissingIntegration,
     messagingSetup,
     onMessagingSetupChange,
@@ -236,6 +242,11 @@ export function ScmMessaging({
         {validation.staleReason === 'integration' && (
           <Alert variant="warning" showIcon>
             {t("We couldn't find the saved integration. Choose a destination again.")}
+          </Alert>
+        )}
+        {validation.staleReason === 'inactiveIntegration' && (
+          <Alert variant="warning" showIcon>
+            {t('The saved integration is no longer active. Choose a destination again.')}
           </Alert>
         )}
         {validation.staleReason === 'channel' && (

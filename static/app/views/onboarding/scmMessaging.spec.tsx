@@ -87,6 +87,27 @@ describe('ScmMessaging', () => {
     expect(screen.queryByText('Destination selected')).not.toBeInTheDocument();
   });
 
+  it('clears an inactive integration with an explanation', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/15/',
+      body: OrganizationIntegrationsFixture({
+        id: '15',
+        organizationIntegrationStatus: 'disabled',
+      }),
+    });
+    const onMessagingSetupChange = jest.fn();
+
+    renderMessaging(onMessagingSetupChange);
+
+    expect(
+      await screen.findByText(
+        'The saved integration is no longer active. Choose a destination again.'
+      )
+    ).toBeInTheDocument();
+    expect(onMessagingSetupChange).toHaveBeenCalledWith({mode: 'unconfigured'});
+    expect(screen.queryByText('Destination selected')).not.toBeInTheDocument();
+  });
+
   it('keeps an omitted channel while it cannot verify a complete list', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/15/',
