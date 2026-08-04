@@ -115,7 +115,7 @@ export function IssuePreviewAutofixSummary({runState}: IssuePreviewAutofixSummar
                 {Array.from(patchesByRepo.entries(), ([repoName, patches]) => (
                   <Stack key={repoName} gap="md">
                     <Text bold>{repoName}</Text>
-                    <Stack gap="0" data-test-id="file-diff-list">
+                    <FileDiffList gap="0" data-test-id="file-diff-list">
                       {patches.map(patch => (
                         <FileDiffViewer
                           key={patch.patch.path}
@@ -126,7 +126,7 @@ export function IssuePreviewAutofixSummary({runState}: IssuePreviewAutofixSummar
                           defaultExpanded
                         />
                       ))}
-                    </Stack>
+                    </FileDiffList>
                   </Stack>
                 ))}
               </Stack>
@@ -252,6 +252,19 @@ const SummaryContainer = styled(Container)`
 
 const WorkingSpinner = styled(LoadingIndicator)`
   margin: 0;
+`;
+
+const FileDiffList = styled(Stack)`
+  & > :not(:first-child) {
+    border-top: 0;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
+
+  & > :not(:last-child) {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
 `;
 
 const Dividers = styled('div')`
