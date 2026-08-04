@@ -62,7 +62,7 @@ interface InboxSectionConfig {
   hidden?: (context: InboxSectionContext) => boolean;
 }
 
-export const SECTIONS: InboxSectionConfig[] = [
+export const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
   {
     key: 'fix-proposed',
     label: t('Fix Proposed'),

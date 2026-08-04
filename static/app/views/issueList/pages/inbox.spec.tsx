@@ -362,6 +362,7 @@ describe('InboxPage', () => {
 
   it('only shows the Identified section for all assignees', async () => {
     mockSuccessfulSections();
+    mockIssuePreview();
     mockSection('issue.progress:fix_proposed is:unresolved', [fixProposedGroup]);
     mockSection('issue.progress:diagnosed is:unresolved', [diagnosedGroup]);
     mockSection('issue.progress:assigned is:unresolved', [assignedGroup]);
