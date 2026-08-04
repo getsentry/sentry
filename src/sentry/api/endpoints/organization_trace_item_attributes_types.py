@@ -1,5 +1,7 @@
 from typing import Any, Literal, NotRequired, TypedDict
 
+from sentry.search.eap.types import ColumnType
+
 
 class TraceItemAttributeSource(TypedDict):
     source_type: Literal["sentry", "user"]
@@ -43,7 +45,9 @@ class TraceItemAttributeKey(TypedDict):
     name: str
     secondaryAliases: NotRequired[list[str]]
     attributeSource: TraceItemAttributeSource
-    attributeType: Literal["string", "number", "boolean"]
-    # Attribute context, only present when requested via ``expand=context``.
-    # Attached to every attribute, and empty when it has no metadata.
+    attributeType: ColumnType
+    # Attribute context, only present when requested via ``expand=context`` (and
+    # gated behind the feature flag). Attached to every attribute when
+    # requested; currently empty for custom (non-convention) attributes, which
+    # will be populated once custom attribute context is served.
     context: NotRequired[TraceItemAttributeContext]
