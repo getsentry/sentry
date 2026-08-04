@@ -46,6 +46,7 @@ describe('TraceLinkedIssues', () => {
       headers: {'X-Hits': '22'},
       match: [
         MockApiClient.matchQuery({
+          collapse: 'filtered',
           limit: '20',
           project: '-1',
           query: `trace:${traceId} !issue.id:${currentIssueId}`,

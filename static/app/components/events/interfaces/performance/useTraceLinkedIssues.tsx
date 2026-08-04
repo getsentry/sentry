@@ -17,6 +17,7 @@ export function useTraceLinkedIssues({event}: {event: Event}) {
       ? `trace:${traceId} !issue.id:${currentIssueId}`
       : undefined;
   const queryParams = {
+    collapse: 'filtered',
     limit: '20',
     project: '-1',
     query,
