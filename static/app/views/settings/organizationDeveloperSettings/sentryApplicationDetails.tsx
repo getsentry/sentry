@@ -601,7 +601,7 @@ export default function SentryApplicationDetails() {
       ) : template && templateFormSlug && TEMPLATE_FORMS[templateFormSlug] ? (
         <Fragment>
           <TemplateHeader template={template} />
-          {createElement(TEMPLATE_FORMS[templateFormSlug]!)}
+          {createElement(TEMPLATE_FORMS[templateFormSlug])}
         </Fragment>
       ) : isInternalRoute ? (
         <InternalSentryAppCreationForm />
