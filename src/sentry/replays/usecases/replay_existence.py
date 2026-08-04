@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query, Request
 
+from sentry.replays.query import MAX_REPLAY_LENGTH_HOURS
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
@@ -26,6 +27,10 @@ def filter_existing_replay_ids(
     if not replay_ids:
         return set()
 
+    # Padding start/end time to up the chances of seeing a segment with an error.
+    padded_start = start - timedelta(hours=MAX_REPLAY_LENGTH_HOURS)
+    padded_end = end + timedelta(hours=MAX_REPLAY_LENGTH_HOURS)
+
     snuba_request = Request(
         dataset="replays",
         app_id="replay-backend-web",
@@ -45,8 +50,8 @@ def filter_existing_replay_ids(
             ],
             where=[
                 Condition(Column("project_id"), Op.IN, list(project_ids)),
-                Condition(Column("timestamp"), Op.LT, end),
-                Condition(Column("timestamp"), Op.GTE, start),
+                Condition(Column("timestamp"), Op.LT, padded_end),
+                Condition(Column("timestamp"), Op.GTE, padded_start),
                 Condition(Column("replay_id"), Op.IN, list(replay_ids)),
             ],
             having=[
