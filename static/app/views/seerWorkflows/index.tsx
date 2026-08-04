@@ -89,11 +89,11 @@ function SeerWorkflows() {
   const sourceFilter = decodeList(location.query.source);
   const period = decodeScalar(location.query.period);
 
-  const now = Date.now();
+  const nowRef = useRef(Date.now());
   const periodCutoffMs = useMemo(() => {
     const days = PERIOD_TO_DAYS[period ?? ''];
-    return days === undefined ? null : now - days * 24 * 60 * 60 * 1000;
-  }, [period, now]);
+    return days === undefined ? null : nowRef.current - days * 24 * 60 * 60 * 1000;
+  }, [period]);
 
   const sourceOptions = useMemo(() => {
     const sources = new Set<string>();
