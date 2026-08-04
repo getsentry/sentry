@@ -67,16 +67,6 @@ def create_preprod_size_pr_comment_task(
     rules = get_status_check_rules(artifact.project, option_key=RULES_OPTION_KEY)
     evaluation = evaluate_size_and_format_messages(artifact.project, all_artifacts, rules)
 
-    # Unlike the status check (which posts a neutral "skipped" check regardless),
-    # a comment should only exist when there is size data to report. No evaluated
-    # artifacts means every sibling was skipped or had no size metrics.
-    if not evaluation.evaluated_artifacts:
-        logger.info(
-            "preprod.size_pr_comments.create.no_size_data",
-            extra={"preprod_artifact_id": artifact.id},
-        )
-        return
-
     triggered_rules = evaluation.triggered_rules
     comment_body = format_size_pr_comment(evaluation.title, evaluation.subtitle, evaluation.summary)
 
@@ -91,6 +81,19 @@ def create_preprod_size_pr_comment_task(
                 target_id=commit_comparison.id,
                 comment_type=COMMENT_TYPE,
             )
+
+            # Unlike the status check (which posts a neutral "skipped" check
+            # regardless), a comment should only be created when there is size data
+            # to report. No evaluated artifacts means every sibling was skipped or
+            # had no size metrics. An existing comment is still updated with the
+            # skipped summary, otherwise it keeps whatever it last said - e.g. a
+            # sibling rendered as processing before it was marked skipped.
+            if not existing_comment_id and not evaluation.evaluated_artifacts:
+                logger.info(
+                    "preprod.size_pr_comments.create.no_size_data",
+                    extra={"preprod_artifact_id": artifact.id},
+                )
+                return
 
             # The trigger check gates first creation only; once a comment exists it is
             # always updated to reflect current state. With no rules configured, post a
