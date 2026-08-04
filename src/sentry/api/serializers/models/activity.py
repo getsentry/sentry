@@ -73,8 +73,7 @@ def _resolve_mentioned_users(
 ) -> dict[ActivityId, list[ResolvedMention]]:
     """The Sentry users each activity @mentions, keyed by activity id, resolved in one batch.
 
-    Mentions are stored as ``{"id", "actor_type"}`` refs; a team ref, or a row that embedded
-    a whole serialized user instead of a ref, is skipped.
+    Returns shape: { activity.id: [{ "name": "David Cramer", "email": "david@sentry.io"}] }
     """
     activity_to_user_ids = {
         activity.id: [
@@ -83,6 +82,7 @@ def _resolve_mentioned_users(
             if isinstance(mention, dict) and mention.get("actor_type") == "User"
         ]
         for activity in activities
+        if activity.type == ActivityType.NOTE.value
     }
     all_user_ids = {user_id for ids in activity_to_user_ids.values() for user_id in ids}
     if not all_user_ids:
@@ -227,19 +227,17 @@ class ActivitySerializer(Serializer):
             data = {"fingerprints": obj.data["fingerprints"], "source": attrs["source"]}
         elif obj.type == ActivityType.UNMERGE_SOURCE.value:
             data = {"fingerprints": obj.data["fingerprints"], "destination": attrs["destination"]}
-        else:
-            # Copied because the mention handling below rewrites the key: mutating
-            # obj.data risks persisting serialized users back onto the row.
+        elif obj.type == ActivityType.NOTE.value:
             data = dict(obj.data or {})
             # XXX: We had a problem where Users were embedded into the mentions
             # attribute of group notes which needs to be removed
             # While group_note update has been fixed there are still many skunky comments
             # in the database.
             data.pop("mentions", None)
-
-            # Unrelated to the above, if we resolved mentions, add them to the data.
             if attrs["mentions"]:
                 data["mentions"] = attrs["mentions"]
+        else:
+            data = obj.data or {}
 
         return {
             "id": str(obj.id),
