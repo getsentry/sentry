@@ -696,6 +696,27 @@ describe('projectPerformance', () => {
     }
   );
 
+  it('positions detector sliders at nonstandard configured values', async () => {
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/performance-issues/configure/',
+      method: 'GET',
+      body: {
+        http_overhead_detection_enabled: true,
+        http_request_delay_threshold: 2500,
+      },
+      statusCode: 200,
+    });
+
+    render(<ProjectPerformance />, {
+      organization: org,
+      initialRouterConfig,
+    });
+    await screen.findByText('Performance Issues - Detector Threshold Settings');
+    await expandAllDetectorSettings();
+
+    expect(screen.getByRole('slider', {name: 'Request Delay'})).toHaveValue('11');
+  });
+
   it('resets configurable detector settings', async () => {
     let aiDetectedHttpEnabled = true;
     const performanceIssuesGetMock = MockApiClient.addMockResponse({

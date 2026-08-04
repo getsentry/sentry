@@ -38,7 +38,14 @@ export function DetectorRangeField({
       mutationOptions={mutationOptions}
     >
       {field => {
-        const valueIndex = Math.max(allowedValues.indexOf(field.state.value), 0);
+        const rangeValues = allowedValues.includes(field.state.value)
+          ? allowedValues
+          : [...allowedValues, field.state.value].sort((a, b) => a - b);
+        const valueIndex = rangeValues.indexOf(field.state.value);
+        const rangeTickValues = tickValues?.map(index => {
+          const tickValue = allowedValues[index];
+          return tickValue === undefined ? index : rangeValues.indexOf(tickValue);
+        });
         const formattedValue = formatLabel?.(field.state.value);
 
         return (
@@ -48,16 +55,18 @@ export function DetectorRangeField({
                 aria-label={label}
                 value={valueIndex}
                 onChange={index => {
-                  const value = allowedValues[index];
+                  const value = rangeValues[index];
                   if (value !== undefined) {
                     field.handleChange(value);
                   }
                 }}
                 min={0}
-                max={Math.max(allowedValues.length - 1, 0)}
+                max={Math.max(rangeValues.length - 1, 0)}
                 step={1}
                 ticks={
-                  tickValues ? {values: tickValues, labels: showTickLabels} : undefined
+                  rangeTickValues
+                    ? {values: rangeTickValues, labels: showTickLabels}
+                    : undefined
                 }
                 formatOptions="hidden"
                 aria-valuetext={
