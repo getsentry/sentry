@@ -13,6 +13,7 @@ import {
   detectAIContentType,
   parseXmlTagSegments,
   preprocessInlineXmlTags,
+  tryParsePythonDict,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {parseJsonWithFix} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
@@ -28,17 +29,24 @@ const STRUCTURED_DATA_CONFIG = {
   isNumber: (v: unknown) => typeof v === 'number',
 };
 
-/** Parses JSON leniently; returns null if the content isn't a JSON object/array. */
+/**
+ * Parses JSON leniently — strict JSON, then repaired JSON, then a Python-repr
+ * dict (single quotes, True/False/None). Returns null if none apply.
+ */
 function parseJson(raw: string): unknown {
   try {
     const parsed = JSON.parse(raw);
-    return typeof parsed === 'object' && parsed !== null ? parsed : null;
+    if (typeof parsed === 'object' && parsed !== null) {
+      return parsed;
+    }
   } catch {
-    const {parsed, fixedInvalidJson} = parseJsonWithFix(raw);
-    return fixedInvalidJson && typeof parsed === 'object' && parsed !== null
-      ? parsed
-      : null;
+    // fall through to the lenient parsers
   }
+  const {parsed, fixedInvalidJson} = parseJsonWithFix(raw);
+  if (fixedInvalidJson && typeof parsed === 'object' && parsed !== null) {
+    return parsed;
+  }
+  return tryParsePythonDict(raw);
 }
 
 /** Renders a parsed JSON value as an interactive tree, without any surrounding chrome. */

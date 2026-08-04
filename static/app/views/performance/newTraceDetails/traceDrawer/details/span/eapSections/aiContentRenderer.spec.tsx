@@ -34,6 +34,12 @@ describe('AIContentRenderer', () => {
     expect(screen.getByText(/not valid/)).toBeInTheDocument();
   });
 
+  it('renders a python-dict json block as a tree', () => {
+    const text = "```json\n{'name': 'test', 'ok': True}\n```";
+    render(<AIContentRenderer text={text} inline />);
+    expect(screen.getByText(/name/)).toBeInTheDocument();
+  });
+
   it('renders inline XML tags as italic text within the flow', () => {
     render(<AIContentRenderer text="Before <thinking>inner thought</thinking> After" />);
     expect(screen.getByText(/thinking: inner thought/)).toBeInTheDocument();
