@@ -58,7 +58,6 @@ class WebhookPayload(Model):
 
         indexes = (
             models.Index(fields=["mailbox_name"]),
-            models.Index(fields=["schedule_for"]),
             models.Index(fields=["provider"], name="webhookpayload_provider_idx"),
             models.Index(
                 fields=["mailbox_name", "id"],
