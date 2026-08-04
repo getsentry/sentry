@@ -3,7 +3,6 @@ from __future__ import annotations
 import contextlib
 from collections.abc import Iterable
 from datetime import datetime, timedelta
-from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -19,6 +18,7 @@ from rest_framework.views import APIView
 from sentry.api.authentication import AgentTokenAuthentication, UserAuthTokenAuthentication
 from sentry.api.bases.organization import OrganizationPermission, OrganizationReleasesBaseEndpoint
 from sentry.auth.access import Access, from_auth
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.models.organizationmember import OrganizationMember
 from sentry.seer import agent_token
 from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
@@ -104,14 +104,14 @@ class AgentTokenAuthAndGateTest(TestCase):
         assert not agent_token.is_mintable_agent_principal(unsupported)
 
     def test_minting_principal_rejects_integrations_and_agents(self) -> None:
-        integration_user = SimpleNamespace(is_authenticated=True, is_sentry_app=True)
+        integration_user = self.create_user(is_sentry_app=True)
         integration = agent_token.resolve_minting_principal(integration_user, None)
         assert integration is agent_token.MintingPrincipalRejection.INTEGRATION
         assert not agent_token.is_mintable_agent_principal(integration)
 
         agent = agent_token.resolve_minting_principal(
             AnonymousUser(),
-            SimpleNamespace(kind=agent_token.AGENT_TOKEN_KIND),
+            AuthenticatedToken(kind=agent_token.AGENT_TOKEN_KIND),
         )
         assert agent is agent_token.MintingPrincipalRejection.AGENT
         assert not agent_token.is_mintable_agent_principal(agent)

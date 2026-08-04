@@ -6,13 +6,14 @@ only :class:`SeerAgentWriteGrant`, the durable record of user consent, persists.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
-from typing import Any, TypedDict, TypeGuard
+from typing import TypedDict, TypeGuard
 
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
 from django.utils import timezone
 from jwt import PyJWTError
@@ -23,6 +24,8 @@ from sentry.seer.models.agent_write_grant import (
     DEFAULT_EXPIRATION,
     SeerAgentWriteGrant,
 )
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.utils import jwt
 
 FEATURE_FLAG = "organizations:seer-agent-token-flow"
@@ -61,6 +64,7 @@ class AgentPrincipal:
 
 
 type MintingPrincipal = AgentPrincipal | MintingPrincipalRejection
+type MintingUser = User | RpcUser | AnonymousUser
 
 
 class AgentTokenClaims(TypedDict):
@@ -86,18 +90,16 @@ def readonly_scopes() -> frozenset[str]:
     return frozenset(settings.SENTRY_READONLY_SCOPES)
 
 
-def resolve_minting_principal(user: Any, auth: Any) -> MintingPrincipal:
+def resolve_minting_principal(
+    user: MintingUser, auth: AuthenticatedToken | None
+) -> MintingPrincipal:
     if is_agent_auth(auth):
         return MintingPrincipalRejection.AGENT
-    if getattr(user, "is_sentry_app", False):
+    if isinstance(user, AnonymousUser):
+        return MintingPrincipalRejection.UNSUPPORTED
+    if user.is_sentry_app:
         return MintingPrincipalRejection.INTEGRATION
-    if not getattr(user, "is_authenticated", False):
-        return MintingPrincipalRejection.UNSUPPORTED
-
-    user_id = getattr(user, "id", None)
-    if not isinstance(user_id, int) or isinstance(user_id, bool):
-        return MintingPrincipalRejection.UNSUPPORTED
-    return AgentPrincipal(AgentPrincipalType.USER, user_id)
+    return AgentPrincipal(AgentPrincipalType.USER, user.id)
 
 
 def is_mintable_agent_principal(principal: MintingPrincipal) -> TypeGuard[AgentPrincipal]:
@@ -205,34 +207,60 @@ def is_agent_token_string(token_str: str) -> bool:
         return False
 
 
-def _validate_claims(claims: dict[str, Any]) -> AgentTokenClaims:
-    required = ("aud", "sub", "org", "scopes", "sid", "iat", "exp")
-    if any(name not in claims for name in required):
-        raise jwt.DecodeError("missing agent token claim")
-    if claims["aud"] != AGENT_TOKEN_AUDIENCE:
-        raise jwt.DecodeError("invalid agent token audience")
-    version = claims.get("ver")
-    subject = claims["sub"]
-    if version is None:
-        if not isinstance(subject, str) or not subject.isdigit():
-            raise jwt.DecodeError("invalid agent token subject")
-        subject = encode_principal_subject(AgentPrincipal(AgentPrincipalType.USER, int(subject)))
-        version = AGENT_TOKEN_VERSION
-    elif (
-        not isinstance(version, int) or isinstance(version, bool) or version != AGENT_TOKEN_VERSION
-    ):
+def _normalize_numeric_user_subject(subject: object) -> str:
+    if not isinstance(subject, str) or not subject.isdigit():
+        raise jwt.DecodeError("invalid agent token subject")
+    return encode_principal_subject(AgentPrincipal(AgentPrincipalType.USER, int(subject)))
+
+
+def _validate_agent_token_version(version: object) -> int:
+    if not isinstance(version, int) or isinstance(version, bool) or version != AGENT_TOKEN_VERSION:
         raise jwt.DecodeError("unsupported agent token version")
+    return version
+
+
+def _normalize_versioned_subject(subject: object) -> str:
     if not isinstance(subject, str):
         raise jwt.DecodeError("invalid agent token subject")
     if subject.isdigit():
         # Rolling deployments may still emit numeric subjects. Their five-minute expiry bounds
         # this compatibility path until typed-subject emission is enabled separately.
-        subject = encode_principal_subject(AgentPrincipal(AgentPrincipalType.USER, int(subject)))
-    if not isinstance(claims["org"], int) or isinstance(claims["org"], bool):
+        return _normalize_numeric_user_subject(subject)
+    decode_principal_subject(subject)
+    return subject
+
+
+def _normalize_principal_claims(version: object, subject: object) -> tuple[int, str]:
+    if version is None:
+        return AGENT_TOKEN_VERSION, _normalize_numeric_user_subject(subject)
+    return _validate_agent_token_version(version), _normalize_versioned_subject(subject)
+
+
+def _validate_timestamp_claim(value: object, claim_name: str) -> int:
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise jwt.DecodeError(f"invalid agent token {claim_name}")
+    return value
+
+
+def _validate_claims(claims: Mapping[str, object]) -> AgentTokenClaims:
+    required = ("aud", "sub", "org", "scopes", "sid", "iat", "exp")
+    if any(name not in claims for name in required):
+        raise jwt.DecodeError("missing agent token claim")
+
+    audience = claims["aud"]
+    if not isinstance(audience, str) or audience != AGENT_TOKEN_AUDIENCE:
+        raise jwt.DecodeError("invalid agent token audience")
+
+    version, subject = _normalize_principal_claims(claims.get("ver"), claims["sub"])
+
+    organization_id = claims["org"]
+    if not isinstance(organization_id, int) or isinstance(organization_id, bool):
         raise jwt.DecodeError("invalid agent token organization")
+
     scopes = claims["scopes"]
     if not isinstance(scopes, list) or not all(isinstance(scope, str) for scope in scopes):
         raise jwt.DecodeError("invalid agent token scopes")
+
     session_id = claims["sid"]
     if (
         not isinstance(session_id, str)
@@ -240,24 +268,22 @@ def _validate_claims(claims: dict[str, Any]) -> AgentTokenClaims:
         or len(session_id) > AGENT_SESSION_ID_MAX_LENGTH
     ):
         raise jwt.DecodeError("invalid agent token session")
-    for claim_name in ("iat", "exp"):
-        value = claims[claim_name]
-        if not isinstance(value, int) or isinstance(value, bool):
-            raise jwt.DecodeError(f"invalid agent token {claim_name}")
-    if claims["exp"] <= claims["iat"]:
+
+    issued_at = _validate_timestamp_claim(claims["iat"], "iat")
+    expires_at = _validate_timestamp_claim(claims["exp"], "exp")
+    if expires_at <= issued_at:
         raise jwt.DecodeError("invalid agent token lifetime")
-    validated_claims: AgentTokenClaims = {
-        "ver": version,
-        "aud": claims["aud"],
-        "sub": subject,
-        "org": claims["org"],
-        "scopes": scopes,
-        "sid": session_id,
-        "iat": claims["iat"],
-        "exp": claims["exp"],
-    }
-    principal_from_claims(validated_claims)
-    return validated_claims
+
+    return AgentTokenClaims(
+        ver=version,
+        aud=audience,
+        sub=subject,
+        org=organization_id,
+        scopes=scopes,
+        sid=session_id,
+        iat=issued_at,
+        exp=expires_at,
+    )
 
 
 def decode_agent_token(token_str: str) -> AgentTokenClaims:
@@ -274,9 +300,9 @@ def decode_agent_token(token_str: str) -> AgentTokenClaims:
     return _validate_claims(claims)
 
 
-def is_agent_auth(auth: Any) -> bool:
+def is_agent_auth(auth: object) -> TypeGuard[AuthenticatedToken]:
     """Whether an authenticated credential is a Seer agent capability token."""
-    return getattr(auth, "kind", None) == AGENT_TOKEN_KIND
+    return isinstance(auth, AuthenticatedToken) and auth.kind == AGENT_TOKEN_KIND
 
 
 def build_authenticated_token(claims: AgentTokenClaims) -> AuthenticatedToken:
