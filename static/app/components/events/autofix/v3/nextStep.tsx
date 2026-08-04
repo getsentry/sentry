@@ -11,7 +11,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
-import {getAutofixNextStep} from 'sentry/components/events/autofix/getAutofixNextStep';
 import {
   organizationIntegrationsCodingAgents,
   type CodingAgentIntegration,
@@ -19,7 +18,11 @@ import {
 import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofixRepos';
 import {
   getAutofixArtifactFromSection,
+  isCodeChangesSection,
+  isPullRequestsSection,
+  isRootCauseSection,
   isRunValidForPrIteration,
+  isSolutionSection,
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -51,62 +54,66 @@ interface SeerDrawerNextStepProps {
 
 export function SeerDrawerNextStep({sections, group, autofix}: SeerDrawerNextStepProps) {
   const runId = getAutofixRunId(autofix.runState);
-  const nextStep = getAutofixNextStep({sections});
+  const section = sections[sections.length - 1];
   const referrer = autofix.runState?.blocks?.[0]?.message?.metadata?.referrer;
 
-  if (!defined(runId) || !nextStep) {
+  if (!defined(runId) || !defined(section)) {
     return null;
   }
 
-  if (nextStep.action === 'pr_iteration') {
+  // The PR iteration form stays visible during a run: feedback submitted while
+  // processing is queued for the next iteration rather than dropped, so we want
+  // users to be able to keep submitting even mid-run.
+  if (isPullRequestsSection(section)) {
     return (
       <PullRequestNextStep
         group={group}
         autofix={autofix}
         runId={runId}
-        section={nextStep.section}
+        section={section}
         referrer={referrer}
       />
     );
   }
 
-  // These actions start a new run and cannot be queued. The shared classifier
-  // still returns the semantic next step so other surfaces can render it busy.
+  // Every other next-step action kicks off a fresh run and can't be queued, so
+  // hide them while a run is in progress (also hides them right after clicking a
+  // next-step button).
   if (autofix.isPolling) {
     return null;
   }
 
-  if (nextStep.action === 'solution') {
+  if (isRootCauseSection(section)) {
     return (
       <RootCauseNextStep
         group={group}
         autofix={autofix}
         runId={runId}
-        section={nextStep.section}
+        section={section}
         referrer={referrer}
       />
     );
   }
 
-  if (nextStep.action === 'code_changes') {
+  if (isSolutionSection(section)) {
     return (
       <SolutionNextStep
         group={group}
         autofix={autofix}
         runId={runId}
-        section={nextStep.section}
+        section={section}
         referrer={referrer}
       />
     );
   }
 
-  if (nextStep.action === 'create_pr') {
+  if (isCodeChangesSection(section)) {
     return (
       <CodeChangesNextStep
         group={group}
         autofix={autofix}
         runId={runId}
-        section={nextStep.section}
+        section={section}
         referrer={referrer}
       />
     );
