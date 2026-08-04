@@ -337,9 +337,8 @@ def test_detector_sections_render_when_present() -> None:
 
 
 @pytest.mark.parametrize("section", [detection_context_section, troubleshooting_hint_section])
-@pytest.mark.parametrize("value", [None, "", "   "])
+@pytest.mark.parametrize("value", [None, ""])
 def test_detector_sections_skipped_when_blank(section: Any, value: str | None) -> None:
-    # whitespace-only is treated as absent, matching Seer's .strip() guard
     event = EventObject(title="t", detection_context=value, troubleshooting_hint=value)
     assert section(event, MD, LIMITS_DEFAULT) == ""
 

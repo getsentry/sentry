@@ -139,13 +139,13 @@ def message_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
 
 def detection_context_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
     # why a detector opened the issue; only detector-backed issue types carry it
-    if not (model.detection_context and model.detection_context.strip()):
+    if not model.detection_context:
         return ""
     return fmt.block("Detection Context", model.detection_context)
 
 
 def troubleshooting_hint_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
-    if not (model.troubleshooting_hint and model.troubleshooting_hint.strip()):
+    if not model.troubleshooting_hint:
         return ""
     return fmt.block("Troubleshooting Hint", model.troubleshooting_hint)
 
