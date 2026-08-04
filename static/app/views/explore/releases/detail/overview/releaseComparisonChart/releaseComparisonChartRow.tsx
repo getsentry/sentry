@@ -8,6 +8,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {NotAvailable} from 'sentry/components/notAvailable';
 import {Placeholder} from 'sentry/components/placeholder';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ReleaseComparisonChartType} from 'sentry/types/release';
@@ -44,7 +45,6 @@ export function ReleaseComparisonChartRow({
 }: Props) {
   return (
     <ChartTableRow
-      htmlFor={type}
       isActive={type === activeChart}
       isLoading={showPlaceholders}
       role={role}
@@ -52,7 +52,7 @@ export function ReleaseComparisonChartRow({
     >
       <DescriptionCell>
         <Tooltip disabled={!tooltip} title={tooltip} showUnderline>
-          <TitleWrapper>
+          <TitleWrapper htmlFor={type}>
             <Radio
               id={type}
               disabled={false}
@@ -112,7 +112,7 @@ export function ReleaseComparisonChartRow({
   );
 }
 
-const Cell = styled('div')`
+const Cell = styled(SimpleTable.RowCell)`
   text-align: right;
   color: ${p => p.theme.tokens.content.secondary};
   display: block;
@@ -139,7 +139,7 @@ const ExpanderCell = styled(Cell)`
   justify-content: flex-end;
 `;
 
-const TitleWrapper = styled('div')`
+const TitleWrapper = styled('label')`
   display: flex;
   align-items: center;
   position: relative;
@@ -164,13 +164,15 @@ const TitleWrapper = styled('div')`
   }
 `;
 
-const ChartTableRow = styled('label')<{
+const ChartTableRow = styled(SimpleTable.Row, {
+  shouldForwardProp: prop =>
+    prop !== 'expanded' && prop !== 'isActive' && prop !== 'isLoading',
+})<{
   expanded: boolean;
   isActive: boolean;
   isLoading: boolean;
   role: ReleaseComparisonRow['role'];
 }>`
-  display: contents;
   font-weight: ${p => p.theme.font.weight.sans.regular};
   margin-bottom: 0;
 

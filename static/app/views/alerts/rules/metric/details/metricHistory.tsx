@@ -8,8 +8,8 @@ import {Link} from '@sentry/scraps/link';
 import {CollapsePanel} from 'sentry/components/collapsePanel';
 import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration';
-import {PanelTable} from 'sentry/components/panels/panelTable';
 import {StatusIndicator} from 'sentry/components/statusIndicator';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getDuration} from 'sentry/utils/duration/getDuration';
@@ -64,7 +64,7 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
   );
 
   return (
-    <Fragment>
+    <SimpleTable.Row>
       <Cell>
         {triggeredActivity.value && (
           <StatusIndicator
@@ -124,7 +124,7 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
       <Cell>
         <StyledDateTime date={incident.dateCreated} year seconds timeZone />
       </Cell>
-    </Fragment>
+    </SimpleTable.Row>
   );
 }
 
@@ -148,25 +148,36 @@ export function MetricHistory({incidents}: Props) {
     >
       {({isExpanded, showMoreButton}) => (
         <div>
-          <StyledPanelTable
-            headers={[t('Alert'), t('Reason'), t('Duration'), t('Date Triggered')]}
-            isEmpty={!numOfIncidents}
-            emptyMessage={t('No alerts triggered during this time.')}
+          <StyledSimpleTable
             expanded={numOfIncidents <= COLLAPSE_COUNT || isExpanded}
+            header={
+              <SimpleTable.HeaderRow>
+                <SimpleTable.HeaderCell>{t('Alert')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Reason')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Duration')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Date Triggered')}</SimpleTable.HeaderCell>
+              </SimpleTable.HeaderRow>
+            }
           >
-            {filteredIncidents.map((incident, idx) => {
-              if (idx >= COLLAPSE_COUNT && !isExpanded) {
-                return null;
-              }
-              return (
-                <MetricAlertActivity
-                  key={idx}
-                  incident={incident}
-                  organization={organization}
-                />
-              );
-            })}
-          </StyledPanelTable>
+            {numOfIncidents ? (
+              filteredIncidents.map((incident, idx) => {
+                if (idx >= COLLAPSE_COUNT && !isExpanded) {
+                  return null;
+                }
+                return (
+                  <MetricAlertActivity
+                    key={idx}
+                    incident={incident}
+                    organization={organization}
+                  />
+                );
+              })
+            ) : (
+              <SimpleTable.Empty>
+                {t('No alerts triggered during this time.')}
+              </SimpleTable.Empty>
+            )}
+          </StyledSimpleTable>
           {showMoreButton}
         </div>
       )}
@@ -174,16 +185,10 @@ export function MetricHistory({incidents}: Props) {
   );
 }
 
-const StyledPanelTable = styled(PanelTable)<{expanded: boolean; isEmpty: boolean}>`
+const StyledSimpleTable = styled(SimpleTable, {
+  shouldForwardProp: prop => prop !== 'expanded',
+})<{expanded: boolean}>`
   grid-template-columns: max-content 1fr repeat(2, max-content);
-
-  & > div {
-    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  }
-
-  div:last-of-type {
-    padding: ${p => p.isEmpty && `48px ${p.theme.space.md}`};
-  }
 
   ${p =>
     !p.expanded &&
@@ -199,9 +204,7 @@ const StyledDateTime = styled(DateTime)`
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
-const Cell = styled('div')`
-  display: flex;
-  align-items: center;
+const Cell = styled(SimpleTable.RowCell)`
   white-space: nowrap;
   font-size: ${p => p.theme.font.size.md};
   padding: ${p => p.theme.space.md};

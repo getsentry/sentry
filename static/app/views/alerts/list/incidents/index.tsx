@@ -4,18 +4,21 @@ import type {Location} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
+import {EmptyState} from '@sentry/scraps/emptyState';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import Feature from 'sentry/components/acl/feature';
 import {CreateAlertButton} from 'sentry/components/createAlertButton';
 import {DeprecatedAsyncComponent} from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
-import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -219,40 +222,54 @@ class IncidentsList extends DeprecatedAsyncComponent<
     return (
       <Fragment>
         {this.tryRenderOnboarding() ?? (
-          <StyledPanelTable
-            isLoading={showLoadingIndicator}
-            isEmpty={incidentList?.length === 0}
-            emptyMessage={t('No incidents exist for the current query.')}
-            emptyAction={
-              <EmptyStateAction>
-                {tct('Learn more about [link:Metric Alerts]', {
-                  link: <ExternalLink href={DOCS_URL} />,
-                })}
-              </EmptyStateAction>
+          <StyledSimpleTable
+            columns={INCIDENT_COLUMNS}
+            header={
+              <SimpleTable.HeaderRow>
+                <SimpleTable.HeaderCell>{t('Alert Rule')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Triggered')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Duration')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Project')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Alert ID')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Team')}</SimpleTable.HeaderCell>
+              </SimpleTable.HeaderRow>
             }
-            headers={[
-              t('Alert Rule'),
-              t('Triggered'),
-              t('Duration'),
-              t('Project'),
-              t('Alert ID'),
-              t('Team'),
-            ]}
           >
-            <Projects orgId={organization.slug} slugs={this.projectsFromIncidents}>
-              {({initiallyLoaded, projects}) =>
-                incidentList.map(incident => (
-                  <AlertListRow
-                    key={incident.id}
-                    projectsLoaded={initiallyLoaded}
-                    projects={projects as Project[]}
-                    incident={incident}
-                    organization={organization}
-                  />
-                ))
-              }
-            </Projects>
-          </StyledPanelTable>
+            {showLoadingIndicator && (
+              <SimpleTable.Empty>
+                <LoadingIndicator />
+              </SimpleTable.Empty>
+            )}
+            {!showLoadingIndicator && incidentList?.length === 0 && (
+              <SimpleTable.Empty>
+                <EmptyState
+                  title={t('No incidents exist for the current query.')}
+                  action={
+                    <EmptyStateAction>
+                      {tct('Learn more about [link:Metric Alerts]', {
+                        link: <ExternalLink href={DOCS_URL} />,
+                      })}
+                    </EmptyStateAction>
+                  }
+                />
+              </SimpleTable.Empty>
+            )}
+            {!showLoadingIndicator && incidentList.length > 0 && (
+              <Projects orgId={organization.slug} slugs={this.projectsFromIncidents}>
+                {({initiallyLoaded, projects}) =>
+                  incidentList.map(incident => (
+                    <AlertListRow
+                      key={incident.id}
+                      projectsLoaded={initiallyLoaded}
+                      projects={projects as Project[]}
+                      incident={incident}
+                      organization={organization}
+                    />
+                  ))
+                }
+              </Projects>
+            )}
+          </StyledSimpleTable>
         )}
         <Pagination pageLinks={incidentListPageLinks} />
       </Fragment>
@@ -292,6 +309,15 @@ class IncidentsList extends DeprecatedAsyncComponent<
     );
   }
 }
+
+const INCIDENT_COLUMNS: TableColumnConfig[] = [
+  {key: 'alertRule', width: 'auto'},
+  {key: 'triggered', width: 'auto'},
+  {key: 'duration', width: 'auto'},
+  {key: 'project', width: 'auto'},
+  {key: 'alertId', width: 'auto'},
+  {key: 'team', width: 'auto'},
+];
 
 export default function IncidentsListContainer() {
   const organization = useOrganization();
@@ -334,10 +360,10 @@ export default function IncidentsListContainer() {
   );
 }
 
-const StyledPanelTable = styled(PanelTable)`
+const StyledSimpleTable = styled(SimpleTable)`
   font-size: ${p => p.theme.font.size.md};
 
-  & > div {
+  [role='cell'] {
     padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   }
 `;

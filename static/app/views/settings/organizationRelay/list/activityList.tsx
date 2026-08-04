@@ -1,8 +1,7 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {DateTime} from 'sentry/components/dateTime';
-import {PanelTable} from 'sentry/components/panels/panelTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {RelayActivity} from 'sentry/types/relay';
 
@@ -12,21 +11,35 @@ type Props = {
 
 export function ActivityList({activities}: Props) {
   return (
-    <StyledPanelTable headers={[t('Version'), t('First Used'), t('Last Used')]}>
+    <StyledSimpleTable
+      header={
+        <SimpleTable.HeaderRow>
+          <SimpleTable.HeaderCell>{t('Version')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('First Used')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Last Used')}</SimpleTable.HeaderCell>
+        </SimpleTable.HeaderRow>
+      }
+    >
       {activities.map(({relayId, version, firstSeen, lastSeen}) => {
         return (
-          <Fragment key={relayId}>
-            <Version>{version}</Version>
-            <DateTime date={firstSeen} seconds={false} />
-            <DateTime date={lastSeen} seconds={false} />
-          </Fragment>
+          <SimpleTable.Row key={relayId}>
+            <SimpleTable.RowCell>
+              <Version>{version}</Version>
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell>
+              <DateTime date={firstSeen} seconds={false} />
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell>
+              <DateTime date={lastSeen} seconds={false} />
+            </SimpleTable.RowCell>
+          </SimpleTable.Row>
         );
       })}
-    </StyledPanelTable>
+    </StyledSimpleTable>
   );
 }
 
-const StyledPanelTable = styled(PanelTable)`
+const StyledSimpleTable = styled(SimpleTable)`
   grid-template-columns: repeat(3, 2fr);
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {

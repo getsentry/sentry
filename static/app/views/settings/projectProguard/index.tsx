@@ -7,8 +7,9 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {PanelTable} from 'sentry/components/panels/panelTable';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SearchBar} from 'sentry/components/searchBar';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import type {DebugFile} from 'sentry/types/debugFiles';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
@@ -114,21 +115,30 @@ export default function ProjectProguard() {
           onSearch={handleSearch}
           query={query}
         />
-        <StyledPanelTable
-          headers={[
-            t('Mapping'),
-            <SizeColumn key="size">{t('File Size')}</SizeColumn>,
-            '',
-          ]}
-          emptyMessage={
-            query
-              ? t('There are no mappings that match your search.')
-              : t('There are no mappings for this project.')
+        <StyledSimpleTable
+          header={
+            <SimpleTable.HeaderRow>
+              <SimpleTable.HeaderCell>{t('Mapping')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>
+                <SizeColumn>{t('File Size')}</SizeColumn>
+              </SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell />
+            </SimpleTable.HeaderRow>
           }
-          isEmpty={mappings?.length === 0}
-          isLoading={isLoading}
         >
-          {mappings?.length
+          {isLoading && (
+            <SimpleTable.Empty>
+              <LoadingIndicator />
+            </SimpleTable.Empty>
+          )}
+          {!isLoading && mappings?.length === 0 && (
+            <SimpleTable.Empty>
+              {query
+                ? t('There are no mappings that match your search.')
+                : t('There are no mappings for this project.')}
+            </SimpleTable.Empty>
+          )}
+          {!isLoading && mappings?.length
             ? mappings.map(mapping => {
                 const downloadUrl = `${api.baseUrl}/projects/${
                   organization.slug
@@ -145,14 +155,14 @@ export default function ProjectProguard() {
                 );
               })
             : null}
-        </StyledPanelTable>
+        </StyledSimpleTable>
         <Pagination pageLinks={mappingsPageLinks} />
       </Stack>
     </Fragment>
   );
 }
 
-const StyledPanelTable = styled(PanelTable)`
+const StyledSimpleTable = styled(SimpleTable)`
   grid-template-columns: minmax(220px, 1fr) max-content 120px;
 `;
 

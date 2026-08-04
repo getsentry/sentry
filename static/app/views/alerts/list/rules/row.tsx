@@ -17,6 +17,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconEllipsis, IconUser} from 'sentry/icons';
 import {SvgIcon} from 'sentry/icons/svgIcon';
@@ -276,112 +277,114 @@ export function RuleListRow({
 
   return (
     <ErrorBoundary>
-      <AlertNameWrapper isIssueAlert={isIssueAlert(rule)}>
-        <AlertNameAndStatus>
-          <AlertName>
-            {shouldDisableAlertRule ? (
-              <Tooltip
-                skipWrapper
-                title={t(
-                  'This metric alert is not available. Your organization does not have access to this feature.'
-                )}
-              >
-                <DisabledAlertName>
+      <SimpleTable.Row>
+        <AlertNameWrapper isIssueAlert={isIssueAlert(rule)}>
+          <AlertNameAndStatus>
+            <AlertName>
+              {shouldDisableAlertRule ? (
+                <Tooltip
+                  skipWrapper
+                  title={t(
+                    'This metric alert is not available. Your organization does not have access to this feature.'
+                  )}
+                >
+                  <DisabledAlertName>
+                    {rule.name} {titleBadge}
+                  </DisabledAlertName>
+                </Tooltip>
+              ) : (
+                <Link to={ruleUrl()}>
                   {rule.name} {titleBadge}
-                </DisabledAlertName>
-              </Tooltip>
-            ) : (
-              <Link to={ruleUrl()}>
-                {rule.name} {titleBadge}
-              </Link>
-            )}
-          </AlertName>
-          <AlertIncidentDate>
-            <AlertLastIncidentActivationInfo rule={rule} />
-          </AlertIncidentDate>
-        </AlertNameAndStatus>
-      </AlertNameWrapper>
-      <Flex align="center">
-        <Flex align="center">
-          <CombinedAlertBadge rule={rule} />
-        </Flex>
-        {!isUptime && !isCron && (
-          <MarginLeft>
-            <AlertRuleStatus rule={rule} />
-          </MarginLeft>
-        )}
-      </Flex>
-      <Flex align="center">
-        <ProjectBadgeContainer>
-          <ProjectBadge
-            avatarSize={18}
-            project={projectsLoaded && project ? project : {slug}}
-          />
-        </ProjectBadgeContainer>
-      </Flex>
-
-      <Flex align="center">
-        {ownerActor ? (
-          <ActorAvatar actor={ownerActor} size={24} />
-        ) : (
-          <Flex justify="end">
-            {!projectsLoaded && <StyledLoadingIndicator mini size={16} />}
-            {projectsLoaded && (
-              <CompactSelect
-                size="sm"
-                disabled={!hasEditAccess}
-                options={dropdownTeams}
-                value={assignee}
-                search={{placeholder: t('Filter teams')}}
-                trigger={triggerProps => (
-                  <OverlayTrigger.Button
-                    {...triggerProps}
-                    aria-label={
-                      assignee ? `Assigned to #${teamName?.name}` : t('Unassigned')
-                    }
-                    size="zero"
-                    variant="transparent"
-                  >
-                    {avatarElement}
-                  </OverlayTrigger.Button>
-                )}
-                onChange={handleOwnerChange}
-              />
-            )}
+                </Link>
+              )}
+            </AlertName>
+            <AlertIncidentDate>
+              <AlertLastIncidentActivationInfo rule={rule} />
+            </AlertIncidentDate>
+          </AlertNameAndStatus>
+        </AlertNameWrapper>
+        <SimpleTable.RowCell>
+          <Flex align="center">
+            <CombinedAlertBadge rule={rule} />
           </Flex>
-        )}
-      </Flex>
-      <Flex justify="center" align="center" padding="md">
-        <Access access={['alerts:write']}>
-          {({hasAccess}) => {
-            const disabledKeys: string[] = [];
-            if (!hasAccess || !canEdit) {
-              disabledKeys.push('delete');
-            }
-            if (shouldDisableAlertRule) {
-              disabledKeys.push('edit', 'duplicate');
-            }
-            return (
-              <DropdownMenu
-                items={actions}
-                position="bottom-end"
-                triggerProps={{
-                  'aria-label': t('Actions'),
-                  size: 'xs',
-                  icon: <IconEllipsis />,
-                  showChevron: false,
-                }}
-                disabledKeys={disabledKeys}
-              />
-            );
-          }}
-        </Access>
-      </Flex>
+          {!isUptime && !isCron && (
+            <MarginLeft>
+              <AlertRuleStatus rule={rule} />
+            </MarginLeft>
+          )}
+        </SimpleTable.RowCell>
+        <SimpleTable.RowCell>
+          <ProjectBadgeContainer>
+            <ProjectBadge
+              avatarSize={18}
+              project={projectsLoaded && project ? project : {slug}}
+            />
+          </ProjectBadgeContainer>
+        </SimpleTable.RowCell>
+
+        <SimpleTable.RowCell>
+          {ownerActor ? (
+            <ActorAvatar actor={ownerActor} size={24} />
+          ) : (
+            <Flex justify="end">
+              {!projectsLoaded && <StyledLoadingIndicator mini size={16} />}
+              {projectsLoaded && (
+                <CompactSelect
+                  size="sm"
+                  disabled={!hasEditAccess}
+                  options={dropdownTeams}
+                  value={assignee}
+                  search={{placeholder: t('Filter teams')}}
+                  trigger={triggerProps => (
+                    <OverlayTrigger.Button
+                      {...triggerProps}
+                      aria-label={
+                        assignee ? `Assigned to #${teamName?.name}` : t('Unassigned')
+                      }
+                      size="zero"
+                      variant="transparent"
+                    >
+                      {avatarElement}
+                    </OverlayTrigger.Button>
+                  )}
+                  onChange={handleOwnerChange}
+                />
+              )}
+            </Flex>
+          )}
+        </SimpleTable.RowCell>
+        <SimpleTable.RowCell justify="center" padding="md">
+          <Access access={['alerts:write']}>
+            {({hasAccess}) => {
+              const disabledKeys: string[] = [];
+              if (!hasAccess || !canEdit) {
+                disabledKeys.push('delete');
+              }
+              if (shouldDisableAlertRule) {
+                disabledKeys.push('edit', 'duplicate');
+              }
+              return (
+                <DropdownMenu
+                  items={actions}
+                  position="bottom-end"
+                  triggerProps={{
+                    'aria-label': t('Actions'),
+                    size: 'xs',
+                    icon: <IconEllipsis />,
+                    showChevron: false,
+                  }}
+                  disabledKeys={disabledKeys}
+                />
+              );
+            }}
+          </Access>
+        </SimpleTable.RowCell>
+      </SimpleTable.Row>
     </ErrorBoundary>
   );
 }
 
-const AlertNameWrapper = styled('div')<{isIssueAlert?: boolean}>`
+const AlertNameWrapper = styled(SimpleTable.RowCell)<{isIssueAlert?: boolean}>`
   width: 100%;
   white-space: nowrap;
   overflow: hidden;

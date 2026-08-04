@@ -1,5 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -13,9 +13,8 @@ import type {InviteStatus} from 'sentry/components/modals/inviteMembersModal/typ
 import type {MissingMemberInvite} from 'sentry/components/modals/inviteMissingMembersModal/types';
 import type {InviteModalRenderFunc} from 'sentry/components/modals/memberInviteModalCustomization';
 import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomization';
-import {PanelItem} from 'sentry/components/panels/panelItem';
-import {PanelTable} from 'sentry/components/panels/panelTable';
 import {RoleSelectControl} from 'sentry/components/roleSelectControl';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {IconCheckmark, IconCommit, IconGithub, IconInfo} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
@@ -205,25 +204,29 @@ export function InviteMissingMembersModal({
     <Fragment>
       <h4>{t('Invite Your Dev Team')}</h4>
       {headerInfo}
-      <StyledPanelTable
-        headers={[
-          <Checkbox
-            key={0}
-            aria-label={selectedAll ? t('Deselect All') : t('Select All')}
-            onChange={() => selectAll(!selectedAll)}
-            checked={selectedAll}
-          />,
-          t('User Information'),
-          <Flex gap="xs" key={1}>
-            {t('Recent Commits')}
-            <Tooltip title={t('Based on the last 30 days of commit data')}>
-              <IconInfo size="xs" />
-            </Tooltip>
-          </Flex>,
-          t('Role'),
-          t('Team'),
-        ]}
-        stickyHeaders
+      <StyledSimpleTable
+        header={
+          <SimpleTable.HeaderRow sticky>
+            <SimpleTable.HeaderCell>
+              <Checkbox
+                aria-label={selectedAll ? t('Deselect All') : t('Select All')}
+                onChange={() => selectAll(!selectedAll)}
+                checked={selectedAll}
+              />
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('User Information')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>
+              <Flex gap="xs">
+                {t('Recent Commits')}
+                <Tooltip title={t('Based on the last 30 days of commit data')}>
+                  <IconInfo size="xs" />
+                </Tooltip>
+              </Flex>
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Role')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Team')}</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
       >
         {memberInvites?.map((member, i) => {
           const checked = memberInvites[i]!.selected;
@@ -231,55 +234,61 @@ export function InviteMissingMembersModal({
           const isTeamRolesAllowed =
             allowedRolesMap[member.role]?.isTeamRolesAllowed ?? true;
           return (
-            <Fragment key={i}>
-              <div>
+            <SimpleTable.Row key={i}>
+              <SimpleTable.RowCell>
                 <Checkbox
                   aria-label={t('Select %s', member.email)}
                   checked={checked}
                   onChange={() => toggleCheckbox(!checked, i)}
                 />
-              </div>
+              </SimpleTable.RowCell>
               <StyledPanelItem>
-                <ContentRow>
+                <InlineContentRow>
                   <IconGithub size="sm" />
                   <StyledExternalLink href={`https://github.com/${username}`}>
                     @{username}
                   </StyledExternalLink>
-                </ContentRow>
+                </InlineContentRow>
                 <MemberEmail>{member.email}</MemberEmail>
               </StyledPanelItem>
               <ContentRow>
                 <IconCommit size="sm" />
                 {member.commitCount}
               </ContentRow>
-              <RoleSelectControl
-                aria-label={t('Role')}
-                data-test-id="select-role"
-                disabled={false}
-                value={member.role}
-                roles={allowedRoles}
-                disableUnallowed
-                onChange={value => setRole(value?.value, i)}
-                menuPortalTarget={modalContainerRef?.current}
-                isInsideModal
-              />
-              <TeamSelector
-                aria-label={t('Add to Team')}
-                data-test-id="select-teams"
-                disabled={!isTeamRolesAllowed}
-                placeholder={isTeamRolesAllowed ? t('None') : t('Role cannot join teams')}
-                onChange={(opts: any) =>
-                  setTeams(opts ? opts.map((v: any) => v.value) : [], i)
-                }
-                multiple
-                clearable
-                menuPortalTarget={modalContainerRef?.current}
-                isInsideModal
-              />
-            </Fragment>
+              <SimpleTable.RowCell>
+                <RoleSelectControl
+                  aria-label={t('Role')}
+                  data-test-id="select-role"
+                  disabled={false}
+                  value={member.role}
+                  roles={allowedRoles}
+                  disableUnallowed
+                  onChange={value => setRole(value?.value, i)}
+                  menuPortalTarget={modalContainerRef?.current}
+                  isInsideModal
+                />
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell>
+                <TeamSelector
+                  aria-label={t('Add to Team')}
+                  data-test-id="select-teams"
+                  disabled={!isTeamRolesAllowed}
+                  placeholder={
+                    isTeamRolesAllowed ? t('None') : t('Role cannot join teams')
+                  }
+                  onChange={(opts: any) =>
+                    setTeams(opts ? opts.map((v: any) => v.value) : [], i)
+                  }
+                  multiple
+                  clearable
+                  menuPortalTarget={modalContainerRef?.current}
+                  isInsideModal
+                />
+              </SimpleTable.RowCell>
+            </SimpleTable.Row>
           );
         })}
-      </StyledPanelTable>
+      </StyledSimpleTable>
       <Flex justify="between">
         <div>{renderStatusMessage()}</div>
         <Grid flow="column" align="center" gap="md">
@@ -322,21 +331,31 @@ export function InviteMissingMembersModal({
   );
 }
 
-const StyledPanelTable = styled(PanelTable)`
+const StyledSimpleTable = styled(SimpleTable)`
   grid-template-columns: max-content 1fr max-content 1fr 1fr;
   overflow: scroll;
   max-height: 475px;
 `;
 
-const StyledPanelItem = styled(PanelItem)`
+const StyledPanelItem = styled(SimpleTable.RowCell)`
   flex-direction: column;
+  align-items: start;
+  justify-content: center;
 `;
 
-const ContentRow = styled('div')`
+const contentRowStyle = (p: {theme: Theme}) => css`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.font.size.md};
-  gap: ${p => p.theme.space.sm};
+  font-size: ${p.theme.font.size.md};
+  gap: ${p.theme.space.sm};
+`;
+
+const ContentRow = styled(SimpleTable.RowCell)`
+  ${contentRowStyle}
+`;
+
+const InlineContentRow = styled('div')`
+  ${contentRowStyle}
 `;
 
 const MemberEmail = styled('div')`

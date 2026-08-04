@@ -302,7 +302,7 @@ describe('AlertRulesList', () => {
       },
     });
 
-    expect(await screen.findByText('Alert Rule')).toHaveAttribute(
+    expect(await screen.findByRole('columnheader', {name: /Alert Rule/})).toHaveAttribute(
       'aria-sort',
       'ascending'
     );

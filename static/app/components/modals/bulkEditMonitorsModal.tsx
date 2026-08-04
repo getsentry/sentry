@@ -12,9 +12,9 @@ import {Text} from '@sentry/scraps/text';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {BulkEditOperation} from 'sentry/actionCreators/monitors';
 import {bulkEditMonitors} from 'sentry/actionCreators/monitors';
-import {PanelTable} from 'sentry/components/panels/panelTable';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SearchBar} from 'sentry/components/searchBar';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useApi} from 'sentry/utils/useApi';
@@ -178,20 +178,26 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
             />
           </Grid>
         </Flex>
-        <StyledPanelTable
-          headers={headers}
-          stickyHeaders
-          isEmpty={monitorList?.length === 0}
-          emptyMessage={t('No monitors found')}
+        <StyledSimpleTable
+          header={
+            <SimpleTable.HeaderRow sticky>
+              {headers.map((header, i) => (
+                <SimpleTable.HeaderCell key={i}>{header}</SimpleTable.HeaderCell>
+              ))}
+            </SimpleTable.HeaderRow>
+          }
         >
+          {monitorList?.length === 0 && (
+            <SimpleTable.Empty>{t('No monitors found')}</SimpleTable.Empty>
+          )}
           {isPending || !monitorList
             ? Array.from(Array.from({length: NUM_PLACEHOLDER_ROWS}), (_, i) => (
-                <RowPlaceholder key={i}>
+                <SimpleTable.FullWidthRow key={i}>
                   <Placeholder height="20px" />
-                </RowPlaceholder>
+                </SimpleTable.FullWidthRow>
               ))
             : monitorList.map(monitor => (
-                <Fragment key={monitor.slug}>
+                <SimpleTable.Row key={monitor.slug}>
                   <MonitorSlug>
                     <Checkbox
                       checked={isMonitorSelected(monitor)}
@@ -201,20 +207,20 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
                     />
                     <Text>{monitor.slug}</Text>
                   </MonitorSlug>
-                  <div>
+                  <SimpleTable.RowCell>
                     <Text>
                       {monitor.status === 'active' ? t('Active') : t('Disabled')}
                     </Text>
-                  </div>
-                  <div>
+                  </SimpleTable.RowCell>
+                  <SimpleTable.RowCell>
                     <Text>{monitor.isMuted ? t('Yes') : t('No')}</Text>
-                  </div>
-                  <div>
+                  </SimpleTable.RowCell>
+                  <SimpleTable.RowCell>
                     <Text>{scheduleAsText(monitor.config)}</Text>
-                  </div>
-                </Fragment>
+                  </SimpleTable.RowCell>
+                </SimpleTable.Row>
               ))}
-        </StyledPanelTable>
+        </StyledSimpleTable>
         <Pagination pageLinks={monitorPageLinks ?? ''} onCursor={setCursor} />
       </Body>
       <Footer>
@@ -237,21 +243,12 @@ const ActionButtons = styled((props: GridProps) => (
   margin-right: auto;
 `;
 
-const StyledPanelTable = styled(PanelTable)`
+const StyledSimpleTable = styled(SimpleTable)`
   overflow-y: scroll;
   max-height: 390px; /* Cut one row off to make it clear there's more content */
 `;
 
-const RowPlaceholder = styled('div')`
-  grid-column: 1 / -1;
-  padding: ${p => p.theme.space.xl};
-
-  &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-`;
-
-const MonitorSlug = styled('div')`
+const MonitorSlug = styled(SimpleTable.RowCell)`
   display: grid;
   grid-template-columns: max-content 1fr;
   gap: ${p => p.theme.space.md};
