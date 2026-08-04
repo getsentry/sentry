@@ -147,7 +147,6 @@ export default function ProjectDebugSymbols() {
         />
       ) : (
         <Sources
-          api={api}
           location={location}
           project={project}
           organization={organization}

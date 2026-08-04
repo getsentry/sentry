@@ -1,11 +1,10 @@
 import {useCallback, useEffect} from 'react';
+import {useMutation} from '@tanstack/react-query';
 import type {Location} from 'history';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openDebugFileSourceModal} from 'sentry/actionCreators/modal';
-import type {Client} from 'sentry/api';
 import {Access} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -14,22 +13,18 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {
-  CustomRepo,
-  CustomRepoFormData,
-  CustomRepoType,
-} from 'sentry/types/debugFiles';
+import type {CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
+import type {RepositoryConfig} from './mutations';
+import {updateCustomRepositoriesMutationOptions} from './mutations';
 import {Repository} from './repository';
-import {dropDownItems, expandKeys, getRequestMessages} from './utils';
+import {dropDownItems} from './utils';
 
 type Props = {
-  api: Client;
   customRepositories: CustomRepo[];
   location: Location;
   organization: Organization;
@@ -37,16 +32,19 @@ type Props = {
 };
 
 export function CustomRepositories({
-  api,
   organization,
   customRepositories: repositories,
   project,
   location,
 }: Props) {
   const navigate = useNavigate();
-  const orgSlug = organization.slug;
-
-  type RepositoryConfig = CustomRepo | CustomRepoFormData;
+  const {mutateAsync: updateCustomRepositories} = useMutation(
+    updateCustomRepositoriesMutationOptions({
+      currentRepositoryCount: repositories.length,
+      organizationSlug: organization.slug,
+      projectSlug: project.slug,
+    })
+  );
 
   const persistData = useCallback(
     ({
@@ -67,37 +65,9 @@ export function CustomRepositories({
         items.splice(index, 1, updatedItem);
       }
 
-      const {successMessage, errorMessage} = getRequestMessages(
-        items.length,
-        repositories.length
-      );
-
-      const symbolSources = JSON.stringify(items.map(expandKeys));
-
-      const promise: Promise<any> = api.requestPromise(
-        `/projects/${orgSlug}/${project.slug}/`,
-        {
-          method: 'PUT',
-          data: {symbolSources},
-        }
-      );
-
-      promise.catch(() => {
-        addErrorMessage(errorMessage);
-      });
-
-      promise.then(result => {
-        ProjectsStore.onUpdateSuccess(result);
-        addSuccessMessage(successMessage);
-
-        if (refresh) {
-          window.location.reload();
-        }
-      });
-
-      return promise;
+      return updateCustomRepositories({repositories: items, refresh}).then(() => {});
     },
-    [api, orgSlug, project.slug, repositories]
+    [repositories, updateCustomRepositories]
   );
 
   const handleCloseModal = useCallback(() => {
