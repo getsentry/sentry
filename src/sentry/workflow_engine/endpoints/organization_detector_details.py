@@ -149,7 +149,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         except Detector.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if detector.project is None and should_include_all_projects_detector(
+        if detector.project is None and not should_include_all_projects_detector(
             organization=organization, request=request
         ):
             raise PermissionDenied

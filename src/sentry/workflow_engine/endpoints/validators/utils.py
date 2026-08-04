@@ -43,8 +43,15 @@ def is_system_created_detector(detector: Detector) -> bool:
     )
 
 
-def can_edit_system_created_detectors(request: Request, project: Project) -> bool:
-    return request.access.has_any_project_scope(project, SYSTEM_CREATED_DETECTOR_REQUIRED_SCOPES)
+def can_edit_system_created_detectors(request: Request, detector: Detector) -> bool:
+    from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+
+    if detector.type == IssueStreamGroupType.slug:
+        return False
+
+    return request.access.has_any_project_scope(
+        detector.linked_project, SYSTEM_CREATED_DETECTOR_REQUIRED_SCOPES
+    )
 
 
 def can_edit_user_created_detectors(request: Request, project: Project) -> bool:
@@ -78,12 +85,8 @@ def can_edit_detector(detector: Detector, request: Request) -> bool:
     permission, then we must verify that the user is a team admin with "alerts:write" access to the project(s)
     in their request.
     """
-    # If this is the All Projects detector, prevent edits
-    if not detector.project:
-        return False
-
     if is_system_created_detector(detector) and not can_edit_system_created_detectors(
-        request, detector.linked_project
+        request, detector
     ):
         return False
 

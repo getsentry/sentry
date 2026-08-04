@@ -25,7 +25,10 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 from sentry.testutils.skips import requires_kafka, requires_snuba
-from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
+from sentry.workflow_engine.defaults.detectors import (
+    ensure_default_all_projects_detector,
+    ensure_default_detectors,
+)
 from sentry.workflow_engine.models import (
     AlertRuleDetector,
     DataCondition,
@@ -37,6 +40,7 @@ from sentry.workflow_engine.models import (
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba, requires_kafka]
 
@@ -1122,6 +1126,15 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert query_sub.snuba_query.query == "event.type:transaction"
         assert query_sub.snuba_query.aggregate == "count()"
         assert query_sub.snuba_query.event_types == [SnubaQueryEventType.EventType.TRANSACTION]
+
+    def test_cannot_update_issue_stream_detector(self) -> None:
+        issue_stream_detector = ensure_default_detectors(self.project)[IssueStreamGroupType.slug]
+        self.get_error_response(
+            self.organization.slug,
+            issue_stream_detector.id,
+            **self.valid_data,
+            status_code=403,
+        )
 
     def test_all_projects_detector_put_forbidden(self) -> None:
         all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
