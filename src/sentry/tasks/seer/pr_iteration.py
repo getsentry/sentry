@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from typing import Any
+from typing import Any, cast
 
 import sentry_sdk
 from scm import actions as scm_actions
@@ -39,6 +39,8 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.scm.factory import new as make_scm
+from sentry.scm.private.webhooks.github import deserialize_github_check_suite_event
+from sentry.scm.types import SubscriptionEvent
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import fetch_run_status, get_agent_state_from_pr_id
 from sentry.seer.autofix.autofix_agent import (
@@ -59,6 +61,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
     GithubPullRequestReviewComment,
 )
+from sentry.seer.autofix.pr_iteration.listeners.check_suite import handle_pr_iteration_check_suite
 from sentry.seer.autofix.pr_iteration.queue import (
     QueuedAutofixFeedback,
     pop_queued_autofix_feedback,
@@ -135,6 +138,23 @@ def trigger_consume_pr_iteration_feedback(
         },
         countdown=countdown,
     )
+
+
+@instrumented_task(
+    name="sentry.tasks.autofix.process_pr_iteration_check_suite",
+    namespace=seer_tasks,
+    processing_deadline_duration=60,
+)
+def process_pr_iteration_check_suite(
+    subscription_event: dict[str, Any], *args: Any, **kwargs: Any
+) -> None:
+    """Longer-deadline meat for Autofix check-suite handling.
+
+    Queued by ``pr_iteration_from_check_suite_listener`` after the 10s SCM
+    listener has confirmed the suite is relevant to an Autofix PR.
+    """
+    event = deserialize_github_check_suite_event(cast(SubscriptionEvent, subscription_event))
+    handle_pr_iteration_check_suite(event)
 
 
 @instrumented_task(

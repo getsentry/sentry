@@ -1,5 +1,5 @@
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import orjson
 
@@ -188,8 +188,8 @@ class RequestReviewFromContextTest(TestCase):
 
         _request_review(_green_event())
 
-        # The flag gate runs before any Seer lookup so disabled orgs cost nothing.
-        mock_resolve.assert_not_called()
+        # Resolve still runs; flag is checked after via ready_for_green_*.
+        mock_resolve.assert_called_once()
         mock_actions.request_review.assert_not_called()
         assert self._marker() is None
 
@@ -203,9 +203,13 @@ class RequestReviewFromContextTest(TestCase):
             _request_review(_green_event())
 
         mock_actions.request_review.assert_not_called()
-        mock_metrics.incr.assert_called_once_with(
-            "autofix.pr_iteration.green_check_suite.run_resolved", tags={"found": "false"}
-        )
+        assert mock_metrics.incr.call_args_list == [
+            call("autofix.pr_iteration.check_suite.run_resolved", tags={"found": "false"}),
+            call(
+                "autofix.pr_iteration.resolve_check_suite.skipped",
+                tags={"reason": "no_autofix_run"},
+            ),
+        ]
 
     @patch(f"{CHECK_SUITES_PATH}.sentry_sdk.capture_exception")
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
