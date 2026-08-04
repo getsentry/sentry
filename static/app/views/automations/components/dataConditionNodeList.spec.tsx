@@ -39,7 +39,7 @@ const dataConditionHandlers: DataConditionHandler[] = [
 ];
 
 describe('DataConditionNodeList', () => {
-  const organization = OrganizationFixture({features: ['workflow-engine-ui']});
+  const organization = OrganizationFixture();
 
   const mockOnAddRow = jest.fn();
   const mockOnDeleteRow = jest.fn();
