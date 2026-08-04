@@ -19,9 +19,9 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-import type {RepositoryConfig} from './mutations';
-import {updateCustomRepositoriesMutationOptions} from './mutations';
 import {Repository} from './repository';
+import type {RepositoryConfig} from './updateCustomRepositoriesMutation';
+import {updateCustomRepositoriesMutationOptions} from './updateCustomRepositoriesMutation';
 import {dropDownItems} from './utils';
 
 type Props = {

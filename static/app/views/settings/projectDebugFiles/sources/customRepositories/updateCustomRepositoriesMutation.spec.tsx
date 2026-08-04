@@ -7,7 +7,7 @@ import * as indicators from 'sentry/actionCreators/indicator';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {CustomRepoType} from 'sentry/types/debugFiles';
 
-import {updateCustomRepositoriesMutationOptions} from './mutations';
+import {updateCustomRepositoriesMutationOptions} from './updateCustomRepositoriesMutation';
 
 const mutationOptions = updateCustomRepositoriesMutationOptions({
   currentRepositoryCount: 0,
