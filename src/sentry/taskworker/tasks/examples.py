@@ -13,7 +13,7 @@ from taskbroker_client.retry import LastAction, NoRetriesRemainingError, Retry, 
 from taskbroker_client.retry import retry_task as retry_task_helper
 
 from sentry.taskworker.namespaces import exampletasks
-from sentry.utils.arroyo_producer import get_producer
+from sentry.utils.arroyo_producer import get_future_tracking_producer
 from sentry.utils.redis import redis_clusters
 
 logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ def _get_example_producer(bootstrap_servers: str) -> FutureTrackingProducer:
     def producer_factory() -> KafkaProducer:
         return KafkaProducer({"bootstrap.servers": bootstrap_servers})
 
-    return get_producer(f"test.producer.{bootstrap_servers}", producer_factory)
+    return get_future_tracking_producer(f"test.producer.{bootstrap_servers}", producer_factory)
 
 
 @exampletasks.register(name="examples.say_hello")
