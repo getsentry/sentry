@@ -1,6 +1,5 @@
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
-from functools import partial
 from typing import Any, cast
 
 from django.conf import settings
@@ -306,10 +305,6 @@ _healthcheck_filter = _FilterSpec(
 )
 
 
-def _glob(name: str, values: list[str]) -> RuleCondition:
-    return {"op": "glob", "name": name, "value": values}
-
-
 def _error_message_condition(
     values: Sequence[tuple[str | None, str | None]],
     match_logentry: bool = False,
@@ -328,9 +323,9 @@ def _error_message_condition(
         ty_and_value: list[RuleCondition] = []
 
         if ty is not None:
-            ty_and_value.append(_glob("ty", [ty]))
+            ty_and_value.append({"op": "glob", "name": "ty", "value": [ty]})
         if value is not None:
-            ty_and_value.append(_glob("value", [value]))
+            ty_and_value.append({"op": "glob", "name": "value", "value": [value]})
 
         if len(ty_and_value) == 1:
             conditions.append(ty_and_value[0])
@@ -345,8 +340,9 @@ def _error_message_condition(
         # A logentry message has no exception type, so only type-less patterns can match
         # it. Glob the formatted message string directly.
         if match_logentry and ty is None and value is not None:
-            message_conditions.append(_glob("event.logentry.formatted", [value]))
-
+            message_conditions.append(
+                {"op": "glob", "name": "event.logentry.formatted", "value": [value]}
+            )
     exception_condition = cast(
         RuleCondition,
         {
@@ -514,8 +510,10 @@ ConditionMatcher = Callable[[list[str]], RuleCondition]
 
 
 def _field_matcher(name: str) -> ConditionMatcher:
-    """Matches the glob values against a single Relay Getter field path."""
-    return partial(_glob, name)
+    def match(values: list[str]) -> RuleCondition:
+        return {"op": "glob", "name": name, "value": values}
+
+    return match
 
 
 @dataclass(frozen=True)
