@@ -399,14 +399,6 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   11003: IssueType.PREPROD_SIZE_ANALYSIS,
 };
 
-// Occurrence type IDs for hidden issue types - used to filter API queries.
-// Note: This only works for issuePlatform events not discover/error events.
-export const HIDDEN_OCCURRENCE_TYPE_IDS: number[] = Object.entries(
-  OCCURRENCE_TYPE_TO_ISSUE_TYPE
-)
-  .filter(([_, issueType]) => HIDDEN_ISSUE_TYPES.includes(issueType))
-  .map(([id]) => Number(id));
-
 const PERFORMANCE_REGRESSION_TYPE_IDS = new Set([1017, 1018, 2010, 2011]);
 
 export function getIssueTypeFromOccurrenceType(

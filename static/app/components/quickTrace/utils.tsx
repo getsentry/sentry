@@ -18,7 +18,7 @@ function isTransaction(event: Event): event is EventTransaction {
   return event.type === 'transaction';
 }
 
-export function getTraceTimeRangeFromEvent(event: Event): {end: string; start: string} {
+function getTraceTimeRangeFromEvent(event: Event): {end: string; start: string} {
   const start = isTransaction(event)
     ? event.startTimestamp
     : moment(event.dateReceived ? event.dateReceived : event.dateCreated).valueOf() /

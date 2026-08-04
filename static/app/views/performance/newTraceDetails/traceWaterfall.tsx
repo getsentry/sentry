@@ -72,7 +72,12 @@ import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 import {useTraceScrollToPath} from './useTraceScrollToPath';
 import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
 
-export type TraceWaterfallSource = 'issues' | 'performance' | 'replay' | 'trace_view';
+export type TraceWaterfallSource =
+  | 'feedback'
+  | 'issues'
+  | 'performance'
+  | 'replay'
+  | 'trace_view';
 
 export interface TraceWaterfallProps {
   meta: TraceMetaQueryResults;
