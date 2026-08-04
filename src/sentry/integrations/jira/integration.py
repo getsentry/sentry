@@ -518,20 +518,25 @@ class JiraIntegration(IssueSyncIntegration):
                     id__in=[existing[external_id].id for external_id in removals]
                 ).delete()
 
-            for external_id in additions:
-                IntegrationExternalProject.objects.create(
+            IntegrationExternalProject.objects.bulk_create(
+                IntegrationExternalProject(
                     organization_integration_id=self.org_integration.id,
                     external_id=external_id,
                     resolved_status=desired[external_id]["on_resolve"],
                     unresolved_status=desired[external_id]["on_unresolve"],
                 )
+                for external_id in additions
+            )
 
             for external_id in updates:
-                existing[external_id].update(
-                    resolved_status=desired[external_id]["on_resolve"],
-                    unresolved_status=desired[external_id]["on_unresolve"],
-                    date_updated=timezone.now(),
-                )
+                iep = existing[external_id]
+                iep.resolved_status = desired[external_id]["on_resolve"]
+                iep.unresolved_status = desired[external_id]["on_unresolve"]
+                iep.date_updated = timezone.now()
+            IntegrationExternalProject.objects.bulk_update(
+                [existing[external_id] for external_id in updates],
+                ["resolved_status", "unresolved_status", "date_updated"],
+            )
 
         return audit_data
 
