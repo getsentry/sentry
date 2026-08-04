@@ -519,4 +519,6 @@ class TestSyncStatusInbound(TestCase):
         self._sync("2023-01-01T00:00:00Z")
 
         self.external_issue.refresh_from_db()
-        assert self.external_issue.status_updated_at == datetime(2023, 1, 1, 0, 0, 3, tzinfo=UTC)
+        assert self.external_issue.provider_status_updated_at == datetime(
+            2023, 1, 1, 0, 0, 3, tzinfo=UTC
+        )

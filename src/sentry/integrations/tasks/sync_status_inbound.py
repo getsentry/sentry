@@ -195,8 +195,8 @@ def _record_provider_event_time(
         return
 
     ExternalIssue.objects.filter(id=external_issue.id).filter(
-        Q(status_updated_at__isnull=True) | Q(status_updated_at__lt=event_time)
-    ).update(status_updated_at=event_time)
+        Q(provider_status_updated_at__isnull=True) | Q(provider_status_updated_at__lt=event_time)
+    ).update(provider_status_updated_at=event_time)
 
 
 def group_was_recently_resolved(group: Group) -> bool:
@@ -254,7 +254,7 @@ def sync_status_inbound(
     ).first()
     event_time = parse_provider_event_time(data)
     if external_issue is not None and is_stale_status_event(
-        external_issue.status_updated_at, event_time
+        external_issue.provider_status_updated_at, event_time
     ):
         metrics.incr(
             "integrations.sync_status_inbound.stale_event",
@@ -267,7 +267,7 @@ def sync_status_inbound(
                 "organization_id": organization_id,
                 "issue_key": issue_key,
                 "event_time": event_time,
-                "last_event_time": external_issue.status_updated_at,
+                "last_event_time": external_issue.provider_status_updated_at,
             },
         )
         return
