@@ -61,14 +61,14 @@ function PipelineModal<
     description,
   });
   const {stepDefinition} = pipeline;
-  const lastReportedError = useRef<string | null>(null);
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
 
   useEffect(() => {
-    if (pipeline.error && pipeline.error !== lastReportedError.current) {
-      lastReportedError.current = pipeline.error;
-      onError?.(pipeline.error);
+    if (pipeline.error) {
+      onErrorRef.current?.(pipeline.error);
     }
-  }, [onError, pipeline.error]);
+  }, [pipeline.error]);
 
   const stepText = (
     <Text variant="muted">

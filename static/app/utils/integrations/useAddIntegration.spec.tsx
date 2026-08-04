@@ -198,7 +198,37 @@ describe('useAddIntegration', () => {
     expect(result.current.state.status).toBe('complete');
   });
 
-  it('reports pipeline failures without also reporting cancellation', () => {
+  it('reports a pipeline failure without also reporting cancellation', () => {
+    const onCancel = jest.fn();
+    const onError = jest.fn();
+    let handleError: ((error: string) => void) | undefined;
+    jest.spyOn(pipelineModal, 'openPipelineModal').mockImplementation(options => {
+      handleError = options.onError;
+    });
+
+    const {result} = renderHookWithProviders(() => useAddIntegration());
+
+    act(() =>
+      result.current.startFlow({
+        provider,
+        organization: OrganizationFixture(),
+        onInstall: jest.fn(),
+        onCancel,
+        onError,
+      })
+    );
+    act(() => handleError?.('Installation failed'));
+
+    expect(onError).toHaveBeenCalledWith('Installation failed');
+    expect(onCancel).not.toHaveBeenCalled();
+    expect(result.current.state).toEqual({
+      status: 'error',
+      providerKey: 'github',
+      error: 'Installation failed',
+    });
+  });
+
+  it('reports cancellation when the modal closes after a failure', () => {
     const onCancel = jest.fn();
     const onError = jest.fn();
     let onClose: (() => void) | undefined;
@@ -225,11 +255,10 @@ describe('useAddIntegration', () => {
     });
 
     expect(onError).toHaveBeenCalledWith('Installation failed');
-    expect(onCancel).not.toHaveBeenCalled();
+    expect(onCancel).toHaveBeenCalledTimes(1);
     expect(result.current.state).toEqual({
-      status: 'error',
+      status: 'cancelled',
       providerKey: 'github',
-      error: 'Installation failed',
     });
   });
 });

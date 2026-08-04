@@ -82,7 +82,6 @@ export function useAddIntegration() {
     const is_scm = isScmProvider(provider);
     let cancelled = false;
     let completed = false;
-    let failed = false;
 
     setState({status: 'installing', providerKey: provider.key});
 
@@ -116,16 +115,29 @@ export function useAddIntegration() {
         onInstall(integration);
       },
       onError: error => {
-        failed = true;
         setState({status: 'error', providerKey: provider.key, error});
+        trackIntegrationAnalytics('integrations.installation_failed', {
+          integration: provider.key,
+          integration_type: 'first_party',
+          is_scm,
+          organization,
+          ...analyticsParams,
+        });
         onError?.(error);
       },
       onClose: () => {
-        if (cancelled || completed || failed) {
+        if (cancelled || completed) {
           return;
         }
         cancelled = true;
         setState({status: 'cancelled', providerKey: provider.key});
+        trackIntegrationAnalytics('integrations.installation_cancelled', {
+          integration: provider.key,
+          integration_type: 'first_party',
+          is_scm,
+          organization,
+          ...analyticsParams,
+        });
         onCancel?.();
       },
     });
