@@ -9,7 +9,7 @@ ai_monitoring: 0001_create_ai_conversation_metadata
 
 discover: 0001_squashed_0003_discover_json_field
 
-explore: 0010_remove_last_received_from_attribute_context
+explore: 0011_update_if_syntax_on_spans
 
 feedback: 0007_cleanup_failed_safe_deletes
 
