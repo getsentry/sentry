@@ -32,21 +32,25 @@ from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 logger = logging.getLogger(__name__)
 
 
+_DETECTOR_SENTINEL = object()
+
+
 def get_all_projects_detector_cache_key(organization_id: int) -> str:
     return f"detector:all_projects:{organization_id}"
 
 
-def get_all_projects_detector_for_org(organization_id: int) -> Detector:
+def get_all_projects_detector_for_org(organization_id: int) -> Detector | None:
     cache_key = get_all_projects_detector_cache_key(organization_id)
-    detector = cache.get(cache_key)
-    if detector is None:
-        detector = Detector.objects.get(
-            project__isnull=True,
-            type=IssueStreamGroupType.slug,
-            config__organization_id=organization_id,
-        )
-        cache.set(cache_key, detector, Detector.CACHE_TTL)
-    return detector
+    cached = cache.get(cache_key, default=_DETECTOR_SENTINEL)
+    if cached is not _DETECTOR_SENTINEL:
+        return cached
+    result = Detector.objects.filter(
+        project__isnull=True,
+        type=IssueStreamGroupType.slug,
+        config__organization_id=organization_id,
+    ).first()
+    cache.set(cache_key, result, Detector.CACHE_TTL)
+    return result
 
 
 def invalidate_all_projects_detector_cache(instance: Detector) -> None:
@@ -148,17 +152,11 @@ def get_detectors_for_event_data(
             extra={"project_id": event_data.group.project_id, "group_id": event_data.group.id},
         )
 
-    organization = event_data.event.project.organization
-    try:
-        issue_stream_detectors.append(get_all_projects_detector_for_org(organization.id))
-    except (Detector.DoesNotExist, Detector.MultipleObjectsReturned) as exc:
-        metrics.incr("workflow_engine.detectors.error", tags={"detector_type": "all_projects"})
-        # TODO(Leander): Convert to exception once this detector has been rolled out
-        logger.warning(
-            "Single all projects detector not found for event",
-            extra={"organization_id": organization.id, "group_id": event_data.group.id},
-            exc_info=exc,
-        )
+    if options.get("workflow_engine.all_projects_detectors_enabled"):
+        organization_id = event_data.event.project.organization_id
+        all_projects_detector = get_all_projects_detector_for_org(organization_id)
+        if all_projects_detector:
+            issue_stream_detectors.append(all_projects_detector)
 
     if detector is None and isinstance(event_data.event, GroupEvent):
         detector = _get_detector_for_event(event_data.event)

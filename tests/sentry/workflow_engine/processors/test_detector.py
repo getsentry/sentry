@@ -18,6 +18,7 @@ from sentry.models.group import GroupStatus
 from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
@@ -1054,14 +1055,23 @@ class TestGetDetectorsForEventAllProject(TestCase):
         self.event = self.store_event(project_id=self.project.id, data={})
         self.group_event = GroupEvent.from_event(self.event, self.group)
 
-    def test_includes_all_projects_detector(self) -> None:
+    def test_omits_all_projects_detector_by_default(self) -> None:
+        event_data = WorkflowEventData(event=self.group_event, group=self.group)
+        result = get_detectors_for_event_data(event_data)
+        assert result is not None
+        assert self.all_projects_detector not in result.detectors
+        assert result.preferred_detector == self.error_detector
+
+    @override_options({"workflow_engine.all_projects_detectors_enabled": True})
+    def test_includes_all_projects_detector_with_option(self) -> None:
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
         result = get_detectors_for_event_data(event_data)
         assert result is not None
         assert self.all_projects_detector in result.detectors
         assert result.preferred_detector == self.error_detector
 
-    def test_no_all_projects_detector_exists(self) -> None:
+    @override_options({"workflow_engine.all_projects_detectors_enabled": True})
+    def test_missing_all_projects_detector_no_effect(self) -> None:
         self.all_projects_detector.delete()
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
         result = get_detectors_for_event_data(event_data)
