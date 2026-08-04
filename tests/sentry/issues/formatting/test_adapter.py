@@ -281,3 +281,21 @@ def test_maps_bare_stacktrace_entry() -> None:
 
 def test_bare_stacktrace_absent_by_default() -> None:
     assert event_response_to_model(_serialized_event()).stacktrace is None
+
+
+def test_evidence_drops_reporter_identifiers() -> None:
+    # feedback issues put contact_email/name in evidenceDisplay; those are user identifiers,
+    # so they follow the same opt-in rule as user_section. The message is content, not an
+    # identifier, so it survives.
+    data = {
+        "title": "t",
+        "occurrence": {
+            "evidenceDisplay": [
+                {"name": "contact_email", "value": "someone@example.com", "important": False},
+                {"name": "name", "value": "A Reporter", "important": False},
+                {"name": "message", "value": "the button is broken", "important": True},
+            ]
+        },
+    }
+    m = event_response_to_model(data)
+    assert m.evidence == [("message", "the button is broken")]

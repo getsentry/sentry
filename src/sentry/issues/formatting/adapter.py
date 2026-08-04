@@ -70,12 +70,21 @@ def _tags(data: Mapping[str, Any]) -> tuple[list[tuple[str, str | None]], str | 
     return tags, transaction_name
 
 
+# Feedback issues put the reporter's contact details in evidenceDisplay (see
+# feedback.usecases.ingest.create_feedback.make_evidence). They are user identifiers like the
+# ones user_section holds back, so they follow the same rule and stay out of the default
+# output. The free-form `message` is the issue's own content, not an identifier, so it stays.
+_IDENTIFIER_EVIDENCE_NAMES = frozenset({"contact_email", "name"})
+
+
 def _evidence(data: Mapping[str, Any]) -> list[tuple[str, str]]:
     # occurrence.evidenceDisplay carries the human-readable name/value summary for
     # perf and generic/regression issues (e.g. "Regression": "... increased ...")
     display = (data.get("occurrence") or {}).get("evidenceDisplay") or []
     return [
-        (item["name"], item["value"]) for item in display if item.get("name") and item.get("value")
+        (item["name"], item["value"])
+        for item in display
+        if item.get("name") and item.get("value") and item["name"] not in _IDENTIFIER_EVIDENCE_NAMES
     ]
 
 
