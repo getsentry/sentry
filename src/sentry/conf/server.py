@@ -877,6 +877,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.ai_monitoring.tasks",
     "sentry.conduit.tasks",
     "sentry.data_export.tasks",
+    "sentry.debug_files.objectstore_migration.tasks",
     "sentry.debug_files.tasks",
     "sentry.deletions.tasks.groups",
     "sentry.deletions.tasks.hybrid_cloud",
