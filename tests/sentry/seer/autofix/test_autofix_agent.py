@@ -1431,6 +1431,28 @@ class TestTriggerCodingAgentHandoff(TestCase):
         repos = mock_client.launch_coding_agents.call_args.kwargs["repos"]
         assert repos[0].branch_name == "release/v2"
 
+    @patch("sentry.seer.autofix.autofix_agent._resolve_default_branch", return_value="main")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_trigger_coding_agent_handoff_resolves_default_branch_when_empty(
+        self, mock_client_class, mock_resolve
+    ):
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.get_run.return_value = self._make_run_state()
+        mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
+        self._make_repo_and_projectrepo(external_id="1", branch_name="")
+
+        trigger_coding_agent_handoff(
+            group=self.group,
+            run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
+            integration_id=456,
+        )
+
+        mock_resolve.assert_called_once()
+        repos = mock_client.launch_coding_agents.call_args.kwargs["repos"]
+        assert repos[0].branch_name == "main"
+
 
 class TestTriggerPushChanges(TestCase):
     """Tests for trigger_push_changes function."""
