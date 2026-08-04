@@ -692,6 +692,14 @@ def execute_replays_query(
         )
         processed_response = process_raw_response(response.response, fields=requested_fields)
     except KeyError as e:
+        logger.exception(
+            "execute_replays_query: unsupported response field",
+            extra={
+                "org_id": organization_id,
+                "query": query,
+                "field": e.args[0] if e.args else None,
+            },
+        )
         return ExecuteQueryErrorResponse(
             error=f"Invalid replay field: {e.args[0]}" if e.args else "Invalid replay field"
         )
