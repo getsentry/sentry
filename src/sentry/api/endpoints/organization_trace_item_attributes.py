@@ -43,7 +43,7 @@ from sentry.api.endpoints.organization_trace_item_attributes_types import (
 from sentry.api.event_search import translate_escape_sequences
 from sentry.api.paginator import ChainPaginator, GenericOffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.utils import default_start_end_dates, handle_query_errors
+from sentry.api.utils import MAX_STATS_PERIOD, default_start_end_dates, handle_query_errors
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.trace_item_attribute_examples import TraceItemAttributeExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
@@ -1346,14 +1346,18 @@ def adjust_start_end_window(start_date: datetime, end_date: datetime) -> tuple[d
     return start_date, end_date
 
 
-def full_retention_window() -> tuple[datetime, datetime]:
+def full_retention_window(item_type: SupportedTraceItemType) -> tuple[datetime, datetime]:
+    """Widest full-fidelity window for context existence checks.
+
+    Ignores request time filters so a narrow range can't false-negative. Downsampled
+    item types use tier-1 retention; full-retention types keep the API max window.
     """
-    The widest window we can query, used by context existence checks that must
-    always look at all of an org's data regardless of any `statsPeriod`/`start`/
-    `end` filters passed on the request. Anchored to the default (max) stats
-    period so a narrow user-supplied range can't cause a false negative.
-    """
-    start_date, end_date = default_start_end_dates()
+    default_stats_period = (
+        MAX_STATS_PERIOD
+        if item_type in constants.FULL_RETENTION_ITEM_TYPES
+        else timedelta(days=constants.EAP_FULL_FIDELITY_QUERY_DAYS)
+    )
+    start_date, end_date = default_start_end_dates(default_stats_period=default_stats_period)
     return adjust_start_end_window(start_date, end_date)
 
 

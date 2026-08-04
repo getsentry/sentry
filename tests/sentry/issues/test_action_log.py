@@ -672,7 +672,7 @@ class TestPublishActionWrite(TestCase):
         # Derived data was NOT processed inline
         assert not GroupDerivedData.objects.filter(group_id=self.group.id).exists()
         # Task was dispatched instead
-        mock_task.delay.assert_called_once_with(self.group.id)
+        mock_task.delay.assert_called_once_with(self.group.id, incremental=True)
 
     @patch("sentry.issues.derived.processing.process_group_log_task")
     def test_inline_derived_processes_without_task(self, mock_task: MagicMock) -> None:
