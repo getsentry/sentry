@@ -445,6 +445,28 @@ class SlackRequestParserTest(TestCase):
         assert second.status_code == status.HTTP_200_OK
         mock_apply.assert_called_once()
 
+    @override_options({"slack.dedupe-seer-webhook-events": True})
+    @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
+    def test_seer_event_releases_claim_on_schedule_failure(self, mock_apply):
+        # Claim must not stick if apply_async fails — otherwise Slack retries
+        # ACK as duplicates and Seer never runs for the TTL window.
+        event_id = "EvSCHEDFAIL"
+        mock_apply.side_effect = RuntimeError("broker down")
+
+        with pytest.raises(RuntimeError, match="broker down"):
+            self._make_parser_with_seer_event(
+                event_type="app_mention", event_id=event_id
+            ).get_response()
+
+        mock_apply.side_effect = None
+        response = self._make_parser_with_seer_event(
+            event_type="app_mention", event_id=event_id
+        ).get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_200_OK
+        assert mock_apply.call_count == 2
+
     @override_options({"slack.dedupe-seer-webhook-events": False})
     @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
     def test_seer_event_dedupe_disabled_schedules_duplicates(self, mock_apply):
