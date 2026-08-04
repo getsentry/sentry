@@ -22,14 +22,16 @@ from sentry.investigations.models import (
     InvestigationSourceType,
     InvestigationStatus,
 )
+from sentry.investigations.services.breached_metrics import (
+    BreachedMetricSource,
+    resolve_breached_metric_sources,
+)
 from sentry.investigations.services.parameters import (
     ParameterValidationError,
     validate_parameter_value,
     validate_template_parameters,
 )
 from sentry.investigations.templates import InvestigationTemplateSpec, get_investigation_template
-from sentry.issues.grouptype import GroupCategory
-from sentry.models.group import Group
 from sentry.models.organization import Organization
 
 
@@ -206,25 +208,33 @@ def duplicate_investigation(*, investigation: Investigation, user_id: int) -> In
 
 def _resolve_breached_metric_source(
     *, organization: Organization, source_ref: dict[str, Any], accessible_project_ids: set[int]
-) -> Group:
-    if set(source_ref) != {"groupId"}:
+) -> BreachedMetricSource:
+    if set(source_ref) != {"groupId", "openPeriodId"}:
         raise InvestigationValidationError(
-            {"sourceRef": "Must contain exactly groupId for breached_metric."}
+            {"sourceRef": ("Must contain exactly groupId and openPeriodId for breached_metric.")}
         )
     group_id = source_ref["groupId"]
-    if isinstance(group_id, bool) or not isinstance(group_id, int | str):
-        raise InvestigationValidationError({"sourceRef": {"groupId": "Must be an issue ID."}})
+    open_period_id = source_ref["openPeriodId"]
+    if (
+        isinstance(group_id, bool)
+        or not isinstance(group_id, int | str)
+        or isinstance(open_period_id, bool)
+        or not isinstance(open_period_id, int | str)
+    ):
+        raise InvestigationValidationError({"sourceRef": "groupId and openPeriodId must be IDs."})
     try:
-        group = Group.objects.get(id=int(group_id), project__organization=organization)
-    except (Group.DoesNotExist, TypeError, ValueError):
+        normalized_group_id = int(group_id)
+        normalized_open_period_id = int(open_period_id)
+    except (TypeError, ValueError):
         raise InvestigationSourceNotFound
-    if group.project_id not in accessible_project_ids:
+    source = resolve_breached_metric_sources(
+        organization=organization,
+        group_ids=[normalized_group_id],
+        accessible_project_ids=accessible_project_ids,
+    ).get(normalized_group_id)
+    if source is None or source.open_period.id != normalized_open_period_id:
         raise InvestigationSourceNotFound
-    if group.issue_category != GroupCategory.METRIC:
-        raise InvestigationValidationError(
-            {"sourceRef": {"groupId": "Issue must be a breached metric."}}
-        )
-    return group
+    return source
 
 
 def create_template_investigation(
@@ -254,15 +264,20 @@ def create_template_investigation(
         raise InvestigationValidationError({"parameters": str(error)})
 
     if template.source_type == InvestigationSourceType.BREACHED_METRIC:
-        group = _resolve_breached_metric_source(
+        source = _resolve_breached_metric_source(
             organization=organization,
             source_ref=source_ref,
             accessible_project_ids=accessible_project_ids,
         )
-        project_ids = [group.project_id]
-        render_context = {"group_title": group.title}
-        resolved_title = title or f"Investigate {group.title}"
-        normalized_source_ref = {"groupId": str(group.id)}
+        project_ids = [source.project_id]
+        render_context: dict[str, Any] = {}
+        resolved_title = title or "Untitled investigation"
+        normalized_source_ref = {
+            "groupId": str(source.group.id),
+            "openPeriodId": str(source.open_period.id),
+        }
+        source_key = source.source_key
+        filters = {"breachedMetric": source.snapshot}
     else:
         raise InvestigationValidationError({"templateKey": "Unsupported template source."})
 
@@ -275,6 +290,8 @@ def create_template_investigation(
             template_version=template.version,
             source_type=template.source_type,
             source_ref=normalized_source_ref,
+            source_key=source_key,
+            filters=filters,
         )
         InvestigationPermissions.objects.create(investigation=investigation)
         _create_project_links(investigation, project_ids)
@@ -308,7 +325,10 @@ def create_template_investigation(
                 content=cell_spec.content.format(**render_context),
                 prompt=cell_spec.generation_prompt.format(**render_context),
                 generated_content=cell_spec.generated_content.format(**render_context),
-                config=deepcopy(cell_spec.config),
+                config={
+                    **deepcopy(cell_spec.config),
+                    **({"datasetHint": source.dataset} if cell_spec.kind == "query" else {}),
+                },
                 display=deepcopy(cell_spec.display),
             )
             cells_by_key[cell_spec.key] = cell

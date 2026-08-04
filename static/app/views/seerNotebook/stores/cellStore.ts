@@ -2,22 +2,16 @@ import isEqual from 'lodash/isEqual';
 import {action, computed, makeObservable, observable, runInAction} from 'mobx';
 
 import type {NotebookStore} from 'sentry/views/seerNotebook/stores/notebookStore';
-import {
-  displayFromVisualization,
-  isQueryResult,
-  makeChartData,
-  resolveVisualization,
-  validateVisualizationDisplay,
-} from 'sentry/views/seerNotebook/stores/visualization';
+import {isQueryResult} from 'sentry/views/seerNotebook/stores/visualization';
 import type {
   InvestigationCell,
   InvestigationCellExecution,
   InvestigationComment,
   InvestigationDisplay,
+  InvestigationExecutionState,
   InvestigationMention,
   InvestigationReaction,
   InvestigationReactionName,
-  InvestigationVisualization,
 } from 'sentry/views/seerNotebook/types';
 
 const EDITABLE_FIELDS = ['content', 'display', 'generationPrompt', 'title'] as const;
@@ -37,8 +31,19 @@ export type CellStoreSnapshot = InvestigationCell & {
 };
 
 export type CellSaveState = 'idle' | 'scheduled' | 'saving' | 'unsaved';
-export type ResultView = 'table' | 'chart' | 'both';
+export type ResultView = 'table' | 'chart';
 export type CommentLoadState = 'idle' | 'loading' | 'ready' | 'error';
+
+export type CellActivityEntry = {
+  calls: Array<{
+    code: string | null;
+    function: string;
+    result: string | null;
+  }>;
+  content: string | null;
+  id: string;
+  policyError: string | null;
+};
 
 type ExecutionProjection = Pick<
   CellStore,
@@ -46,6 +51,59 @@ type ExecutionProjection = Pick<
 >;
 
 const TERMINAL_OUTPUT_STATUSES = new Set(['available', 'failed', 'restricted']);
+const WORKING_WORDS = [
+  'Thinking',
+  'Investigating',
+  'Searching',
+  'Analyzing',
+  'Querying',
+  'Connecting the dots',
+  'Crunching numbers',
+  'Checking signals',
+  'Comparing patterns',
+  'Building the answer',
+  'Plotting trends',
+  'Verifying results',
+  'Wrangling data',
+] as const;
+
+function codeFromToolArguments(args: unknown): string | null {
+  if (typeof args !== 'string') {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(args) as {code?: unknown};
+    return typeof parsed.code === 'string' ? parsed.code.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+function activityHeadline(entry: CellActivityEntry): string {
+  const call = entry.calls.at(-1);
+  if (call?.result?.startsWith('Error')) {
+    return 'Adjusting the query';
+  }
+  if (
+    call?.code?.includes('artifact_write_') ||
+    call?.function.startsWith('artifact_write_')
+  ) {
+    return 'Preparing the result';
+  }
+  if (call?.code?.includes('render_chart')) {
+    return 'Building the chart';
+  }
+  if (call?.code?.includes('telemetry_live_search')) {
+    return 'Querying your telemetry';
+  }
+  if (call?.function === 'sentry_api_search') {
+    return 'Finding the right data';
+  }
+  if (entry.content) {
+    return 'Writing the answer';
+  }
+  return 'Working through the data';
+}
 
 export class CellStore {
   readonly clientKey: string;
@@ -67,6 +125,15 @@ export class CellStore {
   output: InvestigationCell['output'];
   outputStatus: string;
   currentExecution: InvestigationCellExecution | null;
+  activityBlocks: Array<Record<string, unknown>> = [];
+  pendingUserInput: InvestigationExecutionState['pendingUserInput'] = null;
+  partialMarkdown: string | null = null;
+  transcriptTruncated = false;
+  activityExpanded = false;
+  executionStatusWordIndex = 0;
+  executionStatusLabelVersion = 0;
+  recentActivityLabel: string | null = null;
+  clarificationDraft = '';
   createdBy: string | null;
   lastEditedBy: string | null;
   reactions: InvestigationReaction[];
@@ -80,11 +147,6 @@ export class CellStore {
   runRequestId: string | null = null;
   failedRunRequestId: string | null = null;
   activeView: ResultView;
-  lastValidVisualization: InvestigationVisualization | null = null;
-  visualizationError: string | null = null;
-  visualizationPrompt = '';
-  visualizationSuggestionState: 'idle' | 'loading' | 'error' = 'idle';
-  revisedQueryIntent: string | null = null;
   comments: InvestigationComment[] = [];
   commentsNextCursor: string | null = null;
   commentsPageCount = 0;
@@ -99,6 +161,9 @@ export class CellStore {
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private savePromise: Promise<void> | null = null;
   private executionBeforeRun: ExecutionProjection | null = null;
+  private statusWordTimer: ReturnType<typeof setInterval> | null = null;
+  private recentActivityTimer: ReturnType<typeof setTimeout> | null = null;
+  private lastActivitySignature: string | null = null;
   private disposed = false;
 
   constructor(notebook: NotebookStore, cell: InvestigationCell, clientKey = cell.id) {
@@ -120,17 +185,14 @@ export class CellStore {
     this.output = cell.output;
     this.outputStatus = cell.outputStatus;
     this.currentExecution = cell.currentExecution ?? null;
+    this.activityExpanded = false;
     this.createdBy = cell.createdBy;
     this.lastEditedBy = cell.lastEditedBy;
     this.reactions = cell.reactions;
     this.commentCount = cell.commentCount;
-    this.activeView = cell.display.defaultView ?? 'table';
-    if (isQueryResult(cell.output)) {
-      this.lastValidVisualization = resolveVisualization(
-        cell.display,
-        cell.output
-      ).visualization;
-    }
+    this.activeView =
+      cell.display.defaultView ??
+      (isQueryResult(cell.output) ? cell.output.preferredView : 'table');
     this.confirmed = this.confirmedFields(cell);
 
     makeObservable(this, {
@@ -150,6 +212,15 @@ export class CellStore {
       output: observable.ref,
       outputStatus: observable,
       currentExecution: observable.ref,
+      activityBlocks: observable.shallow,
+      pendingUserInput: observable.ref,
+      partialMarkdown: observable,
+      transcriptTruncated: observable,
+      activityExpanded: observable,
+      executionStatusWordIndex: observable,
+      executionStatusLabelVersion: observable,
+      recentActivityLabel: observable,
+      clarificationDraft: observable,
       createdBy: observable,
       lastEditedBy: observable,
       reactions: observable.shallow,
@@ -163,11 +234,6 @@ export class CellStore {
       runRequestId: observable,
       failedRunRequestId: observable,
       activeView: observable,
-      lastValidVisualization: observable.ref,
-      visualizationError: observable,
-      visualizationPrompt: observable,
-      visualizationSuggestionState: observable,
-      revisedQueryIntent: observable,
       comments: observable.shallow,
       commentsNextCursor: observable,
       commentsPageCount: observable,
@@ -183,12 +249,20 @@ export class CellStore {
       executionIntent: computed,
       executionHasChanged: computed,
       isExecutionRunning: computed,
+      executionControlMode: computed,
+      executionStatusKind: computed,
+      executionStatusLabel: computed,
+      hasExecutionFooter: computed,
       canRun: computed,
       runButtonVariant: computed,
       queryResult: computed,
+      activityEntries: computed,
       chartAvailable: computed,
-      visualizationResolution: computed,
-      chartData: computed,
+      chartFallbackWarning: computed,
+      chartEmbedData: computed,
+      chartPresentationType: computed,
+      clarificationOptions: computed,
+      compatibleChartTypes: computed,
       effectiveView: computed,
       editTitle: action,
       editContent: action,
@@ -205,11 +279,12 @@ export class CellStore {
       markExecutionPending: action,
       failRunRequest: action,
       finishRunRequest: action,
+      activateExecutionControl: action,
+      applyExecutionState: action,
+      setActivityExpanded: action,
+      editClarificationDraft: action,
       setResultView: action,
       applyVisualizationChange: action,
-      editVisualizationPrompt: action,
-      requestVisualizationSuggestion: action,
-      confirmRevisedQuery: action,
       toggleReaction: action,
       loadComments: action,
       loadMoreComments: action,
@@ -235,6 +310,7 @@ export class CellStore {
       restore: action,
       dispose: action,
     });
+    this.syncStatusWordTimer();
   }
 
   get isPersisted(): boolean {
@@ -262,7 +338,50 @@ export class CellStore {
   }
 
   get isExecutionRunning(): boolean {
-    return ['pending', 'running'].includes(this.outputStatus);
+    return ['pending', 'running', 'awaiting_input', 'stopping'].includes(
+      this.outputStatus
+    );
+  }
+
+  get executionControlMode(): 'run' | 'retry' | 'stop' {
+    if (this.isExecutionRunning) {
+      return 'stop';
+    }
+    return this.outputStatus === 'failed' ? 'retry' : 'run';
+  }
+
+  get executionStatusKind(): 'complete' | 'error' | 'stopped' | 'working' {
+    if (this.isExecutionRunning) {
+      return 'working';
+    }
+    if (this.outputStatus === 'failed') {
+      return 'error';
+    }
+    if (this.outputStatus === 'cancelled') {
+      return 'stopped';
+    }
+    return 'complete';
+  }
+
+  get executionStatusLabel(): string {
+    if (this.executionStatusKind === 'working') {
+      return this.recentActivityLabel ?? WORKING_WORDS[this.executionStatusWordIndex]!;
+    }
+    if (this.executionStatusKind === 'error') {
+      return 'Stopped because of an error';
+    }
+    if (this.executionStatusKind === 'stopped') {
+      return 'Stopped';
+    }
+    return 'Completed';
+  }
+
+  get hasExecutionFooter(): boolean {
+    return (
+      this.currentExecution !== null ||
+      this.isRunRequested ||
+      this.outputStatus !== 'notRun'
+    );
   }
 
   get canRun(): boolean {
@@ -285,26 +404,105 @@ export class CellStore {
     return isQueryResult(this.output) ? this.output : null;
   }
 
+  get activityEntries(): CellActivityEntry[] {
+    return this.activityBlocks.flatMap((block, index) => {
+      const message = block.message as
+        | {
+            content?: string;
+            role?: string;
+            tool_calls?: Array<{args?: unknown; function?: string}>;
+          }
+        | undefined;
+      if (message?.role === 'user' || (!this.isExecutionRunning && block.loading)) {
+        return [];
+      }
+      const results = block.toolResults as Array<{content?: string} | null> | undefined;
+      const blockId =
+        typeof block.id === 'string' || typeof block.id === 'number' ? block.id : index;
+      return [
+        {
+          id: String(blockId),
+          content: message?.content ?? null,
+          policyError: typeof block.policyError === 'string' ? block.policyError : null,
+          calls: (message?.tool_calls ?? []).map((call, callIndex) => ({
+            function: call.function ?? 'Tool call',
+            code: codeFromToolArguments(call.args),
+            result: results?.[callIndex]?.content ?? null,
+          })),
+        },
+      ];
+    });
+  }
+
   get chartAvailable(): boolean {
-    return Boolean(this.queryResult?.chart && this.queryResult.suggestedVisualization);
+    return Boolean(this.queryResult?.chart);
   }
 
-  get visualizationResolution() {
-    return this.queryResult
-      ? resolveVisualization(this.display, this.queryResult)
-      : {visualization: null, isFallback: false};
+  get chartFallbackWarning(): string | null {
+    if (this.chartAvailable || !this.config.preferChart) {
+      return null;
+    }
+    return this.queryResult?.chartUnavailableReason ?? null;
   }
 
-  get chartData() {
-    const output = this.queryResult;
-    const visualization = this.visualizationResolution.visualization;
-    return output && visualization ? makeChartData(output, visualization) : null;
+  get chartEmbedData(): Record<string, unknown> | null {
+    const chart = this.queryResult?.chart;
+    if (!chart) {
+      return null;
+    }
+    return {
+      ...chart,
+      ...(this.display.title ? {title: this.display.title} : {}),
+      ...(this.display.subtitle ? {subtitle: this.display.subtitle} : {}),
+      ...(this.display.type && !['table', 'markdown'].includes(this.display.type)
+        ? {visualization: this.display.type}
+        : {}),
+      ...(this.display.unit ? {y_axis_unit: this.display.unit} : {}),
+      ...(this.display.axisLabel ? {y_axis_label: this.display.axisLabel} : {}),
+      ...(this.display.stacked === undefined ? {} : {stacked: this.display.stacked}),
+      ...(this.display.showLegend === undefined
+        ? {}
+        : {show_legend: this.display.showLegend}),
+    };
   }
 
   get effectiveView(): ResultView {
     return this.activeView !== 'table' && !this.chartAvailable
       ? 'table'
       : this.activeView;
+  }
+
+  get compatibleChartTypes(): Array<'line' | 'bar' | 'area'> {
+    return this.chartAvailable ? ['line', 'bar', 'area'] : [];
+  }
+
+  get chartPresentationType(): 'line' | 'bar' | 'area' {
+    if (['line', 'bar', 'area'].includes(this.display.type)) {
+      return this.display.type as 'line' | 'bar' | 'area';
+    }
+    const type = this.queryResult?.chart?.visualization;
+    return type === 'line' || type === 'bar' || type === 'area' ? type : 'line';
+  }
+
+  get clarificationOptions(): Array<{label: string; value: string}> {
+    const data = this.pendingUserInput?.data;
+    const raw = data?.options ?? data?.choices;
+    if (!Array.isArray(raw)) {
+      return [];
+    }
+    return raw.flatMap(choice => {
+      if (typeof choice === 'string') {
+        return [{label: choice, value: choice}];
+      }
+      if (!choice || typeof choice !== 'object') {
+        return [];
+      }
+      const value = 'value' in choice ? choice.value : null;
+      const label = 'label' in choice ? choice.label : value;
+      return typeof value === 'string' && typeof label === 'string'
+        ? [{label, value}]
+        : [];
+    });
   }
 
   editTitle(value: string) {
@@ -360,85 +558,10 @@ export class CellStore {
   }
 
   applyVisualizationChange(change: Partial<InvestigationDisplay>) {
-    const output = this.queryResult;
-    const visualization = this.visualizationResolution.visualization;
-    if (!output || !visualization) {
-      this.visualizationError = 'chart_unavailable';
+    if (!this.queryResult?.chart) {
       return;
     }
-    const proposed = displayFromVisualization(this.display, visualization, change);
-    const error = validateVisualizationDisplay(proposed, output);
-    if (error) {
-      this.visualizationError = error;
-      return;
-    }
-    this.visualizationError = null;
-    this.lastValidVisualization = resolveVisualization(proposed, output).visualization;
-    this.updateDisplay(proposed);
-  }
-
-  editVisualizationPrompt(value: string) {
-    this.visualizationPrompt = value;
-    this.visualizationError = null;
-  }
-
-  async requestVisualizationSuggestion(): Promise<void> {
-    const requestedChange = this.visualizationPrompt.trim();
-    const output = this.queryResult;
-    const visualization = this.visualizationResolution.visualization;
-    if (!requestedChange || !output || !visualization || !this.serverId) {
-      return;
-    }
-    this.visualizationSuggestionState = 'loading';
-    this.visualizationError = null;
-    try {
-      const response = await this.notebook.transport.suggestVisualization(this.serverId, {
-        currentIntent: this.queryIntent,
-        currentResult: output,
-        requestedChange,
-        visualization,
-      });
-      runInAction(() => {
-        if (response.existingResultSufficient) {
-          const proposed = displayFromVisualization(this.display, response.visualization);
-          const error = validateVisualizationDisplay(proposed, output);
-          if (error) {
-            this.visualizationError = error;
-            this.visualizationSuggestionState = 'error';
-            return;
-          }
-          this.lastValidVisualization = response.visualization;
-          this.visualizationPrompt = '';
-          this.revisedQueryIntent = null;
-          this.visualizationSuggestionState = 'idle';
-          this.updateDisplay(proposed);
-        } else {
-          this.revisedQueryIntent = response.revisedQueryIntent ?? null;
-          this.visualizationSuggestionState = 'idle';
-        }
-      });
-    } catch {
-      runInAction(() => {
-        this.visualizationSuggestionState = 'error';
-        this.visualizationError = 'suggestion_failed';
-      });
-    }
-  }
-
-  async confirmRevisedQuery(): Promise<void> {
-    const intent = this.revisedQueryIntent;
-    if (!intent) {
-      return;
-    }
-    this.editQueryIntent(intent);
-    await this.flush();
-    await this.run();
-    runInAction(() => {
-      if (this.revisedQueryIntent === intent) {
-        this.revisedQueryIntent = null;
-        this.visualizationPrompt = '';
-      }
-    });
+    this.updateDisplay({...this.display, ...change, version: 1});
   }
 
   clearQueryIntent() {
@@ -700,7 +823,13 @@ export class CellStore {
       staleAt: this.staleAt,
     };
     this.outputStatus = 'pending';
-    this.output = null;
+    this.activityBlocks = [];
+    this.pendingUserInput = null;
+    this.partialMarkdown = null;
+    this.activityExpanded = false;
+    this.recentActivityLabel = null;
+    this.lastActivitySignature = null;
+    this.syncStatusWordTimer();
   }
 
   markExecutionAccepted(execution: {id: string; status: string}) {
@@ -731,12 +860,120 @@ export class CellStore {
     this.executionBeforeRun = null;
     this.failedRunRequestId = requestId;
     this.runError = 'execution_start_failed';
+    this.syncStatusWordTimer();
   }
 
   finishRunRequest(requestId: string) {
     if (this.runRequestId === requestId) {
       this.isRunRequested = false;
       this.runRequestId = null;
+    }
+  }
+
+  applyExecutionState(state: InvestigationExecutionState) {
+    const previousSignature = this.lastActivitySignature;
+    this.outputStatus = state.status;
+    this.activityBlocks = state.blocks;
+    this.pendingUserInput = state.pendingUserInput;
+    this.partialMarkdown = state.partialMarkdown;
+    this.transcriptTruncated = state.transcriptTruncated;
+    const latestActivity = this.activityEntries.at(-1);
+    const nextSignature = latestActivity
+      ? JSON.stringify([
+          latestActivity.id,
+          latestActivity.content,
+          latestActivity.calls.at(-1)?.result,
+        ])
+      : null;
+    this.lastActivitySignature = nextSignature;
+    if (
+      this.isExecutionRunning &&
+      !this.activityExpanded &&
+      latestActivity &&
+      nextSignature !== previousSignature
+    ) {
+      this.showRecentActivity(activityHeadline(latestActivity));
+    }
+    if (!this.isExecutionRunning) {
+      this.activityExpanded = false;
+      this.clearRecentActivity();
+    }
+    this.syncStatusWordTimer();
+    if (this.currentExecution) {
+      this.currentExecution = {
+        ...this.currentExecution,
+        status: state.status,
+        error: state.error,
+      };
+    }
+  }
+
+  async stopExecution(): Promise<void> {
+    if (!this.serverId || !this.currentExecution) {
+      return;
+    }
+    const previousStatus = this.outputStatus;
+    this.outputStatus = 'stopping';
+    try {
+      await this.notebook.transport.stopCellExecution(
+        this.serverId,
+        this.currentExecution.id
+      );
+    } catch (error) {
+      runInAction(() => {
+        this.outputStatus = previousStatus;
+      });
+      throw error;
+    }
+  }
+
+  activateExecutionControl(): Promise<void> {
+    if (this.isRunRequested) {
+      return Promise.resolve();
+    }
+    if (this.executionControlMode === 'stop') {
+      return this.stopExecution();
+    }
+    if (this.executionControlMode === 'retry') {
+      return this.retryRun();
+    }
+    return this.run();
+  }
+
+  setActivityExpanded(value: boolean) {
+    this.activityExpanded = value;
+    if (value) {
+      this.clearRecentActivity();
+    }
+  }
+
+  editClarificationDraft(value: string) {
+    this.clarificationDraft = value;
+  }
+
+  async respondToPendingInput(response = this.clarificationDraft): Promise<void> {
+    if (!this.serverId || !this.currentExecution || !this.pendingUserInput) {
+      return;
+    }
+    const previousInput = this.pendingUserInput;
+    const previousStatus = this.outputStatus;
+    const responseData = response;
+    this.pendingUserInput = null;
+    this.outputStatus = 'running';
+    this.clarificationDraft = '';
+    try {
+      await this.notebook.transport.respondToCellExecution(
+        this.serverId,
+        this.currentExecution.id,
+        {inputId: previousInput.id, responseData}
+      );
+    } catch (error) {
+      runInAction(() => {
+        this.pendingUserInput = previousInput;
+        this.outputStatus = previousStatus;
+        this.clarificationDraft = String(responseData);
+      });
+      throw error;
     }
   }
 
@@ -843,7 +1080,9 @@ export class CellStore {
       }
     }
     if (!this.dirtyFields.has('display')) {
-      this.activeView = cell.display.defaultView ?? 'table';
+      this.activeView =
+        cell.display.defaultView ??
+        (isQueryResult(cell.output) ? cell.output.preferredView : 'table');
     }
     this.confirmed = this.confirmedFields(cell);
   }
@@ -949,6 +1188,11 @@ export class CellStore {
   dispose() {
     this.disposed = true;
     this.cancelScheduledSave();
+    if (this.statusWordTimer) {
+      clearInterval(this.statusWordTimer);
+      this.statusWordTimer = null;
+    }
+    this.clearRecentActivity();
   }
 
   protected getConfirmedFields(): ConfirmedCellFields {
@@ -973,12 +1217,6 @@ export class CellStore {
     this.parameterKeys = cell.parameterKeys;
     this.version = cell.version;
     this.applyExecutionSnapshot(cell);
-    if (isQueryResult(this.output)) {
-      this.lastValidVisualization = resolveVisualization(
-        this.display,
-        this.output
-      ).visualization;
-    }
     this.createdBy = cell.createdBy;
     this.lastEditedBy = cell.lastEditedBy;
     this.reactions = cell.reactions;
@@ -1018,7 +1256,7 @@ export class CellStore {
       (incomingExecutionId === null && this.isExecutionRunning) ||
       (sameExecution &&
         TERMINAL_OUTPUT_STATUSES.has(this.outputStatus) &&
-        ['pending', 'running'].includes(cell.outputStatus))
+        ['pending', 'running', 'awaiting_input', 'stopping'].includes(cell.outputStatus))
     ) {
       return;
     }
@@ -1030,6 +1268,50 @@ export class CellStore {
     if (incomingExecutionId !== null) {
       this.executionBeforeRun = null;
     }
+    this.syncStatusWordTimer();
+  }
+
+  private syncStatusWordTimer() {
+    if (!this.isExecutionRunning) {
+      if (this.statusWordTimer) {
+        clearInterval(this.statusWordTimer);
+        this.statusWordTimer = null;
+      }
+      return;
+    }
+    if (this.statusWordTimer) {
+      return;
+    }
+    this.statusWordTimer = setInterval(() => {
+      runInAction(() => {
+        if (!this.recentActivityLabel) {
+          this.executionStatusWordIndex =
+            (this.executionStatusWordIndex + 1) % WORKING_WORDS.length;
+          this.executionStatusLabelVersion += 1;
+        }
+      });
+    }, 1800);
+  }
+
+  private showRecentActivity(label: string) {
+    this.clearRecentActivity();
+    this.recentActivityLabel = label;
+    this.executionStatusLabelVersion += 1;
+    this.recentActivityTimer = setTimeout(() => {
+      runInAction(() => {
+        this.recentActivityLabel = null;
+        this.executionStatusLabelVersion += 1;
+        this.recentActivityTimer = null;
+      });
+    }, 3500);
+  }
+
+  private clearRecentActivity() {
+    if (this.recentActivityTimer) {
+      clearTimeout(this.recentActivityTimer);
+      this.recentActivityTimer = null;
+    }
+    this.recentActivityLabel = null;
   }
 
   private setEditableField<Field extends CellEditableField>(

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.utils.dateparse import parse_datetime
 from rest_framework import serializers
 
 from sentry.utils import json
@@ -131,6 +132,54 @@ class ChartResultSerializer(StrictContractSerializer):
     truncated = serializers.BooleanField(required=False, default=False)
 
 
+class SeerChartPointSerializer(StrictContractSerializer):
+    x = serializers.JSONField()
+    y = serializers.FloatField()
+
+    def validate_x(self, value: Any) -> str | int | float:
+        if isinstance(value, bool) or not isinstance(value, str | int | float):
+            raise serializers.ValidationError("Chart x values must be strings or numbers.")
+        return value
+
+
+class SeerChartSeriesSerializer(StrictContractSerializer):
+    name = serializers.CharField()
+    data = serializers.ListField(
+        child=SeerChartPointSerializer(), min_length=1, max_length=MAX_POINTS_PER_SERIES
+    )
+
+
+class SeerChartEmbedSerializer(StrictContractSerializer):
+    title = serializers.CharField()
+    subtitle = serializers.CharField(required=False, allow_null=True)
+    visualization = serializers.ChoiceField(choices=("line", "area", "bar"), default="line")
+    x_axis = serializers.ChoiceField(choices=("time", "category"), default="time")
+    y_axis_unit = serializers.ChoiceField(
+        choices=("number", "percentage", "duration", "bytes"), default="number"
+    )
+    y_axis_label = serializers.CharField(required=False, allow_null=True)
+    stacked = serializers.BooleanField(required=False, default=True)
+    show_legend = serializers.BooleanField(required=False, default=True)
+    show_title = serializers.BooleanField(required=False, default=True)
+    frameless = serializers.BooleanField(required=False, default=False)
+    series = serializers.ListField(
+        child=SeerChartSeriesSerializer(), min_length=1, max_length=MAX_CHART_SERIES
+    )
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        if attrs["x_axis"] != "time":
+            return attrs
+        for series in attrs["series"]:
+            for point in series["data"]:
+                value = point["x"]
+                parsed = parse_datetime(value) if isinstance(value, str) else None
+                if parsed is None or parsed.utcoffset() is None:
+                    raise serializers.ValidationError(
+                        "Time-axis values must be offset-bearing ISO timestamps."
+                    )
+        return attrs
+
+
 class VisualizationSerializer(StrictContractSerializer):
     type = serializers.ChoiceField(choices=("line", "area", "bar", "heatmap", "wheel"))
     title = serializers.CharField()
@@ -154,38 +203,24 @@ class VisualizationSerializer(StrictContractSerializer):
 
 class InvestigationQueryResultSerializer(StrictContractSerializer):
     schemaVersion = serializers.IntegerField(min_value=1, max_value=1)
-    query = CanonicalQuerySerializer()
-    table = TableResultSerializer()
-    chart = ChartResultSerializer(required=False, allow_null=True)
-    suggestedVisualization = VisualizationSerializer(required=False, allow_null=True)
+    tableMarkdown = serializers.CharField(max_length=MAX_MARKDOWN_CHARS, trim_whitespace=False)
+    chart = SeerChartEmbedSerializer(required=False, allow_null=True)
+    preferredView = serializers.ChoiceField(choices=("table", "chart"), default="table")
+    isEmpty = serializers.BooleanField(default=False)
     chartUnavailableReason = serializers.CharField(required=False, allow_null=True)
-    warnings = serializers.ListField(child=serializers.CharField(), required=False, default=list)
-    dataProjectIds = serializers.ListField(
-        child=serializers.IntegerField(min_value=1), required=False, default=list
-    )
+    queryLinks = serializers.ListField(child=serializers.JSONField(), required=False, default=list)
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        if attrs["preferredView"] == "chart" and attrs.get("chart") is None:
+            attrs["preferredView"] = "table"
         if attrs.get("chart") is None and not attrs.get("chartUnavailableReason"):
-            raise serializers.ValidationError("A missing chart requires chartUnavailableReason.")
-        if attrs.get("chart") is not None and attrs.get("suggestedVisualization") is None:
-            raise serializers.ValidationError("Chart data requires suggestedVisualization.")
-        chart = attrs.get("chart")
-        visualization = attrs.get("suggestedVisualization")
-        if chart is not None and visualization is not None:
-            available_series = {series["name"] for series in chart["series"]}
-            if any(field not in available_series for field in visualization["yFields"]):
-                raise serializers.ValidationError(
-                    "suggestedVisualization may only reference returned chart series."
-                )
+            attrs["chartUnavailableReason"] = "No chart was generated for this result."
         return attrs
 
 
 class InvestigationTextResultSerializer(StrictContractSerializer):
     schemaVersion = serializers.IntegerField(min_value=1, max_value=1)
     markdown = serializers.CharField(max_length=MAX_MARKDOWN_CHARS, trim_whitespace=False)
-    dataProjectIds = serializers.ListField(
-        child=serializers.IntegerField(min_value=1), required=False, default=list
-    )
 
 
 def validate_query_result(value: Any) -> dict[str, Any]:

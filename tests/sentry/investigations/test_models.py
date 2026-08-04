@@ -44,6 +44,28 @@ class InvestigationModelTest(TestCase):
                 template_key="breached_metric",
             )
 
+    def test_source_key_is_unique_within_an_organization(self) -> None:
+        self.create_investigation(
+            organization=self.organization,
+            created_by=self.user,
+            title="First",
+            source_type="breached_metric",
+            source_key="source",
+            status="archived",
+        )
+
+        with (
+            pytest.raises(IntegrityError),
+            transaction.atomic(using=router.db_for_write(Investigation)),
+        ):
+            self.create_investigation(
+                organization=self.organization,
+                created_by=self.user,
+                title="Second",
+                source_type="breached_metric",
+                source_key="source",
+            )
+
     def test_dependency_cannot_reference_itself(self) -> None:
         with (
             pytest.raises(IntegrityError),
@@ -105,26 +127,12 @@ def test_query_result_contract_accepts_the_versioned_wire_shape() -> None:
     result = validate_query_result(
         {
             "schemaVersion": 1,
-            "query": {
-                "dataset": "errors",
-                "query": "is:unresolved",
-                "mode": "aggregates",
-                "yAxes": ["count()"],
-                "timeRange": {"statsPeriod": "24h"},
-                "projectIds": [1],
-            },
-            "table": {
-                "columns": [
-                    {"key": "timestamp", "label": "Time", "type": "datetime"},
-                    {"key": "count()", "label": "Errors", "type": "number"},
-                ],
-                "rows": [["2026-07-31T12:00:00Z", 12]],
-                "totalRows": 1,
-                "returnedRows": 1,
-                "truncated": False,
-            },
+            "tableMarkdown": "| Time | Errors |\n| --- | ---: |\n| 2026-07-31 | 12 |",
             "chart": {
-                "xAxis": "time",
+                "title": "Errors over time",
+                "visualization": "area",
+                "x_axis": "time",
+                "y_axis_unit": "number",
                 "series": [
                     {
                         "name": "count()",
@@ -132,18 +140,15 @@ def test_query_result_contract_accepts_the_versioned_wire_shape() -> None:
                     }
                 ],
             },
-            "suggestedVisualization": {
-                "type": "area",
-                "title": "Errors over time",
-                "xField": "timestamp",
-                "yFields": ["count()"],
-            },
-            "dataProjectIds": [1],
+            "preferredView": "chart",
+            "isEmpty": False,
+            "chartUnavailableReason": None,
+            "queryLinks": [],
         }
     )
 
     assert result["schemaVersion"] == 1
-    assert result["query"]["dataset"] == "errors"
+    assert result["preferredView"] == "chart"
 
 
 def test_query_result_contract_rejects_unknown_versions() -> None:
@@ -151,19 +156,12 @@ def test_query_result_contract_rejects_unknown_versions() -> None:
         validate_query_result(
             {
                 "schemaVersion": 2,
-                "query": {
-                    "dataset": "errors",
-                    "query": "",
-                    "mode": "aggregates",
-                    "timeRange": {},
-                },
-                "table": {
-                    "columns": [],
-                    "rows": [],
-                    "totalRows": 0,
-                    "returnedRows": 0,
-                },
+                "tableMarkdown": "| Result |\n| --- |",
+                "chart": None,
+                "preferredView": "table",
+                "isEmpty": True,
                 "chartUnavailableReason": "No numeric result.",
+                "queryLinks": [],
             }
         )
 
@@ -175,10 +173,10 @@ def test_shared_golden_payload_round_trips_without_contract_drift() -> None:
     assert validate_query_result(payload) == payload
 
 
-def test_query_result_contract_rejects_an_unavailable_suggested_series() -> None:
+def test_query_result_contract_rejects_an_empty_chart_series() -> None:
     fixture = Path(__file__).parents[2] / "fixtures" / "investigation_query_result_v1.json"
     payload = json.loads(fixture.read_text())
-    payload["suggestedVisualization"]["yFields"] = ["missing()"]
+    payload["chart"]["series"] = []
 
-    with pytest.raises(ValidationError, match="returned chart series"):
+    with pytest.raises(ValidationError):
         validate_query_result(payload)

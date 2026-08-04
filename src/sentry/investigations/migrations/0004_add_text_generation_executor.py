@@ -30,7 +30,6 @@ class Migration(CheckedMigration):
                 choices=[
                     ("manual", "Manual"),
                     ("deterministic", "Deterministic"),
-                    ("assisted_query", "Assisted query"),
                     ("code_mode", "Code mode"),
                     ("text_generation", "Text generation"),
                 ],

@@ -28,7 +28,7 @@ export type InvestigationReaction = {
 export type InvestigationDisplay = {
   type: InvestigationDisplayType;
   axisLabel?: string;
-  defaultView?: 'table' | 'chart' | 'both';
+  defaultView?: 'table' | 'chart';
   promptCollapsed?: boolean;
   queryCollapsed?: boolean;
   seriesField?: string;
@@ -88,44 +88,27 @@ export type InvestigationVisualization = {
 };
 
 export type InvestigationQueryResult = {
-  chart: {
-    series: InvestigationChartSeries[];
-    truncated: boolean;
-    xAxis: 'time' | 'category';
-  } | null;
+  chart: Record<string, unknown> | null;
   chartUnavailableReason: string | null;
-  dataProjectIds: number[];
-  query: {
-    dataset: 'errors' | 'issues' | 'spans' | 'logs' | 'metrics';
-    fields: string[];
-    groupBy: string[];
-    linkParams: Record<string, unknown>;
-    mode: string;
-    projectIds: number[];
-    projectSlugs: string[];
-    query: string;
-    sort: string;
-    timeRange: {
-      end?: string | null;
-      start?: string | null;
-      statsPeriod?: string | null;
-    };
-    yAxes: string[];
-    interval?: string | null;
-    logQuery?: string | null;
-    metricQuery?: string | null;
-    spanQuery?: string | null;
-  };
+  isEmpty: boolean;
+  preferredView: 'table' | 'chart';
+  queryLinks: Array<{kind: string; params: Record<string, unknown>}>;
   schemaVersion: 1;
-  suggestedVisualization: InvestigationVisualization | null;
-  table: {
-    columns: InvestigationTableColumn[];
-    returnedRows: number;
-    rows: Array<Array<string | number | boolean | null>>;
-    totalRows: number;
-    truncated: boolean;
-  };
-  warnings: string[];
+  tableMarkdown: string;
+};
+
+export type InvestigationExecutionState = {
+  blocks: Array<Record<string, unknown>>;
+  error: {code?: string; message?: string} | null;
+  id: string;
+  partialMarkdown: string | null;
+  pendingUserInput: {
+    data: Record<string, unknown>;
+    id: string;
+    input_type: string;
+  } | null;
+  status: string;
+  transcriptTruncated: boolean;
 };
 
 export type InvestigationCellExecution = {
@@ -228,6 +211,7 @@ export type InvestigationDetail = InvestigationListItem & {
   projectIds: number[];
   source: {ref: Record<string, unknown>; type: string};
   template: {key: string; version: number} | null;
+  titleGeneration?: {status: string | null};
 };
 
 export type InvestigationMention = {

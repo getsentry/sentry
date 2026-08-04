@@ -10,10 +10,13 @@ import {
   executeCell,
   investigationCommentsQueryOptions,
   investigationDetailQueryOptions,
+  loadCellExecution,
+  loadTitleGeneration,
   reorderCells,
   setCellReaction,
   setCommentReaction,
-  suggestCellVisualization,
+  respondToCellExecution,
+  stopCellExecution,
   updateCell,
   updateComment,
   updateInvestigation,
@@ -27,9 +30,7 @@ import type {
   InvestigationDisplay,
   InvestigationFilters,
   InvestigationPermissions,
-  InvestigationQueryResult,
   InvestigationReactionName,
-  InvestigationVisualization,
 } from 'sentry/views/seerNotebook/types';
 
 export class QueryClientInvestigationTransport implements InvestigationTransport {
@@ -44,6 +45,10 @@ export class QueryClientInvestigationTransport implements InvestigationTransport
       investigationDetailQueryOptions(this.organizationSlug, this.investigationId)
     );
     return response.json;
+  }
+
+  loadTitleGeneration() {
+    return loadTitleGeneration(this.organizationSlug, this.investigationId);
   }
 
   updateInvestigation(data: {
@@ -109,6 +114,38 @@ export class QueryClientInvestigationTransport implements InvestigationTransport
     return executeCell(this.organizationSlug, this.investigationId, cellId, data);
   }
 
+  loadCellExecution(cellId: string, executionId: string) {
+    return loadCellExecution(
+      this.organizationSlug,
+      this.investigationId,
+      cellId,
+      executionId
+    );
+  }
+
+  respondToCellExecution(
+    cellId: string,
+    executionId: string,
+    data: {inputId: string; responseData: unknown}
+  ) {
+    return respondToCellExecution(
+      this.organizationSlug,
+      this.investigationId,
+      cellId,
+      executionId,
+      data
+    );
+  }
+
+  stopCellExecution(cellId: string, executionId: string) {
+    return stopCellExecution(
+      this.organizationSlug,
+      this.investigationId,
+      cellId,
+      executionId
+    );
+  }
+
   reorderCells(data: {cellIds: string[]; investigationVersion: number}) {
     return reorderCells(this.organizationSlug, this.investigationId, data);
   }
@@ -128,23 +165,6 @@ export class QueryClientInvestigationTransport implements InvestigationTransport
       investigationVersion,
       ...permissions,
     });
-  }
-
-  suggestVisualization(
-    cellId: string,
-    data: {
-      currentIntent: string;
-      currentResult: InvestigationQueryResult;
-      requestedChange: string;
-      visualization: InvestigationVisualization;
-    }
-  ) {
-    return suggestCellVisualization(
-      this.organizationSlug,
-      this.investigationId,
-      cellId,
-      data
-    );
   }
 
   async loadComments(cellId: string, pageCount: number) {

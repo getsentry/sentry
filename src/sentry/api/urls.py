@@ -294,12 +294,14 @@ from sentry.integrations.api.endpoints.organization_repository_settings import (
     OrganizationRepositorySettingsEndpoint,
 )
 from sentry.investigations.endpoints.organization_investigations import (
+    OrganizationBreachedMetricInvestigationLaunchEndpoint,
+    OrganizationBreachedMetricInvestigationStatusEndpoint,
     OrganizationInvestigationCellDetailsEndpoint,
     OrganizationInvestigationCellExecuteEndpoint,
+    OrganizationInvestigationCellExecutionEndpoint,
     OrganizationInvestigationCellOrderEndpoint,
     OrganizationInvestigationCellReactionEndpoint,
     OrganizationInvestigationCellsEndpoint,
-    OrganizationInvestigationCellVisualizationSuggestionEndpoint,
     OrganizationInvestigationCommentDetailsEndpoint,
     OrganizationInvestigationCommentReactionEndpoint,
     OrganizationInvestigationCommentsEndpoint,
@@ -309,6 +311,7 @@ from sentry.investigations.endpoints.organization_investigations import (
     OrganizationInvestigationParametersEndpoint,
     OrganizationInvestigationPermissionsEndpoint,
     OrganizationInvestigationsEndpoint,
+    OrganizationInvestigationTitleGenerationEndpoint,
 )
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
@@ -2375,6 +2378,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-investigations",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/breached-metric/status/$",
+        OrganizationBreachedMetricInvestigationStatusEndpoint.as_view(),
+        name="sentry-api-0-organization-breached-metric-investigation-status",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/breached-metric/launch/$",
+        OrganizationBreachedMetricInvestigationLaunchEndpoint.as_view(),
+        name="sentry-api-0-organization-breached-metric-investigation-launch",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_uuid>[^/]+)/$",
         OrganizationInvestigationDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-details",
@@ -2383,6 +2396,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_uuid>[^/]+)/favorite/$",
         OrganizationInvestigationFavoriteEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-favorite",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_uuid>[^/]+)/title-generation/$",
+        OrganizationInvestigationTitleGenerationEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-title-generation",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_uuid>[^/]+)/duplicate/$",
@@ -2410,9 +2428,9 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-investigation-cell-execute",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_uuid>[^/]+)/cells/(?P<cell_uuid>[^/]+)/visualization-suggestion/$",
-        OrganizationInvestigationCellVisualizationSuggestionEndpoint.as_view(),
-        name="sentry-api-0-organization-investigation-cell-visualization-suggestion",
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_uuid>[^/]+)/cells/(?P<cell_uuid>[^/]+)/executions/(?P<execution_uuid>[^/]+)/$",
+        OrganizationInvestigationCellExecutionEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-cell-execution",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_uuid>[^/]+)/parameters/$",

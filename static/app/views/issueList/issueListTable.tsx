@@ -9,6 +9,7 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
+import type {Group} from 'sentry/types/group';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {IndexedMembersByProject} from 'sentry/utils/members/shared';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
@@ -43,6 +44,7 @@ interface IssueListTableProps {
   selection: PageFilters;
   statsLoading: boolean;
   statsPeriod: string;
+  renderGroupAction?: (group: Group) => React.ReactNode;
   supergroupLookup?: SupergroupLookup;
   withColumns?: GroupListColumn[];
 }
@@ -71,6 +73,7 @@ export function IssueListTable({
   pageSize,
   supergroupLookup,
   withColumns,
+  renderGroupAction,
 }: IssueListTableProps) {
   const location = useLocation();
 
@@ -143,6 +146,7 @@ export function IssueListTable({
                       onActionTaken={onActionTaken}
                       supergroupLookup={supergroupLookup}
                       withColumns={withColumns}
+                      renderGroupAction={renderGroupAction}
                     />
                   </VisuallyCompleteWithData>
                 </PanelBody>

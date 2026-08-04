@@ -86,6 +86,7 @@ interface Props {
   headerActions?: ReactNode;
   initialQuery?: string;
   initialSort?: IssueSortOptions;
+  renderGroupAction?: (group: Group) => ReactNode;
   shouldFetchOnMount?: boolean;
   title?: ReactNode;
   titleDescription?: ReactNode;
@@ -140,6 +141,7 @@ function IssueListOverviewInner({
   titleDescription,
   headerActions,
   withColumns,
+  renderGroupAction,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
@@ -1003,6 +1005,7 @@ function IssueListOverviewInner({
               error={error}
               refetchGroups={fetchData}
               withColumns={withColumns}
+              renderGroupAction={renderGroupAction}
               paginationCaption={
                 !issuesLoading && modifiedQueryCount > 0
                   ? tct('[start]-[end] of [total]', {

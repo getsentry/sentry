@@ -172,7 +172,7 @@ class InvestigationCellEndpointTest(APITestCase):
                 "display": {
                     "version": 1,
                     "type": "table",
-                    "defaultView": "both",
+                    "defaultView": "chart",
                     "queryCollapsed": True,
                 },
             },

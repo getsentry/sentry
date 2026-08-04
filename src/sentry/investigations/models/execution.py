@@ -17,7 +17,6 @@ from .relocation import RegenerateInvestigationUUIDsOnRelocationMixin
 class InvestigationCellExecutor(models.TextChoices):
     MANUAL = "manual", "Manual"
     DETERMINISTIC = "deterministic", "Deterministic"
-    ASSISTED_QUERY = "assisted_query", "Assisted query"
     CODE_MODE = "code_mode", "Code mode"
     TEXT_GENERATION = "text_generation", "Text generation"
 
@@ -25,6 +24,8 @@ class InvestigationCellExecutor(models.TextChoices):
 class InvestigationCellExecutionStatus(models.TextChoices):
     PENDING = "pending", "Pending"
     RUNNING = "running", "Running"
+    AWAITING_INPUT = "awaiting_input", "Awaiting input"
+    STOPPING = "stopping", "Stopping"
     COMPLETED = "completed", "Completed"
     FAILED = "failed", "Failed"
     CANCELLED = "cancelled", "Cancelled"
@@ -66,11 +67,12 @@ class InvestigationCellExecution(RegenerateInvestigationUUIDsOnRelocationMixin, 
     result_schema_version = BoundedPositiveIntegerField(default=1, db_default=1)
     result = models.JSONField(null=True)
     error = models.JSONField(null=True)
+    transcript = models.JSONField(default=list, db_default=[])
+    transcript_truncated = models.BooleanField(default=False, db_default=False)
     started_at = models.DateTimeField(null=True)
     completed_at = models.DateTimeField(null=True)
 
-    # Provenance for output authorization. Saved notebook project filters alone
-    # must never determine whether a viewer may receive persisted result data.
+    # Projects whose data contributed to this saved output.
     data_projects = models.ManyToManyField(
         "sentry.Project", through="investigations.InvestigationCellExecutionProject", blank=True
     )
@@ -88,7 +90,7 @@ class InvestigationCellExecution(RegenerateInvestigationUUIDsOnRelocationMixin, 
 
 @cell_silo_model
 class InvestigationCellExecutionProject(Model):
-    """Project-level data provenance for one persisted cell output."""
+    """A project whose data contributed to one persisted cell output."""
 
     __relocation_scope__ = RelocationScope.Organization
 

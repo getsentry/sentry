@@ -23,7 +23,6 @@ from sentry.utils import json
 
 MAX_CONTEXT_CELLS = 20
 MAX_CONTEXT_TEXT_CHARS = 50_000
-MAX_CONTEXT_TABLE_ROWS = 25
 MAX_CONTEXT_BYTES = 512 * 1024
 
 
@@ -32,26 +31,18 @@ def _fingerprint(snapshot: dict[str, Any]) -> str:
     return hashlib.sha256(serialized.encode()).hexdigest()
 
 
-def _compact_query_context(result: Any) -> dict[str, Any]:
+def _compact_query_context(
+    result: Any, *, max_text_chars: int = MAX_CONTEXT_TEXT_CHARS
+) -> dict[str, Any]:
     if not isinstance(result, dict):
         raise InvestigationValidationError(
             {"context": "A query context cell has no usable result."}
         )
-    raw_table = result.get("table")
-    table = raw_table if isinstance(raw_table, dict) else {}
-    raw_rows = table.get("rows")
-    rows = raw_rows if isinstance(raw_rows, list) else []
     return {
         "schemaVersion": result.get("schemaVersion"),
-        "query": result.get("query"),
-        "table": {
-            "columns": table.get("columns", []),
-            "rows": rows[:MAX_CONTEXT_TABLE_ROWS],
-            "totalRows": table.get("totalRows", len(rows)),
-            "returnedRows": min(len(rows), MAX_CONTEXT_TABLE_ROWS),
-            "truncated": bool(table.get("truncated")) or len(rows) > MAX_CONTEXT_TABLE_ROWS,
-        },
-        "warnings": result.get("warnings", []),
+        "tableMarkdown": str(result.get("tableMarkdown", ""))[:max_text_chars],
+        "isEmpty": bool(result.get("isEmpty")),
+        "queryLinks": result.get("queryLinks", []),
     }
 
 
@@ -60,7 +51,9 @@ def _materialize_dependency_context(
 ) -> tuple[dict[str, str | None], list[dict[str, Any]], list[int]]:
     links = list(
         cell.dependency_links.select_related(
-            "depends_on__content_execution", "depends_on__current_execution"
+            "depends_on__content_execution",
+            "depends_on__current_execution",
+            "depends_on__result_execution",
         ).order_by("depends_on__position", "depends_on__uuid")
     )
     if len(links) > MAX_CONTEXT_CELLS:
@@ -74,7 +67,7 @@ def _materialize_dependency_context(
     for link in links:
         dependency = link.depends_on
         dependency_execution = (
-            dependency.current_execution
+            dependency.result_execution
             if dependency.kind == InvestigationCellKind.QUERY
             else dependency.content_execution
         )
@@ -104,19 +97,98 @@ def _materialize_dependency_context(
             item["content"] = dependency.content[:MAX_CONTEXT_TEXT_CHARS]
 
         if dependency_execution is not None:
-            provenance = set(
+            represented_project_ids = set(
                 dependency_execution.data_projects.order_by("id").values_list("id", flat=True)
             )
-            if not provenance.issubset(accessible_project_ids):
+            if not represented_project_ids.issubset(accessible_project_ids):
                 raise InvestigationValidationError(
                     {"context": "One or more context cells use inaccessible project data."}
                 )
-            context_project_ids.update(provenance)
+            context_project_ids.update(represented_project_ids)
         context.append(item)
 
     if len(json.dumps(context).encode()) > MAX_CONTEXT_BYTES:
         raise InvestigationValidationError(
             {"context": "The selected cell context is too large to send to the agent."}
+        )
+    return dependencies, context, sorted(context_project_ids)
+
+
+def _materialize_notebook_context(
+    cell: InvestigationCell, *, accessible_project_ids: set[int]
+) -> tuple[dict[str, str | None], list[dict[str, Any]], list[int]]:
+    """Snapshot every other visible cell for text generation.
+
+    A cell's current attempt describes its status, while its successful output pointer
+    supplies any content that remains visible during a rerun or after a failure.
+    """
+    cells = list(
+        cell.investigation.cells.filter(deleted_at__isnull=True)
+        .exclude(id=cell.id)
+        .select_related("content_execution", "current_execution", "result_execution")
+        .order_by("position", "uuid")
+    )
+    max_text_chars = min(
+        MAX_CONTEXT_TEXT_CHARS,
+        max(256, MAX_CONTEXT_BYTES // max(len(cells), 1) - 1024),
+    )
+    dependencies: dict[str, str | None] = {}
+    context: list[dict[str, Any]] = []
+    context_project_ids: set[int] = set()
+
+    for context_cell in cells:
+        current_execution = context_cell.current_execution
+        visible_execution = (
+            context_cell.result_execution
+            if context_cell.kind == InvestigationCellKind.QUERY
+            else context_cell.content_execution
+        )
+        dependencies[str(context_cell.uuid)] = (
+            str(visible_execution.uuid) if visible_execution is not None else None
+        )
+        item: dict[str, Any] = {
+            "cell_id": str(context_cell.uuid),
+            "kind": context_cell.kind,
+            "title": context_cell.title,
+            "prompt": context_cell.prompt[:max_text_chars],
+            "position": context_cell.position,
+            "version": context_cell.version,
+            "status": current_execution.status if current_execution is not None else "not_run",
+            "stale": context_cell.stale_at is not None,
+            "currentExecutionId": (
+                str(current_execution.uuid) if current_execution is not None else None
+            ),
+            "visibleExecutionId": (
+                str(visible_execution.uuid) if visible_execution is not None else None
+            ),
+        }
+
+        if context_cell.kind == InvestigationCellKind.QUERY:
+            if (
+                visible_execution is not None
+                and visible_execution.status == InvestigationCellExecutionStatus.COMPLETED
+                and isinstance(visible_execution.result, dict)
+            ):
+                item["result"] = _compact_query_context(
+                    visible_execution.result, max_text_chars=max_text_chars
+                )
+        else:
+            item["content"] = context_cell.content[:max_text_chars]
+
+        if visible_execution is not None:
+            represented_project_ids = set(
+                visible_execution.data_projects.order_by("id").values_list("id", flat=True)
+            )
+            if not represented_project_ids.issubset(accessible_project_ids):
+                raise InvestigationValidationError(
+                    {"context": "One or more context cells use inaccessible project data."}
+                )
+            context_project_ids.update(represented_project_ids)
+        context.append(item)
+
+    if len(json.dumps(context).encode()) > MAX_CONTEXT_BYTES:
+        raise InvestigationValidationError(
+            {"context": "The notebook context is too large to send to the agent."}
         )
     return dependencies, context, sorted(context_project_ids)
 
@@ -133,9 +205,14 @@ def build_cell_execution_snapshot(
         link.parameter.key: link.parameter.saved_value
         for link in cell.parameter_links.select_related("parameter").order_by("parameter__key")
     }
-    dependencies, context, context_project_ids = _materialize_dependency_context(
-        cell, accessible_project_ids=accessible_project_ids
-    )
+    if cell.kind == InvestigationCellKind.TEXT:
+        dependencies, context, context_project_ids = _materialize_notebook_context(
+            cell, accessible_project_ids=accessible_project_ids
+        )
+    else:
+        dependencies, context, context_project_ids = _materialize_dependency_context(
+            cell, accessible_project_ids=accessible_project_ids
+        )
     snapshot: dict[str, Any] = {
         "prompt": prompt,
         "filters": cell.investigation.filters,
@@ -224,6 +301,8 @@ def create_cell_execution(
             in {
                 InvestigationCellExecutionStatus.PENDING,
                 InvestigationCellExecutionStatus.RUNNING,
+                InvestigationCellExecutionStatus.AWAITING_INPUT,
+                InvestigationCellExecutionStatus.STOPPING,
             }
         ):
             return current, False
@@ -245,11 +324,7 @@ def create_cell_execution(
             "executor": (
                 InvestigationCellExecutor.TEXT_GENERATION
                 if locked.kind == InvestigationCellKind.TEXT
-                else (
-                    InvestigationCellExecutor.ASSISTED_QUERY
-                    if dataset_hint is not None
-                    else InvestigationCellExecutor.CODE_MODE
-                )
+                else InvestigationCellExecutor.CODE_MODE
             ),
             "status": InvestigationCellExecutionStatus.PENDING,
             "cell_version": locked.version,

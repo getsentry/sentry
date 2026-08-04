@@ -8,7 +8,7 @@ import type {
   InvestigationPermissions,
   InvestigationReaction,
   InvestigationReactionName,
-  InvestigationVisualization,
+  InvestigationExecutionState,
 } from 'sentry/views/seerNotebook/types';
 
 export type NotebookMutationFailurePolicy = 'rollback' | 'retain-draft';
@@ -60,12 +60,25 @@ export interface InvestigationTransport {
     cellId: string,
     data: {investigationVersion: number; requestId: string; version: number}
   ): Promise<{id: string; status: string}>;
+  loadCellExecution(
+    cellId: string,
+    executionId: string
+  ): Promise<InvestigationExecutionState>;
   loadComments(cellId: string, pageCount: number): Promise<CommentPage>;
   loadDetail(): Promise<InvestigationDetail>;
+  loadTitleGeneration(): Promise<{
+    preview: string | null;
+    status: string | null;
+  }>;
   reorderCells(data: {
     cellIds: string[];
     investigationVersion: number;
   }): Promise<InvestigationDetail>;
+  respondToCellExecution(
+    cellId: string,
+    executionId: string,
+    data: {inputId: string; responseData: unknown}
+  ): Promise<void>;
   setCellReaction(
     cellId: string,
     reaction: InvestigationReactionName,
@@ -76,19 +89,7 @@ export interface InvestigationTransport {
     reaction: InvestigationReactionName,
     enabled: boolean
   ): Promise<void>;
-  suggestVisualization(
-    cellId: string,
-    data: {
-      currentIntent: string;
-      currentResult: NonNullable<InvestigationCell['output']>;
-      requestedChange: string;
-      visualization: InvestigationVisualization;
-    }
-  ): Promise<{
-    existingResultSufficient: boolean;
-    visualization: InvestigationVisualization;
-    revisedQueryIntent?: string;
-  }>;
+  stopCellExecution(cellId: string, executionId: string): Promise<void>;
   updateCell(
     cellId: string,
     data: {

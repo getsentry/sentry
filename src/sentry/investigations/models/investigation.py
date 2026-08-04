@@ -105,6 +105,9 @@ class Investigation(RegenerateInvestigationUUIDsOnRelocationMixin, DefaultFields
     source_ref: models.Field[dict[str, Any], dict[str, Any]] = models.JSONField(
         default=dict, db_default={}
     )
+    # Canonical identity for a source occurrence. Manual investigations leave this
+    # empty; source-backed launch endpoints use it for idempotent create-or-open.
+    source_key = models.CharField(max_length=64, null=True)
 
     # Saved defaults, equivalent to a dashboard's filters. Access is still checked
     # against the viewer when a cell is evaluated or an output is returned.
@@ -115,6 +118,10 @@ class Investigation(RegenerateInvestigationUUIDsOnRelocationMixin, DefaultFields
 
     # Incremented by write services to support optimistic concurrency in the editor.
     version = BoundedPositiveIntegerField(default=1, db_default=1)
+    title_seer_run = FlexibleForeignKey(
+        "seer.SeerRun", null=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    title_generation_status = models.CharField(max_length=32, null=True)
 
     class Meta:
         app_label = "investigations"
@@ -126,7 +133,12 @@ class Investigation(RegenerateInvestigationUUIDsOnRelocationMixin, DefaultFields
                     | Q(template_key__isnull=False, template_version__isnull=False)
                 ),
                 name="investigation_template_complete",
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["organization", "source_type", "source_key"],
+                condition=Q(source_key__isnull=False),
+                name="investigation_unique_source_key",
+            ),
         ]
         indexes = [
             models.Index(fields=["organization", "status", "-date_updated"]),

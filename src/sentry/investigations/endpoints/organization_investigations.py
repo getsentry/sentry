@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.db import IntegrityError, router, transaction
 from django.db.models import Count, Exists, OuterRef, Q, QuerySet
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
@@ -16,11 +18,18 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import DateTimePaginator
+from sentry.investigations.agent import (
+    interrupt_run,
+    start_execution_run,
+    synchronize_execution,
+    synchronize_title,
+)
 from sentry.investigations.models import (
     Investigation,
     InvestigationCell,
     InvestigationCellComment,
     InvestigationCellExecution,
+    InvestigationCellExecutionStatus,
     InvestigationCellKind,
     InvestigationFavoriteUser,
     InvestigationReaction,
@@ -43,7 +52,6 @@ from sentry.investigations.serializers import (
     InvestigationUpdateSerializer,
     ParameterValuesSerializer,
     PermissionsUpdateSerializer,
-    VisualizationSuggestionSerializer,
     comments_with_serialization_data,
     serialize_cell,
     serialize_comment,
@@ -65,7 +73,6 @@ from sentry.investigations.services import (
     delete_comment,
     duplicate_investigation,
     mark_cell_execution_dispatch_failed,
-    mark_cell_execution_dispatched,
     reorder_cells,
     set_cell_reaction,
     set_comment_reaction,
@@ -76,11 +83,13 @@ from sentry.investigations.services import (
     update_permissions,
     validate_mentions,
 )
-from sentry.investigations.visualizations import suggest_visualization_change
+from sentry.investigations.services.auto_run import schedule_eligible_auto_run_cells
+from sentry.investigations.services.breached_metrics import resolve_breached_metric_sources
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.seer.agent.client import SeerAgentClient
+from sentry.seer.agent.client_utils import AgentUpdateRequest, make_agent_update_request
 from sentry.utils import metrics
 
 FEATURE = "organizations:investigations"
@@ -93,6 +102,27 @@ def _feature_enabled(request: Request, organization: Organization) -> bool:
 
 def _query_execution_enabled(request: Request, organization: Organization) -> bool:
     return features.has(QUERY_EXECUTION_FEATURE, organization, actor=request.user)
+
+
+def _require_breached_metric_feature(request: Request, organization: Organization) -> None:
+    if not _feature_enabled(request, organization) or not _query_execution_enabled(
+        request, organization
+    ):
+        raise ResourceDoesNotExist
+
+
+def _parse_group_ids(value: Any) -> list[int] | None:
+    if not isinstance(value, list) or not 1 <= len(value) <= 100:
+        return None
+    parsed: list[int] = []
+    for item in value:
+        if isinstance(item, bool) or not isinstance(item, int | str):
+            return None
+        try:
+            parsed.append(int(item))
+        except (TypeError, ValueError):
+            return None
+    return list(dict.fromkeys(parsed))
 
 
 def _service_error(error: Exception) -> Response | None:
@@ -109,6 +139,30 @@ def _accessible_project_ids(
     endpoint: OrganizationEndpoint, request: Request, organization: Organization
 ) -> set[int]:
     return {project.id for project in endpoint.get_projects(request, organization)}
+
+
+def _required_investigation_project_ids(investigation: Investigation) -> set[int]:
+    selected = set(investigation.projects.values_list("id", flat=True))
+    if not selected:
+        selected = set(
+            Project.objects.filter(organization=investigation.organization).values_list(
+                "id", flat=True
+            )
+        )
+    visible_execution_ids: set[int] = set()
+    for result_execution_id, content_execution_id in InvestigationCell.objects.filter(
+        investigation=investigation, deleted_at__isnull=True
+    ).values_list("result_execution_id", "content_execution_id"):
+        if result_execution_id is not None:
+            visible_execution_ids.add(result_execution_id)
+        if content_execution_id is not None:
+            visible_execution_ids.add(content_execution_id)
+    represented = set(
+        Project.objects.filter(
+            investigationcellexecutionproject__execution_id__in=visible_execution_ids,
+        ).values_list("id", flat=True)
+    )
+    return selected | represented
 
 
 def _user_id(request: Request) -> int:
@@ -170,6 +224,10 @@ class OrganizationInvestigationBase(OrganizationEndpoint):
             raise ResourceDoesNotExist
         kwargs["investigation"] = investigation
         self.check_object_permissions(request, investigation)
+        if not _required_investigation_project_ids(investigation).issubset(
+            _accessible_project_ids(self, request, organization)
+        ):
+            raise PermissionDenied("You do not have access to every project in this investigation.")
         return args, kwargs
 
 
@@ -217,6 +275,135 @@ class OrganizationInvestigationCommentBase(OrganizationInvestigationBase):
         except (InvestigationCellComment.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
         return args, kwargs
+
+
+@extend_schema(tags=["Investigations"])
+@cell_silo_endpoint
+class OrganizationBreachedMetricInvestigationStatusEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ML_AI
+    permission_classes = (InvestigationPermission,)
+    publish_status = {"POST": ApiPublishStatus.PRIVATE}
+
+    def post(self, request: Request, organization: Organization) -> Response:
+        _require_breached_metric_feature(request, organization)
+        group_ids = _parse_group_ids(request.data.get("groupIds"))
+        if group_ids is None:
+            return Response(
+                {"detail": "groupIds must contain between 1 and 100 issue IDs."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        sources = resolve_breached_metric_sources(
+            organization=organization,
+            group_ids=group_ids,
+            accessible_project_ids=_accessible_project_ids(self, request, organization),
+        )
+        existing = {
+            investigation.source_key: investigation
+            for investigation in Investigation.objects.filter(
+                organization=organization,
+                source_type="breached_metric",
+                source_key__in=[source.source_key for source in sources.values()],
+            )
+        }
+        can_create = request.user.is_authenticated and not request.user.is_sentry_app
+        items: dict[str, dict[str, str]] = {}
+        for group_id in group_ids:
+            source = sources.get(group_id)
+            if source is None:
+                items[str(group_id)] = {"status": "unavailable"}
+                continue
+            investigation = existing.get(source.source_key)
+            if investigation is not None:
+                items[str(group_id)] = {
+                    "status": "view",
+                    "investigationId": str(investigation.uuid),
+                    "openPeriodId": str(source.open_period.id),
+                }
+                continue
+            if not can_create:
+                items[str(group_id)] = {"status": "unavailable"}
+                continue
+            items[str(group_id)] = {
+                "status": "investigate",
+                "openPeriodId": str(source.open_period.id),
+            }
+        return Response({"items": items})
+
+
+@extend_schema(tags=["Investigations"])
+@cell_silo_endpoint
+class OrganizationBreachedMetricInvestigationLaunchEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ML_AI
+    permission_classes = (InvestigationPermission,)
+    publish_status = {"POST": ApiPublishStatus.PRIVATE}
+
+    def post(self, request: Request, organization: Organization) -> Response:
+        user_id = _require_authenticated_user(request)
+        _require_breached_metric_feature(request, organization)
+        group_ids = _parse_group_ids([request.data.get("groupId")])
+        open_period_ids = _parse_group_ids([request.data.get("openPeriodId")])
+        if group_ids is None or open_period_ids is None:
+            return Response(
+                {"detail": "groupId and openPeriodId must be issue IDs."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        group_id = group_ids[0]
+        open_period_id = open_period_ids[0]
+        accessible_project_ids = _accessible_project_ids(self, request, organization)
+        source = resolve_breached_metric_sources(
+            organization=organization,
+            group_ids=[group_id],
+            accessible_project_ids=accessible_project_ids,
+        ).get(group_id)
+        if source is None or source.open_period.id != open_period_id:
+            raise ResourceDoesNotExist
+
+        created = False
+        database = router.db_for_write(Investigation)
+        try:
+            with transaction.atomic(using=database):
+                investigation = Investigation.objects.filter(
+                    organization=organization,
+                    source_type="breached_metric",
+                    source_key=source.source_key,
+                ).first()
+                if investigation is None:
+                    investigation = create_template_investigation(
+                        organization=organization,
+                        user_id=user_id,
+                        template_key="breached_metric",
+                        template_version=1,
+                        source_ref={
+                            "groupId": str(group_id),
+                            "openPeriodId": str(open_period_id),
+                        },
+                        supplied_parameters={},
+                        accessible_project_ids=accessible_project_ids,
+                    )
+                    created = True
+                    schedule_eligible_auto_run_cells(
+                        investigation_id=investigation.id,
+                        user_id=user_id,
+                    )
+        except IntegrityError:
+            investigation = Investigation.objects.get(
+                organization=organization,
+                source_type="breached_metric",
+                source_key=source.source_key,
+            )
+            created = False
+        if created:
+            investigation.refresh_from_db()
+        return Response(
+            serialize_investigation_detail(
+                investigation,
+                user_id=user_id,
+                accessible_project_ids=accessible_project_ids,
+                can_edit=_can_edit(request, organization, investigation),
+                can_manage=_can_manage(request, organization, investigation),
+            ),
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
 
 
 @extend_schema(tags=["Investigations"])
@@ -620,58 +807,13 @@ class OrganizationInvestigationCellExecuteEndpoint(OrganizationInvestigationCell
             raise
 
         if created:
-            snapshot = execution.input_snapshot
-            raw_filters = snapshot.get("filters", {})
-            filters = raw_filters if isinstance(raw_filters, dict) else {}
-            raw_datetime_filter = filters.get("datetime", {})
-            datetime_filter = raw_datetime_filter if isinstance(raw_datetime_filter, dict) else {}
-            payload = {
-                "organization_slug": organization.slug,
-                "prompt": snapshot["prompt"],
-                "parameters": snapshot["parameters"],
-                "context": snapshot["context"],
-                "context_data_project_ids": snapshot["contextDataProjectIds"],
-                "project_ids": snapshot["projectIds"],
-                "project_slugs": snapshot["projectSlugs"],
-                "timezone": "UTC",
-                "environments": filters.get("environments", []),
-                "releases": filters.get("releases", []),
-                "interval": filters.get("interval"),
-                "stats_period": datetime_filter.get("period"),
-                "start": datetime_filter.get("start"),
-                "end": datetime_filter.get("end"),
-                "investigation_id": str(investigation.uuid),
-                "cell_id": str(cell.uuid),
-                "execution_id": str(execution.uuid),
-                "input_fingerprint": execution.input_fingerprint,
-            }
-            if cell.kind == InvestigationCellKind.QUERY and "datasetHint" in snapshot:
-                payload["dataset_hint"] = snapshot["datasetHint"]
-            feature_id = (
-                "investigation_query_cell"
-                if cell.kind == InvestigationCellKind.QUERY
-                else "investigation_text_cell"
-            )
             metric_namespace = (
                 "investigations.query_execution"
                 if cell.kind == InvestigationCellKind.QUERY
                 else "investigations.text_execution"
             )
             try:
-                client.start_feature_run(
-                    feature_id=feature_id,
-                    payload=payload,
-                    title=cell.title or snapshot["prompt"],
-                    flush=True,
-                    extras={
-                        "investigation_id": str(investigation.uuid),
-                        "cell_id": str(cell.uuid),
-                        "execution_id": str(execution.uuid),
-                    },
-                    on_run_created=lambda run: mark_cell_execution_dispatched(
-                        execution, seer_run_id=run.id
-                    ),
-                )
+                start_execution_run(execution, organization, request.user, client=client)
                 metrics.incr(
                     f"{metric_namespace}.started",
                     tags={"executor": execution.executor},
@@ -690,32 +832,143 @@ class OrganizationInvestigationCellExecuteEndpoint(OrganizationInvestigationCell
 
 @extend_schema(tags=["Investigations"])
 @cell_silo_endpoint
-class OrganizationInvestigationCellVisualizationSuggestionEndpoint(
-    OrganizationInvestigationCellBase
-):
-    publish_status = {"POST": ApiPublishStatus.PRIVATE}
+class OrganizationInvestigationCellExecutionEndpoint(OrganizationInvestigationCellBase):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+        "PATCH": ApiPublishStatus.PRIVATE,
+        "DELETE": ApiPublishStatus.PRIVATE,
+    }
 
-    def post(
+    def _execution(
+        self, cell: InvestigationCell, execution_uuid: str
+    ) -> InvestigationCellExecution:
+        try:
+            return InvestigationCellExecution.objects.select_related("seer_run").get(
+                uuid=execution_uuid, cell=cell
+            )
+        except (InvestigationCellExecution.DoesNotExist, ValueError):
+            raise ResourceDoesNotExist
+
+    def get(
         self,
         request: Request,
         organization: Organization,
         investigation: Investigation,
         cell: InvestigationCell,
+        execution_uuid: str,
     ) -> Response:
-        if not _query_execution_enabled(request, organization):
-            raise ResourceDoesNotExist
-        serializer = VisualizationSuggestionSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        values = serializer.validated_data
+        execution = self._execution(cell, execution_uuid)
+        pending = None
+        partial_markdown = None
+        if execution.seer_run and execution.seer_run.seer_run_state_id:
+            state = SeerAgentClient(organization, request.user).get_run(
+                execution.seer_run.seer_run_state_id
+            )
+            synchronize_execution(execution, state)
+            execution.refresh_from_db()
+            pending = state.pending_user_input.dict() if state.pending_user_input else None
+            if cell.kind == InvestigationCellKind.TEXT:
+                partial_markdown = next(
+                    (
+                        block.message.content
+                        for block in reversed(state.blocks)
+                        if block.message.role == "assistant" and block.message.content
+                    ),
+                    None,
+                )
         return Response(
-            suggest_visualization_change(
-                result=values["current_result"],
-                visualization=values["visualization"],
-                requested_change=values["requested_change"],
-                current_intent=values["current_intent"],
+            {
+                "id": str(execution.uuid),
+                "status": execution.status,
+                "blocks": execution.transcript,
+                "transcriptTruncated": execution.transcript_truncated,
+                "pendingUserInput": pending,
+                "partialMarkdown": partial_markdown,
+                "error": execution.error,
+            }
+        )
+
+    def patch(
+        self,
+        request: Request,
+        organization: Organization,
+        investigation: Investigation,
+        cell: InvestigationCell,
+        execution_uuid: str,
+    ) -> Response:
+        execution = self._execution(cell, execution_uuid)
+        if not execution.seer_run or not execution.seer_run.seer_run_state_id:
+            return Response({"detail": "The run has not started."}, status=409)
+        input_id = request.data.get("inputId")
+        if not input_id or "responseData" not in request.data:
+            return Response({"detail": "inputId and responseData are required."}, status=400)
+        response = make_agent_update_request(
+            AgentUpdateRequest(
+                run_id=execution.seer_run.seer_run_state_id,
+                organization_id=organization.id,
+                payload={
+                    "type": "user_input_response",
+                    "input_id": input_id,
+                    "response_data": request.data["responseData"],
+                },
             )
         )
+        if response.status >= 400:
+            return Response({"detail": "Unable to resume the run."}, status=502)
+        InvestigationCellExecution.objects.filter(id=execution.id).update(
+            status=InvestigationCellExecutionStatus.RUNNING
+        )
+        return Response(status=202)
+
+    def delete(
+        self,
+        request: Request,
+        organization: Organization,
+        investigation: Investigation,
+        cell: InvestigationCell,
+        execution_uuid: str,
+    ) -> Response:
+        execution = self._execution(cell, execution_uuid)
+        if not execution.seer_run or not execution.seer_run.seer_run_state_id:
+            return Response(status=204)
+        InvestigationCellExecution.objects.filter(id=execution.id).update(
+            status=InvestigationCellExecutionStatus.STOPPING
+        )
+        interrupt_run(organization, execution.seer_run.seer_run_state_id)
+        InvestigationCellExecution.objects.filter(id=execution.id).update(
+            status=InvestigationCellExecutionStatus.CANCELLED,
+            completed_at=timezone.now(),
+        )
+        return Response(status=202)
+
+
+@extend_schema(tags=["Investigations"])
+@cell_silo_endpoint
+class OrganizationInvestigationTitleGenerationEndpoint(OrganizationInvestigationBase):
+    publish_status = {"GET": ApiPublishStatus.PRIVATE}
+
+    def get(
+        self,
+        request: Request,
+        organization: Organization,
+        investigation: Investigation,
+    ) -> Response:
+        preview = None
+        if investigation.title_seer_run and investigation.title_seer_run.seer_run_state_id:
+            state = SeerAgentClient(organization, request.user).get_run(
+                investigation.title_seer_run.seer_run_state_id
+            )
+            synchronize_title(investigation, state)
+            investigation.refresh_from_db()
+            preview = next(
+                (
+                    block.message.content
+                    for block in reversed(state.blocks)
+                    if block.message.role == "assistant" and block.message.content
+                ),
+                None,
+            )
+        return Response({"status": investigation.title_generation_status, "preview": preview})
 
 
 @extend_schema(tags=["Investigations"])

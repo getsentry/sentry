@@ -210,7 +210,10 @@ describe('NotebookStore', () => {
         index === 0
           ? {
               ...cell,
-              currentExecution: {...cell.currentExecution!, status: 'completed'},
+              currentExecution: {
+                ...cell.currentExecution!,
+                status: 'completed',
+              },
               output: {table: 'result'},
               outputStatus: 'available',
             }
@@ -219,6 +222,15 @@ describe('NotebookStore', () => {
     };
     const {store, transport} = makeStore(running, {
       loadDetail: jest.fn().mockResolvedValueOnce(running).mockResolvedValue(completed),
+      loadCellExecution: jest.fn().mockResolvedValue({
+        id: 'execution-1',
+        status: 'completed',
+        blocks: [],
+        transcriptTruncated: false,
+        pendingUserInput: null,
+        partialMarkdown: null,
+        error: null,
+      }),
     });
 
     await store.load();
@@ -418,7 +430,9 @@ describe('NotebookStore', () => {
 
     store.editParameterValue('threshold', 5);
     await jest.advanceTimersByTimeAsync(600);
-    expect(updateParameters).toHaveBeenCalledWith(detail.version, {threshold: 5});
+    expect(updateParameters).toHaveBeenCalledWith(detail.version, {
+      threshold: 5,
+    });
     expect(store.parameterValues.threshold).toBe(5);
     expect(store.parameterSaveState).toBe('unsaved');
     store.dispose();

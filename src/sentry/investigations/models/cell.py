@@ -25,7 +25,11 @@ class InvestigationCell(RegenerateInvestigationUUIDsOnRelocationMixin, DefaultFi
     """A user-composed cell whose content may be produced by a Seer execution."""
 
     __relocation_scope__ = RelocationScope.Organization
-    __relocation_ignored_foreign_keys__ = {"content_execution", "current_execution"}
+    __relocation_ignored_foreign_keys__ = {
+        "content_execution",
+        "current_execution",
+        "result_execution",
+    }
 
     uuid = models.UUIDField(default=uuid4, editable=False, unique=True)
     investigation = FlexibleForeignKey(
@@ -43,7 +47,7 @@ class InvestigationCell(RegenerateInvestigationUUIDsOnRelocationMixin, DefaultFi
     # future execution can regenerate the cell.
     prompt = models.TextField(default="", blank=True, db_default="")
     # The unedited output of the latest generation. Human edits update content
-    # without erasing the generated source for provenance.
+    # without erasing the generated source.
     generated_content = models.TextField(default="", blank=True, db_default="")
 
     # Kind-specific authoring and rendering settings. Query cells can, for
@@ -64,8 +68,16 @@ class InvestigationCell(RegenerateInvestigationUUIDsOnRelocationMixin, DefaultFi
     )
     # The successful execution that produced the currently rendered text body.
     # This remains stable while a newer generation is pending or fails so the
-    # existing Markdown keeps its original permission provenance.
+    # existing Markdown keeps its original project-access requirements.
     content_execution = FlexibleForeignKey(
+        "investigations.InvestigationCellExecution",
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+    )
+    # The latest successful execution that produced a query result. It remains
+    # stable while a replacement run is pending, stopped, or fails.
+    result_execution = FlexibleForeignKey(
         "investigations.InvestigationCellExecution",
         null=True,
         on_delete=models.SET_NULL,
@@ -97,6 +109,7 @@ class InvestigationCell(RegenerateInvestigationUUIDsOnRelocationMixin, DefaultFi
             # dangling source-database primary key. Execution history is still relocated.
             self.current_execution_id = None
             self.content_execution_id = None
+            self.result_execution_id = None
         return old_pk
 
 

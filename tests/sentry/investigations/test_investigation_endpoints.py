@@ -6,6 +6,9 @@ from unittest import mock
 from django.urls import reverse
 from django.utils import timezone
 
+from sentry.incidents.grouptype import MetricIssue
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.investigations.models import (
     Investigation,
     InvestigationCellComment,
@@ -15,14 +18,20 @@ from sentry.investigations.models import (
     InvestigationFavoriteUser,
     InvestigationSourceType,
 )
+from sentry.investigations.services.auto_run import schedule_eligible_auto_run_cells
 from sentry.investigations.templates.types import InvestigationTemplateSpec, TemplateCellSpec
-from sentry.issues.grouptype import PerformanceP95EndpointRegressionGroupType
+from sentry.models.group import GroupStatus
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.silo.base import SiloMode
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.workflow_engine.models.data_condition import Condition
 
 FEATURE = "organizations:investigations"
+QUERY_EXECUTION_FEATURE = "organizations:investigations-query-execution"
 
 
 class OrganizationInvestigationsFeatureTest(APITestCase):
@@ -46,6 +55,50 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
             "sentry-api-0-organization-investigations",
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
+
+    def create_breached_metric_source(self):
+        group = self.create_group(
+            project=self.project,
+            type=MetricIssue.type_id,
+            message="Checkout error spike",
+        )
+        open_period = GroupOpenPeriod.objects.get(group=group, date_ended__isnull=True)
+        open_period.update(date_started=timezone.now() - timedelta(days=7))
+        query = SnubaQuery.objects.create(
+            type=SnubaQuery.Type.ERROR.value,
+            dataset=Dataset.Events.value,
+            query="is:unresolved",
+            aggregate="count()",
+            time_window=300,
+            resolution=60,
+        )
+        subscription = QuerySubscription.objects.create(
+            project=self.project,
+            snuba_query=query,
+            type="incidents",
+        )
+        data_source = self.create_data_source(
+            organization=self.organization,
+            source_id=str(subscription.id),
+            type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+        )
+        condition_group = self.create_data_condition_group(organization=self.organization)
+        self.create_data_condition(
+            condition_group=condition_group,
+            type=Condition.GREATER,
+            comparison=100,
+            condition_result=2,
+        )
+        detector = self.create_detector(
+            project=self.project,
+            type=MetricIssue.slug,
+            config={"detection_type": AlertRuleDetectionType.STATIC.value},
+            workflow_condition_group=condition_group,
+            name="Checkout errors",
+        )
+        self.create_data_source_detector(data_source=data_source, detector=detector)
+        self.create_detector_group(detector=detector, group=group)
+        return group, open_period, detector, query
 
     def test_create_manual_and_list(self) -> None:
         response = self.client.post(
@@ -198,25 +251,32 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
         )
         assert self.client.get(url).status_code == 404
 
-    def test_create_breached_metric_template(self) -> None:
-        group = self.create_group(
-            project=self.project,
-            type=PerformanceP95EndpointRegressionGroupType.type_id,
-            message="Checkout p95 regression",
+    @with_feature(QUERY_EXECUTION_FEATURE)
+    def test_launch_breached_metric_template(self) -> None:
+        group, open_period, _, _ = self.create_breached_metric_source()
+        unavailable_group = self.create_group(project=self.project)
+        status_url = reverse(
+            "sentry-api-0-organization-breached-metric-investigation-status",
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
-        end = timezone.now()
-        start = end - timedelta(days=7)
+        availability = self.client.post(
+            status_url,
+            data={"groupIds": [str(group.id), str(unavailable_group.id)]},
+            format="json",
+        )
+        assert availability.status_code == 200
+        assert availability.data["items"][str(group.id)] == {
+            "status": "investigate",
+            "openPeriodId": str(open_period.id),
+        }
+        assert availability.data["items"][str(unavailable_group.id)] == {"status": "unavailable"}
+        launch_url = reverse(
+            "sentry-api-0-organization-breached-metric-investigation-launch",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
         response = self.client.post(
-            self.collection_url,
-            data={
-                "templateKey": "breached_metric",
-                "templateVersion": 1,
-                "sourceRef": {"groupId": str(group.id)},
-                "parameters": {
-                    "timeRange": {"start": start.isoformat(), "end": end.isoformat()},
-                    "environments": ["production"],
-                },
-            },
+            launch_url,
+            data={"groupId": str(group.id), "openPeriodId": str(open_period.id)},
             format="json",
         )
         assert response.status_code == 201, response.data
@@ -230,36 +290,109 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
         ]
         cells = response.data["cells"]
         assert cells[0]["dependencies"] == []
-        assert cells[1]["dependencies"] == [cells[0]["id"]]
-        assert cells[2]["dependencies"] == [cells[1]["id"]]
-        assert set(cells[3]["dependencies"]) == {cells[1]["id"], cells[2]["id"]}
-        assert "Checkout p95 regression" in cells[0]["content"]
-        assert "before and after" in cells[1]["generationPrompt"]
-        assert "Explain the most important change" in cells[2]["generationPrompt"]
-        assert "release, environment, and transaction" in cells[3]["generationPrompt"]
-        assert cells[0]["parameterKeys"] == []
-        assert cells[1]["parameterKeys"] == ["timeRange", "environments"]
-        assert cells[2]["parameterKeys"] == ["timeRange", "environments"]
-        assert cells[3]["parameterKeys"] == ["timeRange", "environments"]
-        assert [parameter["key"] for parameter in response.data["parameters"]] == [
-            "timeRange",
-            "environments",
-        ]
-        assert all(cell["outputStatus"] == "notRun" for cell in cells)
-        assert InvestigationCellExecution.objects.count() == 0
+        assert cells[1]["dependencies"] == []
+        assert set(cells[2]["dependencies"]) == {cells[1]["id"], cells[3]["id"]}
+        assert cells[3]["dependencies"] == []
+        assert response.data["title"] == "Untitled investigation"
+        assert response.data["parameters"] == []
+        assert sum(cell["outputStatus"] == "pending" for cell in cells) == 3
+        assert cells[2]["outputStatus"] == "notRun"
+        assert InvestigationCellExecution.objects.count() == 3
+
+        second = self.client.post(
+            launch_url,
+            data={"groupId": str(group.id), "openPeriodId": str(open_period.id)},
+            format="json",
+        )
+        assert second.status_code == 200
+        assert second.data["id"] == response.data["id"]
+        assert Investigation.objects.count() == 1
+
+        investigation = Investigation.objects.get(uuid=response.data["id"])
+        for cell in investigation.cells.filter(kind="query"):
+            execution = cell.current_execution
+            assert execution is not None
+            execution.update(
+                status=InvestigationCellExecutionStatus.COMPLETED,
+                result={
+                    "schemaVersion": 1,
+                    "tableMarkdown": "| count |\n| ---: |\n| 1 |",
+                    "chart": None,
+                    "preferredView": "table",
+                    "isEmpty": False,
+                    "chartUnavailableReason": "No chart",
+                    "queryLinks": [],
+                },
+            )
+            cell.result_execution = execution
+            cell.save(update_fields=["result_execution", "date_updated"])
+        schedule_eligible_auto_run_cells(investigation_id=investigation.id, user_id=self.user.id)
+        synthesis = investigation.cells.get(title="What explains the change")
+        assert synthesis.current_execution is not None
+        assert synthesis.current_execution.status == InvestigationCellExecutionStatus.PENDING
+        assert InvestigationCellExecution.objects.count() == 4
+
+        investigation.status = "archived"
+        investigation.save(update_fields=["status", "date_updated"])
+        availability = self.client.post(
+            status_url, data={"groupIds": [str(group.id)]}, format="json"
+        )
+        assert availability.data["items"][str(group.id)] == {
+            "status": "view",
+            "investigationId": response.data["id"],
+            "openPeriodId": str(open_period.id),
+        }
+
+    @with_feature(QUERY_EXECUTION_FEATURE)
+    def test_launch_rejects_a_stale_open_period(self) -> None:
+        group, open_period, _, _ = self.create_breached_metric_source()
+        response = self.client.post(
+            reverse(
+                "sentry-api-0-organization-breached-metric-investigation-launch",
+                kwargs={"organization_id_or_slug": self.organization.slug},
+            ),
+            data={"groupId": str(group.id), "openPeriodId": str(open_period.id + 1)},
+            format="json",
+        )
+
+        assert response.status_code == 404
+        assert not Investigation.objects.exists()
+
+    @with_feature(QUERY_EXECUTION_FEATURE)
+    def test_status_rejects_dynamic_unsupported_and_resolved_sources(self) -> None:
+        group, _, detector, query = self.create_breached_metric_source()
+        status_url = reverse(
+            "sentry-api-0-organization-breached-metric-investigation-status",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+
+        detector.config = {"detection_type": AlertRuleDetectionType.DYNAMIC.value}
+        detector.save(update_fields=["config", "date_updated"])
+        response = self.client.post(status_url, data={"groupIds": [group.id]}, format="json")
+        assert response.data["items"][str(group.id)] == {"status": "unavailable"}
+
+        detector.config = {"detection_type": AlertRuleDetectionType.STATIC.value}
+        detector.save(update_fields=["config", "date_updated"])
+        query.dataset = Dataset.Sessions.value
+        query.save(update_fields=["dataset"])
+        response = self.client.post(status_url, data={"groupIds": [group.id]}, format="json")
+        assert response.data["items"][str(group.id)] == {"status": "unavailable"}
+
+        query.dataset = Dataset.Events.value
+        query.save(update_fields=["dataset"])
+        group.status = GroupStatus.RESOLVED
+        group.save(update_fields=["status"])
+        response = self.client.post(status_url, data={"groupIds": [group.id]}, format="json")
+        assert response.data["items"][str(group.id)] == {"status": "unavailable"}
 
     def test_template_validation_is_strict_and_atomic(self) -> None:
-        group = self.create_group(
-            project=self.project,
-            type=PerformanceP95EndpointRegressionGroupType.type_id,
-        )
         before = Investigation.objects.count()
         response = self.client.post(
             self.collection_url,
             data={
                 "templateKey": "breached_metric",
                 "templateVersion": 1,
-                "sourceRef": {"groupId": str(group.id)},
+                "sourceRef": {"groupId": "1", "openPeriodId": "1"},
                 "parameters": {"unexpected": True},
             },
             format="json",
@@ -268,38 +401,15 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
         assert "parameters" in response.data
         assert Investigation.objects.count() == before
 
-    def test_unknown_template_version_and_out_of_range_time_are_atomic(self) -> None:
-        group = self.create_group(
-            project=self.project,
-            type=PerformanceP95EndpointRegressionGroupType.type_id,
-        )
+    def test_unknown_template_version_is_atomic(self) -> None:
         before = Investigation.objects.count()
         response = self.client.post(
             self.collection_url,
             data={
                 "templateKey": "breached_metric",
                 "templateVersion": 999,
-                "sourceRef": {"groupId": str(group.id)},
+                "sourceRef": {"groupId": "1", "openPeriodId": "1"},
                 "parameters": {},
-            },
-            format="json",
-        )
-        assert response.status_code == 400
-        assert Investigation.objects.count() == before
-
-        end = timezone.now()
-        response = self.client.post(
-            self.collection_url,
-            data={
-                "templateKey": "breached_metric",
-                "templateVersion": 1,
-                "sourceRef": {"groupId": str(group.id)},
-                "parameters": {
-                    "timeRange": {
-                        "start": (end - timedelta(days=91)).isoformat(),
-                        "end": end.isoformat(),
-                    }
-                },
             },
             format="json",
         )
@@ -337,25 +447,19 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
 
     def test_template_rejects_wrong_issue_category(self) -> None:
         group = self.create_group(project=self.project)
-        end = timezone.now()
         response = self.client.post(
             self.collection_url,
             data={
                 "templateKey": "breached_metric",
                 "templateVersion": 1,
-                "sourceRef": {"groupId": str(group.id)},
-                "parameters": {
-                    "timeRange": {
-                        "start": (end - timedelta(days=1)).isoformat(),
-                        "end": end.isoformat(),
-                    }
-                },
+                "sourceRef": {"groupId": str(group.id), "openPeriodId": "1"},
+                "parameters": {},
             },
             format="json",
         )
-        assert response.status_code == 400
+        assert response.status_code == 404
 
-    def test_detail_returns_persisted_output_and_redacts_by_project(self) -> None:
+    def test_detail_requires_result_project_access_but_list_remains_visible(self) -> None:
         create_response = self.client.post(
             self.collection_url, data={"title": "Output"}, format="json"
         )
@@ -376,7 +480,8 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
             result={"columns": ["count"], "rows": [[42]]},
         )
         cell.current_execution = execution
-        cell.save(update_fields=["current_execution"])
+        cell.result_execution = execution
+        cell.save(update_fields=["current_execution", "result_execution"])
 
         detail_url = reverse(
             "sentry-api-0-organization-investigation-details",
@@ -400,8 +505,11 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
         )
         self.login_as(viewer)
         response = self.client.get(detail_url)
-        assert response.data["cells"][0]["outputStatus"] == "restricted"
-        assert response.data["cells"][0]["output"] is None
+        assert response.status_code == 403
+
+        list_response = self.client.get(self.collection_url)
+        assert list_response.status_code == 200
+        assert str(investigation.uuid) in {item["id"] for item in list_response.data}
 
     def test_dependencies_are_returned_but_not_writable(self) -> None:
         response = self.client.post(

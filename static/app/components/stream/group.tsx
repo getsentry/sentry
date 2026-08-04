@@ -94,6 +94,7 @@ type Props = {
   showLastTriggered?: boolean;
   source?: string;
   statsPeriod?: string;
+  trailingAction?: React.ReactNode;
   useFilteredStats?: boolean;
   useTintRow?: boolean;
   withChart?: boolean;
@@ -381,6 +382,7 @@ export function StreamGroup({
   onPriorityChange,
   onAssigneeChange,
   progressState,
+  trailingAction,
 }: Props) {
   const theme = useTheme();
 
@@ -459,7 +461,7 @@ export function StreamGroup({
     const targetElement = evt.target as Partial<HTMLElement>;
     const tagName = targetElement?.tagName?.toLowerCase();
 
-    const ignoredTags = new Set(['a', 'input', 'label']);
+    const ignoredTags = new Set(['a', 'button', 'input', 'label']);
 
     if (tagName && ignoredTags.has(tagName)) {
       return true;
@@ -922,6 +924,17 @@ export function StreamGroup({
               />
             </Flex>
           )}
+          {trailingAction ? (
+            <Flex
+              align="center"
+              justify="end"
+              paddingRight="xl"
+              position="relative"
+              style={{zIndex: 1}}
+            >
+              {trailingAction}
+            </Flex>
+          ) : null}
         </Fragment>
       )}
     </Wrapper>

@@ -96,6 +96,8 @@ export class NotebookStore {
   cells = new Map<string, CellStore>();
   pendingOperations = new Map<string, NotebookOperation>();
   titleDirty = false;
+  titleGenerationStatus: string | null = null;
+  titleGenerationPreview: string | null = null;
   lastRemoteEventSequence = -1;
 
   private readonly idGenerator: () => string;
@@ -149,12 +151,15 @@ export class NotebookStore {
       cells: observable.shallow,
       pendingOperations: observable.shallow,
       titleDirty: observable,
+      titleGenerationStatus: observable,
+      titleGenerationPreview: observable,
       lastRemoteEventSequence: observable,
       cellsInOrder: computed,
       detail: computed,
       isReadOnly: computed,
       isSaving: computed,
       canExecuteQueries: computed,
+      isTitleGenerating: computed,
       hasPendingExecution: computed,
       load: action,
       retryLoad: action,
@@ -208,6 +213,7 @@ export class NotebookStore {
       permissions: this.permissions,
       version: this.version,
       cells: this.cellsInOrder.map(cell => cell.toInvestigationCell()),
+      titleGeneration: {status: this.titleGenerationStatus},
     };
   }
 
@@ -223,12 +229,20 @@ export class NotebookStore {
     return !this.isReadOnly && this.queryExecutionEnabled;
   }
 
+  get isTitleGenerating(): boolean {
+    return (
+      this.titleGenerationStatus === 'pending' || this.titleGenerationStatus === 'running'
+    );
+  }
+
   createClientId(): string {
     return this.idGenerator();
   }
 
   get hasPendingExecution(): boolean {
-    return this.cellsInOrder.some(cell => cell.isExecutionRunning);
+    return (
+      this.isTitleGenerating || this.cellsInOrder.some(cell => cell.isExecutionRunning)
+    );
   }
 
   async load(): Promise<void> {
@@ -286,6 +300,7 @@ export class NotebookStore {
       this.title = detail.title;
       this.titleDraft = detail.title;
     }
+    this.titleGenerationStatus = detail.titleGeneration?.status ?? null;
     this.status = detail.status;
     this.sourceType = detail.sourceType;
     this.source = detail.source;
@@ -609,20 +624,31 @@ export class NotebookStore {
       this.cancelTitleEdit();
       return Promise.resolve();
     }
+    const previousTitle = this.title;
     this.title = nextTitle;
     this.titleDraft = nextTitle;
     this.titleDirty = true;
     return this.enqueueOperation({
       affectedFields: new Set(['notebook.title']),
       execute: investigationVersion =>
-        this.transport.updateInvestigation({investigationVersion, title: nextTitle}),
-      failurePolicy: 'retain-draft',
+        this.transport.updateInvestigation({
+          investigationVersion,
+          title: nextTitle,
+        }),
+      failurePolicy: 'rollback',
       kind: 'notebook.rename',
       onCommit: detail => {
         if (this.titleDraft === nextTitle) {
           this.titleDirty = false;
         }
         this.applyRemoteSnapshot(detail);
+      },
+      onRollback: () => {
+        if (this.title === nextTitle) {
+          this.title = previousTitle;
+          this.titleDraft = previousTitle;
+          this.titleDirty = false;
+        }
       },
     }).then(() => {});
   }
@@ -848,7 +874,10 @@ export class NotebookStore {
     return this.enqueueOperation({
       affectedFields: new Set(['notebook.status']),
       execute: investigationVersion =>
-        this.transport.updateInvestigation({investigationVersion, status: 'active'}),
+        this.transport.updateInvestigation({
+          investigationVersion,
+          status: 'active',
+        }),
       failurePolicy: 'rollback',
       kind: 'notebook.restore',
       onCommit: detail => this.applyRemoteSnapshot(detail),
@@ -909,7 +938,10 @@ export class NotebookStore {
       kind: 'cell.create',
       onCommit: cell => {
         optimistic.attachServerId(cell.id);
-        optimistic.applyServerSnapshot({...cell, position: optimistic.position});
+        optimistic.applyServerSnapshot({
+          ...cell,
+          position: optimistic.position,
+        });
         this.version += 1;
       },
       onRollback: () => {
@@ -1087,7 +1119,34 @@ export class NotebookStore {
       return;
     }
     this.executionPollTimer = this.timers.setInterval(() => {
-      void this.refreshDetail().catch(() => {});
+      const active = this.cellsInOrder.filter(
+        cell => cell.isExecutionRunning && cell.serverId && cell.currentExecution
+      );
+      void Promise.all(
+        active.map(async cell => {
+          const state = await this.transport.loadCellExecution(
+            cell.serverId!,
+            cell.currentExecution!.id
+          );
+          runInAction(() => cell.applyExecutionState(state));
+          if (['completed', 'failed', 'cancelled'].includes(state.status)) {
+            await this.refreshDetail();
+          }
+        })
+      )
+        .then(async () => {
+          if (this.isTitleGenerating) {
+            const title = await this.transport.loadTitleGeneration();
+            runInAction(() => {
+              this.titleGenerationStatus = title.status;
+              this.titleGenerationPreview = title.preview;
+            });
+            if (title.status !== 'pending' && title.status !== 'running') {
+              await this.refreshDetail();
+            }
+          }
+        })
+        .catch(() => {});
     }, 1500);
   }
 

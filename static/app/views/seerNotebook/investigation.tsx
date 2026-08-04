@@ -23,7 +23,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
-import {css} from '@emotion/react';
+import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {uuid4} from '@sentry/core';
 import {useQueryClient} from '@tanstack/react-query';
@@ -64,6 +64,7 @@ import {
   IconCode,
   IconDelete,
   IconMarkdown,
+  IconPause,
   IconPlay,
   IconSettings,
   IconStar,
@@ -349,14 +350,16 @@ const InvestigationEditor = observer(function InvestigationEditor({
           ) : (
             <NotebookTitleButton
               type="button"
-              disabled={readOnly}
+              disabled={readOnly || store.isTitleGenerating}
               aria-label={t('Edit investigation name')}
               onClick={() => {
                 store.editTitle(detail.title);
                 setIsEditingTitle(true);
               }}
             >
-              {detail.title}
+              {store.isTitleGenerating
+                ? store.titleGenerationPreview || t('Writing title…')
+                : detail.title}
             </NotebookTitleButton>
           )}
           <Flex align="center" gap="sm" wrap="wrap">
@@ -618,6 +621,73 @@ type SortableCellPresentation = {
   isDragActive: boolean;
 };
 
+const CellExecutionControl = observer(function CellExecutionControl({
+  cell,
+  hidden,
+  disabled,
+}: {
+  cell: CellStore;
+  disabled: boolean;
+  hidden: boolean;
+}) {
+  const mode = cell.executionControlMode;
+  const isWorking = mode === 'stop';
+  const isStopping = cell.outputStatus === 'stopping';
+  const isTextCell = cell.kind === 'text';
+
+  const activate = async () => {
+    try {
+      await cell.activateExecutionControl();
+    } catch {
+      addErrorMessage(
+        mode === 'stop'
+          ? isTextCell
+            ? t('The generation could not be stopped.')
+            : t('The query could not be stopped.')
+          : isTextCell
+            ? t('The generation could not be started.')
+            : t('The query could not be started.')
+      );
+    }
+  };
+
+  return (
+    <QueryRunButton
+      $hidden={hidden}
+      $stoppable={isWorking && !isStopping && !cell.isRunRequested}
+      size="xs"
+      variant={mode === 'retry' ? 'primary' : cell.runButtonVariant}
+      icon={isWorking || mode === 'retry' ? undefined : <IconPlay size="xs" />}
+      aria-label={
+        isWorking ? (isTextCell ? t('Stop generation') : t('Stop query')) : undefined
+      }
+      disabled={
+        disabled || cell.isRunRequested || isStopping || (mode !== 'stop' && !cell.canRun)
+      }
+      onClick={() => void activate()}
+    >
+      {isWorking ? (
+        <ExecutionButtonLabels>
+          <WorkingButtonLabel>
+            <LoadingDot aria-hidden="true" />
+            {isStopping ? t('Stopping…') : t('Working')}
+          </WorkingButtonLabel>
+          <StopButtonLabel>
+            <IconPause size="xs" />
+            {t('Stop')}
+          </StopButtonLabel>
+        </ExecutionButtonLabels>
+      ) : mode === 'retry' ? (
+        t('Retry')
+      ) : isTextCell ? (
+        t('Generate')
+      ) : (
+        t('Run')
+      )}
+    </QueryRunButton>
+  );
+});
+
 function SortableCell(props: SortableCellProps) {
   const sortable = useSortable({
     id: props.cell.clientKey,
@@ -673,9 +743,6 @@ function SortableCellContent({
   const suggestionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const previousOutputStatusRef = useRef(cell.outputStatus);
   const queryIntent = cell.queryIntent;
-  const isExecutionRunning = cell.isExecutionRunning;
-  const isRunBusy = cell.isRunRequested || isExecutionRunning;
-  const runVariant = cell.runButtonVariant;
 
   useEffect(() => {
     const previousStatus = previousOutputStatusRef.current;
@@ -712,17 +779,6 @@ function SortableCellContent({
     void cell
       .flush()
       .catch(() => addErrorMessage(t('The cell change could not be saved.')));
-  };
-
-  const runCell = async () => {
-    if (!cell.canRun) {
-      return;
-    }
-    try {
-      await cell.run();
-    } catch {
-      addErrorMessage(t('The query could not be started.'));
-    }
   };
 
   const applySlashCommand = (prefix: string) => {
@@ -922,7 +978,7 @@ function SortableCellContent({
           </Fragment>
         )}
       </CellActionsRail>
-      <CellSurface $kind={cell.kind} $isDragging={sortable.isDragging}>
+      <CellSurface $isDragging={sortable.isDragging}>
         {cell.kind === 'text' ? (
           <Fragment>
             <QueryPromptDisclosure
@@ -934,21 +990,13 @@ function SortableCellContent({
             >
               <Disclosure.Title
                 trailingItems={
-                  <QueryRunButton
-                    $hidden={isDragActive}
-                    size="xs"
-                    variant={runVariant}
-                    icon={<IconPlay size="xs" />}
-                    busy={isRunBusy}
+                  <CellExecutionControl
+                    cell={cell}
+                    hidden={isDragActive}
                     disabled={
-                      isExecutionRunning ||
-                      !draft.generationPrompt.trim() ||
-                      !queryExecutionEnabled
+                      disabled || !draft.generationPrompt.trim() || !queryExecutionEnabled
                     }
-                    onClick={() => void runCell()}
-                  >
-                    {isRunBusy ? t('Running') : t('Generate')}
-                  </QueryRunButton>
+                  />
                 }
               >
                 <QuerySummary size="sm">
@@ -979,7 +1027,6 @@ function SortableCellContent({
                 </QueryEditorWrap>
               </QueryPromptContent>
             </QueryPromptDisclosure>
-            <TextCellExecutionOutput cell={cell} />
             <TextCellBody>
               {isEditingText ? (
                 <TextEditorWrap>
@@ -1084,6 +1131,7 @@ function SortableCellContent({
                 </RenderedMarkdown>
               )}
             </TextCellBody>
+            <TextCellExecutionOutput cell={cell} />
           </Fragment>
         ) : (
           <Fragment>
@@ -1096,19 +1144,11 @@ function SortableCellContent({
             >
               <Disclosure.Title
                 trailingItems={
-                  <QueryRunButton
-                    $hidden={isDragActive}
-                    size="xs"
-                    variant={runVariant}
-                    icon={<IconPlay size="xs" />}
-                    busy={isRunBusy}
-                    disabled={
-                      isExecutionRunning || !queryIntent.trim() || !queryExecutionEnabled
-                    }
-                    onClick={() => void runCell()}
-                  >
-                    {isRunBusy ? t('Running') : t('Run')}
-                  </QueryRunButton>
+                  <CellExecutionControl
+                    cell={cell}
+                    hidden={isDragActive}
+                    disabled={disabled || !queryIntent.trim() || !queryExecutionEnabled}
+                  />
                 }
               >
                 <QuerySummary size="sm">
@@ -1448,22 +1488,17 @@ const CellCard = styled('article')<{
   }
 `;
 
-const CellSurface = styled('div')<{
-  $isDragging: boolean;
-  $kind: InvestigationCellKind;
-}>`
+const CellSurface = styled('div')<{$isDragging: boolean}>`
   position: relative;
-  overflow: ${p => (p.$kind === 'query' ? 'hidden' : 'visible')};
-  border: ${p => {
-    if (p.$kind === 'query') {
-      return `1px solid ${p.theme.tokens.border.primary}`;
-    }
-    return p.$isDragging
-      ? `1px solid ${p.theme.tokens.border.secondary}`
-      : '1px solid transparent';
-  }};
-  border-radius: ${p => (p.$kind === 'query' ? p.theme.radius.md : '0')};
-  background: ${p => p.theme.tokens.background.primary};
+  overflow: hidden;
+  border: 1px solid
+    ${p =>
+      p.$isDragging ? p.theme.tokens.border.secondary : p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+  background: ${p =>
+    p.theme.type === 'dark'
+      ? p.theme.tokens.background.secondary
+      : p.theme.tokens.background.primary};
 `;
 
 const CellDragHandle = styled('div')<{
@@ -1577,12 +1612,65 @@ const ReactionPill = styled('button')<{$reacted: boolean}>`
   }
 `;
 
-const QueryRunButton = styled(Button)<{$hidden: boolean}>`
+const spin = keyframes`
+  to { transform: rotate(360deg); }
+`;
+
+const ExecutionButtonLabels = styled('span')`
+  display: inline-flex;
+  align-items: center;
+`;
+
+const WorkingButtonLabel = styled('span')`
+  display: inline-flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+`;
+
+const StopButtonLabel = styled('span')`
+  display: none;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+`;
+
+const LoadingDot = styled('span')`
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentcolor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: ${spin} 700ms linear infinite;
+`;
+
+const QueryRunButton = styled(Button)<{
+  $hidden: boolean;
+  $stoppable?: boolean;
+}>`
   opacity: ${p => (p.$hidden ? 0 : 1)};
+
+  ${p =>
+    p.$stoppable &&
+    css`
+      &:hover ${WorkingButtonLabel}, &:focus-visible ${WorkingButtonLabel} {
+        display: none;
+      }
+      &:hover ${StopButtonLabel}, &:focus-visible ${StopButtonLabel} {
+        display: inline-flex;
+      }
+    `}
 `;
 
 const QueryPromptDisclosure = styled(Disclosure)`
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
+  padding: 0;
+
+  > div:first-of-type {
+    padding-right: ${p => p.theme.space.sm};
+    border-radius: 0;
+  }
+
+  > div:first-of-type > button:first-of-type {
+    border-radius: 0;
+  }
 `;
 
 const QueryPromptContent = styled(Disclosure.Content)`
@@ -1720,7 +1808,7 @@ const SlashCommandEmpty = styled('div')`
 const InsertDivider = styled('div')`
   position: relative;
   display: flex;
-  height: 36px;
+  height: 22px;
   align-items: center;
   justify-content: center;
 
@@ -1743,10 +1831,18 @@ const InsertDivider = styled('div')`
 
 const InsertButton = styled(Button)`
   z-index: 1;
+  min-width: 20px;
+  height: 20px;
+  padding: 0;
   border-radius: 999px;
   opacity: 0;
   transition: opacity 120ms ease;
   color: ${p => p.theme.tokens.content.accent};
+
+  svg {
+    width: 10px;
+    height: 10px;
+  }
 
   ${InsertDivider}:hover &,
   ${InsertDivider}:focus-within & {
@@ -1757,8 +1853,8 @@ const InsertButton = styled(Button)`
 const InsertPlaceholderButton = styled('button')`
   z-index: 1;
   display: grid;
-  width: 28px;
-  height: 28px;
+  width: 20px;
+  height: 20px;
   place-items: center;
   padding: 0;
   border: 1px solid ${p => p.theme.tokens.border.primary};
@@ -1770,6 +1866,11 @@ const InsertPlaceholderButton = styled('button')`
   transition:
     opacity 120ms ease,
     background 120ms ease;
+
+  svg {
+    width: 10px;
+    height: 10px;
+  }
 
   &:hover,
   &:focus-visible {

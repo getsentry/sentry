@@ -115,8 +115,8 @@ def validate_display(kind: str, display: dict[str, Any]) -> dict[str, Any]:
         raise serializers.ValidationError("Invalid versioned query-cell display.")
     if display_type not in {"table", "line", "bar", "area", "heatmap", "wheel"}:
         raise serializers.ValidationError("Invalid visualization type.")
-    if display.get("defaultView", "table") not in {"table", "chart", "both"}:
-        raise serializers.ValidationError("defaultView must be table, chart, or both.")
+    if display.get("defaultView", "table") not in {"table", "chart"}:
+        raise serializers.ValidationError("defaultView must be table or chart.")
     if "queryCollapsed" in display and not isinstance(display["queryCollapsed"], bool):
         raise serializers.ValidationError("queryCollapsed must be a boolean.")
     if display.get("unit", "number") not in {"number", "percentage", "duration", "bytes"}:
@@ -375,6 +375,7 @@ def serialize_cell(
         comment_count = cell.comments.filter(deleted_at__isnull=True).count()
 
     execution = cell.current_execution
+    result_execution = cell.result_execution
     content_execution = cell.content_execution
     content_restricted = bool(
         cell.kind == InvestigationCellKind.TEXT
@@ -387,19 +388,24 @@ def serialize_cell(
         output = None
         output_status = "notRun"
     else:
-        data_project_ids = {project.id for project in execution.data_projects.all()}
+        visible_execution = (
+            result_execution if cell.kind == InvestigationCellKind.QUERY else execution
+        )
+        data_project_ids = (
+            {project.id for project in visible_execution.data_projects.all()}
+            if visible_execution is not None
+            else set()
+        )
         if not data_project_ids.issubset(accessible_project_ids):
             output = None
             output_status = "restricted"
-        elif execution.status == InvestigationCellExecutionStatus.COMPLETED:
-            output = execution.result
-            output_status = "available"
-        elif execution.status == InvestigationCellExecutionStatus.FAILED:
-            output = None
-            output_status = "failed"
         else:
-            output = None
-            output_status = execution.status
+            output = visible_execution.result if visible_execution is not None else None
+            output_status = (
+                "available"
+                if execution.status == InvestigationCellExecutionStatus.COMPLETED
+                else execution.status
+            )
     if content_restricted:
         output = None
         output_status = "restricted"
@@ -516,7 +522,7 @@ def serialize_investigation_detail(
     permissions, _ = InvestigationPermissions.objects.get_or_create(investigation=investigation)
     cells = (
         InvestigationCell.objects.filter(investigation=investigation, deleted_at__isnull=True)
-        .select_related("content_execution", "current_execution")
+        .select_related("content_execution", "current_execution", "result_execution")
         .annotate(
             active_comment_count=Count(
                 "comments", filter=Q(comments__deleted_at__isnull=True), distinct=True
@@ -544,6 +550,7 @@ def serialize_investigation_detail(
             ),
             "current_execution__data_projects",
             "content_execution__data_projects",
+            "result_execution__data_projects",
         )
         .order_by("position", "id")
     )
@@ -576,6 +583,7 @@ def serialize_investigation_detail(
             serialize_cell(cell, user_id=user_id, accessible_project_ids=accessible_project_ids)
             for cell in cells
         ],
+        "titleGeneration": {"status": investigation.title_generation_status},
     }
 
 

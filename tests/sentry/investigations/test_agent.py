@@ -1,0 +1,400 @@
+from unittest.mock import MagicMock, patch
+
+from sentry.investigations.agent import (
+    sanitize_state,
+    start_execution_run,
+    synchronize_execution,
+    synchronize_title,
+)
+from sentry.investigations.models import InvestigationCellExecutionStatus
+from sentry.seer.agent.client_models import (
+    MemoryBlock,
+    Message,
+    SeerRunState,
+    ToolCall,
+    ToolLink,
+    ToolResult,
+)
+from sentry.seer.models.run import SeerRunType
+from sentry.testutils.cases import TestCase
+from sentry.utils import json
+
+
+def state(*, blocks: list[MemoryBlock], status: str = "completed") -> SeerRunState:
+    return SeerRunState(
+        run_id=42,
+        blocks=blocks,
+        status=status,
+        updated_at="2026-08-03T00:00:00Z",
+    )
+
+
+class InvestigationAgentTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.investigation = self.create_investigation(
+            organization=self.organization,
+            created_by=self.user,
+            title="Already titled",
+        )
+        self.cell = self.create_investigation_cell(
+            investigation=self.investigation,
+            kind="query",
+            prompt="Count errors",
+        )
+        self.run = self.create_seer_run(
+            organization=self.organization,
+            type=SeerRunType.EXPLORER,
+            seer_run_state_id=42,
+        )
+        self.execution = self.create_investigation_cell_execution(
+            cell=self.cell,
+            seer_run=self.run,
+            executor="code_mode",
+            status=InvestigationCellExecutionStatus.RUNNING,
+            cell_version=self.cell.version,
+            input_snapshot={
+                "projectIds": [self.project.id],
+                "projectSlugs": [self.project.slug],
+            },
+        )
+        self.cell.current_execution = self.execution
+        self.cell.save(update_fields=["current_execution"])
+
+    def test_completed_query_keeps_result_and_source_projects(self) -> None:
+        run_state = state(
+            blocks=[
+                MemoryBlock(
+                    id="query",
+                    timestamp="2026-08-03T00:00:00Z",
+                    message=Message(
+                        role="tool_use",
+                        tool_calls=[
+                            ToolCall(
+                                id="call",
+                                function="sentry_api_execute",
+                                args=json.dumps(
+                                    {
+                                        "code": (
+                                            "sentry.telemetry_live_search("
+                                            "'count errors', 'errors', "
+                                            f"project_slugs=['{self.project.slug}'])"
+                                        )
+                                    }
+                                ),
+                            )
+                        ],
+                    ),
+                    tool_results=[
+                        ToolResult(
+                            tool_call_id="call",
+                            tool_call_function="sentry_api_execute",
+                            content=(
+                                '<UNTRUSTED_DATA source="sentry_api" trust="UNTRUSTED">\n'
+                                "{'result': '12 errors', 'link_params': "
+                                "{'dataset': 'errors', 'query': 'is:unresolved', "
+                                f"'project_slugs': ['{self.project.slug}']}}}}\n"
+                                "</UNTRUSTED_DATA>"
+                            ),
+                        )
+                    ],
+                ),
+                MemoryBlock(
+                    id="result",
+                    timestamp="2026-08-03T00:00:00Z",
+                    message=Message(
+                        role="assistant",
+                        content=(
+                            '{"tableMarkdown":"| Errors |\\n| ---: |\\n| 12 |",'
+                            '"chart":null,"preferredView":"table","isEmpty":false,'
+                            '"chartUnavailableReason":"A chart is not useful."}'
+                        ),
+                    ),
+                ),
+            ]
+        )
+
+        synchronize_execution(self.execution, run_state)
+
+        self.execution.refresh_from_db()
+        self.cell.refresh_from_db()
+        assert self.execution.status == InvestigationCellExecutionStatus.COMPLETED
+        assert self.execution.result["tableMarkdown"].startswith("| Errors |")
+        assert self.execution.result["queryLinks"][0]["kind"] == "telemetry"
+        assert list(self.execution.data_projects.all()) == [self.project]
+        assert self.cell.result_execution == self.execution
+
+    def test_start_run_requests_a_final_response_without_an_artifact_writer(self) -> None:
+        client = MagicMock()
+
+        start_execution_run(self.execution, self.organization, self.user, client)
+
+        prompt = client.start_run.call_args.args[0]
+        options = client.start_run.call_args.kwargs
+        assert "write or save the result" in prompt
+        assert "artifact_key" not in options
+        assert "artifact_schema" not in options
+
+    def test_completed_query_accepts_strict_json_final_message(self) -> None:
+        run_state = state(
+            blocks=[
+                MemoryBlock(
+                    id="result",
+                    timestamp="2026-08-03T00:00:00Z",
+                    message=Message(
+                        role="assistant",
+                        content=(
+                            '{"tableMarkdown":"| Errors |\\n| ---: |\\n| 12 |",'
+                            '"chart":null,"preferredView":"table","isEmpty":false,'
+                            '"chartUnavailableReason":"No chart was requested."}'
+                        ),
+                    ),
+                    tool_links=[
+                        ToolLink(
+                            kind="telemetry",
+                            params={
+                                "dataset": "errors",
+                                "query": "is:unresolved",
+                                "project_slugs": [self.project.slug],
+                            },
+                        )
+                    ],
+                )
+            ]
+        )
+
+        synchronize_execution(self.execution, run_state)
+
+        self.execution.refresh_from_db()
+        assert self.execution.status == InvestigationCellExecutionStatus.COMPLETED
+        assert self.execution.result["tableMarkdown"].startswith("| Errors |")
+
+    def test_completed_query_rejects_prose_wrapped_json(self) -> None:
+        run_state = state(
+            blocks=[
+                MemoryBlock(
+                    id="result",
+                    timestamp="2026-08-03T00:00:00Z",
+                    message=Message(
+                        role="assistant",
+                        content=(
+                            "Here is the result:\n"
+                            '{"tableMarkdown":"| Errors |\\n| ---: |\\n| 12 |",'
+                            '"chart":null,"preferredView":"table","isEmpty":false,'
+                            '"chartUnavailableReason":"No chart was requested."}'
+                        ),
+                    ),
+                )
+            ]
+        )
+
+        synchronize_execution(self.execution, run_state)
+
+        self.execution.refresh_from_db()
+        assert self.execution.status == InvestigationCellExecutionStatus.FAILED
+        assert self.execution.error["code"] == "missing_result"
+
+    @patch("sentry.investigations.agent.interrupt_run")
+    def test_unsupported_execute_is_redacted_and_stopped(self, interrupt_run) -> None:
+        run_state = state(
+            status="processing",
+            blocks=[
+                MemoryBlock(
+                    id="unsafe",
+                    timestamp="2026-08-03T00:00:00Z",
+                    message=Message(
+                        role="tool_use",
+                        tool_calls=[
+                            ToolCall(
+                                id="call",
+                                function="sentry_api_execute",
+                                args='{"code":"sentry.get_issue(issue_id=1)"}',
+                            )
+                        ],
+                    ),
+                    tool_results=[
+                        ToolResult(
+                            tool_call_id="call",
+                            tool_call_function="sentry_api_execute",
+                            content="sensitive result",
+                        )
+                    ],
+                )
+            ],
+        )
+
+        blocks, _, off_policy = sanitize_state(run_state)
+        assert off_policy is True
+        assert blocks[0]["toolResults"][0]["content"].startswith("[Result hidden")
+
+        synchronize_execution(self.execution, run_state)
+        self.execution.refresh_from_db()
+        assert self.execution.status == InvestigationCellExecutionStatus.FAILED
+        assert self.execution.error["code"] == "unsupported_tool_use"
+        interrupt_run.assert_called_once()
+
+    def test_text_mode_rejects_and_hides_tool_results(self) -> None:
+        run_state = state(
+            status="processing",
+            blocks=[
+                MemoryBlock(
+                    id="tool",
+                    timestamp="2026-08-03T00:00:00Z",
+                    message=Message(
+                        role="tool_use",
+                        tool_calls=[ToolCall(id="call", function="search_issues", args="{}")],
+                    ),
+                    tool_results=[
+                        ToolResult(
+                            tool_call_id="call",
+                            tool_call_function="search_issues",
+                            content="private issue data",
+                        )
+                    ],
+                )
+            ],
+        )
+
+        blocks, _, off_policy = sanitize_state(run_state, allow_query_tools=False)
+
+        assert off_policy is True
+        assert blocks[0]["toolResults"][0]["content"].startswith("[Result hidden")
+
+    def test_result_writer_is_not_an_allowed_sentry_api(self) -> None:
+        run_state = state(
+            status="processing",
+            blocks=[
+                MemoryBlock(
+                    id="artifact",
+                    timestamp="2026-08-03T00:00:00Z",
+                    message=Message(
+                        role="tool_use",
+                        tool_calls=[
+                            ToolCall(
+                                id="call",
+                                function="sentry_api_execute",
+                                args='{"code":"sentry.write_investigation_query_result()"}',
+                            )
+                        ],
+                    ),
+                )
+            ],
+        )
+
+        blocks, _, off_policy = sanitize_state(run_state)
+
+        assert off_policy is True
+        assert blocks[0]["policyError"] == (
+            "Unsupported Sentry API call: sentry.write_investigation_query_result."
+        )
+
+    def test_sentry_api_alias_is_rejected(self) -> None:
+        run_state = state(
+            status="processing",
+            blocks=[
+                MemoryBlock(
+                    id="alias",
+                    timestamp="2026-08-03T00:00:00Z",
+                    message=Message(
+                        role="tool_use",
+                        tool_calls=[
+                            ToolCall(
+                                id="call",
+                                function="sentry_api_execute",
+                                args='{"code":"client = sentry\\nclient.get_issue(issue_id=1)"}',
+                            )
+                        ],
+                    ),
+                )
+            ],
+        )
+
+        blocks, _, off_policy = sanitize_state(run_state)
+
+        assert off_policy is True
+        assert blocks[0]["policyError"] == (
+            "Dynamic or aliased access to the Sentry API is unsupported."
+        )
+
+    def test_dynamic_import_is_rejected(self) -> None:
+        run_state = state(
+            status="processing",
+            blocks=[
+                MemoryBlock(
+                    id="dynamic-import",
+                    timestamp="2026-08-03T00:00:00Z",
+                    message=Message(
+                        role="tool_use",
+                        tool_calls=[
+                            ToolCall(
+                                id="call",
+                                function="sentry_api_execute",
+                                args='{"code":"client = __import__(\\"sentry\\")"}',
+                            )
+                        ],
+                    ),
+                )
+            ],
+        )
+
+        blocks, _, off_policy = sanitize_state(run_state)
+
+        assert off_policy is True
+        assert blocks[0]["policyError"] == (
+            "The __import__ function is not allowed in an investigation query."
+        )
+
+    def test_telemetry_call_cannot_escape_the_project_scope(self) -> None:
+        run_state = state(
+            status="processing",
+            blocks=[
+                MemoryBlock(
+                    id="other-project",
+                    timestamp="2026-08-03T00:00:00Z",
+                    message=Message(
+                        role="tool_use",
+                        tool_calls=[
+                            ToolCall(
+                                id="call",
+                                function="sentry_api_execute",
+                                args=json.dumps(
+                                    {
+                                        "code": (
+                                            "sentry.telemetry_live_search("
+                                            "'errors', 'errors', project_slugs=['other'])"
+                                        )
+                                    }
+                                ),
+                            )
+                        ],
+                    ),
+                )
+            ],
+        )
+
+        blocks, _, off_policy = sanitize_state(run_state, allowed_project_slugs={self.project.slug})
+
+        assert off_policy is True
+        assert blocks[0]["policyError"] == (
+            "The telemetry call requested a project outside this investigation."
+        )
+
+    def test_title_uses_the_final_assistant_message(self) -> None:
+        self.investigation.title = "Untitled investigation"
+        self.investigation.title_generation_status = "running"
+        self.investigation.save(update_fields=["title", "title_generation_status"])
+        run_state = state(
+            blocks=[
+                MemoryBlock(
+                    id="title",
+                    timestamp="2026-08-03T00:00:00Z",
+                    message=Message(role="assistant", content="Daily error volume by project"),
+                )
+            ]
+        )
+
+        synchronize_title(self.investigation, run_state)
+
+        self.investigation.refresh_from_db()
+        assert self.investigation.title == "Daily error volume by project"
+        assert self.investigation.title_generation_status == "completed"

@@ -20,44 +20,16 @@ function deferred<T>() {
 function queryResult(): InvestigationQueryResult {
   return {
     schemaVersion: 1,
-    query: {
-      dataset: 'errors',
-      query: 'is:unresolved',
-      mode: 'aggregates',
-      fields: [],
-      yAxes: ['count()'],
-      groupBy: [],
-      sort: '',
-      timeRange: {statsPeriod: '24h'},
-      projectIds: [1],
-      projectSlugs: ['frontend'],
-      linkParams: {},
-    },
-    table: {
-      columns: [{key: 'count()', label: 'Errors', type: 'number'}],
-      rows: [[12]],
-      totalRows: 1,
-      returnedRows: 1,
-      truncated: false,
-    },
+    tableMarkdown: '| Errors |\n| ---: |\n| 12 |',
     chart: {
-      xAxis: 'time',
-      truncated: false,
+      x_axis: 'time',
+      visualization: 'area',
       series: [{name: 'count()', data: [{x: '2026-08-03T00:00:00Z', y: 12}]}],
     },
-    suggestedVisualization: {
-      type: 'area',
-      title: 'Errors',
-      xField: 'timestamp',
-      yFields: ['count()'],
-      unit: 'number',
-      stacked: false,
-      showLegend: true,
-      sort: 'none',
-    },
+    preferredView: 'chart',
+    isEmpty: false,
     chartUnavailableReason: null,
-    warnings: [],
-    dataProjectIds: [1],
+    queryLinks: [],
   };
 }
 
@@ -171,7 +143,7 @@ describe('CellStore', () => {
   it('uses the shorter display debounce and computes the execution intent', async () => {
     const {cell, updateCell} = makeStore();
     cell.editGenerationPrompt('Natural-language intent');
-    cell.updateDisplay({...cell.display, defaultView: 'both'});
+    cell.updateDisplay({...cell.display, defaultView: 'chart'});
 
     expect(cell.executionIntent).toBe('Natural-language intent');
     await jest.advanceTimersByTimeAsync(399);
@@ -180,7 +152,7 @@ describe('CellStore', () => {
     expect(updateCell).toHaveBeenCalledWith(
       cell.serverId,
       expect.objectContaining({
-        display: expect.objectContaining({defaultView: 'both'}),
+        display: expect.objectContaining({defaultView: 'chart'}),
         generationPrompt: 'Natural-language intent',
       })
     );
@@ -254,7 +226,7 @@ describe('CellStore', () => {
     expect(cell.output).toEqual({table: 'result'});
   });
 
-  it('owns result views and retains the last valid visualization', () => {
+  it('owns table and chart result views', () => {
     const {cell} = makeStore();
     cell.applyServerSnapshot({
       ...cell.toInvestigationCell(),
@@ -265,46 +237,134 @@ describe('CellStore', () => {
 
     cell.setResultView('chart');
     expect(cell.effectiveView).toBe('chart');
-    expect(cell.chartData).toHaveLength(1);
-
-    const previousDisplay = cell.display;
-    const previousVisualization = cell.visualizationResolution.visualization;
-    cell.applyVisualizationChange({yAxes: ['missing()']});
-
-    expect(cell.visualizationError).toBe('unavailable_y_axis');
-    expect(cell.display).toBe(previousDisplay);
-    expect(cell.visualizationResolution.visualization).toEqual(previousVisualization);
+    cell.setResultView('table');
+    expect(cell.effectiveView).toBe('table');
   });
 
-  it('applies display-only suggestions and defers data-changing suggestions', async () => {
-    const {cell, store} = makeStore();
+  it('owns the preferred-chart fallback state', () => {
+    const {cell} = makeStore();
+    cell.applyServerSnapshot({
+      ...cell.toInvestigationCell(),
+      config: {preferChart: true},
+      output: {
+        ...queryResult(),
+        chart: null,
+        chartUnavailableReason: 'The chart renderer failed.',
+      },
+      outputStatus: 'available',
+    });
+
+    expect(cell.effectiveView).toBe('table');
+    expect(cell.chartFallbackWarning).toBe('The chart renderer failed.');
+  });
+
+  it('persists chart presentation changes without changing data', () => {
+    const {cell} = makeStore();
     const output = queryResult();
     cell.applyServerSnapshot({
       ...cell.toInvestigationCell(),
       output,
       outputStatus: 'available',
     });
-    store.transport.suggestVisualization = jest
-      .fn()
-      .mockResolvedValueOnce({
-        existingResultSufficient: true,
-        visualization: {...output.suggestedVisualization!, type: 'bar'},
-      })
-      .mockResolvedValueOnce({
-        existingResultSufficient: false,
-        revisedQueryIntent: 'Group errors by release',
-        visualization: output.suggestedVisualization!,
-      });
-
-    cell.editVisualizationPrompt('Make it a bar chart');
-    await cell.requestVisualizationSuggestion();
+    cell.applyVisualizationChange({type: 'bar', title: 'Errors by time'});
     expect(cell.display.type).toBe('bar');
-    expect(cell.revisedQueryIntent).toBeNull();
+    expect(cell.display.title).toBe('Errors by time');
+  });
 
-    cell.editVisualizationPrompt('Group it by release');
-    await cell.requestVisualizationSuggestion();
-    expect(cell.revisedQueryIntent).toBe('Group errors by release');
-    expect(store.transport.executeCell).toBeUndefined();
+  it('shows debuggable tool calls but hides internal and stale loading blocks', () => {
+    const {cell} = makeStore();
+    cell.applyExecutionState({
+      id: 'execution-1',
+      status: 'failed',
+      error: {message: 'Unsupported Sentry API call: sentry.get_issue.'},
+      partialMarkdown: null,
+      pendingUserInput: null,
+      transcriptTruncated: false,
+      blocks: [
+        {
+          id: 'prompt',
+          loading: false,
+          message: {role: 'user', content: 'Internal instructions'},
+        },
+        {
+          id: 'tool',
+          loading: false,
+          message: {
+            role: 'tool_use',
+            tool_calls: [
+              {
+                function: 'sentry_api_execute',
+                args: '{"code":"sentry.get_issue(issue_id=1)"}',
+              },
+            ],
+          },
+          policyError: 'Unsupported Sentry API call: sentry.get_issue.',
+          toolResults: [{content: '[Result hidden]'}],
+        },
+        {
+          id: 'loading',
+          loading: true,
+          message: {role: 'assistant', content: 'Thinking...'},
+        },
+      ],
+    });
+
+    expect(cell.activityEntries).toEqual([
+      expect.objectContaining({
+        id: 'tool',
+        policyError: 'Unsupported Sentry API call: sentry.get_issue.',
+        calls: [expect.objectContaining({code: 'sentry.get_issue(issue_id=1)'})],
+      }),
+    ]);
+  });
+
+  it('briefly surfaces new activity before resuming rotating working labels', async () => {
+    const {cell} = makeStore();
+
+    cell.applyExecutionState({
+      id: 'execution-1',
+      status: 'running',
+      error: null,
+      partialMarkdown: null,
+      pendingUserInput: null,
+      transcriptTruncated: false,
+      blocks: [
+        {
+          id: 'tool',
+          loading: false,
+          message: {
+            role: 'tool_use',
+            tool_calls: [
+              {
+                function: 'sentry_api_execute',
+                args: '{"code":"sentry.telemetry_live_search()"}',
+              },
+            ],
+          },
+          toolResults: [{content: 'Searching'}],
+        },
+      ],
+    });
+
+    expect(cell.activityExpanded).toBe(false);
+    expect(cell.executionStatusLabel).toBe('Querying your telemetry');
+
+    await jest.advanceTimersByTimeAsync(3500);
+    expect(cell.executionStatusLabel).toBe('Thinking');
+
+    await jest.advanceTimersByTimeAsync(100);
+    expect(cell.executionStatusLabel).toBe('Investigating');
+
+    cell.applyExecutionState({
+      id: 'execution-1',
+      status: 'failed',
+      error: {message: 'Telemetry failed'},
+      partialMarkdown: null,
+      pendingUserInput: null,
+      transcriptTruncated: false,
+      blocks: [],
+    });
+    expect(cell.executionStatusLabel).toBe('Stopped because of an error');
   });
 
   it('optimistically manages comments while preserving failed composer drafts', async () => {

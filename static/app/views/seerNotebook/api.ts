@@ -1,5 +1,5 @@
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {fetchMutation} from 'sentry/utils/queryClient';
+import {fetchMutation, QUERY_API_CLIENT} from 'sentry/utils/queryClient';
 
 import type {
   InvestigationCell,
@@ -11,10 +11,9 @@ import type {
   InvestigationFilters,
   InvestigationListItem,
   InvestigationPermissions,
-  InvestigationQueryResult,
+  InvestigationExecutionState,
   InvestigationReactionName,
   InvestigationStatus,
-  InvestigationVisualization,
 } from './types';
 
 const COLLECTION_PATH = '/organizations/$organizationIdOrSlug/investigations/' as const;
@@ -215,25 +214,47 @@ export function executeCell(
   });
 }
 
-export function suggestCellVisualization(
+export function loadTitleGeneration(organizationSlug: string, investigationId: string) {
+  return QUERY_API_CLIENT.requestPromise(
+    `/organizations/${organizationSlug}/investigations/${investigationId}/title-generation/`,
+    {method: 'GET'}
+  ) as Promise<{preview: string | null; status: string | null}>;
+}
+
+export function loadCellExecution(
   organizationSlug: string,
   investigationId: string,
   cellId: string,
-  data: {
-    currentIntent: string;
-    currentResult: InvestigationQueryResult;
-    requestedChange: string;
-    visualization: InvestigationVisualization;
-  }
+  executionId: string
 ) {
-  return fetchMutation<{
-    existingResultSufficient: boolean;
-    visualization: InvestigationVisualization;
-    revisedQueryIntent?: string;
-  }>({
-    url: `/organizations/${organizationSlug}/investigations/${investigationId}/cells/${cellId}/visualization-suggestion/`,
-    method: 'POST',
-    data,
+  return QUERY_API_CLIENT.requestPromise(
+    `/organizations/${organizationSlug}/investigations/${investigationId}/cells/${cellId}/executions/${executionId}/`,
+    {method: 'GET'}
+  ) as Promise<InvestigationExecutionState>;
+}
+
+export function respondToCellExecution(
+  organizationSlug: string,
+  investigationId: string,
+  cellId: string,
+  executionId: string,
+  data: {inputId: string; responseData: unknown}
+) {
+  return QUERY_API_CLIENT.requestPromise(
+    `/organizations/${organizationSlug}/investigations/${investigationId}/cells/${cellId}/executions/${executionId}/`,
+    {method: 'PATCH', data}
+  ) as Promise<void>;
+}
+
+export function stopCellExecution(
+  organizationSlug: string,
+  investigationId: string,
+  cellId: string,
+  executionId: string
+) {
+  return fetchMutation<void>({
+    url: `/organizations/${organizationSlug}/investigations/${investigationId}/cells/${cellId}/executions/${executionId}/`,
+    method: 'DELETE',
   });
 }
 

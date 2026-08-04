@@ -30,6 +30,7 @@ type GroupListBodyProps = {
   query: string;
   refetchGroups: () => void;
   selectedProjectIds: number[];
+  renderGroupAction?: (group: Group) => React.ReactNode;
   supergroupLookup?: SupergroupLookup;
   withColumns?: GroupListColumn[];
 };
@@ -41,6 +42,7 @@ type GroupListProps = {
   memberList: IndexedMembersByProject | undefined;
   onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
   query: string;
+  renderGroupAction?: (group: Group) => React.ReactNode;
   supergroupLookup?: SupergroupLookup;
   withColumns?: GroupListColumn[];
 };
@@ -96,6 +98,7 @@ export function GroupListBody({
   onActionTaken,
   supergroupLookup,
   withColumns,
+  renderGroupAction,
 }: GroupListBodyProps) {
   const organization = useOrganization();
   const columns = withColumns ?? DEFAULT_COLUMNS;
@@ -135,6 +138,7 @@ export function GroupListBody({
       onActionTaken={onActionTaken}
       supergroupLookup={supergroupLookup}
       withColumns={columns}
+      renderGroupAction={renderGroupAction}
     />
   );
 }
@@ -179,6 +183,7 @@ function GroupList({
   onActionTaken,
   supergroupLookup,
   withColumns = DEFAULT_COLUMNS,
+  renderGroupAction,
 }: GroupListProps) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -217,6 +222,7 @@ function GroupList({
         onPriorityChange={priority => onActionTaken([id], {priority})}
         withColumns={columns}
         progressState={showProgress ? (group.derivedData?.progress ?? null) : undefined}
+        trailingAction={renderGroupAction?.(group)}
       />
     );
   };

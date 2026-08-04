@@ -195,14 +195,18 @@ describe('SeerInvestigation', () => {
     });
     renderInvestigation(withLegacyQuery);
 
-    const queryEditor = await screen.findByRole('textbox', {name: 'Query cell 1'});
+    const queryEditor = await screen.findByRole('textbox', {
+      name: 'Query cell 1',
+    });
     expect(queryEditor).toHaveValue('Show unresolved errors');
 
     await userEvent.clear(queryEditor);
 
     expect(queryEditor).toHaveValue('');
     expect(screen.getByRole('button', {name: 'Run'})).toBeDisabled();
-    await waitFor(() => expect(updateRequest).toHaveBeenCalled(), {timeout: 2000});
+    await waitFor(() => expect(updateRequest).toHaveBeenCalled(), {
+      timeout: 2000,
+    });
     expect(updateRequest).toHaveBeenLastCalledWith(
       expect.anything(),
       expect.objectContaining({
@@ -271,10 +275,11 @@ describe('SeerInvestigation', () => {
     renderInvestigation(withRunningQuery);
 
     const runningButton = await screen.findByRole('button', {
-      name: 'Running',
+      name: 'Stop query',
     });
-    expect(runningButton).toBeDisabled();
-    expect(runningButton).toHaveAttribute('aria-busy', 'true');
+    expect(runningButton).toBeEnabled();
+    expect(runningButton).toHaveTextContent('Working');
+    expect(await screen.findByText('Thinking')).toBeInTheDocument();
     expect(executeRequest).not.toHaveBeenCalled();
   });
 
@@ -306,11 +311,9 @@ describe('SeerInvestigation', () => {
 
     renderInvestigation(withFailedQuery);
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Query failed');
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      "We couldn't finish this query. Try running it again."
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Stopped because of an error'
     );
-    expect(screen.getByRole('alert')).not.toHaveTextContent('agent_run_errored');
     await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
 
     await waitFor(() => expect(executeRequest).toHaveBeenCalled());
@@ -373,7 +376,10 @@ describe('SeerInvestigation', () => {
       expect.anything(),
       expect.objectContaining({
         data: expect.objectContaining({
-          display: expect.objectContaining({version: 1, queryCollapsed: true}),
+          display: expect.objectContaining({
+            version: 1,
+            queryCollapsed: true,
+          }),
         }),
       })
     );
@@ -388,29 +394,14 @@ describe('SeerInvestigation', () => {
       display: {version: 1, type: 'table', defaultView: 'table'},
       output: {
         schemaVersion: 1,
-        query: {
-          dataset: 'errors',
-          query: 'is:unresolved',
-          mode: 'aggregates',
-          fields: [],
-          yAxes: ['count()'],
-          groupBy: [],
-          sort: '',
-          timeRange: {statsPeriod: '24h'},
-          projectIds: [1],
-          projectSlugs: ['frontend'],
-          linkParams: {},
-        },
-        table: {
-          columns: [{key: 'count()', label: 'Errors', type: 'number'}],
-          rows: [[12]],
-          totalRows: 1,
-          returnedRows: 1,
-          truncated: false,
-        },
+        tableMarkdown: '| Errors |\n| ---: |\n| 12 |',
         chart: {
-          xAxis: 'time',
-          truncated: false,
+          x_axis: 'time',
+          visualization: 'area',
+          title: 'Error volume',
+          y_axis_unit: 'number',
+          stacked: false,
+          show_legend: true,
           series: [
             {
               name: 'count()',
@@ -422,19 +413,15 @@ describe('SeerInvestigation', () => {
             },
           ],
         },
-        suggestedVisualization: {
-          type: 'area',
-          title: 'Error volume',
-          xField: 'timestamp',
-          yFields: ['count()'],
-          unit: 'number',
-          stacked: false,
-          showLegend: true,
-          sort: 'none',
-        },
+        preferredView: 'table',
+        isEmpty: false,
         chartUnavailableReason: null,
-        warnings: [],
-        dataProjectIds: [1],
+        queryLinks: [
+          {
+            kind: 'telemetry',
+            params: {dataset: 'errors', query: 'is:unresolved'},
+          },
+        ],
       },
     });
     const withResult = InvestigationDetailFixture({cells: [queryCell]});
@@ -452,7 +439,7 @@ describe('SeerInvestigation', () => {
         display: {
           version: 1,
           type: 'area',
-          defaultView: 'table',
+          defaultView: 'chart',
           xAxis: 'timestamp',
           yAxes: ['count()'],
           unit: 'number',
@@ -472,32 +459,11 @@ describe('SeerInvestigation', () => {
     expect(
       screen.queryByRole('button', {name: 'Generated query'})
     ).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Query details'}));
-    expect(screen.getByText('is:unresolved')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: '1 underlying queries'}));
+    expect(screen.getByText(/is:unresolved/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Chart'}));
 
     expect(await screen.findByTestId('seer-chart-embed')).toBeInTheDocument();
-    expect(screen.queryByText('Error volume')).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('combobox', {name: 'X-axis field'})
-    ).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Chart settings'}));
-    expect(screen.getByRole('combobox', {name: 'X-axis field'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('combobox', {name: 'Series or color field'})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Y-axis label'})).toBeInTheDocument();
-    expect(
-      screen.queryByRole('textbox', {name: 'Chart subtitle'})
-    ).not.toBeInTheDocument();
-    expect(screen.queryByRole('textbox', {name: 'Chart title'})).not.toBeInTheDocument();
-    expect(screen.getByRole('combobox', {name: 'Series layout'})).toBeInTheDocument();
-    expect(screen.getByRole('spinbutton', {name: 'Top N points'})).toBeInTheDocument();
-
-    await userEvent.selectOptions(
-      screen.getByRole('combobox', {name: 'Chart sort'}),
-      'descending'
-    );
     await waitFor(() => expect(updateRequest).toHaveBeenCalled(), {
       timeout: 2000,
     });
@@ -506,18 +472,14 @@ describe('SeerInvestigation', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           display: expect.objectContaining({
-            sort: 'descending',
-            xAxis: 'timestamp',
-            yAxes: ['count()'],
+            defaultView: 'chart',
           }),
         }),
       })
     );
     expect(executeRequest).not.toHaveBeenCalled();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Close chart settings'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Both'}));
-    expect(screen.getByTestId('seer-chart-embed')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Table'}));
     expect(screen.getByText('Errors')).toBeInTheDocument();
     await waitFor(() => expect(updateRequest).toHaveBeenCalledTimes(2), {
       timeout: 2000,
@@ -526,7 +488,7 @@ describe('SeerInvestigation', () => {
       expect.anything(),
       expect.objectContaining({
         data: expect.objectContaining({
-          display: expect.objectContaining({defaultView: 'both'}),
+          display: expect.objectContaining({defaultView: 'table'}),
         }),
       })
     );
@@ -541,31 +503,12 @@ describe('SeerInvestigation', () => {
       display: {version: 1, type: 'table', defaultView: 'table'},
       output: {
         schemaVersion: 1,
-        query: {
-          dataset: 'errors',
-          query: 'release:does-not-exist',
-          mode: 'samples',
-          fields: [],
-          yAxes: [],
-          groupBy: [],
-          sort: '',
-          timeRange: {statsPeriod: '24h'},
-          projectIds: [1],
-          projectSlugs: ['frontend'],
-          linkParams: {},
-        },
-        table: {
-          columns: [],
-          rows: [],
-          totalRows: 0,
-          returnedRows: 0,
-          truncated: false,
-        },
+        tableMarkdown: '| Result |\n| --- |',
         chart: null,
-        suggestedVisualization: null,
+        preferredView: 'table',
+        isEmpty: true,
         chartUnavailableReason: 'No meaningful chart data was returned.',
-        warnings: [],
-        dataProjectIds: [1],
+        queryLinks: [],
       },
     });
 
@@ -762,10 +705,11 @@ describe('SeerInvestigation', () => {
     });
     renderInvestigation(InvestigationDetailFixture({cells: [textCell]}));
 
-    const runningButton = await screen.findByRole('button', {name: 'Running'});
-    expect(runningButton).toBeDisabled();
-    expect(runningButton).toHaveAttribute('aria-busy', 'true');
-    expect(screen.getByText('Writing Markdown…')).toBeInTheDocument();
+    const stopButton = await screen.findByRole('button', {
+      name: 'Stop generation',
+    });
+    expect(stopButton).toBeEnabled();
+    expect(screen.getByText('Thinking')).toBeInTheDocument();
     expect(screen.getByText('Previous summary')).toBeInTheDocument();
   });
 
