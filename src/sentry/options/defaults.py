@@ -854,6 +854,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "snuba.search.recommended.severity-aggregate",
+    type=String,
+    default="max",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "snuba.search.recommended.user-impact-weight",
     default=0.05,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
