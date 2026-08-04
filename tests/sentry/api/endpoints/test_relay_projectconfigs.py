@@ -198,7 +198,7 @@ def test_parse_retentions(call_endpoint, default_project):
         assert safe.get_path(cfg, "config", "retentions") == {
             "span": {"standard": 12, "downsampled": 22},
             "log": {"standard": 13, "downsampled": 23},
-            "traceMetric": {"standard": 15, "downsampled": 25},
+            "traceMetric": {"standard": 14, "downsampled": 24},
         }
 
 
