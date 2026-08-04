@@ -591,12 +591,16 @@ describe('Onboarding', () => {
       );
     }
 
-    it('navigates from welcome to scm-connect', async () => {
-      const {router} = renderOnboarding('welcome');
+    it('reports four total steps for the control flow', () => {
+      renderOnboarding('welcome');
 
       expect(
         screen.getByRole('progressbar', {name: 'Onboarding progress'})
       ).toHaveAttribute('aria-valuemax', '4');
+    });
+
+    it('navigates from welcome to scm-connect', async () => {
+      const {router} = renderOnboarding('welcome');
 
       await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
 
@@ -845,6 +849,31 @@ describe('Onboarding', () => {
       });
     });
 
+    it('reports five total steps for the treatment flow', () => {
+      const treatmentOrganization = OrganizationFixture({
+        features: ['onboarding-scm-experiment', 'onboarding-scm-messaging-experiment'],
+      });
+
+      render(
+        <OnboardingContextProvider initialValue={{selectedPlatform: nextJsPlatform}}>
+          <OnboardingWithoutContext />
+        </OnboardingContextProvider>,
+        {
+          organization: treatmentOrganization,
+          initialRouterConfig: {
+            location: {
+              pathname: `/onboarding/${treatmentOrganization.slug}/scm-messaging/`,
+            },
+            route: '/onboarding/:orgId/:step/',
+          },
+        }
+      );
+
+      expect(
+        screen.getByRole('progressbar', {name: 'Onboarding progress'})
+      ).toHaveAttribute('aria-valuemax', '5');
+    });
+
     it('adds the messaging route for treatment without creating a project', async () => {
       ProjectsStore.loadInitialData([]);
       const treatmentOrganization = OrganizationFixture({
@@ -884,9 +913,6 @@ describe('Onboarding', () => {
         }
       );
 
-      expect(
-        screen.getByRole('progressbar', {name: 'Onboarding progress'})
-      ).toHaveAttribute('aria-valuemax', '5');
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
       expect(
