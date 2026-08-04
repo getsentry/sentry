@@ -18,7 +18,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.issues.formatting.formatter import Format
 from sentry.issues.formatting.limits import LIMITS_LOW
-from sentry.issues.formatting.sections import format_issue
+from sentry.issues.formatting.sections import EVENT_SECTIONS_WITH_USER, format_issue
 
 if TYPE_CHECKING:
     # for typing, treat the super() chain as an Endpoint; runtime uses the real base via MRO
@@ -77,5 +77,8 @@ def format_event_response(data: Mapping[str, Any], fmt: Format) -> str:
     context (Copy to Markdown, the MCP), and these caps are what the copy-markdown builder
     already applies client-side. Callers that want the default profile use ``format_issue``
     directly, as the Seer RPC does.
+
+    Opts into the user identifiers the default section list holds back: this response already
+    carries ``user`` in full, so rendering it adds nothing the caller can't already read.
     """
-    return format_issue(data, format=fmt, limits=LIMITS_LOW)
+    return format_issue(data, format=fmt, sections=EVENT_SECTIONS_WITH_USER, limits=LIMITS_LOW)
