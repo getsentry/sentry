@@ -4,7 +4,7 @@
  * `<tool_call>`): the former should render as highlighted code, the latter as
  * collapsible sections.
  */
-export const HTML_TAG_NAMES: ReadonlySet<string> = new Set([
+const HTML_TAG_NAMES: ReadonlySet<string> = new Set([
   // Document / sections
   'html',
   'head',
