@@ -122,7 +122,6 @@ export function IssuePreviewAutofixSummary({runState}: IssuePreviewAutofixSummar
                         repoName={repoName}
                         showBorder
                         collapsible
-                        defaultExpanded
                       />
                     ))}
                   </Stack>
