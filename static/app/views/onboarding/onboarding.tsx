@@ -457,7 +457,9 @@ export function OnboardingWithoutContext() {
   // Redirect to the first step if we end up in an invalid state
   const isInvalidDocsStep = stepId === OnboardingStepId.SETUP_DOCS && !projectSlug;
   const isInvalidMessagingStep =
-    stepId === OnboardingStepId.SCM_MESSAGING && !onboardingContext.selectedPlatform;
+    hasScmMessaging &&
+    stepId === OnboardingStepId.SCM_MESSAGING &&
+    !onboardingContext.selectedPlatform;
   if (!stepObj || stepIndex === -1 || isInvalidDocsStep || isInvalidMessagingStep) {
     const fallbackStep = isInvalidMessagingStep
       ? OnboardingStepId.SCM_PLATFORM_FEATURES
