@@ -1,0 +1,97 @@
+---
+title: ToolCall
+description: A single agent tool call — a quiet read or an expanded query.
+category: chat
+source: '@sentry/scraps/chat'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/chat/toolCall.tsx
+---
+
+import {ToolCall} from '@sentry/scraps/chat';
+import {Container} from '@sentry/scraps/layout';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/chat/toolCall');
+
+The `ToolCall` renders a single step an agent took, within a `ThinkingBlock`. A
+leading glyph communicates lifecycle `status` (a spinner while running, a
+semantic icon once settled — see `ToolCallIndicator`).
+
+## Anatomy
+
+A tool call collapses to a single title line, with an optional trailing
+`reference` chip pointing at the entity the call acted on.
+
+<Storybook.Demo align="stretch">
+  <Container width="100%" background="secondary" radius="md" padding="lg">
+    <ToolCall
+      title="Read trace waterfall"
+      status="success"
+      reference={{label: 'Trace', value: 'a3805648'}}
+    />
+    <ToolCall
+      title="Read trace with span details"
+      status="success"
+      reference={{label: 'Span', value: 'a469c305'}}
+    />
+  </Container>
+</Storybook.Demo>
+
+```jsx
+<ToolCall
+  title="Read trace waterfall"
+  status="success"
+  reference={{label: 'Trace', value: 'a3805648'}}
+/>
+```
+
+## Output
+
+When a call produces a primary result, pass `output` to surface it as a chip
+under an `Output:` label.
+
+<Storybook.Demo align="stretch">
+  <Container width="100%" background="secondary" radius="md" padding="lg">
+    <ToolCall
+      title="Query spans"
+      status="success"
+      output={{label: 'Trace', value: 'a3805648'}}
+    />
+  </Container>
+</Storybook.Demo>
+
+```jsx
+<ToolCall
+  title="Query spans"
+  status="success"
+  output={{label: 'Trace', value: 'a3805648'}}
+/>
+```
+
+## Status
+
+The leading glyph reflects the call's lifecycle.
+
+<Storybook.Demo align="stretch">
+  <Container width="100%" background="secondary" radius="md" padding="lg">
+    <ToolCall title="Running query" status="loading" />
+    <ToolCall title="Awaiting approval" status="pending" />
+    <ToolCall title="Query succeeded" status="success" />
+    <ToolCall title="Query failed" status="failure" />
+  </Container>
+</Storybook.Demo>
+
+## Notifications
+
+Pass `notifications` to surface short status lines beneath a call.
+
+<Storybook.Demo align="stretch">
+  <Container width="100%" background="secondary" radius="md" padding="lg">
+    <ToolCall
+      title="Query spans"
+      status="success"
+      notifications={['Truncated to 100 rows']}
+    />
+  </Container>
+</Storybook.Demo>
