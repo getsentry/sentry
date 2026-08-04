@@ -12,7 +12,11 @@ import {
 } from 'sentry/data/debugFileSources';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
+import type {CustomRepoFormData, CustomRepoHttp} from 'sentry/types/debugFiles';
+import {CustomRepoType} from 'sentry/types/debugFiles';
 import {uniqueId} from 'sentry/utils/guid';
+
+type SubmitData = Extract<CustomRepoFormData, {type: CustomRepoType.HTTP}>;
 
 const LAYOUT_OPTIONS = Object.entries(DEBUG_SOURCE_LAYOUTS).map(([value, label]) => ({
   value,
@@ -23,34 +27,6 @@ const CASING_OPTIONS = Object.entries(DEBUG_SOURCE_CASINGS).map(([value, label])
   value,
   label,
 }));
-
-type InitialData = {
-  id: string;
-  layout: {
-    casing: keyof typeof DEBUG_SOURCE_CASINGS;
-    type: keyof typeof DEBUG_SOURCE_LAYOUTS;
-  };
-  name: string;
-  url: string;
-  password?: {
-    'hidden-secret': boolean;
-  };
-  username?: string;
-};
-
-type SubmitData = {
-  id: string;
-  ['layout.casing']: keyof typeof DEBUG_SOURCE_CASINGS;
-  ['layout.type']: keyof typeof DEBUG_SOURCE_LAYOUTS;
-  name: string;
-  url: string;
-  password?:
-    | {
-        'hidden-secret': boolean;
-      }
-    | string;
-  username?: string;
-};
 
 const schema = z.object({
   id: z.string(),
@@ -64,8 +40,8 @@ const schema = z.object({
 });
 
 type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'> & {
-  onSubmit: (data: SubmitData) => void;
-  initialData?: InitialData;
+  onSubmit: (data: SubmitData) => Promise<void>;
+  initialData?: CustomRepoHttp;
 };
 
 export function Http({Header, Body, Footer, onSubmit, initialData}: Props) {
@@ -88,18 +64,20 @@ export function Http({Header, Body, Footer, onSubmit, initialData}: Props) {
     defaultValues,
     validators: {onDynamic: schema},
     onSubmit: ({value}) => {
-      onSubmit({
-        id: value.id,
-        name: value.name,
-        url: value.url,
-        username: value.username,
-        'layout.type': value.layoutType as keyof typeof DEBUG_SOURCE_LAYOUTS,
-        'layout.casing': value.layoutCasing as keyof typeof DEBUG_SOURCE_CASINGS,
+      const parsedValue = schema.parse(value);
+      return onSubmit({
+        id: parsedValue.id,
+        name: parsedValue.name,
+        url: parsedValue.url,
+        username: parsedValue.username,
+        type: CustomRepoType.HTTP,
+        'layout.type': parsedValue.layoutType,
+        'layout.casing': parsedValue.layoutCasing,
         password:
-          value.password === undefined
+          parsedValue.password === undefined
             ? {'hidden-secret': true}
-            : value.password
-              ? value.password
+            : parsedValue.password
+              ? parsedValue.password
               : undefined,
       });
     },
@@ -219,7 +197,13 @@ export function Http({Header, Body, Footer, onSubmit, initialData}: Props) {
         </Stack>
       </Body>
       <Footer>
-        <form.SubmitButton>{t('Save changes')}</form.SubmitButton>
+        <form.Subscribe selector={state => state.isPristine}>
+          {isPristine => (
+            <form.SubmitButton disabled={isPristine}>
+              {t('Save changes')}
+            </form.SubmitButton>
+          )}
+        </form.Subscribe>
       </Footer>
     </form.AppForm>
   );

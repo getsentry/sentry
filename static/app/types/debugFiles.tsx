@@ -46,32 +46,46 @@ export type CustomRepoHttp = {
   id: string;
   layout: {casing: string; type: string};
   name: string;
-  password: Secret;
   type: CustomRepoType.HTTP;
   url: string;
-  username: string;
+  password?: Secret;
+  username?: string;
 };
 
-type CustomRepoS3 = {
+export type CustomRepoS3 = {
   access_key: string;
   bucket: string;
   id: string;
   layout: {casing: string; type: string};
   name: string;
   region: string;
-  secret_key: Secret;
   type: CustomRepoType.S3;
+  prefix?: string;
+  secret_key?: Secret;
 };
 
-type CustomRepoGCS = {
+export type CustomRepoGCS = {
   bucket: string;
   client_email: string;
   id: string;
   layout: {casing: string; type: string};
   name: string;
-  prefix: string;
-  private_key: Secret;
   type: CustomRepoType.GCS;
+  prefix?: string;
+  private_key?: Secret;
 };
 
 export type CustomRepo = CustomRepoHttp | CustomRepoS3 | CustomRepoGCS;
+
+type FlattenedLayout = {
+  'layout.casing': string;
+  'layout.type': string;
+};
+
+export type CustomRepoFormData =
+  | (Omit<CustomRepoHttp, 'layout' | 'password'> &
+      FlattenedLayout & {password?: Secret | string})
+  | (Omit<CustomRepoS3, 'layout' | 'secret_key'> &
+      FlattenedLayout & {secret_key?: Secret | string})
+  | (Omit<CustomRepoGCS, 'layout' | 'private_key'> &
+      FlattenedLayout & {private_key?: Secret | string});

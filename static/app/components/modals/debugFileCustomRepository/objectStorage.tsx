@@ -13,8 +13,16 @@ import {
   getDebugSourceName,
 } from 'sentry/data/debugFileSources';
 import {t, tct} from 'sentry/locale';
+import type {
+  CustomRepoFormData,
+  CustomRepoGCS,
+  CustomRepoS3,
+} from 'sentry/types/debugFiles';
 import {CustomRepoType} from 'sentry/types/debugFiles';
 import {uniqueId} from 'sentry/utils/guid';
+
+type S3SubmitData = Extract<CustomRepoFormData, {type: CustomRepoType.S3}>;
+type GcsSubmitData = Extract<CustomRepoFormData, {type: CustomRepoType.GCS}>;
 
 const LAYOUT_OPTIONS = Object.entries(DEBUG_SOURCE_LAYOUTS).map(([value, label]) => ({
   value,
@@ -26,18 +34,27 @@ const CASING_OPTIONS = Object.entries(DEBUG_SOURCE_CASINGS).map(([value, label])
   label,
 }));
 
-const REGION_OPTIONS = AWS_REGIONS.map(([value, label]) => ({
-  value: value as string,
-  label: (
-    <span key={value}>
-      <code>{value}</code> {label}
-    </span>
-  ),
-}));
+const REGION_OPTIONS: Array<{label: React.ReactNode; value: string}> = AWS_REGIONS.map(
+  ([value, label]) => ({
+    value,
+    label: (
+      <Text as="span" key={value}>
+        <code>{value}</code> {label}
+      </Text>
+    ),
+  })
+);
 
-type CommonProps = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'> & {
-  onSubmit: (data: Record<string, any>) => void;
-  sourceConfig?: Record<string, any>;
+type ModalProps = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'>;
+
+type S3Props = ModalProps & {
+  onSubmit: (data: S3SubmitData) => Promise<void>;
+  sourceConfig?: CustomRepoS3;
+};
+
+type GcsProps = ModalProps & {
+  onSubmit: (data: GcsSubmitData) => Promise<void>;
+  sourceConfig?: CustomRepoGCS;
 };
 
 function Title({type, isEditing}: {isEditing: boolean; type: CustomRepoType}) {
@@ -47,25 +64,9 @@ function Title({type, isEditing}: {isEditing: boolean; type: CustomRepoType}) {
     : tct('Add [name] Repository', {name});
 }
 
-export function S3Repository({
-  Header,
-  Body,
-  Footer,
-  onSubmit,
-  sourceConfig,
-}: CommonProps) {
-  const {
-    secret_key,
-    layout,
-    name,
-    bucket,
-    region,
-    access_key,
-    prefix,
-    id,
-    type: _type,
-    ...extraConfig
-  } = sourceConfig ?? {};
+export function S3Repository({Header, Body, Footer, onSubmit, sourceConfig}: S3Props) {
+  const {secret_key, layout, name, bucket, region, access_key, prefix, id} =
+    sourceConfig ?? {};
 
   // A stored secret is returned as `{'hidden-secret': true}`; when present the
   // field is optional (leaving it blank keeps the stored secret).
@@ -105,23 +106,24 @@ export function S3Repository({
     defaultValues,
     validators: {onDynamic: schema},
     onSubmit: ({value}) => {
-      const data: Record<string, any> = {
-        ...extraConfig,
-        id: value.id,
-        name: value.name,
-        bucket: value.bucket,
-        region: value.region,
-        access_key: value.access_key,
-        'layout.type': value.layoutType,
-        'layout.casing': value.layoutCasing,
+      const parsedValue = schema.parse(value);
+      const data: S3SubmitData = {
+        id: parsedValue.id,
+        name: parsedValue.name,
+        bucket: parsedValue.bucket,
+        region: parsedValue.region,
+        access_key: parsedValue.access_key,
+        type: CustomRepoType.S3,
+        'layout.type': parsedValue.layoutType,
+        'layout.casing': parsedValue.layoutCasing,
+        ...(parsedValue.prefix ? {prefix: parsedValue.prefix} : {}),
+        ...(parsedValue.secret_key
+          ? {secret_key: parsedValue.secret_key}
+          : secretAlreadySet
+            ? {secret_key: {'hidden-secret': true}}
+            : {}),
       };
-      if (value.prefix) {
-        data.prefix = value.prefix;
-      }
-      if (value.secret_key) {
-        data.secret_key = value.secret_key;
-      }
-      onSubmit(data);
+      return onSubmit(data);
     },
   });
 
@@ -268,30 +270,21 @@ export function S3Repository({
         </Stack>
       </Body>
       <Footer>
-        <form.SubmitButton>{t('Save changes')}</form.SubmitButton>
+        <form.Subscribe selector={state => state.isPristine}>
+          {isPristine => (
+            <form.SubmitButton disabled={isPristine}>
+              {t('Save changes')}
+            </form.SubmitButton>
+          )}
+        </form.Subscribe>
       </Footer>
     </form.AppForm>
   );
 }
 
-export function GcsRepository({
-  Header,
-  Body,
-  Footer,
-  onSubmit,
-  sourceConfig,
-}: CommonProps) {
-  const {
-    private_key,
-    layout,
-    name,
-    bucket,
-    client_email,
-    prefix,
-    id,
-    type: _type,
-    ...extraConfig
-  } = sourceConfig ?? {};
+export function GcsRepository({Header, Body, Footer, onSubmit, sourceConfig}: GcsProps) {
+  const {private_key, layout, name, bucket, client_email, prefix, id} =
+    sourceConfig ?? {};
 
   const privateKeyAlreadySet = typeof private_key === 'object';
 
@@ -299,7 +292,10 @@ export function GcsRepository({
     id: z.string(),
     name: z.string().min(1, t('Name is required')),
     bucket: z.string().min(1, t('Bucket is required')),
-    client_email: z.string().min(1, t('Client Email is required')),
+    client_email: z
+      .string()
+      .min(1, t('Client Email is required'))
+      .pipe(z.email(t('Enter a valid email address'))),
     private_key: privateKeyAlreadySet
       ? z.string()
       : z.string().min(1, t('Private Key is required')),
@@ -324,22 +320,23 @@ export function GcsRepository({
     defaultValues,
     validators: {onDynamic: schema},
     onSubmit: ({value}) => {
-      const data: Record<string, any> = {
-        ...extraConfig,
-        id: value.id,
-        name: value.name,
-        bucket: value.bucket,
-        client_email: value.client_email,
-        'layout.type': value.layoutType,
-        'layout.casing': value.layoutCasing,
+      const parsedValue = schema.parse(value);
+      const data: GcsSubmitData = {
+        id: parsedValue.id,
+        name: parsedValue.name,
+        bucket: parsedValue.bucket,
+        client_email: parsedValue.client_email,
+        type: CustomRepoType.GCS,
+        'layout.type': parsedValue.layoutType,
+        'layout.casing': parsedValue.layoutCasing,
+        ...(parsedValue.prefix ? {prefix: parsedValue.prefix} : {}),
+        ...(parsedValue.private_key
+          ? {private_key: parsedValue.private_key}
+          : privateKeyAlreadySet
+            ? {private_key: {'hidden-secret': true}}
+            : {}),
       };
-      if (value.prefix) {
-        data.prefix = value.prefix;
-      }
-      if (value.private_key) {
-        data.private_key = value.private_key;
-      }
-      onSubmit(data);
+      return onSubmit(data);
     },
   });
 
@@ -478,7 +475,13 @@ export function GcsRepository({
         </Stack>
       </Body>
       <Footer>
-        <form.SubmitButton>{t('Save changes')}</form.SubmitButton>
+        <form.Subscribe selector={state => state.isPristine}>
+          {isPristine => (
+            <form.SubmitButton disabled={isPristine}>
+              {t('Save changes')}
+            </form.SubmitButton>
+          )}
+        </form.Subscribe>
       </Footer>
     </form.AppForm>
   );

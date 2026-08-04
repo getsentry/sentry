@@ -15,7 +15,11 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
+import type {
+  CustomRepo,
+  CustomRepoFormData,
+  CustomRepoType,
+} from 'sentry/types/debugFiles';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
@@ -42,6 +46,8 @@ export function CustomRepositories({
   const navigate = useNavigate();
   const orgSlug = organization.slug;
 
+  type RepositoryConfig = CustomRepo | CustomRepoFormData;
+
   const persistData = useCallback(
     ({
       updatedItems,
@@ -51,8 +57,8 @@ export function CustomRepositories({
     }: {
       index?: number;
       refresh?: boolean;
-      updatedItem?: CustomRepo;
-      updatedItems?: CustomRepo[];
+      updatedItem?: RepositoryConfig;
+      updatedItems?: RepositoryConfig[];
     }) => {
       let items = updatedItems ?? [];
 
@@ -125,8 +131,7 @@ export function CustomRepositories({
       organization,
       sourceConfig: item,
       sourceType: item.type,
-      onSave: updatedItem =>
-        persistData({updatedItem: updatedItem as CustomRepo, index: itemIndex}),
+      onSave: updatedItem => persistData({updatedItem, index: itemIndex}),
       onClose: handleCloseModal,
     });
   }, [handleCloseModal, location.query, organization, persistData, repositories]);
@@ -139,8 +144,7 @@ export function CustomRepositories({
     openDebugFileSourceModal({
       organization,
       sourceType: repoType,
-      onSave: updatedData =>
-        persistData({updatedItems: [...repositories, updatedData] as CustomRepo[]}),
+      onSave: updatedData => persistData({updatedItems: [...repositories, updatedData]}),
     });
   }
 
