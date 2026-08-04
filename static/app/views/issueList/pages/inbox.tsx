@@ -49,7 +49,8 @@ const INBOX_DEFAULT_SIZE = 480;
 const INBOX_MIN_SIZE = 320;
 const INBOX_MAX_SIZE = 640;
 type AssignmentFilter = (typeof ASSIGNMENT_FILTERS)[number];
-export const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
+
+const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
   me: ' assigned:me',
   my_teams: ' assigned:[me,my_teams]',
   all: '',
@@ -70,7 +71,7 @@ interface InboxSectionConfig {
   hidden?: (context: InboxSectionContext) => boolean;
 }
 
-export const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
+const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
   {
     key: 'fix-proposed',
     label: t('Fix Proposed'),

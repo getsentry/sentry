@@ -35,7 +35,7 @@ describe('IssuesSecondaryNavigation', () => {
 
   it('shows the inbox count for every progress section and the user and their teams', async () => {
     const request = mockInboxCount({
-      'issue.progress:[fix_proposed, diagnosed, assigned, identified, fix_applied] is:unresolved assigned:[me,my_teams]': 12,
+      'is:unresolved issue.progress:[fix_proposed,diagnosed,assigned] assignee:[me,my_teams]': 12,
     });
 
     renderNavigation();
@@ -49,15 +49,13 @@ describe('IssuesSecondaryNavigation', () => {
     expect(query).toContain('fix_proposed');
     expect(query).toContain('diagnosed');
     expect(query).toContain('assigned');
-    expect(query).toContain('identified');
-    expect(query).toContain('fix_applied');
     expect(query).toContain('is:unresolved');
-    expect(query).toContain('assigned:[me,my_teams]');
+    expect(query).toContain('assignee:[me,my_teams]');
   });
 
   it('caps the count at 99+ since the endpoint stops counting at 100', async () => {
     mockInboxCount({
-      'issue.progress:[fix_proposed, diagnosed, assigned, identified, fix_applied] is:unresolved assigned:[me,my_teams]': 100,
+      'is:unresolved issue.progress:[fix_proposed,diagnosed,assigned] assignee:[me,my_teams]': 100,
     });
 
     renderNavigation();
@@ -67,7 +65,7 @@ describe('IssuesSecondaryNavigation', () => {
 
   it('renders no badge when nothing is waiting', async () => {
     mockInboxCount({
-      'issue.progress:[fix_proposed, diagnosed, assigned, identified, fix_applied] is:unresolved assigned:[me,my_teams]': 0,
+      'is:unresolved issue.progress:[fix_proposed,diagnosed,assigned] assignee:[me,my_teams]': 0,
     });
 
     renderNavigation();
