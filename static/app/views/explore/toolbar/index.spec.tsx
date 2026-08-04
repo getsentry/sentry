@@ -872,6 +872,248 @@ describe('ExploreToolbar', () => {
     expect(aggregateSortBys).toEqual([{field: 'count(span.duration)', kind: 'asc'}]);
   });
 
+  describe('conditional aggregates', () => {
+    const organizationWithConditionalAggregates = OrganizationFixture({
+      features: ['dashboards-edit', 'incidents', 'explore-conditional-aggregates'],
+    });
+
+    const SERIES_FILTER_PLACEHOLDER = 'Filter spans for this series';
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/recent-searches/`,
+        method: 'GET',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/recent-searches/`,
+        method: 'POST',
+        body: [],
+      });
+    });
+
+    it('hides the series filter without the feature', async () => {
+      render(<ExploreToolbar />, {additionalWrapper: Wrapper, organization});
+
+      const section = screen.getByTestId('section-visualizes');
+
+      expect(
+        await within(section).findByRole('button', {name: 'count'})
+      ).toBeInTheDocument();
+      expect(
+        within(section).queryByPlaceholderText(SERIES_FILTER_PLACEHOLDER)
+      ).not.toBeInTheDocument();
+    });
+
+    it('turns a series filter into an _if aggregate', async () => {
+      let visualizes: any;
+      function Component() {
+        visualizes = useQueryParamsVisualizes();
+        return <ExploreToolbar />;
+      }
+
+      render(<Component />, {
+        additionalWrapper: Wrapper,
+        organization: organizationWithConditionalAggregates,
+      });
+
+      const section = screen.getByTestId('section-visualizes');
+      const filterInput = await within(section).findByPlaceholderText(
+        SERIES_FILTER_PLACEHOLDER
+      );
+
+      await userEvent.click(filterInput);
+      await userEvent.paste('span.op:db');
+      await userEvent.keyboard('{Enter}');
+
+      await waitFor(() => {
+        expect(visualizes).toEqual([
+          new VisualizeFunction('count_if(`span.op:db`,span.duration)'),
+        ]);
+      });
+    });
+
+    it('keeps a series filter that has errors', async () => {
+      let visualizes: any;
+      function Component() {
+        visualizes = useQueryParamsVisualizes();
+        return <ExploreToolbar />;
+      }
+
+      render(<Component />, {
+        additionalWrapper: Wrapper,
+        organization: organizationWithConditionalAggregates,
+      });
+
+      const section = screen.getByTestId('section-visualizes');
+      const filterInput = await within(section).findByPlaceholderText(
+        SERIES_FILTER_PLACEHOLDER
+      );
+
+      await userEvent.click(filterInput);
+      await userEvent.paste('span.op:');
+      await userEvent.keyboard('{Enter}');
+
+      // The filter has no value, so the search bar flags it, but the query the user is
+      // still editing is kept rather than discarded.
+      expect(await within(section).findByRole('row', {name: 'span.op:'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+      await waitFor(() => {
+        expect(visualizes).toEqual([
+          new VisualizeFunction('count_if(`span.op:`,span.duration)'),
+        ]);
+      });
+    });
+
+    it('drops the combinator when the series filter is cleared', async () => {
+      let visualizes: any;
+      function Component() {
+        visualizes = useQueryParamsVisualizes();
+        return <ExploreToolbar />;
+      }
+
+      render(<Component />, {
+        additionalWrapper: Wrapper,
+        organization: organizationWithConditionalAggregates,
+        initialRouterConfig: {
+          location: {
+            pathname: '/traces/',
+            query: {
+              visualize: JSON.stringify({
+                yAxes: ['count_if(`span.op:db`,span.duration)'],
+              }),
+            },
+          },
+        },
+      });
+
+      const section = screen.getByTestId('section-visualizes');
+      // The saved filter is rendered back into the bar.
+      expect(await within(section).findByText('span.op')).toBeInTheDocument();
+
+      await userEvent.click(
+        within(section).getByRole('button', {name: 'Clear search query'})
+      );
+
+      await waitFor(() => {
+        expect(visualizes).toEqual([new VisualizeFunction('count(span.duration)')]);
+      });
+    });
+
+    it('hides the series filter for aggregates that cannot be filtered', async () => {
+      render(<ExploreToolbar />, {
+        additionalWrapper: Wrapper,
+        organization: organizationWithConditionalAggregates,
+      });
+
+      const section = screen.getByTestId('section-visualizes');
+      expect(
+        await within(section).findByPlaceholderText(SERIES_FILTER_PLACEHOLDER)
+      ).toBeInTheDocument();
+
+      await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+      await userEvent.click(within(section).getByRole('option', {name: 'epm'}));
+
+      expect(
+        within(section).queryByPlaceholderText(SERIES_FILTER_PLACEHOLDER)
+      ).not.toBeInTheDocument();
+    });
+
+    it('drops an existing filter when switching to an aggregate that cannot be filtered', async () => {
+      let visualizes: any;
+      function Component() {
+        visualizes = useQueryParamsVisualizes();
+        return <ExploreToolbar />;
+      }
+
+      render(<Component />, {
+        additionalWrapper: Wrapper,
+        organization: organizationWithConditionalAggregates,
+        initialRouterConfig: {
+          location: {
+            pathname: '/traces/',
+            query: {
+              visualize: JSON.stringify({
+                yAxes: ['count_if(`span.op:db`,span.duration)'],
+              }),
+            },
+          },
+        },
+      });
+
+      const section = screen.getByTestId('section-visualizes');
+
+      await userEvent.click(await within(section).findByRole('button', {name: 'count'}));
+      await userEvent.click(within(section).getByRole('option', {name: 'epm'}));
+
+      expect(visualizes).toEqual([new VisualizeFunction('epm()')]);
+    });
+
+    it('keeps an existing filter when switching between filterable aggregates', async () => {
+      let visualizes: any;
+      function Component() {
+        visualizes = useQueryParamsVisualizes();
+        return <ExploreToolbar />;
+      }
+
+      render(<Component />, {
+        additionalWrapper: Wrapper,
+        organization: organizationWithConditionalAggregates,
+        initialRouterConfig: {
+          location: {
+            pathname: '/traces/',
+            query: {
+              visualize: JSON.stringify({
+                yAxes: ['count_if(`span.op:db`,span.duration)'],
+              }),
+            },
+          },
+        },
+      });
+
+      const section = screen.getByTestId('section-visualizes');
+
+      await userEvent.click(await within(section).findByRole('button', {name: 'count'}));
+      await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+
+      expect(visualizes).toEqual([
+        new VisualizeFunction('avg_if(`span.op:db`,span.duration)'),
+      ]);
+    });
+
+    it('drops the filter when the feature is off', async () => {
+      let visualizes: any;
+      function Component() {
+        visualizes = useQueryParamsVisualizes();
+        return <ExploreToolbar />;
+      }
+
+      render(<Component />, {
+        additionalWrapper: Wrapper,
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/traces/',
+            query: {
+              visualize: JSON.stringify({
+                yAxes: ['count_if(`span.op:db`,span.duration)'],
+              }),
+            },
+          },
+        },
+      });
+
+      const section = screen.getByTestId('section-visualizes');
+
+      await userEvent.click(await within(section).findByRole('button', {name: 'count'}));
+      await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+
+      expect(visualizes).toEqual([new VisualizeFunction('avg(span.duration)')]);
+    });
+  });
+
   it('disables compare queries when only one chart is available', async () => {
     function Component() {
       return <ExploreToolbar />;

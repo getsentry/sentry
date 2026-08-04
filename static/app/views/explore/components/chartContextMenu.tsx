@@ -15,6 +15,7 @@ import {
   isVisualizeEquation,
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
+import {hasConditionalAggregateFilter} from 'sentry/views/explore/utils/conditionalAggregate';
 import {
   getCreateAlertForLabel,
   getSaveAsAlertMenuItem,
@@ -51,7 +52,9 @@ export function ChartContextMenu({
       menuItems.push(
         getSaveAsAlertMenuItem({
           organization,
-          disabled: isVisualizeEquation(visualizeYAxes[0]!),
+          disabled:
+            isVisualizeEquation(visualizeYAxes[0]!) ||
+            hasConditionalAggregateFilter(yAxis),
           to: getAlertsUrl({
             project,
             query,
@@ -75,7 +78,9 @@ export function ChartContextMenu({
       const alertsUrls = visualizeYAxes.map((visualizeYAxis, index) => ({
         key: `${visualizeYAxis.yAxis}-${index}`,
         label: visualizeYAxis.yAxis,
-        disabled: isVisualizeEquation(visualizeYAxis),
+        disabled:
+          isVisualizeEquation(visualizeYAxis) ||
+          hasConditionalAggregateFilter(visualizeYAxis.yAxis),
         to: getAlertsUrl({
           project,
           query,

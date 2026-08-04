@@ -1,6 +1,9 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import type {ColumnValueType} from 'sentry/utils/discover/fields';
+import type {
+  AggregationKeyWithAlias,
+  ColumnValueType,
+} from 'sentry/utils/discover/fields';
 import {
   aggregateMultiPlotType,
   aggregateOutputType,
@@ -93,6 +96,33 @@ describe('parseFunction', () => {
       arguments: ['tags[foo,number]'],
     });
   });
+
+  it('handles backtick wrapped search filter arguments', () => {
+    expect(parseFunction('avg_if(`span.op:db`,span.duration)')).toEqual({
+      name: 'avg_if',
+      arguments: ['`span.op:db`', 'span.duration'],
+    });
+  });
+
+  it('does not split backtick wrapped search filters on commas', () => {
+    expect(parseFunction('avg_if(`span.op:[db,http]`,span.duration)')).toEqual({
+      name: 'avg_if',
+      arguments: ['`span.op:[db,http]`', 'span.duration'],
+    });
+    expect(
+      parseFunction('count_if(`span.description:"GET /foo, /bar"`,span.duration)')
+    ).toEqual({
+      name: 'count_if',
+      arguments: ['`span.description:"GET /foo, /bar"`', 'span.duration'],
+    });
+  });
+
+  it('handles backtick wrapped search filters as the only argument', () => {
+    expect(parseFunction('count_if(`span.op:db`)')).toEqual({
+      name: 'count_if',
+      arguments: ['`span.op:db`'],
+    });
+  });
 });
 
 describe('generateFieldAsString', () => {
@@ -121,6 +151,20 @@ describe('generateFieldAsString', () => {
         function: ['count', 'tags[foo,number]', undefined, undefined],
       })
     ).toBe('count(tags[foo,number])');
+  });
+
+  it('preserves backtick wrapped search filter arguments', () => {
+    expect(
+      generateFieldAsString({
+        kind: 'function',
+        function: [
+          'avg_if' as AggregationKeyWithAlias,
+          '`span.op:[db,http]`',
+          'span.duration',
+          undefined,
+        ],
+      })
+    ).toBe('avg_if(`span.op:[db,http]`,span.duration)');
   });
 
   it('round-trips quoted function arguments through field parsing', () => {

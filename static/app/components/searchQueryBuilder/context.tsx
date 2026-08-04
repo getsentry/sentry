@@ -77,6 +77,7 @@ interface SearchQueryBuilderConfigContextData {
 interface SearchQueryBuilderLayoutContextData {
   actionBarRef: React.RefObject<HTMLDivElement | null>;
   currentInputValueRef: React.RefObject<string>;
+  disableFullWidthFilterKeyMenu: boolean;
   filterKeyMenuWidth: number;
   portalTarget: HTMLElement | null | undefined;
   size: 'small' | 'normal';
@@ -195,6 +196,7 @@ export function SearchQueryBuilderProvider({
   caseInsensitive,
   onCaseInsensitiveClick,
   invalidFilterKeys,
+  disableFullWidthFilterKeyMenu = false,
   asyncFilterKeyRegistryQueryKey,
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -448,6 +450,7 @@ export function SearchQueryBuilderProvider({
     return {
       actionBarRef,
       currentInputValueRef,
+      disableFullWidthFilterKeyMenu,
       filterKeyMenuWidth,
       portalTarget,
       size,
@@ -456,6 +459,7 @@ export function SearchQueryBuilderProvider({
   }, [
     actionBarRef,
     currentInputValueRef,
+    disableFullWidthFilterKeyMenu,
     filterKeyMenuWidth,
     portalTarget,
     size,

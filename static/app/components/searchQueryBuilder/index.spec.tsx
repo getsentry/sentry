@@ -199,6 +199,89 @@ describe('SearchQueryBuilder', () => {
     expect(await screen.findByPlaceholderText('foo')).toBeInTheDocument();
   });
 
+  it('hides the leading search icon when showSearchIcon is false', async () => {
+    const {rerender} = render(
+      <SearchQueryBuilder {...defaultProps} showSearchIcon={false} />
+    );
+
+    const builder = await screen.findByTestId('search-query-builder');
+    expect(builder).toHaveAttribute('data-hide-search-icon', 'true');
+
+    rerender(<SearchQueryBuilder {...defaultProps} />);
+    expect(builder).not.toHaveAttribute('data-hide-search-icon');
+  });
+
+  describe('portalTarget', () => {
+    function expectMenusPortaled() {
+      const builder = screen.getByTestId('search-query-builder');
+      for (const menu of screen.getAllByRole('listbox')) {
+        expect(builder).not.toContainElement(menu);
+      }
+    }
+
+    it('anchors the full width filter key menu inside the search bar', async () => {
+      render(<SearchQueryBuilder {...defaultProps} portalTarget={document.body} />);
+
+      await userEvent.click(getLastInput());
+
+      // The full width menu sizes itself against the search bar, so it opts out of
+      // `portalTarget` and stays inside the wrapper.
+      const builder = screen.getByTestId('search-query-builder');
+      expect(builder).toContainElement(await screen.findByRole('listbox'));
+    });
+
+    it('portals the filter key menu when the full width menu is disabled', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          portalTarget={document.body}
+          disableFullWidthFilterKeyMenu
+        />
+      );
+
+      await userEvent.click(getLastInput());
+
+      expect(
+        await screen.findByRole('option', {name: 'browser.name'})
+      ).toBeInTheDocument();
+      expectMenusPortaled();
+    });
+
+    it('portals the filter value menu', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          portalTarget={document.body}
+          disableFullWidthFilterKeyMenu
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.click(await screen.findByRole('option', {name: 'browser.name'}));
+
+      expect(await screen.findByRole('option', {name: 'Chrome'})).toBeInTheDocument();
+      expectMenusPortaled();
+    });
+
+    it('applies a filter key and value clicked in a portaled menu', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          portalTarget={document.body}
+          disableFullWidthFilterKeyMenu
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.click(await screen.findByRole('option', {name: 'browser.name'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'Chrome'}));
+
+      expect(
+        await screen.findByRole('row', {name: 'browser.name:Chrome'})
+      ).toBeInTheDocument();
+    });
+  });
+
   it('syncs external initial query changes while disabled', async () => {
     function ExternalProviderSearchQueryBuilder({
       disabled,
