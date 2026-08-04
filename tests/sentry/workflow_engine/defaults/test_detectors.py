@@ -56,25 +56,23 @@ class TestEnsureDefaultDetectors(TestCase):
                 project = self.create_project()
                 ensure_default_detectors(project)
 
-    def test_ensure_default_detectors__creates_all_projects_detector_when_flag_on(self) -> None:
-        project = self.create_project()
-        with self.feature("organizations:workflow-engine-all-projects-detector"):
-            ensure_default_organization_detectors(project.organization)
+    def test_ensure_default_organization_detectors_creates_all_projects(self) -> None:
+        ensure_default_organization_detectors(self.organization)
 
         all_projects = Detector.objects.filter(
             type=IssueStreamGroupType.slug,
+            name=ALL_PROJECTS_DETECTOR_NAME,
             project__isnull=True,
-            config__organization_id=project.organization_id,
+            config__organization_id=self.organization.id,
         )
         assert all_projects.count() == 1
 
-    def test_ensure_default_detectors__no_all_projects_detector_when_flag_off(self) -> None:
+    def test_ensure_default_detectors_does_not_create_all_projects(self) -> None:
         project = self.create_project()
         ensure_default_detectors(project)
 
         assert not Detector.objects.filter(
-            type=IssueStreamGroupType.slug,
-            project__isnull=True,
+            type=IssueStreamGroupType.slug, project__isnull=True
         ).exists()
 
 
