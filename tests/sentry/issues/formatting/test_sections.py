@@ -572,3 +572,12 @@ def test_capping_a_rendered_body_keeps_the_first_piece() -> None:
         event, MD, dataclasses.replace(LIMITS_DEFAULT, max_exceptions_chars=10)
     )
     assert "E: " + "v" * 200 in out
+
+
+def test_evidence_section_is_capped() -> None:
+    # evidenceDisplay carries whatever pairs an occurrence defines, so it needs a cap like the
+    # other open-ended sections rather than rendering unbounded
+    event = EventObject(title="t", evidence=[("Regression", "x" * 10_000)])
+    out = evidence_section(event, MD, LIMITS_DEFAULT)
+    assert "... (truncated)" in out
+    assert len(out) < 6_000  # max_evidence_chars=5_000, plus the surrounding block
