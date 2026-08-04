@@ -7,6 +7,7 @@ from sentry.integrations.cursor.client import (
     CursorAgentClient,
     _extract_failed_model_from_error,
     _get_model_family,
+    _is_default_branch_determination_error,
     _prioritize_models_by_family,
 )
 from sentry.seer.models import SeerRepoDefinition
@@ -498,6 +499,22 @@ class CursorAgentClientTest(TestCase):
 
     @patch.object(CursorAgentClient, "get")
     @patch.object(CursorAgentClient, "post")
+    def test_launch_default_branch_error_raises_without_fetching_models(
+        self, mock_post: Mock, mock_get: Mock
+    ) -> None:
+        """Default-branch determination failures are non-retryable and skip /v0/models."""
+        bad_request = ApiError("Bad Request", code=400)
+        bad_request.json = {"error": "Failed to determine repository default branch"}
+        mock_post.side_effect = bad_request
+
+        with pytest.raises(ApiError, match="Bad Request"):
+            self.cursor_client.launch(webhook_url=self.webhook_url, request=self.launch_request)
+
+        assert mock_post.call_count == 1
+        mock_get.assert_not_called()
+
+    @patch.object(CursorAgentClient, "get")
+    @patch.object(CursorAgentClient, "post")
     def test_launch_non_json_400_error_does_not_retry(
         self, mock_post: Mock, mock_get: Mock
     ) -> None:
@@ -601,6 +618,31 @@ class ExtractFailedModelFromErrorTest(TestCase):
         error = ApiError("Bad Request", code=400)
         error.json = {"error": {"code": "model_not_found", "model": "gpt-4"}}
         assert _extract_failed_model_from_error(error) is None
+
+
+class IsDefaultBranchDeterminationErrorTest(TestCase):
+    def test_json_error_message(self) -> None:
+        error = ApiError("Bad Request", code=400)
+        error.json = {"error": "Failed to determine repository default branch"}
+        assert _is_default_branch_determination_error(error) is True
+
+    def test_text_fallback(self) -> None:
+        error = ApiError(
+            "Failed to determine repository default branch for owner/repo",
+            code=400,
+        )
+        error.json = None
+        assert _is_default_branch_determination_error(error) is True
+
+    def test_other_400_error(self) -> None:
+        error = ApiError("Bad Request", code=400)
+        error.json = {"error": "Invalid branch name."}
+        assert _is_default_branch_determination_error(error) is False
+
+    def test_non_400_code(self) -> None:
+        error = ApiError("Failed to determine repository default branch", code=500)
+        error.json = {"error": "Failed to determine repository default branch"}
+        assert _is_default_branch_determination_error(error) is False
 
 
 class PrioritizeModelsByFamilyTest(TestCase):

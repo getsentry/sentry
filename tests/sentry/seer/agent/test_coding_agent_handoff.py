@@ -7,21 +7,33 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.cursor.integration import CursorAgentIntegration
-from sentry.seer.agent.coding_agent_handoff import _resolve_client, launch_coding_agents
-from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentState
+from sentry.seer.agent.coding_agent_handoff import (
+    _resolve_client,
+    launch_coding_agents,
+    resolve_repo_branch_name,
+)from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentState
 from sentry.seer.models import SeerApiError, SeerRepoDefinition
 from sentry.seer.models.run import SeerRunCodingAgentHandoff
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
 
 
-def _repo(owner: str, name: str) -> SeerRepoDefinition:
+def _repo(
+    owner: str,
+    name: str,
+    *,
+    branch_name: str | None = None,
+    integration_id: str | None = None,
+    provider: str = "github",
+) -> SeerRepoDefinition:
     """Minimal SeerRepoDefinition for tests."""
     return SeerRepoDefinition(
-        provider="github",
+        provider=provider,
         owner=owner,
         name=name,
         external_id="123",
+        branch_name=branch_name,
+        integration_id=integration_id,
     )
 
 
@@ -297,8 +309,84 @@ class TestLaunchCodingAgents(TestCase):
         assert "Cursor does not have GitHub access" in failure["error_message"]
         assert "install the Cursor GitHub App" in failure["error_message"]
 
+    @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
+    @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")
+    @patch("sentry.seer.agent.coding_agent_handoff.resolve_repo_branch_name")
+    def test_resolves_empty_branch_before_launch(
+        self, mock_resolve_branch, mock_validate, mock_store
+    ):
+        """Empty branch_name is resolved via GitHub before building the launch request."""
+        resolved = _repo("owner", "repo", branch_name="main", integration_id="111")
+        mock_resolve_branch.return_value = resolved
+        installation = FakeCodingAgentInstallation(_state("agent-1"))
+        mock_validate.return_value = (None, installation)
+
+        launch_coding_agents(
+            organization=self.organization,
+            integration_id=1,
+            run_id=self.run_id,
+            prompt="Fix the bug",
+            repos=[_repo("owner", "repo", branch_name="", integration_id="111")],
+        )
+
+        mock_resolve_branch.assert_called_once()
+        assert installation.launch_calls[0].repository.branch_name == "main"
+
 
 MOCK_HANDOFF_PATH = "sentry.seer.agent.coding_agent_handoff"
+
+
+class TestResolveRepoBranchName(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization()
+
+    def test_returns_repo_unchanged_when_branch_present(self) -> None:
+        repo = _repo("owner", "repo", branch_name="develop", integration_id="111")
+        assert resolve_repo_branch_name(repo, self.organization) is repo
+
+    def test_returns_repo_unchanged_without_integration_id(self) -> None:
+        repo = _repo("owner", "repo", branch_name="")
+        assert resolve_repo_branch_name(repo, self.organization) is repo
+
+    @patch(f"{MOCK_HANDOFF_PATH}.integration_service.get_integration")
+    def test_fetches_default_branch_from_github(self, mock_get_integration) -> None:
+        mock_client = MagicMock()
+        mock_client.get_repo.return_value = {"default_branch": "main"}
+        mock_installation = MagicMock()
+        mock_installation.get_client.return_value = mock_client
+        mock_integration = MagicMock()
+        mock_integration.get_installation.return_value = mock_installation
+        mock_get_integration.return_value = mock_integration
+
+        repo = _repo("owner", "repo", branch_name="", integration_id="42")
+        resolved = resolve_repo_branch_name(repo, self.organization)
+
+        assert resolved.branch_name == "main"
+        mock_get_integration.assert_called_once_with(integration_id=42)
+        mock_integration.get_installation.assert_called_once_with(
+            organization_id=self.organization.id
+        )
+        mock_client.get_repo.assert_called_once_with("owner/repo")
+
+    @patch(f"{MOCK_HANDOFF_PATH}.integration_service.get_integration")
+    def test_returns_unchanged_when_github_lookup_fails(self, mock_get_integration) -> None:
+        mock_get_integration.side_effect = ApiError("boom", code=500)
+        repo = _repo("owner", "repo", branch_name="", integration_id="42")
+
+        resolved = resolve_repo_branch_name(repo, self.organization)
+
+        assert resolved is repo
+        assert resolved.branch_name == ""
+
+    @patch(f"{MOCK_HANDOFF_PATH}.integration_service.get_integration")
+    def test_returns_unchanged_when_integration_missing(self, mock_get_integration) -> None:
+        mock_get_integration.return_value = None
+        repo = _repo("owner", "repo", branch_name=None, integration_id="42")
+
+        resolved = resolve_repo_branch_name(repo, self.organization)
+
+        assert resolved is repo
 
 
 class TestResolveClient(TestCase):
