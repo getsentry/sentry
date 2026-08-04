@@ -36,7 +36,7 @@ export function TraceLinkedIssues({event}: {event: Event}) {
       source="issue-details-trace-preview"
       canSelectGroups={false}
       withChart
-      withColumns={['event', 'firstSeen', 'lastSeen']}
+      withColumns={['firstSeen', 'lastSeen']}
       withPagination={false}
       numPlaceholderRows={3}
       staleTime={TRACE_ISSUES_STALE_TIME}
