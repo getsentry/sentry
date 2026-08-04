@@ -690,8 +690,6 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         substring_match = serialized.get("substring_match", "")
         query_string = serialized.get("query")
         attribute_types = serialized.get("attribute_type")
-        # Array attributes are gated behind their own feature flag. When it's off,
-        # "array" is neither queried by default nor honored if explicitly requested.
         supports_arrays = features.has(
             "organizations:trace-item-array-query-support",
             organization,
@@ -1005,7 +1003,6 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
 
 @cell_silo_endpoint
 class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttributesEndpointBase):
-    
     def get(self, request: Request, organization: Organization, key: str) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)

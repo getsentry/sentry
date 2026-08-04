@@ -120,7 +120,6 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
     OrganizationTraceItemAttributesEndpointTestBase, OurLogTestCase
 ):
     feature_flags = {"organizations:ourlogs-enabled": True}
-    # Endpoint access flags plus the array-support gate, for the array tests below.
     array_feature_flags = {
         "organizations:ourlogs-enabled": True,
         "organizations:trace-item-array-query-support": True,
@@ -494,14 +493,11 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         assert "tags[another_flag,boolean]" in keys
 
     def _store_array_log(self) -> None:
-        """Write real string[] and int[] attributes (plus a scalar control)
-        straight to EAP storage — no mocking of the ingest or query path."""
         logs = [
             self.create_ourlog(
                 organization=self.organization,
                 project=self.project,
                 attributes={
-                    # string[] — matches the real data_export.csv_headers shape
                     "data_export.csv_headers": {
                         "array_value": ArrayValue(
                             values=[
@@ -510,13 +506,11 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
                             ]
                         )
                     },
-                    # int[] — matches the real data_export.blob_offsets shape
                     "data_export.blob_offsets": {
                         "array_value": ArrayValue(
                             values=[AnyValue(int_value=0), AnyValue(int_value=1048576)]
                         )
                     },
-                    # scalar control, proves the item and non-array attrs surface
                     "data_export.status": {"string_value": "finished"},
                 },
             ),
@@ -533,8 +527,6 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         ),
     )
     def test_array_attributes_surface_with_array_kind(self) -> None:
-        """An array-typed attribute is surfaced. Array keys come
-        back wrapped as `tags[name,array]`, so look them up by name."""
         self._store_array_log()
 
         response = self.do_request(features=self.array_feature_flags)
@@ -594,9 +586,7 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         assert not any(key.endswith(",array]") for key in keys), keys
 
     def test_array_pass_surfaces_real_array_attributes(self) -> None:
-        """v2-shaped response: the co-occurring-attrs v2 storage answers an array
-        request with real array element types. Those must surface as
-        `tags[<name>,array]` with an `array` attributeType."""
+        """v2-shaped mocked response"""
         Attribute = TraceItemAttributeNamesResponse.Attribute
         response_by_type = {
             AttributeKey.Type.TYPE_ARRAY: TraceItemAttributeNamesResponse(
