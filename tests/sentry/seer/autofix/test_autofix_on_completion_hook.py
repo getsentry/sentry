@@ -320,6 +320,7 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
             123,
             referrer=AutofixReferrer.ON_COMPLETION_HOOK,
             state=state,
+            verify_content=False,
         )
 
     @patch(
