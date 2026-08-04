@@ -43,7 +43,7 @@ const selectablePlatforms = platforms.filter(platform =>
   createablePlatforms.has(platform.id)
 );
 
-export function getSdkPlatformKey(platform: PlatformIntegration) {
+function getSdkPlatformKey(platform: PlatformIntegration) {
   return platform.sdkKey ?? platform.id;
 }
 

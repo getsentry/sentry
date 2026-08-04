@@ -277,10 +277,9 @@ describe('CreateProject', () => {
     expect(
       screen.getByTestId('platform-expo').querySelector('button[aria-label="Clear"]')
     ).toBeInTheDocument();
+    const reactNativePlatform = screen.getByTestId('platform-react-native');
     expect(
-      screen
-        .queryByTestId('platform-react-native')
-        .querySelector('button[aria-label="Clear"]')
+      reactNativePlatform.querySelector('button[aria-label="Clear"]')
     ).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
