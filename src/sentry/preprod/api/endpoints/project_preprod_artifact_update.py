@@ -476,13 +476,22 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
             # artifact may already have been created. Re-render so the comment
             # stops showing it as perpetually processing: SKIPPED drops the
             # artifact from the table, NO_QUOTA switches the summary to the quota
-            # message. The status check gets the same treatment above.
-            create_preprod_size_pr_comment_task.apply_async(
-                kwargs={
-                    "preprod_artifact_id": head_artifact.id,
-                    "caller": "artifact_update_endpoint_size_skipped",
-                }
-            )
+            # message.
+            #
+            # The status check needs no equivalent dispatch: it already gets one
+            # above, though that happens before this row is written and so relies
+            # on task pickup latency to observe it.
+            #
+            # Without a commit comparison there is no PR to comment on, and this
+            # branch runs on every upload for projects that filter size analysis,
+            # so gate rather than enqueue a task that can only no-op.
+            if head_artifact.commit_comparison_id:
+                create_preprod_size_pr_comment_task.apply_async(
+                    kwargs={
+                        "preprod_artifact_id": head_artifact.id,
+                        "caller": "artifact_update_endpoint_size_skipped",
+                    }
+                )
 
         can_run_distro, distro_skip_reason = should_run_distribution(head_artifact)
         if can_run_distro:
