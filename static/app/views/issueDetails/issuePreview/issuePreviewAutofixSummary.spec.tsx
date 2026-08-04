@@ -20,7 +20,24 @@ function makePatch(repoName: string, path: string): ExplorerFilePatch {
       path,
       added: 1,
       removed: 0,
-      hunks: [],
+      hunks: [
+        {
+          section_header: '',
+          source_start: 1,
+          source_length: 1,
+          target_start: 1,
+          target_length: 1,
+          lines: [
+            {
+              line_type: '+',
+              value: `change in ${path}`,
+              source_line_no: null,
+              target_line_no: 1,
+              diff_line_no: null,
+            },
+          ],
+        },
+      ],
       source_file: path,
       target_file: path,
       type: 'M',
@@ -134,6 +151,9 @@ describe('IssuePreviewAutofixSummary', () => {
     ).toBeVisible();
 
     expect(within(proposal).getByText('org/frontend:src/user.ts')).toBeVisible();
+    expect(within(proposal).queryByText('change in src/user.ts')).not.toBeInTheDocument();
+    await userEvent.click(within(proposal).getByText('org/frontend:src/user.ts'));
+    expect(within(proposal).getByText('change in src/user.ts')).toBeVisible();
     expect(within(plan).getByText('Add a null guard')).not.toBeVisible();
     expect(
       within(rootCause).getByText(
