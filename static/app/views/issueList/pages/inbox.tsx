@@ -47,6 +47,11 @@ export const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
   all: '',
 };
 
+interface InboxSectionContext {
+  assignmentFilter: AssignmentFilter;
+  hasSeer: boolean;
+}
+
 interface InboxSectionConfig {
   defaultExpanded: boolean;
   emptyMessage: string;
@@ -54,6 +59,7 @@ interface InboxSectionConfig {
   label: string;
   progress: ProgressState;
   query: string;
+  hidden?: (context: InboxSectionContext) => boolean;
 }
 
 export const SECTIONS: InboxSectionConfig[] = [
@@ -72,6 +78,7 @@ export const SECTIONS: InboxSectionConfig[] = [
     emptyMessage: t('No diagnosed issues'),
     progress: ProgressState.DIAGNOSED,
     defaultExpanded: true,
+    hidden: ({hasSeer}) => !hasSeer,
   },
   {
     key: 'assigned',
@@ -79,6 +86,24 @@ export const SECTIONS: InboxSectionConfig[] = [
     query: 'issue.progress:assigned',
     emptyMessage: t('No assigned issues'),
     progress: ProgressState.ASSIGNED,
+    defaultExpanded: false,
+    hidden: ({hasSeer}) => !hasSeer,
+  },
+  {
+    key: 'identified',
+    label: t('Identified'),
+    query: 'issue.progress:identified',
+    emptyMessage: t('No identified issues'),
+    progress: ProgressState.IDENTIFIED,
+    defaultExpanded: false,
+    hidden: ({assignmentFilter, hasSeer}) => !hasSeer || assignmentFilter !== 'all',
+  },
+  {
+    key: 'fix-applied',
+    label: t('Fix Applied'),
+    query: 'issue.progress:fix_applied',
+    emptyMessage: t('No issues with an applied fix'),
+    progress: ProgressState.FIX_APPLIED,
     defaultExpanded: false,
   },
 ];
@@ -160,7 +185,7 @@ function InboxContent() {
           </Flex>
           <Stack flex={1} minHeight={0} overflowY="auto" overscrollBehavior="contain">
             {SECTIONS.filter(
-              section => hasSeer || section.progress !== ProgressState.DIAGNOSED
+              section => !section.hidden?.({assignmentFilter, hasSeer})
             ).map(section => (
               <InboxSection
                 key={section.key}
@@ -214,7 +239,7 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
       path: {organizationIdOrSlug: organization.slug},
       query: {
         project: [-1],
-        query: `${section.query}${ASSIGNMENT_QUERY_SUFFIXES[assignmentFilter]}`,
+        query: `${section.query} is:unresolved${ASSIGNMENT_QUERY_SUFFIXES[assignmentFilter]}`,
         sort: IssueSortOptions.PROGRESS,
         limit: ISSUE_LIMIT,
         collapse: ['stats', 'unhandled'],
