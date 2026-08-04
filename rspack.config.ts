@@ -119,6 +119,10 @@ const SENTRY_SPA_DSN = SENTRY_EXPERIMENTAL_SPA ? env.SENTRY_SPA_DSN : undefined;
 const sentryDjangoAppPath = path.join(import.meta.dirname, 'src/sentry/static/sentry');
 const distPath = path.join(sentryDjangoAppPath, 'dist');
 const staticPrefix = path.join(import.meta.dirname, 'static');
+const typeLoaderPath = path.resolve(
+  import.meta.dirname,
+  'static/app/stories/typeLoader.ts'
+);
 
 // Locale compilation and optimizations.
 //
@@ -307,7 +311,7 @@ const appConfig: Configuration = {
     // Always lazy-compile type-loader modules (they run the TS compiler and are expensive)
     test(module) {
       if ('request' in module && typeof module.request === 'string') {
-        if (module.request.includes('type-loader')) {
+        if (module.request.includes(typeLoaderPath)) {
           return true;
         }
       }
@@ -488,10 +492,7 @@ const appConfig: Configuration = {
 
   resolveLoader: {
     alias: {
-      'type-loader': path.resolve(
-        import.meta.dirname,
-        'static/app/stories/typeLoader.ts'
-      ),
+      'type-loader': typeLoaderPath,
     },
   },
 

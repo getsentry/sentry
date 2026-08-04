@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import type {
   CustomSeriesOption,
@@ -393,11 +393,15 @@ export function useReleaseBubbles({
   // case of relative date selection). This is used for the tooltip to show the
   // proper timestamp for releases.
   const endTimeToUse = (datetime || selection.datetime).end;
+  const nowRef = useRef(Date.now());
+  useEffect(() => {
+    nowRef.current = Date.now();
+  });
   const releasesMaxTime = useMemo(
     () =>
       defined(endTimeToUse) && !Array.isArray(endTimeToUse)
         ? new Date(endTimeToUse).getTime()
-        : Date.now(),
+        : nowRef.current,
     [endTimeToUse]
   );
   const chartRef = useRef<ReactEchartsRef | null>(null);

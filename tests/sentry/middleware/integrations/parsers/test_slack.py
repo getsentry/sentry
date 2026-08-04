@@ -7,6 +7,7 @@ from urllib.parse import urlencode
 import orjson
 import pytest
 import responses
+from django.core.cache import cache
 from django.db import router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory
@@ -23,6 +24,7 @@ from sentry.integrations.slack.utils.auth import _encode_data
 from sentry.integrations.slack.views import SALT
 from sentry.middleware.integrations.parsers.slack import SlackRequestParser
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import assert_no_webhook_payloads
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test, create_test_cells
 from sentry.utils import json
@@ -49,16 +51,17 @@ class SlackRequestParserTest(TestCase):
         )
         patcher.start()
         self.addCleanup(patcher.stop)
+        cache.clear()
 
     def get_response(self, request: HttpRequest) -> HttpResponse:
         return HttpResponse(status=200, content="passthrough")
 
-    def _make_parser_with_seer_event(self, event_type: str = "app_mention"):
+    def _make_parser_with_seer_event(self, event_type: str = "app_mention", event_id: str = "E1"):
         data = {
             "type": "event_callback",
             "team_id": self.integration.external_id,
             "api_app_id": "AXXXXXXXX1",
-            "event_id": "E1",
+            "event_id": event_id,
             "event": {
                 "type": event_type,
                 "channel": "C1234567890",
@@ -423,6 +426,86 @@ class SlackRequestParserTest(TestCase):
         assert kwargs["message_text"] == "hello"
         assert kwargs["payload"]["method"] == "POST"
         assert kwargs["payload"]["path"].startswith("/extensions/slack/event")
+
+    @override_options({"slack.dedupe-seer-webhook-events": True})
+    @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
+    def test_seer_event_dedupes_by_event_id(self, mock_apply):
+        event_id = "EvDEDUP1"
+
+        first = self._make_parser_with_seer_event(
+            event_type="app_mention", event_id=event_id
+        ).get_response()
+        second = self._make_parser_with_seer_event(
+            event_type="app_mention", event_id=event_id
+        ).get_response()
+
+        assert isinstance(first, HttpResponse)
+        assert isinstance(second, HttpResponse)
+        assert first.status_code == status.HTTP_200_OK
+        assert second.status_code == status.HTTP_200_OK
+        mock_apply.assert_called_once()
+
+    @override_options({"slack.dedupe-seer-webhook-events": True})
+    @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
+    def test_seer_event_releases_claim_on_schedule_failure(self, mock_apply):
+        # Claim must not stick if apply_async fails — otherwise Slack retries
+        # ACK as duplicates and Seer never runs for the TTL window.
+        event_id = "EvSCHEDFAIL"
+        mock_apply.side_effect = RuntimeError("broker down")
+
+        with pytest.raises(RuntimeError, match="broker down"):
+            self._make_parser_with_seer_event(
+                event_type="app_mention", event_id=event_id
+            ).get_response()
+
+        mock_apply.side_effect = None
+        response = self._make_parser_with_seer_event(
+            event_type="app_mention", event_id=event_id
+        ).get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_200_OK
+        assert mock_apply.call_count == 2
+
+    @override_options({"slack.dedupe-seer-webhook-events": False})
+    @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
+    def test_seer_event_dedupe_disabled_schedules_duplicates(self, mock_apply):
+        event_id = "EvDEDUP_OFF"
+
+        self._make_parser_with_seer_event(
+            event_type="app_mention", event_id=event_id
+        ).get_response()
+        self._make_parser_with_seer_event(
+            event_type="app_mention", event_id=event_id
+        ).get_response()
+
+        assert mock_apply.call_count == 2
+
+    @override_options({"slack.dedupe-seer-webhook-events": True})
+    @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
+    def test_seer_event_different_event_ids_are_not_deduped(self, mock_apply):
+        self._make_parser_with_seer_event(event_type="app_mention", event_id="EvA").get_response()
+        self._make_parser_with_seer_event(event_type="app_mention", event_id="EvB").get_response()
+
+        assert mock_apply.call_count == 2
+
+    @override_options({"slack.dedupe-seer-webhook-events": True})
+    @patch("sentry.middleware.integrations.parsers.slack.logger")
+    @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")
+    def test_seer_event_missing_event_id_logs_and_schedules(
+        self, mock_apply: MagicMock, mock_logger: MagicMock
+    ) -> None:
+        self._make_parser_with_seer_event(event_type="app_mention", event_id="").get_response()
+
+        mock_apply.assert_called_once()
+        mock_logger.info.assert_any_call(
+            "slack.control.seer_event.missing_event_id",
+            extra={
+                "integration_id": self.integration.id,
+                "event_type": "app_mention",
+                "event_id": "",
+            },
+        )
 
     @responses.activate
     @patch("sentry.middleware.integrations.parsers.slack.route_slack_seer_event.apply_async")

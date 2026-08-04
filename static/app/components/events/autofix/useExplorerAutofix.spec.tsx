@@ -643,10 +643,16 @@ describe('isPrIterationBlock', () => {
 });
 
 describe('isRunValidForPrIteration', () => {
-  it('is true only when the autofix-pr-iteration feature is enabled', () => {
+  it('is true only when the autofix-pr-iteration-manual feature is enabled', () => {
+    expect(
+      isRunValidForPrIteration(
+        OrganizationFixture({features: ['autofix-pr-iteration-manual']})
+      )
+    ).toBe(true);
+    // Automated CI iteration does not enable the manual feedback form.
     expect(
       isRunValidForPrIteration(OrganizationFixture({features: ['autofix-pr-iteration']}))
-    ).toBe(true);
+    ).toBe(false);
     expect(isRunValidForPrIteration(OrganizationFixture({features: []}))).toBe(false);
   });
 });

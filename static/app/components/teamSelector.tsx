@@ -293,7 +293,7 @@ export function TeamSelector(props: Props) {
     [canAddTeam, createTeamOption, handleAddTeamToProject, useId, value]
   );
 
-  function getOptions() {
+  const options = useMemo(() => {
     const filteredTeams = teamFilter ? teams.filter(teamFilter) : teams;
 
     const createOption = {
@@ -328,9 +328,7 @@ export function TeamSelector(props: Props) {
       ...filteredTeams.map(createTeamOption),
       ...(includeUnassigned ? [unassignedOption] : []),
     ];
-  }
-
-  const options = useMemo(getOptions, [
+  }, [
     teamFilter,
     teams,
     canCreateTeam,

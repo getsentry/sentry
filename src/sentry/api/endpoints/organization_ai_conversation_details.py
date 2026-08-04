@@ -15,7 +15,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.api.serializers.rest_framework import OrganizationAIConversationDetailsSerializer
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
@@ -75,7 +74,7 @@ AI_CONVERSATION_ATTRIBUTES = [
 
 
 class AIConversationDetailsResponse(TypedDict):
-    """Response body for ``apiVersion=2``: the span page plus conversation-level metadata."""
+    """Span page plus conversation-level metadata."""
 
     conversationId: str
     title: str | None
@@ -90,11 +89,6 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
     def get(self, request: Request, organization: Organization, conversation_id: str) -> Response:
         if not features.has("organizations:gen-ai-conversations", organization, actor=request.user):
             return Response(status=404)
-
-        serializer = OrganizationAIConversationDetailsSerializer(data=request.GET)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
-        use_envelope = serializer.validated_data["apiVersion"] >= 2
 
         try:
             snuba_params = self.get_snuba_params(request, organization)
@@ -130,11 +124,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                 self._annotate_issues(spans, resolved_params, organization)
                 return spans
 
-            def on_results(
-                spans: list[dict[str, Any]],
-            ) -> list[dict[str, Any]] | AIConversationDetailsResponse:
-                if not use_envelope:
-                    return spans
+            def on_results(spans: list[dict[str, Any]]) -> AIConversationDetailsResponse:
                 return {
                     "conversationId": conversation_id,
                     "title": self._resolve_title(conversation_id, spans, organization),

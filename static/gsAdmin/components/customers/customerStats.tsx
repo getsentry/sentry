@@ -201,7 +201,7 @@ function zeroFillDates(start: number, end: number, {color}: {color: string}) {
   const numberOfIntervals = Math.ceil((end - start) / 86400);
 
   if (numberOfIntervals >= 0) {
-    zero.data = [...Array.from({length: numberOfIntervals}).keys()].map(i => ({
+    zero.data = Array.from(Array.from({length: numberOfIntervals}).keys(), i => ({
       name: new Date((start + (i + 1) * 86400) * 1000).toString(),
       value: 0,
     }));

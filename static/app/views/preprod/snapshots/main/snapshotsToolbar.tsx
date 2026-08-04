@@ -56,7 +56,7 @@ export function ToolbarContainer({
         align="center"
         justify="between"
         gap="md"
-        padding={{'screen:xs': 'md xl', 'screen:md': 'md xl md 0'}}
+        padding={{zero: 'md xl', '3xl': 'md xl md 0'}}
         background="primary"
         onClick={e => e.stopPropagation()}
       >
@@ -71,11 +71,7 @@ export function ToolbarContainer({
               {diffControls}
             </Flex>
           )}
-          <Flex
-            display={{'screen:2xs': 'none', 'screen:xs': 'none', 'screen:sm': 'flex'}}
-          >
-            {soloDiffToggle}
-          </Flex>
+          <Flex display={{zero: 'none', xl: 'flex'}}>{soloDiffToggle}</Flex>
         </Flex>
       </Flex>
       <Separator orientation="horizontal" />
@@ -335,7 +331,7 @@ export const ProgressCounter = styled(Text)`
 export const ToolbarProgressBar = styled(ProgressBar)`
   width: 50px;
 
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     display: none;
   }
 `;

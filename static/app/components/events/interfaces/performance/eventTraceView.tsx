@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -18,12 +18,9 @@ import {type Event} from 'sentry/types/event';
 import {type Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
-import {TraceIssueEvent} from 'sentry/views/issueDetails/traceTimeline/traceIssue';
-import {useTraceTimelineEvents} from 'sentry/views/issueDetails/traceTimeline/useTraceTimelineEvents';
 import {IssuesTraceWaterfall} from 'sentry/views/performance/newTraceDetails/issuesTraceWaterfall';
 import {getTraceLinkForIssue} from 'sentry/views/performance/newTraceDetails/issuesTraceWaterfallOverlay';
 import {useIssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceApi/useIssuesTraceTree';
@@ -38,6 +35,8 @@ import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/trace
 import {useTraceEventView} from 'sentry/views/performance/newTraceDetails/useTraceEventView';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 import {useTraceStateAnalytics} from 'sentry/views/performance/newTraceDetails/useTraceStateAnalytics';
+
+import {TraceLinkedIssues} from './traceLinkedIssues';
 
 const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   drawer: {
@@ -121,22 +120,6 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
   );
 }
 
-function OneOtherIssueEvent({event}: {event: Event}) {
-  const {isLoading, oneOtherIssueEvent} = useTraceTimelineEvents({event});
-  useRouteAnalyticsParams(oneOtherIssueEvent ? {has_related_trace_issue: true} : {});
-
-  if (isLoading || !oneOtherIssueEvent) {
-    return null;
-  }
-
-  return (
-    <Fragment>
-      <span>{t('One other issue appears in the same trace.')}</span>
-      <TraceIssueEvent event={oneOtherIssueEvent} />
-    </Fragment>
-  );
-}
-
 const IssuesTraceContainer = styled('div')`
   position: relative;
 `;
@@ -200,7 +183,7 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
         </Grid>
       }
     >
-      <OneOtherIssueEvent event={event} />
+      <TraceLinkedIssues event={event} />
       <LazyRender observerOptions={ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS}>
         {hasTracePreviewFeature && (
           <TraceStateProvider
