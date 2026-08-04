@@ -67,6 +67,17 @@ describe('ConversationsTable', () => {
     expect(await screen.findByText('Summarize Q2 revenue trends')).toBeInTheDocument();
   });
 
+  it('renders a native link to the conversation detail', async () => {
+    mockConversations([{...BASE_CONVERSATION, title: 'Open in a new tab'}]);
+
+    renderTable();
+
+    expect(await screen.findByRole('link', {name: /Open in a new tab/})).toHaveAttribute(
+      'href',
+      expect.stringContaining('/conversations/conv-1/')
+    );
+  });
+
   it('falls back to the first input message when there is no title', async () => {
     mockConversations([
       {...BASE_CONVERSATION, title: null, firstInput: 'Debug failing auth middleware'},
