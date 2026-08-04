@@ -22,16 +22,24 @@ interface DisclosureProps
   expanded?: boolean;
   ref?: React.Ref<HTMLDivElement | null>;
   size?: 'xs' | 'sm' | 'md';
+  /**
+   * Visual treatment of the disclosure's content panel:
+   * - `default`: content is left-indented to align under the title.
+   * - `outline`: content is a bordered, rounded card sitting below the title.
+   */
+  variant?: 'default' | 'outline';
 }
 
-const DisclosureContext = createContext<
-  | (DisclosureAria & {
-      context: {size: NonNullable<DisclosureProps['size']>};
-      panelRef: React.RefObject<HTMLDivElement | null>;
-      state: DisclosureState;
-    })
-  | null
->(null);
+type DisclosureContextValue = DisclosureAria & {
+  context: {
+    size: NonNullable<DisclosureProps['size']>;
+    variant: NonNullable<DisclosureProps['variant']>;
+  };
+  panelRef: React.RefObject<HTMLDivElement | null>;
+  state: DisclosureState;
+};
+
+const DisclosureContext = createContext<DisclosureContextValue | null>(null);
 
 function useDisclosureContext() {
   const context = useContext(DisclosureContext);
@@ -44,6 +52,7 @@ function useDisclosureContext() {
 function DisclosureComponent({
   children,
   size = 'md',
+  variant = 'default',
   ref,
   onExpandedChange,
   ...props
@@ -64,7 +73,7 @@ function DisclosureComponent({
 
   return (
     <DisclosureContext.Provider
-      value={{buttonProps, panelProps, panelRef, state, context: {size}}}
+      value={{buttonProps, panelProps, panelRef, state, context: {size, variant}}}
     >
       <Stack data-disclosure align="start" ref={ref} {...props}>
         {children}
@@ -75,14 +84,52 @@ function DisclosureComponent({
 
 interface DisclosureTitleProps extends React.HTMLAttributes<HTMLButtonElement> {
   children?: NonNullable<React.ReactNode>;
+  /**
+   * Content rendered before the toggle (e.g. an avatar or brand mark). When
+   * provided, the chevron moves to sit after the title so the leading slot reads
+   * as the row's first element.
+   */
+  leadingItems?: React.ReactNode;
   trailingItems?: React.ReactNode;
 }
 
-function Title({children, trailingItems, ...rest}: DisclosureTitleProps) {
+function Title({children, leadingItems, trailingItems, ...rest}: DisclosureTitleProps) {
   const {buttonProps, state, context} = useDisclosureContext();
 
   const {isDisabled, ...restProps} = buttonProps;
   const {pressProps} = usePress({...restProps});
+
+  const chevron = <IconChevron direction={state.isExpanded ? 'down' : 'right'} />;
+
+  // With a leading slot the chevron trails the title, so the leading content is
+  // the visual anchor and the toggle still reads label-then-affordance.
+  if (leadingItems) {
+    return (
+      <Flex
+        justify="start"
+        gap={context.size}
+        align="center"
+        width="100%"
+        paddingRight="xs"
+        radius="md"
+      >
+        {leadingItems}
+        <StretchedButton
+          disabled={isDisabled}
+          size={context.size}
+          variant="transparent"
+          {...pressProps}
+          {...rest}
+        >
+          <Flex align="center" gap="xs">
+            {children}
+            {chevron}
+          </Flex>
+        </StretchedButton>
+        {trailingItems ?? null}
+      </Flex>
+    );
+  }
 
   return (
     <Flex
@@ -94,7 +141,7 @@ function Title({children, trailingItems, ...rest}: DisclosureTitleProps) {
       radius="md"
     >
       <StretchedButton
-        icon={<IconChevron direction={state.isExpanded ? 'down' : 'right'} />}
+        icon={chevron}
         disabled={isDisabled}
         size={context.size}
         variant="transparent"
@@ -118,8 +165,27 @@ interface DisclosureContentProps extends React.HTMLAttributes<HTMLElement> {
   children: React.ReactNode;
 }
 
+const OUTLINE_PADDING = {xs: 'sm', sm: 'md', md: 'lg'} as const;
+const OUTLINE_RADIUS = {xs: 'md', sm: 'lg', md: 'xl'} as const;
+
 function Content({children, ...props}: DisclosureContentProps) {
   const {panelProps, panelRef, context} = useDisclosureContext();
+
+  if (context.variant === 'outline') {
+    return (
+      <Container
+        ref={panelRef}
+        {...panelProps}
+        border="primary"
+        radius={OUTLINE_RADIUS[context.size]}
+        padding={OUTLINE_PADDING[context.size]}
+        width="100%"
+        {...props}
+      >
+        {children}
+      </Container>
+    );
+  }
 
   return (
     <AlignedContainer
