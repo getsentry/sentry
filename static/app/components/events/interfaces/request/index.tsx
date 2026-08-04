@@ -148,7 +148,7 @@ export function Request({data, event}: RequestProps) {
     parsedUrl.href = fullUrl;
   }
 
-  let actions: React.ReactNode | null = null;
+  let actions: React.ReactNode = null;
 
   const canGenerateCurlCommand = !isPartial && fullUrl;
 
