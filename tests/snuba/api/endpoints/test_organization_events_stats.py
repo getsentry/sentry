@@ -199,6 +199,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
 
     def test_errors_dataset_has_trace(self) -> None:
+        """Only traced events should count, without treating an empty value as a trace UUID."""
         traced_event = self.store_event(
             data={
                 "event_id": uuid4().hex,
