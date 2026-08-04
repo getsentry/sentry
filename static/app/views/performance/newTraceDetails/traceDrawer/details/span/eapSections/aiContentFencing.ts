@@ -27,25 +27,53 @@ interface ContentDetector {
   name: string;
 }
 
-const HTML_PAIR_REGEX = /<([a-zA-Z][\w-]*)\b[^>]*>[\s\S]*?<\/\1\s*>/g;
+// Matches a single opening or self-closing HTML tag; group 1 is the tag name.
+// Closing tags (`</tag>`) don't match because a `/` can't follow `<` here.
+const HTML_OPEN_REGEX = /<([a-zA-Z][\w-]*)\b[^>]*>/g;
 
 /** Detects balanced HTML tag pairs whose tag name is a known HTML element. */
 const htmlDetector: ContentDetector = {
   name: 'html',
   detect(text) {
     const blocks: DetectedBlock[] = [];
-    for (const match of text.matchAll(HTML_PAIR_REGEX)) {
-      if (isKnownHtmlTag(match[1]!)) {
-        blocks.push({
-          start: match.index,
-          end: match.index + match[0].length,
-          language: 'html',
-        });
+    for (const match of text.matchAll(HTML_OPEN_REGEX)) {
+      const tagName = match[1]!;
+      // Skip non-HTML tags and self-closing tags, which have no closing pair.
+      if (!isKnownHtmlTag(tagName) || match[0].endsWith('/>')) {
+        continue;
       }
+      const end = findHtmlPairEnd(text, tagName, match.index + match[0].length);
+      if (end === -1) {
+        continue;
+      }
+      blocks.push({start: match.index, end, language: 'html'});
     }
     return blocks;
   },
 };
+
+/**
+ * Given an opening `<tagName>` whose `>` ends at `openEnd`, returns the offset
+ * just past the `</tagName>` that closes it, counting nested same-name tags so
+ * `<div><div>…</div></div>` pairs correctly. Returns -1 if unbalanced.
+ */
+function findHtmlPairEnd(text: string, tagName: string, openEnd: number): number {
+  // Tag names only ever contain `[a-zA-Z][\w-]*`, so they are regex-safe.
+  const tagRegex = new RegExp(`<(/?)${tagName}\\b[^>]*?(/?)>`, 'gi');
+  tagRegex.lastIndex = openEnd;
+  let depth = 1;
+  for (let m = tagRegex.exec(text); m; m = tagRegex.exec(text)) {
+    if (m[1] === '/') {
+      depth--;
+      if (depth === 0) {
+        return m.index + m[0].length;
+      }
+    } else if (m[2] !== '/') {
+      depth++; // nested opening tag of the same name
+    }
+  }
+  return -1;
+}
 
 /** Detects balanced `{...}` / `[...]` runs that parse as a non-trivial object or array. */
 const jsonDetector: ContentDetector = {

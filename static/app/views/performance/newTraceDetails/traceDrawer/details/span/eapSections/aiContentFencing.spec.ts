@@ -76,6 +76,54 @@ ${FENCE}
 Done.`);
   });
 
+  it('fences nested same-name HTML tags as one block, not truncated', () => {
+    const input = '<div><div>inner</div></div>';
+    expect(fenceContent(input)).toBe(`
+
+${FENCE}html
+${input}
+${FENCE}
+
+`);
+  });
+
+  it('fences a nested list without orphaning closing tags', () => {
+    const input = `<ul>
+  <li>one
+    <ul>
+      <li>nested</li>
+    </ul>
+  </li>
+</ul>`;
+    expect(fenceContent(input)).toBe(`
+
+${FENCE}html
+${input}
+${FENCE}
+
+`);
+  });
+
+  it('keeps a self-closing child inside its enclosing HTML block', () => {
+    const input = '<div>one<br/>two</div>';
+    expect(fenceContent(input)).toBe(`
+
+${FENCE}html
+${input}
+${FENCE}
+
+`);
+  });
+
+  it('does not fence a standalone self-closing tag', () => {
+    expect(fenceContent('<br/>')).toBe('<br/>');
+  });
+
+  it('does not fence a standalone void element', () => {
+    const input = '<img src="x">';
+    expect(fenceContent(input)).toBe(input);
+  });
+
   it('wraps JSON that has prose beside it in inline code', () => {
     expect(fenceContent('the payload {"a":1,"b":2} failed')).toBe(
       'the payload `{"a":1,"b":2}` failed'
