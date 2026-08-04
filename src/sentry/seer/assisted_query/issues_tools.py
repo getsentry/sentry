@@ -730,7 +730,7 @@ def execute_issues_query(
             detail = e.body.get("detail") if isinstance(e.body, dict) else None
             error_detail = str(detail) if detail is not None else str(e.body)
             logger.warning(
-                "execute_issues_query: validation failed",
+                "execute_issues_query: bad request",
                 extra={"org_id": organization.id, "error_detail": error_detail},
             )
             return ExecuteQueryErrorResponse(error=error_detail)

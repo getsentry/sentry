@@ -240,7 +240,7 @@ def _validate_events_query_params(
         if isinstance(resp.data, dict) and resp.data.get("valid") is False:
             error_detail = _format_events_query_validation_errors(resp.data)
             logger.warning(
-                "execute_table_query: validation failed",
+                "execute_table_query: bad request",
                 extra={"org_id": organization.id, "error_detail": error_detail},
             )
             return ExecuteQueryErrorResponse(error=error_detail)
@@ -249,7 +249,7 @@ def _validate_events_query_params(
         if e.status_code == 400 and isinstance(e.body, dict) and "valid" in e.body:
             error_detail = _format_events_query_validation_errors(e.body)
             logger.warning(
-                "execute_table_query: validation failed",
+                "execute_table_query: bad request",
                 extra={"org_id": organization.id, "error_detail": error_detail},
             )
             return ExecuteQueryErrorResponse(error=error_detail)
@@ -380,7 +380,7 @@ def execute_table_query(
             detail = e.body.get("detail") if isinstance(e.body, dict) else None
             error_detail = str(detail) if detail is not None else str(e.body)
             logger.warning(
-                "execute_table_query: validation failed",
+                "execute_table_query: bad request",
                 extra={"org_id": org_id, "error_detail": error_detail},
             )
             return ExecuteQueryErrorResponse(error=error_detail)
@@ -475,7 +475,7 @@ def execute_timeseries_query(
             detail = e.body.get("detail") if isinstance(e.body, dict) else None
             error_detail = str(detail) if detail is not None else str(e.body)
             logger.warning(
-                "execute_timeseries_query: validation failed",
+                "execute_timeseries_query: bad request",
                 extra={"org_id": org_id, "error_detail": error_detail},
             )
             return ExecuteTimeseriesQueryErrorResponse(seer_error_detail=error_detail)
@@ -578,7 +578,7 @@ def execute_trace_table_query(
             detail = e.body.get("detail") if isinstance(e.body, dict) else None
             error_detail = str(detail) if detail is not None else str(e.body)
             logger.warning(
-                "execute_trace_table_query: validation failed",
+                "execute_trace_table_query: bad request",
                 extra={"org_id": organization_id, "error_detail": error_detail},
             )
             return ExecuteQueryErrorResponse(error=error_detail)
@@ -698,7 +698,7 @@ def execute_replays_query(
     except (InvalidParams, InvalidSearchQuery, SentryBadRequest, BadRequest, ParseError) as e:
         error_detail = str(e)
         logger.warning(
-            "execute_replays_query: validation failed",
+            "execute_replays_query: bad request",
             extra={"org_id": organization_id, "query": query, "error_detail": error_detail},
         )
         return ExecuteQueryErrorResponse(error=error_detail)
