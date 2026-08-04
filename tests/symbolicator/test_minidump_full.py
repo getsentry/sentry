@@ -1,5 +1,7 @@
 import zipfile
 from io import BytesIO
+from random import Random
+from tempfile import NamedTemporaryFile
 from unittest.mock import patch
 
 import pytest
@@ -7,14 +9,16 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
+from sentry.models.debugfile import create_dif_from_file
 from sentry.models.eventattachment import EventAttachment
+from sentry.objectstore import get_debug_files_session
 from sentry.services import eventstore
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.objectstore import debug_files_test_both_backends
 from sentry.testutils.relay import RelayStoreHelper
-from sentry.testutils.skips import requires_kafka, requires_symbolicator
+from sentry.testutils.skips import requires_kafka, requires_objectstore, requires_symbolicator
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils.safe import get_path
 from tests.symbolicator import insta_snapshot_native_stacktrace_data, redact_location
@@ -30,6 +34,13 @@ from tests.symbolicator import insta_snapshot_native_stacktrace_data, redact_loc
 
 
 pytestmark = [requires_symbolicator, requires_kafka]
+
+
+# Symbolicator's first range request is 128 MiB. This forces it to download
+# the remainder through additional range requests.
+SYMBOLICATOR_RANGE_REQUEST_SIZE = 3 * 128 * 1024 * 1024 + 1
+DEBUG_FILE_SIZE = SYMBOLICATOR_RANGE_REQUEST_SIZE + 64 * 1024
+PADDING_CHUNK_SIZE = 8 * 1024 * 1024
 
 
 @pytest.mark.snuba
@@ -210,3 +221,74 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
 
         thread_name = get_path(event.data, "threads", "values", 1, "name")
         assert thread_name == "sentry-http"
+
+
+@pytest.mark.snuba
+@thread_leak_allowlist(reason="kafka testutils", issue=97046)
+@requires_objectstore
+class SymbolicatorLargeDebugFileIntegrationTest(RelayStoreHelper, TransactionTestCase):
+    @pytest.fixture(autouse=True)
+    def initialize(self, live_server, reset_snuba):
+        self.project.update_option("sentry:builtin_symbol_sources", [])
+
+        with (
+            patch("sentry.auth.system.is_internal_ip", return_value=True),
+            self.options({"system.url-prefix": live_server.url}),
+        ):
+            yield
+
+    def test_symbolicates_large_compressed_debug_file(self) -> None:
+        with self.feature(
+            {
+                "organizations:objectstore-debugfiles-write": True,
+                "organizations:objectstore-debugfiles-read": True,
+                "organizations:objectstore-debugfiles-direct-read": True,
+            }
+        ):
+            session = get_debug_files_session(self.project.organization_id, self.project.id)
+
+            with NamedTemporaryFile(suffix=".sym") as large_symbol_file:
+                with open(get_fixture_path("native", "windows.sym"), "rb") as source:
+                    large_symbol_file.write(source.read())
+
+                # Use unknown Breakpad INFO records with deterministic, high-entropy contents.
+                # They are valid but ignored by the parser, and do not shrink under zstd.
+                random = Random(0)
+                while large_symbol_file.tell() < DEBUG_FILE_SIZE:
+                    remaining = DEBUG_FILE_SIZE - large_symbol_file.tell()
+                    if remaining <= len(b"INFO \n"):
+                        large_symbol_file.write(b"\0" * remaining)
+                        break
+
+                    chunk_size = min(PADDING_CHUNK_SIZE, remaining - len(b"INFO \n"))
+                    padding = (
+                        random.randbytes(chunk_size).replace(b"\n", b"\0").replace(b"\r", b"\0")
+                    )
+                    large_symbol_file.write(b"INFO ")
+                    large_symbol_file.write(padding)
+                    large_symbol_file.write(b"\n")
+                large_symbol_file.flush()
+
+                debug_file = self.create_file(name="crash.sym", type="project.dif")
+                large_symbol_file.seek(0)
+                debug_file.putfile(large_symbol_file)
+                dif, created = create_dif_from_file(
+                    self.project, debug_file, large_symbol_file.name
+                )
+                assert created
+                assert dif.get_file_size() == DEBUG_FILE_SIZE
+                assert dif.storage_path is not None
+
+                metadata = session.head(dif.storage_path)
+                assert metadata is not None
+                assert metadata.compression == "zstd"
+                assert metadata.size is not None
+                assert metadata.size > SYMBOLICATOR_RANGE_REQUEST_SIZE
+
+            with open(get_fixture_path("native", "windows.dmp"), "rb") as minidump:
+                event = self.post_and_retrieve_minidump({"upload_file_minidump": minidump}, {})
+
+        candidate = event.data["debug_meta"]["images"][0]["candidates"][0]
+        assert candidate["download"]["status"] == "ok"
+        assert candidate["debug"]["status"] == "ok"
+        assert candidate["unwind"]["status"] == "ok"
