@@ -165,6 +165,30 @@ describe('Dashboards > Detail', () => {
     );
   });
 
+  it('defaults to recently viewed sort with dashboards-user-last-visited', async () => {
+    const org = OrganizationFixture({
+      features: [...FEATURES, 'dashboards-user-last-visited'],
+    });
+    mockUseNavigate.mockReturnValue(jest.fn());
+
+    const request = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [DashboardListItemFixture({title: 'Test Dashboard'})],
+    });
+
+    render(<ManageDashboards />, {
+      organization: org,
+    });
+
+    expect(await screen.findByText('Test Dashboard')).toBeInTheDocument();
+    expect(request).toHaveBeenCalledWith(
+      '/organizations/org-slug/dashboards/',
+      expect.objectContaining({
+        query: expect.objectContaining({sort: 'recentlyViewed'}),
+      })
+    );
+  });
+
   it('can search', async () => {
     const org = OrganizationFixture({features: FEATURES});
     const mockNavigate = jest.fn();

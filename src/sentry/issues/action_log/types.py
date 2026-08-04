@@ -146,6 +146,7 @@ class ActionSource(StrEnum):
     PAGERDUTY = "pagerduty"
     OPSGENIE = "opsgenie"
     PERFORCE = "perforce"
+    EMAIL = "email"
     UNKNOWN = (
         "unknown"  # fallback when ActionContext is missing; indicates a gap in instrumentation
     )
@@ -332,6 +333,8 @@ class CommentAction(GroupAction):
 class CommentEditAction(GroupAction):
     user_visible = True
     comment_id: int
+    text: Optional[str] = None
+    mentions: Optional[list[SentryActorRef]] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -549,6 +552,7 @@ class GroupActionLogPayload(TypedDict):
     data: dict[str, Any]
     force_async_derived: bool
     idempotency_key: NotRequired[str]
+    date_added: NotRequired[str]
 
 
 class SetPublicAction(GroupAction):
@@ -585,6 +589,7 @@ class CreateIssueAction(GroupAction):
 class SetResolvedInReleaseAction(GroupAction):
     user_visible = True
     version: Optional[str] = None
+    current_release_version: Optional[str] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -774,6 +779,8 @@ class SeerPRCreatedAction(GroupAction):
 
 class SeerIterationStartedAction(GroupAction):
     user_visible = True
+    run_id: Optional[int] = None
+    referrer: Optional[str] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:

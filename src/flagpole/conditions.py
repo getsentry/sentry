@@ -9,9 +9,18 @@ from flagpole.evaluation_context import EvaluationContext
 
 class ConditionOperatorKind(str, Enum):
     IN = "in"
-    """Provided a list of values, check if the property value is in the list ov values"""
+    """
+    Provided a list of values, check if the property value is in the list of values.
+
+    When the property is itself a list, the condition matches if any of its
+    entries appears in the list of values.
+    """
 
     NOT_IN = "not_in"
+    """
+    The negation of IN: true when the property value is absent from the list of
+    values. A list-valued property must have no entry in common with it.
+    """
 
     CONTAINS = "contains"
     """Provided a single value, check if the property (a list) is included"""
@@ -87,15 +96,28 @@ class ConditionBase:
                 f"'In' condition value must be a list, but was provided a '{get_type_name(self.value)}'"
                 + f" of segment {segment_name}"
             )
-        if isinstance(condition_property, (list, dict)):
+        if isinstance(condition_property, dict):
             raise ConditionTypeMismatchException(
-                "'In' condition property value must be str | int | float | bool | None, but was provided a"
-                + f"'{get_type_name(self.value)}' of segment {segment_name}"
+                "'In' condition property value must be str | int | float | bool | None, or a list"
+                + f" thereof, but was provided a '{get_type_name(condition_property)}'"
+                + f" of segment {segment_name}"
             )
+
+        candidate_values = create_case_insensitive_set_from_list(self.value)
+
+        # A list-valued property holds several names for one entity, so the
+        # condition matches when the two sets overlap. Plan families use this:
+        # an enterprise subscription reports both "enterprise business" and
+        # "business", letting a config name either one.
+        if isinstance(condition_property, list):
+            return bool(
+                create_case_insensitive_set_from_list(condition_property) & candidate_values
+            )
+
         if isinstance(condition_property, str):
             condition_property = condition_property.lower()
 
-        return condition_property in create_case_insensitive_set_from_list(self.value)
+        return condition_property in candidate_values
 
     def _evaluate_contains(self, condition_property: Any, segment_name: str) -> bool:
         if not isinstance(condition_property, list):

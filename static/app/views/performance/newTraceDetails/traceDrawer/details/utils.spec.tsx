@@ -30,6 +30,12 @@ describe('getAttributeFilterSearch', () => {
     );
   });
 
+  it('quotes attribute keys containing colons', () => {
+    expect(getAttributeFilterSearch('imaginary.attribute:made_up_key', 'asdf')).toBe(
+      '"imaginary.attribute:made_up_key":asdf'
+    );
+  });
+
   it('quotes JSON array attribute values as a single literal', () => {
     expect(
       getAttributeFilterSearch(
@@ -100,6 +106,19 @@ describe('getSearchInExploreTarget', () => {
     );
 
     expect(target.query.query).toBe('app.device:""');
+  });
+
+  it('quotes negated attribute keys containing colons', () => {
+    const target = getSearchInExploreTarget(
+      organization,
+      location,
+      '1',
+      'imaginary.attribute:made_up_key',
+      'asdf',
+      TraceDrawerActionKind.EXCLUDE
+    );
+
+    expect(target.query.query).toBe('!"imaginary.attribute:made_up_key":asdf');
   });
 });
 

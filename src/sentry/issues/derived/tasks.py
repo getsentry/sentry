@@ -1,8 +1,18 @@
+from __future__ import annotations
+
 import logging
 import time
 from datetime import datetime, timedelta, timezone
+from typing import TYPE_CHECKING
+
+from django.db.models import Exists, OuterRef, Q
 
 from sentry.silo.base import SiloMode
+
+if TYPE_CHECKING:
+    from sentry.db.models.manager.base_query_set import BaseQuerySet
+    from sentry.models.group import Group
+
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.utils import metrics
@@ -22,18 +32,38 @@ _MAX_GENERATION_RUNS = 20
 _MAX_PROJECT_GROUPS = 10_000
 
 
+def _stale_pipeline_filter(qs: BaseQuerySet[Group], pipeline_hash: str) -> BaseQuerySet[Group]:
+    """Filter a Group queryset to only groups with a stale or NULL pipeline_hash."""
+    from sentry.issues.models.groupderiveddata import GroupDerivedData
+
+    return qs.filter(
+        Exists(
+            GroupDerivedData.objects.filter(
+                group_id=OuterRef("id"),
+            ).exclude(
+                pipeline_hash=pipeline_hash,
+            )
+        )
+    )
+
+
 @instrumented_task(
     name="sentry.issues.derived.tasks.process_group_log_task",
     namespace=issues_tasks,
     silo_mode=SiloMode.CELL,
 )
-def process_group_log_task(group_id: int, **kwargs: object) -> None:
+def process_group_log_task(group_id: int, incremental: bool = False, **kwargs: object) -> None:
     """Drain all pending action log entries for a single group into its derived data."""
-    from sentry.issues.derived.processing import process_group_log
+    from sentry.issues.derived.processing import (
+        DerivedMetrics,
+        ProcessingStrategy,
+        process_group_log,
+    )
     from sentry.models.group import Group
 
+    derived_metrics = DerivedMetrics(mode=ProcessingStrategy.ASYNC, incremental=incremental)
     try:
-        process_group_log(group_id)
+        process_group_log(group_id, derived_metrics=derived_metrics)
     except Group.DoesNotExist:
         logger.info("process_group_log_task.group_not_found", extra={"group_id": group_id})
 
@@ -121,15 +151,19 @@ def generate_group_derived_data(
     namespace=issues_tasks,
     silo_mode=SiloMode.CELL,
 )
-def process_project_derived_data(project_id: int, **kwargs: object) -> None:
+def process_project_derived_data(
+    project_id: int, *, use_pipeline_hash: bool = False, **kwargs: object
+) -> None:
     """Build derived data for all unprocessed groups in a project.
 
     Finds groups without a GroupDerivedData row, partitions them into
     ID ranges, and fans out a batch task for each range.
-    """
-    from django.db.models import Exists, OuterRef
 
+    When *use_pipeline_hash* is True, also includes groups whose
+    GroupDerivedData has a stale pipeline_hash.
+    """
     from sentry import options
+    from sentry.issues.derived.processing import PIPELINE
     from sentry.issues.models.groupderiveddata import GroupDerivedData
     from sentry.models.group import Group
 
@@ -137,9 +171,21 @@ def process_project_derived_data(project_id: int, **kwargs: object) -> None:
     max_tasks = options.get("issues.derived.project-max-tasks")
 
     # TODO: support very large projects via paginated iteration
+    no_derived = ~Exists(GroupDerivedData.objects.filter(group_id=OuterRef("id")))
+    if use_pipeline_hash:
+        stale_hash = Exists(
+            GroupDerivedData.objects.filter(
+                group_id=OuterRef("id"),
+            ).exclude(
+                pipeline_hash=PIPELINE.pipeline_hash,
+            )
+        )
+        condition = Q(no_derived) | Q(stale_hash)
+    else:
+        condition = Q(no_derived)
+
     group_ids = list(
-        Group.objects.filter(project_id=project_id)
-        .exclude(Exists(GroupDerivedData.objects.filter(group_id=OuterRef("id"))))
+        Group.objects.filter(condition, project_id=project_id)
         .order_by("id")
         .values_list("id", flat=True)[:_MAX_PROJECT_GROUPS]
     )
@@ -180,6 +226,7 @@ def process_project_derived_data(project_id: int, **kwargs: object) -> None:
             project_id=project_id,
             group_id_start=start,
             group_id_end=end,
+            use_pipeline_hash=use_pipeline_hash,
         )
 
     logger.info(
@@ -202,15 +249,27 @@ def process_project_derived_data_batch(
     project_id: int,
     group_id_start: int,
     group_id_end: int,
+    *,
+    use_pipeline_hash: bool = False,
     **kwargs: object,
 ) -> None:
     """Process derived data for groups in the ID range [group_id_start, group_id_end).
 
     Reschedules itself with the remaining range if the timeout is reached.
+
+    When *use_pipeline_hash* is True, deletes any GroupDerivedData row with
+    a stale pipeline_hash before processing, forcing a full rebuild.
     """
     from taskbroker_client.state import current_task
 
-    from sentry.issues.derived.processing import GroupLogTimeout, process_group_log
+    from sentry.issues.derived.processing import (
+        PIPELINE,
+        DerivedMetrics,
+        GroupLogTimeout,
+        ProcessingStrategy,
+        process_group_log,
+    )
+    from sentry.issues.models.groupderiveddata import GroupDerivedData
     from sentry.models.group import Group
     from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 
@@ -237,13 +296,22 @@ def process_project_derived_data_batch(
         .values_list("id", flat=True)
     )
 
+    if use_pipeline_hash:
+        GroupDerivedData.objects.filter(group_id__in=group_ids).exclude(
+            pipeline_hash=PIPELINE.pipeline_hash
+        ).delete()
+
     processed = 0
     rescheduled = False
 
     for group_id in group_ids:
         remaining = timedelta(seconds=max(0, timeout_seconds - (time.monotonic() - start)))
         try:
-            process_group_log(group_id, timeout=remaining)
+            process_group_log(
+                group_id,
+                timeout=remaining,
+                derived_metrics=DerivedMetrics(mode=ProcessingStrategy.ASYNC, incremental=False),
+            )
             processed += 1
         except Group.DoesNotExist:
             logger.info(
@@ -261,6 +329,7 @@ def process_project_derived_data_batch(
                 project_id=project_id,
                 group_id_start=group_id,
                 group_id_end=group_id_end,
+                use_pipeline_hash=use_pipeline_hash,
             )
             if activation_id:
                 mark_spawned(_BATCH_TASK_KEY, activation_id)
@@ -277,6 +346,7 @@ def process_project_derived_data_batch(
                 project_id=project_id,
                 group_id_start=group_id + 1,
                 group_id_end=group_id_end,
+                use_pipeline_hash=use_pipeline_hash,
             )
             if activation_id:
                 mark_spawned(_BATCH_TASK_KEY, activation_id)
@@ -311,25 +381,30 @@ def process_project_derived_data_batch(
     namespace=issues_tasks,
     silo_mode=SiloMode.CELL,
 )
-def generate_project_derived_data(project_id: int, **kwargs: object) -> None:
-    """Generate derived data for every group in a project.
+def generate_project_derived_data(
+    project_id: int, *, stale_only: bool = False, **kwargs: object
+) -> None:
+    """Generate derived data for groups in a project via build-and-promote.
 
-    Partitions groups into ID ranges and fans out a batch task for each
-    range. Each batch calls ``build_and_promote_derived_data`` per group,
-    which replaces existing rows via CAS while they continue serving reads.
+    Fans out ``build_and_promote_derived_data`` batches, which replace
+    existing rows via CAS without deleting them.
+
+    When *stale_only* is True, only groups with a ``GroupDerivedData``
+    row whose ``pipeline_hash`` is outdated or NULL are included.
+    Groups without a row are not affected.
     """
     from sentry import options
+    from sentry.issues.derived.processing import PIPELINE
     from sentry.models.group import Group
 
     batch_size = options.get("issues.derived.project-batch-size")
     max_tasks = options.get("issues.derived.project-max-tasks")
 
     # TODO: support very large projects via paginated iteration
-    group_ids = list(
-        Group.objects.filter(project_id=project_id)
-        .order_by("id")
-        .values_list("id", flat=True)[:_MAX_PROJECT_GROUPS]
-    )
+    qs = Group.objects.filter(project_id=project_id)
+    if stale_only:
+        qs = _stale_pipeline_filter(qs, PIPELINE.pipeline_hash)
+    group_ids = list(qs.order_by("id").values_list("id", flat=True)[:_MAX_PROJECT_GROUPS])
 
     if not group_ids:
         return
@@ -363,6 +438,7 @@ def generate_project_derived_data(project_id: int, **kwargs: object) -> None:
             project_id=project_id,
             group_id_start=start,
             group_id_end=end,
+            stale_only=stale_only,
         )
 
     logger.info(
@@ -387,6 +463,8 @@ def generate_project_derived_data_batch(
     group_id_end: int,
     resume_generated_at: str | None = None,
     resume_pipeline_hash: str | None = None,
+    *,
+    stale_only: bool = False,
     **kwargs: object,
 ) -> None:
     """Generate derived data for groups in [group_id_start, group_id_end).
@@ -395,10 +473,14 @@ def generate_project_derived_data_batch(
     remaining range on per-group or batch timeout. On per-group timeout,
     the generation_id is passed through so the next run resumes from
     cached partial progress.
+
+    When *stale_only* is True, only groups with a ``GroupDerivedData``
+    row whose ``pipeline_hash`` is outdated or NULL are processed.
     """
     from taskbroker_client.state import current_task
 
     from sentry.issues.derived.processing import (
+        PIPELINE,
         GenerationId,
         GroupLogTimeout,
         PromotionFailed,
@@ -432,15 +514,14 @@ def generate_project_derived_data_batch(
     timeout_seconds = BATCH_RETRIGGER_TIMEOUT.total_seconds()
     start = time.monotonic()
 
-    group_ids = list(
-        Group.objects.filter(
-            project_id=project_id,
-            id__gte=group_id_start,
-            id__lt=group_id_end,
-        )
-        .order_by("id")
-        .values_list("id", flat=True)
+    qs = Group.objects.filter(
+        project_id=project_id,
+        id__gte=group_id_start,
+        id__lt=group_id_end,
     )
+    if stale_only:
+        qs = _stale_pipeline_filter(qs, PIPELINE.pipeline_hash)
+    group_ids = list(qs.order_by("id").values_list("id", flat=True))
 
     processed: dict[str, int] = {}
     rescheduled = False
@@ -476,6 +557,7 @@ def generate_project_derived_data_batch(
                 group_id_end=group_id_end,
                 resume_generated_at=gen_id.generated_at.isoformat() if gen_id else None,
                 resume_pipeline_hash=gen_id.pipeline_hash if gen_id else None,
+                stale_only=stale_only,
             )
             if activation_id:
                 mark_spawned(_GENERATE_BATCH_TASK_KEY, activation_id)
@@ -492,6 +574,7 @@ def generate_project_derived_data_batch(
                 project_id=project_id,
                 group_id_start=group_id + 1,
                 group_id_end=group_id_end,
+                stale_only=stale_only,
             )
             if activation_id:
                 mark_spawned(_GENERATE_BATCH_TASK_KEY, activation_id)
@@ -514,5 +597,57 @@ def generate_project_derived_data_batch(
             "total": len(group_ids),
             "rescheduled": rescheduled,
             "elapsed": time.monotonic() - start,
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# Self-healing: rebuild groups with outdated pipeline hashes
+# ---------------------------------------------------------------------------
+
+
+@instrumented_task(
+    name="sentry.issues.derived.tasks.heal_stale_derived_data",
+    namespace=issues_tasks,
+    silo_mode=SiloMode.CELL,
+)
+def heal_stale_derived_data(**kwargs: object) -> None:
+    """Find projects with stale GroupDerivedData and rebuild them.
+
+    Stale means having a ``GroupDerivedData`` row whose ``pipeline_hash``
+    is NULL or doesn't match the current pipeline.
+
+    Schedules ``generate_project_derived_data(stale_only=True)`` for up
+    to N projects, which replaces rows via CAS without deleting them.
+    """
+    from sentry import options
+    from sentry.issues.derived.processing import PIPELINE
+    from sentry.issues.models.groupderiveddata import GroupDerivedData
+
+    if not options.get("issues.derived.heal-enabled"):
+        logger.info("heal_stale_derived_data.disabled")
+        return
+
+    limit = options.get("issues.derived.heal-project-limit")
+    current_hash = PIPELINE.pipeline_hash
+
+    project_ids = list(
+        GroupDerivedData.objects.exclude(pipeline_hash=current_hash)
+        .values_list("group__project_id", flat=True)
+        .distinct()[:limit]
+    )
+
+    if not project_ids:
+        logger.info("heal_stale_derived_data.nothing_to_heal")
+        return
+
+    for project_id in project_ids:
+        generate_project_derived_data.delay(project_id=project_id, stale_only=True)
+
+    logger.info(
+        "heal_stale_derived_data.scheduled",
+        extra={
+            "project_count": len(project_ids),
+            "pipeline_hash": current_hash,
         },
     )

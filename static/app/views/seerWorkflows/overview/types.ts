@@ -1,4 +1,6 @@
+import type {Actor} from 'sentry/types/core';
 import type {Level} from 'sentry/types/event';
+import type {Group, PriorityLevel} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/platform';
 
 // Shared staleTime for the overview's issue/run/state queries.
@@ -91,16 +93,22 @@ export interface SeerRun {
 
 // One issue from the issue stream, as the overview cards consume it.
 export interface OverviewIssue {
+  assignedTo: Actor | null;
   // Event count over the stats period; the endpoint returns it as a string.
   count: string;
   id: string;
+  issueCategory: Group['issueCategory'];
+  issueType: Group['issueType'];
   lastSeen: string;
   level: Level;
-  project: {slug: string; platform?: PlatformKey};
+  priority: PriorityLevel | null;
+  priorityLockedAt: string | null;
+  project: {id: string; slug: string; platform?: PlatformKey};
   seerAutofixLastTriggered: string | null;
   shortId: string;
   title: string;
   userCount: number;
+  owners?: Group['owners'];
 }
 
 // How the run was started. Sources without a mapping render a fallback
@@ -140,8 +148,11 @@ export interface PatchStats {
 // One issue + its latest autofix run, flattened for the overview cards.
 export interface OverviewRow {
   analysis: RunAnalysisEntry[];
+  assignedTo: Actor | null;
   eventCount: number;
   id: string;
+  issueCategory: Group['issueCategory'];
+  issueType: Group['issueType'];
   // Most recent Seer activity on the run (state update, trigger, or
   // issue-level last-trigger timestamp); null when the run has no Seer-side
   // timestamp, which hides the card's Seer-activity TimeSince.
@@ -150,7 +161,9 @@ export interface OverviewRow {
   // "last seen" TimeSince.
   lastSeen: string;
   level: Level;
-  project: {slug: string; platform?: PlatformKey};
+  priority: PriorityLevel | null;
+  priorityLockedAt: string | null;
+  project: {id: string; slug: string; platform?: PlatformKey};
   // Live run status, mirrored straight from the state payload; drives the
   // transient overlays only. Null until the state request resolves.
   runStatus: RunStatus | null;
@@ -165,6 +178,7 @@ export interface OverviewRow {
   // Plain-language title from the run's root-cause answer (see runQuestions).
   // Falls back to the raw issue title.
   headline?: string;
+  owners?: Group['owners'];
   patchStats?: PatchStats;
   // The question autofix paused on, when status is NEED_MORE_INFORMATION and
   // the pending input payload carries readable text.

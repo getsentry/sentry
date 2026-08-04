@@ -1,4 +1,5 @@
 import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {IssueCategory, IssueType, PriorityLevel} from 'sentry/types/group';
 import {
   buildAnalysis,
   buildOverviewRow,
@@ -80,11 +81,16 @@ function makeRun(overrides: Partial<SeerRun> = {}): SeerRun {
 
 function makeIssue(overrides: Partial<OverviewIssue> = {}): OverviewIssue {
   return {
+    assignedTo: null,
     count: '100',
     id: '2',
+    issueCategory: IssueCategory.ERROR,
+    issueType: IssueType.ERROR,
     lastSeen: '2026-07-20T12:00:00Z',
     level: 'error',
-    project: {slug: 'proj'},
+    priority: PriorityLevel.MEDIUM,
+    priorityLockedAt: null,
+    project: {id: '1', slug: 'proj'},
     seerAutofixLastTriggered: null,
     shortId: 'PROJ-1',
     title: 'Boom',
@@ -94,6 +100,30 @@ function makeIssue(overrides: Partial<OverviewIssue> = {}): OverviewIssue {
 }
 
 describe('buildOverviewRow', () => {
+  it('preserves priority metadata from the issue response', () => {
+    const row = buildOverviewRow(
+      makeIssue({
+        issueCategory: IssueCategory.PERFORMANCE,
+        issueType: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+        priority: null,
+        priorityLockedAt: '2026-07-23T12:00:00Z',
+      }),
+      null,
+      null,
+      false,
+      '90d'
+    );
+
+    expect(row).toEqual(
+      expect.objectContaining({
+        issueCategory: IssueCategory.PERFORMANCE,
+        issueType: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+        priority: null,
+        priorityLockedAt: '2026-07-23T12:00:00Z',
+      })
+    );
+  });
+
   it('derives lastActivityAt from Seer-side timestamps, ignoring lastSeen', () => {
     // The issue fired after every Seer signal — the activity time must still
     // be the newest Seer timestamp, or it would duplicate the last-seen time

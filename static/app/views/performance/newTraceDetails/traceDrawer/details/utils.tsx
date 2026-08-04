@@ -11,6 +11,7 @@ import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
+import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {
   SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS,
   SENTRY_SEARCHABLE_SPAN_STRING_TAGS,
@@ -114,7 +115,16 @@ export function findSpanAttributeValue(
   attributes: TraceItemResponseAttribute[],
   attributeName: string
 ) {
-  return attributes.find(attribute => attribute.name === attributeName)?.value.toString();
+  // An attribute whose stored key collides with a known public alias comes back
+  // wrapped as `tags[name,type]`, and older data is prefixed with `sentry.`.
+  // prettifyAttributeName reduces both forms to the plain public alias, but an
+  // exact match wins so that a span carrying both forms keeps resolving to the
+  // same attribute it did before.
+  const attribute =
+    attributes.find(({name}) => name === attributeName) ??
+    attributes.find(({name}) => prettifyAttributeName(name) === attributeName);
+
+  return attribute?.value.toString();
 }
 
 // Sort attributes so that span.* attributes are at the beginning and

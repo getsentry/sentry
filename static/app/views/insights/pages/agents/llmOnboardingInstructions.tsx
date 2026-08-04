@@ -1,8 +1,5 @@
-import {Fragment} from 'react';
-
 import {Button} from '@sentry/scraps/button';
 
-import {useCopySetupInstructionsEnabled} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {IconCopy} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -10,36 +7,23 @@ import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function ManualInstrumentationNote({docsLink}: {docsLink: React.ReactNode}) {
-  const copyEnabled = useCopySetupInstructionsEnabled();
-
-  if (copyEnabled) {
-    return (
-      <p>
-        {tct(
-          'Then follow the [link:manual instrumentation guide] to instrument your AI calls, or click [bold:Copy instructions] to have an AI coding agent do it for you.',
-          {link: docsLink, bold: <strong />}
-        )}
-      </p>
-    );
-  }
-
   return (
-    <Fragment>
-      <p>
-        {tct(
-          'Then follow the [link:manual instrumentation guide] to instrument your AI calls, or use an AI coding agent to do it for you.',
-          {link: docsLink}
-        )}
-      </p>
-      <CopyLLMPromptButton />
-    </Fragment>
+    <p>
+      {tct(
+        'Then follow the [link:manual instrumentation guide] to instrument your AI calls, or click [bold:Copy instructions] to have an AI coding agent do it for you.',
+        {link: docsLink, bold: <strong />}
+      )}
+    </p>
   );
 }
 
-/**
- * @deprecated Will be removed when the `onboarding-copy-setup-instructions` feature flag GAs.
- */
-export function CopyLLMPromptButton() {
+export function CopyLLMPromptButton({
+  platform = 'unknown',
+  product,
+}: {
+  product: 'conversations' | 'agents';
+  platform?: string;
+}) {
   const {copy} = useCopyToClipboard();
   const organization = useOrganization();
 
@@ -48,8 +32,11 @@ export function CopyLLMPromptButton() {
       size="sm"
       icon={<IconCopy />}
       onClick={() => {
-        trackAnalytics('agent-monitoring.copy-llm-prompt-click', {
+        trackAnalytics('onboarding.ai_prompt_copied', {
           organization,
+          platform,
+          product,
+          source: 'prompt',
         });
         copy(LLM_ONBOARDING_COPY_MARKDOWN, {
           successMessage: t('Copied instrumentation prompt to clipboard'),

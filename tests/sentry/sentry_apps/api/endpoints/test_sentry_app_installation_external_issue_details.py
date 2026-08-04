@@ -1,3 +1,4 @@
+from sentry.models.organization import Organization
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
@@ -60,6 +61,26 @@ class SentryAppInstallationExternalIssueDetailsEndpointTest(APITestCase):
         )
 
         self.get_error_response(evil_install.uuid, self.external_issue.id, status_code=404)
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            assert PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
+
+    def test_handles_member_without_project_access(self) -> None:
+        """
+        Ensure that a member fenced out of the issue's project cannot delete its external issue
+        """
+        with assume_test_silo_mode_of(Organization):
+            self.org.flags.allow_joinleave = False
+            self.org.save()
+
+        member_team = self.create_team(organization=self.org)
+        self.create_project(organization=self.org, teams=[member_team])
+        restricted_member = self.create_user(email="restricted@example.com")
+        self.create_member(
+            organization=self.org, user=restricted_member, role="member", teams=[member_team]
+        )
+        self.login_as(restricted_member)
+
+        self.get_error_response(self.install.uuid, self.external_issue.id, status_code=403)
         with assume_test_silo_mode_of(PlatformExternalIssue):
             assert PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
 

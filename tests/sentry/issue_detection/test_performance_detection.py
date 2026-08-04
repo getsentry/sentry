@@ -137,6 +137,102 @@ class PerformanceDetectionTest(TestCase):
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
         assert perf_problems == []
 
+    @override_options(BASE_DETECTOR_OPTIONS)
+    def test_fetches_detection_settings_when_not_given_any(self) -> None:
+        n_plus_one_event = get_event("n-plus-one-db/n-plus-one-in-django-index-view")
+
+        with patch(
+            "sentry.issue_detection.performance_detection.get_detection_settings",
+            wraps=get_detection_settings,
+        ) as get_detection_settings_spy:
+            detect_performance_problems(n_plus_one_event, self.project)
+
+            get_detection_settings_spy.assert_called_once_with(self.project)
+
+    @override_options(BASE_DETECTOR_OPTIONS)
+    def test_uses_given_detection_settings_if_provided(self) -> None:
+        n_plus_one_event = get_event("n-plus-one-db/n-plus-one-in-django-index-view")
+
+        detection_settings = get_detection_settings(self.project)
+        # Change the N+1 settings so that the N+1 problem which would normally be caught will be
+        # ignored instead. This way, when we run detection and find no problems, it'll prove these
+        # settings were used.
+        detection_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["duration_threshold"] = 100000
+
+        with patch(
+            "sentry.issue_detection.performance_detection.get_detection_settings",
+            wraps=get_detection_settings,
+        ) as get_detection_settings_spy:
+            detected_problems = detect_performance_problems(
+                n_plus_one_event, self.project, detection_settings=detection_settings
+            )
+
+            get_detection_settings_spy.assert_not_called()
+            assert detected_problems == []
+
+    def test_every_detector_class_has_detection_settings(self) -> None:
+        """
+        `_detect_performance_problems` looks each detector's settings up by `settings_key`, so a
+        detector added to `DETECTOR_CLASSES` without a matching entry in `get_detection_settings`
+        raises a `KeyError` for every event. Worse, `detect_performance_problems` swallows that
+        error, so detection would quietly stop finding anything at all.
+        """
+        detection_settings = get_detection_settings(self.project)
+
+        detectors_missing_settings = {
+            detector_class.settings_key for detector_class in DETECTOR_CLASSES
+        } - set(detection_settings.keys())
+
+        assert detectors_missing_settings == set()
+
+    @override_options(BASE_DETECTOR_OPTIONS)
+    def test_uses_default_detectors_when_not_given_any(self) -> None:
+        n_plus_one_event = get_event("n-plus-one-db/n-plus-one-in-django-index-view")
+
+        with patch(
+            "sentry.issue_detection.performance_detection.run_detector_on_data",
+            wraps=run_detector_on_data,
+        ) as run_detector_spy:
+            detected_problems = detect_performance_problems(n_plus_one_event, self.project)
+
+            detectors_run = [type(call.args[0]) for call in run_detector_spy.call_args_list]
+            assert detectors_run == [
+                detector_class
+                for detector_class in DETECTOR_CLASSES
+                if detector_class.is_detection_allowed_for_system()
+            ]
+            assert_n_plus_one_db_problem(detected_problems)
+
+    @override_options(BASE_DETECTOR_OPTIONS)
+    def test_runs_only_the_given_detectors(self) -> None:
+        n_plus_one_event = get_event("n-plus-one-db/n-plus-one-in-django-index-view")
+
+        with patch(
+            "sentry.issue_detection.performance_detection.run_detector_on_data",
+            wraps=run_detector_on_data,
+        ) as run_detector_spy:
+            detected_problems = detect_performance_problems(
+                n_plus_one_event, self.project, detector_classes=[NPlusOneDBSpanDetector]
+            )
+
+            detectors_run = [type(call.args[0]) for call in run_detector_spy.call_args_list]
+            assert detectors_run == [NPlusOneDBSpanDetector]
+            # The one detector we asked for still found its problem
+            assert_n_plus_one_db_problem(detected_problems)
+
+    @override_options(BASE_DETECTOR_OPTIONS)
+    def test_runs_no_detectors_when_given_an_empty_list(self) -> None:
+        n_plus_one_event = get_event("n-plus-one-db/n-plus-one-in-django-index-view")
+
+        with patch(
+            "sentry.issue_detection.performance_detection.run_detector_on_data",
+            wraps=run_detector_on_data,
+        ) as run_detector_spy:
+            detect_performance_problems(n_plus_one_event, self.project, detector_classes=[])
+
+            # Passing in an empty list of detectors should result in no detectors running
+            run_detector_spy.assert_not_called()
+
     def test_project_options_overrides_default_detection_settings(self) -> None:
         default_settings = get_detection_settings(self.project)
 

@@ -51,9 +51,6 @@ function isSettingsRoute(route: string): boolean {
   if (!route.startsWith('/settings/')) {
     return false;
   }
-  if (route.includes(':projectId')) {
-    return false;
-  }
   if (route.includes(':teamId')) {
     return false;
   }

@@ -451,7 +451,8 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         row = mock_record.call_args_list[-1].args[0]
         assert row.close_action == "closed"
         assert row.verdict == "closed_unmerged"
-        assert row.diagnosis_labels is None
+        # No check activity was ever recorded for this PR.
+        assert row.diagnosis_labels == ["no_ci_events"]
 
     def _add_check_suite(self, *, conclusion: str, webhook_id: str) -> None:
         PullRequestActivity.objects.create(
@@ -469,7 +470,9 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         self._call(merged=False)
         row = mock_record.call_args_list[-1].args[0]
         assert row.verdict == "closed_unmerged"
-        assert row.diagnosis_labels == ["ci_failing_at_close"]
+        # No commits after open, so the failing check is both "at close" and "at
+        # open" — the same one and only head.
+        assert row.diagnosis_labels == ["ci_failing_at_close", "ci_failed_at_open"]
 
     @patch("sentry.analytics.record")
     def test_closed_unmerged_with_passing_ci_has_no_diagnosis_label(
@@ -482,14 +485,18 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         assert row.diagnosis_labels is None
 
     @patch("sentry.analytics.record")
-    def test_merged_with_failing_ci_has_no_diagnosis_label(self, mock_record: MagicMock) -> None:
-        # The deterministic CI-failure label is scoped to CLOSED_UNMERGED; a clean
-        # merge never carries it even if a check suite failed along the way.
+    def test_merged_with_failing_ci_at_open_only_sets_ci_failed_at_open(
+        self, mock_record: MagicMock
+    ) -> None:
+        # The deterministic close-time CI-failure label is scoped to
+        # CLOSED_UNMERGED; a clean merge never carries it even if a check suite
+        # failed along the way. But ci_failed_at_open isn't verdict-scoped: the
+        # failing check recorded before any push is still the opening head's.
         self._add_check_suite(conclusion="failure", webhook_id="check-1")
         self._call(merged=True)
         row = mock_record.call_args_list[-1].args[0]
         assert row.verdict == "merged_unchanged"
-        assert row.diagnosis_labels is None
+        assert row.diagnosis_labels == ["ci_failed_at_open"]
 
     def _add_synchronize(self) -> None:
         # A push to the PR branch after it opened — makes a merge non-deterministic.
@@ -2130,7 +2137,7 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
             )
         self._run_scheduled_cooldown()
 
-    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
+    @patch("sentry.pr_metrics.tasks.forward_pr_to_seer_task.delay")
     @patch("sentry.analytics.record")
     def test_claims_sentinel_and_enqueues_forward(
         self, mock_record: MagicMock, mock_delay: MagicMock
@@ -2147,7 +2154,7 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
             repository_id=self.repo.id,
         )
 
-    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
+    @patch("sentry.pr_metrics.tasks.forward_pr_to_seer_task.delay")
     @patch("sentry.analytics.record")
     def test_redelivery_forwards_only_once(
         self, mock_record: MagicMock, mock_delay: MagicMock
@@ -2157,7 +2164,7 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
         # The sentinel claim coalesces the redelivery, so Seer is forwarded to once.
         assert mock_delay.call_count == 1
 
-    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
+    @patch("sentry.pr_metrics.tasks.forward_pr_to_seer_task.delay")
     @patch("sentry.analytics.record")
     def test_forwards_when_metrics_row_missing(
         self, mock_record: MagicMock, mock_delay: MagicMock
@@ -2172,7 +2179,7 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
         )
         mock_delay.assert_called_once()
 
-    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
+    @patch("sentry.pr_metrics.tasks.forward_pr_to_seer_task.delay")
     @patch("sentry.analytics.record")
     def test_enqueue_failure_releases_claim_for_retry(
         self, mock_record: MagicMock, mock_delay: MagicMock
@@ -2191,7 +2198,7 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
         )
         assert mock_delay.call_count == 2
 
-    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
+    @patch("sentry.pr_metrics.tasks.forward_pr_to_seer_task.delay")
     @patch("sentry.analytics.record")
     def test_untracked_pr_is_not_forwarded(
         self, mock_record: MagicMock, mock_delay: MagicMock
@@ -2203,7 +2210,7 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
         assert mock_delay.call_count == 0
         assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
 
-    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
+    @patch("sentry.pr_metrics.tasks.forward_pr_to_seer_task.delay")
     @patch("sentry.analytics.record")
     def test_no_seer_access_skips_judge(
         self, mock_record: MagicMock, mock_delay: MagicMock
@@ -2214,7 +2221,7 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
         assert mock_delay.call_count == 0
         assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
 
-    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
+    @patch("sentry.pr_metrics.tasks.forward_pr_to_seer_task.delay")
     @patch("sentry.analytics.record")
     def test_ineligible_attribution_emits_merged_with_iteration(
         self, mock_record: MagicMock, mock_delay: MagicMock

@@ -239,11 +239,12 @@ def _sync_project_debug_file(
                 return None
 
             if source_project_debug_file.storage_path is not None:
-                source_fileobj = (
-                    source_project_debug_file._get_objectstore_session()
-                    .get(source_project_debug_file.storage_path)
-                    .payload
+                response = source_project_debug_file._get_objectstore_session().get(
+                    source_project_debug_file.storage_path
                 )
+                if response is None:
+                    raise FileNotFoundError("Debug file does not exist in objectstore")
+                source_fileobj = response.payload
                 try:
                     target_storage_path = get_debug_files_session(
                         target_org.id, target_project.id

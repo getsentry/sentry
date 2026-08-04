@@ -101,7 +101,12 @@ export function AgentSelector({referrer}: AgentSelectorProps) {
         }
       }}
       trigger={triggerProps => (
-        <OverlayTrigger.Button {...triggerProps} prefix={t('Agent')} />
+        <OverlayTrigger.Button
+          {...triggerProps}
+          prefix={selectedAgents.length === 0 ? undefined : t('Agent')}
+        >
+          {selectedAgents.length === 0 ? t('All Agents') : triggerProps.children}
+        </OverlayTrigger.Button>
       )}
       onChange={newValue => {
         const values = newValue.map(v => v.value).filter(Boolean);

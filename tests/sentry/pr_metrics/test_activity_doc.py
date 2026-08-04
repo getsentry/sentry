@@ -28,6 +28,8 @@ from sentry.pr_metrics.activity_doc import (
     human_participant_count,
     is_failing_conclusion,
     new_document,
+    review_activity_from_doc,
+    reviews_requested_count_from_doc,
     timeline_events_from_doc,
 )
 
@@ -880,6 +882,74 @@ def test_derived_metrics_empty_doc() -> None:
     }
 
 
+def test_reviews_requested_count_from_doc_nets_removals() -> None:
+    doc = new_document()
+    doc["counts"] = {"review_requested": 3, "review_request_removed": 1}
+    assert reviews_requested_count_from_doc(doc) == 2
+
+
+def test_reviews_requested_count_from_doc_floors_at_zero() -> None:
+    # More removals than requests can't be matched 1:1 (e.g. a second
+    # reviewer's outstanding request), so the net never goes negative.
+    doc = new_document()
+    doc["counts"] = {"review_requested": 1, "review_request_removed": 3}
+    assert reviews_requested_count_from_doc(doc) == 0
+
+
+def test_reviews_requested_count_from_doc_empty() -> None:
+    assert reviews_requested_count_from_doc(new_document()) == 0
+
+
+def test_review_activity_from_doc_tallies_results() -> None:
+    doc = new_document()
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+        webhook_id="r1",
+        review_state="approved",
+    )
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+        webhook_id="r2",
+        review_state="approved",
+    )
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+        webhook_id="r3",
+        review_state="commented",
+    )
+    assert review_activity_from_doc(doc) == {
+        "requested_count": 0,
+        "results": {"approved": 2, "changes_requested": 0, "commented": 1},
+    }
+
+
+def test_review_activity_from_doc_ignores_unrecognized_state() -> None:
+    doc = new_document()
+    # A review_dismissed row (or any future/unmapped state) contributes
+    # nothing rather than erroring or padding an unexpected key.
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+        webhook_id="r1",
+        review_state="dismissed",
+    )
+    assert review_activity_from_doc(doc)["results"] == {
+        "approved": 0,
+        "changes_requested": 0,
+        "commented": 0,
+    }
+
+
+def test_review_activity_from_doc_empty() -> None:
+    assert review_activity_from_doc(new_document()) == {
+        "requested_count": 0,
+        "results": {"approved": 0, "changes_requested": 0, "commented": 0},
+    }
+
+
 def test_commit_shas_from_doc_normal_chain() -> None:
     doc = new_document()
     _sync(doc, before="B0", after="A1", webhook_id="s1")
@@ -1037,3 +1107,35 @@ def test_timeline_recovered_run_excluded_from_failing_names() -> None:
     suite = timeline_events_from_doc(doc)[0]
     # The run recovered (latest conclusion success), so it isn't a failing name.
     assert suite["payload"]["failing_check_names"] == []
+    # …but the failure it recovered from still reaches the judge via check_runs,
+    # which is the whole point: the group reads plain "success" otherwise, and the
+    # flakiness is unrecoverable downstream.
+    assert suite["payload"]["check_runs"] == {
+        "flaky": {"conclusion": "success", "failed_attempts": 1}
+    }
+
+
+def test_timeline_check_runs_carries_failure_counts_alongside_failing_names() -> None:
+    doc = new_document()
+    # `broken` is a live failure; `flaky` failed twice and came back green.
+    _run(doc, check_name="broken", conclusion="failure", completed_at="2026-07-10T12:00:00Z")
+    _run(doc, check_name="flaky", conclusion="failure", completed_at="2026-07-10T12:01:00Z")
+    _run(doc, check_name="flaky", conclusion="failure", completed_at="2026-07-10T12:02:00Z")
+    _run(doc, check_name="flaky", conclusion="success", completed_at="2026-07-10T12:05:00Z")
+
+    payload = timeline_events_from_doc(doc)[0]["payload"]
+
+    assert payload["failing_check_names"] == ["broken"]
+    assert payload["check_runs"] == {
+        "broken": {"conclusion": "failure", "failed_attempts": 1},
+        "flaky": {"conclusion": "success", "failed_attempts": 2},
+    }
+
+
+def test_timeline_check_runs_is_empty_when_nothing_ever_failed() -> None:
+    # Only ever-failed checks are tracked, so an all-green group forwards no
+    # recovery detail — the common case costs nothing on the wire.
+    doc = new_document()
+    _suite(doc, conclusion="success", updated_at="2026-07-10T12:06:00Z")
+
+    assert timeline_events_from_doc(doc)[0]["payload"]["check_runs"] == {}

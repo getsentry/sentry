@@ -47,6 +47,7 @@ import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useEventOpenPeriod} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {AttributeComparisonSection} from './attributeComparisonSection';
@@ -206,6 +207,7 @@ function ZoomToOpenPeriod(props: Parameters<typeof useZoomTimeRangeToOpenPeriod>
  * Issues list does not support AND/OR in the query, but Discover does.
  */
 function BooleanLogicError({discoverUrl}: {discoverUrl: LocationDescriptor}) {
+  const organization = useOrganization();
   return (
     <Alert.Container>
       <Alert
@@ -213,7 +215,9 @@ function BooleanLogicError({discoverUrl}: {discoverUrl: LocationDescriptor}) {
         trailingItems={
           <Feature features="discover-basic">
             <LinkButton variant="secondary" size="xs" to={discoverUrl}>
-              {t('Open in Discover')}
+              {getDiscoverDeprecation(organization)
+                ? t('Open in Explore')
+                : t('Open in Discover')}
             </LinkButton>
           </Feature>
         }

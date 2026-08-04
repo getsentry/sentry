@@ -214,8 +214,8 @@ class RpcServiceEndpointTest(APITestCase):
         assert ctx.organization_id is None
         assert ctx.actor_type == ActorType.UNKNOWN
 
-    def test_viewer_context_roundtrip_through_meta(self) -> None:
-        """ViewerContext set on the sending side arrives on the receiving side."""
+    def test_agent_viewer_context_roundtrip_through_meta(self) -> None:
+        """Agent ViewerContext set on the sending side arrives on the receiving side."""
         organization = self.create_organization()
         captured_contexts: list[ViewerContext | None] = []
 
@@ -228,7 +228,7 @@ class RpcServiceEndpointTest(APITestCase):
             return original_dispatch(*args, **kwargs)
 
         # Simulate what _send_to_remote_silo builds when ViewerContext is set
-        ctx = ViewerContext(organization_id=organization.id, user_id=42, actor_type=ActorType.USER)
+        ctx = ViewerContext(organization_id=organization.id, user_id=42, actor_type=ActorType.AGENT)
         path = self._get_path("organization", "get_organization_by_id")
         data = {
             "args": {"id": organization.id},

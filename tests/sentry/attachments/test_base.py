@@ -1,4 +1,5 @@
 import copy
+from unittest import mock
 
 from sentry.attachments.base import BaseAttachmentCache, CachedAttachment
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -116,6 +117,26 @@ def test_zstd_chunks() -> None:
     not_chunked = CachedAttachment(cache=cache, **meta)
 
     assert not_chunked.load_data() == b"Hello World! Bye."
+
+
+@django_db_all
+@mock.patch("sentry.attachments.base.get_attachments_session")
+def test_overwriting_stored_attachment_keeps_metadata(mock_get_session: mock.Mock) -> None:
+    cache = BaseAttachmentCache(InMemoryCache())
+    project = mock.Mock(id=42, organization_id=1)
+
+    att = CachedAttachment(
+        name="view-hierarchy.json",
+        content_type="application/json",
+        data=b'{"class": "TextView"}',
+        stored_id="some-key",
+    )
+    cache.set("c:foo", [att], project=project)
+
+    kwargs = mock_get_session.return_value.put.call_args.kwargs
+    assert kwargs["key"] == "some-key"
+    assert kwargs["filename"] == "view-hierarchy.json"
+    assert kwargs["content_type"] == "application/json"
 
 
 @django_db_all

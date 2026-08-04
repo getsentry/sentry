@@ -1444,6 +1444,8 @@ export function SearchQueryBuilderValueCombobox({
           gap="2xs"
           minWidth="0"
           height="100%"
+          overflowX={canSelectMultipleValues ? 'auto' : undefined}
+          overflowY={canSelectMultipleValues ? 'hidden' : undefined}
           ref={ref}
           data-test-id="filter-value-editing"
         >
@@ -1457,8 +1459,6 @@ export function SearchQueryBuilderValueCombobox({
 const ValueEditingChips = styled(Flex)`
   max-width: 100%;
   flex-wrap: nowrap;
-  overflow-x: auto;
-  overflow-y: hidden;
   scrollbar-width: none;
   &::-webkit-scrollbar {
     display: none;

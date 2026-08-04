@@ -552,7 +552,7 @@ function EAPSpanNodeDetailsContent({
             node={node}
             organization={organization}
             onTabScrollToNode={onTabScrollToNode}
-            showJSONLink={isTransaction && !!eventTransaction}
+            showJSONLink={isTransaction}
             profileId={node.profileId}
             profilerId={node.profilerId}
             threadId={threadId}

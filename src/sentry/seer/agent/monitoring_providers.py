@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 import logging
+from collections.abc import Sequence
 
 from sentry import features
 from sentry.hybridcloud.rpc.service import RpcException
@@ -9,10 +10,12 @@ from sentry.identity import default_manager as identity_manager
 from sentry.identity.mcp import McpIdentityProvider
 from sentry.identity.oauth2 import OAuth2Provider
 from sentry.identity.services.identity import identity_service
-from sentry.integrations.gcp.utils import GCP_MCP_URLS
 from sentry.integrations.types import MONITORING_PROVIDERS
 from sentry.models.organization import Organization
-from sentry.seer.sentry_data_models import MonitoringProviderConnectionData
+from sentry.seer.sentry_data_models import (
+    HeaderAuthConnectionData,
+    MonitoringProviderConnectionData,
+)
 from sentry.seer.utils import encrypt_access_token_for_seer
 from sentry.utils.registry import Registry
 
@@ -27,7 +30,7 @@ class OrgMonitoringProvider(abc.ABC):
     @abc.abstractmethod
     def build_connection(
         self, organization: Organization
-    ) -> list[MonitoringProviderConnectionData] | None:
+    ) -> Sequence[MonitoringProviderConnectionData] | None:
         """
         Build Seer connection(s) for this org's integration, or None if unconfigured.
 
@@ -125,7 +128,7 @@ def _get_personal_monitoring_connections(
             auth_method = "oauth" if is_oauth_provider else "pat"
             for url in urls:
                 connections.append(
-                    MonitoringProviderConnectionData(
+                    HeaderAuthConnectionData(
                         provider_key=provider_type,
                         url=url,
                         encrypted_auth_headers={"Authorization": encrypted_auth_header},
@@ -136,24 +139,6 @@ def _get_personal_monitoring_connections(
                 )
 
     return connections
-
-
-# TEMPORARY: hardcoded GCP MCP connections for the Sentry org for internal dogfooding.
-# Remove when the full GcpIntegrationProvider + setup UI is built.
-_SENTRY_ORG_GCP_PROJECT_IDS = ["internal-sentry"]
-
-
-def _get_gcp_connections_for_sentry_org() -> list[MonitoringProviderConnectionData]:
-    return [
-        MonitoringProviderConnectionData(
-            provider_key="gcp",
-            url=url,
-            auth_method="gcp_adc",
-            refreshable=False,
-            gcp_project_ids=_SENTRY_ORG_GCP_PROJECT_IDS,
-        )
-        for url in GCP_MCP_URLS
-    ]
 
 
 def get_monitoring_provider_connections(
@@ -177,11 +162,4 @@ def get_monitoring_provider_connections(
         if provider_family(connection.provider_key) not in connected_families
     ]
 
-    all_connections = personal_connections + org_connections
-
-    # TEMPORARY: hardcoded GCP MCP connections for the Sentry org (id=1) for internal dogfooding.
-    # Remove when the full GcpIntegrationProvider + setup UI is built.
-    if organization.id == 1:
-        all_connections.extend(_get_gcp_connections_for_sentry_org())
-
-    return all_connections
+    return personal_connections + org_connections

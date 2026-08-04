@@ -35,6 +35,10 @@ interface GroupHeaderAssigneeSelectorProps {
   event: Event | null;
   group: Group;
   project: Project;
+  /**
+   * Show the assignee name next to the avatar. Defaults to true.
+   */
+  showLabel?: boolean;
 }
 
 function getCurrentAssignmentActivity(group: Group): GroupActivityAssigned | undefined {
@@ -64,6 +68,7 @@ function getAssignmentSource(
     case 'projectOwnership':
     case 'codeowners':
     case 'suspectCommitter':
+    case 'seerSuggested':
       return activity.data.integration;
     default:
       return undefined;
@@ -97,6 +102,7 @@ export function GroupHeaderAssigneeSelector({
   group,
   project,
   event,
+  showLabel = true,
 }: GroupHeaderAssigneeSelectorProps) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -129,7 +135,7 @@ export function GroupHeaderAssigneeSelector({
       assigneeLoading={assigneeLoading}
       handleAssigneeChange={handleAssigneeChange}
       assignmentDetails={assignmentDetails}
-      showLabel
+      showLabel={showLabel}
       useOwnerAssignmentDetails={false}
       additionalMenuFooterItems={
         <MenuComponents.CTAButton

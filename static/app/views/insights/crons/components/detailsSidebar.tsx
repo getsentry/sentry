@@ -14,7 +14,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCopy, IconJson} from 'sentry/icons';
+import {IconCopyId, IconJson} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -47,7 +47,7 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
         onClick={() => copy(monitor.slug, {successMessage: 'Copied to clipboard'})}
       >
         <SlugText>{monitor.slug}</SlugText>
-        <IconCopy size="xs" />
+        <IconCopyId size="xs" />
       </MonitorSlug>
     </Tooltip>
   );

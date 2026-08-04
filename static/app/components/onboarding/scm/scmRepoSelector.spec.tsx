@@ -207,7 +207,7 @@ describe('ScmRepoSelector', () => {
     expect(onRepositoryChange).toHaveBeenCalled();
   });
 
-  it('fires project_creation.scm_connect_repo_selected when analyticsFlow=project-creation', async () => {
+  it('fires project_creation.connect_repo_selected when analyticsFlow=project-creation', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${mockIntegration.id}/repos/`,
       body: {
@@ -244,10 +244,11 @@ describe('ScmRepoSelector', () => {
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'sentry'}));
 
     expect(trackAnalyticsSpy).toHaveBeenCalledWith(
-      'project_creation.scm_connect_repo_selected',
+      'project_creation.connect_repo_selected',
       expect.objectContaining({
         provider: mockIntegration.provider.key,
         repo: 'sentry',
+        variant: 'scm',
       })
     );
     expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(

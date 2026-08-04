@@ -29,6 +29,7 @@ import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {granularWebhookEvents} from 'sentry/views/settings/organizationDeveloperSettings/constants';
 
 const ALL_EVENTS = t('All Events');
 const MAX_PER_PAGE = 10;
@@ -69,10 +70,7 @@ const getEventTypes = memoize((app: SentryApp) => {
     ...(app.status === 'internal'
       ? []
       : ['installation.created', 'installation.deleted']),
-    ...(app.events.includes('error') ? ['error.created'] : []),
-    ...(app.events.includes('issue')
-      ? ['issue.created', 'issue.resolved', 'issue.ignored', 'issue.assigned']
-      : []),
+    ...granularWebhookEvents(app.webhookEvents),
     ...(app.isAlertable
       ? [
           'event_alert.triggered',
@@ -83,12 +81,6 @@ const getEventTypes = memoize((app: SentryApp) => {
         ]
       : []),
     ...issueLinkEvents,
-    ...(app.events.includes('preprod_artifact')
-      ? [
-          'preprod_artifact.size_analysis_completed',
-          'preprod_artifact.build_distribution_completed',
-        ]
-      : []),
   ];
 
   return events;

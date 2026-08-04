@@ -4,6 +4,7 @@ import logging
 import uuid
 from typing import Any
 
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
@@ -32,16 +33,16 @@ from sentry.apidocs.response_types import (
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.action_log import (
-    publish_action,
+    action_context_scope,
     resolve_action_actor,
     resolve_action_source,
 )
-from sentry.issues.action_log.types import TriggerAutofixAction
+from sentry.issues.action_log.types import GroupActorType
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
+from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.autofix_agent import (
-    UNKNOWN_RUN_ID_FOR_GROUP,
     AutofixStep,
     NoSeerQuotaException,
     get_autofix_agent_state,
@@ -75,8 +76,9 @@ from sentry.seer.autofix.utils import (
     CodingAgentProviderType,
 )
 from sentry.seer.endpoints.utils import get_seer_run, resolve_seer_run
-from sentry.seer.models import SeerPermissionError
+from sentry.seer.models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
 from sentry.tasks.seer.pr_iteration import consume_queued_autofix_feedback
+from sentry.types.activity import ActivityType
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
 from sentry.utils.http import is_mcp_request
@@ -258,9 +260,22 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
 
         # Prefer sentry_run_id (a uuid.UUID) over numeric run_id; None = new run.
         sentry_run_id_param: uuid.UUID | None = data.get("sentry_run_id")
+        legacy_run_id_param = data.get("run_id")
         run_ref: str | int | None = (
-            str(sentry_run_id_param) if sentry_run_id_param is not None else data.get("run_id")
+            str(sentry_run_id_param) if sentry_run_id_param is not None else legacy_run_id_param
         )
+
+        if sentry_run_id_param is None and legacy_run_id_param is not None:
+            logger.info(
+                "group_ai_autofix.legacy_integer_run_id",
+                extra={
+                    "run_id": legacy_run_id_param,
+                    "referrer": data.get("referrer"),
+                    "is_mcp_request": is_mcp_request(request),
+                    "user_agent": request.META.get("HTTP_USER_AGENT", "")[:256],
+                    "organization_id": group.organization.id,
+                },
+            )
 
         resolved_run_id: int | None = None
         resolved_sentry_run_id: str | None = None
@@ -382,6 +397,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     feedback=feedback,
                     referrer=referrer,
                     run_state=run_state,
+                    actor_user_id=request.user.id,
                 )
 
                 consume_queued_autofix_feedback.apply_async(
@@ -394,8 +410,27 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 run_id, sentry_run_id = resolved_run_id, resolved_sentry_run_id
 
             case _:
+                # A truncating re-run would strand a PR/coding agent (they live
+                # outside the blocks). Refuse it, mirroring the frontend gate.
+                if data.get("insert_index") is not None and resolved_run_id is not None:
+                    try:
+                        run_state = get_autofix_run_state(group, resolved_run_id)
+                    except SeerPermissionError as e:
+                        if _is_unknown_run_id_error(e):
+                            return Response(status=status.HTTP_404_NOT_FOUND)
+                        raise PermissionDenied(SEER_PERMISSION_DENIED)
+
+                    if run_state.repo_pr_states or run_state.coding_agents:
+                        return Response(
+                            {
+                                "detail": "Cannot re-run a step after a pull request or coding agent has started"
+                            },
+                            status=status.HTTP_409_CONFLICT,
+                        )
+
+                triggered_at = timezone.now() if is_autofix_kickoff else None
                 try:
-                    run_id = trigger_autofix_agent(
+                    run = trigger_autofix_agent(
                         group=group,
                         step=AutofixStep(step),
                         referrer=referrer,
@@ -417,16 +452,25 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                         return Response(status=status.HTTP_404_NOT_FOUND)
                     raise PermissionDenied(SEER_PERMISSION_DENIED)
 
+                run_id = run.seer_run_state_id
+
                 if is_autofix_kickoff:
-                    publish_action(
-                        TriggerAutofixAction(),
+                    actor = resolve_action_actor(request)
+                    with action_context_scope(
                         source=resolve_action_source(request),
-                        group_id=group.id,
-                        project=group.project,
-                        actor=resolve_action_actor(request),
-                    )
-                    run = get_seer_run(run_id, group.organization)
-                    sentry_run_id = str(run.uuid) if run else None
+                        actor=actor,
+                    ):
+                        Activity.objects.create_group_activity(
+                            group,
+                            ActivityType.TRIGGER_AUTOFIX,
+                            user_id=(
+                                actor.actor_id if actor.actor_type == GroupActorType.USER else None
+                            ),
+                            data={"referrer": referrer.value},
+                            send_notification=False,
+                            datetime=triggered_at,
+                        )
+                    sentry_run_id = str(run.uuid)
                 else:
                     sentry_run_id = resolved_sentry_run_id
 

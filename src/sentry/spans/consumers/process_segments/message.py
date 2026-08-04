@@ -12,11 +12,13 @@ from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry import options
+from sentry.ai_monitoring.tasks import spawn_conversation_title_generation
 from sentry.constants import DataCategory
 from sentry.dynamic_sampling.rules.helpers.latest_releases import record_latest_release
 from sentry.event_manager import INSIGHT_MODULE_TO_PROJECT_FLAG_NAME
 from sentry.insights import FilterSpan
 from sentry.insights import modules as insights_modules
+from sentry.issue_detection.base import DetectorType
 from sentry.issue_detection.detectors.span_first.run_detectors import (
     SPAN_FIRST_DETECTORS_BY_GROUPTYPE,
     compare_span_first_problems_to_control_data,
@@ -26,7 +28,10 @@ from sentry.issue_detection.detectors.span_first.span_first_utils import (
     SPAN_FIRST_DETECTORS_ENABLEMENT_OPTION,
     SpanFirstDetectorsRolloutController,
 )
-from sentry.issue_detection.performance_detection import detect_performance_problems
+from sentry.issue_detection.performance_detection import (
+    detect_performance_problems,
+    get_detection_settings,
+)
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
@@ -87,8 +92,33 @@ def _process_segment(
 ) -> list[CompatibleSpan]:
     _verify_compatibility(unprocessed_spans)
 
-    if any(attribute_value(s, ATTRIBUTE_NAMES.GEN_AI_CONVERSATION_ID) for s in unprocessed_spans):
-        metrics.incr("spans.consumers.process_segments.gen_ai_conversation")
+    project = None
+    if unprocessed_spans:
+        project_id = unprocessed_spans[0].get("project_id")
+        if project_id is not None:
+            try:
+                with metrics.timer("spans.consumers.process_segments.get_project"):
+                    project = Project.objects.get_from_cache(id=project_id)
+                    project.set_cached_field_value(
+                        "organization",
+                        Organization.objects.get_from_cache(id=project.organization_id),
+                    )
+            except (Project.DoesNotExist, Organization.DoesNotExist):
+                return []
+
+    if project is None:
+        # If the project does not exist then it might have been deleted during ingestion.
+        return []
+
+    if killswitch_matches_context(
+        "spans.process-segments.drop-segments",
+        {"org_id": str(project.organization_id)},
+        emit_metrics=True,
+    ):
+        return []
+
+    # Always attempt title generation, even when enrichment is skipped below.
+    spawn_conversation_title_generation(unprocessed_spans, project)
 
     if skip_enrichment:
         return [make_compatible(span) for span in unprocessed_spans]
@@ -101,27 +131,6 @@ def _process_segment(
     segment_span, spans = _enrich_spans(unprocessed_spans)
     if segment_span is None:
         return spans
-
-    try:
-        with metrics.timer("spans.consumers.process_segments.get_project"):
-            project = Project.objects.get_from_cache(id=segment_span["project_id"])
-
-            project.set_cached_field_value(
-                "organization", Organization.objects.get_from_cache(id=project.organization_id)
-            )
-    except (Project.DoesNotExist, Organization.DoesNotExist):
-        # If the project does not exist then it might have been deleted during ingestion.
-        return []
-
-    # Check killswitch for dropping segments based on org_id
-    if killswitch_matches_context(
-        "spans.process-segments.drop-segments",
-        {
-            "org_id": str(project.organization_id),
-        },
-        emit_metrics=True,
-    ):
-        return []
 
     _add_segment_name(segment_span, spans)
     _compute_breakdowns(segment_span, spans, project)
@@ -324,7 +333,10 @@ def _detect_performance_problems(
     try:
         # Run the legacy detectors and, if the `_performance_issues_spans` flag is set on the
         # segment span, produce occurrences from the results
-        legacy_detected_problems = _run_legacy_detectors(segment_span, spans, project)
+        detection_settings = get_detection_settings(project)
+        legacy_detected_problems = _run_legacy_detectors(
+            segment_span, spans, project, detection_settings
+        )
     except Exception:
         logger.exception("segment_consumer_legacy_issue_detectors.error")
         # If the legacy detectors error out, there's no point in running the experiment, so bail now
@@ -334,12 +346,15 @@ def _detect_performance_problems(
     # Note: Not all legacy detectors have span-first analogs yet. Results from those that don't are
     # just ignored in the comparison.
     _maybe_run_span_first_detector_parity_check(
-        segment_span, spans, project, legacy_detected_problems
+        segment_span, spans, project, legacy_detected_problems, detection_settings
     )
 
 
 def _run_legacy_detectors(
-    segment_span: CompatibleSpan, segment: list[CompatibleSpan], project: Project
+    segment_span: CompatibleSpan,
+    segment: list[CompatibleSpan],
+    project: Project,
+    detection_settings: dict[DetectorType, dict[str, Any]],
 ) -> list[PerformanceProblem]:
     """
     Run legacy issue detectors on segment data by first creating a fake transaction event. If the
@@ -348,7 +363,9 @@ def _run_legacy_detectors(
     # Create a fake transaction event out of the segment data, to match what the legacy detectors
     # are expecting
     event_data = build_shim_event_data(segment_span, segment)
-    detected_problems = detect_performance_problems(event_data, project, standalone=True)
+    detected_problems = detect_performance_problems(
+        event_data, project, detection_settings=detection_settings, standalone=True
+    )
 
     # This flag is set in Relay, and here enables producing occurrences from the legacy detector
     # results. For segments derived from transactions, it additionally suppresses the running of
@@ -393,6 +410,7 @@ def _maybe_run_span_first_detector_parity_check(
     segment: list[CompatibleSpan],
     project: Project,
     all_control_problems: list[PerformanceProblem],
+    detection_settings: dict[DetectorType, dict[str, Any]],
 ) -> None:
     if not options.get(SPAN_FIRST_DETECTORS_ENABLEMENT_OPTION):
         return
@@ -407,16 +425,14 @@ def _maybe_run_span_first_detector_parity_check(
 
     try:
         span_first_problems_by_grouptype = run_span_first_detectors(
-            sampled_grouptypes, segment_span, segment, project
+            sampled_grouptypes, segment_span, segment, detection_settings
         )
 
         compare_span_first_problems_to_control_data(
             project,
+            segment_span["trace_id"],
             span_first_problems_by_grouptype,
             all_control_problems,
-            get_source_of_truth=lambda _: (
-                "control" if segment_span.get("_performance_issues_spans") else "neither"
-            ),
         )
     except Exception:
         logger.exception("span_first_detector_test.error")

@@ -96,7 +96,7 @@ describe('GroupInsightItemDiffTable', () => {
     expect(removedTags).toHaveLength(3); // 1 group + 2 children
 
     // Check sizes (only group totals are shown, not individual child sizes)
-    expect(screen.getByText('+1.5 KB')).toBeInTheDocument(); // Group total
+    expect(screen.getByText('+1.5 kB')).toBeInTheDocument(); // Group total
   });
 
   it('supports sorting by different fields', async () => {

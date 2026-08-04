@@ -6,6 +6,15 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 
+from sentry.issue_detection.detectors.span_first.run_detectors import run_span_first_detectors
+from sentry.issue_detection.detectors.span_first.span_first_utils import (
+    SPAN_FIRST_DETECTORS_ENABLEMENT_OPTION,
+    SpanFirstDetectorsRolloutController,
+)
+from sentry.issue_detection.performance_detection import (
+    detect_performance_problems,
+    get_detection_settings,
+)
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.environment import Environment
 from sentry.models.release import Release
@@ -278,6 +287,44 @@ class TestSpansTask(TestCase):
         ]
         assert performance_problem.type == PerformanceNPlusOneGroupType
 
+    def test_detector_settings_only_fetched_once(self) -> None:
+        spans = self.generate_basic_spans()
+        detection_settings = get_detection_settings(self.project)
+
+        with (
+            override_options(
+                {
+                    "spans.process-segments.detect-performance-problems.enable": True,
+                    SPAN_FIRST_DETECTORS_ENABLEMENT_OPTION: True,
+                }
+            ),
+            mock.patch.object(
+                SpanFirstDetectorsRolloutController, "should_check_experiment", return_value=True
+            ),
+            mock.patch(
+                "sentry.spans.consumers.process_segments.message.get_detection_settings",
+                return_value=detection_settings,
+            ) as mock_get_detection_settings,
+            mock.patch(
+                "sentry.spans.consumers.process_segments.message.detect_performance_problems",
+                wraps=detect_performance_problems,
+            ) as legacy_detectors_spy,
+            mock.patch(
+                "sentry.spans.consumers.process_segments.message.run_span_first_detectors",
+                wraps=run_span_first_detectors,
+            ) as span_first_detectors_spy,
+        ):
+            process_segment(spans)
+
+            assert mock_get_detection_settings.call_count == 1
+            mock_get_detection_settings.assert_called_with(self.project)
+
+            legacy_settings = legacy_detectors_spy.call_args.kwargs["detection_settings"]
+            span_first_settings = span_first_detectors_spy.call_args.args[3]
+
+            assert legacy_settings is detection_settings
+            assert span_first_settings is detection_settings
+
     @mock.patch("sentry.spans.consumers.process_segments.message.track_outcome")
     @pytest.mark.skip("temporarily disabled")
     def test_skip_produce_does_not_track_outcomes(self, mock_track_outcome: mock.MagicMock) -> None:
@@ -331,49 +378,6 @@ class TestSpansTask(TestCase):
 
         signals = [args[0][1] for args in mock_track.call_args_list]
         assert signals == ["has_transactions", "has_insights_agent_monitoring"]
-
-    @mock.patch("sentry.spans.consumers.process_segments.message.metrics.incr")
-    def test_gen_ai_conversation_metric(self, mock_incr: mock.MagicMock) -> None:
-        """Count once per segment when any span has gen_ai.conversation.id."""
-        metric_name = "spans.consumers.process_segments.gen_ai_conversation"
-
-        def conversation_calls() -> int:
-            return sum(1 for call in mock_incr.call_args_list if call == mock.call(metric_name))
-
-        child_span, segment_span = self.generate_basic_spans()
-        process_segment([child_span, segment_span])
-        assert conversation_calls() == 0
-
-        mock_incr.reset_mock()
-        child_span, segment_span = self.generate_basic_spans()
-        child_span["attributes"]["gen_ai.conversation.id"] = {
-            "type": "string",
-            "value": "conv-123",
-        }
-        process_segment([child_span, segment_span])
-        assert conversation_calls() == 1
-
-        mock_incr.reset_mock()
-        child_span, segment_span = self.generate_basic_spans()
-        child_span["attributes"]["gen_ai.conversation.id"] = {
-            "type": "string",
-            "value": "conv-123",
-        }
-        segment_span["attributes"]["gen_ai.conversation.id"] = {
-            "type": "string",
-            "value": "conv-123",
-        }
-        process_segment([child_span, segment_span])
-        assert conversation_calls() == 1
-
-        mock_incr.reset_mock()
-        child_span, segment_span = self.generate_basic_spans()
-        child_span["attributes"]["gen_ai.conversation.id"] = {
-            "type": "string",
-            "value": "conv-123",
-        }
-        process_segment([child_span, segment_span], skip_enrichment=True)
-        assert conversation_calls() == 1
 
     def test_segment_name_propagation(self) -> None:
         child_span, segment_span = self.generate_basic_spans()
@@ -544,6 +548,21 @@ class TestSegmentDropKillswitch(TestCase):
         ):
             processed_spans = process_segment([child_span, segment_span])
             assert len(processed_spans) == 0
+
+    def test_drop_segment_with_skip_enrichment(self) -> None:
+        segment_span = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+        )
+
+        with override_options(
+            {
+                "spans.process-segments.drop-segments": [
+                    {"org_id": str(self.project.organization_id)}
+                ]
+            }
+        ):
+            assert process_segment([segment_span], skip_enrichment=True) == []
 
 
 @exclude_experimental_detectors

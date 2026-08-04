@@ -54,6 +54,7 @@ interface SearchQueryBuilderConfigContextData {
   disabled: boolean;
   disallowFreeText: boolean;
   disallowLogicalOperators: boolean;
+  disallowNegation: boolean;
   disallowWildcard: boolean;
   filterKeyAliases: TagCollection | undefined;
   filterKeyRegistryQueryKey: QueryKey;
@@ -167,6 +168,7 @@ export function SearchQueryBuilderProvider({
   disabled = false,
   disallowLogicalOperators,
   disallowFreeText,
+  disallowNegation,
   disallowUnsupportedFilters,
   disallowWildcard,
   defaultToAskSeerOnFreeTextSearch: defaultToAskSeerOnFreeTextSearchProp,
@@ -275,6 +277,7 @@ export function SearchQueryBuilderProvider({
         getFilterTokenWarning,
         disallowFreeText,
         disallowLogicalOperators,
+        disallowNegation,
         disallowUnsupportedFilters,
         disallowWildcard,
         filterKeys: mergedFilterKeys,
@@ -285,6 +288,7 @@ export function SearchQueryBuilderProvider({
     [
       disallowFreeText,
       disallowLogicalOperators,
+      disallowNegation,
       disallowUnsupportedFilters,
       disallowWildcard,
       getFieldDefinitionWithTagMetadata,
@@ -395,6 +399,7 @@ export function SearchQueryBuilderProvider({
       disabled,
       disallowFreeText: Boolean(disallowFreeText),
       disallowLogicalOperators: Boolean(disallowLogicalOperators),
+      disallowNegation: Boolean(disallowNegation),
       disallowWildcard: Boolean(disallowWildcard),
       filterKeyAliases,
       filterKeyRegistryQueryKey: filterKeyRegistryQueryOptions.queryKey,
@@ -418,6 +423,7 @@ export function SearchQueryBuilderProvider({
     disabled,
     disallowFreeText,
     disallowLogicalOperators,
+    disallowNegation,
     disallowWildcard,
     filterKeyAliases,
     filterKeyRegistryQueryOptions.queryKey,

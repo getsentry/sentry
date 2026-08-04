@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -22,10 +23,14 @@ import {
   IconUser,
 } from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
+import type {User} from 'sentry/types/user';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 
 import {deriveCardAction, IssuePrimaryAction} from './cardAction';
+import {OverviewIssueAssignee} from './overviewIssueAssignee';
+import {OverviewIssuePriority} from './overviewIssuePriority';
+import {useOpenOverviewSeerDrawer} from './overviewSeerDrawer';
 import {periodWindowLabel} from './periods';
 import {TriggerBadge} from './triggerBadge';
 import type {AutofixStateKey, OverviewRow, PatchStats} from './types';
@@ -103,22 +108,19 @@ function MetaItem({
   icon: React.ReactNode;
   tooltip?: React.ReactNode;
 }) {
-  const item = (
-    // minWidth 0 + ellipsis let the item truncate inside a tight rail column
-    // instead of pushing the layout wider.
-    <Flex gap="xs" align="center" minWidth="0">
+  return (
+    <Flex gap="xs" align="center" minWidth="0" maxWidth="100%">
       {icon}
-      <Text size="sm" variant="muted" ellipsis>
-        {children}
-      </Text>
+      {tooltip ? (
+        <InfoText title={tooltip} maxWidth={220} size="sm" variant="muted" ellipsis>
+          {children}
+        </InfoText>
+      ) : (
+        <Text size="sm" variant="muted" ellipsis>
+          {children}
+        </Text>
+      )}
     </Flex>
-  );
-  return tooltip ? (
-    <Tooltip title={tooltip} skipWrapper>
-      {item}
-    </Tooltip>
-  ) : (
-    item
   );
 }
 
@@ -247,17 +249,25 @@ export function IssueCard({
   orgSlug,
   row,
   sectionKey,
+  memberList,
+  memberListLoading,
   minHeight,
 }: {
   orgSlug: string;
   row: OverviewRow;
   sectionKey: AutofixStateKey;
+  memberList?: User[];
+  memberListLoading?: boolean;
   minHeight?: string;
 }) {
   const issueUrl = `/organizations/${orgSlug}/issues/${row.id}/`;
-  // Deep-link into the issue page with the Seer drawer already open, so the
-  // run itself is one click away (matches the issue details ?seerDrawer param).
   const runUrl = {pathname: issueUrl, query: {seerDrawer: 'true'}};
+  // The card's CTA opens the autofix run drawer in place; the title link still
+  // navigates to the issue page.
+  const {canOpenSeerDrawer, openSeerDrawer} = useOpenOverviewSeerDrawer();
+  const onOpenRun = canOpenSeerDrawer
+    ? () => openSeerDrawer({groupId: row.id, projectSlug: row.project.slug})
+    : undefined;
   const cardAction = deriveCardAction(sectionKey, row);
   const rootCause = row.analysis.find(entry => entry.key === 'root_cause');
   const proposedFix = row.analysis.find(entry => entry.key === 'fix_summary');
@@ -388,6 +398,7 @@ export function IssueCard({
             columns="minmax(0, 1fr) auto"
             gap="xl"
             align="start"
+            alignSelf="stretch"
             flexShrink={0}
             width={{xs: '100%', sm: '380px'}}
           >
@@ -395,9 +406,10 @@ export function IssueCard({
               gap={{xs: 'md', sm: 'xs'}}
               direction={{xs: 'row', sm: 'column'}}
               wrap="wrap"
+              align="start"
               minWidth="0"
             >
-              <Flex gap="xs" align="center" minWidth="0">
+              <Flex gap="xs" align="center" minWidth="0" maxWidth="100%">
                 <Tooltip title={t('View project')} skipWrapper>
                   <ProjectBadge project={row.project} avatarSize={14} hideName />
                 </Tooltip>
@@ -411,49 +423,84 @@ export function IssueCard({
                 <TriggerBadge trigger={row.trigger} rawSource={row.rawSource} />
               )}
             </Stack>
-            <Stack gap="xs" align="end">
-              <IssuePrimaryAction action={cardAction} row={row} runUrl={runUrl} />
-              {row.patchStats && (
-                <Tooltip
-                  title={<PatchFilesTooltip stats={row.patchStats} />}
-                  maxWidth={480}
-                  skipWrapper
-                >
-                  <Container
-                    tabIndex={0}
-                    aria-label={tn(
-                      '%s file changed',
-                      '%s files changed',
-                      row.patchStats.files
-                    )}
-                    border="muted"
-                    radius="sm"
-                    background="secondary"
-                    padding="2xs sm"
+            <Stack gap="lg" align="end" justify="between" alignSelf="stretch">
+              <Stack gap="xs" align="end">
+                <IssuePrimaryAction
+                  action={cardAction}
+                  row={row}
+                  onOpenRun={onOpenRun}
+                  runUrl={runUrl}
+                />
+                {row.patchStats && (
+                  <Flex gap="xs" align="center">
+                    <Tooltip
+                      title={<PatchFilesTooltip stats={row.patchStats} />}
+                      maxWidth={480}
+                      skipWrapper
+                    >
+                      <Container
+                        tabIndex={0}
+                        aria-label={tn(
+                          '%s file changed',
+                          '%s files changed',
+                          row.patchStats.files
+                        )}
+                        border="muted"
+                        radius="sm"
+                        background="secondary"
+                        padding="2xs sm"
+                      >
+                        <Text size="xs" variant="muted" monospace wrap="nowrap">
+                          {tn('%s file', '%s files', row.patchStats.files)}{' '}
+                          <Text size="xs" variant="success">
+                            +{row.patchStats.added}
+                          </Text>{' '}
+                          <Text size="xs" variant="danger">
+                            −{row.patchStats.removed}
+                          </Text>
+                        </Text>
+                      </Container>
+                    </Tooltip>
+                  </Flex>
+                )}
+                {row.prUrl && cardAction.type !== 'review_pr' && (
+                  <LinkButton
+                    size="sm"
+                    variant="link"
+                    icon={<IconPullRequest />}
+                    href={row.prUrl}
+                    external
                   >
-                    <Text size="xs" variant="muted" monospace wrap="nowrap">
-                      {tn('%s file', '%s files', row.patchStats.files)}{' '}
-                      <Text size="xs" variant="success">
-                        +{row.patchStats.added}
-                      </Text>{' '}
-                      <Text size="xs" variant="danger">
-                        −{row.patchStats.removed}
-                      </Text>
-                    </Text>
-                  </Container>
-                </Tooltip>
-              )}
-              {row.prUrl && cardAction.type !== 'review_pr' && (
-                <LinkButton
-                  size="sm"
-                  variant="link"
-                  icon={<IconPullRequest />}
-                  href={row.prUrl}
-                  external
-                >
-                  {row.prNumber ? `#${row.prNumber}` : t('PR')}
-                </LinkButton>
-              )}
+                    {row.prNumber ? `#${row.prNumber}` : t('PR')}
+                  </LinkButton>
+                )}
+              </Stack>
+              <Flex gap="xs" align="center">
+                <OverviewIssuePriority
+                  group={{
+                    assignedTo: row.assignedTo,
+                    count: String(row.eventCount),
+                    id: row.id,
+                    issueCategory: row.issueCategory,
+                    issueType: row.issueType,
+                    lastSeen: row.lastSeen,
+                    level: row.level,
+                    owners: row.owners,
+                    priority: row.priority,
+                    priorityLockedAt: row.priorityLockedAt,
+                    project: {id: row.project.id},
+                  }}
+                />
+                <OverviewIssueAssignee
+                  groupId={row.id}
+                  projectId={row.project.id}
+                  projectSlug={row.project.slug}
+                  assignedTo={row.assignedTo ?? undefined}
+                  memberList={memberList}
+                  memberListLoading={memberListLoading}
+                  owners={row.owners ?? undefined}
+                />
+              </Flex>
             </Stack>
           </Grid>
         </Flex>
@@ -480,6 +527,10 @@ export function IssueTableRow({
 }) {
   const issueUrl = `/organizations/${orgSlug}/issues/${row.id}/`;
   const runUrl = {pathname: issueUrl, query: {seerDrawer: 'true'}};
+  const {canOpenSeerDrawer, openSeerDrawer} = useOpenOverviewSeerDrawer();
+  const onOpenRun = canOpenSeerDrawer
+    ? () => openSeerDrawer({groupId: row.id, projectSlug: row.project.slug})
+    : undefined;
   const cardAction = deriveCardAction(sectionKey, row);
 
   return (
@@ -504,7 +555,13 @@ export function IssueTableRow({
         </Flex>
       </Stack>
       <Flex align="center" flexShrink={0}>
-        <IssuePrimaryAction action={cardAction} row={row} runUrl={runUrl} size="xs" />
+        <IssuePrimaryAction
+          action={cardAction}
+          row={row}
+          onOpenRun={onOpenRun}
+          runUrl={runUrl}
+          size="xs"
+        />
       </Flex>
     </Flex>
   );

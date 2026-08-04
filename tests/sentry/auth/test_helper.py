@@ -12,6 +12,7 @@ from django.test import Client, RequestFactory
 
 from sentry import audit_log
 from sentry.analytics.events.user_signup import UserSignUpEvent
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.exceptions import AuthIdentityUserMismatch
 from sentry.auth.helper import (
     ERR_IDENTITY_CONFLICT,
@@ -36,6 +37,7 @@ from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.models.user import User
 from sentry.utils import json
 from sentry.utils.redis import clusters
 
@@ -170,6 +172,16 @@ class UserResolutionTest(AuthIdentityHandlerTest):
 
 @control_silo_test
 class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
+    def test_skip_confirm_emails_suppresses_email(self) -> None:
+        with mock.patch.object(User, "send_confirm_emails") as mock_send:
+            self.handler.handle_new_user(skip_confirm_emails=True)
+        mock_send.assert_not_called()
+
+    def test_confirm_emails_sent_by_default(self) -> None:
+        with mock.patch.object(User, "send_confirm_emails") as mock_send:
+            self.handler.handle_new_user()
+        mock_send.assert_called_once()
+
     @mock.patch("sentry.analytics.record")
     def test_simple(self, mock_record: mock.MagicMock) -> None:
         auth_identity = self.handler.handle_new_user()
@@ -819,6 +831,23 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
 
         assert response is mock_render.return_value
         mock_auth.log_auth_failure.assert_called_once()
+
+    def test_login_2fa_redirect_uses_request_host(self) -> None:
+        """The post-2FA redirect must resume the pipeline on the host the request
+        arrived on (e.g. a customer subdomain), not the system url-prefix host —
+        otherwise the pipeline session cookie isn't sent to the redirect target."""
+        user = self.create_user()
+        TotpInterface().enroll(user)
+
+        self.request = RequestFactory().post("/auth/sso/", SERVER_NAME="acme.testserver")
+        self.request.user = AnonymousUser()
+        self.request.session = Client().session
+
+        with override_options({"system.url-prefix": "https://system.example.com"}):
+            with pytest.raises(AuthIdentityHandler._NotCompletedSecurityChecks):
+                self.handler._login(user)
+
+        assert self.request.session["_after_2fa"] == "http://acme.testserver/auth/sso/"
 
 
 @control_silo_test

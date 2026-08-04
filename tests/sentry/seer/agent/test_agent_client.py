@@ -22,7 +22,7 @@ from sentry.seer.agent.client_models import (
 )
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunType
-from sentry.seer.sentry_data_models import MonitoringProviderConnectionData
+from sentry.seer.sentry_data_models import HeaderAuthConnectionData
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options, with_feature
 from sentry.testutils.requests import make_request
@@ -296,6 +296,7 @@ class TestSeerAgentClient(TestCase):
     def test_continue_run_includes_embed_widgets_by_default(self, mock_post, mock_access):
         mock_access.return_value = (True, None)
         mock_post.return_value = self._mock_run_response()
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
 
         client = SeerAgentClient(self.organization, self.user)
         client.continue_run(123, "Follow-up query")
@@ -309,6 +310,7 @@ class TestSeerAgentClient(TestCase):
     def test_continue_run_excludes_embed_widgets_when_disabled(self, mock_post, mock_access):
         mock_access.return_value = (True, None)
         mock_post.return_value = self._mock_run_response()
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
 
         client = SeerAgentClient(self.organization, self.user, enable_embeds=False)
         client.continue_run(123, "Follow-up query")
@@ -426,11 +428,12 @@ class TestSeerAgentClient(TestCase):
         """Test continuing an existing run"""
         mock_access.return_value = (True, None)
         mock_post.return_value = self._mock_run_response(run_id=456)
+        self.create_seer_run(organization=self.organization, seer_run_state_id=456)
 
         client = SeerAgentClient(self.organization, self.user)
-        run_id = client.continue_run(456, "Follow up query")
+        run = client.continue_run(456, "Follow up query")
 
-        assert run_id == 456
+        assert run.seer_run_state_id == 456
         assert mock_post.called
         body = mock_post.call_args[0][0]
         assert "enable_frontend_code_search" not in body["agent_run_options"]
@@ -445,7 +448,7 @@ class TestSeerAgentClient(TestCase):
         mock_access.return_value = (True, None)
         mock_post.return_value = self._mock_run_response(run_id=1)
         mock_conns.return_value = [
-            MonitoringProviderConnectionData(
+            HeaderAuthConnectionData(
                 provider_key="datadog",
                 url="https://mcp.datadoghq.com/api/unstable/mcp-server/mcp",
                 encrypted_auth_headers={"DD-API-KEY": "x", "DD-APPLICATION-KEY": "y"},
@@ -455,6 +458,7 @@ class TestSeerAgentClient(TestCase):
             )
         ]
 
+        self.create_seer_run(organization=self.organization, seer_run_state_id=1)
         client = SeerAgentClient(self.organization, user=None)
         client.continue_run(1, "Follow up")
 
@@ -469,14 +473,13 @@ class TestSeerAgentClient(TestCase):
         """Test continuing a run with all optional parameters"""
         mock_access.return_value = (True, None)
         mock_post.return_value = self._mock_run_response(run_id=789)
+        self.create_seer_run(organization=self.organization, seer_run_state_id=789)
 
         client = SeerAgentClient(self.organization, self.user)
         with self.feature("organizations:seer-agent-source-code-search"):
-            run_id = client.continue_run(
-                789, "Follow up", insert_index=2, on_page_context="context"
-            )
+            run = client.continue_run(789, "Follow up", insert_index=2, on_page_context="context")
 
-        assert run_id == 789
+        assert run.seer_run_state_id == 789
         body = mock_post.call_args[0][0]
         assert body["agent_run_options"]["enable_frontend_code_search"] is True
 
@@ -486,6 +489,7 @@ class TestSeerAgentClient(TestCase):
     def test_continue_run_passes_enable_pr_context_tools(self, mock_post, mock_access):
         mock_access.return_value = (True, None)
         mock_post.return_value = self._mock_run_response(run_id=789)
+        self.create_seer_run(organization=self.organization, seer_run_state_id=789)
 
         client = SeerAgentClient(self.organization, self.user, enable_pr_context_tools=True)
         client.continue_run(789, "Follow up")
@@ -499,10 +503,24 @@ class TestSeerAgentClient(TestCase):
         """Test that HTTP errors are propagated"""
         mock_access.return_value = (True, None)
         mock_post.return_value.status = 500
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
 
         client = SeerAgentClient(self.organization, self.user)
         with pytest.raises(SeerApiError):
             client.continue_run(123, "Test query")
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    def test_continue_run_missing_mirror_raises(self, mock_post, mock_access):
+        mock_access.return_value = (True, None)
+        mock_post.return_value = self._mock_run_response(run_id=999)
+
+        client = SeerAgentClient(self.organization, self.user)
+        with pytest.raises(SeerPermissionError):
+            client.continue_run(999, "Follow up query")
+
+        # Fail closed: a missing mirror must not advance the run on Seer's side.
+        mock_post.assert_not_called()
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.make_agent_chat_request")
@@ -670,17 +688,18 @@ class TestSeerAgentClientArtifacts(TestCase):
         mock_response.json.return_value = {"run_id": 123}
         mock_response.status = 200
         mock_post.return_value = mock_response
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
 
         class Solution(BaseModel):
             description: str
             steps: list[str]
 
         client = SeerAgentClient(self.organization, self.user)
-        run_id = client.continue_run(
+        run = client.continue_run(
             123, "Propose a fix", artifact_key="solution", artifact_schema=Solution
         )
 
-        assert run_id == 123
+        assert run.seer_run_state_id == 123
 
         body = mock_post.call_args[0][0]
         assert body["artifact_key"] == "solution"
