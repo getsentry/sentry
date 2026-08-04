@@ -25,6 +25,7 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 from sentry.testutils.skips import requires_kafka, requires_snuba
+from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 from sentry.workflow_engine.models import (
     AlertRuleDetector,
     DataCondition,
@@ -218,6 +219,17 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
         """
         with self.feature({"organizations:incidents": False}):
             self.get_error_response(self.organization.slug, self.detector.id, status_code=404)
+
+    @with_feature("organizations:workflow-engine-all-projects-detector")
+    def test_all_projects_detector_get_success(self) -> None:
+        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+        response = self.get_success_response(self.organization.slug, all_projects_detector.id)
+        assert response.data["id"] == str(all_projects_detector.id)
+        assert response.data["projectId"] is None
+
+    def test_all_projects_detector_get_error_without_flag(self) -> None:
+        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+        self.get_error_response(self.organization.slug, all_projects_detector.id, status_code=403)
 
 
 @cell_silo_test
@@ -1110,6 +1122,15 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert query_sub.snuba_query.query == "event.type:transaction"
         assert query_sub.snuba_query.aggregate == "count()"
         assert query_sub.snuba_query.event_types == [SnubaQueryEventType.EventType.TRANSACTION]
+
+    def test_all_projects_detector_put_forbidden(self) -> None:
+        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+        self.get_error_response(
+            self.organization.slug,
+            all_projects_detector.id,
+            name="Updated Name",
+            status_code=403,
+        )
 
 
 @cell_silo_test

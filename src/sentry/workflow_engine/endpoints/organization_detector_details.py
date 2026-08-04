@@ -8,7 +8,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -135,22 +135,27 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         self, request: Request, detector_id: str, *args: Any, **kwargs: Any
     ) -> tuple[tuple[Any, ...], dict[str, Organization | Detector]]:
         args, kwargs = super().convert_args(request, *args, **kwargs)
+        organization = kwargs["organization"]
         validated_detector_id = to_valid_int_id("detector_id", detector_id, raise_404=True)
         try:
             detector = (
-                Detector.objects.with_type_filters()
+                Detector.objects.by_organization(organization.id)
+                .filter(grouptype.registry.get_detector_type_filters())
                 .select_related("project")
-                .get(
-                    id=validated_detector_id,
-                    project__organization_id=kwargs["organization"].id,
-                )
+                .get(id=validated_detector_id)
             )
             kwargs["detector"] = detector
         except Detector.DoesNotExist:
             raise ResourceDoesNotExist
 
-        # Verify user has access to the detector's project (respects Open Membership setting)
-        if not request.access.has_project_access(detector.linked_project):
+        if detector.project is None and not features.has(
+            "organizations:workflow-engine-all-projects-detector", organization
+        ):
+            raise PermissionDenied
+
+        # Verify user has access to the detector's project (respects Open Membership setting).
+        # Null-project (all-projects) detectors are org-level and bypass the project check.
+        if detector.project is not None and not request.access.has_project_access(detector.project):
             raise PermissionDenied
 
         return args, kwargs

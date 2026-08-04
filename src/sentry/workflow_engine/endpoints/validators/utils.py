@@ -78,6 +78,10 @@ def can_edit_detector(detector: Detector, request: Request) -> bool:
     permission, then we must verify that the user is a team admin with "alerts:write" access to the project(s)
     in their request.
     """
+    # If this is the All Projects detector, prevent edits
+    if not detector.project:
+        return False
+
     if is_system_created_detector(detector) and not can_edit_system_created_detectors(
         request, detector.linked_project
     ):
