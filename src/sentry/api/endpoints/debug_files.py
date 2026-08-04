@@ -1,6 +1,8 @@
 import logging
 import posixpath
 import re
+import shutil
+import tempfile
 import uuid
 from collections.abc import Iterable, Mapping, Sequence, Set
 from contextlib import closing
@@ -847,13 +849,21 @@ def _clone_proguard_debug_file_for_reupload(
     dif = find_existing_dif(project, meta, checksum)
     if dif is None:
         objectstore_metadata: dict[str, object] = {}
+        objectstore_session = None
+        storage_path = None
         if debug_file.storage_path is not None:
             content_type = debug_file.get_content_type()
             file_size = debug_file.get_file_size()
-            with closing(debug_file.get_file()) as source_fileobj:
+            objectstore_session = debug_file.get_objectstore_session()
+            with (
+                closing(debug_file.get_file()) as source_fileobj,
+                tempfile.TemporaryFile() as temporary_file,
+            ):
+                shutil.copyfileobj(source_fileobj, temporary_file)
+                temporary_file.seek(0)
                 storage_path = upload_dif_to_objectstore(
-                    debug_file.get_objectstore_session(),
-                    source_fileobj,
+                    objectstore_session,
+                    temporary_file,
                     content_type,
                     file_size,
                     get_dif_download_filename(meta),
@@ -866,17 +876,28 @@ def _clone_proguard_debug_file_for_reupload(
                 "date_created": timezone.now(),
             }
 
-        dif = ProjectDebugFile.objects.create(
-            file=debug_file.file,
-            checksum=checksum,
-            debug_id=meta.debug_id,
-            code_id=meta.code_id,
-            cpu_name=meta.arch,
-            object_name="proguard-mapping",
-            project_id=project.id,
-            data=meta.data,
-            **objectstore_metadata,
-        )
+        try:
+            dif = ProjectDebugFile.objects.create(
+                file=debug_file.file,
+                checksum=checksum,
+                debug_id=meta.debug_id,
+                code_id=meta.code_id,
+                cpu_name=meta.arch,
+                object_name="proguard-mapping",
+                project_id=project.id,
+                data=meta.data,
+                **objectstore_metadata,
+            )
+        except Exception:
+            if storage_path is not None:
+                assert objectstore_session is not None
+                try:
+                    objectstore_session.delete(storage_path)
+                except Exception:
+                    logger.exception(
+                        "Failed to clean up Objectstore debug file after database error"
+                    )
+            raise
 
         record_last_upload(project)
 
