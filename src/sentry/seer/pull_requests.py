@@ -123,6 +123,17 @@ def link_pull_request_to_seer_run(
             "seer.pr_link.created",
             extra={**log_context, "pull_request_id": resolved.pull_request.id},
         )
+        # Imported here, not at module scope: this runs under SeerConfig.ready() and
+        # pr_metrics.tasks reads a Jira option at import time, before the options cache exists.
+        from sentry.pr_metrics.tasks import fetch_pr_file_stats_task
+
+        # Covers the race where the link lands after the `opened` webhook (which skips
+        # not-yet-linked PRs); the task re-checks the flag, rate-limit guard, and row.
+        fetch_pr_file_stats_task.delay(
+            pull_request_id=resolved.pull_request.id,
+            organization_id=organization.id,
+            repository_id=resolved.pull_request.repository_id,
+        )
 
     return resolved.pull_request
 

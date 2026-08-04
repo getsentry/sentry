@@ -129,6 +129,24 @@ class LinkSeerRunPullRequestsTest(TestCase):
 
         assert not SeerRunPullRequest.objects.exists()
 
+    @patch("sentry.pr_metrics.tasks.fetch_pr_file_stats_task")
+    def test_enqueues_file_stats_on_link_creation(self, mock_task: Mock) -> None:
+        self._link(self._payload())
+
+        pull_request = PullRequest.objects.get(repository_id=self.repo.id, key="42")
+        mock_task.delay.assert_called_once_with(
+            pull_request_id=pull_request.id,
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+        )
+
+    @patch("sentry.pr_metrics.tasks.fetch_pr_file_stats_task")
+    def test_does_not_enqueue_when_link_already_exists(self, mock_task: Mock) -> None:
+        self._link(self._payload())
+        self._link(self._payload())
+
+        assert mock_task.delay.call_count == 1
+
 
 PR_NUMBER = 7412
 PR_URL = "https://github.com/getsentry/sentry/pull/7412"

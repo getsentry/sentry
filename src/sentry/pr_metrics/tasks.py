@@ -13,6 +13,7 @@ from taskbroker_client.retry import Retry
 from urllib3.exceptions import HTTPError
 
 from sentry import features
+from sentry.integrations.github.utils import is_github_rate_limit_sensitive
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
     PullRequest,
@@ -29,6 +30,8 @@ from sentry.pr_metrics.activity_doc import (
 )
 from sentry.pr_metrics.emit import NO_REVIEWER_ENGAGEMENT, emit_pr_metrics_row
 from sentry.pr_metrics.judge import forward_pr_to_seer_judge, reap_stuck_judge_verdicts
+from sentry.scm.pull_request_files import fetch_pr_file_stats
+from sentry.seer.models.run import SeerRunPullRequest
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_code_review_tasks
@@ -94,6 +97,87 @@ def forward_pr_to_seer_task(
         return
 
     forward_pr_to_seer_judge(pull_request, repository)
+
+
+# Headroom past the GitHub call's timeout (10s per request, plus proxy retries) — like
+# FORWARD_PROCESSING_DEADLINE — so the broker can't redeliver mid-call and re-issue the
+# request for a rate-limit-guarded org.
+FILE_STATS_PROCESSING_DEADLINE = 45
+
+
+@instrumented_task(
+    name="sentry.pr_metrics.tasks.fetch_pr_file_stats",
+    namespace=seer_code_review_tasks,
+    processing_deadline_duration=FILE_STATS_PROCESSING_DEADLINE,
+    silo_mode=SiloMode.CELL,
+)
+def fetch_pr_file_stats_task(
+    *,
+    pull_request_id: int,
+    organization_id: int,
+    repository_id: int,
+) -> None:
+    """Fetch per-file diff stats for an autofix-linked PR and store them on its
+    existing ``PullRequestMetrics`` row (never created here — no row means no-op).
+
+    Best-effort: every guard is an early return that increments ``pr_file_stats.task``
+    with a fixed ``result`` tag, making the skip mix visible during rollout.
+    """
+    log_extra = {
+        "pull_request_id": pull_request_id,
+        "organization_id": organization_id,
+        "repository_id": repository_id,
+    }
+    try:
+        organization = Organization.objects.get_from_cache(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.warning("pr_file_stats.task.entity_not_found", extra=log_extra)
+        metrics.incr("pr_file_stats.task", tags={"result": "entity_not_found"})
+        return
+
+    if not features.has("organizations:pr-file-stats", organization):
+        metrics.incr("pr_file_stats.task", tags={"result": "flag_off"})
+        return
+
+    if is_github_rate_limit_sensitive(organization.slug):
+        metrics.incr("pr_file_stats.task", tags={"result": "rate_limited"})
+        return
+
+    # Fetched only after the cheap guards pass. The Exists() annotations fold the
+    # autofix-link and metrics-row checks into this single org-scoped query.
+    try:
+        pull_request = PullRequest.objects.annotate(
+            has_seer_link=Exists(SeerRunPullRequest.objects.filter(pull_request=OuterRef("pk"))),
+            has_metrics=Exists(PullRequestMetrics.objects.filter(pull_request=OuterRef("pk"))),
+        ).get(
+            id=pull_request_id,
+            organization_id=organization_id,
+            repository_id=repository_id,
+        )
+        repository = Repository.objects.get(id=repository_id, organization_id=organization_id)
+    except (PullRequest.DoesNotExist, Repository.DoesNotExist):
+        logger.warning("pr_file_stats.task.entity_not_found", extra=log_extra)
+        metrics.incr("pr_file_stats.task", tags={"result": "entity_not_found"})
+        return
+
+    # Only PRs Seer opened are worth the extra GitHub call.
+    if not pull_request.has_seer_link:
+        metrics.incr("pr_file_stats.task", tags={"result": "not_linked"})
+        return
+
+    if not pull_request.has_metrics:
+        metrics.incr("pr_file_stats.task", tags={"result": "no_row"})
+        return
+
+    file_stats = fetch_pr_file_stats(organization, repository, pull_request.key)
+    # [] means either a transient GitHub failure or a genuinely empty PR; skip the write
+    # either way so one failed fetch can't clobber good stats a prior run stored.
+    if not file_stats:
+        metrics.incr("pr_file_stats.task", tags={"result": "empty"})
+        return
+
+    PullRequestMetrics.objects.filter(pull_request=pull_request).update(file_stats=file_stats)
+    metrics.incr("pr_file_stats.task", tags={"result": "written"})
 
 
 @instrumented_task(

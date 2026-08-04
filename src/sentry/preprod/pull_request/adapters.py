@@ -15,9 +15,9 @@ from sentry.preprod.pull_request.types import (
     PullRequestDetails,
     PullRequestErrorResponse,
     PullRequestFileChange,
-    PullRequestFileStatus,
     PullRequestWithFiles,
 )
+from sentry.scm.types import PullRequestFileStatus
 
 logger = logging.getLogger(__name__)
 
