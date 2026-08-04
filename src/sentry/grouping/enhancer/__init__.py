@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import base64
-import logging
 import os
 import re
 import zlib
@@ -28,8 +27,6 @@ from .exceptions import InvalidEnhancerConfig
 from .matchers import create_match_frame
 from .parser import parse_enhancements
 from .rules import EnhancementRule
-
-logger = logging.getLogger(__name__)
 
 # NOTE: The 1_000 here is pretty arbitrary. Our builtin base enhancements have about ~300 rules,
 # So this leaves quite a bit of headroom for custom enhancement rules as well.
