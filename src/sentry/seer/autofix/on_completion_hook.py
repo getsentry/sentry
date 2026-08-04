@@ -249,7 +249,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         :eyes:->:tada: swap on top-level comments and clearing the lingering :eyes:
         on inline ones.
         """
-        if not features.has("organizations:autofix-pr-iteration", organization=organization):
+        if not features.has("organizations:autofix-pr-iteration-manual", organization=organization):
             return
 
         current_step, _ = cls._get_current_step(state)

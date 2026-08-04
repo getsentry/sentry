@@ -70,6 +70,43 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["autofix"]["sentry_run_id"] == str(run.uuid)
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    def test_get_reports_iteration_flags_independently(self, mock_get_explorer_state):
+        """``pr_iteration_enabled`` tracks automated CI iteration, the ``manual_``
+        field tracks human-triggered iteration, and neither implies the other."""
+        group = self.create_group()
+        mock_get_explorer_state.return_value = SeerRunState(
+            run_id=888,
+            blocks=[],
+            status="completed",
+            updated_at="2023-07-18T12:00:00Z",
+        )
+        self.login_as(user=self.user)
+
+        def get_flags() -> tuple[bool, bool]:
+            response = self.client.get(self._get_url(group.id), format="json")
+            assert response.status_code == 200, response.data
+            return (
+                response.data["autofix"]["pr_iteration_enabled"],
+                response.data["autofix"]["manual_pr_iteration_enabled"],
+            )
+
+        assert get_flags() == (False, False)
+
+        with self.feature("organizations:autofix-pr-iteration"):
+            assert get_flags() == (True, False)
+
+        with self.feature("organizations:autofix-pr-iteration-manual"):
+            assert get_flags() == (False, True)
+
+        with self.feature(
+            [
+                "organizations:autofix-pr-iteration",
+                "organizations:autofix-pr-iteration-manual",
+            ]
+        ):
+            assert get_flags() == (True, True)
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     def test_get_handles_block_with_null_metadata(self, mock_get_explorer_state):
         group = self.create_group()
         mock_get_explorer_state.return_value = SeerRunState(
@@ -496,7 +533,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 202, response.data
         action_log.assert_not_logged(TriggerAutofixAction, group_id=group.id)
 
-    @with_feature("organizations:autofix-pr-iteration")
+    @with_feature("organizations:autofix-pr-iteration-manual")
     @patch("sentry.seer.endpoints.group_ai_autofix.consume_queued_autofix_feedback")
     @patch("sentry.seer.endpoints.group_ai_autofix.try_enqueue_autofix_feedback")
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
@@ -529,10 +566,16 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert mock_try_enqueue.call_args.kwargs["actor_user_id"] == self.user.id
         mock_consume.apply_async.assert_called_once()
 
-    @with_feature({"organizations:autofix-pr-iteration": False})
+    @with_feature(
+        {
+            "organizations:autofix-pr-iteration-manual": False,
+            # On, to pin that automated CI iteration does not grant manual iteration.
+            "organizations:autofix-pr-iteration": True,
+        }
+    )
     @patch("sentry.seer.endpoints.group_ai_autofix.consume_queued_autofix_feedback")
     @patch("sentry.seer.endpoints.group_ai_autofix.try_enqueue_autofix_feedback")
-    def test_pr_iteration_requires_feature_flag(self, mock_try_enqueue, mock_consume):
+    def test_pr_iteration_requires_manual_feature_flag(self, mock_try_enqueue, mock_consume):
         group = self.create_group()
 
         self.login_as(user=self.user)
@@ -546,7 +589,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["detail"] == "PR iteration is not enabled for this organization"
         mock_try_enqueue.assert_not_called()
 
-    @with_feature("organizations:autofix-pr-iteration")
+    @with_feature("organizations:autofix-pr-iteration-manual")
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_pr_iteration_requires_run_id(self, mock_trigger_explorer):
         group = self.create_group()
@@ -561,7 +604,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.data
         mock_trigger_explorer.assert_not_called()
 
-    @with_feature("organizations:autofix-pr-iteration")
+    @with_feature("organizations:autofix-pr-iteration-manual")
     @patch("sentry.seer.endpoints.group_ai_autofix.try_enqueue_autofix_feedback")
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
     def test_pr_iteration_requires_existing_pr(self, mock_run_state, mock_try_enqueue):

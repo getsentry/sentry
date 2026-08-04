@@ -224,6 +224,15 @@ class TestSeerAgentClient(TestCase):
         assert client.enable_pr_context_tools is True
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @with_feature("organizations:autofix-pr-iteration-manual")
+    def test_client_init_succeeds_when_manual_pr_ctx_tools_flag_enabled(self, mock_access):
+        """PR context tools back both iteration flows, so the manual flag alone grants them."""
+        mock_access.return_value = (True, None)
+
+        client = SeerAgentClient(self.organization, self.user, enable_pr_context_tools=True)
+        assert client.enable_pr_context_tools is True
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     @patch("sentry.seer.agent.client.collect_user_org_context")
     def test_start_run_defaults_pr_context_tools_disabled(
