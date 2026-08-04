@@ -540,8 +540,13 @@ function useTimeRangeWarning({widget}: {widget: TWidget}) {
 
   // Convert the number of days to ms so we can get an end date to check if the
   // widget is querying more than its retention allows
-  const statsPeriodToEnd = new Date(Date.now() - statsPeriodDaysFromNow * DAYS_TO_MS);
-  const retentionLimitDate = new Date(Date.now() - retentionLimitDays * DAYS_TO_MS);
+  const {statsPeriodToEnd, retentionLimitDate} = useMemo(
+    () => ({
+      statsPeriodToEnd: new Date(Date.now() - statsPeriodDaysFromNow * DAYS_TO_MS),
+      retentionLimitDate: new Date(Date.now() - retentionLimitDays * DAYS_TO_MS),
+    }),
+    [statsPeriodDaysFromNow, retentionLimitDays]
+  );
   if (
     (retentionLimitDate && datetime.end && retentionLimitDate > datetime.end) ||
     (retentionLimitDate && statsPeriodToEnd && retentionLimitDate > statsPeriodToEnd)
