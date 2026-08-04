@@ -9,6 +9,7 @@ from sentry.workflow_engine.defaults.detectors import (
     UnableToAcquireLockApiError,
     ensure_default_all_projects_detector,
     ensure_default_detectors,
+    ensure_default_organization_detectors,
 )
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.types import (
@@ -58,7 +59,7 @@ class TestEnsureDefaultDetectors(TestCase):
     def test_ensure_default_detectors__creates_all_projects_detector_when_flag_on(self) -> None:
         project = self.create_project()
         with self.feature("organizations:workflow-engine-all-projects-detector"):
-            ensure_default_detectors(project)
+            ensure_default_organization_detectors(project.organization)
 
         all_projects = Detector.objects.filter(
             type=IssueStreamGroupType.slug,

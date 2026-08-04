@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from sentry import features, options
 from sentry.grouping.grouptype import ErrorGroupType
@@ -12,6 +12,7 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import metrics
+from sentry.utils.cache import cache
 from sentry.utils.tracing import trace
 
 # TODO - remove this import once getsentry can be updated
@@ -31,11 +32,38 @@ from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 logger = logging.getLogger(__name__)
 
 
+def get_all_projects_detector_cache_key(organization_id: int) -> str:
+    return f"detector:all_projects:{organization_id}"
+
+
+def get_all_projects_detector_for_org(organization_id: int) -> Detector:
+    cache_key = get_all_projects_detector_cache_key(organization_id)
+    detector = cache.get(cache_key)
+    if detector is None:
+        detector = Detector.objects.get(
+            project__isnull=True,
+            type=IssueStreamGroupType.slug,
+            config__organization_id=organization_id,
+        )
+        cache.set(cache_key, detector, Detector.CACHE_TTL)
+    return detector
+
+
+def invalidate_all_projects_detector_cache(instance: Detector) -> None:
+    if instance.project_id is None:
+        organization_id = instance.config.get("organization_id")
+        if organization_id is not None:
+            cache_key = get_all_projects_detector_cache_key(organization_id)
+            cache.delete(cache_key)
+
+
 @dataclass(frozen=True)
 class EventDetectors:
-    issue_stream_detector: Detector | None = None
+    issue_stream_detectors: list[Detector] = field(default_factory=list)
+    """
+    Assumed to be in priority order, since this is leveraged by preferred_detector.
+    """
     event_detector: Detector | None = None
-    all_projects_detector: Detector | None = None
 
     def __post_init__(self) -> None:
         if not self.has_detectors:
@@ -46,11 +74,7 @@ class EventDetectors:
         """
         Returns True if at least one detector exists.
         """
-        return (
-            self.issue_stream_detector is not None
-            or self.event_detector is not None
-            or self.all_projects_detector is not None
-        )
+        return bool(self.issue_stream_detectors) or self.event_detector is not None
 
     @property
     def preferred_detector(self) -> Detector:
@@ -59,17 +83,16 @@ class EventDetectors:
         if we need to use a singular detector (for example, in logging).
         The class will not initialize if no detectors are found.
         """
-        detector = self.event_detector or self.issue_stream_detector or self.all_projects_detector
+        detector = self.event_detector or next(iter(self.issue_stream_detectors), None)
         assert detector is not None, "At least one detector must exist"
         return detector
 
     @property
     def detectors(self) -> set[Detector]:
-        return {
-            d
-            for d in [self.issue_stream_detector, self.event_detector, self.all_projects_detector]
-            if d is not None
-        }
+        result = set(self.issue_stream_detectors)
+        if self.event_detector is not None:
+            result.add(self.event_detector)
+        return result
 
 
 # TODO - Delete this once the issue stream is fully rolled out.
@@ -110,13 +133,13 @@ def get_detectors_for_event_data(
 
     We expect a detector to be passed in for Activity updates.
     """
-    issue_stream_detector: Detector | None = None
-    all_projects_detector: Detector | None = None
+    # NOTE: Order determines priority: project-scoped first, then fall back to all-projects
+    issue_stream_detectors: list[Detector] = []
 
     try:
         if _is_issue_stream_detector_enabled(event_data):
-            issue_stream_detector = Detector.get_issue_stream_detector_for_project(
-                event_data.group.project_id
+            issue_stream_detectors.append(
+                Detector.get_issue_stream_detector_for_project(event_data.group.project_id)
             )
     except Detector.DoesNotExist:
         metrics.incr("workflow_engine.detectors.error", tags={"detector_type": "issue_stream"})
@@ -126,23 +149,23 @@ def get_detectors_for_event_data(
         )
 
     organization = event_data.event.project.organization
-    if features.has("organizations:workflow-engine-all-projects-detector", organization):
-        try:
-            all_projects_detector = Detector.get_all_projects_detector_for_org(organization.id)
-        except (Detector.DoesNotExist, Detector.MultipleObjectsReturned):
-            metrics.incr("workflow_engine.detectors.error", tags={"detector_type": "all_projects"})
-            logger.exception(
-                "Single all projects detector not found for event",
-                extra={"organization_id": organization.id, "group_id": event_data.group.id},
-            )
+    try:
+        issue_stream_detectors.append(get_all_projects_detector_for_org(organization.id))
+    except (Detector.DoesNotExist, Detector.MultipleObjectsReturned) as exc:
+        metrics.incr("workflow_engine.detectors.error", tags={"detector_type": "all_projects"})
+        # TODO(Leander): Convert to exception once this detector has been rolled out
+        logger.warning(
+            "Single all projects detector not found for event",
+            extra={"organization_id": organization.id, "group_id": event_data.group.id},
+            exc_info=exc,
+        )
 
     if detector is None and isinstance(event_data.event, GroupEvent):
         detector = _get_detector_for_event(event_data.event)
     try:
         return EventDetectors(
-            issue_stream_detector=issue_stream_detector,
+            issue_stream_detectors=issue_stream_detectors,
             event_detector=detector,
-            all_projects_detector=all_projects_detector,
         )
     except ValueError:
         return None

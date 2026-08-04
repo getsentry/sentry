@@ -16,6 +16,7 @@ from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.issue_detection.performance_detection import PERFORMANCE_DETECTOR_CONFIG_MAPPINGS
 from sentry.issues import grouptype
 from sentry.locks import locks
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS
 from sentry.seer.anomaly_detection.store_data_workflow_engine import send_new_detector_data
@@ -329,12 +330,17 @@ def ensure_default_all_projects_detector(organization_id: int) -> Detector:
         raise UnableToAcquireLockApiError
 
 
+def ensure_default_organization_detectors(organization: Organization) -> dict[str, Detector]:
+    detectors: dict[str, Detector] = {}
+    detectors[IssueStreamGroupType.slug] = ensure_default_all_projects_detector(
+        organization_id=organization.id
+    )
+    return detectors
+
+
 def ensure_default_detectors(project: Project) -> dict[str, Detector]:
     detectors: dict[str, Detector] = {}
     detectors[ErrorGroupType.slug] = _ensure_detector(project, ErrorGroupType.slug)
     detectors[IssueStreamGroupType.slug] = _ensure_detector(project, IssueStreamGroupType.slug)
     detectors.update(ensure_performance_detectors(project))
-    organization = project.organization
-    if features.has("organizations:workflow-engine-all-projects-detector", organization):
-        ensure_default_all_projects_detector(organization_id=project.organization_id)
     return detectors

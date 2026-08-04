@@ -38,10 +38,6 @@ def get_detector_project_type_cache_key(project_id: int, detector_type: str) -> 
     return f"detector:by_proj_type:{project_id}:{detector_type}"
 
 
-def get_all_projects_detector_cache_key(organization_id: int) -> str:
-    return f"detector:all_projects:{organization_id}"
-
-
 class DetectorSnapshot(TypedDict):
     id: int
     type: str
@@ -134,21 +130,6 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         detector = cache.get(cache_key)
         if detector is None:
             detector = cls.objects.get(project_id=project_id, type=detector_type)
-            cache.set(cache_key, detector, cls.CACHE_TTL)
-        return detector
-
-    @classmethod
-    def get_all_projects_detector_for_org(cls, organization_id: int) -> Detector:
-        from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
-
-        cache_key = get_all_projects_detector_cache_key(organization_id)
-        detector = cache.get(cache_key)
-        if detector is None:
-            detector = cls.objects.get(
-                project__isnull=True,
-                type=IssueStreamGroupType.slug,
-                config__organization_id=organization_id,
-            )
             cache.set(cache_key, detector, cls.CACHE_TTL)
         return detector
 

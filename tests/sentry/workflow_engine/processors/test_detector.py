@@ -1016,25 +1016,23 @@ class TestEventDetectorsAllProject(TestCase):
 
     def test_preferred_detector_prefers_project_scoped(self) -> None:
         ed = EventDetectors(
-            issue_stream_detector=self.issue_stream_detector,
-            all_projects_detector=self.all_projects_detector,
+            issue_stream_detectors=[self.issue_stream_detector, self.all_projects_detector],
         )
         assert ed.preferred_detector == self.issue_stream_detector
 
     def test_detectors_includes_all_projects(self) -> None:
         ed = EventDetectors(
-            issue_stream_detector=self.issue_stream_detector,
-            all_projects_detector=self.all_projects_detector,
+            issue_stream_detectors=[self.issue_stream_detector, self.all_projects_detector],
         )
         assert self.all_projects_detector in ed.detectors
         assert self.issue_stream_detector in ed.detectors
 
     def test_only_all_projects_detector_falls_back_to_preferred(self) -> None:
-        ed = EventDetectors(all_projects_detector=self.all_projects_detector)
+        ed = EventDetectors(issue_stream_detectors=[self.all_projects_detector])
         assert ed.preferred_detector == self.all_projects_detector
 
     def test_only_all_projects_has_detectors(self) -> None:
-        ed = EventDetectors(all_projects_detector=self.all_projects_detector)
+        ed = EventDetectors(issue_stream_detectors=[self.all_projects_detector])
         assert ed.has_detectors is True
         assert ed.detectors == {self.all_projects_detector}
 
@@ -1056,29 +1054,19 @@ class TestGetDetectorsForEventAllProject(TestCase):
         self.event = self.store_event(project_id=self.project.id, data={})
         self.group_event = GroupEvent.from_event(self.event, self.group)
 
-    def test_includes_all_projects_detector_with_flag(self) -> None:
-        event_data = WorkflowEventData(event=self.group_event, group=self.group)
-        with self.feature("organizations:workflow-engine-all-projects-detector"):
-            result = get_detectors_for_event_data(event_data)
-        assert result is not None
-        assert self.all_projects_detector in result.detectors
-        assert result.all_projects_detector == self.all_projects_detector
-        assert result.preferred_detector == self.error_detector
-
-    def test_excludes_all_projects_detector_without_flag(self) -> None:
+    def test_includes_all_projects_detector(self) -> None:
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
         result = get_detectors_for_event_data(event_data)
         assert result is not None
-        assert result.all_projects_detector is None
-        assert self.all_projects_detector not in result.detectors
+        assert self.all_projects_detector in result.detectors
+        assert result.preferred_detector == self.error_detector
 
     def test_no_all_projects_detector_exists(self) -> None:
         self.all_projects_detector.delete()
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
-        with self.feature("organizations:workflow-engine-all-projects-detector"):
-            result = get_detectors_for_event_data(event_data)
+        result = get_detectors_for_event_data(event_data)
         assert result is not None
-        assert result.all_projects_detector is None
+        assert self.all_projects_detector not in result.detectors
         assert result.preferred_detector == self.error_detector
 
 
