@@ -11,7 +11,8 @@ from sentry.seer.agent.coding_agent_handoff import (
     _resolve_client,
     launch_coding_agents,
     resolve_repo_branch_name,
-)from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentState
+)
+from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentState
 from sentry.seer.models import SeerApiError, SeerRepoDefinition
 from sentry.seer.models.run import SeerRunCodingAgentHandoff
 from sentry.shared_integrations.exceptions import ApiError
