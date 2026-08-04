@@ -1396,7 +1396,9 @@ class TestGetAutomationStoppingPoint(TestCase):
         assert get_automation_stopping_point(self.group) == AutofixStoppingPoint.ROOT_CAUSE
 
     @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
-    def test_returns_none_when_fixability_score_is_none(self, mock_fixability, mock_seat_based_tier):
+    def test_returns_none_when_fixability_score_is_none(
+        self, mock_fixability, mock_seat_based_tier
+    ):
         """Test that None fixability score (e.g. Seer 404) returns None stopping point."""
         mock_fixability.return_value = None
 
