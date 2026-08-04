@@ -493,7 +493,7 @@ class JiraIntegration(IssueSyncIntegration):
         return upserts, tombstones
 
     def _reconcile_project_status_mappings(
-        self, project_mappings: object
+        self, project_mappings: dict[str, Any]
     ) -> _MappingReconcileResult:
         """
         Apply a `sync_status_forward` payload to the stored `IntegrationExternalProject` rows.
