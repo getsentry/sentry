@@ -115,16 +115,18 @@ export function IssuePreviewAutofixSummary({runState}: IssuePreviewAutofixSummar
                 {Array.from(patchesByRepo.entries(), ([repoName, patches]) => (
                   <Stack key={repoName} gap="md">
                     <Text bold>{repoName}</Text>
-                    {patches.map(patch => (
-                      <FileDiffViewer
-                        key={patch.patch.path}
-                        patch={patch.patch}
-                        repoName={repoName}
-                        showBorder
-                        collapsible
-                        defaultExpanded
-                      />
-                    ))}
+                    <Stack gap="0" data-test-id="file-diff-list">
+                      {patches.map(patch => (
+                        <FileDiffViewer
+                          key={patch.patch.path}
+                          patch={patch.patch}
+                          repoName={repoName}
+                          showBorder
+                          collapsible
+                          defaultExpanded
+                        />
+                      ))}
+                    </Stack>
                   </Stack>
                 ))}
               </Stack>
