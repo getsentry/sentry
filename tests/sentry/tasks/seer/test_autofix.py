@@ -54,6 +54,37 @@ class TestGenerateIssueSummaryOnly(SentryTestCase):
         group.refresh_from_db()
         assert group.seer_fixability_score == 0.75
 
+    @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
+    @patch("sentry.seer.autofix.issue_summary.get_issue_summary")
+    def test_handles_seer_404_for_fixability_without_raising(
+        self, mock_get_issue_summary: MagicMock, mock_generate_fixability: MagicMock
+    ) -> None:
+        """Test that task completes gracefully when Seer returns 404 for fixability (no summary in Seer DB)."""
+        group = self.create_group(project=self.project)
+
+        mock_get_issue_summary.return_value = (
+            {
+                "groupId": str(group.id),
+                "headline": "Test Headline",
+                "whatsWrong": "Test whats wrong",
+                "trace": "Test trace",
+                "possibleCause": "Test cause",
+            },
+            200,
+        )
+        # Seer returns 404 because no issue summary exists in its DB
+        mock_generate_fixability.return_value = None
+
+        # Should not raise - previously this would raise Exception('Seer API error: 404')
+        # and exhaust all retries
+        generate_issue_summary_only(group.id)
+
+        mock_get_issue_summary.assert_called_once()
+        mock_generate_fixability.assert_called_once()
+
+        group.refresh_from_db()
+        assert group.seer_fixability_score is None
+
 
 class TestConfigureSeerForExistingOrg(SentryTestCase):
     def test_configures_org_and_project_settings(self) -> None:

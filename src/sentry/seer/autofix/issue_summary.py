@@ -303,7 +303,7 @@ def make_fixability_score_request(
 def _generate_fixability_score(
     group: Group,
     summary: dict[str, Any] | None = None,
-) -> SummarizeIssueResponse:
+) -> SummarizeIssueResponse | None:
     body = FixabilityScoreRequest(
         group_id=group.id,
         organization_slug=group.organization.slug,
@@ -319,6 +319,12 @@ def _generate_fixability_score(
         timeout=settings.SEER_FIXABILITY_TIMEOUT,
         viewer_context=viewer_context,
     )
+    if response.status == 404:
+        logger.warning(
+            "seer.fixability_score.summary_not_found",
+            extra={"group_id": group.id},
+        )
+        return None
     if response.status >= 400:
         raise Exception(f"Seer API error: {response.status}")
     response_data = orjson.loads(response.data)
@@ -328,11 +334,14 @@ def _generate_fixability_score(
 def get_and_update_group_fixability_score(
     group: Group,
     force_generate: bool = False,
-) -> float:
+) -> float | None:
     """
     Get the fixability score for a group and update the group with the score.
     If the fixability score is already set, return it without generating a new one.
     Reads the issue summary from cache to pass to Seer, avoiding a DB lookup for the summary on Seer's side.
+
+    Returns None if the fixability score could not be determined (e.g. Seer has no
+    issue summary stored for this group).
     """
     if not force_generate and group.seer_fixability_score is not None:
         return group.seer_fixability_score
@@ -358,6 +367,9 @@ def get_and_update_group_fixability_score(
         op="ai_summary.generate_fixability_score", name="ai_summary.generate_fixability_score"
     ):
         issue_summary = _generate_fixability_score(group, summary=summary)
+
+    if issue_summary is None:
+        return None
 
     if not issue_summary.scores:
         raise ValueError("Issue summary scores is None or empty.")
@@ -450,6 +462,9 @@ def is_group_eligible_for_automation(group: Group) -> bool:
 
     fixability_score = get_and_update_group_fixability_score(group)
 
+    if fixability_score is None:
+        return False
+
     if (
         not _is_issue_fixable(group, fixability_score)
         and not group.issue_type.always_trigger_seer_automation
@@ -478,6 +493,8 @@ def get_automation_stopping_point(group: Group) -> AutofixStoppingPoint | None:
 
     if is_seer_seat_based_tier_enabled(group.organization):
         fixability_score = get_and_update_group_fixability_score(group)
+        if fixability_score is None:
+            return None
         fixability_stopping_point = _get_stopping_point_from_fixability(fixability_score)
 
         return _apply_user_preference_upper_bound(fixability_stopping_point, user_preference)
