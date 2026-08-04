@@ -116,6 +116,15 @@ class SeerApiError(Exception):
         self.message = message
         self.status = status
 
+    @property
+    def is_transient(self) -> bool:
+        """Whether this failure is likely transient (overload, rate limit, upstream error).
+
+        Callers that already tolerate missing Seer state (e.g. best-effort PR lookups)
+        should log these without reporting them via ``capture_exception``.
+        """
+        return self.status >= 500 or self.status in (408, 429)
+
     def __str__(self):
         return f"Seer API error: {self.message} (status: {self.status})"
 
