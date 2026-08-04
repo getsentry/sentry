@@ -61,8 +61,9 @@ class FormattableResponseMixin(_Base):
         try:
             content = adapter(response.data, fmt)
         except Exception:
-            # never let formatting turn a good response into a 5xx
-            logger.warning("formatter.render_failed", extra={"endpoint": type(self).__name__})
+            # never let formatting turn a good response into a 5xx, but keep the traceback:
+            # this path degrades silently, so without it a formatter bug is undiagnosable
+            logger.exception("formatter.render_failed", extra={"endpoint": type(self).__name__})
             return response
 
         response.data = {**response.data, "formatted": {"format": fmt, "content": content}}
