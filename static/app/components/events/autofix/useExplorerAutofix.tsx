@@ -363,7 +363,7 @@ function buildSection(
 ): AutofixSection {
   // Both channels: the classic block field and Code Mode's structuredContent
   // (codemode-structured-content-only).
-  const artifacts = collectArtifacts(blocks) as AutofixArtifact[];
+  const artifacts: AutofixArtifact[] = collectArtifacts(blocks);
 
   const section: AutofixSection = {
     index,

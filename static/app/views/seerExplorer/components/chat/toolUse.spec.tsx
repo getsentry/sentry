@@ -4,7 +4,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import {NAV_LINK_LABELS} from 'sentry/views/seerExplorer/components/chat/toolUse';
-import type {Block} from 'sentry/views/seerExplorer/types';
+import type {Block, TodoItem} from 'sentry/views/seerExplorer/types';
 import {buildToolLinkUrl} from 'sentry/views/seerExplorer/utils';
 
 function createBlock(overrides?: Partial<Block>): Block {
@@ -456,10 +456,7 @@ describe('ToolUseBlock', () => {
   describe('todos from either channel', () => {
     // seer no longer projects Code Mode todos onto block.todos, so the checklist must resolve from
     // the tool result's structuredContent too (codemode-structured-content-only).
-    function codeModeTodosBlock(
-      id: string,
-      todos: Array<{content: string; status: string}>
-    ) {
+    function codeModeTodosBlock(id: string, todos: TodoItem[]) {
       return createBlock({
         id,
         message: {
@@ -473,7 +470,7 @@ describe('ToolUseBlock', () => {
             tool_call_id: `${id}-call`,
             tool_call_function: 'sentry_api_execute',
             content: 'ran',
-            structuredContent: {todos: todos as any},
+            structuredContent: {todos},
           },
         ],
       });
