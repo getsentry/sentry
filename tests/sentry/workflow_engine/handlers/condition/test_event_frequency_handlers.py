@@ -217,6 +217,20 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
         results = [10, 10]
         self.assert_slow_condition_does_not_pass(dc, results)
 
+    def test_with_result_zero(self) -> None:
+        dc = self.create_data_condition(
+            type=self.condition,
+            comparison={
+                "interval": self.payload["interval"],
+                "value": self.payload["value"],
+                "comparison_interval": self.payload["comparisonInterval"],
+            },
+            condition_result=True,
+        )
+
+        results = [10, 0]
+        self.assert_slow_condition_passes(dc, results)
+
     def _test_dual_write(self, value: str | int | float) -> None:
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)

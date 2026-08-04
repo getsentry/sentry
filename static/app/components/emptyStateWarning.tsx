@@ -4,6 +4,9 @@ import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {IconSearch} from 'sentry/icons';
 import type {IconVariant} from 'sentry/icons/svgIcon';
 
+/**
+ * @deprecated Use `EmptyState` from `@sentry/scraps/emptyState` instead.
+ */
 type Props = {
   children?: React.ReactNode;
   className?: string;
@@ -12,6 +15,9 @@ type Props = {
   withIcon?: boolean;
 };
 
+/**
+ * @deprecated Use `EmptyState` from `@sentry/scraps/emptyState` instead.
+ */
 export function EmptyStateWarning({
   small = false,
   variant = 'muted',
@@ -34,6 +40,9 @@ export function EmptyStateWarning({
   );
 }
 
+/**
+ * @deprecated Use `EmptyState` from `@sentry/scraps/emptyState` instead.
+ */
 export const EmptyStreamWrapper = styled('div')`
   text-align: center;
   font-size: 22px;

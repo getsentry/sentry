@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function useIsEAPTraceEnabled() {

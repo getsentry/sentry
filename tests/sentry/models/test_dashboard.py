@@ -1,7 +1,5 @@
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardRevision
-from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
-from sentry.users.models.user import User
 
 
 class IncrementalNameTest(TestCase):
@@ -63,13 +61,6 @@ class IncrementalNameTest(TestCase):
 
 
 class DashboardFavoriteUserTest(TestCase):
-    def create_dashboard_favorite_user(
-        self, dashboard: Dashboard, user: User, organization: Organization, position: int | None
-    ) -> DashboardFavoriteUser:
-        return DashboardFavoriteUser.objects.create(
-            dashboard=dashboard, user_id=user.id, organization=organization, position=position
-        )
-
     def test_inserts_to_last_position(self) -> None:
         for index, title in enumerate(["Existing Favorite", "Another Favorite"]):
             dashboard = self.create_dashboard(title=title, organization=self.organization)

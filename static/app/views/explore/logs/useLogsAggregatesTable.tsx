@@ -79,6 +79,7 @@ export function useLogsAggregatesTable({
     isPending: result.isPending,
     isError: result.isError,
     error: result.error,
+    refetch: result.refetch,
     pageLinks,
     eventView,
   };

@@ -22,7 +22,6 @@ class OrganizationEventsHeatmapTraceMetricsEndpointTest(OrganizationEventsEndpoi
         )
         self.end = self.start + timedelta(hours=6)
         self.two_days_ago = self.day_ago - timedelta(days=1)
-        self.features = {"organizations:data-browsing-heat-map-widget": True}
 
         self.url = reverse(
             self.endpoint,
@@ -30,8 +29,7 @@ class OrganizationEventsHeatmapTraceMetricsEndpointTest(OrganizationEventsEndpoi
         )
 
     def _do_request(self, data, url=None, features=None):
-        with self.feature(self.features):
-            return self.client.get(self.url if url is None else url, data=data, format="json")
+        return self.client.get(self.url if url is None else url, data=data, format="json")
 
     def test_simple(self) -> None:
         metric_values = [6, 0, 6, 3, 0, 3]

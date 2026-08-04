@@ -97,6 +97,49 @@ def test_version_is_semver_invalid(release_version) -> None:
     assert Release.is_semver_version(release_version) is False
 
 
+class GetOrCreateNoCreateTest(TestCase):
+    def setUp(self) -> None:
+        self.org = self.create_organization()
+        self.project = self.create_project(organization=self.org, name="foo")
+
+    def test_returns_none_on_miss_without_creating(self) -> None:
+        release = Release.get_or_create(project=self.project, version="1.0", create=False)
+        assert release is None
+        assert not Release.objects.filter(organization_id=self.org.id).exists()
+
+    def test_does_not_cache_miss(self) -> None:
+        # A miss must not be cached, so a release created later is still found.
+        assert Release.get_or_create(project=self.project, version="1.0", create=False) is None
+
+        existing = Release.objects.create(version="1.0", organization=self.org)
+        existing.add_project(self.project)
+
+        release = Release.get_or_create(project=self.project, version="1.0", create=False)
+        assert release is not None
+        assert release.id == existing.id
+
+    def test_returns_existing_release(self) -> None:
+        existing = Release.objects.create(version="1.0", organization=self.org)
+        existing.add_project(self.project)
+
+        release = Release.get_or_create(project=self.project, version="1.0", create=False)
+        assert release is not None
+        assert release.id == existing.id
+
+    def test_associates_existing_org_release_with_project(self) -> None:
+        # A release that exists in the org but is linked to a different project is
+        # associated with the ingesting project, not skipped.
+        other_project = self.create_project(organization=self.org, name="bar")
+        existing = Release.objects.create(version="1.0", organization=self.org)
+        existing.add_project(other_project)
+        assert not existing.projects.filter(id=self.project.id).exists()
+
+        release = Release.get_or_create(project=self.project, version="1.0", create=False)
+        assert release is not None
+        assert release.id == existing.id
+        assert release.projects.filter(id=self.project.id).exists()
+
+
 class MergeReleasesTest(TestCase):
     @receivers_raise_on_send()
     def test_simple(self) -> None:

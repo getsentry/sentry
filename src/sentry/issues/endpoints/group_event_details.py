@@ -5,6 +5,7 @@ import logging
 from collections.abc import Sequence
 from typing import Any
 
+import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
@@ -253,6 +254,8 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
                 else "No matching event found. Try changing the environments, date range, or query."
             )
             return Response({"detail": error_text}, status=404)
+
+        sentry_sdk.set_attribute("event.type", event.get_event_type())
 
         collapse = request.GET.getlist("collapse", [])
         if "stacktraceOnly" in collapse:

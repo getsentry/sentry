@@ -4,11 +4,11 @@ import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
+import {EmptyState} from '@sentry/scraps/emptyState';
 import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -19,7 +19,6 @@ import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {Panel} from 'sentry/components/panels/panel';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -150,21 +149,19 @@ export default function UptimeOverview() {
               {uptimeListPageLinks && <Pagination pageLinks={uptimeListPageLinks} />}
             </Fragment>
           ) : (
-            <Panel>
-              <EmptyMessage
-                title={t('The selected projects have no uptime monitors')}
-                action={
-                  <LinkButton
-                    size="sm"
-                    variant="primary"
-                    to={makeAlertsPathname({path: '/new/uptime/', organization})}
-                    icon={<IconAdd />}
-                  >
-                    {t('Add Uptime Monitor')}
-                  </LinkButton>
-                }
-              />
-            </Panel>
+            <EmptyState
+              title={t('The selected projects have no uptime monitors')}
+              action={
+                <LinkButton
+                  size="sm"
+                  variant="primary"
+                  to={makeAlertsPathname({path: '/new/uptime/', organization})}
+                  icon={<IconAdd />}
+                >
+                  {t('Add Uptime Monitor')}
+                </LinkButton>
+              }
+            />
           )}
         </Layout.Main>
       </Layout.Body>

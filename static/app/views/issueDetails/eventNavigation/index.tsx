@@ -26,6 +26,7 @@ import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountFo
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
 import {IssueDetailsEventNavigation} from 'sentry/views/issueDetails/eventNavigation/issueDetailsEventNavigation';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
@@ -337,13 +338,19 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                           sort: location.query.sort ?? '-timestamp',
                         },
                       }}
-                      aria-label={t('Open in Discover')}
+                      aria-label={
+                        getDiscoverDeprecation(organization)
+                          ? t('Open in Explore')
+                          : t('Open in Discover')
+                      }
                       size="xs"
                       icon={<IconTelescope />}
                       analyticsEventKey="issue_details.discover_clicked"
                       analyticsEventName="Issue Details: Discover Clicked"
                     >
-                      {t('Open in Discover')}
+                      {getDiscoverDeprecation(organization)
+                        ? t('Open in Explore')
+                        : t('Open in Discover')}
                     </LinkButton>
                   )}
                   <LinkButton

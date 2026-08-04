@@ -148,15 +148,17 @@ export function generateTitle({
   eventView,
   event,
   isHomepage,
+  organization,
 }: {
   eventView: EventView;
+  organization: Organization;
   event?: Event;
   isHomepage?: boolean;
 }) {
-  const titles = [t('Discover')];
+  const titles = [getDiscoverDeprecation(organization) ? t('Errors') : t('Discover')];
 
   if (isHomepage) {
-    return t('Discover');
+    return getDiscoverDeprecation(organization) ? t('Errors') : t('Discover');
   }
 
   const eventViewName = eventView.name;
@@ -177,7 +179,10 @@ export function generateTitle({
 
 export function getPrebuiltQueries(organization: Organization) {
   const views = [...getAllViews(organization)];
-  if (organization.features.includes('performance-view')) {
+  if (
+    organization.features.includes('performance-view') &&
+    !getDiscoverDeprecation(organization)
+  ) {
     // insert transactions queries at index 2
     views.splice(2, 0, ...getTransactionViews(organization));
     views.push(...getWebVitalsViews(organization));
@@ -924,4 +929,15 @@ export const SAVED_QUERY_DATASET_TO_WIDGET_TYPE = {
 
 export function getTransactionsDeprecation(organization: Organization) {
   return organization.features.includes('discover-saved-queries-deprecation');
+}
+
+export function getDiscoverDeprecationEnabled(organization: Organization) {
+  return organization.features.includes('deprecate-discover');
+}
+
+export function getDiscoverDeprecation(organization: Organization) {
+  return (
+    getDiscoverDeprecationEnabled(organization) &&
+    getTransactionsDeprecation(organization)
+  );
 }

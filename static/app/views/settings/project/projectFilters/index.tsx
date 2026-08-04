@@ -60,9 +60,9 @@ export default function ProjectFilters() {
                   {t('Data Filters')}
                 </TabList.Item>
                 <TabList.Item
-                  key="inbound-filters"
+                  key="custom-filters"
                   hidden={!hasInboundFiltersV2}
-                  to={recreateRoute('inbound-filters/', {
+                  to={recreateRoute('custom-filters/', {
                     routes,
                     params,
                     stepBack: -1,
@@ -84,7 +84,7 @@ export default function ProjectFilters() {
 
         {filterType === 'discarded-groups' ? (
           <GroupTombstones project={project} />
-        ) : hasInboundFiltersV2 && filterType === 'inbound-filters' ? (
+        ) : hasInboundFiltersV2 && filterType === 'custom-filters' ? (
           <CustomFilters project={project} />
         ) : (
           <ProjectFiltersSettings project={project} params={params} />

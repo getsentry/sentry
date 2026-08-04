@@ -16,7 +16,7 @@ import {sendTrialRequest, sendUpgradeRequest} from 'getsentry/actionCreators/ups
 import TrialStarter from 'getsentry/components/trialStarter';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import {getTrialLength} from 'getsentry/utils/billing';
+import {getTrialLength, isTrial} from 'getsentry/utils/billing';
 import {
   trackGetsentryAnalytics,
   type GetsentryEventKey,
@@ -97,7 +97,7 @@ function UpsellProvider({
     return null;
   }
 
-  const canTrial = subscription.canTrial && !subscription.isTrial;
+  const canTrial = subscription.canTrial && !isTrial(subscription);
   const handleRequest = () => {
     const args = {
       api,

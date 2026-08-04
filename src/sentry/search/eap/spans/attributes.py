@@ -216,6 +216,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             private=True,
         ),
         ResolvedAttribute(
+            public_alias="trace_lifecycle",
+            internal_name="sentry.trace_lifecycle",
+            search_type="string",
+        ),
+        ResolvedAttribute(
             public_alias="ai.total_tokens.used",
             internal_name="ai_total_tokens_used",
             search_type="integer",
@@ -301,8 +306,8 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="currency",
         ),
         ResolvedAttribute(
-            public_alias="gen_ai.request.reasoning_effort",
-            internal_name="gen_ai.request.reasoning_effort",
+            public_alias="gen_ai.request.reasoning.level",
+            internal_name="gen_ai.request.reasoning.level",
             search_type="string",
         ),
         ResolvedAttribute(

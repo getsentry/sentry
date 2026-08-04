@@ -25,7 +25,12 @@ from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
 )
-from sentry.seer.autofix.utils import AutofixStoppingPoint, bulk_read_preferences_from_sentry_db
+from sentry.seer.autofix.utils import (
+    AutofixStoppingPoint,
+    bulk_read_preferences_from_sentry_db,
+    is_seer_autotriggered_autofix_rate_limited,
+    is_seer_seat_based_tier_enabled,
+)
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
@@ -157,7 +162,12 @@ def schedule_night_shift(
         eligible = _get_eligible_orgs_from_batch(org_batch)
         for org in eligible:
             delay = int(md5_text(str(org.id)).hexdigest(), 16) % spread_seconds
-            run_night_shift_for_org.apply_async(args=[org.id], kwargs=task_kwargs, countdown=delay)
+            run_night_shift_for_org.apply_async(
+                args=[org.id],
+                kwargs=task_kwargs,
+                countdown=delay,
+                headers={"sentry-propagate-traces": False},
+            )
             batch_index += 1
 
         if chunk_index % 10 == 0:
@@ -416,6 +426,9 @@ def _get_eligible_orgs_from_batch(
         if not eligible:
             return []
 
+    if options.get("seer.night_shift.enable_for_legacy_orgs"):
+        return eligible
+
     for feature_name in PER_ORG_FEATURE_NAMES:
         eligible = [org for org in eligible if features.has(feature_name, org)]
         if not eligible:
@@ -446,6 +459,8 @@ class EligibleProject:
     tweaks: NightShiftTweaks
     stopping_point: AutofixStoppingPoint
     connected_repos: list[str]
+    # None for seat-based orgs, regardless of the project's own setting.
+    automation_tuning: AutofixAutomationTuningSettings | None
 
 
 def _get_eligible_projects(
@@ -473,6 +488,8 @@ def _get_eligible_projects(
 
     preferences = bulk_read_preferences_from_sentry_db(organization.id, list(project_map))
 
+    is_legacy_org = not is_seer_seat_based_tier_enabled(organization)
+
     eligible: list[EligibleProject] = []
     for pid, project in project_map.items():
         pref = preferences.get(pid)
@@ -490,6 +507,8 @@ def _get_eligible_projects(
             reasons.append("automation_tuning_off")
         if source == "cron" and not tweaks.enabled:
             reasons.append("tweaks_disabled")
+        if is_legacy_org and is_seer_autotriggered_autofix_rate_limited(project):
+            reasons.append("autofix_rate_limited")
         if stopping_point != AutofixStoppingPoint.OPEN_PR:
             # Night shift's only output is a PR, so a project that stops
             # short of open_pr can never produce a usable result.
@@ -515,6 +534,7 @@ def _get_eligible_projects(
                 tweaks=tweaks,
                 stopping_point=stopping_point,
                 connected_repos=[f"{repo.owner}/{repo.name}" for repo in pref.repositories],
+                automation_tuning=pref.autofix_automation_tuning if is_legacy_org else None,
             )
         )
 
@@ -534,6 +554,7 @@ def _build_triage_payload(
     candidates: Sequence[ScoredCandidate],
     resolved_options: SeerNightShiftRunOptions,
     repos_by_project: dict[int, list[str]],
+    tuning_by_project: dict[int, str],
 ) -> NightShiftPayload:
     return NightShiftPayload(
         candidates=[
@@ -546,6 +567,7 @@ def _build_triage_payload(
                 first_seen=c.group.first_seen.isoformat(),
                 priority=priority_label(c.group.priority),
                 connected_repos=repos_by_project.get(c.group.project_id, []),
+                automation_tuning=tuning_by_project.get(c.group.project_id),
             )
             for c in candidates
         ],
@@ -571,6 +593,11 @@ def _dispatch_to_seer_feature(
     deliver_feature_result."""
     eligible_projects = [ep.project for ep in eligible]
     repos_by_project = {ep.project.id: ep.connected_repos for ep in eligible}
+    tuning_by_project = {
+        ep.project.id: ep.automation_tuning.value
+        for ep in eligible
+        if ep.automation_tuning is not None
+    }
     per_project_quotas = _should_use_per_project_quotas(resolved_options["source"], organization.id)
     score_strategy = (
         fixability_score_strategy_per_project if per_project_quotas else fixability_score_strategy
@@ -595,7 +622,9 @@ def _dispatch_to_seer_feature(
     shards = list(chunked(scored, shard_size))
     dispatched = 0
     for shard_index, chunk in enumerate(shards):
-        payload = _build_triage_payload(chunk, resolved_options, repos_by_project)
+        payload = _build_triage_payload(
+            chunk, resolved_options, repos_by_project, tuning_by_project
+        )
         num_candidates = len(payload.candidates)
         title = ngettext(
             "Agentic triage (%(count)d candidate)",

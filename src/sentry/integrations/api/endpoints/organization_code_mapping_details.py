@@ -12,6 +12,7 @@ from sentry.api.bases.organization import (
     OrganizationIntegrationsLoosePermission,
 )
 from sentry.api.serializers import serialize
+from sentry.api.serializers.rest_framework.base import camel_to_snake_case, convert_dict_key_case
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
 
@@ -44,17 +45,18 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
                 id=config_id,
                 organization_integration_id__in=[oi.id for oi in ois],
             )
-        except RepositoryProjectPathConfig.DoesNotExist:
+            # Only set when the request wants to move the mapping to another project.
+            # Normalize keys the way the serializer does first, otherwise a snake_case
+            # `project_id` skips the access check below but still moves the mapping.
+            data = convert_dict_key_case(request.data, camel_to_snake_case)
+            if data.get("project_id"):
+                kwargs["new_project"] = self.get_project(kwargs["organization"], data["project_id"])
+        except (RepositoryProjectPathConfig.DoesNotExist, ValueError):
             raise Http404
-
-        if request.data.get("projectId"):
-            kwargs["new_project"] = super().get_project(
-                kwargs["organization"], request.data.get("projectId")
-            )
 
         return (args, kwargs)
 
-    def put(self, request: Request, config_id, organization, config, new_project) -> Response:
+    def put(self, request: Request, config_id, organization, config, new_project=None) -> Response:
         """
         Update a repository project path config
         ``````````````````
@@ -68,8 +70,10 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
         :param string default_branch:
         :auth: required
         """
-        project = config.project_repository.project
-        if not request.access.has_projects_access([project, new_project]):
+        projects = [config.project_repository.project]
+        if new_project is not None:
+            projects.append(new_project)
+        if not request.access.has_projects_access(projects):
             return self.respond(status=status.HTTP_403_FORBIDDEN)
 
         try:

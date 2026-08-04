@@ -1,14 +1,24 @@
+import type {ReactNode} from 'react';
+import {useId, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 import type {Group, GroupActivity} from 'sentry/types/group';
 import {GroupActivityType, IssueCategory, PriorityLevel} from 'sentry/types/group';
 import type {Commit, PullRequest, Repository} from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
+import {
+  collapseSeerActivityPairs,
+  type ActivityFeedItem,
+} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
 import {
   ActivityLineNote,
   isActivityNote,
@@ -22,6 +32,20 @@ const user = {
   avatarUrl: null,
   isActive: true,
 } as unknown as NonNullable<GroupActivity['user']>;
+
+const linearApp = {
+  name: 'Linear',
+  slug: 'linear',
+  uuid: 'linear',
+  avatars: [
+    {
+      avatarType: 'upload',
+      avatarUuid: 'bb9d4ae02e0e4e059463f5fd0c6c7305',
+      avatarUrl: 'https://sentry.io/sentry-app-avatar/bb9d4ae02e0e4e059463f5fd0c6c7305/',
+      color: true,
+    },
+  ],
+} as NonNullable<GroupActivity['sentry_app']>;
 
 const repository: Repository = {
   dateCreated: '2025-01-01T00:00:00Z',
@@ -82,6 +106,11 @@ const resolutionActivities = [
   }),
   activity(GroupActivityType.SET_RESOLVED_BY_AGE, {age: 168}),
   activity(GroupActivityType.SET_RESOLVED_IN_RELEASE, {version: 'backend@1.2.3'}),
+  sentryAppActivity(
+    GroupActivityType.SET_RESOLVED_IN_RELEASE,
+    {version: 'backend@1.2.3'},
+    linearApp
+  ),
   activity(GroupActivityType.SET_RESOLVED_IN_RELEASE, {
     version: 'backend@1.2.3',
     commit,
@@ -100,9 +129,6 @@ const resolutionActivities = [
     current_release_version: 'backend@1.0.0',
   }),
   activity(GroupActivityType.SET_RESOLVED_IN_RELEASE),
-  activity(GroupActivityType.SET_RESOLVED_IN_COMMIT, {commit: commitOnly}),
-  activity(GroupActivityType.SET_RESOLVED_IN_COMMIT, {commit: releasedCommit}),
-  activity(GroupActivityType.SET_RESOLVED_IN_COMMIT, {commit: multiReleaseCommit}),
   activity(GroupActivityType.SET_UNRESOLVED),
   activity(GroupActivityType.SET_UNRESOLVED, {
     integration_id: 408,
@@ -119,6 +145,12 @@ const resolutionActivities = [
     resolved_in_version: 'backend@1.2.3',
     follows_semver: false,
   }),
+];
+
+const legacyResolutionActivities = [
+  activity(GroupActivityType.SET_RESOLVED_IN_COMMIT, {commit: commitOnly}),
+  activity(GroupActivityType.SET_RESOLVED_IN_COMMIT, {commit: releasedCommit}),
+  activity(GroupActivityType.SET_RESOLVED_IN_COMMIT, {commit: multiReleaseCommit}),
 ];
 
 const archivedActivities = [
@@ -264,6 +296,12 @@ const seerPullRequest = {
 };
 
 const seerActivities = [
+  seerActivity(GroupActivityType.TRIGGER_AUTOFIX),
+  seerActivity(GroupActivityType.TRIGGER_AUTOFIX, {referrer: 'slack'}),
+  seerActivity(GroupActivityType.TRIGGER_AUTOFIX, {
+    referrer: 'issue_summary.post_process_fixability',
+  }),
+  seerActivity(GroupActivityType.TRIGGER_AUTOFIX, {referrer: 'night_shift'}),
   seerActivity(GroupActivityType.SEER_RCA_STARTED),
   seerActivity(GroupActivityType.SEER_RCA_COMPLETED),
   seerActivity(GroupActivityType.SEER_SOLUTION_STARTED),
@@ -274,21 +312,112 @@ const seerActivities = [
     pull_requests: [seerPullRequest],
   }),
   seerActivity(GroupActivityType.SEER_ITERATION_STARTED),
+  seerActivity(GroupActivityType.SEER_ITERATION_STARTED, {
+    referrer: 'github.pr_comment',
+  }),
+  seerActivity(GroupActivityType.SEER_ITERATION_STARTED, {
+    referrer: 'github.check_suite',
+  }),
   seerActivity(GroupActivityType.SEER_ITERATION_COMPLETED, {
     pull_requests: [seerPullRequest],
   }),
 ];
 
+const collapsedSeerActivities = collapseSeerActivityPairs([
+  seerActivityAt(GroupActivityType.SEER_RCA_COMPLETED, '2025-01-01T00:12:00Z', {
+    run_id: 1,
+  }),
+  seerActivityAt(GroupActivityType.SEER_RCA_STARTED, '2025-01-01T00:00:00Z', {
+    run_id: 1,
+  }),
+  seerActivityAt(GroupActivityType.SEER_SOLUTION_COMPLETED, '2025-01-01T00:22:00Z', {
+    run_id: 2,
+  }),
+  seerActivityAt(GroupActivityType.SEER_SOLUTION_STARTED, '2025-01-01T00:12:00Z', {
+    run_id: 2,
+  }),
+  seerActivityAt(GroupActivityType.SEER_CODING_COMPLETED, '2025-01-01T00:30:00Z', {
+    run_id: 3,
+  }),
+  seerActivityAt(GroupActivityType.SEER_CODING_STARTED, '2025-01-01T00:22:00Z', {
+    run_id: 3,
+  }),
+  seerActivityAt(GroupActivityType.SEER_ITERATION_COMPLETED, '2025-01-01T00:37:00Z', {
+    pull_requests: [seerPullRequest],
+    run_id: 4,
+  }),
+  {
+    ...seerActivityAt(GroupActivityType.SEER_ITERATION_STARTED, '2025-01-01T00:30:00Z', {
+      referrer: 'github.check_suite',
+      run_id: 4,
+    }),
+    user,
+  },
+]);
+
 export default Storybook.story('Issue Activity', story => {
-  story('Resolution', () => <ActivityExamples items={resolutionActivities} />);
-  story('Archived', () => <ActivityExamples items={archivedActivities} />);
-  story('Assignment', () => <ActivityExamples items={assignmentActivities} />);
-  story('Priority and escalation', () => <ActivityExamples items={priorityActivities} />);
-  story('Source control', () => <ActivityExamples items={sourceControlActivities} />);
-  story('Issue changes', () => <ActivityExamples items={issueActivities} />);
-  story('Comments', () => <CommentExample />);
-  story('Seer', () => <ActivityExamples items={seerActivities} />);
+  const activityStory = (name: string, render: () => ReactNode) =>
+    story(name, () => <ActivityStory>{render()}</ActivityStory>);
+
+  activityStory('Resolution', () => <ResolutionExamples />);
+  activityStory('Archived', () => <ActivityExamples items={archivedActivities} />);
+  activityStory('Assignment', () => <ActivityExamples items={assignmentActivities} />);
+  activityStory('Priority and escalation', () => (
+    <ActivityExamples items={priorityActivities} />
+  ));
+  activityStory('Source control', () => (
+    <ActivityExamples items={sourceControlActivities} />
+  ));
+  activityStory('Issue changes', () => <ActivityExamples items={issueActivities} />);
+  activityStory('Comments', () => <CommentExample />);
+  activityStory('Seer', () => <ActivityExamples items={seerActivities} />);
+  activityStory('Collapsed Seer', () => (
+    <ActivityFeedExamples items={collapsedSeerActivities} />
+  ));
 });
+
+function ActivityStory({children}: {children: ReactNode}) {
+  const checkboxId = useId();
+  const organization = useOrganization();
+  const [showProgress, setShowProgress] = useState(false);
+  const features = organization.features.filter(
+    feature => feature !== 'issue-activity-progress'
+  );
+
+  if (showProgress) {
+    features.push('issue-activity-progress');
+  }
+
+  return (
+    <OrganizationContext.Provider value={{...organization, features}}>
+      <Stack gap="lg">
+        <Flex as="label" align="center" gap="sm" htmlFor={checkboxId}>
+          <Checkbox
+            id={checkboxId}
+            checked={showProgress}
+            onChange={() => setShowProgress(value => !value)}
+          />
+          <Text>Show progress indicators</Text>
+        </Flex>
+        {children}
+      </Stack>
+    </OrganizationContext.Provider>
+  );
+}
+
+function ResolutionExamples() {
+  return (
+    <Stack gap="xl">
+      <ActivityExamples items={resolutionActivities} />
+      <Stack gap="sm">
+        <Text size="sm" variant="muted">
+          Legacy activity items
+        </Text>
+        <ActivityExamples items={legacyResolutionActivities} />
+      </Stack>
+    </Stack>
+  );
+}
 
 function activity(
   type: GroupActivityType,
@@ -308,25 +437,49 @@ function seerActivity(type: GroupActivityType, data: Record<string, unknown> = {
   return activity(type, data, null);
 }
 
+function seerActivityAt(
+  type: GroupActivityType,
+  dateCreated: string,
+  data: Record<string, unknown>
+) {
+  return {...seerActivity(type, data), dateCreated};
+}
+
+function sentryAppActivity(
+  type: GroupActivityType,
+  data: Record<string, unknown>,
+  sentryApp: NonNullable<GroupActivity['sentry_app']>
+) {
+  return {...activity(type, data, null), sentry_app: sentryApp};
+}
+
 function release(version: string, dateReleased: string) {
   return {dateReleased, version} as unknown as Commit['releases'][number];
 }
 
 function ActivityExamples({items}: {items: GroupActivity[]}) {
   return (
+    <ActivityFeedExamples
+      items={items.map(item => ({type: 'activity', activity: item}))}
+    />
+  );
+}
+
+function ActivityFeedExamples({items}: {items: ActivityFeedItem[]}) {
+  return (
     <ActivityList gap="md">
       {items.map((item, index) =>
-        isActivityNote(item) ? (
+        item.type === 'activity' && isActivityNote(item.activity) ? (
           <ActivityLineNote
-            key={`${item.id}-${index}`}
-            activity={item}
+            key={`${item.activity.id}-${index}`}
+            activity={item.activity}
             group={group}
             inputVariant="compact"
             onDelete={async () => {}}
           />
         ) : (
           <ActivityLine
-            key={`${item.id}-${index}`}
+            key={`${item.activity.id}-${index}`}
             group={group}
             item={item}
             timestampUnitStyle="short"

@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 /* eslint-disable import/no-nodejs-modules, no-console */
 
 import childProcess from 'node:child_process';
@@ -70,7 +71,6 @@ async function runEsbuild(commitHash: string): Promise<void> {
       'process.env.EXPERIMENTAL_SPA': JSON.stringify(false),
       'process.env.IS_ACCEPTANCE_TEST': JSON.stringify(false),
       'process.env.USE_TANSTACK_DEVTOOL': JSON.stringify(false),
-      'process.env.UI_DEV_ENABLE_PROFILING': JSON.stringify(false),
       'process.env.SPA_DSN': JSON.stringify(''),
       'process.env.SENTRY_RELEASE_VERSION': JSON.stringify(''),
     },

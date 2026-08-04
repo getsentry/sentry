@@ -74,7 +74,10 @@ class CachedAttachment:
         if self.stored_id:
             assert project
             session = get_attachments_session(project.organization_id, project.id)
-            return session.get(self.stored_id).payload.read()
+            response = session.get(self.stored_id)
+            if response is None:
+                raise FileNotFoundError("Attachment does not exist in objectstore")
+            return response.payload.read()
 
         if self._data is UNINITIALIZED_DATA and self._cache is not None:
             self._data = self._cache.get_data(self)
@@ -143,9 +146,13 @@ class BaseAttachmentCache:
             if attachment.stored_id is not None and attachment._data is not UNINITIALIZED_DATA:
                 assert project
                 session = get_attachments_session(project.organization_id, project.id)
+                # A keyed `put` replaces the object wholesale, so metadata that is not
+                # sent here is lost rather than preserved from the previous write.
                 session.put(
                     contents=attachment._data,
                     key=attachment.stored_id,
+                    content_type=attachment.content_type,
+                    filename=attachment.name,
                     expiration_policy=TimeToLive(timedelta(days=attachment.retention_days)),
                 )
 

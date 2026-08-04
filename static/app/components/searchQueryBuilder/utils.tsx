@@ -164,6 +164,7 @@ export function parseQueryBuilderValue(
     filterKeys: TagCollection;
     disallowFreeText?: boolean;
     disallowLogicalOperators?: boolean;
+    disallowNegation?: boolean;
     disallowUnsupportedFilters?: boolean;
     disallowWildcard?: boolean;
     filterKeyAliases?: TagCollection;
@@ -180,6 +181,7 @@ export function parseQueryBuilderValue(
         getFilterTokenWarning: options?.getFilterTokenWarning,
         validateKeys: options?.disallowUnsupportedFilters,
         disallowWildcard: options?.disallowWildcard,
+        disallowNegation: options?.disallowNegation,
         disallowedLogicalOperators: options?.disallowLogicalOperators
           ? new Set([BooleanOperator.AND, BooleanOperator.OR])
           : undefined,

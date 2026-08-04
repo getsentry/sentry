@@ -71,13 +71,14 @@ class OrganizationTraceItemMetricContextEndpointTest(
         assert response.data["attributeValue"] == "checkout.requests"
         assert response.data["dataset"] == "tracemetrics"
         assert response.data["attributeType"] == "counter"
-        assert response.data["project"] == str(self.project.id)
+        # Context is always org-level for now, even though a project was passed.
+        assert response.data["project"] is None
         assert response.data["brief"] == "Checkout requests"
         assert response.data["additionalContext"] == "Longer notes about the metric."
 
         context = TraceItemAttributeValueContext.objects.get(
             organization=self.organization,
-            project=self.project,
+            project=None,
             attribute_value="checkout.requests",
         )
         assert context.attribute_name == "metric.name"
@@ -210,35 +211,26 @@ class OrganizationTraceItemMetricContextEndpointTest(
         assert response.status_code == 400, response.data
         assert "metricType" in response.data
 
-    def test_org_wide_context(self) -> None:
+    def test_writes_org_level_for_multiple_projects(self) -> None:
+        # Any project selection (including multiple projects) writes org-level
+        # context — the project scope is not used.
+        other_project = self.create_project(organization=self.organization)
         self.store_metric("checkout.requests")
 
-        response = self.do_request(
-            "checkout.requests",
-            {
-                "metricType": "counter",
-                "brief": "Checkout requests",
+        url = reverse(
+            self.viewname,
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "metric": "checkout.requests",
             },
-            query={"project": -1},
         )
-
-        assert response.status_code == 201, response.data
-        assert response.data["project"] is None
-        context = TraceItemAttributeValueContext.objects.get(attribute_value="checkout.requests")
-        assert context.project_id is None
-
-    def test_org_wide_context_all_projects_sentinel(self) -> None:
-        self.store_metric("checkout.requests")
-
-        # `$all` is the other all-projects sentinel and must also scope org-wide.
-        response = self.do_request(
-            "checkout.requests",
-            {
-                "metricType": "counter",
-                "brief": "Checkout requests",
-            },
-            query={"project": "$all"},
-        )
+        with self.feature(self.feature_flags):
+            response = self.client.put(
+                url,
+                {"metricType": "counter", "brief": "Checkout requests"},
+                format="json",
+                QUERY_STRING=f"project={self.project.id}&project={other_project.id}",
+            )
 
         assert response.status_code == 201, response.data
         assert response.data["project"] is None
@@ -283,6 +275,32 @@ class OrganizationTraceItemMetricContextEndpointTest(
         assert response.status_code == 400, response.data
         assert "not found" in response.data["detail"]
 
+    def test_ignores_time_range_filter(self) -> None:
+        # The metric was last seen well outside the narrow requested window.
+        # Existence must be checked against all data, so a `statsPeriod` filter
+        # that would exclude it is ignored and the request still succeeds.
+        self.store_eap_items(
+            [
+                self.create_trace_metric(
+                    "checkout.requests",
+                    1,
+                    "counter",
+                    timestamp=before_now(days=5),
+                )
+            ]
+        )
+
+        response = self.do_request(
+            "checkout.requests",
+            {
+                "metricType": "counter",
+                "brief": "Checkout requests",
+            },
+            query={"project": self.project.id, "statsPeriod": "1h"},
+        )
+
+        assert response.status_code == 201, response.data
+
     def test_requires_feature_flag(self) -> None:
         self.store_metric("checkout.requests")
 
@@ -303,3 +321,24 @@ class OrganizationTraceItemMetricContextEndpointTest(
 
         assert response.status_code == 400, response.data
         assert "brief" in response.data
+
+    def test_member_role_can_write_context(self) -> None:
+        # Authoring metric context is scoped to `event:write`, which the base
+        # member role has, rather than `org:write` (Manager/Owner only).
+        self.store_metric("checkout.requests")
+
+        member = self.create_user(is_superuser=False)
+        self.create_member(
+            user=member, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.login_as(member)
+
+        response = self.do_request(
+            "checkout.requests",
+            {
+                "metricType": "counter",
+                "brief": "Checkout requests",
+            },
+        )
+
+        assert response.status_code == 201, response.data

@@ -238,10 +238,44 @@ describe('IssueList', () => {
       expect(screen.getByRole('row', {name: 'level:error'})).toBeInTheDocument();
     });
 
+    it('requests derived data when the progress UI flag is enabled', async () => {
+      render(<IssueListOverview />, {
+        organization: OrganizationFixture({
+          features: ['issue-stream-progress-ui'],
+        }),
+        initialRouterConfig,
+      });
+
+      await waitFor(() => {
+        expect(issuesRequest).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: expect.stringContaining('expand=derivedData'),
+          })
+        );
+      });
+    });
+
+    it('does not request derived data when the progress UI flag is disabled', async () => {
+      render(<IssueListOverview />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      await waitFor(() => {
+        expect(issuesRequest).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: expect.not.stringContaining('expand=derivedData'),
+          })
+        );
+      });
+    });
+
     it('caches the search results', async () => {
       issuesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
-        body: [...Array.from({length: 25})].map((_, i) =>
+        body: Array.from(Array.from({length: 25}), (_, i) =>
           GroupFixture({id: `${i}`, project})
         ),
         headers: {
@@ -956,7 +990,7 @@ describe('IssueList', () => {
   it('displays a count that represents the current page', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
-      body: [...Array.from({length: 25})].map((_, i) =>
+      body: Array.from(Array.from({length: 25}), (_, i) =>
         GroupFixture({id: `${i}`, project})
       ),
       headers: {

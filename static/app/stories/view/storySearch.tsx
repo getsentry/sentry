@@ -16,7 +16,7 @@ import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {storyFrontmatterIndex} from 'sentry/stories/storyFrontmatterIndex';
+import {storyFrontmatterIndex} from 'sentry/stories/storyManifest.generated';
 import type {StoryTreeNode} from 'sentry/stories/view/storyTree';
 import {
   COMPONENT_SUBCATEGORY_CONFIG,
@@ -192,7 +192,7 @@ function SearchComboBox(props: SearchComboBoxProps) {
   const navigate = useNavigate();
 
   const organization = useOrganization();
-  const handleSelectionChange = (key: Key | null) => {
+  const handleValueChange = (key: Key | null) => {
     if (!key) {
       return;
     }
@@ -214,7 +214,7 @@ function SearchComboBox(props: SearchComboBoxProps) {
     defaultFilter: filter,
     shouldCloseOnBlur: true,
     allowsEmptyCollection: true,
-    onSelectionChange: handleSelectionChange,
+    onChange: handleValueChange,
   });
 
   const {inputProps, listBoxProps, labelProps} = useSearchTokenCombobox<

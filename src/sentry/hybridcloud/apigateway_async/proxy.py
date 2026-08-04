@@ -108,6 +108,15 @@ async def proxy_request(
         logger.info("region_resolution_error", extra={"org_slug": org_id_or_slug, "error": str(e)})
         return HttpResponse(status=404)
 
+    metrics.incr(
+        "apigateway.proxy_request",
+        tags={
+            "url_name": url_name,
+            "kind": "orgslug",
+            "destination_cell": cell.name,
+            "request_method": request.method,
+        },
+    )
     return await proxy_cell_request(request, cell, url_name)
 
 
@@ -173,6 +182,8 @@ async def proxy_cell_request(
                     if resp.status_code >= 502:
                         metrics.incr("apigateway.proxy.request_failed", tags=metric_tags)
                         circuitbreaker.incr_failures()
+                    else:
+                        metrics.incr("apigateway.proxy.request_succeeded", tags=metric_tags)
                     return _adapt_response(resp, target_url)
             except asyncio.CancelledError:
                 metrics.incr("apigateway.proxy.request_aborted", tags=metric_tags)

@@ -8,6 +8,8 @@ import {TagsFixture} from 'sentry-fixture/tags';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {mockTour} from 'sentry/components/tours/testUtils';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
@@ -108,13 +110,25 @@ describe('GroupDetailsLayout', () => {
     });
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('renders children, can collapse sidebar', async () => {
+    // Sidebar placement resolves against the query container's width (the sidebar
+    // sits beside the content at `4xl`+, and can be collapsed there; below that it
+    // drops to the bottom and stays visible). jsdom reports a 0px container, so
+    // fake a desktop width to exercise the collapsible side layout.
+    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1400);
+
     render(
-      <GroupDataContextProvider group={group} project={group.project}>
-        <GroupDetailsLayout group={group} event={event} project={project}>
-          <div data-test-id="children" />
-        </GroupDetailsLayout>
-      </GroupDataContextProvider>
+      <Container containerType="inline-size">
+        <GroupDataContextProvider group={group} project={group.project}>
+          <GroupDetailsLayout group={group} event={event} project={project}>
+            <div data-test-id="children" />
+          </GroupDetailsLayout>
+        </GroupDataContextProvider>
+      </Container>
     );
 
     expect(await screen.findByTestId('children')).toBeInTheDocument();

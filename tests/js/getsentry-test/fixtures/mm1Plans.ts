@@ -40,7 +40,6 @@ export const MM1_PLANS = {
     features: [
       'sso-basic',
       'sso-saml2',
-      'weekly-reports',
       'data-forwarding',
       'rate-limits',
       'custom-inbound-filters',
@@ -74,7 +73,6 @@ export const MM1_PLANS = {
     features: [
       'sso-basic',
       'sso-saml2',
-      'weekly-reports',
       'data-forwarding',
       'rate-limits',
       'custom-inbound-filters',
@@ -136,7 +134,6 @@ export const MM1_PLANS = {
     retentionDays: 90,
     features: [
       'sso-basic',
-      'weekly-reports',
       'data-forwarding',
       'rate-limits',
       'custom-inbound-filters',
@@ -171,7 +168,6 @@ export const MM1_PLANS = {
     retentionDays: 90,
     features: [
       'sso-basic',
-      'weekly-reports',
       'data-forwarding',
       'rate-limits',
       'custom-inbound-filters',
@@ -206,7 +202,6 @@ export const MM1_PLANS = {
     retentionDays: 90,
     features: [
       'sso-basic',
-      'weekly-reports',
       'data-forwarding',
       'rate-limits',
       'custom-inbound-filters',
@@ -241,7 +236,6 @@ export const MM1_PLANS = {
     retentionDays: 90,
     features: [
       'sso-basic',
-      'weekly-reports',
       'discard-groups',
       'integrations-issue-basic',
       'integrations-issue-sync',
@@ -273,7 +267,6 @@ export const MM1_PLANS = {
     retentionDays: 90,
     features: [
       'sso-basic',
-      'weekly-reports',
       'discard-groups',
       'integrations-issue-basic',
       'integrations-issue-sync',
@@ -305,7 +298,6 @@ export const MM1_PLANS = {
     retentionDays: 90,
     features: [
       'sso-basic',
-      'weekly-reports',
       'discard-groups',
       'integrations-issue-basic',
       'integrations-issue-sync',
@@ -335,12 +327,7 @@ export const MM1_PLANS = {
     billingInterval: 'monthly',
     allowOnDemand: true,
     retentionDays: 90,
-    features: [
-      'sso-basic',
-      'weekly-reports',
-      'integrations-issue-basic',
-      'extended-data-retention',
-    ],
+    features: ['sso-basic', 'integrations-issue-basic', 'extended-data-retention'],
     dashboardLimit: 0,
     metricDetectorLimit: 0,
   },
@@ -365,12 +352,7 @@ export const MM1_PLANS = {
     billingInterval: 'monthly',
     allowOnDemand: true,
     retentionDays: 90,
-    features: [
-      'sso-basic',
-      'weekly-reports',
-      'integrations-issue-basic',
-      'extended-data-retention',
-    ],
+    features: ['sso-basic', 'integrations-issue-basic', 'extended-data-retention'],
     dashboardLimit: 0,
     metricDetectorLimit: 0,
   },

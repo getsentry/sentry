@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from collections.abc import Sequence
 from typing import Any, TypeGuard
 from urllib.parse import parse_qs
@@ -13,6 +14,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from slack_sdk.errors import SlackApiError
 
+from sentry import options
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
 from sentry.integrations.messaging import commands
@@ -48,12 +50,19 @@ from sentry.middleware.integrations.tasks import (
     route_slack_seer_event,
 )
 from sentry.types.cell import Cell
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.signing import unsign
 
 logger = logging.getLogger(__name__)
 
 ACTIONS_ENDPOINT_ALL_SILOS_ACTIONS = UNFURL_ACTION_OPTIONS + NOTIFICATION_SETTINGS_ACTION_OPTIONS
+
+SLACK_WEBHOOK_METRIC_EVENT_TYPES = frozenset(
+    ["app_mention", "assistant_thread_started", "link_shared", "message", "reaction_added"]
+)
+
+# Slack gives us 3 seconds to respond before it considers the delivery failed.
+SLACK_RESPONSE_TIMEOUT_SECONDS = 3
 
 
 class SlackRequestParser(BaseRequestParser):
@@ -308,7 +317,102 @@ class SlackRequestParser(BaseRequestParser):
             and slack_request.is_seer_agent_request
         )
 
+    def _get_metric_event_type(self) -> str:
+        """Slack event type behind this request, or "none" when it carries no type.
+
+        SlackRequest itself defines no `type`, and options-load requests don't add one.
+        """
+        event_type = getattr(self.slack_request, "type", None)
+        if event_type is None:
+            return "none"
+
+        return event_type if event_type in SLACK_WEBHOOK_METRIC_EVENT_TYPES else "other"
+
+    def _record_response_time(self, status_code: int | str) -> None:
+        """
+        Record how long Slack waited on us, measured from the timestamp Slack stamped
+        on the request to the moment we finish handling it. Unlike an in-app timer this
+        includes transit time, so it's comparable to Slack's 3 second timeout.
+        """
+        raw_timestamp = self.request.META.get("HTTP_X_SLACK_REQUEST_TIMESTAMP")
+        if raw_timestamp is None:
+            return
+
+        try:
+            # Slack sends whole Unix seconds, so this delta has ~1s of granularity.
+            sent_at = int(raw_timestamp)
+        except ValueError:
+            logger.info(
+                "slack.control.invalid_request_timestamp",
+                extra={"path": self.request.path, "timestamp": raw_timestamp},
+            )
+            return
+
+        elapsed = time.time() - sent_at
+        metrics.timing(
+            "hybrid_cloud.integration_control.slack.response_time",
+            elapsed,
+            tags={
+                # SlackStagingRequestParser inherits this, so keep the two apart.
+                "provider": self.provider,
+                "url_name": self.match.url_name,
+                "status_code": status_code,
+                "event_type": self._get_metric_event_type(),
+            },
+            sample_rate=1.0,
+        )
+
+        if elapsed > SLACK_RESPONSE_TIMEOUT_SECONDS and options.get(
+            "slack.log-webhook-retry-diagnostics"
+        ):
+            slack_event_id = self.slack_request.data.get("event_id") if self.slack_request else None
+            logger.info(
+                "slack.control.response_time_exceeded",
+                extra={
+                    "path": self.request.path,
+                    "url_name": self.match.url_name,
+                    "status_code": status_code,
+                    "event_type": self._get_metric_event_type(),
+                    "slack_event_id": slack_event_id,
+                    "elapsed": elapsed,
+                },
+            )
+
+    def _log_seer_agent_retry_headers(self, status_code: int | str) -> None:
+        if not options.get("slack.log-webhook-retry-diagnostics"):
+            return
+
+        if not self._is_seer_agent_request(self.slack_request):
+            return
+
+        logger.info(
+            "slack.control.webhook_retry_headers",
+            extra={
+                "path": self.request.path,
+                "url_name": self.match.url_name,
+                "status_code": status_code,
+                "event_type": self.slack_request.type,
+                "slack_event_id": self.slack_request.data.get("event_id"),
+                "retry_num": self.request.META.get("HTTP_X_SLACK_RETRY_NUM"),
+                "retry_reason": self.request.META.get("HTTP_X_SLACK_RETRY_REASON"),
+            },
+        )
+
     def get_response(self) -> HttpResponseBase:
+        try:
+            response = self._get_response()
+        except Exception:
+            # The final status code is decided further up the stack.
+            self._record_response_time("error")
+            self._log_seer_agent_retry_headers("error")
+            raise
+
+        self._record_response_time(response.status_code)
+        self._log_seer_agent_retry_headers(response.status_code)
+
+        return response
+
+    def _get_response(self) -> HttpResponseBase:
         """
         Slack Webhook Requests all require synchronous responses.
         """

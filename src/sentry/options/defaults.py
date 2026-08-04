@@ -252,6 +252,12 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
 )
+register(
+    "auth.email-verification-at-signup.force-in-experiment",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Settings
 register(
@@ -318,6 +324,14 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Aggregate rows/sec ceiling for MonitorCheckIn deletions across all concurrent
+# deletion tasks. 0 disables rate limiting.
+register(
+    "deletions.monitor-check-in.rate-limit",
+    default=1000,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "unmerge.killswitch-projects",
@@ -330,13 +344,6 @@ register(
     "merge.killswitch-projects",
     default=[],
     type=Any,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "issues.merge-unmerge.max-group-times-seen",
-    default=0,
-    type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -504,6 +511,13 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Chunk size for bulk delete job
+register(
+    "replay.bulk_delete_job.chunk_size_days",
+    default=7,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Feedback Options
 register(
@@ -601,6 +615,15 @@ register("slack.debug-workspace", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Log unfurl payloads for debugging
 register("slack.log-unfurl-payload", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Log Slack webhook retry headers and slow (>3s) responses for debugging
+register("slack.log-webhook-retry-diagnostics", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Frequency of slack nudge blocks on issue alerts (0.0 to 1.0, where 0.3 = 30%)
+register(
+    "slack.nudge-frequency",
+    type=Float,
+    default=0.3,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Slack Staging App
 register("slack-staging.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -634,16 +657,6 @@ register(
     default=3600,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Cutover switch for the reduced per-PR activity document. When on, PR activity is
-# folded into a single PullRequestActivityLog JSON document at webhook time instead
-# of one PullRequestActivity row per event; routing is per-PR (a PR stays on
-# whichever store it started on). Flip this ON only AFTER the code is fully
-# deployed, so a mixed fleet never splits one PR's writes across both stores.
-register(
-    "pr_metrics.activity_document.enabled",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -668,11 +681,6 @@ register(
     "github-app.fetch-commits.max-compare-commits",
     type=Int,
     default=500,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "github.webhook.mailbox-bucketing.enabled",
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -764,6 +772,9 @@ register("vercel.integration-slug", default="sentry", flags=FLAG_AUTOMATOR_MODIF
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("msteams.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("msteams.app-id")
+# Tenant-specific OAuth authority, required for single-tenant Azure Bots.
+# Empty (default) keeps the historical multi-tenant botframework.com authority.
+register("msteams.tenant-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 
 # Discord Integration
 register("discord.application-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -902,6 +913,36 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Agentic triage sort: purpose-built for night shift candidate ranking.
+# Each factor weight defaults to 0.25 (equal weighting across 4 factors).
+# Set a weight to 0 to skip that factor's aggregation entirely.
+register(
+    "snuba.search.agentic-triage.recency-weight",
+    default=0.25,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "snuba.search.agentic-triage.severity-weight",
+    default=0.25,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "snuba.search.agentic-triage.user-impact-weight",
+    default=0.25,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "snuba.search.agentic-triage.event-volume-weight",
+    default=0.25,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Lookback window in seconds for Snuba aggregation (default: 2 days).
+register(
+    "snuba.search.agentic-triage.lookback-seconds",
+    default=172800,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
 register(
     "snuba.tagstore.cache-tagkeys-rate",
@@ -1036,6 +1077,12 @@ register(
 # TODO: Most of these are not yet being used. The one current exception is the similarity service
 # killswitch, which is checked before calling Seer when potentially creating a  new group as part of
 # ingestion.
+register(
+    "seer.post-process-issue-summary-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "seer.similarity-killswitch.enabled",
     default=False,
@@ -1194,8 +1241,24 @@ register(
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Deterministic % of gen_ai conversations that get Seer title generation, keyed
+# on conversation id. Requires organizations:gen-ai-conversation-title-generation.
+# 0.0 disables generation; 1.0 enables it for every conversation in flagged orgs.
+register(
+    "ai-monitoring.conversation-title-generation.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "seer.night_shift.enable",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.night_shift.enable_for_legacy_orgs",
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
@@ -1223,6 +1286,22 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Safety ceilings on how many smart-assignment Seer runs we dispatch, on top of
+# the feature flag and per-issue dedup. Rolling 24h windows; set to 0 to pause
+# dispatching entirely. See sentry.seer.smart_assignment.trigger.
+register(
+    "seer.smart_assignment.max_dispatches_per_org_per_day",
+    type=Int,
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.smart_assignment.max_dispatches_per_day",
+    type=Int,
+    default=1500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "issues.backfill_group_action_log.killswitch",
     type=Bool,
@@ -1239,6 +1318,44 @@ register(
     "issues.backfill_group_action_log.inter_batch_delay_s",
     type=Int,
     default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_pr_lifecycle_action_log.killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_pr_lifecycle_action_log.batch_size",
+    type=Int,
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_pr_lifecycle_action_log.inter_batch_delay_s",
+    type=Int,
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_pr_lifecycle_state.killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Minimum seconds between provider requests, so the backfill leaves headroom for live
+# traffic on the same installation.
+register(
+    "issues.backfill_pr_lifecycle_state.api_interval_s",
+    type=Float,
+    default=0.1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_pr_lifecycle_state.rate_limited_backoff_s",
+    type=Float,
+    default=5.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1364,6 +1481,9 @@ register("relay.allow_internal_ip_auth", default=True, flags=FLAG_AUTOMATOR_MODI
 # Tell Relay to stop extracting metrics from transaction payloads (see killswitches)
 # Example value: [{"project_id": 42}, {"project_id": 123}]
 register("relay.drop-transaction-metrics", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Tell Relay to stop extracting metrics from transaction payloads for all projects.
+register("relay.drop-transaction-metrics2", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Relay should emit a usage metric to track total spans.
 register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -2128,17 +2248,23 @@ register(
     30,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Number of large transactions to retrieve from Snuba for transaction re-balancing.
-register(
-    "dynamic-sampling.prioritise_transactions.num_explicit_small_transactions",
-    0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Toggles emitting the smallest-transaction sampling-factor bucket metric during transaction rebalancing.
 register(
     "dynamic-sampling.boost_low_volume_transactions.emit_smallest_transaction_factor_metric",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Lower bound on the per-transaction sample rate produced by transaction rebalancing. When a project
+# has many low-volume transaction classes, the per-class ideal collapses to a near-zero rate and the
+# highest-volume transactions are pushed to a huge extrapolation factor (1 / rate), making their
+# extrapolated volume spiky and the sampling distribution non-ergodic. Flooring the explicit rates at
+# this value caps that factor at 1 / min_sample_rate and reclaims the cost from the implicit (tail)
+# rate. The floor is clamped to the project's overall rate, so it never raises a class above it.
+# 0.0 disables the floor (default), preserving the previous behaviour until rolled out via automator.
+register(
+    "dynamic-sampling.prioritise_transactions.min_sample_rate",
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Stops dynamic sampling rules from being emitted in relay config.
@@ -2181,6 +2307,20 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "dynamic-sampling.per_org.transaction-volume-debug-project-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "dynamic-sampling.per_org.sample-rates-summary-log-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Organizations for which the per-org pipeline logs the EAP-vs-outcomes sliding-window
@@ -3149,14 +3289,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Rollout rate for resolution activity notifications via the notification platform
-register(
-    "notifications.platform.resolution-notifications.rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Killswitch list of NotificationSource values that should be blocked from being
 # dispatched by the notification platform's NotificationService. Values must match
 # the string values of `sentry.notifications.platform.types.NotificationSource`.
@@ -3669,16 +3801,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Which issue categories should we send issue.created webhooks for
+# Which issue categories should we not send issue.created webhooks for
 register(
-    "sentry-apps.expanded-webhook-categories",
+    "sentry-apps.unsupported-webhook-categories",
     type=Sequence,
     default=[
-        1,  # ERROR
-        4,  # CRON
-        6,  # FEEDBACK
-        7,  # UPTIME
-        10,  # OUTAGE
+        9,  # TEST_NOTIFICATION
     ],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -3782,6 +3910,15 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Cap on consecutive automated PR iterations (check suites + bot re-reviews);
+# human feedback resets the streak. See ``automated_iteration_cap_reached``.
+register(
+    "autofix.pr-iteration.max-iterations",
+    type=Int,
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # TODO(telkins): Remove once we no longer need integration_id on SLO metrics
 register(
     "integrations.slo.integration-id-tag-enabled",
@@ -3872,6 +4009,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Rolls out FutureTrackingProducer to spans process-segments tasks
+register(
+    "tasks.producer.process-segments.rollout",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # If False, TaskWorkers will wait for a task's producer futures to complete
 # before marking a task as complete
 register(
@@ -3887,6 +4032,14 @@ register(
     "arroyo.producer.record_poll_metrics",
     type=Sequence,
     default=None,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# If True, FutureTrackingProducer will backpressure on produce futures
+register(
+    "arroyo.ftp.backpressure",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3928,11 +4081,25 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Allows GroupActionLogEntries to be written from Activity creation.
+# Number of projects to schedule for reprocessing per heal_stale_derived_data invocation.
 register(
-    "group_action_log.activity.double-write",
-    default=False,
+    "issues.derived.heal-project-limit",
+    default=3,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Kill switch for heal_stale_derived_data task.
+register(
+    "issues.derived.heal-enabled",
+    default=True,
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Kill switch for Objectstore Debug Files migration
+register(
+    "debug-files.objectstore-migration.enabled",
+    default=True,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )

@@ -240,6 +240,66 @@ describe('syncStoriesPreviewComment', () => {
     assert.deepEqual(calls, {create: [], update: [], delete: []});
   });
 
+  it('surfaces the SeerMarkdown story when an embed schema changed', async () => {
+    const calls = await run({
+      files: [
+        {
+          filename: 'static/app/components/seer/markdown/embeds/schemas.ts',
+          status: 'modified',
+        },
+      ],
+    });
+    assert.equal(calls.create.length, 1);
+    assert.match(calls.create[0].body!, /seerMarkdown\.mdx/);
+    assert.match(
+      calls.create[0].body!,
+      /stories\/product\/components\/seer\/markdown\/seermarkdown\//
+    );
+  });
+
+  it('surfaces the SeerMarkdown story when an embed component changed', async () => {
+    const calls = await run({
+      files: [
+        {
+          filename: 'static/app/components/seer/markdown/embeds/components/docs.tsx',
+          status: 'modified',
+        },
+      ],
+    });
+    assert.equal(calls.create.length, 1);
+    assert.match(calls.create[0].body!, /seerMarkdown\.mdx/);
+  });
+
+  it('does not duplicate the SeerMarkdown story when both it and an embed changed', async () => {
+    const calls = await run({
+      files: [
+        {
+          filename: 'static/app/components/seer/markdown/embeds/schemas.ts',
+          status: 'modified',
+        },
+        {
+          filename: 'static/app/components/seer/markdown/seerMarkdown.mdx',
+          status: 'modified',
+        },
+      ],
+    });
+    assert.equal(calls.create.length, 1);
+    const links = calls.create[0].body!.match(/seerMarkdown\.mdx/g) ?? [];
+    assert.equal(links.length, 1);
+  });
+
+  it('does not surface the SeerMarkdown story for an unrelated sibling directory', async () => {
+    const calls = await run({
+      files: [
+        {
+          filename: 'static/app/components/seer/markdown/embeds-legacy/schemas.ts',
+          status: 'modified',
+        },
+      ],
+    });
+    assert.deepEqual(calls, {create: [], update: [], delete: []});
+  });
+
   it('neutralizes markdown-injecting paths in both the label and the URL', async () => {
     const calls = await run({
       files: [

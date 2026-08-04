@@ -36,6 +36,6 @@ class MSTeamsActivityHandler(ActivityHandler):
                 resource_type=NotificationTargetResourceType.CHANNEL,
                 resource_id=require_config(invocation.action, "target_identifier"),
                 integration_id=require_integration_id(invocation.action),
-                organization_id=invocation.detector.project.organization.id,
+                organization_id=invocation.detector.linked_project.organization.id,
             )
             send_activity_notification(invocation, activity, target)

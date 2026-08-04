@@ -198,36 +198,6 @@ function ReleasesListInnerPage() {
     }
   }, [location.query]);
 
-  const {
-    data,
-    isPending: isReleasesPending,
-    isRefetching: isReleasesRefetching,
-    error: releasesError,
-  } = useQuery({
-    ...makeReleaseListApiOptions({
-      organizationSlug: organization.slug,
-      location,
-      activeSort,
-      activeStatus,
-    }),
-    select: selectJsonWithHeaders,
-    placeholderData: keepPreviousData,
-  });
-
-  const releases = data?.json;
-
-  useEffect(() => {
-    /**
-     * Manually trigger checking for elements in viewport.
-     * Helpful when LazyLoad components enter the viewport without resize or scroll events,
-     * https://github.com/twobin/react-lazyload#forcecheck
-     *
-     * HealthStatsCharts are being rendered only when they are scrolled into viewport.
-     * This is how we re-check them without scrolling once releases change.
-     */
-    forceCheck();
-  }, [releases]);
-
   const selectedProject = useMemo(() => {
     // Return the first project when 'All Projects' is displayed.
     // This ensures the onboarding panel is shown correctly, for example.
@@ -293,6 +263,37 @@ function ReleasesListInnerPage() {
     }
     return tab || 'releases';
   }, [shouldShowMobileBuildsTab, location.query.tab]);
+
+  const {
+    data,
+    isPending: isReleasesPending,
+    isRefetching: isReleasesRefetching,
+    error: releasesError,
+  } = useQuery({
+    ...makeReleaseListApiOptions({
+      organizationSlug: organization.slug,
+      location,
+      activeSort,
+      activeStatus,
+    }),
+    enabled: selectedTab === 'releases',
+    select: selectJsonWithHeaders,
+    placeholderData: keepPreviousData,
+  });
+
+  const releases = data?.json;
+
+  useEffect(() => {
+    /**
+     * Manually trigger checking for elements in viewport.
+     * Helpful when LazyLoad components enter the viewport without resize or scroll events,
+     * https://github.com/twobin/react-lazyload#forcecheck
+     *
+     * HealthStatsCharts are being rendered only when they are scrolled into viewport.
+     * This is how we re-check them without scrolling once releases change.
+     */
+    forceCheck();
+  }, [releases]);
 
   useLLMContext({
     contextHint:

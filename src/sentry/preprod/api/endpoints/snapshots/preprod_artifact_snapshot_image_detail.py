@@ -217,7 +217,10 @@ class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
 
         try:
             session = get_preprod_session(organization.id, artifact.project_id)
-            manifest_data = orjson.loads(session.get(manifest_key).payload.read())
+            response = session.get(manifest_key)
+            if response is None:
+                raise FileNotFoundError("Manifest does not exist in objectstore")
+            manifest_data = orjson.loads(response.payload.read())
             manifest = SnapshotManifest(**manifest_data)
         except Exception:
             logger.exception(
@@ -249,8 +252,11 @@ class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
             comparison_key = (comparison.extras or {}).get("comparison_key")
             if comparison_key:
                 try:
+                    response = session.get(comparison_key)
+                    if response is None:
+                        raise FileNotFoundError("Comparison manifest does not exist in objectstore")
                     comparison_manifest = ComparisonManifest(
-                        **orjson.loads(session.get(comparison_key).payload.read())
+                        **orjson.loads(response.payload.read())
                     )
                 except Exception:
                     logger.exception(
@@ -262,9 +268,10 @@ class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
             base_manifest_key = (comparison.base_snapshot_metrics.extras or {}).get("manifest_key")
             if base_manifest_key:
                 try:
-                    base_manifest = SnapshotManifest(
-                        **orjson.loads(session.get(base_manifest_key).payload.read())
-                    )
+                    response = session.get(base_manifest_key)
+                    if response is None:
+                        raise FileNotFoundError("Base manifest does not exist in objectstore")
+                    base_manifest = SnapshotManifest(**orjson.loads(response.payload.read()))
                 except Exception:
                     logger.exception(
                         "Failed to fetch base manifest",

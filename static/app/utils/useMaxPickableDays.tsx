@@ -109,10 +109,24 @@ export function getMaxPickableDays(
       )
         ? MAX_PICKABLE_DAYS
         : 30;
+
       return {
         maxPickableDays,
         maxUpgradableDays: MAX_PICKABLE_DAYS,
         upsellFooter: SpansUpsellFooter,
+      };
+    }
+    case DataCategory.ERRORS: {
+      const maxPickableDays = organization.features.includes(
+        'visibility-explore-range-high'
+      )
+        ? MAX_PICKABLE_DAYS
+        : 30;
+
+      return {
+        maxPickableDays,
+        maxUpgradableDays: MAX_PICKABLE_DAYS,
+        upsellFooter: ErrorsUpsellFooter,
       };
     }
     case DataCategory.TRACE_METRICS:
@@ -147,4 +161,8 @@ const UpsellFooterHook = OverrideOrDefault({
 
 export const SpansUpsellFooter = (
   <UpsellFooterHook description={DESCRIPTION} source="spans" />
+);
+
+export const ErrorsUpsellFooter = (
+  <UpsellFooterHook description={DESCRIPTION} source="errors" />
 );

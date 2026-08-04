@@ -1,0 +1,45 @@
+name: valid-use-memo
+severity: warning
+tags: [react, react-compiler, memoization, hooks]
+
+why: |
+  `useMemo` is analyzable only when its calculation is an inline function and
+  its dependency list is a literal array of simple reactive expressions. Passing
+  a function reference or a computed/complex dependency list obscures what the
+  memo reads and prevents the compiler and lint rules from validating it.
+
+  This convention corresponds to both React Compiler `UseMemo` variants in the
+  audit: an inline function is required, and dependencies must be an array of
+  simple expressions such as `x`, `x.y`, or `x?.y`.
+
+  See: https://react.dev/reference/eslint-plugin-react-hooks/lints/use-memo
+
+detect: |
+  Flag `useMemo` when:
+    - Its first argument is an identifier, call result, conditional expression,
+      or anything other than an inline arrow/function expression.
+    - Its dependency argument is not an inline array literal.
+    - A dependency item is a call, arithmetic/logical expression, object/array
+      literal, spread, or other complex expression rather than an identifier or
+      property chain.
+    - The callback fails to return a value on every relevant path.
+
+  Missing or stale simple dependencies are covered by
+  `complete-hook-dependencies`, but may be reported alongside this convention.
+
+fix: |
+  Wrap the calculation in an inline function. Calculate complex dependency
+  expressions in named variables before `useMemo`, then list those variables.
+  Use a literal dependency array and return the calculated value.
+
+examples:
+  bad:
+    - 'const value = useMemo(calculateValue, deps);'
+    - 'const value = useMemo(() => calculate(value), [normalize(value)]);'
+  good:
+    - 'const value = useMemo(() => calculateValue(input), [input]);'
+    - |
+      const normalizedValue = normalize(value);
+      const result = useMemo(() => calculate(normalizedValue), [normalizedValue]);
+
+detect_command: 'bash {convention_dir}/react-compiler.detect.sh {repo_path} UseMemo'

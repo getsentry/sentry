@@ -11,10 +11,10 @@ export type SeerNightShiftRunIssue = {
   groupShortId: string | null;
   groupTitle: string | null;
   id: string;
-  pullRequests: SeerNightShiftRunPullRequest[];
   reason: string | null;
   seerRunId: string | null;
   skipReason: string | null;
+  pullRequests?: SeerNightShiftRunPullRequest[];
 };
 
 // A Seer run dispatched by a night shift run, openable in Explorer.

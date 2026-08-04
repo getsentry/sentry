@@ -156,6 +156,10 @@ export const useSeerExplorer = () => {
         return 'on'; // default
       }
     );
+  const [overrideBashModeEnabled, setOverrideBashModeEnabled] = useLocalStorageState(
+    'seer-explorer.override.bash-mode',
+    false
+  );
 
   const {runId, chatStates} = useSeerExplorerChatState();
   const dispatch = useSeerExplorerChatDispatch();
@@ -175,6 +179,7 @@ export const useSeerExplorer = () => {
     {
       insertIndex: number;
       orgSlug: string;
+      overrideBashModeEnabled: boolean;
       overrideCodeModeEnable: 'off' | 'on' | 'only';
       overrideCtxEngEnable: boolean;
       pageName: string;
@@ -212,6 +217,7 @@ export const useSeerExplorer = () => {
           on_page_context: params.screenshot,
           page_name: params.pageName,
           override_ce_enable: params.overrideCtxEngEnable,
+          override_bash_mode_enabled: params.overrideBashModeEnabled,
           override_code_mode_enable: params.overrideCodeModeEnable,
         },
       });
@@ -520,6 +526,7 @@ export const useSeerExplorer = () => {
         orgSlug,
         pageName,
         screenshot,
+        overrideBashModeEnabled,
         overrideCtxEngEnable,
         overrideCodeModeEnable,
       });
@@ -532,6 +539,7 @@ export const useSeerExplorer = () => {
       getLLMContext,
       getPageReferrer,
       organization,
+      overrideBashModeEnabled,
       overrideCtxEngEnable,
       overrideCodeModeEnable,
       sendMessageMutate,
@@ -686,6 +694,8 @@ export const useSeerExplorer = () => {
     hasSentInterrupt,
     respondToUserInput,
     createPR,
+    overrideBashModeEnabled,
+    setOverrideBashModeEnabled,
     overrideCtxEngEnable,
     setOverrideCtxEngEnable,
     overrideCodeModeEnable,

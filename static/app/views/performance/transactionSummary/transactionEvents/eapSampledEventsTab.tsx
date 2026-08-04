@@ -52,14 +52,19 @@ import {
 import {
   decodeEventsDisplayFilterFromLocation,
   EventsDisplayFilterName,
+  generateTransactionEventsEventView,
   getEventsFilterOptions,
   type PercentileValues,
 } from './utils';
 
 export function EAPSampledEventsTab() {
-  const {organization, eventView, transactionName} = useTransactionSummaryContext();
+  const {organization, transactionName} = useTransactionSummaryContext();
   const navigate = useNavigate();
   const location = useLocation();
+  const eventView = useMemo(
+    () => generateTransactionEventsEventView({location, transactionName}),
+    [location, transactionName]
+  );
   const {selection} = usePageFilters();
 
   const eventsDisplayFilterName = decodeEventsDisplayFilterFromLocation(location);

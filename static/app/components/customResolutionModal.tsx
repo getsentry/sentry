@@ -1,6 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
+import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
@@ -14,20 +14,28 @@ import {Version} from 'sentry/components/version';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
+import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {isVersionInfoSemver} from 'sentry/views/explore/releases/utils';
+import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
+
+function canLookupExactRelease(version: string): boolean {
+  return version.length > 0 && !/^\.\.?$/.test(version);
+}
 
 function makeReleaseOption(
   release: Release,
-  currentUserEmail?: string
+  currentUserEmail: string | undefined
 ): SelectOption<string> {
   const isAuthor = release.authors?.some(
     author => author.email && author.email === currentUserEmail
   );
+  const isSemver = release.versionInfo
+    ? isVersionInfoSemver(release.versionInfo.version)
+    : false;
 
   return {
     value: release.version,
@@ -37,14 +45,10 @@ function makeReleaseOption(
           <Fragment>{release.versionInfo.package}@</Fragment>
         )}
         <Version version={release.version} anchor={false} />{' '}
-        {isVersionInfoSemver(release.versionInfo.version)
-          ? t('(semver)')
-          : t('(non-semver)')}
+        {isSemver ? t('(semver)') : t('(non-semver)')}
       </span>
     ),
-    textValue: release.versionInfo?.package
-      ? `${release.versionInfo.package}@${release.version}`
-      : release.version,
+    textValue: release.version,
     details: (
       <span>
         {t('Created')} <TimeSince date={release.dateCreated} />
@@ -69,79 +73,74 @@ function getUniqueReleases(releases: Array<Release | null | undefined>): Release
 
 interface CustomResolutionModalProps extends ModalRenderProps {
   onSelected: (change: {inRelease: string}) => void;
-  projectSlug: string | undefined;
+  project: Project | undefined;
 }
 
 export function CustomResolutionModal(props: CustomResolutionModalProps) {
   const organization = useOrganization();
-  const [version, setVersion] = useState('');
   const [selectedRelease, setSelectedRelease] = useState<Release | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebouncedValue(searchQuery);
   const currentUser = ConfigStore.get('user');
   const [selectionError, setSelectionError] = useState<string | null>(null);
 
-  const releaseListOptions = props.projectSlug
-    ? apiOptions.as<Release[]>()(
-        '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: props.projectSlug,
-          },
-          query: {query: debouncedSearch},
-          staleTime: 60_000,
-        }
-      )
-    : apiOptions.as<Release[]>()('/organizations/$organizationIdOrSlug/releases/', {
-        path: {organizationIdOrSlug: organization.slug},
-        query: {query: debouncedSearch},
-        staleTime: 60_000,
-      });
-
   const {data: releases = [], isFetching} = useQuery({
-    ...releaseListOptions,
+    ...apiOptions.as<Release[]>()('/organizations/$organizationIdOrSlug/releases/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {project: props.project?.id, query: debouncedSearch},
+      staleTime: 60_000,
+    }),
     retry: false,
   });
 
-  const shouldLookupExact = debouncedSearch.trim().length > 0;
+  const exactSearch = debouncedSearch.trim();
+  const shouldLookupExact = canLookupExactRelease(exactSearch);
 
   // Attempt to find the exact release, the list is capped at the most recent 100 releases
-  const {data: exactRelease} = useQuery({
-    ...apiOptions.as<Release>()(
+  const {data: exactReleaseResponse} = useQuery({
+    ...apiOptions.as<Release | Release[]>()(
       '/organizations/$organizationIdOrSlug/releases/$version/',
       {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          version: debouncedSearch.trim(),
-        },
+        path: shouldLookupExact
+          ? {
+              organizationIdOrSlug: organization.slug,
+              version: exactSearch,
+            }
+          : skipToken,
         staleTime: 30_000,
       }
     ),
-    enabled: shouldLookupExact,
     retry: false,
   });
+  // Guard against intermediaries normalizing the detail URL to the releases collection.
+  const exactRelease = Array.isArray(exactReleaseResponse)
+    ? undefined
+    : exactReleaseResponse;
 
-  const options = useMemo((): Array<SelectOption<string>> => {
-    const prioritizedReleases = debouncedSearch.trim()
-      ? [exactRelease, ...releases]
-      : [selectedRelease, ...releases];
+  const visibleReleases = useMemo(
+    () =>
+      getUniqueReleases(
+        exactSearch ? [exactRelease, ...releases] : [selectedRelease, ...releases]
+      ),
+    [exactRelease, exactSearch, releases, selectedRelease]
+  );
 
-    return getUniqueReleases(prioritizedReleases).map(release =>
-      makeReleaseOption(release, currentUser?.email)
-    );
-  }, [currentUser?.email, debouncedSearch, exactRelease, releases, selectedRelease]);
+  const options = useMemo(
+    (): Array<SelectOption<string>> =>
+      visibleReleases.map(release => makeReleaseOption(release, currentUser?.email)),
+    [currentUser?.email, visibleReleases]
+  );
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!version) {
+    if (!selectedRelease) {
       setSelectionError(t('Please select a release.'));
       return;
     }
 
     setSearchQuery('');
     setSelectionError(null);
-    props.onSelected({inRelease: version});
+    props.onSelected({inRelease: selectedRelease.version});
     props.closeModal();
   };
   const {Header, Body, Footer} = props;
@@ -161,16 +160,14 @@ export function CustomResolutionModal(props: CustomResolutionModalProps) {
             onChange: setSearchQuery,
           }}
           options={options}
-          value={version}
+          value={selectedRelease?.version ?? ''}
           loading={isFetching}
           emptyMessage={isFetching ? t('Loading releases\u2026') : t('No releases found')}
           onChange={option => {
             const selectedVersion = option?.value ? String(option.value) : '';
-            const visibleReleases = getUniqueReleases([exactRelease, ...releases]);
             const release =
               visibleReleases.find(item => item.version === selectedVersion) ?? null;
 
-            setVersion(selectedVersion);
             setSelectedRelease(release);
             setSelectionError(null);
             setSearchQuery('');
@@ -183,7 +180,7 @@ export function CustomResolutionModal(props: CustomResolutionModalProps) {
               prefix={t('Version')}
               aria-label={t('Version')}
             >
-              {version
+              {selectedRelease
                 ? triggerProps.children
                 : isFetching
                   ? t('Loading\u2026')
@@ -194,14 +191,13 @@ export function CustomResolutionModal(props: CustomResolutionModalProps) {
         />
         {selectionError ? <ErrorText role="alert">{selectionError}</ErrorText> : null}
         <Container marginTop="md">
-          {version ? (
+          {selectedRelease ? (
             // Open release in new tab to avoid closing the modal
             <ExternalLink
-              href={normalizeUrl(
-                `/organizations/${organization.slug}/releases/${encodeURIComponent(version)}/${
-                  props.projectSlug ? `?project=${props.projectSlug}` : ''
-                }`
-              )}
+              href={`${makeReleasesPathname({
+                organization,
+                path: `/${encodeURIComponent(selectedRelease.version)}/`,
+              })}${props.project ? `?project=${props.project.id}` : ''}`}
               openInNewTab
             >
               <Flex align="center" gap="xs">

@@ -110,13 +110,10 @@ def track_contributor_seat(
 
     contributor, _ = OrganizationContributors.objects.get_or_create(
         organization_id=organization.id,
-        integration_id=integration.id,
+        provider=integration.provider,
+        hostname=hostname,
         external_identifier=str(user_id),
-        defaults={
-            "alias": user_username,
-            "provider": integration.provider,
-            "hostname": hostname,
-        },
+        defaults={"alias": user_username},
     )
     if not should_increment_contributor_seat(organization, repo, contributor):
         return
@@ -161,13 +158,10 @@ def record_contributor_action(
 
     contributor, _ = OrganizationContributors.objects.get_or_create(
         organization_id=organization.id,
-        integration_id=integration.id,
+        provider=integration.provider,
+        hostname=hostname,
         external_identifier=str(user_id),
-        defaults={
-            "alias": user_username,
-            "provider": integration.provider,
-            "hostname": hostname,
-        },
+        defaults={"alias": user_username},
     )
 
     if not is_opened or not should_increment_contributor_seat(organization, repo, contributor):

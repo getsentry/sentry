@@ -47,7 +47,7 @@ describe('ProjectFilters', () => {
 
   const inboundFiltersRouterConfig = {
     location: {
-      pathname: `/settings/${organization.slug}/projects/${project.slug}/filters/inbound-filters/`,
+      pathname: `/settings/${organization.slug}/projects/${project.slug}/filters/custom-filters/`,
     },
     route: '/settings/:orgId/projects/:projectId/filters/:filterType/',
   };

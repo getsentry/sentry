@@ -66,12 +66,11 @@ EXPOSABLE_FEATURES = [
     "organizations:view-hierarchy-scrubbing",
     "organizations:performance-issues-spans",
     "organizations:relay-playstation-ingestion",
-    "projects:span-v2-experimental-processing",
     "projects:span-v2-attachment-processing",
     "projects:trace-attachment-processing",
     "projects:relay-minidump-uploads",
     "projects:relay-playstation-uploads",
-    "projects:minidump-multi-exception",
+    "projects:relay-upload-multipart",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -1097,8 +1096,10 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
 
 
 def _should_extract_transaction_metrics(project: Project) -> bool:
-    return features.has(
-        "organizations:transaction-metrics-extraction", project.organization
-    ) and not killswitches.killswitch_matches_context(
-        "relay.drop-transaction-metrics", {"project_id": project.id}
+    return (
+        features.has("organizations:transaction-metrics-extraction", project.organization)
+        and not options.get("relay.drop-transaction-metrics2")
+        and not killswitches.killswitch_matches_context(
+            "relay.drop-transaction-metrics", {"project_id": project.id}
+        )
     )

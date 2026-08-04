@@ -2,6 +2,7 @@ import {Fragment, memo, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -260,18 +261,20 @@ const TraceListItem = memo(function TraceListItem({
       <Stack gap="xs" flex="1" minWidth="0">
         <Flex align="center" gap="xs">
           <Container maxWidth="40%" flexShrink={0}>
-            <Tooltip title={title} showOnlyOnOverflow skipWrapper>
-              <Text bold size="sm" ellipsis>
-                {title}
-              </Text>
-            </Tooltip>
+            <InfoText title={title} mode="overflowOnly" bold size="sm">
+              {title}
+            </InfoText>
           </Container>
           {subtitle && (
-            <Tooltip title={subtitle} showOnlyOnOverflow skipWrapper maxWidth={500}>
-              <Text size="sm" variant="muted" ellipsis>
-                - {subtitle}
-              </Text>
-            </Tooltip>
+            <InfoText
+              title={subtitle}
+              mode="overflowOnly"
+              maxWidth={500}
+              size="sm"
+              variant="muted"
+            >
+              - {subtitle}
+            </InfoText>
           )}
           <Container flex={1} />
           <Text size="xs" variant="muted">

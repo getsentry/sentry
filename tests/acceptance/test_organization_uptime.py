@@ -18,12 +18,16 @@ class OrganizationUptimeTest(AcceptanceTestCase):
         self.create_team_membership(self.team, user=self.user)
         self.login_as(self.user)
 
+    def _monitor_details_path(self, detector_id: int) -> str:
+        return f"/organizations/{self.organization.slug}/monitors/{detector_id}/"
+
     @with_feature("organizations:uptime")
     def test_create_uptime_monitor_flow(self) -> None:
         """
         Test complete flow:
           -> empty overview
-          -> create monitor
+          -> create monitor (via the new /monitors/ UI)
+          -> pick monitor type
           -> fill form
           -> see on details page
           -> return to overview
@@ -35,39 +39,38 @@ class OrganizationUptimeTest(AcceptanceTestCase):
         # Verify we're on the empty state
         self.browser.wait_until(xpath="//*[text()='The selected projects have no uptime monitors']")
 
-        # Step 2: Click "Add Uptime Monitor" button in empty state
+        # Step 2: Click "Add Uptime Monitor". This redirects to the new monitor
+        # creation flow with the uptime detector type preselected.
         self.browser.click_when_visible("a[aria-label='Add Uptime Monitor']")
 
-        # Should navigate to uptime alert creation form
-        self.browser.wait_until('[name="name"]')
+        # Step 3: Detector type selection (step 1 of 2). Uptime is preselected via
+        # the redirect's detectorType query param, so continue to the settings step.
+        self.browser.click_when_visible(xpath="//button[normalize-space()='Next']")
 
-        # Step 3: Fill out the uptime monitor form
-        name_input = self.browser.find_element_by_name("name")
-        name_input.send_keys("My Test Uptime Monitor")
+        # Step 4: Fill out the uptime monitor settings form.
+        # The monitor name is an editable-text field in the header.
+        self.browser.click_when_visible('[data-test-id="editable-text-label"]')
+        name_input = self.browser.element(xpath='//input[@aria-label="Monitor Name"]')
+        name_input.send_keys("My Test Uptime Monitor", Keys.ENTER)
 
         url_input = self.browser.find_element_by_name("url")
         url_input.send_keys("https://example.com")
 
-        self.browser.click_when_visible(xpath='//label[@aria-label="Environment"]')
-        self.browser.element(
-            xpath='//label[@aria-label="Environment"]/following-sibling::div//input'
-        ).send_keys("production", Keys.ENTER)
+        environment_input = self.browser.element(xpath='//input[@aria-label="Select Environment"]')
+        environment_input.click()
+        environment_input.send_keys("production", Keys.ENTER)
 
-        # Step 4: Submit the form using the manual approach from debug test
-        # Find the submit button in the form
-        self.browser.element("button[aria-label='Create Rule']").click()
+        # Step 5: Submit the form
+        self.browser.click_when_visible(xpath="//button[normalize-space()='Create Monitor']")
 
-        # Step 5: Should navigate to uptime monitor details page
-        # Wait for page to load and check URL change
+        # Step 6: Should navigate to the monitor details page
         self.browser.wait_until_not('[data-test-id="loading-indicator"]', timeout=10)
+        self.browser.wait_until(xpath="//*[contains(text(), 'My Test Uptime Monitor')]")
 
-        self.browser.wait_until(xpath="//h1[contains(text(), 'My Test Uptime Monitor')]")
-        self.browser.element_exists(xpath="//*[contains(text(), 'https://example.com')]")
-
-        # Step 6: Navigate back to uptime overview
+        # Step 7: Navigate back to uptime overview
         self.browser.get(self.uptime_path)
 
-        # Step 7: Verify the monitor is now shown in the overview list
+        # Step 8: Verify the monitor is now shown in the overview list
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until(xpath="//*[contains(text(), 'My Test Uptime Monitor')]")
 
@@ -78,7 +81,7 @@ class OrganizationUptimeTest(AcceptanceTestCase):
             url="https://sentry.io",
             timeout_ms=5000,
         )
-        self.create_uptime_detector(
+        detector = self.create_uptime_detector(
             name="My Awesome Monitor",
             project=self.project,
             uptime_subscription=uptime_subscription,
@@ -91,32 +94,29 @@ class OrganizationUptimeTest(AcceptanceTestCase):
         # Verify the monitor is visible in the list
         self.browser.wait_until(xpath="//h3[contains(text(), 'My Awesome Monitor')]")
 
-        # Click on the monitor to edit it
-        self.browser.click_when_visible(xpath="//a//h3[contains(text(), 'My Awesome Monitor')]")
-
-        # Should navigate to monitor details page
+        # Open the monitor details page
+        self.browser.get(self._monitor_details_path(detector.id))
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.wait_until(xpath="//h1[contains(text(), 'My Awesome Monitor')]")
+        self.browser.wait_until(xpath="//*[contains(text(), 'My Awesome Monitor')]")
 
         # Click edit button
-        self.browser.click_when_visible("a[aria-label='Edit Rule']")
+        self.browser.click_when_visible(xpath="//a[normalize-space()='Edit']")
 
         # Should show edit form
-        self.browser.wait_until('[name="name"]')
+        self.browser.wait_until('[name="url"]')
 
         # Verify the form fields are populated with existing values
-        name_input = self.browser.find_element_by_name("name")
-        assert name_input.get_attribute("value") == "My Awesome Monitor"
-
         url_input = self.browser.find_element_by_name("url")
         assert url_input.get_attribute("value") == "https://sentry.io"
 
-        # Update the name
+        # Update the name via the editable-text field
+        self.browser.click_when_visible('[data-test-id="editable-text-label"]')
+        name_input = self.browser.element(xpath='//input[@aria-label="Monitor Name"]')
         name_input.clear()
-        name_input.send_keys("Updated Monitor Name")
+        name_input.send_keys("Updated Monitor Name", Keys.ENTER)
 
-        self.browser.element("button[aria-label='Save Rule']").click()
+        self.browser.click_when_visible(xpath="//button[normalize-space()='Save']")
 
         # After form submission, wait for success and verify the updated name
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.wait_until(xpath="//h1[contains(text(), 'Updated Monitor Name')]")
+        self.browser.wait_until(xpath="//*[contains(text(), 'Updated Monitor Name')]")

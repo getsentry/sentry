@@ -17,8 +17,10 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
+import * as analytics from 'sentry/utils/analytics';
 import {CreateProject} from 'sentry/views/projectInstall/createProject';
 import * as useValidateChannelModule from 'sentry/views/projectInstall/useValidateChannel';
+import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 
 jest.mock('sentry/actionCreators/indicator');
 
@@ -105,6 +107,94 @@ describe('CreateProject', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+    window.sessionStorage.clear();
+  });
+
+  function renderCreateWithOriginQuery(query: Record<string, string> = {}) {
+    const organization = OrganizationFixture({
+      access: ['project:read', 'project:write', 'project:admin'],
+    });
+    TeamStore.loadUserTeams([teamWithAccess]);
+    renderFrameworkModalMockRequests({
+      organization,
+      teamSlug: teamWithAccess.slug,
+    });
+
+    const routeAnalytics = {
+      previousUrl: '',
+      setDisableRouteAnalytics: jest.fn(),
+      setEventNames: jest.fn(),
+      setOrganization: jest.fn(),
+      setRouteAnalyticsParams: jest.fn(),
+    };
+
+    render(
+      <RouteAnalyticsContext value={routeAnalytics}>
+        <CreateProject />
+      </RouteAnalyticsContext>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/projects/new/',
+            query,
+          },
+        },
+      }
+    );
+
+    return {organization, routeAnalytics};
+  }
+
+  it('sets page-view origin to org_creation from the org-create seed param', () => {
+    const {routeAnalytics} = renderCreateWithOriginQuery({
+      projectCreationOrigin: 'org_creation',
+    });
+
+    expect(routeAnalytics.setEventNames).toHaveBeenCalledWith(
+      'project_creation_page.viewed',
+      'Project Create: Creation page viewed'
+    );
+    expect(routeAnalytics.setRouteAnalyticsParams).toHaveBeenCalledWith({
+      variant: 'legacy',
+      origin: 'org_creation',
+    });
+  });
+
+  it('keeps org_creation origin sticky after getting-started autofill return', () => {
+    // Prior org-create land already wrote sticky origin for this org.
+    window.sessionStorage.setItem('project-creation-origin:org-slug', 'org_creation');
+
+    // Back from instructions only brings autofill referrer; journey origin sticks.
+    const {routeAnalytics} = renderCreateWithOriginQuery({
+      referrer: 'getting-started',
+      project: '123',
+    });
+    expect(routeAnalytics.setRouteAnalyticsParams).toHaveBeenCalledWith({
+      variant: 'legacy',
+      origin: 'org_creation',
+    });
+  });
+
+  it('defaults page-view origin to existing_org without a seed', () => {
+    const {routeAnalytics} = renderCreateWithOriginQuery();
+
+    expect(routeAnalytics.setRouteAnalyticsParams).toHaveBeenCalledWith({
+      variant: 'legacy',
+      origin: 'existing_org',
+    });
+  });
+
+  it('does not treat getting-started referrer alone as org creation', () => {
+    const {routeAnalytics} = renderCreateWithOriginQuery({
+      referrer: 'getting-started',
+      project: '123',
+    });
+
+    expect(routeAnalytics.setRouteAnalyticsParams).toHaveBeenCalledWith({
+      variant: 'legacy',
+      origin: 'existing_org',
+    });
   });
 
   it('should block if you have access to no teams without team-roles', () => {
@@ -410,7 +500,7 @@ describe('CreateProject', () => {
     });
     TeamStore.loadUserTeams([teamWithAccess]);
 
-    render(<CreateProject />, {
+    const {router} = render(<CreateProject />, {
       organization,
     });
 
@@ -422,6 +512,7 @@ describe('CreateProject', () => {
       1
     );
     expect(addSuccessMessage).toHaveBeenCalledWith('Created project testProj');
+    expect(router.location.query.projectCreationVariant).toBe('legacy');
   });
 
   it('should display error message on proj creation failure', async () => {
@@ -534,6 +625,7 @@ describe('CreateProject', () => {
 
   it('renders framework selection modal if vanilla js is selected', async () => {
     const {organization} = initializeOrg();
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
     const frameWorkModalMockRequests = renderFrameworkModalMockRequests({
       organization,
@@ -569,6 +661,10 @@ describe('CreateProject', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
 
     expect(frameWorkModalMockRequests.projectCreationMockRequest).not.toHaveBeenCalled();
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'project_creation.select_framework_modal_close_button_clicked',
+      expect.objectContaining({variant: 'legacy'})
+    );
   });
 
   it('should rollback project when rule creation fails', async () => {
@@ -754,6 +850,55 @@ describe('CreateProject', () => {
 
       await userEvent.click(getSubmitButton());
       expect(projectCreationMockRequest).toHaveBeenCalled();
+    });
+
+    it('fires alert_selected and alert_threshold_edited with variant=legacy', async () => {
+      renderFrameworkModalMockRequests({
+        organization,
+        teamSlug: teamWithAccess.slug,
+      });
+      const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+
+      render(<CreateProject />, {organization});
+
+      // Switch to custom alerts: fires the alert-selected event, and reveals the
+      // threshold input.
+      await userEvent.click(screen.getByText(/When there are more than/));
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'project_creation.project_details_alert_selected',
+        expect.objectContaining({option: 'custom', variant: 'legacy'})
+      );
+
+      // Edit the threshold: fires the threshold-edited event.
+      await userEvent.type(screen.getByTestId('range-input'), '5');
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'project_creation.alert_threshold_edited',
+        expect.objectContaining({field: 'threshold', variant: 'legacy'})
+      );
+    });
+
+    it('does not fire alert_threshold_edited unless custom alerts are selected', async () => {
+      renderFrameworkModalMockRequests({
+        organization,
+        teamSlug: teamWithAccess.slug,
+      });
+      const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+
+      render(<CreateProject />, {organization});
+
+      // Default is high-priority. Metric/interval Selects stay interactive while
+      // the custom radio is unselected (their wrappers call preventDefault), so
+      // an edit must not count as a custom-threshold change.
+      await selectEvent.select(screen.getByText('occurrences of'), /users affected/);
+
+      expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
+        'project_creation.alert_threshold_edited',
+        expect.anything()
+      );
+      expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
+        'project_creation.project_details_alert_selected',
+        expect.objectContaining({option: 'custom'})
+      );
     });
 
     it('should disable submit button when channel validation fails and integration is selected', async () => {

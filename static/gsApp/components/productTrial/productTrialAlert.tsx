@@ -112,7 +112,7 @@ export function ProductTrialAlert(props: ProductTrialAlertProps) {
         {t('Learn More')}
       </LinkButton>
     );
-  } else if (daysLeft > 0 && daysLeft <= 7 && trial.isStarted) {
+  } else if (daysLeft >= 0 && daysLeft <= 7 && trial.isStarted) {
     alertHeader = t('%s Trial', titleCase(getProductName(trial.category)));
     if (isPaid && categoryUsesOnDemand) {
       alertText = t(

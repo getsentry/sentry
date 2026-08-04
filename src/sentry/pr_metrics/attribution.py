@@ -25,23 +25,10 @@ from sentry.models.pullrequest import (
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
     ResolvedPullRequest,
-    parse_pull_request_number,
+    parse_pull_request_url,
 )
 
 logger = logging.getLogger(__name__)
-
-# Precedence for picking a PR's primary attribution when more than one valid
-# signal is present (highest first): direct agent-authored signals rank above
-# weaker heuristics like a bare issue reference.
-SIGNAL_TYPE_CONFIDENCE: dict[str, int] = {
-    PullRequestAttributionSignalType.SENTRY_APP: 100,
-    PullRequestAttributionSignalType.SEER_DELEGATED_CURSOR: 80,
-    PullRequestAttributionSignalType.SEER_DELEGATED_GITHUB_COPILOT: 80,
-    PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE: 80,
-    PullRequestAttributionSignalType.SEER_DELEGATED_UNKNOWN: 70,
-    PullRequestAttributionSignalType.MCP: 50,
-    PullRequestAttributionSignalType.UNKNOWN: 0,
-}
 
 
 class SentryAppSignalDetails(BaseModel):
@@ -62,6 +49,7 @@ class DelegatedAgentSignalDetails(BaseModel):
     agent_id: str | None = None
     pr_url: str
     run_id: int | None = None
+    group_ids: list[int] = []
 
 
 # Signal types that use DelegatedAgentSignalDetails for their signal_details.
@@ -163,23 +151,6 @@ def record_attribution_signal(
             attribution.save(update_fields=["signal_details", "is_valid", "date_updated"])
 
         return attribution
-
-
-def recompute_pull_request_attribution(pull_request: PullRequest) -> str | None:
-    """Return the highest-confidence valid attribution signal for a PR.
-
-    Returns the winning ``signal_type``, or ``None`` when the PR has no valid
-    signals.
-    """
-    valid_signal_types = PullRequestAttribution.objects.filter(
-        pull_request=pull_request, is_valid=True
-    ).values_list("signal_type", flat=True)
-
-    return max(
-        valid_signal_types,
-        key=lambda signal_type: SIGNAL_TYPE_CONFIDENCE.get(signal_type, -1),
-        default=None,
-    )
 
 
 def _log_unresolved_reported_pull_request(
@@ -312,6 +283,7 @@ def attribute_delegated_agent_pull_request(
     pr_url: str,
     agent_id: str | None = None,
     run_id: int | None = None,
+    group_ids: Sequence[int] | None = None,
 ) -> None:
     """Attribute a PR opened by a Seer-delegated coding agent (Cursor/Copilot/Claude).
 
@@ -320,6 +292,11 @@ def attribute_delegated_agent_pull_request(
     ``seer.pr_created`` event, so attribution is recorded here at the detection
     point. Callers pass the ``SEER_DELEGATED_*`` signal type for the authoring
     agent; unlike Seer-native PRs we never attribute these to ``SENTRY_APP``.
+
+    ``run_id``/``group_ids`` are optional and left sparse (``None``/``[]``) when
+    a caller can't resolve them locally; ``group_ids`` is the issue(s) the
+    delegated run was launched against, mirroring the field already on
+    ``SentryAppSignalDetails``.
 
     Gated behind ``organizations:pr-metrics-attribution``. Best-effort: callers run
     this inside the polling/webhook flow, so any failure is logged and swallowed
@@ -333,7 +310,8 @@ def attribute_delegated_agent_pull_request(
     if not features.has("organizations:pr-metrics-attribution", organization):
         return
 
-    pr_number = parse_pull_request_number(pr_url)
+    parsed_pr = parse_pull_request_url(pr_url)
+    pr_number = parsed_pr.number if parsed_pr else None
 
     log_context = {
         "organization_id": organization_id,
@@ -360,6 +338,7 @@ def attribute_delegated_agent_pull_request(
             agent_id=agent_id,
             pr_url=pr_url,
             run_id=run_id,
+            group_ids=list(group_ids) if group_ids else [],
         ).dict(),
         log_context=log_context,
     )

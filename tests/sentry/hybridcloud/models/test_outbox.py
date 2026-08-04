@@ -21,13 +21,12 @@ from sentry.hybridcloud.tasks.deliver_from_outbox import enqueue_outbox_jobs
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.cell import Cell, get_local_cell
 from sentry.users.models.user import User
 
@@ -561,13 +560,9 @@ class TestOutboxesManager(TestCase):
         with outbox_runner():
             assert CellOutbox.objects.count() == 10
             assert OrganizationMemberTeam.objects.count() == 11
-            with assume_test_silo_mode_of(OrganizationMemberTeamReplica):
-                assert OrganizationMemberTeamReplica.objects.count() == 1
 
         assert CellOutbox.objects.count() == 0
         assert OrganizationMemberTeam.objects.count() == 11
-        with assume_test_silo_mode_of(OrganizationMemberTeamReplica):
-            assert OrganizationMemberTeamReplica.objects.count() == 11
 
         existing = OrganizationMemberTeam.objects.all().exclude(id=do_not_touch.id).all()
         for obj in existing:
@@ -576,24 +571,18 @@ class TestOutboxesManager(TestCase):
 
         with outbox_runner():
             assert CellOutbox.objects.count() == 10
-            with assume_test_silo_mode_of(OrganizationMemberTeamReplica):
-                assert OrganizationMemberTeamReplica.objects.filter(role="cow").count() == 0
 
         assert CellOutbox.objects.count() == 0
-        with assume_test_silo_mode_of(OrganizationMemberTeamReplica):
-            assert OrganizationMemberTeamReplica.objects.filter(role="cow").count() == 10
+        assert OrganizationMemberTeam.objects.filter(role="cow").count() == 10
 
         OrganizationMemberTeam.objects.bulk_delete(existing)
 
         with outbox_runner():
             assert CellOutbox.objects.count() == 10
             assert OrganizationMemberTeam.objects.count() == 1
-            with assume_test_silo_mode_of(OrganizationMemberTeamReplica):
-                assert OrganizationMemberTeamReplica.objects.count() == 11
 
         assert CellOutbox.objects.count() == 0
-        with assume_test_silo_mode_of(OrganizationMemberTeamReplica):
-            assert OrganizationMemberTeamReplica.objects.count() == 1
+        assert OrganizationMemberTeam.objects.count() == 1
 
 
 @control_silo_test
