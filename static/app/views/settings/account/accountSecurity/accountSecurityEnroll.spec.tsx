@@ -523,9 +523,16 @@ describe('AccountSecurityEnroll', () => {
       expect(
         await screen.findByText('Ensure this field has no more than 60 characters.')
       ).toBeInTheDocument();
-      expect(screen.getByText('Not a valid string.')).toBeInTheDocument();
+      expect(screen.getByText(/Not a valid string\./)).toBeInTheDocument();
       expect(screen.queryByText('This field is required.')).not.toBeInTheDocument();
       expect(mockAddErrorMessage).not.toHaveBeenCalled();
+
+      expect(screen.getByRole('button', {name: 'Start Enrollment'})).toBeEnabled();
+      mockHandleEnroll.mockResolvedValue('new-webauthn-response');
+      await userEvent.click(screen.getByRole('button', {name: 'Start Enrollment'}));
+
+      expect(mockHandleEnroll).toHaveBeenCalledTimes(2);
+      expect(await screen.findByRole('button', {name: 'Enrolled!'})).toBeDisabled();
     });
   });
 });

@@ -104,6 +104,9 @@ export function U2fEnrollForm({
         if (caughtError instanceof RequestError) {
           const fieldErrors = getWebAuthnFieldErrors(caughtError.responseJSON);
           if (Object.keys(fieldErrors).length > 0) {
+            if (fieldErrors.enrollment) {
+              formApi.setFieldValue('enrollment', {challenge: '', response: ''});
+            }
             setFieldErrors(formApi, fieldErrors);
             return;
           }
