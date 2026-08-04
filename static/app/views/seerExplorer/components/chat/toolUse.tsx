@@ -164,6 +164,7 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
   } = useToolLinks(block);
   const toolsUsed = getToolsStringFromBlock(block);
   const blockStatus = getBlockStatus(block);
+  const latestTodos = useMemo(() => findLatestTodos(blocks), [blocks]);
 
   return (
     <Stack gap="md" width="100%" minWidth={0} paddingRight="lg">
@@ -195,16 +196,11 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
           ? trackLinkClick(positionalLink.kind)
           : undefined;
 
-        // Render the checklist once per block (on the last tool-call row), regardless of
-        // which tool produced it — classic `todo_write` or Code Mode `sentry_api_execute`,
-        // which projects its todos onto block.todos (code-mode-effects-bus).
+        // Render the checklist once per block, on the last tool-call row of whichever block holds
+        // the newest snapshot — from either channel (codemode-structured-content-only).
         const isLastToolCall = idx === (block.message.tool_calls?.length ?? 0) - 1;
         const todos =
-          isLastToolCall &&
-          block.todos?.length &&
-          blocks?.findLast(b => b.todos?.length) === block
-            ? block.todos
-            : null;
+          isLastToolCall && latestTodos?.block === block ? latestTodos.todos : null;
 
         const failureTooltip = toolLinkParams?.is_error
           ? t('Tool call failed')
@@ -355,6 +351,31 @@ export const NAV_LINK_LABELS: Record<string, string> = {
 /** The visible label for a bus link, or undefined when the kind is not renderable. */
 function navLinkLabel(kind: string): string | undefined {
   return NAV_LINK_LABELS[kind];
+}
+
+/**
+ * The newest todo snapshot in the conversation and the block that carries it.
+ *
+ * A snapshot arrives on either channel: a classic `todo_write` writes `block.todos`, while Code Mode
+ * returns it on a tool result's `structuredContent.todos`. Neither is converted into the other, so
+ * both are walked in run order — blocks in sequence, and within a block its tool results in sequence,
+ * with the legacy field first so a same-block collision resolves to the structured value. Returns
+ * null when no block carries one.
+ */
+function findLatestTodos(blocks?: Block[]): {block: Block; todos: TodoItem[]} | null {
+  let latest: {block: Block; todos: TodoItem[]} | null = null;
+  for (const block of blocks ?? []) {
+    if (block.todos?.length) {
+      latest = {block, todos: block.todos};
+    }
+    for (const result of block.tool_results ?? []) {
+      const todos = result?.structuredContent?.todos;
+      if (todos?.length) {
+        latest = {block, todos};
+      }
+    }
+  }
+  return latest;
 }
 
 function NavLinks({

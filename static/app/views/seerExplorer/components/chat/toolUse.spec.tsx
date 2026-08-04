@@ -453,6 +453,107 @@ describe('ToolUseBlock', () => {
     ).not.toBeInTheDocument();
   });
 
+  describe('todos from either channel', () => {
+    // seer no longer projects Code Mode todos onto block.todos, so the checklist must resolve from
+    // the tool result's structuredContent too (codemode-structured-content-only).
+    function codeModeTodosBlock(
+      id: string,
+      todos: Array<{content: string; status: string}>
+    ) {
+      return createBlock({
+        id,
+        message: {
+          role: 'tool_use',
+          content: null,
+          tool_calls: [{id: `${id}-call`, function: 'sentry_api_execute', args: '{}'}],
+        },
+        tool_links: [null],
+        tool_results: [
+          {
+            tool_call_id: `${id}-call`,
+            tool_call_function: 'sentry_api_execute',
+            content: 'ran',
+            structuredContent: {todos: todos as any},
+          },
+        ],
+      });
+    }
+
+    it('renders a checklist that arrived on structuredContent', () => {
+      const block = codeModeTodosBlock('b1', [
+        {content: 'Investigate p95', status: 'in_progress'},
+        {content: 'Propose a fix', status: 'pending'},
+      ]);
+      render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+      expect(screen.getByText('Investigate p95')).toBeInTheDocument();
+      expect(screen.getByText('Propose a fix')).toBeInTheDocument();
+    });
+
+    it('renders the same checklist from either channel', () => {
+      const classic = createBlock({
+        message: {
+          role: 'tool_use',
+          content: null,
+          tool_calls: [{id: 'call-1', function: 'todo_write', args: '{}'}],
+        },
+        todos: [{content: 'Ship it', status: 'completed'}],
+      });
+      render(<BlockComponent block={classic} blockIndex={0} blocks={[classic]} />);
+      expect(screen.getByText('Ship it')).toBeInTheDocument();
+      expect(screen.getByRole('checkbox')).toBeChecked();
+    });
+
+    it('a later structured snapshot supersedes an earlier classic one', () => {
+      const first = createBlock({
+        id: 'b1',
+        message: {
+          role: 'tool_use',
+          content: null,
+          tool_calls: [{id: 'c1', function: 'todo_write', args: '{}'}],
+        },
+        todos: [{content: 'Stale item', status: 'pending'}],
+      });
+      const second = codeModeTodosBlock('b2', [
+        {content: 'Fresh item', status: 'pending'},
+      ]);
+      const blocks = [first, second];
+
+      render(<BlockComponent block={first} blockIndex={0} blocks={blocks} />);
+      expect(screen.queryByText('Stale item')).not.toBeInTheDocument();
+
+      render(<BlockComponent block={second} blockIndex={1} blocks={blocks} />);
+      expect(screen.getByText('Fresh item')).toBeInTheDocument();
+    });
+
+    it('a later classic snapshot supersedes an earlier structured one', () => {
+      const first = codeModeTodosBlock('b1', [
+        {content: 'Stale item', status: 'pending'},
+      ]);
+      const second = createBlock({
+        id: 'b2',
+        message: {
+          role: 'tool_use',
+          content: null,
+          tool_calls: [{id: 'c2', function: 'todo_write', args: '{}'}],
+        },
+        todos: [{content: 'Fresh item', status: 'completed'}],
+      });
+      const blocks = [first, second];
+
+      render(<BlockComponent block={first} blockIndex={0} blocks={blocks} />);
+      expect(screen.queryByText('Stale item')).not.toBeInTheDocument();
+
+      render(<BlockComponent block={second} blockIndex={1} blocks={blocks} />);
+      expect(screen.getByText('Fresh item')).toBeInTheDocument();
+    });
+
+    it('renders nothing when neither channel carries a snapshot', () => {
+      const block = createBlock();
+      render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+      expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    });
+  });
+
   describe('bus link labels', () => {
     it('labels a kind seer emits rather than showing the raw function name', () => {
       // Regression: get_log_attributes and get_metric_attributes were emitted by seer but absent
