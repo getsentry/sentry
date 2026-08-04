@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator
-from contextlib import ExitStack, contextmanager
+from collections.abc import Callable
 from datetime import timedelta
 from typing import Any, NamedTuple
-from unittest.mock import DEFAULT, MagicMock, patch
+from unittest.mock import DEFAULT, patch
 
 import pytest
 from django.core.exceptions import ObjectDoesNotExist
@@ -27,32 +26,19 @@ from sentry.dynamic_sampling.tasks.helpers.sliding_window import FALLBACK_SLIDIN
 from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
-
-CONFIGURATION = "sentry.dynamic_sampling.per_org.configuration"
-BLENDED_SAMPLE_RATE = f"{CONFIGURATION}.quotas.backend.get_blended_sample_rate"
-OUTCOMES_VOLUME = f"{CONFIGURATION}.get_outcomes_organization_volume"
-SAMPLED_VOLUME = f"{CONFIGURATION}.get_outcomes_organization_sampled_volume"
-SLIDING_WINDOW_RATE = f"{CONFIGURATION}.compute_sliding_window_sample_rate"
-CALCULATE_FACTOR = f"{CONFIGURATION}.calculate_recalibration_factor"
-GET_FACTOR = f"{CONFIGURATION}.per_org_recalibration_cache.get_adjusted_factor"
-SET_FACTOR = f"{CONFIGURATION}.per_org_recalibration_cache.set_guarded_adjusted_factor"
-DELETE_FACTOR = f"{CONFIGURATION}.per_org_recalibration_cache.delete_adjusted_factor"
+from tests.sentry.dynamic_sampling.per_org.test_helpers import (
+    BLENDED_SAMPLE_RATE,
+    CALCULATE_FACTOR,
+    DELETE_FACTOR,
+    GET_FACTOR,
+    OUTCOMES_VOLUME,
+    SAMPLED_VOLUME,
+    SET_FACTOR,
+    SLIDING_WINDOW_RATE,
+    patch_configuration,
+)
 
 SpanOrgIds = Callable[[Organization], list[int]]
-
-
-@contextmanager
-def patch_configuration(targets: dict[str, Any]) -> Iterator[dict[str, MagicMock]]:
-    """Patch targets in the configuration module, each with the given return value.
-
-    Pass ``DEFAULT`` as the return value to patch a target without one. The yielded
-    mocks are keyed by target so that callers can assert on the calls.
-    """
-    with ExitStack() as stack:
-        yield {
-            target: stack.enter_context(patch(target, return_value=return_value))
-            for target, return_value in targets.items()
-        }
 
 
 def assert_measure(
