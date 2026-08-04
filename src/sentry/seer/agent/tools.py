@@ -2092,22 +2092,22 @@ def get_event_details(
     serialized_event = dict(serialize(event, user=None, serializer=EventSerializer()))
     serialized_event.update(_get_event_troubleshooting_context(event))
 
+    # `format` arrives as an unvalidated RPC argument, so reject unknown values before the
+    # feature check: a bad request stays a 400 whether or not the org has the rollout
+    if format is not None and format not in get_args(Format):
+        raise ParseError(f"Unsupported format: {format!r}")
+
     # Opt-in shared-formatter output for Seer, gated behind the rollout feature so it can be
     # ramped gradually; when the feature is off, callers fall back to their own formatter.
     formatted: str | None = None
     if format is not None and features.has(FORMATTER_FEATURE, organization):
         limits = LIMITS_LOW if format_limits == "low" else LIMITS_DEFAULT
-        # EVENT_SECTIONS already holds back user identifiers, which Seer's own formatter never
-        # rendered into its prompts either
+        # EVENT_SECTIONS holds back user identifiers, which Seer's prompts never carried
         sections = (
             EVENT_SECTIONS
             if include_breadcrumbs
             else [section for section in EVENT_SECTIONS if section is not breadcrumbs_section]
         )
-        # `format` arrives as an unvalidated RPC argument; reject unknown values here so they
-        # surface as a 400 rather than escaping get_formatter as a ValueError -> 500
-        if format not in get_args(Format):
-            raise ParseError(f"Unsupported format: {format!r}")
         formatted = format_issue(serialized_event, format=format, sections=sections, limits=limits)
 
     return EventDetailsResponse(
