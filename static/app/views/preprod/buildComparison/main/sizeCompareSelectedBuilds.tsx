@@ -164,15 +164,7 @@ const CloseButtonWrapper = styled('div')`
 `;
 
 const ComparisonContainer = styled(Flex)`
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: ${p => p.theme.space.lg};
-  width: 100%;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    flex-direction: column;
-
+  @container (max-width: ${p => p.theme.container.xl}) {
     > * {
       min-width: 0;
       max-width: 100%;
@@ -201,7 +193,14 @@ export function SizeCompareSelectedBuilds({
   const project = ProjectsStore.getById(projectId);
 
   return (
-    <ComparisonContainer>
+    <ComparisonContainer
+      direction={{zero: 'column', xl: 'row'}}
+      wrap="wrap"
+      align="center"
+      justify="center"
+      gap="lg"
+      width="100%"
+    >
       <BuildButton
         buildDetails={headBuildDetails}
         icon={<IconLock size="xs" locked />}
