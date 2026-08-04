@@ -46,8 +46,6 @@ class TraceItemAttributeKey(TypedDict):
     secondaryAliases: NotRequired[list[str]]
     attributeSource: TraceItemAttributeSource
     attributeType: ColumnType
-    # Attribute context, only present when requested via ``expand=context`` (and
-    # gated behind the feature flag). Attached to every attribute when
-    # requested; currently empty for custom (non-convention) attributes, which
-    # will be populated once custom attribute context is served.
+    # Attribute context, only present when requested via ``expand=context``.
+    # Attached to every attribute, and empty when it has no metadata.
     context: NotRequired[TraceItemAttributeContext]
