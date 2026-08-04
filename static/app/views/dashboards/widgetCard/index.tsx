@@ -527,10 +527,6 @@ function useTimeRangeWarning({widget}: {widget: TWidget}) {
     dataset: widget.widgetType ?? WidgetType.ERRORS,
   });
 
-  if (!retentionLimitDays) {
-    return null;
-  }
-
   // Number of days from now using the stats period
   const statsPeriodDaysFromNow = statsPeriodToDays(
     datetime.period,
@@ -539,14 +535,20 @@ function useTimeRangeWarning({widget}: {widget: TWidget}) {
   );
 
   // Convert the number of days to ms so we can get an end date to check if the
-  // widget is querying more than its retention allows
+  // widget is querying more than its retention allows. Both dates are computed
+  // here (before any early return) so that the useMemo hook is always called
+  // unconditionally, satisfying the rules of hooks.
   const {statsPeriodToEnd, retentionLimitDate} = useMemo(
     () => ({
       statsPeriodToEnd: new Date(Date.now() - statsPeriodDaysFromNow * DAYS_TO_MS),
-      retentionLimitDate: new Date(Date.now() - retentionLimitDays * DAYS_TO_MS),
+      retentionLimitDate: new Date(Date.now() - (retentionLimitDays ?? 0) * DAYS_TO_MS),
     }),
     [statsPeriodDaysFromNow, retentionLimitDays]
   );
+
+  if (!retentionLimitDays) {
+    return null;
+  }
   if (
     (retentionLimitDate && datetime.end && retentionLimitDate > datetime.end) ||
     (retentionLimitDate && statsPeriodToEnd && retentionLimitDate > statsPeriodToEnd)
