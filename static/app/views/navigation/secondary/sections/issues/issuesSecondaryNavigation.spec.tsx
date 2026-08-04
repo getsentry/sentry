@@ -2,10 +2,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {INBOX_ISSUE_TYPE_EXCLUSION} from 'sentry/views/issueList/pages/inbox';
 import {IssuesSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/issues/issuesSecondaryNavigation';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 
 describe('IssuesSecondaryNavigation', () => {
+  const inboxCountQuery = `issue.progress:[fix_proposed, diagnosed, assigned] assigned:[me,my_teams]${INBOX_ISSUE_TYPE_EXCLUSION}`;
   const organization = OrganizationFixture({
     features: ['issue-stream-progress-ui'],
   });
@@ -35,7 +37,7 @@ describe('IssuesSecondaryNavigation', () => {
 
   it('shows the inbox count for every progress section and the user and their teams', async () => {
     const request = mockInboxCount({
-      'issue.progress:[fix_proposed, diagnosed, assigned] assigned:[me,my_teams]': 12,
+      [inboxCountQuery]: 12,
     });
 
     renderNavigation();
@@ -54,7 +56,7 @@ describe('IssuesSecondaryNavigation', () => {
 
   it('caps the count at 99+ since the endpoint stops counting at 100', async () => {
     mockInboxCount({
-      'issue.progress:[fix_proposed, diagnosed, assigned] assigned:[me,my_teams]': 100,
+      [inboxCountQuery]: 100,
     });
 
     renderNavigation();
@@ -64,7 +66,7 @@ describe('IssuesSecondaryNavigation', () => {
 
   it('renders no badge when nothing is waiting', async () => {
     mockInboxCount({
-      'issue.progress:[fix_proposed, diagnosed, assigned] assigned:[me,my_teams]': 0,
+      [inboxCountQuery]: 0,
     });
 
     renderNavigation();

@@ -20,7 +20,7 @@ import {
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {ProgressState} from 'sentry/types/group';
 
-import InboxPage from './inbox';
+import InboxPage, {INBOX_ISSUE_TYPE_EXCLUSION} from './inbox';
 
 describe('InboxPage', () => {
   const organization = OrganizationFixture({
@@ -145,7 +145,7 @@ describe('InboxPage', () => {
   ) {
     return MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
-      match: [MockApiClient.matchQuery({query})],
+      match: [MockApiClient.matchQuery({query: `${query}${INBOX_ISSUE_TYPE_EXCLUSION}`})],
       body,
       headers: {'X-Hits': String(total)},
       statusCode,
@@ -287,7 +287,7 @@ describe('InboxPage', () => {
             method: 'GET',
             query: {
               project: [-1],
-              query,
+              query: `${query}${INBOX_ISSUE_TYPE_EXCLUSION}`,
               sort: 'progress',
               limit: 10,
               collapse: ['stats', 'unhandled'],
@@ -368,7 +368,7 @@ describe('InboxPage', () => {
       url: '/organizations/org-slug/issues/',
       match: [
         MockApiClient.matchQuery({
-          query: 'issue.progress:fix_proposed assigned:[me,my_teams]',
+          query: `issue.progress:fix_proposed assigned:[me,my_teams]${INBOX_ISSUE_TYPE_EXCLUSION}`,
         }),
       ],
       body: [fixProposedGroup],
@@ -525,7 +525,7 @@ describe('InboxPage', () => {
       url: '/organizations/org-slug/issues/',
       match: [
         MockApiClient.matchQuery({
-          query: 'issue.progress:fix_proposed assigned:[me,my_teams]',
+          query: `issue.progress:fix_proposed assigned:[me,my_teams]${INBOX_ISSUE_TYPE_EXCLUSION}`,
         }),
       ],
       body: [fixProposedGroup],
@@ -538,7 +538,7 @@ describe('InboxPage', () => {
       url: '/organizations/org-slug/issues/',
       match: [
         MockApiClient.matchQuery({
-          query: 'issue.progress:fix_proposed assigned:[me,my_teams]',
+          query: `issue.progress:fix_proposed assigned:[me,my_teams]${INBOX_ISSUE_TYPE_EXCLUSION}`,
           cursor: '0:10:0',
         }),
       ],
