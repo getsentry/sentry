@@ -61,7 +61,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
                 "jess@sentry.io",
                 "APP-123",
                 assign=True,
-                provider_event_time="2023-01-01T00:00:00.000+0000",
+                provider_event_updated_at="2023-01-01T00:00:00.000+0000",
             )
 
     @override_settings(JIRA_USE_EMAIL_SCOPE=True)
@@ -128,7 +128,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
                 None,
                 "APP-123",
                 assign=False,
-                provider_event_time="2023-01-01T00:00:00.000+0000",
+                provider_event_updated_at="2023-01-01T00:00:00.000+0000",
             )
 
     @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")
@@ -143,7 +143,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
             self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
             # The payload carries no `updated`, so the ordering guard stays inert.
             mock_sync_group_assignee_inbound.assert_called_with(
-                self.integration, None, "APP-123", assign=False, provider_event_time=None
+                self.integration, None, "APP-123", assign=False, provider_event_updated_at=None
             )
 
     def _linked_group_for_assignee_sync(self) -> Group:
@@ -330,7 +330,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
             "jess@sentry.io",
             "APP-123",
             assign=True,
-            provider_event_time="2023-01-01T00:00:00.000+0000",
+            provider_event_updated_at="2023-01-01T00:00:00.000+0000",
         )
         mock_capture_exception.assert_called_once_with(error)
 

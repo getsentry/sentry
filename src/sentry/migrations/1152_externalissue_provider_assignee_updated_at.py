@@ -27,7 +27,7 @@ class Migration(CheckedMigration):
     operations = [
         migrations.AddField(
             model_name="externalissue",
-            name="assignee_updated_at",
+            name="provider_assignee_updated_at",
             field=models.DateTimeField(null=True),
         ),
     ]

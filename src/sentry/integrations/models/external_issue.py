@@ -72,10 +72,11 @@ class ExternalIssue(Model):
     title = models.TextField(null=True)
     description = models.TextField(null=True)
     metadata = LegacyTextJSONField(default=dict, null=True)
-    # Provider-side timestamp of the newest inbound assignee-change event applied to this
-    # issue, the watermark inbound assignee sync orders unordered webhook deliveries by.
-    # `date_added` records arrival time and cannot detect reordering.
-    assignee_updated_at = models.DateTimeField(null=True)
+    # GitHub ``issue.updated_at``, GitLab ``object_attributes.updated_at``, Jira
+    # ``issue.fields.updated``. The high-water mark inbound assignee sync compares an
+    # incoming payload against, to drop one describing an older state than the row holds.
+    # `date_added` records arrival time and so cannot detect reordering.
+    provider_assignee_updated_at = models.DateTimeField(null=True)
 
     objects: ClassVar[ExternalIssueManager] = ExternalIssueManager()
 

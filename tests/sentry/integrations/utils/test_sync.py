@@ -1,6 +1,8 @@
 from unittest import mock
 
 import pytest
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 
 from sentry.integrations.types import EventLifecycleOutcome, ExternalProviders
 from sentry.integrations.utils.sync import (
@@ -241,14 +243,14 @@ class TestSyncAssigneeInbound(TestCase):
             email="other@example.com",
             external_issue_key=external_issue.key,
             assign=True,
-            provider_event_time="2023-01-01T00:00:05.000+0000",
+            provider_event_updated_at="2023-01-01T00:00:05.000+0000",
         )
         sync_group_assignee_inbound(
             integration=self.example_integration,
             email="test@example.com",
             external_issue_key=external_issue.key,
             assign=True,
-            provider_event_time="2023-01-01T00:00:00.000+0000",
+            provider_event_updated_at="2023-01-01T00:00:00.000+0000",
         )
 
         assignee = self.group.get_assignee()
@@ -269,17 +271,68 @@ class TestSyncAssigneeInbound(TestCase):
             email="test@example.com",
             external_issue_key=external_issue.key,
             assign=True,
-            provider_event_time="2023-01-01T00:00:00.000+0000",
+            provider_event_updated_at="2023-01-01T00:00:00.000+0000",
         )
         sync_group_assignee_inbound(
             integration=self.example_integration,
             email="test@example.com",
             external_issue_key=external_issue.key,
             assign=False,
-            provider_event_time="2023-01-01T00:00:00.000+0000",
+            provider_event_updated_at="2023-01-01T00:00:00.000+0000",
         )
 
         assert self.group.get_assignee() is None
+
+    def test_assignment_is_bracketed_by_a_lock_on_the_issue_row(self) -> None:
+        # Reading the watermark, assigning, and advancing the watermark have to be one
+        # critical section. Two deliveries that both read the watermark before either
+        # writes it will both pass the staleness check, and then the older one's
+        # assignment can land last while its own watermark write is correctly rejected --
+        # leaving the stored assignee and the watermark permanently disagreeing, with no
+        # later event able to repair it.
+        #
+        # A same-connection test cannot observe the mutual exclusion itself: a second
+        # SELECT ... FOR UPDATE inside the same transaction re-acquires a lock it already
+        # holds instead of blocking. What is checkable, and what fails without the fix, is
+        # that the locking read is issued and that it brackets the assignment.
+        external_issue = self.create_integration_external_issue(
+            group=self.group,
+            key="foo-123",
+            integration=self.example_integration,
+        )
+
+        with CaptureQueriesContext(connection) as queries:
+            sync_group_assignee_inbound(
+                integration=self.example_integration,
+                email="test@example.com",
+                external_issue_key=external_issue.key,
+                assign=True,
+                provider_event_updated_at="2023-01-01T00:00:00.000+0000",
+            )
+
+        statements = [query["sql"] for query in queries.captured_queries]
+        locking_reads = [
+            index
+            for index, sql in enumerate(statements)
+            if "sentry_externalissue" in sql and "FOR UPDATE" in sql
+        ]
+        assignment_writes = [
+            index
+            for index, sql in enumerate(statements)
+            if "sentry_groupasignee" in sql and ("INSERT" in sql or "UPDATE" in sql)
+        ]
+        watermark_writes = [
+            index
+            for index, sql in enumerate(statements)
+            if sql.startswith('UPDATE "sentry_externalissue"')
+            and "provider_assignee_updated_at" in sql
+        ]
+
+        assert locking_reads, "the watermark must be read with the issue row locked"
+        assert assignment_writes
+        assert watermark_writes
+        assert locking_reads[0] < assignment_writes[0]
+        assert assignment_writes[-1] < watermark_writes[0]
 
     def test_watermark_advances_when_no_user_is_resolved(self) -> None:
         # The event was processed even though Sentry knows no such user, so an older
@@ -295,14 +348,14 @@ class TestSyncAssigneeInbound(TestCase):
             email="unmapped@example.com",
             external_issue_key=external_issue.key,
             assign=True,
-            provider_event_time="2023-01-01T00:00:05.000+0000",
+            provider_event_updated_at="2023-01-01T00:00:05.000+0000",
         )
         sync_group_assignee_inbound(
             integration=self.example_integration,
             email="test@example.com",
             external_issue_key=external_issue.key,
             assign=True,
-            provider_event_time="2023-01-01T00:00:00.000+0000",
+            provider_event_updated_at="2023-01-01T00:00:00.000+0000",
         )
 
         assert self.group.get_assignee() is None

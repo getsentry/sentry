@@ -275,7 +275,7 @@ class IssuesEventWebhook(GitlabWebhook):
                 external_user_name="",
                 external_issue_key=external_issue_key,
                 assign=False,
-                provider_event_time=updated_at,
+                provider_event_updated_at=updated_at,
             )
             logger.info(
                 "gitlab.webhook.assignment.synced",
@@ -313,7 +313,7 @@ class IssuesEventWebhook(GitlabWebhook):
             external_issue_key=external_issue_key,
             assign=True,
             external_user_id=assignee_id,
-            provider_event_time=updated_at,
+            provider_event_updated_at=updated_at,
         )
 
         logger.info(

@@ -37,14 +37,27 @@ def parse_provider_event_time(raw: str | None) -> datetime | None:
     return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
 
 
-def get_stale_organization_ids(
+def lock_and_get_stale_organization_ids(
     integration: RpcIntegration | Integration,
     external_issue_key: str | None,
     organization_ids: Collection[int],
-    event_time: datetime | None,
+    event_updated_at: datetime | None,
 ) -> set[int]:
     """
-    Organizations whose watermark already covers a change the provider made *after* this one.
+    Lock this issue's rows and return the organizations already past ``event_updated_at``.
+
+    Must be called inside a transaction, and the caller must finish its assignment work and
+    its watermark write before that transaction commits. The lock is what makes
+    check-then-assign atomic against a concurrent delivery for the same issue: without it
+    both deliveries read the pre-write watermark and both pass the check, so the older
+    one's assignment can land last while its own watermark write is correctly rejected,
+    leaving the stored assignee and the watermark permanently disagreeing. Contention is
+    per issue, between deliveries that have to serialize anyway.
+
+    Every candidate row is locked, not only the stale ones — the rows that pass the check
+    are precisely the ones the caller is about to write against, so those are the rows a
+    competing delivery has to be kept out of. Rows are locked in a fixed order so two
+    deliveries covering the same set cannot deadlock against each other.
 
     Both sides come from the provider's clock, so delivery latency doesn't enter into it.
     Equal timestamps are not stale: every provider hands us the issue's full assignee
@@ -55,38 +68,49 @@ def get_stale_organization_ids(
     A missing key or timestamp yields an empty set, so the guard never suppresses a sync it
     has no evidence about.
     """
-    if external_issue_key is None or event_time is None or not organization_ids:
+    if external_issue_key is None or event_updated_at is None or not organization_ids:
         return set()
 
-    return set(
+    rows = (
         ExternalIssue.objects.filter(
             organization_id__in=organization_ids,
             integration_id=integration.id,
             key=external_issue_key,
-            assignee_updated_at__gt=event_time,
-        ).values_list("organization_id", flat=True)
+        )
+        .order_by("id")
+        .select_for_update()
+        .values_list("organization_id", "provider_assignee_updated_at")
     )
 
+    return {
+        organization_id
+        for organization_id, provider_assignee_updated_at in rows
+        if provider_assignee_updated_at is not None
+        and provider_assignee_updated_at > event_updated_at
+    }
 
-def record_provider_event_time(
+
+def record_provider_assignee_updated_at(
     integration: RpcIntegration | Integration,
     external_issue_key: str | None,
     organization_ids: Collection[int],
-    event_time: datetime | None,
+    event_updated_at: datetime | None,
 ) -> None:
     """
     Advance the watermark for the issues this event was applied to.
 
-    Conditional rather than a plain write: concurrent deliveries both read the pre-existing
-    watermark, and letting the older one land last would move it backwards.
+    Conditional rather than a plain write so the column can only move forwards. A caller
+    holding the row lock cannot observe the conditional failing; it is what keeps the
+    watermark monotonic for any caller that does not.
     """
-    if external_issue_key is None or event_time is None or not organization_ids:
+    if external_issue_key is None or event_updated_at is None or not organization_ids:
         return
 
     ExternalIssue.objects.filter(
         organization_id__in=organization_ids,
         integration_id=integration.id,
         key=external_issue_key,
-    ).filter(Q(assignee_updated_at__isnull=True) | Q(assignee_updated_at__lt=event_time)).update(
-        assignee_updated_at=event_time
-    )
+    ).filter(
+        Q(provider_assignee_updated_at__isnull=True)
+        | Q(provider_assignee_updated_at__lt=event_updated_at)
+    ).update(provider_assignee_updated_at=event_updated_at)

@@ -970,7 +970,7 @@ class IssuesEventWebhook(GitHubWebhook):
                 external_user_name="",  # Not used for deassignment
                 external_issue_key=external_issue_key,
                 assign=False,
-                provider_event_time=updated_at,
+                provider_event_updated_at=updated_at,
             )
             logger.info(
                 "github.webhook.assignment.synced",
@@ -1007,7 +1007,7 @@ class IssuesEventWebhook(GitHubWebhook):
             external_user_name=assignee_name,
             external_issue_key=external_issue_key,
             assign=True,
-            provider_event_time=updated_at,
+            provider_event_updated_at=updated_at,
         )
 
         logger.info(

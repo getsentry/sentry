@@ -92,7 +92,7 @@ class JiraServerWebhookEndpointTest(APITestCase):
             "bob@example.org",
             "APP-1",
             assign=True,
-            provider_event_time="2023-01-01T00:00:00.000+0000",
+            provider_event_updated_at="2023-01-01T00:00:00.000+0000",
         )
 
     def _linked_group_for_assignee_sync(self) -> Group:

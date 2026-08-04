@@ -75,7 +75,7 @@ def handle_assignee_change(
 
     if assignee is None:
         sync_group_assignee_inbound(
-            integration, None, issue_key, assign=False, provider_event_time=updated
+            integration, None, issue_key, assign=False, provider_event_updated_at=updated
         )
         return
 
@@ -85,7 +85,7 @@ def handle_assignee_change(
         return
 
     sync_group_assignee_inbound(
-        integration, email, issue_key, assign=True, provider_event_time=updated
+        integration, email, issue_key, assign=True, provider_event_updated_at=updated
     )
 
 

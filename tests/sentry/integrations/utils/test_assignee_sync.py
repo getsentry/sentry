@@ -1,9 +1,9 @@
 from datetime import UTC, datetime
 
 from sentry.integrations.utils.assignee_sync import (
-    get_stale_organization_ids,
+    lock_and_get_stale_organization_ids,
     parse_provider_event_time,
-    record_provider_event_time,
+    record_provider_assignee_updated_at,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
@@ -53,9 +53,9 @@ class TestAssigneeWatermark(TestCase):
         )
 
     def test_no_watermark_is_not_stale(self) -> None:
-        assert self.external_issue.assignee_updated_at is None
+        assert self.external_issue.provider_assignee_updated_at is None
         assert (
-            get_stale_organization_ids(
+            lock_and_get_stale_organization_ids(
                 self.integration,
                 "foo-123",
                 [self.organization.id],
@@ -65,7 +65,7 @@ class TestAssigneeWatermark(TestCase):
         )
 
     def test_missing_event_time_is_not_stale(self) -> None:
-        record_provider_event_time(
+        record_provider_assignee_updated_at(
             self.integration,
             "foo-123",
             [self.organization.id],
@@ -73,19 +73,21 @@ class TestAssigneeWatermark(TestCase):
         )
 
         assert (
-            get_stale_organization_ids(self.integration, "foo-123", [self.organization.id], None)
+            lock_and_get_stale_organization_ids(
+                self.integration, "foo-123", [self.organization.id], None
+            )
             == set()
         )
 
     def test_older_event_is_stale(self) -> None:
-        record_provider_event_time(
+        record_provider_assignee_updated_at(
             self.integration,
             "foo-123",
             [self.organization.id],
             datetime(2023, 1, 1, 0, 0, 5, tzinfo=UTC),
         )
 
-        assert get_stale_organization_ids(
+        assert lock_and_get_stale_organization_ids(
             self.integration,
             "foo-123",
             [self.organization.id],
@@ -96,7 +98,7 @@ class TestAssigneeWatermark(TestCase):
         # Providers send the issue's full assignee snapshot, so re-applying a same-instant
         # event is idempotent for a redelivery and correct-by-recency for a distinct change
         # the provider's timestamp resolution can't separate.
-        record_provider_event_time(
+        record_provider_assignee_updated_at(
             self.integration,
             "foo-123",
             [self.organization.id],
@@ -104,7 +106,7 @@ class TestAssigneeWatermark(TestCase):
         )
 
         assert (
-            get_stale_organization_ids(
+            lock_and_get_stale_organization_ids(
                 self.integration,
                 "foo-123",
                 [self.organization.id],
@@ -114,7 +116,7 @@ class TestAssigneeWatermark(TestCase):
         )
 
     def test_newer_event_is_not_stale(self) -> None:
-        record_provider_event_time(
+        record_provider_assignee_updated_at(
             self.integration,
             "foo-123",
             [self.organization.id],
@@ -122,7 +124,7 @@ class TestAssigneeWatermark(TestCase):
         )
 
         assert (
-            get_stale_organization_ids(
+            lock_and_get_stale_organization_ids(
                 self.integration,
                 "foo-123",
                 [self.organization.id],
@@ -132,13 +134,13 @@ class TestAssigneeWatermark(TestCase):
         )
 
     def test_watermark_does_not_move_backwards(self) -> None:
-        record_provider_event_time(
+        record_provider_assignee_updated_at(
             self.integration,
             "foo-123",
             [self.organization.id],
             datetime(2023, 1, 1, 0, 0, 5, tzinfo=UTC),
         )
-        record_provider_event_time(
+        record_provider_assignee_updated_at(
             self.integration,
             "foo-123",
             [self.organization.id],
@@ -146,7 +148,9 @@ class TestAssigneeWatermark(TestCase):
         )
 
         self.external_issue.refresh_from_db()
-        assert self.external_issue.assignee_updated_at == datetime(2023, 1, 1, 0, 0, 5, tzinfo=UTC)
+        assert self.external_issue.provider_assignee_updated_at == datetime(
+            2023, 1, 1, 0, 0, 5, tzinfo=UTC
+        )
 
     def test_watermark_is_scoped_to_the_organizations_processed(self) -> None:
         other_org = self.create_organization()
@@ -156,7 +160,7 @@ class TestAssigneeWatermark(TestCase):
             integration=self.integration,
         )
 
-        record_provider_event_time(
+        record_provider_assignee_updated_at(
             self.integration,
             "foo-123",
             [self.organization.id],
@@ -164,9 +168,9 @@ class TestAssigneeWatermark(TestCase):
         )
 
         other_issue.refresh_from_db()
-        assert other_issue.assignee_updated_at is None
+        assert other_issue.provider_assignee_updated_at is None
         # The untouched organization is still free to apply the older event.
-        assert get_stale_organization_ids(
+        assert lock_and_get_stale_organization_ids(
             self.integration,
             "foo-123",
             [self.organization.id, other_org.id],
