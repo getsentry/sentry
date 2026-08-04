@@ -72,9 +72,12 @@ from sentry.taskworker.namespaces import (
     ingest_profiling_passthrough_tasks,
     ingest_profiling_raw_tasks,
 )
-from sentry.taskworker.producer import get_task_producer
 from sentry.utils import json, metrics
-from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
+from sentry.utils.arroyo_producer import (
+    SingletonProducer,
+    get_arroyo_producer,
+    get_future_tracking_producer,
+)
 from sentry.utils.eap import hex_to_item_id
 from sentry.utils.kafka_config import get_topic_definition
 from sentry.utils.locking import UnableToAcquireLock
@@ -115,7 +118,7 @@ processed_profiles_producer = SingletonProducer(
     max_futures=settings.SENTRY_PROCESSED_PROFILES_FUTURES_MAX_LIMIT,
 )
 processed_profiles_name = _get_task_producer_name("processed")
-processed_profiles_task_producer = get_task_producer(
+processed_profiles_task_producer = get_future_tracking_producer(
     processed_profiles_name,
     lambda: _get_profiles_producer_from_topic(Topic.PROCESSED_PROFILES, processed_profiles_name),
 )
@@ -125,7 +128,7 @@ profile_functions_producer = SingletonProducer(
     max_futures=settings.SENTRY_PROFILE_FUNCTIONS_FUTURES_MAX_LIMIT,
 )
 profile_functions_name = _get_task_producer_name("functions")
-profile_functions_task_producer = get_task_producer(
+profile_functions_task_producer = get_future_tracking_producer(
     profile_functions_name,
     lambda: _get_profiles_producer_from_topic(Topic.PROFILES_CALL_TREE, profile_functions_name),
 )
@@ -135,7 +138,7 @@ profile_chunks_producer = SingletonProducer(
     max_futures=settings.SENTRY_PROFILE_CHUNKS_FUTURES_MAX_LIMIT,
 )
 profile_chunks_name = _get_task_producer_name("chunks")
-profile_chunks_task_producer = get_task_producer(
+profile_chunks_task_producer = get_future_tracking_producer(
     profile_chunks_name,
     lambda: _get_profiles_producer_from_topic(Topic.PROFILE_CHUNKS, profile_chunks_name),
 )
@@ -145,7 +148,7 @@ profile_occurrences_producer = SingletonProducer(
     max_futures=settings.SENTRY_PROFILE_OCCURRENCES_FUTURES_MAX_LIMIT,
 )
 profile_occurrences_name = _get_task_producer_name("occurrences")
-profile_occurrences_task_producer = get_task_producer(
+profile_occurrences_task_producer = get_future_tracking_producer(
     profile_occurrences_name,
     lambda: _get_profiles_producer_from_topic(Topic.INGEST_OCCURRENCES, profile_occurrences_name),
 )
@@ -155,7 +158,7 @@ eap_producer = SingletonProducer(
     max_futures=settings.SENTRY_PROFILE_EAP_FUTURES_MAX_LIMIT,
 )
 profile_eap_name = _get_task_producer_name("eap")
-eap_task_producer = get_task_producer(
+eap_task_producer = get_future_tracking_producer(
     profile_eap_name,
     lambda: _get_profiles_producer_from_topic(Topic.SNUBA_ITEMS, profile_eap_name),
 )
@@ -1172,7 +1175,20 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
 
 
 def get_debug_file_id(profile: Profile) -> str | None:
-    debug_file_id = profile.get("build_id")
+    # Only the android trace formats (legacy transaction profiles and
+    # android-trace chunks) carry a top-level `build_id`. Sample v2 chunks
+    # reference their proguard mapping as a debug_meta image, like events do.
+    if is_android_trace_format(profile):
+        debug_file_id = profile.get("build_id")
+    else:
+        debug_file_id = next(
+            (
+                image.get("uuid")
+                for image in (profile.get("debug_meta") or {}).get("images") or ()
+                if image.get("type") == "proguard"
+            ),
+            None,
+        )
 
     if debug_file_id is None or debug_file_id == "":
         return None

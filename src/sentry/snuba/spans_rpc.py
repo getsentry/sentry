@@ -61,6 +61,7 @@ class Spans(rpc_dataset_common.RPCBase):
         page_token: PageToken | None = None,
         additional_queries: AdditionalQueries | None = None,
         max_string_length: int | None = None,
+        limit_by: rpc_dataset_common.LimitBy | None = None,
     ) -> EAPResponse:
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(
@@ -76,6 +77,7 @@ class Spans(rpc_dataset_common.RPCBase):
                 resolver=search_resolver or cls.get_resolver(params, config),
                 additional_queries=additional_queries,
                 max_string_length=max_string_length,
+                limit_by=limit_by,
             ),
             params.debug,
         )

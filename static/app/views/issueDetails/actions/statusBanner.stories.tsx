@@ -126,7 +126,6 @@ function Banner({
     <StatusBannerFrame
       markerLabel={isArchived ? 'Archived' : undefined}
       markerState={isArchived ? ProgressState.ASSIGNED : ProgressState.FIX_APPLIED}
-      showProgressIndicator
       title={isArchived ? 'Archived' : 'Resolved'}
     >
       {children}

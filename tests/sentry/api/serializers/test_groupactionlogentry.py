@@ -9,6 +9,22 @@ from sentry.testutils.silo import assume_test_silo_mode
 
 
 class GroupActionLogEntrySerializerTestCase(TestCase):
+    def test_trigger_autofix_entry_type(self) -> None:
+        user = self.create_user()
+        group = self.create_group()
+        entry = self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.TRIGGER_AUTOFIX,
+            actor_type=GroupActorType.USER,
+            actor_id=user.id,
+            data={"referrer": "slack"},
+        )
+
+        result = serialize(entry, user)
+
+        assert result["type"] == "trigger_autofix"
+        assert result["data"] == {"referrer": "slack"}
+
     def test_pull_request_entry(self) -> None:
         self.org = self.create_organization(name="Rowdy Tiger")
         user = self.create_user()

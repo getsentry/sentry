@@ -66,6 +66,11 @@ digests_tasks = app.taskregistry.create_namespace(
     app_feature="shared",
 )
 
+debug_files_migration_tasks = app.taskregistry.create_namespace(
+    "debug-files-migration",
+    app_feature="debug_files",
+)
+
 export_tasks = app.taskregistry.create_namespace(
     name="export",
     processing_deadline_duration=15,
@@ -231,6 +236,11 @@ release_health_tasks = app.taskregistry.create_namespace(
 
 replays_tasks = app.taskregistry.create_namespace(
     "replays",
+    app_feature="replays",
+)
+
+replays_long_tasks = app.taskregistry.create_namespace(
+    "replays.long",
     app_feature="replays",
 )
 

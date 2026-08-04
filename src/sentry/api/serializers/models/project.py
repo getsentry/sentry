@@ -31,7 +31,7 @@ from sentry.ingest.inbound_filters import FilterTypes
 from sentry.issues.highlights import HighlightPreset, get_highlight_preset_for_project
 from sentry.lang.native.sources import parse_sources, redact_source_secrets
 from sentry.lang.native.utils import convert_crashreport_count
-from sentry.models.environment import EnvironmentProject
+from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.options.project_option import OPTION_KEYS, ProjectOption
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
@@ -42,9 +42,11 @@ from sentry.models.release import Release
 from sentry.models.userreport import UserReport
 from sentry.release_health.base import CurrentAndPreviousCrashFreeRate
 from sentry.roles import organization_roles
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.services.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
 from sentry.snuba import discover
+from sentry.snuba.spans_rpc import Spans
 from sentry.tempest.utils import has_tempest_access
 from sentry.users.api.serializers.user import SerializedAvatarFields
 from sentry.users.models.user import User
@@ -71,6 +73,11 @@ STATS_PERIOD_CHOICES = {
 }
 
 _PROJECT_SCOPE_PREFIX = "projects:"
+
+# Transactions live in the spans dataset as 'segment' spans, so counting them means
+# counting spans matching `is_transaction:true` (might change later to is_segment)
+TRANSACTION_STATS_QUERY = "is_transaction:true"
+TRANSACTION_STATS_COUNT = "count(span.duration)"
 
 LATEST_DEPLOYS_KEY: Final = "latestDeploys"
 UNUSED_ON_FRONTEND_FEATURES: Final = "unusedFeatures"
@@ -393,7 +400,7 @@ class ProjectSerializer(Serializer):
             if self.stats_period:
                 stats = self.get_stats(item_list, "!event.type:transaction")
                 if self._expand("transaction_stats"):
-                    transaction_stats = self.get_stats(item_list, "event.type:transaction")
+                    transaction_stats = self.get_transaction_stats(item_list)
                 if self._expand("session_stats"):
                     session_stats = self.get_session_stats(project_ids)
 
@@ -474,6 +481,59 @@ class ProjectSerializer(Serializer):
                 for item in stats[str_id].data["data"]:
                     serialized.append((item["time"], item.get("count", 0)))
             results[project.id] = serialized
+        return results
+
+    def get_transaction_stats(
+        self, projects: Sequence[Project]
+    ) -> dict[int, list[tuple[int, int]]]:
+        """Transaction counts can only come from the spans dataset now with is_transaction:true"""
+        assert self.stats_period is not None
+        segments, interval = STATS_PERIOD_CHOICES[self.stats_period]
+        now = timezone.now()
+        rollup = int(interval.total_seconds())
+        start = now - ((segments - 1) * interval)
+
+        snuba_params = SnubaParams(
+            projects=projects,
+            environments=(
+                list(Environment.objects.filter(id=self.environment_id))
+                if self.environment_id
+                else []
+            ),
+            start=start,
+            end=now,
+            granularity_secs=rollup,
+        )
+
+        stats = Spans.run_top_events_timeseries_query(
+            params=snuba_params,
+            query_string=TRANSACTION_STATS_QUERY,
+            y_axes=[TRANSACTION_STATS_COUNT],
+            raw_groupby=["project.id"],
+            orderby=[f"-{TRANSACTION_STATS_COUNT}"],
+            limit=len(projects),
+            include_other=False,
+            referrer="api.serializer.projects.get_transaction_stats",
+            config=SearchResolverConfig(),
+            sampling_mode=None,
+        )
+
+        # The spans query drops projects without transactions entirely, but callers expect
+        # every project to come back with a full series.
+        empty_series = [
+            (item["time"], 0) for item in discover.zerofill([], start, now, rollup, ["time"])
+        ]
+
+        results = {}
+        for project in projects:
+            str_id = str(project.id)
+            if str_id in stats:
+                results[project.id] = [
+                    (item["time"], item.get(TRANSACTION_STATS_COUNT) or 0)
+                    for item in stats[str_id].data["data"]
+                ]
+            else:
+                results[project.id] = list(empty_series)
         return results
 
     def get_session_stats(

@@ -47,7 +47,7 @@ describe('useScmCreateProjectProductSync', () => {
     const {result} = renderHookWithProviders(
       () => useScmCreateProjectProductSync(project),
       {
-        organization: {features: ['onboarding-scm-project-creation-experiment']},
+        organization: {features: ['onboarding-scm-project-creation']},
       }
     );
 
@@ -63,7 +63,7 @@ describe('useScmCreateProjectProductSync', () => {
     const {result} = renderHookWithProviders(
       () => useScmCreateProjectProductSync(project),
       {
-        organization: {features: ['onboarding-scm-project-creation-experiment']},
+        organization: {features: ['onboarding-scm-project-creation']},
       }
     );
 
@@ -90,20 +90,20 @@ describe('useScmCreateProjectProductSync', () => {
     const {result} = renderHookWithProviders(
       () => useScmCreateProjectProductSync(project),
       {
-        organization: {features: ['onboarding-scm-project-creation-experiment']},
+        organization: {features: ['onboarding-scm-project-creation']},
       }
     );
 
     expect(result.current).toBeUndefined();
   });
 
-  it('returns undefined when the SCM experiment flag is off', () => {
+  it('returns undefined when the SCM project creation flag is off', () => {
     seedSession();
 
     const {result} = renderHookWithProviders(
       () => useScmCreateProjectProductSync(project),
       {
-        // No experiment feature in org features list.
+        // No SCM project creation feature in org features list.
         organization: {features: []},
       }
     );
@@ -116,7 +116,7 @@ describe('useScmCreateProjectProductSync', () => {
     const {result} = renderHookWithProviders(
       () => useScmCreateProjectProductSync(project),
       {
-        organization: {features: ['onboarding-scm-project-creation-experiment']},
+        organization: {features: ['onboarding-scm-project-creation']},
       }
     );
 

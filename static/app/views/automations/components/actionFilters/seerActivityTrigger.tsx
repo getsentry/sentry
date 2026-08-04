@@ -65,7 +65,10 @@ export function SeerActivityTriggerNode() {
 export function validateSeerActivityTriggerCondition({
   condition,
 }: ValidateDataConditionProps): string | undefined {
-  if (!Array.isArray(condition.comparison) || condition.comparison.length === 0) {
+  if (
+    !Array.isArray(condition.comparison) ||
+    condition.comparison.filter(stage => SEER_ACTIVITY_STAGES.has(stage)).length === 0
+  ) {
     return t('You must select at least one Seer stage.');
   }
   return undefined;

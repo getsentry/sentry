@@ -5,10 +5,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 
-import {
-  CopyMarkdownButton,
-  CopySetupInstructionsGate,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {CopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Panel} from 'sentry/components/panels/panel';
@@ -117,13 +114,11 @@ export function CronsLandingPanel() {
                 ]}
               </TabList>
               {guideKey !== 'manual' && (
-                <CopySetupInstructionsGate>
-                  <CopyMarkdownButton
-                    borderless
-                    getMarkdown={getGuideMarkdown}
-                    source="crons_upsert_guide"
-                  />
-                </CopySetupInstructionsGate>
+                <CopyMarkdownButton
+                  borderless
+                  getMarkdown={getGuideMarkdown}
+                  source="crons_upsert_guide"
+                />
               )}
             </Flex>
             <TabPanels>

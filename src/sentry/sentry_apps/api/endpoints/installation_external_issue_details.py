@@ -17,6 +17,7 @@ from sentry.sentry_apps.api.bases.sentryapps import (
 )
 from sentry.sentry_apps.services.cell import sentry_app_cell_service
 from sentry.sentry_apps.utils.errors import SentryAppError
+from sentry.users.services.user.serial import serialize_generic_user
 
 _EXTERNAL_ISSUE_ID_PARAM = OpenApiParameter(
     name="external_issue_id",
@@ -59,14 +60,15 @@ class SentryAppInstallationExternalIssueDetailsEndpoint(ExternalIssueBaseEndpoin
                 status_code=400,
             )
 
-        if not request.user.is_authenticated:
+        rpc_user = serialize_generic_user(request.user)
+        if rpc_user is None:
             return Response({"detail": "Authentication credentials were not provided."}, status=401)
 
-        # Do not pass `user` until cells accept the new RPC arg everywhere (deploy phase 2).
         result = sentry_app_cell_service.delete_external_issue(
             organization_id=installation.organization_id,
             installation=installation,
             external_issue_id=external_issue_id,
+            user=rpc_user,
         )
 
         if result.error:

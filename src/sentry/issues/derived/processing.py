@@ -1,20 +1,25 @@
 import enum
 import logging
 import time
+from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import NamedTuple
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
+from django.utils import timezone
 
 from sentry.issues.derived.aggregators import AGGREGATORS
-from sentry.issues.derived.framework import Pipeline
+from sentry.issues.derived.framework import Pipeline, State
 from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.derived.tasks import process_group_log_task
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
 from sentry.models.group import Group
 from sentry.utils import metrics
+from sentry.workflow_engine.caches.mapping import CacheMapping
 
 logger = logging.getLogger(__name__)
 
@@ -32,10 +37,57 @@ _STATE_FIELDS = tuple(
 )
 
 
+class GenerationId(NamedTuple):
+    """Uniquely identifies a generation attempt for a group."""
+
+    group_id: int
+    generated_at: datetime  # when this generation started; reflects log state observed
+    pipeline_hash: str
+
+
+# Cache for in-progress generation state.
+_generation_cache = CacheMapping[GenerationId, GroupDerivedData](
+    lambda k: f"{k.group_id}:{k.generated_at.isoformat()}:{k.pipeline_hash}",
+    namespace="gdd-generation",
+    ttl_seconds=86400,
+)
+
+
 class ProcessingStrategy(enum.Enum):
     SYNC = "sync"  # process all pending actions now
     ASYNC = "async"  # schedule a task to process all pending actions
     INLINE = "inline"  # try to process all pending actions quickly; fall back to ASYNC
+
+
+@dataclass(frozen=True)
+class DerivedMetrics:
+    """Encapsulates derived-data metric reporting; incremental mode adds per-entry latency."""
+
+    mode: ProcessingStrategy
+    incremental: bool
+
+    def report_batch_processed(
+        self,
+        entries: Sequence[GroupActionLogEntry],
+        result: State,
+    ) -> None:
+        if self.incremental:
+            now = timezone.now()
+            tags = {"mode": self.mode.value}
+            for entry in entries:
+                age_seconds = (now - entry.date_added).total_seconds()
+                metrics.distribution(
+                    "issues.derived.incremental_processing_latency",
+                    age_seconds,
+                    tags=tags,
+                    unit="second",
+                )
+        for f in result.updated:
+            metrics.incr(
+                "issues.derived.feature_updated",
+                sample_rate=1.0,
+                tags={"feature": f.name},
+            )
 
 
 def _ensure_derived(group_id: int, pipeline_hash: str) -> GroupDerivedData:
@@ -82,6 +134,7 @@ def _process_batch(
     batch_size: int,
     *,
     persist: bool = True,
+    derived_metrics: DerivedMetrics | None = None,
 ) -> bool:
     """
     Process up to `batch_size` entries for a group. Updates derived in place.
@@ -102,7 +155,9 @@ def _process_batch(
     same deterministic result for overlapping entry ranges.
 
     When *persist* is False, only the in-memory object is updated — the
-    caller is responsible for persisting the result.
+    caller is responsible for persisting the result (e.g. via
+    ``promote_to_live``). Used for full generations that accumulate
+    state in memory and write once at the end.
     """
     group_id = derived.group_id
     entries = _entries_after_cursor(group_id, derived.cursor_date, derived.cursor_id, batch_size)
@@ -130,11 +185,8 @@ def _process_batch(
     ).update(cursor_date=last_date, cursor_id=last_id, **state_update)
 
     if updated:
-        # Features updated in this batch (not total; a feature appears at most once per batch)
-        for f in result.updated:
-            metrics.incr(
-                "issues.derived.feature_updated", sample_rate=1.0, tags={"feature": f.name}
-            )
+        if derived_metrics is not None:
+            derived_metrics.report_batch_processed(entries, result)
         derived.cursor_date = last_date
         derived.cursor_id = last_id
         GroupDerivedDataStore.apply_to_instance(derived, state_update)
@@ -170,6 +222,11 @@ def _process_batch(
 class GroupLogTimeout(Exception):
     """Raised when processing cannot finish within its time budget."""
 
+    def __init__(self, group_id: int, generation_id: GenerationId | None = None) -> None:
+        self.group_id = group_id
+        self.generation_id = generation_id
+        super().__init__(group_id)
+
 
 def _drain_log(
     derived: GroupDerivedData,
@@ -178,6 +235,7 @@ def _drain_log(
     *,
     time_limit: timedelta,
     persist: bool = True,
+    derived_metrics: DerivedMetrics | None = None,
 ) -> bool:
     """Process pending log entries into *derived*, batching as needed.
 
@@ -188,7 +246,9 @@ def _drain_log(
     When *persist* is False, batches update only the in-memory object.
     """
     deadline = time.monotonic() + time_limit.total_seconds()
-    while _process_batch(pipeline, derived, batch_size, persist=persist):
+    while _process_batch(
+        pipeline, derived, batch_size, persist=persist, derived_metrics=derived_metrics
+    ):
         if time.monotonic() >= deadline:
             return False
     return True
@@ -204,6 +264,7 @@ def process_group_log(
     batch_size: int = DEFAULT_BATCH_SIZE,
     pipeline: Pipeline[GroupActionLogEntry] | None = None,
     timeout: timedelta | None = None,
+    derived_metrics: DerivedMetrics | None = None,
 ) -> GroupDerivedData:
     """Fully drain all pending entries for a group's row.
 
@@ -217,12 +278,14 @@ def process_group_log(
         derived = _ensure_derived(group_id, p.pipeline_hash)
 
     if timeout is not None:
-        drained = _drain_log(derived, p, batch_size, time_limit=timeout)
+        drained = _drain_log(
+            derived, p, batch_size, time_limit=timeout, derived_metrics=derived_metrics
+        )
         if not drained:
             raise GroupLogTimeout(group_id)
     else:
         # No timeout — drain to completion.
-        while _process_batch(p, derived, batch_size):
+        while _process_batch(p, derived, batch_size, derived_metrics=derived_metrics):
             pass
 
     return derived
@@ -231,7 +294,7 @@ def process_group_log(
 def trigger_group_log_processing(group_id: int, *, strategy: ProcessingStrategy) -> None:
     """Trigger derived data processing for a group.
 
-    Silently returns if the group has been deleted.
+    Silently returns if the group has been deleted or no row exists.
 
     Strategy controls how processing is dispatched:
       SYNC   — process all pending actions now
@@ -239,12 +302,15 @@ def trigger_group_log_processing(group_id: int, *, strategy: ProcessingStrategy)
       INLINE — try to process all pending actions quickly; fall back to ASYNC
     """
     if strategy is ProcessingStrategy.ASYNC:
-        process_group_log_task.delay(group_id)
+        process_group_log_task.delay(group_id, incremental=True)
         return
 
     if strategy is ProcessingStrategy.SYNC:
         try:
-            process_group_log(group_id)
+            process_group_log(
+                group_id,
+                derived_metrics=DerivedMetrics(mode=strategy, incremental=True),
+            )
         except ObjectDoesNotExist:
             pass
         return
@@ -260,16 +326,21 @@ def trigger_group_log_processing(group_id: int, *, strategy: ProcessingStrategy)
         except ObjectDoesNotExist:
             return
 
-        has_more = _process_batch(pipeline, derived, INLINE_BATCH_SIZE)
+        has_more = _process_batch(
+            pipeline,
+            derived,
+            INLINE_BATCH_SIZE,
+            derived_metrics=DerivedMetrics(mode=strategy, incremental=True),
+        )
     if has_more:
         # Derived data will be stale for any code running between now and
         # when the task completes.
         metrics.incr("issues.derived.inline_fallback_to_async")
-        process_group_log_task.delay(group_id)
+        process_group_log_task.delay(group_id, incremental=True)
 
 
 # ---------------------------------------------------------------------------
-# Generation: upsert derived data from a full log replay
+# Generation lifecycle: build in memory, upsert, cache partial progress
 # ---------------------------------------------------------------------------
 
 
@@ -277,6 +348,16 @@ class PromotionResult(enum.Enum):
     PROMOTED = "promoted"
     SUPERSEDED = "superseded"  # a newer generation already promoted
     CURSOR_BEHIND = "cursor_behind"  # same generation, but cursor is more advanced
+
+
+class PromotionFailed(Exception):
+    """Raised when build_and_promote_derived_data exhausts its retry budget."""
+
+    def __init__(self, group_id: int, result: PromotionResult, attempts: int) -> None:
+        self.group_id = group_id
+        self.result = result
+        self.attempts = attempts
+        super().__init__(f"group {group_id}: {result.value} after {attempts} attempts")
 
 
 def promote_to_live(candidate: GroupDerivedData) -> PromotionResult:
@@ -334,6 +415,107 @@ def promote_to_live(candidate: GroupDerivedData) -> PromotionResult:
     if current_generated_at > generated_at:
         return PromotionResult.SUPERSEDED
     return PromotionResult.CURSOR_BEHIND
+
+
+MAX_PROMOTION_ATTEMPTS = 5
+
+
+def build_and_promote_derived_data(
+    group_id: int,
+    *,
+    batch_size: int = DEFAULT_BATCH_SIZE,
+    generation_id: GenerationId | None = None,
+    time_limit: timedelta,
+) -> None:
+    """Build derived data from scratch and upsert into the row.
+
+    Drains the full action log into an in-memory object, then upserts
+    via ``promote_to_live`` with a CAS on ``generated_at``.  The
+    generation's ``generated_at`` is captured at start — it reflects the
+    log state observed, not when the generation finished.
+
+    When *generation_id* is provided, previously cached partial progress
+    is loaded and resumed.
+
+    Raises GroupLogTimeout (with ``generation_id`` set) if the time-limited
+    drain could not finish, so the caller can re-enqueue.
+    Raises PromotionFailed if promotion cannot succeed after retries.
+    Raises Group.DoesNotExist if the group has been deleted.
+    """
+    pipeline_hash = PIPELINE.pipeline_hash
+    generated_at: datetime
+
+    # Try to resume from cache.
+    derived: GroupDerivedData | None = None
+    if generation_id is not None:
+        derived = _generation_cache.get(generation_id)
+        generated_at = generation_id.generated_at
+        if derived is None:
+            logger.info(
+                "issues.derived.build_and_promote.cache_miss",
+                extra={"group_id": group_id, "generation_id": generation_id},
+            )
+
+    if derived is None:
+        if not Group.objects.filter(id=group_id).exists():
+            raise Group.DoesNotExist(f"Group {group_id} does not exist")
+        generated_at = timezone.now()
+        derived = GroupDerivedData(
+            group_id=group_id,
+            generated_at=generated_at,
+            cursor_date=EPOCH,
+            cursor_id=0,
+            data={},
+            pipeline_hash=pipeline_hash,
+        )
+
+    current_gen_id = GenerationId(group_id, generated_at, pipeline_hash)
+    deadline = time.monotonic() + time_limit.total_seconds()
+
+    result = PromotionResult.CURSOR_BEHIND
+    for attempt in range(MAX_PROMOTION_ATTEMPTS):
+        remaining = timedelta(seconds=max(0, deadline - time.monotonic()))
+        drained = _drain_log(
+            derived,
+            PIPELINE,
+            batch_size,
+            time_limit=remaining,
+            persist=False,
+            derived_metrics=DerivedMetrics(mode=ProcessingStrategy.ASYNC, incremental=False),
+        )
+        if not drained:
+            _generation_cache.set(current_gen_id, derived)
+            raise GroupLogTimeout(group_id, generation_id=current_gen_id)
+
+        result = promote_to_live(derived)
+        metrics.incr("issues.derived.promote_to_live", tags={"result": result.value})
+        if result is PromotionResult.PROMOTED:
+            logger.info(
+                "issues.derived.promoted",
+                extra={
+                    "group_id": group_id,
+                    "cursor_date": str(derived.cursor_date),
+                    "cursor_id": derived.cursor_id,
+                    "attempts": attempt + 1,
+                },
+            )
+            _generation_cache.delete(current_gen_id)
+            return
+
+        if result is PromotionResult.SUPERSEDED:
+            # A newer generation already won — not an error.
+            _generation_cache.delete(current_gen_id)
+            return
+
+        # CURSOR_BEHIND: the live row's cursor is ahead of ours.
+        # If new entries exist past our cursor, the next drain will pick
+        # them up. If not, the log was modified (e.g. merge deleted
+        # entries) and our replay is incomplete — give up.
+        if not _entries_after_cursor(group_id, derived.cursor_date, derived.cursor_id, 1):
+            break
+
+    _generation_cache.delete(current_gen_id)
+    raise PromotionFailed(group_id, result, attempt + 1)
 
 
 # ---------------------------------------------------------------------------

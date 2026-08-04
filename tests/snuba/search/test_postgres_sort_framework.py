@@ -24,7 +24,6 @@ from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 
@@ -563,45 +562,30 @@ class TestProgressSort(PostgresSortTestBase):
     def test_rank_outranks_last_seen(self):
         # Give the oldest group the furthest progress and the newest group none: rank must
         # invert the last_seen ordering.
-        self.create_group_activity(group=self.groups[0], type=ActivityType.SEER_PR_CREATED.value)
-        self.create_group_activity(group=self.groups[1], type=ActivityType.SEER_RCA_COMPLETED.value)
-        # groups[2] has no progress activity -> identified (lowest rank).
+        self.create_group_derived_data(group=self.groups[0], progress="fix_proposed")
+        self.create_group_derived_data(group=self.groups[1], progress="diagnosed")
+        # groups[2] has no derived data -> identified (lowest rank).
         assert self._query() == [self.groups[0], self.groups[1], self.groups[2]]
 
     def test_last_seen_breaks_ties_within_rank(self):
         # groups[0] and groups[1] are both diagnosed; the more recently seen (groups[1])
         # sorts first. groups[2] stays identified and sorts last.
-        self.create_group_activity(group=self.groups[0], type=ActivityType.SEER_RCA_COMPLETED.value)
-        self.create_group_activity(group=self.groups[1], type=ActivityType.SEER_RCA_COMPLETED.value)
+        self.create_group_derived_data(group=self.groups[0], progress="diagnosed")
+        self.create_group_derived_data(group=self.groups[1], progress="diagnosed")
         assert self._query() == [self.groups[1], self.groups[0], self.groups[2]]
 
-    @with_feature("projects:issue-stream-derived-progress")
-    def test_reads_from_derived_data_when_flag_enabled(self):
-        # With the flag on, rank comes from GroupDerivedData.progress, not Activity.
-        # groups[0] would be fix_proposed from Activity, but its derived row says identified,
-        # so it must rank last.
-        self.create_group_activity(group=self.groups[0], type=ActivityType.SEER_PR_CREATED.value)
+    def test_reads_from_derived_data(self):
         self.create_group_derived_data(group=self.groups[0], progress="identified")
         self.create_group_derived_data(group=self.groups[1], progress="diagnosed")
         self.create_group_derived_data(group=self.groups[2], progress="fix_applied")
         assert self._query() == [self.groups[2], self.groups[1], self.groups[0]]
 
-    @with_feature("projects:issue-stream-derived-progress")
     def test_derived_data_missing_row_defaults_to_identified(self):
         # Only groups[0] has a derived row; the others default to identified and fall back
         # to last_seen ordering (groups[2] newer than groups[1]).
         self.create_group_derived_data(group=self.groups[0], progress="fix_applied")
         assert self._query() == [self.groups[0], self.groups[2], self.groups[1]]
 
-    def test_ignores_derived_data_when_flag_disabled(self):
-        # Flag off: rank comes from Activity, not the derived column. The derived rows claim
-        # the reverse order but Activity (groups[0] fix_proposed) must win.
-        self.create_group_activity(group=self.groups[0], type=ActivityType.SEER_PR_CREATED.value)
-        self.create_group_derived_data(group=self.groups[0], progress="identified")
-        self.create_group_derived_data(group=self.groups[1], progress="fix_applied")
-        assert self._query() == [self.groups[0], self.groups[2], self.groups[1]]
-
-    @with_feature("projects:issue-stream-derived-progress")
     def test_last_progressed_at_breaks_ties(self):
         # Both groups have the same rank but different last_progressed_at values;
         # the more recently progressed group sorts first.
@@ -614,7 +598,6 @@ class TestProgressSort(PostgresSortTestBase):
         # groups[2] has no derived data -> identified (lowest rank), sorts last.
         assert self._query() == [self.groups[1], self.groups[0], self.groups[2]]
 
-    @with_feature("projects:issue-stream-derived-progress")
     @override_options({"snuba.search.max-pre-snuba-candidates": 0})
     def test_native_ordering_past_candidate_cap(self):
         # With the cap at 0, the in-memory path overflows and (pre-Tier-1) would degrade to a
@@ -634,7 +617,6 @@ class TestProgressSort(PostgresSortTestBase):
         page2 = self.make_query(sort_by="progress", limit=2, cursor=page1.next)
         assert list(page2) == [self.groups[2]]
 
-    @with_feature("projects:issue-stream-derived-progress")
     @override_options({"snuba.search.max-pre-snuba-candidates": 0})
     def test_native_ordering_paginates_across_score_tie(self):
         # Identical rank + last_progressed_at -> identical score, so ordering falls to the -id
@@ -652,7 +634,6 @@ class TestProgressSort(PostgresSortTestBase):
             cursor = page.next
         assert seen == expected
 
-    @with_feature("projects:issue-stream-derived-progress")
     @override_options({"snuba.search.max-pre-snuba-candidates": 0})
     def test_environment_scoping_over_cap_uses_inverted_progress_ranking(self):
         # Environment scoping lives in Snuba, so it can't use the Postgres-only native path.
@@ -666,7 +647,6 @@ class TestProgressSort(PostgresSortTestBase):
         results = list(self.make_query(sort_by="progress", environments=[production]))
         assert results == [self.groups[0], self.groups[2], self.groups[1]]
 
-    @with_feature("projects:issue-stream-derived-progress")
     @override_options({"snuba.search.max-pre-snuba-candidates": 0})
     def test_explicit_date_to_over_cap_uses_inverted_path(self):
         # Group.last_seen is the issue's global max event time, not its max within the window,
@@ -683,7 +663,6 @@ class TestProgressSort(PostgresSortTestBase):
         # groups[2] is out of window; groups[0] (fix_applied) outranks groups[1] (identified).
         assert results == [self.groups[0], self.groups[1]]
 
-    @with_feature("projects:issue-stream-derived-progress")
     @override_options({"snuba.search.max-pre-snuba-candidates": 0})
     def test_date_to_now_uses_native_path(self):
         # The issue-stream endpoint always sends date_to=now. That is not a restrictive bound
@@ -694,7 +673,6 @@ class TestProgressSort(PostgresSortTestBase):
         # Progress order: groups[0] (fix_applied) first, then identified by recency.
         assert results == [self.groups[0], self.groups[2], self.groups[1]]
 
-    @with_feature("projects:issue-stream-derived-progress")
     @override_options({"snuba.search.max-pre-snuba-candidates": 0})
     def test_snuba_filter_over_cap_uses_inverted_progress_ranking(self):
         # Over the candidate cap WITH a Snuba-side filter, the sort no longer degrades to
@@ -724,7 +702,6 @@ class TestProgressSort(PostgresSortTestBase):
         prev_page = self.make_query(sort_by="progress", query="issue", limit=2, cursor=page2.prev)
         assert list(prev_page) == [self.groups[0], self.groups[1]]
 
-    @with_feature("projects:issue-stream-derived-progress")
     @override_options({"snuba.search.max-pre-snuba-candidates": 0})
     def test_snuba_filter_over_cap_paginates_across_score_tie(self):
         # Two groups share a rank and a last_progressed_at that differ only by sub-millisecond
@@ -757,7 +734,6 @@ class TestProgressSort(PostgresSortTestBase):
             cursor = page.next
         assert seen == expected
 
-    @with_feature("projects:issue-stream-derived-progress")
     @override_options(
         {
             "snuba.search.max-pre-snuba-candidates": 0,
@@ -781,7 +757,6 @@ class TestProgressSort(PostgresSortTestBase):
         assert list(page2) == []
         assert not page2.next.has_results
 
-    @with_feature("projects:issue-stream-derived-progress")
     @override_options(
         {
             "snuba.search.max-pre-snuba-candidates": 0,

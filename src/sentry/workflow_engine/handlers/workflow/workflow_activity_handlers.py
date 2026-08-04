@@ -97,19 +97,14 @@ def seer_activity_handler(
     logger.info("workflow_engine.seer_activity_handler.complete", extra=logging_ctx)
 
 
-@workflow_activity_registry.register("smart_assignment")
-def smart_assignment_activity_handler(
+@workflow_activity_registry.register("smart_assignment_trigger")
+def smart_assignment_trigger_handler(
     group: Group,
     activity: Activity,
     detector_id: DetectorId | None = None,
 ) -> None:
-    """Trigger the smart assignment feature off Seer AI-step starts, assignment, and
-    resolution.
-
-    Invoked unconditionally for every group activity (via
-    invoke_workflow_activity_handlers), so it self-filters to the activities we care
-    about and delegates gating, dispatch (deduped to one run per group), and
-    ground-truth capture to trigger_smart_assignment.
+    """Trigger the smart assignment feature off Seer RCA/PR start, issue assignment, and
+    issue resolution.
     """
     try:
         activity_type = ActivityType(activity.type)
@@ -122,6 +117,32 @@ def smart_assignment_activity_handler(
     from sentry.seer.smart_assignment.trigger import trigger_smart_assignment
 
     trigger_smart_assignment(group, activity_type, activity)
+
+
+@workflow_activity_registry.register("smart_assignment_completed")
+def smart_assignment_completed_handler(
+    group: Group,
+    activity: Activity,
+    detector_id: DetectorId | None = None,
+) -> None:
+    """Act on a delivered smart-assignment verdict.
+
+    Responds to the SMART_ASSIGNMENT_COMPLETED activity created when when Seer
+    returns a result. Records the prediction, maybe-scores it against ground truth
+    (if we have it), creates a GroupOwner indicating a suggested owner, and promotes
+    the suggestion to an assignment iff the project auto-assigns to owners.
+    """
+    try:
+        activity_type = ActivityType(activity.type)
+    except ValueError:
+        return
+
+    if activity_type != ActivityType.SMART_ASSIGNMENT_COMPLETED:
+        return
+
+    from sentry.seer.smart_assignment.completion import process_smart_assignment_completion
+
+    process_smart_assignment_completion(group, activity)
 
 
 @workflow_activity_registry.register("generic_activity")

@@ -158,6 +158,7 @@ def handle_pull_request_review_for_autofix_iteration(event: PullRequestReviewEve
             pr_number=pr_number,
             review_id=review_id,
             author_username=event.author.get("username"),
+            author_external_id=event.author.get("id"),
             author_is_bot=event.is_bot,
         )
         dispatched = True

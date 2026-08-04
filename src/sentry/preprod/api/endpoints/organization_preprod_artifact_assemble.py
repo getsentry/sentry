@@ -35,6 +35,8 @@ SUPPORTED_VCS_PROVIDERS = [
     IntegrationProviderSlug.BITBUCKET_SERVER,
 ]
 
+MAX_INSTALL_GROUPS = 16
+
 
 def validate_vcs_parameters(data: dict[str, Any]) -> str | None:
     head_sha = data.get("head_sha")
@@ -80,8 +82,10 @@ def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict[str, Any
             "release_notes": {"type": "string"},
             "install_groups": {
                 "type": "array",
-                "items": {"type": "string", "maxLength": 255},
+                "items": {"type": "string", "minLength": 1, "maxLength": 255},
                 "minItems": 1,
+                "maxItems": MAX_INSTALL_GROUPS,
+                "uniqueItems": True,
             },
             **VCS_SCHEMA_PROPERTIES,
         },
@@ -94,7 +98,7 @@ def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict[str, Any
         "chunks": "The chunks field is required and must be provided as an array of 40-character hexadecimal strings.",
         "build_configuration": "The build_configuration field must be a string.",
         "release_notes": "The release_notes field must be a string.",
-        "install_groups": "The install_groups field must be an array of strings, each with maximum length of 255 characters.",
+        "install_groups": f"The install_groups field must contain between 1 and {MAX_INSTALL_GROUPS} unique, non-empty strings, each with a maximum length of 255 characters.",
         **VCS_ERROR_MESSAGES,
     }
 

@@ -311,7 +311,6 @@ from sentry.issues.endpoints import (
     GroupTombstoneEndpoint,
     OrganizationDeriveCodeMappingsEndpoint,
     OrganizationGroupIndexEndpoint,
-    OrganizationGroupIndexProgressEndpoint,
     OrganizationGroupIndexStatsEndpoint,
     OrganizationGroupSearchViewDetailsEndpoint,
     OrganizationGroupSearchViewDetailsStarredEndpoint,
@@ -518,6 +517,8 @@ from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_repos import GroupAutofixReposEndpoint
 from sentry.seer.endpoints.group_autofix_setup_check import GroupAutofixSetupCheck
 from sentry.seer.endpoints.issue_view_title_generate import IssueViewTitleGenerateEndpoint
+from sentry.seer.endpoints.organization_agent_approve import OrganizationAgentApproveEndpoint
+from sentry.seer.endpoints.organization_agent_token import OrganizationAgentTokenEndpoint
 from sentry.seer.endpoints.organization_autofix_automation_settings import (
     OrganizationAutofixAutomationSettingsEndpoint,
 )
@@ -1725,6 +1726,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-events-anomalies",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/agent/token/$",
+        OrganizationAgentTokenEndpoint.as_view(),
+        name="sentry-api-0-organization-agent-token",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/agent/approve/$",
+        OrganizationAgentApproveEndpoint.as_view(),
+        name="sentry-api-0-organization-agent-approve",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/traces/$",
         OrganizationTracesEndpoint.as_view(),
         name="sentry-api-0-organization-traces",
@@ -1940,11 +1951,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/issues-stats/$",
         OrganizationGroupIndexStatsEndpoint.as_view(),
         name="sentry-api-0-organization-group-index-stats",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/issues-progress/$",
-        OrganizationGroupIndexProgressEndpoint.as_view(),
-        name="sentry-api-0-organization-group-index-progress",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/issues-with-supergroups/$",

@@ -206,8 +206,8 @@ export function useFilterKeyListBox({filterValue}: UseFilterKeyListBoxArgs) {
   const {currentInputValueRef} = useSearchQueryBuilderLayout();
   const analyticsArea = useAnalyticsArea();
   const {sectionedItems} = useFilterKeyItems();
-  const recentFilters = useRecentSearchFilters();
   const {data: recentSearches} = useRecentSearches();
+  const recentFilters = useRecentSearchFilters(recentSearches);
   const {sections, selectedSection, setSelectedSection} = useFilterKeySections({
     recentSearches,
   });

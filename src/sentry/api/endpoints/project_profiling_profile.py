@@ -5,7 +5,6 @@ from typing import Any
 import orjson
 from django.http import HttpResponse, StreamingHttpResponse
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from objectstore_client.errors import RequestError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -231,14 +230,9 @@ class ProjectProfilingChunkAttachmentEndpoint(ProjectProfilingBaseEndpoint):
         accept_encoding = parse_accept_encoding(request.headers.get("Accept-Encoding", ""))
 
         session = get_profile_attachments_session(project.organization_id, project.id)
-        try:
-            blob = session.get(attachment.stored_id, accept_encoding=accept_encoding or None)
-        except RequestError as e:
-            # The blob's Objectstore TTL and this row's cleanup are not perfectly
-            # synchronized, so the blob may already be gone while the row lingers.
-            if e.status == 404:
-                raise ResourceDoesNotExist
-            raise
+        blob = session.get(attachment.stored_id, accept_encoding=accept_encoding or None)
+        if blob is None:
+            raise ResourceDoesNotExist
 
         def stream_attachment() -> Generator[bytes]:
             with blob.payload as payload:

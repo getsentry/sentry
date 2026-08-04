@@ -12,13 +12,13 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Access} from 'sentry/components/acl/access';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import type {ProjectDetailsFormState} from 'sentry/components/onboarding/onboardingContext';
 import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
 import {ScmAlertFrequencySection} from 'sentry/components/onboarding/scm/scmAlertFrequencySection';
 import {ScmFeatureSelectionPanel} from 'sentry/components/onboarding/scm/scmFeatureSelectionPanel';
 import {ScmIntegrationConnect} from 'sentry/components/onboarding/scm/scmIntegrationConnect';
 import {ScmPlatformFeaturesCore} from 'sentry/components/onboarding/scm/scmPlatformFeaturesCore';
 import {ScmProjectDetailsCore} from 'sentry/components/onboarding/scm/scmProjectDetailsCore';
+import type {ProjectDetailsFormState} from 'sentry/components/onboarding/scm/scmProjectDetailsTypes';
 import {useScmPlatformDetection} from 'sentry/components/onboarding/scm/useScmPlatformDetection';
 import {
   type ScmProjectDetailsCompletion,
@@ -32,11 +32,13 @@ import type {Integration, Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage, writeStorageValue} from 'sentry/utils/useSessionStorage';
+import {useProjectCreationPageOrigin} from 'sentry/views/projectInstall/projectCreationOrigin';
 import {
   WIZARD_STORAGE_KEY,
   type WizardState,
@@ -63,12 +65,18 @@ export function ScmCreateProject() {
   // Single page-viewed event for the whole flow. Unlike onboarding's discrete
   // steps, every section renders at once here, so the per-section step_viewed
   // events the shared cores fire in onboarding are intentionally suppressed in
-  // this flow. Uses an SCM-specific event (not the classic
-  // project_creation_page.viewed) so the SCM-first funnel stays separable.
+  // this flow. Reuses the classic project_creation_page.viewed counter (shared
+  // with the legacy CreateProject flow) and carries variant:'scm' so the SCM
+  // funnel stays separable without splitting the absolute page-view count.
   useRouteAnalyticsEventNames(
-    'project_creation.scm_create_project_viewed',
-    'Project Creation: SCM Create Project Viewed'
+    'project_creation_page.viewed',
+    'Project Create: Creation page viewed'
   );
+  // Journey origin is sticky (sessionStorage seeded by
+  // ?projectCreationOrigin=org_creation from org-create). Orthogonal to
+  // `variant` and to `referrer=getting-started` autofill — back-from-docs
+  // must not reclassify an org-activation visit as existing_org.
+  useRouteAnalyticsParams({variant: 'scm', origin: useProjectCreationPageOrigin()});
 
   // Snapshot of the last completed wizard session, written when a project is
   // created (see handleComplete in the wizard). Restored when this mount is a
@@ -198,23 +206,21 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
           path: `/${project.slug}/getting-started/`,
           organization,
         }),
-        // Carry the upfront product selection into the setup docs so the
-        // instructions match what was chosen here; the getting-started page
-        // seeds its selection from the `product` query. Mirrors the SCM
-        // onboarding flow (ScmProjectDetails -> goNextStep). Classic
-        // createProject selects products on that page instead, so it forwards
-        // nothing.
-        query: wizardState.selectedFeatures
-          ? {product: wizardState.selectedFeatures}
-          : undefined,
+        // Carry both the creating flow and upfront product selection into the
+        // setup-docs and getting-started analytics to the SCM variant; the
+        // product query seeds the selected instructions.
+        query: {
+          projectCreationVariant: 'scm',
+          ...(wizardState.selectedFeatures
+            ? {product: wizardState.selectedFeatures}
+            : {}),
+        },
       });
     },
     [wizardState, navigate, organization]
   );
 
   const form = useScmProjectDetails({
-    analyticsFlow: 'project-creation',
-    allowMemberWithoutTeam: true,
     selectedPlatform,
     selectedRepository,
     createdProjectSlug,
@@ -311,7 +317,6 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
 
               <motion.div layout="position">
                 <ScmProjectDetailsCore
-                  analyticsFlow="project-creation"
                   projectName={form.projectName}
                   onProjectNameChange={form.onProjectNameChange}
                   onProjectNameBlur={form.onProjectNameBlur}

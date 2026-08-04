@@ -2049,6 +2049,24 @@ describe('trace view', () => {
   });
 
   describe('tabbing', () => {
+    it('does not fetch trace-wide logs when opening a waterfall drawer', async () => {
+      const organization = OrganizationFixture({features: ['ourlogs-enabled']});
+      const traceLogsRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/trace-logs/`,
+        body: {data: []},
+      });
+      const {virtualizedContainer} = await completeTestSetup({organization});
+      const rows = getVirtualizedRows(virtualizedContainer);
+
+      expect(traceLogsRequest).not.toHaveBeenCalled();
+      await userEvent.click(rows[5]!);
+
+      await waitFor(() => {
+        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
+      });
+      expect(traceLogsRequest).not.toHaveBeenCalled();
+    });
+
     it('clicking on a node spawns a new tab when none is selected', async () => {
       const {virtualizedContainer} = await simpleTestSetup();
       const rows = getVirtualizedRows(virtualizedContainer);

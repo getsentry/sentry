@@ -11,11 +11,26 @@ from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.types import ExternalProviders
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.repository import Repository
+from sentry.seer.models.run import SeerAgentRun
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+
+def runs_for_group(group_id: int, source: str) -> QuerySet[SeerAgentRun]:
+    """The Seer run mirrors for a group, scoped to a feature (``SeerAgentRun.source``)."""
+    return SeerAgentRun.objects.filter(group_id=group_id, source=source)
+
+
+def latest_run_for_group(group_id: int, source: str) -> SeerAgentRun | None:
+    """The canonical Seer run for a group + feature (latest wins).
+
+    Picking the latest run keeps writers that touch the same group in agreement on a
+    single row even if a feature dispatches more than one run per issue over time.
+    """
+    return runs_for_group(group_id, source).order_by("-date_added").first()
 
 
 def encrypt_access_token_for_seer(access_token: str) -> str | None:

@@ -20,12 +20,12 @@ from sentry.workflow_engine.handlers.detector.base import (
     GroupedDetectorEvaluationResult,
 )
 from sentry.workflow_engine.models import DataPacket
-from sentry.workflow_engine.processors import DataConditionGroupEvaluation
+from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
 from sentry.workflow_engine.processors.data_condition_group import (
     process_data_condition_group,
 )
+from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
 from sentry.workflow_engine.types import (
-    DetectorEvaluationResult,
     DetectorPriorityLevel,
     DetectorSettings,
 )
@@ -205,7 +205,7 @@ class PreprodSizeAnalysisDetectorHandler(
             )
 
         artifact = metadata["head_artifact"]
-        organization = self.detector.project.organization
+        organization = self.detector.linked_project.organization
 
         try:
             return artifact_matches_query(artifact, query, organization)
@@ -233,12 +233,15 @@ class PreprodSizeAnalysisDetectorHandler(
             additional_evidence_data={},
             fingerprint=[uuid4().hex],
         )
-        result = DetectorEvaluationResult(
-            group_key=None,
-            is_triggered=True,
-            priority=priority,
-            event_data=event_data,
+        result = DetectorEvaluation(
             result=occurrence,
+            data=DetectorEvaluationData(
+                group_key=None,
+                trigger_group_evaluation=evaluation,
+                event_data=event_data,
+            ),
+            triggered=True,
+            priority=priority,
         )
         return GroupedDetectorEvaluationResult(result={None: result}, tainted=False)
 
@@ -250,7 +253,7 @@ class PreprodSizeAnalysisDetectorHandler(
             return None, None
 
         group_evaluation, _ = process_data_condition_group(self.condition_group, value)
-        if not group_evaluation.outcome.triggered:
+        if not group_evaluation.triggered:
             return None, None
 
         priorities = [

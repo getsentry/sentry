@@ -1,4 +1,4 @@
-import {useLayoutEffect} from 'react';
+import {useCallback, useLayoutEffect, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {QueryKey} from '@tanstack/react-query';
@@ -10,6 +10,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {
   SearchQueryBuilderProvider,
   useHasSearchQueryBuilderProvider,
+  useSearchQueryBuilderAI,
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderLayout,
   useSearchQueryBuilderState,
@@ -102,6 +103,11 @@ export interface SearchQueryBuilderProps {
    * When true, parens and logical operators (AND, OR) will be marked as invalid.
    */
   disallowLogicalOperators?: boolean;
+  /**
+   * When true, negation operators (e.g. "is not", "does not contain") are
+   * removed from the operator suggestions so only positive filters can be built.
+   */
+  disallowNegation?: boolean;
   /**
    * When true, unsupported filter keys will be highlighted as invalid.
    */
@@ -293,6 +299,20 @@ function SearchQueryBuilderUI({
 }: SearchQueryBuilderProps) {
   const {parsedQuery, query, dispatch} = useSearchQueryBuilderState();
   const {wrapperRef, actionBarRef, size} = useSearchQueryBuilderLayout();
+  const {skipNextSearchQueryBuilderAutoFocusRef} = useSearchQueryBuilderAI();
+  const autoFocusOnMount = useRef(
+    Boolean(autoFocus) && !skipNextSearchQueryBuilderAutoFocusRef.current
+  );
+
+  const setWrapperRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      wrapperRef.current = element;
+      if (element) {
+        skipNextSearchQueryBuilderAutoFocusRef.current = false;
+      }
+    },
+    [skipNextSearchQueryBuilderAutoFocusRef, wrapperRef]
+  );
 
   useOnChange({onChange});
   useLayoutEffect(() => {
@@ -307,7 +327,7 @@ function SearchQueryBuilderUI({
       onBlur={() =>
         onBlur?.(query, {parsedQuery, queryIsValid: queryIsValid(parsedQuery)})
       }
-      ref={wrapperRef as React.RefObject<HTMLInputElement>}
+      ref={setWrapperRef}
       aria-disabled={disabled}
       data-test-id="search-query-builder"
     >
@@ -319,7 +339,7 @@ function SearchQueryBuilderUI({
           <PlainTextQueryInput label={label} />
         ) : (
           <TokenizedQueryGrid
-            autoFocus={autoFocus || false}
+            autoFocus={autoFocusOnMount.current}
             label={label}
             actionBarWidth={actionBarWidth}
           />

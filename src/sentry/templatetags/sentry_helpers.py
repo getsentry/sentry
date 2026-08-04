@@ -235,7 +235,16 @@ def format_duration_ms(v):
     if minutes < 60:
         return f"{minutes:.1f}min"
     hours = minutes / 60
-    return f"{hours:.1f}hr"
+    if hours < 24:
+        return f"{hours:.1f}hr"
+    days = hours / 24
+    if days < 30.44:
+        return f"{days:.1f}d"
+    months = days / 30.44
+    if days < 365.25:
+        return f"{months:.1f}mo"
+    years = days / 365.25
+    return f"{years:.1f}yr"
 
 
 @register.filter

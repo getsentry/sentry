@@ -62,8 +62,8 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
             metric_issue_context=metric_issue_context,
             open_period_context=open_period_context,
             trigger_status=TriggerStatus.ACTIVE,
-            project=self.detector.project,
-            organization=self.detector.project.organization,
+            project=self.detector.linked_project,
+            organization=self.detector.linked_project.organization,
             notification_uuid=notification_uuid,
         )
 
@@ -71,7 +71,7 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
             notification_context=notification_context,
             alert_context=alert_context,
             metric_issue_context=metric_issue_context,
-            organization=self.detector.project.organization,
+            organization=self.detector.linked_project.organization,
             notification_uuid=notification_uuid,
         )
 
@@ -141,7 +141,7 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
             date_closed=None,
         )
 
-        assert organization == self.detector.project.organization
+        assert organization == self.detector.linked_project.organization
         assert isinstance(notification_uuid, str)
 
     @mock.patch(
@@ -226,5 +226,5 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
             date_closed=None,
         )
 
-        assert organization == self.detector.project.organization
+        assert organization == self.detector.linked_project.organization
         assert isinstance(notification_uuid, str)

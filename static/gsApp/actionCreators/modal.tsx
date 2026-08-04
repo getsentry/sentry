@@ -28,32 +28,14 @@ type TrialModalProps = {
   organization: Organization;
 };
 
-function genTrialModalOnClose(
-  options: TrialModalProps,
-  type: 'trialEnd' | 'forcedTrial'
-) {
-  let feature: string, subField: string;
-  switch (type) {
-    case 'trialEnd':
-      feature = 'trial_ended_notice';
-      subField = 'hasDismissedTrialEndingNotice';
-      break;
-    case 'forcedTrial':
-      feature = 'forced_trial_notice';
-      subField = 'hasDismissedForcedTrialNotice';
-      break;
-    default:
-      throw new Error('Unexpected type');
-  }
+function genTrialEndingModalOnClose(options: TrialModalProps) {
   const api = new Client();
   const promptParams = {
     organization: options.organization,
-    feature,
+    feature: 'trial_ended_notice',
     status: 'dismissed',
   } as const;
-  const subUpdate = {
-    [subField]: true,
-  } as const;
+  const subUpdate = {hasDismissedTrialEndingNotice: true} as const;
 
   // Handle marking the feature prompt as seen when the modal is
   // closed
@@ -67,21 +49,9 @@ export async function openTrialEndingModal(options: TrialModalProps) {
   const {default: Modal, modalCss} =
     await import('getsentry/components/trialEndingModal');
 
-  const onClose = genTrialModalOnClose(options, 'trialEnd');
+  const onClose = genTrialEndingModalOnClose(options);
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss, onClose});
-}
-
-export async function openForcedTrialModal(options: TrialModalProps) {
-  const {default: Modal, modalCss} =
-    await import('getsentry/components/forcedTrialModal');
-
-  const onClose = genTrialModalOnClose(options, 'forcedTrial');
-
-  openModal(deps => <Modal {...deps} {...options} />, {
-    modalCss,
-    onClose,
-  });
 }
 
 interface OpenOnDemandBudgetEditModalProps {

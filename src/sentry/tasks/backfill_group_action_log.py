@@ -122,6 +122,7 @@ def backfill_group_action_log_for_project(
     reset: bool = False,
     cursor_datetime: str | None = None,
     cursor_id: int = 0,
+    chain_pr_lifecycle: bool = False,
     **kwargs: object,
 ) -> None:
     task_state = current_task()
@@ -149,7 +150,13 @@ def backfill_group_action_log_for_project(
     parsed_cursor = datetime.fromisoformat(cursor_datetime) if cursor_datetime else None
 
     try:
-        _backfill_project(project, parsed_cursor, cursor_id, activation_id)
+        _backfill_project(
+            project,
+            parsed_cursor,
+            cursor_id,
+            activation_id,
+            chain_pr_lifecycle,
+        )
     except Exception:
         logger.exception(
             "backfill_group_action_log.task_failed",
@@ -190,9 +197,8 @@ def _backfill_project(
     cursor_dt: datetime | None,
     cursor_id: int = 0,
     activation_id: str | None = None,
+    chain_pr_lifecycle: bool = False,
 ) -> None:
-    from sentry.issues.derived.tasks import process_project_derived_data
-
     batch_size: int = options.get("issues.backfill_group_action_log.batch_size")
     inter_batch_delay_s: int = options.get("issues.backfill_group_action_log.inter_batch_delay_s")
 
@@ -219,7 +225,7 @@ def _backfill_project(
             "backfill_group_action_log.project_completed",
             extra={"project_id": project.id},
         )
-        process_project_derived_data.delay(project_id=project.id)
+        _complete_project_backfill(project, chain_pr_lifecycle)
         return
 
     logger.info(
@@ -310,6 +316,7 @@ def _backfill_project(
                 "project_id": project.id,
                 "cursor_datetime": last_activity.datetime.isoformat(),
                 "cursor_id": last_activity.id,
+                "chain_pr_lifecycle": chain_pr_lifecycle,
             },
             countdown=inter_batch_delay_s,
             headers={"sentry-propagate-traces": False},
@@ -321,4 +328,17 @@ def _backfill_project(
             "backfill_group_action_log.project_completed",
             extra={"project_id": project.id},
         )
+        _complete_project_backfill(project, chain_pr_lifecycle)
+
+
+def _complete_project_backfill(project: Project, chain_pr_lifecycle: bool) -> None:
+    if chain_pr_lifecycle:
+        from sentry.tasks.backfill_pr_lifecycle_action_log import (
+            backfill_pr_lifecycle_action_log_for_project,
+        )
+
+        backfill_pr_lifecycle_action_log_for_project.delay(project_id=project.id)
+    else:
+        from sentry.issues.derived.tasks import process_project_derived_data
+
         process_project_derived_data.delay(project_id=project.id)

@@ -33,6 +33,7 @@ from sentry.seer.endpoints.seer_rpc import (
 from sentry.seer.sentry_data_models import (
     GitHubEnterpriseConfigErrorResponse,
     GitHubEnterpriseConfigSuccessResponse,
+    HeaderAuthConnectionData,
     SendSeerWebhookSuccessResponse,
 )
 from sentry.sentry_apps.event_types import SentryAppEventType
@@ -888,6 +889,7 @@ class TestGetMonitoringProviderConnections(APITestCase):
 
         assert len(result.connections) == 1
         connection = result.connections[0]
+        assert isinstance(connection, HeaderAuthConnectionData)
         assert connection.provider_key == "datadog"
         assert connection.url == "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp"
         assert connection.identity_id == identity.id

@@ -141,8 +141,10 @@ def get_title_link(
     elif issue_details and notification:
         referrer = notification.get_referrer(provider)
         notification_uuid = notification.notification_uuid
+        event_id = getattr(notification, "regression_event_id", None)
         url = group.get_absolute_url(
-            params={"referrer": referrer, "notification_uuid": notification_uuid, **other_params}
+            params={"referrer": referrer, "notification_uuid": notification_uuid, **other_params},
+            event_id=event_id,
         )
     elif notification_uuid:
         url = group.get_absolute_url(
@@ -192,8 +194,10 @@ def get_title_link_workflow_engine_ui(
     elif issue_details and notification:
         referrer = notification.get_referrer(provider)
         notification_uuid = notification.notification_uuid
+        event_id = getattr(notification, "regression_event_id", None)
         url = group.get_absolute_url(
-            params={"referrer": referrer, "notification_uuid": notification_uuid, **other_params}
+            params={"referrer": referrer, "notification_uuid": notification_uuid, **other_params},
+            event_id=event_id,
         )
     elif notification_uuid:
         url = group.get_absolute_url(

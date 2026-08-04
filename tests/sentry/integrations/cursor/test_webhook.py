@@ -104,7 +104,40 @@ class TestCursorWebhook(APITestCase):
         assert result.repo_full_name == "testorg/testrepo"
         assert result.repo_provider == "github"
         assert result.pr_url == "https://github.com/testorg/testrepo/pull/1"
+        assert result.pr_number == 1
         assert result.branch_name == "cursor/fix-bug-1234"
+
+    @patch("sentry.integrations.cursor.webhooks.handler.sync_coding_agent_status")
+    def test_pr_number_parsed_past_trailing_url_segments(self, mock_update_state):
+        for pr_url in [
+            "https://github.com/testorg/testrepo/pull/649",
+            "https://github.com/testorg/testrepo/pull/649/files",
+            "https://github.com/testorg/testrepo/pull/649?w=1",
+            "https://github.com/testorg/testrepo/pull/649#issuecomment-1",
+        ]:
+            mock_update_state.reset_mock()
+            body = orjson.dumps(self._build_status_payload(status="FINISHED", pr_url=pr_url))
+            headers = self._signed_headers(body)
+
+            response = self._post_with_headers(body, headers)
+
+            assert response.status_code == 204, pr_url
+            result = mock_update_state.call_args[1]["result"]
+            assert result.pr_number == 649, pr_url
+            assert result.pr_url == pr_url, pr_url
+
+    @patch("sentry.integrations.cursor.webhooks.handler.sync_coding_agent_status")
+    def test_pr_number_withheld_when_not_completed(self, mock_update_state):
+        # Only a completed agent has a result to point at, so an errored one reports neither.
+        body = orjson.dumps(self._build_status_payload(status="ERROR"))
+        headers = self._signed_headers(body)
+
+        response = self._post_with_headers(body, headers)
+
+        assert response.status_code == 204
+        result = mock_update_state.call_args[1]["result"]
+        assert result.pr_url is None
+        assert result.pr_number is None
 
     @patch("sentry.integrations.cursor.webhooks.handler.sync_coding_agent_status")
     def test_branch_name_absent_is_none(self, mock_update_state):
@@ -374,7 +407,8 @@ class TestCursorWebhook(APITestCase):
 
     @patch("sentry.integrations.cursor.webhooks.handler.sync_coding_agent_status")
     def test_invalid_pr_url_is_dropped(self, mock_update_state):
-        # Non-https scheme must be rejected — the pr_url is nulled out so no attribution fires.
+        # Anything that isn't a PR URL in the reported repo is nulled out, so no attribution
+        # fires.
         mock_update_state.return_value = CodingAgentSyncResult(
             known_to_seer=True, run_id=None, group_id=None
         )
@@ -385,6 +419,8 @@ class TestCursorWebhook(APITestCase):
             "http://github.com/testorg/testrepo/pull/1",
             "https://github.com/otherorg/otherrepo/pull/1",
             "https://github.com/testorg/testrepo/tree/main",
+            "https://github.com/testorg/testrepo/pull/",
+            "https://github.com/testorg/testrepo/pull/abc",
         ]:
             mock_update_state.reset_mock()
             body = orjson.dumps(self._build_status_payload(status="FINISHED", pr_url=bad_url))
@@ -396,7 +432,9 @@ class TestCursorWebhook(APITestCase):
             assert response.status_code == 204, bad_url
             # The Seer state update still happens, but with no pr_url.
             assert mock_update_state.call_count == 1, bad_url
-            assert mock_update_state.call_args[1]["result"].pr_url is None, bad_url
+            result = mock_update_state.call_args[1]["result"]
+            assert result.pr_url is None, bad_url
+            assert result.pr_number is None, bad_url
             assert not PullRequestAttribution.objects.exists(), bad_url
 
     @patch("sentry.integrations.cursor.webhooks.handler.sync_coding_agent_status")

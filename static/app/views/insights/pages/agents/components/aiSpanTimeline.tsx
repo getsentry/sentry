@@ -331,7 +331,7 @@ function getSpanPresentation(
         color,
         isTool: false,
         title: name || op,
-        secondary: model ? `${op} (${model})` : op,
+        secondary: model,
       };
     }
     case GenAiOperationType.AI_CLIENT: {

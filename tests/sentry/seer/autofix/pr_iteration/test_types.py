@@ -24,6 +24,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubIssueComment,
     GithubPrCommentFeedbackSource,
+    GithubPrCommentUser,
     GithubPrReviewBodyFeedbackSource,
     GithubPrReviewCommentFeedbackSource,
 )
@@ -490,13 +491,26 @@ class GithubPrReviewBodyTest(TestCase):
 
     def test_round_trips(self) -> None:
         source = GithubPrReviewBodyFeedbackSource(
-            review_id=5, body="overall summary", html_url="https://x/5"
+            review_id=5,
+            body="overall summary",
+            html_url="https://x/5",
+            user=GithubPrCommentUser(login="octocat"),
         )
         parsed = parse_feedback(Feedback(source=source).json())
         assert isinstance(parsed[0].source, GithubPrReviewBodyFeedbackSource)
         assert parsed[0].source.review_id == 5
         assert parsed[0].source.body == "overall summary"
         assert parsed[0].source.html_url == "https://x/5"
+        assert parsed[0].source.user is not None
+        assert parsed[0].source.user.login == "octocat"
+
+    def test_user_defaults_to_none(self) -> None:
+        # Feedback serialized before ``user`` existed omits it; the field defaults
+        # to ``None`` so the UI falls back to the source glyph.
+        source = GithubPrReviewBodyFeedbackSource(review_id=5, body="overall summary")
+        parsed = parse_feedback(Feedback(source=source).json())
+        assert isinstance(parsed[0].source, GithubPrReviewBodyFeedbackSource)
+        assert parsed[0].source.user is None
 
     def test_should_consume_false_when_review_already_processed(self) -> None:
         processed = Feedback(source=GithubPrReviewBodyFeedbackSource(review_id=5, body="a"))

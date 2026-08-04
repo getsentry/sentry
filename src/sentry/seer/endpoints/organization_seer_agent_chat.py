@@ -26,7 +26,7 @@ from sentry.seer.agent.client_utils import (
     has_seer_agent_access_with_detail,
     snapshot_to_markdown,
 )
-from sentry.seer.endpoints.utils import resolve_seer_run
+from sentry.seer.endpoints.utils import ResolvedSeerRun, resolve_seer_run
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -183,11 +183,8 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         has_access, error = has_seer_agent_access_with_detail(organization, request.user)
 
         has_seer_access, _ = has_seer_access_with_detail(organization, request.user)
-        has_dashboards_ai_generate_access = has_seer_access and features.has(
-            "organizations:dashboards-ai-generate", organization, actor=request.user
-        )
 
-        if not has_access and not has_dashboards_ai_generate_access:
+        if not has_access and not has_seer_access:
             raise PermissionDenied(error)
 
         if not run_id:
@@ -236,13 +233,8 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         has_access, error = has_seer_agent_access_with_detail(organization, request.user)
 
         has_seer_access, _ = has_seer_access_with_detail(organization, request.user)
-        has_dashboards_ai_generate_access = has_seer_access and features.has(
-            "organizations:dashboards-ai-generate", organization, actor=request.user
-        )
-        # Orgs with dashboards AI generate access can continue existing dashboard generate runs, but cannot start new runs from this endpoint.
-        can_continue_dashboards_generate_run = (
-            has_dashboards_ai_generate_access and run_id is not None
-        )
+        # Orgs with Seer access can continue existing dashboard generate runs, but cannot start new runs from this endpoint.
+        can_continue_dashboards_generate_run = has_seer_access and run_id is not None
 
         if not has_access and not can_continue_dashboards_generate_run:
             raise PermissionDenied(error)
@@ -275,6 +267,15 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                     on_page_context = snapshot_to_markdown(snapshot)
             except (json.JSONDecodeError, TypeError, AttributeError):
                 pass
+        resolved: ResolvedSeerRun | None = None
+        if run_id:
+            user_id = request.user.id
+            if user_id is None:
+                raise PermissionDenied("A user account is required to continue a conversation.")
+            result = resolve_seer_run(run_id, organization, for_continue=True, user_id=user_id)
+            if isinstance(result, Response):
+                return result
+            resolved = result
 
         try:
             enable_coding = organization.get_option(
@@ -302,10 +303,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 enable_code_mode_tools=enable_code_mode_tools,
                 reasoning_effort="medium",
             )
-            if run_id:
-                resolved = resolve_seer_run(run_id, organization, for_continue=True)
-                if isinstance(resolved, Response):
-                    return resolved
+            if resolved is not None:
                 # Continue existing conversation
                 client.continue_run(
                     run_id=resolved.seer_run_state_id,

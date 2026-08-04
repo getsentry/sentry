@@ -65,6 +65,24 @@ function DiscoverContainer() {
     return <Redirect to={normalizeUrl('/explore/traces/')} />;
   }
 
+  // Backwards compatibility: if the org doesn't (or no longer) has the
+  // deprecation enabled, /explore/errors/ links (e.g. shared before the flag
+  // was disabled, or sent to an org without it) should still work — send the
+  // user to the /explore/discover/ equivalent, which supports the full
+  // Discover experience.
+  if (
+    !discoverTransactionsDeprecation &&
+    location.pathname.includes('/explore/errors/')
+  ) {
+    const match = location.pathname.match(/\/explore\/errors\/([^/]+)\//);
+    const discoverPath = match?.[1] ?? 'homepage';
+    const targetPath = makeDiscoverPathname({
+      path: `/${discoverPath}/`,
+      organization,
+    });
+    return <Redirect to={targetPath + location.search} />;
+  }
+
   function renderNoAccess() {
     return (
       <Stack flex={1} padding="2xl 3xl">

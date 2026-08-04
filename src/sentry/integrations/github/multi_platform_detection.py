@@ -2,16 +2,14 @@ from __future__ import annotations
 
 import re
 import time
+from base64 import b64decode
 from collections import defaultdict
 from concurrent.futures import as_completed
 from typing import TYPE_CHECKING, Any, TypedDict
 
 import sentry_sdk
+from yaml import YAMLError
 
-from sentry.integrations.github.platform_detection import (
-    _get_repo_file_content,
-    _parse_package_manifest,
-)
 from sentry.integrations.github.platform_registry import (
     _FRAMEWORKS_BY_PLATFORM,
     _NON_SELECTABLE_PLATFORMS,
@@ -44,10 +42,87 @@ from sentry.integrations.github.platform_registry import (
 from sentry.integrations.github.platform_registry import (
     _PackageManifest as _PackageManifest,
 )
+from sentry.shared_integrations.exceptions import ApiError
+from sentry.utils import json
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
+from sentry.utils.yaml import safe_load
 
 if TYPE_CHECKING:
     from sentry.integrations.github.client import GitHubBaseClient
+
+# ---------------------------------------------------------------------------
+# File I/O and manifest parsing helpers
+# ---------------------------------------------------------------------------
+
+
+def _ref_params(ref: str | None) -> dict[str, str]:
+    return {"ref": ref} if ref else {}
+
+
+def _get_repo_file_content(
+    client: GitHubBaseClient, repo: str, path: str, ref: str | None = None
+) -> str | None:
+    """Fetch a file's content from a GitHub repo. Returns None if not found."""
+    try:
+        response = client.get(
+            f"/repos/{repo}/contents/{path}",
+            params=_ref_params(ref),
+        )
+        return b64decode(response["content"]).decode("utf-8")
+    except (ApiError, KeyError, TypeError, UnicodeDecodeError, ValueError):
+        return None
+
+
+def _parse_package_manifest(content: str, manifest_file: str) -> _PackageManifest | None:
+    """Parse a package manifest into dependency sets."""
+    try:
+        if manifest_file == "package.json":
+            pkg = json.loads(content)
+            return _PackageManifest(
+                dependencies=set((pkg.get("dependencies") or {}).keys()),
+                dev_dependencies=set((pkg.get("devDependencies") or {}).keys()),
+            )
+        elif manifest_file == "composer.json":
+            composer = json.loads(content)
+            return _PackageManifest(
+                dependencies=set((composer.get("require") or {}).keys()),
+                dev_dependencies=set((composer.get("require-dev") or {}).keys()),
+            )
+        elif manifest_file == "pubspec.yaml":
+            return _parse_pubspec_yaml(content)
+        elif manifest_file == "Gemfile":
+            return _parse_gemfile(content)
+    except (json.JSONDecodeError, YAMLError, ValueError, KeyError, TypeError, AttributeError):
+        pass
+    return None
+
+
+def _parse_pubspec_yaml(content: str) -> _PackageManifest:
+    """Parse a pubspec.yaml file into dependency sets using PyYAML."""
+    data = safe_load(content)
+    if not isinstance(data, dict):
+        return _PackageManifest(dependencies=set(), dev_dependencies=set())
+    deps = set((data.get("dependencies") or {}).keys())
+    dev_deps = set((data.get("dev_dependencies") or {}).keys())
+    return _PackageManifest(dependencies=deps, dev_dependencies=dev_deps)
+
+
+def _parse_gemfile(content: str) -> _PackageManifest:
+    """Parse a Gemfile into dependency sets.
+
+    Extracts gem names from ``gem "name"`` or ``gem 'name'`` lines.
+    """
+    deps: set[str] = set()
+    gem_re = re.compile(r"""gem\s+['"]([^'"]+)['"]""")
+    for line in content.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            continue
+        match = gem_re.search(stripped)
+        if match:
+            deps.add(match.group(1))
+    return _PackageManifest(dependencies=deps, dev_dependencies=set())
+
 
 # ---------------------------------------------------------------------------
 # Multi-platform detection constants
@@ -378,8 +453,8 @@ def _rule_parent_dirs(
                 continue
             if ext_filter and not basename.endswith(ext_filter):
                 continue
-            # Match case-sensitively to mirror the registry's _rule_matches;
-            # patterns that want case-insensitivity embed an inline (?i) flag.
+            # Match case-sensitively; patterns that want case-insensitivity
+            # embed an inline (?i) flag.
             if re.search(pattern, content):
                 result.add(_parent_dir(full_path))
         return result

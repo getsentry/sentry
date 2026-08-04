@@ -34,6 +34,7 @@ const suggestedReasonTable: Record<SuggestedOwnerReason, string> = {
   suspectCommit: t('Suspect Commit'),
   ownershipRule: t('Ownership Rule'),
   projectOwnership: t('Ownership Rule'),
+  seerSuggested: t('Seer Suggestion'),
   // TODO: codeowners may no longer exist
   codeowners: t('Codeowners'),
 };
@@ -128,6 +129,7 @@ function AssigneeAvatar({
     }),
     ownershipRule: t('Matching Issue Owners Rule'),
     projectOwnership: t('Matching Issue Owners Rule'),
+    seerSuggested: t('Seer Suggestion'),
     codeowners: t('Matching Codeowners Rule'),
   };
   const assignedToSuggestion = suggestedActors.find(actor => actor.id === assignedTo?.id);
@@ -560,12 +562,13 @@ export function AssigneeSelectorDropdown({
         onChange={handleSelect}
         options={makeAllOptions()}
         trigger={trigger ?? makeTrigger}
-        menuFooter={
+        menuFooter={({closeOverlay}) => (
           <Flex gap="md">
             <MenuComponents.CTAButton
               disabled={loading}
               onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                 event.preventDefault();
+                closeOverlay();
                 openInviteMembersModal({source: 'assignee_selector'});
               }}
               icon={<IconAdd />}
@@ -574,7 +577,7 @@ export function AssigneeSelectorDropdown({
             </MenuComponents.CTAButton>
             {additionalMenuFooterItems}
           </Flex>
-        }
+        )}
         sizeLimit={sizeLimit}
         sizeLimitMessage="Use search to find more users and teams..."
         strategy="fixed"

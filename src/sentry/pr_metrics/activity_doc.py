@@ -498,6 +498,60 @@ def _bot_human_counts(
     return counts
 
 
+def reviews_requested_count_from_doc(doc: ActivityDoc) -> int:
+    """Net outstanding review requests: ``REVIEW_REQUESTED`` minus
+    ``REVIEW_REQUEST_REMOVED``, floored at 0.
+
+    Not part of ``derived_metrics_from_doc``'s persisted-counters dict — unlike
+    ``reviews_count`` and friends, nothing downstream re-reads this off
+    ``PullRequestMetrics`` after emission, so it's read straight from the doc at
+    emit time (see ``emit.review_activity``) rather than written through
+    to the model.
+
+    Both counts come from ``counts`` (not the ``events`` list) so the total
+    survives the events cap the same way ``reviews_count`` does. Floored
+    because a removal can't be matched to which earlier request it revoked —
+    e.g. a second reviewer's request outliving the first's removal — so the
+    net can't go negative; 0 just means "no request outstanding", not "one too
+    many removals".
+    """
+    counts = doc.get("counts", {})
+    requested = counts.get(PullRequestActivityType.REVIEW_REQUESTED, 0)
+    removed = counts.get(PullRequestActivityType.REVIEW_REQUEST_REMOVED, 0)
+    return max(requested - removed, 0)
+
+
+# GitHub's review-submission vocabulary — mirrors emit.REVIEW_STATES. Duplicated
+# rather than imported to avoid a circular import (emit.py imports this module).
+_REVIEW_STATES = ("approved", "changes_requested", "commented")
+
+
+def review_activity_from_doc(doc: ActivityDoc) -> dict[str, Any]:
+    """Review-submission facts, projected from the document: the same shape as
+    ``emit.review_activity``, returned as a plain dict for that function to
+    wrap into its ``ReviewActivity`` NamedTuple.
+
+    ``requested_count`` reuses ``reviews_requested_count_from_doc`` (from
+    ``counts``, cap-surviving). ``results`` tallies each ``REVIEW_SUBMITTED``
+    entry's ``review_state`` from the stored entries — like the bot/human
+    splits in ``derived_metrics_from_doc``, this is *not* cap-surviving (no
+    per-state totals are kept in ``counts``), so a PR past the events cap
+    undercounts here the same way it already does for
+    ``reviews_bot_count``/``reviews_human_count``.
+    """
+    results: Counter[str] = Counter()
+    for event in doc.get("events", []):
+        if event["event_type"] != PullRequestActivityType.REVIEW_SUBMITTED:
+            continue
+        review_state = (event.get("payload") or {}).get("review_state")
+        if review_state in _REVIEW_STATES:
+            results[review_state] += 1
+    return {
+        "requested_count": reviews_requested_count_from_doc(doc),
+        "results": {state: results[state] for state in _REVIEW_STATES},
+    }
+
+
 def derived_metrics_from_doc(doc: ActivityDoc) -> dict[str, Any]:
     """The activity-derived counters, projected from the document.
 
@@ -601,6 +655,20 @@ def _synthesized_check_suite_payload(group: CheckGroup) -> dict[str, Any]:
             name for name, run in runs.items() if is_failing_conclusion(run.get("conclusion"))
         ),
         "first_failure_at": group.get("first_failure_at"),
+        # Every check that has EVER failed in this group, with its current
+        # conclusion and failure count. `failing_check_names` above is the
+        # currently-failing subset; the rest are checks that went red and came back
+        # green at the same SHA — flaky CI, which the collapse would otherwise
+        # destroy (the group reads plain "success"). `completed_at` is deliberately
+        # not forwarded: the judge orders by the group's own timestamp and has no
+        # use for per-run times.
+        "check_runs": {
+            name: {
+                "conclusion": run.get("conclusion") or "",
+                "failed_attempts": run.get("failed_attempts", 0),
+            }
+            for name, run in runs.items()
+        },
     }
 
 
@@ -645,3 +713,31 @@ def timeline_events_from_doc(doc: ActivityDoc) -> list[dict[str, Any]]:
 
     events.sort(key=lambda event: event["timestamp"] or "")
     return events
+
+
+# Reviewer engagement for the NO_REVIEWER_ENGAGEMENT diagnosis label. Narrower
+# than tasks.ENGAGING_ACTIVITY_TYPES, which also counts PR-author actions with
+# no reviewer involved. Shared by has_reviewer_engagement (document) and
+# detect_stale_pull_requests_task's legacy-track check (PullRequestActivity
+# rows), so both tracks use the same definition.
+REVIEWER_ENGAGEMENT_ACTIVITY_TYPES = frozenset(
+    {
+        PullRequestActivityType.REVIEW_SUBMITTED,
+        PullRequestActivityType.REVIEW_REQUESTED,
+    }
+)
+
+
+def has_reviewer_engagement(doc: Mapping[str, Any]) -> bool:
+    """Whether ``doc`` records any reviewer engagement throughout the PR's lifetime.
+
+    A capped ``events_dropped`` doc reads as engaged rather than risk a false
+    NO_REVIEWER_ENGAGEMENT label off an incomplete record.
+    """
+    if doc.get("events_dropped"):
+        return True
+
+    for entry in doc.get("events") or ():
+        if entry.get("event_type") in REVIEWER_ENGAGEMENT_ACTIVITY_TYPES:
+            return True
+    return False
