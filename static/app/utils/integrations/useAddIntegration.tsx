@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useState} from 'react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openPipelineModal} from 'sentry/components/pipeline/modal';
@@ -37,6 +37,8 @@ export interface AddIntegrationParams {
     description?: string;
     title?: string;
   };
+  onCancel?: () => void;
+  onError?: (error: string) => void;
   /**
    * When true, the "%s added" success toast is not shown on install.
    * Use when the surrounding UI already communicates the connected state.
@@ -44,6 +46,13 @@ export interface AddIntegrationParams {
   suppressSuccessMessage?: boolean;
   urlParams?: Record<string, string>;
 }
+
+export type AddIntegrationState =
+  | {status: 'idle'}
+  | {providerKey: string; status: 'installing'}
+  | {integration: IntegrationWithConfig; providerKey: string; status: 'complete'}
+  | {providerKey: string; status: 'cancelled'}
+  | {error: string; providerKey: string; status: 'error'};
 
 /**
  * Opens the integration setup flow. Accepts all parameters at call time via
@@ -55,11 +64,15 @@ export interface AddIntegrationParams {
  * flows are surfaced by `openPipelineModal`/the registry.
  */
 export function useAddIntegration() {
+  const [state, setState] = useState<AddIntegrationState>({status: 'idle'});
+
   const startFlow = useCallback((params: AddIntegrationParams) => {
     const {
       organization,
       provider,
       onInstall,
+      onCancel,
+      onError,
       analyticsParams,
       suppressSuccessMessage,
       urlParams,
@@ -67,6 +80,11 @@ export function useAddIntegration() {
     } = params;
 
     const is_scm = isScmProvider(provider);
+    let cancelled = false;
+    let completed = false;
+    let failed = false;
+
+    setState({status: 'installing', providerKey: provider.key});
 
     trackIntegrationAnalytics('integrations.installation_start', {
       integration: provider.key,
@@ -82,6 +100,7 @@ export function useAddIntegration() {
       initialData: urlParams,
       ...modalParams,
       onComplete: data => {
+        completed = true;
         trackIntegrationAnalytics('integrations.installation_complete', {
           integration: provider.key,
           integration_type: 'first_party',
@@ -92,10 +111,25 @@ export function useAddIntegration() {
         if (!suppressSuccessMessage) {
           addSuccessMessage(t('%s added', provider.name));
         }
-        onInstall(data as IntegrationWithConfig);
+        const integration = data as IntegrationWithConfig;
+        setState({status: 'complete', providerKey: provider.key, integration});
+        onInstall(integration);
+      },
+      onError: error => {
+        failed = true;
+        setState({status: 'error', providerKey: provider.key, error});
+        onError?.(error);
+      },
+      onClose: () => {
+        if (cancelled || completed || failed) {
+          return;
+        }
+        cancelled = true;
+        setState({status: 'cancelled', providerKey: provider.key});
+        onCancel?.();
       },
     });
   }, []);
 
-  return {startFlow};
+  return {startFlow, state};
 }

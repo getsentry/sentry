@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -30,6 +30,7 @@ interface PipelineModalProps<
   description?: string;
   initialData?: Record<string, string>;
   onComplete?: (data: CompletionDataFor<T, P>) => void;
+  onError?: (error: string) => void;
   /** Overrides the header title (defaults to the pipeline's `actionTitle`). */
   title?: string;
 }
@@ -45,6 +46,7 @@ function PipelineModal<
   provider,
   initialData,
   onComplete,
+  onError,
   title,
   description,
 }: PipelineModalProps<T, P>) {
@@ -59,6 +61,14 @@ function PipelineModal<
     description,
   });
   const {stepDefinition} = pipeline;
+  const lastReportedError = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (pipeline.error && pipeline.error !== lastReportedError.current) {
+      lastReportedError.current = pipeline.error;
+      onError?.(pipeline.error);
+    }
+  }, [onError, pipeline.error]);
 
   const stepText = (
     <Text variant="muted">
@@ -153,6 +163,7 @@ interface OpenPipelineModalOptions<
   initialData?: Record<string, string>;
   onClose?: () => void;
   onComplete?: (data: CompletionDataFor<T, P>) => void;
+  onError?: (error: string) => void;
   title?: string;
 }
 
@@ -165,6 +176,7 @@ export function openPipelineModal<
   initialData,
   onComplete,
   onClose,
+  onError,
   title,
   description,
 }: OpenPipelineModalOptions<T, P>) {
@@ -176,6 +188,7 @@ export function openPipelineModal<
         provider={provider}
         initialData={initialData}
         onComplete={onComplete}
+        onError={onError}
         title={title}
         description={description}
       />
