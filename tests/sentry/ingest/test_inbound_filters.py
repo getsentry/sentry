@@ -321,6 +321,81 @@ def test_custom_inbound_filter_condition_translation(
 
 
 @django_db_all
+def test_custom_inbound_filter_row_becomes_relay_config(default_project, factories) -> None:
+    # Golden test for the whole path: a stored filter row in, the exact generic filters
+    # config Relay receives out. Spelled out literally so a change in the emitted JSON
+    # has to be made deliberately here.
+    for builtin_filter_id, _ in ACTIVE_GENERIC_FILTERS:
+        default_project.update_option(f"filters:{builtin_filter_id}", "0")
+
+    custom_filter = factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[
+            {"type": "error_message", "value": ["*ConnectionError*", "Timeout*"]},
+            {"type": "release", "value": ["1.*"]},
+        ],
+    )
+
+    generic_filters = get_generic_filters(
+        default_project,
+        InboundFilterFeatures(custom_inbound_filters=True, inbound_filters_v2=True),
+    )
+
+    assert generic_filters == {
+        "version": 1,
+        "filters": [
+            {
+                "id": f"cif-{custom_filter.id}",
+                "isEnabled": True,
+                "condition": {
+                    "op": "and",
+                    "inner": [
+                        {
+                            "op": "or",
+                            "inner": [
+                                {
+                                    "op": "any",
+                                    "name": "event.exception.values",
+                                    "inner": {
+                                        "op": "or",
+                                        "inner": [
+                                            {
+                                                "op": "glob",
+                                                "name": "ty",
+                                                "value": ["*ConnectionError*"],
+                                            },
+                                            {"op": "glob", "name": "ty", "value": ["Timeout*"]},
+                                            {
+                                                "op": "glob",
+                                                "name": "value",
+                                                "value": ["*ConnectionError*"],
+                                            },
+                                            {"op": "glob", "name": "value", "value": ["Timeout*"]},
+                                        ],
+                                    },
+                                },
+                                {
+                                    "op": "glob",
+                                    "name": "event.logentry.formatted",
+                                    "value": ["*ConnectionError*"],
+                                },
+                                {
+                                    "op": "glob",
+                                    "name": "event.logentry.formatted",
+                                    "value": ["Timeout*"],
+                                },
+                            ],
+                        },
+                        {"op": "glob", "name": "event.release", "value": ["1.*"]},
+                    ],
+                },
+            }
+        ],
+    }
+    assert_relay_accepts_condition(generic_filters["filters"][0]["condition"])
+
+
+@django_db_all
 def test_custom_inbound_filter_skips_inactive_filters(default_project, factories) -> None:
     factories.create_project_custom_inbound_filter(
         default_project,

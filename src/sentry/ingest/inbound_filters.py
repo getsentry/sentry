@@ -1,5 +1,6 @@
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
+from functools import partial
 from typing import Any, cast
 
 from django.conf import settings
@@ -508,92 +509,103 @@ def _custom_error_message_condition(values: list[str]) -> RuleCondition:
     return _error_message_condition(patterns, match_logentry=True)
 
 
-# Where a condition type's data lives: either a Relay Getter field path
-# (matched with a glob), or a builder for condition types that span multiple
-# fields.
-_ConditionLocation = str | Callable[[list[str]], RuleCondition]
+# Builds the Relay condition that matches one filter condition's glob values.
+_ConditionMatcher = Callable[[list[str]], RuleCondition]
 
-# Where each condition type's data lives on one ingestion item type.
-_ItemTypeLocations = Mapping[CustomInboundFilterConditionType, _ConditionLocation]
+
+def _field_matcher(name: str) -> _ConditionMatcher:
+    """Matches the glob values against a single Relay Getter field path."""
+    return partial(_glob, name)
 
 
 @dataclass(frozen=True)
 class _OptionFilter:
     """
-    The pre-v2 inbound filter over a data category's primary data, configured through a
-    project option holding a list of globs rather than a ``CustomInboundFilter`` row.
-
-    It globs the same field as its category's primary condition type.
+    The pre-v2 inbound filter over an item type's primary data, configured through a
+    project option holding a list of globs instead of a ``CustomInboundFilter`` row.
     """
 
-    generic_filter_id: str
+    filter_id: str
     option: str
 
 
 @dataclass(frozen=True)
-class _DataCategory:
+class _ItemType:
     """
-    The Relay field paths of one kind of ingested item, and the inbound filters over them.
+    One kind of ingested item, and how custom inbound filter conditions match its data.
 
-    ``primary_condition`` is the condition type that identifies the category, and
-    ``primary_location`` is where its data lives. A custom inbound filter belongs to the
-    category of its first recognised condition type; one carrying only release conditions
-    belongs to events, mirroring the legacy ``releases`` inbound filter.
+    ``primary_condition`` is the condition type that only this item type accepts. Every
+    item type also accepts a release condition.
     """
 
     primary_condition: CustomInboundFilterConditionType
-    primary_location: _ConditionLocation
-    release_field: str
+    primary_match: _ConditionMatcher
+    release_match: _ConditionMatcher
     option_filter: _OptionFilter | None = None
 
-    @property
-    def condition_locations(self) -> _ItemTypeLocations:
-        return {
-            self.primary_condition: self.primary_location,
-            CustomInboundFilterConditionType.RELEASE: self.release_field,
-        }
+    def match(self, condition_type: CustomInboundFilterConditionType) -> _ConditionMatcher | None:
+        """How to match one condition type, or None if this item type carries no such data."""
+        if condition_type == self.primary_condition:
+            return self.primary_match
+        if condition_type == CustomInboundFilterConditionType.RELEASE:
+            return self.release_match
+        return None
 
 
-_EVENTS = _DataCategory(
+_EVENTS = _ItemType(
     primary_condition=CustomInboundFilterConditionType.ERROR_MESSAGE,
-    primary_location=_custom_error_message_condition,
-    release_field="event.release",
+    primary_match=_custom_error_message_condition,
+    release_match=_field_matcher("event.release"),
 )
 
-_LOGS = _DataCategory(
+_LOGS = _ItemType(
     primary_condition=CustomInboundFilterConditionType.LOG_MESSAGE,
-    primary_location="log.body",
-    release_field="log.attributes.sentry.release.value",
-    option_filter=_OptionFilter(generic_filter_id="log-message", option=FilterTypes.LOG_MESSAGES),
+    primary_match=_field_matcher("log.body"),
+    release_match=_field_matcher("log.attributes.sentry.release.value"),
+    option_filter=_OptionFilter(filter_id="log-message", option=FilterTypes.LOG_MESSAGES),
 )
 
-_TRACE_METRICS = _DataCategory(
+_TRACE_METRICS = _ItemType(
     primary_condition=CustomInboundFilterConditionType.METRIC_NAME,
-    primary_location="trace_metric.name",
-    release_field="trace_metric.attributes.sentry.release.value",
+    primary_match=_field_matcher("trace_metric.name"),
+    release_match=_field_matcher("trace_metric.attributes.sentry.release.value"),
     option_filter=_OptionFilter(
-        generic_filter_id="trace-metric-name", option=FilterTypes.TRACE_METRIC_NAMES
+        filter_id="trace-metric-name", option=FilterTypes.TRACE_METRIC_NAMES
     ),
 )
 
-_CATEGORY_BY_PRIMARY_CONDITION: Mapping[CustomInboundFilterConditionType | None, _DataCategory] = {
-    None: _EVENTS,
-    **{category.primary_condition: category for category in (_EVENTS, _LOGS, _TRACE_METRICS)},
-}
+_ITEM_TYPES = (_EVENTS, _LOGS, _TRACE_METRICS)
 
 
-def _option_generic_filters(project: Project, category: _DataCategory) -> list[GenericFilter]:
-    option_filter = category.option_filter
-    field = category.primary_location
-    # Only categories whose primary data is a single field carry an option filter.
-    if option_filter is None or not isinstance(field, str):
+def _item_type_for(condition_types: Iterable[CustomInboundFilterConditionType]) -> _ItemType:
+    """
+    The item type a filter's conditions apply to.
+
+    A filter targets one item type, identified by the primary condition type it carries.
+    Conditions that carry only a release apply to events, mirroring the legacy
+    ``releases`` inbound filter.
+    """
+    for condition_type in condition_types:
+        for item_type in _ITEM_TYPES:
+            if condition_type == item_type.primary_condition:
+                return item_type
+
+    return _EVENTS
+
+
+def _option_generic_filters(project: Project, item_type: _ItemType) -> list[GenericFilter]:
+    """
+    The item type's option-backed filter, matching the same data as its primary condition.
+    """
+    option_filter = item_type.option_filter
+    if option_filter is None:
         return []
 
     globs = project.get_option(f"sentry:{option_filter.option}")
     if not globs:
         return []
 
-    return [_generic_filter(option_filter.generic_filter_id, _glob(field, globs))]
+    return [_generic_filter(option_filter.filter_id, item_type.primary_match(globs))]
 
 
 def _custom_filter_condition(conditions: list[dict[str, Any]]) -> RuleCondition | None:
@@ -601,10 +613,10 @@ def _custom_filter_condition(conditions: list[dict[str, Any]]) -> RuleCondition 
     Translates a custom inbound filter's conditions into a Relay rule condition.
 
     Conditions are combined with AND. Returns None if any condition cannot be
-    translated (a type or value shape unknown to this revision, or a type with
-    no location on the item type the filter applies to): since every condition
-    narrows the match, dropping only the broken condition would filter more
-    data than configured.
+    translated (a type or value shape unknown to this revision, or a type whose
+    data the filter's item type does not carry): since every condition narrows
+    the match, dropping only the broken condition would filter more data than
+    configured.
     """
     if not conditions:
         return None
@@ -622,18 +634,14 @@ def _custom_filter_condition(conditions: list[dict[str, Any]]) -> RuleCondition 
 
         parsed.append((condition_type, values))
 
-    primary_type = next((ty for ty, _ in parsed if ty in _CATEGORY_BY_PRIMARY_CONDITION), None)
-    locations = _CATEGORY_BY_PRIMARY_CONDITION[primary_type].condition_locations
+    item_type = _item_type_for(condition_type for condition_type, _ in parsed)
 
     rule_conditions: list[RuleCondition] = []
     for condition_type, values in parsed:
-        location = locations.get(condition_type)
-        if location is None:
+        match = item_type.match(condition_type)
+        if match is None:
             return None
-        if isinstance(location, str):
-            rule_conditions.append(_glob(location, values))
-        else:
-            rule_conditions.append(location(values))
+        rule_conditions.append(match(values))
 
     if len(rule_conditions) == 1:
         return rule_conditions[0]
