@@ -529,10 +529,16 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert mock_try_enqueue.call_args.kwargs["actor_user_id"] == self.user.id
         mock_consume.apply_async.assert_called_once()
 
-    @with_feature({"organizations:autofix-pr-iteration-manual": False})
+    @with_feature(
+        {
+            "organizations:autofix-pr-iteration-manual": False,
+            # On, to pin that automated CI iteration does not grant manual iteration.
+            "organizations:autofix-pr-iteration": True,
+        }
+    )
     @patch("sentry.seer.endpoints.group_ai_autofix.consume_queued_autofix_feedback")
     @patch("sentry.seer.endpoints.group_ai_autofix.try_enqueue_autofix_feedback")
-    def test_pr_iteration_requires_feature_flag(self, mock_try_enqueue, mock_consume):
+    def test_pr_iteration_requires_manual_feature_flag(self, mock_try_enqueue, mock_consume):
         group = self.create_group()
 
         self.login_as(user=self.user)

@@ -997,9 +997,14 @@ class TestMaybeReactToCompletedIteration(TestCase):
 
     @patch(f"{REACT_PATH}.make_scm")
     @patch(f"{REACT_PATH}._add_comment_reaction")
-    def test_noop_when_feature_disabled(self, mock_react, mock_make_scm):
+    def test_noop_when_manual_feature_disabled(self, mock_react, mock_make_scm):
         state = self._state_with([self._top_level_source()])
-        AutofixOnCompletionHook._maybe_react_to_completed_iteration(self.organization, 123, state)
+        # Automated CI iteration on, manual off: only comment-triggered iterations have
+        # a comment to react to, so the automated flag must not enable the reaction.
+        with self.feature("organizations:autofix-pr-iteration"):
+            AutofixOnCompletionHook._maybe_react_to_completed_iteration(
+                self.organization, 123, state
+            )
         mock_react.assert_not_called()
 
     @patch(f"{REACT_PATH}.make_scm")

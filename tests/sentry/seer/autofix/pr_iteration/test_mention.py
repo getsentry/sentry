@@ -85,8 +85,11 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
         mock_delay.assert_not_called()
 
     @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
-    def test_skips_when_feature_disabled(self, mock_delay: MagicMock) -> None:
-        self._call(self._event())
+    def test_skips_when_manual_feature_disabled(self, mock_delay: MagicMock) -> None:
+        # Automated CI iteration on, manual off: the comment trigger is manual-only,
+        # so the automated flag must not enable it.
+        with self.feature("organizations:autofix-pr-iteration"):
+            self._call(self._event())
         mock_delay.assert_not_called()
 
     @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")

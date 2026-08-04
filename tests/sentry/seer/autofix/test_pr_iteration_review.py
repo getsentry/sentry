@@ -124,11 +124,14 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
 
     @patch(f"{TASK_PATH}.trigger_pr_iteration_from_review.delay")
     @patch(f"{REVIEW_PATH}.integration_service.organization_contexts")
-    def test_skips_when_feature_disabled(
+    def test_skips_when_manual_feature_disabled(
         self, mock_contexts: MagicMock, mock_delay: MagicMock
     ) -> None:
         self._mock_org_contexts(mock_contexts)
-        handle_pull_request_review_for_autofix_iteration(self._event())
+        # Automated CI iteration on, manual off: the review trigger is manual-only,
+        # so the automated flag must not enable it.
+        with self.feature("organizations:autofix-pr-iteration"):
+            handle_pull_request_review_for_autofix_iteration(self._event())
         mock_delay.assert_not_called()
 
     @patch(f"{TASK_PATH}.trigger_pr_iteration_from_review.delay")
