@@ -56,7 +56,7 @@ const solutionArtifact = AutofixSolutionArtifactFixture({
 });
 
 describe('IssuePreviewAutofixSummary', () => {
-  it('renders collapsed summaries in the requested order and expands full details', async () => {
+  it('renders summaries in the requested order with the first section expanded', async () => {
     const runState = ExplorerAutofixStateFixture({
       blocks: [
         ExplorerAutofixBlockFixture({artifacts: [rootCauseArtifact]}),
@@ -115,7 +115,7 @@ describe('IssuePreviewAutofixSummary', () => {
 
     expect(within(proposal).getByRole('button', {name: 'Proposal'})).toHaveAttribute(
       'aria-expanded',
-      'false'
+      'true'
     );
     expect(
       within(plan).getByRole('button', {name: 'Implementation Plan'})
@@ -133,7 +133,7 @@ describe('IssuePreviewAutofixSummary', () => {
       within(rootCause).getByText('An unexpected null value reached the user handler.')
     ).toBeVisible();
 
-    expect(within(proposal).getByText('org/frontend:src/user.ts')).not.toBeVisible();
+    expect(within(proposal).getByText('org/frontend:src/user.ts')).toBeVisible();
     expect(within(plan).getByText('Add a null guard')).not.toBeVisible();
     expect(
       within(rootCause).getByText(
@@ -141,8 +141,6 @@ describe('IssuePreviewAutofixSummary', () => {
       )
     ).not.toBeVisible();
 
-    await userEvent.click(within(proposal).getByRole('button', {name: 'Proposal'}));
-    expect(within(proposal).getByText('org/frontend:src/user.ts')).toBeVisible();
     expect(within(proposal).getByText('org/backend:tests/test_user.py')).toBeVisible();
 
     await userEvent.click(
@@ -175,6 +173,10 @@ describe('IssuePreviewAutofixSummary', () => {
     );
 
     expect(screen.getByRole('region', {name: 'Root Cause'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Root Cause'})).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
     expect(
       screen.queryByRole('region', {name: 'Implementation Plan'})
     ).not.toBeInTheDocument();

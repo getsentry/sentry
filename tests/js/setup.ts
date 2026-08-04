@@ -11,6 +11,7 @@ import {MotionGlobalConfig} from 'framer-motion';
 import {enableFetchMocks} from 'jest-fetch-mock';
 import {ConfigFixture} from 'sentry-fixture/config';
 
+import {MockResizeObserver, resetResizeObservers} from 'sentry-test/resizeObserver';
 import {resetMockDate} from 'sentry-test/utils';
 
 // eslint-disable-next-line jest/no-mocks-import
@@ -205,6 +206,7 @@ jest.mock('sentry/utils/testableWindowLocation', () => ({
 
 // Close any open modals before each test
 beforeEach(closeModal);
+afterEach(resetResizeObservers);
 
 jest.mock('echarts-for-react/lib/core', function echartsMockFactory() {
   // We need to do this because `jest.mock` gets hoisted before imports and `React` is not
@@ -373,11 +375,7 @@ window.IntersectionObserver = class IntersectionObserver {
   disconnect() {}
 };
 
-window.ResizeObserver = class ResizeObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-};
+window.ResizeObserver = MockResizeObserver;
 
 // Mock the crypto.subtle API for Gravatar
 Object.defineProperty(global.self, 'crypto', {

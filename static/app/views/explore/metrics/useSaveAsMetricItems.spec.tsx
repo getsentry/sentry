@@ -333,7 +333,7 @@ describe('useSaveAsMetricItems', () => {
       | undefined;
 
     expect(alertItem?.disabled).toBe(true);
-    expect(alertItem?.tooltip).toBe('Alerts are not available on your current plan.');
+    expect(alertItem?.tooltip).toBe('Monitors are not available on your current plan.');
     expect(alertItem?.children).toEqual([]);
   });
 

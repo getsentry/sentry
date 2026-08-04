@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {LogoSentry} from 'sentry/components/logoSentry';
@@ -35,6 +35,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useBackActions} from 'sentry/views/onboarding/useBackActions';
 
+import {FOOTER_HEIGHT} from './components/genericFooter';
 import {NewWelcomeUI} from './components/newWelcome';
 import {OnboardingSkipButton} from './components/onboardingSkipButton';
 import {PlatformSelection} from './platformSelection';
@@ -440,10 +441,17 @@ export function OnboardingWithoutContext() {
         hasScmOnboarding={hasScmOnboarding}
       >
         {hasScmOnboarding ? null : (
-          <AdaptivePageCorners
-            // Controls the current corner variant
-            animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
-          />
+          <Container
+            position="absolute"
+            inset={0}
+            pointerEvents="none"
+            containerType="inline-size"
+          >
+            <AdaptivePageCorners
+              // Controls the current corner variant
+              animateVariant={stepIndex === 0 ? 'top-right' : 'top-left'}
+            />
+          </Container>
         )}
         {stepIndex > 0 && !hasScmOnboarding && (
           <BackMotionDiv
@@ -518,7 +526,7 @@ const OnboardingContainerNewWelcomeUI = styled('div')<{
 
   width: 100%;
   margin: 0 auto;
-  margin-bottom: ${p => p.hasFooter && '72px'};
+  margin-bottom: ${p => p.hasFooter && FOOTER_HEIGHT};
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     padding: ${p => p.theme.space['3xl']} ${p => p.theme.space['2xl']};
@@ -538,8 +546,8 @@ const OnboardingContainer = styled('div')<{
   padding: ${p => (p.hasScmOnboarding ? '60px' : '120px')} ${p => p.theme.space['2xl']};
   width: 100%;
   margin: 0 auto;
-  padding-bottom: ${p => p.hasFooter && '72px'};
-  margin-bottom: ${p => p.hasFooter && '72px'};
+  padding-bottom: ${p => p.hasFooter && FOOTER_HEIGHT};
+  margin-bottom: ${p => p.hasFooter && FOOTER_HEIGHT};
 `;
 
 const Header = styled(Grid)`
@@ -575,7 +583,7 @@ const OnboardingStepNewUi = styled(motion.div)`
 const AdaptivePageCorners = styled(PageCorners)`
   --corner-scale: 1;
   overflow: hidden;
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     --corner-scale: 0.5;
   }
 `;

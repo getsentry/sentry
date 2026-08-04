@@ -3,8 +3,8 @@ import type {Variants} from 'framer-motion';
 import {motion} from 'framer-motion';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Grid, type GridProps} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
+import {Container, Flex, Grid, type GridProps} from '@sentry/scraps/layout';
+import {Link, type LinkProps} from '@sentry/scraps/link';
 
 import {CreateSampleEventButton} from 'sentry/components/onboarding/createSampleEventButton';
 import {useOnboardingSidebar} from 'sentry/components/onboarding/useOnboardingSidebar';
@@ -82,32 +82,40 @@ export function FirstEventFooter({
           {t('Skip Onboarding')}
         </SkipOnboardingLink>
       )}
-      <StatusWrapper
-        initial="initial"
-        animate="animate"
-        exit="exit"
-        variants={{
-          initial: {opacity: 0, y: -10},
-          animate: {
-            opacity: 1,
-            y: 0,
-            transition: {
-              when: 'beforeChildren',
-              staggerChildren: 0.35,
-            },
-          },
-          exit: {opacity: 0, y: 10},
-        }}
-      >
-        {project.firstEvent ? (
-          <IconCheckmark variant="success" />
-        ) : (
-          <WaitingIndicator variants={indicatorAnimation} />
+      <Flex align="center" justify="center" display={{zero: 'none', xl: 'flex'}}>
+        {flexProps => (
+          <motion.div
+            {...flexProps}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            variants={{
+              initial: {opacity: 0, y: -10},
+              animate: {
+                opacity: 1,
+                y: 0,
+                transition: {
+                  when: 'beforeChildren',
+                  staggerChildren: 0.35,
+                },
+              },
+              exit: {opacity: 0, y: 10},
+            }}
+          >
+            {project.firstEvent ? (
+              <IconCheckmark variant="success" />
+            ) : (
+              <WaitingIndicator variants={indicatorAnimation} />
+            )}
+            <AnimatedText
+              errorReceived={!!project.firstEvent}
+              variants={indicatorAnimation}
+            >
+              {project.firstEvent ? t('Error Received') : t('Waiting for error')}
+            </AnimatedText>
+          </motion.div>
         )}
-        <AnimatedText errorReceived={!!project.firstEvent} variants={indicatorAnimation}>
-          {project.firstEvent ? t('Error Received') : t('Waiting for error')}
-        </AnimatedText>
-      </StatusWrapper>
+      </Flex>
       <OnboardingButtonBar>
         {/* if hasn't sent first event, allow skipping. if last, no secondary cta */}
         {!project.firstEvent && !isLast ? (
@@ -163,6 +171,7 @@ const AnimatedText = styled(motion.div, {
   shouldForwardProp: prop => prop !== 'errorReceived',
 })<{errorReceived: boolean}>`
   margin-left: ${p => p.theme.space.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p =>
     p.errorReceived ? p.theme.tokens.content.success : p.theme.colors.pink500};
 `;
@@ -178,27 +187,20 @@ const WaitingIndicator = styled(motion.div)`
   background-color: ${p => p.theme.colors.pink400};
 `;
 
-const StatusWrapper = styled(motion.div)`
-  display: flex;
-  align-items: center;
-  font-size: ${p => p.theme.font.size.md};
-  justify-content: center;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
-`;
-
 const LeadingSlot = styled('div')`
   display: flex;
   align-items: center;
   margin: auto ${p => p.theme.space['3xl']};
 `;
 
-const SkipOnboardingLink = styled(Link)`
-  margin: auto ${p => p.theme.space['3xl']};
-  white-space: nowrap;
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
-`;
+function SkipOnboardingLink(props: LinkProps) {
+  return (
+    <Container
+      display={{zero: 'none', xl: 'block'}}
+      margin="auto 3xl"
+      whiteSpace="nowrap"
+    >
+      {containerProps => <Link {...containerProps} {...props} />}
+    </Container>
+  );
+}

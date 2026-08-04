@@ -603,7 +603,11 @@ export function useExplorerAutofix(
     ]);
   }, []);
 
-  const {data: apiData, isPending} = useQuery({
+  const {
+    data: apiData,
+    isFetching,
+    isPending,
+  } = useQuery({
     ...explorerAutofixApiOptions(orgSlug, groupId),
     retry: false,
     enabled,
@@ -935,9 +939,11 @@ export function useExplorerAutofix(
      */
     runState,
     /**
-     * Whether the initial data fetch is pending.
+     * Whether we're fetching without an existing run to display.
+     * This includes background refetches of a cached null response so callers do not
+     * treat that stale response as confirmation that no run exists.
      */
-    isLoading: isPending,
+    isLoading: isPending || (isFetching && !runState),
     /**
      * Whether we're actively processing (used for UI indicators).
      */

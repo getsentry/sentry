@@ -666,7 +666,7 @@ class WeeklyReportUtilsTest(
         assert label_by_group[group2.id] == "Resolved"
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
-    def test_fetch_resolution_label_pr(self) -> None:
+    def test_fetch_resolution_label_pr_link_ignored(self) -> None:
         self.project.first_event = self.now - timedelta(days=3)
         self.project.save()
         min_ago = (self.now - timedelta(minutes=1)).isoformat()
@@ -704,7 +704,7 @@ class WeeklyReportUtilsTest(
 
         updated = ctx.projects_context_map[self.project.id].past_resolved_issues
         assert len(updated) == 1
-        assert updated[0][2] == "Resolved in PR"
+        assert updated[0][2] == "Resolved"
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_fetch_resolution_label_release(self) -> None:
@@ -791,7 +791,7 @@ class WeeklyReportUtilsTest(
         assert updated[0][2] == "Resolved in next release"
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
-    def test_fetch_resolution_label_pr_priority_over_release(self) -> None:
+    def test_fetch_resolution_label_release_with_pr_link(self) -> None:
         self.project.first_event = self.now - timedelta(days=3)
         self.project.save()
         min_ago = (self.now - timedelta(minutes=1)).isoformat()
@@ -837,7 +837,7 @@ class WeeklyReportUtilsTest(
 
         updated = ctx.projects_context_map[self.project.id].past_resolved_issues
         assert len(updated) == 1
-        assert updated[0][2] == "Resolved in PR"
+        assert updated[0][2] == "Resolved in release"
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_fetch_resolution_label_null_type(self) -> None:

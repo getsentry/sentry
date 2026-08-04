@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils/defined';
 import type {
   ExplorerCodingAgentState,
   RepoPRState,
@@ -35,8 +36,8 @@ export function getRepoPullRequestLink(state: RepoPRState): AutofixResultLink | 
 /**
  * What a coding agent produced, or null if it reported no URL.
  *
- * `auto_create_pr=false` pushes a branch instead of opening a PR and `pr_url` holds
- * either, so the two are told apart by URL shape.
+ * `pr_url` holds a pushed branch rather than a PR when the agent ran with
+ * `auto_create_pr=false`, and results predating `pr_number` carry no number either way.
  */
 export function getCodingAgentResultLink(
   result: CodingAgentResult
@@ -46,7 +47,9 @@ export function getCodingAgentResultLink(
   }
 
   return {
-    label: result.pr_url.includes('/tree/') ? t('View Branch') : t('View Pull Request'),
+    label: defined(result.pr_number)
+      ? t('View %s#%s', result.repo_full_name, result.pr_number)
+      : t('View %s', result.repo_full_name),
     url: result.pr_url,
   };
 }

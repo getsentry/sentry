@@ -26,6 +26,16 @@ class SeerRunMirrorStatus(models.TextChoices):
     FAILED = "failed"
 
 
+class SeerRunMilestoneType(models.TextChoices):
+    ROOT_CAUSE = "autofix_root_cause"
+    SOLUTION = "autofix_solution"
+    CODE_CHANGES = "autofix_code_changes"
+    # Aggregate, not per-PR: HAS_PULL_REQUEST means the run opened at least one
+    # PR; PULL_REQUESTS_MERGED means all of the run's PRs are merged.
+    HAS_PULL_REQUEST = "has_pull_request"
+    PULL_REQUESTS_MERGED = "pull_requests_merged"
+
+
 @cell_silo_model
 class SeerRun(DefaultFieldsModel):
     """
@@ -122,6 +132,37 @@ class SeerRunPullRequest(DefaultFieldsModel):
         ]
 
     __repr__ = sane_repr("seer_run_id", "pull_request_id")
+
+
+@cell_silo_model
+class SeerRunMilestone(DefaultFieldsModel):
+    """Records the progress milestones a run reached.
+
+    A milestone is recorded at most once per run (enforced by the unique
+    constraint), so out-of-order or duplicate delivery is a safe no-op insert.
+    Milestones are aggregate facts about the run, not per-PR events: a run that
+    opens several PRs records HAS_PULL_REQUEST once. Re-running a run from an
+    earlier step may later clear milestones that no longer hold.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    seer_run = FlexibleForeignKey(
+        "seer.SeerRun", on_delete=models.CASCADE, related_name="milestones"
+    )
+    milestone = models.CharField(max_length=256, choices=SeerRunMilestoneType.choices)
+
+    class Meta:
+        app_label = "seer"
+        db_table = "seer_seerrunmilestone"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["seer_run", "milestone"],
+                name="seer_runmilestone_unique",
+            ),
+        ]
+
+    __repr__ = sane_repr("seer_run_id", "milestone")
 
 
 class SeerRunCodingAgentHandoffExtras(TypedDict, total=False):

@@ -1,6 +1,4 @@
-import {useState} from 'react';
 import styled from '@emotion/styled';
-import {useQueryClient} from '@tanstack/react-query';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -11,10 +9,7 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  updateDashboardFavorite,
-  updateDashboardPermissions,
-} from 'sentry/actionCreators/dashboards';
+import {updateDashboardPermissions} from 'sentry/actionCreators/dashboards';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
@@ -30,7 +25,6 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconCopy, IconDelete, IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {withApi} from 'sentry/utils/withApi';
@@ -38,6 +32,7 @@ import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWr
 import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
+import {useToggleDashboardFavorite} from 'sentry/views/dashboards/hooks/useToggleDashboardFavorite';
 import type {
   DashboardDetails,
   DashboardListItem,
@@ -73,22 +68,13 @@ const SortKeys = {
 };
 
 type FavoriteButtonProps = {
-  api: Client;
-  dashboardId: string;
+  dashboard: DashboardListItem;
   isFavorited: boolean;
-  onDashboardsChange: () => void;
-  organization: Organization;
 };
 
-function FavoriteButton({
-  isFavorited,
-  api,
-  organization,
-  dashboardId,
-  onDashboardsChange,
-}: FavoriteButtonProps) {
-  const queryClient = useQueryClient();
-  const [favorited, setFavorited] = useState(isFavorited);
+function FavoriteButton({isFavorited, dashboard}: FavoriteButtonProps) {
+  const toggleFavorite = useToggleDashboardFavorite();
+
   return (
     <Button
       aria-label={t('Favorite Button')}
@@ -96,33 +82,13 @@ function FavoriteButton({
       variant="transparent"
       icon={
         <IconStar
-          variant={favorited ? 'warning' : 'muted'}
-          isSolid={favorited}
-          aria-label={favorited ? t('Unstar') : t('Star')}
+          variant={isFavorited ? 'warning' : 'muted'}
+          isSolid={isFavorited}
+          aria-label={isFavorited ? t('Unstar') : t('Star')}
           size="sm"
         />
       }
-      onClick={async () => {
-        try {
-          setFavorited(!favorited);
-          await updateDashboardFavorite(
-            api,
-            queryClient,
-            organization,
-            dashboardId,
-            !favorited
-          );
-          onDashboardsChange();
-          trackAnalytics('dashboards_manage.toggle_favorite', {
-            organization,
-            dashboard_id: dashboardId,
-            favorited: !favorited,
-          });
-        } catch (error) {
-          // If the api call fails, revert the state
-          setFavorited(favorited);
-        }
-      }}
+      onClick={() => toggleFavorite({dashboard, shouldFavorite: !isFavorited})}
     />
   );
 }
@@ -286,10 +252,7 @@ function DashboardTable({
       return (
         <FavoriteButton
           isFavorited={dataRow[ResponseKeys.FAVORITE] ?? false}
-          api={api}
-          organization={organization}
-          dashboardId={dataRow.id}
-          onDashboardsChange={onDashboardsChange}
+          dashboard={dataRow}
           key={dataRow.id}
         />
       );
