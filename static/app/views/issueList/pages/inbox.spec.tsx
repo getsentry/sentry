@@ -27,6 +27,9 @@ describe('InboxPage', () => {
     features: ['issue-stream-progress-ui'],
   });
   const seerOrganization = OrganizationFixture({
+    features: ['issue-stream-progress-ui', 'gen-ai-features', 'seat-based-seer-enabled'],
+  });
+  const aiOnlyOrganization = OrganizationFixture({
     features: ['issue-stream-progress-ui', 'gen-ai-features'],
   });
   const project = ProjectFixture({
@@ -258,7 +261,7 @@ describe('InboxPage', () => {
     const requests = mockSuccessfulSections();
     mockIssuePreview();
 
-    render(<InboxPage />, {organization, initialRouterConfig});
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
 
     expect(screen.getByLabelText('Loading Fix Proposed issues')).toBeInTheDocument();
     expect(screen.getByLabelText('Loading Diagnosed issues')).toBeInTheDocument();
@@ -330,7 +333,25 @@ describe('InboxPage', () => {
     expect(screen.queryByRole('button', {name: '7D'})).not.toBeInTheDocument();
   });
 
+  it('hides the Diagnosed section without a paid Seer plan', async () => {
+    const requests = mockSuccessfulSections();
+
+    render(<InboxPage />, {
+      organization: aiOnlyOrganization,
+      initialRouterConfig,
+    });
+
+    expect(screen.queryByRole('region', {name: 'Diagnosed'})).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Loading Diagnosed issues')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(requests[0]).toHaveBeenCalledTimes(1);
+      expect(requests[2]).toHaveBeenCalledTimes(1);
+    });
+    expect(requests[1]).not.toHaveBeenCalled();
+  });
+
   it('shows a plus sign when a section count reaches the API cap', async () => {
+    mockIssuePreview();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
       match: [
@@ -392,7 +413,7 @@ describe('InboxPage', () => {
     ];
 
     const {router} = render(<InboxPage />, {
-      organization,
+      organization: seerOrganization,
       initialRouterConfig,
     });
 
@@ -710,11 +731,16 @@ describe('InboxPage', () => {
     });
 
     const preview = await openFixProposedPreview();
+    const pullRequestButton = await within(preview).findByRole('button', {
+      name: 'View org/repository#10',
+    });
+    expect(pullRequestButton).toHaveAttribute(
+      'href',
+      'https://github.com/org/repository/pull/10'
+    );
     expect(
-      await within(preview).findByRole('button', {
-        name: 'View org/repository#10',
-      })
-    ).toHaveAttribute('href', 'https://github.com/org/repository/pull/10');
+      within(pullRequestButton).getByTestId('pull-request-github')
+    ).toBeInTheDocument();
   });
 
   it('labels a coding agent pull request like a Seer one', async () => {
@@ -757,6 +783,34 @@ describe('InboxPage', () => {
         name: 'View org/repository#649',
       })
     ).toHaveAttribute('href', 'https://github.com/org/repository/pull/649');
+  });
+
+  it('continues in Seer when a completed Autofix pull request is missing data', async () => {
+    mockSuccessfulSections();
+    mockIssuePreview();
+    mockAutofixResponse(
+      ExplorerAutofixResponseFixture({
+        autofix: ExplorerAutofixStateFixture({
+          repo_pr_states: {
+            'org/repository': AutofixRepoPRStateFixture({
+              pr_creation_status: 'completed',
+              pr_number: null,
+              pr_url: null,
+            }),
+          },
+        }),
+      })
+    );
+
+    render(<InboxPage />, {
+      organization: seerOrganization,
+      initialRouterConfig,
+    });
+
+    const preview = await openFixProposedPreview();
+    expect(
+      await within(preview).findByRole('button', {name: 'Continue in Seer'})
+    ).toBeInTheDocument();
   });
 
   it('retries a failed Autofix pull request', async () => {

@@ -72,16 +72,16 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
         note = user_note[0]
 
         # The Activity lookups above are what signal whether the note exists.
-        # When the write flag is on every note is mirrored to a GALE, so a missing
-        # entry means it's already gone -> 404 rather than deleting nothing and
-        # returning 204. With the write flag off the GALE is never written, so we
-        # fall through and rely on the Activity alone.
+        # When the activity flag is on the GALE is authoritative for existence,
+        # so a missing entry means it's already gone -> 404 rather than deleting
+        # nothing and returning 204. With the activity flag off we rely on the
+        # Activity alone and preserve the pre-existing behavior.
         original_comment_log_action = GroupActionLogEntry.objects.filter(
             group_id=group.id,
             idempotency_key=activity_action_idempotency_key(note),
         ).first()
         if original_comment_log_action is None and features.has(
-            "projects:issue-action-log-write-to-db", group.project, actor=request.user
+            "projects:issue-action-log-activity", group.project, actor=request.user
         ):
             raise ResourceDoesNotExist
 
@@ -156,16 +156,16 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             mentions = [mention.dict() for mention in payload.pop("mentions", [])]
 
             # The Activity fetched above is what signals whether the note exists.
-            # When the write flag is on every note is mirrored to a GALE, so a
-            # missing entry means it's already gone -> 404 rather than editing the
-            # Activity and returning 200. With the write flag off the GALE is never
-            # written, so we fall through and rely on the Activity alone.
+            # When the activity flag is on the GALE is authoritative for existence,
+            # so a missing entry means it's already gone -> 404 rather than editing
+            # the Activity and returning 200. With the activity flag off we rely
+            # on the Activity alone and preserve the pre-existing behavior.
             original_comment_log_action = GroupActionLogEntry.objects.filter(
                 group_id=group.id,
                 idempotency_key=activity_action_idempotency_key(note),
             ).first()
             if original_comment_log_action is None and features.has(
-                "projects:issue-action-log-write-to-db", group.project, actor=request.user
+                "projects:issue-action-log-activity", group.project, actor=request.user
             ):
                 raise ResourceDoesNotExist
 

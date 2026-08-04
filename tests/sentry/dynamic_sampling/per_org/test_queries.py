@@ -19,6 +19,7 @@ from sentry.dynamic_sampling.per_org.queries import (
     get_eap_organization_volume,
     get_eap_project_volumes,
     get_eap_transaction_volumes,
+    get_outcomes_organization_sampled_volume,
     get_outcomes_organization_volume,
     run_eap_spans_table_query_in_chunks,
 )
@@ -32,7 +33,7 @@ from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from tests.sentry.dynamic_sampling.per_org.test_helpers import (
     BLENDED_SAMPLE_RATE,
-    OUTCOMES_VOLUME,
+    SAMPLED_VOLUME,
     patch_configuration,
 )
 
@@ -98,7 +99,7 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         self,
         organization: Organization,
     ) -> BaseDynamicSamplingConfiguration:
-        with patch_configuration({BLENDED_SAMPLE_RATE: 1.0, OUTCOMES_VOLUME: None}):
+        with patch_configuration({BLENDED_SAMPLE_RATE: 1.0, SAMPLED_VOLUME: None}):
             return get_configuration(organization.id)
 
     def test_get_eap_organization_volume_existing_org(self) -> None:
@@ -167,6 +168,40 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         assert org_volume is None
         run_table_query.assert_called_once()
         assert run_table_query.call_args.kwargs["params"].projects == []
+
+    def test_get_outcomes_organization_sampled_volume_existing_org(self) -> None:
+        organization = self.create_organization()
+
+        with patch(
+            "sentry.dynamic_sampling.per_org.queries.raw_snql_query",
+            return_value={"data": [{"total": 10, "indexed": 4}]},
+        ) as raw_snql_query:
+            org_volume = get_outcomes_organization_sampled_volume(
+                organization.id, time_interval=timedelta(minutes=5)
+            )
+
+        assert org_volume == OrganizationDataVolume(org_id=organization.id, total=10, indexed=4)
+        raw_snql_query.assert_called_once()
+        request = raw_snql_query.call_args.args[0]
+        assert request.dataset == "outcomes_raw"
+        assert request.tenant_ids == {"organization_id": organization.id}
+        assert (
+            raw_snql_query.call_args.kwargs["referrer"]
+            == "dynamic_sampling.per_org.get_outcomes_org_volume"
+        )
+
+    def test_get_outcomes_organization_sampled_volume_without_traffic(self) -> None:
+        organization = self.create_organization()
+
+        with patch(
+            "sentry.dynamic_sampling.per_org.queries.raw_snql_query",
+            return_value={"data": [{"total": 0, "indexed": 0}]},
+        ):
+            org_volume = get_outcomes_organization_sampled_volume(
+                organization.id, time_interval=timedelta(minutes=5)
+            )
+
+        assert org_volume is None
 
     def test_get_eap_project_volumes_existing_org(self) -> None:
         organization = self.create_organization()

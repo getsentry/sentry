@@ -64,6 +64,29 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         ]
         assert meta["dataset"] == self.dataset
 
+    def test_level_is_an_alias_for_severity(self) -> None:
+        logs = [
+            self.create_ourlog(
+                {"body": "foo", "severity_text": "error"},
+                timestamp=self.ten_mins_ago,
+            ),
+            self.create_ourlog(
+                {"body": "bar", "severity_text": "info"},
+                timestamp=self.nine_mins_ago,
+            ),
+        ]
+        self.store_eap_items(logs)
+        response = self.do_request(
+            {
+                "field": ["message", "level"],
+                "query": "level:error",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [{"message": "foo", "level": "error"}]
+
     @pytest.mark.querybuilder
     def test_timestamp_order(self) -> None:
         logs = [
