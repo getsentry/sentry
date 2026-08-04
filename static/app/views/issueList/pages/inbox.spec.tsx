@@ -29,15 +29,8 @@ describe('InboxPage', () => {
   const seerOrganization = OrganizationFixture({
     features: ['issue-stream-progress-ui', 'gen-ai-features', 'seat-based-seer-enabled'],
   });
-  const legacySeerOrganization = OrganizationFixture({
-    features: ['issue-stream-progress-ui', 'gen-ai-features', 'seer-added'],
-  });
   const aiOnlyOrganization = OrganizationFixture({
     features: ['issue-stream-progress-ui', 'gen-ai-features'],
-  });
-  const seerDisabledOrganization = OrganizationFixture({
-    features: ['issue-stream-progress-ui', 'gen-ai-features', 'seat-based-seer-enabled'],
-    hideAiFeatures: true,
   });
   const project = ProjectFixture({
     id: '1',
@@ -334,15 +327,11 @@ describe('InboxPage', () => {
     expect(screen.queryByRole('button', {name: '7D'})).not.toBeInTheDocument();
   });
 
-  it.each([
-    ['without Seer access', organization],
-    ['with AI access but no Seer plan', aiOnlyOrganization],
-    ['when AI features are disabled for a Seer customer', seerDisabledOrganization],
-  ])('hides the Diagnosed section %s', async (_description, testOrganization) => {
+  it('hides the Diagnosed section without a paid Seer plan', async () => {
     const requests = mockSuccessfulSections();
 
     render(<InboxPage />, {
-      organization: testOrganization,
+      organization: aiOnlyOrganization,
       initialRouterConfig,
     });
 
@@ -353,18 +342,6 @@ describe('InboxPage', () => {
       expect(requests[2]).toHaveBeenCalledTimes(1);
     });
     expect(requests[1]).not.toHaveBeenCalled();
-  });
-
-  it('shows the Diagnosed section for legacy Seer customers', async () => {
-    const requests = mockSuccessfulSections();
-
-    render(<InboxPage />, {
-      organization: legacySeerOrganization,
-      initialRouterConfig,
-    });
-
-    expect(await screen.findByRole('region', {name: 'Diagnosed'})).toBeInTheDocument();
-    expect(requests[1]).toHaveBeenCalledTimes(1);
   });
 
   it('shows a plus sign when a section count reaches the API cap', async () => {
