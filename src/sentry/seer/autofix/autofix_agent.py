@@ -818,6 +818,7 @@ def trigger_push_changes(
     referrer: AutofixReferrer,
     state: SeerRunState | None = None,
     repo_name: str | None = None,
+    verify_content: bool = False,
 ):
     if not group.organization.get_option(
         "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
@@ -847,6 +848,7 @@ def trigger_push_changes(
         repo_name=repo_name,
         pr_description_suffix=build_pr_description_suffix(group),
         ready_for_review=not _should_open_autofix_pr_as_draft(group.organization),
+        verify_content=verify_content,
         blocking=False,
     )
 

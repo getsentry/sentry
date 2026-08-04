@@ -936,6 +936,7 @@ class SeerAgentClient:
         blocking: bool = True,
         pr_description_suffix: str | None = None,
         ready_for_review: bool = True,
+        verify_content: bool = False,
         poll_interval: float = 2.0,
         poll_timeout: float = 120.0,
     ) -> SeerRunState | None:
@@ -968,6 +969,7 @@ class SeerAgentClient:
         payload: dict[str, Any] = {
             "type": "create_pr",
             "ready_for_review": ready_for_review,
+            "verify_content": verify_content,
             # Include an idempotency key in the request so that if
             # the request is retried by anything, it will not create duplicate PRs
             # This is regenerated per attempt to permit retries.
