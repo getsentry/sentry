@@ -526,6 +526,8 @@ function useTimeRangeWarning({widget}: {widget: TWidget}) {
   const retentionLimitDays = useRetentionLimit({
     dataset: widget.widgetType ?? WidgetType.ERRORS,
   });
+  // Capture now once per mount instead of reading it during render
+  const [now] = useState(() => Date.now());
 
   if (!retentionLimitDays) {
     return null;
@@ -540,8 +542,6 @@ function useTimeRangeWarning({widget}: {widget: TWidget}) {
 
   // Convert the number of days to ms so we can get an end date to check if the
   // widget is querying more than its retention allows
-  // Capture now once via useMemo to avoid calling the impure Date.now() during render
-  const now = useMemo(() => Date.now(), []);
   const statsPeriodToEnd = new Date(now - statsPeriodDaysFromNow * DAYS_TO_MS);
   const retentionLimitDate = new Date(now - retentionLimitDays * DAYS_TO_MS);
   if (
