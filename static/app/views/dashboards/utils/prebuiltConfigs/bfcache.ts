@@ -5,7 +5,7 @@ import {traceMetricField} from 'sentry/views/dashboards/utils/prebuiltConfigs/ut
 
 const INTERVAL = '5m';
 
-// Emitted by the browser SDK's `bfcacheMetricsIntegration`.
+// Emitted by the browser SDK's `bfcacheIntegration`.
 const NAVIGATION = traceMetricField('sum', 'browser.bfcache.navigation', 'counter', null);
 const NOT_RESTORED = traceMetricField(
   'sum',
@@ -172,7 +172,7 @@ export const BFCACHE_METRICS_PREBUILT_CONFIG: PrebuiltDashboard = {
     componentId: 'bfcache-metrics',
     // bfcache is browser-only, so gate on a frontend-data proxy. There is no
     // bfcache-specific project flag; the data only exists once the SDK's
-    // bfcacheMetricsIntegration is enabled.
+    // bfcacheIntegration is enabled.
     requiredProjectFlags: ['hasInsightsVitals'],
   },
 };

@@ -16,7 +16,7 @@ const CODE_SNIPPET = `import * as Sentry from '@sentry/browser';
 
 Sentry.init({
   dsn: '__YOUR_DSN__',
-  integrations: [Sentry.bfcacheMetricsIntegration()],
+  integrations: [Sentry.bfcacheIntegration()],
 });`;
 
 export function BfcacheMetricsOnboarding() {
