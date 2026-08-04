@@ -338,7 +338,7 @@ def _detect_performance_problems(
         # segment span, produce occurrences from the results
         detection_settings = get_detection_settings(project)
         legacy_detected_problems = _run_legacy_detectors(
-            segment_span, spans, project, detection_settings
+            segment_span, spans, project, enabled_legacy_detector_types, detection_settings
         )
     except Exception:
         logger.exception("segment_consumer_legacy_issue_detectors.error")
@@ -357,6 +357,7 @@ def _run_legacy_detectors(
     segment_span: CompatibleSpan,
     segment: list[CompatibleSpan],
     project: Project,
+    detector_types: list[str],
     detection_settings: dict[DetectorType, dict[str, Any]],
 ) -> list[PerformanceProblem]:
     """
