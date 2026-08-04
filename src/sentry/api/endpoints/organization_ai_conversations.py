@@ -1,7 +1,7 @@
 import logging
 import re
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from datetime import datetime
 from typing import Any, TypedDict
 
@@ -78,17 +78,6 @@ def _to_timestamp_float(ts: Any) -> float:
 
 def _compute_timestamp_ms(finish_ts: float) -> int:
     return int(finish_ts * 1000) if finish_ts else 0
-
-
-def _first_title(
-    titles: Mapping[tuple[str, int], str], conv_id: str, project_ids: Sequence[int]
-) -> str | None:
-    """Lowest project id with a stored title wins, so results are stable across requests."""
-    for project_id in project_ids:
-        title = titles.get((conv_id, project_id))
-        if title is not None:
-            return title
-    return None
 
 
 def _extract_first_user_message(messages: Any) -> str | None:
@@ -592,17 +581,23 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         conversations_map: dict[str, dict[str, Any]],
         project_ids_by_conversation: Mapping[str, set[int]],
     ) -> None:
-        """Attach stored conversation titles, leaving `title` as None when we have none."""
-        sorted_project_ids = {
-            conv_id: sorted(project_ids_by_conversation.get(conv_id, ()))
+        """Set each conversation's `title` from storage when present.
+
+        On lookup failure, log and leave titles unset so the list response still succeeds.
+        """
+        pairs = [
+            (conv_id, project_id)
             for conv_id in conversations_map
-        }
-        titles = fetch_conversation_titles(
-            [
-                (conv_id, project_id)
-                for conv_id, project_ids in sorted_project_ids.items()
-                for project_id in project_ids
-            ]
-        )
-        for conv_id, conversation in conversations_map.items():
-            conversation["title"] = _first_title(titles, conv_id, sorted_project_ids[conv_id])
+            for project_id in project_ids_by_conversation.get(conv_id, ())
+        ]
+        try:
+            titles = fetch_conversation_titles(pairs)
+        except Exception:
+            logger.exception(
+                "Failed to resolve titles for AI conversations",
+                extra={"project_ids": sorted({project_id for _, project_id in pairs})},
+            )
+            return
+
+        for conv_id, title in titles.items():
+            conversations_map[conv_id]["title"] = title

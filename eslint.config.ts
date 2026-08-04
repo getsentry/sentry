@@ -433,7 +433,6 @@ export default typescript.config([
       'e18e/ban-dependencies': 'off',
       'e18e/prefer-array-at': 'off',
       'e18e/prefer-array-fill': 'off',
-      'e18e/prefer-array-from-map': 'off',
       'e18e/prefer-array-some': 'off',
       'e18e/prefer-array-to-reversed': 'off',
       'e18e/prefer-array-to-sorted': 'off',
