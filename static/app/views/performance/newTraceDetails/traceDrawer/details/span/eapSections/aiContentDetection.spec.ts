@@ -166,10 +166,20 @@ describe('preprocessInlineXmlTags', () => {
 
   it('handles mixed inline and block tags', () => {
     const text =
-      'See the <code>details</code> here.\n<thinking>\ndeep thought\n</thinking>';
+      'See the <note>details</note> here.\n<thinking>\ndeep thought\n</thinking>';
     expect(preprocessInlineXmlTags(text)).toBe(
-      'See the *code: details* here.\n<thinking>\ndeep thought\n</thinking>'
+      'See the *note: details* here.\n<thinking>\ndeep thought\n</thinking>'
     );
+  });
+
+  it('leaves known HTML inline tags untouched', () => {
+    const text = 'See the <code>details</code> here.';
+    expect(preprocessInlineXmlTags(text)).toBe(text);
+  });
+
+  it('handles inline tags with attributes', () => {
+    const text = 'Data <step id="1">value</step> here';
+    expect(preprocessInlineXmlTags(text)).toBe('Data *step: value* here');
   });
 
   it('trims whitespace from inline tag content', () => {
@@ -189,7 +199,7 @@ describe('parseXmlTagSegments', () => {
     const segments = parseXmlTagSegments(text);
     expect(segments).toEqual([
       {type: 'text', content: 'Before '},
-      {type: 'xml-tag', tagName: 'thinking', content: 'inner thought'},
+      {type: 'xml-tag', tagName: 'thinking', attributes: '', content: 'inner thought'},
       {type: 'text', content: ' After'},
     ]);
   });
@@ -198,9 +208,9 @@ describe('parseXmlTagSegments', () => {
     const text = '<plan>step 1</plan> then <result>done</result>';
     const segments = parseXmlTagSegments(text);
     expect(segments).toEqual([
-      {type: 'xml-tag', tagName: 'plan', content: 'step 1'},
+      {type: 'xml-tag', tagName: 'plan', attributes: '', content: 'step 1'},
       {type: 'text', content: ' then '},
-      {type: 'xml-tag', tagName: 'result', content: 'done'},
+      {type: 'xml-tag', tagName: 'result', attributes: '', content: 'done'},
     ]);
   });
 
@@ -208,7 +218,38 @@ describe('parseXmlTagSegments', () => {
     const text = '<thinking>\nline1\nline2\n</thinking>';
     const segments = parseXmlTagSegments(text);
     expect(segments).toEqual([
-      {type: 'xml-tag', tagName: 'thinking', content: '\nline1\nline2\n'},
+      {type: 'xml-tag', tagName: 'thinking', attributes: '', content: '\nline1\nline2\n'},
+    ]);
+  });
+
+  it('captures attributes on the opening tag', () => {
+    const text = '<payload source="page" trust="low">content</payload>';
+    expect(parseXmlTagSegments(text)).toEqual([
+      {
+        type: 'xml-tag',
+        tagName: 'payload',
+        attributes: ' source="page" trust="low"',
+        content: 'content',
+      },
+    ]);
+  });
+
+  it('does not treat known HTML tags as collapsible segments', () => {
+    const text = 'before <div>markup</div> after';
+    expect(parseXmlTagSegments(text)).toEqual([
+      {type: 'text', content: 'before <div>markup</div> after'},
+    ]);
+  });
+
+  it('collapses a custom tag while leaving nested HTML in its content', () => {
+    const text = '<thinking>uses <span>markup</span></thinking>';
+    expect(parseXmlTagSegments(text)).toEqual([
+      {
+        type: 'xml-tag',
+        tagName: 'thinking',
+        attributes: '',
+        content: 'uses <span>markup</span>',
+      },
     ]);
   });
 
@@ -225,7 +266,7 @@ describe('parseXmlTagSegments', () => {
   it('handles tags with hyphens in names', () => {
     const text = '<my-tag>content</my-tag>';
     expect(parseXmlTagSegments(text)).toEqual([
-      {type: 'xml-tag', tagName: 'my-tag', content: 'content'},
+      {type: 'xml-tag', tagName: 'my-tag', attributes: '', content: 'content'},
     ]);
   });
 
@@ -236,6 +277,7 @@ describe('parseXmlTagSegments', () => {
       {
         type: 'xml-tag',
         tagName: 'bug_report',
+        attributes: '',
         content: '\n<location>file.ts</location>\n<description>a bug</description>\n',
       },
     ]);

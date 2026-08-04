@@ -98,6 +98,11 @@ export default function InboxPage() {
 }
 
 function InboxContent() {
+  const organization = useOrganization();
+  const hasSeer =
+    !organization.hideAiFeatures &&
+    (organization.features.includes('seat-based-seer-enabled') ||
+      organization.features.includes('seer-added'));
   const [assignmentFilter, setAssignmentFilter] = useQueryState(
     ASSIGNMENT_QUERY_PARAM,
     parseAsStringLiteral(ASSIGNMENT_FILTERS)
@@ -154,7 +159,9 @@ function InboxContent() {
             </SegmentedControl>
           </Flex>
           <Stack flex={1} minHeight={0} overflowY="auto" overscrollBehavior="contain">
-            {SECTIONS.map(section => (
+            {SECTIONS.filter(
+              section => hasSeer || section.progress !== ProgressState.DIAGNOSED
+            ).map(section => (
               <InboxSection
                 key={section.key}
                 section={section}
