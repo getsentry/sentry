@@ -86,8 +86,13 @@ export interface ToolResult {
   // old seer responses, in which case only the legacy field is read.
   //
   // `links` is a tool result's own deep-links as a {kind, params} list — one result can carry many,
-  // so there's no index alignment. `todos` is the latest checklist snapshot.
-  structuredContent?: {links?: ToolLink[]; todos?: TodoItem[]} | null;
+  // so there's no index alignment. `todos` is the latest checklist snapshot. `artifacts` are the run
+  // artifacts produced by that call.
+  structuredContent?: {
+    artifacts?: Artifact[];
+    links?: ToolLink[];
+    todos?: TodoItem[];
+  } | null;
 }
 
 export interface ToolCall {
