@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1148_organizationcontributors_remove_integration_id_field"),
+        ("sentry", "1149_organizationcontributors_delete_integration_id_column"),
     ]
 
     operations = [

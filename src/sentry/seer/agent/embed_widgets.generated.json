@@ -38,7 +38,7 @@
   },
   {
     "name": "docs",
-    "description": "Link to a page in the Sentry documentation. Use this whenever you reference a Sentry feature or concept that has official docs. The href MUST be an absolute https://docs.sentry.io/... URL.",
+    "description": "Link to a page in the Sentry documentation (docs.sentry.io only). The href MUST be an absolute https://docs.sentry.io/... URL. NEVER use this for Sentry issue links — use the `issue` or `issues` embed instead.",
     "level": ["inline"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -125,6 +125,63 @@
           "id": "2",
           "type": "team",
           "name": "platform"
+        }
+      }
+    ]
+  },
+  {
+    "name": "issue",
+    "description": "The ONLY way to reference a Sentry issue. Requires the issue short ID (e.g. \"PROJECT-123\"). Inline: renders a compact link with the short id. Block: renders a full interactive issue row with title, events, users, assignee, and trend graph — do NOT duplicate any of that data as text. MUST NOT appear inside a markdown table or list. When referencing 2+ issues, use the `issues` embed instead. Never use `docs` or markdown links for issue references.",
+    "level": ["inline", "block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": ["id"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Inline",
+        "data": {
+          "id": "JAVASCRIPT-22SP"
+        }
+      },
+      {
+        "label": "Block",
+        "data": {
+          "id": "JAVASCRIPT-22SP"
+        }
+      }
+    ]
+  },
+  {
+    "name": "issues",
+    "description": "The ONLY way to list multiple Sentry issues. Renders an interactive table with title, trend graph, events, users, priority, and assignee for each issue — do NOT duplicate any of that data as text. ALWAYS use this when referencing 2+ issues. MUST NOT appear inside a markdown table or list. Never use `docs`, `issue`, or markdown tables for multiple issues. Provide only the array of issue short IDs (e.g. \"PROJECT-123\").",
+    "level": ["block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": ["ids"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Block",
+        "data": {
+          "ids": ["JAVASCRIPT-22SP", "JAVASCRIPT-39HX", "JAVASCRIPT-39ZF"]
         }
       }
     ]

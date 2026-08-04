@@ -19,8 +19,9 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {QueryCount} from 'sentry/components/queryCount';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow, IconChevron} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {ProgressState, type Group} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -35,7 +36,7 @@ import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {getProgressIcon} from 'sentry/views/issueList/utils/progress';
 
 const TITLE = t('Inbox');
-const ISSUE_LIMIT = 5;
+const ISSUE_LIMIT = 10;
 const SELECTED_ISSUE_QUERY_PARAM = 'preview';
 const ASSIGNMENT_QUERY_PARAM = 'assignment';
 const ASSIGNMENT_FILTERS = ['me', 'my_teams', 'all'] as const;
@@ -210,6 +211,7 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
         sort: IssueSortOptions.PROGRESS,
         limit: ISSUE_LIMIT,
         collapse: ['stats', 'unhandled'],
+        expand: ['derivedData'],
       },
       staleTime: 0,
     }),
@@ -282,6 +284,7 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
               <Container key={group.id} padding="0 xs">
                 <InboxIssueCard
                   group={group}
+                  progressLabel={section.label}
                   selected={selectedIssueId === group.id}
                   assignedUser={
                     group.assignedTo?.type === 'user'
@@ -313,9 +316,11 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
 function InboxIssueCard({
   assignedUser,
   group,
+  progressLabel,
   selected,
 }: {
   group: Group;
+  progressLabel: string;
   selected: boolean;
   assignedUser?: User;
 }) {
@@ -357,7 +362,20 @@ function InboxIssueCard({
             </Text>
           </Flex>
         </Stack>
-        <Flex align="center">
+        <Stack align="end" justify="between">
+          {group.derivedData?.lastProgressedAt ? (
+            <Text size="sm" variant="muted">
+              <TimeSince
+                date={group.derivedData.lastProgressedAt}
+                tooltipPrefix={tct('Changed to [status]', {
+                  status: <strong>{progressLabel}</strong>,
+                })}
+                unitStyle="short"
+              />
+            </Text>
+          ) : (
+            <div />
+          )}
           {group.assignedTo &&
             (group.assignedTo.type === 'user' ? (
               <UserAvatar
@@ -374,7 +392,7 @@ function InboxIssueCard({
                 title={group.assignedTo.name}
               />
             ))}
-        </Flex>
+        </Stack>
       </Grid>
     </IssueCardLink>
   );
