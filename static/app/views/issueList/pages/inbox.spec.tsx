@@ -345,7 +345,10 @@ describe('InboxPage', () => {
       organization: aiOnlyOrganization,
       initialRouterConfig: {
         ...initialRouterConfig,
-        location: {...initialRouterConfig.location, query: {assignment: 'all'}},
+        location: {
+          ...initialRouterConfig.location,
+          query: {...initialRouterConfig.location.query, assignment: 'all'},
+        },
       },
     });
 
