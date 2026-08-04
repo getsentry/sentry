@@ -1,8 +1,6 @@
 import logging
 import posixpath
 import re
-import shutil
-import tempfile
 import uuid
 from collections.abc import Iterable, Mapping, Sequence, Set
 from contextlib import closing
@@ -855,15 +853,10 @@ def _clone_proguard_debug_file_for_reupload(
             content_type = debug_file.get_content_type()
             file_size = debug_file.get_file_size()
             objectstore_session = debug_file.get_objectstore_session()
-            with (
-                closing(debug_file.get_file()) as source_fileobj,
-                tempfile.TemporaryFile() as temporary_file,
-            ):
-                shutil.copyfileobj(source_fileobj, temporary_file)
-                temporary_file.seek(0)
+            with closing(debug_file.get_file()) as source_fileobj:
                 storage_path = upload_dif_to_objectstore(
                     objectstore_session,
-                    temporary_file,
+                    source_fileobj,
                     content_type,
                     file_size,
                     get_dif_download_filename(meta),
