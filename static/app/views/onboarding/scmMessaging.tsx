@@ -113,7 +113,11 @@ function useScmMessagingSetupValidation({
   }, [messagingSetup]);
 
   useEffect(() => {
-    if (messagingSetup.mode !== 'selected' || !integrationsQuery.isSuccess) {
+    if (
+      messagingSetup.mode !== 'selected' ||
+      !integrationsQuery.isSuccess ||
+      integrationsQuery.isFetching
+    ) {
       return;
     }
 
@@ -123,7 +127,7 @@ function useScmMessagingSetupValidation({
       return;
     }
 
-    if (!channelsQuery.isSuccess) {
+    if (!channelsQuery.isSuccess || channelsQuery.isFetching) {
       return;
     }
 
@@ -154,8 +158,10 @@ function useScmMessagingSetupValidation({
   }, [
     channel,
     channelsQuery.data,
+    channelsQuery.isFetching,
     channelsQuery.isSuccess,
     integration,
+    integrationsQuery.isFetching,
     integrationsQuery.isSuccess,
     messagingSetup,
     onMessagingSetupChange,

@@ -193,6 +193,7 @@ describe('ScmMessaging', () => {
     );
 
     expect(screen.queryByText('Destination selected')).not.toBeInTheDocument();
+    expect(onMessagingSetupChange).not.toHaveBeenCalled();
     expect(
       await screen.findByText(
         "We couldn't find the saved integration. Choose a destination again."
