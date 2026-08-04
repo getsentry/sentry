@@ -2,6 +2,7 @@ import type {QueryClient} from '@tanstack/react-query';
 
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
+import {ALL_PROJECTS_DETECTOR_NAME} from 'sentry/views/automations/constants';
 import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 
 export async function fetchIssueStreamDetectorIdsForProjects({
@@ -40,7 +41,7 @@ export async function fetchAllProjectsDetectorId({
   const {json: detectors} = await queryClient.fetchQuery(
     detectorListApiOptions(organization, {
       type: 'issue_stream',
-      query: 'name:"All Projects"',
+      query: `name:"${ALL_PROJECTS_DETECTOR_NAME}"`,
       includeIssueStreamDetectors: true,
       limit: 1,
     })
