@@ -99,6 +99,7 @@ def process_replay_recording(message_bytes: bytes) -> None:
 @instrumented_task(
     name="sentry.replays.tasks.delete_recording_async",
     namespace=replays_long_tasks,
+    alias_namespace=replays_tasks,
     processing_deadline_duration=120,
     retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.CELL,
