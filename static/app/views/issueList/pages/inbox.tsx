@@ -113,6 +113,8 @@ function InboxContent() {
     SELECTED_ISSUE_QUERY_PARAM,
     parseAsString.withOptions({history: 'replace'})
   );
+  // Collect fresh child-query results so one-time selection follows section order,
+  // rather than whichever request finishes first.
   const initialSectionResults = useRef(new Map<string, string | null>());
   const hasFinishedInitialSelection = useRef(selectedIssueId !== null);
 
