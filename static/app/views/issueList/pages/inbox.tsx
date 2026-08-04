@@ -103,6 +103,14 @@ export default function InboxPage() {
 function InboxContent() {
   const theme = useTheme();
   const isDesktop = useMedia(`(min-width: ${theme.breakpoints.md})`);
+  const organization = useOrganization();
+  const hasSeer =
+    !organization.hideAiFeatures &&
+    (organization.features.includes('seat-based-seer-enabled') ||
+      organization.features.includes('seer-added'));
+  const sections = SECTIONS.filter(
+    section => hasSeer || section.progress !== ProgressState.DIAGNOSED
+  );
   const [assignmentFilter, setAssignmentFilter] = useQueryState(
     ASSIGNMENT_QUERY_PARAM,
     parseAsStringLiteral(ASSIGNMENT_FILTERS)
@@ -131,7 +139,7 @@ function InboxContent() {
     }
 
     initialSectionResults.current.set(sectionKey, firstIssueId);
-    for (const section of SECTIONS) {
+    for (const section of sections) {
       if (!initialSectionResults.current.has(section.key)) {
         return;
       }
@@ -196,7 +204,7 @@ function InboxContent() {
             </SegmentedControl>
           </Flex>
           <Stack flex={1} minHeight={0} overflowY="auto" overscrollBehavior="contain">
-            {SECTIONS.map(section => (
+            {sections.map(section => (
               <InboxSection
                 key={section.key}
                 section={section}
