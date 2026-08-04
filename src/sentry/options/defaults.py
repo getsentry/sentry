@@ -3222,11 +3222,6 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "spans.process-segments.detect-performance-problems.enable",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "spans.process-segments.schema-validation",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
