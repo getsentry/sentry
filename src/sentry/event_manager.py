@@ -2560,10 +2560,8 @@ def _materialize_event_metrics(jobs: Sequence[Job]) -> None:
         event_metrics = job["event"].data.get("_metrics") or {}
         job["event"].data["_metrics"] = event_metrics
 
-        # Capture the actual size that goes into node store.
-        event_metrics["bytes.stored.event"] = len(
-            orjson.dumps(dict(job["event"].data.items())).decode()
-        )
+        # Capture the UTF-8 serialized event size for node store accounting.
+        event_metrics["bytes.stored.event"] = len(orjson.dumps(dict(job["event"].data.items())))
 
         for metric_name in ("flag.processing.error", "flag.processing.fatal"):
             if event_metrics.get(metric_name):

@@ -9,6 +9,7 @@ from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
+import orjson
 import pytest
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.backends.local.backend import LocalBroker
@@ -4343,6 +4344,15 @@ example_error_event = {
             "errors",
             id="errors",
         ),
+        pytest.param(
+            {
+                **example_error_event,
+                "event_id": "a0e3496eff734ab0ac993167aaa0d1cd",
+                "message": "é" * 10_000,
+            },
+            "errors",
+            id="errors-non-ascii",
+        ),
     ],
 )
 @django_db_all
@@ -4368,7 +4378,7 @@ def test_cogs_event_manager(
         normalized_data = dict(manager.get_data())
         _ = manager.save(default_project)
 
-        expected_len = len(json.dumps(normalized_data))
+        expected_len = len(orjson.dumps(normalized_data))
 
     msg1 = broker.consume(Partition(topic, 0), 0)
     assert msg1 is not None
