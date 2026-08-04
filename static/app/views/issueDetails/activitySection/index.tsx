@@ -137,14 +137,24 @@ function isDuplicatePullRequestActivity(
   }
 }
 
-function removeAdjacentDuplicatePullRequestActivities(
-  activities: GroupActivity[]
-): GroupActivity[] {
-  return activities.filter(
-    (activity, index) =>
-      !isDuplicatePullRequestActivity(activity, activities[index - 1]) &&
-      !isDuplicatePullRequestActivity(activity, activities[index + 1])
-  );
+function removeAdjacentDuplicatePullRequestActivities(activities: GroupActivity[]): {
+  activities: GroupActivity[];
+  actorActivityById: Map<string, GroupActivity>;
+} {
+  const actorActivityById = new Map<string, GroupActivity>();
+  const filteredActivities = activities.filter((activity, index) => {
+    const duplicateActivity = [activities[index - 1], activities[index + 1]].find(
+      adjacentActivity => isDuplicatePullRequestActivity(activity, adjacentActivity)
+    );
+
+    if (activity.type === GroupActivityType.SEER_PR_CREATED && duplicateActivity) {
+      actorActivityById.set(duplicateActivity.id, activity);
+    }
+
+    return !duplicateActivity;
+  });
+
+  return {activities: filteredActivities, actorActivityById};
 }
 
 export function ActivitySection({
@@ -203,10 +213,15 @@ export function ActivitySection({
     ? group.activity
     : group.activity.filter(item => !SEER_ACTIVITY_TYPES.has(item.type));
 
-  const filteredActivities = removeAdjacentDuplicatePullRequestActivities(
-    visibleActivities
-  ).filter(item => !filterComments || item.type === GroupActivityType.NOTE);
-  const displayedActivities = collapseSeerActivityPairs(filteredActivities);
+  const {activities: deduplicatedActivities, actorActivityById} =
+    removeAdjacentDuplicatePullRequestActivities(visibleActivities);
+  const filteredActivities = deduplicatedActivities.filter(
+    item => !filterComments || item.type === GroupActivityType.NOTE
+  );
+  const displayedActivities = collapseSeerActivityPairs(filteredActivities).map(item => {
+    const actorActivity = actorActivityById.get(item.activity.id);
+    return item.type === 'activity' && actorActivity ? {...item, actorActivity} : item;
+  });
   const inputVariant = variant === 'sidebar' ? 'compact' : 'full';
   const timestampUnitStyle = variant === 'sidebar' ? 'short' : undefined;
 

@@ -41,10 +41,10 @@ function BaseScoreBar({
 
   return (
     <div className={className} {...props}>
-      {[...Array.from({length: scoreInBounds})].map((_j, i) => (
+      {Array.from({length: scoreInBounds}, (_, i) => (
         <Bar {...barProps} key={i} color={palette[paletteIndex]} />
       ))}
-      {[...Array.from({length: maxScore - scoreInBounds})].map((_j, i) => (
+      {Array.from({length: maxScore - scoreInBounds}, (_, i) => (
         <Bar key={`empty-${i}`} {...barProps} empty />
       ))}
     </div>
