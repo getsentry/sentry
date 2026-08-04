@@ -970,6 +970,216 @@ class PrMetricsEmissionTest(TestCase):
         assert row.conversation_comments_bot is None
         assert row.diagnosis_labels is None
         assert row.conversation_metadata is None
+        # No activity document → per-head CI summary unavailable (null, not zero).
+        assert row.ci_heads_total is None
+        assert row.ci_heads_failed is None
+        assert row.ci_heads_passed is None
+        assert row.ci_heads_inconclusive is None
+        assert row.ci_heads_by_actor is None
+
+    def test_build_row_ci_head_summary_from_activity_doc(self) -> None:
+        from sentry.models.pullrequest import PullRequestActivityLog
+        from sentry.utils import json as sentry_json
+
+        PullRequestActivityLog.objects.create(
+            pull_request=self.pull_request,
+            data={
+                "version": 1,
+                "events": [
+                    {
+                        "event_type": "opened",
+                        "payload": {
+                            "head_sha": "old111",
+                            "sender_login": "alice",
+                            "sender_type": "User",
+                        },
+                        "ts": "2026-07-10T12:00:00Z",
+                        "webhook_id": "o1",
+                    },
+                    {
+                        "event_type": "synchronized",
+                        "payload": {
+                            "after_sha": "new222",
+                            "before_sha": "old111",
+                            "sender_login": "sentry[bot]",
+                            "sender_type": "Bot",
+                        },
+                        "ts": "2026-07-10T12:01:00Z",
+                        "webhook_id": "s1",
+                    },
+                ],
+                "checks": {
+                    "old111|github-actions": {
+                        "head_sha": "old111",
+                        "app_slug": "github-actions",
+                        "suite_conclusion": "failure",
+                        "suite_updated_at": None,
+                        "check_runs_count": 1,
+                        "runs": {},
+                        "first_failure_at": None,
+                        "last_event_at": None,
+                    },
+                    "new222|github-actions": {
+                        "head_sha": "new222",
+                        "app_slug": "github-actions",
+                        "suite_conclusion": "success",
+                        "suite_updated_at": None,
+                        "check_runs_count": 1,
+                        "runs": {},
+                        "first_failure_at": None,
+                        "last_event_at": None,
+                    },
+                },
+                "participants": {},
+                "counts": {},
+                "events_dropped": 0,
+                "sync_chain": [["new222", "old111"]],
+            },
+        )
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.ci_heads_total == 2
+        assert row.ci_heads_failed == 1
+        assert row.ci_heads_passed == 1
+        assert row.ci_heads_inconclusive == 0
+        assert sentry_json.loads(row.ci_heads_by_actor) == {
+            "bot": {"failed": 0, "inconclusive": 0, "passed": 0},
+            "delegated": {"failed": 0, "inconclusive": 0, "passed": 0},
+            "human": {"failed": 1, "inconclusive": 0, "passed": 0},
+            "seer": {"failed": 0, "inconclusive": 0, "passed": 1},
+            "unknown": {"failed": 0, "inconclusive": 0, "passed": 0},
+        }
+
+    def test_build_row_ci_head_summary_delegated_reclassifies_us(self) -> None:
+        from sentry.models.pullrequest import PullRequestActivityLog
+        from sentry.utils import json as sentry_json
+
+        PullRequestActivityLog.objects.create(
+            pull_request=self.pull_request,
+            data={
+                "version": 1,
+                "events": [
+                    {
+                        "event_type": "opened",
+                        "payload": {
+                            "head_sha": "claude1",
+                            "sender_login": "sentry[bot]",
+                            "sender_type": "Bot",
+                        },
+                        "ts": "2026-07-10T12:00:00Z",
+                        "webhook_id": "o1",
+                    },
+                ],
+                "checks": {
+                    "claude1|github-actions": {
+                        "head_sha": "claude1",
+                        "app_slug": "github-actions",
+                        "suite_conclusion": "failure",
+                        "suite_updated_at": None,
+                        "check_runs_count": 1,
+                        "runs": {},
+                        "first_failure_at": None,
+                        "last_event_at": None,
+                    },
+                },
+                "participants": {},
+                "counts": {},
+                "events_dropped": 0,
+                "sync_chain": [],
+            },
+        )
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[{"signal_type": "seer_delegated:claude_code", "source": "seer_data"}],
+            group_ids=[],
+        )
+        by_actor = sentry_json.loads(row.ci_heads_by_actor)
+        assert by_actor["delegated"]["failed"] == 1
+        assert by_actor["seer"]["failed"] == 0
+
+    def test_build_row_ci_head_summary_empty_checks_is_zero(self) -> None:
+        from sentry.models.pullrequest import PullRequestActivityLog
+        from sentry.utils import json as sentry_json
+
+        PullRequestActivityLog.objects.create(
+            pull_request=self.pull_request,
+            data={
+                "version": 1,
+                "events": [],
+                "checks": {},
+                "participants": {},
+                "counts": {},
+                "events_dropped": 0,
+                "sync_chain": [],
+            },
+        )
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.ci_heads_total == 0
+        assert row.ci_heads_failed == 0
+        assert row.ci_heads_passed == 0
+        assert row.ci_heads_inconclusive == 0
+        assert sentry_json.loads(row.ci_heads_by_actor) == {
+            "bot": {"failed": 0, "inconclusive": 0, "passed": 0},
+            "delegated": {"failed": 0, "inconclusive": 0, "passed": 0},
+            "human": {"failed": 0, "inconclusive": 0, "passed": 0},
+            "seer": {"failed": 0, "inconclusive": 0, "passed": 0},
+            "unknown": {"failed": 0, "inconclusive": 0, "passed": 0},
+        }
+
+    def test_build_row_ci_head_actor_from_cap_resilient_fields(self) -> None:
+        # Actor attribution reads ``open_head`` / ``sync_chain`` senders, so a document
+        # whose ``events`` were all dropped by the cap still buckets its heads under
+        # ``seer`` instead of ``unknown``.
+        from sentry.models.pullrequest import PullRequestActivityLog
+        from sentry.utils import json as sentry_json
+
+        def _group(sha: str, conclusion: str) -> dict[str, Any]:
+            return {
+                "head_sha": sha,
+                "app_slug": "github-actions",
+                "suite_conclusion": conclusion,
+                "suite_updated_at": None,
+                "check_runs_count": 1,
+                "runs": {},
+                "first_failure_at": None,
+                "last_event_at": None,
+            }
+
+        PullRequestActivityLog.objects.create(
+            pull_request=self.pull_request,
+            data={
+                "version": 1,
+                "events": [],
+                "checks": {
+                    "seer1|github-actions": _group("seer1", "failure"),
+                    "seer2|github-actions": _group("seer2", "success"),
+                },
+                "participants": {},
+                "counts": {},
+                "events_dropped": 0,
+                "open_head": ["seer1", "seer-by-sentry[bot]", "Bot"],
+                "sync_chain": [["seer2", "seer1", "seer-by-sentry[bot]", "Bot"]],
+            },
+        )
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        by_actor = sentry_json.loads(row.ci_heads_by_actor)
+        assert by_actor["seer"] == {"failed": 1, "inconclusive": 0, "passed": 1}
+        assert by_actor["unknown"] == {"failed": 0, "inconclusive": 0, "passed": 0}
 
     def test_build_row_conversation_metadata_null_when_absent(self) -> None:
         # An analysis without a metadata bundle emits a null conversation_metadata (not

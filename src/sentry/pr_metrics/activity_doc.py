@@ -15,7 +15,7 @@ from __future__ import annotations
 import logging
 from collections import Counter
 from collections.abc import Mapping
-from typing import Any, TypedDict
+from typing import Any, Literal, TypedDict
 
 from sentry.models.pullrequest import PullRequestActivityType
 from sentry.utils import metrics
@@ -93,11 +93,18 @@ class ActivityDoc(TypedDict):
     participants: dict[str, str]
     counts: dict[str, int]
     events_dropped: int
-    # A list of ``[after_sha, before_sha_or_null]`` pairs in arrival order, NOT an
-    # object keyed by after_sha: Postgres jsonb does not preserve object key order,
-    # and eviction at the cap must drop the OLDEST link, which needs insertion
-    # order. jsonb preserves array order, so a list keeps eviction correct.
+    # A list of ``[after_sha, before_sha_or_null, sender_login, sender_type]`` entries
+    # in arrival order, NOT an object keyed by after_sha: Postgres jsonb does not
+    # preserve object key order, and eviction at the cap must drop the OLDEST link,
+    # which needs insertion order. jsonb preserves array order, so a list keeps
+    # eviction correct. The two sender slots are appended (not a separate structure)
+    # so the ordered head log survives the events cap exactly as the chain walk does;
+    # entries written before they existed have length 2 and read as an unknown pusher.
     sync_chain: list[list[str | None]]
+    # ``[head_sha, sender_login, sender_type]`` for the PR's opening head — the one
+    # head that is not an ``after_sha`` in ``sync_chain``. Single-valued, so unlike
+    # the chain it needs no cap or ordering guarantee.
+    open_head: list[str | None]
 
 
 def is_failing_conclusion(conclusion: str | None) -> bool:
@@ -147,6 +154,7 @@ def new_document() -> ActivityDoc:
         "counts": {},
         "events_dropped": 0,
         "sync_chain": [],
+        "open_head": [],
     }
 
 
@@ -252,6 +260,8 @@ def _apply_entry(
 
     if event_type == PullRequestActivityType.SYNCHRONIZED:
         _fold_sync_chain(doc, payload)
+    elif event_type == PullRequestActivityType.OPENED:
+        _fold_open_head(doc, payload)
 
     doc["counts"][event_type] = doc["counts"].get(event_type, 0) + 1
     _fold_participant(doc, payload)
@@ -308,7 +318,32 @@ def _fold_sync_chain(doc: ActivityDoc, payload: Mapping[str, Any]) -> None:
             extra={"after_sha": after},
         )
         metrics.incr("pr_metrics.activity_doc.sync_chain_capped")
-    chain.append([after, payload.get("before_sha") or None])
+    chain.append(
+        [
+            after,
+            payload.get("before_sha") or None,
+            payload.get("sender_login") or None,
+            payload.get("sender_type") or None,
+        ]
+    )
+
+
+def _fold_open_head(doc: ActivityDoc, payload: Mapping[str, Any]) -> None:
+    """Record the opening head and who opened it in ``open_head``.
+
+    Same motivation as the sender slots on ``sync_chain``: the opening head anchors
+    the ordered head log, and reading it out of ``events`` loses it once the cap
+    evicts the open entry. ``setdefault`` for documents written before the field.
+    """
+    head = payload.get("head_sha") or ""
+    if not head:
+        return
+    doc.setdefault("open_head", [])
+    doc["open_head"] = [
+        head,
+        payload.get("sender_login") or None,
+        payload.get("sender_type") or None,
+    ]
 
 
 def _apply_check_suite(
@@ -639,6 +674,239 @@ def _synthesized_suite_conclusion(group: CheckGroup) -> str:
     if any(is_failing_conclusion(run.get("conclusion")) for run in runs.values()):
         return "failure"
     return "success"
+
+
+# Per-head CI outcome for analytics. ``failed`` / ``passed`` are latest-verdict
+# (a green rerun at the same SHA overwrites a prior failure); ``inconclusive`` is
+# aborted/empty only — no pass/fail verdict from any app on that SHA.
+CI_HEAD_FAILED = "failed"
+CI_HEAD_PASSED = "passed"
+CI_HEAD_INCONCLUSIVE = "inconclusive"
+CI_HEAD_OUTCOMES = (CI_HEAD_FAILED, CI_HEAD_PASSED, CI_HEAD_INCONCLUSIVE)
+
+# Who pushed the head that CI ran against. Derived from open/sync ``sender_*``
+# (not git author). ``unknown`` = check SHA with no matching open/sync in
+# ``events`` (capped/missed delivery).
+CiHeadActor = Literal["seer", "delegated", "human", "bot", "unknown"]
+CI_HEAD_ACTOR_SEER: CiHeadActor = "seer"
+CI_HEAD_ACTOR_DELEGATED: CiHeadActor = "delegated"
+CI_HEAD_ACTOR_HUMAN: CiHeadActor = "human"
+CI_HEAD_ACTOR_BOT: CiHeadActor = "bot"
+CI_HEAD_ACTOR_UNKNOWN: CiHeadActor = "unknown"
+CI_HEAD_ACTORS: tuple[CiHeadActor, ...] = (
+    CI_HEAD_ACTOR_SEER,
+    CI_HEAD_ACTOR_DELEGATED,
+    CI_HEAD_ACTOR_HUMAN,
+    CI_HEAD_ACTOR_BOT,
+    CI_HEAD_ACTOR_UNKNOWN,
+)
+
+# Normalized (lowercase, ``[bot]`` stripped) GitHub logins for our apps. Login is
+# all the activity doc stores — user-id matching from attribution isn't available
+# at this grain. Includes the short ``seer`` form tests/fixtures use.
+_OUR_GITHUB_BOT_LOGINS = frozenset(
+    {
+        "sentry",
+        "seer-by-sentry",
+        "seer-dev-testing",
+        "seer",
+    }
+)
+
+# Normalized logins for delegated coding agents that open/push as themselves.
+# Claude opens as the Sentry app (no distinct login) — handled via
+# ``has_delegated_attribution`` when the pusher is one of ours.
+_DELEGATED_GITHUB_BOT_LOGINS = frozenset(
+    {
+        "copilot-swe-agent",
+        "cursor",
+    }
+)
+
+
+def _normalize_github_login(login: str) -> str:
+    return login.lower().removesuffix("[bot]")
+
+
+def ci_head_outcomes_from_doc(doc: ActivityDoc) -> dict[str, str]:
+    """Map each check-rollup ``head_sha`` to a single latest CI outcome.
+
+    Multiple ``(head_sha, app_slug)`` groups collapse to one outcome per SHA:
+    any failing app → ``failed``; else any app with a pass/fail verdict →
+    ``passed``; else ``inconclusive``. Empty ``head_sha`` groups are skipped.
+    """
+    groups_by_sha: dict[str, list[CheckGroup]] = {}
+    for group in doc.get("checks", {}).values():
+        sha = group.get("head_sha") or ""
+        if not sha:
+            continue
+        groups_by_sha.setdefault(sha, []).append(group)
+
+    outcomes: dict[str, str] = {}
+    for sha, groups in groups_by_sha.items():
+        conclusions = [_synthesized_suite_conclusion(group) for group in groups]
+        if any(is_failing_conclusion(c) for c in conclusions):
+            outcomes[sha] = CI_HEAD_FAILED
+        elif any(has_verdict(c) for c in conclusions):
+            outcomes[sha] = CI_HEAD_PASSED
+        else:
+            outcomes[sha] = CI_HEAD_INCONCLUSIVE
+    return outcomes
+
+
+def head_sha_pushers_from_doc(doc: ActivityDoc) -> dict[str, tuple[str, str]]:
+    """Map head SHA → ``(sender_login, sender_type)`` for every head we can attribute.
+
+    Reads the cap-resilient sources first (``open_head`` and the sender slots on
+    ``sync_chain``), then overlays ``events``, which is the only source for
+    documents written before those slots existed. A SHA no source covers stays
+    unmapped (callers treat it as ``unknown``).
+    """
+    pushers: dict[str, tuple[str, str]] = {}
+
+    open_head = doc.get("open_head") or []
+    if open_head and open_head[0]:
+        pushers[open_head[0]] = (
+            (open_head[1] or "") if len(open_head) > 1 else "",
+            (open_head[2] or "") if len(open_head) > 2 else "",
+        )
+
+    for pair in doc.get("sync_chain", []):
+        after = pair[0]
+        if not after or len(pair) < 4:
+            continue
+        pushers[after] = (pair[2] or "", pair[3] or "")
+
+    pushers.update(_head_sha_pushers_from_events(doc))
+    return pushers
+
+
+def _head_sha_pushers_from_events(doc: ActivityDoc) -> dict[str, tuple[str, str]]:
+    pushers: dict[str, tuple[str, str]] = {}
+    for event in doc.get("events", []):
+        event_type = event.get("event_type")
+        payload = event.get("payload") or {}
+        if event_type == PullRequestActivityType.OPENED:
+            sha = payload.get("head_sha") or ""
+        elif event_type == PullRequestActivityType.SYNCHRONIZED:
+            sha = payload.get("after_sha") or ""
+        else:
+            continue
+        if not sha:
+            continue
+        pushers[sha] = (
+            payload.get("sender_login") or "",
+            payload.get("sender_type") or "",
+        )
+    return pushers
+
+
+def classify_ci_head_actor(
+    sender_login: str,
+    sender_type: str,
+    *,
+    has_delegated_attribution: bool,
+) -> CiHeadActor:
+    """Bucket a head's webhook sender into seer / delegated / human / bot.
+
+    Claude-delegated PRs open as the Sentry app, so a Seer/Sentry-bot pusher on
+    a PR with delegated attribution counts as ``delegated`` rather than ``seer``.
+    """
+    if sender_type != "Bot":
+        return CI_HEAD_ACTOR_HUMAN
+
+    normalized = _normalize_github_login(sender_login)
+    if normalized in _DELEGATED_GITHUB_BOT_LOGINS:
+        return CI_HEAD_ACTOR_DELEGATED
+    if normalized in _OUR_GITHUB_BOT_LOGINS:
+        if has_delegated_attribution:
+            return CI_HEAD_ACTOR_DELEGATED
+        return CI_HEAD_ACTOR_SEER
+    return CI_HEAD_ACTOR_BOT
+
+
+class CiHeadOutcomeCounts(TypedDict):
+    failed: int
+    passed: int
+    inconclusive: int
+
+
+class CiHeadsByActor(TypedDict):
+    seer: CiHeadOutcomeCounts
+    delegated: CiHeadOutcomeCounts
+    human: CiHeadOutcomeCounts
+    bot: CiHeadOutcomeCounts
+    unknown: CiHeadOutcomeCounts
+
+
+class CiHeadSummary(TypedDict):
+    """Aggregate per-head CI counts plus the actor×outcome matrix."""
+
+    total: int
+    failed: int
+    passed: int
+    inconclusive: int
+    by_actor: CiHeadsByActor
+
+
+def _empty_outcome_counts() -> CiHeadOutcomeCounts:
+    return {"failed": 0, "passed": 0, "inconclusive": 0}
+
+
+def _empty_by_actor() -> CiHeadsByActor:
+    return {
+        "seer": _empty_outcome_counts(),
+        "delegated": _empty_outcome_counts(),
+        "human": _empty_outcome_counts(),
+        "bot": _empty_outcome_counts(),
+        "unknown": _empty_outcome_counts(),
+    }
+
+
+def ci_head_summary_from_doc(
+    doc: ActivityDoc,
+    *,
+    has_delegated_attribution: bool = False,
+) -> CiHeadSummary:
+    """Aggregate + per-actor CI head counts from the checks rollup.
+
+    Actor buckets join each check head to the open/sync sender that introduced
+    that SHA. Every actor/outcome key is always present (zeros when empty);
+    actor buckets sum to ``total``.
+    """
+    by_actor = _empty_by_actor()
+    total = failed = passed = inconclusive = 0
+
+    pushers = head_sha_pushers_from_doc(doc)
+    for sha, outcome in ci_head_outcomes_from_doc(doc).items():
+        pusher = pushers.get(sha)
+        if pusher is None:
+            actor: CiHeadActor = CI_HEAD_ACTOR_UNKNOWN
+        else:
+            actor = classify_ci_head_actor(
+                pusher[0],
+                pusher[1],
+                has_delegated_attribution=has_delegated_attribution,
+            )
+        actor_counts = by_actor[actor]
+        if outcome == CI_HEAD_FAILED:
+            actor_counts["failed"] += 1
+            failed += 1
+        elif outcome == CI_HEAD_PASSED:
+            actor_counts["passed"] += 1
+            passed += 1
+        else:
+            actor_counts["inconclusive"] += 1
+            inconclusive += 1
+        total += 1
+
+    return {
+        "total": total,
+        "failed": failed,
+        "passed": passed,
+        "inconclusive": inconclusive,
+        "by_actor": by_actor,
+    }
 
 
 def _synthesized_check_suite_payload(group: CheckGroup) -> dict[str, Any]:

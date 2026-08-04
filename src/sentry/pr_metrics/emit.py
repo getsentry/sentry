@@ -31,6 +31,7 @@ from sentry.models.pullrequest import (
 )
 from sentry.models.repository import Repository
 from sentry.pr_metrics import activity_doc
+from sentry.pr_metrics.attribution import DELEGATED_SIGNAL_TYPES
 from sentry.pr_metrics.contracts import (
     CLOSE_ACTION_ABANDONED,
     CLOSE_ACTION_CLOSED,
@@ -228,6 +229,55 @@ NO_CI_EVENTS = "no_ci_events"
 # cancelled/skipped/stale (never ran to completion, not a failure verdict),
 # neutral (a soft pass), or action_required (blocked on approval, not broken).
 _FAILING_CHECK_CONCLUSIONS = frozenset({"failure", "timed_out", "startup_failure"})
+
+
+def _null_ci_head_summary_fields() -> dict[str, Any]:
+    return {
+        "ci_heads_total": None,
+        "ci_heads_failed": None,
+        "ci_heads_passed": None,
+        "ci_heads_inconclusive": None,
+        "ci_heads_by_actor": None,
+    }
+
+
+def _has_delegated_attribution(attributions: list[dict[str, Any]]) -> bool:
+    """Whether any attribution marks this PR as Seer-delegated (Cursor/Copilot/Claude)."""
+    delegated = {signal.value for signal in DELEGATED_SIGNAL_TYPES}
+    return any((row.get("signal_type") or "") in delegated for row in attributions)
+
+
+def _ci_head_summary_fields(
+    pull_request: PullRequest,
+    attributions: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Analytics fields for per-head CI outcome counts, or nulls on the legacy path.
+
+    Doc store only: the checks rollup is keyed by ``(head_sha, app_slug)``, which
+    the legacy ``CHECK_SUITE_COMPLETED`` rows don't carry. Nulls (not zeros)
+    mark "summary unavailable" so warehouse queries don't conflate legacy PRs
+    with doc-path PRs that genuinely had no CI.
+
+    ``ci_heads_by_actor`` is JSON of ``CiHeadsByActor`` (see activity_doc).
+    Actor buckets join each check head to the open/sync sender that introduced
+    that SHA. ``has_delegated_attribution`` reclassifies Seer/Sentry-app
+    pushers as ``delegated`` on Claude-style PRs (opened as the Sentry app).
+    """
+    doc = load_activity_document(pull_request)
+    if doc is None:
+        return _null_ci_head_summary_fields()
+
+    summary = activity_doc.ci_head_summary_from_doc(
+        doc,
+        has_delegated_attribution=_has_delegated_attribution(attributions),
+    )
+    return {
+        "ci_heads_total": summary["total"],
+        "ci_heads_failed": summary["failed"],
+        "ci_heads_passed": summary["passed"],
+        "ci_heads_inconclusive": summary["inconclusive"],
+        "ci_heads_by_actor": json.dumps(summary["by_actor"], sort_keys=True),
+    }
 
 
 def _any_group_failing(groups: Iterable[activity_doc.CheckGroup]) -> bool:
@@ -832,6 +882,7 @@ def build_pr_metrics_row(
         autofix_referrers=resolve_autofix_referrers(pull_request, attributions),
         verdict=metrics.verdict,
         diagnosis_labels=list(diagnosis_labels) if diagnosis_labels is not None else None,
+        **_ci_head_summary_fields(pull_request, attributions),
         **_conversation_analysis_fields(conversation_analysis),
     )
 
