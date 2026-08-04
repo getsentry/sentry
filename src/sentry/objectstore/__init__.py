@@ -97,7 +97,7 @@ def create_client() -> Client:
         timeout_ms=options.get("timeout_ms", None),
         connection_kwargs=options.get(
             "connection_kwargs",
-            {"timeout": urllib3.Timeout(connect=5.0), "maxsize": 32},
+            {"timeout": urllib3.Timeout(connect=5.0, read=None), "maxsize": 32},
         ),
         token=token_generator,
     )
