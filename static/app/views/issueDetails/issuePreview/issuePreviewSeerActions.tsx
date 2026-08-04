@@ -145,14 +145,6 @@ function getAutofixPrimaryAction(autofix: ExplorerAutofix): SeerAction | null {
 
   const nextStep = getAutofixNextStep({sections});
 
-  if (nextStep?.section.status !== 'completed') {
-    return {
-      ...AUTOFIX_ANALYTICS.view,
-      kind: 'view_autofix',
-      label: t('Continue in Seer'),
-    };
-  }
-
   switch (nextStep?.action) {
     case 'create_pr':
       return {...AUTOFIX_ANALYTICS.create_pr, kind: 'create_pr', label: t('Draft a PR')};

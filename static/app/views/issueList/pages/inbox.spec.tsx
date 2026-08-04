@@ -351,6 +351,7 @@ describe('InboxPage', () => {
   });
 
   it('shows a plus sign when a section count reaches the API cap', async () => {
+    mockIssuePreview();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
       match: [
