@@ -252,17 +252,22 @@ def _profiler_id_filter_converter(
     params: FilterConvertParams | None,
 ) -> list[Any]:
     # This converter is only reached by the errors/issue platform group-search path (this
-    # alias resolves to a real, indexed column on transactions elsewhere). A missing key in
-    # the contexts map reads as '' rather than NULL, so a plain '' comparison is enough to
-    # express "has"/"doesn't have" a profiler id - no `ifNull` needed.
+    # alias resolves to a real, indexed column on transactions elsewhere). Keep existence
+    # checks null-safe because missing profiler ids can read as NULL through this group
+    # search path.
 
-    # Generic wildcard-list splitting returns nested legacy conditions, which Snuba ORs.
-    # For NOT IN, keep this as one negated regex union so `!profiler.id:[abc*, exact]`
-    # means `NOT (abc* OR exact)`.
-    if search_filter.operator == "NOT IN" and search_filter.value.is_wildcard():
+    # Generic wildcard-list splitting returns nested legacy conditions whose boolean
+    # behavior is inconsistent in group search. Keep wildcard lists as one regex union
+    # so `profiler.id:[abc*, exact]` means `(abc* OR exact)` and the negated form means
+    # `NOT (abc* OR exact)`.
+    if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
+        return [["ifNull", [PROFILER_ID_CONTEXT_COLUMN, "''"]], search_filter.operator, ""]
+
+    if search_filter.operator in ("IN", "NOT IN") and search_filter.value.is_wildcard():
+        operator = "!=" if search_filter.operator == "NOT IN" else "="
         return [
             ["match", [PROFILER_ID_CONTEXT_COLUMN, f"'(?i){search_filter.value.value}'"]],
-            "!=",
+            operator,
             1,
         ]
 
