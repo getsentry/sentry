@@ -63,7 +63,7 @@ const jsonDetector: ContentDetector = {
       // Only fence runs that stand on their own; skip JSON glued to other text
       // (e.g. `key={"a":1}` or `arr[0]`) which is part of an expression.
       if (
-        hasWhitespaceBoundary(text, i, end + 1) &&
+        hasStandaloneBoundary(text, i, end + 1) &&
         looksLikeJson(text.slice(i, end + 1))
       ) {
         blocks.push({start: i, end: end + 1, language: 'json'});
@@ -174,10 +174,20 @@ function findBalancedEnd(text: string, start: number): number {
   return -1;
 }
 
-/** Whether the run at [start, end) is bounded by whitespace or the string edges. */
-function hasWhitespaceBoundary(text: string, start: number, end: number): boolean {
+// Trailing punctuation that can legitimately follow standalone JSON in prose,
+// e.g. a sentence-ending period or a comma in a list. The leading side stays
+// strict so expression glue like `arr[0]` and `key={…}` is still rejected.
+const TRAILING_PUNCTUATION = /[.,;:!?)]/;
+
+/**
+ * Whether the run at [start, end) stands on its own: preceded by whitespace or
+ * the string start, and followed by whitespace, the string end, or trailing
+ * sentence punctuation.
+ */
+function hasStandaloneBoundary(text: string, start: number, end: number): boolean {
   const beforeOk = start === 0 || /\s/.test(text[start - 1]!);
-  const afterOk = end === text.length || /\s/.test(text[end]!);
+  const afterOk =
+    end === text.length || /\s/.test(text[end]!) || TRAILING_PUNCTUATION.test(text[end]!);
   return beforeOk && afterOk;
 }
 

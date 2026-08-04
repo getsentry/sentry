@@ -82,6 +82,14 @@ Done.`);
     );
   });
 
+  it('wraps JSON followed by a sentence period in inline code', () => {
+    expect(fenceContent('See {"a": 1, "b": 2}.')).toBe('See `{"a": 1, "b": 2}`.');
+  });
+
+  it('wraps JSON followed by a comma in inline code', () => {
+    expect(fenceContent('Given {"a": 1}, proceed')).toBe('Given `{"a": 1}`, proceed');
+  });
+
   it('leaves JSON glued to other tokens untouched', () => {
     const input = 'call with key={"a":1,"b":2} now';
     expect(fenceContent(input)).toBe(input);
