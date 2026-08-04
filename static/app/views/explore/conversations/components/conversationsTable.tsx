@@ -604,6 +604,7 @@ const FixedRowHeightGrid = styled('div')`
 
 const ConversationLink = styled(Link)`
   display: block;
+  min-width: 0;
   color: inherit;
 
   &:hover {
