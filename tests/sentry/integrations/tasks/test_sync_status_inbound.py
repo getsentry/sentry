@@ -421,9 +421,6 @@ class TestSyncStatusInbound(TestCase):
         assert mock_signal.call_count == 0
         assert self.group.activity_set.filter(type=ActivityType.SET_UNRESOLVED.value).count() == 0
 
-    # Webhook delivery is not ordered, so an inbound status event can describe a change the
-    # provider made before one that has already been applied.
-
     def _sync(self, provider_event_time: str | None) -> None:
         sync_status_inbound(
             integration_id=self.integration.id,
@@ -477,8 +474,7 @@ class TestSyncStatusInbound(TestCase):
     def test_events_without_provider_time_are_always_applied(
         self, mock_get_resolve_sync_action: mock.MagicMock
     ) -> None:
-        # Payloads enqueued before the key existed, and providers that omit their own
-        # timestamp, must keep syncing rather than being treated as stale.
+        # Payloads without a provider timestamp must keep syncing.
         mock_get_resolve_sync_action.return_value = ResolveSyncAction.UNRESOLVE
         self._sync(None)
 

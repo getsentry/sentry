@@ -220,8 +220,7 @@ def handle_updated_workitem(data: Mapping[str, Any], integration: RpcIntegration
     try:
         assigned_to = data["resource"]["fields"].get("System.AssignedTo")
         status_change = data["resource"]["fields"].get("System.State")
-        # Azure DevOps stamps every revision with a changed date, which is the only
-        # provider-side clock in this payload. Used to order deliveries.
+        # The only provider-side clock in this payload, used to order deliveries.
         changed_date_field = data["resource"]["fields"].get("System.ChangedDate")
         changed_date = (
             changed_date_field.get("newValue") if isinstance(changed_date_field, dict) else None

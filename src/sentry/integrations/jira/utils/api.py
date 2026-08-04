@@ -109,8 +109,7 @@ def handle_status_change(integration: RpcIntegration, data: Mapping[str, Any]) -
             logger.info("jira.missing-changelog-status", extra=log_context)
             return
 
-        # Jira's own last-modified time for the issue, which for a status transition is
-        # when the transition happened. Used to order deliveries.
+        # For a status transition this is when the transition happened; orders deliveries.
         updated = (data["issue"].get("fields") or {}).get("updated")
 
         result = integration_service.organization_contexts(integration_id=integration.id)

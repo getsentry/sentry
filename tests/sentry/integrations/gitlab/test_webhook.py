@@ -740,8 +740,7 @@ class TestIssuesEventWebhookStatusSync(GitLabTestCase):
         assert call_args[0][1]["action"] == "close"
 
     def test_close_delivered_after_reopen_does_not_resolve(self) -> None:
-        # A close/reopen pair delivered in reverse order must not resolve the group, since
-        # the GitLab issue is open.
+        # A close/reopen pair delivered in reverse order must not resolve the group.
         with assume_test_silo_mode(SiloMode.CONTROL):
             org_integration = OrganizationIntegration.objects.get(
                 organization_id=self.organization.id, integration_id=self.integration.id

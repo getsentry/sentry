@@ -1036,7 +1036,7 @@ class IssuesEventWebhook(GitHubWebhook):
             integration: The GitHub integration
             external_issue_key: The formatted issue key
             action: The action type ('closed' or 'reopened')
-            updated_at: GitHub's own timestamp for the change, used to order deliveries
+            updated_at: GitHub's own timestamp, used to order deliveries
         """
         org_integrations = integration_service.get_organization_integrations(
             integration_id=integration.id,

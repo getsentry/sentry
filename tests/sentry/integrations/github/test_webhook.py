@@ -2052,10 +2052,7 @@ class IssuesEventWebhookTest(APITestCase):
             )
 
     def test_close_delivered_after_reopen_does_not_resolve(self) -> None:
-        # Webhook delivery is not ordered: a failed delivery is retried with backoff and
-        # lands behind events that were originally after it. A close that arrives after
-        # the reopen it precedes must not resolve the group, because the GitHub issue is
-        # open.
+        # A close arriving after the reopen it precedes must not resolve the group.
         self._enable_inbound_status_sync()
         self.create_integration_external_issue(
             group=self.group,

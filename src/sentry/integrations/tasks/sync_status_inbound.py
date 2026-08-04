@@ -186,12 +186,10 @@ def _record_provider_event_time(
     external_issue: ExternalIssue | None, event_time: datetime | None
 ) -> None:
     """
-    Advance the issue's watermark to `event_time`, so later deliveries of anything the
-    provider generated before it are recognized as stale.
+    Advance the issue's watermark, so anything the provider generated earlier is stale.
 
-    The update is conditional rather than a plain write: two deliveries processed
-    concurrently both read the pre-existing watermark, and letting the older one land last
-    would move the watermark backwards.
+    Conditional rather than a plain write: concurrent deliveries both read the pre-existing
+    watermark, and letting the older one land last would move it backwards.
     """
     if external_issue is None or event_time is None:
         return
@@ -248,13 +246,9 @@ def sync_status_inbound(
     if not affected_groups:
         return
 
-    # Webhook delivery is not ordered: a failed delivery is retried with exponential
-    # backoff and lands behind events that were originally after it, and for providers in
-    # `hybridcloud.webhookpayload.skip_on_failure_providers` the drain skips a failed
-    # message outright. Every provider hands us a delta ("closed", "reopened", a
-    # from/to state pair) rather than a snapshot, so replaying an old delta writes an old
-    # status over a newer one. Compare the provider's own clock against the newest event
-    # we have processed for this issue and drop anything that is not newer.
+    # Webhook delivery is not ordered, and every provider hands us a delta ("closed",
+    # "reopened", a from/to state pair) rather than a snapshot, so a delivery that lands
+    # late writes an old status over a newer one.
     external_issue = ExternalIssue.objects.filter(
         organization_id=organization_id, integration_id=integration_id, key=issue_key
     ).first()
@@ -367,10 +361,8 @@ def sync_status_inbound(
                     sentry_sdk.capture_exception(e)
 
     elif action == ResolveSyncAction.UNRESOLVE:
-        # Mirror the resolve path and narrow to the groups this event actually changes.
-        # `update_group_status` already skips groups that are in the target state, but the
-        # signal below was fanning out for them anyway, announcing an unresolve that never
-        # happened.
+        # Narrow to the groups this event actually changes, so the signal below does not
+        # announce an unresolve that never happened.
         unresolvable_groups = [
             group
             for group in affected_groups
@@ -398,6 +390,6 @@ def sync_status_inbound(
                     sender=f"unresolved_with_{provider.key}",
                 )
 
-    # Only once the event has been applied, so that a task retry after a transient failure
-    # re-applies it instead of finding its own watermark and skipping.
+    # Only once applied, so a retry after a transient failure isn't blocked by its own
+    # watermark.
     _record_provider_event_time(external_issue, event_time)

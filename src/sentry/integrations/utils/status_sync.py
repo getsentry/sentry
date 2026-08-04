@@ -9,21 +9,14 @@ from dateutil.parser import parse as parse_date
 
 logger = logging.getLogger(__name__)
 
-# Key under which each provider's webhook handler stashes the provider-side timestamp of
-# the status change an inbound sync payload describes. Normalizing at the edge keeps
-# `sync_status_inbound` — shared by GitHub, GitLab, VSTS, Jira and Jira Server — free of
+# Provider-side timestamp of the status change a payload describes. Each webhook handler
+# normalizes its provider's own field into this key so `sync_status_inbound` stays free of
 # per-provider payload shapes.
 PROVIDER_EVENT_TIME_KEY = "provider_event_time"
 
 
 def parse_provider_event_time(data: Mapping[str, Any]) -> datetime | None:
-    """
-    Read the provider-side timestamp a webhook handler attached to an inbound status event.
-
-    Returns None when the payload carries no usable timestamp — payloads enqueued before
-    this key existed, and providers that omit their own timestamp — which leaves the
-    ordering guard inert rather than blocking the sync.
-    """
+    """Read a payload's provider event time, or None if it carries no usable timestamp."""
     raw = data.get(PROVIDER_EVENT_TIME_KEY)
     if not isinstance(raw, str) or not raw.strip():
         return None
@@ -34,25 +27,21 @@ def parse_provider_event_time(data: Mapping[str, Any]) -> datetime | None:
         logger.warning("sync_status_inbound.unparsable_event_time", extra={"raw_value": raw})
         return None
 
-    # Providers report UTC or an explicit offset; treat a bare timestamp as UTC so the
-    # comparison never comes down to naive-vs-aware.
     return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
 
 
 def is_stale_status_event(last_event_time: datetime | None, event_time: datetime | None) -> bool:
     """
-    Whether an inbound status event describes a change the provider made no later than the
-    newest one we have already processed for the same issue.
+    Whether an event describes a change the provider made no later than one already applied.
 
-    Both timestamps come from the provider's own clock, so the comparison is unaffected by
-    how long delivery took. Equal timestamps count as stale: `last_event_time` records an
-    event we already applied, so an event that is not strictly newer is either that same
-    event redelivered, or indistinguishable from it at the resolution the provider reports.
-    Applying it again would re-run the sync on top of whatever happened in between —
-    including a resolution a human made in Sentry.
+    Both sides come from the provider's clock, so delivery latency doesn't enter into it.
+    Equal counts as stale: an event that is not strictly newer is either the one already
+    applied, redelivered, or indistinguishable from it at the provider's resolution, and
+    re-running it would overwrite whatever happened in between — including a resolution a
+    human made in Sentry.
 
-    Returns False whenever either side is missing, so the guard cannot suppress a sync it
-    has no evidence about.
+    A missing timestamp yields False, so the guard never suppresses a sync it has no
+    evidence about.
     """
     if last_event_time is None or event_time is None:
         return False

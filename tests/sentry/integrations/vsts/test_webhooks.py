@@ -271,9 +271,8 @@ class VstsWebhookWorkItemTest(APITestCase):
 
     @responses.activate
     def test_stale_workitem_replay_does_not_unresolve(self) -> None:
-        # VSTS treats almost any `workitem.updated` as an unresolve (`should_unresolve` is
-        # true whenever the new state is not a done state), so a replayed delivery would
-        # reopen an issue that has been resolved since the event was generated.
+        # VSTS unresolves on almost any `workitem.updated`, so a replay would reopen an
+        # issue resolved since the event was generated.
         responses.add(
             responses.GET,
             "https://instance.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workitemtypes/Bug/states",

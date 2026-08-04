@@ -342,7 +342,7 @@ class IssuesEventWebhook(GitlabWebhook):
 
         Triggers the sync_status_inbound task to update linked Sentry issues.
 
-        `updated_at` is GitLab's own timestamp for the change, used to order deliveries.
+        `updated_at` is GitLab's own timestamp, used to order deliveries.
         """
         org_integrations = integration_service.get_organization_integrations(
             integration_id=integration.id,

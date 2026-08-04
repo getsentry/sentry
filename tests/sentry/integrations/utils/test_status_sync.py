@@ -18,8 +18,7 @@ class TestParseProviderEventTime:
         ) == datetime(2023, 1, 1, 0, 0, 0, tzinfo=UTC)
 
     def test_jira_format_keeps_offset(self) -> None:
-        # Jira reports the instance's own offset, so the value has to be compared as an
-        # absolute time rather than being reinterpreted as UTC.
+        # Jira reports the instance's own offset, which must survive as absolute time.
         assert parse_provider_event_time(
             {"provider_event_time": "2023-01-01T02:00:00.000+0200"}
         ) == datetime(2023, 1, 1, 0, 0, 0, tzinfo=UTC)

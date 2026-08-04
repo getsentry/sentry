@@ -73,8 +73,7 @@ def handle_status_change(
         )
         return
 
-    # Jira's own last-modified time for the issue, which for a status transition is when
-    # the transition happened. Used to order deliveries.
+    # For a status transition this is when the transition happened; orders deliveries.
     updated = (data["issue"].get("fields") or {}).get("updated")
 
     org_integrations = integration_service.get_organization_integrations(
