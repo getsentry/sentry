@@ -23,10 +23,8 @@ SEER_STATE_MILESTONES = frozenset(
 
 
 def _has_pull_request(state: SeerRunState) -> bool:
-    # Native Seer PRs mark the block that was pushed (block-derived, so it resets
-    # when a re-run truncates blocks). Coding-agent PRs live in the coding_agents
-    # side-channel; pr_number (not pr_url, which may be a pushed branch) confirms
-    # an actual PR. A run can't be re-run once either exists, so neither goes stale.
+    # Native Seer PRs mark a pushed block; coding-agent PRs live in coding_agents.
+    # pr_number (not pr_url, which may be a pushed branch) confirms an actual PR.
     if any(block.pr_commit_shas for block in state.blocks):
         return True
     return any(
@@ -75,3 +73,11 @@ def reconcile_milestones(seer_run: SeerRun, desired: Collection[str]) -> None:
                 [SeerRunMilestone(seer_run=seer_run, milestone=m) for m in to_insert],
                 ignore_conflicts=True,
             )
+
+
+def record_has_pull_request(seer_run: SeerRun) -> None:
+    # Coding-agent PRs land via the async status sync, after the step webhook that
+    # runs reconcile_milestones; record the milestone here so it isn't missed.
+    SeerRunMilestone.objects.get_or_create(
+        seer_run=seer_run, milestone=SeerRunMilestoneType.HAS_PULL_REQUEST
+    )

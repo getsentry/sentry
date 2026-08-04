@@ -11,12 +11,16 @@ from sentry.seer.milestones import (
     SEER_STATE_MILESTONES,
     milestones_from_state,
     reconcile_milestones,
+    record_has_pull_request,
 )
 from sentry.seer.models.run import SeerRunMilestone, SeerRunMilestoneType
 from sentry.testutils.cases import TestCase
 
 
-def _state(blocks=None, coding_agents=None) -> SeerRunState:
+def _state(
+    blocks: list[MemoryBlock] | None = None,
+    coding_agents: dict[str, CodingAgentState] | None = None,
+) -> SeerRunState:
     return SeerRunState(
         run_id=1,
         blocks=blocks or [],
@@ -105,4 +109,34 @@ class ReconcileMilestonesTest(TestCase):
         assert self._recorded() == {
             SeerRunMilestoneType.ROOT_CAUSE,
             SeerRunMilestoneType.PULL_REQUESTS_MERGED,
+        }
+
+
+class RecordHasPullRequestTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.seer_run = self.create_seer_run(organization=self.organization)
+
+    def _recorded(self) -> set[str]:
+        return set(
+            SeerRunMilestone.objects.filter(seer_run=self.seer_run).values_list(
+                "milestone", flat=True
+            )
+        )
+
+    def test_records_has_pull_request(self) -> None:
+        record_has_pull_request(self.seer_run)
+        assert self._recorded() == {SeerRunMilestoneType.HAS_PULL_REQUEST}
+
+    def test_is_idempotent(self) -> None:
+        record_has_pull_request(self.seer_run)
+        record_has_pull_request(self.seer_run)
+        assert self._recorded() == {SeerRunMilestoneType.HAS_PULL_REQUEST}
+
+    def test_preserves_other_milestones(self) -> None:
+        reconcile_milestones(self.seer_run, desired={SeerRunMilestoneType.ROOT_CAUSE})
+        record_has_pull_request(self.seer_run)
+        assert self._recorded() == {
+            SeerRunMilestoneType.ROOT_CAUSE,
+            SeerRunMilestoneType.HAS_PULL_REQUEST,
         }
