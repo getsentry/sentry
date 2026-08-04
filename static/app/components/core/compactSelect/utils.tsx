@@ -339,7 +339,7 @@ export function SectionToggle({item, listState}: SectionToggleProps) {
 
   const toggleAllOptions = useCallback(() => {
     toggleOptions(
-      [...item.childNodes].map(n => n.key),
+      Array.from(item.childNodes, n => n.key),
       listState.selectionManager
     );
   }, [item, listState.selectionManager]);
@@ -411,7 +411,7 @@ export function HiddenSectionToggle({
   const {pressProps} = usePress({
     onPress: () => {
       toggleOptions(
-        [...item.childNodes].map(n => n.key),
+        Array.from(item.childNodes, n => n.key),
         listState.selectionManager
       );
     },

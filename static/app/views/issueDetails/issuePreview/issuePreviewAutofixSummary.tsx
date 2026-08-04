@@ -112,7 +112,7 @@ export function IssuePreviewAutofixSummary({runState}: IssuePreviewAutofixSummar
             </SummaryContainer>
             <Disclosure.Content>
               <Stack gap="lg">
-                {[...patchesByRepo.entries()].map(([repoName, patches]) => (
+                {Array.from(patchesByRepo.entries(), ([repoName, patches]) => (
                   <Stack key={repoName} gap="md">
                     <Text bold>{repoName}</Text>
                     {patches.map(patch => (

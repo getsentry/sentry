@@ -349,7 +349,7 @@ export function GroupList({
         {withHeader && <GroupListHeader withChart={!!withChart} withColumns={columns} />}
         <PanelBody>
           {loading
-            ? [...Array.from({length: numPlaceholderRows})].map((_, i) => (
+            ? Array.from({length: numPlaceholderRows}, (_, i) => (
                 <GroupPlaceholder key={i}>
                   <Placeholder height="50px" />
                 </GroupPlaceholder>
