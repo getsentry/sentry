@@ -29,7 +29,6 @@ from sentry.analytics.events.autofix_events import (
 )
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory
 from sentry.integrations.services.integration import integration_service
-from sentry.scm import factory as scm_factory
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.artifact_schemas import (
@@ -342,6 +341,7 @@ def _resolve_default_branch(
 ) -> str | None:
     if repo.repository_id is None:
         return None
+    from sentry.scm import factory as scm_factory
 
     try:
         scm = scm_factory.new(group.organization.id, repo.repository_id, referrer.value)
