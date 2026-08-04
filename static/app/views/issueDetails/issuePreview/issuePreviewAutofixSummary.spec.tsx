@@ -329,4 +329,5 @@ describe('IssuePreviewAutofixSummary', () => {
       insertIndex: 0,
     });
   });
+
 });
