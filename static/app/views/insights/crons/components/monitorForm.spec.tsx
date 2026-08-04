@@ -40,34 +40,31 @@ describe('MonitorForm', () => {
     });
   });
 
-  it.isKnownFlake(
-    'shows validation errors on required sibling fields after first field change',
-    async () => {
-      render(
-        <MonitorForm
-          apiMethod="POST"
-          apiEndpoint={`/organizations/${organization.slug}/monitors/`}
-          onSubmitSuccess={jest.fn()}
-        />,
-        {organization}
-      );
+  it('shows validation errors on required sibling fields after first field change', async () => {
+    render(
+      <MonitorForm
+        apiMethod="POST"
+        apiEndpoint={`/organizations/${organization.slug}/monitors/`}
+        onSubmitSuccess={jest.fn()}
+      />,
+      {organization}
+    );
 
-      // Initially no validation error tooltips should be rendered
-      expect(document.querySelectorAll('[data-tooltip]')).toHaveLength(0);
+    // Initially no validation error tooltips should be rendered
+    expect(document.querySelectorAll('[data-tooltip]')).toHaveLength(0);
 
-      // Change one field (schedule) to trigger first-change validation
-      const schedule = screen.getByRole('textbox', {name: 'Crontab Schedule'});
-      await userEvent.clear(schedule);
-      await userEvent.type(schedule, '5 * * * *');
+    // Change one field (schedule) to trigger first-change validation
+    const schedule = screen.getByRole('textbox', {name: 'Crontab Schedule'});
+    await userEvent.clear(schedule);
+    await userEvent.type(schedule, '5 * * * *');
 
-      // Validation error tooltips should now appear on other required empty fields
-      await waitFor(() => {
-        expect(document.querySelectorAll('[data-tooltip]').length).toBeGreaterThan(0);
-      });
-    }
-  );
+    // Validation error tooltips should now appear on other required empty fields
+    await waitFor(() => {
+      expect(document.querySelectorAll('[data-tooltip]').length).toBeGreaterThan(0);
+    });
+  });
 
-  it.isKnownFlake('displays human readable schedule', async () => {
+  it('displays human readable schedule', async () => {
     render(
       <MonitorForm
         apiMethod="POST"
@@ -184,7 +181,7 @@ describe('MonitorForm', () => {
     expect(mockHandleSubmitSuccess).toHaveBeenCalled();
   });
 
-  it.isKnownFlake('prefills with an existing monitor', async () => {
+  it('prefills with an existing monitor', async () => {
     const monitor = MonitorFixture({project});
 
     const apiEndpont = `/projects/${organization.slug}/${monitor.project.slug}/monitors/${monitor.slug}/`;

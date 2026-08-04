@@ -120,7 +120,7 @@ describe('SpansSearchBar', () => {
     await screen.findByLabelText('span.op:function');
   });
 
-  it.isKnownFlake('calls onSearch with the correct query', async () => {
+  it('calls onSearch with the correct query', async () => {
     const onSearch = jest.fn();
 
     renderWithProvider({
@@ -145,7 +145,7 @@ describe('SpansSearchBar', () => {
     });
   });
 
-  it.isKnownFlake('triggers onClose when the query changes', async () => {
+  it('triggers onClose when the query changes', async () => {
     const onClose = jest.fn();
 
     renderWithProvider({

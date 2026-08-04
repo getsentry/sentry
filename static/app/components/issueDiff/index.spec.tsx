@@ -45,7 +45,7 @@ describe('IssueDiff', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it.isKnownFlake('can dynamically import SplitDiff', async () => {
+  it('can dynamically import SplitDiff', async () => {
     render(
       <IssueDiff
         baseIssueId="base"
