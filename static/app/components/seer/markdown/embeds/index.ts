@@ -2,10 +2,11 @@ import {Docs} from './components/docs';
 import {Dsn} from './components/dsn';
 import {Issue, Issues} from './components/issue';
 import {Timestamp} from './components/timestamp';
+import {Tool} from './components/tool';
 import {User} from './components/user';
 import {SeerEmbedRegistry} from './registry';
 
-const embeds = [Docs, Dsn, Issue, Issues, Timestamp, User];
+const embeds = [Docs, Dsn, Issue, Issues, Timestamp, Tool, User];
 for (const embed of embeds) {
   SeerEmbedRegistry.register(embed.displayName, embed);
 }
