@@ -24,7 +24,13 @@ describe('AnomalyDetectionFeedbackBanner', () => {
   const mockIncident2 = IncidentFixture({id: '6702'});
   const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
-  it.isKnownFlake('submits anomaly detection feedback (yes)', async () => {
+  // The banner records its dismissal in localStorage keyed by incident id, and
+  // jsdom keeps that store for the whole file.
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('submits anomaly detection feedback (yes)', async () => {
     const {container} = render(
       <AnomalyDetectionFeedbackBanner
         id={mockIncident.id}
