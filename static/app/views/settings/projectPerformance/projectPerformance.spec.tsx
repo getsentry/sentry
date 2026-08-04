@@ -427,6 +427,33 @@ describe('projectPerformance', () => {
     );
   });
 
+  it('disables admin detector settings without project write access', async () => {
+    jest.spyOn(utils, 'isActiveSuperuser').mockReturnValue(true);
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      method: 'GET',
+      body: ProjectFixture({access: ['project:read']}),
+      statusCode: 200,
+    });
+
+    render(<ProjectPerformance />, {
+      organization: OrganizationFixture({
+        access: ['org:read'],
+        features: org.features,
+      }),
+      initialRouterConfig,
+    });
+
+    expect(
+      await screen.findByRole('checkbox', {
+        name: 'Transaction Duration Regression Enabled',
+      })
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('checkbox', {name: 'Function Duration Regression Enabled'})
+    ).toBeDisabled();
+  });
+
   it.each([
     {
       title: IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,

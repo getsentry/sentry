@@ -147,6 +147,7 @@ export function ProjectPerformance() {
       <SamplingPrioritiesSection project={project} hasWriteAccess={hasWriteAccess} />
       {isActiveSuperuser() && (
         <AdminRegressionSettingsSection
+          hasWriteAccess={hasWriteAccess}
           isResetting={isResettingDetectorSettings}
           performanceIssueSettings={performanceIssueSettings}
         />

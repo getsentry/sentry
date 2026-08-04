@@ -17,6 +17,7 @@ import {
 import {useDetectorFieldMutationOptions} from './useDetectorFieldMutationOptions';
 
 type AdminRegressionSettingsSectionProps = {
+  hasWriteAccess: boolean;
   isResetting: boolean;
   performanceIssueSettings: ProjectPerformanceSettings;
 };
@@ -31,6 +32,7 @@ type DetectorThresholdsSectionProps = {
 };
 
 export function AdminRegressionSettingsSection({
+  hasWriteAccess,
   isResetting,
   performanceIssueSettings,
 }: AdminRegressionSettingsSectionProps) {
@@ -56,7 +58,7 @@ export function AdminRegressionSettingsSection({
             <field.Switch
               checked={field.state.value}
               onChange={field.handleChange}
-              disabled={isResetting}
+              disabled={!hasWriteAccess || isResetting}
             />
           </field.Layout.Row>
         )}
@@ -76,7 +78,7 @@ export function AdminRegressionSettingsSection({
             <field.Switch
               checked={field.state.value}
               onChange={field.handleChange}
-              disabled={isResetting}
+              disabled={!hasWriteAccess || isResetting}
             />
           </field.Layout.Row>
         )}
