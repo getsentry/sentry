@@ -27,7 +27,7 @@ function getTraceTimeRangeFromEvent(event: Event): {end: string; start: string} 
   return getTraceDateTimeRange({start, end});
 }
 
-export function generateTraceTarget(
+export function getTraceTargetFromEvent(
   event: Event,
   organization: Organization,
   location: Location,

@@ -7,7 +7,6 @@ import * as qs from 'query-string';
 
 import {Link} from '@sentry/scraps/link';
 
-import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
@@ -17,6 +16,7 @@ import {isCollapsedNode} from 'sentry/views/performance/newTraceDetails/traceGua
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import type {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {getTraceTargetFromEvent} from 'sentry/views/performance/traceDetails/traceTarget';
 
 import type {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
 
@@ -53,7 +53,7 @@ export function IssueTraceWaterfallOverlay({
 
   const traceTarget = useMemo(
     () =>
-      generateTraceTarget(
+      getTraceTargetFromEvent(
         event,
         organization,
         {

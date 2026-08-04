@@ -11,7 +11,6 @@ import {
 import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/utils';
 import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/events/issueDetailsLazyRender';
 import {LazyRender} from 'sentry/components/lazyRender';
-import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
@@ -31,6 +30,7 @@ import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/trace
 import {useTraceEventView} from 'sentry/views/performance/newTraceDetails/useTraceEventView';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 import {useTraceStateAnalytics} from 'sentry/views/performance/newTraceDetails/useTraceStateAnalytics';
+import {getTraceTargetFromEvent} from 'sentry/views/performance/traceDetails/traceTarget';
 
 import {TraceLinkedIssues} from './traceLinkedIssues';
 
@@ -176,7 +176,7 @@ export function TracePreviewFullTraceButton({
   source,
 }: TracePreviewProps) {
   const location = useLocation();
-  const traceTarget = generateTraceTarget(
+  const traceTarget = getTraceTargetFromEvent(
     event,
     organization,
     {
