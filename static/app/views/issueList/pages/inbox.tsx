@@ -1,3 +1,4 @@
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 import {useInfiniteQuery} from '@tanstack/react-query';
 import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
@@ -29,17 +30,24 @@ import {getMessage, getTitle} from 'sentry/utils/events';
 import {useMembers} from 'sentry/utils/members/useMembers';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useResizable} from 'sentry/utils/useResizable';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {IssuePreview} from 'sentry/views/issueDetails/issuePreview/issuePreview';
 import {IssueListContainer} from 'sentry/views/issueList';
 import {useInboxPreviewPrefetch} from 'sentry/views/issueList/pages/useInboxPreviewPrefetch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {getProgressIcon} from 'sentry/views/issueList/utils/progress';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 
 const TITLE = t('Inbox');
 const ISSUE_LIMIT = 10;
 const SELECTED_ISSUE_QUERY_PARAM = 'preview';
 const ASSIGNMENT_QUERY_PARAM = 'assignment';
 const ASSIGNMENT_FILTERS = ['me', 'my_teams', 'all'] as const;
+const INBOX_SPLIT_SIZE_STORAGE_KEY = 'inbox-split-size';
+const INBOX_DEFAULT_SIZE = 480;
+const INBOX_MIN_SIZE = 320;
+const INBOX_MAX_SIZE = 640;
 type AssignmentFilter = (typeof ASSIGNMENT_FILTERS)[number];
 export const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
   me: ' assigned:me',
@@ -123,6 +131,9 @@ export default function InboxPage() {
 }
 
 function InboxContent() {
+  const {layout} = usePrimaryNavigation();
+  const isMobile = layout === 'mobile';
+  const resizableContainerRef = useRef<HTMLDivElement>(null);
   const organization = useOrganization();
   const hasSeer =
     !organization.hideAiFeatures &&
@@ -138,6 +149,17 @@ function InboxContent() {
     SELECTED_ISSUE_QUERY_PARAM,
     parseAsString.withOptions({history: 'replace'})
   );
+  const [storedSize, setStoredSize] = useSyncedLocalStorageState(
+    INBOX_SPLIT_SIZE_STORAGE_KEY,
+    INBOX_DEFAULT_SIZE
+  );
+  const {onMouseDown: handleStartResize, size} = useResizable({
+    ref: resizableContainerRef,
+    initialSize: storedSize,
+    minWidth: INBOX_MIN_SIZE,
+    maxWidth: INBOX_MAX_SIZE,
+    onResizeEnd: setStoredSize,
+  });
 
   return (
     <Stack flex={1} minHeight={0} contain="size" overflow="hidden">
@@ -145,14 +167,15 @@ function InboxContent() {
       <Grid
         flex={1}
         minHeight={0}
-        columns={{
-          'screen:xs': 'minmax(0, 1fr)',
-          'screen:md': 'minmax(320px, 2fr) minmax(0, 3fr)',
-        }}
+        columns={isMobile ? 'minmax(0, 1fr)' : 'max-content minmax(0, 1fr)'}
       >
         <Stack
+          ref={isMobile ? undefined : resizableContainerRef}
           as="section"
           aria-label={t('Issue inbox')}
+          position="relative"
+          width={isMobile ? '100%' : `${size}px`}
+          minWidth={0}
           minHeight={0}
           display={selectedIssueId ? {'screen:xs': 'none', 'screen:md': 'flex'} : 'flex'}
           background="primary"
@@ -195,10 +218,31 @@ function InboxContent() {
               />
             ))}
           </Stack>
+          <Container
+            top="0"
+            right="0"
+            bottom="0"
+            width="8px"
+            radius="lg"
+            position="absolute"
+            display={isMobile ? 'none' : undefined}
+          >
+            {props => (
+              <ResizeHandle
+                {...props}
+                onMouseDown={handleStartResize}
+                onDoubleClick={() => setStoredSize(INBOX_DEFAULT_SIZE)}
+                atMinWidth={size === INBOX_MIN_SIZE}
+                atMaxWidth={size === INBOX_MAX_SIZE}
+              />
+            )}
+          </Container>
         </Stack>
         <Stack
           as="aside"
           aria-label={t('Issue preview')}
+          flex={1}
+          minWidth={0}
           minHeight={0}
           overflow="hidden"
           display={selectedIssueId ? 'flex' : {'screen:xs': 'none', 'screen:md': 'flex'}}
@@ -436,6 +480,30 @@ const InboxSectionContent = styled(Disclosure.Content)`
 
 const StickySectionHeader = styled(Container)`
   z-index: 1;
+`;
+
+const ResizeHandle = styled('div')<{atMaxWidth: boolean; atMinWidth: boolean}>`
+  z-index: ${p => p.theme.zIndex.drawer + 2};
+  cursor: ${p => (p.atMinWidth ? 'e-resize' : p.atMaxWidth ? 'w-resize' : 'ew-resize')};
+
+  &:hover,
+  &:active {
+    &::after {
+      background: ${p => p.theme.tokens.graphics.accent.vibrant};
+    }
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: -2px;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    opacity: 0.8;
+    background: transparent;
+    transition: background ${p => p.theme.motion.smooth.slow} 0.1s;
+  }
 `;
 
 const IssueCardLink = styled(Link)`

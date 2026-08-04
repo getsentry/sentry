@@ -56,7 +56,13 @@ function getFinalExplanation(section: AutofixSection): string | null {
 
 export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProps) {
   const organization = useOrganization();
-  const hasPrIterationFeature = organization.features.includes('autofix-pr-iteration');
+  // Reporting on an iteration applies to both flows; only the form is manual.
+  const hasPrIterationFeature =
+    organization.features.includes('autofix-pr-iteration') ||
+    organization.features.includes('autofix-pr-iteration-manual');
+  const hasManualPrIterationFeature = organization.features.includes(
+    'autofix-pr-iteration-manual'
+  );
 
   const isIterating =
     hasPrIterationFeature &&
@@ -95,12 +101,12 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     [artifact]
   );
 
-  const prIterationEnabled = hasPrIterationFeature;
   const hasPRs = Object.keys(autofix.runState?.repo_pr_states ?? {}).length > 0;
   const noCodingAgents =
     Object.values(autofix.runState?.coding_agents ?? {}).length === 0;
 
-  const isResetEligible = prIterationEnabled
+  // Reset-after-PR is only reachable where reset opens the manual form.
+  const isResetEligible = hasManualPrIterationFeature
     ? noCodingAgents && (hasPRs || autofix.runState?.status !== 'processing')
     : noCodingAgents && !hasPRs && autofix.runState?.status !== 'processing';
 
@@ -137,7 +143,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     return t('%s files changed in %s repos', filesChanged.size, reposChanged);
   }, [patchesByRepo]);
 
-  const showPrIterationForm = hasPRs && prIterationEnabled;
+  const showPrIterationForm = hasPRs && hasManualPrIterationFeature;
   const prIterationForm = (
     <PrIterationFeedbackForm
       autofix={autofix}

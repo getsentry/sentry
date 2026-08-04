@@ -5,12 +5,14 @@ from arroyo.types import Topic as ArroyoTopic
 from sentry_kafka_schemas.codecs import Codec
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 from taskbroker_client.state import current_task
-from taskbroker_client.worker.producer import TaskProducer
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.options.rollout import in_random_rollout
-from sentry.taskworker.producer import get_task_producer
-from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer, get_producer
+from sentry.utils.arroyo_producer import (
+    SingletonProducer,
+    get_arroyo_producer,
+    get_future_tracking_producer,
+)
 from sentry.utils.kafka_config import get_topic_definition
 
 #
@@ -48,7 +50,7 @@ def _get_eap_items_producer(name: str = "sentry.replays.lib.kafka.eap_items"):
 
 eap_producer = SingletonProducer(_get_eap_items_producer)
 _eap_task_producer_name = "sentry.replays.lib.kafka.eap_items_ftp"
-eap_items_ft_producer = get_producer(
+eap_items_ft_producer = get_future_tracking_producer(
     producer_name=_eap_task_producer_name,
     producer_factory=partial(_get_eap_items_producer, name=_eap_task_producer_name),
 )
@@ -82,7 +84,7 @@ def _get_ingest_replay_events_producer(name: str = "sentry.replays.lib.kafka.ing
 
 ingest_replay_events_producer = SingletonProducer(_get_ingest_replay_events_producer)
 _task_producer_name = "sentry.replays.lib.kafka.ingest_replay_events_taskproducer"
-ingest_replay_events_taskproducer = get_task_producer(
+ingest_replay_events_taskproducer = get_future_tracking_producer(
     producer_name=_task_producer_name,
     producer_factory=partial(_get_ingest_replay_events_producer, name=_task_producer_name),
 )
@@ -96,7 +98,7 @@ def publish_replay_event(message: str) -> None:
     if _in_process_replay_recording_task() or (
         current_task() is not None and in_random_rollout("tasks.producer.replays.rollout")
     ):
-        producer: SingletonProducer | TaskProducer = ingest_replay_events_taskproducer
+        producer: SingletonProducer | FutureTrackingProducer = ingest_replay_events_taskproducer
     else:
         producer = ingest_replay_events_producer
     producer.produce(

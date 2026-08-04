@@ -355,7 +355,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
-                if not features.has("organizations:autofix-pr-iteration", group.organization):
+                if not features.has(
+                    "organizations:autofix-pr-iteration-manual", group.organization
+                ):
                     return Response(
                         {"detail": "PR iteration is not enabled for this organization"},
                         status=status.HTTP_400_BAD_REQUEST,
@@ -410,6 +412,24 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 run_id, sentry_run_id = resolved_run_id, resolved_sentry_run_id
 
             case _:
+                # A truncating re-run would strand a PR/coding agent (they live
+                # outside the blocks). Refuse it, mirroring the frontend gate.
+                if data.get("insert_index") is not None and resolved_run_id is not None:
+                    try:
+                        run_state = get_autofix_run_state(group, resolved_run_id)
+                    except SeerPermissionError as e:
+                        if _is_unknown_run_id_error(e):
+                            return Response(status=status.HTTP_404_NOT_FOUND)
+                        raise PermissionDenied(SEER_PERMISSION_DENIED)
+
+                    if run_state.repo_pr_states or run_state.coding_agents:
+                        return Response(
+                            {
+                                "detail": "Cannot re-run a step after a pull request or coding agent has started"
+                            },
+                            status=status.HTTP_409_CONFLICT,
+                        )
+
                 triggered_at = timezone.now() if is_autofix_kickoff else None
                 try:
                     run = trigger_autofix_agent(
@@ -557,6 +577,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     },
                     "pr_iteration_enabled": features.has(
                         "organizations:autofix-pr-iteration", group.organization
+                    ),
+                    "manual_pr_iteration_enabled": features.has(
+                        "organizations:autofix-pr-iteration-manual", group.organization
                     ),
                     "queued_feedback": queued_feedback,
                     "warnings": warnings,
