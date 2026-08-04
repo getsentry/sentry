@@ -18,6 +18,7 @@ from sentry.dynamic_sampling.rules.helpers.latest_releases import record_latest_
 from sentry.event_manager import INSIGHT_MODULE_TO_PROJECT_FLAG_NAME
 from sentry.insights import FilterSpan
 from sentry.insights import modules as insights_modules
+from sentry.issue_detection import performance_detection
 from sentry.issue_detection.base import DetectorType
 from sentry.issue_detection.detectors.span_first.run_detectors import (
     SPAN_FIRST_DETECTORS_BY_GROUPTYPE,
@@ -29,6 +30,7 @@ from sentry.issue_detection.detectors.span_first.span_first_utils import (
     SpanFirstDetectorsRolloutController,
 )
 from sentry.issue_detection.performance_detection import (
+    DETECTOR_TYPE_TO_CLASS_MAP,
     detect_performance_problems,
     get_detection_settings,
 )
@@ -367,8 +369,30 @@ def _run_legacy_detectors(
     # Create a fake transaction event out of the segment data, to match what the legacy detectors
     # are expecting
     event_data = build_shim_event_data(segment_span, segment)
+
+    # Resolve the detector type strings into actual detector classes, and warn if we find anything
+    # weird
+    if detector_types == ["*"]:
+        detector_classes = performance_detection.DETECTOR_CLASSES
+    else:
+        detector_classes = [
+            DETECTOR_TYPE_TO_CLASS_MAP[detector_type]
+            for detector_type in detector_types
+            # They should all be in there, but in case we typo an option value, best to be safe
+            if detector_type in DETECTOR_TYPE_TO_CLASS_MAP
+        ]
+        if len(detector_types) > len(detector_classes):
+            logger.warning(
+                "issue_detection.span_processor.invalid_enablement_option",
+                extra={"option_value": detector_types},
+            )
+
     detected_problems = detect_performance_problems(
-        event_data, project, detection_settings=detection_settings, standalone=True
+        event_data,
+        project,
+        detector_classes=detector_classes,
+        detection_settings=detection_settings,
+        standalone=True,
     )
 
     # This flag is set in Relay, and here enables producing occurrences from the legacy detector
