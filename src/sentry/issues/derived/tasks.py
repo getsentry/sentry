@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal, NamedTuple
 
 from django.db.models import Exists, OuterRef, Q
 
@@ -11,6 +12,7 @@ from sentry.silo.base import SiloMode
 
 if TYPE_CHECKING:
     from sentry.db.models.manager.base_query_set import BaseQuerySet
+    from sentry.issues.derived.processing import GenerationId, PromotionResult
     from sentry.models.group import Group
 
 from sentry.tasks.base import instrumented_task
@@ -45,6 +47,114 @@ def _stale_pipeline_filter(qs: BaseQuerySet[Group], pipeline_hash: str) -> BaseQ
             )
         )
     )
+
+
+def _chunk_group_ids_into_ranges(
+    group_ids: Sequence[int], batch_size: int
+) -> list[tuple[int, int]]:
+    """Partition a sorted list of group IDs into ``[start, end)`` ranges of up to ``batch_size``."""
+    if not group_ids:
+        return []
+    starts = [group_ids[i] for i in range(0, len(group_ids), batch_size)]
+    ends = starts[1:] + [group_ids[-1] + 1]
+    return list(zip(starts, ends))
+
+
+class BatchRunResult(NamedTuple):
+    """Outcome of running build-and-promote across a batch of groups."""
+
+    # Counts keyed by the terminal ``PromotionResult`` of each group.
+    processed: dict[PromotionResult, int]
+    # If the batch stopped early due to a timeout, the ID to resume from.
+    resume_from_group_id: int | None
+    # If the batch stopped early on a per-group timeout, the generation
+    # to pass through to the next run so it can resume from cached progress.
+    resume_generation_id: GenerationId | None
+    timeout_reason: Literal["group_timeout", "batch_timeout"] | None
+
+
+def _run_build_and_promote_batch(
+    group_ids: Sequence[int],
+    *,
+    timeout: timedelta,
+    initial_generation_id: GenerationId | None = None,
+    log_key: str,
+    project_id: int | None = None,
+) -> BatchRunResult:
+    """Run build-and-promote for each group with a wall-clock ``timeout``.
+
+    Stops early on batch or per-group timeout; callers self-reschedule
+    using the returned resume hints. ``initial_generation_id`` is applied
+    only to the group it identifies (``initial_generation_id.group_id``)
+    so a resumed batch picks up cached progress for exactly that group.
+    ``project_id`` is only used in log records.
+    """
+    from sentry.issues.derived.processing import (
+        GroupLogTimeout,
+        PromotionFailed,
+        PromotionResult,
+        build_and_promote_derived_data,
+    )
+    from sentry.models.group import Group
+
+    timeout_seconds = timeout.total_seconds()
+    start = time.monotonic()
+
+    processed: dict[PromotionResult, int] = {}
+    resume_group_id = initial_generation_id.group_id if initial_generation_id is not None else None
+
+    for group_id in group_ids:
+        remaining = timedelta(seconds=max(0, timeout_seconds - (time.monotonic() - start)))
+        try:
+            build_and_promote_derived_data(
+                group_id,
+                generation_id=(initial_generation_id if group_id == resume_group_id else None),
+                time_limit=remaining,
+            )
+            processed[PromotionResult.PROMOTED] = processed.get(PromotionResult.PROMOTED, 0) + 1
+        except Group.DoesNotExist:
+            logger.info(
+                f"{log_key}.group_not_found",
+                extra={"group_id": group_id, "project_id": project_id},
+            )
+        except PromotionFailed as e:
+            processed[e.result] = processed.get(e.result, 0) + 1
+            logger.exception(f"{log_key}.promotion_failed")
+        except GroupLogTimeout as e:
+            return BatchRunResult(
+                processed=processed,
+                resume_from_group_id=group_id,
+                resume_generation_id=e.generation_id,
+                timeout_reason="group_timeout",
+            )
+
+        if time.monotonic() - start >= timeout_seconds:
+            return BatchRunResult(
+                processed=processed,
+                resume_from_group_id=group_id + 1,
+                resume_generation_id=None,
+                timeout_reason="batch_timeout",
+            )
+
+    return BatchRunResult(
+        processed=processed,
+        resume_from_group_id=None,
+        resume_generation_id=None,
+        timeout_reason=None,
+    )
+
+
+def _record_batch_metrics(
+    processed: dict[PromotionResult, int],
+    *,
+    metric_name: str,
+    tag_extra: dict[str, str] | None = None,
+) -> None:
+    for result, count in processed.items():
+        tags = {"result": result.value}
+        if tag_extra:
+            tags.update(tag_extra)
+        metrics.incr(metric_name, amount=count, sample_rate=1.0, tags=tags)
 
 
 @instrumented_task(
@@ -206,9 +316,7 @@ def process_project_derived_data(
             },
         )
 
-    starts = [group_ids[i] for i in range(0, len(group_ids), batch_size)]
-    ends = starts[1:] + [group_ids[-1] + 1]
-    ranges = list(zip(starts, ends))
+    ranges = _chunk_group_ids_into_ranges(group_ids, batch_size)
 
     if len(ranges) > max_tasks:
         logger.error(
@@ -418,9 +526,7 @@ def generate_project_derived_data(
             },
         )
 
-    starts = [group_ids[i] for i in range(0, len(group_ids), batch_size)]
-    ends = starts[1:] + [group_ids[-1] + 1]
-    ranges = list(zip(starts, ends))
+    ranges = _chunk_group_ids_into_ranges(group_ids, batch_size)
 
     if len(ranges) > max_tasks:
         logger.error(
@@ -482,9 +588,6 @@ def generate_project_derived_data_batch(
     from sentry.issues.derived.processing import (
         PIPELINE,
         GenerationId,
-        GroupLogTimeout,
-        PromotionFailed,
-        build_and_promote_derived_data,
     )
     from sentry.models.group import Group
     from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
@@ -511,7 +614,6 @@ def generate_project_derived_data_batch(
             resume_pipeline_hash,
         )
 
-    timeout_seconds = BATCH_RETRIGGER_TIMEOUT.total_seconds()
     start = time.monotonic()
 
     qs = Group.objects.filter(
@@ -523,77 +625,46 @@ def generate_project_derived_data_batch(
         qs = _stale_pipeline_filter(qs, PIPELINE.pipeline_hash)
     group_ids = list(qs.order_by("id").values_list("id", flat=True))
 
-    processed: dict[str, int] = {}
+    result = _run_build_and_promote_batch(
+        group_ids,
+        timeout=BATCH_RETRIGGER_TIMEOUT,
+        initial_generation_id=generation_id,
+        log_key="generate_project_derived_data_batch",
+        project_id=project_id,
+    )
+
     rescheduled = False
-
-    for group_id in group_ids:
-        remaining = timedelta(seconds=max(0, timeout_seconds - (time.monotonic() - start)))
-        try:
-            build_and_promote_derived_data(
-                group_id,
-                generation_id=generation_id if group_id == group_id_start else None,
-                time_limit=remaining,
-            )
-            processed["promoted"] = processed.get("promoted", 0) + 1
-        except Group.DoesNotExist:
-            logger.info(
-                "generate_project_derived_data_batch.group_not_found",
-                extra={"group_id": group_id, "project_id": project_id},
-            )
-        except PromotionFailed as e:
-            processed[e.result.value] = processed.get(e.result.value, 0) + 1
-            logger.exception("generate_project_derived_data_batch.promotion_failed")
-        except GroupLogTimeout as e:
-            rescheduled = True
-            gen_id = e.generation_id
-            metrics.incr(
-                "issues.derived.generate_batch_rescheduled",
-                sample_rate=1.0,
-                tags={"reason": "group_timeout"},
-            )
-            generate_project_derived_data_batch.delay(
-                project_id=project_id,
-                group_id_start=group_id,
-                group_id_end=group_id_end,
-                resume_generated_at=gen_id.generated_at.isoformat() if gen_id else None,
-                resume_pipeline_hash=gen_id.pipeline_hash if gen_id else None,
-                stale_only=stale_only,
-            )
-            if activation_id:
-                mark_spawned(_GENERATE_BATCH_TASK_KEY, activation_id)
-            break
-
-        if time.monotonic() - start >= timeout_seconds:
-            rescheduled = True
-            metrics.incr(
-                "issues.derived.generate_batch_rescheduled",
-                sample_rate=1.0,
-                tags={"reason": "batch_timeout"},
-            )
-            generate_project_derived_data_batch.delay(
-                project_id=project_id,
-                group_id_start=group_id + 1,
-                group_id_end=group_id_end,
-                stale_only=stale_only,
-            )
-            if activation_id:
-                mark_spawned(_GENERATE_BATCH_TASK_KEY, activation_id)
-            break
-
-    for result, count in processed.items():
+    if result.timeout_reason is not None:
+        rescheduled = True
         metrics.incr(
-            "issues.derived.generate_project_groups_processed",
-            amount=count,
+            "issues.derived.generate_batch_rescheduled",
             sample_rate=1.0,
-            tags={"result": result},
+            tags={"reason": result.timeout_reason},
         )
+        assert result.resume_from_group_id is not None
+        gen_id = result.resume_generation_id
+        generate_project_derived_data_batch.delay(
+            project_id=project_id,
+            group_id_start=result.resume_from_group_id,
+            group_id_end=group_id_end,
+            resume_generated_at=gen_id.generated_at.isoformat() if gen_id else None,
+            resume_pipeline_hash=gen_id.pipeline_hash if gen_id else None,
+            stale_only=stale_only,
+        )
+        if activation_id:
+            mark_spawned(_GENERATE_BATCH_TASK_KEY, activation_id)
+
+    _record_batch_metrics(
+        result.processed,
+        metric_name="issues.derived.generate_project_groups_processed",
+    )
     logger.info(
         "generate_project_derived_data_batch.complete",
         extra={
             "project_id": project_id,
             "group_id_start": group_id_start,
             "group_id_end": group_id_end,
-            "processed": processed,
+            "processed": {r.value: c for r, c in result.processed.items()},
             "total": len(group_ids),
             "rescheduled": rescheduled,
             "elapsed": time.monotonic() - start,
