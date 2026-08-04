@@ -51,6 +51,7 @@ from sentry.models.debugfile import (
     ProguardArtifactRelease,
     ProjectDebugFile,
     build_proguard_reupload_dif_meta,
+    clean_redundant_difs,
     create_files_from_dif_zip,
     find_existing_dif,
     get_debug_id_from_dif_request,
@@ -892,6 +893,7 @@ def _clone_proguard_debug_file_for_reupload(
                     )
             raise
 
+        clean_redundant_difs(project, meta.debug_id)
         record_last_upload(project)
 
     return {
