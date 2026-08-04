@@ -60,8 +60,6 @@ export function SearchBar(props: SearchBarProps) {
 
   const url = `/organizations/${organization.slug}/events/`;
 
-  const projectIdStrings = (eventView.project as Array<Readonly<number>>)?.map(String);
-
   const handleSearch = useCallback(
     (query: string, asRawText: boolean) => {
       setSearchResults([]);
@@ -180,8 +178,6 @@ export function SearchBar(props: SearchBarProps) {
     ]
   );
 
-  const projectIdStringsKey = projectIdStrings.join(',');
-
   const getSuggestedTransactions = useMemo(
     () =>
       debounce(
@@ -189,7 +185,11 @@ export function SearchBar(props: SearchBarProps) {
           try {
             setLoading(true);
             const conditions = additionalConditions?.copy() ?? new MutableSearch('');
-            conditions.addFilterValues('transaction', [wrapQueryInWildcards(query)], false);
+            conditions.addFilterValues(
+              'transaction',
+              [wrapQueryInWildcards(query)],
+              false
+            );
             conditions.addFilterValues('event.type', ['transaction']);
 
             // clear any active requests
@@ -210,7 +210,7 @@ export function SearchBar(props: SearchBarProps) {
               data: DataItem[];
             }>(api, url, {
               field: ['transaction', 'project_id', 'count()'],
-              project: projectIdStrings,
+              project: (eventView.project as Array<Readonly<number>>)?.map(String),
               sort: '-count()',
               query: conditions.formatString(),
               statsPeriod,
@@ -247,7 +247,7 @@ export function SearchBar(props: SearchBarProps) {
         DEFAULT_DEBOUNCE_DURATION,
         {leading: true}
       ),
-    [api, url, eventView.statsPeriod, projectIdStringsKey, additionalConditions]
+    [api, url, eventView.statsPeriod, eventView.project, additionalConditions]
   );
 
   const handleSearchChange = useCallback(
