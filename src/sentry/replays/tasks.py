@@ -249,6 +249,7 @@ def run_bulk_replay_delete_job(
 
     # If this is the first run of the task we set the model to in-progress.
     if job.status == DeletionJobStatus.PENDING:
+        metrics.incr("replays.bulk_delete_job", amount=1, tags={"status": "started"})
         _transition_status(job.id, DeletionJobStatus.PENDING, DeletionJobStatus.IN_PROGRESS)
         job.status = DeletionJobStatus.IN_PROGRESS
 
@@ -277,6 +278,11 @@ def run_bulk_replay_delete_job(
         # Delete the matched rows if any rows were returned.
         if len(results["rows"]) > 0:
             delete_matched_rows(job.project_id, results["rows"])
+            metrics.incr(
+                "replays.bulk_delete_job",
+                amount=len(results["rows"]),
+                tags={"status": "in_progress"},
+            )
             if has_seer_data:
                 delete_seer_replay_data(
                     job.organization_id,
@@ -290,11 +296,13 @@ def run_bulk_replay_delete_job(
         task = current_task()
         if task is not None and not task.retries_remaining:
             logger.warning("Bulk delete replays exhausted its processing deadline retries.")
+            metrics.incr("replays.bulk_delete_job", amount=1, tags={"status": "failed"})
             _transition_status(job.id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.FAILED)
         raise
     except Exception:
         logger.exception("Bulk delete replays failed.")
 
+        metrics.incr("replays.bulk_delete_job", amount=1, tags={"status": "failed"})
         _transition_status(job.id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.FAILED)
         raise
 
@@ -335,6 +343,7 @@ def run_bulk_replay_delete_job(
     # All windows processed. Mark the job as completed.
     _advance_offset(job.id, new_total)
     _transition_status(job.id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.COMPLETED)
+    metrics.incr("replays.bulk_delete_job", amount=1, tags={"status": "completed"})
     return None
 
 
