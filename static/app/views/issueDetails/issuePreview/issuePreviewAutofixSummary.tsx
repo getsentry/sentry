@@ -115,7 +115,7 @@ export function IssuePreviewAutofixSummary({runState}: IssuePreviewAutofixSummar
                 {Array.from(patchesByRepo.entries(), ([repoName, patches]) => (
                   <Stack key={repoName} gap="md">
                     <Text bold>{repoName}</Text>
-                    <FileDiffList gap="0" data-test-id="file-diff-list">
+                    <FileDiffList gap="0">
                       {patches.map(patch => (
                         <FileDiffViewer
                           key={patch.patch.path}

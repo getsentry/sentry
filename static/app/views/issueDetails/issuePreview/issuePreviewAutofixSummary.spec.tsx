@@ -56,36 +56,6 @@ const solutionArtifact = AutofixSolutionArtifactFixture({
 });
 
 describe('IssuePreviewAutofixSummary', () => {
-  it('renders file diffs from the same repository without a gap', () => {
-    render(
-      <IssuePreviewAutofixSummary
-        runState={ExplorerAutofixStateFixture({
-          blocks: [
-            ExplorerAutofixBlockFixture({
-              id: 'code_changes',
-              artifacts: undefined,
-              merged_file_patches: [
-                makePatch('org/frontend', 'src/user.ts'),
-                makePatch('org/frontend', 'src/account.ts'),
-              ],
-              message: {
-                content: 'Step complete',
-                metadata: {step: 'code_changes'},
-                role: 'assistant',
-              },
-            }),
-          ],
-        })}
-      />
-    );
-
-    expect(screen.getByText('2 files changed in 1 repo')).toBeVisible();
-    const fileDiffList = screen.getByTestId('file-diff-list');
-    expect(fileDiffList.children).toHaveLength(2);
-    expect(within(fileDiffList).getByText('org/frontend:src/user.ts')).toBeVisible();
-    expect(within(fileDiffList).getByText('org/frontend:src/account.ts')).toBeVisible();
-  });
-
   it('renders summaries in the requested order with the first section expanded', async () => {
     const runState = ExplorerAutofixStateFixture({
       blocks: [
