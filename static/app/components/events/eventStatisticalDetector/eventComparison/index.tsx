@@ -20,7 +20,7 @@ type EventComparisonProps = {
 
 export function EventComparison({event, project}: EventComparisonProps) {
   const now = useMemo(() => Date.now(), []);
-  const retentionPeriodMs = moment().subtract(90, 'days').valueOf();
+  const retentionPeriodMs = useMemo(() => moment().subtract(90, 'days').valueOf(), []);
   const {aggregateRange1, aggregateRange2, dataStart, breakpoint, transaction} =
     event?.occurrence?.evidenceData ?? {};
 
