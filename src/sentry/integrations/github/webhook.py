@@ -1134,7 +1134,7 @@ class PullRequestEventWebhook(GitHubWebhook):
         closed_at = parse_scm_timestamp(pull_request.get("closed_at"))
         merged_at = parse_scm_timestamp(pull_request.get("merged_at"))
         # The ordering high-water mark; see update_pull_request_from_scm_snapshot.
-        scm_updated_at = parse_scm_timestamp(pull_request.get("updated_at"))
+        provider_updated_at = parse_scm_timestamp(pull_request.get("updated_at"))
         state = pull_request_lifecycle_state_from_github(pull_request)
         draft = pull_request.get("draft")
 
@@ -1229,12 +1229,12 @@ class PullRequestEventWebhook(GitHubWebhook):
                         "opened_at": opened_at,
                         "closed_at": closed_at,
                         "merged_at": merged_at,
-                        "scm_updated_at": scm_updated_at,
+                        "provider_updated_at": provider_updated_at,
                         "state": state,
                         "draft": draft,
                     },
                     event_state=state,
-                    event_updated_at=scm_updated_at,
+                    event_updated_at=provider_updated_at,
                 )
 
             if created:

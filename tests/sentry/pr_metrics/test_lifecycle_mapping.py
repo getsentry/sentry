@@ -75,7 +75,7 @@ def test_gitlab_state_unknown_values() -> None:
 def test_stale_snapshot_older_payload_timestamp() -> None:
     stored = PullRequest(
         state=PullRequestLifecycleState.CLOSED,
-        scm_updated_at=datetime(2026, 7, 1, 12, 5, tzinfo=timezone.utc),
+        provider_updated_at=datetime(2026, 7, 1, 12, 5, tzinfo=timezone.utc),
     )
     assert is_stale_pull_request_snapshot(
         stored,
@@ -88,7 +88,7 @@ def test_stale_snapshot_newer_payload_timestamp_applies() -> None:
     # A genuine reopen: closed -> open, but reported later than what's stored.
     stored = PullRequest(
         state=PullRequestLifecycleState.CLOSED,
-        scm_updated_at=datetime(2026, 7, 1, 12, 0, tzinfo=timezone.utc),
+        provider_updated_at=datetime(2026, 7, 1, 12, 0, tzinfo=timezone.utc),
     )
     assert not is_stale_pull_request_snapshot(
         stored,
@@ -101,16 +101,16 @@ def test_stale_snapshot_equal_payload_timestamp_applies() -> None:
     # Providers report seconds; within one second the events can't be ordered, so
     # the later delivery wins.
     same = datetime(2026, 7, 1, 12, 0, tzinfo=timezone.utc)
-    stored = PullRequest(state=PullRequestLifecycleState.CLOSED, scm_updated_at=same)
+    stored = PullRequest(state=PullRequestLifecycleState.CLOSED, provider_updated_at=same)
     assert not is_stale_pull_request_snapshot(
         stored, event_state=PullRequestLifecycleState.OPEN, event_updated_at=same
     )
 
 
 def test_stale_snapshot_merged_is_terminal_without_timestamps() -> None:
-    # No timestamps on either side (a row written before scm_updated_at was recorded),
+    # No timestamps on either side (a row written before provider_updated_at was recorded),
     # so only the terminal-state rule can catch the regression.
-    stored = PullRequest(state=PullRequestLifecycleState.MERGED, scm_updated_at=None)
+    stored = PullRequest(state=PullRequestLifecycleState.MERGED, provider_updated_at=None)
     assert is_stale_pull_request_snapshot(
         stored, event_state=PullRequestLifecycleState.OPEN, event_updated_at=None
     )
@@ -123,7 +123,7 @@ def test_stale_snapshot_merged_accepts_newer_merged_snapshot() -> None:
     # An edit after the merge keeps the merged state and must still apply.
     stored = PullRequest(
         state=PullRequestLifecycleState.MERGED,
-        scm_updated_at=datetime(2026, 7, 1, 12, 0, tzinfo=timezone.utc),
+        provider_updated_at=datetime(2026, 7, 1, 12, 0, tzinfo=timezone.utc),
     )
     assert not is_stale_pull_request_snapshot(
         stored,
@@ -134,7 +134,7 @@ def test_stale_snapshot_merged_accepts_newer_merged_snapshot() -> None:
 
 def test_stale_snapshot_missing_timestamps_are_not_stale() -> None:
     # Nothing to compare, so last write wins.
-    stored = PullRequest(state=PullRequestLifecycleState.OPEN, scm_updated_at=None)
+    stored = PullRequest(state=PullRequestLifecycleState.OPEN, provider_updated_at=None)
     assert not is_stale_pull_request_snapshot(
         stored,
         event_state=PullRequestLifecycleState.OPEN,
@@ -143,7 +143,7 @@ def test_stale_snapshot_missing_timestamps_are_not_stale() -> None:
 
     stored = PullRequest(
         state=PullRequestLifecycleState.OPEN,
-        scm_updated_at=datetime(2026, 7, 1, 12, 0, tzinfo=timezone.utc),
+        provider_updated_at=datetime(2026, 7, 1, 12, 0, tzinfo=timezone.utc),
     )
     assert not is_stale_pull_request_snapshot(
         stored, event_state=PullRequestLifecycleState.OPEN, event_updated_at=None
@@ -160,16 +160,16 @@ class UpdatePullRequestFromScmSnapshotTest(TestCase):
         )
 
     def _upsert(
-        self, *, state: str, scm_updated_at: datetime, title: str
+        self, *, state: str, provider_updated_at: datetime, title: str
     ) -> tuple[PullRequest, bool]:
         return update_pull_request_from_scm_snapshot(
             provider="github",
             organization_id=self.organization.id,
             repository_id=self.repo.id,
             key=42,
-            defaults={"state": state, "scm_updated_at": scm_updated_at, "title": title},
+            defaults={"state": state, "provider_updated_at": provider_updated_at, "title": title},
             event_state=state,
-            event_updated_at=scm_updated_at,
+            event_updated_at=provider_updated_at,
         )
 
     def test_locks_the_row_for_the_staleness_decision(self) -> None:
@@ -180,7 +180,7 @@ class UpdatePullRequestFromScmSnapshotTest(TestCase):
         # one.
         self._upsert(
             state=PullRequestLifecycleState.OPEN,
-            scm_updated_at=datetime(2015, 5, 5, 23, 40, tzinfo=timezone.utc),
+            provider_updated_at=datetime(2015, 5, 5, 23, 40, tzinfo=timezone.utc),
             title="opened",
         )
 
@@ -188,7 +188,7 @@ class UpdatePullRequestFromScmSnapshotTest(TestCase):
         with CaptureQueriesContext(connection) as queries:
             self._upsert(
                 state=PullRequestLifecycleState.MERGED,
-                scm_updated_at=datetime(2015, 5, 5, 23, 45, tzinfo=timezone.utc),
+                provider_updated_at=datetime(2015, 5, 5, 23, 45, tzinfo=timezone.utc),
                 title="merged",
             )
 
@@ -203,13 +203,13 @@ class UpdatePullRequestFromScmSnapshotTest(TestCase):
     def test_stale_snapshot_leaves_the_row_untouched(self) -> None:
         self._upsert(
             state=PullRequestLifecycleState.MERGED,
-            scm_updated_at=datetime(2015, 5, 5, 23, 45, tzinfo=timezone.utc),
+            provider_updated_at=datetime(2015, 5, 5, 23, 45, tzinfo=timezone.utc),
             title="merged",
         )
 
         stored, created = self._upsert(
             state=PullRequestLifecycleState.OPEN,
-            scm_updated_at=datetime(2015, 5, 5, 23, 41, tzinfo=timezone.utc),
+            provider_updated_at=datetime(2015, 5, 5, 23, 41, tzinfo=timezone.utc),
             title="stale",
         )
 

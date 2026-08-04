@@ -504,7 +504,7 @@ class MergeEventWebhook(GitlabWebhook):
             "date_added": opened_at,
             "opened_at": opened_at,
             "merged_at": merged_at_dt,
-            "scm_updated_at": state_changed_at,
+            "provider_updated_at": state_changed_at,
             "state": state,
             "draft": draft,
         }

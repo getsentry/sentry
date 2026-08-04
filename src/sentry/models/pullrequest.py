@@ -304,7 +304,7 @@ class PullRequest(Model):
     # GitHub ``pull_request.updated_at``, GitLab ``object_attributes.updated_at``.
     # The high-water mark the SCM webhook handlers compare an incoming payload
     # against, to drop one that describes an older state than the row already holds.
-    scm_updated_at = models.DateTimeField(null=True)
+    provider_updated_at = models.DateTimeField(null=True)
 
     objects: ClassVar[PullRequestManager] = PullRequestManager()
 

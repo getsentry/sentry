@@ -1810,7 +1810,7 @@ class PullRequestEventWebhookTest(APITestCase):
         )
         assert pr.state == PullRequestLifecycleState.OPEN
         assert pr.closed_at is None
-        assert pr.scm_updated_at == datetime(2015, 5, 5, 23, 50, tzinfo=timezone.utc)
+        assert pr.provider_updated_at == datetime(2015, 5, 5, 23, 50, tzinfo=timezone.utc)
 
     def test_stale_synchronize_after_merge_leaves_issue_timeline_untouched(self) -> None:
         # The state column is not the only casualty of a replayed snapshot. Flipping
