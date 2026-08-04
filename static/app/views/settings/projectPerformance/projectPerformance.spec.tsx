@@ -762,6 +762,59 @@ describe('projectPerformance', () => {
     }
   );
 
+  it('disables detector thresholds while the detector update is pending', async () => {
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      method: 'GET',
+      body: ProjectFixture({access: ['project:admin']}),
+      statusCode: 200,
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/performance-issues/configure/',
+      method: 'GET',
+      body: {
+        n_plus_one_db_queries_detection_enabled: true,
+        n_plus_one_db_duration_threshold: 100,
+      },
+      statusCode: 200,
+    });
+    let resolveUpdate!: (value: Record<string, boolean>) => void;
+    const mockPut = MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/performance-issues/configure/',
+      method: 'PUT',
+      body: () =>
+        new Promise(resolve => {
+          resolveUpdate = resolve;
+        }),
+    });
+
+    render(<ProjectPerformance />, {
+      organization: org,
+      initialRouterConfig,
+    });
+    await screen.findByText('Performance Issues - Detector Threshold Settings');
+    await expandAllDetectorSettings();
+
+    const toggle = screen.getByRole('checkbox', {name: 'N+1 DB Queries Detection'});
+    const threshold = screen.getAllByRole('slider', {name: 'Minimum Total Duration'})[0]!;
+    expect(threshold).toBeEnabled();
+
+    await userEvent.click(toggle);
+
+    expect(mockPut).toHaveBeenCalledWith(
+      '/projects/org-slug/project-slug/performance-issues/configure/',
+      expect.objectContaining({
+        data: {n_plus_one_db_queries_detection_enabled: false},
+      })
+    );
+    expect(threshold).toBeDisabled();
+
+    await act(async () => {
+      resolveUpdate({n_plus_one_db_queries_detection_enabled: false});
+      await Promise.resolve();
+    });
+  });
+
   it.each(manageDetectorData)(
     'does not allow non-admins to manage $label',
     async ({label}) => {
