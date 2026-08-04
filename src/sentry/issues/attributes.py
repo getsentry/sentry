@@ -20,7 +20,10 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.signals import issue_assigned, issue_deleted, issue_unassigned, post_update
 from sentry.utils import json, metrics, snuba
-from sentry.utils.arroyo_producer import get_arroyo_producer, get_producer
+from sentry.utils.arroyo_producer import (
+    get_arroyo_producer,
+    get_future_tracking_producer,
+)
 from sentry.utils.kafka_config import get_topic_definition
 from sentry.utils.snuba import _snuba_pool
 
@@ -53,7 +56,7 @@ def _get_attribute_snapshot_producer(name: str = "sentry.issues.attributes") -> 
     )
 
 
-_attribute_snapshot_producer = get_producer(
+_attribute_snapshot_producer = get_future_tracking_producer(
     producer_name="sentry.issues.attributes",
     producer_factory=_get_attribute_snapshot_producer,
 )

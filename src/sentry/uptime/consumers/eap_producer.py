@@ -10,7 +10,10 @@ from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.uptime.consumers.eap_converter import convert_uptime_result_to_trace_items
 from sentry.uptime.types import IncidentStatus
 from sentry.utils import metrics
-from sentry.utils.arroyo_producer import get_arroyo_producer, get_producer
+from sentry.utils.arroyo_producer import (
+    get_arroyo_producer,
+    get_future_tracking_producer,
+)
 from sentry.utils.kafka_config import get_topic_definition
 from sentry.workflow_engine.models.detector import Detector
 
@@ -28,7 +31,7 @@ def _get_eap_items_producer(name: str = "sentry.uptime.consumers.eap_producer"):
     )
 
 
-_eap_items_producer = get_producer(
+_eap_items_producer = get_future_tracking_producer(
     producer_name="sentry.uptime.consumers.eap_producer",
     producer_factory=_get_eap_items_producer,
 )

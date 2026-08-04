@@ -48,12 +48,12 @@ export function SearchBar(props: SearchBarProps) {
   const transactionCount = searchResults[0]?.children?.length || 0;
   const [highlightedItemIndex, setHighlightedItemIndex] = useState(-1);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const openDropdown = () => setIsDropdownOpen(true);
-  const closeDropdown = () => setIsDropdownOpen(false);
+  const openDropdown = useCallback(() => setIsDropdownOpen(true), []);
+  const closeDropdown = useCallback(() => setIsDropdownOpen(false), []);
   const [loading, setLoading] = useState(false);
   const [searchString, setSearchString] = useState(searchQuery);
   const containerRef = useRef<HTMLDivElement>(null);
-  useOnClickOutside(containerRef, useCallback(closeDropdown, []));
+  useOnClickOutside(containerRef, closeDropdown);
 
   const api = useApi();
   const eventView = _eventView.clone();
@@ -62,79 +62,123 @@ export function SearchBar(props: SearchBarProps) {
 
   const projectIdStrings = (eventView.project as Array<Readonly<number>>)?.map(String);
 
-  const handleSearchChange = (query: any) => {
-    setSearchString(query);
-
-    if (query.length === 0) {
-      onSearch('');
-    }
-
-    if (query.length < 3) {
+  const handleSearch = useCallback(
+    (query: string, asRawText: boolean) => {
       setSearchResults([]);
+      setSearchString(query);
+      query = new MutableSearch(query).formatString();
+
+      const fullQuery = asRawText ? query : `transaction:"${query}"`;
+      onSearch(query ? fullQuery : '');
       closeDropdown();
-      return;
-    }
+    },
+    [onSearch, closeDropdown]
+  );
 
-    openDropdown();
-    getSuggestedTransactions(query);
-  };
+  const navigateToItemTransactionSummary = useCallback(
+    (item: DataItem) => {
+      const {transaction, project_id} = item;
 
-  const handleKeyDown = (event: React.KeyboardEvent) => {
-    const {key} = event;
+      const query = eventView.generateQueryStringObject();
+      setSearchResults([]);
 
-    if (loading) {
-      return;
-    }
+      const next = transactionSummaryRouteWithQuery({
+        organization,
+        transaction,
+        projectID: String(project_id),
+        query,
+      });
 
-    if (key === 'Escape' && isDropdownOpen) {
-      closeDropdown();
-      return;
-    }
+      navigate(next);
+    },
+    [eventView, organization, navigate]
+  );
 
-    if (
-      (key === 'ArrowUp' || key === 'ArrowDown') &&
-      isDropdownOpen &&
-      transactionCount > 0
-    ) {
-      const currentHighlightedItem = searchResults[0]!.children[highlightedItemIndex];
-      const nextHighlightedItemIndex =
-        (highlightedItemIndex + transactionCount + (key === 'ArrowUp' ? -1 : 1)) %
-        transactionCount;
-      setHighlightedItemIndex(nextHighlightedItemIndex);
-      const nextHighlightedItem = searchResults[0]!.children[nextHighlightedItemIndex];
+  const handleChooseItem = useCallback(
+    (value: string) => {
+      const item = decodeValueToItem(value);
+      handleSearch(item.transaction, false);
+    },
+    [handleSearch]
+  );
 
-      let newSearchResults = searchResults;
-      if (currentHighlightedItem) {
-        newSearchResults = getSearchGroupWithItemMarkedActive(
-          searchResults,
-          currentHighlightedItem,
-          false
-        );
+  const handleClickItemIcon = useCallback(
+    (value: string) => {
+      const item = decodeValueToItem(value);
+      navigateToItemTransactionSummary(item);
+    },
+    [navigateToItemTransactionSummary]
+  );
+
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      const {key} = event;
+
+      if (loading) {
+        return;
       }
 
-      if (nextHighlightedItem) {
-        newSearchResults = getSearchGroupWithItemMarkedActive(
-          newSearchResults,
-          nextHighlightedItem,
-          true
-        );
+      if (key === 'Escape' && isDropdownOpen) {
+        closeDropdown();
+        return;
       }
 
-      setSearchResults(newSearchResults);
-      return;
-    }
+      if (
+        (key === 'ArrowUp' || key === 'ArrowDown') &&
+        isDropdownOpen &&
+        transactionCount > 0
+      ) {
+        const currentHighlightedItem = searchResults[0]!.children[highlightedItemIndex];
+        const nextHighlightedItemIndex =
+          (highlightedItemIndex + transactionCount + (key === 'ArrowUp' ? -1 : 1)) %
+          transactionCount;
+        setHighlightedItemIndex(nextHighlightedItemIndex);
+        const nextHighlightedItem = searchResults[0]!.children[nextHighlightedItemIndex];
 
-    if (key === 'Enter') {
-      event.preventDefault();
-      const currentItem = searchResults[0]?.children[highlightedItemIndex];
+        let newSearchResults = searchResults;
+        if (currentHighlightedItem) {
+          newSearchResults = getSearchGroupWithItemMarkedActive(
+            searchResults,
+            currentHighlightedItem,
+            false
+          );
+        }
 
-      if (currentItem?.value) {
-        handleChooseItem(currentItem.value);
-      } else {
-        handleSearch(searchString, true);
+        if (nextHighlightedItem) {
+          newSearchResults = getSearchGroupWithItemMarkedActive(
+            newSearchResults,
+            nextHighlightedItem,
+            true
+          );
+        }
+
+        setSearchResults(newSearchResults);
+        return;
       }
-    }
-  };
+
+      if (key === 'Enter') {
+        event.preventDefault();
+        const currentItem = searchResults[0]?.children[highlightedItemIndex];
+
+        if (currentItem?.value) {
+          handleChooseItem(currentItem.value);
+        } else {
+          handleSearch(searchString, true);
+        }
+      }
+    },
+    [
+      loading,
+      isDropdownOpen,
+      closeDropdown,
+      transactionCount,
+      searchResults,
+      highlightedItemIndex,
+      searchString,
+      handleChooseItem,
+      handleSearch,
+    ]
+  );
 
   const projectIdStringsKey = projectIdStrings.join(',');
 
@@ -206,49 +250,34 @@ export function SearchBar(props: SearchBarProps) {
     [api, url, eventView.statsPeriod, projectIdStringsKey]
   );
 
-  const handleChooseItem = (value: string) => {
-    const item = decodeValueToItem(value);
-    handleSearch(item.transaction, false);
-  };
+  const handleSearchChange = useCallback(
+    (query: any) => {
+      setSearchString(query);
 
-  const handleClickItemIcon = (value: string) => {
-    const item = decodeValueToItem(value);
-    navigateToItemTransactionSummary(item);
-  };
+      if (query.length === 0) {
+        onSearch('');
+      }
 
-  const handleSearch = (query: string, asRawText: boolean) => {
-    setSearchResults([]);
-    setSearchString(query);
-    query = new MutableSearch(query).formatString();
+      if (query.length < 3) {
+        setSearchResults([]);
+        closeDropdown();
+        return;
+      }
 
-    const fullQuery = asRawText ? query : `transaction:"${query}"`;
-    onSearch(query ? fullQuery : '');
-    closeDropdown();
-  };
+      openDropdown();
+      getSuggestedTransactions(query);
+    },
+    [onSearch, closeDropdown, openDropdown, getSuggestedTransactions]
+  );
 
-  const navigateToItemTransactionSummary = (item: DataItem) => {
-    const {transaction, project_id} = item;
-
-    const query = eventView.generateQueryStringObject();
-    setSearchResults([]);
-
-    const next = transactionSummaryRouteWithQuery({
-      organization,
-      transaction,
-      projectID: String(project_id),
-      query,
-    });
-
-    navigate(next);
-  };
-  const logDocsOpenedEvent = () => {
+  const logDocsOpenedEvent = useCallback(() => {
     trackAnalytics('search.docs_opened', {
       organization,
       search_type: 'performance',
       search_source: 'performance_landing',
       query: props.query,
     });
-  };
+  }, [organization, props.query]);
 
   return (
     <Container
@@ -270,7 +299,7 @@ export function SearchBar(props: SearchBarProps) {
           items={searchResults}
           onClick={handleChooseItem}
           onIconClick={handleClickItemIcon}
-          onDocsOpen={() => logDocsOpenedEvent()}
+          onDocsOpen={logDocsOpenedEvent}
         />
       )}
     </Container>

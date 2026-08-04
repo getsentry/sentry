@@ -72,7 +72,10 @@ from sentry.taskworker.namespaces import (
     ingest_profiling_raw_tasks,
 )
 from sentry.utils import json, metrics
-from sentry.utils.arroyo_producer import get_arroyo_producer, get_producer
+from sentry.utils.arroyo_producer import (
+    get_arroyo_producer,
+    get_future_tracking_producer,
+)
 from sentry.utils.eap import hex_to_item_id
 from sentry.utils.kafka_config import get_topic_definition
 from sentry.utils.locking import UnableToAcquireLock
@@ -109,31 +112,31 @@ def _get_producer_name(name: str) -> str:
 
 
 processed_profiles_name = _get_producer_name("processed")
-processed_profiles_producer = get_producer(
+processed_profiles_producer = get_future_tracking_producer(
     processed_profiles_name,
     lambda: _get_profiles_producer_from_topic(Topic.PROCESSED_PROFILES, processed_profiles_name),
 )
 
 profile_functions_name = _get_producer_name("functions")
-profile_functions_producer = get_producer(
+profile_functions_producer = get_future_tracking_producer(
     profile_functions_name,
     lambda: _get_profiles_producer_from_topic(Topic.PROFILES_CALL_TREE, profile_functions_name),
 )
 
 profile_chunks_name = _get_producer_name("chunks")
-profile_chunks_producer = get_producer(
+profile_chunks_producer = get_future_tracking_producer(
     profile_chunks_name,
     lambda: _get_profiles_producer_from_topic(Topic.PROFILE_CHUNKS, profile_chunks_name),
 )
 
 profile_occurrences_name = _get_producer_name("occurrences")
-profile_occurrences_producer = get_producer(
+profile_occurrences_producer = get_future_tracking_producer(
     profile_occurrences_name,
     lambda: _get_profiles_producer_from_topic(Topic.INGEST_OCCURRENCES, profile_occurrences_name),
 )
 
 profile_eap_name = _get_producer_name("eap")
-eap_producer = get_producer(
+eap_producer = get_future_tracking_producer(
     profile_eap_name,
     lambda: _get_profiles_producer_from_topic(Topic.SNUBA_ITEMS, profile_eap_name),
 )

@@ -21,7 +21,10 @@ from sentry.monitors.clock_dispatch import try_monitor_clock_tick
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import crons_tasks
-from sentry.utils.arroyo_producer import get_arroyo_producer, get_producer
+from sentry.utils.arroyo_producer import (
+    get_arroyo_producer,
+    get_future_tracking_producer,
+)
 from sentry.utils.kafka_config import get_kafka_admin_cluster_options, get_topic_definition
 
 logger = logging.getLogger("sentry")
@@ -37,7 +40,7 @@ def _get_producer():
     )
 
 
-_checkin_producer = get_producer(
+_checkin_producer = get_future_tracking_producer(
     producer_name="sentry.monitors.tasks.clock_pulse",
     producer_factory=_get_producer,
 )

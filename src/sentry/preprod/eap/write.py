@@ -24,7 +24,10 @@ from sentry.preprod.models import (
     PreprodArtifactSizeMetrics,
 )
 from sentry.search.eap.rpc_utils import anyvalue
-from sentry.utils.arroyo_producer import get_arroyo_producer, get_producer
+from sentry.utils.arroyo_producer import (
+    get_arroyo_producer,
+    get_future_tracking_producer,
+)
 from sentry.utils.eap import hex_to_item_id
 from sentry.utils.kafka_config import get_topic_definition
 
@@ -271,7 +274,7 @@ def _get_eap_items_producer(name: str = "sentry.preprod.lib.kafka.eap_items") ->
     )
 
 
-_eap_producer = get_producer(
+_eap_producer = get_future_tracking_producer(
     producer_name="sentry.preprod.lib.kafka.eap_items",
     producer_factory=_get_eap_items_producer,
 )
