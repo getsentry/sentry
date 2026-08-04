@@ -433,6 +433,24 @@ def _generic_filter(filter_id: str, condition: RuleCondition) -> GenericFilter:
     return {"id": filter_id, "isEnabled": True, "condition": condition}
 
 
+def _log_messages_generic_filters(project: Project) -> list[GenericFilter]:
+    globs = project.get_option(f"sentry:{FilterTypes.LOG_MESSAGES}")
+    if not globs:
+        return []
+
+    condition: RuleCondition = {"op": "glob", "name": "log.body", "value": globs}
+    return [_generic_filter("log-message", condition)]
+
+
+def _trace_metric_names_generic_filters(project: Project) -> list[GenericFilter]:
+    globs = project.get_option(f"sentry:{FilterTypes.TRACE_METRIC_NAMES}")
+    if not globs:
+        return []
+
+    condition: RuleCondition = {"op": "glob", "name": "trace_metric.name", "value": globs}
+    return [_generic_filter("trace-metric-name", condition)]
+
+
 @dataclass(frozen=True)
 class InboundFilterFeatures:
     """
@@ -462,9 +480,9 @@ def get_generic_filters(
 
     if filter_features.custom_inbound_filters:
         if filter_features.logs:
-            generic_filters += _option_generic_filters(project, _LOG_MESSAGES_FILTER)
+            generic_filters += _log_messages_generic_filters(project)
         if filter_features.metrics:
-            generic_filters += _option_generic_filters(project, _TRACE_METRIC_NAMES_FILTER)
+            generic_filters += _trace_metric_names_generic_filters(project)
         if filter_features.custom_inbound_filters_v2:
             generic_filters += get_custom_inbound_filter_generic_filters(project)
 
@@ -506,79 +524,39 @@ def _custom_error_message_condition(values: list[str]) -> RuleCondition:
 
 
 # Builds the Relay condition that matches one filter condition's glob values.
-ConditionMatcher = Callable[[list[str]], RuleCondition]
+_ConditionMatcher = Callable[[list[str]], RuleCondition]
 
 # Where each condition type's data lives on one kind of ingested item.
-ConditionMatchers = Mapping[CustomInboundFilterConditionType, ConditionMatcher]
+_ConditionMatchers = Mapping[CustomInboundFilterConditionType, _ConditionMatcher]
 
 
-def _field_matcher(name: str) -> ConditionMatcher:
+def _field_matcher(name: str) -> _ConditionMatcher:
     def match(values: list[str]) -> RuleCondition:
         return {"op": "glob", "name": name, "value": values}
 
     return match
 
 
-_EVENT_MATCHERS: ConditionMatchers = {
-    CustomInboundFilterConditionType.ERROR_MESSAGE: _custom_error_message_condition,
-    CustomInboundFilterConditionType.RELEASE: _field_matcher("event.release"),
-}
-
-_LOG_MATCHERS: ConditionMatchers = {
-    CustomInboundFilterConditionType.LOG_MESSAGE: _field_matcher("log.body"),
-    CustomInboundFilterConditionType.RELEASE: _field_matcher("log.attributes.sentry.release.value"),
-}
-
-_TRACE_METRIC_MATCHERS: ConditionMatchers = {
-    CustomInboundFilterConditionType.METRIC_NAME: _field_matcher("trace_metric.name"),
-    CustomInboundFilterConditionType.RELEASE: _field_matcher(
-        "trace_metric.attributes.sentry.release.value"
-    ),
-}
-
 # A filter's primary condition type selects the item its conditions match against, since
 # only that item carries such data.
-_MATCHERS_BY_PRIMARY_CONDITION: Mapping[CustomInboundFilterConditionType, ConditionMatchers] = {
-    CustomInboundFilterConditionType.ERROR_MESSAGE: _EVENT_MATCHERS,
-    CustomInboundFilterConditionType.LOG_MESSAGE: _LOG_MATCHERS,
-    CustomInboundFilterConditionType.METRIC_NAME: _TRACE_METRIC_MATCHERS,
+_MATCHERS_BY_PRIMARY_CONDITION: Mapping[CustomInboundFilterConditionType, _ConditionMatchers] = {
+    CustomInboundFilterConditionType.ERROR_MESSAGE: {
+        CustomInboundFilterConditionType.ERROR_MESSAGE: _custom_error_message_condition,
+        CustomInboundFilterConditionType.RELEASE: _field_matcher("event.release"),
+    },
+    CustomInboundFilterConditionType.LOG_MESSAGE: {
+        CustomInboundFilterConditionType.LOG_MESSAGE: _field_matcher("log.body"),
+        CustomInboundFilterConditionType.RELEASE: _field_matcher(
+            "log.attributes.sentry.release.value"
+        ),
+    },
+    CustomInboundFilterConditionType.METRIC_NAME: {
+        CustomInboundFilterConditionType.METRIC_NAME: _field_matcher("trace_metric.name"),
+        CustomInboundFilterConditionType.RELEASE: _field_matcher(
+            "trace_metric.attributes.sentry.release.value"
+        ),
+    },
 }
-
-
-@dataclass(frozen=True)
-class OptionFilter:
-    """
-    A pre-v2 inbound filter, configured through a project option holding a list of globs
-    instead of a ``CustomInboundFilter`` row.
-
-    It matches the same data as the custom filter condition it supersedes, so both share
-    one matcher.
-    """
-
-    filter_id: str
-    option: str
-    matcher: ConditionMatcher
-
-
-_LOG_MESSAGES_FILTER = OptionFilter(
-    filter_id="log-message",
-    option=FilterTypes.LOG_MESSAGES,
-    matcher=_LOG_MATCHERS[CustomInboundFilterConditionType.LOG_MESSAGE],
-)
-
-_TRACE_METRIC_NAMES_FILTER = OptionFilter(
-    filter_id="trace-metric-name",
-    option=FilterTypes.TRACE_METRIC_NAMES,
-    matcher=_TRACE_METRIC_MATCHERS[CustomInboundFilterConditionType.METRIC_NAME],
-)
-
-
-def _option_generic_filters(project: Project, option_filter: OptionFilter) -> list[GenericFilter]:
-    globs = project.get_option(f"sentry:{option_filter.option}")
-    if not globs:
-        return []
-
-    return [_generic_filter(option_filter.filter_id, option_filter.matcher(globs))]
 
 
 def _custom_filter_condition(conditions: list[dict[str, Any]]) -> RuleCondition | None:
@@ -615,7 +593,7 @@ def _custom_filter_condition(conditions: list[dict[str, Any]]) -> RuleCondition 
             for condition_type, _ in parsed
             if condition_type in _MATCHERS_BY_PRIMARY_CONDITION
         ),
-        _EVENT_MATCHERS,
+        _MATCHERS_BY_PRIMARY_CONDITION[CustomInboundFilterConditionType.ERROR_MESSAGE],
     )
 
     rule_conditions: list[RuleCondition] = []
