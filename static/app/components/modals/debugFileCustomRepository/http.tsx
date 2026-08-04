@@ -49,17 +49,19 @@ type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'> & {
 
 export function Http({Header, Body, Footer, onSubmit, initialData}: Props) {
   const isEditing = !!initialData;
+  const {id, name, url, username, password, layout, ...preservedConfig} =
+    initialData ?? {};
 
   const defaultValues: z.input<typeof schema> = {
-    id: initialData?.id ?? uniqueId(),
-    name: initialData?.name ?? '',
-    url: initialData?.url ?? '',
-    username: initialData?.username ?? '',
+    id: id ?? uniqueId(),
+    name: name ?? '',
+    url: url ?? '',
+    username: username ?? '',
     // When editing a repository with a stored password we start with
     // `undefined` to represent "unchanged".
-    password: typeof initialData?.password === 'object' ? undefined : '',
-    layoutType: initialData?.layout.type ?? 'native',
-    layoutCasing: initialData?.layout.casing ?? 'default',
+    password: typeof password === 'object' ? undefined : '',
+    layoutType: layout?.type ?? 'native',
+    layoutCasing: layout?.casing ?? 'default',
   };
 
   const form = useScrapsForm({
@@ -69,6 +71,7 @@ export function Http({Header, Body, Footer, onSubmit, initialData}: Props) {
     onSubmit: ({value}) => {
       const parsedValue = schema.parse(value);
       return onSubmit({
+        ...preservedConfig,
         id: parsedValue.id,
         name: parsedValue.name,
         url: parsedValue.url,

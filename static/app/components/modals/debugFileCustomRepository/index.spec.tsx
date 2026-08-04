@@ -81,8 +81,16 @@ describe('DebugFileCustomRepository', () => {
           access_key: 'access-key',
           bucket: 'symbols',
           id: 's3-repository',
+          filters: {
+            filetypes: ['pdb'],
+            path_patterns: ['*/symbols/*'],
+            requires_checksum: true,
+          },
+          has_index: true,
+          is_public: false,
           layout: {type: 'native', casing: 'default'},
           name: 'S3 Repository',
+          platforms: ['native'],
           region: 'us-east-1',
           secret_key: {'hidden-secret': true},
           type: CustomRepoType.S3,
@@ -99,6 +107,14 @@ describe('DebugFileCustomRepository', () => {
     await waitFor(() =>
       expect(onSubmit).toHaveBeenCalledWith(
         expect.objectContaining({
+          filters: {
+            filetypes: ['pdb'],
+            path_patterns: ['*/symbols/*'],
+            requires_checksum: true,
+          },
+          has_index: true,
+          is_public: false,
+          platforms: ['native'],
           secret_key: {'hidden-secret': true},
           type: CustomRepoType.S3,
         })
@@ -116,9 +132,17 @@ describe('DebugFileCustomRepository', () => {
         sourceConfig={{
           bucket: 'symbols',
           client_email: 'service-account@example.com',
+          filters: {
+            filetypes: ['elf_debug'],
+            path_patterns: ['debug/**'],
+            requires_checksum: false,
+          },
+          has_index: false,
           id: 'gcs-repository',
+          is_public: true,
           layout: {type: 'native', casing: 'default'},
           name: 'GCS Repository',
+          platforms: ['linux'],
           private_key: {'hidden-secret': true},
           type: CustomRepoType.GCS,
         }}
@@ -143,6 +167,14 @@ describe('DebugFileCustomRepository', () => {
       expect(onSubmit).toHaveBeenCalledWith(
         expect.objectContaining({
           client_email: 'updated@example.com',
+          filters: {
+            filetypes: ['elf_debug'],
+            path_patterns: ['debug/**'],
+            requires_checksum: false,
+          },
+          has_index: false,
+          is_public: true,
+          platforms: ['linux'],
           private_key: {'hidden-secret': true},
           type: CustomRepoType.GCS,
         })

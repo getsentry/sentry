@@ -65,8 +65,17 @@ function Title({type, isEditing}: {isEditing: boolean; type: CustomRepoType}) {
 }
 
 export function S3Repository({Header, Body, Footer, onSubmit, sourceConfig}: S3Props) {
-  const {secret_key, layout, name, bucket, region, access_key, prefix, id} =
-    sourceConfig ?? {};
+  const {
+    secret_key,
+    layout,
+    name,
+    bucket,
+    region,
+    access_key,
+    prefix,
+    id,
+    ...preservedConfig
+  } = sourceConfig ?? {};
 
   // A stored secret is returned as `{'hidden-secret': true}`; when present the
   // field is optional (leaving it blank keeps the stored secret).
@@ -108,6 +117,7 @@ export function S3Repository({Header, Body, Footer, onSubmit, sourceConfig}: S3P
     onSubmit: ({value}) => {
       const parsedValue = schema.parse(value);
       const data: S3SubmitData = {
+        ...preservedConfig,
         id: parsedValue.id,
         name: parsedValue.name,
         bucket: parsedValue.bucket,
@@ -116,7 +126,7 @@ export function S3Repository({Header, Body, Footer, onSubmit, sourceConfig}: S3P
         type: CustomRepoType.S3,
         'layout.type': parsedValue.layoutType,
         'layout.casing': parsedValue.layoutCasing,
-        ...(parsedValue.prefix ? {prefix: parsedValue.prefix} : {}),
+        prefix: parsedValue.prefix || undefined,
         ...(parsedValue.secret_key
           ? {secret_key: parsedValue.secret_key}
           : secretAlreadySet
@@ -277,8 +287,16 @@ export function S3Repository({Header, Body, Footer, onSubmit, sourceConfig}: S3P
 }
 
 export function GcsRepository({Header, Body, Footer, onSubmit, sourceConfig}: GcsProps) {
-  const {private_key, layout, name, bucket, client_email, prefix, id} =
-    sourceConfig ?? {};
+  const {
+    private_key,
+    layout,
+    name,
+    bucket,
+    client_email,
+    prefix,
+    id,
+    ...preservedConfig
+  } = sourceConfig ?? {};
 
   const privateKeyAlreadySet = typeof private_key === 'object';
 
@@ -316,6 +334,7 @@ export function GcsRepository({Header, Body, Footer, onSubmit, sourceConfig}: Gc
     onSubmit: ({value}) => {
       const parsedValue = schema.parse(value);
       const data: GcsSubmitData = {
+        ...preservedConfig,
         id: parsedValue.id,
         name: parsedValue.name,
         bucket: parsedValue.bucket,
@@ -323,7 +342,7 @@ export function GcsRepository({Header, Body, Footer, onSubmit, sourceConfig}: Gc
         type: CustomRepoType.GCS,
         'layout.type': parsedValue.layoutType,
         'layout.casing': parsedValue.layoutCasing,
-        ...(parsedValue.prefix ? {prefix: parsedValue.prefix} : {}),
+        prefix: parsedValue.prefix || undefined,
         ...(parsedValue.private_key
           ? {private_key: parsedValue.private_key}
           : privateKeyAlreadySet

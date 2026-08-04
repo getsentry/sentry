@@ -13,6 +13,17 @@ export enum DebugFileFeature {
 
 type Secret = {'hidden-secret': boolean};
 
+type CustomRepoMetadata = {
+  filters?: {
+    filetypes?: string[];
+    path_patterns?: string[];
+    requires_checksum?: boolean;
+  };
+  has_index?: boolean;
+  is_public?: boolean;
+  platforms?: string[];
+};
+
 export type BuiltinSymbolSource = {
   hidden: boolean;
   id: string;
@@ -42,7 +53,7 @@ export enum CustomRepoType {
   GCS = 'gcs',
 }
 
-export type CustomRepoHttp = {
+export type CustomRepoHttp = CustomRepoMetadata & {
   id: string;
   layout: {casing: string; type: string};
   name: string;
@@ -52,7 +63,7 @@ export type CustomRepoHttp = {
   username?: string;
 };
 
-export type CustomRepoS3 = {
+export type CustomRepoS3 = CustomRepoMetadata & {
   access_key: string;
   bucket: string;
   id: string;
@@ -64,7 +75,7 @@ export type CustomRepoS3 = {
   secret_key?: Secret;
 };
 
-export type CustomRepoGCS = {
+export type CustomRepoGCS = CustomRepoMetadata & {
   bucket: string;
   client_email: string;
   id: string;
