@@ -17,18 +17,19 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {ProgressState} from 'sentry/types/group';
 
 import InboxPage from './inbox';
 
+jest.mock('sentry/components/events/autofix/useOrganizationSeerSetup');
+
 describe('InboxPage', () => {
   const organization = OrganizationFixture({
-    features: ['issue-stream-progress-ui'],
-  });
-  const seerOrganization = OrganizationFixture({
     features: ['issue-stream-progress-ui', 'gen-ai-features', 'seat-based-seer-enabled'],
   });
+  const seerOrganization = organization;
   const aiOnlyOrganization = OrganizationFixture({
     features: ['issue-stream-progress-ui', 'gen-ai-features'],
   });
@@ -123,6 +124,11 @@ describe('InboxPage', () => {
   });
 
   beforeEach(() => {
+    jest.mocked(useOrganizationSeerSetup).mockReturnValue({
+      areAiFeaturesAllowed: true,
+      billing: {hasAutofixQuota: true, hasScannerQuota: false},
+      isPending: false,
+    } as ReturnType<typeof useOrganizationSeerSetup>);
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
@@ -206,6 +212,7 @@ describe('InboxPage', () => {
         seerReposLinked: false,
       },
     });
+    mockAutofixResponse(ExplorerAutofixResponseFixture({autofix: null}));
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${fixProposedGroup.id}/attachments/`,
       body: [],
@@ -345,21 +352,19 @@ describe('InboxPage', () => {
     });
   });
 
-  it('hides the Diagnosed section without a paid Seer plan', async () => {
-    const requests = mockSuccessfulSections();
+  it('does not render without Autofix quota', () => {
+    jest.mocked(useOrganizationSeerSetup).mockReturnValue({
+      areAiFeaturesAllowed: true,
+      billing: {hasAutofixQuota: false, hasScannerQuota: false},
+      isPending: false,
+    } as ReturnType<typeof useOrganizationSeerSetup>);
 
     render(<InboxPage />, {
       organization: aiOnlyOrganization,
       initialRouterConfig,
     });
 
-    expect(screen.queryByRole('region', {name: 'Diagnosed'})).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Loading Diagnosed issues')).not.toBeInTheDocument();
-    await waitFor(() => {
-      expect(requests[0]).toHaveBeenCalledTimes(1);
-      expect(requests[2]).toHaveBeenCalledTimes(1);
-    });
-    expect(requests[1]).not.toHaveBeenCalled();
+    expect(screen.getByText('Page Not Found')).toBeInTheDocument();
   });
 
   it('shows a plus sign when a section count reaches the API cap', async () => {
@@ -900,29 +905,6 @@ describe('InboxPage', () => {
         })
       )
     );
-  });
-
-  it('retains issue actions when Seer Autofix is unavailable', async () => {
-    mockSuccessfulSections();
-    mockIssuePreview();
-
-    render(<InboxPage />, {organization, initialRouterConfig});
-
-    const preview = screen.getByRole('complementary', {
-      name: 'Issue preview',
-    });
-    const issueLink = await within(
-      screen.getByRole('region', {name: 'Fix Proposed'})
-    ).findByRole('link', {name: /Fix proposed issue/});
-    await userEvent.click(issueLink);
-
-    expect(
-      await within(preview).findByRole('button', {name: 'Resolve'})
-    ).toBeInTheDocument();
-    expect(within(preview).getByRole('button', {name: 'Archive'})).toBeInTheDocument();
-    expect(
-      within(preview).queryByRole('button', {name: 'Find Root Cause'})
-    ).not.toBeInTheDocument();
   });
 
   it('does not render without the progress UI feature', () => {

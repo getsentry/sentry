@@ -15,9 +15,11 @@ import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {NotFound} from 'sentry/components/errors/notFound';
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {QueryCount} from 'sentry/components/queryCount';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -93,8 +95,18 @@ export const SECTIONS: InboxSectionConfig[] = [
 
 export default function InboxPage() {
   const organization = useOrganization();
+  const hasProgressUi = organization.features.includes('issue-stream-progress-ui');
+  const {areAiFeaturesAllowed, billing, isPending} = useOrganizationSeerSetup({
+    enabled: hasProgressUi,
+  });
 
-  if (!organization.features.includes('issue-stream-progress-ui')) {
+  if (!hasProgressUi || !areAiFeaturesAllowed) {
+    return <NotFound />;
+  }
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+  if (!billing.hasAutofixQuota) {
     return <NotFound />;
   }
 
@@ -109,11 +121,6 @@ function InboxContent() {
   const {layout} = usePrimaryNavigation();
   const isMobile = layout === 'mobile';
   const resizableContainerRef = useRef<HTMLDivElement>(null);
-  const organization = useOrganization();
-  const hasSeer =
-    !organization.hideAiFeatures &&
-    (organization.features.includes('seat-based-seer-enabled') ||
-      organization.features.includes('seer-added'));
   const [assignmentFilter, setAssignmentFilter] = useQueryState(
     ASSIGNMENT_QUERY_PARAM,
     parseAsStringLiteral(ASSIGNMENT_FILTERS)
@@ -182,9 +189,7 @@ function InboxContent() {
             </SegmentedControl>
           </Flex>
           <Stack flex={1} minHeight={0} overflowY="auto" overscrollBehavior="contain">
-            {SECTIONS.filter(
-              section => hasSeer || section.progress !== ProgressState.DIAGNOSED
-            ).map(section => (
+            {SECTIONS.map(section => (
               <InboxSection
                 key={section.key}
                 section={section}

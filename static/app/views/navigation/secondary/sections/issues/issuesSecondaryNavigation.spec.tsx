@@ -2,15 +2,22 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {IssuesSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/issues/issuesSecondaryNavigation';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 
+jest.mock('sentry/components/events/autofix/useOrganizationSeerSetup');
+
 describe('IssuesSecondaryNavigation', () => {
   const organization = OrganizationFixture({
-    features: ['issue-stream-progress-ui'],
+    features: ['issue-stream-progress-ui', 'gen-ai-features', 'seat-based-seer-enabled'],
   });
 
   beforeEach(() => {
+    jest.mocked(useOrganizationSeerSetup).mockReturnValue({
+      areAiFeaturesAllowed: true,
+      billing: {hasAutofixQuota: true, hasScannerQuota: false},
+    } as ReturnType<typeof useOrganizationSeerSetup>);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/group-search-views/starred/',
       body: [],
@@ -24,12 +31,12 @@ describe('IssuesSecondaryNavigation', () => {
     });
   }
 
-  function renderNavigation() {
+  function renderNavigation(testOrganization = organization) {
     render(
       <SecondaryNavigationContextProvider>
         <IssuesSecondaryNavigation />
       </SecondaryNavigationContextProvider>,
-      {organization}
+      {organization: testOrganization}
     );
   }
 
@@ -73,5 +80,19 @@ describe('IssuesSecondaryNavigation', () => {
       await screen.findByRole('link', {name: 'Inbox experimental'})
     ).toBeInTheDocument();
     expect(screen.queryByText('0')).not.toBeInTheDocument();
+  });
+
+  it('does not render Inbox or request its count without Autofix quota', async () => {
+    const request = mockInboxCount({});
+    jest.mocked(useOrganizationSeerSetup).mockReturnValue({
+      areAiFeaturesAllowed: true,
+      billing: {hasAutofixQuota: false, hasScannerQuota: false},
+    } as ReturnType<typeof useOrganizationSeerSetup>);
+
+    renderNavigation();
+
+    expect(await screen.findByRole('link', {name: 'Feed'})).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: /Inbox/})).not.toBeInTheDocument();
+    expect(request).not.toHaveBeenCalled();
   });
 });

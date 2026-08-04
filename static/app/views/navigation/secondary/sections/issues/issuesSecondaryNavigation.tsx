@@ -7,6 +7,7 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {t, tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
@@ -30,6 +31,11 @@ function InboxCountBadge() {
 export function IssuesSecondaryNavigation() {
   const organization = useOrganization();
   const baseUrl = `/organizations/${organization.slug}/issues`;
+  const hasProgressUi = organization.features.includes('issue-stream-progress-ui');
+  const {areAiFeaturesAllowed, billing} = useOrganizationSeerSetup({
+    enabled: hasProgressUi,
+  });
+  const hasInbox = hasProgressUi && areAiFeaturesAllowed && billing.hasAutofixQuota;
   return (
     <Fragment>
       <SecondaryNavigation.Header>{t('Issues')}</SecondaryNavigation.Header>
@@ -45,7 +51,7 @@ export function IssuesSecondaryNavigation() {
                 {t('Feed')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
-            {organization.features.includes('issue-stream-progress-ui') && (
+            {hasInbox && (
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
                   to={`${baseUrl}/inbox/`}
