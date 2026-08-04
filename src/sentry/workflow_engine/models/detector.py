@@ -89,7 +89,7 @@ class DetectorManager(BaseManager["Detector"]):
     def by_organization(self, organization_id: int) -> DetectorQuerySet:
         return self.get_queryset().by_organization(organization_id)
 
-    def by_organization(self, organization_id: int) -> BaseQuerySet[Detector]:
+    def by_organization(self, organization_id: int) -> Self:
         """
         Returns a queryset of detectors scoped to the given organization.
         Project-scoped detectors are matched via project__organization.
@@ -97,14 +97,29 @@ class DetectorManager(BaseManager["Detector"]):
         """
         from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
-        return self.get_queryset().filter(
+        return self.filter(
             Q(project__organization_id=organization_id)
+            # Currently, the only Detector expected to have no project is the All Projects detector.
+            # Therefore, we filter by its GroupType and the config location we know has the organization ID.
             | Q(
                 project__isnull=True,
                 type=IssueStreamGroupType.slug,
                 config__organization_id=organization_id,
             )
         )
+
+
+class DetectorManager(BaseManager["Detector"]):
+    def get_queryset(self) -> DetectorQuerySet:
+        return DetectorQuerySet(self.model, using=self._db).exclude(
+            status__in=(ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS)
+        )
+
+    def with_type_filters(self) -> DetectorQuerySet:
+        return self.get_queryset().with_type_filters()
+
+    def by_organization(self, organization_id: int) -> DetectorQuerySet:
+        return self.get_queryset().by_organization(organization_id)
 
 
 @cell_silo_model

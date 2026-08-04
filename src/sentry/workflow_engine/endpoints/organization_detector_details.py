@@ -141,7 +141,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         try:
             detector = (
                 Detector.objects.by_organization(organization.id)
-                .filter(grouptype.registry.get_detector_type_filters())
+                .with_type_filters()
                 .select_related("project")
                 .get(id=validated_detector_id)
             )
