@@ -485,8 +485,11 @@ class DifAssembleProguardCloneBackendTransitionTest(APITestCase):
         assert second_dif.storage_path != first_dif.storage_path
         assert second_dif.get_file().read() == file_contents
 
-    @patch("sentry.api.endpoints.debug_files.upload_dif_to_objectstore")
-    def test_clone_objectstore_source_spools_stream_before_upload(self, upload: MagicMock) -> None:
+    @patch("sentry.models.debugfile.OBJECTSTORE_MULTIPART_UPLOAD_THRESHOLD", 0)
+    @patch("sentry.models.debugfile._upload_dif_to_objectstore_multipart")
+    def test_clone_objectstore_source_spools_stream_before_upload(
+        self, multipart_upload: MagicMock
+    ) -> None:
         file_contents = b"proguard mapping"
         checksum = sha1(file_contents).hexdigest()
         blob = FileBlob.from_file_with_organization(ContentFile(file_contents), self.organization)
@@ -506,7 +509,7 @@ class DifAssembleProguardCloneBackendTransitionTest(APITestCase):
             assert fileobj.read() == file_contents
             return "cloned-storage-path"
 
-        upload.side_effect = upload_clone
+        multipart_upload.side_effect = upload_clone
         with patch.object(source_dif, "get_file", return_value=source_fileobj):
             _clone_proguard_debug_file_for_reupload(
                 self.project,
