@@ -1,14 +1,20 @@
 import {createContext, useContext, useEffect, useMemo, useRef} from 'react';
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  type ScmMessagingSetup,
+  UNCONFIGURED_SCM_MESSAGING_SETUP,
+} from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import type {Integration, Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
 type OnboardingContextProps = {
   clearDerivedState: () => void;
+  messagingSetup: ScmMessagingSetup;
   resetOnboarding: () => void;
   setCreatedProjectSlug: (slug?: string) => void;
+  setMessagingSetup: (messagingSetup: ScmMessagingSetup) => void;
   setSelectedFeatures: (features?: ProductSolution[]) => void;
   setSelectedIntegration: (integration?: Integration) => void;
   setSelectedPlatform: (selectedSDK?: OnboardingSelectedSDK) => void;
@@ -22,6 +28,7 @@ type OnboardingContextProps = {
 
 type OnboardingSessionState = {
   createdProjectSlug?: string;
+  messagingSetup?: ScmMessagingSetup;
   selectedFeatures?: ProductSolution[];
   selectedIntegration?: Integration;
   selectedPlatform?: OnboardingSelectedSDK;
@@ -42,6 +49,8 @@ const OnboardingContext = createContext<OnboardingContextProps>({
   setSelectedFeatures: () => {},
   createdProjectSlug: undefined,
   setCreatedProjectSlug: () => {},
+  messagingSetup: UNCONFIGURED_SCM_MESSAGING_SETUP,
+  setMessagingSetup: () => {},
   clearDerivedState: () => {},
   resetOnboarding: () => {},
 });
@@ -105,6 +114,10 @@ export function OnboardingContextProvider({children, initialValue}: ProviderProp
       setCreatedProjectSlug: (createdProjectSlug?: string) => {
         setOnboarding(prev => ({...prev, createdProjectSlug}));
       },
+      messagingSetup: onboarding?.messagingSetup ?? UNCONFIGURED_SCM_MESSAGING_SETUP,
+      setMessagingSetup: (messagingSetup: ScmMessagingSetup) => {
+        setOnboarding(prev => ({...prev, messagingSetup}));
+      },
       // Clear state derived from the selected repository (platform, features,
       // created project) without wiping the entire session. Use this when the
       // repo changes so downstream steps start fresh.
@@ -116,10 +129,9 @@ export function OnboardingContextProvider({children, initialValue}: ProviderProp
           createdProjectSlug: undefined,
         }));
       },
-      // Full-flow exits should clear every staged choice explicitly. Do not
-      // reach for a selected-platform reset to do this: clearing one field must
-      // stay local to that field so organization-scoped state added later
-      // survives local repository and platform changes.
+      // Full-flow exits should clear every staged choice explicitly. Do not use
+      // a selected-platform reset for this: messaging setup is organization-
+      // scoped and must survive local repository/platform changes.
       resetOnboarding: removeOnboarding,
     }),
     [onboarding, setOnboarding, removeOnboarding]

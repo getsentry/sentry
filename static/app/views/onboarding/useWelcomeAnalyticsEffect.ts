@@ -31,7 +31,13 @@ export function useWelcomeAnalyticsEffect() {
   useEffect(() => {
     if (onboardingContext.selectedPlatform) {
       // At this point the selectedSDK shall be undefined but just in case, cleaning this up here too
-      onboardingContext.resetOnboarding();
+      // messagingSetup is organization-scoped and must survive a return to
+      // welcome; only the repo-derived state belongs to the local selection.
+      if (hasScmOnboarding) {
+        onboardingContext.clearDerivedState();
+      } else {
+        onboardingContext.resetOnboarding();
+      }
     }
   }, [onboardingContext]);
 }

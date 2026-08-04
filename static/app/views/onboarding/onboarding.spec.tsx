@@ -594,6 +594,10 @@ describe('Onboarding', () => {
     it('navigates from welcome to scm-connect', async () => {
       const {router} = renderOnboarding('welcome');
 
+      expect(
+        screen.getByRole('progressbar', {name: 'Onboarding progress'})
+      ).toHaveAttribute('aria-valuemax', '4');
+
       await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
 
       // Wait for scm-connect to render and its queries to resolve so the
@@ -617,6 +621,30 @@ describe('Onboarding', () => {
         'growth.onboarding_start_onboarding',
         expect.anything()
       );
+    });
+
+    it('preserves messaging setup when returning to the welcome step', async () => {
+      const messagingSetup = {
+        mode: 'selected' as const,
+        providerKey: 'slack' as const,
+        integrationId: '15',
+        channelId: 'C123',
+      };
+
+      renderOnboarding('welcome', {
+        initialContext: {
+          selectedPlatform: nextJsPlatform,
+          selectedFeatures: [ProductSolution.ERROR_MONITORING],
+          messagingSetup,
+        },
+      });
+
+      await waitFor(() => {
+        const stored = JSON.parse(sessionStorage.getItem('onboarding') ?? '{}');
+        expect(stored.selectedPlatform).toBeUndefined();
+        expect(stored.selectedFeatures).toBeUndefined();
+        expect(stored.messagingSetup).toEqual(messagingSetup);
+      });
     });
 
     it('fires scm_welcome_continue_clicked on start click and not the legacy event', async () => {
@@ -817,6 +845,96 @@ describe('Onboarding', () => {
       });
     });
 
+    it('adds the messaging route for treatment without creating a project', async () => {
+      ProjectsStore.loadInitialData([]);
+      const treatmentOrganization = OrganizationFixture({
+        features: ['onboarding-scm-experiment', 'onboarding-scm-messaging-experiment'],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${treatmentOrganization.slug}/projects/`,
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${treatmentOrganization.slug}/teams/`,
+        body: [],
+      });
+      const createRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${treatmentOrganization.slug}/projects/`,
+        method: 'POST',
+        body: ProjectFixture(),
+      });
+
+      const {router} = render(
+        <OnboardingContextProvider
+          initialValue={{
+            selectedPlatform: nextJsPlatform,
+            selectedFeatures: [ProductSolution.ERROR_MONITORING],
+          }}
+        >
+          <OnboardingWithoutContext />
+        </OnboardingContextProvider>,
+        {
+          organization: treatmentOrganization,
+          initialRouterConfig: {
+            location: {
+              pathname: `/onboarding/${treatmentOrganization.slug}/scm-platform-features/`,
+            },
+            route: '/onboarding/:orgId/:step/',
+          },
+        }
+      );
+
+      expect(
+        screen.getByRole('progressbar', {name: 'Onboarding progress'})
+      ).toHaveAttribute('aria-valuemax', '5');
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+      expect(
+        await screen.findByText('Get alerts where your team works')
+      ).toBeInTheDocument();
+      expect(router.location.pathname).toBe(
+        `/onboarding/${treatmentOrganization.slug}/scm-messaging/`
+      );
+      expect(createRequest).not.toHaveBeenCalled();
+    });
+
+    it('global Skip exits treatment without creating a project and clears state', async () => {
+      const treatmentOrganization = OrganizationFixture({
+        features: ['onboarding-scm-experiment', 'onboarding-scm-messaging-experiment'],
+      });
+      const initialContext = {
+        selectedPlatform: nextJsPlatform,
+        selectedFeatures: [ProductSolution.ERROR_MONITORING],
+        messagingSetup: {mode: 'skipped' as const},
+      };
+      sessionStorage.setItem('onboarding', JSON.stringify(initialContext));
+      const createRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${treatmentOrganization.slug}/projects/`,
+        method: 'POST',
+        body: ProjectFixture(),
+      });
+
+      render(
+        <OnboardingContextProvider initialValue={initialContext}>
+          <OnboardingWithoutContext />
+        </OnboardingContextProvider>,
+        {
+          organization: treatmentOrganization,
+          initialRouterConfig: {
+            location: {
+              pathname: `/onboarding/${treatmentOrganization.slug}/scm-messaging/`,
+            },
+            route: '/onboarding/:orgId/:step/',
+          },
+        }
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Skip setup'}));
+
+      expect(createRequest).not.toHaveBeenCalled();
+      expect(sessionStorage.getItem('onboarding')).toBeNull();
+    });
+
     it('preserves SCM context when going back from setup-docs', async () => {
       const nextJsProject = ProjectFixture({
         platform: 'javascript-nextjs',
@@ -852,6 +970,12 @@ describe('Onboarding', () => {
       const initialContext = {
         selectedPlatform: nextJsPlatform,
         selectedFeatures: [ProductSolution.ERROR_MONITORING],
+        messagingSetup: {
+          mode: 'selected' as const,
+          providerKey: 'slack' as const,
+          integrationId: '15',
+          channelId: 'C123',
+        },
       };
 
       // Seed sessionStorage directly so we can verify it's preserved after back
@@ -884,6 +1008,7 @@ describe('Onboarding', () => {
       expect(stored.selectedFeatures).toBeDefined();
       // createdProjectSlug should be cleared so the user can re-create
       expect(stored.createdProjectSlug).toBeUndefined();
+      expect(stored.messagingSetup).toEqual(initialContext.messagingSetup);
     });
 
     describe('setup-docs analytics', () => {
@@ -974,6 +1099,12 @@ describe('Onboarding', () => {
         selectedPlatform: nextJsPlatform,
         selectedFeatures: [ProductSolution.ERROR_MONITORING],
         createdProjectSlug: 'javascript-nextjs',
+        messagingSetup: {
+          mode: 'selected' as const,
+          providerKey: 'slack' as const,
+          integrationId: '15',
+          channelId: 'C123',
+        },
       };
 
       sessionStorage.setItem('onboarding', JSON.stringify(initialContext));
@@ -999,6 +1130,8 @@ describe('Onboarding', () => {
       // Integration and repo should be preserved
       expect(stored.selectedIntegration).toBeDefined();
       expect(stored.selectedRepository).toBeDefined();
+      // Messaging destinations are organization-scoped, not repo-derived.
+      expect(stored.messagingSetup).toEqual(initialContext.messagingSetup);
     });
 
     it('navigates back from scm-connect to welcome', async () => {
