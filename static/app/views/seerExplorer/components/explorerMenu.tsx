@@ -10,7 +10,6 @@ interface SlashCommandHandlers {
   onNew: () => void;
   onCodeMode?: (value: 'off' | 'on' | 'only') => void;
   onConversations?: () => void;
-  onLangfuse?: () => void;
   onMaxSize?: () => void;
   onMedSize?: () => void;
 }
@@ -288,7 +287,6 @@ function useSlashCommands({
   onMedSize,
   onNew,
   onFeedback,
-  onLangfuse,
   onConversations,
   onCodeMode,
 }: SlashCommandHandlers): MenuItemProps[] {
@@ -354,16 +352,6 @@ function useSlashCommands({
             },
           ]
         : []),
-      ...(isSentryEmployee && onLangfuse
-        ? [
-            {
-              title: '/langfuse',
-              key: '/langfuse',
-              description: 'Open Langfuse to view session details',
-              handler: onLangfuse,
-            },
-          ]
-        : []),
       ...(isSentryEmployee && onConversations
         ? [
             {
@@ -381,7 +369,6 @@ function useSlashCommands({
       onMedSize,
       onFeedback,
       onCodeMode,
-      onLangfuse,
       onConversations,
       isSentryEmployee,
     ]
