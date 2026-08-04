@@ -149,8 +149,10 @@ class MarkReadyForReviewTest(TestCase):
 
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
     def test_noop_when_flag_disabled(self, mock_resolve: MagicMock) -> None:
+        mock_resolve.return_value = self._resolved()
         _mark_ready(_green_event())
-        mock_resolve.assert_not_called()
+        # Resolve still runs; flag is checked after via ready_for_green_*.
+        mock_resolve.assert_called_once()
         assert self._marker() is None
 
     @patch(f"{READY_FOR_REVIEW_PATH}.scm_actions")
