@@ -52,13 +52,18 @@ def _stale_pipeline_filter(qs: BaseQuerySet[Group], pipeline_hash: str) -> BaseQ
     namespace=issues_tasks,
     silo_mode=SiloMode.CELL,
 )
-def process_group_log_task(group_id: int, **kwargs: object) -> None:
+def process_group_log_task(group_id: int, incremental: bool = False, **kwargs: object) -> None:
     """Drain all pending action log entries for a single group into its derived data."""
-    from sentry.issues.derived.processing import process_group_log
+    from sentry.issues.derived.processing import (
+        DerivedMetrics,
+        ProcessingStrategy,
+        process_group_log,
+    )
     from sentry.models.group import Group
 
+    derived_metrics = DerivedMetrics(mode=ProcessingStrategy.ASYNC, incremental=incremental)
     try:
-        process_group_log(group_id)
+        process_group_log(group_id, derived_metrics=derived_metrics)
     except Group.DoesNotExist:
         logger.info("process_group_log_task.group_not_found", extra={"group_id": group_id})
 
@@ -257,7 +262,13 @@ def process_project_derived_data_batch(
     """
     from taskbroker_client.state import current_task
 
-    from sentry.issues.derived.processing import PIPELINE, GroupLogTimeout, process_group_log
+    from sentry.issues.derived.processing import (
+        PIPELINE,
+        DerivedMetrics,
+        GroupLogTimeout,
+        ProcessingStrategy,
+        process_group_log,
+    )
     from sentry.issues.models.groupderiveddata import GroupDerivedData
     from sentry.models.group import Group
     from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
@@ -296,7 +307,11 @@ def process_project_derived_data_batch(
     for group_id in group_ids:
         remaining = timedelta(seconds=max(0, timeout_seconds - (time.monotonic() - start)))
         try:
-            process_group_log(group_id, timeout=remaining)
+            process_group_log(
+                group_id,
+                timeout=remaining,
+                derived_metrics=DerivedMetrics(mode=ProcessingStrategy.ASYNC, incremental=False),
+            )
             processed += 1
         except Group.DoesNotExist:
             logger.info(

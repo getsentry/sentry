@@ -9,8 +9,11 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {PlatformKey} from 'sentry/types/platform';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 import {ConversationOnboarding} from './onboarding';
+
+jest.mock('sentry/utils/analytics');
 
 describe('ConversationOnboarding deployment target', () => {
   function setupProject(platform: PlatformKey) {
@@ -47,6 +50,7 @@ describe('ConversationOnboarding deployment target', () => {
   afterEach(() => {
     ProjectsStore.reset();
     MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
   });
 
   it('defaults a Node project to the Node target and installs @sentry/node', async () => {
@@ -97,5 +101,24 @@ describe('ConversationOnboarding deployment target', () => {
         )
       ).length
     ).toBeGreaterThan(0);
+  });
+
+  it('tracks AI prompt copy for conversations onboarding', async () => {
+    const {organization} = setupProject('node');
+
+    Object.assign(navigator, {
+      clipboard: {writeText: jest.fn().mockResolvedValue(undefined)},
+    });
+
+    render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Copy instructions'}));
+
+    expect(trackAnalytics).toHaveBeenCalledWith('onboarding.ai_prompt_copied', {
+      organization,
+      platform: 'node',
+      product: 'conversations',
+      source: 'prompt',
+    });
   });
 });

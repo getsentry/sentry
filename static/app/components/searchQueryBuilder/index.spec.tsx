@@ -1471,6 +1471,38 @@ describe('SearchQueryBuilder', () => {
       );
     });
 
+    it('quotes colon-containing keys selected from key suggestions', async () => {
+      const filterKey = 'imaginary.attribute:made_up_key';
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          fieldDefinitionGetter={(key, options) =>
+            getFieldDefinition(key, 'span', options?.kind)
+          }
+          filterKeys={{
+            ...defaultProps.filterKeys,
+            [filterKey]: {
+              key: filterKey,
+              name: filterKey,
+              kind: FieldKind.TAG,
+              predefined: true,
+              values: ['asdf'],
+            },
+          }}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.keyboard('imaginary');
+      await userEvent.click(screen.getByRole('option', {name: filterKey}));
+
+      expect(
+        screen.getByRole('row', {
+          name: `"${filterKey}":${WildcardOperators.CONTAINS}""`,
+        })
+      ).toBeInTheDocument();
+    });
+
     it('defaults to contains when adding a default-string filter', async () => {
       render(<SearchQueryBuilder {...defaultProps} />);
 
@@ -2863,6 +2895,43 @@ describe('SearchQueryBuilder', () => {
 
       await waitFor(() => {
         expect(mockOnChange).toHaveBeenCalledWith('is:test\\*', expect.anything());
+      });
+    });
+
+    it('preserves quoted syntax when selecting a value for a user attribute', async () => {
+      const mockOnChange = jest.fn();
+      const filterKey = 'imaginary.attribute:made_up_key';
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          fieldDefinitionGetter={(key, options) =>
+            getFieldDefinition(key, 'span', options?.kind)
+          }
+          filterKeys={{
+            ...defaultProps.filterKeys,
+            [filterKey]: {
+              key: filterKey,
+              name: filterKey,
+              kind: FieldKind.TAG,
+              predefined: true,
+              values: ['asdf'],
+            },
+          }}
+          onChange={mockOnChange}
+          initialQuery={`"${filterKey}":${WildcardOperators.CONTAINS}""`}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: `Edit value for filter: ${filterKey}`})
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'asdf'}));
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith(
+          `"${filterKey}":asdf`,
+          expect.anything()
+        );
       });
     });
 

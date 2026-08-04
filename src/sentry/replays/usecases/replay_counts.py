@@ -13,6 +13,7 @@ from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.snuba import discover, errors, issue_platform, transactions
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 
 MAX_REPLAY_COUNT = 51
@@ -196,7 +197,7 @@ def _query_eap_spans_for_replay_ids(
         # In buffer mode we'll often set IDs for replays that are never sent to
         # Sentry - load a lot of extra IDs to compensate.
         limit=MAX_REPLAY_COUNT * 10,
-        referrer="api.organization-issue-replay-count",
+        referrer=Referrer.API_ORGANIZATION_SPAN_REPLAY_COUNT,
         config=SearchResolverConfig(),
     )
 

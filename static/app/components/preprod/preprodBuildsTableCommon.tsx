@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {PlatformIcon} from 'platformicons';
 
+import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
@@ -12,7 +13,7 @@ import {FullRowLink} from 'sentry/components/preprod/preprodBuildsTableStyles';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconCheckmark, IconCommit, IconNot} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {InstallAppButton} from 'sentry/views/preprod/components/installAppButton';
 import {getDistributionErrorTooltip} from 'sentry/views/preprod/components/installDetailsContent';
 import {
@@ -45,17 +46,26 @@ interface PreprodBuildsRowCellsProps {
   showInteraction: boolean;
   showProjectColumn: boolean;
   rowLink?: {to: string; onClick?: () => void};
+  showInstallGroups?: boolean;
   showInstallabilityIndicator?: boolean;
 }
+
+const MAX_VISIBLE_INSTALL_GROUPS = 3;
 
 export function PreprodBuildsRowCells({
   build,
   rowLink,
   showInteraction,
   showProjectColumn,
+  showInstallGroups = false,
   showInstallabilityIndicator = false,
 }: PreprodBuildsRowCellsProps) {
   const buildNumber = getBuildNumber(build.app_info);
+  const installGroups = showInstallGroups
+    ? (build.distribution_info?.install_groups ?? [])
+    : [];
+  const visibleInstallGroups = installGroups.slice(0, MAX_VISIBLE_INSTALL_GROUPS);
+  const hiddenInstallGroups = installGroups.slice(MAX_VISIBLE_INSTALL_GROUPS);
 
   return (
     <Fragment>
@@ -186,6 +196,36 @@ export function PreprodBuildsRowCells({
               </Fragment>
             )}
           </Flex>
+          {visibleInstallGroups.length > 0 && (
+            <Flex align="center" gap="xs" wrap="wrap">
+              {visibleInstallGroups.map(group => (
+                <Tag
+                  key={group}
+                  style={{maxWidth: '100%', minWidth: 0}}
+                  title={group}
+                  variant="muted"
+                >
+                  <Text ellipsis variant="inherit">
+                    {group}
+                  </Text>
+                </Tag>
+              ))}
+              {hiddenInstallGroups.length > 0 && (
+                <Tooltip title={hiddenInstallGroups.join(', ')}>
+                  <Tag
+                    aria-label={tn(
+                      '%s more install group',
+                      '%s more install groups',
+                      hiddenInstallGroups.length
+                    )}
+                    variant="muted"
+                  >
+                    +{hiddenInstallGroups.length}
+                  </Tag>
+                </Tooltip>
+              )}
+            </Flex>
+          )}
         </Stack>
       </SimpleTable.RowCell>
     </Fragment>

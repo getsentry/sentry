@@ -183,7 +183,7 @@ function GroupList({
   const theme = useTheme();
   const organization = useOrganization();
   const topIssue = groupIds[0];
-  const selectDisabled = useMedia(`(width < ${theme.breakpoints.md})`);
+  const selectDisabled = useMedia(`(width < ${theme.breakpoints.sm})`);
 
   const showProgress = withColumns.includes('progress');
 

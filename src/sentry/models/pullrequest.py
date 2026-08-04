@@ -4,6 +4,7 @@ import re
 from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple
+from urllib.parse import urlsplit
 
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
@@ -117,15 +118,41 @@ class ResolvedPullRequest(NamedTuple):
     provider_unmappable: bool
 
 
-def parse_pull_request_number(url: str) -> int | None:
-    """Extract the PR/MR number from a pull-request URL, or None if there isn't one.
+class ParsedPullRequestUrl(NamedTuple):
+    """The parts of a pull-request URL a caller can act on."""
 
-    Matches the number after a ``/pull/`` (GitHub) or ``/merge_requests/`` (GitLab)
-    segment specifically — a source can report a branch/``tree`` URL as its result, and
-    we must not mistake a trailing branch-name segment for a PR number.
+    number: int
+    host: str
+    repo_full_name: str
+
+
+def parse_pull_request_url(url: str) -> ParsedPullRequestUrl | None:
+    """Parse an https pull-request URL, or None if it isn't one.
+
+    The number must follow a ``/pull/`` (GitHub) or ``/merge_requests/`` (GitLab) segment and
+    end it, so a branch/``tree`` URL is never mistaken for a pull request. ``repo_full_name``
+    spans every segment above that one, keeping GitLab's nested subgroups
+    (``group/subgroup/project``) intact and dropping its ``/-/`` separator.
     """
-    match = re.search(r"/(?:pull|pulls|merge_requests)/(\d+)", url)
-    return int(match.group(1)) if match else None
+    try:
+        parsed = urlsplit(url)
+    except ValueError:  # e.g. an unclosed IPv6 bracket
+        return None
+    if parsed.scheme != "https" or not parsed.hostname:
+        return None
+
+    # Against the path alone, so a PR link in a query string isn't read as this URL's own.
+    match = re.search(r"/(?:pull|pulls|merge_requests)/(\d+)(?=/|$)", parsed.path)
+    if match is None:
+        return None
+    repo_full_name = parsed.path[: match.start()].strip("/").removesuffix("/-")
+    if "/" not in repo_full_name:
+        return None
+    return ParsedPullRequestUrl(
+        number=int(match.group(1)),
+        host=parsed.hostname,
+        repo_full_name=repo_full_name,
+    )
 
 
 def normalize_scm_provider(provider: str | None) -> str | None:

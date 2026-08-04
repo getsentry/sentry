@@ -2,8 +2,10 @@ import {displayRawContent as rawStacktraceContent} from 'sentry/components/event
 import type {Event} from 'sentry/types/event';
 
 type GetStacktraceBodyArgs = {
-  /** The Sentry event containing stack trace data. */
-  event: Event;
+  /**
+   * The Sentry event containing stack trace data. Returns no content when omitted.
+   */
+  event: Event | undefined;
   /** Whether the similarity embeddings feature is enabled. */
   hasSimilarityEmbeddingsFeature?: boolean;
   /** Whether to include source code context in stack trace frames for JavaScript. */

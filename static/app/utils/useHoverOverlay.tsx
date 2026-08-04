@@ -245,6 +245,9 @@ export function isOverflown(el: Element): boolean {
       ? 2
       : 0;
   return (
+    // Components that truncate text in JavaScript can expose logical overflow
+    // even when the rendered text fits its box.
+    el.getAttribute('data-overflowing') === 'true' ||
     el.scrollWidth - el.clientWidth > tolerance ||
     Array.from(el.children).some(isOverflown)
   );
@@ -432,8 +435,10 @@ function useHoverOverlay({
 
       const mutationObserver = new MutationObserver(() => updateOverflow(element));
       mutationObserver.observe(element, {
+        attributes: true,
         characterData: true,
         childList: true,
+        attributeFilter: ['data-overflowing'],
         subtree: true,
       });
 

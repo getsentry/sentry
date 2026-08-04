@@ -3,9 +3,10 @@ import {useState} from 'react';
 import {Button, LinkButton} from '@sentry/scraps/button';
 
 import {
-  getCodingAgentName,
-  getResultButtonLabel,
-} from 'sentry/components/events/autofix/types';
+  findCodingAgentResultLink,
+  getRepoPullRequestLink,
+} from 'sentry/components/events/autofix/pullRequests';
+import {getCodingAgentName} from 'sentry/components/events/autofix/types';
 import {
   getOrderedAutofixSections,
   type ExplorerAutofixState,
@@ -15,6 +16,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {IconOpen, IconRefresh, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import {defined} from 'sentry/utils/defined';
 
 type ExplorerAutofix = ReturnType<typeof useExplorerAutofix>;
 
@@ -39,7 +41,7 @@ interface SeerAction {
 interface IssuePreviewSeerActionsProps {
   autofix: ExplorerAutofix;
   group: Group;
-  onOpenAutofix: () => void;
+  onContinueInSeer: () => void;
   disabled?: boolean;
 }
 
@@ -82,8 +84,7 @@ function getAutofixPrimaryAction(
     };
   }
 
-  // The run is paused waiting on the user
-  // For now open the autofix tab, but in the future open an explorer side panel
+  // The run is paused waiting on the user, so continue in the full Seer drawer.
   if (runState.status === 'awaiting_user_input') {
     return {
       ...AUTOFIX_ANALYTICS.view,
@@ -96,29 +97,19 @@ function getAutofixPrimaryAction(
   }
 
   const pullRequests = Object.values(runState.repo_pr_states ?? {});
-  const completedPullRequest = pullRequests.find(
-    pullRequest =>
-      pullRequest.pr_creation_status === 'completed' &&
-      pullRequest.pr_url &&
-      pullRequest.pr_number &&
-      pullRequest.repo_name
-  );
+  const completedPullRequestLink = pullRequests.map(getRepoPullRequestLink).find(defined);
   const failedPullRequest = pullRequests.find(
     pullRequest => pullRequest.pr_creation_status === 'error'
   );
 
   // A pull request was created and completed
   // Show the view pull request button
-  if (completedPullRequest?.pr_url && completedPullRequest.pr_number) {
+  if (completedPullRequestLink) {
     return {
       ...AUTOFIX_ANALYTICS.view,
       kind: 'link',
-      label: t(
-        'View %s#%s',
-        completedPullRequest.repo_name,
-        completedPullRequest.pr_number
-      ),
-      href: completedPullRequest.pr_url,
+      label: completedPullRequestLink.label,
+      href: completedPullRequestLink.url,
     };
   }
 
@@ -152,16 +143,14 @@ function getAutofixPrimaryAction(
 
     case 'coding_agents': {
       const codingAgents = Object.values(runState.coding_agents ?? {});
-      const result = codingAgents
-        .flatMap(codingAgent => codingAgent.results ?? [])
-        .find(item => item.pr_url);
+      const resultLink = findCodingAgentResultLink(codingAgents);
 
-      if (result?.pr_url) {
+      if (resultLink) {
         return {
           ...AUTOFIX_ANALYTICS.view,
           kind: 'link',
-          label: getResultButtonLabel(result.pr_url),
-          href: result.pr_url,
+          label: resultLink.label,
+          href: resultLink.url,
         };
       }
 
@@ -212,7 +201,7 @@ export function IssuePreviewSeerActions({
   autofix,
   disabled,
   group,
-  onOpenAutofix,
+  onContinueInSeer,
 }: IssuePreviewSeerActionsProps) {
   if (autofix.isLoading) {
     return <Placeholder width="120px" height="32px" />;
@@ -223,7 +212,7 @@ export function IssuePreviewSeerActions({
       autofix={autofix}
       disabled={disabled}
       group={group}
-      onOpenAutofix={onOpenAutofix}
+      onContinueInSeer={onContinueInSeer}
     />
   );
 }
@@ -232,7 +221,7 @@ function IssuePreviewSeerButton({
   autofix,
   disabled,
   group,
-  onOpenAutofix,
+  onContinueInSeer,
 }: IssuePreviewSeerActionsProps) {
   const [isStartingAction, setIsStartingAction] = useState(false);
   const action = getAutofixPrimaryAction(autofix.runState);
@@ -249,9 +238,8 @@ function IssuePreviewSeerButton({
   };
 
   const handleClick = async () => {
-    onOpenAutofix();
-
     if (action.kind === 'view_autofix') {
+      onContinueInSeer();
       return;
     }
 

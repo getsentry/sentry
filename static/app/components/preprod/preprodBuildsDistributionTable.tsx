@@ -51,6 +51,7 @@ export function PreprodBuildsDistributionTable({
             isRowDisabled ? undefined : {to: linkUrl, onClick: () => onRowClick?.(build)}
           }
           showInteraction={!isRowDisabled}
+          showInstallGroups
           showInstallabilityIndicator
           showProjectColumn={showProjectColumn}
         />

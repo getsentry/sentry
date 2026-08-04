@@ -16,6 +16,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
 import {
+  collapseSeerActivityPairs,
+  type ActivityFeedItem,
+} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
+import {
   ActivityLineNote,
   isActivityNote,
 } from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
@@ -319,6 +323,38 @@ const seerActivities = [
   }),
 ];
 
+const collapsedSeerActivities = collapseSeerActivityPairs([
+  seerActivityAt(GroupActivityType.SEER_RCA_COMPLETED, '2025-01-01T00:12:00Z', {
+    run_id: 1,
+  }),
+  seerActivityAt(GroupActivityType.SEER_RCA_STARTED, '2025-01-01T00:00:00Z', {
+    run_id: 1,
+  }),
+  seerActivityAt(GroupActivityType.SEER_SOLUTION_COMPLETED, '2025-01-01T00:22:00Z', {
+    run_id: 2,
+  }),
+  seerActivityAt(GroupActivityType.SEER_SOLUTION_STARTED, '2025-01-01T00:12:00Z', {
+    run_id: 2,
+  }),
+  seerActivityAt(GroupActivityType.SEER_CODING_COMPLETED, '2025-01-01T00:30:00Z', {
+    run_id: 3,
+  }),
+  seerActivityAt(GroupActivityType.SEER_CODING_STARTED, '2025-01-01T00:22:00Z', {
+    run_id: 3,
+  }),
+  seerActivityAt(GroupActivityType.SEER_ITERATION_COMPLETED, '2025-01-01T00:37:00Z', {
+    pull_requests: [seerPullRequest],
+    run_id: 4,
+  }),
+  {
+    ...seerActivityAt(GroupActivityType.SEER_ITERATION_STARTED, '2025-01-01T00:30:00Z', {
+      referrer: 'github.check_suite',
+      run_id: 4,
+    }),
+    user,
+  },
+]);
+
 export default Storybook.story('Issue Activity', story => {
   const activityStory = (name: string, render: () => ReactNode) =>
     story(name, () => <ActivityStory>{render()}</ActivityStory>);
@@ -335,6 +371,9 @@ export default Storybook.story('Issue Activity', story => {
   activityStory('Issue changes', () => <ActivityExamples items={issueActivities} />);
   activityStory('Comments', () => <CommentExample />);
   activityStory('Seer', () => <ActivityExamples items={seerActivities} />);
+  activityStory('Collapsed Seer', () => (
+    <ActivityFeedExamples items={collapsedSeerActivities} />
+  ));
 });
 
 function ActivityStory({children}: {children: ReactNode}) {
@@ -398,6 +437,14 @@ function seerActivity(type: GroupActivityType, data: Record<string, unknown> = {
   return activity(type, data, null);
 }
 
+function seerActivityAt(
+  type: GroupActivityType,
+  dateCreated: string,
+  data: Record<string, unknown>
+) {
+  return {...seerActivity(type, data), dateCreated};
+}
+
 function sentryAppActivity(
   type: GroupActivityType,
   data: Record<string, unknown>,
@@ -412,19 +459,27 @@ function release(version: string, dateReleased: string) {
 
 function ActivityExamples({items}: {items: GroupActivity[]}) {
   return (
+    <ActivityFeedExamples
+      items={items.map(item => ({type: 'activity', activity: item}))}
+    />
+  );
+}
+
+function ActivityFeedExamples({items}: {items: ActivityFeedItem[]}) {
+  return (
     <ActivityList gap="md">
       {items.map((item, index) =>
-        isActivityNote(item) ? (
+        item.type === 'activity' && isActivityNote(item.activity) ? (
           <ActivityLineNote
-            key={`${item.id}-${index}`}
-            activity={item}
+            key={`${item.activity.id}-${index}`}
+            activity={item.activity}
             group={group}
             inputVariant="compact"
             onDelete={async () => {}}
           />
         ) : (
           <ActivityLine
-            key={`${item.id}-${index}`}
+            key={`${item.activity.id}-${index}`}
             group={group}
             item={item}
             timestampUnitStyle="short"

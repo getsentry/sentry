@@ -1,5 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {
   SidebarItem,
@@ -66,7 +68,11 @@ function buildProps(
 function renderSnapshotMainContent(
   props: Partial<React.ComponentProps<typeof SnapshotMainContent>> = {}
 ) {
-  return render(<SnapshotMainContent {...buildProps(props)} />);
+  return render(
+    <Container containerType="inline-size">
+      <SnapshotMainContent {...buildProps(props)} />
+    </Container>
+  );
 }
 
 function image(overrides: Partial<SnapshotImage> = {}): SnapshotImage {
@@ -133,6 +139,13 @@ const renamedPair: SnapshotDiffPair = {
 describe('SnapshotMainContent', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // SnapshotMainContent resolves container-responsive values in JS. Render it
+    // at a wide enough container size for the `xl` breakpoint (768px).
+    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(800);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('keeps the diff/head toggle visible when viewing the head-only comparison', async () => {
@@ -407,13 +420,15 @@ describe('SnapshotMainContent', () => {
       });
       const renderItem = (nextItem: SidebarItem) =>
         view.rerender(
-          <SnapshotMainContent
-            {...buildProps({
-              listItems: [nextItem],
-              selectedItem: nextItem,
-              viewMode: 'single',
-            })}
-          />
+          <Container containerType="inline-size">
+            <SnapshotMainContent
+              {...buildProps({
+                listItems: [nextItem],
+                selectedItem: nextItem,
+                viewMode: 'single',
+              })}
+            />
+          </Container>
         );
       return {
         navigateTo: (nextImg: SnapshotImage) => renderItem(soloItem(nextImg)),

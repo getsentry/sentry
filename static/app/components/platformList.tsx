@@ -31,7 +31,16 @@ export function PlatformList({
 
   function renderContent() {
     if (!platforms.length) {
-      return <StyledPlatformIcon size={size} platform="default" />;
+      // Decorative: the platform is conveyed by adjacent text (e.g. a project
+      // name), so keep the icon out of the accessible name.
+      return (
+        <StyledPlatformIcon
+          data-test-id="platform-icon-default"
+          size={size}
+          platform="default"
+          alt=""
+        />
+      );
     }
 
     const platformIcons = visiblePlatforms.slice().reverse();
@@ -44,6 +53,7 @@ export function PlatformList({
             key={visiblePlatform + index}
             platform={visiblePlatform}
             size={size}
+            alt=""
           />
         ))}
       </PlatformIcons>

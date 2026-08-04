@@ -14,6 +14,7 @@ import {
   WildcardOperators,
   type ParseResultToken,
 } from 'sentry/components/searchSyntax/parser';
+import {quoteFilterKey} from 'sentry/components/searchSyntax/utils';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {
@@ -226,7 +227,7 @@ function getInitialFilterKeyText(key: string, fieldDefinition: FieldDefinition |
     return `${key}()`;
   }
 
-  return key;
+  return quoteFilterKey(key);
 }
 
 function getInitialValueType(fieldDefinition: FieldDefinition | null) {

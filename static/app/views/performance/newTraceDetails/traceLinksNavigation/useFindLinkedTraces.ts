@@ -2,8 +2,7 @@ import {useMemo} from 'react';
 
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-
-import type {ConnectedTraceConnection} from './traceLinkNavigationButton';
+import type {ConnectedTraceConnection} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/types';
 
 /**
  * Find an adjacent trace (next or previous) by querying the spans endpoint.
@@ -127,7 +126,7 @@ export function useFindAdjacentTrace({
         id: spanId,
         trace: traceId,
         available: !!spanId && !!traceId && !isError,
-        isLoading: isPending,
+        isLoading: enabled && isPending,
       };
     }
 
@@ -135,7 +134,7 @@ export function useFindAdjacentTrace({
       trace: adjacentTraceId,
       id: adjacentTraceSpanId,
       available: !!data?.[0]?.id && !isError,
-      isLoading: isPending,
+      isLoading: enabled && isPending,
     };
   }, [
     direction,
@@ -144,6 +143,7 @@ export function useFindAdjacentTrace({
     adjacentTraceId,
     adjacentTraceSpanId,
     data,
+    enabled,
     isError,
     isPending,
   ]);

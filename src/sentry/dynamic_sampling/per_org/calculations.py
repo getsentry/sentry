@@ -11,10 +11,6 @@ import sentry_sdk
 
 from sentry import options
 from sentry.dynamic_sampling.models.common import RebalancedItem
-from sentry.dynamic_sampling.models.full_rebalancing import (
-    FullRebalancingInput,
-    FullRebalancingModel,
-)
 from sentry.dynamic_sampling.models.projects_rebalancing import (
     ProjectsRebalancingInput,
     ProjectsRebalancingModel,
@@ -23,10 +19,7 @@ from sentry.dynamic_sampling.models.transactions_rebalancing import (
     TransactionsRebalancingInput,
     TransactionsRebalancingModel,
 )
-from sentry.dynamic_sampling.per_org.gate import (
-    is_implicit_sample_rate_floor_enabled,
-    project_balancing_debug_project_ids,
-)
+from sentry.dynamic_sampling.per_org.gate import project_balancing_debug_project_ids
 from sentry.dynamic_sampling.per_org.queries import (
     ProjectTransactionCounts,
     ProjectVolume,
@@ -41,6 +34,9 @@ from sentry.dynamic_sampling.tasks.common import (
     OrganizationDataVolume,
     compute_sliding_window_sample_rate,
     sample_rate_to_float,
+)
+from sentry.dynamic_sampling.tasks.helpers import (
+    recalibrate_orgs as legacy_recalibration_cache,
 )
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
@@ -60,10 +56,66 @@ if TYPE_CHECKING:
 
 PROJECT_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
 TRANSACTION_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
+RECALIBRATION_FACTOR_COMPARISON_RELATIVE_TOLERANCE = 0.05
 REBALANCE_INTENSITY = 0.8
 PROJECT_BALANCING_DEBUG_METRIC_PREFIX = "dynamic_sampling.per_org.project_balancing_debug"
 SLIDING_WINDOW_METRIC_PREFIX = "dynamic_sampling.per_org.sliding_window"
 logger = logging.getLogger(__name__)
+
+
+def calculate_recalibration_factor(
+    data_volume: OrganizationDataVolume | None,
+    previous_factor: float,
+    target_sample_rate: float | None,
+) -> float | None:
+    if (
+        target_sample_rate is None
+        or target_sample_rate == 0.0
+        or data_volume is None
+        or not data_volume.is_valid_for_recalibration()
+        or previous_factor == 0.0
+        or data_volume.indexed is None
+        or data_volume.indexed == 0
+    ):
+        return None
+
+    # This formula aims at scaling the factor proportionally to the ratio of the sample rate we are targeting compared
+    # to the effective sample rate of that org. An imbalance in the ratio can be introduced by many factors, including
+    # biases that oversample or down sample irrespectively of the incoming volume.
+    effective_sample_rate = data_volume.indexed / data_volume.total
+    new_factor = previous_factor * (target_sample_rate / effective_sample_rate)
+    return new_factor
+
+
+def get_cached_recalibration_factor(org_id: int) -> float:
+    return legacy_recalibration_cache.get_adjusted_factor(org_id)
+
+
+def compare_recalibration_factor_with_cache(
+    config: BaseDynamicSamplingConfiguration,
+    calculated_factor: float | None,
+    cached_factor: float | None,
+) -> None:
+    logger.info(
+        "dynamic_sampling.per_org.recalibration_factor_comparison",
+        extra={
+            "org_id": config.organization.id,
+            "sample_rate": config.get_sample_rate(),
+            "generic_metrics_factor": cached_factor,
+            "eap_factor": calculated_factor,
+            "relative_deviation": (
+                None
+                if calculated_factor is None
+                else get_relative_deviation(cached_factor, calculated_factor)
+            ),
+            "is_equal": calculated_factor is not None
+            and is_within_relative_tolerance(
+                cached_factor,
+                calculated_factor,
+                RECALIBRATION_FACTOR_COMPARISON_RELATIVE_TOLERANCE,
+            ),
+        },
+    )
 
 
 def compare_organization_sliding_window_sample_rates(
@@ -351,7 +403,6 @@ def run_transaction_balancing(
 ) -> dict[int, tuple[list[RebalancedItem], float]]:
     sample_rates = config.get_project_sample_rates()
     min_sample_rate = options.get("dynamic-sampling.prioritise_transactions.min_sample_rate")
-    apply_implicit_floor = is_implicit_sample_rate_floor_enabled()
     result: dict[int, tuple[list[RebalancedItem], float]] = {}
     project_volume_by_id = {
         project_volume.project_id: project_volume for project_volume in project_volumes
@@ -392,50 +443,8 @@ def run_transaction_balancing(
             )
         )
 
-        if apply_implicit_floor and implicit_rate < sample_rate:
-            named_rates, implicit_rate = _apply_implicit_sample_rate_floor(
-                named_rates=named_rates,
-                implicit_sample_rate=implicit_rate,
-                floor_sample_rate=sample_rate,
-                total_volume=project_volume.total,
-                min_sample_rate=min_sample_rate,
-            )
-
         result[project_id] = (named_rates, implicit_rate)
     return result
-
-
-def _apply_implicit_sample_rate_floor(
-    named_rates: list[RebalancedItem],
-    implicit_sample_rate: float,
-    floor_sample_rate: float,
-    total_volume: int,
-    min_sample_rate: float = 0.0,
-) -> tuple[list[RebalancedItem], float]:
-    total_explicit_volume = sum(item.count for item in named_rates)
-    total_implicit_volume = total_volume - total_explicit_volume
-    if total_explicit_volume <= 0 or total_implicit_volume <= 0:
-        return named_rates, floor_sample_rate
-
-    additional_implicit_volume = (floor_sample_rate - implicit_sample_rate) * total_implicit_volume
-    previously_used_explicit_volume = sum(item.count * item.new_sample_rate for item in named_rates)
-    new_explicit_volume = previously_used_explicit_volume - additional_implicit_volume
-
-    if new_explicit_volume <= 0:
-        return [], floor_sample_rate
-
-    new_explicit_sample_rate = new_explicit_volume / total_explicit_volume
-    new_rates, _ = FullRebalancingModel().run(
-        FullRebalancingInput(
-            classes=[RebalancedItem(id=item.id, count=item.count) for item in named_rates],
-            sample_rate=new_explicit_sample_rate,
-            intensity=REBALANCE_INTENSITY,
-            # keep the head floor here too, so reclaiming budget for the implicit tail can't push the
-            # explicit rates back below the floor. Clamp to the floor rate (the overall rate here).
-            min_sample_rate=min(min_sample_rate, floor_sample_rate),
-        )
-    )
-    return new_rates, floor_sample_rate
 
 
 def get_cached_rebalanced_transaction_sample_rates(

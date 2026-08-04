@@ -3,7 +3,6 @@ import {
   ExplorerAutofixResponseFixture,
   ExplorerAutofixStateFixture,
 } from 'sentry-fixture/autofix';
-import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -76,7 +75,7 @@ describe('InboxPage', () => {
       hasOpenFixPr: true,
       isAssigned: true,
       hasRootCause: true,
-      lastProgressedAt: null,
+      lastProgressedAt: '2026-07-20T12:00:00Z',
     },
   });
   const diagnosedGroup = GroupFixture({
@@ -204,10 +203,6 @@ describe('InboxPage', () => {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/events/recommended/`,
-      body: EventFixture(),
-    });
-    MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${fixProposedGroup.id}/attachments/`,
       body: [],
     });
@@ -261,6 +256,7 @@ describe('InboxPage', () => {
 
   it('loads and renders the three progress sections with filtered issue metadata', async () => {
     const requests = mockSuccessfulSections();
+    mockIssuePreview();
 
     render(<InboxPage />, {organization, initialRouterConfig});
 
@@ -289,8 +285,9 @@ describe('InboxPage', () => {
               project: [-1],
               query,
               sort: 'progress',
-              limit: 5,
+              limit: 10,
               collapse: ['stats', 'unhandled'],
+              expand: ['derivedData'],
             },
           })
         )
@@ -325,7 +322,11 @@ describe('InboxPage', () => {
     );
     expect(within(fixSection).getByLabelText('Unread issue')).toBeInTheDocument();
     expect(within(fixSection).queryByRole('checkbox')).not.toBeInTheDocument();
-    expect(fixSection.querySelector('time')).not.toBeInTheDocument();
+    const lastProgressedTime = fixSection.querySelector('time');
+    expect(lastProgressedTime).toHaveAttribute('datetime', '2026-07-20T12:00:00.000Z');
+    await userEvent.hover(lastProgressedTime!);
+    const progressStatus = await screen.findByText('Fix Proposed', {selector: 'strong'});
+    expect(progressStatus.parentElement).toHaveTextContent('Changed to Fix Proposed');
     expect(screen.queryByRole('button', {name: '7D'})).not.toBeInTheDocument();
   });
 
@@ -351,6 +352,7 @@ describe('InboxPage', () => {
 
   it('expands and collapses progress sections', async () => {
     mockSuccessfulSections();
+    mockIssuePreview();
 
     render(<InboxPage />, {organization, initialRouterConfig});
 
@@ -377,6 +379,7 @@ describe('InboxPage', () => {
 
   it('filters sections by the selected assignee', async () => {
     mockSuccessfulSections();
+    mockIssuePreview();
     const meRequests = [
       mockSection('issue.progress:fix_proposed assigned:me', [fixProposedGroup]),
       mockSection('issue.progress:diagnosed assigned:me', [diagnosedGroup]),
@@ -495,7 +498,7 @@ describe('InboxPage', () => {
       body: [fixProposedGroup],
       headers: {
         'X-Hits': '2',
-        Link: '<http://localhost/?cursor=0:5:0>; rel="next"; results="true"; cursor="0:5:0"',
+        Link: '<http://localhost/?cursor=0:10:0>; rel="next"; results="true"; cursor="0:10:0"',
       },
     });
     MockApiClient.addMockResponse({
@@ -503,7 +506,7 @@ describe('InboxPage', () => {
       match: [
         MockApiClient.matchQuery({
           query: 'issue.progress:fix_proposed assigned:[me,my_teams]',
-          cursor: '0:5:0',
+          cursor: '0:10:0',
         }),
       ],
       body: [nextFixProposedGroup],
@@ -518,7 +521,7 @@ describe('InboxPage', () => {
     const fixSection = screen.getByRole('region', {name: 'Fix Proposed'});
     expect(await within(fixSection).findByText('Fix proposed issue')).toBeInTheDocument();
     const loadMoreButton = within(fixSection).getByRole('button', {
-      name: 'Show 5 more',
+      name: 'Show 10 more',
     });
 
     await userEvent.click(loadMoreButton);
@@ -529,7 +532,7 @@ describe('InboxPage', () => {
     ).toBeInTheDocument();
     expect(within(fixSection).getByText('Fix proposed issue')).toBeInTheDocument();
     expect(
-      within(fixSection).queryByRole('button', {name: 'Show 5 more'})
+      within(fixSection).queryByRole('button', {name: 'Show 10 more'})
     ).not.toBeInTheDocument();
   });
 
@@ -540,31 +543,24 @@ describe('InboxPage', () => {
       url: `/organizations/org-slug/issues/${fixProposedGroup.id}/`,
       body: fixProposedGroup,
     });
-    const eventRequest = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/events/recommended/`,
-      body: EventFixture(),
-    });
 
     render(<InboxPage />, {organization, initialRouterConfig});
 
     const issueLink = await within(
       screen.getByRole('region', {name: 'Fix Proposed'})
     ).findByRole('link', {name: /Fix proposed issue/});
-
     await userEvent.hover(issueLink);
 
     await waitFor(() => expect(groupRequest).toHaveBeenCalledTimes(1));
-    expect(eventRequest).toHaveBeenCalledTimes(1);
 
     // Reads the warmed cache, which only holds if the query keys match.
     await userEvent.click(issueLink);
 
     const preview = screen.getByRole('complementary', {name: 'Issue preview'});
     expect(
-      await within(preview).findByRole('heading', {name: 'External Links'})
+      await within(preview).findByRole('heading', {name: 'Activity'})
     ).toBeInTheDocument();
     expect(groupRequest).toHaveBeenCalledTimes(1);
-    expect(eventRequest).toHaveBeenCalledTimes(1);
   });
 
   it('stores selection in the URL, renders the embedded preview, and clears it', async () => {
@@ -626,10 +622,7 @@ describe('InboxPage', () => {
     });
     await userEvent.click(seerButton);
 
-    expect(within(preview).getByRole('tab', {name: 'Autofix'})).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
+    expect(within(preview).queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument();
     expect(within(preview).getByRole('button', {name: 'Find Root Cause'})).toBeDisabled();
     await waitFor(() =>
       expect(startAutofixRequest).toHaveBeenCalledWith(
@@ -681,10 +674,7 @@ describe('InboxPage', () => {
 
     await userEvent.click(seerButton);
 
-    expect(within(preview).getByRole('tab', {name: 'Autofix'})).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
+    expect(within(preview).queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument();
     await waitFor(() =>
       expect(within(preview).getByRole('button', {name: 'Make a Plan'})).toBeDisabled()
     );
@@ -725,6 +715,48 @@ describe('InboxPage', () => {
         name: 'View org/repository#10',
       })
     ).toHaveAttribute('href', 'https://github.com/org/repository/pull/10');
+  });
+
+  it('labels a coding agent pull request like a Seer one', async () => {
+    // A delegated agent's PR arrives under coding_agents rather than repo_pr_states.
+    mockSuccessfulSections();
+    mockIssuePreview();
+    mockAutofixResponse(
+      ExplorerAutofixResponseFixture({
+        autofix: ExplorerAutofixStateFixture({
+          coding_agents: {
+            'agent-1': {
+              id: 'agent-1',
+              name: 'Cursor',
+              provider: 'cursor_background_agent',
+              started_at: '2024-01-01T00:00:00Z',
+              status: 'completed',
+              results: [
+                {
+                  description: 'Fixed',
+                  repo_full_name: 'org/repository',
+                  repo_provider: 'github',
+                  pr_number: 649,
+                  pr_url: 'https://github.com/org/repository/pull/649',
+                },
+              ],
+            },
+          },
+        }),
+      })
+    );
+
+    render(<InboxPage />, {
+      organization: seerOrganization,
+      initialRouterConfig,
+    });
+
+    const preview = await openFixProposedPreview();
+    expect(
+      await within(preview).findByRole('button', {
+        name: 'View org/repository#649',
+      })
+    ).toHaveAttribute('href', 'https://github.com/org/repository/pull/649');
   });
 
   it('retries a failed Autofix pull request', async () => {
@@ -785,10 +817,7 @@ describe('InboxPage', () => {
 
     await userEvent.click(retryButton);
 
-    expect(within(preview).getByRole('tab', {name: 'Autofix'})).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
+    expect(within(preview).queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument();
     await waitFor(() => expect(retryButton).toBeDisabled());
     await waitFor(() =>
       expect(retryPullRequest).toHaveBeenCalledWith(
