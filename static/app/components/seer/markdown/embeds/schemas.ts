@@ -131,72 +131,44 @@ export const SEER_EMBED_SCHEMAS = {
       },
     ],
   },
-  chart: {
+  tool: {
     description:
-      'Display numeric data as a compact Sentry-style chart. For line, area, and bar charts, ' +
-      'prefer at least three points. Use x_axis "time" only with offset-bearing ISO 8601 ' +
-      'timestamps. Category axes are supported for bar charts only. ' +
-      'Duration values are milliseconds, percentage values are 0-100, and byte values are raw bytes.',
+      'Render one agent tool call inside a thinking block. ' +
+      'Use variant "read" (default) for quiet lookups — just a title plus an ' +
+      'optional `reference` chip naming the entity read (e.g. a trace or span id). ' +
+      'Use variant "query" to expose the search the tool ran: pass `query` as a ' +
+      'Sentry search string (rendered as filter pills) and `output` as the primary ' +
+      'result chip. `status` reflects the call lifecycle. Emit one embed per tool ' +
+      'call, in the order they ran. MUST NOT appear inside a markdown table or list.',
     level: ['block'],
-    schema: z
-      .object({
-        title: z.string().min(1),
-        subtitle: z.string().optional(),
-        visualization: z.enum(['line', 'area', 'bar']).default('line'),
-        x_axis: z.enum(['time', 'category']).default('time'),
-        y_axis_unit: z
-          .enum(['number', 'percentage', 'duration', 'bytes'])
-          .default('number'),
-        series: z.array(chartSeriesSchema).min(1).max(5),
-      })
-      .superRefine((chart, context) => {
-        if (chart.x_axis === 'category' && chart.visualization !== 'bar') {
-          context.addIssue({
-            code: 'custom',
-            message: 'Category axes are only supported for bar charts',
-            path: ['x_axis'],
-          });
-        }
-
-        if (chart.x_axis === 'time') {
-          chart.series.forEach((series, seriesIndex) => {
-            series.data.forEach((point, pointIndex) => {
-              if (
-                typeof point.x !== 'string' ||
-                !isoTimestampSchema.safeParse(point.x).success
-              ) {
-                context.addIssue({
-                  code: 'custom',
-                  message: 'Time-axis values must be ISO 8601 timestamps',
-                  path: ['series', seriesIndex, 'data', pointIndex, 'x'],
-                });
-              }
-            });
-          });
-        }
-      }),
+    schema: z.object({
+      title: z.string(),
+      status: z
+        .enum(['loading', 'pending', 'success', 'failure', 'mixed'])
+        .default('success'),
+      variant: z.enum(['read', 'query']).default('read'),
+      query: z.string().optional(),
+      output: z.object({value: z.string(), label: z.string().optional()}).optional(),
+      reference: z.object({value: z.string(), label: z.string().optional()}).optional(),
+      notifications: z.array(z.string()).optional(),
+    }),
     examples: [
       {
-        label: 'Error volume',
+        label: 'Read',
         data: {
-          title: 'Error volume',
-          subtitle: 'Last 6 hours',
-          visualization: 'area',
-          x_axis: 'time',
-          y_axis_unit: 'number',
-          series: [
-            {
-              label: 'Errors',
-              data: [
-                {x: '2026-07-30T12:00:00Z', y: 12},
-                {x: '2026-07-30T13:00:00Z', y: 18},
-                {x: '2026-07-30T14:00:00Z', y: 15},
-                {x: '2026-07-30T15:00:00Z', y: 31},
-                {x: '2026-07-30T16:00:00Z', y: 46},
-                {x: '2026-07-30T17:00:00Z', y: 38},
-              ],
-            },
-          ],
+          title: 'Read trace waterfall',
+          status: 'success',
+          reference: {label: 'Trace', value: 'a3805648'},
+        },
+      },
+      {
+        label: 'Query',
+        data: {
+          title: 'Query spans',
+          status: 'success',
+          variant: 'query',
+          query: 'ai_conversation.id:28193042 dataset:spans span.description:DSL',
+          output: {label: 'Trace', value: 'a3805648'},
         },
       },
     ],
