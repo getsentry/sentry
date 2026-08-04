@@ -363,6 +363,7 @@ describe('InboxPage', () => {
   });
 
   it('shows a plus sign when a section count reaches the API cap', async () => {
+    mockIssuePreview();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
       match: [
@@ -742,11 +743,16 @@ describe('InboxPage', () => {
     });
 
     const preview = await openFixProposedPreview();
+    const pullRequestButton = await within(preview).findByRole('button', {
+      name: 'View org/repository#10',
+    });
+    expect(pullRequestButton).toHaveAttribute(
+      'href',
+      'https://github.com/org/repository/pull/10'
+    );
     expect(
-      await within(preview).findByRole('button', {
-        name: 'View org/repository#10',
-      })
-    ).toHaveAttribute('href', 'https://github.com/org/repository/pull/10');
+      within(pullRequestButton).getByTestId('pull-request-github')
+    ).toBeInTheDocument();
   });
 
   it('labels a coding agent pull request like a Seer one', async () => {
@@ -789,6 +795,34 @@ describe('InboxPage', () => {
         name: 'View org/repository#649',
       })
     ).toHaveAttribute('href', 'https://github.com/org/repository/pull/649');
+  });
+
+  it('continues in Seer when a completed Autofix pull request is missing data', async () => {
+    mockSuccessfulSections();
+    mockIssuePreview();
+    mockAutofixResponse(
+      ExplorerAutofixResponseFixture({
+        autofix: ExplorerAutofixStateFixture({
+          repo_pr_states: {
+            'org/repository': AutofixRepoPRStateFixture({
+              pr_creation_status: 'completed',
+              pr_number: null,
+              pr_url: null,
+            }),
+          },
+        }),
+      })
+    );
+
+    render(<InboxPage />, {
+      organization: seerOrganization,
+      initialRouterConfig,
+    });
+
+    const preview = await openFixProposedPreview();
+    expect(
+      await within(preview).findByRole('button', {name: 'Continue in Seer'})
+    ).toBeInTheDocument();
   });
 
   it('retries a failed Autofix pull request', async () => {

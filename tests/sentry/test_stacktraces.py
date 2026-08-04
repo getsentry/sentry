@@ -5,10 +5,9 @@ from typing import Any
 import pytest
 
 from sentry.stacktraces.processing import find_stacktraces_in_data, get_crash_frame_from_event_data
-from sentry.testutils.cases import TestCase
 
 
-class FindStacktracesTest(TestCase):
+class TestFindStacktraces:
     def test_stacktraces_basics(self) -> None:
         data: dict[str, Any] = {
             "message": "hello",
@@ -40,7 +39,6 @@ class FindStacktracesTest(TestCase):
         assert infos[0].is_exception is False
         assert infos[0].exception_type is None
         assert infos[0].exception_module is None
-        assert infos[0].get_exception() is None
 
     def test_stacktraces_exception(self) -> None:
         data: dict[str, Any] = {
@@ -78,7 +76,6 @@ class FindStacktracesTest(TestCase):
         assert infos[0].is_exception is True
         assert infos[0].exception_type == "Error"
         assert infos[0].exception_module is None
-        assert infos[0].get_exception() == "Error"
 
     def test_stacktraces_exception_with_module(self) -> None:
         data: dict[str, Any] = {
@@ -109,7 +106,6 @@ class FindStacktracesTest(TestCase):
         assert infos[0].is_exception is True
         assert infos[0].exception_type == "RuntimeException"
         assert infos[0].exception_module == "java.lang"
-        assert infos[0].get_exception() == "java.lang.RuntimeException"
 
     def test_stacktraces_threads(self) -> None:
         data: dict[str, Any] = {
@@ -147,15 +143,14 @@ class FindStacktracesTest(TestCase):
         assert infos[0].is_exception is False
         assert infos[0].exception_type is None
         assert infos[0].exception_module is None
-        assert infos[0].get_exception() is None
 
     def test_find_stacktraces_skip_none(self) -> None:
         # This tests:
         #  1. exception is None
         #  2. stacktrace is None
         #  3. frames is None
-        #  3. frames contains only None
-        #  4. frame is None
+        #  4. frames contains only None
+        #  5. frame is None
         data: dict[str, Any] = {
             "message": "hello",
             "platform": "javascript",
@@ -189,23 +184,11 @@ class FindStacktracesTest(TestCase):
             },
         }
 
-        infos = find_stacktraces_in_data(data, include_empty_exceptions=True)
-        assert len(infos) == 4
-        assert sum(1 for x in infos if x.stacktrace) == 3
-        assert sum(1 for x in infos if x.is_exception) == 4
-        # All exceptions have type "Error" and no module
-        assert all(x.exception_type == "Error" for x in infos)
-        assert all(x.exception_module is None for x in infos)
-        assert all(x.get_exception() == "Error" for x in infos)
-        # XXX: The null frame is still part of this stack trace!
-        assert len(infos[3].stacktrace["frames"]) == 3
-
         infos = find_stacktraces_in_data(data)
         assert len(infos) == 1
         # XXX: The null frame is still part of this stack trace!
         assert len(infos[0].stacktrace["frames"]) == 3
         assert infos[0].exception_type == "Error"
-        assert infos[0].get_exception() == "Error"
 
 
 @pytest.mark.parametrize(

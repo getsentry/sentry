@@ -1703,17 +1703,17 @@ register(
 )
 
 # Brownout schedule for the deprecated alerts API endpoints.
-# 2 minute blackout 24 times a day (every hour, on the hour, UTC).
+# 5 minute blackout every half hour
 register(
     "api.deprecation.alerts-cron",
-    default="0 * * * *",
+    default="0,30 * * * *",
     type=String,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "api.deprecation.alerts-duration",
     type=Int,
-    default=120,
+    default=300,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -4020,14 +4020,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Rolls out FutureTrackingProducer to spans process-segments tasks
-register(
-    "tasks.producer.process-segments.rollout",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # If False, TaskWorkers will wait for a task's producer futures to complete
 # before marking a task as complete
 register(
@@ -4045,15 +4037,6 @@ register(
     default=None,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# If True, FutureTrackingProducer will backpressure on produce futures
-register(
-    "arroyo.ftp.backpressure",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 
 # Arroyo producer poll metrics should be logged every X poll iterations.
 register(
