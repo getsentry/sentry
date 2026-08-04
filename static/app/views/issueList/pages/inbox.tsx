@@ -275,11 +275,16 @@ function InboxSection({
   });
 
   useEffect(() => {
-    if (!queryResult.isPending && !hasReportedInitialResult.current) {
+    if (
+      queryResult.isSuccess &&
+      queryResult.isFetchedAfterMount &&
+      !queryResult.isFetching &&
+      !hasReportedInitialResult.current
+    ) {
       hasReportedInitialResult.current = true;
       reportInitialResult();
     }
-  }, [queryResult.isPending]);
+  }, [queryResult.isFetchedAfterMount, queryResult.isFetching, queryResult.isSuccess]);
 
   return (
     <Disclosure
