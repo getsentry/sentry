@@ -108,6 +108,14 @@ def exceptions_section(model: EventObject, fmt: Formatter, limits: Limits) -> st
     return fmt.block("Exception", body)
 
 
+def stacktrace_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
+    # frames from a bare ``stacktrace`` entry; exception-owned stacktraces render above
+    st = model.stacktrace
+    if not (st and st.frames):
+        return ""
+    return fmt.block("Stacktrace", fmt.code_block(_render_stacktrace(st, limits)))
+
+
 def title_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
     # transaction and date mirror the line Seer's format_event opens with
     lines = [model.title]
@@ -248,6 +256,7 @@ EVENT_SECTIONS: list[SectionFn] = [
     detection_context_section,
     troubleshooting_hint_section,
     exceptions_section,
+    stacktrace_section,
     threads_section,
     spans_section,
     breadcrumbs_section,

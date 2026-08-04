@@ -71,6 +71,8 @@ def event_response_to_model(data: Mapping[str, Any]) -> EventObject:
     message = message_entry.get("formatted") or message_entry.get("message") or data.get("message")
 
     request = entries.get("request")
+    # a top-level stacktrace entry, distinct from the one nested on an exception
+    stacktrace = entries.get("stacktrace")
     user = data.get("user")
 
     return EventObject(
@@ -84,6 +86,7 @@ def event_response_to_model(data: Mapping[str, Any]) -> EventObject:
         detection_context=data.get("detectionContext"),
         troubleshooting_hint=data.get("troubleshootingHint"),
         exceptions=[_exception(v) for v in _values(entries.get("exception"))],
+        stacktrace=Stacktrace.parse_obj(stacktrace) if stacktrace else None,
         threads=[_thread(v) for v in _values(entries.get("threads"))],
         breadcrumbs=[Breadcrumb.parse_obj(v) for v in _values(entries.get("breadcrumbs"))],
         request=RequestDetails.parse_obj(request) if request else None,

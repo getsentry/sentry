@@ -225,3 +225,19 @@ def test_detector_context_absent_by_default() -> None:
     m = event_response_to_model(_serialized_event())
     assert m.detection_context is None
     assert m.troubleshooting_hint is None
+
+
+def test_maps_bare_stacktrace_entry() -> None:
+    data = {
+        "title": "t",
+        "entries": [
+            {"type": "stacktrace", "data": {"frames": [{"function": "f", "filename": "a.py"}]}}
+        ],
+    }
+    m = event_response_to_model(data)
+    assert m.stacktrace is not None
+    assert [f.function for f in m.stacktrace.frames] == ["f"]
+
+
+def test_bare_stacktrace_absent_by_default() -> None:
+    assert event_response_to_model(_serialized_event()).stacktrace is None

@@ -147,6 +147,8 @@ class EventObject(BaseModel):
     troubleshooting_hint: str | None = None
 
     exceptions: list[ExceptionDetails] = []
+    # a bare ``stacktrace`` entry, which events without an exception can still carry
+    stacktrace: Stacktrace | None = None
     threads: list[ThreadDetails] = []
     breadcrumbs: list[Breadcrumb] = []
     request: RequestDetails | None = None

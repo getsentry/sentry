@@ -26,6 +26,7 @@ from sentry.issues.formatting.sections import (
     message_section,
     request_section,
     spans_section,
+    stacktrace_section,
     tags_section,
     threads_section,
     title_section,
@@ -359,3 +360,51 @@ def test_event_sections_order() -> None:
     assert names[0] == "title_section"
     assert names[-1] == "user_section"
     assert "exceptions_section" in names
+
+
+def test_bare_stacktrace_entry_renders() -> None:
+    # events with no exception can still carry a top-level stacktrace entry (matches Seer)
+    event = EventObject(
+        title="t",
+        stacktrace=Stacktrace(frames=[Frame(function="do_thing", filename="app.py", line_no=12)]),
+    )
+    out = stacktrace_section(event, MD, LIMITS_DEFAULT)
+    assert out.startswith("## Stacktrace")
+    assert "do_thing in app.py [Line 12]" in out
+
+
+def test_bare_stacktrace_skipped_when_empty() -> None:
+    assert stacktrace_section(EventObject(title="t"), MD, LIMITS_DEFAULT) == ""
+    event = EventObject(title="t", stacktrace=Stacktrace(frames=[]))
+    assert stacktrace_section(event, MD, LIMITS_DEFAULT) == ""
+
+
+def test_exception_stacktrace_not_duplicated() -> None:
+    # an exception-owned stacktrace renders inside the Exception block, not as its own section
+    event = _event_with_exception(
+        type="ValueError",
+        value="boom",
+        stacktrace=Stacktrace(frames=[Frame(function="f", filename="a.py", line_no=1)]),
+    )
+    out = format_issue(
+        {
+            "title": "ValueError: boom",
+            "entries": [
+                {
+                    "type": "exception",
+                    "data": {
+                        "values": [
+                            {
+                                "type": "ValueError",
+                                "value": "boom",
+                                "stacktrace": {"frames": [{"function": "f", "filename": "a.py"}]},
+                            }
+                        ]
+                    },
+                }
+            ],
+        }
+    )
+    assert "## Exception" in out
+    assert "## Stacktrace" not in out
+    assert stacktrace_section(event, MD, LIMITS_DEFAULT) == ""
