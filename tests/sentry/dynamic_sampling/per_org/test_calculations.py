@@ -10,11 +10,10 @@ import pytest
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
 from sentry.dynamic_sampling.per_org.calculations import (
+    TransactionVolumeDebug,
     apply_project_sample_rate_overrides,
     calculate_recalibration_factor,
-    compare_rebalanced_projects_with_cache,
-    compare_rebalanced_transactions_with_cache,
-    compare_recalibration_factor_with_cache,
+    collect_transaction_volume_debug,
     get_cached_rebalanced_project_sample_rates,
     get_cached_rebalanced_transaction_sample_rates,
     get_cached_recalibration_factor,
@@ -43,9 +42,9 @@ from tests.sentry.dynamic_sampling.per_org.test_helpers import (
 )
 
 CALCULATIONS = "sentry.dynamic_sampling.per_org.calculations"
-LOGGER_INFO = f"{CALCULATIONS}.logger.info"
 PROJECTS_MODEL_RUN = f"{CALCULATIONS}.ProjectsRebalancingModel.run"
 TRANSACTIONS_MODEL_RUN = f"{CALCULATIONS}.TransactionsRebalancingModel.run"
+GENERIC_METRICS_TRANSACTION_VOLUMES = f"{CALCULATIONS}.get_generic_metrics_transaction_volumes"
 
 
 class ProjectBalancingCalculationsTest(TestCase):
@@ -175,56 +174,6 @@ class ProjectBalancingCalculationsTest(TestCase):
         result = apply_project_sample_rate_overrides(rebalanced_projects)
         assert result == rebalanced_projects
 
-    def test_compare_rebalanced_projects_with_cache_logs_per_project(self) -> None:
-        org = self.create_organization()
-        project_with_volume = self.create_project(organization=org)
-        project_without_volume = self.create_project(organization=org)
-        config = mock_configuration(org)
-        rebalanced_projects = [
-            RebalancedItem(id=project_with_volume.id, count=100, new_sample_rate=0.25),
-            RebalancedItem(id=project_without_volume.id, count=0, new_sample_rate=1.0),
-        ]
-        cached_sample_rates: dict[int, float | None] = {
-            project_with_volume.id: 0.2,
-            project_without_volume.id: 0.96,
-        }
-        project_volumes = [
-            ProjectVolume(project_id=project_with_volume.id, total=200, keep=100, drop=100),
-            ProjectVolume(project_id=project_without_volume.id, total=0, keep=0, drop=0),
-        ]
-
-        with patch(LOGGER_INFO) as logger_info:
-            compare_rebalanced_projects_with_cache(
-                config, rebalanced_projects, cached_sample_rates, project_volumes
-            )
-
-        assert [call.args for call in logger_info.call_args_list] == [
-            ("dynamic_sampling.per_org.project_balancing_comparison",),
-            ("dynamic_sampling.per_org.project_balancing_comparison",),
-        ]
-        assert [call.kwargs["extra"] for call in logger_info.call_args_list] == [
-            {
-                "org_id": org.id,
-                "ds_proj_id": project_with_volume.id,
-                "generic_metrics_sample_rate": 0.2,
-                "eap_sample_rate": 0.25,
-                "relative_deviation": pytest.approx(0.2),
-                "is_equal": False,
-                "total_volume_eap": 100,
-                "total_volume_eap_without_extrapolation": 100,
-            },
-            {
-                "org_id": org.id,
-                "ds_proj_id": project_without_volume.id,
-                "generic_metrics_sample_rate": 0.96,
-                "eap_sample_rate": 1.0,
-                "relative_deviation": pytest.approx(0.04),
-                "is_equal": True,
-                "total_volume_eap": 0,
-                "total_volume_eap_without_extrapolation": 0,
-            },
-        ]
-
     def test_project_balancing_relative_tolerance(self) -> None:
         assert is_within_relative_tolerance(0.95, 1.0)
         assert is_within_relative_tolerance(1.05, 1.0)
@@ -257,41 +206,6 @@ class ProjectBalancingCalculationsTest(TestCase):
         self.redis.set(cache_key, 2.5)
 
         assert get_cached_recalibration_factor(org.id) == 2.5
-
-    def test_compare_recalibration_factor_with_cache_logs_the_deviation(self) -> None:
-        org = self.create_organization()
-        config = mock_configuration(org, sample_rate=0.5)
-
-        with patch(LOGGER_INFO) as logger_info:
-            compare_recalibration_factor_with_cache(config, 2.8, 2.0)
-
-        logger_info.assert_called_once_with(
-            "dynamic_sampling.per_org.recalibration_factor_comparison",
-            extra={
-                "org_id": org.id,
-                "sample_rate": 0.5,
-                "generic_metrics_factor": 2.0,
-                "eap_factor": 2.8,
-                "relative_deviation": pytest.approx(0.2857142857142857),
-                "is_equal": False,
-            },
-        )
-
-    def test_compare_recalibration_factor_with_cache_reports_a_skipped_factor(self) -> None:
-        org = self.create_organization()
-        config = mock_configuration(org, sample_rate=0.5)
-
-        with patch(LOGGER_INFO) as logger_info:
-            compare_recalibration_factor_with_cache(config, None, 2.0)
-
-        assert logger_info.call_args.kwargs["extra"] == {
-            "org_id": org.id,
-            "sample_rate": 0.5,
-            "generic_metrics_factor": 2.0,
-            "eap_factor": None,
-            "relative_deviation": None,
-            "is_equal": False,
-        }
 
 
 def _project_transactions(
@@ -470,84 +384,30 @@ class TransactionBalancingCalculationsTest(TestCase):
             project_miss.id: None,
         }
 
-    def test_compare_rebalanced_transactions_with_cache_logs_per_transaction(self) -> None:
+    def test_collect_transaction_volume_debug_collects_both_pipelines(self) -> None:
         org = self.create_organization()
-        project = self.create_project(organization=org)
-        config = mock_configuration(org)
-        rebalanced_transactions = {
-            project.id: (
-                [
-                    RebalancedItem(id="checkout", count=100, new_sample_rate=0.25),
-                    RebalancedItem(id="cart", count=50, new_sample_rate=0.96),
-                ],
-                0.5,
-            ),
-        }
-        cached_sample_rates: dict[int, tuple[dict[str, float], float] | None] = {
-            project.id: ({"checkout": 0.2, "cart": 1.0}, 0.45),
-        }
-
-        with patch(LOGGER_INFO) as logger_info:
-            compare_rebalanced_transactions_with_cache(
-                config, rebalanced_transactions, cached_sample_rates
-            )
-
-        messages = [call.args[0] for call in logger_info.call_args_list]
-        assert messages == [
-            "dynamic_sampling.per_org.transaction_balancing_implicit_comparison",
-            "dynamic_sampling.per_org.transaction_balancing_comparison",
-            "dynamic_sampling.per_org.transaction_balancing_comparison",
-        ]
-        extras = [call.kwargs["extra"] for call in logger_info.call_args_list]
-        assert extras == [
-            {
-                "org_id": org.id,
-                "ds_proj_id": project.id,
-                "generic_metrics_implicit_rate": 0.45,
-                "eap_implicit_rate": 0.5,
-                "relative_deviation": pytest.approx(0.1),
-                "is_equal": False,
-            },
-            {
-                "org_id": org.id,
-                "ds_proj_id": project.id,
-                "transaction": "checkout",
-                "generic_metrics_sample_rate": 0.2,
-                "eap_sample_rate": 0.25,
-                "relative_deviation": pytest.approx(0.2),
-                "is_equal": False,
-            },
-            {
-                "org_id": org.id,
-                "ds_proj_id": project.id,
-                "transaction": "cart",
-                "generic_metrics_sample_rate": 1.0,
-                "eap_sample_rate": 0.96,
-                "relative_deviation": pytest.approx(0.04166666666666674),
-                "is_equal": True,
-            },
+        debugged = self.create_project(organization=org)
+        other = self.create_project(organization=org)
+        config = mock_configuration(org, projects=[debugged, other])
+        transaction_volumes = [
+            _project_transactions(org.id, debugged.id, [("/checkout", 600.0)]),
+            _project_transactions(org.id, other.id, [("/api", 200.0)]),
         ]
 
-    def test_compare_rebalanced_transactions_with_cache_handles_cache_miss(self) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-        config = mock_configuration(org)
-        rebalanced_transactions = {
-            project.id: ([RebalancedItem(id="checkout", count=10, new_sample_rate=0.5)], 0.5),
-        }
+        with patch_configuration(
+            {GENERIC_METRICS_TRANSACTION_VOLUMES: {debugged.id: [("/legacy-only", 20.0)]}}
+        ):
+            result = collect_transaction_volume_debug(config, transaction_volumes, {debugged.id})
 
-        with patch(LOGGER_INFO) as logger_info:
-            compare_rebalanced_transactions_with_cache(
-                config, rebalanced_transactions, {project.id: None}
+        # Only the debugged project is collected, with the volumes of both pipelines side by
+        # side even where a transaction is missing from one of them.
+        assert result == [
+            TransactionVolumeDebug(
+                project_id=debugged.id,
+                eap_volumes={"/checkout": 600.0},
+                generic_metrics_volumes={"/legacy-only": 20.0},
             )
-
-        extras = [call.kwargs["extra"] for call in logger_info.call_args_list]
-        assert extras[0]["generic_metrics_implicit_rate"] is None
-        assert extras[0]["relative_deviation"] is None
-        assert extras[0]["is_equal"] is False
-        assert extras[1]["generic_metrics_sample_rate"] is None
-        assert extras[1]["relative_deviation"] is None
-        assert extras[1]["is_equal"] is False
+        ]
 
 
 class TransactionBalancingModelOutputTest(TestCase):
