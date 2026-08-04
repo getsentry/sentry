@@ -10,20 +10,31 @@ from typing import Any
 
 from pydantic import BaseModel, Field, validator
 
+# marks an entry that didn't survive cleaning, so it stays distinct from a real ``None`` value
+_DROP = object()
 
-def _drop_filtered(value: Any) -> Any:
-    """Strip scrubbed leaves from a dict or list. ``None`` means nothing survived, so only call
-    this on containers: a scalar ``None`` is a legitimate value, not an empty result.
+
+def _clean_entry(value: Any) -> Any:
+    """Clean one entry of a container, returning ``_DROP`` when it shouldn't survive."""
+    if isinstance(value, dict | list):
+        cleaned = _drop_filtered(value)
+        return _DROP if cleaned is None else cleaned
+    return _DROP if "[Filtered]" in str(value) else value
+
+
+def _drop_filtered(value: dict[str, Any] | list[Any]) -> Any:
+    """Strip scrubbed leaves from a dict or list, returning ``None`` once nothing survives, so
+    only call this on containers.
+
+    Mirrors Seer's ``StacktraceFrame._filter_nested_value``: a nested container vanishes when it
+    empties out, but a nested scalar goes only when scrubbed -- so a legitimate ``None`` inside a
+    container survives instead of being mistaken for an empty one.
     """
     if isinstance(value, dict):
-        kept_items = {
-            k: v for k, v in ((k, _drop_filtered(v)) for k, v in value.items()) if v is not None
-        }
+        kept_items = {k: c for k, v in value.items() if (c := _clean_entry(v)) is not _DROP}
         return kept_items or None
-    if isinstance(value, list):
-        kept_entries = [v for v in (_drop_filtered(item) for item in value) if v is not None]
-        return kept_entries or None
-    return None if "[Filtered]" in str(value) else value
+    kept_entries = [c for v in value if (c := _clean_entry(v)) is not _DROP]
+    return kept_entries or None
 
 
 class Frame(BaseModel):
