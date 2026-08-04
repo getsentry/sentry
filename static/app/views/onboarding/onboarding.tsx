@@ -140,7 +140,7 @@ function ScmPlatformFeaturesTreatmentAdapter(props: StepProps) {
 }
 
 function ScmMessagingAdapter({genBackButton}: StepProps) {
-  const {selectedPlatform} = useOnboardingContext();
+  const {messagingSetup, selectedPlatform, setMessagingSetup} = useOnboardingContext();
 
   // Type-narrowing only. `isInvalidMessagingStep` below redirects away from
   // this step before it renders without a platform, so this is unreachable —
@@ -150,7 +150,12 @@ function ScmMessagingAdapter({genBackButton}: StepProps) {
   }
 
   return (
-    <ScmMessaging selectedPlatform={selectedPlatform} genBackButton={genBackButton} />
+    <ScmMessaging
+      messagingSetup={messagingSetup}
+      onMessagingSetupChange={setMessagingSetup}
+      selectedPlatform={selectedPlatform}
+      genBackButton={genBackButton}
+    />
   );
 }
 
