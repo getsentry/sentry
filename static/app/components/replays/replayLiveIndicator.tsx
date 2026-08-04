@@ -105,7 +105,8 @@ export function useLiveBadge({startedAt, finishedAt}: UseLiveBadgeParams) {
     //
     // `Date.now()` is impure and can't be read while rendering
     // (pure-render-functions), so we use a lazy initializer here.
-    () => Date.now() < getReplayExpiresAtMs(startedAt) && getLiveDurationMs(finishedAt) > 0
+    () =>
+      Date.now() < getReplayExpiresAtMs(startedAt) && getLiveDurationMs(finishedAt) > 0
   );
 
   const {start: startTimeout} = useTimeout({
