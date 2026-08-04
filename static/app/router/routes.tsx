@@ -2276,6 +2276,10 @@ function buildRoutes(): RouteObject[] {
       children: metricsChildren,
     },
     {
+      path: 'attributes/descriptions/',
+      component: make(() => import('sentry/views/explore/attributeDescriptions')),
+    },
+    {
       path: `${CONVERSATIONS_LANDING_SUB_PATH}/`,
       component: make(() => import('sentry/views/explore/conversations/layout')),
       children: [

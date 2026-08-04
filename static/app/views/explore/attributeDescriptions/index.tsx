@@ -24,10 +24,7 @@ import {IconArrow, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {getFormattedDate} from 'sentry/utils/dates';
-import {defined} from 'sentry/utils/defined';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
@@ -35,36 +32,41 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   BRIEF_MAX_LENGTH,
-  EditMetricDescriptionModal,
-} from 'sentry/views/explore/metrics/metricDescriptions/editMetricDescriptionModal';
-import type {TraceMetricListItem} from 'sentry/views/explore/metrics/metricDescriptions/types';
-import {useMetricDescriptionsQueryOptions} from 'sentry/views/explore/metrics/metricDescriptions/useMetricDescriptions';
+  EditAttributeDescriptionModal,
+} from 'sentry/views/explore/attributeDescriptions/editAttributeDescriptionModal';
 import {
-  isTraceMetricTypeValue,
-  type TraceMetricTypeValue,
-} from 'sentry/views/explore/metrics/types';
+  type AttributeTypeValue,
+  isAttributeTypeValue,
+  isEditableAttribute,
+  type TraceItemAttributeListItem,
+  type TraceItemDatasetValue,
+} from 'sentry/views/explore/attributeDescriptions/types';
+import {useAttributeDescriptionsQueryOptions} from 'sentry/views/explore/attributeDescriptions/useAttributeDescriptions';
 import {makeMetricsPathname} from 'sentry/views/explore/metrics/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
-const METRIC_TYPE_OPTIONS: Array<{label: string; value: TraceMetricTypeValue | ''}> = [
+const DATASET_OPTIONS: Array<{label: string; value: TraceItemDatasetValue}> = [
+  {label: t('Spans'), value: 'spans'},
+  {label: t('Logs'), value: 'logs'},
+  {label: t('Trace Metrics'), value: 'tracemetrics'},
+  {label: t('Preprod'), value: 'preprod'},
+  {label: t('Processing Errors'), value: 'processing_errors'},
+];
+
+const DEFAULT_DATASET: TraceItemDatasetValue = 'spans';
+
+const ATTRIBUTE_TYPE_OPTIONS: Array<{label: string; value: AttributeTypeValue | ''}> = [
   {label: t('All types'), value: ''},
-  {label: t('Counter'), value: 'counter'},
-  {label: t('Gauge'), value: 'gauge'},
-  {label: t('Distribution'), value: 'distribution'},
+  {label: t('String'), value: 'string'},
+  {label: t('Number'), value: 'number'},
+  {label: t('Boolean'), value: 'boolean'},
 ];
 
-const HAS_CONTEXT_OPTIONS: Array<{label: string; value: '' | '1'}> = [
-  {label: t('All metrics'), value: ''},
-  {label: t('Has description'), value: '1'},
-];
+const PAGE_TITLE = t('Attribute Descriptions');
 
-const PAGE_TITLE = t('Metric Descriptions');
-
-export default function MetricDescriptionsContent() {
+export default function AttributeDescriptionsContent() {
   const organization = useOrganization();
-  const maxPickableDays = useMaxPickableDays({
-    dataCategories: [DataCategory.TRACE_METRICS],
-  });
+  const maxPickableDays = useMaxPickableDays({dataCategories: [DataCategory.SPANS]});
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   return (
@@ -74,43 +76,33 @@ export default function MetricDescriptionsContent() {
       renderDisabled={NoAccess}
     >
       <SentryDocumentTitle title={PAGE_TITLE} orgSlug={organization.slug}>
-        <PageFiltersContainer
-          maxPickableDays={datePageFilterProps.maxPickableDays}
-          defaultSelection={
-            datePageFilterProps.defaultPeriod
-              ? {
-                  datetime: {
-                    period: datePageFilterProps.defaultPeriod,
-                    start: null,
-                    end: null,
-                    utc: null,
-                  },
-                }
-              : undefined
-          }
-        >
+        <PageFiltersContainer>
           <TopBar.Slot name="title">{PAGE_TITLE}</TopBar.Slot>
-          <MetricDescriptionsBody datePageFilterProps={datePageFilterProps} />
+          <AttributeDescriptionsBody datePageFilterProps={datePageFilterProps} />
         </PageFiltersContainer>
       </SentryDocumentTitle>
     </Feature>
   );
 }
 
-interface MetricDescriptionsBodyProps {
+interface AttributeDescriptionsBodyProps {
   datePageFilterProps: ReturnType<typeof useDatePageFilterProps>;
 }
 
-function MetricDescriptionsBody({datePageFilterProps}: MetricDescriptionsBodyProps) {
+function AttributeDescriptionsBody({
+  datePageFilterProps,
+}: AttributeDescriptionsBodyProps) {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
 
+  const datasetParam = decodeScalar(location.query.dataset, '');
+  const dataset = DATASET_OPTIONS.some(option => option.value === datasetParam)
+    ? (datasetParam as TraceItemDatasetValue)
+    : DEFAULT_DATASET;
   const search = decodeScalar(location.query.query, '');
-  const typeParam = decodeScalar(location.query.type, '');
-  const type = isTraceMetricTypeValue(typeParam) ? typeParam : undefined;
-  const hasContextParam = decodeScalar(location.query.contextOnly, '');
-  const hasContext = hasContextParam === '1';
+  const typeParam = decodeScalar(location.query.attributeType, '');
+  const attributeType = isAttributeTypeValue(typeParam) ? typeParam : undefined;
   const cursor = decodeScalar(location.query.cursor);
 
   const {
@@ -119,11 +111,11 @@ function MetricDescriptionsBody({datePageFilterProps}: MetricDescriptionsBodyPro
     isError,
     refetch: refetchQuery,
   } = useQuery({
-    ...useMetricDescriptionsQueryOptions({search, type, hasContext, cursor}),
+    ...useAttributeDescriptionsQueryOptions({dataset, attributeType, search, cursor}),
     select: selectJsonWithHeaders,
   });
 
-  const metrics = data?.json ?? [];
+  const attributes = data?.json ?? [];
   const pageLinks = data?.headers?.Link ?? null;
 
   // Filter and search changes reset pagination to the first page.
@@ -138,35 +130,52 @@ function MetricDescriptionsBody({datePageFilterProps}: MetricDescriptionsBodyPro
     navigate({pathname: path, query: {...query, cursor: nextCursor}});
   };
 
-  const openEditModal = (metric: TraceMetricListItem) => {
+  const openEditModal = (attribute: TraceItemAttributeListItem) => {
     openModal(deps => (
-      <EditMetricDescriptionModal {...deps} metric={metric} onSuccess={refetchQuery} />
+      <EditAttributeDescriptionModal
+        {...deps}
+        attribute={attribute}
+        dataset={dataset}
+        onSuccess={refetchQuery}
+      />
     ));
   };
 
-  const openViewModal = (metric: TraceMetricListItem) => {
+  const openViewModal = (attribute: TraceItemAttributeListItem) => {
     openModal(({Header, Body}) => (
       <Fragment>
         <Header closeButton>
-          <Heading as="h4">{metric.name}</Heading>
+          <Heading as="h4">{attribute.key}</Heading>
         </Header>
         <Body>
           <Stack gap="xl">
-            {metric.context?.brief ? (
+            {attribute.context?.brief ? (
               <Stack gap="xs">
                 <Text size="sm" bold variant="muted">
                   {t('Brief')}
                 </Text>
-                <Text>{metric.context.brief}</Text>
+                <Text>{attribute.context.brief}</Text>
               </Stack>
             ) : null}
-            {metric.context?.details?.length ? (
+            {attribute.context?.details?.length ? (
               <Stack gap="xs">
                 <Text size="sm" bold variant="muted">
                   {t('Additional context')}
                 </Text>
-                {metric.context.details.map((detail, i) => (
+                {attribute.context.details.map((detail, i) => (
                   <Text key={i}>{detail}</Text>
+                ))}
+              </Stack>
+            ) : null}
+            {attribute.context?.examples?.length ? (
+              <Stack gap="xs">
+                <Text size="sm" bold variant="muted">
+                  {t('Examples')}
+                </Text>
+                {attribute.context.examples.map((example, i) => (
+                  <Text key={i} monospace>
+                    {example}
+                  </Text>
                 ))}
               </Stack>
             ) : null}
@@ -188,11 +197,12 @@ function MetricDescriptionsBody({datePageFilterProps}: MetricDescriptionsBodyPro
         </LinkButton>
         <LinkButton
           size="sm"
-          to={normalizeUrl(
-            `/organizations/${organization.slug}/explore/attributes/descriptions/`
-          )}
+          to={makeMetricsPathname({
+            organizationSlug: organization.slug,
+            path: '/descriptions/',
+          })}
         >
-          {t('Attribute descriptions')}
+          {t('Metric descriptions')}
         </LinkButton>
       </Flex>
 
@@ -201,66 +211,73 @@ function MetricDescriptionsBody({datePageFilterProps}: MetricDescriptionsBodyPro
         <EnvironmentPageFilter />
         <DatePageFilter {...datePageFilterProps} />
         <CompactSelect
-          value={type ?? ''}
-          options={METRIC_TYPE_OPTIONS}
-          onChange={option => updateQuery({type: option.value || undefined})}
+          value={dataset}
+          options={DATASET_OPTIONS}
+          onChange={option => updateQuery({dataset: option.value, cursor: undefined})}
           trigger={triggerProps => (
-            <OverlayTrigger.Button {...triggerProps} prefix={t('Type')} />
+            <OverlayTrigger.Button {...triggerProps} prefix={t('Dataset')} />
           )}
         />
         <CompactSelect
-          value={hasContextParam}
-          options={HAS_CONTEXT_OPTIONS}
-          onChange={option => updateQuery({contextOnly: option.value || undefined})}
+          value={attributeType ?? ''}
+          options={ATTRIBUTE_TYPE_OPTIONS}
+          onChange={option => updateQuery({attributeType: option.value || undefined})}
           trigger={triggerProps => (
-            <OverlayTrigger.Button {...triggerProps} prefix={t('Description')} />
+            <OverlayTrigger.Button {...triggerProps} prefix={t('Type')} />
           )}
         />
         <SearchWrapper>
           <SearchBar
             defaultQuery={search}
-            placeholder={t('Search by metric name')}
+            placeholder={t('Search by attribute name')}
             onSearch={value => updateQuery({query: value || undefined})}
           />
         </SearchWrapper>
       </FilterBar>
 
-      <StyledSimpleTable data-test-id="metric-descriptions-table">
+      <StyledSimpleTable data-test-id="attribute-descriptions-table">
         <SimpleTable.Header>
-          <SimpleTable.HeaderCell>{t('Metric')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Attribute')}</SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell>{t('Type')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Source')}</SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell>{t('Brief')}</SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell>{t('Additional context')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell>{t('Last seen')}</SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell />
         </SimpleTable.Header>
 
         {isError ? (
-          <SimpleTable.Empty>{t('Unable to load metrics.')}</SimpleTable.Empty>
+          <SimpleTable.Empty>{t('Unable to load attributes.')}</SimpleTable.Empty>
         ) : isPending ? (
           <SimpleTable.Empty>{t('Loading…')}</SimpleTable.Empty>
-        ) : metrics.length === 0 ? (
-          <SimpleTable.Empty>{t('No metrics found.')}</SimpleTable.Empty>
+        ) : attributes.length === 0 ? (
+          <SimpleTable.Empty>{t('No attributes found.')}</SimpleTable.Empty>
         ) : (
-          metrics.map(metric => {
-            const detailsText = metric.context?.details?.join(' ') ?? '';
+          attributes.map(attribute => {
+            const detailsText = attribute.context?.details?.join(' ') ?? '';
             const isDetailsTruncated = detailsText.length > BRIEF_MAX_LENGTH;
+            const editable = isEditableAttribute(attribute);
             return (
-              <SimpleTable.Row key={`${metric.name}:${metric.type}`}>
+              <SimpleTable.Row key={`${attribute.key}:${attribute.attributeType}`}>
                 <SimpleTable.RowCell>
                   <Text bold monospace>
-                    {metric.name}
+                    {attribute.key}
                   </Text>
                 </SimpleTable.RowCell>
                 <SimpleTable.RowCell>
-                  <Text>
-                    {metric.type}
-                    {metric.unit ? ` (${metric.unit})` : ''}
+                  <Text>{attribute.attributeType}</Text>
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell>
+                  <Text variant="muted">
+                    {attribute.context?.isConvention
+                      ? t('convention')
+                      : attribute.context?.isCustom
+                        ? t('custom')
+                        : attribute.attributeSource.source_type}
                   </Text>
                 </SimpleTable.RowCell>
                 <SimpleTable.RowCell>
-                  {metric.context?.brief ? (
-                    <Text>{metric.context.brief}</Text>
+                  {attribute.context?.brief ? (
+                    <Text>{attribute.context.brief}</Text>
                   ) : (
                     <Text variant="muted">{t('No description')}</Text>
                   )}
@@ -277,7 +294,7 @@ function MetricDescriptionsBody({datePageFilterProps}: MetricDescriptionsBodyPro
                         <Button
                           size="xs"
                           variant="link"
-                          onClick={() => openViewModal(metric)}
+                          onClick={() => openViewModal(attribute)}
                         >
                           {t('View full')}
                         </Button>
@@ -287,24 +304,25 @@ function MetricDescriptionsBody({datePageFilterProps}: MetricDescriptionsBodyPro
                     <Text variant="muted">{'—'}</Text>
                   )}
                 </SimpleTable.RowCell>
-                <SimpleTable.RowCell>
-                  <Text variant="muted">
-                    {defined(metric.lastSeen)
-                      ? // `lastSeen` is max(timestamp_precise) in nanoseconds;
-                        // convert to milliseconds for date formatting.
-                        getFormattedDate(metric.lastSeen / 1_000_000, 'lll')
-                      : '—'}
-                  </Text>
-                </SimpleTable.RowCell>
                 <SimpleTable.RowCell justify="end">
-                  <Button
-                    size="xs"
-                    icon={<IconEdit />}
-                    aria-label={t('Edit description for %s', metric.name)}
-                    onClick={() => openEditModal(metric)}
-                  >
-                    {t('Edit')}
-                  </Button>
+                  {editable ? (
+                    <Button
+                      size="xs"
+                      icon={<IconEdit />}
+                      aria-label={t('Edit description for %s', attribute.key)}
+                      onClick={() => openEditModal(attribute)}
+                    >
+                      {t('Edit')}
+                    </Button>
+                  ) : (
+                    <Button
+                      size="xs"
+                      variant="link"
+                      onClick={() => openViewModal(attribute)}
+                    >
+                      {t('View')}
+                    </Button>
+                  )}
                 </SimpleTable.RowCell>
               </SimpleTable.Row>
             );
@@ -338,6 +356,6 @@ const SearchWrapper = styled('div')`
 
 const StyledSimpleTable = styled(SimpleTable)`
   grid-template-columns:
-    minmax(160px, 1.2fr) max-content minmax(160px, 1.5fr)
-    minmax(160px, 1.5fr) max-content max-content;
+    minmax(160px, 1.2fr) max-content max-content minmax(160px, 1.5fr)
+    minmax(160px, 1.5fr) max-content;
 `;
