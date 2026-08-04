@@ -32,7 +32,7 @@ from sentry.testutils.helpers.options import override_options
 from tests.sentry.dynamic_sampling.per_org.test_helpers import (
     make_project_volume,
     mock_configuration,
-    patch_config,
+    patch_configuration,
 )
 
 CALCULATIONS = "sentry.dynamic_sampling.per_org.calculations"
@@ -58,7 +58,7 @@ class ProjectBalancingCalculationsTest(TestCase):
             RebalancedItem(id=project_with_volume.id, count=100, new_sample_rate=0.25),
         ]
 
-        with patch_config({PROJECTS_MODEL_RUN: rebalanced_projects}) as mocks:
+        with patch_configuration({PROJECTS_MODEL_RUN: rebalanced_projects}) as mocks:
             result = run_project_balancing(
                 config,
                 [
@@ -90,7 +90,7 @@ class ProjectBalancingCalculationsTest(TestCase):
         idle = self.create_project(organization=org)
         config = mock_configuration(org, projects=[busy, idle], sample_rate=1.0)
 
-        with patch_config({PROJECTS_MODEL_RUN: DEFAULT}) as mocks:
+        with patch_configuration({PROJECTS_MODEL_RUN: DEFAULT}) as mocks:
             result = run_project_balancing(
                 config,
                 [

@@ -17,7 +17,7 @@ SLIDING_WINDOW_RATE = f"{CONFIGURATION}.compute_sliding_window_sample_rate"
 
 
 @contextmanager
-def patch_config(targets: dict[str, Any]) -> Iterator[dict[str, MagicMock]]:
+def patch_configuration(targets: dict[str, Any]) -> Iterator[dict[str, MagicMock]]:
     """Patch the given targets, each with the given return value.
 
     Pass ``DEFAULT`` as the return value to patch a target without one. The yielded

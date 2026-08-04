@@ -30,7 +30,7 @@ from tests.sentry.dynamic_sampling.per_org.test_helpers import (
     BLENDED_SAMPLE_RATE,
     OUTCOMES_VOLUME,
     SLIDING_WINDOW_RATE,
-    patch_config,
+    patch_configuration,
 )
 
 SpanOrgIds = Callable[[Organization], list[int]]
@@ -78,7 +78,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
     def test_subscription_backed_org_uses_blended_sample_rate(self) -> None:
         org = self.create_organization()
 
-        with patch_config({BLENDED_SAMPLE_RATE: 0.5}) as mocks:
+        with patch_configuration({BLENDED_SAMPLE_RATE: 0.5}) as mocks:
             configuration = get_configuration(org.id)
 
         assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
@@ -94,7 +94,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
         self.create_project(organization=org)
         sliding_window_volume = OrganizationDataVolume(org_id=org.id, total=1000, indexed=250)
 
-        with patch_config(
+        with patch_configuration(
             {
                 BLENDED_SAMPLE_RATE: 0.5,
                 OUTCOMES_VOLUME: sliding_window_volume,
@@ -123,7 +123,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
         self.create_project(organization=org)
         sliding_window_volume = OrganizationDataVolume(org_id=org.id, total=1000, indexed=250)
 
-        with patch_config(
+        with patch_configuration(
             {
                 BLENDED_SAMPLE_RATE: 1.0,
                 OUTCOMES_VOLUME: sliding_window_volume,
@@ -145,7 +145,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
         org = self.create_organization()
         self.create_project(organization=org)
 
-        with patch_config(
+        with patch_configuration(
             {
                 BLENDED_SAMPLE_RATE: 0.5,
                 OUTCOMES_VOLUME: None,
@@ -162,7 +162,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
         org = self.create_organization()
         self.create_project(organization=org)
 
-        with patch_config({BLENDED_SAMPLE_RATE: None, OUTCOMES_VOLUME: DEFAULT}) as mocks:
+        with patch_configuration({BLENDED_SAMPLE_RATE: None, OUTCOMES_VOLUME: DEFAULT}) as mocks:
             configuration = get_configuration(org.id)
 
         assert isinstance(configuration, NoDynamicSamplingConfiguration)
@@ -188,7 +188,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
         org = self.create_organization()
         org.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
 
-        with patch_config({BLENDED_SAMPLE_RATE: 0.5}):
+        with patch_configuration({BLENDED_SAMPLE_RATE: 0.5}):
             configuration = get_configuration(org.id)
 
         assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
@@ -204,7 +204,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                 with (
                     self.feature("organizations:dynamic-sampling-custom"),
                     self.measure_options(case, org),
-                    patch_config({BLENDED_SAMPLE_RATE: DEFAULT}) as mocks,
+                    patch_configuration({BLENDED_SAMPLE_RATE: DEFAULT}) as mocks,
                 ):
                     configuration = get_configuration(org.id)
 
@@ -228,7 +228,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
                 with (
                     self.feature("organizations:dynamic-sampling-custom"),
                     self.measure_options(case, org),
-                    patch_config({BLENDED_SAMPLE_RATE: DEFAULT}) as mocks,
+                    patch_configuration({BLENDED_SAMPLE_RATE: DEFAULT}) as mocks,
                 ):
                     configuration = get_configuration(org.id)
 
@@ -292,7 +292,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
 
                 with (
                     self.measure_options(case, org),
-                    patch_config({BLENDED_SAMPLE_RATE: 1.0}),
+                    patch_configuration({BLENDED_SAMPLE_RATE: 1.0}),
                 ):
                     configuration = get_configuration(org.id)
 
@@ -366,7 +366,7 @@ class GetProjectSampleRatesTest(TestCase):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
-        with patch_config({BLENDED_SAMPLE_RATE: 0.5}):
+        with patch_configuration({BLENDED_SAMPLE_RATE: 0.5}):
             configuration = get_configuration(org.id)
 
         assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
@@ -380,7 +380,7 @@ class GetProjectSampleRatesTest(TestCase):
         self.create_project(organization=org)
         self.create_project(organization=org)
 
-        with patch_config({BLENDED_SAMPLE_RATE: 0.5}):
+        with patch_configuration({BLENDED_SAMPLE_RATE: 0.5}):
             configuration = get_configuration(org.id)
 
         assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)

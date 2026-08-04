@@ -21,7 +21,7 @@ from sentry.testutils.helpers.options import override_options
 from tests.sentry.dynamic_sampling.per_org.test_helpers import (
     BLENDED_SAMPLE_RATE,
     make_project_volume,
-    patch_config,
+    patch_configuration,
 )
 
 SCHEDULER = "sentry.dynamic_sampling.per_org.scheduler"
@@ -107,7 +107,7 @@ class RunCalculationsPerOrgTest(TestCase):
         org = self.create_organization()
         self.create_project(organization=org)
 
-        with patch_config(
+        with patch_configuration(
             {
                 BLENDED_SAMPLE_RATE: 1.0,
                 ORG_VOLUME: None,
@@ -130,7 +130,7 @@ class RunCalculationsPerOrgTest(TestCase):
         rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=1.0)]
         cached_sample_rates: dict[int, float | None] = {}
 
-        with patch_config(
+        with patch_configuration(
             {
                 BLENDED_SAMPLE_RATE: 1.0,
                 ORG_VOLUME: org_volume,
@@ -162,7 +162,7 @@ class RunCalculationsPerOrgTest(TestCase):
         self.create_project(organization=org)
         org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
 
-        with patch_config(
+        with patch_configuration(
             {
                 BLENDED_SAMPLE_RATE: 1.0,
                 ORG_VOLUME: org_volume,
@@ -189,7 +189,7 @@ class RunCalculationsPerOrgTest(TestCase):
         rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=0.5)]
         cached_sample_rates: dict[int, float | None] = {}
 
-        with patch_config(
+        with patch_configuration(
             {
                 BLENDED_SAMPLE_RATE: 1.0,
                 ORG_VOLUME: org_volume,
@@ -231,7 +231,7 @@ class RunCalculationsPerOrgTest(TestCase):
 
         with (
             self.feature("organizations:dynamic-sampling-custom"),
-            patch_config(
+            patch_configuration(
                 {
                     BLENDED_SAMPLE_RATE: DEFAULT,
                     ORG_VOLUME: org_volume,
@@ -273,7 +273,7 @@ class RunCalculationsPerOrgTest(TestCase):
 
         with (
             self.feature("organizations:dynamic-sampling-custom"),
-            patch_config(
+            patch_configuration(
                 {
                     BLENDED_SAMPLE_RATE: DEFAULT,
                     ORG_VOLUME: org_volume,
@@ -310,7 +310,7 @@ class RunCalculationsPerOrgTest(TestCase):
 
         with (
             self.feature("organizations:dynamic-sampling-custom"),
-            patch_config(
+            patch_configuration(
                 {
                     BLENDED_SAMPLE_RATE: DEFAULT,
                     ORG_VOLUME: DEFAULT,
@@ -341,7 +341,7 @@ class RunCalculationsPerOrgTest(TestCase):
             )
         ]
 
-        with patch_config(
+        with patch_configuration(
             {
                 BLENDED_SAMPLE_RATE: 1.0,
                 ORG_VOLUME: org_volume,
@@ -377,7 +377,7 @@ class RunCalculationsPerOrgTest(TestCase):
     def test_run_calculations_per_org_skips_org_without_transaction_sample_rate(self) -> None:
         org = self.create_organization()
 
-        with patch_config({BLENDED_SAMPLE_RATE: None, ORG_VOLUME: DEFAULT}) as mocks:
+        with patch_configuration({BLENDED_SAMPLE_RATE: None, ORG_VOLUME: DEFAULT}) as mocks:
             result = run_calculations_per_org_task(org.id)
 
         assert result == DynamicSamplingStatus.ORG_HAS_NO_DYNAMIC_SAMPLING
@@ -388,7 +388,7 @@ class RunCalculationsPerOrgTest(TestCase):
     def test_run_calculations_per_org_skips_org_without_projects(self) -> None:
         org = self.create_organization()
 
-        with patch_config({BLENDED_SAMPLE_RATE: 1.0, ORG_VOLUME: DEFAULT}) as mocks:
+        with patch_configuration({BLENDED_SAMPLE_RATE: 1.0, ORG_VOLUME: DEFAULT}) as mocks:
             result = run_calculations_per_org_task(org.id)
 
         assert result == DynamicSamplingStatus.ORG_HAS_NO_PROJECTS
@@ -400,7 +400,7 @@ class RunCalculationsPerOrgTest(TestCase):
 
         with (
             patch(BLENDED_SAMPLE_RATE, side_effect=ObjectDoesNotExist),
-            patch_config({ORG_VOLUME: DEFAULT}) as mocks,
+            patch_configuration({ORG_VOLUME: DEFAULT}) as mocks,
         ):
             result = run_calculations_per_org_task(org.id)
 
@@ -409,7 +409,7 @@ class RunCalculationsPerOrgTest(TestCase):
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_skips_missing_org(self) -> None:
-        with patch_config({ORG_VOLUME: DEFAULT}) as mocks:
+        with patch_configuration({ORG_VOLUME: DEFAULT}) as mocks:
             result = run_calculations_per_org_task(99999999)
 
         assert result == DynamicSamplingStatus.ORG_HAS_NO_DYNAMIC_SAMPLING

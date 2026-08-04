@@ -33,7 +33,7 @@ from sentry.testutils.helpers.datetime import before_now
 from tests.sentry.dynamic_sampling.per_org.test_helpers import (
     BLENDED_SAMPLE_RATE,
     OUTCOMES_VOLUME,
-    patch_config,
+    patch_configuration,
 )
 
 QUERIES = "sentry.dynamic_sampling.per_org.queries"
@@ -98,7 +98,7 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         self,
         organization: Organization,
     ) -> BaseDynamicSamplingConfiguration:
-        with patch_config({BLENDED_SAMPLE_RATE: 1.0, OUTCOMES_VOLUME: None}):
+        with patch_configuration({BLENDED_SAMPLE_RATE: 1.0, OUTCOMES_VOLUME: None}):
             return get_configuration(organization.id)
 
     def test_get_eap_organization_volume_existing_org(self) -> None:
@@ -331,7 +331,7 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
 
 class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
     def get_config(self, organization: Organization) -> BaseDynamicSamplingConfiguration:
-        with patch_config({BLENDED_SAMPLE_RATE: 1.0}):
+        with patch_configuration({BLENDED_SAMPLE_RATE: 1.0}):
             return get_configuration(organization.id)
 
     def test_get_eap_transaction_volumes(self) -> None:
