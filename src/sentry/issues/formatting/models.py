@@ -142,6 +142,10 @@ class EventObject(BaseModel):
     transaction_name: str | None = None
     timestamp: datetime | None = None
 
+    # detector-issue explanation and fix hint, set by the Seer RPC on the serialized event
+    detection_context: str | None = None
+    troubleshooting_hint: str | None = None
+
     exceptions: list[ExceptionDetails] = []
     threads: list[ThreadDetails] = []
     breadcrumbs: list[Breadcrumb] = []

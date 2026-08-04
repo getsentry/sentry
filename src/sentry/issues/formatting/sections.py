@@ -129,6 +129,19 @@ def message_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
     return fmt.block("Message", model.message)
 
 
+def detection_context_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
+    # why a detector opened the issue; only detector-backed issue types carry it
+    if not (model.detection_context and model.detection_context.strip()):
+        return ""
+    return fmt.block("Detection Context", model.detection_context)
+
+
+def troubleshooting_hint_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
+    if not (model.troubleshooting_hint and model.troubleshooting_hint.strip()):
+        return ""
+    return fmt.block("Troubleshooting Hint", model.troubleshooting_hint)
+
+
 def breadcrumbs_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
     if not model.breadcrumbs:
         return ""
@@ -232,6 +245,8 @@ _FORMATTERS: dict[Format, type[Formatter]] = {
 EVENT_SECTIONS: list[SectionFn] = [
     title_section,
     message_section,
+    detection_context_section,
+    troubleshooting_hint_section,
     exceptions_section,
     threads_section,
     spans_section,

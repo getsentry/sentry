@@ -209,3 +209,19 @@ def test_minimal_event() -> None:
     assert m.tags == []
     assert m.request is None
     assert m.user is None
+
+
+def test_maps_detector_troubleshooting_context() -> None:
+    # the Seer RPC adds these camelCase keys to the serialized event
+    data = _serialized_event()
+    data["detectionContext"] = "Opened by a Sentry detector."
+    data["troubleshootingHint"] = "Filter the span before sending."
+    m = event_response_to_model(data)
+    assert m.detection_context == "Opened by a Sentry detector."
+    assert m.troubleshooting_hint == "Filter the span before sending."
+
+
+def test_detector_context_absent_by_default() -> None:
+    m = event_response_to_model(_serialized_event())
+    assert m.detection_context is None
+    assert m.troubleshooting_hint is None

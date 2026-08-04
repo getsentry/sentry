@@ -20,6 +20,7 @@ from sentry.issues.formatting.models import (
 from sentry.issues.formatting.sections import (
     EVENT_SECTIONS,
     breadcrumbs_section,
+    detection_context_section,
     exceptions_section,
     format_issue,
     message_section,
@@ -28,6 +29,7 @@ from sentry.issues.formatting.sections import (
     tags_section,
     threads_section,
     title_section,
+    troubleshooting_hint_section,
     user_section,
 )
 
@@ -315,6 +317,29 @@ def test_format_issue_xml() -> None:
     assert "<title>" in out
     assert "<exception>" in out
     assert "<breadcrumbs>" in out
+
+
+def test_detector_sections_render_when_present() -> None:
+    # tags match Seer's <detection_context> / <troubleshooting_hint> so migrating keeps parity
+    event = EventObject(
+        title="t",
+        detection_context="Opened by a Sentry detector, not an exception.",
+        troubleshooting_hint="Remove the manually instrumented span.",
+    )
+    assert "Opened by a Sentry detector" in detection_context_section(event, MD, LIMITS_DEFAULT)
+    assert "Remove the manually instrumented" in troubleshooting_hint_section(
+        event, MD, LIMITS_DEFAULT
+    )
+    out = format_issue({"title": "t", "detectionContext": "why", "troubleshootingHint": "how"})
+    assert "why" in out and "how" in out
+
+
+@pytest.mark.parametrize("section", [detection_context_section, troubleshooting_hint_section])
+@pytest.mark.parametrize("value", [None, "", "   "])
+def test_detector_sections_skipped_when_blank(section: Any, value: str | None) -> None:
+    # whitespace-only is treated as absent, matching Seer's .strip() guard
+    event = EventObject(title="t", detection_context=value, troubleshooting_hint=value)
+    assert section(event, MD, LIMITS_DEFAULT) == ""
 
 
 def test_invalid_format_raises() -> None:

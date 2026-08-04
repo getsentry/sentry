@@ -81,6 +81,8 @@ def event_response_to_model(data: Mapping[str, Any]) -> EventObject:
         platform=data.get("platform"),
         transaction_name=transaction_name,
         timestamp=data.get("dateCreated") or data.get("dateReceived"),
+        detection_context=data.get("detectionContext"),
+        troubleshooting_hint=data.get("troubleshootingHint"),
         exceptions=[_exception(v) for v in _values(entries.get("exception"))],
         threads=[_thread(v) for v in _values(entries.get("threads"))],
         breadcrumbs=[Breadcrumb.parse_obj(v) for v in _values(entries.get("breadcrumbs"))],
