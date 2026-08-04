@@ -70,6 +70,43 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["autofix"]["sentry_run_id"] == str(run.uuid)
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    def test_get_reports_iteration_flags_independently(self, mock_get_explorer_state):
+        """``pr_iteration_enabled`` tracks automated CI iteration, the ``manual_``
+        field tracks human-triggered iteration, and neither implies the other."""
+        group = self.create_group()
+        mock_get_explorer_state.return_value = SeerRunState(
+            run_id=888,
+            blocks=[],
+            status="completed",
+            updated_at="2023-07-18T12:00:00Z",
+        )
+        self.login_as(user=self.user)
+
+        def get_flags() -> tuple[bool, bool]:
+            response = self.client.get(self._get_url(group.id), format="json")
+            assert response.status_code == 200, response.data
+            return (
+                response.data["autofix"]["pr_iteration_enabled"],
+                response.data["autofix"]["manual_pr_iteration_enabled"],
+            )
+
+        assert get_flags() == (False, False)
+
+        with self.feature("organizations:autofix-pr-iteration"):
+            assert get_flags() == (True, False)
+
+        with self.feature("organizations:autofix-pr-iteration-manual"):
+            assert get_flags() == (False, True)
+
+        with self.feature(
+            [
+                "organizations:autofix-pr-iteration",
+                "organizations:autofix-pr-iteration-manual",
+            ]
+        ):
+            assert get_flags() == (True, True)
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     def test_get_handles_block_with_null_metadata(self, mock_get_explorer_state):
         group = self.create_group()
         mock_get_explorer_state.return_value = SeerRunState(

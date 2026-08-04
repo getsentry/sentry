@@ -576,6 +576,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                         agent_id: agent.dict() for agent_id, agent in state.coding_agents.items()
                     },
                     "pr_iteration_enabled": features.has(
+                        "organizations:autofix-pr-iteration", group.organization
+                    ),
+                    "manual_pr_iteration_enabled": features.has(
                         "organizations:autofix-pr-iteration-manual", group.organization
                     ),
                     "queued_feedback": queued_feedback,
