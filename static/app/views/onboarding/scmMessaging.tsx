@@ -7,6 +7,12 @@ import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 
 import type {StepProps} from './types';
 
+/**
+ * Shared by the step descriptor's `title` (document title / stepper) and the
+ * step's own heading so the two cannot drift apart.
+ */
+export const SCM_MESSAGING_TITLE = t('Get alerts where your team works');
+
 interface ScmMessagingProps {
   selectedPlatform: OnboardingSelectedSDK;
   genBackButton?: StepProps['genBackButton'];
@@ -18,7 +24,7 @@ export function ScmMessaging({genBackButton, selectedPlatform}: ScmMessagingProp
       <Stack gap="xl" maxWidth={`min(${SCM_STEP_CONTENT_WIDTH}, 100%)`} width="100%">
         <Stack gap="md">
           <Heading as="h2" size="4xl">
-            {t('Get alerts where your team works')}
+            {SCM_MESSAGING_TITLE}
           </Heading>
           <Text variant="muted" size="md" density="comfortable">
             {t(

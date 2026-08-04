@@ -40,7 +40,7 @@ import {NewWelcomeUI} from './components/newWelcome';
 import {OnboardingSkipButton} from './components/onboardingSkipButton';
 import {PlatformSelection} from './platformSelection';
 import {ScmConnect} from './scmConnect';
-import {ScmMessaging} from './scmMessaging';
+import {ScmMessaging, SCM_MESSAGING_TITLE} from './scmMessaging';
 import {ScmPlatformFeatures} from './scmPlatformFeatures';
 import {SetupDocs} from './setupDocs';
 import {OnboardingStepId, type StepDescriptor, type StepProps} from './types';
@@ -142,6 +142,9 @@ function ScmPlatformFeaturesTreatmentAdapter(props: StepProps) {
 function ScmMessagingAdapter({genBackButton}: StepProps) {
   const {selectedPlatform} = useOnboardingContext();
 
+  // Type-narrowing only. `isInvalidMessagingStep` below redirects away from
+  // this step before it renders without a platform, so this is unreachable —
+  // it is not an empty state and should not grow into one.
   if (!selectedPlatform) {
     return null;
   }
@@ -193,7 +196,7 @@ const scmMessagingOnboardingSteps: StepDescriptor[] = [
   },
   {
     id: OnboardingStepId.SCM_MESSAGING,
-    title: t('Get alerts where your team works'),
+    title: SCM_MESSAGING_TITLE,
     Component: ScmMessagingAdapter,
     cornerVariant: 'top-left',
   },
