@@ -10,6 +10,7 @@ import {t} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {isNotFoundError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 
@@ -56,33 +57,51 @@ function useScmMessagingSetupValidation({
   const [staleReason, setStaleReason] = useState<StaleDestinationReason>();
   const hasSelectedDestination = messagingSetup.mode === 'selected';
 
-  const integrationsQuery = useQuery(
-    apiOptions.as<OrganizationIntegration[]>()(
-      '/organizations/$organizationIdOrSlug/integrations/',
+  const integrationQuery = useQuery({
+    ...apiOptions.as<OrganizationIntegration>()(
+      '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
       {
         path: hasSelectedDestination
-          ? {organizationIdOrSlug: organization.slug}
+          ? {
+              organizationIdOrSlug: organization.slug,
+              integrationId: messagingSetup.integrationId,
+            }
           : skipToken,
-        query: {integrationType: 'messaging'},
         staleTime: 0,
       }
-    )
-  );
+    ),
+    retry: (failureCount, error) => failureCount < 3 && !isNotFoundError(error),
+  });
+
+  const isMissingIntegration = isNotFoundError(integrationQuery.error);
 
   const integration = useMemo(() => {
-    if (!hasSelectedDestination) {
+    if (!hasSelectedDestination || isMissingIntegration) {
       return;
     }
 
-    return integrationsQuery.data?.find(
-      item =>
-        item.id === messagingSetup.integrationId &&
-        (item.provider.key === messagingSetup.providerKey ||
-          item.provider.slug === messagingSetup.providerKey) &&
-        item.status === 'active' &&
-        item.organizationIntegrationStatus === 'active'
-    );
-  }, [hasSelectedDestination, integrationsQuery.data, messagingSetup]);
+    const candidate = integrationQuery.data;
+    if (!candidate) {
+      return;
+    }
+
+    if (
+      candidate.id !== messagingSetup.integrationId ||
+      (candidate.provider.key !== messagingSetup.providerKey &&
+        candidate.provider.slug !== messagingSetup.providerKey) ||
+      candidate.status !== 'active' ||
+      candidate.organizationIntegrationStatus !== 'active'
+    ) {
+      return;
+    }
+
+    return candidate;
+  }, [
+    hasSelectedDestination,
+    integrationQuery.data,
+    isMissingIntegration,
+    messagingSetup,
+  ]);
 
   const channelsQuery = useQuery(
     apiOptions.as<ChannelListResponse>()(
@@ -115,8 +134,8 @@ function useScmMessagingSetupValidation({
   useEffect(() => {
     if (
       messagingSetup.mode !== 'selected' ||
-      !integrationsQuery.isSuccess ||
-      integrationsQuery.isFetching
+      (!integrationQuery.isSuccess && !isMissingIntegration) ||
+      integrationQuery.isFetching
     ) {
       return;
     }
@@ -133,16 +152,16 @@ function useScmMessagingSetupValidation({
 
     // Every provider helper in organization_integration_channels.py returns an
     // empty list when the upstream API call fails, so `results: []` cannot be
-    // told apart from "the saved channel was deleted". Treating it as stale
-    // would discard a valid destination on a transient Slack/Discord outage,
-    // so leave the selection alone and let isValid keep it non-submittable.
+    // told apart from "the saved channel was deleted". A populated list also
+    // is not authoritative: Slack returns at most one 1,000-channel page.
+    // Keep an unresolved destination non-submittable without dropping it from
+    // session state; only a future direct channel validation can safely reset it.
     if (channelsQuery.data.results.length === 0) {
       return;
     }
 
     if (!channel) {
       setStaleReason('channel');
-      onMessagingSetupChange({mode: 'unconfigured'});
       return;
     }
 
@@ -161,8 +180,9 @@ function useScmMessagingSetupValidation({
     channelsQuery.isFetching,
     channelsQuery.isSuccess,
     integration,
-    integrationsQuery.isFetching,
-    integrationsQuery.isSuccess,
+    integrationQuery.isFetching,
+    integrationQuery.isSuccess,
+    isMissingIntegration,
     messagingSetup,
     onMessagingSetupChange,
   ]);
@@ -170,15 +190,16 @@ function useScmMessagingSetupValidation({
   return {
     isError:
       hasSelectedDestination &&
-      (integrationsQuery.isError || (integration !== undefined && channelsQuery.isError)),
+      ((!isMissingIntegration && integrationQuery.isError) ||
+        (integration !== undefined && channelsQuery.isError)),
     isPending:
       hasSelectedDestination &&
-      (integrationsQuery.isFetching ||
+      (integrationQuery.isFetching ||
         (integration !== undefined && channelsQuery.isFetching)),
     isValid:
       hasSelectedDestination &&
-      integrationsQuery.isSuccess &&
-      !integrationsQuery.isFetching &&
+      integrationQuery.isSuccess &&
+      !integrationQuery.isFetching &&
       channelsQuery.isSuccess &&
       !channelsQuery.isFetching &&
       channel !== undefined,
@@ -219,7 +240,7 @@ export function ScmMessaging({
         )}
         {validation.staleReason === 'channel' && (
           <Alert variant="warning" showIcon>
-            {t("We couldn't find the saved channel. Choose a destination again.")}
+            {t("We couldn't verify the saved channel. Choose a destination again.")}
           </Alert>
         )}
         {validation.isError && (
