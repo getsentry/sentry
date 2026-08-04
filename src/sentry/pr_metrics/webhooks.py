@@ -542,12 +542,10 @@ def handle_metrics(
     writes only the webhook-sourced counters, leaving the other columns to their
     own producers.
 
-    Skips a payload the ``PullRequest`` row already rejected as stale (see
-    ``is_stale_github_pull_request_payload``). Both writes come from the same
-    snapshot, so they must agree: letting an out-of-order replay clobber the counters
-    while the PR row holds firm would leave ``select_verdict`` reading zeroed
-    discussion counts off a PR that really had reviewer engagement, and emitting a
-    deterministic ``CLOSED_UNMERGED`` that ``_claim_terminal_event`` makes permanent.
+    Skips a payload the ``PullRequest`` row rejected as stale: both writes come from
+    one snapshot, and letting a replay clobber the counters while the PR row holds
+    would feed ``select_verdict`` zeroed discussion counts and emit a permanent
+    ``CLOSED_UNMERGED``.
     """
     pull_request = event.get("pull_request")
     if not pull_request:

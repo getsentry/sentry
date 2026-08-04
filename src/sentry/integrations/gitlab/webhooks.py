@@ -490,9 +490,8 @@ class MergeEventWebhook(GitlabWebhook):
         )[0]
 
         opened_at = parse_date(created_at).astimezone(timezone.utc)
-        # GitLab's own last-modified time for the merge request: both the fallback
-        # for the timestamps it doesn't report, and the high-water mark that lets us
-        # recognise an out-of-order delivery as stale.
+        # Doubles as the ordering high-water mark and as the fallback for the
+        # timestamps GitLab doesn't report.
         state_changed_at = parse_date(updated_at).astimezone(timezone.utc) if updated_at else None
         merged_at_dt = parse_date(merged_at).astimezone(timezone.utc) if merged_at else None
 

@@ -2,13 +2,19 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+from django.db import connections, router
+from django.test.utils import CaptureQueriesContext
+
 from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.pr_metrics.lifecycle_mapping import (
     is_stale_pull_request_snapshot,
     map_gitlab_state_to_pullrequest_lifecycle,
     parse_scm_timestamp,
     pull_request_lifecycle_state_from_github,
+    update_pull_request_from_scm_snapshot,
 )
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import cell_silo_test
 
 
 def test_parse_scm_timestamp_to_utc() -> None:
@@ -127,7 +133,7 @@ def test_stale_snapshot_merged_accepts_newer_merged_snapshot() -> None:
 
 
 def test_stale_snapshot_missing_timestamps_are_not_stale() -> None:
-    # Nothing to compare: keep the pre-existing last-write-wins behaviour.
+    # Nothing to compare, so last write wins.
     stored = PullRequest(state=PullRequestLifecycleState.OPEN, updated_at=None)
     assert not is_stale_pull_request_snapshot(
         stored,
@@ -142,3 +148,70 @@ def test_stale_snapshot_missing_timestamps_are_not_stale() -> None:
     assert not is_stale_pull_request_snapshot(
         stored, event_state=PullRequestLifecycleState.OPEN, event_updated_at=None
     )
+
+
+@cell_silo_test
+class UpdatePullRequestFromScmSnapshotTest(TestCase):
+    def setUp(self) -> None:
+        self.repo = self.create_repo(
+            self.create_project(organization=self.organization),
+            provider="integrations:github",
+            external_id="99",
+        )
+
+    def _upsert(self, *, state: str, updated_at: datetime, title: str) -> tuple[PullRequest, bool]:
+        return update_pull_request_from_scm_snapshot(
+            provider="github",
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+            key=42,
+            defaults={"state": state, "updated_at": updated_at, "title": title},
+            event_state=state,
+            event_updated_at=updated_at,
+        )
+
+    def test_locks_the_row_for_the_staleness_decision(self) -> None:
+        # Deliveries from one mailbox run concurrently, so the read the decision is
+        # based on has to hold the row until the write lands — otherwise both writers
+        # see the pre-write row and the older one lands last. update_or_create takes
+        # its own lock, but only after this read, so the first read must be the locked
+        # one.
+        self._upsert(
+            state=PullRequestLifecycleState.OPEN,
+            updated_at=datetime(2015, 5, 5, 23, 40, tzinfo=timezone.utc),
+            title="opened",
+        )
+
+        connection = connections[router.db_for_write(PullRequest)]
+        with CaptureQueriesContext(connection) as queries:
+            self._upsert(
+                state=PullRequestLifecycleState.MERGED,
+                updated_at=datetime(2015, 5, 5, 23, 45, tzinfo=timezone.utc),
+                title="merged",
+            )
+
+        reads = [
+            q["sql"]
+            for q in queries.captured_queries
+            if q["sql"].startswith("SELECT") and "sentry_pull_request" in q["sql"]
+        ]
+        assert reads
+        assert "FOR UPDATE" in reads[0]
+
+    def test_stale_snapshot_leaves_the_row_untouched(self) -> None:
+        self._upsert(
+            state=PullRequestLifecycleState.MERGED,
+            updated_at=datetime(2015, 5, 5, 23, 45, tzinfo=timezone.utc),
+            title="merged",
+        )
+
+        stored, created = self._upsert(
+            state=PullRequestLifecycleState.OPEN,
+            updated_at=datetime(2015, 5, 5, 23, 41, tzinfo=timezone.utc),
+            title="stale",
+        )
+
+        assert created is False
+        assert stored.state == PullRequestLifecycleState.MERGED
+        assert stored.title == "merged"
+        assert PullRequest.objects.get(repository_id=self.repo.id, key="42").title == "merged"

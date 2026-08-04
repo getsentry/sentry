@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from dateutil.parser import parse as parse_date
+from django.db import router, transaction
 
 from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.utils import metrics
@@ -19,28 +20,16 @@ def is_stale_pull_request_snapshot(
     event_state: str | None,
     event_updated_at: datetime | None,
 ) -> bool:
-    """Whether an SCM webhook payload describes an older PR state than what's stored.
+    """Whether an SCM payload describes an older PR state than the stored row.
 
-    SCM webhooks are not ordered. Control silo forwards them to the cells through
-    ``WebhookPayload`` rows; a delivery that fails is rescheduled with exponential
-    backoff and lands minutes later, behind events that were originally after it.
-    Each pull-request/merge-request payload carries a full snapshot of the PR, so
-    replaying an older one rewrites lifecycle state backwards — leaving a PR shown as
-    open in Sentry while it is merged upstream.
+    Ordering comes from provider time (``updated_at``); arrival time says nothing about
+    when the change happened.
 
-    Two independent checks, because neither subsumes the other:
-
-    - ``merged`` is terminal at both providers, so any snapshot claiming otherwise is
-      stale. Needing no stored timestamp, this also covers rows written before
-      ``updated_at`` was recorded and events whose provider timestamps collide at the
-      one-second resolution GitHub reports.
-    - Everything else needs the payload timestamp: ``closed`` -> ``open`` is a real
-      transition (a reopen), so only provider time tells a reopen from a replay. Equal
-      timestamps are not stale — within one provider-side second the events can't be
-      ordered, and letting the later delivery win preserves existing behaviour.
-
-    Both are inert when the facts are missing (no stored ``updated_at``, no payload
-    ``updated_at``), which is the pre-existing last-write-wins behaviour.
+    Neither rule subsumes the other. Timestamps are absent on rows predating the column
+    and coarse at GitHub's one-second resolution, which terminal-``merged`` covers; and
+    ``closed`` -> ``open`` is a real transition (a reopen) that only provider time
+    separates from a replay. Equal timestamps are not stale — within one provider-side
+    second there is no order to recover.
     """
     if (
         stored.state == PullRequestLifecycleState.MERGED
@@ -55,14 +44,11 @@ def is_stale_pull_request_snapshot(
 def is_stale_github_pull_request_payload(
     stored: PullRequest, pull_request: Mapping[str, Any]
 ) -> bool:
-    """``is_stale_pull_request_snapshot`` for callers holding only a GitHub payload.
+    """``is_stale_pull_request_snapshot`` for a caller holding only a GitHub payload.
 
-    Lets a processor running after ``PullRequestEventWebhook._handle`` reach the same
-    verdict that handler already reached, without threading the derived values through
-    the processor signature every processor shares. Safe because the derivation is pure
-    and the row is re-read in between: an accepted snapshot leaves the row carrying the
-    event's own ``updated_at``/``state`` (equal, so not stale), while a rejected one
-    leaves the newer stored values in place (still stale).
+    Exact rather than approximate: the row is re-read after ``PullRequestEventWebhook``
+    has written it, so an accepted snapshot leaves the row equal to the event (not
+    stale) and a rejected one leaves it newer (still stale).
     """
     return is_stale_pull_request_snapshot(
         stored,
@@ -83,46 +69,55 @@ def update_pull_request_from_scm_snapshot(
 ) -> tuple[PullRequest, bool]:
     """Upsert a ``PullRequest`` from an SCM webhook snapshot, monotonically.
 
-    Shared by the GitHub and GitLab pull/merge-request webhook handlers. A stale
-    snapshot is dropped whole rather than field by field: every mutable column here —
-    title, body, head sha, lifecycle state and timestamps — comes from the same
-    point-in-time snapshot, so applying part of an outdated one would leave the row
-    internally inconsistent.
+    A stale snapshot is dropped whole: every mutable column comes from one
+    point-in-time snapshot, so applying part of an outdated one leaves the row
+    inconsistent.
 
-    Returns ``(pull_request, created)``. A dropped snapshot returns the untouched
-    stored row and ``False``, the same shape as an upsert that found nothing to change.
+    The row is locked for the decision because a backlogged mailbox delivers
+    ``hybridcloud.webhookpayload.worker_threads`` payloads at once, and GitHub buckets
+    every ``pull_request`` event for a repo into one mailbox. Without the lock two
+    deliveries for the same PR both read the pre-write row and the older write lands
+    last. Contention is per row, between deliveries that have to serialize anyway.
+
+    Returns ``(pull_request, created)``; a dropped snapshot returns the stored row
+    unchanged.
     """
-    stored = PullRequest.objects.filter(
-        organization_id=organization_id, repository_id=repository_id, key=key
-    ).first()
-
-    if stored is not None and is_stale_pull_request_snapshot(
-        stored, event_state=event_state, event_updated_at=event_updated_at
-    ):
-        metrics.incr(
-            "scm.webhook.pull_request.stale_snapshot", tags={"provider": provider}, sample_rate=1.0
+    with transaction.atomic(router.db_for_write(PullRequest)):
+        stored = (
+            PullRequest.objects.select_for_update()
+            .filter(organization_id=organization_id, repository_id=repository_id, key=key)
+            .first()
         )
-        logger.info(
-            "scm.webhook.pull_request.stale_snapshot",
-            extra={
-                "provider": provider,
-                "organization_id": organization_id,
-                "repository_id": repository_id,
-                "pr_key": str(key),
-                "stored_state": stored.state,
-                "stored_updated_at": stored.updated_at,
-                "event_state": event_state,
-                "event_updated_at": event_updated_at,
-            },
-        )
-        return stored, False
 
-    return PullRequest.objects.update_or_create(
-        organization_id=organization_id,
-        repository_id=repository_id,
-        key=key,
-        defaults=defaults,
-    )
+        if stored is not None and is_stale_pull_request_snapshot(
+            stored, event_state=event_state, event_updated_at=event_updated_at
+        ):
+            metrics.incr(
+                "scm.webhook.pull_request.stale_snapshot",
+                tags={"provider": provider},
+                sample_rate=1.0,
+            )
+            logger.info(
+                "scm.webhook.pull_request.stale_snapshot",
+                extra={
+                    "provider": provider,
+                    "organization_id": organization_id,
+                    "repository_id": repository_id,
+                    "pr_key": str(key),
+                    "stored_state": stored.state,
+                    "stored_updated_at": stored.updated_at,
+                    "event_state": event_state,
+                    "event_updated_at": event_updated_at,
+                },
+            )
+            return stored, False
+
+        return PullRequest.objects.update_or_create(
+            organization_id=organization_id,
+            repository_id=repository_id,
+            key=key,
+            defaults=defaults,
+        )
 
 
 def parse_scm_timestamp(value: str | None) -> datetime | None:

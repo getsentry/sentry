@@ -1133,8 +1133,7 @@ class PullRequestEventWebhook(GitHubWebhook):
         opened_at = parse_scm_timestamp(pull_request.get("created_at"))
         closed_at = parse_scm_timestamp(pull_request.get("closed_at"))
         merged_at = parse_scm_timestamp(pull_request.get("merged_at"))
-        # GitHub's own last-modified time for the PR: the high-water mark that lets
-        # us recognise an out-of-order delivery as stale.
+        # The ordering high-water mark; see update_pull_request_from_scm_snapshot.
         updated_at = parse_scm_timestamp(pull_request.get("updated_at"))
         state = pull_request_lifecycle_state_from_github(pull_request)
         draft = pull_request.get("draft")
