@@ -35,7 +35,7 @@ describe('IssuesSecondaryNavigation', () => {
 
   it('shows the inbox count for Seer progress sections and the user and their teams', async () => {
     const request = mockInboxCount({
-      'is:unresolved issue.progress:[fix_proposed,diagnosed,assigned] assignee:[me,my_teams]': 12,
+      'is:unresolved issue.progress:[fix_proposed,diagnosed,assigned] assigned:[me,my_teams]': 12,
     });
 
     renderNavigation();
@@ -50,13 +50,13 @@ describe('IssuesSecondaryNavigation', () => {
     expect(query).toContain('diagnosed');
     expect(query).toContain('assigned');
     expect(query).toContain('is:unresolved');
-    expect(query).toContain('assignee:[me,my_teams]');
+    expect(query).toContain('assigned:[me,my_teams]');
   });
 
   it('only counts fix proposed issues without Seer', async () => {
     organization.features = ['issue-stream-progress-ui'];
     const request = mockInboxCount({
-      'is:unresolved issue.progress:[fix_proposed] assignee:[me,my_teams]': 12,
+      'is:unresolved issue.progress:[fix_proposed] assigned:[me,my_teams]': 12,
     });
 
     renderNavigation();
@@ -65,13 +65,13 @@ describe('IssuesSecondaryNavigation', () => {
 
     const [[, options]] = request.mock.calls;
     expect(options.query.query).toEqual([
-      'is:unresolved issue.progress:[fix_proposed] assignee:[me,my_teams]',
+      'is:unresolved issue.progress:[fix_proposed] assigned:[me,my_teams]',
     ]);
   });
 
   it('caps the count at 99+ since the endpoint stops counting at 100', async () => {
     mockInboxCount({
-      'is:unresolved issue.progress:[fix_proposed] assignee:[me,my_teams]': 100,
+      'is:unresolved issue.progress:[fix_proposed] assigned:[me,my_teams]': 100,
     });
 
     renderNavigation();
@@ -81,7 +81,7 @@ describe('IssuesSecondaryNavigation', () => {
 
   it('renders no badge when nothing is waiting', async () => {
     mockInboxCount({
-      'is:unresolved issue.progress:[fix_proposed] assignee:[me,my_teams]': 0,
+      'is:unresolved issue.progress:[fix_proposed] assigned:[me,my_teams]': 0,
     });
 
     renderNavigation();
