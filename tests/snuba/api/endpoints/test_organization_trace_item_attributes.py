@@ -8,7 +8,11 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 from sentry_conventions.attributes import ATTRIBUTE_METADATA
+from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
+    TraceItemAttributeNamesResponse,
+)
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
+from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, ArrayValue
 
 from sentry.api.endpoints.organization_trace_item_attributes import build_sentry_convention_context
 from sentry.api.endpoints.organization_trace_item_attributes_types import (
@@ -116,6 +120,10 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
     OrganizationTraceItemAttributesEndpointTestBase, OurLogTestCase
 ):
     feature_flags = {"organizations:ourlogs-enabled": True}
+    array_feature_flags = {
+        "organizations:ourlogs-enabled": True,
+        "organizations:trace-item-array-query-support": True,
+    }
     item_type = SupportedTraceItemType.LOGS
 
     def test_no_feature(self) -> None:
@@ -483,6 +491,132 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         assert "tags[is_deleted,boolean]" in keys
         assert "tags[feature_enabled,boolean]" in keys
         assert "tags[another_flag,boolean]" in keys
+
+    def _store_array_log(self) -> None:
+        logs = [
+            self.create_ourlog(
+                organization=self.organization,
+                project=self.project,
+                attributes={
+                    "data_export.csv_headers": {
+                        "array_value": ArrayValue(
+                            values=[
+                                AnyValue(string_value="title"),
+                                AnyValue(string_value="project"),
+                            ]
+                        )
+                    },
+                    "data_export.blob_offsets": {
+                        "array_value": ArrayValue(
+                            values=[AnyValue(int_value=0), AnyValue(int_value=1048576)]
+                        )
+                    },
+                    "data_export.status": {"string_value": "finished"},
+                },
+            ),
+        ]
+        self.store_eap_items(logs)
+
+    @pytest.mark.xfail(
+        strict=False,
+        reason=(
+            "Real array attribute names require Snuba's co-occurring-attrs v2 roll-up, "
+            "which is gated behind a Snuba option and a data-window cutoff and is not the "
+            "default in the local test Snuba, so this insert is served by v1 (no array "
+            "columns). Remove this marker once co-occurring-attrs v2 is the default."
+        ),
+    )
+    def test_array_attributes_surface_with_array_kind(self) -> None:
+        self._store_array_log()
+
+        response = self.do_request(features=self.array_feature_flags)
+        assert response.status_code == 200, response.content
+        by_name = {item["name"]: item for item in response.data}
+
+        assert "data_export.csv_headers" in by_name
+        assert by_name["data_export.csv_headers"]["attributeType"] == "array"
+        assert by_name["data_export.csv_headers"]["key"] == "tags[data_export.csv_headers,array]"
+
+        assert "data_export.blob_offsets" in by_name
+        assert by_name["data_export.blob_offsets"]["attributeType"] == "array"
+
+    def _mock_attribute_names_rpc(self, response_by_type):
+        """Patch the attribute-names RPC to return a patched response when snuba
+        gates  co-occurring-attrs v2 attributes"""
+
+        def _fake(rpc_request, debug=False):
+            return response_by_type.get(rpc_request.type, TraceItemAttributeNamesResponse())
+
+        return mock.patch(
+            "sentry.utils.snuba_rpc.attribute_names_rpc",
+            side_effect=_fake,
+        )
+
+    def test_array_pass_does_not_mislabel_scalars_as_arrays(self) -> None:
+        """v1-shaped response when type is array. Remove alongside the array branch of the endpoint's
+        returned-type guard when co-occurring-attrs v1 is retired in Snuba.
+        """
+        Attribute = TraceItemAttributeNamesResponse.Attribute
+        response_by_type = {
+            AttributeKey.Type.TYPE_STRING: TraceItemAttributeNamesResponse(
+                attributes=[
+                    Attribute(name="data_export.status", type=AttributeKey.Type.TYPE_STRING)
+                ]
+            ),
+            AttributeKey.Type.TYPE_DOUBLE: TraceItemAttributeNamesResponse(
+                attributes=[Attribute(name="my.number", type=AttributeKey.Type.TYPE_DOUBLE)]
+            ),
+            AttributeKey.Type.TYPE_ARRAY: TraceItemAttributeNamesResponse(
+                attributes=[
+                    Attribute(name="data_export.status", type=AttributeKey.Type.TYPE_STRING),
+                    Attribute(name="my.number", type=AttributeKey.Type.TYPE_DOUBLE),
+                ]
+            ),
+        }
+
+        with self._mock_attribute_names_rpc(response_by_type):
+            response = self.do_request(
+                query={"project": self.project.id}, features=self.array_feature_flags
+            )
+
+        assert response.status_code == 200, response.content
+        keys = [item["key"] for item in response.data]
+        # scalar type in reponse
+        assert "data_export.status" in keys
+        assert not any(key.endswith(",array]") for key in keys), keys
+
+    def test_array_pass_surfaces_real_array_attributes(self) -> None:
+        """v2-shaped mocked response"""
+        Attribute = TraceItemAttributeNamesResponse.Attribute
+        response_by_type = {
+            AttributeKey.Type.TYPE_ARRAY: TraceItemAttributeNamesResponse(
+                attributes=[
+                    Attribute(
+                        name="data_export.csv_headers",
+                        type=AttributeKey.Type.TYPE_ARRAY_STRING,
+                    ),
+                    Attribute(
+                        name="data_export.blob_offsets",
+                        type=AttributeKey.Type.TYPE_ARRAY_INT,
+                    ),
+                ]
+            ),
+        }
+
+        with self._mock_attribute_names_rpc(response_by_type):
+            response = self.do_request(
+                query={"project": self.project.id}, features=self.array_feature_flags
+            )
+
+        assert response.status_code == 200, response.content
+        by_name = {item["name"]: item for item in response.data}
+
+        assert "data_export.csv_headers" in by_name
+        assert by_name["data_export.csv_headers"]["attributeType"] == "array"
+        assert by_name["data_export.csv_headers"]["key"] == "tags[data_export.csv_headers,array]"
+
+        assert "data_export.blob_offsets" in by_name
+        assert by_name["data_export.blob_offsets"]["attributeType"] == "array"
 
     def test_debug_as_superuser(self) -> None:
         logs = [
