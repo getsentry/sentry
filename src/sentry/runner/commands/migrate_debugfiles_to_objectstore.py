@@ -21,12 +21,12 @@ def migrate_debugfiles_to_objectstore() -> None:
     total = 0
     queryset = (
         ProjectDebugFile.objects.filter(file_id__isnull=False)
+        .select_related("file")
         .order_by("-id")
-        .values_list("id", flat=True)
     )
-    for debug_file_id in queryset.iterator():
-        click.echo(f"Migrating debug file {debug_file_id}...")
-        migrate_debug_file(debug_file_id)
+    for debug_file in queryset.iterator():
+        click.echo(f"Migrating debug file {debug_file.id}...")
+        migrate_debug_file(debug_file)
         total += 1
 
     click.echo(f"Migrated {total} debug file(s).")

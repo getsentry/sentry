@@ -29,7 +29,7 @@ class DebugFileObjectstoreMigrationTaskTest(TestCase):
                 cursor=start_cursor,
             )
             assert migrate_one.call_count == 2
-            assert [c.args[0] for c in migrate_one.call_args_list] == [
+            assert [c.args[0].id for c in migrate_one.call_args_list] == [
                 ordered_ids[2],
                 ordered_ids[1],
             ]
@@ -50,5 +50,5 @@ class DebugFileObjectstoreMigrationTaskTest(TestCase):
                 cursor=ordered_ids[1] - 1,
             )
             assert migrate_one.call_count == 1
-            assert migrate_one.call_args.args[0] == ordered_ids[0]
+            assert migrate_one.call_args.args[0].id == ordered_ids[0]
             enqueue_successor.assert_not_called()

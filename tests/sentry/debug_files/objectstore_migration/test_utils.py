@@ -34,7 +34,7 @@ class DebugFileObjectstoreMigrationUtilsTest(TestCase):
         file_id = self.debug_file.file_id
 
         with self.captureOnCommitCallbacks(execute=True):
-            migrate_debug_file(self.debug_file.id)
+            migrate_debug_file(self.debug_file)
 
         self.debug_file.refresh_from_db()
         assert self.debug_file.file_id is None
@@ -63,7 +63,7 @@ class DebugFileObjectstoreMigrationUtilsTest(TestCase):
             patch("sentry.utils.retries.time.sleep"),
             pytest.raises(MigrationIntegrityError),
         ):
-            migrate_debug_file(self.debug_file.id)
+            migrate_debug_file(self.debug_file)
 
         self.debug_file.refresh_from_db()
         assert self.debug_file.file_id is not None
@@ -123,7 +123,7 @@ class DebugFileObjectstoreMigrationUtilsTest(TestCase):
             ),
             self.captureOnCommitCallbacks(execute=True),
         ):
-            migrate_debug_file(self.debug_file.id)
+            migrate_debug_file(self.debug_file)
 
         self.debug_file.refresh_from_db()
         other.refresh_from_db()

@@ -28,27 +28,22 @@ from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 logger = logging.getLogger(__name__)
 
 
-def migrate_debug_file(debug_file_id: int) -> None:
+def migrate_debug_file(debug_file: ProjectDebugFile) -> None:
     """Migrate one File-backed DIF, or drop the legacy File from a dual-written DIF."""
 
     def attempt() -> None:
-        try:
-            debug_file = ProjectDebugFile.objects.select_related("file").get(id=debug_file_id)
-        except ProjectDebugFile.DoesNotExist:
-            return
-
         source_file_id = debug_file.file_id
         if source_file_id is None:
             return
 
         if debug_file.storage_path is not None:
-            drop_legacy_file(debug_file_id, source_file_id=source_file_id)
+            drop_legacy_file(debug_file.id, source_file_id=source_file_id)
             return
 
         metadata = upload_and_verify(debug_file)
         if metadata is None:
             return
-        commit(debug_file_id, metadata, source_file_id=source_file_id)
+        commit(debug_file.id, metadata, source_file_id=source_file_id)
 
     base_delay = exponential_delay(2)
     policy = ConditionalRetryPolicy(

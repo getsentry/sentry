@@ -109,7 +109,7 @@ def migrate_shard(
             return
 
         for debug_file in to_migrate:
-            migrate_debug_file(debug_file.id)
+            migrate_debug_file(debug_file)
 
         lowest_id = to_migrate[-1].id
         logger.info(
