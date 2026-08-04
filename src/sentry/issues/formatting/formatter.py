@@ -30,8 +30,12 @@ class Formatter(ABC):
             try:
                 body = section(model, self, limits)
             except Exception:
-                # one malformed section must not sink the whole output
-                logger.warning("formatter.section_failed", extra={"section": section.__name__})
+                # one malformed section must not sink the whole output, so this handler must
+                # not raise either: a section need only be callable, not a named function
+                logger.exception(
+                    "formatter.section_failed",
+                    extra={"section": getattr(section, "__name__", repr(section))},
+                )
                 continue
             if body:
                 parts.append(body)
@@ -56,7 +60,11 @@ class MarkdownFormatter(Formatter):
         return f"**{key}:** {value}"
 
     def code_block(self, text: str) -> str:
-        return f"```\n{text}\n```"
+        # event content reaches here verbatim, so the fence has to outrun any backtick run
+        # inside it -- otherwise a stacktrace or request body closes the block early
+        longest = max((len(run) for run in re.findall(r"`+", text)), default=0)
+        fence = "`" * max(3, longest + 1)
+        return f"{fence}\n{text}\n{fence}"
 
 
 class XmlFormatter(Formatter):

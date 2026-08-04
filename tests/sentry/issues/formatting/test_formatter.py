@@ -1,10 +1,14 @@
+import functools
+
+import pytest
+
 from sentry.issues.formatting.formatter import (
     Formatter,
     MarkdownFormatter,
     XmlFormatter,
     slug,
 )
-from sentry.issues.formatting.limits import LIMITS_DEFAULT
+from sentry.issues.formatting.limits import LIMITS_DEFAULT, Limits
 from sentry.issues.formatting.models import EventObject
 
 
@@ -63,3 +67,34 @@ def test_primitives() -> None:
 def test_slug() -> None:
     assert slug("HTTP Request") == "http_request"
     assert slug("Exception") == "exception"
+
+
+@pytest.mark.parametrize(
+    "text,expected_fence",
+    [
+        ("x = 1", "```"),
+        ("a ``` b", "````"),
+        ("a ````` b", "``````"),
+        ("a ` b", "```"),
+    ],
+)
+def test_code_fence_outruns_backticks_in_content(text: str, expected_fence: str) -> None:
+    # event content reaches code_block verbatim, so a stacktrace or request body carrying
+    # backticks must not be able to close the block early and inject markdown after it
+    out = MarkdownFormatter().code_block(text)
+    assert out == f"{expected_fence}\n{text}\n{expected_fence}"
+
+
+def test_failing_section_without_a_name_does_not_escape() -> None:
+    # the handler exists so one bad section can't sink the render; reading __name__ off an
+    # arbitrary callable would make the handler itself raise
+    def boom(model: EventObject, fmt: Formatter, limits: Limits) -> str:
+        raise ValueError("boom")
+
+    def ok(model: EventObject, fmt: Formatter, limits: Limits) -> str:
+        return "survived"
+
+    out = MarkdownFormatter().render(
+        EventObject(title="t"), [functools.partial(boom), ok], LIMITS_DEFAULT
+    )
+    assert out == "survived"
