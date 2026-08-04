@@ -363,8 +363,9 @@ def _run_legacy_detectors(
     detection_settings: dict[DetectorType, dict[str, Any]],
 ) -> list[PerformanceProblem]:
     """
-    Run legacy issue detectors on segment data by first creating a fake transaction event. If the
-    `_performance_issues_spans` flag is set, also create occurrences from the results.
+    Run legacy issue detectors corresponding to the given detector types on segment data by first
+    creating a fake transaction event. If the `_performance_issues_spans` flag is set, also create
+    occurrences from the results.
     """
     # Create a fake transaction event out of the segment data, to match what the legacy detectors
     # are expecting
