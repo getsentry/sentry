@@ -301,11 +301,10 @@ class PullRequest(Model):
     head_commit_sha = models.CharField(max_length=64, null=True)
     draft = models.BooleanField(null=True)
 
-    # The provider's last-modified time for the PR (GitHub ``updated_at``, GitLab
-    # ``object_attributes.updated_at``) — provider time, unlike ``date_added``, which
-    # is when Sentry first saw the PR. Webhooks arrive out of order, so this is the
-    # high-water mark the SCM handlers compare an incoming payload against.
-    updated_at = models.DateTimeField(null=True)
+    # GitHub ``pull_request.updated_at``, GitLab ``object_attributes.updated_at``.
+    # The high-water mark the SCM webhook handlers compare an incoming payload
+    # against, to drop one that describes an older state than the row already holds.
+    scm_updated_at = models.DateTimeField(null=True)
 
     objects: ClassVar[PullRequestManager] = PullRequestManager()
 

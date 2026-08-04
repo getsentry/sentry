@@ -27,7 +27,7 @@ class Migration(CheckedMigration):
     operations = [
         migrations.AddField(
             model_name="pullrequest",
-            name="updated_at",
+            name="scm_updated_at",
             field=models.DateTimeField(null=True),
         ),
     ]

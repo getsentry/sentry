@@ -895,7 +895,7 @@ class HandleWebhookForPrMetricsCountersTest(TestCase):
         # engagement and emitting a permanent CLOSED_UNMERGED.
         self.pull_request.update(
             state=PullRequestLifecycleState.MERGED,
-            updated_at=datetime(2015, 5, 5, 23, 45, tzinfo=timezone.utc),
+            scm_updated_at=datetime(2015, 5, 5, 23, 45, tzinfo=timezone.utc),
         )
         self._call(
             action="closed",
@@ -926,7 +926,7 @@ class HandleWebhookForPrMetricsCountersTest(TestCase):
         # timestamp separates this replay from a real reopen.
         self.pull_request.update(
             state=PullRequestLifecycleState.CLOSED,
-            updated_at=datetime(2015, 5, 5, 23, 45, tzinfo=timezone.utc),
+            scm_updated_at=datetime(2015, 5, 5, 23, 45, tzinfo=timezone.utc),
         )
         self._call(action="closed", state="closed", updated_at="2015-05-05T23:45:00Z", comments=4)
 
@@ -942,11 +942,11 @@ class HandleWebhookForPrMetricsCountersTest(TestCase):
         # that is still moving forward.
         self.pull_request.update(
             state=PullRequestLifecycleState.OPEN,
-            updated_at=datetime(2015, 5, 5, 23, 40, tzinfo=timezone.utc),
+            scm_updated_at=datetime(2015, 5, 5, 23, 40, tzinfo=timezone.utc),
         )
         self._call(action="opened", state="open", updated_at="2015-05-05T23:40:00Z", comments=1)
 
-        self.pull_request.update(updated_at=datetime(2015, 5, 5, 23, 50, tzinfo=timezone.utc))
+        self.pull_request.update(scm_updated_at=datetime(2015, 5, 5, 23, 50, tzinfo=timezone.utc))
         self._call(
             action="synchronize", state="open", updated_at="2015-05-05T23:50:00Z", comments=7
         )

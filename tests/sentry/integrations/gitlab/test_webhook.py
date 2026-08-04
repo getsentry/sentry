@@ -616,7 +616,7 @@ class WebhookTest(GitLabTestCase):
         pull = PullRequest.objects.get()
         assert pull.state == PullRequestLifecycleState.OPEN
         assert pull.closed_at is None
-        assert pull.updated_at == datetime(2017, 9, 28, 12, 30, tzinfo=timezone.utc)
+        assert pull.scm_updated_at == datetime(2017, 9, 28, 12, 30, tzinfo=timezone.utc)
 
     def test_update_repo_path(self) -> None:
         repo_out_of_date_path = self.create_gitlab_repo(

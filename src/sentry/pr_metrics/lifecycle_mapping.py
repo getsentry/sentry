@@ -22,8 +22,8 @@ def is_stale_pull_request_snapshot(
 ) -> bool:
     """Whether an SCM payload describes an older PR state than the stored row.
 
-    Ordering comes from provider time (``updated_at``); arrival time says nothing about
-    when the change happened.
+    Ordering comes from ``scm_updated_at``; arrival time says nothing about when the
+    change happened.
 
     Neither rule subsumes the other. Timestamps are absent on rows predating the column
     and coarse at GitHub's one-second resolution, which terminal-``merged`` covers; and
@@ -36,9 +36,9 @@ def is_stale_pull_request_snapshot(
         and event_state != PullRequestLifecycleState.MERGED
     ):
         return True
-    if stored.updated_at is None or event_updated_at is None:
+    if stored.scm_updated_at is None or event_updated_at is None:
         return False
-    return event_updated_at < stored.updated_at
+    return event_updated_at < stored.scm_updated_at
 
 
 def is_stale_github_pull_request_payload(
@@ -47,8 +47,8 @@ def is_stale_github_pull_request_payload(
     """``is_stale_pull_request_snapshot`` for a caller holding only a GitHub payload.
 
     Exact rather than approximate: the row is re-read after ``PullRequestEventWebhook``
-    has written it, so an accepted snapshot leaves the row equal to the event (not
-    stale) and a rejected one leaves it newer (still stale).
+    has written it, so an accepted snapshot leaves ``scm_updated_at`` equal to the event
+    (not stale) and a rejected one leaves it newer (still stale).
     """
     return is_stale_pull_request_snapshot(
         stored,
@@ -105,7 +105,7 @@ def update_pull_request_from_scm_snapshot(
                     "repository_id": repository_id,
                     "pr_key": str(key),
                     "stored_state": stored.state,
-                    "stored_updated_at": stored.updated_at,
+                    "stored_scm_updated_at": stored.scm_updated_at,
                     "event_state": event_state,
                     "event_updated_at": event_updated_at,
                 },
