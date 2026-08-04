@@ -338,7 +338,7 @@ def test_custom_inbound_filter_row_becomes_relay_config(default_project, factori
 
     generic_filters = get_generic_filters(
         default_project,
-        InboundFilterFeatures(custom_inbound_filters=True, inbound_filters_v2=True),
+        InboundFilterFeatures(custom_inbound_filters=True, custom_inbound_filters_v2=True),
     )
 
     assert generic_filters == {
@@ -454,7 +454,7 @@ def test_custom_inbound_filters_are_ordered_by_id(default_project, factories) ->
     [
         pytest.param(InboundFilterFeatures(), [], id="no_features"),
         pytest.param(
-            InboundFilterFeatures(ourlogs_ingestion=True, tracemetrics_ingestion=True),
+            InboundFilterFeatures(logs=True, metrics=True),
             [],
             id="inner_features_without_the_outer_one",
         ),
@@ -464,17 +464,17 @@ def test_custom_inbound_filters_are_ordered_by_id(default_project, factories) ->
             id="outer_feature_alone",
         ),
         pytest.param(
-            InboundFilterFeatures(custom_inbound_filters=True, ourlogs_ingestion=True),
+            InboundFilterFeatures(custom_inbound_filters=True, logs=True),
             ["log-message"],
             id="log_messages",
         ),
         pytest.param(
-            InboundFilterFeatures(custom_inbound_filters=True, tracemetrics_ingestion=True),
+            InboundFilterFeatures(custom_inbound_filters=True, metrics=True),
             ["trace-metric-name"],
             id="trace_metric_names",
         ),
         pytest.param(
-            InboundFilterFeatures(custom_inbound_filters=True, inbound_filters_v2=True),
+            InboundFilterFeatures(custom_inbound_filters=True, custom_inbound_filters_v2=True),
             ["cif"],
             id="custom_inbound_filters_v2",
         ),

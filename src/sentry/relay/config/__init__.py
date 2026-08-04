@@ -143,9 +143,9 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     organization = project.organization
     filter_features = InboundFilterFeatures(
         custom_inbound_filters=features.has("projects:custom-inbound-filters", project),
-        ourlogs_ingestion=features.has("organizations:ourlogs-ingestion", organization),
-        tracemetrics_ingestion=features.has("organizations:tracemetrics-ingestion", organization),
-        inbound_filters_v2=features.has("organizations:inbound-filters-v2", organization),
+        logs=features.has("organizations:ourlogs-ingestion", organization),
+        metrics=features.has("organizations:tracemetrics-ingestion", organization),
+        custom_inbound_filters_v2=features.has("organizations:inbound-filters-v2", organization),
     )
 
     if filter_features.custom_inbound_filters:

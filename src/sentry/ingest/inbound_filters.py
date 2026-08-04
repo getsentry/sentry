@@ -443,9 +443,9 @@ class InboundFilterFeatures:
     """
 
     custom_inbound_filters: bool = False
-    ourlogs_ingestion: bool = False
-    tracemetrics_ingestion: bool = False
-    inbound_filters_v2: bool = False
+    logs: bool = False
+    metrics: bool = False
+    custom_inbound_filters_v2: bool = False
 
 
 def get_generic_filters(
@@ -461,11 +461,11 @@ def get_generic_filters(
     generic_filters: list[GenericFilter] = []
 
     if filter_features.custom_inbound_filters:
-        if filter_features.ourlogs_ingestion:
+        if filter_features.logs:
             generic_filters += _option_generic_filters(project, _LOGS)
-        if filter_features.tracemetrics_ingestion:
+        if filter_features.metrics:
             generic_filters += _option_generic_filters(project, _TRACE_METRICS)
-        if filter_features.inbound_filters_v2:
+        if filter_features.custom_inbound_filters_v2:
             generic_filters += get_custom_inbound_filter_generic_filters(project)
 
     for generic_filter_id, generic_filter_fn in ACTIVE_GENERIC_FILTERS:
@@ -600,9 +600,6 @@ def _option_generic_filters(project: Project, item_type: ItemFilter) -> list[Gen
         return []
 
     globs = project.get_option(f"sentry:{option_filter.option}")
-    if not globs:
-        return []
-
     return [_generic_filter(option_filter.filter_id, item_type.primary_match(globs))]
 
 
