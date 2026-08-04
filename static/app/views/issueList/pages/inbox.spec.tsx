@@ -27,6 +27,9 @@ describe('InboxPage', () => {
     features: ['issue-stream-progress-ui'],
   });
   const seerOrganization = OrganizationFixture({
+    features: ['issue-stream-progress-ui', 'gen-ai-features', 'seat-based-seer-enabled'],
+  });
+  const aiOnlyOrganization = OrganizationFixture({
     features: ['issue-stream-progress-ui', 'gen-ai-features'],
   });
   const project = ProjectFixture({
@@ -258,7 +261,7 @@ describe('InboxPage', () => {
     const requests = mockSuccessfulSections();
     mockIssuePreview();
 
-    render(<InboxPage />, {organization, initialRouterConfig});
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
 
     expect(screen.getByLabelText('Loading Fix Proposed issues')).toBeInTheDocument();
     expect(screen.getByLabelText('Loading Diagnosed issues')).toBeInTheDocument();
@@ -330,6 +333,23 @@ describe('InboxPage', () => {
     expect(screen.queryByRole('button', {name: '7D'})).not.toBeInTheDocument();
   });
 
+  it('hides the Diagnosed section without a paid Seer plan', async () => {
+    const requests = mockSuccessfulSections();
+
+    render(<InboxPage />, {
+      organization: aiOnlyOrganization,
+      initialRouterConfig,
+    });
+
+    expect(screen.queryByRole('region', {name: 'Diagnosed'})).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Loading Diagnosed issues')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(requests[0]).toHaveBeenCalledTimes(1);
+      expect(requests[2]).toHaveBeenCalledTimes(1);
+    });
+    expect(requests[1]).not.toHaveBeenCalled();
+  });
+
   it('shows a plus sign when a section count reaches the API cap', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
@@ -392,7 +412,7 @@ describe('InboxPage', () => {
     ];
 
     const {router} = render(<InboxPage />, {
-      organization,
+      organization: seerOrganization,
       initialRouterConfig,
     });
 
