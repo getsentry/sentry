@@ -1,3 +1,4 @@
+import {Children, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 import {useInfiniteQuery} from '@tanstack/react-query';
 import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
@@ -10,6 +11,7 @@ import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+import {SplitPanel} from '@sentry/scraps/splitPanel';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -27,6 +29,7 @@ import type {User} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useMembers} from 'sentry/utils/members/useMembers';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {IssuePreview} from 'sentry/views/issueDetails/issuePreview/issuePreview';
@@ -34,12 +37,17 @@ import {IssueListContainer} from 'sentry/views/issueList';
 import {useInboxPreviewPrefetch} from 'sentry/views/issueList/pages/useInboxPreviewPrefetch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {getProgressIcon} from 'sentry/views/issueList/utils/progress';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 
 const TITLE = t('Inbox');
 const ISSUE_LIMIT = 10;
 const SELECTED_ISSUE_QUERY_PARAM = 'preview';
 const ASSIGNMENT_QUERY_PARAM = 'assignment';
 const ASSIGNMENT_FILTERS = ['me', 'my_teams', 'all'] as const;
+const INBOX_SPLIT_SIZE_STORAGE_KEY = 'inbox-split-size';
+const INBOX_DEFAULT_SIZE = 480;
+const INBOX_MIN_SIZE = 320;
+const PREVIEW_MIN_SIZE = 400;
 type AssignmentFilter = (typeof ASSIGNMENT_FILTERS)[number];
 export const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
   me: ' assigned:me',
@@ -117,21 +125,15 @@ function InboxContent() {
   return (
     <Stack flex={1} minHeight={0} contain="size" overflow="hidden">
       <Layout.Title>{TITLE}</Layout.Title>
-      <Grid
-        flex={1}
-        minHeight={0}
-        columns={{
-          'screen:xs': 'minmax(0, 1fr)',
-          'screen:md': 'minmax(320px, 2fr) minmax(0, 3fr)',
-        }}
-      >
+      <InboxLayout>
         <Stack
           as="section"
           aria-label={t('Issue inbox')}
+          flex={1}
+          minWidth={0}
           minHeight={0}
           display={selectedIssueId ? {'screen:xs': 'none', 'screen:md': 'flex'} : 'flex'}
           background="primary"
-          borderRight="muted"
         >
           <Flex
             as="header"
@@ -174,6 +176,8 @@ function InboxContent() {
         <Stack
           as="aside"
           aria-label={t('Issue preview')}
+          flex={1}
+          minWidth={0}
           minHeight={0}
           overflow="hidden"
           display={selectedIssueId ? 'flex' : {'screen:xs': 'none', 'screen:md': 'flex'}}
@@ -196,8 +200,48 @@ function InboxContent() {
           )}
           {selectedIssueId && <IssuePreview groupId={selectedIssueId} />}
         </Stack>
-      </Grid>
+      </InboxLayout>
     </Stack>
+  );
+}
+
+function InboxLayout({children}: {children: ReactNode}) {
+  const {layout} = usePrimaryNavigation();
+  if (layout === 'mobile') {
+    return (
+      <Grid flex={1} minHeight={0} columns="minmax(0, 1fr)">
+        {children}
+      </Grid>
+    );
+  }
+
+  const [issueList, issuePreview] = Children.toArray(children);
+  return <DesktopInboxSplit issueList={issueList} issuePreview={issuePreview} />;
+}
+
+function DesktopInboxSplit({
+  issueList,
+  issuePreview,
+}: {
+  issueList: ReactNode;
+  issuePreview: ReactNode;
+}) {
+  const [size, setSize] = useLocalStorageState(
+    INBOX_SPLIT_SIZE_STORAGE_KEY,
+    INBOX_DEFAULT_SIZE
+  );
+
+  return (
+    <SplitPanel
+      orientation="horizontal"
+      defaultSize={INBOX_DEFAULT_SIZE}
+      initialSize={size}
+      minSize={INBOX_MIN_SIZE}
+      fillMinSize={PREVIEW_MIN_SIZE}
+      onResizeEnd={({endSize}) => setSize(endSize)}
+      sized={issueList}
+      fill={issuePreview}
+    />
   );
 }
 

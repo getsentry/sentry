@@ -22,6 +22,10 @@ import {ProgressState} from 'sentry/types/group';
 
 import InboxPage from './inbox';
 
+jest.mock('sentry/utils/useDimensions', () => ({
+  useDimensions: () => ({height: 800, width: 1200}),
+}));
+
 describe('InboxPage', () => {
   const organization = OrganizationFixture({
     features: ['issue-stream-progress-ui'],
@@ -134,6 +138,7 @@ describe('InboxPage', () => {
   afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
+    localStorage.removeItem('inbox-split-size');
   });
 
   function mockSection(
@@ -331,6 +336,16 @@ describe('InboxPage', () => {
     const progressStatus = await screen.findByText('Fix Proposed', {selector: 'strong'});
     expect(progressStatus.parentElement).toHaveTextContent('Changed to Fix Proposed');
     expect(screen.queryByRole('button', {name: '7D'})).not.toBeInTheDocument();
+  });
+
+  it('restores the persisted Inbox pane width', () => {
+    localStorage.setItem('inbox-split-size', '550');
+    mockSuccessfulSections();
+
+    render(<InboxPage />, {organization, initialRouterConfig});
+
+    expect(screen.getByRole('separator')).toHaveAttribute('aria-orientation', 'vertical');
+    expect(screen.getByRole('separator')).toHaveAttribute('aria-valuenow', '550');
   });
 
   it('hides the Diagnosed section without a paid Seer plan', async () => {
