@@ -68,7 +68,7 @@ digests_tasks = app.taskregistry.create_namespace(
 
 debug_files_migration_tasks = app.taskregistry.create_namespace(
     "debug-files-migration",
-    app_feature="errors",
+    app_feature="debug_files",
 )
 
 export_tasks = app.taskregistry.create_namespace(
