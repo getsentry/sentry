@@ -55,9 +55,8 @@ PARALLEL_DRAIN_THRESHOLD = int(MAX_MAILBOX_DRAIN / 5)
 """
 Mailbox depth at which delivery switches from sequential to parallel.
 
-A mailbox holding this many undelivered records is behind, and the throughput of
-`hybridcloud.webhookpayload.worker_threads` concurrent requests is worth the loss
-of strict ordering that parallel delivery implies.
+Past this depth a mailbox is behind, and parallel throughput is worth its loss of
+strict ordering.
 """
 
 
@@ -132,14 +131,11 @@ def _mailbox_needs_parallel_drain(mailbox_name: str) -> bool:
     """
     Whether this mailbox is deep enough to be drained in parallel.
 
-    Mirrors the depth check the scheduler makes on `updated_count`. The count is
-    capped at PARALLEL_DRAIN_THRESHOLD, so it reads at most that many entries of
-    the (mailbox_name, id) index no matter how deep the mailbox is. Mailboxes can
-    hold millions of records, so an unbounded COUNT(*) is not viable on this path.
-
-    Deliberately reads the primary. The replica lags exactly when it matters most
-    — during an inbound burst — and a stale read would under-report depth and
-    keep a hot mailbox on the sequential drain.
+    The count is capped at the threshold so it stays an index-only scan of that
+    many (mailbox_name, id) entries; mailboxes can hold millions of records, so an
+    unbounded COUNT(*) is not viable here. Reads the primary because the replica
+    lags during the inbound bursts that make a mailbox deep, and a stale read would
+    under-report depth.
     """
     depth = (
         WebhookPayload.objects.filter(mailbox_name=mailbox_name)
@@ -157,11 +153,9 @@ def maybe_trigger_drain(mailbox_name: str) -> None:
     Only the first webhook to an idle mailbox triggers a drain; subsequent webhooks
     within the TTL window are picked up by the already-enqueued drain task.
 
-    Deep mailboxes are drained in parallel, matching the choice the scheduler makes.
-    The drain holds the lock for its whole run and the scheduler skips locked
-    mailboxes, so dispatching the sequential drain here would pin the mailbox to a
-    single in-flight request until the drain finished — and the busier a mailbox is,
-    the more often this trigger fires.
+    Deep mailboxes go to the parallel drain: the drain holds the lock for its whole
+    run and the scheduler skips locked mailboxes, so a sequential drain here would
+    pin the mailbox to one in-flight request until it finished.
 
     Falls back gracefully if the cache backend is unavailable — the scheduler handles delivery.
     """

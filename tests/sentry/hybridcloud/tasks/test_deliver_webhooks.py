@@ -1255,9 +1255,6 @@ class PushTriggerTest(TestCase):
 
         maybe_trigger_drain("github:123")
 
-        # A mailbox this deep is behind. The sequential drain would hold the lock —
-        # and so keep the scheduler out — for a full batch window at one request
-        # at a time.
         mock_drain_parallel.delay.assert_called_once_with(records[0].id, mailbox_name="github:123")
         mock_drain.delay.assert_not_called()
 
@@ -1271,7 +1268,7 @@ class PushTriggerTest(TestCase):
 
         maybe_trigger_drain("github:123")
 
-        # One record short of the threshold keeps strict ordering.
+        # One short of the threshold keeps strict ordering.
         mock_drain.delay.assert_called_once_with(records[0].id, mailbox_name="github:123")
         mock_drain_parallel.delay.assert_not_called()
 
@@ -1286,8 +1283,7 @@ class PushTriggerTest(TestCase):
         maybe_trigger_drain("github:123")
         maybe_trigger_drain("github:123")
 
-        # Only one drain per mailbox may be in flight, regardless of which drain
-        # the depth check selects.
+        # One drain per mailbox, whichever drain the depth check selects.
         assert mock_drain_parallel.delay.call_count == 1
         assert mock_drain.delay.call_count == 0
 
@@ -1321,8 +1317,7 @@ class PushTriggerTest(TestCase):
         webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
         cache.add(f"wh:drain_active:{webhook.mailbox_name}", 1, timeout=15)
 
-        # Scheduler-triggered drains pass no mailbox_name and must not release a lock
-        # that a concurrent push-triggered drain owns.
+        # No mailbox_name: must not release a lock a concurrent push-triggered drain owns.
         drain_mailbox_parallel(webhook.id)
 
         assert cache.get(f"wh:drain_active:{webhook.mailbox_name}") == 1
