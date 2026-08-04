@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {Placeholder} from 'sentry/components/placeholder';
@@ -131,7 +131,7 @@ export function AttributeComparisonSection({
         </LinkButton>
       }
     >
-      <Flex direction="column" gap="md">
+      <Stack gap="md">
         <AttributeBreakdownsComponent.ControlsContainer>
           <AttributeBreakdownsComponent.StyledBaseSearchBar
             placeholder={t('Search attributes')}
@@ -182,7 +182,7 @@ export function AttributeComparisonSection({
         ) : (
           <AttributeBreakdownsComponent.EmptySearchState />
         )}
-      </Flex>
+      </Stack>
     </FoldSection>
   );
 }

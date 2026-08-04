@@ -81,7 +81,9 @@ def remove_detector(
     if not can_delete_detector(detector, request):
         raise PermissionDenied
 
-    validator = get_detector_validator(request, detector.project, detector.type, instance=detector)
+    validator = get_detector_validator(
+        request, detector.linked_project, detector.type, instance=detector
+    )
     validator.delete()
 
     if detector.type == MetricIssue.slug:
@@ -89,7 +91,7 @@ def remove_detector(
 
     create_audit_entry(
         request=request,
-        organization=detector.project.organization,
+        organization=detector.linked_project.organization,
         target_object=detector.id,
         event=audit_log.get_event_id("DETECTOR_REMOVE"),
         data=detector.get_audit_log_data(),
@@ -148,7 +150,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
             raise ResourceDoesNotExist
 
         # Verify user has access to the detector's project (respects Open Membership setting)
-        if not request.access.has_project_access(detector.project):
+        if not request.access.has_project_access(detector.linked_project):
             raise PermissionDenied
 
         return args, kwargs
@@ -222,7 +224,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
 
         group_type = request.data.get("type") or detector.group_type.slug
         validator = get_detector_validator(
-            request, detector.project, group_type, detector, partial=True
+            request, detector.linked_project, group_type, detector, partial=True
         )
 
         if not validator.is_valid():

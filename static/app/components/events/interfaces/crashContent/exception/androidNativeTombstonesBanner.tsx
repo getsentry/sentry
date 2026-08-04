@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
@@ -155,7 +155,7 @@ export function AndroidNativeTombstonesBanner({event, projectId}: Props) {
 
   return (
     <BannerWrapper>
-      <Flex direction="column" gap="md">
+      <Stack gap="md">
         <Heading as="h4">{t('Enable Tombstone Collection')}</Heading>
         <Text as="p" style={{maxWidth: 460}}>
           {t(
@@ -185,7 +185,7 @@ export function AndroidNativeTombstonesBanner({event, projectId}: Props) {
         >
           {t('Learn More')}
         </LinkButton>
-      </Flex>
+      </Stack>
       <CloseDropdownMenu
         position="bottom-end"
         triggerProps={{

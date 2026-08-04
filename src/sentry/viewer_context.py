@@ -42,6 +42,7 @@ class ActorType(enum.StrEnum):
     USER = "user"
     SYSTEM = "system"
     INTEGRATION = "integration"
+    AGENT = "agent"
     UNKNOWN = "unknown"
 
 
@@ -57,6 +58,7 @@ class ViewerContext:
     """
 
     organization_id: int | None = None
+    project_id: int | None = None
     user_id: int | None = None
     actor_type: ActorType = ActorType.UNKNOWN
 
@@ -69,6 +71,8 @@ class ViewerContext:
         result: dict[str, Any] = {"actor_type": self.actor_type.value}
         if self.organization_id is not None:
             result["organization_id"] = self.organization_id
+        if self.project_id is not None:
+            result["project_id"] = self.project_id
         if self.user_id is not None:
             result["user_id"] = self.user_id
         return result
@@ -82,6 +86,7 @@ class ViewerContext:
             actor_type = ActorType.UNKNOWN
         return cls(
             organization_id=data.get("organization_id"),
+            project_id=data.get("project_id"),
             user_id=data.get("user_id"),
             actor_type=actor_type,
         )
@@ -176,6 +181,19 @@ def set_viewer_context_organization(organization_id: int) -> None:
         return
 
     _viewer_context_var.set(dataclasses.replace(ctx, organization_id=organization_id))
+
+
+def set_viewer_context_project(project_id: int) -> None:
+    """Update the current ``ViewerContext`` with a resolved project id.
+
+    No-op when no ViewerContext exists — use ``viewer_context_scope``
+    for system-originated tasks without middleware.
+    """
+    ctx = get_viewer_context()
+    if ctx is None or ctx.project_id == project_id:
+        return
+
+    _viewer_context_var.set(dataclasses.replace(ctx, project_id=project_id))
 
 
 # ---------------------------------------------------------------------------

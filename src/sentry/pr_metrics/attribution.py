@@ -13,6 +13,7 @@ import logging
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from django.db import router, transaction
 from pydantic import BaseModel
 
 from sentry import features
@@ -24,23 +25,10 @@ from sentry.models.pullrequest import (
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
     ResolvedPullRequest,
-    parse_pull_request_number,
+    parse_pull_request_url,
 )
 
 logger = logging.getLogger(__name__)
-
-# Precedence for picking a PR's primary attribution when more than one valid
-# signal is present (highest first): direct agent-authored signals rank above
-# weaker heuristics like a bare issue reference.
-SIGNAL_TYPE_CONFIDENCE: dict[str, int] = {
-    PullRequestAttributionSignalType.SENTRY_APP: 100,
-    PullRequestAttributionSignalType.SEER_DELEGATED_CURSOR: 80,
-    PullRequestAttributionSignalType.SEER_DELEGATED_GITHUB_COPILOT: 80,
-    PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE: 80,
-    PullRequestAttributionSignalType.SEER_DELEGATED_UNKNOWN: 70,
-    PullRequestAttributionSignalType.MCP: 50,
-    PullRequestAttributionSignalType.UNKNOWN: 0,
-}
 
 
 class SentryAppSignalDetails(BaseModel):
@@ -61,6 +49,7 @@ class DelegatedAgentSignalDetails(BaseModel):
     agent_id: str | None = None
     pr_url: str
     run_id: int | None = None
+    group_ids: list[int] = []
 
 
 # Signal types that use DelegatedAgentSignalDetails for their signal_details.
@@ -88,6 +77,34 @@ def is_seer_attribution(attribution: PullRequestAttribution) -> bool:
     )
 
 
+def _merge_signal_details(
+    existing: Mapping[str, Any] | None, incoming: Mapping[str, Any] | None
+) -> dict[str, Any] | None:
+    """Combine two ``signal_details`` payloads for the same attribution row.
+
+    Schema-agnostic, since ``signal_details`` shapes differ by signal type: list
+    values are unioned (e.g. ``group_ids``), dict values are merged with the
+    incoming side winning on key conflicts (e.g. MCP's group_id -> client_family
+    map), and every other value keeps the incoming value when truthy, else falls
+    back to the existing one.
+    """
+    if existing is None:
+        return dict(incoming) if incoming is not None else None
+    if incoming is None:
+        return dict(existing)
+
+    merged = dict(existing)
+    for key, new_value in incoming.items():
+        old_value = merged.get(key)
+        if isinstance(old_value, list) and isinstance(new_value, list):
+            merged[key] = sorted({*old_value, *new_value})
+        elif isinstance(old_value, Mapping) and isinstance(new_value, Mapping):
+            merged[key] = {**old_value, **new_value}
+        elif new_value:
+            merged[key] = new_value
+    return merged
+
+
 def record_attribution_signal(
     *,
     pull_request: PullRequest,
@@ -98,43 +115,42 @@ def record_attribution_signal(
     """Idempotently record one detected attribution signal for a PR.
 
     Keyed on ``(pull_request, signal_type, source)`` — matching the model's
-    unique constraint — so webhook/event redelivery updates the existing row's
-    ``signal_details`` rather than inserting a duplicate.
+    unique constraint. A still-valid existing row is merged with the incoming
+    details via ``_merge_signal_details`` rather than replaced outright, so two
+    independent producers of the same signal/source (e.g. Seer's
+    ``pr_created`` callback and the live-RPC autofix lookup) accumulate onto the
+    same row instead of clobbering each other on redelivery/race. Reading the
+    existing row with ``select_for_update`` inside the transaction is what
+    makes that merge race-safe: it blocks a concurrent writer until this one
+    commits, so the concurrent writer's merge starts from an up-to-date
+    snapshot instead of a stale one it would otherwise clobber. A previously
+    invalidated row is replaced outright and revived, since the source is
+    reporting it as present again.
     """
     details = dict(signal_details) if signal_details is not None else None
 
-    attribution, created = PullRequestAttribution.objects.get_or_create(
-        pull_request=pull_request,
-        signal_type=signal_type,
-        source=source,
-        defaults={"signal_details": details, "is_valid": True},
-    )
+    with transaction.atomic(using=router.db_for_write(PullRequestAttribution)):
+        attribution, created = PullRequestAttribution.objects.select_for_update().get_or_create(
+            pull_request=pull_request,
+            signal_type=signal_type,
+            source=source,
+            defaults={"signal_details": details, "is_valid": True},
+        )
 
-    # Refresh details on redelivery — and revive a previously-invalidated signal,
-    # since the source is reporting it as present again.
-    if not created and (attribution.signal_details != details or not attribution.is_valid):
-        attribution.signal_details = details
-        attribution.is_valid = True
-        attribution.save(update_fields=["signal_details", "is_valid", "date_updated"])
+        if created:
+            return attribution
 
-    return attribution
+        new_details = (
+            details
+            if not attribution.is_valid
+            else _merge_signal_details(attribution.signal_details, details)
+        )
+        if new_details != attribution.signal_details or not attribution.is_valid:
+            attribution.signal_details = new_details
+            attribution.is_valid = True
+            attribution.save(update_fields=["signal_details", "is_valid", "date_updated"])
 
-
-def recompute_pull_request_attribution(pull_request: PullRequest) -> str | None:
-    """Return the highest-confidence valid attribution signal for a PR.
-
-    Returns the winning ``signal_type``, or ``None`` when the PR has no valid
-    signals.
-    """
-    valid_signal_types = PullRequestAttribution.objects.filter(
-        pull_request=pull_request, is_valid=True
-    ).values_list("signal_type", flat=True)
-
-    return max(
-        valid_signal_types,
-        key=lambda signal_type: SIGNAL_TYPE_CONFIDENCE.get(signal_type, -1),
-        default=None,
-    )
+        return attribution
 
 
 def _log_unresolved_reported_pull_request(
@@ -267,6 +283,7 @@ def attribute_delegated_agent_pull_request(
     pr_url: str,
     agent_id: str | None = None,
     run_id: int | None = None,
+    group_ids: Sequence[int] | None = None,
 ) -> None:
     """Attribute a PR opened by a Seer-delegated coding agent (Cursor/Copilot/Claude).
 
@@ -275,6 +292,11 @@ def attribute_delegated_agent_pull_request(
     ``seer.pr_created`` event, so attribution is recorded here at the detection
     point. Callers pass the ``SEER_DELEGATED_*`` signal type for the authoring
     agent; unlike Seer-native PRs we never attribute these to ``SENTRY_APP``.
+
+    ``run_id``/``group_ids`` are optional and left sparse (``None``/``[]``) when
+    a caller can't resolve them locally; ``group_ids`` is the issue(s) the
+    delegated run was launched against, mirroring the field already on
+    ``SentryAppSignalDetails``.
 
     Gated behind ``organizations:pr-metrics-attribution``. Best-effort: callers run
     this inside the polling/webhook flow, so any failure is logged and swallowed
@@ -288,7 +310,8 @@ def attribute_delegated_agent_pull_request(
     if not features.has("organizations:pr-metrics-attribution", organization):
         return
 
-    pr_number = parse_pull_request_number(pr_url)
+    parsed_pr = parse_pull_request_url(pr_url)
+    pr_number = parsed_pr.number if parsed_pr else None
 
     log_context = {
         "organization_id": organization_id,
@@ -315,6 +338,7 @@ def attribute_delegated_agent_pull_request(
             agent_id=agent_id,
             pr_url=pr_url,
             run_id=run_id,
+            group_ids=list(group_ids) if group_ids else [],
         ).dict(),
         log_context=log_context,
     )

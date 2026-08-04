@@ -16,7 +16,7 @@ interface MissingDsymModalProps {
 
 function MissingDsymModal({binaries, closeModal}: MissingDsymModalProps) {
   return (
-    <Flex direction="column" gap="lg">
+    <Stack gap="lg">
       <Flex justify="center" align="center" width="100%" position="relative">
         <Heading as="h2">
           {tn('Missing Debug Symbol', 'Missing Debug Symbols', binaries.length)}
@@ -50,7 +50,7 @@ function MissingDsymModal({binaries, closeModal}: MissingDsymModalProps) {
           </BinaryItem>
         ))}
       </BinaryList>
-    </Flex>
+    </Stack>
   );
 }
 

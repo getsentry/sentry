@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {useDiffCompareContext} from 'sentry/components/replays/diff/diffCompareContext';
@@ -15,7 +15,7 @@ export function ReplaySideBySideImageDiff() {
   const {replay, leftOffsetMs, rightOffsetMs} = useDiffCompareContext();
 
   return (
-    <Flex direction="column">
+    <Stack>
       <ContentSliderDiff.Header>
         <Before startTimestampMs={replay.getStartTimestampMs()} offset={leftOffsetMs} />
         <After startTimestampMs={replay.getStartTimestampMs()} offset={rightOffsetMs} />
@@ -41,7 +41,7 @@ export function ReplaySideBySideImageDiff() {
           </ReplayReaderProvider>
         </ReplayPlayerPluginsContextProvider>
       </ReplayGrid>
-    </Flex>
+    </Stack>
   );
 }
 

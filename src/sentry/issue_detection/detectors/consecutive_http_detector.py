@@ -138,7 +138,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
             desc=desc,
             type=PerformanceConsecutiveHTTPQueriesGroupType,
             cause_span_ids=[],
-            parent_span_ids=None,
+            parent_span_ids=[],
             offender_span_ids=offender_span_ids,
             evidence_display=[
                 IssueEvidence(

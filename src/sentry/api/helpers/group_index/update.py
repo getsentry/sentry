@@ -22,20 +22,21 @@ from sentry import analytics, features, options
 from sentry.analytics.events.manual_issue_assignment import ManualIssueAssignment
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
+from sentry.api.serializers.models.groupactionlogentry import serialize_first_seen_entry
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.action_log import (
     action_context_scope,
     get_action_context,
     publish_action,
-    publish_action_from_context,
     resolve_action_actor,
     resolve_action_source,
 )
-from sentry.issues.action_log.types import MergeFromOtherAction, MergeIntoOtherAction, ResolveAction
+from sentry.issues.action_log.types import MergeIntoOtherAction
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.issues.merge import MergedGroup, handle_merge
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.priority import update_priority
 from sentry.issues.status_change import handle_status_update, infer_substatus
 from sentry.issues.update_inbox import update_inbox
@@ -656,12 +657,6 @@ def process_group_resolution(
 
         record_group_history_from_activity_type(group, activity_type, actor=acting_user)
 
-        publish_action_from_context(
-            ResolveAction(),
-            group_id=group.id,
-            project=group.project,
-        )
-
         # TODO(dcramer): we need a solution for activity rollups
         # before sending notifications on bulk changes
         if not len(group_list) > 1:
@@ -787,12 +782,31 @@ def prepare_response(
     try:
         if len(group_list) == 1:
             if res_type in (GroupResolution.Type.in_next_release, GroupResolution.Type.in_release):
-                result["activity"] = serialize(
-                    Activity.objects.get_activities_for_group(
-                        group=group_list[0], num=ACTIVITIES_COUNT
-                    ),
-                    acting_user,
-                )
+                group = group_list[0]
+                if features.has(
+                    "projects:issue-action-log-activity", group.project, actor=acting_user
+                ):
+                    action_log = GroupActionLogEntry.objects.get_actions_for_group(
+                        group, ACTIVITIES_COUNT - 1
+                    )
+                    if action_log:
+                        result["activity"] = [
+                            *serialize(action_log, acting_user),
+                            serialize_first_seen_entry(group),
+                        ]
+                    else:
+                        logger.info(
+                            "group_index.groupactionlogentry.not_found",
+                            extra={"group_id": group.id},
+                        )
+
+                else:
+                    result["activity"] = serialize(
+                        Activity.objects.get_activities_for_group(
+                            group=group, num=ACTIVITIES_COUNT
+                        ),
+                        acting_user,
+                    )
     except UnboundLocalError:
         pass
 
@@ -840,14 +854,6 @@ def prepare_response(
             primary_id = int(merged["parent"])
             child_ids = [int(c) for c in merged["children"]]
             group_by_id = {g.id: g for g in group_list}
-            primary = group_by_id[primary_id]
-            publish_action(
-                MergeFromOtherAction(counterpart_group_ids=child_ids),
-                source=ctx.source,
-                group_id=primary_id,
-                project=primary.project,
-                actor=ctx.actor,
-            )
             for child_id in child_ids:
                 child = group_by_id[child_id]
                 publish_action(

@@ -1,6 +1,6 @@
 import {Fragment, useEffect} from 'react';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -142,18 +142,21 @@ export function WidgetBuilderSortBySelector() {
           flexibleControlStateSize
           stacked
         >
-          <Flex direction="column" gap="sm">
+          <Stack gap="sm">
             {maxLimit > 0 && state.limit && (
               <Select
                 disabled={disableSortDirection && disableSort}
                 name="resultsLimit"
-                options={[...Array.from({length: maxLimit}).keys()].map(resultLimit => {
-                  const value = resultLimit + 1;
-                  return {
-                    label: tn('Limit to %s result', 'Limit to %s results', value),
-                    value,
-                  };
-                })}
+                options={Array.from(
+                  Array.from({length: maxLimit}).keys(),
+                  resultLimit => {
+                    const value = resultLimit + 1;
+                    return {
+                      label: tn('Limit to %s result', 'Limit to %s results', value),
+                      value,
+                    };
+                  }
+                )}
                 value={state.limit}
                 onChange={(option: SelectValue<number>) => {
                   dispatch({type: BuilderStateAction.SET_LIMIT, payload: option.value});
@@ -191,7 +194,7 @@ export function WidgetBuilderSortBySelector() {
               }}
               tags={tags}
             />
-          </Flex>
+          </Stack>
         </FieldGroup>
       </Tooltip>
     </Fragment>

@@ -1,17 +1,11 @@
 from __future__ import annotations
 
-import logging
-import pickle
-
 from django.db.models import Model, TextField
 
 from sentry.db.models.utils import Creator
 from sentry.utils import json
-from sentry.utils.strings import decompress
 
 __all__ = ("GzippedDictField",)
-
-logger = logging.getLogger("sentry")
 
 
 class GzippedDictField(TextField):
@@ -34,14 +28,6 @@ class GzippedDictField(TextField):
                 return {}
             return json.loads(value)
         except (ValueError, TypeError):
-            if isinstance(value, str) and value:
-                try:
-                    value = pickle.loads(decompress(value))
-                except Exception as e:
-                    logger.exception(str(e))
-                    return {}
-            elif not value:
-                return {}
             return value
 
     def from_db_value(self, value, expression, connection):

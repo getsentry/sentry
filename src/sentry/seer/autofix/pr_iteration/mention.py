@@ -1,11 +1,17 @@
 """
-Trigger an Autofix PR iteration from a GitHub PR comment mention.
+Trigger an Autofix PR iteration from a top-level GitHub PR comment mention.
 
 When a user comments ``@sentry iterate <feedback>`` on a pull request that
 Autofix created, we kick off a ``PR_ITERATION`` run that revises the existing
 PR using the comment as feedback. The commenter must have write access to the
 repository so that random GitHub users can't drive Autofix runs (which cost
 quota and rewrite the PR).
+
+This covers only top-level PR comments (``issue_comment``). Inline review
+comments arrive via the ``pull_request_review`` SCM listener (see
+``listeners/review.py``),
+which acts on the whole submitted review without requiring an ``@sentry`` command
+but still gates on the review author's repo write access.
 """
 
 from __future__ import annotations
@@ -14,12 +20,16 @@ import logging
 from collections.abc import Mapping
 from typing import Any, NamedTuple
 
+from pydantic import ValidationError
+
 from sentry import features
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.seer.autofix.pr_iteration.types import GithubPrCommentFeedbackType
-from sentry.seer.webhooks import SentryIterateCommand, sentry_command
+from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
+    GithubPrCommentFeedbackSource,
+)
 from sentry.tasks.seer.pr_iteration import trigger_pr_iteration_from_comment
 
 logger = logging.getLogger(__name__)
@@ -61,15 +71,16 @@ def _dispatch_autofix_iteration_from_comment(
     repo: Repository,
     integration: RpcIntegration | None,
     log_extra: Mapping[str, Any],
-    source_type: GithubPrCommentFeedbackType,
 ) -> None:
-    command = sentry_command(comment.get("body"))
-    if not isinstance(command, SentryIterateCommand):
+    try:
+        feedback = Feedback(
+            source=GithubPrCommentFeedbackSource(comment=comment, repo_name=repo.name)
+        )
+    except ValidationError:
         logger.debug("autofix.pr_iteration.comment_trigger.skipped_not_command", extra=log_extra)
         return None
 
     log_extra = {**log_extra, "pr_number": pr_number}
-
     # Past this point we have a genuine ``@sentry`` iterate command on a PR, so
     # log at info to make any silent drop debuggable.
     logger.info("autofix.pr_iteration.comment_trigger.received", extra=log_extra)
@@ -95,39 +106,7 @@ def _dispatch_autofix_iteration_from_comment(
         repo_id=repo.id,
         integration_id=integration.id,
         pr_number=pr_number,
-        feedback=command.feedback,
-        comment=comment,
-        source_type=source_type,
-    )
-    return None
-
-
-def handle_pull_request_review_comment_for_autofix_iteration(
-    *,
-    event: Mapping[str, Any],
-    organization: Organization,
-    repo: Repository,
-    integration: RpcIntegration | None = None,
-    **kwargs: Any,
-) -> None:
-    """
-    Webhook processor for ``pull_request_review_comment`` events that triggers
-    an Autofix PR iteration when a user leaves an inline ``@sentry`` comment.
-    """
-    context = _created_comment_context(event=event, organization=organization)
-    # No need to check whether this is a pr vs. issue as this webhook only fires in a pr
-    if context is None:
-        return None
-
-    pull_request = event.get("pull_request", {})
-    _dispatch_autofix_iteration_from_comment(
-        comment=context.comment,
-        pr_number=pull_request.get("number"),
-        organization=organization,
-        repo=repo,
-        integration=integration,
-        log_extra=context.log_extra,
-        source_type="github-pr-review-comment",
+        feedback=feedback.json(),
     )
     return None
 
@@ -162,6 +141,5 @@ def handle_issue_comment_for_autofix_iteration(
         repo=repo,
         integration=integration,
         log_extra=context.log_extra,
-        source_type="github-pr-comment",
     )
     return None

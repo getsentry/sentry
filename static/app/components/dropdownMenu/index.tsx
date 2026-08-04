@@ -36,11 +36,15 @@ function makeItemHref(item: MenuItemProps): LocationDescriptor | undefined {
 function removeHiddenItemsAndSetHref(source: MenuItemProps[]): MenuItemProps[] {
   return source
     .filter(item => !item.hidden)
-    .map(item => ({
-      ...item,
-      href: makeItemHref(item),
-      ...(item.children ? {children: removeHiddenItemsAndSetHref(item.children)} : {}),
-    }));
+    .map(item => {
+      const href = makeItemHref(item);
+
+      return {
+        ...item,
+        ...(href === undefined ? {} : {href}),
+        ...(item.children ? {children: removeHiddenItemsAndSetHref(item.children)} : {}),
+      };
+    });
 }
 
 /**
@@ -222,7 +226,7 @@ function DropdownMenu({
   );
   // We manually handle focus in the dropdown menu, so we don't want the default autofocus behavior
   // Avoids the menu from focusing before popper has placed it in the correct position
-  menuProps.autoFocus = false;
+  const resolvedMenuProps = {...menuProps, autoFocus: false as const};
 
   const {buttonProps} = useButton(
     {
@@ -260,7 +264,7 @@ function DropdownMenu({
     const menu = (
       <DropdownMenuList
         {...props}
-        {...menuProps}
+        {...resolvedMenuProps}
         size={size}
         disabledKeys={disabledKeys ?? defaultDisabledKeys}
         overlayPositionProps={{

@@ -1,3 +1,6 @@
+import pytest
+from django import forms
+
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.users.web.accounts_form import RelocationForm
@@ -35,6 +38,24 @@ class TestRelocationForm(TestCase):
         relocation_form.cleaned_data = {"username": "nEw_UsErname"}
 
         assert relocation_form.clean_username() == "new_username"
+
+    def test_clean_username_rejects_existing_username(self) -> None:
+        self.create_user(username="taken_username")
+        user = self.create_user(username="test_user")
+        relocation_form = RelocationForm(user=user)
+        relocation_form.cleaned_data = {"username": "taken_username"}
+
+        with pytest.raises(forms.ValidationError):
+            relocation_form.clean_username()
+
+    def test_clean_username_rejects_another_users_email(self) -> None:
+        self.create_user(email="mail@example.com", username="sso-abc123")
+        user = self.create_user(username="test_user")
+        relocation_form = RelocationForm(user=user)
+        relocation_form.cleaned_data = {"username": "mail@example.com"}
+
+        with pytest.raises(forms.ValidationError):
+            relocation_form.clean_username()
 
     def test_clean_password(self) -> None:
         username = "test_user"

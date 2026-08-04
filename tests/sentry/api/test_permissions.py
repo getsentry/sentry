@@ -10,6 +10,7 @@ from sentry.api.permissions import (
     StaffPermission,
     SuperuserOrStaffFeatureFlaggedPermission,
     SuperuserPermission,
+    _least_privileged_scope,
 )
 from sentry.demo_mode.utils import READONLY_SCOPES
 from sentry.organizations.services.organization import organization_service
@@ -133,6 +134,15 @@ class InsufficientScopeTest(DRFPermissionTestCase):
             InsufficientScope(["org:admin"]).auth_header
             == 'Bearer error="insufficient_scope", scope="org:admin"'
         )
+
+    def test_agent_challenge_excludes_token_only_scopes(self) -> None:
+        assert (
+            _least_privileged_scope(
+                {"project:write", "project:admin", "project:releases", "org:ci"}
+            )
+            == "project:releases"
+        )
+        assert _least_privileged_scope({"org:ci"}) is None
 
     def test_under_scoped_token_is_denied(self) -> None:
         # PUT requires org:write/org:admin; a read-only token holds neither.

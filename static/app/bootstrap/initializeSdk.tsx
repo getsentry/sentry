@@ -29,7 +29,7 @@ export function getLastEventId(): string | undefined {
 
 // Each error type maps to the set of HTTP status codes it should be filtered for.
 const FILTERED_STATUSES_BY_ERROR_TYPE: Readonly<Record<string, ReadonlySet<string>>> = {
-  RequestError: new Set(['200', '400', '401', '403', '404', '429']),
+  RequestError: new Set(['200', '400', '401', '402', '403', '404', '429']),
   BadRequestError: new Set(['400']),
   UnauthorizedError: new Set(['401']),
   ForbiddenError: new Set(['403']),
@@ -150,6 +150,11 @@ export function initializeSdk(config: Config) {
       /AbortError: signal is aborted without reason/i,
       /AbortError: The user aborted a request/i,
       /**
+       * Ignore known browser failures while loading, installing, or starting
+       * the service worker.
+       */
+      /service-worker\.js.*(?:failed|error|unsupported|bad HTTP|cannot|redirect)/i,
+      /**
        * React internal error thrown when something outside react modifies the DOM
        * This is usually because of a browser extension or chrome translate page
        */
@@ -177,11 +182,7 @@ export function initializeSdk(config: Config) {
     },
 
     beforeSend(event, hint) {
-      if (
-        isFilteredRequestErrorEvent(event) ||
-        isEventWithFileUrl(event) ||
-        isNullTupleUnhandledRejectionEvent(event)
-      ) {
+      if (isFilteredRequestErrorEvent(event) || isEventWithFileUrl(event)) {
         return null;
       }
 
@@ -269,23 +270,6 @@ export function isFilteredRequestErrorEvent(event: Event): boolean {
 
 export function isEventWithFileUrl(event: Event): boolean {
   return !!event.request?.url?.startsWith('file://');
-}
-
-/**
- * Some unhandled rejections are serialized as `[null,null]`, which maps to
- * an unhelpful `Error: ,` and is not actionable.
- */
-function isNullTupleUnhandledRejectionEvent(event: Event): boolean {
-  if (event.message !== '[null,null]') {
-    return false;
-  }
-
-  const error = event.exception?.values?.at(-1);
-  return (
-    error?.type === 'Error' &&
-    error.value === ',' &&
-    error.mechanism?.type === 'auto.browser.global_handlers.onunhandledrejection'
-  );
 }
 
 /** Tag and set fingerprint for UndefinedResponseBodyError events */

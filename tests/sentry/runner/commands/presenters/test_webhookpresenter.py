@@ -233,3 +233,38 @@ def test_slack_presenter_methods_with_different_types() -> None:
         responses.calls[0].request.headers["x-sentry-options-signature"]
         == "8b7827d99b4373d1a969e38d2813be1ee8de3f4a75c46223af548c04a053f98a"
     )
+
+
+@pytest.mark.django_db
+@responses.activate
+@override_settings(
+    OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL="https://test/",
+    OPTIONS_AUTOMATOR_HMAC_SECRET="test-secret-key",
+    SENTRY_LOCAL_CELL="test_region",
+)
+def test_slack_presenter_does_not_truncate_long_values() -> None:
+    # Long option values (e.g. serialized dicts/lists) must be sent to the
+    # webhook in full - the receiving webhook, not this presenter, is
+    # responsible for any truncation needed to fit its own display limits.
+    responses.add(responses.POST, "https://test/", status=200)
+    long_value = "x" * 500
+
+    presenter = WebhookPresenter("options-automator")
+    assert presenter.is_webhook_enabled()
+
+    presenter.set("long_option", long_value)
+    presenter.update("updated_option", long_value, long_value)
+    presenter.drift("drifted_option", long_value)
+
+    presenter.flush()
+
+    sent_json_data = json.loads(responses.calls[0].request.body)
+    assert sent_json_data["set_options"] == [
+        {"option_name": "long_option", "option_value": long_value}
+    ]
+    assert sent_json_data["updated_options"] == [
+        {"option_name": "updated_option", "db_value": long_value, "value": long_value}
+    ]
+    assert sent_json_data["drifted_options"] == [
+        {"option_name": "drifted_option", "option_value": long_value}
+    ]

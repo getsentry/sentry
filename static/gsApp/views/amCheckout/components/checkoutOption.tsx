@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 
 export function CheckoutOption({
@@ -44,7 +44,7 @@ export function CheckoutOption({
         }
       }}
     >
-      <Flex direction="column" padding="xl" gap="lg">
+      <Stack padding="xl" gap="lg">
         {!!topDecoration && topDecoration}
         <Flex align="start" justify="between" gap="md">
           <Container paddingTop="2xs">
@@ -60,11 +60,11 @@ export function CheckoutOption({
               />
             )}
           </Container>
-          <Flex direction="column" gap="sm" flexGrow={1}>
+          <Stack gap="sm" flexGrow={1}>
             {optionHeader}
             {/* If there is no divider, line the description up with the header */}
             {!withDivider && !!optionDescription && optionDescription}
-          </Flex>
+          </Stack>
         </Flex>
         {withDivider && (
           <Fragment>
@@ -73,7 +73,7 @@ export function CheckoutOption({
             {!!optionDescription && optionDescription}
           </Fragment>
         )}
-      </Flex>
+      </Stack>
     </Option>
   );
 }

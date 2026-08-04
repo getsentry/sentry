@@ -31,13 +31,15 @@ from sentry.integrations.utils.metrics import IntegrationWebhookEvent, Integrati
 from sentry.integrations.utils.scope import clear_organization_info
 from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
+from sentry.issues.action_log import ActionSource, action_context_scope, resolve_action_actor
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
+from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
+from sentry.pr_metrics.lifecycle_mapping import map_gitlab_state_to_pullrequest_lifecycle
 from sentry.seer.code_review.webhooks.logging import debug_log
 from sentry.seer.code_review.webhooks.merge_request import (
     handle_merge_request_event,
@@ -381,15 +383,6 @@ class IssuesEventWebhook(GitlabWebhook):
         return f"{integration.metadata['domain_name']}:{path_with_namespace}#{issue_iid}"
 
 
-def _map_gitlab_state_to_pullrequest_lifecycle(gitlab_state: str | None) -> str | None:
-    return {
-        "opened": PullRequestLifecycleState.OPEN,
-        "closed": PullRequestLifecycleState.CLOSED,
-        "merged": PullRequestLifecycleState.MERGED,
-        "locked": PullRequestLifecycleState.LOCKED,
-    }.get(gitlab_state or "")
-
-
 class MergeEventWebhook(GitlabWebhook):
     """
     Handle Merge Request Hook
@@ -462,7 +455,7 @@ class MergeEventWebhook(GitlabWebhook):
 
             updated_at = event["object_attributes"].get("updated_at")
             merged_at = event["object_attributes"].get("merged_at")
-            state = _map_gitlab_state_to_pullrequest_lifecycle(
+            state = map_gitlab_state_to_pullrequest_lifecycle(
                 event["object_attributes"].get("state")
             )
             action = event["object_attributes"].get("action")
@@ -532,17 +525,6 @@ class MergeEventWebhook(GitlabWebhook):
         except IntegrityError:
             pass
 
-        debug_log(
-            logger,
-            organization,
-            "gitlab.merge_request.dispatching_processors",
-            {
-                "integration_id": integration.id,
-                "repo_id": repo.id,
-                "pr_number": number,
-                "processor_count": len(self.WEBHOOK_EVENT_PROCESSORS),
-            },
-        )
         self._handle(
             integration=integration,
             event=event,
@@ -604,16 +586,6 @@ class NoteEventWebhook(GitlabWebhook):
         # Keep repo metadata fresh (url and path_with_namespace).
         self.update_repo_data(repo, event)
 
-        debug_log(
-            logger,
-            organization,
-            "gitlab.note.dispatching_processors",
-            {
-                "integration_id": integration.id,
-                "repo_id": repo.id,
-                "processor_count": len(self.WEBHOOK_EVENT_PROCESSORS),
-            },
-        )
         self._handle(
             integration=integration,
             event=event,
@@ -713,7 +685,8 @@ class GitlabWebhookEndpoint(Endpoint):
         if request.method != "POST":
             return HttpResponse(status=405, reason="HTTP method not supported.")
 
-        return super().dispatch(request, *args, **kwargs)
+        with action_context_scope(ActionSource.GITLAB, resolve_action_actor(request)):
+            return super().dispatch(request, *args, **kwargs)
 
     def post(self, request: HttpRequest) -> HttpResponse:
         clear_organization_info()

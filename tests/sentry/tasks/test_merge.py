@@ -11,7 +11,7 @@ from sentry.models.groupredirect import GroupRedirect
 from sentry.models.userreport import UserReport
 from sentry.services import eventstore
 from sentry.similarity import _make_index_backend, features
-from sentry.tasks.merge import merge_groups
+from sentry.tasks.merge import merge_groups, start_merge_groups
 from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.testutils.cases import SnubaTestCase, TestCase
@@ -309,3 +309,31 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         gale.refresh_from_db()
         assert gale.group_id == new_group.id
         assert gale.original_group_id == old_group.id
+
+
+class StartMergeGroupsTest(TestCase):
+    def test_delegates_to_merge_groups(self) -> None:
+        group1 = self.create_group(self.project)
+        group2 = self.create_group(self.project)
+        target = self.create_group(self.project)
+
+        with patch.object(merge_groups, "delay") as mock_delay:
+            result = start_merge_groups(
+                from_object_ids=[group1.id, group2.id],
+                to_object_id=target.id,
+                transaction_id="txn-123",
+                eventstream_state={"key": "value"},
+            )
+
+        assert result is True
+        mock_delay.assert_called_once_with(
+            from_object_ids=[group1.id, group2.id],
+            to_object_id=target.id,
+            transaction_id="txn-123",
+            eventstream_state={"key": "value"},
+        )
+
+    def test_validates_missing_params(self) -> None:
+        assert start_merge_groups(from_object_ids=None, to_object_id=1) is False
+        assert start_merge_groups(from_object_ids=[], to_object_id=1) is False
+        assert start_merge_groups(from_object_ids=[1], to_object_id=None) is False

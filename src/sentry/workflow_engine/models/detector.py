@@ -26,6 +26,7 @@ from sentry.workflow_engine.types import DetectorSettings
 from .json_config import JSONConfigBase
 
 if TYPE_CHECKING:
+    from sentry.models.project import Project
     from sentry.workflow_engine.handlers.detector import DetectorHandler
     from sentry.workflow_engine.models.data_condition_group import DataConditionGroupSnapshot
 
@@ -72,7 +73,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     objects: ClassVar[DetectorManager] = DetectorManager()
     objects_for_deletion: ClassVar[BaseManager[Detector]] = BaseManager()
 
-    project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
+    project = FlexibleForeignKey("sentry.Project", null=True, on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
 
     # The data sources that the detector is watching
@@ -116,6 +117,12 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     }
 
     CACHE_TTL = 60 * 10
+
+    @property
+    def linked_project(self) -> Project:
+        if self.project is None:
+            raise ValueError("Detector is not project-scoped")
+        return self.project
 
     @classmethod
     def get_default_detector_for_project(cls, project_id: int, detector_type: str) -> Detector:

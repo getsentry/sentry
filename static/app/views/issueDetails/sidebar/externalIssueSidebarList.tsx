@@ -1,4 +1,4 @@
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -17,7 +17,7 @@ import {SectionKey} from 'sentry/views/issueDetails/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
 
 interface Props {
-  event: Event;
+  event: Event | undefined;
   group: Group;
 }
 
@@ -51,7 +51,7 @@ export function ExternalIssueSidebarList({event, group}: Props) {
       }
       sectionKey={SectionKey.EXTERNAL_ISSUES}
     >
-      <Flex direction="column" gap="md">
+      <Stack gap="md">
         <ExternalIssueListContent
           integrations={externalIssueData.integrations}
           isLoading={externalIssueData.isLoading}
@@ -75,7 +75,7 @@ export function ExternalIssueSidebarList({event, group}: Props) {
             isLoading={externalIssueData.isLoading}
           />
         )}
-      </Flex>
+      </Stack>
     </SidebarFoldSection>
   );
 }

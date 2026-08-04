@@ -106,8 +106,15 @@ def _retry_objectstore[T](operation: Callable[[], T]) -> T:
     raise AssertionError("unreachable")
 
 
+def _read_objectstore(session: Session, key: str) -> bytes:
+    response = session.get(key)
+    if response is None:
+        raise FileNotFoundError("Object does not exist in objectstore")
+    return response.payload.read()
+
+
 def _get_json[T: BaseModel](session: Session, key: str, model_cls: type[T]) -> T:
-    return model_cls(**orjson.loads(_retry_objectstore(lambda: session.get(key).payload.read())))
+    return model_cls(**orjson.loads(_retry_objectstore(lambda: _read_objectstore(session, key))))
 
 
 def _put_json(session: Session, key: str, model: BaseModel) -> None:
@@ -267,7 +274,7 @@ def _fetch_batch_images(
     def fetch(image_hash: str) -> None:
         try:
             key = f"{key_prefix}/{image_hash}"
-            data = _retry_objectstore(lambda: session.get(key).payload.read())
+            data = _retry_objectstore(lambda: _read_objectstore(session, key))
             with lock:
                 cache[image_hash] = data
         except Exception:
@@ -378,7 +385,7 @@ def _try_auto_approve_snapshot(
 
     try:
         sibling_manifest = ComparisonManifest(
-            **orjson.loads(session.get(sibling_comparison_key).payload.read())
+            **orjson.loads(_read_objectstore(session, sibling_comparison_key))
         )
     except Exception:
         logger.exception(
@@ -894,7 +901,13 @@ def compare_snapshots(
         try:
             head_manifest = _get_json(session, head_manifest_key, SnapshotManifest)
             base_manifest = _get_json(session, base_manifest_key, SnapshotManifest)
-        except (orjson.JSONDecodeError, RequestError, ValidationError, TypeError):
+        except (
+            orjson.JSONDecodeError,
+            FileNotFoundError,
+            RequestError,
+            ValidationError,
+            TypeError,
+        ):
             logger.exception(
                 "compare_snapshots: failed to load or parse manifest",
                 extra={
@@ -1125,7 +1138,7 @@ def finalize_snapshot_comparison(
     plan_key = _plan_key(org_id, project_id, head_artifact_id, base_artifact_id)
     try:
         plan = _get_json(session, plan_key, ComparisonPlan)
-    except (orjson.JSONDecodeError, RequestError, ValidationError, TypeError):
+    except (orjson.JSONDecodeError, FileNotFoundError, RequestError, ValidationError, TypeError):
         # Without the plan there are no chunks to assemble, so this is unrecoverable.
         # Fail the row cleanly instead of leaving it PROCESSING for the reaper to sweep
         # ~30min later (the chunk-result read below degrades for the same reason).
@@ -1158,7 +1171,13 @@ def finalize_snapshot_comparison(
             )
             try:
                 result = _get_json(session, chunk_result_key, ChunkResult)
-            except (orjson.JSONDecodeError, RequestError, ValidationError, TypeError):
+            except (
+                orjson.JSONDecodeError,
+                FileNotFoundError,
+                RequestError,
+                ValidationError,
+                TypeError,
+            ):
                 # A done chunk whose result blob is missing/evicted/corrupt must not crash
                 # finalize, otherwise the comparison stays PROCESSING forever and every retry
                 # re-raises. Degrade its candidates to errored, mirroring the failed branch.

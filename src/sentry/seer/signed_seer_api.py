@@ -109,6 +109,7 @@ def _resolve_viewer_context(
 
     return ViewerContext(
         organization_id=org_id,
+        project_id=None if has_mismatch else (vc.project_id if vc else None),
         user_id=user_id,
         actor_type=vc.actor_type,
         token=None if has_mismatch else vc.token,
@@ -240,6 +241,13 @@ class LlmGenerateRequest(TypedDict):
     response_schema: NotRequired[dict[str, Any]]
     timeout: NotRequired[float | None]
     reasoning: NotRequired[Literal["off", "low", "med", "high"] | None]
+    # Groups this call's gen_ai spans into a Sentry AI Monitoring conversation.
+    # Seer cannot infer identity for a proxied call, so omitting this (or passing
+    # None) means "not part of any conversation" and the spans carry no
+    # conversation id. Prefer a stable subject key (e.g. f"autofix_{run_id}");
+    # pass None for calls that are not conversations, such as classification,
+    # scoring, or telemetry processing.
+    conversation_id: NotRequired[str | None]
 
 
 class OneShotRunRequest(TypedDict):

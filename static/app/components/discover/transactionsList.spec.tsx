@@ -293,7 +293,7 @@ describe('TransactionsList', () => {
 
       expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
 
-      const gridCells = screen.getAllByTestId('grid-cell');
+      const gridCells = await screen.findAllByTestId('grid-cell');
       expect(gridCells.map(e => e.textContent)).toEqual(['/a', '100', '/b', '1,000']);
 
       const filterDropdown = screen.getByRole('button', {

@@ -8,23 +8,11 @@ import {
   MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG,
   MOCK_FLAGS,
 } from 'sentry/components/events/featureFlags/testUtils';
+import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 
 async function renderFlagDrawer() {
-  // Needed to mock useVirtualizer lists.
-  jest
-    .spyOn(window.Element.prototype, 'getBoundingClientRect')
-    .mockImplementation(() => ({
-      x: 0,
-      y: 0,
-      width: 0,
-      height: 30,
-      left: 0,
-      top: 0,
-      right: 0,
-      bottom: 0,
-      toJSON: jest.fn(),
-    }));
+  mockElementSize({width: 0, height: 30});
   render(
     <GroupDataContextProvider
       group={MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG.group}

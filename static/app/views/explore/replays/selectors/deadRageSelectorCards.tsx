@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack, type FlexProps} from '@sentry/scraps/layout';
 
 import {Accordion} from 'sentry/components/container/accordion';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
@@ -73,7 +73,7 @@ function AccordionWidget({
       {isLoading ? (
         <SelectorCardPlaceholder />
       ) : isError || (!isLoading && filteredData.length === 0) ? (
-        <Flex flex="1 1 auto" direction="column" justify="center">
+        <Stack flex="1 1 auto" justify="center">
           <StyledEmptyStateWarning withIcon={false}>
             <EmptyHeader>
               <IconSearch size="sm" />
@@ -86,9 +86,9 @@ function AccordionWidget({
               )}
             </EmptySubtitle>
           </StyledEmptyStateWarning>
-        </Flex>
+        </Stack>
       ) : (
-        <Flex flex="1 1 auto" direction="column" justify="start">
+        <Stack flex="1 1 auto" justify="start">
           <Accordion
             collapsible
             collapsedChevronDirection="right"
@@ -120,7 +120,7 @@ function AccordionWidget({
               };
             })}
           />
-        </Flex>
+        </Stack>
       )}
     </WidgetFrame>
   );
@@ -222,14 +222,19 @@ function AccordionItemHeader({
   );
 }
 
-const SplitCardContainer = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: max-content;
-  grid-auto-flow: column;
-  gap: 0 ${p => p.theme.space.xl};
-  align-items: stretch;
-`;
+function SplitCardContainer({children}: {children: ReactNode}) {
+  return (
+    <Grid
+      align="stretch"
+      columns={{zero: '1fr', xl: '1fr 1fr'}}
+      flow={{zero: 'row', xl: 'column'}}
+      gap={{zero: 'xl', xl: '0 xl'}}
+      rows="max-content"
+    >
+      {children}
+    </Grid>
+  );
+}
 
 const ClickCount = styled(TextOverflow)`
   color: ${p => p.theme.colors.gray500};
@@ -282,7 +287,7 @@ const EmptySubtitle = styled('div')`
 `;
 
 const LoadingContainer = styled((props: FlexProps) => (
-  <Flex gap="2xs" flex="1 1 auto" direction="column" justify="start" {...props} />
+  <Stack gap="2xs" flex="1 1 auto" justify="start" {...props} />
 ))`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xs} 4px ${p => p.theme.space.xs};
 `;

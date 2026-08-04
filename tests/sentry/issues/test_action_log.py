@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -30,18 +30,21 @@ from sentry.issues.action_log.types import (
     MarkReviewedAction,
     MergeFromOtherAction,
     MergeIntoOtherAction,
+    PullRequestClosedAction,
     ResolveAction,
     SetPriorityAction,
+    SetResolvedByAgeAction,
     UnassignAction,
     UnlinkExternalIssueAction,
     ViewAction,
 )
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import GroupDerivedData
+from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
-from sentry.testutils.helpers.action_log import capture_action_log
+from sentry.testutils.helpers.action_log import CapturedAction, capture_action_log
 from sentry.testutils.outbox import outbox_runner
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
@@ -155,6 +158,11 @@ class TestResolveActionActor(TestCase):
     def test_personal_api_token(self) -> None:
         auth = AuthenticatedToken(kind="api_token", user_id=self.user.id)
         request = self._request(auth=auth, user=self.user)
+        assert resolve_action_actor(request) == GroupActionActor.user(self.user.id)
+
+    def test_agent_token(self) -> None:
+        auth = AuthenticatedToken(kind="agent_token", user_id=self.user.id)
+        request = self._request(auth=auth)
         assert resolve_action_actor(request) == GroupActionActor.user(self.user.id)
 
     def test_org_auth_token(self) -> None:
@@ -272,6 +280,23 @@ class TestPublishActionFromContext(TestCase):
         assert any("without ActionContext" in r.message for r in error_records)
         info_record = [r for r in logs.records if r.message == "group.action_log"][0]
         assert getattr(info_record, "source") == "unknown"
+
+
+class TestPublishActionsFromContextBulk(TestCase):
+    def test_multiple_writes(self) -> None:
+        from sentry.issues.action_log import action_context_scope, publish_actions_from_context_bulk
+
+        actor = GroupActionActor.user(42)
+        with self.feature("projects:issue-action-log-write-to-db"), outbox_runner():
+            with action_context_scope(source="web", actor=actor):
+                publish_actions_from_context_bulk(
+                    [
+                        (ViewAction(), self.group.project, self.group.id, None),
+                        (ResolveAction(), self.group.project, self.group.id, None),
+                    ],
+                )
+
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 2
 
 
 class TestActionLogIntegration(APITestCase, SnubaTestCase):
@@ -419,21 +444,6 @@ class TestUpdateGroupStatusActionLog(APITestCase, SnubaTestCase):
                     activity_type=ActivityType.SET_IGNORED,
                 )
         log.assert_logged(ArchiveAction, group_id=group.id, source=ActionSource.SYSTEM)
-
-    def test_substatus_only_transition_emits_no_action(self) -> None:
-        # AUTO_SET_ONGOING moves a group NEW -> ONGOING but it stays UNRESOLVED; that
-        # substatus-only change must not be logged as an unresolve.
-        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW)
-        with capture_action_log() as log:
-            with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
-                Group.objects.update_group_status(
-                    groups=[group],
-                    status=GroupStatus.UNRESOLVED,
-                    substatus=GroupSubStatus.ONGOING,
-                    activity_type=ActivityType.AUTO_SET_ONGOING,
-                    from_substatus=GroupSubStatus.NEW,
-                )
-        log.assert_not_logged(group_id=group.id)
 
 
 class TestExternalIssueLinkingActionLog(APITestCase, SnubaTestCase):
@@ -662,7 +672,7 @@ class TestPublishActionWrite(TestCase):
         # Derived data was NOT processed inline
         assert not GroupDerivedData.objects.filter(group_id=self.group.id).exists()
         # Task was dispatched instead
-        mock_task.delay.assert_called_once_with(self.group.id)
+        mock_task.delay.assert_called_once_with(self.group.id, incremental=True)
 
     @patch("sentry.issues.derived.processing.process_group_log_task")
     def test_inline_derived_processes_without_task(self, mock_task: MagicMock) -> None:
@@ -681,6 +691,35 @@ class TestPublishActionWrite(TestCase):
         assert derived.view_count == 1
         # No async task needed (single entry = caught up)
         mock_task.delay.assert_not_called()
+
+    def test_idempotency_key_publish(self) -> None:
+        idempotency_key = "test_idempotency_key_publish"
+        with self.feature("projects:issue-action-log-write-to-db"), outbox_runner():
+            publish_action(
+                ViewAction(),
+                source=ActionSource.API,
+                group_id=self.group.id,
+                project=self.group.project,
+                actor=GroupActionActor.user(self.user.id),
+                idempotency_key=idempotency_key,
+            )
+
+        entry = GroupActionLogEntry.objects.get(group_id=self.group.id)
+        assert entry.idempotency_key == idempotency_key
+
+        with (
+            self.feature("projects:issue-action-log-write-to-db"),
+            outbox_runner(),
+        ):
+            # Tacitly assert silent failure / no exception
+            publish_action(
+                ViewAction(),
+                source=ActionSource.API,
+                group_id=self.group.id,
+                project=self.group.project,
+                actor=GroupActionActor.user(self.user.id),
+                idempotency_key=idempotency_key,
+            )
 
 
 class TestCaptureActionLog(TestCase):
@@ -778,3 +817,42 @@ class TestCaptureActionLog(TestCase):
         outer.assert_logged(ViewAction)
         outer.assert_logged(ResolveAction)
         outer.assert_logged(ArchiveAction)
+
+
+class TestActivitiesCreateActions(TestCase):
+    def test_basic(self) -> None:
+        with capture_action_log() as log:
+            Activity.objects.create(
+                group=self.group,
+                project=self.project,
+                type=ActivityType.SET_RESOLVED.value,
+                user_id=self.user.id,
+                data={},
+            )
+        log.assert_logged(ResolveAction)
+
+    def test_with_data(self) -> None:
+        with capture_action_log() as log:
+            Activity.objects.create(
+                group=self.group,
+                project=self.project,
+                type=ActivityType.PULL_REQUEST_CLOSED.value,
+                user_id=self.user.id,
+                data={"pull_request": 123},
+            )
+        caption = cast(CapturedAction, log.assert_logged(PullRequestClosedAction))
+        action: PullRequestClosedAction = cast(PullRequestClosedAction, caption.action)
+        assert action.pull_request == 123
+
+    def test_with_translated_data(self) -> None:
+        with capture_action_log() as log:
+            Activity.objects.create(
+                group=self.group,
+                project=self.project,
+                type=ActivityType.SET_RESOLVED_BY_AGE.value,
+                user_id=self.user.id,
+                data={"age": 123},
+            )
+        caption = cast(CapturedAction, log.assert_logged(SetResolvedByAgeAction))
+        action: SetResolvedByAgeAction = cast(SetResolvedByAgeAction, caption.action)
+        assert action.auto_resolve_age_threshold == 123

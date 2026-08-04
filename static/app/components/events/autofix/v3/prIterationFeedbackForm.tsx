@@ -3,7 +3,7 @@ import {useRef, useState} from 'react';
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -14,13 +14,14 @@ import {IconReturn} from 'sentry/icons/iconReturn';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 
 interface PrIterationFeedbackFormProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
   groupId: string;
   onClose?: () => void;
   referrer?: string;
-  runId?: number;
+  runId?: SeerExplorerRunId;
 }
 
 export function PrIterationFeedbackForm({
@@ -68,7 +69,7 @@ export function PrIterationFeedbackForm({
   };
 
   return (
-    <Flex direction="column" gap="lg">
+    <Stack gap="lg">
       <Flex gap="xs" align="center">
         <Text>{prompt}</Text>
         <FeatureBadge type="alpha" />
@@ -112,6 +113,6 @@ export function PrIterationFeedbackForm({
           {isSubmitting ? t('Submitting feedback') : t('Submit')}
         </Button>
       </Flex>
-    </Flex>
+    </Stack>
   );
 }

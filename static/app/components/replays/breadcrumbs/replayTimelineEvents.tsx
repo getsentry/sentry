@@ -15,6 +15,7 @@ import {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {isWebVitalFrame} from 'sentry/utils/replays/types';
 import type {GraphicsVariant} from 'sentry/utils/theme';
+import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
 
 const NODE_SIZES = [8, 12, 16];
 
@@ -101,10 +102,16 @@ function Event({
       onShowSnippet={() => {}}
     />
   ));
+  // Scope the card's nested hoverable tooltips (e.g. the selector link's own
+  // tooltip in a User Click crumb) to their own hover-overlay delay group.
+  // Otherwise a nested tooltip opening snap-closes this card and unmounts the
+  // link out from under the cursor.
   const title = (
-    <Container maxHeight="80vh" overflow="auto">
-      {buttons}
-    </Container>
+    <HoverOverlayGroupProvider>
+      <Container maxHeight="80vh" overflow="auto">
+        {buttons}
+      </Container>
+    </HoverOverlayGroupProvider>
   );
 
   // Web vital frames render an expandable JSON block that needs more room than
@@ -119,6 +126,7 @@ function Event({
     max-width: ${tooltipWidth}px !important;
     width: ${tooltipWidth}px;
 
+    /* Viewport-based: the tooltip is portaled to the body, so it has no query container. */
     @media screen and (max-width: ${theme.breakpoints.sm}) {
       max-width: ${mobileMaxWidth}px !important;
     }

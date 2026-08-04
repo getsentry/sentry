@@ -12,7 +12,7 @@ from sentry.ingest.types import ConsumerType
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import ingest_events_passthrough_tasks
+from sentry.taskworker.namespaces import ingest_events_raw_tasks
 from sentry.utils import metrics
 
 from .processors import IngestMessage, Retriable, process_event
@@ -27,6 +27,7 @@ def process_simple_event_message(
     raw_message: Message[KafkaPayload],
     consumer_type: str,
     reprocess_only_stuck_events: bool,
+    reprocess_only_events_not_in_nodestore: bool,
 ) -> None:
     """
     Processes a single Kafka Message containing a "simple" Event payload.
@@ -70,6 +71,7 @@ def process_simple_event_message(
             message,
             project,
             reprocess_only_stuck_events,
+            reprocess_only_events_not_in_nodestore,
         )
 
     except Exception as exc:
@@ -84,7 +86,7 @@ def process_simple_event_message(
 
 @instrumented_task(
     name="sentry.ingest.consumer.simple_event.process_event_from_kafka",
-    namespace=ingest_events_passthrough_tasks,
+    namespace=ingest_events_raw_tasks,
     processing_deadline_duration=150,
     retry=Retry(times=2, delay=5, on=(Retriable,)),
     compression_type=CompressionType.ZSTD,

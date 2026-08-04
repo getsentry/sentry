@@ -7,6 +7,7 @@ from sentry_protos.snuba.v1.endpoint_trace_items_pb2 import (
     ExportTraceItemsResponse,
 )
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken, RequestMeta, TraceItemType
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
 from sentry.api.utils import get_date_range_from_params
 from sentry.data_export.base import ExportError
@@ -184,10 +185,24 @@ class TraceItemFullExportProcessor(ExploreProcessor):
     ):
         super().__init__(organization, explore_query, output_mode=output_mode)
         self.page_token = page_token
+        self._request_meta = self._create_export_rpc_meta()
+        self._trace_filter = self._create_trace_item_filter()
 
-    def _create_logs_export_rpc_meta(self) -> RequestMeta:
+    def _sync_page_token_from_snuba_response(self, http_resp: ExportTraceItemsResponse) -> None:
+        """Mirror Snuba's response page_token: continuation bytes or terminal (end_pagination)."""
+        if not http_resp.HasField("page_token"):
+            self.page_token = None
+            return
+        pt = http_resp.page_token
+        if pt.HasField("end_pagination") and pt.end_pagination:
+            self.page_token = None
+        else:
+            self.page_token = pt.SerializeToString()
+
+    def _create_export_rpc_meta(self) -> RequestMeta:
         if self.snuba_params.organization_id is None:
             raise ExportError("Organization ID must be provided")
+
         return RequestMeta(
             organization_id=self.snuba_params.organization_id,
             project_ids=self.snuba_params.project_ids,
@@ -201,20 +216,18 @@ class TraceItemFullExportProcessor(ExploreProcessor):
             ),
         )
 
-    def _sync_page_token_from_snuba_response(self, http_resp: ExportTraceItemsResponse) -> None:
-        """Mirror Snuba's response page_token: continuation bytes or terminal (end_pagination)."""
-        if not http_resp.HasField("page_token"):
-            self.page_token = None
-            return
-        pt = http_resp.page_token
-        if pt.HasField("end_pagination") and pt.end_pagination:
-            self.page_token = None
-        else:
-            self.page_token = pt.SerializeToString()
+    def _create_trace_item_filter(self) -> TraceItemFilter | None:
+        where, _, _ = self.search_resolver.resolve_query_with_columns(
+            querystring=self.explore_query.get("query", ""),
+            selected_columns=None,
+            equations=None,
+        )
+        return where
 
     def run_query(self, _offset: int, limit: int) -> list[dict[str, Any]]:
-        meta = self._create_logs_export_rpc_meta()
-        request = ExportTraceItemsRequest(meta=meta, limit=limit)
+        request = ExportTraceItemsRequest(
+            meta=self._request_meta, limit=limit, filter=self._trace_filter
+        )
         if self.page_token:
             token = PageToken()
             token.ParseFromString(self.page_token)

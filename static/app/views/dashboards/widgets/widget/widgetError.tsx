@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -23,7 +23,7 @@ export function WidgetError({error, action}: WidgetErrorProps) {
   return (
     <Panel>
       <NonShrinkingWarningIcon variant={DEEMPHASIS_VARIANT} size="md" />
-      <Flex direction="column" align="start" gap="md">
+      <Stack align="start" gap="md">
         <ErrorText>
           {typeof error === 'string'
             ? error
@@ -32,7 +32,7 @@ export function WidgetError({error, action}: WidgetErrorProps) {
               t('Error loading data.'))}
         </ErrorText>
         {action}
-      </Flex>
+      </Stack>
     </Panel>
   );
 }

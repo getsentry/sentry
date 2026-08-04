@@ -57,6 +57,7 @@ from sentry.search.eap.utils import can_expose_attribute_to_api
 from sentry.search.events.types import SnubaParams
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.utils.snuba import SPAN_EAP_COLUMN_MAP
 
 
 class AttributeVisibilityTest(TestCase):
@@ -811,13 +812,6 @@ class SearchResolverQueryTest(TestCase):
                     TraceItemFilter(
                         exists_filter=ExistsFilter(key=trace_key),
                     ),
-                    TraceItemFilter(
-                        comparison_filter=ComparisonFilter(
-                            key=trace_key,
-                            op=ComparisonFilter.OP_NOT_EQUALS,
-                            value=AttributeValue(val_str=""),
-                        )
-                    ),
                 ]
             )
         )
@@ -838,10 +832,26 @@ class SearchResolverQueryTest(TestCase):
                             ]
                         )
                     ),
+                ]
+            )
+        )
+        assert having is None
+
+    def test_has_parent_span(self) -> None:
+        where, having, _ = self.resolver.resolve_query("has:parent_span")
+        parent_span_key = AttributeKey(
+            name="sentry.parent_span_id", type=AttributeKey.Type.TYPE_STRING
+        )
+        assert where == TraceItemFilter(
+            and_filter=AndFilter(
+                filters=[
+                    TraceItemFilter(
+                        exists_filter=ExistsFilter(key=parent_span_key),
+                    ),
                     TraceItemFilter(
                         comparison_filter=ComparisonFilter(
-                            key=trace_key,
-                            op=ComparisonFilter.OP_EQUALS,
+                            key=parent_span_key,
+                            op=ComparisonFilter.OP_NOT_EQUALS,
                             value=AttributeValue(val_str=""),
                         )
                     ),
@@ -1120,6 +1130,18 @@ def _make_deprecated_metadata(
         is_in_otel=False,
         visibility=Visibility.PUBLIC,
         deprecation=DeprecationInfo(replacement=replacement, status=status),
+    )
+
+
+def test_reasoning_level_attribute_is_queryable() -> None:
+    attr = SPAN_ATTRIBUTE_DEFINITIONS["gen_ai.request.reasoning.level"]
+
+    assert attr.public_alias == "gen_ai.request.reasoning.level"
+    assert attr.internal_name == "gen_ai.request.reasoning.level"
+    assert attr.search_type == "string"
+    assert (
+        SPAN_EAP_COLUMN_MAP["gen_ai.request.reasoning.level"]
+        == "attr_str[gen_ai.request.reasoning.level]"
     )
 
 

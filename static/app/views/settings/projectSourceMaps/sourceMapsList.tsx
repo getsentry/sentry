@@ -202,7 +202,7 @@ export function SourceMapsList({project}: Props) {
   const platformByProject = defined(project.platform)
     ? projectPlatformToDocsMap[project.platform]
     : undefined;
-  const platform = platformByProject ?? project.platform ?? 'javascript';
+  const platform = platformByProject ?? 'javascript';
   const sourceMapsLinks = getSourceMapsDocLinks(platform);
 
   return (

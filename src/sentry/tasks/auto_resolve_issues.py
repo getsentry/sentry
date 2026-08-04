@@ -11,8 +11,7 @@ from sentry import analytics
 from sentry.analytics.events.issue_auto_resolved import IssueAutoResolvedEvent
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues import grouptype
-from sentry.issues.action_log import ActionSource, publish_action
-from sentry.issues.action_log.types import ResolveAction
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
@@ -26,7 +25,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.types.activity import ActivityType
 
-ONE_HOUR = 3600
+TEN_MINUTES = 10 * 60
 
 
 @instrumented_task(
@@ -43,7 +42,7 @@ def schedule_auto_resolution():
     for opt in options_qs:
         opts_by_project[opt.project_id][opt.key] = opt.value
 
-    cutoff = time() - ONE_HOUR
+    cutoff = time() - TEN_MINUTES
     for project_id, options in opts_by_project.items():
         if not options.get("sentry:resolve_age"):
             # kill the option to avoid it coming up in the future
@@ -57,7 +56,7 @@ def schedule_auto_resolution():
 
         auto_resolve_project_issues.apply_async(
             args=[project_id],
-            expires=ONE_HOUR,
+            expires=TEN_MINUTES,
             headers={"sentry-propagate-traces": False},
         )
 
@@ -117,19 +116,14 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
 
         if happened:
-            publish_action(
-                ResolveAction(),
-                source=ActionSource.SYSTEM,
-                group_id=group.id,
-                project=project,
-            )
-            activity = Activity.objects.create(
-                group=group,
-                project=project,
-                type=ActivityType.SET_RESOLVED_BY_AGE.value,
-                data={"age": age},
-            )
-            record_group_history(group, GroupHistoryStatus.AUTO_RESOLVED)
+            with action_context_scope(ActionSource.SYSTEM, SYSTEM_ACTOR):
+                activity = Activity.objects.create(
+                    group=group,
+                    project=project,
+                    type=ActivityType.SET_RESOLVED_BY_AGE.value,
+                    data={"age": age},
+                )
+                record_group_history(group, GroupHistoryStatus.AUTO_RESOLVED)
             update_group_open_period(
                 group=group,
                 new_status=GroupStatus.RESOLVED,
@@ -169,6 +163,6 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
         auto_resolve_project_issues.apply_async(
             args=[project_id],
             kwargs={"cutoff": int(cutoff.strftime("%s")), "chunk_size": chunk_size},
-            expires=ONE_HOUR,
+            expires=TEN_MINUTES,
             headers={"sentry-propagate-traces": False},
         )

@@ -162,11 +162,16 @@ describe('CronDetectorsList', () => {
       incident_updates: [],
     });
 
-    fetchMock.mockResponse(req => {
-      return req.url.includes('status.sentry.io/api/v2/incidents.json')
-        ? Promise.resolve(JSON.stringify({incidents: [incident]}))
-        : Promise.reject(new Error('not found'));
-    });
+    fetchMock
+      .mockResponse(req =>
+        Promise.reject(new Error(`Unexpected fetch: ${req.method} ${req.url}`))
+      )
+      .routeOnce(
+        /\/api\/v2\/incidents\.json$/,
+        fetchMock.Response(JSON.stringify({incidents: [incident]}), {
+          headers: {'Content-Type': 'application/json'},
+        })
+      );
 
     const {router} = render(<CronDetectorsList />, {organization, initialRouterConfig});
 

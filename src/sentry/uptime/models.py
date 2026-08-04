@@ -19,6 +19,7 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.deletions.base import ModelRelation
 from sentry.models.files.file import File
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.remote_subscriptions.models import BaseRemoteSubscription
 from sentry.uptime.types import (
     DATA_SOURCE_UPTIME_SUBSCRIPTION,
@@ -152,8 +153,13 @@ class UptimeSubscriptionRegion(DefaultFieldsModel):
         ]
 
 
-def get_org_from_detector(detector: Detector) -> tuple[Organization]:
-    return (detector.project.organization,)
+def get_org_from_detector(detector: Detector) -> tuple[Organization] | None:
+    if detector.project_id is None:
+        return None
+    try:
+        return (detector.linked_project.organization,)
+    except Project.DoesNotExist:
+        return None
 
 
 @cache_func_for_models([(Detector, get_org_from_detector)])

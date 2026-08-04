@@ -3,7 +3,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {AssigneeBadge} from 'sentry/components/assigneeBadge';
+import {AssigneeBadge, type AssignmentDetails} from 'sentry/components/assigneeBadge';
 import {
   AssigneeSelectorDropdown,
   type AssignableEntity,
@@ -34,9 +34,11 @@ interface AssigneeSelectorProps {
     options?: HandleAssignOptions
   ) => void;
   additionalMenuFooterItems?: React.ReactNode;
+  assignmentDetails?: AssignmentDetails;
   memberList?: User[];
   owners?: Array<Omit<SuggestedAssignee, 'assignee'>>;
   showLabel?: boolean;
+  useOwnerAssignmentDetails?: boolean;
 }
 
 type OnAssignCallback = (
@@ -92,6 +94,21 @@ export function useHandleAssigneeChange({
   return {handleAssigneeChange, assigneeLoading};
 }
 
+function getOwnerAssignmentDetails(group: AssigneeGroup): AssignmentDetails | undefined {
+  const assignedTo = group.assignedTo;
+
+  if (!assignedTo) {
+    return undefined;
+  }
+
+  const assignmentOwner = group.owners?.find(owner => {
+    const [ownerType, ownerId] = owner.owner.split(':');
+    return ownerType === assignedTo.type && ownerId === String(assignedTo.id);
+  });
+
+  return assignmentOwner ? {source: assignmentOwner.type} : undefined;
+}
+
 /**
  * Assignee selector used on issue details + issue stream. Uses `AssigneeSelectorDropdown` which controls most of the logic while this is primarily responsible for the design.
  */
@@ -102,7 +119,9 @@ export function AssigneeSelector({
   handleAssigneeChange,
   owners,
   additionalMenuFooterItems,
+  assignmentDetails,
   showLabel = false,
+  useOwnerAssignmentDetails = true,
 }: AssigneeSelectorProps) {
   const {data: defaultMemberList = [], isPending: defaultMemberListLoading} = useQuery({
     ...useProjectMembersQueryOptions([group.project.id]),
@@ -114,6 +133,9 @@ export function AssigneeSelector({
     group.assignedTo?.type === 'user'
       ? currentMemberList.find(user => user.id === group.assignedTo?.id)
       : undefined;
+  const currentAssignmentDetails =
+    assignmentDetails ??
+    (useOwnerAssignmentDetails ? getOwnerAssignmentDetails(group) : undefined);
 
   return (
     <AssigneeSelectorDropdown
@@ -135,12 +157,7 @@ export function AssigneeSelector({
           <AssigneeBadge
             assignedTo={group.assignedTo ?? undefined}
             assignedUser={assignedUser}
-            assignmentReason={
-              group.owners?.find(owner => {
-                const [_ownershipType, ownerId] = owner.owner.split(':');
-                return ownerId === group.assignedTo?.id;
-              })?.type
-            }
+            assignmentDetails={currentAssignmentDetails}
             loading={assigneeLoading}
             showLabel={showLabel}
             chevronDirection={isOpen ? 'up' : 'down'}

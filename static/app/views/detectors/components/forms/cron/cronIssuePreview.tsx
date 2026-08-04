@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
+import {parseActorString} from 'sentry/utils/parseActorString';
 import {DetectorIssuePreview} from 'sentry/views/detectors/components/forms/common/detectorIssuePreview';
 import {IssuePreviewSection} from 'sentry/views/detectors/components/forms/common/issuePreviewSection';
-import {ownerToActor} from 'sentry/views/detectors/components/forms/common/ownerToActor';
 import {useDetectorFormProject} from 'sentry/views/detectors/components/forms/common/useDetectorFormProject';
 import {useCronDetectorFormField} from 'sentry/views/detectors/components/forms/cron/fields';
 
@@ -21,7 +21,7 @@ function useCronIssueTitle() {
 export function CronIssuePreview({step}: {step?: number}) {
   const owner = useCronDetectorFormField('owner');
   const issueTitle = useCronIssueTitle();
-  const assignee = ownerToActor(owner);
+  const assignee = parseActorString(owner);
   const project = useDetectorFormProject();
 
   return (

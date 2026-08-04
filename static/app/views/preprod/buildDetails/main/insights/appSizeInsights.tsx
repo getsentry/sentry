@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 import {useSearchParams} from 'react-router-dom';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {IconSettings} from 'sentry/icons';
@@ -71,8 +71,7 @@ export function AppSizeInsights({
           </Button>
         )}
       </Flex>
-      <Flex
-        direction="column"
+      <Stack
         gap="2xs"
         css={theme => ({
           '& > :nth-child(odd)': {
@@ -124,7 +123,7 @@ export function AppSizeInsights({
             </Text>
           </Flex>
         )}
-      </Flex>
+      </Stack>
 
       <AppSizeInsightsSidebar
         processedInsights={processedInsights}

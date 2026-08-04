@@ -10,8 +10,10 @@ from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from datetime import datetime
+from typing import TYPE_CHECKING, Optional, Sequence
 
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
     ActionSource,
@@ -55,7 +57,7 @@ _action_context: ContextVar[ActionContext | None] = ContextVar("action_context",
 
 
 @contextmanager
-def action_context_scope(source: str, actor: GroupActionActor) -> Generator[None]:
+def action_context_scope(source: str, actor: GroupActionActor = SYSTEM_ACTOR) -> Generator[None]:
     """
     Set action attribution context for the duration of a block. Must be set before
     any code path that calls publish_action_from_context().
@@ -79,6 +81,8 @@ def publish_action(
     project: Project,
     actor: GroupActionActor = SYSTEM_ACTOR,
     force_async_derived: bool = False,
+    idempotency_key: str | None = None,
+    date_added: datetime | None = None,
 ) -> None:
     """
     Record an issue action.
@@ -89,6 +93,12 @@ def publish_action(
 
     If *force_async_derived* is True, derived data processing is deferred
     entirely to the async task. Useful for latency-sensitive paths.
+
+    If *idempotency_key* is set, the GroupActionLogEntry is created if and only if there
+    does not already exist a GALE with that group id & idempotency key; else it's a no-op.
+
+    If *date_added* is set, it records when the action occurred instead of when the outbox
+    receiver processed it.
 
     Log publishing is managed by an outbox that flushes on commit by
     default. Wrap in ``outbox_context(flush=False)`` to defer the drain.
@@ -144,6 +154,11 @@ def publish_action(
         "force_async_derived": force_async_derived,
     }
 
+    if idempotency_key is not None:
+        payload["idempotency_key"] = idempotency_key
+    if date_added is not None:
+        payload["date_added"] = date_added.isoformat()
+
     outbox = CellOutbox(
         shard_scope=OutboxScope.GROUP_SCOPE,
         shard_identifier=group_id,
@@ -162,6 +177,8 @@ def publish_action_from_context(
     group_id: int,
     project: Project,
     force_async_derived: bool = False,
+    idempotency_key: Optional[str] = None,
+    date_added: datetime | None = None,
 ) -> None:
     """
     Record an issue action using the current ActionContext. This is the primary API
@@ -174,6 +191,7 @@ def publish_action_from_context(
         logger.error(
             "publish_action_from_context called without ActionContext",
             extra={"action": action.get_type().name.lower(), "group_id": str(group_id)},
+            stack_info=True,
         )
         source: str = ActionSource.UNKNOWN
         actor = SYSTEM_ACTOR
@@ -187,4 +205,60 @@ def publish_action_from_context(
         project=project,
         actor=actor,
         force_async_derived=force_async_derived,
+        idempotency_key=idempotency_key,
+        date_added=date_added,
+    )
+
+
+def publish_actions_from_context_bulk(
+    actions: Sequence[tuple[GroupAction, Project, int, str | None]],
+    *,
+    force_async_derived: bool = False,
+) -> None:
+    """
+    Record multiple issue actions using the current ActionContext. See docstring for
+    publish_action_from_context. The distinction is that this is a function to publish
+    multiple GroupActions at once while only flushing the Outbox once.
+
+    Input is a sequence of tuples of (GroupAction, Project, GroupID, IdempotencyKey)
+    """
+    if len(actions) == 0:
+        return
+
+    ctx = get_action_context()
+    if ctx is None:
+        logger.error(
+            "publish_action_from_context_bulk called without ActionContext",
+            extra={
+                "actions": [ap[0].get_type().name.lower() for ap in actions],
+            },
+            stack_info=True,
+        )
+        source: str = ActionSource.UNKNOWN
+        actor = SYSTEM_ACTOR
+    else:
+        source = ctx.source
+        actor = ctx.actor
+
+    with outbox_context(flush=False):
+        for apgi in actions[:-1]:
+            publish_action(
+                apgi[0],
+                source=source,
+                group_id=apgi[2],
+                project=apgi[1],
+                actor=actor,
+                force_async_derived=force_async_derived,
+                idempotency_key=apgi[3],
+            )
+
+    # Flushes the outbox by default.
+    publish_action(
+        actions[-1][0],
+        source=source,
+        group_id=actions[-1][2],
+        project=actions[-1][1],
+        actor=actor,
+        force_async_derived=force_async_derived,
+        idempotency_key=actions[-1][3],
     )

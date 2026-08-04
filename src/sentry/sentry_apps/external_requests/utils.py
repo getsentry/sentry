@@ -1,5 +1,6 @@
 import logging
 import re
+from collections.abc import Mapping
 from typing import Any
 from urllib.parse import urlparse
 
@@ -19,6 +20,7 @@ from sentry.sentry_apps.metrics import (
 from sentry.sentry_apps.models.sentry_app import SentryApp, track_response_code
 from sentry.sentry_apps.services.app.model import RpcSentryApp
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
+from sentry.sentry_apps.utils.headers import mask_header_values, parse_custom_headers
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 from sentry.utils.sentry_apps.webhooks import TIMEOUT_STATUS_CODE
 
@@ -107,11 +109,13 @@ def send_and_save_sentry_app_request(
     sentry_app: SentryApp | RpcSentryApp,
     org_id: int,
     event: str,
+    headers: Mapping[str, str],
     **kwargs: Any,
 ) -> Response:
     """
-    Send a webhook request, and save the request into the Redis buffer for the
-    app dashboard request log. Returns the response of the request.
+    Send a request to a Sentry App's endpoint, attaching the app's custom
+    headers, and save the request into the Redis buffer for the app dashboard
+    request log. Returns the response of the request.
 
     kwargs ends up being the arguments passed into safe_urlopen
     """
@@ -123,8 +127,13 @@ def send_and_save_sentry_app_request(
         buffer = SentryAppWebhookRequestsBuffer(sentry_app)
         slug = sentry_app.slug_for_metrics
 
+        custom_headers = parse_custom_headers(sentry_app.webhook_headers)
+        send_headers = {**custom_headers, **headers}
+        # Since some headers may carry secrets, we mask them to avoid logging them
+        loggable_headers = {**mask_header_values(custom_headers), **headers}
+
         try:
-            resp = safe_urlopen(url=url, **kwargs)
+            resp = safe_urlopen(url=url, headers=send_headers, **kwargs)
         except (Timeout, ConnectionError) as e:
             error_type = e.__class__.__name__.lower()
             lifecycle.add_extras(
@@ -142,7 +151,7 @@ def send_and_save_sentry_app_request(
                 org_id=org_id,
                 event=event,
                 url=url,
-                headers=kwargs.get("headers"),
+                headers=loggable_headers,
             )
             lifecycle.record_halt(e)
             # Re-raise the exception because some of these tasks might retry on the exception
@@ -157,7 +166,7 @@ def send_and_save_sentry_app_request(
             error_id=resp.headers.get("Sentry-Hook-Error"),
             project_id=resp.headers.get("Sentry-Hook-Project"),
             response=resp,
-            headers=kwargs.get("headers"),
+            headers=loggable_headers,
         )
         try:
             resp.raise_for_status()

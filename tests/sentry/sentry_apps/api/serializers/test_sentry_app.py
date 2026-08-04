@@ -34,6 +34,21 @@ class SentryAppSerializerTest(TestCase):
         assert result["scopes"] == ["org:write", "team:admin"]
         assert result.get("clientSecret") is None
 
+    def test_webhook_events_are_faithful(self) -> None:
+        user = self.create_user()
+        organization = self.create_organization(owner=user)
+        sentry_app = self.create_sentry_app(
+            name="Granular App",
+            organization=organization,
+            scopes=("event:read",),
+            events=["issue.resolved"],
+        )
+        result = serialize(sentry_app, None, SentryAppSerializer(), access=None)
+
+        # events consolidates to the resource; webhookEvents is the exact list.
+        assert result["events"] == {"issue"}
+        assert result["webhookEvents"] == ["issue.resolved"]
+
     def test_internal_app(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)

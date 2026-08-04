@@ -8,6 +8,7 @@ type MenuMode = 'slash-commands-keyboard' | 'pr-widget' | 'hidden';
 interface SlashCommandHandlers {
   onFeedback: (() => void) | undefined;
   onNew: () => void;
+  onBashMode?: (value: boolean) => void;
   onCodeMode?: (value: 'off' | 'on' | 'only') => void;
   onConversations?: () => void;
   onMaxSize?: () => void;
@@ -283,6 +284,7 @@ export function useExplorerMenu({
 }
 
 function useSlashCommands({
+  onBashMode,
   onMaxSize,
   onMedSize,
   onNew,
@@ -352,6 +354,22 @@ function useSlashCommands({
             },
           ]
         : []),
+      ...(isSentryEmployee && onBashMode
+        ? [
+            {
+              title: '/bash-mode-off',
+              key: '/bash-mode-off',
+              description: 'Disable bash mode tools',
+              handler: () => onBashMode(false),
+            },
+            {
+              title: '/bash-mode-on',
+              key: '/bash-mode-on',
+              description: 'Enable bash mode tools',
+              handler: () => onBashMode(true),
+            },
+          ]
+        : []),
       ...(isSentryEmployee && onConversations
         ? [
             {
@@ -368,6 +386,7 @@ function useSlashCommands({
       onMaxSize,
       onMedSize,
       onFeedback,
+      onBashMode,
       onCodeMode,
       onConversations,
       isSentryEmployee,

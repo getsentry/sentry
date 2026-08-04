@@ -93,6 +93,49 @@ describe('LinkedPullRequests', () => {
     expect(mergedStatus.querySelector('svg')).toBeInTheDocument();
     expect(closedStatus.querySelector('svg')).toBeInTheDocument();
     expect(pullRequestsMock).toHaveBeenCalledTimes(1);
+    expect(pullRequestsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({query: {expand: 'checksAndReview'}})
+    );
+  });
+
+  it('renders checks and review badges when available', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {
+        pullRequests: [
+          {
+            ...PullRequestFixture({id: '123', repository}),
+            attribution: null,
+            checksStatus: 'failure',
+            dateLinked: '2026-06-08T23:11:32.000000Z',
+            reviewStatus: 'changes_requested',
+            status: 'open',
+          },
+          {
+            ...PullRequestFixture({id: '124', repository}),
+            attribution: null,
+            checksStatus: null,
+            dateLinked: '2026-06-08T23:10:32.000000Z',
+            reviewStatus: null,
+            status: 'open',
+          },
+        ],
+      },
+    });
+
+    render(<LinkedPullRequests group={group} />, {organization});
+
+    const list = await screen.findByRole('list', {name: 'Linked pull requests'});
+    const withBadges = within(list).getByRole('link', {name: /Pull request #123/});
+    const withoutBadges = within(list).getByRole('link', {name: /Pull request #124/});
+
+    expect(within(withBadges).getByText('Checks failed')).toBeInTheDocument();
+    expect(within(withBadges).getByText('Changes requested')).toBeInTheDocument();
+    expect(within(withoutBadges).queryByText('Checks failed')).not.toBeInTheDocument();
+    expect(
+      within(withoutBadges).queryByText('Changes requested')
+    ).not.toBeInTheDocument();
   });
 
   it('deduplicates pull request ids from group activity', () => {

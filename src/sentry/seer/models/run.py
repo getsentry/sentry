@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import TypedDict
 from uuid import uuid4
 
 from django.db import models
@@ -9,6 +10,7 @@ from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, cell_si
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.pullrequest import PullRequest
+from sentry.seer.autofix.constants import CodingAgentStatus
 
 
 class SeerRunType(models.TextChoices):
@@ -22,6 +24,16 @@ class SeerRunMirrorStatus(models.TextChoices):
     PENDING = "pending"
     LIVE = "live"
     FAILED = "failed"
+
+
+class SeerRunMilestoneType(models.TextChoices):
+    ROOT_CAUSE = "autofix_root_cause"
+    SOLUTION = "autofix_solution"
+    CODE_CHANGES = "autofix_code_changes"
+    # Aggregate, not per-PR: HAS_PULL_REQUEST means the run opened at least one
+    # PR; PULL_REQUESTS_MERGED means all of the run's PRs are merged.
+    HAS_PULL_REQUEST = "has_pull_request"
+    PULL_REQUESTS_MERGED = "pull_requests_merged"
 
 
 @cell_silo_model
@@ -101,6 +113,13 @@ class SeerRunPullRequest(DefaultFieldsModel):
     pull_request = FlexibleForeignKey(
         "sentry.PullRequest", on_delete=models.CASCADE, related_name="seer_run_links"
     )
+    # Null for Seer-native PRs. Not unique -- a handoff can report multiple PRs.
+    coding_agent_handoff = FlexibleForeignKey(
+        "seer.SeerRunCodingAgentHandoff",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="pull_request_links",
+    )
 
     class Meta:
         app_label = "seer"
@@ -113,6 +132,80 @@ class SeerRunPullRequest(DefaultFieldsModel):
         ]
 
     __repr__ = sane_repr("seer_run_id", "pull_request_id")
+
+
+@cell_silo_model
+class SeerRunMilestone(DefaultFieldsModel):
+    """Records the progress milestones a run reached.
+
+    A milestone is recorded at most once per run (enforced by the unique
+    constraint), so out-of-order or duplicate delivery is a safe no-op insert.
+    Milestones are aggregate facts about the run, not per-PR events: a run that
+    opens several PRs records HAS_PULL_REQUEST once. Re-running a run from an
+    earlier step may later clear milestones that no longer hold.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    seer_run = FlexibleForeignKey(
+        "seer.SeerRun", on_delete=models.CASCADE, related_name="milestones"
+    )
+    milestone = models.CharField(max_length=256, choices=SeerRunMilestoneType.choices)
+
+    class Meta:
+        app_label = "seer"
+        db_table = "seer_seerrunmilestone"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["seer_run", "milestone"],
+                name="seer_runmilestone_unique",
+            ),
+        ]
+
+    __repr__ = sane_repr("seer_run_id", "milestone")
+
+
+class SeerRunCodingAgentHandoffExtras(TypedDict, total=False):
+    # Deep link to the agent's session on the provider's own site (e.g. Cursor).
+    # Not every provider supplies one.
+    agent_url: str | None
+
+
+@cell_silo_model
+class SeerRunCodingAgentHandoff(DefaultFieldsModel):
+    """Records a coding agent Seer handed a run off to (Cursor/GitHub Copilot/Claude
+    Code), and its outcome.
+
+    A run can hand off to multiple agents (one per repo), so ``seer_run`` is not unique.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    seer_run = FlexibleForeignKey(
+        "seer.SeerRun", on_delete=models.CASCADE, related_name="coding_agent_handoffs"
+    )
+    provider = models.CharField(max_length=256)
+    agent_id = models.CharField(max_length=256, unique=True)
+    status = models.CharField(
+        max_length=256,
+        choices=[(s.value, s.value) for s in CodingAgentStatus],
+        default=CodingAgentStatus.PENDING,
+        db_default=CodingAgentStatus.PENDING,
+    )
+    # See SeerRunCodingAgentHandoffExtras for the expected shape.
+    extras = models.JSONField(db_default={}, default=dict)
+
+    @property
+    def pull_requests(self) -> models.QuerySet[PullRequest]:
+        """The pull requests this handoff produced, via its SeerRunPullRequest links."""
+        return PullRequest.objects.filter(seer_run_links__coding_agent_handoff=self)
+
+    class Meta:
+        app_label = "seer"
+        db_table = "seer_seerruncodingagenthandoff"
+        indexes = [models.Index(fields=["seer_run", "status"])]
+
+    __repr__ = sane_repr("seer_run_id", "provider", "status")
 
 
 @cell_silo_model

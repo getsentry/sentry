@@ -1,56 +1,23 @@
 import type React from 'react';
-import {useMemo, useSyncExternalStore} from 'react';
+import {useSyncExternalStore} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import type {UseQueryResult} from '@tanstack/react-query';
 
 import type {MDXFrontmatter} from 'sentry/stories/frontmatter';
-let context = import.meta.webpackContext('sentry', {
-  recursive: true,
-  regExp: /\.stories.tsx$/,
-  mode: 'lazy',
-});
-let mdxContext = import.meta.webpackContext('sentry', {
-  recursive: true,
-  regExp: /\.mdx$/,
-  mode: 'lazy',
-});
-
-// External store that increments whenever HMR replaces a story or mdx file.
-// Accepting context module IDs creates proper HMR boundaries — without this,
-// updates are silently dropped or cause "unexpected require from disposed module".
-let _storiesHmrVersion = 0;
-const _storiesHmrListeners = new Set<() => void>();
+import {
+  getStoriesHmrVersion,
+  storyImports,
+  subscribeToStoriesHmr,
+} from 'sentry/stories/storyManifest.generated';
 
 if (process.env.NODE_ENV === 'development' && import.meta.webpackHot) {
-  const onUpdate = () => {
-    // Re-capture and re-register after each replacement — the old context
-    // reference is stale and its replacement won't have accept handlers.
-    context = import.meta.webpackContext('sentry', {
-      recursive: true,
-      regExp: /\.stories.tsx$/,
-      mode: 'lazy',
-    });
-    mdxContext = import.meta.webpackContext('sentry', {
-      recursive: true,
-      regExp: /\.mdx$/,
-      mode: 'lazy',
-    });
-    import.meta.webpackHot!.accept(context.id as string, onUpdate);
-    import.meta.webpackHot!.accept(mdxContext.id as string, onUpdate);
-    _storiesHmrVersion++;
-    _storiesHmrListeners.forEach(l => l());
-  };
-  import.meta.webpackHot.accept(context.id as string, onUpdate);
-  import.meta.webpackHot.accept(mdxContext.id as string, onUpdate);
-}
-
-function subscribeToStoriesHmr(listener: () => void) {
-  _storiesHmrListeners.add(listener);
-  return () => _storiesHmrListeners.delete(listener);
-}
-
-function getStoriesHmrVersion() {
-  return _storiesHmrVersion;
+  // Adding or removing a story changes the manifest module itself. Reload so
+  // every consumer (including React Aria's collection state) sees the new file
+  // set. Edits to existing stories remain hot through the manifest's explicit
+  // dependency accept handlers.
+  import.meta.webpackHot.accept('sentry/stories/storyManifest.generated', () => {
+    window.location.reload();
+  });
 }
 
 export interface StoryResources {
@@ -84,30 +51,13 @@ export function isMDXStory(story: StoryDescriptor): story is MDXStoryDescriptor 
   return story.filename.endsWith('.mdx');
 }
 
-export function useStoryBookFiles() {
-  return useMemo(
-    () =>
-      [...context.keys(), ...mdxContext.keys()].map(file =>
-        file.replace(/^\.\//, 'app/')
-      ),
-    []
-  );
-}
-
 async function importStory(filename: string): Promise<StoryDescriptor> {
-  if (!filename) {
-    throw new Error(`Filename is required, got ${filename}`);
+  const loadStory = storyImports[filename];
+  if (!loadStory) {
+    throw new Error(`Unknown story: ${filename}`);
   }
 
-  if (filename.endsWith('.mdx')) {
-    const story = await mdxContext(filename.replace(/^app\//, './'));
-    return {
-      exports: story,
-      filename,
-    };
-  }
-
-  const story = await context(filename.replace(/^app\//, './'));
+  const story = (await loadStory()) as StoryDescriptor['exports'];
   return {
     exports: story,
     filename,

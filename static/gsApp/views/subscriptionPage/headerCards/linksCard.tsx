@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {IconList, IconSubscribed, IconTimer} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -18,7 +18,7 @@ export function LinksCard({organization}: {organization: Organization}) {
     <SubscriptionHeaderCard
       title={hasBillingPerms ? t('Receipts & notifications') : t('Activity log')}
       sections={[
-        <Flex key="links" direction="column" gap="sm" align="start">
+        <Stack key="links" gap="sm" align="start">
           {hasBillingPerms ? (
             <Fragment>
               <LinkButton
@@ -58,7 +58,7 @@ export function LinksCard({organization}: {organization: Organization}) {
               {t('View activity')}
             </LinkButton>
           )}
-        </Flex>,
+        </Stack>,
       ]}
     />
   );

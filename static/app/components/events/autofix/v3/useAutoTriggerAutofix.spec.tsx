@@ -49,6 +49,44 @@ describe('useAutoTriggerAutofix', () => {
     expect(autofix.startStep).not.toHaveBeenCalled();
   });
 
+  it('does not start root_cause when an explorer autofix run already exists', () => {
+    const autofix = makeAutofix({
+      runState: {
+        run_id: 1,
+        blocks: [],
+        status: 'processing',
+        updated_at: '2024-01-02T00:00:00Z',
+      },
+    });
+    const group = GroupFixture({
+      seerAutofixLastTriggered: '2024-01-01T00:00:00Z',
+      seerExplorerAutofixLastTriggered: null,
+    });
+
+    renderHook(() => useAutoTriggerAutofix({autofix, group}));
+
+    expect(autofix.startStep).not.toHaveBeenCalled();
+  });
+
+  it('waits for explorer autofix state to load before triggering', () => {
+    const startStep = jest.fn();
+    let autofix = makeAutofix({isLoading: true, startStep});
+    const group = GroupFixture({
+      seerAutofixLastTriggered: '2024-01-01T00:00:00Z',
+      seerExplorerAutofixLastTriggered: null,
+    });
+
+    const {rerender} = renderHook(() => useAutoTriggerAutofix({autofix, group}));
+
+    expect(startStep).not.toHaveBeenCalled();
+
+    autofix = makeAutofix({isLoading: false, startStep});
+    rerender();
+
+    expect(startStep).toHaveBeenCalledWith('root_cause');
+    expect(startStep).toHaveBeenCalledTimes(1);
+  });
+
   it('does not trigger root_cause more than once on re-render', () => {
     const autofix = makeAutofix();
     const group = GroupFixture({

@@ -6,7 +6,7 @@ from collections import defaultdict
 from concurrent.futures import as_completed
 from typing import IO
 
-from objectstore_client import RequestError, Session
+from objectstore_client import Session
 
 from sentry.preprod.snapshots.manifest import SnapshotManifest
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
@@ -22,12 +22,10 @@ def archive_object_key(artifact_id: int) -> str:
 
 
 def archive_exists(session: Session, key: str) -> bool:
-    try:
-        session.get(key).payload.close()
-    except RequestError as e:
-        if e.status == 404:
-            return False
-        raise
+    archive = session.get(key)
+    if archive is None:
+        return False
+    archive.payload.close()
     return True
 
 
@@ -61,7 +59,10 @@ def build_snapshot_zip(
 
     def fetch_image(image_hash: str) -> tuple[str, bytes | None]:
         try:
-            data = session.get(f"{key_prefix}/{image_hash}").payload.read()
+            response = session.get(f"{key_prefix}/{image_hash}")
+            if response is None:
+                raise FileNotFoundError("Image does not exist in objectstore")
+            data = response.payload.read()
             return (image_hash, data)
         except Exception:
             logger.exception(

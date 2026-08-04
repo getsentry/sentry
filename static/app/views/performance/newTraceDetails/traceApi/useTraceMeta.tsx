@@ -39,10 +39,22 @@ type TraceMetaQueryParams =
     };
 
 function isEmptyMeta(meta: TraceMeta | EAPTraceMeta): boolean {
+  if (isEAPTraceMeta(meta)) {
+    return (
+      getTraceMetaErrorCount(meta) === 0 &&
+      getTraceMetaLogsCount(meta) === 0 &&
+      getTraceMetaMetricsCount(meta) === 0 &&
+      getTraceMetaPerformanceIssueCount(meta) === 0 &&
+      getTraceMetaSpanCount(meta) === 0 &&
+      getTraceMetaUptimeCount(meta) === 0
+    );
+  }
+
   return (
-    getTraceMetaSpanCount(meta) === 0 &&
     getTraceMetaErrorCount(meta) === 0 &&
-    getTraceMetaPerformanceIssueCount(meta) === 0
+    getTraceMetaPerformanceIssueCount(meta) === 0 &&
+    getTraceMetaSpanCount(meta) === 0 &&
+    getTraceMetaTransactionCount(meta) === 0
   );
 }
 
@@ -399,10 +411,12 @@ export function useTraceMeta(options: UseTraceMetaOptions): TraceMetaQueryResult
     };
   }
 
+  const allRequestsFailed = data?.apiErrors.length === traces.length;
+
   return {
-    data: data?.meta,
+    data: allRequestsFailed ? undefined : data?.meta,
     errors: data?.apiErrors ?? [],
-    status: data?.apiErrors?.length === traces.length ? 'error' : status,
+    status: allRequestsFailed ? 'error' : status,
     isLoading,
   };
 }

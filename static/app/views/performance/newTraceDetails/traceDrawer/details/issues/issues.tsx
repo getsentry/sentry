@@ -60,6 +60,7 @@ function Issue(props: IssueProps) {
       groupId: String(props.issue.issue_id),
       organizationSlug: props.organization.slug,
       environments: [],
+      expandDerivedData: props.organization.features.includes('issue-stream-progress-ui'),
     }),
     staleTime: 10 * 60 * 1000,
   });
@@ -172,9 +173,22 @@ type IssueListProps = {
   issues: TraceTree.TraceIssue[];
   node: BaseNode;
   organization: Organization;
+  className?: string;
+  /**
+   * Overrides the trace slug used for the "Open N more in Issues" link. Pass
+   * this when rendering outside the trace waterfall route (e.g. the
+   * conversations span detail), where the `traceSlug` route param is absent.
+   */
+  traceSlug?: string;
 };
 
-export function IssueList({issues, node, organization}: IssueListProps) {
+export function IssueList({
+  issues,
+  node,
+  organization,
+  traceSlug,
+  className,
+}: IssueListProps) {
   const uniqueIssues = [
     ...node.uniqueErrorIssues.sort(sortIssuesByLevel),
     ...node.uniqueOccurrenceIssues,
@@ -185,14 +199,14 @@ export function IssueList({issues, node, organization}: IssueListProps) {
   }
 
   return (
-    <IssuesWrapper>
+    <IssuesWrapper className={className}>
       <StyledPanel>
         {uniqueIssues.slice(0, MAX_DISPLAYED_ISSUES_COUNT).map((issue, index) => (
           <Issue key={index} issue={issue} organization={organization} />
         ))}
       </StyledPanel>
       {uniqueIssues.length > MAX_DISPLAYED_ISSUES_COUNT ? (
-        <TraceDrawerComponents.IssuesLink node={node}>
+        <TraceDrawerComponents.IssuesLink node={node} traceSlug={traceSlug}>
           <Flex align="center" marginLeft="2xs" gap="xs">
             <IconOpen />
             {t(

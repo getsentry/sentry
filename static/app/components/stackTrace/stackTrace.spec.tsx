@@ -659,7 +659,7 @@ describe('Core StackTrace', () => {
     await userEvent.hover(frameTitles[1]!);
 
     expect(
-      await within(frameTitles[1]!).findByRole('button', {name: 'Set up Code Mapping'})
+      await within(frameTitles[1]!).findByText('Set up Code Mapping')
     ).toBeInTheDocument();
     expect(
       within(frameTitles[1]!).getByRole('button', {name: 'Copy file path'})
