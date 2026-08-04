@@ -8,6 +8,7 @@ import {
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
+import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
 import {IssuePreviewAutofixSummary} from './issuePreviewAutofixSummary';
@@ -26,6 +27,23 @@ function makePatch(repoName: string, path: string): ExplorerFilePatch {
       type: 'M',
     },
   } as ExplorerFilePatch;
+}
+
+function makeAutofix(
+  runState: ReturnType<typeof useExplorerAutofix>['runState']
+): ReturnType<typeof useExplorerAutofix> {
+  return {
+    runState,
+    startStep: jest.fn(),
+    createPR: jest.fn(),
+    reset: jest.fn(),
+    triggerCodingAgentHandoff: jest.fn(),
+    codingAgentErrors: [],
+    dismissCodingAgentError: jest.fn(),
+    warnings: [],
+    isLoading: false,
+    isPolling: false,
+  };
 }
 
 const rootCauseArtifact = AutofixRootCauseArtifactFixture({
@@ -124,7 +142,12 @@ describe('IssuePreviewAutofixSummary', () => {
       },
     });
 
-    render(<IssuePreviewAutofixSummary groupId="preview-group" runState={runState} />);
+    render(
+      <IssuePreviewAutofixSummary
+        autofix={makeAutofix(runState)}
+        groupId="preview-group"
+      />
+    );
 
     expect(
       screen.getAllByRole('heading', {level: 3}).map(heading => heading.textContent)
@@ -190,9 +213,11 @@ describe('IssuePreviewAutofixSummary', () => {
     render(
       <IssuePreviewAutofixSummary
         groupId="preview-group"
-        runState={ExplorerAutofixStateFixture({
-          blocks: [ExplorerAutofixBlockFixture({artifacts: [rootCauseArtifact]})],
-        })}
+        autofix={makeAutofix(
+          ExplorerAutofixStateFixture({
+            blocks: [ExplorerAutofixBlockFixture({artifacts: [rootCauseArtifact]})],
+          })
+        )}
       />
     );
 
@@ -211,19 +236,21 @@ describe('IssuePreviewAutofixSummary', () => {
     render(
       <IssuePreviewAutofixSummary
         groupId="preview-group"
-        runState={ExplorerAutofixStateFixture({
-          blocks: [
-            ExplorerAutofixBlockFixture({
-              artifacts: undefined,
-              message: {
-                content: 'Thinking...',
-                metadata: {step: 'root_cause'},
-                role: 'assistant',
-              },
-            }),
-          ],
-          status: 'processing',
-        })}
+        autofix={makeAutofix(
+          ExplorerAutofixStateFixture({
+            blocks: [
+              ExplorerAutofixBlockFixture({
+                artifacts: undefined,
+                message: {
+                  content: 'Thinking...',
+                  metadata: {step: 'root_cause'},
+                  role: 'assistant',
+                },
+              }),
+            ],
+            status: 'processing',
+          })
+        )}
       />
     );
 
@@ -236,36 +263,117 @@ describe('IssuePreviewAutofixSummary', () => {
     expect(screen.queryByRole('region', {name: 'Proposal'})).not.toBeInTheDocument();
   });
 
-  it.each([
-    [
-      'errored step',
-      ExplorerAutofixStateFixture({
-        blocks: [ExplorerAutofixBlockFixture({artifacts: [rootCauseArtifact]})],
-        status: 'error',
-      }),
-    ],
-    [
-      'invalid artifact',
-      ExplorerAutofixStateFixture({
-        blocks: [
-          ExplorerAutofixBlockFixture({
-            artifacts: [
-              AutofixRootCauseArtifactFixture({
-                reason: 'Malformed root cause',
-                data: {one_line_description: 'Missing required details'},
+  it('renders an empty state for an errored step', () => {
+    const runState = ExplorerAutofixStateFixture({
+      blocks: [ExplorerAutofixBlockFixture({artifacts: [rootCauseArtifact]})],
+      status: 'error',
+    });
+
+    render(
+      <IssuePreviewAutofixSummary
+        autofix={makeAutofix(runState)}
+        groupId="preview-group"
+      />
+    );
+
+    expect(
+      within(screen.getByRole('region', {name: 'Root Cause'})).getByText(
+        'No root cause was identified.'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('renders an empty state for an invalid artifact', () => {
+    const runState = ExplorerAutofixStateFixture({
+      blocks: [
+        ExplorerAutofixBlockFixture({
+          artifacts: [
+            AutofixRootCauseArtifactFixture({
+              reason: 'Malformed root cause',
+              data: {one_line_description: 'Missing required details'},
+            }),
+          ],
+        }),
+      ],
+    });
+
+    render(
+      <IssuePreviewAutofixSummary
+        autofix={makeAutofix(runState)}
+        groupId="preview-group"
+      />
+    );
+
+    expect(
+      within(screen.getByRole('region', {name: 'Root Cause'})).getByText(
+        'No root cause was identified.'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('renders an existing section with empty text when it has no artifact', () => {
+    render(
+      <IssuePreviewAutofixSummary
+        groupId="preview-group"
+        autofix={makeAutofix(
+          ExplorerAutofixStateFixture({
+            blocks: [
+              ExplorerAutofixBlockFixture({artifacts: [rootCauseArtifact]}),
+              ExplorerAutofixBlockFixture({
+                id: 'solution',
+                artifacts: [
+                  AutofixSolutionArtifactFixture({
+                    reason: 'Malformed plan',
+                    data: {one_line_summary: 'Missing steps'},
+                  }),
+                ],
+                message: {
+                  content: 'Plan complete',
+                  metadata: {step: 'solution'},
+                  role: 'assistant',
+                },
               }),
             ],
-          }),
-        ],
-      }),
-    ],
-  ])('renders nothing for a %s', (_label, runState) => {
-    render(<IssuePreviewAutofixSummary groupId="preview-group" runState={runState} />);
+          })
+        )}
+      />
+    );
 
-    expect(screen.queryByRole('region', {name: 'Proposal'})).not.toBeInTheDocument();
+    expect(screen.getByRole('region', {name: 'Root Cause'})).toBeInTheDocument();
+    const plan = screen.getByRole('region', {name: 'Implementation Plan'});
     expect(
-      screen.queryByRole('region', {name: 'Implementation Plan'})
-    ).not.toBeInTheDocument();
-    expect(screen.queryByRole('region', {name: 'Root Cause'})).not.toBeInTheDocument();
+      within(plan).getByText('No implementation plan was generated.')
+    ).toBeInTheDocument();
+  });
+
+  it('re-runs a section from its disclosure action', async () => {
+    const runState = ExplorerAutofixStateFixture({
+      blocks: [ExplorerAutofixBlockFixture({artifacts: [rootCauseArtifact]})],
+    });
+    const autofix = makeAutofix(runState);
+
+    render(<IssuePreviewAutofixSummary autofix={autofix} groupId="preview-group" />);
+
+    const rootCause = screen.getByRole('region', {name: 'Root Cause'});
+    const summary = within(rootCause).getByText(
+      'An unexpected null value reached the user handler.'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Re-run step'}));
+    expect(
+      within(rootCause).getByText('How can this root cause be improved?')
+    ).toBeInTheDocument();
+    expect(
+      within(rootCause)
+        .getByText('How can this root cause be improved?')
+        .compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    await userEvent.type(screen.getByRole('textbox'), 'Try again');
+    await userEvent.click(screen.getByRole('button', {name: 'Re-run from here'}));
+
+    expect(autofix.startStep).toHaveBeenCalledWith('root_cause', {
+      runId: runState.run_id,
+      userContext: 'Try again',
+      insertIndex: 0,
+    });
   });
 });
