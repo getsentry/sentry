@@ -2,7 +2,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
-  act,
   render,
   renderGlobalModal,
   screen,
@@ -211,7 +210,7 @@ describe('projectPerformance', () => {
       method: 'GET',
       body: () => ({...detailedProject, dynamicSamplingBiases}),
     });
-    let resolveFirstUpdate!: (projectResponse: typeof detailedProject) => void;
+    const firstUpdate = Promise.withResolvers<typeof detailedProject>();
     let updateCount = 0;
     const projectPutMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
@@ -224,9 +223,7 @@ describe('projectPerformance', () => {
         const projectResponse = {...detailedProject, dynamicSamplingBiases};
         updateCount += 1;
         if (updateCount === 1) {
-          return new Promise(resolve => {
-            resolveFirstUpdate = resolve;
-          });
+          return firstUpdate.promise;
         }
         return projectResponse;
       },
@@ -252,9 +249,7 @@ describe('projectPerformance', () => {
     );
     expect(projectPutMock).toHaveBeenCalledTimes(1);
 
-    act(() => {
-      resolveFirstUpdate({...detailedProject, dynamicSamplingBiases});
-    });
+    firstUpdate.resolve({...detailedProject, dynamicSamplingBiases});
     await waitFor(() => {
       expect(
         screen.getByRole('checkbox', {name: 'Prioritize new releases'})
@@ -356,23 +351,21 @@ describe('projectPerformance', () => {
   });
 
   it('prevents threshold edits from racing with reset', async () => {
-    let resolveSave!: (value: {id: string; metric: string; threshold: string}) => void;
+    const save = Promise.withResolvers<{
+      id: string;
+      metric: string;
+      threshold: string;
+    }>();
     const thresholdPostMock = MockApiClient.addMockResponse({
       url: configUrl,
       method: 'POST',
-      body: () =>
-        new Promise(resolve => {
-          resolveSave = resolve;
-        }),
+      body: () => save.promise,
     });
-    let resolveReset!: (value: Record<string, never>) => void;
+    const pendingReset = Promise.withResolvers<Record<string, never>>();
     const thresholdDeleteMock = MockApiClient.addMockResponse({
       url: configUrl,
       method: 'DELETE',
-      body: () =>
-        new Promise(resolve => {
-          resolveReset = resolve;
-        }),
+      body: () => pendingReset.promise,
     });
 
     render(<ProjectPerformance />, {initialRouterConfig});
@@ -389,21 +382,13 @@ describe('projectPerformance', () => {
     expect(thresholdPostMock).toHaveBeenCalled();
     expect(resetButton).toBeDisabled();
 
-    await act(async () => {
-      resolveSave({id: project.id, metric: 'duration', threshold: '400'});
-      await Promise.resolve();
-    });
+    save.resolve({id: project.id, metric: 'duration', threshold: '400'});
     await waitFor(() => expect(resetButton).toBeEnabled());
 
     await userEvent.click(resetButton);
 
     expect(thresholdDeleteMock).toHaveBeenCalled();
     expect(input).toBeDisabled();
-
-    await act(async () => {
-      resolveReset({});
-      await Promise.resolve();
-    });
   });
 
   it('renders detector threshold configuration - admin ui', async () => {
@@ -637,9 +622,12 @@ describe('projectPerformance', () => {
       await expandAllDetectorSettings();
 
       // Some of the sliders have the same label, so use an index as well
-      const slider = screen.getAllByRole('slider', {name: sliderIdentifier.label})[
-        sliderIdentifier.index
-      ]!;
+      const slider = screen
+        .getAllByRole('slider', {name: sliderIdentifier.label})
+        .at(sliderIdentifier.index);
+      if (!slider) {
+        throw new Error(`Slider ${sliderIdentifier.index} was not rendered`);
+      }
       const indexOfValue = allowedValues.indexOf(defaultValue);
       const newValueIndex = allowedValues.indexOf(newValue);
 
@@ -700,18 +688,11 @@ describe('projectPerformance', () => {
         return {};
       },
     });
-    let resolveReset!: (value: Record<string, never>) => void;
+    const reset = Promise.withResolvers<Record<string, never>>();
     const delete_request_mock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/performance-issues/configure/',
       method: 'DELETE',
-      body: () => {
-        return new Promise(resolve => {
-          resolveReset = value => {
-            aiDetectedHttpEnabled = true;
-            resolve(value);
-          };
-        });
-      },
+      body: () => reset.promise,
     });
 
     render(<ProjectPerformance />, {
@@ -750,10 +731,8 @@ describe('projectPerformance', () => {
     expect(delete_request_mock).toHaveBeenCalled();
     expect(detectorSwitch).toBeDisabled();
 
-    await act(async () => {
-      resolveReset({});
-      await Promise.resolve();
-    });
+    aiDetectedHttpEnabled = true;
+    reset.resolve({});
 
     await waitFor(() => {
       expect(performanceIssuesGetMock).toHaveBeenCalledTimes(2);
@@ -841,14 +820,11 @@ describe('projectPerformance', () => {
       },
       statusCode: 200,
     });
-    let resolveUpdate!: (value: Record<string, boolean>) => void;
+    const pendingUpdate = Promise.withResolvers<Record<string, boolean>>();
     const mockPut = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/performance-issues/configure/',
       method: 'PUT',
-      body: () =>
-        new Promise(resolve => {
-          resolveUpdate = resolve;
-        }),
+      body: () => pendingUpdate.promise,
     });
 
     render(<ProjectPerformance />, {
@@ -859,7 +835,12 @@ describe('projectPerformance', () => {
     await expandAllDetectorSettings();
 
     const toggle = screen.getByRole('checkbox', {name: 'N+1 DB Queries Detection'});
-    const threshold = screen.getAllByRole('slider', {name: 'Minimum Total Duration'})[0]!;
+    const threshold = screen.getAllByRole('slider', {
+      name: 'Minimum Total Duration',
+    })[0];
+    if (!threshold) {
+      throw new Error('Minimum Total Duration slider was not rendered');
+    }
     expect(threshold).toBeEnabled();
 
     await userEvent.click(toggle);
@@ -872,11 +853,6 @@ describe('projectPerformance', () => {
     );
     expect(threshold).toBeDisabled();
     expect(screen.getByRole('button', {name: 'Reset All Thresholds'})).toBeDisabled();
-
-    await act(async () => {
-      resolveUpdate({n_plus_one_db_queries_detection_enabled: false});
-      await Promise.resolve();
-    });
   });
 
   it('serializes detector updates that share the settings resource', async () => {
@@ -895,7 +871,7 @@ describe('projectPerformance', () => {
       },
       statusCode: 200,
     });
-    let resolveFirstUpdate!: (value: Record<string, boolean>) => void;
+    const firstUpdate = Promise.withResolvers<Record<string, boolean>>();
     let updateCount = 0;
     const mockPut = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/performance-issues/configure/',
@@ -903,9 +879,7 @@ describe('projectPerformance', () => {
       body: (_url: string, options: {data: Record<string, boolean>}) => {
         updateCount += 1;
         if (updateCount === 1) {
-          return new Promise(resolve => {
-            resolveFirstUpdate = resolve;
-          });
+          return firstUpdate.promise;
         }
         return options.data;
       },
@@ -927,10 +901,7 @@ describe('projectPerformance', () => {
 
     expect(mockPut).toHaveBeenCalledTimes(1);
 
-    await act(async () => {
-      resolveFirstUpdate({n_plus_one_db_queries_detection_enabled: false});
-      await Promise.resolve();
-    });
+    firstUpdate.resolve({n_plus_one_db_queries_detection_enabled: false});
 
     await waitFor(() => {
       expect(mockPut).toHaveBeenCalledTimes(2);
