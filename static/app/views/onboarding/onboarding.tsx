@@ -40,6 +40,7 @@ import {NewWelcomeUI} from './components/newWelcome';
 import {OnboardingSkipButton} from './components/onboardingSkipButton';
 import {PlatformSelection} from './platformSelection';
 import {ScmConnect} from './scmConnect';
+import {ScmMessaging} from './scmMessaging';
 import {ScmPlatformFeatures} from './scmPlatformFeatures';
 import {SetupDocs} from './setupDocs';
 import {OnboardingStepId, type StepDescriptor, type StepProps} from './types';
@@ -99,7 +100,11 @@ function ScmConnectAdapter({onComplete, genBackButton}: StepProps) {
   );
 }
 
-function ScmPlatformFeaturesAdapter({onComplete, genBackButton}: StepProps) {
+function ScmPlatformFeaturesAdapter({
+  deferProjectCreation,
+  genBackButton,
+  onComplete,
+}: StepProps & {deferProjectCreation: boolean}) {
   const {
     selectedRepository,
     selectedPlatform,
@@ -116,6 +121,7 @@ function ScmPlatformFeaturesAdapter({onComplete, genBackButton}: StepProps) {
       selectedPlatform={selectedPlatform}
       selectedFeatures={selectedFeatures}
       createdProjectSlug={createdProjectSlug}
+      deferProjectCreation={deferProjectCreation}
       onPlatformChange={setSelectedPlatform}
       onFeaturesChange={setSelectedFeatures}
       onProjectCreated={setCreatedProjectSlug}
@@ -125,7 +131,27 @@ function ScmPlatformFeaturesAdapter({onComplete, genBackButton}: StepProps) {
   );
 }
 
-const scmOnboardingSteps: StepDescriptor[] = [
+function ScmPlatformFeaturesControlAdapter(props: StepProps) {
+  return <ScmPlatformFeaturesAdapter {...props} deferProjectCreation={false} />;
+}
+
+function ScmPlatformFeaturesTreatmentAdapter(props: StepProps) {
+  return <ScmPlatformFeaturesAdapter {...props} deferProjectCreation />;
+}
+
+function ScmMessagingAdapter({genBackButton}: StepProps) {
+  const {selectedPlatform} = useOnboardingContext();
+
+  if (!selectedPlatform) {
+    return null;
+  }
+
+  return (
+    <ScmMessaging selectedPlatform={selectedPlatform} genBackButton={genBackButton} />
+  );
+}
+
+const scmOnboardingSharedSteps: StepDescriptor[] = [
   {
     id: OnboardingStepId.WELCOME,
     title: t('Welcome'),
@@ -138,10 +164,37 @@ const scmOnboardingSteps: StepDescriptor[] = [
     Component: ScmConnectAdapter,
     cornerVariant: 'top-left',
   },
+];
+
+const scmOnboardingSteps: StepDescriptor[] = [
+  ...scmOnboardingSharedSteps,
   {
     id: OnboardingStepId.SCM_PLATFORM_FEATURES,
     title: t('Create your first project'),
-    Component: ScmPlatformFeaturesAdapter,
+    Component: ScmPlatformFeaturesControlAdapter,
+    cornerVariant: 'top-left',
+  },
+  {
+    id: OnboardingStepId.SETUP_DOCS,
+    title: t('Install the Sentry SDK'),
+    Component: SetupDocs,
+    hasFooter: true,
+    cornerVariant: 'top-left',
+  },
+];
+
+const scmMessagingOnboardingSteps: StepDescriptor[] = [
+  ...scmOnboardingSharedSteps,
+  {
+    id: OnboardingStepId.SCM_PLATFORM_FEATURES,
+    title: t('Create your first project'),
+    Component: ScmPlatformFeaturesTreatmentAdapter,
+    cornerVariant: 'top-left',
+  },
+  {
+    id: OnboardingStepId.SCM_MESSAGING,
+    title: t('Get alerts where your team works'),
+    Component: ScmMessagingAdapter,
     cornerVariant: 'top-left',
   },
   {
@@ -232,7 +285,18 @@ export function OnboardingWithoutContext() {
     reportExposure: isNewOrgOnboarding,
   });
 
-  const onboardingSteps = hasScmOnboarding ? scmOnboardingSteps : legacyOnboardingSteps;
+  // VDY-146 owns treatment exposure and interaction analytics. For now the
+  // host consumes the nested assignment without reporting it.
+  const {inExperiment: hasScmMessaging} = useExperiment({
+    feature: 'onboarding-scm-messaging-experiment',
+    reportExposure: false,
+  });
+
+  const onboardingSteps = hasScmOnboarding
+    ? hasScmMessaging
+      ? scmMessagingOnboardingSteps
+      : scmOnboardingSteps
+    : legacyOnboardingSteps;
 
   useReplayForCriticalFlow({
     flowName: 'scm_onboarding',
@@ -388,12 +452,15 @@ export function OnboardingWithoutContext() {
   };
 
   // Redirect to the first step if we end up in an invalid state
-  const isInvalidDocsStep = stepId === 'setup-docs' && !projectSlug;
-  if (!stepObj || stepIndex === -1 || isInvalidDocsStep) {
+  const isInvalidDocsStep = stepId === OnboardingStepId.SETUP_DOCS && !projectSlug;
+  const isInvalidMessagingStep =
+    stepId === OnboardingStepId.SCM_MESSAGING && !onboardingContext.selectedPlatform;
+  if (!stepObj || stepIndex === -1 || isInvalidDocsStep || isInvalidMessagingStep) {
+    const fallbackStep = isInvalidMessagingStep
+      ? OnboardingStepId.SCM_PLATFORM_FEATURES
+      : onboardingSteps[0]!.id;
     return (
-      <Redirect
-        to={normalizeUrl(`/onboarding/${organization.slug}/${onboardingSteps[0]!.id}/`)}
-      />
+      <Redirect to={normalizeUrl(`/onboarding/${organization.slug}/${fallbackStep}/`)} />
     );
   }
 
@@ -416,6 +483,11 @@ export function OnboardingWithoutContext() {
             }}
           >
             <Stepper
+              aria-label={t('Onboarding progress')}
+              aria-valuemax={onboardingSteps.length}
+              aria-valuemin={1}
+              aria-valuenow={stepIndex + 1}
+              role="progressbar"
               numSteps={onboardingSteps.length}
               currentStepIndex={stepIndex}
               onClick={i => {

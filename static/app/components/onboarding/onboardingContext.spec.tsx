@@ -19,6 +19,7 @@ const platform = {
 
 function StateConsumer() {
   const {
+    messagingSetup,
     selectedRepository,
     selectedPlatform,
     selectedFeatures,
@@ -32,6 +33,7 @@ function StateConsumer() {
       <div>
         {selectedFeatures ? `features:${selectedFeatures.length}` : 'no-features'}
       </div>
+      <div>{`messaging:${messagingSetup.mode}`}</div>
       <button onClick={() => setSelectedPlatform(undefined)}>Clear platform</button>
       <button onClick={() => resetOnboarding()}>Reset onboarding</button>
     </div>
@@ -62,6 +64,7 @@ describe('OnboardingContextProvider', () => {
     expect(await screen.findByText('no-repo')).toBeInTheDocument();
     expect(screen.getByText('no-platform')).toBeInTheDocument();
     expect(screen.getByText('no-features')).toBeInTheDocument();
+    expect(screen.getByText('messaging:unconfigured')).toBeInTheDocument();
   });
 
   it('keeps a resolved repository and its derived state on load', () => {
@@ -71,6 +74,12 @@ describe('OnboardingContextProvider', () => {
           selectedRepository: RepositoryFixture({id: '42'}),
           selectedPlatform: platform,
           selectedFeatures: [ProductSolution.ERROR_MONITORING],
+          messagingSetup: {
+            mode: 'selected',
+            providerKey: 'slack',
+            integrationId: '15',
+            channelId: 'C123',
+          },
         }}
       >
         <StateConsumer />
@@ -80,6 +89,37 @@ describe('OnboardingContextProvider', () => {
     expect(screen.getByText('repo:42')).toBeInTheDocument();
     expect(screen.getByText('platform:javascript-nextjs')).toBeInTheDocument();
     expect(screen.getByText('features:1')).toBeInTheDocument();
+    expect(screen.getByText('messaging:selected')).toBeInTheDocument();
+  });
+
+  it('restores messaging setup from session storage after a remount', () => {
+    sessionStorage.setItem(
+      'onboarding',
+      JSON.stringify({
+        messagingSetup: {
+          mode: 'selected',
+          providerKey: 'discord',
+          integrationId: '20',
+          channelId: '123456789',
+        },
+      })
+    );
+
+    const firstRender = render(
+      <OnboardingContextProvider>
+        <StateConsumer />
+      </OnboardingContextProvider>
+    );
+    expect(screen.getByText('messaging:selected')).toBeInTheDocument();
+
+    firstRender.unmount();
+    render(
+      <OnboardingContextProvider>
+        <StateConsumer />
+      </OnboardingContextProvider>
+    );
+
+    expect(screen.getByText('messaging:selected')).toBeInTheDocument();
   });
 });
 
@@ -94,6 +134,12 @@ describe('OnboardingContextProvider session semantics', () => {
         initialValue={{
           selectedRepository: RepositoryFixture({id: '42'}),
           selectedPlatform: platform,
+          messagingSetup: {
+            mode: 'selected',
+            providerKey: 'slack',
+            integrationId: '15',
+            channelId: 'C123',
+          },
         }}
       >
         <StateConsumer />
@@ -103,12 +149,20 @@ describe('OnboardingContextProvider session semantics', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Clear platform'}));
 
     // Clearing one field must stay local to that field. This previously routed
-    // through removeOnboarding and wiped the whole session, taking the
-    // connected repository with it.
+    // through removeOnboarding and wiped the whole session, taking the connected
+    // repository with it. Messaging destinations are organization-scoped, so they
+    // must survive a platform change too.
     expect(screen.getByText('no-platform')).toBeInTheDocument();
     expect(screen.getByText('repo:42')).toBeInTheDocument();
+    expect(screen.getByText('messaging:selected')).toBeInTheDocument();
     expect(JSON.parse(sessionStorage.getItem('onboarding') ?? '{}')).toMatchObject({
       selectedRepository: {id: '42'},
+      messagingSetup: {
+        mode: 'selected',
+        providerKey: 'slack',
+        integrationId: '15',
+        channelId: 'C123',
+      },
     });
   });
 
