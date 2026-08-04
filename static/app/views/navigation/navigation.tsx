@@ -243,18 +243,16 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
         </Feature>
       )}
 
-      <Feature features={['workflow-engine-ui']}>
-        <PrimaryNavigation.ListItem>
-          <PrimaryNavigation.Link
-            to={`/${prefix}/monitors/`}
-            analyticsKey="monitors"
-            label={t('Monitors')}
-            {...makeNavigationItemProps('monitors', `/${prefix}/monitors/`)}
-          >
-            <IconSiren />
-          </PrimaryNavigation.Link>
-        </PrimaryNavigation.ListItem>
-      </Feature>
+      <PrimaryNavigation.ListItem>
+        <PrimaryNavigation.Link
+          to={`/${prefix}/monitors/`}
+          analyticsKey="monitors"
+          label={t('Monitors')}
+          {...makeNavigationItemProps('monitors', `/${prefix}/monitors/`)}
+        >
+          <IconSiren />
+        </PrimaryNavigation.Link>
+      </PrimaryNavigation.ListItem>
 
       <NavigationTourElement id={NavigationTour.SETTINGS} title={null} description={null}>
         {tourProps => (

@@ -577,7 +577,19 @@ export const SnapshotListView = memo(function SnapshotListView({
   }
 
   return (
-    <ScrollContainer ref={scrollRef}>
+    <ScrollContainer
+      ref={scrollRef}
+      position="relative"
+      flex="1 1 0"
+      minHeight="0"
+      width="100%"
+      overflowY="auto"
+      overflowX="hidden"
+      padding={{zero: 'xl 0', xl: 'xl', '3xl': 'xl xl xl 0'}}
+      background="secondary"
+      contain="layout"
+      overscrollBehavior="contain"
+    >
       {activeGroupName ? (
         <StickyGroupHeader
           data-bottom-frame={stickyHeaderHasBottomFrame ? '' : undefined}
@@ -700,27 +712,7 @@ const GroupContainer = memo(function GroupContainer({
   );
 });
 
-const ScrollContainer = styled('div')`
-  position: relative;
-  flex: 1 1 0;
-  min-height: 0;
-  width: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl} ${p => p.theme.space.xl} 0;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    padding-left: 0;
-    padding-right: 0;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) and (max-width: ${p =>
-    p.theme.breakpoints.md}) {
-    padding-left: ${p => p.theme.space.xl};
-  }
-  background: ${p => p.theme.tokens.background.secondary};
-  contain: layout;
-  overscroll-behavior: contain;
+const ScrollContainer = styled(Container)`
   scroll-padding-top: ${p => p.theme.space.md};
   scroll-padding-bottom: ${p => p.theme.space.md};
 `;

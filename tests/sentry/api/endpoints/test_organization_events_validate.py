@@ -117,6 +117,27 @@ class OrganizationEventsValidateEndpointTest(APITestCase, SnubaTestCase, SpanTes
             {"error": None, "name": "project", "valid": True, "attrType": "string"}
         ]
 
+    def test_logs_level_is_a_known_attribute(self) -> None:
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "dataset": "logs",
+                "field": ["level"],
+                "query": "level:error",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["valid"]
+        assert response.data["field"] == [
+            {"error": None, "name": "level", "valid": True, "attrType": "string"}
+        ]
+        assert response.data["query"] == {
+            "valid": True,
+            "error": None,
+            "fields": [{"error": None, "name": "level", "valid": True, "attrType": "string"}],
+        }
+
     def test_user_tags_in_storage_for_fields(self) -> None:
         self.store_spans(
             [
