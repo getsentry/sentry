@@ -47,9 +47,8 @@ describe('ScmMessaging', () => {
 
   it('revalidates a restored destination before showing it as selected', async () => {
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/integrations/',
-      match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
-      body: [OrganizationIntegrationsFixture({id: '15'})],
+      url: '/organizations/org-slug/integrations/15/',
+      body: OrganizationIntegrationsFixture({id: '15'}),
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/15/channels/',
@@ -72,9 +71,8 @@ describe('ScmMessaging', () => {
 
   it('clears a missing integration with an explanation', async () => {
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/integrations/',
-      match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
-      body: [],
+      url: '/organizations/org-slug/integrations/15/',
+      statusCode: 404,
     });
     const onMessagingSetupChange = jest.fn();
 
@@ -89,14 +87,11 @@ describe('ScmMessaging', () => {
     expect(screen.queryByText('Destination selected')).not.toBeInTheDocument();
   });
 
-  it('clears a missing channel with an explanation', async () => {
+  it('keeps an omitted channel while it cannot verify a complete list', async () => {
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/integrations/',
-      match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
-      body: [OrganizationIntegrationsFixture({id: '15'})],
+      url: '/organizations/org-slug/integrations/15/',
+      body: OrganizationIntegrationsFixture({id: '15'}),
     });
-    // A populated list that does not contain the saved channel is genuine
-    // staleness: the channel was deleted or renamed away.
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/15/channels/',
       body: {results: [{id: 'C999', name: 'general', display: '#general'}]},
@@ -107,23 +102,22 @@ describe('ScmMessaging', () => {
 
     expect(
       await screen.findByText(
-        "We couldn't find the saved channel. Choose a destination again."
+        "We couldn't verify the saved channel. Choose a destination again."
       )
     ).toBeInTheDocument();
-    expect(onMessagingSetupChange).toHaveBeenCalledWith({mode: 'unconfigured'});
+    expect(onMessagingSetupChange).not.toHaveBeenCalled();
     expect(screen.queryByText('Destination selected')).not.toBeInTheDocument();
   });
 
   it('keeps the saved destination when the channel list comes back empty', async () => {
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/integrations/',
-      match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
-      body: [OrganizationIntegrationsFixture({id: '15'})],
+      url: '/organizations/org-slug/integrations/15/',
+      body: OrganizationIntegrationsFixture({id: '15'}),
     });
     // Every provider helper returns [] when the upstream API fails, so an empty
     // list is indistinguishable from an outage and must not discard the
     // selection. It stays non-submittable rather than being reset.
-    MockApiClient.addMockResponse({
+    const channelsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/15/channels/',
       body: {results: []},
     });
@@ -132,14 +126,14 @@ describe('ScmMessaging', () => {
     renderMessaging(onMessagingSetupChange);
 
     await waitFor(() => {
-      expect(screen.queryByText('Checking saved destination')).not.toBeInTheDocument();
+      expect(channelsRequest).toHaveBeenCalled();
     });
 
     expect(onMessagingSetupChange).not.toHaveBeenCalled();
     expect(screen.queryByText('Destination selected')).not.toBeInTheDocument();
     expect(
       screen.queryByText(
-        "We couldn't find the saved channel. Choose a destination again."
+        "We couldn't verify the saved channel. Choose a destination again."
       )
     ).not.toBeInTheDocument();
   });
@@ -148,11 +142,10 @@ describe('ScmMessaging', () => {
     const queryClient = makeTestQueryClient();
     const integration = OrganizationIntegrationsFixture({id: '15'});
     const channel = {id: 'C123', name: 'alerts', display: '#alerts', type: 'text'};
-    const integrationsOptions = apiOptions.as<OrganizationIntegration[]>()(
-      '/organizations/$organizationIdOrSlug/integrations/',
+    const integrationOptions = apiOptions.as<OrganizationIntegration>()(
+      '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
       {
-        path: {organizationIdOrSlug: 'org-slug'},
-        query: {integrationType: 'messaging'},
+        path: {organizationIdOrSlug: 'org-slug', integrationId: '15'},
         staleTime: 0,
       }
     );
@@ -163,8 +156,8 @@ describe('ScmMessaging', () => {
         staleTime: 0,
       }
     );
-    queryClient.setQueryData(integrationsOptions.queryKey, {
-      json: [integration],
+    queryClient.setQueryData(integrationOptions.queryKey, {
+      json: integration,
       headers: {},
     });
     queryClient.setQueryData(channelsOptions.queryKey, {
@@ -172,9 +165,8 @@ describe('ScmMessaging', () => {
       headers: {},
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/integrations/',
-      match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
-      body: [],
+      url: '/organizations/org-slug/integrations/15/',
+      statusCode: 404,
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/15/channels/',
