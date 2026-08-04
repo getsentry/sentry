@@ -350,6 +350,50 @@ describe('projectPerformance', () => {
     });
   });
 
+  it('serializes metric and threshold updates', async () => {
+    const firstUpdate = Promise.withResolvers<{
+      id: string;
+      metric: string;
+      threshold: string;
+    }>();
+    let updateCount = 0;
+    const thresholdPostMock = MockApiClient.addMockResponse({
+      url: configUrl,
+      method: 'POST',
+      body: () => {
+        updateCount += 1;
+        return updateCount === 1
+          ? firstUpdate.promise
+          : {id: project.id, metric: 'lcp', threshold: '400'};
+      },
+    });
+
+    render(<ProjectPerformance />, {initialRouterConfig});
+
+    await selectEvent.select(
+      await screen.findByText('Transaction Duration'),
+      'Largest Contentful Paint'
+    );
+    await waitFor(() => expect(thresholdPostMock).toHaveBeenCalledTimes(1));
+
+    const input = screen.getByRole('textbox', {
+      name: 'Response Time Threshold (ms)',
+    });
+    await userEvent.clear(input);
+    await userEvent.type(input, '400');
+    await userEvent.tab();
+
+    expect(thresholdPostMock).toHaveBeenCalledTimes(1);
+
+    firstUpdate.resolve({id: project.id, metric: 'lcp', threshold: '300'});
+
+    await waitFor(() => expect(thresholdPostMock).toHaveBeenCalledTimes(2));
+    expect(thresholdPostMock).toHaveBeenLastCalledWith(
+      configUrl,
+      expect.objectContaining({data: {threshold: '400'}})
+    );
+  });
+
   it('prevents threshold edits from racing with reset', async () => {
     const save = Promise.withResolvers<{
       id: string;
