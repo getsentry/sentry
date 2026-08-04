@@ -2,6 +2,7 @@ from datetime import UTC, datetime, timedelta
 from unittest import mock
 
 from django.utils import timezone
+from selenium.webdriver.common.keys import Keys
 
 from sentry.monitors.models import (
     CheckInStatus,
@@ -60,30 +61,30 @@ class OrganizationMonitorsTest(AcceptanceTestCase):
     def test_create_cron_monitor(self) -> None:
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
+
+        # Click "Add Cron Monitor". This redirects to the new monitor creation
+        # flow with the cron detector type preselected.
         self.browser.click_when_visible("a[aria-label='Add Cron Monitor']")
 
-        self.browser.wait_until('[name="name"]')
-        name_input = self.browser.find_element_by_name("name")
-        name_input.send_keys("My Monitor")
+        # Detector type selection (step 1 of 2). Crons is preselected via the
+        # redirect's detectorType query param, so continue to the settings step.
+        self.browser.click_when_visible(xpath="//button[normalize-space()='Next']")
 
-        self.browser.click_when_visible("#project")
-        self.browser.click_when_visible(f'[data-test-id="{self.project.slug}"]')
+        # Set the monitor name (editable-text field in the header).
+        self.browser.click_when_visible('[data-test-id="editable-text-label"]')
+        name_input = self.browser.element(xpath='//input[@aria-label="Monitor Name"]')
+        name_input.send_keys("My Monitor", Keys.ENTER)
 
-        schedule_input = self.browser.find_element_by_name("config.schedule")
+        schedule_input = self.browser.find_element_by_name("scheduleCrontab")
         schedule_input.clear()
         schedule_input.send_keys("10 0 * * *")
 
-        margin = self.browser.find_element_by_name("config.checkinMargin")
-        margin.send_keys("5")
+        self.browser.click_when_visible(xpath="//button[normalize-space()='Create Monitor']")
 
-        max_runtime = self.browser.find_element_by_name("config.maxRuntime")
-        max_runtime.send_keys("10")
-
-        self.browser.click_when_visible('button[aria-label="Create"]')
-        self.browser.wait_until(xpath="//h1[text()='My Monitor']")
+        # Should navigate to the monitor details page
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]', timeout=10)
+        self.browser.wait_until(xpath="//*[contains(text(), 'My Monitor')]")
         self.browser.element_exists(xpath="//*[text()='At 12:10 AM']")
-        self.browser.element_exists(xpath="//*[text()='Check-ins missed after 5 mins']")
-        self.browser.element_exists(xpath="//*[text()='Check-ins longer than 10 mins or errors']")
 
     def test_list_monitors(self) -> None:
         monitor = Monitor.objects.create(

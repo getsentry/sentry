@@ -25,7 +25,11 @@ import {
   type ParseResultToken,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {getKeyName, stringifyToken} from 'sentry/components/searchSyntax/utils';
+import {
+  getKeyName,
+  quoteFilterKey,
+  stringifyToken,
+} from 'sentry/components/searchSyntax/utils';
 import {defined} from 'sentry/utils/defined';
 
 type QueryBuilderState = {
@@ -676,12 +680,12 @@ export function modifyFilterValue(
   // stop the user from entering multiple wildcards by themselves
   newValue = newValue.replace(/\*\*+/g, '*');
 
-  // No operator change — just replace the value (existing behavior)
+  // No operator change — just replace the value.
   if (newOp === undefined) {
     return replaceQueryToken(query, token.value, newValue);
   }
 
-  // Operator change — replace the entire filter token atomically
+  // Operator change — replace the entire filter token atomically.
   const {negated, internalOp} = termOperatorToInternal(newOp);
 
   const prefix = negated ? '!' : '';
@@ -886,7 +890,11 @@ function updateFilterKey(
   state: QueryBuilderState,
   action: UpdateFilterKeyAction
 ): QueryBuilderState {
-  const newQuery = replaceQueryToken(state.query, action.token.key, action.key);
+  const newQuery = replaceQueryToken(
+    state.query,
+    action.token.key,
+    quoteFilterKey(action.key)
+  );
 
   if (newQuery === state.query) {
     return state;

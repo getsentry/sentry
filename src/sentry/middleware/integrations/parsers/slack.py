@@ -14,6 +14,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from slack_sdk.errors import SlackApiError
 
+from sentry import options
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
 from sentry.integrations.messaging import commands
@@ -59,6 +60,9 @@ ACTIONS_ENDPOINT_ALL_SILOS_ACTIONS = UNFURL_ACTION_OPTIONS + NOTIFICATION_SETTIN
 SLACK_WEBHOOK_METRIC_EVENT_TYPES = frozenset(
     ["app_mention", "assistant_thread_started", "link_shared", "message", "reaction_added"]
 )
+
+# Slack gives us 3 seconds to respond before it considers the delivery failed.
+SLACK_RESPONSE_TIMEOUT_SECONDS = 3
 
 
 class SlackRequestParser(BaseRequestParser):
@@ -344,9 +348,10 @@ class SlackRequestParser(BaseRequestParser):
             )
             return
 
+        elapsed = time.time() - sent_at
         metrics.timing(
             "hybrid_cloud.integration_control.slack.response_time",
-            time.time() - sent_at,
+            elapsed,
             tags={
                 # SlackStagingRequestParser inherits this, so keep the two apart.
                 "provider": self.provider,
@@ -357,15 +362,54 @@ class SlackRequestParser(BaseRequestParser):
             sample_rate=1.0,
         )
 
+        if elapsed > SLACK_RESPONSE_TIMEOUT_SECONDS and options.get(
+            "slack.log-webhook-retry-diagnostics"
+        ):
+            slack_event_id = self.slack_request.data.get("event_id") if self.slack_request else None
+            logger.info(
+                "slack.control.response_time_exceeded",
+                extra={
+                    "path": self.request.path,
+                    "url_name": self.match.url_name,
+                    "status_code": status_code,
+                    "event_type": self._get_metric_event_type(),
+                    "slack_event_id": slack_event_id,
+                    "elapsed": elapsed,
+                },
+            )
+
+    def _log_seer_agent_retry_headers(self, status_code: int | str) -> None:
+        if not options.get("slack.log-webhook-retry-diagnostics"):
+            return
+
+        if not self._is_seer_agent_request(self.slack_request):
+            return
+
+        logger.info(
+            "slack.control.webhook_retry_headers",
+            extra={
+                "path": self.request.path,
+                "url_name": self.match.url_name,
+                "status_code": status_code,
+                "event_type": self.slack_request.type,
+                "slack_event_id": self.slack_request.data.get("event_id"),
+                "retry_num": self.request.META.get("HTTP_X_SLACK_RETRY_NUM"),
+                "retry_reason": self.request.META.get("HTTP_X_SLACK_RETRY_REASON"),
+            },
+        )
+
     def get_response(self) -> HttpResponseBase:
         try:
             response = self._get_response()
         except Exception:
             # The final status code is decided further up the stack.
             self._record_response_time("error")
+            self._log_seer_agent_retry_headers("error")
             raise
 
         self._record_response_time(response.status_code)
+        self._log_seer_agent_retry_headers(response.status_code)
+
         return response
 
     def _get_response(self) -> HttpResponseBase:

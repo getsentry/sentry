@@ -5,20 +5,9 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {ChartContextMenu} from './chartContextMenu';
 
 describe('ChartContextMenu', () => {
-  it('shows "Create an Alert" by default', async () => {
+  it('shows "Create a Monitor"', async () => {
     render(<ChartContextMenu visible setVisible={jest.fn()} />, {
       organization: OrganizationFixture(),
-    });
-
-    await userEvent.click(screen.getByRole('button'));
-    expect(
-      screen.getByRole('menuitemradio', {name: 'Create an Alert'})
-    ).toBeInTheDocument();
-  });
-
-  it('shows "Create a Monitor" with workflow-engine-ui feature', async () => {
-    render(<ChartContextMenu visible setVisible={jest.fn()} />, {
-      organization: OrganizationFixture({features: ['workflow-engine-ui']}),
     });
 
     await userEvent.click(screen.getByRole('button'));

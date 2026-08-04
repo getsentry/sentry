@@ -3,6 +3,8 @@ from unittest import mock
 from uuid import uuid4
 
 import pytest
+from django.db import connections
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 from sentry_conventions.attributes import ATTRIBUTE_METADATA
@@ -13,6 +15,11 @@ from sentry.api.endpoints.organization_trace_item_attributes_types import (
     TraceItemAttributeKey,
 )
 from sentry.exceptions import InvalidSearchQuery
+from sentry.explore.models import (
+    TraceItemAttributeContext,
+    TraceItemAttributeTypes,
+    TraceItemTypes,
+)
 from sentry.search.eap import constants
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SupportedTraceItemType
@@ -648,11 +655,261 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert message["name"] == "message"
         assert message["context"] == {}
 
+    def create_context(
+        self,
+        attribute_key,
+        project=None,
+        item_type=TraceItemTypes.SPANS,
+        attribute_type=TraceItemAttributeTypes.STRING,
+        **kwargs,
+    ):
+        kwargs.setdefault("brief", f"Authored brief for {attribute_key}")
+        return TraceItemAttributeContext.objects.create(
+            organization=self.organization,
+            project=project,
+            attribute_key=attribute_key,
+            item_type=item_type,
+            attribute_type=attribute_type,
+            created_by_id=self.user.id,
+            **kwargs,
+        )
+
+    def test_expand_context_custom_attribute(self) -> None:
+        self._store_basic_segment()
+        self.create_context(
+            "foo",
+            brief="How foo is used here",
+            additional_context="Only set by the checkout service.",
+            examples=["a", "b"],
+        )
+
+        response = self.do_request(
+            query={"attributeType": "string", "expand": "context"},
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": True,
+            },
+        )
+        assert response.status_code == 200, response.data
+
+        attributes = {item["key"]: item for item in response.data}
+        # Marked isCustom, and no isDeprecated since deprecation isn't modeled
+        # for custom attributes.
+        assert attributes["foo"]["context"] == {
+            "isCustom": True,
+            "brief": "How foo is used here",
+            "details": ["Only set by the checkout service."],
+            "examples": ["a", "b"],
+        }
+        # A custom attribute with no authored context still gets an empty one.
+        assert attributes["http.route"]["context"]["isConvention"] is True
+
+    def test_expand_context_custom_attribute_single_bounded_query(self) -> None:
+        self._store_basic_segment()
+        self.create_context("foo")
+        # Rows for attributes not in the response must not be fetched.
+        for i in range(10):
+            self.create_context(f"not_in_response_{i}")
+
+        with CaptureQueriesContext(connections["default"]) as captured:
+            response = self.do_request(
+                query={"attributeType": "string", "expand": "context"},
+                features={
+                    **self.feature_flags,
+                    "organizations:data-browsing-attribute-context": True,
+                },
+            )
+        assert response.status_code == 200, response.data
+
+        context_queries = [
+            query["sql"]
+            for query in captured.captured_queries
+            if "explore_traceitemattributecontext" in (query["sql"] or "")
+        ]
+        # One query for the whole page, regardless of how many attributes it has.
+        assert len(context_queries) == 1
+        assert "IN (" in context_queries[0]
+        assert "not_in_response_0" not in context_queries[0]
+
+        attributes = {item["key"]: item for item in response.data}
+        assert attributes["foo"]["context"]["isCustom"] is True
+
+    def test_expand_context_custom_number_attribute(self) -> None:
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            organization_id=self.organization.id,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            measurements={"cart_total": 42.0},
+        )
+        # Number attributes are exposed under a `tags[...]` key, but context is
+        # matched on the internal name the write endpoint stores.
+        self.create_context(
+            "cart_total",
+            attribute_type=TraceItemAttributeTypes.NUMBER,
+            brief="Value of the cart in cents",
+        )
+
+        response = self.do_request(
+            query={"attributeType": "number", "expand": "context"},
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": True,
+            },
+        )
+        assert response.status_code == 200, response.data
+
+        attributes = {item["key"]: item for item in response.data}
+        assert attributes["tags[cart_total,number]"]["context"] == {
+            "isCustom": True,
+            "brief": "Value of the cart in cents",
+        }
+
+    def test_expand_context_custom_attribute_same_name_both_types(self) -> None:
+        # Sent as a string on one span and a number on another, so it appears
+        # twice under one name; each variant resolves its own context.
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            organization_id=self.organization.id,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            tags={"cart_total": "free"},
+        )
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            organization_id=self.organization.id,
+            timestamp=before_now(days=0, minutes=9).replace(microsecond=0),
+            measurements={"cart_total": 42.0},
+        )
+        self.create_context(
+            "cart_total",
+            attribute_type=TraceItemAttributeTypes.STRING,
+            brief="Cart tier label",
+        )
+
+        response = self.do_request(
+            query={"expand": "context"},
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": True,
+            },
+        )
+        assert response.status_code == 200, response.data
+
+        attributes = {item["key"]: item for item in response.data}
+        assert attributes["cart_total"]["attributeType"] == "string"
+        assert attributes["cart_total"]["context"] == {
+            "isCustom": True,
+            "brief": "Cart tier label",
+        }
+        # The number variant has no context authored for its type.
+        assert attributes["tags[cart_total,number]"]["context"] == {}
+
+    def test_expand_context_custom_attribute_requires_feature(self) -> None:
+        self._store_basic_segment()
+        self.create_context("foo")
+
+        # Custom context is gated, unlike conventions context.
+        response = self.do_request(
+            query={"attributeType": "string", "expand": "context"},
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": False,
+            },
+        )
+        assert response.status_code == 200, response.data
+
+        attributes = {item["key"]: item for item in response.data}
+        assert attributes["foo"]["context"] == {}
+        assert attributes["device.class"]["context"]["isConvention"] is True
+
+    def test_expand_context_custom_attribute_project_scoped(self) -> None:
+        self._store_basic_segment()
+        other_project = self.create_project(organization=self.organization)
+        # Context authored against a different project must not leak into this
+        # project's response.
+        self.create_context("foo", project=other_project, brief="Other project brief")
+
+        response = self.do_request(
+            query={
+                "attributeType": "string",
+                "expand": "context",
+                "project": self.project.id,
+            },
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": True,
+            },
+        )
+        assert response.status_code == 200, response.data
+
+        attributes = {item["key"]: item for item in response.data}
+        assert attributes["foo"]["context"] == {}
+
+    def test_expand_context_custom_attribute_project_overrides_org_wide(self) -> None:
+        self._store_basic_segment()
+        self.create_context("foo", brief="Org-wide brief")
+        self.create_context("foo", project=self.project, brief="Project brief")
+
+        response = self.do_request(
+            query={
+                "attributeType": "string",
+                "expand": "context",
+                "project": self.project.id,
+            },
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": True,
+            },
+        )
+        assert response.status_code == 200, response.data
+
+        attributes = {item["key"]: item for item in response.data}
+        assert attributes["foo"]["context"]["brief"] == "Project brief"
+
+    def test_expand_context_custom_attribute_type_must_match(self) -> None:
+        self._store_basic_segment()
+        # `foo` is a string attribute, so number-typed context must not attach.
+        self.create_context("foo", attribute_type=TraceItemAttributeTypes.NUMBER)
+
+        response = self.do_request(
+            query={"attributeType": "string", "expand": "context"},
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": True,
+            },
+        )
+        assert response.status_code == 200, response.data
+
+        attributes = {item["key"]: item for item in response.data}
+        assert attributes["foo"]["context"] == {}
+
+    def test_expand_context_custom_attribute_item_type_must_match(self) -> None:
+        self._store_basic_segment()
+        # Context authored for logs must not attach to a span attribute.
+        self.create_context("foo", item_type=TraceItemTypes.LOGS)
+
+        response = self.do_request(
+            query={"attributeType": "string", "expand": "context"},
+            features={
+                **self.feature_flags,
+                "organizations:data-browsing-attribute-context": True,
+            },
+        )
+        assert response.status_code == 200, response.data
+
+        attributes = {item["key"]: item for item in response.data}
+        assert attributes["foo"]["context"] == {}
+
     def test_expand_context_without_feature_flag(self) -> None:
         self._store_basic_segment()
 
-        # Context is no longer gated by a feature flag: expand=context alone is
-        # enough, even with the data-browsing-attribute-context flag disabled.
+        # Conventions context is not gated by a feature flag: expand=context alone
+        # is enough, even with the data-browsing-attribute-context flag disabled.
         response = self.do_request(
             query={"attributeType": "string", "expand": "context"},
             features={

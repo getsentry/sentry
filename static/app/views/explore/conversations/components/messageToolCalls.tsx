@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import {css, useTheme} from '@emotion/react';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -38,10 +39,10 @@ const COLLAPSE_THRESHOLD = 5;
 /**
  * Tool-call list for the redesigned transcript. Runs of at least
  * `COLLAPSE_THRESHOLD` calls collapse behind a `N tool calls` summary (with an
- * error count) that is collapsed by default, to keep tool-heavy turns compact;
- * shorter runs render inline. Each row is an accent wrench + `ToolTag` capped
- * at the message width, with the duration right-aligned. Selection shows an
- * outline.
+ * error count, plus the combined output size and time across the run) that is
+ * collapsed by default, to keep tool-heavy turns compact; shorter runs render
+ * inline. Each row is an accent wrench + `ToolTag` capped at the message width,
+ * with the size and duration right-aligned. Selection shows an outline.
  */
 export function MessageToolCalls({
   toolCalls,
@@ -72,21 +73,58 @@ export function MessageToolCalls({
 
   const errorCount = toolCalls.filter(tool => tool.hasError).length;
 
+  // Aggregate the same per-row values into a run-level total so the summary
+  // hints at how heavy the collapsed group is. Duration is the sum of each
+  // call's own duration (parallel calls are counted separately), matching the
+  // numbers on the rows rather than wall-clock elapsed time.
+  const totalDuration = toolCalls.reduce(
+    (sum, tool) => sum + (tool.duration && tool.duration > 0 ? tool.duration : 0),
+    0
+  );
+  const totalBytes = toolCalls.reduce((sum, tool) => {
+    const node = nodeMap.get(tool.nodeId);
+    return sum + (node ? getToolOutputBytes(node) : 0);
+  }, 0);
+
   return (
     <CollapsibleContent
       // Keep the group open when one of its calls is the current selection so a
       // deep-linked/timeline-selected row stays visible instead of hidden.
       defaultOpen={selectedToolCallId !== null}
       title={
-        <Flex align="center" gap="sm">
-          <Text size="sm" variant="muted">
-            {tn('%s tool call', '%s tool calls', toolCalls.length)}
-          </Text>
-          {errorCount > 0 && (
-            <Text size="sm" variant="danger">
-              {tn('%s error', '%s errors', errorCount)}
+        // Match the rows' vertical padding so the toggle shares their line
+        // height, and mirror their layout: label on the left, the same fixed
+        // meta column on the right so the totals line up over the per-row values.
+        <Flex
+          flex="1"
+          align="center"
+          justify="between"
+          gap="md"
+          minWidth={0}
+          padding="sm 0"
+        >
+          <Flex align="center" gap="sm" minWidth={0}>
+            <Text size="sm" variant="muted">
+              {tn('%s tool call', '%s tool calls', toolCalls.length)}
             </Text>
-          )}
+            {errorCount > 0 && (
+              <Text size="sm" variant="danger">
+                {tn('%s error', '%s errors', errorCount)}
+              </Text>
+            )}
+          </Flex>
+          <TurnMeta
+            metric={
+              totalBytes > 0 ? (
+                <MetaValue>{formatBytesBase10(totalBytes)}</MetaValue>
+              ) : null
+            }
+            duration={
+              totalDuration > 0 ? (
+                <MetaValue>{getDuration(totalDuration, 2, true)}</MetaValue>
+              ) : null
+            }
+          />
         </Flex>
       }
       onToggle={open =>
@@ -146,9 +184,7 @@ function ToolCallRow({tool, node, isSelected, onSelectNode}: ToolCallRowProps) {
       style={
         isSelected
           ? {
-              outline: `2px solid ${
-                tool.hasError ? theme.tokens.content.danger : theme.tokens.focus.default
-              }`,
+              outline: `2px solid ${theme.tokens.focus.default}`,
               outlineOffset: '-2px',
             }
           : undefined
@@ -175,9 +211,7 @@ function ToolCallRow({tool, node, isSelected, onSelectNode}: ToolCallRowProps) {
           metric={node ? <ToolOutputSize node={node} /> : null}
           duration={
             tool.duration === undefined || tool.duration <= 0 ? null : (
-              <Text size="xs" variant="muted" tabular align="right">
-                {getDuration(tool.duration, 2, true)}
-              </Text>
+              <MetaValue>{getDuration(tool.duration, 2, true)}</MetaValue>
             )
           }
         />
@@ -186,13 +220,18 @@ function ToolCallRow({tool, node, isSelected, onSelectNode}: ToolCallRowProps) {
   );
 }
 
-function ToolOutputSize({node}: {node: AITraceSpanNode}) {
-  const bytes = getToolOutputBytes(node);
+/** Shared right-aligned styling for the size/duration values in the meta column. */
+function MetaValue({children}: {children: ReactNode}) {
   return (
     <Text size="xs" variant="muted" tabular align="right">
-      {formatBytesBase10(bytes)}
+      {children}
     </Text>
   );
+}
+
+function ToolOutputSize({node}: {node: AITraceSpanNode}) {
+  const bytes = getToolOutputBytes(node);
+  return <MetaValue>{formatBytesBase10(bytes)}</MetaValue>;
 }
 
 function ToolInputPreview({node}: {node: AITraceSpanNode}) {

@@ -205,21 +205,28 @@ class SpanAttributesResponse(BaseModel):
     attributes: list[SpanAttribute]
 
 
-class BuiltInField(BaseModel):
+class AttributeMeta(BaseModel):
+    """An attribute's name, type, and optional context, as listed in
+    ``AttributeNamesResponse``."""
+
     key: str
     type: str
-    # Attribute metadata (brief, examples, isDeprecated, replacementAttribute,
-    # ...) for the attribute, populated when the caller requests
-    # `expand="context"`; otherwise None. Today the metadata comes from the
-    # sentry conventions, so only attributes that map to a known convention
-    # carry it, but custom attribute context is planned and will populate this
-    # for user-defined attributes too.
+    # Metadata (brief, examples, isDeprecated, replacementAttribute, ...),
+    # populated when the caller requests `expand="context"`; otherwise None.
+    # Sourced from the sentry conventions or a column definition for Sentry-owned
+    # attributes, and authored by the org for custom ones.
     context: dict[str, Any] | None = None
 
 
 class AttributeNamesResponse(BaseModel):
     fields: dict[str, list[str]]
-    built_in_fields: list[BuiltInField]
+    # Sentry-owned attributes (conventions and Sentry-defined fields), whose
+    # context comes from the sentry conventions or a column definition.
+    built_in_fields: list[AttributeMeta]
+    # Custom (user-defined) attributes that carry user-authored context. Only
+    # populated when the caller requests context and the organization has
+    # authored some; attributes without context are still listed in `fields`.
+    custom_fields: list[AttributeMeta] = []
 
 
 class AttributeBucket(BaseModel):
@@ -238,7 +245,7 @@ class MetricMetadataRow(BaseModel):
     count: int
     # Authored context (brief, details) for the metric, populated only when the
     # caller passes include_context=True (and the metric has context); otherwise
-    # None. Mirrors the attributes context shape (see BuiltInField.context).
+    # None. Mirrors the attributes context shape (see AttributeMeta.context).
     context: dict[str, Any] | None = None
 
 
@@ -477,29 +484,6 @@ class IssueDetailsResponse(_DictProxyMixin):
     user_activity: list[dict[str, Any]]
     project_id: int
     project_slug: str
-
-
-class IssueAndEventDetailsResponse(_DictProxyMixin):
-    """`get_issue_and_event_details_v2` returns the event fields always, plus the
-    issue fields when `include_issue=True` and a group is associated with the
-    event. `exclude_unset` keeps the issue keys absent from the wire when they
-    weren't included."""
-
-    event: dict[str, Any]
-    event_id: str
-    event_trace_id: str | None
-    project_id: int
-    project_slug: str
-    issue: dict[str, Any] | None = None
-    event_timeseries: dict[str, Any] | None = None
-    timeseries_stats_period: str | None = None
-    timeseries_interval: str | None = None
-    tags_overview: dict[str, Any] | None = None
-    user_activity: list[dict[str, Any]] | None = None
-
-    def dict(self, **kwargs: Any) -> Any:
-        kwargs.setdefault("exclude_unset", True)
-        return super().dict(**kwargs)
 
 
 class IssueCommittersResponse(_DictProxyMixin):

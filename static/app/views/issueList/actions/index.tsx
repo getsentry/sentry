@@ -181,15 +181,14 @@ export function IssueListActions({
   const {pageSelected, multiSelected, anySelected, allInQuerySelected, selectedIdsSet} =
     useIssueSelectionSummary();
   const selectedProjectSlug = useMemo(() => {
-    const projects = [...selectedIdsSet]
-      .map(id => GroupStore.get(id))
+    const projects = Array.from(selectedIdsSet, id => GroupStore.get(id))
       .filter((group): group is Group => !!group?.project)
       .map(group => group.project.slug);
     const uniqProjects = uniq(projects);
     return uniqProjects.length === 1 ? uniqProjects[0] : undefined;
   }, [selectedIdsSet]);
   const theme = useTheme();
-  const disableActions = useMedia(`(width < ${theme.breakpoints.md})`);
+  const disableActions = useMedia(`(width < ${theme.breakpoints.sm})`);
   const area = useAnalyticsArea();
   const numIssues = selectedIdsSet.size;
 

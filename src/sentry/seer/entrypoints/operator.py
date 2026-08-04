@@ -1,5 +1,8 @@
 import logging
+from datetime import datetime
 from typing import Any, NotRequired, TypedDict
+
+from django.utils import timezone
 
 from sentry import features, options
 from sentry.constants import DataCategory
@@ -9,7 +12,6 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization
-from sentry.pr_metrics.attribution import attribute_seer_created_pull_requests
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import CodingAgentState, SeerRunState
 from sentry.seer.agent.client_utils import fetch_run_status
@@ -31,7 +33,6 @@ from sentry.seer.entrypoints.types import (
     SeerEntrypointKey,
 )
 from sentry.seer.models import SeerPermissionError
-from sentry.seer.pull_requests import link_seer_run_pull_requests
 from sentry.seer.seer_setup import has_seer_access
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.tasks.base import instrumented_task
@@ -233,6 +234,7 @@ class SeerAutofixOperator[CachePayloadT]:
 
             try:
                 if not run_id:
+                    triggered_at = timezone.now()
                     with action_context_scope(ActionSource.SLACK, GroupActionActor.user(user.id)):
                         run = trigger_autofix_agent(
                             group=group,
@@ -248,6 +250,7 @@ class SeerAutofixOperator[CachePayloadT]:
                             user_id=user.id,
                             data={"referrer": AutofixReferrer.SLACK.value},
                             send_notification=False,
+                            datetime=triggered_at,
                         )
                 elif stopping_point == AutofixStoppingPoint.OPEN_PR:
                     trigger_push_changes(
@@ -596,6 +599,7 @@ def _create_seer_activity(
     event_type: SentryAppEventType,
     event_payload: dict[str, Any],
     activity_attribution: SeerActivityAttribution | None = None,
+    activity_datetime: datetime | None = None,
 ) -> None:
     activity_type = SEER_EVENT_TO_ACTIVITY_TYPE.get(event_type)
     if not activity_type:
@@ -643,6 +647,7 @@ def _create_seer_activity(
         user_id=actor_user_id,
         data=activity_data if activity_data else None,
         send_notification=False,
+        datetime=activity_datetime,
     )
 
 
@@ -658,6 +663,7 @@ def process_autofix_updates(
     event_payload: dict[str, Any],
     organization_id: int,
     activity_attribution: SeerActivityAttribution | None = None,
+    activity_datetime: str | None = None,
 ) -> None:
     """
     Use the registry to iterate over all entrypoints and check if this payload's run_id or group_id
@@ -718,7 +724,15 @@ def process_autofix_updates(
 
         try:
             with action_context_scope(action_source, action_actor):
-                _create_seer_activity(group, event_type, event_payload, iteration_attribution)
+                _create_seer_activity(
+                    group,
+                    event_type,
+                    event_payload,
+                    activity_attribution=iteration_attribution,
+                    activity_datetime=(
+                        datetime.fromisoformat(activity_datetime) if activity_datetime else None
+                    ),
+                )
         except Exception:
             logger.exception(
                 "seer.activity_creation_failed",
@@ -728,35 +742,6 @@ def process_autofix_updates(
                     "event_type": str(event_type),
                 },
             )
-
-        if event_type == SentryAppEventType.SEER_PR_CREATED:
-            pull_requests = event_payload.get("pull_requests", [])
-
-            if features.has("organizations:pr-metrics-attribution", organization):
-                try:
-                    attribute_seer_created_pull_requests(
-                        organization=organization,
-                        pull_requests=pull_requests,
-                        run_id=run_id,
-                        group_id=group_id,
-                    )
-                except Exception:
-                    logger.exception(
-                        "seer.pr_attribution.failed",
-                        extra={"group_id": group_id, "run_id": run_id},
-                    )
-
-            try:
-                link_seer_run_pull_requests(
-                    organization=organization,
-                    seer_run_state_id=run_id,
-                    pull_requests=pull_requests,
-                )
-            except Exception:
-                logger.exception(
-                    "seer.pr_link.failed",
-                    extra={"group_id": group_id, "run_id": run_id},
-                )
 
         for entrypoint_key, entrypoint_cls in autofix_entrypoint_registry.registrations.items():
             logging_ctx = {

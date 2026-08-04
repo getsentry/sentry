@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {Container, Grid, type GridProps} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
@@ -533,7 +533,15 @@ function ColumnEditCollection({
             skipParameterPlaceholder={showAliasField}
           />
           {showAliasField && (
-            <AliasField singleColumn={singleColumn}>
+            <Container
+              marginTop={{zero: 'md', xl: '0'}}
+              marginLeft={{zero: '0', xl: 'md'}}
+              row={{zero: '2 / 2', xl: 'auto'}}
+              column={{
+                zero: singleColumn ? '1 / -1' : '2 / 2',
+                xl: 'auto',
+              }}
+            >
               <AliasInput
                 name="alias"
                 placeholder={t('Alias')}
@@ -545,7 +553,7 @@ function ColumnEditCollection({
                   });
                 }}
               />
-            </AliasField>
+            </Container>
           )}
           {canDelete || col.kind === 'equation' ? (
             showAliasField ? (
@@ -729,7 +737,7 @@ const RowContainer = styled('div')<{
         ? '1fr'
         : `${p.theme.space['2xl']} 1fr 40px 40px`};
 
-      @media (min-width: ${p.theme.breakpoints.sm}) {
+      @container (min-width: ${p.theme.container.xl}) {
         grid-template-columns: ${p.singleColumn
           ? `1fr calc(200px + ${p.theme.space.md})`
           : `${p.theme.space['2xl']} 1fr calc(200px + ${p.theme.space.md}) 40px 40px`};
@@ -788,19 +796,6 @@ const StyledSectionHeading = styled(SectionHeading)`
 
 const AliasInput = styled(Input)`
   min-width: 50px;
-`;
-
-const AliasField = styled('div')<{singleColumn: boolean}>`
-  margin-top: ${p => p.theme.space.md};
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    margin-top: 0;
-    margin-left: ${p => p.theme.space.md};
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-row: 2/2;
-    grid-column: ${p => (p.singleColumn ? '1/-1' : '2/2')};
-  }
 `;
 
 const RemoveButton = styled(Button)`

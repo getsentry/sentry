@@ -136,6 +136,8 @@ export function SearchBar(props: SearchBarProps) {
     }
   };
 
+  const projectIdStringsKey = projectIdStrings.join(',');
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const getSuggestedTransactions = useCallback(
     debounce(
@@ -201,7 +203,7 @@ export function SearchBar(props: SearchBarProps) {
       DEFAULT_DEBOUNCE_DURATION,
       {leading: true}
     ),
-    [api, url, eventView.statsPeriod, projectIdStrings.join(',')]
+    [api, url, eventView.statsPeriod, projectIdStringsKey]
   );
 
   const handleChooseItem = (value: string) => {

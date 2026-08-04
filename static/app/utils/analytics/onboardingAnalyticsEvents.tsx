@@ -1,7 +1,7 @@
 export type OnboardingEventParameters = {
   'onboarding.ai_prompt_copied': {
     platform: string;
-    product: 'logs' | 'traces';
+    product: 'logs' | 'traces' | 'conversations' | 'agents';
     source: 'install_command' | 'prompt';
   };
   'onboarding.back_button_clicked': {

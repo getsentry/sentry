@@ -1027,22 +1027,15 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
                 HTTP_AUTHORIZATION=f"Bearer {token.token}",
             )
 
-        # With the flag on, API (bearer token) requests get the api-specific referrer...
-        with self.feature("organizations:search-group-index-api-referrer"):
-            response = api_request()
-            assert response.status_code == 200, response.content
-            assert mock_query.call_args.kwargs["referrer"] == Referrer.SEARCH_GROUP_INDEX_API
+        # API (bearer token) requests get the api-specific referrer...
+        response = api_request()
+        assert response.status_code == 200, response.content
+        assert mock_query.call_args.kwargs["referrer"] == Referrer.SEARCH_GROUP_INDEX_API
 
-            # ...while UI (browser session) requests keep the historical referrer.
-            self.login_as(user=self.user)
-            self.get_success_response(query="is:unresolved")
-            assert mock_query.call_args.kwargs["referrer"] == Referrer.SEARCH_GROUP_INDEX
-
-        # With the flag off, API requests also keep the historical referrer.
-        with self.feature({"organizations:search-group-index-api-referrer": False}):
-            response = api_request()
-            assert response.status_code == 200, response.content
-            assert mock_query.call_args.kwargs["referrer"] == Referrer.SEARCH_GROUP_INDEX
+        # ...while UI (browser session) requests keep the historical referrer.
+        self.login_as(user=self.user)
+        self.get_success_response(query="is:unresolved")
+        assert mock_query.call_args.kwargs["referrer"] == Referrer.SEARCH_GROUP_INDEX
 
     def test_date_range(self) -> None:
         with self.options({"system.event-retention-days": 2}):

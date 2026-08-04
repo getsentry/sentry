@@ -96,3 +96,22 @@ export const ActivityLineContent = styled('div')`
   grid-row: 2;
   min-width: 0;
 `;
+
+export const ActivityLineList = styled('div')`
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.theme.space.md};
+  container-name: activity-list;
+  container-type: inline-size;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 10.5px;
+    top: 11px;
+    bottom: 11px;
+    width: 0;
+    border-left: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
+  }
+`;

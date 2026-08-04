@@ -98,7 +98,8 @@ def process_replay_recording(message_bytes: bytes) -> None:
 
 @instrumented_task(
     name="sentry.replays.tasks.delete_recording_async",
-    namespace=replays_tasks,
+    namespace=replays_long_tasks,
+    alias_namespace=replays_tasks,
     processing_deadline_duration=120,
     retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.CELL,
@@ -107,8 +108,11 @@ def delete_replays_script_async(
     retention_days: int,
     project_id: int,
     replay_id: str,
-    max_segment_id: int,
+    max_segment_id: int | None,
 ) -> None:
+    if max_segment_id is None:
+        return None
+
     segments = [
         RecordingSegmentStorageMeta(
             project_id=project_id,
@@ -116,15 +120,14 @@ def delete_replays_script_async(
             segment_id=i,
             retention_days=retention_days,
         )
-        for i in range(0, max_segment_id)
+        for i in range(max_segment_id + 1)
     ]
 
     rrweb_filenames = []
     for segment in segments:
         rrweb_filenames.append(make_recording_filename(segment))
 
-    with ContextPropagatingThreadPoolExecutor(max_workers=100) as pool:
-        pool.map(_delete_if_exists, rrweb_filenames)
+    _delete_filenames_concurrently(rrweb_filenames)
 
     # Backwards compatibility. Should be deleted one day.
     segments_from_django_models = ReplayRecordingSegment.objects.filter(
@@ -165,8 +168,11 @@ def delete_replay_recording(project_id: int, replay_id: str) -> None:
             direct_storage_segments.append(segment)
 
     # Issue concurrent delete requests when interacting with a remote service provider.
-    with ContextPropagatingThreadPoolExecutor(max_workers=100) as pool:
-        if direct_storage_segments:
+    # Make the threads reuse one client instead of racing to build their own
+    if direct_storage_segments:
+        storage.initialize_client()
+        max_workers = min(len(direct_storage_segments), _DELETE_THREAD_POOL_SIZE)
+        with ContextPropagatingThreadPoolExecutor(max_workers=max_workers) as pool:
             pool.map(storage.delete, direct_storage_segments)
 
     # This will only run if "filestore" was used to store the files. This hasn't been the
@@ -193,6 +199,23 @@ def _delete_if_exists(filename: str) -> None:
         storage_kv.delete(filename)
     except NotFound:
         pass
+
+
+#  Keeping this small bounds threads-per-task so `worker_concurrency x N` stays under pod memory limit
+_DELETE_THREAD_POOL_SIZE = 32
+
+
+def _delete_filenames_concurrently(filenames: list[str]) -> None:
+    if not filenames:
+        return
+
+    # Warm the process-global client before the threads start so they reuse it instead of racing to build their own
+    # Mimics the API endpoint's behavior
+    storage_kv.initialize_client()
+
+    max_workers = min(len(filenames), _DELETE_THREAD_POOL_SIZE)
+    with ContextPropagatingThreadPoolExecutor(max_workers=max_workers) as pool:
+        pool.map(_delete_if_exists, filenames)
 
 
 @instrumented_task(
