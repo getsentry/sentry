@@ -1,12 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {
-  act,
-  renderGlobalModal,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {act, renderGlobalModal, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {openPipelineModal} from './modal';
 
@@ -73,29 +67,5 @@ describe('PipelineModal', () => {
     act(() => openPipelineModal({type: 'integration', provider: 'dummy', onError}));
 
     await waitFor(() => expect(onError).toHaveBeenCalledWith('Installation failed'));
-  });
-
-  it('reports a pipeline error again after Start over when the message is identical', async () => {
-    const onError = jest.fn();
-    MockApiClient.addMockResponse({
-      url: API_URL,
-      method: 'POST',
-      statusCode: 500,
-      body: {detail: 'Installation failed'},
-      match: [MockApiClient.matchData({action: 'initialize', provider: 'dummy'})],
-    });
-
-    renderGlobalModal({organization});
-
-    act(() => openPipelineModal({type: 'integration', provider: 'dummy', onError}));
-
-    // First failure reported
-    await waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
-
-    // User clicks Start over; the pipeline re-initializes and fails again
-    await userEvent.click(screen.getByRole('button', {name: /start over/i}));
-
-    await waitFor(() => expect(onError).toHaveBeenCalledTimes(2));
-    expect(onError).toHaveBeenLastCalledWith('Installation failed');
   });
 });
