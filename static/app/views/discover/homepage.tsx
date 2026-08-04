@@ -19,6 +19,7 @@ import type {Organization, SavedQuery} from 'sentry/types/organization';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {EventView} from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
@@ -29,6 +30,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 
 import {Results} from './results';
 
@@ -61,6 +63,11 @@ function Homepage() {
 
   const previousSavedQuery = usePrevious(savedQuery);
 
+  const shouldHideThisTransactionsQuery =
+    getDiscoverDeprecation(organization) &&
+    (savedQuery?.queryDataset === SavedQueryDatasets.TRANSACTIONS ||
+      savedQuery?.dataset === DiscoverDatasets.TRANSACTIONS);
+
   useEffect(() => {
     const hasFetchedSavedQuery = !previousSavedQuery && savedQuery;
     const sidebarClicked = savedQuery && location.search === '';
@@ -70,6 +77,10 @@ function Homepage() {
       savedQuery &&
       ((hasFetchedSavedQuery && !hasValidEventViewInURL) || sidebarClicked)
     ) {
+      if (shouldHideThisTransactionsQuery) {
+        return;
+      }
+
       const eventView = EventView.fromSavedQuery(savedQuery);
       const pageFilterState = getPageFilterStorage(organization.slug);
       let query = {
@@ -111,7 +122,14 @@ function Homepage() {
         {replace: true}
       );
     }
-  }, [savedQuery, location, previousSavedQuery, navigate, organization.slug]);
+  }, [
+    savedQuery,
+    location,
+    previousSavedQuery,
+    navigate,
+    organization.slug,
+    shouldHideThisTransactionsQuery,
+  ]);
 
   if (isLoading) {
     return <LoadingIndicator />;
@@ -137,7 +155,7 @@ function Homepage() {
       selection={selection}
       setSavedQuery={setSavedQuery}
       isHomepage
-      savedQuery={savedQuery}
+      savedQuery={shouldHideThisTransactionsQuery ? undefined : savedQuery}
     />
   );
 }
