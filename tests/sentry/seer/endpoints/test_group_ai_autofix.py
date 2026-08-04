@@ -369,6 +369,23 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
+    def test_insert_index_unknown_run_returns_404(self, mock_run_state, mock_trigger_explorer):
+        """The re-run guard surfaces an unknown run as 404, not 403."""
+        group = self.create_group()
+        mock_run_state.side_effect = SeerPermissionError("Unknown run id for group")
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "solution", "run_id": 42, "insert_index": 3},
+            format="json",
+        )
+
+        assert response.status_code == 404, response.data
+        mock_trigger_explorer.assert_not_called()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
     def test_insert_index_rejected_when_coding_agent_exists(
         self, mock_run_state, mock_trigger_explorer
     ):

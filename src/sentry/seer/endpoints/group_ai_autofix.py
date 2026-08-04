@@ -415,7 +415,9 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 if data.get("insert_index") is not None and resolved_run_id is not None:
                     try:
                         run_state = get_autofix_run_state(group, resolved_run_id)
-                    except SeerPermissionError:
+                    except SeerPermissionError as e:
+                        if _is_unknown_run_id_error(e):
+                            return Response(status=status.HTTP_404_NOT_FOUND)
                         raise PermissionDenied(SEER_PERMISSION_DENIED)
 
                     if run_state.repo_pr_states or run_state.coding_agents:
