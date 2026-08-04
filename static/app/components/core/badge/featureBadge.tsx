@@ -52,6 +52,12 @@ export function FeatureBadge({type, tooltipProps, ...props}: FeatureBadgeProps) 
     <Tooltip
       title={title}
       position="right"
+      // Hoverable so the tooltip's own overlay can receive the pointer without
+      // yanking `:hover` off the badge. A non-hoverable tooltip anchored to the
+      // right of a small trigger lands its animating overlay under a stationary
+      // cursor, transferring hover to the overlay and closing the tooltip, which
+      // returns hover to the badge and reopens it — a self-sustaining flicker.
+      isHoverable
       {...tooltipProps}
       forceVisible={
         isInteractiveElementFocusVisible ? 'delayed' : tooltipProps?.forceVisible
