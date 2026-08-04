@@ -54,9 +54,8 @@ export function OnboardingSkipButton({stepId}: OnboardingSkipButtonProps) {
   }
 
   const handleClick = () => {
-    // Treatment ends on scm-messaging, the last step before project creation.
-    // Skipping here must not leave a half-staged session for the next
-    // /onboarding visit to silently resume from.
+    // Skipping exits the treatment and must not leave a half-staged session for
+    // the next /onboarding visit to silently resume from.
     resetOnboarding();
     trackAnalytics('onboarding.scm_header_skip_clicked', {
       organization,
