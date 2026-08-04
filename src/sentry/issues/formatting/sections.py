@@ -249,7 +249,6 @@ _FORMATTERS: dict[Format, type[Formatter]] = {
     "xml": XmlFormatter,
 }
 
-# base event sections in render order
 # every section in render order, including the user identifiers that ``EVENT_SECTIONS`` holds
 # back. Pass this only from a surface that already exposes those fields to its caller.
 EVENT_SECTIONS_WITH_USER: list[SectionFn] = [
