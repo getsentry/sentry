@@ -24,8 +24,6 @@ describe('AnomalyDetectionFeedbackBanner', () => {
   const mockIncident2 = IncidentFixture({id: '6702'});
   const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
-  // The banner records its dismissal in localStorage keyed by incident id, and
-  // jsdom keeps that store for the whole file.
   beforeEach(() => {
     localStorage.clear();
   });
