@@ -178,6 +178,7 @@ def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | N
     finally:
         tmp.close()
 
+    # We're already inside a retry loop, but we additionally retry this internally in an effort to not waste the work done so far due to a failure that could simply be due to transient network instability.
     response = _get_object_with_retry(session, storage_path)
     remote_checksum, remote_size = _sha1_stream(response.payload)
     if remote_checksum != expected_checksum or remote_size != expected_size:
