@@ -164,6 +164,12 @@ function getAutofixPrimaryAction(autofix: ExplorerAutofix): SeerAction | null {
       };
     case 'solution':
       return {...AUTOFIX_ANALYTICS.solution, kind: 'solution', label: t('Make a Plan')};
+    case 'pr_iteration':
+      return {
+        ...AUTOFIX_ANALYTICS.view,
+        kind: 'view_autofix',
+        label: t('Continue in Seer'),
+      };
     default:
       return null;
   }

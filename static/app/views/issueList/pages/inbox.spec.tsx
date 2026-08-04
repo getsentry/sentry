@@ -779,6 +779,34 @@ describe('InboxPage', () => {
     ).toHaveAttribute('href', 'https://github.com/org/repository/pull/649');
   });
 
+  it('continues in Seer when a completed Autofix pull request is missing data', async () => {
+    mockSuccessfulSections();
+    mockIssuePreview();
+    mockAutofixResponse(
+      ExplorerAutofixResponseFixture({
+        autofix: ExplorerAutofixStateFixture({
+          repo_pr_states: {
+            'org/repository': AutofixRepoPRStateFixture({
+              pr_creation_status: 'completed',
+              pr_number: null,
+              pr_url: null,
+            }),
+          },
+        }),
+      })
+    );
+
+    render(<InboxPage />, {
+      organization: seerOrganization,
+      initialRouterConfig,
+    });
+
+    const preview = await openFixProposedPreview();
+    expect(
+      await within(preview).findByRole('button', {name: 'Continue in Seer'})
+    ).toBeInTheDocument();
+  });
+
   it('retries a failed Autofix pull request', async () => {
     mockSuccessfulSections();
     mockIssuePreview();
