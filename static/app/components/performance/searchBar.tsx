@@ -297,7 +297,7 @@ export function SearchBar(props: SearchBarProps) {
           items={searchResults}
           onClick={handleChooseItem}
           onIconClick={handleClickItemIcon}
-          onDocsOpen={() => logDocsOpenedEvent()}
+          onDocsOpen={logDocsOpenedEvent}
         />
       )}
     </Container>
