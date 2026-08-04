@@ -15,7 +15,6 @@ from typing import Any, assert_never, cast
 
 from django.db import IntegrityError, router, transaction
 from django.dispatch import receiver
-from django.utils import timezone
 
 from sentry.audit_log.services.log import AuditLogEvent, UserIpEvent, log_rpc_service
 from sentry.auth.services.auth import auth_service
@@ -355,21 +354,24 @@ def process_group_action_log_event(payload: GroupActionLogPayload, **kwds: Any) 
         force_async_derived = payload["force_async_derived"]
         date_added = payload.get("date_added")
 
+        # Only pass date_added when explicitly provided; otherwise rely on the
+        # DB default (Now()) rather than a Python-supplied timestamp.
+        create_kwargs: dict[str, Any] = {
+            "group_id": group_id,
+            "project_id": payload["project_id"],
+            "type": payload["type"],
+            "actor_type": payload["actor_type"],
+            "actor_id": payload["actor_id"],
+            "source": payload["source"],
+            "data": payload["data"],
+            "idempotency_key": payload.get("idempotency_key"),
+        }
+        if date_added is not None:
+            create_kwargs["date_added"] = datetime.fromisoformat(date_added)
+
         try:
             with transaction.atomic(using=using):
-                GroupActionLogEntry.objects.create(
-                    group_id=group_id,
-                    project_id=payload["project_id"],
-                    type=payload["type"],
-                    actor_type=payload["actor_type"],
-                    actor_id=payload["actor_id"],
-                    source=payload["source"],
-                    data=payload["data"],
-                    idempotency_key=payload.get("idempotency_key"),
-                    date_added=(
-                        datetime.fromisoformat(date_added) if date_added else timezone.now()
-                    ),
-                )
+                GroupActionLogEntry.objects.create(**create_kwargs)
         except IntegrityError:
             # Idempotency conflict; we treat this as a no-op.
             # Return to skip the trigger_group_log_processing call.

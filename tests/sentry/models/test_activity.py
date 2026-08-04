@@ -436,16 +436,56 @@ class ActivityTest(TestCase):
 
         before = datetime.now(timezone.utc)
 
-        activity = Activity.objects.create_group_activity(
-            group=group,
-            type=ActivityType.SET_IGNORED,
-            user=user,
-            send_notification=False,
-        )
+        with self.feature("projects:issue-action-log-write-to-db"), outbox_runner():
+            activity = Activity.objects.create_group_activity(
+                group=group,
+                type=ActivityType.SET_IGNORED,
+                user=user,
+                send_notification=False,
+            )
 
         after = datetime.now(timezone.utc)
 
         assert before <= activity.datetime <= after
+
+        # GALE relies on the DB default (Now()); only assert plausibility
+        # since app and DB clocks aren't synchronized.
+        gale = GroupActionLogEntry.objects.get(group_id=group.id)
+        assert gale.date_added is not None
+        assert abs((gale.date_added - after).total_seconds()) < 5
+
+    def test_create_without_explicit_datetime_passes_none_to_publish(self) -> None:
+        # No `datetime=` kwarg -> `date_added=None` so the outbox receiver
+        # falls back to the DB default rather than a Python-supplied "now".
+        project = self.create_project(name="test_publish_no_datetime")
+        group = self.create_group(project)
+
+        with patch("sentry.models.activity.publish_action_from_context") as mock_publish:
+            Activity.objects.create_group_activity(
+                group=group,
+                type=ActivityType.SET_RESOLVED,
+                send_notification=False,
+            )
+
+        assert mock_publish.called
+        assert mock_publish.call_args.kwargs["date_added"] is None
+
+    def test_create_with_explicit_datetime_passes_it_to_publish(self) -> None:
+        # Explicit `datetime=` is forwarded verbatim as `date_added`.
+        project = self.create_project(name="test_publish_with_datetime")
+        group = self.create_group(project)
+        custom_datetime = datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc)
+
+        with patch("sentry.models.activity.publish_action_from_context") as mock_publish:
+            Activity.objects.create_group_activity(
+                group=group,
+                type=ActivityType.SET_RESOLVED,
+                send_notification=False,
+                datetime=custom_datetime,
+            )
+
+        assert mock_publish.called
+        assert mock_publish.call_args.kwargs["date_added"] == custom_datetime
 
     def test_create_group_activity_with_ident(self) -> None:
         project = self.create_project(name="test_with_ident")
