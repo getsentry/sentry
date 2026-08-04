@@ -454,7 +454,7 @@ class JiraIntegration(IssueSyncIntegration):
 
     @staticmethod
     def _validate_project_status_mappings(
-        project_mappings: dict[str, Any],
+        project_mappings: object,
     ) -> tuple[dict[str, dict[str, str]], set[str]]:
         """
         Normalize the `sync_status_forward` payload into upserts and tombstones.
@@ -462,10 +462,15 @@ class JiraIntegration(IssueSyncIntegration):
         Keyed by Jira project id: an object upserts, `null` deletes, and an absent key is
         left alone. Everything is validated before the caller writes a single row.
         """
+        # Since the parent endpoint doesn't have a validator we have a guard
+        if not isinstance(project_mappings, Mapping):
+            raise IntegrationError("Sync Sentry Status to Jira must be a mapping of projects.")
+
         upserts: dict[str, dict[str, str]] = {}
         tombstones: set[str] = set()
 
-        for external_id, statuses in project_mappings.items():
+        for raw_external_id, statuses in project_mappings.items():
+            external_id = str(raw_external_id).strip()
             if not external_id:
                 raise IntegrationError("A Jira project is required for each status mapping.")
             if external_id in upserts or external_id in tombstones:
@@ -490,7 +495,7 @@ class JiraIntegration(IssueSyncIntegration):
         return upserts, tombstones
 
     def _reconcile_project_status_mappings(
-        self, project_mappings: dict[str, Any]
+        self, project_mappings: object
     ) -> _MappingReconcileResult:
         """
         Apply a `sync_status_forward` payload to the stored `IntegrationExternalProject` rows.

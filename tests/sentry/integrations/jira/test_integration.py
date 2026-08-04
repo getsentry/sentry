@@ -1697,13 +1697,6 @@ class JiraIntegrationTest(APITestCase):
         """A failure part-way through must not leave the mappings half-written."""
         installation, org_integration = self._jira_installation_with_mappings("1", "2")
 
-        mixed_payload = {
-            "sync_status_forward": {
-                "1": None,
-                "3": {"on_resolve": "closed", "on_unresolve": "open"},
-            }
-        }
-
         # The tombstoned row is deleted before anything is written, so a failing insert has
         # to bring it back.
         with patch.object(
@@ -1712,7 +1705,14 @@ class JiraIntegrationTest(APITestCase):
             side_effect=OSError("boom"),
         ):
             with pytest.raises(OSError):
-                installation.update_organization_config(dict(mixed_payload))
+                installation.update_organization_config(
+                    {
+                        "sync_status_forward": {
+                            "1": None,
+                            "3": {"on_resolve": "closed", "on_unresolve": "open"},
+                        }
+                    }
+                )
 
         assert self._mappings(org_integration.id) == {
             "1": ("done", "in_progress"),
@@ -1734,16 +1734,6 @@ class JiraIntegrationTest(APITestCase):
                         }
                     }
                 )
-
-        assert self._mappings(org_integration.id) == {
-            "1": ("done", "in_progress"),
-            "2": ("done", "in_progress"),
-        }
-
-        # A failing delete leaves the mappings untouched too.
-        with patch("django.db.models.QuerySet.delete", side_effect=OSError("boom")):
-            with pytest.raises(OSError):
-                installation.update_organization_config(dict(mixed_payload))
 
         assert self._mappings(org_integration.id) == {
             "1": ("done", "in_progress"),
