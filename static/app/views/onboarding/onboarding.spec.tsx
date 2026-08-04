@@ -599,6 +599,16 @@ describe('Onboarding', () => {
       ).toHaveAttribute('aria-valuemax', '4');
     });
 
+    it('redirects an inactive messaging route to welcome without skipping SCM steps', async () => {
+      const {router} = renderOnboarding('scm-messaging');
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          `/onboarding/${scmOrganization.slug}/welcome/`
+        );
+      });
+    });
+
     it('navigates from welcome to scm-connect', async () => {
       const {router} = renderOnboarding('welcome');
 
