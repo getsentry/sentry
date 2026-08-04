@@ -70,11 +70,24 @@ def _tags(data: Mapping[str, Any]) -> tuple[list[tuple[str, str | None]], str | 
     return tags, transaction_name
 
 
-# Feedback issues put the reporter's contact details in evidenceDisplay (see
-# feedback.usecases.ingest.create_feedback.make_evidence). They are user identifiers like the
-# ones user_section holds back, so they follow the same rule and stay out of the default
-# output. The free-form `message` is the issue's own content, not an identifier, so it stays.
-_IDENTIFIER_EVIDENCE_NAMES = frozenset({"contact_email", "name"})
+# Feedback issues carry the reporter's contact details in two places: occurrence.evidenceDisplay
+# and contexts.feedback (see feedback.usecases.ingest). They are user identifiers like the ones
+# user_section holds back, so they follow the same rule and stay out of the default output. The
+# free-form `message` is the issue's own content, not an identifier, so it stays.
+_REPORTER_IDENTIFIER_KEYS = frozenset({"contact_email", "name"})
+
+
+def _contexts(data: Mapping[str, Any]) -> dict[str, Any]:
+    # scoped to the feedback context on purpose: `name` is a legitimate key on browser, os
+    # and runtime contexts, so a blanket filter would drop real data
+    contexts = dict(data.get("contexts") or {})
+    if "feedback" in contexts:
+        contexts["feedback"] = {
+            key: value
+            for key, value in contexts["feedback"].items()
+            if key not in _REPORTER_IDENTIFIER_KEYS
+        }
+    return contexts
 
 
 def _evidence(data: Mapping[str, Any]) -> list[tuple[str, str]]:
@@ -84,7 +97,7 @@ def _evidence(data: Mapping[str, Any]) -> list[tuple[str, str]]:
     return [
         (item["name"], item["value"])
         for item in display
-        if item.get("name") and item.get("value") and item["name"] not in _IDENTIFIER_EVIDENCE_NAMES
+        if item.get("name") and item.get("value") and item["name"] not in _REPORTER_IDENTIFIER_KEYS
     ]
 
 
@@ -119,7 +132,7 @@ def event_response_to_model(data: Mapping[str, Any]) -> EventObject:
         request=RequestDetails.parse_obj(request) if request else None,
         csp=CspDetails.parse_obj(csp) if csp else None,
         tags=tags,
-        contexts=data.get("contexts") or {},
+        contexts=_contexts(data),
         user=UserDetails.parse_obj(user) if user else None,
         spans=[EvidenceSpan.parse_obj(s) for s in entries.get("spans") or []],
         evidence=_evidence(data),
