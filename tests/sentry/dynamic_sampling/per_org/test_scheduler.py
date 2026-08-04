@@ -135,7 +135,12 @@ class SchedulePerOrgCalculationsTest(TestCase):
 
 
 class RunCalculationsPerOrgTest(TestCase):
-    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    @override_options(
+        {
+            "dynamic-sampling.per_org.rollout-rate": 1.0,
+            "dynamic-sampling.per_org.recalibration-rollout-rate": 1.0,
+        }
+    )
     def test_run_calculations_per_org_returns_no_volume_without_traffic(self) -> None:
         org = self.create_organization()
         self.create_project(organization=org, teams=[])
@@ -161,7 +166,7 @@ class RunCalculationsPerOrgTest(TestCase):
                 "sentry.dynamic_sampling.per_org.scheduler.get_eap_project_volumes"
             ) as get_project_volumes,
             patch(
-                "sentry.dynamic_sampling.per_org.configuration.legacy_recalibration_cache.get_adjusted_factor",
+                "sentry.dynamic_sampling.per_org.calculations.legacy_recalibration_cache.get_adjusted_factor",
             ) as get_factor,
             patch(
                 "sentry.dynamic_sampling.per_org.configuration.per_org_recalibration_cache.get_adjusted_factor",
@@ -176,7 +181,12 @@ class RunCalculationsPerOrgTest(TestCase):
         get_factor.assert_not_called()
         get_per_org_factor.assert_not_called()
 
-    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    @override_options(
+        {
+            "dynamic-sampling.per_org.rollout-rate": 1.0,
+            "dynamic-sampling.per_org.recalibration-rollout-rate": 1.0,
+        }
+    )
     def test_run_calculations_per_org_skips_transaction_volumes_at_full_sample_rate(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org, teams=[])
@@ -204,7 +214,7 @@ class RunCalculationsPerOrgTest(TestCase):
                 return_value=org_volume_5_minutes,
             ) as get_outcome_volume,
             patch(
-                "sentry.dynamic_sampling.per_org.configuration.legacy_recalibration_cache.get_adjusted_factor",
+                "sentry.dynamic_sampling.per_org.calculations.legacy_recalibration_cache.get_adjusted_factor",
                 return_value=1.0,
             ),
             patch(
@@ -240,9 +250,6 @@ class RunCalculationsPerOrgTest(TestCase):
 
         assert result == DynamicSamplingStatus.ALL_PROJECTS_AT_FULL_SAMPLE_RATE
         _assert_called_once_with_config(get_volume, org.id)
-        get_outcome_volume.assert_called_once_with(
-            org.id, time_interval=OUTCOMES_ORGANIZATION_VOLUME_DEFAULT_TIME_INTERVAL
-        )
         get_blended_sample_rate.assert_called_once_with(organization_id=org.id)
         project_config = _assert_called_once_with_config(get_project_volumes, org.id)
         project_balancing.assert_called_once_with(project_config, project_volumes)
@@ -252,10 +259,17 @@ class RunCalculationsPerOrgTest(TestCase):
         )
         get_transaction_volumes.assert_not_called()
         transaction_balancing.assert_not_called()
-        assert project_config.organization_recalibration_factor == 4.0
-        set_per_org_factor.assert_called_once_with(org.id, 4.0)
+        # Recalibration is the last step, so a full-sample-rate org returns before it runs.
+        get_outcome_volume.assert_not_called()
+        assert project_config.organization_recalibration_factor is None
+        set_per_org_factor.assert_not_called()
 
-    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    @override_options(
+        {
+            "dynamic-sampling.per_org.rollout-rate": 1.0,
+            "dynamic-sampling.per_org.recalibration-rollout-rate": 1.0,
+        }
+    )
     def test_run_calculations_per_org_skips_recalibration_without_valid_5_minute_volume(
         self,
     ) -> None:
@@ -315,11 +329,11 @@ class RunCalculationsPerOrgTest(TestCase):
                 return_value={},
             ) as transaction_balancing,
             patch(
-                "sentry.dynamic_sampling.per_org.configuration.legacy_recalibration_cache.get_adjusted_factor",
-            ) as get_factor,
-            patch(
                 "sentry.dynamic_sampling.per_org.configuration.per_org_recalibration_cache.get_adjusted_factor",
             ) as get_per_org_factor,
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.per_org_recalibration_cache.set_guarded_adjusted_factor",
+            ) as set_per_org_factor,
         ):
             result = run_calculations_per_org_task(org.id)
 
@@ -339,8 +353,8 @@ class RunCalculationsPerOrgTest(TestCase):
         transaction_balancing.assert_called_once_with(
             transaction_config, project_volumes, get_transaction_volumes.return_value
         )
-        get_factor.assert_not_called()
         get_per_org_factor.assert_not_called()
+        set_per_org_factor.assert_not_called()
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_returns_no_volume_without_project_volumes(self) -> None:
@@ -497,7 +511,12 @@ class RunCalculationsPerOrgTest(TestCase):
             transaction_config, project_volumes, get_transaction_volumes.return_value
         )
 
-    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    @override_options(
+        {
+            "dynamic-sampling.per_org.rollout-rate": 1.0,
+            "dynamic-sampling.per_org.recalibration-rollout-rate": 1.0,
+        }
+    )
     def test_run_calculations_per_org_queries_projects_for_am3_org_mode(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org, teams=[])
@@ -521,7 +540,7 @@ class RunCalculationsPerOrgTest(TestCase):
                 return_value=org_volume,
             ) as get_outcome_volume,
             patch(
-                "sentry.dynamic_sampling.per_org.configuration.legacy_recalibration_cache.get_adjusted_factor",
+                "sentry.dynamic_sampling.per_org.calculations.legacy_recalibration_cache.get_adjusted_factor",
                 return_value=1.0,
             ),
             patch(
@@ -607,7 +626,12 @@ class RunCalculationsPerOrgTest(TestCase):
         get_volume.assert_not_called()
         get_project_volumes.assert_not_called()
 
-    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    @override_options(
+        {
+            "dynamic-sampling.per_org.rollout-rate": 1.0,
+            "dynamic-sampling.per_org.recalibration-rollout-rate": 1.0,
+        }
+    )
     def test_run_calculations_per_org_queries_projects_for_am2(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org, teams=[])
@@ -634,7 +658,7 @@ class RunCalculationsPerOrgTest(TestCase):
                 return_value=org_volume,
             ) as get_outcome_volume,
             patch(
-                "sentry.dynamic_sampling.per_org.configuration.legacy_recalibration_cache.get_adjusted_factor",
+                "sentry.dynamic_sampling.per_org.calculations.legacy_recalibration_cache.get_adjusted_factor",
                 return_value=1.0,
             ),
             patch(
@@ -673,6 +697,9 @@ class RunCalculationsPerOrgTest(TestCase):
                 "sentry.dynamic_sampling.per_org.scheduler.run_transaction_balancing",
                 return_value={},
             ) as transaction_balancing,
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.compare_recalibration_factor_with_cache",
+            ) as compare_factor,
         ):
             result = run_calculations_per_org_task(org.id)
 
@@ -698,6 +725,81 @@ class RunCalculationsPerOrgTest(TestCase):
         )
         assert project_config.organization_recalibration_factor == 4.0
         set_per_org_factor.assert_called_once_with(org.id, 4.0)
+        compare_factor.assert_called_once_with(project_config, 4.0, 1.0)
+
+    @override_options(
+        {
+            "dynamic-sampling.per_org.rollout-rate": 1.0,
+            "dynamic-sampling.per_org.recalibration-rollout-rate": 0.0,
+        }
+    )
+    def test_run_calculations_per_org_skips_recalibration_outside_its_rollout(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org, teams=[])
+        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
+        project_volumes = [_project_volume(project.id)]
+        rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=0.5)]
+
+        with (
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
+                return_value=0.5,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
+                return_value=None,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume",
+                return_value=org_volume,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_sampled_volume",
+            ) as get_outcome_volume,
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.get_cached_recalibration_factor",
+            ) as get_cached_factor,
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.compare_recalibration_factor_with_cache",
+            ) as compare_factor,
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_project_volumes",
+                return_value=project_volumes,
+            ) as get_project_volumes,
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.run_project_balancing",
+                return_value=rebalanced_projects,
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.get_cached_rebalanced_project_sample_rates",
+                return_value={},
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.compare_rebalanced_projects_with_cache"
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_transaction_volumes",
+                return_value=[
+                    ProjectTransactionCounts(
+                        org_id=org.id,
+                        project_id=project.id,
+                        transaction_counts=[("checkout", 1.0)],
+                    )
+                ],
+            ),
+            patch(
+                "sentry.dynamic_sampling.per_org.scheduler.run_transaction_balancing",
+                return_value={},
+            ),
+        ):
+            result = run_calculations_per_org_task(org.id)
+
+        assert result is None
+        project_config = _assert_called_once_with_config(get_project_volumes, org.id)
+        assert project_config.organization_recalibration_factor is None
+        get_outcome_volume.assert_not_called()
+        get_cached_factor.assert_not_called()
+        compare_factor.assert_not_called()
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_skips_org_without_transaction_sample_rate(self) -> None:

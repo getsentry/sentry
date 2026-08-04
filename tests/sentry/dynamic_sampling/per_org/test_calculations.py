@@ -12,8 +12,10 @@ from sentry.dynamic_sampling.per_org.calculations import (
     calculate_recalibration_factor,
     compare_rebalanced_projects_with_cache,
     compare_rebalanced_transactions_with_cache,
+    compare_recalibration_factor_with_cache,
     get_cached_rebalanced_project_sample_rates,
     get_cached_rebalanced_transaction_sample_rates,
+    get_cached_recalibration_factor,
     is_within_relative_tolerance,
     run_project_balancing,
     run_transaction_balancing,
@@ -21,6 +23,9 @@ from sentry.dynamic_sampling.per_org.calculations import (
 from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts, ProjectVolume
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
+from sentry.dynamic_sampling.tasks.helpers import (
+    recalibrate_orgs as legacy_recalibration_cache,
+)
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
@@ -245,6 +250,54 @@ class ProjectBalancingCalculationsTest(TestCase):
         org_volume = OrganizationDataVolume(org_id=1, total=100, indexed=25)
         adjusted_factor = calculate_recalibration_factor(org_volume, 1.4, 0.5)
         assert adjusted_factor == 2.8
+
+    def test_get_cached_recalibration_factor_reads_the_legacy_cache(self) -> None:
+        org = self.create_organization()
+        cache_key = legacy_recalibration_cache.generate_recalibrate_orgs_cache_key(org.id)
+        self.redis.delete(cache_key)
+        self.addCleanup(self.redis.delete, cache_key)
+        self.redis.set(cache_key, 2.5)
+
+        assert get_cached_recalibration_factor(org.id) == 2.5
+
+    def test_compare_recalibration_factor_with_cache_logs_the_deviation(self) -> None:
+        org = self.create_organization()
+        config = Mock()
+        config.organization = org
+        config.get_sample_rate.return_value = 0.5
+
+        with patch("sentry.dynamic_sampling.per_org.calculations.logger.info") as logger_info:
+            compare_recalibration_factor_with_cache(config, 2.8, 2.0)
+
+        logger_info.assert_called_once_with(
+            "dynamic_sampling.per_org.recalibration_factor_comparison",
+            extra={
+                "org_id": org.id,
+                "sample_rate": 0.5,
+                "generic_metrics_factor": 2.0,
+                "eap_factor": 2.8,
+                "relative_deviation": pytest.approx(0.2857142857142857),
+                "is_equal": False,
+            },
+        )
+
+    def test_compare_recalibration_factor_with_cache_reports_a_skipped_factor(self) -> None:
+        org = self.create_organization()
+        config = Mock()
+        config.organization = org
+        config.get_sample_rate.return_value = 0.5
+
+        with patch("sentry.dynamic_sampling.per_org.calculations.logger.info") as logger_info:
+            compare_recalibration_factor_with_cache(config, None, 2.0)
+
+        assert logger_info.call_args.kwargs["extra"] == {
+            "org_id": org.id,
+            "sample_rate": 0.5,
+            "generic_metrics_factor": 2.0,
+            "eap_factor": None,
+            "relative_deviation": None,
+            "is_equal": False,
+        }
 
 
 def _project_transactions(

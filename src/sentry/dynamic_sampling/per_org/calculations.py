@@ -35,6 +35,9 @@ from sentry.dynamic_sampling.tasks.common import (
     compute_sliding_window_sample_rate,
     sample_rate_to_float,
 )
+from sentry.dynamic_sampling.tasks.helpers import (
+    recalibrate_orgs as legacy_recalibration_cache,
+)
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
 )
@@ -53,6 +56,7 @@ if TYPE_CHECKING:
 
 PROJECT_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
 TRANSACTION_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
+RECALIBRATION_FACTOR_COMPARISON_RELATIVE_TOLERANCE = 0.05
 REBALANCE_INTENSITY = 0.8
 PROJECT_BALANCING_DEBUG_METRIC_PREFIX = "dynamic_sampling.per_org.project_balancing_debug"
 SLIDING_WINDOW_METRIC_PREFIX = "dynamic_sampling.per_org.sliding_window"
@@ -81,6 +85,37 @@ def calculate_recalibration_factor(
     effective_sample_rate = data_volume.indexed / data_volume.total
     new_factor = previous_factor * (target_sample_rate / effective_sample_rate)
     return new_factor
+
+
+def get_cached_recalibration_factor(org_id: int) -> float:
+    return legacy_recalibration_cache.get_adjusted_factor(org_id)
+
+
+def compare_recalibration_factor_with_cache(
+    config: BaseDynamicSamplingConfiguration,
+    calculated_factor: float | None,
+    cached_factor: float | None,
+) -> None:
+    logger.info(
+        "dynamic_sampling.per_org.recalibration_factor_comparison",
+        extra={
+            "org_id": config.organization.id,
+            "sample_rate": config.get_sample_rate(),
+            "generic_metrics_factor": cached_factor,
+            "eap_factor": calculated_factor,
+            "relative_deviation": (
+                None
+                if calculated_factor is None
+                else get_relative_deviation(cached_factor, calculated_factor)
+            ),
+            "is_equal": calculated_factor is not None
+            and is_within_relative_tolerance(
+                cached_factor,
+                calculated_factor,
+                RECALIBRATION_FACTOR_COMPARISON_RELATIVE_TOLERANCE,
+            ),
+        },
+    )
 
 
 def compare_organization_sliding_window_sample_rates(
