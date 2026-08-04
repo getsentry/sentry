@@ -79,7 +79,6 @@ from sentry.seer.sentry_data_models import (
     ExecuteTimeseriesQueryErrorResponse,
     ExecuteTimeseriesQuerySuccessResponse,
     GetDsnResponse,
-    IssueAndEventDetailsResponse,
     IssueCommittersResponse,
     IssueDetailsResponse,
     IssueOwner,
@@ -1113,7 +1112,7 @@ def _get_issue_event_timeseries(
     """
     start, end = get_group_date_range(group, organization, start, end)
     logger.info(
-        "get_issue_and_event_details_v2: Querying event timeseries",
+        "get_issue_details: Querying event timeseries",
         extra={
             "organization_id": organization.id,
             "issue_id": group.id,
@@ -1389,108 +1388,6 @@ def _get_event_troubleshooting_context(
         "detectionContext": None,
         "troubleshootingHint": None,
     }
-
-
-def get_issue_and_event_response(
-    event: Event | GroupEvent,
-    group: Group | None,
-    organization: Organization,
-    start: datetime | None = None,
-    end: datetime | None = None,
-) -> IssueAndEventDetailsResponse:
-    serialized_event = dict(serialize(event, user=None, serializer=EventSerializer()))
-    serialized_event.update(_get_event_troubleshooting_context(event))
-
-    event_fields: dict[str, Any] = {
-        "event": serialized_event,
-        "event_id": event.event_id,
-        "event_trace_id": event.trace_id,
-        "project_id": event.project_id,
-        "project_slug": event.project.slug,
-    }
-
-    if group is None:
-        return IssueAndEventDetailsResponse(**event_fields)
-
-    # Get the issue metadata, tags overview, and event count timeseries.
-    serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
-    # Add issueTypeDescription as it provides better context for LLMs. Note the initial type should be BaseGroupSerializerResponse.
-    serialized_group["issueTypeDescription"] = group.issue_type.description
-
-    logger.info(
-        "get_issue_and_event_details_v2: Querying for tags overview",
-        extra={
-            "organization_id": organization.id,
-            "issue_id": group.id,
-            "timedelta": (end - start) if start and end else None,
-            "start": start,
-            "end": end,
-        },
-    )
-
-    try:
-        tags_overview = get_all_tags_overview(group, start, end)
-    except Exception:
-        logger.exception(
-            "Failed to get tags overview for issue",
-            extra={
-                "organization_id": organization.id,
-                "issue_id": group.id,
-                "start": start,
-                "end": end,
-            },
-        )
-        tags_overview = None
-
-    try:
-        ts_result = _get_issue_event_timeseries(
-            group=group,
-            organization=organization,
-            start=start,
-            end=end,
-        )
-    except Exception:
-        logger.exception(
-            "Failed to get issue event timeseries",
-            extra={
-                "organization_id": organization.id,
-                "issue_id": group.id,
-                "start": start,
-                "end": end,
-            },
-        )
-        ts_result = None
-
-    if ts_result:
-        timeseries, timeseries_stats_period, timeseries_interval = ts_result
-    else:
-        timeseries, timeseries_stats_period, timeseries_interval = None, None, None
-
-    # Fetch user activity (comments, status changes, etc.)
-    try:
-        activities = Activity.objects.filter(
-            group=group,
-            type__in=_SEER_EXPLORER_ACTIVITY_TYPES,
-        ).order_by("-datetime")[:50]
-        serialized_activities = serialize(
-            list(activities), user=None, serializer=ActivitySerializer()
-        )
-    except Exception:
-        logger.exception(
-            "Failed to get user activity for issue",
-            extra={"organization_id": organization.id, "issue_id": group.id},
-        )
-        serialized_activities = []
-
-    return IssueAndEventDetailsResponse(
-        **event_fields,
-        issue=serialized_group,
-        event_timeseries=timeseries,
-        timeseries_stats_period=timeseries_stats_period,
-        timeseries_interval=timeseries_interval,
-        tags_overview=tags_overview,
-        user_activity=serialized_activities,
-    )
 
 
 def _resolve_seer_group(
@@ -2173,116 +2070,6 @@ def get_event_details(
         project_id=event.project_id,
         project_slug=event.project.slug,
     )
-
-
-def get_issue_and_event_details_v2(
-    *,
-    organization_id: int,
-    issue_id: str | None = None,
-    start: str | None = None,
-    end: str | None = None,
-    event_id: str | None = None,
-    project_slug: str | None = None,
-    include_issue: bool = True,
-) -> IssueAndEventDetailsResponse | None:
-    if bool(issue_id) == bool(event_id):
-        raise BadRequest("Either issue_id or event_id must be provided, but not both.")
-
-    start_dt, end_dt = get_date_range_from_params({"start": start, "end": end}, optional=True)
-
-    organization = Organization.objects.get(id=organization_id)
-
-    event: Event | GroupEvent | None
-    group: Group | None
-
-    if event_id is None:
-        # Fetch the group then get a sample event from the time range.
-        assert issue_id is not None
-        try:
-            group = _resolve_seer_group(
-                organization_id=organization_id, issue_id=issue_id, project_slug=project_slug
-            )
-        except Group.DoesNotExist:
-            return None
-        event = _get_recommended_event(group, organization, start_dt, end_dt)
-
-    else:
-        # The project boundary is only needed for the by-event-id lookup below.
-        project_ids = list(
-            Project.objects.filter(
-                organization=organization,
-                status=ObjectStatus.ACTIVE,
-                **({"slug": project_slug} if project_slug else {}),
-            ).values_list("id", flat=True)
-        )
-        if not project_ids:
-            return None
-
-        # Fetch the event then look up its group.
-        uuid.UUID(event_id)  # Raises ValueError if not valid UUID
-        if len(project_ids) == 1:
-            event = eventstore.backend.get_event_by_id(
-                project_id=project_ids[0],
-                event_id=event_id,
-                tenant_ids={"organization_id": organization_id},
-            )
-        else:
-            # Error events live in Events, occurrence events in IssuePlatform;
-            # we don't know which dataset holds this event_id until we query.
-            event = None
-            for dataset in (Dataset.Events, Dataset.IssuePlatform):
-                events_result = eventstore.backend.get_events(
-                    filter=eventstore.Filter(
-                        event_ids=[event_id],
-                        organization_id=organization_id,
-                        project_ids=project_ids,
-                    ),
-                    eap_conditions=build_event_id_in_filter([event_id]),
-                    limit=1,
-                    tenant_ids={"organization_id": organization_id},
-                    dataset=dataset,
-                )
-                if events_result:
-                    event = events_result[0]
-                    break
-
-        group = event.group if event else None
-
-    # Convert Event to GroupEvent so the occurrence (if any) can be lazy-loaded
-    # from nodestore via the occurrence_id in snuba_data during serialization.
-    if event is not None and group is not None and isinstance(event, Event):
-        event = event.for_group(group)
-
-    if group is None:
-        logger.warning(
-            "get_issue_and_event_details_v2: Missing group",
-            extra={
-                "organization_id": organization_id,
-                "project_slug": project_slug,
-                "issue_id": issue_id,
-                "event_id": event_id,
-            },
-        )
-        return None
-
-    if event is None:
-        logger.warning(
-            "get_issue_and_event_details_v2: Missing event",
-            extra={
-                "organization_id": organization_id,
-                "project_slug": project_slug,
-                "issue_id": issue_id,
-                "event_id": event_id,
-                "start": start,
-                "end": end,
-            },
-        )
-        return None
-
-    if include_issue:
-        return get_issue_and_event_response(event, group, organization, start_dt, end_dt)
-
-    return get_issue_and_event_response(event, None, organization, start_dt, end_dt)
 
 
 def get_replay_metadata(

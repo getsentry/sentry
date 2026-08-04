@@ -108,6 +108,9 @@ def produce_preprod_size_metric_to_eap(
         ),
     }
 
+    if artifact.extras:
+        attributes["install_groups"] = artifact.extras.get("install_groups")
+
     if artifact.commit_comparison is not None:
         commit_comparison = artifact.commit_comparison
         attributes.update(
@@ -202,6 +205,7 @@ def produce_preprod_build_distribution_to_eap(
     }
 
     if artifact.extras:
+        attributes["install_groups"] = artifact.extras.get("install_groups")
         # Apple-specific distribution fields
         attributes["codesigning_type"] = artifact.extras.get("codesigning_type")
         attributes["profile_name"] = artifact.extras.get("profile_name")
