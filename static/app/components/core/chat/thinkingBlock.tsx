@@ -1,7 +1,6 @@
 import {useEffect, useState} from 'react';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
-import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {IconSeer} from 'sentry/icons';
@@ -49,20 +48,24 @@ export function ThinkingBlock({title, startTime, endTime, children}: ThinkingBlo
   }, [isActive]);
 
   return (
-    <Disclosure expanded={isExpanded} onExpandedChange={setIsExpanded} size="sm" flex={1}>
+    <Disclosure
+      expanded={isExpanded}
+      onExpandedChange={setIsExpanded}
+      size="sm"
+      variant="outline"
+      flex={1}
+    >
       <Disclosure.Title
+        leadingItems={<IconSeer size="xs" animation={isActive ? 'waiting' : undefined} />}
         trailingItems={
           <Text variant="secondary" size="sm" align="right" monospace>
             {getDuration(elapsed / 1000, 1, true, false, false, SECOND)}
           </Text>
         }
       >
-        <Flex align="center" gap="xs">
-          <IconSeer size="xs" animation={isActive ? 'waiting' : undefined} />
-          <Text size="sm" monospace variant="muted">
-            {title}
-          </Text>
-        </Flex>
+        <Text size="sm" monospace variant="muted">
+          {title}
+        </Text>
       </Disclosure.Title>
       {children ? <Disclosure.Content>{children}</Disclosure.Content> : null}
     </Disclosure>

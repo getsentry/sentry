@@ -143,6 +143,44 @@ Note: The trailing items should be sized to match the disclosure size - this is 
 </Disclosure>
 ```
 
+### Leading Items
+
+Add a glyph or avatar before the title with `leadingItems`. When present, the
+chevron moves to sit after the title so the leading slot is the row's first
+element.
+
+<Storybook.Demo>
+  <Flex width="100%">
+    <Disclosure size="sm" defaultExpanded>
+      <Disclosure.Title leadingItems={<IconEdit size="xs" />}>
+        Title With A Leading Glyph
+      </Disclosure.Title>
+      <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
+    </Disclosure>
+  </Flex>
+</Storybook.Demo>
+
+### Outline Variant
+
+Set `variant="outline"` to render the content as a bordered, rounded card below
+the title instead of the default left-indented panel.
+
+<Storybook.Demo>
+  <Flex width="100%">
+    <Disclosure size="sm" variant="outline" defaultExpanded>
+      <Disclosure.Title>Outlined Disclosure</Disclosure.Title>
+      <Disclosure.Content>This content sits in a bordered card.</Disclosure.Content>
+    </Disclosure>
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Disclosure size="sm" variant="outline" defaultExpanded>
+  <Disclosure.Title>Outlined Disclosure</Disclosure.Title>
+  <Disclosure.Content>This content sits in a bordered card.</Disclosure.Content>
+</Disclosure>
+```
+
 ### Remembering Expanded State
 
 The disclosure component provides a `onExpandedChange` prop that can be used to listen for changes to the expanded state - this allows you to store the state in a storage of your choice.
