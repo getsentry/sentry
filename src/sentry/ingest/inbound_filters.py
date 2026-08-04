@@ -1,4 +1,4 @@
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, cast
 
@@ -462,9 +462,9 @@ def get_generic_filters(
 
     if filter_features.custom_inbound_filters:
         if filter_features.logs:
-            generic_filters += _option_generic_filters(project, _LOGS)
+            generic_filters += _option_generic_filters(project, _LOG_MESSAGES_FILTER)
         if filter_features.metrics:
-            generic_filters += _option_generic_filters(project, _TRACE_METRICS)
+            generic_filters += _option_generic_filters(project, _TRACE_METRIC_NAMES_FILTER)
         if filter_features.custom_inbound_filters_v2:
             generic_filters += get_custom_inbound_filter_generic_filters(project)
 
@@ -508,6 +508,9 @@ def _custom_error_message_condition(values: list[str]) -> RuleCondition:
 # Builds the Relay condition that matches one filter condition's glob values.
 ConditionMatcher = Callable[[list[str]], RuleCondition]
 
+# Where each condition type's data lives on one kind of ingested item.
+ConditionMatchers = Mapping[CustomInboundFilterConditionType, ConditionMatcher]
+
 
 def _field_matcher(name: str) -> ConditionMatcher:
     def match(values: list[str]) -> RuleCondition:
@@ -516,91 +519,66 @@ def _field_matcher(name: str) -> ConditionMatcher:
     return match
 
 
+_EVENT_MATCHERS: ConditionMatchers = {
+    CustomInboundFilterConditionType.ERROR_MESSAGE: _custom_error_message_condition,
+    CustomInboundFilterConditionType.RELEASE: _field_matcher("event.release"),
+}
+
+_LOG_MATCHERS: ConditionMatchers = {
+    CustomInboundFilterConditionType.LOG_MESSAGE: _field_matcher("log.body"),
+    CustomInboundFilterConditionType.RELEASE: _field_matcher("log.attributes.sentry.release.value"),
+}
+
+_TRACE_METRIC_MATCHERS: ConditionMatchers = {
+    CustomInboundFilterConditionType.METRIC_NAME: _field_matcher("trace_metric.name"),
+    CustomInboundFilterConditionType.RELEASE: _field_matcher(
+        "trace_metric.attributes.sentry.release.value"
+    ),
+}
+
+# A filter's primary condition type selects the item its conditions match against, since
+# only that item carries such data.
+_MATCHERS_BY_PRIMARY_CONDITION: Mapping[CustomInboundFilterConditionType, ConditionMatchers] = {
+    CustomInboundFilterConditionType.ERROR_MESSAGE: _EVENT_MATCHERS,
+    CustomInboundFilterConditionType.LOG_MESSAGE: _LOG_MATCHERS,
+    CustomInboundFilterConditionType.METRIC_NAME: _TRACE_METRIC_MATCHERS,
+}
+
+
 @dataclass(frozen=True)
 class OptionFilter:
     """
-    The pre-v2 inbound filter over an item type's primary data, configured through a
-    project option holding a list of globs instead of a ``CustomInboundFilter`` row.
+    A pre-v2 inbound filter, configured through a project option holding a list of globs
+    instead of a ``CustomInboundFilter`` row.
+
+    It matches the same data as the custom filter condition it supersedes, so both share
+    one matcher.
     """
 
     filter_id: str
     option: str
+    matcher: ConditionMatcher
 
 
-@dataclass(frozen=True)
-class ItemFilter:
-    """
-    One kind of ingested item, and how custom inbound filter conditions match its data.
-
-    ``primary_condition`` is the condition type that only this item type accepts. Every
-    item type also accepts a release condition.
-    """
-
-    primary_condition: CustomInboundFilterConditionType
-    primary_match: ConditionMatcher
-    release_match: ConditionMatcher
-    option_filter: OptionFilter | None = None
-
-    def match(self, condition_type: CustomInboundFilterConditionType) -> ConditionMatcher | None:
-        """How to match one condition type, or None if this item type carries no such data."""
-        if condition_type == self.primary_condition:
-            return self.primary_match
-        if condition_type == CustomInboundFilterConditionType.RELEASE:
-            return self.release_match
-        return None
-
-
-_EVENTS = ItemFilter(
-    primary_condition=CustomInboundFilterConditionType.ERROR_MESSAGE,
-    primary_match=_custom_error_message_condition,
-    release_match=_field_matcher("event.release"),
+_LOG_MESSAGES_FILTER = OptionFilter(
+    filter_id="log-message",
+    option=FilterTypes.LOG_MESSAGES,
+    matcher=_LOG_MATCHERS[CustomInboundFilterConditionType.LOG_MESSAGE],
 )
 
-_LOGS = ItemFilter(
-    primary_condition=CustomInboundFilterConditionType.LOG_MESSAGE,
-    primary_match=_field_matcher("log.body"),
-    release_match=_field_matcher("log.attributes.sentry.release.value"),
-    option_filter=OptionFilter(filter_id="log-message", option=FilterTypes.LOG_MESSAGES),
+_TRACE_METRIC_NAMES_FILTER = OptionFilter(
+    filter_id="trace-metric-name",
+    option=FilterTypes.TRACE_METRIC_NAMES,
+    matcher=_TRACE_METRIC_MATCHERS[CustomInboundFilterConditionType.METRIC_NAME],
 )
 
-_TRACE_METRICS = ItemFilter(
-    primary_condition=CustomInboundFilterConditionType.METRIC_NAME,
-    primary_match=_field_matcher("trace_metric.name"),
-    release_match=_field_matcher("trace_metric.attributes.sentry.release.value"),
-    option_filter=OptionFilter(
-        filter_id="trace-metric-name", option=FilterTypes.TRACE_METRIC_NAMES
-    ),
-)
 
-_ITEM_TYPES = (_EVENTS, _LOGS, _TRACE_METRICS)
-
-
-def _item_type_for(condition_types: Iterable[CustomInboundFilterConditionType]) -> ItemFilter:
-    """
-    The item type a filter's conditions apply to.
-
-    A filter targets one item type, identified by the primary condition type it carries.
-    Conditions that carry only a release apply to events, mirroring the legacy
-    ``releases`` inbound filter.
-    """
-    for condition_type in condition_types:
-        for item_type in _ITEM_TYPES:
-            if condition_type == item_type.primary_condition:
-                return item_type
-
-    return _EVENTS
-
-
-def _option_generic_filters(project: Project, item_type: ItemFilter) -> list[GenericFilter]:
-    """
-    The item type's option-backed filter, matching the same data as its primary condition.
-    """
-    option_filter = item_type.option_filter
-    if option_filter is None:
+def _option_generic_filters(project: Project, option_filter: OptionFilter) -> list[GenericFilter]:
+    globs = project.get_option(f"sentry:{option_filter.option}")
+    if not globs:
         return []
 
-    globs = project.get_option(f"sentry:{option_filter.option}")
-    return [_generic_filter(option_filter.filter_id, item_type.primary_match(globs))]
+    return [_generic_filter(option_filter.filter_id, option_filter.matcher(globs))]
 
 
 def _custom_filter_condition(conditions: list[dict[str, Any]]) -> RuleCondition | None:
@@ -609,8 +587,8 @@ def _custom_filter_condition(conditions: list[dict[str, Any]]) -> RuleCondition 
 
     Conditions are combined with AND. Returns None if any condition cannot be
     translated (a type or value shape unknown to this revision, or a type whose
-    data the filter's item type does not carry): since every condition narrows
-    the match, dropping only the broken condition would filter more data than
+    data the matched item does not carry): since every condition narrows the
+    match, dropping only the broken condition would filter more data than
     configured.
     """
     if not conditions:
@@ -629,14 +607,23 @@ def _custom_filter_condition(conditions: list[dict[str, Any]]) -> RuleCondition 
 
         parsed.append((condition_type, values))
 
-    item_type = _item_type_for(condition_type for condition_type, _ in parsed)
+    # A filter carrying only release conditions falls through to events, mirroring the
+    # legacy `releases` inbound filter.
+    matchers = next(
+        (
+            _MATCHERS_BY_PRIMARY_CONDITION[condition_type]
+            for condition_type, _ in parsed
+            if condition_type in _MATCHERS_BY_PRIMARY_CONDITION
+        ),
+        _EVENT_MATCHERS,
+    )
 
     rule_conditions: list[RuleCondition] = []
     for condition_type, values in parsed:
-        match = item_type.match(condition_type)
-        if match is None:
+        matcher = matchers.get(condition_type)
+        if matcher is None:
             return None
-        rule_conditions.append(match(values))
+        rule_conditions.append(matcher(values))
 
     if len(rule_conditions) == 1:
         return rule_conditions[0]
@@ -646,7 +633,6 @@ def _custom_filter_condition(conditions: list[dict[str, Any]]) -> RuleCondition 
 
 def get_custom_inbound_filter_generic_filters(project: Project) -> list[GenericFilter]:
     generic_filters: list[GenericFilter] = []
-
     custom_filters = CustomInboundFilter.objects.filter(
         project_id=project.id, active=True
     ).order_by("id")
