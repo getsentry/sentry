@@ -167,7 +167,7 @@ export default function AccountSecurityEnroll() {
   });
 
   const formModel = useMemo(() => new FormModel(), []);
-  const pendingInvitation = useMemo(getPendingInvite, []);
+  const pendingInvitation = useMemo(() => getPendingInvite(), []);
 
   const {
     data: authenticator,
