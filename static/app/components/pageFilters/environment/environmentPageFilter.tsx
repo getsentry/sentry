@@ -2,8 +2,6 @@ import {useCallback, useMemo, useRef} from 'react';
 import {useMatches} from 'react-router-dom';
 import {isAppleDevice} from '@react-aria/utils';
 import isEqual from 'lodash/isEqual';
-import sortBy from 'lodash/sortBy';
-import xor from 'lodash/xor';
 
 import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
 import type {MultipleSelectProps} from '@sentry/scraps/compactSelect';
@@ -80,10 +78,22 @@ export function EnvironmentPageFilter({
     isReady: pageFilterIsReady,
   } = usePageFilters();
 
-  const environments = useMemo<string[]>(() => {
-    const isSuperuser = isActiveSuperuser();
+  const projectSelection = useMemo(
+    () => new Set(projectPageFilterValue),
+    [projectPageFilterValue]
+  );
+  const selectedEnvironments = useMemo(
+    () => new Set(envPageFilterValue),
+    [envPageFilterValue]
+  );
 
-    const unsortedEnvironments = projects.flatMap(project => {
+  const environmentSet = useMemo(() => {
+    const isSuperuser = isActiveSuperuser();
+    const includeAllProjects = projectSelection.has(ALL_ACCESS_PROJECTS);
+    const includeMemberProjects = projectSelection.size === 0;
+    const result = new Set<string>();
+
+    for (const project of projects) {
       const projectId = parseInt(project.id, 10);
       // Include environments from:
       // - all projects if the user is a superuser
@@ -91,33 +101,37 @@ export function EnvironmentPageFilter({
       // - all member projects if 'my projects' (empty list) is selected.
       // - all projects if -1 is the only selected project.
       if (
-        (projectPageFilterValue.includes(ALL_ACCESS_PROJECTS) && project.hasAccess) ||
-        (projectPageFilterValue.length === 0 && (project.isMember || isSuperuser)) ||
-        projectPageFilterValue.includes(projectId)
+        (includeAllProjects && project.hasAccess) ||
+        (includeMemberProjects && (project.isMember || isSuperuser)) ||
+        projectSelection.has(projectId)
       ) {
-        return project.environments;
+        for (const environment of project.environments) {
+          result.add(environment);
+        }
       }
+    }
 
-      return [];
-    });
+    return result;
+  }, [projects, projectSelection]);
 
-    const uniqueUnsortedEnvironments = Array.from(new Set(unsortedEnvironments));
-
+  const environments = useMemo(() => {
     // Sort with the last selected environments at the top
-    return sortBy(uniqueUnsortedEnvironments, env => [
-      !envPageFilterValue.includes(env),
-      env,
-    ]);
-  }, [projects, projectPageFilterValue, envPageFilterValue]);
+    return [...environmentSet].toSorted((a, b) => {
+      const selectionOrder =
+        Number(selectedEnvironments.has(b)) - Number(selectedEnvironments.has(a));
+      return selectionOrder || (a < b ? -1 : a > b ? 1 : 0);
+    });
+  }, [environmentSet, selectedEnvironments]);
 
   /**
    * Validated values that only includes the currently available environments
    * (availability may change based on which projects are selected.)
    */
-  const value = useMemo(
-    () => envPageFilterValue.filter(env => environments.includes(env)),
-    [envPageFilterValue, environments]
+  const valueSet = useMemo(
+    () => selectedEnvironments.intersection(environmentSet),
+    [selectedEnvironments, environmentSet]
   );
+  const value = useMemo(() => [...valueSet], [valueSet]);
 
   const handleChange = useCallback(
     async (newValue: string[]) => {
@@ -222,7 +236,8 @@ export function EnvironmentPageFilter({
 
   const {dispatch} = stagedSelect;
 
-  const hasStagedChanges = xor(stagedSelect.value, value).length > 0;
+  const hasStagedChanges =
+    new Set(stagedSelect.value).symmetricDifference(valueSet).size > 0;
   const shouldShowReset = stagedSelect.value.length > 0;
 
   const handleReset = () => {

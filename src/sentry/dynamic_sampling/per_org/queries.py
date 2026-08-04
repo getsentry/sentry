@@ -8,8 +8,10 @@ from enum import StrEnum
 from typing import Any, Protocol
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
+from snuba_sdk import Column, Condition, Entity, Function, Granularity, Limit, Op, Query, Request
 
 from sentry import options
+from sentry.constants import DataCategory
 from sentry.dynamic_sampling.rules.utils import ProjectId
 from sentry.dynamic_sampling.tasks.common import (
     ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
@@ -28,6 +30,7 @@ from sentry.snuba.outcomes import QueryDefinition, run_outcomes_query_totals
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import LimitBy
 from sentry.snuba.spans_rpc import Spans
+from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import raw_snql_query
 
 
@@ -47,6 +50,9 @@ class DynamicSamplingQueryFields(StrEnum):
     COUNT_SAMPLE = "count_sample()"
     COUNT_UNIQUE_TRANSACTIONS = "count_unique(sentry.dsc.transaction)"
     MAX_RECEIVED = "max(received)"
+
+
+OUTCOMES_ORGANIZATION_VOLUME_DEFAULT_TIME_INTERVAL = timedelta(minutes=5)
 
 
 @dataclass(order=True)
@@ -143,6 +149,68 @@ def get_eap_organization_volume(
     indexed = _get_aggregate_int(row, DynamicSamplingQueryFields.COUNT_SAMPLE)
 
     return OrganizationDataVolume(org_id=config.organization.id, total=total, indexed=indexed)
+
+
+def get_outcomes_organization_sampled_volume(
+    org_id: int,
+    time_interval: timedelta = OUTCOMES_ORGANIZATION_VOLUME_DEFAULT_TIME_INTERVAL,
+) -> OrganizationDataVolume | None:
+    """
+    Volume of an org from outcomes, split into the volume before sampling (``total``) and
+    the volume that sampling kept (``indexed``). Recalibration needs both to derive the
+    effective sample rate, which ``get_outcomes_organization_volume`` cannot give: that
+    one counts accepted outcomes only.
+    """
+    end_time = datetime.now(UTC)
+    start_time = end_time - time_interval
+
+    accepted_outcome = Function("equals", [Column("outcome"), Outcome.ACCEPTED])
+    sampled_outcome = Function(
+        "and",
+        [
+            Function("equals", [Column("outcome"), Outcome.FILTERED]),
+            Function("startsWith", [Column("reason"), "Sampled:"]),
+        ],
+    )
+    result = raw_snql_query(
+        Request(
+            dataset=Dataset.OutcomesRaw.value,
+            app_id="dynamic_sampling",
+            query=Query(
+                match=Entity("outcomes_raw"),
+                select=[
+                    Function(
+                        "sumIf",
+                        [Column("quantity"), Function("or", [accepted_outcome, sampled_outcome])],
+                        "total",
+                    ),
+                    Function("sumIf", [Column("quantity"), accepted_outcome], "indexed"),
+                ],
+                where=[
+                    Condition(Column("timestamp"), Op.GTE, start_time),
+                    Condition(Column("timestamp"), Op.LT, end_time),
+                    Condition(Column("org_id"), Op.EQ, org_id),
+                    Condition(Column("category"), Op.EQ, DataCategory.TRANSACTION),
+                ],
+                granularity=Granularity(60),
+                limit=Limit(1),
+            ),
+            tenant_ids={"organization_id": org_id},
+        ),
+        referrer="dynamic_sampling.per_org.get_outcomes_org_volume",
+    )
+
+    data = result.get("data")
+    if not data:
+        return None
+
+    row = data[0]
+    total = _get_aggregate_int(row, "total")
+    if total <= 0:
+        return None
+    indexed = _get_aggregate_int(row, "indexed")
+
+    return OrganizationDataVolume(org_id=org_id, total=total, indexed=indexed)
 
 
 def get_outcomes_organization_volume(
@@ -355,7 +423,9 @@ def get_eap_transaction_volumes(
 
     end_time = datetime.now(UTC)
     start_time = end_time - time_interval
-    transaction_counts_by_project: defaultdict[int, list[tuple[str, float]]] = defaultdict(list)
+    transaction_counts_by_project: defaultdict[int, defaultdict[str, float]] = defaultdict(
+        lambda: defaultdict(float)
+    )
 
     orderby = [
         DynamicSamplingQueryFields.DSC_PROJECT_ID,
@@ -372,7 +442,7 @@ def get_eap_transaction_volumes(
                 projects=config.projects,
                 organization=config.organization,
             ),
-            "query_string": f"{DynamicSamplingQueryFilters.IS_SEGMENT} {DynamicSamplingQueryFields.DSC_PROJECT_ID}:[{root_project_filter}] has:{DynamicSamplingQueryFields.DSC_TRANSACTION}",
+            "query_string": f"{DynamicSamplingQueryFilters.IS_SEGMENT} {DynamicSamplingQueryFields.DSC_PROJECT_ID}:[{root_project_filter}]",
             "selected_columns": [
                 DynamicSamplingQueryFields.DSC_PROJECT_ID,
                 DynamicSamplingQueryFields.DSC_TRANSACTION,
@@ -391,20 +461,26 @@ def get_eap_transaction_volumes(
             "sampling_mode": SAMPLING_MODE_HIGHEST_ACCURACY,
         }
     ):
-        transaction = row.get(DynamicSamplingQueryFields.DSC_TRANSACTION)
         total = _get_aggregate_float(row, DynamicSamplingQueryFields.COUNT)
         if total <= 0:
             continue
 
+        # A root span with no transaction name and one named "" are the same unnamed
+        # transaction, but EAP returns them as separate groups. Coalescing to "" keeps
+        # them a single class in the rebalancing model instead of two, one of which
+        # would carry the misleading name "None".
+        transaction = row.get(DynamicSamplingQueryFields.DSC_TRANSACTION) or ""
+
         project_id = _get_aggregate_int(row, DynamicSamplingQueryFields.DSC_PROJECT_ID)
-        transaction_counts = transaction_counts_by_project[project_id]
-        transaction_counts.append((str(transaction), total))
+        transaction_counts_by_project[project_id][transaction] += total
 
     return [
         ProjectTransactionCounts(
             project_id=project_id,
             org_id=config.organization.id,
-            transaction_counts=transaction_counts,
+            transaction_counts=sorted(
+                transaction_counts.items(), key=lambda item: (-item[1], item[0])
+            ),
         )
         for project_id, transaction_counts in sorted(transaction_counts_by_project.items())
     ]

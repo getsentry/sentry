@@ -1,16 +1,28 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import BugAImage from 'sentry-images/spot/broken-code-light.svg';
 import BugBImage from 'sentry-images/spot/seer-config-bug-1.svg';
 
 import {Image} from '@sentry/scraps/image';
+import {Container, type ContainerProps} from '@sentry/scraps/layout';
+
+// Hidden per-illustration rather than on the wrapper: the wrapper is the query
+// container, and an element can't query itself.
+const illustrationProps = {
+  position: 'absolute',
+  height: 'auto',
+  display: {zero: 'none', xl: 'block'},
+} as const satisfies ContainerProps;
 
 function WelcomeBackgroundImages() {
   return (
     <Fragment>
-      <BugA
+      <Illustration
+        {...illustrationProps}
+        left="-16rem"
+        top={0}
+        width="14rem"
         variants={{
           initial: {
             opacity: 0,
@@ -26,8 +38,12 @@ function WelcomeBackgroundImages() {
         transition={{duration: 0.25}}
       >
         <Image src={BugAImage} alt="" />
-      </BugA>
-      <BugB
+      </Illustration>
+      <Illustration
+        {...illustrationProps}
+        right="-16rem"
+        bottom={0}
+        width="12rem"
         variants={{
           initial: {
             opacity: 0,
@@ -45,7 +61,7 @@ function WelcomeBackgroundImages() {
         }}
       >
         <Image src={BugBImage} alt="" />
-      </BugB>
+      </Illustration>
     </Fragment>
   );
 }
@@ -53,6 +69,11 @@ function WelcomeBackgroundImages() {
 export function WelcomeBackgroundNewUi() {
   return (
     <ContainerNewUi
+      pointerEvents="none"
+      position="absolute"
+      height="100%"
+      width="100%"
+      containerType="inline-size"
       variants={{
         animate: {},
         exit: {},
@@ -64,30 +85,5 @@ export function WelcomeBackgroundNewUi() {
   );
 }
 
-const Illustration = styled(motion.div)`
-  position: absolute;
-  height: auto;
-`;
-
-const BugA = styled(Illustration)`
-  left: -16rem;
-  top: 0;
-  width: 14rem;
-`;
-
-const BugB = styled(Illustration)`
-  right: -16rem;
-  bottom: 0;
-  width: 12rem;
-`;
-
-const ContainerNewUi = styled(motion.div)`
-  pointer-events: none;
-  position: absolute;
-  height: 100%;
-  width: 100%;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
-`;
+const Illustration = motion.create(Container);
+const ContainerNewUi = motion.create(Container);

@@ -169,14 +169,24 @@ class RecordPredictionScoringTest(ScoringTestBase):
 
 
 class RecordGroundTruthTest(ScoringTestBase):
-    def _resolved_activity(self, user_id: int | None = None) -> Activity:
+    def _activity(self, activity_type: ActivityType, user_id: int | None = None) -> Activity:
         return self.create_group_activity(
-            group=self.group, type=ActivityType.SET_RESOLVED.value, user_id=user_id
+            group=self.group, type=activity_type.value, user_id=user_id
+        )
+
+    def _assigned_activity(self, assignee_id: int, integration: str | None = None) -> Activity:
+        data = {"assignee": str(assignee_id), "assigneeType": "user"}
+        if integration is not None:
+            data["integration"] = integration
+        return self.create_group_activity(
+            group=self.group, type=ActivityType.ASSIGNED.value, data=data
         )
 
     def test_noop_without_run(self) -> None:
         record_ground_truth(
-            self.group, ActivityType.SET_RESOLVED, self._resolved_activity(self.user.id)
+            self.group,
+            ActivityType.SET_RESOLVED,
+            self._activity(ActivityType.SET_RESOLVED, self.user.id),
         )
         assert not SeerAgentRun.objects.filter(
             group_id=self.group.id, source=SEER_FEATURE_ID
@@ -188,7 +198,7 @@ class RecordGroundTruthTest(ScoringTestBase):
         GroupAssignee.objects.create(
             group=self.group, project=self.group.project, user_id=assignee.id
         )
-        record_ground_truth(self.group, ActivityType.ASSIGNED)
+        record_ground_truth(self.group, ActivityType.ASSIGNED, self._assigned_activity(assignee.id))
 
         run.refresh_from_db()
         assert run.extras["actual_assignee_user_id"] == assignee.id
@@ -199,7 +209,9 @@ class RecordGroundTruthTest(ScoringTestBase):
         run = self._run(actual_assignee_team_id=team.id)
         resolver = self.create_user()
         record_ground_truth(
-            self.group, ActivityType.SET_RESOLVED, self._resolved_activity(resolver.id)
+            self.group,
+            ActivityType.SET_RESOLVED,
+            self._activity(ActivityType.SET_RESOLVED, resolver.id),
         )
 
         run.refresh_from_db()
@@ -209,7 +221,22 @@ class RecordGroundTruthTest(ScoringTestBase):
 
     def test_automatic_resolution_is_noop(self) -> None:
         run = self._run()
-        record_ground_truth(self.group, ActivityType.SET_RESOLVED, self._resolved_activity(None))
+        record_ground_truth(
+            self.group, ActivityType.SET_RESOLVED, self._activity(ActivityType.SET_RESOLVED)
+        )
+
+        run.refresh_from_db()
+        assert "actual_assignee_user_id" not in run.extras
+        assert "ground_truth_source" not in run.extras
+
+    def test_resolution_by_sentry_app_proxy_user_is_noop(self) -> None:
+        run = self._run()
+        proxy_user = self.create_user(is_sentry_app=True)
+        record_ground_truth(
+            self.group,
+            ActivityType.SET_RESOLVED_IN_RELEASE,
+            self._activity(ActivityType.SET_RESOLVED_IN_RELEASE, proxy_user.id),
+        )
 
         run.refresh_from_db()
         assert "actual_assignee_user_id" not in run.extras
@@ -217,7 +244,9 @@ class RecordGroundTruthTest(ScoringTestBase):
 
     def test_seer_start_is_noop(self) -> None:
         run = self._run()
-        record_ground_truth(self.group, ActivityType.SEER_RCA_STARTED)
+        record_ground_truth(
+            self.group, ActivityType.SEER_RCA_STARTED, self._activity(ActivityType.SEER_RCA_STARTED)
+        )
 
         run.refresh_from_db()
         assert "ground_truth_source" not in run.extras
@@ -228,14 +257,8 @@ class RecordGroundTruthTest(ScoringTestBase):
         GroupAssignee.objects.create(
             group=self.group, project=self.group.project, user_id=assignee.id
         )
-        activity = self.create_group_activity(
-            group=self.group,
-            type=ActivityType.ASSIGNED.value,
-            data={
-                "assignee": str(assignee.id),
-                "assigneeType": "user",
-                "integration": ActivityIntegration.SEER_SUGGESTED.value,
-            },
+        activity = self._assigned_activity(
+            assignee.id, integration=ActivityIntegration.SEER_SUGGESTED.value
         )
         record_ground_truth(self.group, ActivityType.ASSIGNED, activity)
 
@@ -247,14 +270,8 @@ class RecordGroundTruthTest(ScoringTestBase):
         GroupAssignee.objects.create(
             group=self.group, project=self.group.project, user_id=assignee_id
         )
-        return self.create_group_activity(
-            group=self.group,
-            type=ActivityType.ASSIGNED.value,
-            data={
-                "assignee": str(assignee_id),
-                "assigneeType": "user",
-                "integration": ActivityIntegration.SEER_SUGGESTED.value,
-            },
+        return self._assigned_activity(
+            assignee_id, integration=ActivityIntegration.SEER_SUGGESTED.value
         )
 
     def test_resolution_ignores_seer_auto_assignment(self) -> None:
@@ -266,7 +283,9 @@ class RecordGroundTruthTest(ScoringTestBase):
         self._seer_auto_assign(seer_assignee.id)
         resolver = self.create_user()
         record_ground_truth(
-            self.group, ActivityType.SET_RESOLVED, self._resolved_activity(resolver.id)
+            self.group,
+            ActivityType.SET_RESOLVED,
+            self._activity(ActivityType.SET_RESOLVED, resolver.id),
         )
 
         run.refresh_from_db()
@@ -281,13 +300,11 @@ class RecordGroundTruthTest(ScoringTestBase):
         self._seer_auto_assign(seer_assignee.id)
         human_assignee = self.create_user()
         GroupAssignee.objects.filter(group=self.group).update(user_id=human_assignee.id)
-        self.create_group_activity(
-            group=self.group,
-            type=ActivityType.ASSIGNED.value,
-            data={"assignee": str(human_assignee.id), "assigneeType": "user"},
-        )
+        self._assigned_activity(human_assignee.id)
         record_ground_truth(
-            self.group, ActivityType.SET_RESOLVED, self._resolved_activity(self.create_user().id)
+            self.group,
+            ActivityType.SET_RESOLVED,
+            self._activity(ActivityType.SET_RESOLVED, self.create_user().id),
         )
 
         run.refresh_from_db()
@@ -304,7 +321,7 @@ class RecordGroundTruthTest(ScoringTestBase):
         GroupAssignee.objects.create(
             group=self.group, project=self.group.project, user_id=assignee.id
         )
-        record_ground_truth(self.group, ActivityType.ASSIGNED)
+        record_ground_truth(self.group, ActivityType.ASSIGNED, self._assigned_activity(assignee.id))
 
         mock_metrics.incr.assert_any_call(
             "smart_assignment.scored",
@@ -320,7 +337,9 @@ class RecordGroundTruthTest(ScoringTestBase):
         )
         resolver = self.create_user()
         record_ground_truth(
-            self.group, ActivityType.SET_RESOLVED, self._resolved_activity(resolver.id)
+            self.group,
+            ActivityType.SET_RESOLVED,
+            self._activity(ActivityType.SET_RESOLVED, resolver.id),
         )
 
         run.refresh_from_db()

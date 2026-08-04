@@ -135,6 +135,20 @@ class ProcessSmartAssignmentCompletionTest(TestCase):
         assert len(self._suggested_owners()) == 1
         assert GroupAssignee.objects.get(group=self.group).user_id == existing.id
 
+    def test_suggests_resolvable_alternate_when_top_pick_unlinked(self) -> None:
+        # The agent's first choice mapped to nobody (an unlinked commit author), so the
+        # alternate behind them is the one that can actually own the issue.
+        alice = self._member()
+        self._set_project_auto_assignment(False)
+        with self.feature(AUTO_ASSIGN_FLAG):
+            process_smart_assignment_completion(self.group, self._activity([None, alice.id]))
+
+        owners = self._suggested_owners()
+        assert len(owners) == 1
+        assert owners[0].user_id == alice.id
+        # The agent's ranking is preserved as delivered; only the suggestion skips ahead.
+        assert self._extras()["predicted_assignee_user_ids"] == [None, alice.id]
+
     def test_no_writes_when_top_pick_unlinked(self) -> None:
         with self.feature(AUTO_ASSIGN_FLAG):
             process_smart_assignment_completion(self.group, self._activity([None]))

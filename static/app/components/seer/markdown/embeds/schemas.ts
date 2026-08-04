@@ -32,15 +32,79 @@ export const SEER_EMBED_SCHEMAS = {
   },
   docs: {
     description:
-      'Link to a page in the Sentry documentation. Use this whenever you ' +
-      'reference a Sentry feature or concept that has official docs. ' +
-      'The href MUST be an absolute https://docs.sentry.io/... URL.',
+      'Link to a page in the Sentry documentation (docs.sentry.io only). ' +
+      'The href MUST be an absolute https://docs.sentry.io/... URL. ' +
+      'NEVER use this for Sentry issue links — use the `issue` or `issues` embed instead.',
     level: ['inline'],
     schema: z.object({href: z.string(), title: z.string()}),
     examples: [
       {
         label: 'Doc link',
         data: {href: 'https://docs.sentry.io/product/issues/', title: 'Issues'},
+      },
+    ],
+  },
+  dsn: {
+    description:
+      'Display a copyable Sentry DSN (Data Source Name) string. ' +
+      'Use this whenever presenting a DSN to the user — never output it as bare text.',
+    level: ['block'],
+    schema: z.object({value: z.string()}),
+    examples: [
+      {
+        label: 'DSN',
+        data: {value: 'https://examplePublicKey@o0.ingest.sentry.io/0'},
+      },
+    ],
+  },
+  user: {
+    description:
+      'Mention a Sentry user or team inline. Renders an avatar and display name. ' +
+      'Use the actor type ("user" or "team") and the actor\'s ID and name.',
+    level: ['inline'],
+    schema: z.object({
+      id: z.string(),
+      type: z.enum(['user', 'team']),
+      name: z.string(),
+    }),
+    examples: [
+      {label: 'User', data: {id: '1', type: 'user', name: 'Jane Doe'}},
+      {label: 'Team', data: {id: '2', type: 'team', name: 'platform'}},
+    ],
+  },
+  issue: {
+    description:
+      'The ONLY way to reference a Sentry issue. Requires the issue short ID ' +
+      '(e.g. "PROJECT-123"). ' +
+      'Inline: renders a compact link with the short id. ' +
+      'Block: renders a full interactive issue row with title, events, users, ' +
+      'assignee, and trend graph — do NOT duplicate any of that data as text. ' +
+      'MUST NOT appear inside a markdown table or list. ' +
+      'When referencing 2+ issues, use the `issues` embed instead. ' +
+      'Never use `docs` or markdown links for issue references.',
+    level: ['inline', 'block'],
+    schema: z.object({id: z.string()}),
+    examples: [
+      {label: 'Inline', level: 'inline', data: {id: 'JAVASCRIPT-22SP'}},
+      {label: 'Block', level: 'block', data: {id: 'JAVASCRIPT-22SP'}},
+    ],
+  },
+  issues: {
+    description:
+      'The ONLY way to list multiple Sentry issues. Renders an interactive ' +
+      'table with title, trend graph, events, users, priority, and assignee ' +
+      'for each issue — do NOT duplicate any of that data as text. ' +
+      'ALWAYS use this when referencing 2+ issues. ' +
+      'MUST NOT appear inside a markdown table or list. ' +
+      'Never use `docs`, `issue`, or markdown tables for multiple issues. ' +
+      'Provide only the array of issue short IDs (e.g. "PROJECT-123").',
+    level: ['block'],
+    schema: z.object({ids: z.array(z.string())}),
+    examples: [
+      {
+        label: 'Block',
+        level: 'block',
+        data: {ids: ['JAVASCRIPT-22SP', 'JAVASCRIPT-39HX', 'JAVASCRIPT-39ZF']},
       },
     ],
   },

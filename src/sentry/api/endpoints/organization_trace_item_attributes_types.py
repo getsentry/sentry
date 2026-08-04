@@ -10,30 +10,27 @@ class TraceItemAttributeContext(TypedDict):
     """
     Additional, mostly-static metadata about an attribute.
 
-    When ``expand=context`` is requested, context is attached to every
-    attribute. Today the metadata is sourced from the sentry conventions
-    (``sentry_conventions.attributes.ATTRIBUTE_METADATA``), matched by attribute
-    name (and type when known) regardless of the attribute's source, so any
-    attribute that maps to a known convention carries that metadata (only the
-    fields actually present are included) while the rest get an empty context.
-    Serving context for custom attributes is planned (gated behind the
-    ``data-browsing-attribute-context`` feature), at which point the empty
-    contexts will start to be populated.
+    When ``expand=context`` is requested, context is attached to every attribute.
+    Metadata comes from the sentry conventions, Sentry's own column definitions,
+    or user-authored context (gated behind ``data-browsing-attribute-context``),
+    in that precedence order. Only the fields available are included, so an
+    attribute with no metadata gets an empty context.
     """
 
     # Whether this context comes from a known sentry convention. Present (and
-    # True) for a known convention. Lets clients distinguish sentry-convention
-    # context from custom (user-authored) context once the latter is served.
+    # True) for a known convention.
     isConvention: NotRequired[bool]
+    # Whether this context was authored by a user. Present (and True) only for
+    # user-authored context, so mutually exclusive with ``isConvention``.
+    isCustom: NotRequired[bool]
     # A short, human-readable description of the attribute. Present for a known
-    # convention.
+    # convention, and for user-authored context (where it is required).
     brief: NotRequired[str]
     # Whether the convention has been deprecated. Present for a known
-    # convention.
+    # convention; not modeled for user-authored context.
     isDeprecated: NotRequired[bool]
     # Longer-form notes that add nuance beyond the brief (e.g. caveats,
-    # double-counting warnings). Sourced from the convention's
-    # ``additional_context``.
+    # double-counting warnings). Sourced from ``additional_context``.
     details: NotRequired[list[str]]
     # Example value(s) for the attribute, normalized to a list.
     examples: NotRequired[list[Any]]
@@ -47,8 +44,6 @@ class TraceItemAttributeKey(TypedDict):
     secondaryAliases: NotRequired[list[str]]
     attributeSource: TraceItemAttributeSource
     attributeType: Literal["string", "number", "boolean"]
-    # Attribute context, only present when requested via ``expand=context`` (and
-    # gated behind the feature flag). Attached to every attribute when
-    # requested; currently empty for custom (non-convention) attributes, which
-    # will be populated once custom attribute context is served.
+    # Attribute context, only present when requested via ``expand=context``.
+    # Attached to every attribute, and empty when it has no metadata.
     context: NotRequired[TraceItemAttributeContext]

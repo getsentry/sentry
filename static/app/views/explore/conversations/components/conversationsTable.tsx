@@ -1,415 +1,97 @@
-import {
-  Fragment,
-  memo,
-  useCallback,
-  useMemo,
-  useState,
-  type ComponentPropsWithRef,
-} from 'react';
-import {css, type Theme} from '@emotion/react';
+import {Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from '@sentry/scraps/button';
-import {InfoText} from '@sentry/scraps/info';
-import {Container, Flex} from '@sentry/scraps/layout';
-import {ExternalLink, Link} from '@sentry/scraps/link';
-import {useModal} from '@sentry/scraps/modal';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
+import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Count} from 'sentry/components/count';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {
   COL_WIDTH_UNDEFINED,
   GridEditable,
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
+import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconEdit, IconUser} from 'sentry/icons';
+import {IconFire, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {MarkedText} from 'sentry/utils/marked/markedText';
+import {markdownToPlainText} from 'sentry/utils/marked/marked';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {isUUID} from 'sentry/utils/string/isUUID';
+import {useDimensions} from 'sentry/utils/useDimensions';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
-import {ConversationsTableEditModal} from 'sentry/views/explore/conversations/components/conversationsTableEditModal';
-import {ConversationToolCallsBreakdown} from 'sentry/views/explore/conversations/components/conversationToolCallsBreakdown';
 import {useConversationDirectHitRedirect} from 'sentry/views/explore/conversations/hooks/useConversationDirectHitRedirect';
 import {
   useConversations,
   type Conversation,
   type ConversationUser,
 } from 'sentry/views/explore/conversations/hooks/useConversations';
-import {useConversationsTableColumns} from 'sentry/views/explore/conversations/hooks/useConversationsTableColumns';
-import {useConversationToolBreakdown} from 'sentry/views/explore/conversations/hooks/useConversationToolBreakdown';
-import {
-  type ConversationColumnKey,
-  CONVERSATION_COLUMNS,
-  RIGHT_ALIGNED_CONVERSATION_COLUMNS,
-} from 'sentry/views/explore/conversations/utils/tableColumns';
 import {getConversationDetailUrl} from 'sentry/views/explore/conversations/utils/urlParams';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 
-export function ConversationsTable() {
-  const organization = useOrganization();
-  const navigate = useNavigate();
-  const {selection} = usePageFilters();
-  const {openModal} = useModal();
-  const {columns, setColumns} = useConversationsTableColumns();
-  const {data, isFetching, error, pageLinks, setCursor, isDirectHit} = useConversations();
-  useConversationDirectHitRedirect({isDirectHit, conversations: data});
-  const [highlightedRowKey, setHighlightedRowKey] = useState<number | undefined>();
+// Tool tags wrap across at most this many rows; anything that doesn't fit
+// collapses into a trailing "+N" overflow tag.
+const MAX_TOOL_ROWS = 2;
 
-  const columnOrder = useMemo<Array<GridColumnOrder<ConversationColumnKey>>>(
-    () =>
-      columns.map(({key, width}) => ({
-        key,
-        name: CONVERSATION_COLUMNS[key].name,
-        width: width ?? CONVERSATION_COLUMNS[key].width,
-      })),
-    [columns]
-  );
+// Floor for a truncated tool tag so it never collapses to nothing when the
+// column is extremely narrow.
+const MIN_TOOL_TAG_WIDTH = 40;
 
-  const handleResizeColumn = useCallback(
-    (columnIndex: number, nextColumn: GridColumnOrder<ConversationColumnKey>) => {
-      const {width} = nextColumn;
-      // A double-click reset sends COL_WIDTH_UNDEFINED (-1); drop the persisted
-      // width so the column falls back to its default instead of keeping the old
-      // value. Any other non-positive width is ignored.
-      setColumns(
-        columns.map((c, i) => {
-          if (i !== columnIndex) {
-            return c;
-          }
-          if (typeof width === 'number' && width > 0) {
-            return {...c, width: Math.round(width)};
-          }
-          if (width === COL_WIDTH_UNDEFINED) {
-            return {key: c.key};
-          }
-          return c;
-        })
-      );
-    },
-    [columns, setColumns]
-  );
+// Slack (px) subtracted from a tag's max-width so sub-pixel rounding never
+// wraps the trailing "+N" badge onto a second line.
+const TAG_WIDTH_SLACK = 2;
 
-  const showMissingMessagesAlert =
-    !isFetching &&
-    !error &&
-    data.length > 0 &&
-    data.every(conversation => !conversation.firstInput && !conversation.lastOutput);
+// Fixed height for each data row.
+const ROW_HEIGHT = 63;
 
-  const handlePaginate: typeof setCursor = (cursor, path, query, pageDelta) => {
-    trackAnalytics('conversations.table.paginate', {
-      organization,
-      direction: pageDelta > 0 ? 'next' : 'previous',
-    });
-    setCursor(cursor, path, query, pageDelta);
-  };
+type ColumnKey =
+  | 'conversation'
+  | 'duration'
+  | 'messages'
+  | 'errors'
+  | 'cost'
+  | 'tools'
+  | 'age';
 
-  const openColumnEditor = () => {
-    openModal(
-      modalProps => (
-        <ConversationsTableEditModal
-          {...modalProps}
-          columns={columns}
-          onColumnsChange={setColumns}
-        />
-      ),
-      {closeEvents: 'escape-key'}
-    );
-  };
+const COLUMN_ORDER: ColumnKey[] = [
+  'conversation',
+  'duration',
+  'messages',
+  'errors',
+  'cost',
+  'tools',
+  'age',
+];
 
-  const renderHeadCell = useCallback(
-    (column: GridColumnHeader<ConversationColumnKey>) => {
-      return (
-        <Flex
-          flex="1"
-          align="center"
-          gap="xs"
-          justify={RIGHT_ALIGNED_CONVERSATION_COLUMNS.has(column.key) ? 'end' : 'start'}
-        >
-          {column.name}
-          {/* Raise the input column's growth-limit so it absorbs the leftover
-              width instead of the last column stretching. The panel's
-              horizontal scroll (and the `minWidth: 0` wrapper) keeps this from
-              overflowing when there are too many columns to fit. */}
-          {column.key === 'input' && <Container width="100vw" />}
-        </Flex>
-      );
-    },
-    []
-  );
+// `conversation` is the flexible growth column (COL_WIDTH_UNDEFINED); the rest
+// have sensible starting widths that the user can drag to resize.
+const COLUMN_DEFAULTS: Record<ColumnKey, {name: string; width: number}> = {
+  conversation: {name: t('Conversation'), width: COL_WIDTH_UNDEFINED},
+  duration: {name: t('Duration'), width: 120},
+  messages: {name: t('Messages'), width: 120},
+  errors: {name: t('Errors'), width: 100},
+  cost: {name: t('Cost'), width: 120},
+  tools: {name: t('Tools'), width: 300},
+  age: {name: t('Age'), width: 110},
+};
 
-  const renderBodyCell = useCallback(
-    (
-      column: GridColumnOrder<ConversationColumnKey>,
-      dataRow: Conversation,
-      rowIndex: number
-    ) => (
-      <BodyCell
-        column={column}
-        dataRow={dataRow}
-        organization={organization}
-        projects={selection.projects}
-        isRowHovered={rowIndex === highlightedRowKey}
-      />
-    ),
-    [organization, selection.projects, highlightedRowKey]
-  );
+const RIGHT_ALIGNED_COLUMNS = new Set<ColumnKey>(['age']);
 
-  const handleRowClick = useCallback(
-    (dataRow: Conversation) => {
-      navigate(getConversationDetailUrl(organization.slug, dataRow, selection.projects));
-    },
-    [navigate, organization, selection.projects]
-  );
-
-  return (
-    <Fragment>
-      {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
-      <Flex justify="end">
-        <Button size="sm" icon={<IconEdit />} onClick={openColumnEditor}>
-          {t('Edit Table')}
-        </Button>
-      </Flex>
-      <GridEditable
-        isLoading={isFetching}
-        error={error}
-        data={data}
-        columnOrder={columnOrder}
-        columnSortBy={[]}
-        stickyHeader
-        grid={{
-          renderHeadCell,
-          renderBodyCell,
-          onResizeColumn: handleResizeColumn,
-        }}
-        onRowClick={handleRowClick}
-        isRowClickable={() => true}
-        onRowMouseOver={(_dataRow, key) => setHighlightedRowKey(key)}
-        onRowMouseOut={() => setHighlightedRowKey(undefined)}
-        highlightedRowKey={highlightedRowKey}
-      />
-      <Pagination pageLinks={pageLinks} onCursor={handlePaginate} />
-    </Fragment>
-  );
-}
-
-function ConversationLink(props: {
-  children: React.ReactNode;
-  dataRow: Conversation;
-  organization: Organization;
-  projects: number[];
-}) {
-  const detailUrl = getConversationDetailUrl(
-    props.organization.slug,
-    props.dataRow,
-    props.projects
-  );
-  return (
-    <Link
-      to={detailUrl}
-      onClick={event => {
-        // Let the link handle navigation; don't also trigger the row click.
-        event.stopPropagation();
-      }}
-    >
-      <Text as="span" ellipsis variant="inherit">
-        {props.children}
-      </Text>
-    </Link>
-  );
-}
-
-const BodyCell = memo(function BodyCell({
-  column,
-  isRowHovered,
-  dataRow,
-  ...props
-}: {
-  column: GridColumnOrder<ConversationColumnKey>;
-  dataRow: Conversation;
-  isRowHovered: boolean;
-  organization: Organization;
-  projects: number[];
-}) {
-  switch (column.key) {
-    case 'conversationId': {
-      return isUUID(dataRow.conversationId) ? (
-        <ConversationLink dataRow={dataRow} {...props}>
-          {dataRow.conversationId.slice(0, 8)}
-        </ConversationLink>
-      ) : (
-        <Tooltip
-          title={
-            <Flex align="center" gap="xs">
-              <Text wordBreak="break-word">{dataRow.conversationId}</Text>
-              <CopyToClipboardButton
-                aria-label={t('Copy to clipboard')}
-                variant="transparent"
-                size="zero"
-                text={dataRow.conversationId}
-                onClick={event => event.stopPropagation()}
-              />
-            </Flex>
-          }
-          isHoverable
-        >
-          <ConversationLink dataRow={dataRow} {...props}>
-            {dataRow.conversationId}
-          </ConversationLink>
-        </Tooltip>
-      );
-    }
-    case 'llmCalls':
-      return (
-        <Text as="div">
-          <Count value={dataRow.llmCalls} />
-        </Text>
-      );
-    case 'user': {
-      if (!dataRow.user) {
-        return (
-          <Tooltip title={<UserNotInstrumentedTooltip />} isHoverable skipWrapper>
-            <Flex align="center" gap="xs" minWidth={0}>
-              <IconUser size="md" />
-              <Text>&mdash;</Text>
-            </Flex>
-          </Tooltip>
-        );
-      }
-      const displayName = getUserDisplayName(dataRow.user);
-      return (
-        <Flex align="center" gap="xs" minWidth={0}>
-          <IconUser size="md" />
-          {displayName ? (
-            <InfoText title={displayName} mode="overflowOnly">
-              {displayName}
-            </InfoText>
-          ) : (
-            <Text>&mdash;</Text>
-          )}
-        </Flex>
-      );
-    }
-    case 'toolCalls':
-      return <ToolCallsCell dataRow={dataRow} isRowHovered={isRowHovered} />;
-    case 'errors':
-      return (
-        <Text as="div" variant={dataRow.errors > 0 ? 'danger' : undefined}>
-          <Count value={dataRow.errors} />
-        </Text>
-      );
-    case 'cost':
-      return (
-        <Text as="div">
-          {dataRow.totalCost !== null && dataRow.totalCost < 0 ? (
-            <NegativeCostInfo cost={dataRow.totalCost} />
-          ) : (
-            <LLMCosts cost={dataRow.totalCost} />
-          )}
-        </Text>
-      );
-    case 'timestamp':
-      return (
-        <Text as="div" align="right">
-          <TimeSince unitStyle="extraShort" date={dataRow.endTimestamp} />
-        </Text>
-      );
-    case 'input':
-      return dataRow.firstInput ? (
-        <CellContent text={dataRow.firstInput} />
-      ) : (
-        <Text>&mdash;</Text>
-      );
-    case 'output':
-      return dataRow.lastOutput ? (
-        <CellContent text={dataRow.lastOutput} />
-      ) : (
-        <Text>&mdash;</Text>
-      );
-    case 'inputTokens':
-      return (
-        <Text as="div">
-          <Count value={dataRow.inputTokens} />
-        </Text>
-      );
-    case 'outputTokens':
-      return (
-        <Text as="div">
-          <Count value={dataRow.outputTokens} />
-        </Text>
-      );
-    default:
-      return null;
-  }
-});
-
-function ToolCallsCell({
-  dataRow,
-  isRowHovered,
-}: {
-  dataRow: Conversation;
-  isRowHovered: boolean;
-}) {
-  // Prefetch the breakdown on row hover so the card is already populated by the
-  // time it opens. Shares the card's query key, so this only warms the cache —
-  // it never fires a second request. The card fetches on its own when opened
-  // (covers keyboard focus and hovering into the interactive card).
-  useConversationToolBreakdown({
-    conversationId: dataRow.conversationId,
-    enabled: isRowHovered && dataRow.toolCalls > 0,
-  });
-
-  if (dataRow.toolCalls === 0) {
-    return <Text as="div">{formatAbbreviatedNumber(dataRow.toolCalls)}</Text>;
-  }
-
-  // The number itself is the tooltip trigger, so the card stays anchored over
-  // it (`position="top"`). To make the whole cell a hover target without moving
-  // that anchor, the trigger carries a transparent `::before` that fills the
-  // (relative) cell: pointer events over the pseudo-element dispatch to the
-  // trigger, driving the tooltip's native hover — while popper measures only the
-  // number's own box, so the anchor and the hoverable-card handoff are unchanged.
-  return (
-    <Flex flex="1" align="center" position="relative">
-      <InfoText
-        position="top"
-        maxWidth={400}
-        title={<ConversationToolCallsBreakdown conversationId={dataRow.conversationId} />}
-        tabIndex={0}
-        css={(theme: Theme) => css`
-          text-decoration: underline dotted ${theme.tokens.content.secondary};
-          text-decoration-thickness: 0.75px;
-          text-underline-offset: 1.25px;
-          outline: none;
-
-          &::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-          }
-
-          &:focus-visible {
-            ${theme.focusRing()}
-          }
-        `}
-      >
-        {formatAbbreviatedNumber(dataRow.toolCalls)}
-      </InfoText>
-    </Flex>
-  );
-}
+// Plain-text title/first-message is ellipsized to this length before rendering.
+const CELL_MAX_CHARS = 256;
 
 export function normalizeUserField(value: string | null | undefined): string | null {
   if (!value || value.toLowerCase() === 'none') {
@@ -424,29 +106,6 @@ export function getUserDisplayName(user: ConversationUser): string | null {
     normalizeUserField(user.username) ||
     normalizeUserField(user.ip_address) ||
     null
-  );
-}
-
-export const CELL_MAX_CHARS = 256;
-
-function cleanMarkdownForCell(text: string): string {
-  return text
-    .replace(/```[\s\S]*?```/g, '') // fenced code blocks
-    .replace(/^#{1,6}\s+(.+)$/gm, '**$1**') // headings -> bold text
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-type CellContentProps = ComponentPropsWithRef<'div'> & {
-  text: string;
-};
-
-function CellContent({text, ref, ...props}: CellContentProps) {
-  const cleanedText = cleanMarkdownForCell(text);
-  return (
-    <SingleLineMarkdown ref={ref} {...props}>
-      <MarkedText text={ellipsize(cleanedText, CELL_MAX_CHARS)} />
-    </SingleLineMarkdown>
   );
 }
 
@@ -466,12 +125,485 @@ export function UserNotInstrumentedTooltip() {
   );
 }
 
-const SingleLineMarkdown = styled('div')`
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+export function ConversationsTable() {
+  const organization = useOrganization();
+  const navigate = useNavigate();
+  const {selection} = usePageFilters();
+  const {data, isFetching, error, pageLinks, setCursor, isDirectHit} = useConversations();
+  useConversationDirectHitRedirect({isDirectHit, conversations: data});
 
-  * {
-    display: inline;
+  const [highlightedRowKey, setHighlightedRowKey] = useState<number | undefined>();
+
+  const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize<
+    GridColumnOrder<ColumnKey>
+  >({
+    columns: () =>
+      COLUMN_ORDER.map(key => ({
+        key,
+        name: COLUMN_DEFAULTS[key].name,
+        width: COLUMN_DEFAULTS[key].width,
+      })),
+  });
+
+  const showMissingMessagesAlert =
+    !isFetching &&
+    !error &&
+    data.length > 0 &&
+    data.every(conversation => !conversation.firstInput && !conversation.lastOutput);
+
+  const handlePaginate: typeof setCursor = (cursor, path, query, pageDelta) => {
+    trackAnalytics('conversations.table.paginate', {
+      organization,
+      direction: pageDelta > 0 ? 'next' : 'previous',
+    });
+    setCursor(cursor, path, query, pageDelta);
+  };
+
+  const handleRowClick = useCallback(
+    (dataRow: Conversation) => {
+      navigate(getConversationDetailUrl(organization.slug, dataRow, selection.projects));
+    },
+    [navigate, organization.slug, selection.projects]
+  );
+
+  const renderHeadCell = useCallback(
+    (column: GridColumnHeader<ColumnKey>) => (
+      <Flex
+        flex="1"
+        align="center"
+        gap="xs"
+        justify={RIGHT_ALIGNED_COLUMNS.has(column.key) ? 'end' : 'start'}
+      >
+        {column.name}
+        {/* Raise the conversation column's growth-limit so it absorbs the
+            leftover width instead of the last column stretching. */}
+        {column.key === 'conversation' && <Container width="100vw" />}
+      </Flex>
+    ),
+    []
+  );
+
+  const renderBodyCell = useCallback(
+    (column: GridColumnOrder<ColumnKey>, dataRow: Conversation) => (
+      <BodyCell column={column} conversation={dataRow} />
+    ),
+    []
+  );
+
+  return (
+    <Fragment>
+      {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
+      <Stack gap="lg">
+        <FixedRowHeightGrid>
+          <GridEditable
+            isLoading={isFetching}
+            error={error}
+            data={data}
+            columnOrder={columnOrder}
+            columnSortBy={[]}
+            stickyHeader
+            // GridEditable's Panel body has a default bottom margin; drop it so
+            // the Stack's `lg` gap is the only spacing before the pagination.
+            bodyStyle={{marginBottom: 0}}
+            grid={{
+              renderHeadCell,
+              renderBodyCell,
+              onResizeColumn: handleResizeColumn,
+            }}
+            onRowClick={handleRowClick}
+            isRowClickable={() => true}
+            onRowMouseOver={(_dataRow, key) => setHighlightedRowKey(key)}
+            onRowMouseOut={() => setHighlightedRowKey(undefined)}
+            highlightedRowKey={highlightedRowKey}
+          />
+        </FixedRowHeightGrid>
+        {/* Zero Pagination's built-in top margin so the Stack's `lg` gap is the
+            only spacing between the table and the controls. */}
+        <TablePagination pageLinks={pageLinks} onCursor={handlePaginate} />
+      </Stack>
+    </Fragment>
+  );
+}
+
+function BodyCell({
+  column,
+  conversation,
+}: {
+  column: GridColumnOrder<ColumnKey>;
+  conversation: Conversation;
+}) {
+  switch (column.key) {
+    case 'conversation':
+      return <ConversationCell conversation={conversation} />;
+    case 'duration':
+      return (
+        <Text tabular>
+          <PerformanceDuration
+            milliseconds={conversation.generationDuration}
+            abbreviation
+          />
+        </Text>
+      );
+    case 'messages':
+      return (
+        <Text tabular>
+          <Count value={conversation.llmCalls} />
+        </Text>
+      );
+    case 'errors':
+      return <ErrorsCell errors={conversation.errors} />;
+    case 'cost':
+      return (
+        <Text tabular>
+          {conversation.totalCost !== null && conversation.totalCost < 0 ? (
+            <NegativeCostInfo cost={conversation.totalCost} />
+          ) : (
+            <LLMCosts cost={conversation.totalCost} />
+          )}
+        </Text>
+      );
+    case 'tools':
+      return <ToolsCell toolNames={conversation.toolNames} />;
+    case 'age':
+      return (
+        <Text align="right" variant="muted">
+          <TimeSince unitStyle="extraShort" date={conversation.endTimestamp} />
+        </Text>
+      );
+    default:
+      return null;
   }
+}
+
+function getConversationTitle(
+  title: string | null,
+  firstInput: string | null
+): string | null {
+  // Prefer the AI-generated title, falling back to the first user message. Both
+  // can contain markdown/tags and are rendered as plain Text, so flatten them to
+  // a single line; a value that flattens to nothing falls back to the caller's
+  // placeholder rather than showing a blank title.
+  const raw = title ?? firstInput;
+  if (!raw) {
+    return null;
+  }
+  const plainText = ellipsize(
+    markdownToPlainText(raw).replace(/\s+/g, ' ').trim(),
+    CELL_MAX_CHARS
+  );
+  return plainText.length > 0 ? plainText : null;
+}
+
+function getConversationIdLabel(conversationId: string): string {
+  // UUIDs are long and opaque, so show a short prefix; other id formats
+  // (e.g. `resp_...`, `slack:1234`) are already short enough.
+  return isUUID(conversationId) ? conversationId.slice(0, 8) : conversationId;
+}
+
+function ConversationCell({conversation}: {conversation: Conversation}) {
+  // Flattening markdown to plain text renders HTML + parses it, so memoize on
+  // the inputs to avoid recomputing on unrelated re-renders (hover, resize).
+  const title = useMemo(
+    () => getConversationTitle(conversation.title, conversation.firstInput),
+    [conversation.title, conversation.firstInput]
+  );
+  const project = useProjectFromId({
+    project_id: conversation.projectId ? String(conversation.projectId) : undefined,
+  });
+
+  return (
+    <Stack gap="xs" minWidth={0}>
+      <Text size="lg" ellipsis>
+        {title ?? <Text variant="muted">{t('Untitled conversation')}</Text>}
+      </Text>
+      <Flex align="center" gap="sm" minWidth={0}>
+        <Flex align="center" gap="xs" minWidth={0}>
+          {project && (
+            <ProjectAvatar
+              project={project}
+              size={14}
+              hasTooltip
+              tooltip={project.slug}
+            />
+          )}
+          <Text size="sm" variant="muted" ellipsis>
+            {getConversationIdLabel(conversation.conversationId)}
+          </Text>
+        </Flex>
+        <CellDivider orientation="vertical" />
+        <ConversationUserLabel user={conversation.user} />
+      </Flex>
+    </Stack>
+  );
+}
+
+function ConversationUserLabel({user}: {user: Conversation['user']}) {
+  const displayName = user ? getUserDisplayName(user) : null;
+
+  if (displayName) {
+    return (
+      <Flex align="center" gap="xs" minWidth={0}>
+        <UserIcon size="xs" />
+        <Text size="sm" variant="muted" ellipsis>
+          {displayName}
+        </Text>
+      </Flex>
+    );
+  }
+
+  return (
+    <Tooltip title={<UserNotInstrumentedTooltip />} isHoverable skipWrapper>
+      <Flex align="center" gap="xs">
+        <UserIcon size="xs" />
+        <Text size="sm" variant="muted">
+          &mdash;
+        </Text>
+      </Flex>
+    </Tooltip>
+  );
+}
+
+function ErrorsCell({errors}: {errors: number}) {
+  if (errors === 0) {
+    return (
+      <Text tabular variant="muted">
+        0
+      </Text>
+    );
+  }
+  return (
+    <Flex align="center" gap="xs">
+      <Text tabular variant="danger">
+        <Count value={errors} />
+      </Text>
+      <IconFire size="xs" variant="danger" />
+    </Flex>
+  );
+}
+
+/**
+ * Greedily packs tool tags into up to `maxRows` rows and returns how many are
+ * visible. When they don't all fit, room is reserved on the last row for the
+ * trailing "+N" overflow tag.
+ */
+export function getVisibleToolCount({
+  tagWidths,
+  badgeWidth,
+  gap,
+  containerWidth,
+  maxRows,
+}: {
+  badgeWidth: number;
+  containerWidth: number;
+  gap: number;
+  maxRows: number;
+  tagWidths: number[];
+}): number {
+  const totalTags = tagWidths.length;
+
+  // Whether the first `tagCount` tags — plus the overflow badge when
+  // `withOverflowBadge` — can be laid out within `maxRows`.
+  const fitsWithinRows = (tagCount: number, withOverflowBadge: boolean): boolean => {
+    const itemWidths = tagWidths.slice(0, tagCount);
+    if (withOverflowBadge) {
+      itemWidths.push(badgeWidth);
+    }
+
+    let rowCount = 1;
+    let rowWidth = 0;
+    for (const itemWidth of itemWidths) {
+      const widthWithGap = rowWidth === 0 ? itemWidth : gap + itemWidth;
+      if (rowWidth + widthWithGap <= containerWidth) {
+        rowWidth += widthWithGap;
+        continue;
+      }
+      // Doesn't fit on the current row — wrap onto the next one.
+      rowCount += 1;
+      rowWidth = itemWidth;
+      if (rowCount > maxRows) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  if (fitsWithinRows(totalTags, false)) {
+    return totalTags;
+  }
+
+  // Adding a tag never reduces the number of rows needed, so the answer is the
+  // largest prefix that still fits alongside the badge — stop at the first that
+  // doesn't.
+  let visibleCount = 0;
+  for (let tagCount = 1; tagCount <= totalTags; tagCount++) {
+    if (!fitsWithinRows(tagCount, true)) {
+      break;
+    }
+    visibleCount = tagCount;
+  }
+  return visibleCount;
+}
+
+function ToolsCell({toolNames}: {toolNames: string[]}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
+  const {width} = useDimensions({elementRef: containerRef});
+
+  const [layout, setLayout] = useState<{
+    badgeWidth: number;
+    gap: number;
+    rowHeight: number;
+    tagWidths: number[];
+  } | null>(null);
+
+  // Tag widths/heights are content-based (independent of the container width),
+  // so we only re-measure when the set of tools changes. Join on NUL so tool
+  // names containing spaces can't collide into the same key.
+  const toolsKey = toolNames.join('\x00');
+  useLayoutEffect(() => {
+    const el = measureRef.current;
+    if (!el) {
+      return;
+    }
+    const tagEls = el.querySelectorAll<HTMLElement>('[data-tool-tag]');
+    const badgeEl = el.querySelector<HTMLElement>('[data-tool-badge]');
+    setLayout({
+      gap: parseFloat(getComputedStyle(el).columnGap) || 0,
+      tagWidths: Array.from(tagEls, tag => tag.getBoundingClientRect().width),
+      badgeWidth: badgeEl?.getBoundingClientRect().width ?? 0,
+      rowHeight: badgeEl?.getBoundingClientRect().height ?? 0,
+    });
+  }, [toolsKey]);
+
+  const visibleCount = useMemo(() => {
+    if (!layout || width === 0) {
+      return toolNames.length;
+    }
+    const fitCount = getVisibleToolCount({
+      tagWidths: layout.tagWidths,
+      badgeWidth: layout.badgeWidth,
+      gap: layout.gap,
+      containerWidth: width,
+      maxRows: MAX_TOOL_ROWS,
+    });
+    // Always keep at least one tag visible; if it can't fit it will be
+    // truncated (see maxTagWidth below) rather than dropped into the overflow.
+    return Math.max(fitCount, 1);
+  }, [layout, width, toolNames.length]);
+
+  if (toolNames.length === 0) {
+    return <Text variant="muted">&mdash;</Text>;
+  }
+
+  const overflowCount = toolNames.length - visibleCount;
+
+  // Cap each tag so a long tool name ellipsizes instead of being clipped. When
+  // an overflow badge is present, also reserve room for it so it never wraps.
+  // Expressed as a CSS calc against the container width (not the measured JS
+  // width) so it tracks resizing synchronously — otherwise the ResizeObserver
+  // lag lets the tag/badge flicker onto a second line for a frame. `max()`
+  // keeps a floor when the column is narrow.
+  const maxTagWidth = layout
+    ? overflowCount > 0
+      ? `max(${MIN_TOOL_TAG_WIDTH}px, calc(100% - ${
+          layout.badgeWidth + layout.gap + TAG_WIDTH_SLACK
+        }px))`
+      : '100%'
+    : undefined;
+
+  // Pin the container to exactly MAX_TOOL_ROWS so a transient reflow during
+  // resize can't briefly spill onto another line before the count settles.
+  const maxHeight = layout
+    ? layout.rowHeight * MAX_TOOL_ROWS + layout.gap * (MAX_TOOL_ROWS - 1)
+    : undefined;
+
+  return (
+    <ToolsContainer
+      ref={containerRef}
+      position="relative"
+      wrap="wrap"
+      gap="xs"
+      width="100%"
+      minWidth={0}
+      overflow="hidden"
+      style={maxHeight ? {maxHeight} : undefined}
+    >
+      {toolNames.slice(0, visibleCount).map((name, index) => (
+        <Tag
+          key={`${name}-${index}`}
+          variant="muted"
+          style={maxTagWidth ? {maxWidth: maxTagWidth} : undefined}
+        >
+          {/* Tag's own text node is display:flex, which breaks text-overflow;
+              a block-level Text ellipsizes within it. */}
+          <Text ellipsis>{name}</Text>
+        </Tag>
+      ))}
+      {overflowCount > 0 && (
+        <Tooltip title={toolNames.slice(visibleCount).join(', ')}>
+          <Tag variant="muted">{`+${overflowCount}`}</Tag>
+        </Tooltip>
+      )}
+
+      {/* Hidden measurement layer: always renders every tag so their intrinsic
+          widths (and the badge width) stay available no matter what is
+          currently visible. */}
+      <Flex
+        ref={measureRef}
+        aria-hidden
+        position="absolute"
+        top={0}
+        left={0}
+        height={0}
+        overflow="hidden"
+        visibility="hidden"
+        pointerEvents="none"
+        wrap="wrap"
+        gap="xs"
+      >
+        {toolNames.map((name, index) => (
+          <Tag key={`${name}-${index}`} variant="muted" data-tool-tag>
+            {name}
+          </Tag>
+        ))}
+        <Tag variant="muted" data-tool-badge>
+          {`+${toolNames.length}`}
+        </Tag>
+      </Flex>
+    </ToolsContainer>
+  );
+}
+
+const TablePagination = styled(Pagination)`
+  margin: 0;
+`;
+
+const FixedRowHeightGrid = styled('div')`
+  /* Pin data rows to a fixed height by sizing their body cells. Head cells are
+     <th> (unaffected), and the empty/loading/error status cell keeps its own
+     size because its larger min-height wins over this fixed height. */
+  tbody td {
+    height: ${ROW_HEIGHT}px;
+  }
+`;
+
+// Separator is full-height by default; pin it to a short fixed height so it
+// reads as a small inline divider between the id and the user. Override its
+// `align-self: stretch` so the fixed height stays centered in the row instead
+// of pinning to the top.
+// Keep the user icon from shrinking when the display name is long.
+const UserIcon = styled(IconUser)`
+  flex-shrink: 0;
+`;
+
+const CellDivider = styled(Separator)`
+  align-self: center;
+  height: 12px;
+  flex-shrink: 0;
+`;
+
+// align-content isn't a Flex prop, so keep it as a small styled(Flex) so wrapped
+// tag rows stack from the top instead of spreading across the container height.
+const ToolsContainer = styled(Flex)`
+  align-content: flex-start;
 `;

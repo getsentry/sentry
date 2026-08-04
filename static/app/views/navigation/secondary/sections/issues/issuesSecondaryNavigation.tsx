@@ -51,7 +51,12 @@ export function IssuesSecondaryNavigation() {
                   to={`${baseUrl}/inbox/`}
                   end
                   analyticsItemName="issues_inbox"
-                  trailingItems={<InboxCountBadge />}
+                  trailingItems={
+                    <Fragment>
+                      <FeatureBadge type="experimental" />
+                      <InboxCountBadge />
+                    </Fragment>
+                  }
                 >
                   {t('Inbox')}
                 </SecondaryNavigation.Link>

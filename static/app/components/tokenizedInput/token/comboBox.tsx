@@ -8,7 +8,6 @@ import type {
 import {useCallback, useEffect, useLayoutEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {AriaComboBoxProps} from '@react-aria/combobox';
-import {ariaHideOutside} from '@react-aria/overlays';
 import {mergeRefs} from '@react-aria/utils';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren, Key, KeyboardEvent} from '@react-types/shared';
@@ -28,7 +27,6 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
-import {defined} from 'sentry/utils/defined';
 import {useOverlay} from 'sentry/utils/useOverlay';
 
 interface ComboBoxProps {
@@ -126,7 +124,7 @@ export function ComboBox({
     shouldFilterResults: true,
   });
 
-  const handleSelectionChange = useCallback(
+  const handleValueChange = useCallback(
     (key: Key | null) => {
       if (!key) {
         return;
@@ -155,11 +153,11 @@ export function ComboBox({
       items,
       autoFocus: false,
       inputValue: filterValue,
-      onSelectionChange: handleSelectionChange,
+      onChange: handleValueChange,
       allowsCustomValue: true,
       disabledKeys,
       isDisabled: false,
-      selectedKey: null,
+      value: null,
     };
 
   const state = useComboBoxState<SelectOptionOrSectionWithKey<string>>({
@@ -298,19 +296,6 @@ export function ComboBox({
     updateOverlayPosition,
     isOpen,
   });
-
-  // useCombobox will hide outside elements with aria-hidden="true" when it is open [1].
-  // Because we switch elements when a custom menu is displayed, we need to manually
-  // call this function an extra time to ensure the correct elements are hidden.
-  //
-  // [1]: https://github.com/adobe/react-spectrum/blob/main/packages/%40react-aria/combobox/src/useComboBox.ts#L337C3-L341C44
-  useEffect(() => {
-    if (isOpen) {
-      return ariaHideOutside([inputRef.current, popoverRef.current].filter(defined));
-    }
-
-    return () => {};
-  }, [isOpen]);
 
   const autosizeInputRef = useAutosizeInput({value: inputValue});
 

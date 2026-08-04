@@ -40,7 +40,7 @@ export default function ProjectLoaderScript() {
       );
       const newUpdatedProjectKeys =
         existingProjectIndex > -1
-          ? [...updatedProjectKeys].map((updatedProjectKey, index) => {
+          ? Array.from(updatedProjectKeys, (updatedProjectKey, index) => {
               return index === existingProjectIndex ? projectKey : updatedProjectKey;
             })
           : [...updatedProjectKeys, projectKey];

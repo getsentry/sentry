@@ -14,9 +14,11 @@ from sentry.dynamic_sampling.per_org.calculations import (
     compare_organization_sliding_window_sample_rates,
     compare_rebalanced_projects_with_cache,
     compare_rebalanced_transactions_with_cache,
+    compare_recalibration_factor_with_cache,
     get_cached_organization_sample_rate,
     get_cached_rebalanced_project_sample_rates,
     get_cached_rebalanced_transaction_sample_rates,
+    get_cached_recalibration_factor,
     log_transaction_volume_debug,
     run_project_balancing,
     run_transaction_balancing,
@@ -28,6 +30,7 @@ from sentry.dynamic_sampling.per_org.configuration import (
     get_configuration,
 )
 from sentry.dynamic_sampling.per_org.gate import (
+    is_org_in_recalibration_rollout,
     is_org_in_rollout,
     is_org_in_sample_rates_summary_log_rollout,
     sliding_window_comparison_org_ids,
@@ -112,8 +115,6 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
         except Exception as exc:
             sentry_sdk.capture_exception(exc)
 
-    # run_transaction_balancing skips projects at a 100% rate (legacy parity), so their
-    # transaction volumes are never used — leave them out of the query.
     sample_rates = config.get_project_sample_rates()
     # Emitted once per org per scheduler cycle, so summing over one CYCLE_DURATION
     # window yields the total number of projects sampled below 100%.
@@ -128,7 +129,7 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
     if not projects_to_balance:
         return DynamicSamplingStatus.ALL_PROJECTS_AT_FULL_SAMPLE_RATE
 
-    transaction_volumes = get_eap_transaction_volumes(config, root_projects=projects_to_balance)
+    transaction_volumes = get_eap_transaction_volumes(config)
     if not transaction_volumes:
         return DynamicSamplingStatus.NO_TRANSACTION_VOLUMES
 
@@ -164,6 +165,11 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
             rebalanced_transactions=rebalanced_transactions,
             cached_transaction_sample_rates=cached_transaction_sample_rates,
         )
+
+    if is_org_in_recalibration_rollout(org_id):
+        calculated_factor = config.recalibrate()
+        cached_factor = get_cached_recalibration_factor(config.organization.id)
+        compare_recalibration_factor_with_cache(config, calculated_factor, cached_factor)
 
     return None
 

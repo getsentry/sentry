@@ -6,7 +6,7 @@ import orderBy from 'lodash/orderBy';
 import {Observer} from 'mobx-react-lite';
 import {parseAsNativeArrayOf, parseAsString, useQueryState} from 'nuqs';
 
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -266,6 +266,12 @@ export default function AutomationNewSettings() {
             gap="md"
             justify="end"
           >
+            <LinkButton
+              variant="secondary"
+              to={makeAutomationBasePathname(organization.slug)}
+            >
+              {t('Cancel')}
+            </LinkButton>
             <Observer>
               {() => (
                 <Button variant="primary" type="submit" busy={model.isSaving}>

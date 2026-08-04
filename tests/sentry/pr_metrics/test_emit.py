@@ -34,6 +34,7 @@ from sentry.pr_metrics.emit import (
     select_verdict,
 )
 from sentry.pr_metrics.utils import _commit_shas_from_activity, resolved_group_ids
+from sentry.seer.models.run import SeerRunPullRequest, SeerRunType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
@@ -1428,6 +1429,166 @@ class PrMetricsEmissionTest(TestCase):
 
 
 EXTERNAL_ID = "556677"
+
+
+@cell_silo_test
+@with_feature(
+    [
+        "organizations:pr-metrics-activity",
+        "organizations:gen-ai-features",
+        "organizations:pr-metrics-emit",
+    ]
+)
+class MultiOrgEmissionDedupeTest(TestCase):
+    """A provider PR shared across orgs fans out to one tracked row per org; only
+    the canonical (run's-org) row should emit."""
+
+    def setUp(self) -> None:
+        # Run's org (org A): the canonical row, linked to the run.
+        self.repo = self._repo(self.project)
+        self.pull_request = self._mergeable_pr(self.repo, self.organization)
+        run = self.create_seer_run(
+            self.organization, type=SeerRunType.FEATURE_RUN, seer_run_state_id=777
+        )
+        self.create_seer_run_pull_request(run, self.pull_request)
+
+        # Sibling org (org B): a shadow row for the same provider PR.
+        self.sibling_org = self.create_organization()
+        self.sibling_repo = self._repo(self.create_project(organization=self.sibling_org))
+        self.sibling_pull_request = self._mergeable_pr(self.sibling_repo, self.sibling_org)
+
+        # Both rows carry the naive webhook attribution, so both pass the gate.
+        for pull_request in (self.pull_request, self.sibling_pull_request):
+            PullRequestAttribution.objects.create(
+                pull_request=pull_request,
+                signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+                source=PullRequestAttributionSource.WEBHOOK_DATA,
+                is_valid=True,
+            )
+
+    def _repo(self, project: Any) -> Any:
+        # Same integration_id across orgs = one shared installation, so the rows are
+        # siblings of one provider PR.
+        return self.create_repo(
+            project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id=EXTERNAL_ID,
+            integration_id=909,
+        )
+
+    def _mergeable_pr(self, repo: Any, organization: Any) -> Any:
+        pull_request = self.create_pull_request(
+            repository_id=repo.id, organization_id=organization.id, key="42"
+        )
+        pull_request.head_commit_sha = HEAD_SHA
+        pull_request.merge_commit_sha = MERGE_SHA
+        pull_request.opened_at = OPENED_AT
+        pull_request.closed_at = CLOSED_AT
+        pull_request.merged_at = CLOSED_AT
+        pull_request.draft = False
+        pull_request.save()
+        return pull_request
+
+    @patch("sentry.analytics.record")
+    def test_canonical_run_org_row_emits(self, mock_record: Any) -> None:
+        assert emit_pr_metrics_row(pull_request=self.pull_request) is True
+        assert mock_record.call_count == 1
+
+    @patch("sentry.analytics.record")
+    def test_sibling_row_skipped(self, mock_record: Any) -> None:
+        assert emit_pr_metrics_row(pull_request=self.sibling_pull_request) is False
+        assert mock_record.call_count == 0
+
+    @patch("sentry.analytics.record")
+    def test_lowest_id_row_emits_when_no_run_link(self, mock_record: Any) -> None:
+        # No link ties either row to its own org — the lowest-id row (created
+        # first, the run's-org row here) is the stable canonical pick.
+        SeerRunPullRequest.objects.all().delete()
+        assert emit_pr_metrics_row(pull_request=self.pull_request) is True
+        assert emit_pr_metrics_row(pull_request=self.sibling_pull_request) is False
+        assert mock_record.call_count == 1
+
+    @patch("sentry.pr_metrics.emit.logger")
+    @patch("sentry.analytics.record")
+    def test_warns_when_no_run_org_row_among_emitting_siblings(
+        self, mock_record: Any, mock_logger: Any
+    ) -> None:
+        # Two emitting rows for one provider PR, neither linked to a run in its own
+        # org (e.g. a delegated PR whose handoff link dropped) — dedupe still picks
+        # the lowest id, but the link loss is surfaced.
+        SeerRunPullRequest.objects.all().delete()
+        emit_pr_metrics_row(pull_request=self.pull_request)
+        warned = [
+            call
+            for call in mock_logger.warning.call_args_list
+            if call.args and call.args[0] == "pr_metrics.emit.dedup_no_run_org_row"
+        ]
+        assert len(warned) == 1
+
+    @patch("sentry.pr_metrics.emit.logger")
+    @patch("sentry.analytics.record")
+    def test_no_warning_when_run_org_row_present(self, mock_record: Any, mock_logger: Any) -> None:
+        # setUp links the run's-org row, so the canonical is found via the link, not
+        # the lowest-id fallback — no warning.
+        emit_pr_metrics_row(pull_request=self.pull_request)
+        assert not any(
+            call.args and call.args[0] == "pr_metrics.emit.dedup_no_run_org_row"
+            for call in mock_logger.warning.call_args_list
+        )
+
+    @patch("sentry.analytics.record")
+    def test_fallback_prefers_more_complete_row(self, mock_record: Any) -> None:
+        # No run link on either row (the fallback). The higher-id sibling carries the
+        # richer attribution (run_id + group_ids in signal_details), so it — not the
+        # lower-id row — is canonical and emits the fuller event.
+        SeerRunPullRequest.objects.all().delete()
+        PullRequestAttribution.objects.filter(pull_request=self.sibling_pull_request).update(
+            signal_details={"run_id": 777, "group_ids": [1]}
+        )
+        assert emit_pr_metrics_row(pull_request=self.sibling_pull_request) is True
+        assert emit_pr_metrics_row(pull_request=self.pull_request) is False
+        assert mock_record.call_count == 1
+
+    @patch("sentry.analytics.record")
+    def test_tracked_sibling_emits_when_lower_id_row_untracked(self, mock_record: Any) -> None:
+        # No run link, and the lower-id row is an untracked shadow (its attribution
+        # feature was off in that org) — as happens for a run-less MCP-attributed PR.
+        # The tracked higher-id row must still emit, not defer to the untracked row.
+        SeerRunPullRequest.objects.all().delete()
+        PullRequestAttribution.objects.filter(pull_request=self.pull_request).delete()
+        assert emit_pr_metrics_row(pull_request=self.sibling_pull_request) is True
+        assert mock_record.call_count == 1
+
+    @patch("sentry.analytics.record")
+    def test_emit_disabled_canonical_does_not_suppress_enabled_sibling(
+        self, mock_record: Any
+    ) -> None:
+        # Mid-rollout: the run's-org row (canonical via its link) has pr-metrics-emit
+        # off, the sibling has it on. The sibling must still emit rather than defer to
+        # a canonical that its own emit gate will never let through.
+        with patch(
+            "sentry.pr_metrics.emit.features.has",
+            side_effect=lambda name, org, **kw: not (
+                name == "organizations:pr-metrics-emit" and org.id == self.organization.id
+            ),
+        ):
+            assert emit_pr_metrics_row(pull_request=self.sibling_pull_request) is True
+        assert mock_record.call_count == 1
+
+    @patch("sentry.analytics.record")
+    def test_emit_disabled_row_defers_rather_than_duplicating(self, mock_record: Any) -> None:
+        # The mirror of the above: the run's-org row that lost pr-metrics-emit after
+        # its cooldown was claimed must defer to the enabled sibling, not emit a
+        # duplicate alongside it.
+        with patch(
+            "sentry.pr_metrics.emit.features.has",
+            side_effect=lambda name, org, **kw: not (
+                name == "organizations:pr-metrics-emit" and org.id == self.organization.id
+            ),
+        ):
+            assert emit_pr_metrics_row(pull_request=self.pull_request) is False
+        assert mock_record.call_count == 0
 
 
 @cell_silo_test

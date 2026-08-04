@@ -14,7 +14,7 @@ import {Count} from 'sentry/components/count';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconOpen, IconUser} from 'sentry/icons';
+import {IconFire, IconOpen, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -48,6 +48,8 @@ interface ConversationSummaryProps {
   nodes: AITraceSpanNode[];
   isLoading?: boolean;
   nodeTraceMap?: Map<string, string>;
+  /** Conversation title when Sentry has one; falls back to the id when null. */
+  title?: string | null;
 }
 
 const VISIBLE_TOOL_COUNT = 6;
@@ -55,6 +57,7 @@ const VISIBLE_TOOL_COUNT = 6;
 export function ConversationSummary({
   nodes,
   conversationId,
+  title,
   isLoading,
   nodeTraceMap,
 }: ConversationSummaryProps) {
@@ -66,6 +69,12 @@ export function ConversationSummary({
   const userDisplayName = user ? getUserDisplayName(user) : null;
 
   const displayId = isUUID(conversationId) ? conversationId.slice(0, 8) : conversationId;
+  // Prefer the human-readable title; fall back to the (possibly truncated) id.
+  const headingText = title || displayId;
+  const headingTooltip = title || conversationId;
+  // A UUID id is truncated to 8 chars, so it always needs the tooltip to reveal
+  // the full value; a title or non-UUID id only needs it when it overflows.
+  const headingTooltipOnlyOnOverflow = title ? true : !isUUID(conversationId);
 
   const errorsUrl = getExploreUrl({
     organization,
@@ -111,11 +120,20 @@ export function ConversationSummary({
     >
       <Stack gap="md" minWidth={0} flex={1}>
         <Container minWidth={0}>
-          <Tooltip title={conversationId} showOnlyOnOverflow={!isUUID(conversationId)}>
-            <Heading as="h2" ellipsis>
-              {displayId}
-            </Heading>
-          </Tooltip>
+          {isLoading ? (
+            // The title is only known once the conversation loads, so show a
+            // skeleton rather than briefly flashing the id and swapping it out.
+            <Placeholder width="240px" height="28px" />
+          ) : (
+            <Tooltip
+              title={headingTooltip}
+              showOnlyOnOverflow={headingTooltipOnlyOnOverflow}
+            >
+              <Heading as="h2" ellipsis>
+                {headingText}
+              </Heading>
+            </Tooltip>
+          )}
         </Container>
         <Flex align="center" gap="xl" minWidth={0} wrap="wrap">
           {isLoading ? (
@@ -217,6 +235,15 @@ export function ConversationSummary({
         <Stat
           label={t('Errors')}
           value={<Count value={aggregates.errorCount} />}
+          icon={
+            aggregates.errorCount > 0 ? (
+              <IconFire
+                size="sm"
+                variant="danger"
+                data-test-id="conversation-error-icon"
+              />
+            ) : undefined
+          }
           to={aggregates.errorCount > 0 ? errorsUrl : undefined}
           onClick={
             aggregates.errorCount > 0
@@ -253,14 +280,30 @@ function Stat({
   isLoading,
   to,
   onClick,
+  icon,
 }: {
   label: string;
   value: React.ReactNode;
+  icon?: React.ReactNode;
   isLoading?: boolean;
   onClick?: () => void;
   to?: string;
 }) {
   const isInteractive = !!to && !isLoading;
+
+  const valueContent = (
+    <Flex align="center" gap="xs">
+      <Text
+        size="xl"
+        tabular
+        variant={isInteractive ? 'danger' : undefined}
+        wrap="nowrap"
+      >
+        {value}
+      </Text>
+      {icon}
+    </Flex>
+  );
 
   return (
     <Stack gap="xs" flexShrink={0}>
@@ -271,14 +314,10 @@ function Stat({
         <Placeholder width="32px" height="24px" />
       ) : isInteractive ? (
         <Link to={to} onClick={onClick}>
-          <Text size="xl" tabular variant="danger" wrap="nowrap">
-            {value}
-          </Text>
+          {valueContent}
         </Link>
       ) : (
-        <Text size="xl" tabular wrap="nowrap">
-          {value}
-        </Text>
+        valueContent
       )}
     </Stack>
   );

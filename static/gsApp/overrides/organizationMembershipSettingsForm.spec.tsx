@@ -28,10 +28,6 @@ describe('OrganizationMembershipSettings', () => {
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/',
       body: [{user: UserFixture()}],
     });
   });

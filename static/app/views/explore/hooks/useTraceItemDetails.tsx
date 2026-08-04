@@ -1,4 +1,4 @@
-import {useCallback, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {useHover} from '@react-aria/interactions';
 import {captureException} from '@sentry/react';
 import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
@@ -288,20 +288,39 @@ export function usePrefetchTraceItemDetailsOnHover({
       timestamp,
     });
 
+  const ownHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const clearSharedHoverTimeout = useCallback(() => {
+    if (sharedHoverTimeoutRef.current) {
+      clearTimeout(sharedHoverTimeoutRef.current);
+      sharedHoverTimeoutRef.current = null;
+    }
+    ownHoverTimeoutRef.current = null;
+  }, [sharedHoverTimeoutRef]);
+
   const {hoverProps} = useHover({
     onHoverStart: () => {
-      if (sharedHoverTimeoutRef.current) {
-        clearTimeout(sharedHoverTimeoutRef.current);
-      }
-      sharedHoverTimeoutRef.current = setTimeout(prefetch, timeout);
+      clearSharedHoverTimeout();
+      const timeoutId = setTimeout(prefetch, timeout);
+      sharedHoverTimeoutRef.current = timeoutId;
+      ownHoverTimeoutRef.current = timeoutId;
     },
-    onHoverEnd: () => {
-      if (sharedHoverTimeoutRef.current) {
-        clearTimeout(sharedHoverTimeoutRef.current);
-      }
-    },
+    onHoverEnd: clearSharedHoverTimeout,
     isDisabled: hoverPrefetchDisabled,
   });
+
+  useEffect(
+    () => () => {
+      if (ownHoverTimeoutRef.current === null) {
+        return;
+      }
+      clearTimeout(ownHoverTimeoutRef.current);
+      if (sharedHoverTimeoutRef.current === ownHoverTimeoutRef.current) {
+        sharedHoverTimeoutRef.current = null;
+      }
+    },
+    [sharedHoverTimeoutRef]
+  );
 
   return {
     hoverProps,
