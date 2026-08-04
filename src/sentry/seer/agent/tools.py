@@ -31,6 +31,7 @@ from sentry.issues.formatting.sections import (
     EVENT_SECTIONS,
     breadcrumbs_section,
     format_issue,
+    user_section,
 )
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
@@ -2106,11 +2107,11 @@ def get_event_details(
     formatted: str | None = None
     if format is not None and features.has(FORMATTER_FEATURE, organization):
         limits = LIMITS_LOW if format_limits == "low" else LIMITS_DEFAULT
-        sections = (
-            EVENT_SECTIONS
-            if include_breadcrumbs
-            else [section for section in EVENT_SECTIONS if section is not breadcrumbs_section]
-        )
+        # Seer's own formatter never rendered user identifiers into its prompts; keep that
+        # true here so switching to the shared formatter doesn't send email/IP to the model.
+        sections = [section for section in EVENT_SECTIONS if section is not user_section]
+        if not include_breadcrumbs:
+            sections = [section for section in sections if section is not breadcrumbs_section]
         # `format` arrives as an unvalidated RPC argument; reject unknown values here so they
         # surface as a 400 rather than escaping get_formatter as a ValueError -> 500
         if format not in get_args(Format):
