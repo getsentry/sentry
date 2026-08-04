@@ -53,6 +53,15 @@ jobs:
       - name: capture database schema before
         run: docker exec postgres-postgres-1 bash -c 'pg_dumpall -U postgres -s --restrict-key=driftcheck' > schema-before
 
+      # Must run before "squash migrations": squash deletes the sequential
+      # migration files, which is the only place the pending-deletion registry
+      # is populated. Safe-deleted columns/tables (SafeRemoveField/SafeDeleteModel
+      # with MOVE_TO_PENDING) are kept in the real DB but absent from the
+      # regenerated model-state schema, so we capture the DDL that reconstitutes
+      # them and replay it after the squashed apply below.
+      - name: capture pending-deletion DDL
+        run: sentry django pending_deletion_ddl dump --out pending-deletions.json
+
       - name: clear db
         run: make drop-db create-db
 
@@ -63,6 +72,13 @@ jobs:
         env:
           SENTRY_NO_CREATE_DEFAULT_PROJECT: 1
         run: make drop-db apply-migrations
+
+      - name: replay pending-deletion DDL
+        run: sentry django pending_deletion_ddl apply pending-deletions.json
+
+      - name: print pending-deletion DDL on failure
+        if: failure()
+        run: cat pending-deletions.json || true
 
       - name: capture database schema after
         run: docker exec postgres-postgres-1 bash -c 'pg_dumpall -U postgres -s --restrict-key=driftcheck' > schema-after
