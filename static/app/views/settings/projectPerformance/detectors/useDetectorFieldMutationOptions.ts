@@ -25,13 +25,15 @@ export const getDetectorSettingsMutationKey = (orgSlug: string, projectSlug: str
 export function useDetectorFieldMutationOptions(projectSlug: string) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
+  const mutationKey = getDetectorSettingsMutationKey(organization.slug, projectSlug);
   const queryOptions = getPerformanceIssueSettingsQueryOptions(
     organization.slug,
     projectSlug
   );
 
   return mutationOptions({
-    mutationKey: getDetectorSettingsMutationKey(organization.slug, projectSlug),
+    mutationKey,
+    scope: {id: mutationKey.join(':')},
     mutationFn: (data: ProjectPerformanceSettings) =>
       fetchMutation<ProjectPerformanceSettings>({
         url: `/projects/${organization.slug}/${projectSlug}/performance-issues/configure/`,
@@ -51,7 +53,13 @@ export function useDetectorFieldMutationOptions(projectSlug: string) {
 
       return {previousData};
     },
-    onSuccess: (_data, variables) => {
+    onSuccess: (data, variables) => {
+      queryClient.setQueryData(queryOptions.queryKey, previous =>
+        previous
+          ? {json: {...previous.json, ...data}, headers: previous.headers}
+          : previous
+      );
+
       const [thresholdKey, thresholdValue] = Object.entries(variables)[0] ?? [];
       if (thresholdKey && typeof thresholdValue === 'number') {
         trackAnalytics('performance_views.project_issue_detection_threshold_changed', {

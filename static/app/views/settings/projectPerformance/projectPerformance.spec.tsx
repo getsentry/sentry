@@ -879,6 +879,69 @@ describe('projectPerformance', () => {
     });
   });
 
+  it('serializes detector updates that share the settings resource', async () => {
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      method: 'GET',
+      body: ProjectFixture({access: ['project:admin']}),
+      statusCode: 200,
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/performance-issues/configure/',
+      method: 'GET',
+      body: {
+        n_plus_one_db_queries_detection_enabled: true,
+        slow_db_queries_detection_enabled: true,
+      },
+      statusCode: 200,
+    });
+    let resolveFirstUpdate!: (value: Record<string, boolean>) => void;
+    let updateCount = 0;
+    const mockPut = MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/performance-issues/configure/',
+      method: 'PUT',
+      body: (_url: string, options: {data: Record<string, boolean>}) => {
+        updateCount += 1;
+        if (updateCount === 1) {
+          return new Promise(resolve => {
+            resolveFirstUpdate = resolve;
+          });
+        }
+        return options.data;
+      },
+    });
+
+    render(<ProjectPerformance />, {
+      organization: org,
+      initialRouterConfig,
+    });
+    await screen.findByText('Performance Issues - Detector Threshold Settings');
+    await expandAllDetectorSettings();
+
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: 'N+1 DB Queries Detection'})
+    );
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: 'Slow DB Queries Detection'})
+    );
+
+    expect(mockPut).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveFirstUpdate({n_plus_one_db_queries_detection_enabled: false});
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(mockPut).toHaveBeenCalledTimes(2);
+    });
+    expect(mockPut).toHaveBeenNthCalledWith(
+      2,
+      '/projects/org-slug/project-slug/performance-issues/configure/',
+      expect.objectContaining({data: {slow_db_queries_detection_enabled: false}})
+    );
+  });
+
   it.each(manageDetectorData)(
     'does not allow non-admins to manage $label',
     async ({label}) => {
