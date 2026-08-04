@@ -1,7 +1,11 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
+import {NAV_LINK_LABELS} from 'sentry/views/seerExplorer/components/chat/toolUse';
 import type {Block} from 'sentry/views/seerExplorer/types';
+import {buildToolLinkUrl} from 'sentry/views/seerExplorer/utils';
 
 function createBlock(overrides?: Partial<Block>): Block {
   return {
@@ -447,5 +451,113 @@ describe('ToolUseBlock', () => {
     expect(
       screen.queryByRole('button', {name: 'I like this response'})
     ).not.toBeInTheDocument();
+  });
+
+  describe('bus link labels', () => {
+    it('labels a kind seer emits rather than showing the raw function name', () => {
+      // Regression: get_log_attributes and get_metric_attributes were emitted by seer but absent
+      // from NAV_LINK_LABELS, so they rendered with their raw function names as the link text.
+      const block = createBlock({
+        message: {
+          role: 'tool_use',
+          content: null,
+          tool_calls: [{id: 'call-1', function: 'sentry_api_execute', args: '{}'}],
+        },
+        tool_links: [null],
+        tool_results: [
+          {
+            tool_call_id: 'call-1',
+            tool_call_function: 'sentry_api_execute',
+            content: 'ran',
+            structuredContent: {
+              links: [
+                {kind: 'get_log_attributes', params: {trace_id: 'abc'}},
+                {kind: 'get_metric_attributes', params: {trace_id: 'abc'}},
+              ],
+            },
+          },
+        ],
+      });
+
+      render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+      expect(screen.getByText('View logs')).toBeInTheDocument();
+      expect(screen.getByText('View metrics')).toBeInTheDocument();
+      expect(screen.queryByText('get_log_attributes')).not.toBeInTheDocument();
+      expect(screen.queryByText('get_metric_attributes')).not.toBeInTheDocument();
+    });
+
+    it('renders no link for a kind the client does not support', () => {
+      // seer may emit a kind ahead of client support. Such a kind has no URL builder, so it is
+      // dropped by the url filter; the label filter alongside it is belt-and-braces for the case
+      // where a URL builder is added without a label, which the coverage test below is what
+      // actually enforces.
+      const block = createBlock({
+        message: {
+          role: 'tool_use',
+          content: null,
+          tool_calls: [{id: 'call-1', function: 'sentry_api_execute', args: '{}'}],
+        },
+        tool_links: [null],
+        tool_results: [
+          {
+            tool_call_id: 'call-1',
+            tool_call_function: 'sentry_api_execute',
+            content: 'ran',
+            structuredContent: {
+              links: [
+                {kind: 'some_future_tool', params: {issue_id: '123'}},
+                {kind: 'get_issue_details', params: {issue_id: '123'}},
+              ],
+            },
+          },
+        ],
+      });
+
+      render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+      expect(screen.queryByText('some_future_tool')).not.toBeInTheDocument();
+      // The labeled sibling still renders.
+      expect(screen.getByText('View issue')).toBeInTheDocument();
+      expect(screen.getAllByRole('link')).toHaveLength(1);
+    });
+  });
+});
+
+// Guards the invariant that NAV_LINK_LABELS and buildToolLinkUrl cover the same set of kinds. Adding
+// a URL builder without a label would make the link silently unrenderable; adding a label without a
+// builder would make it dead. Extend PARAMS when buildToolLinkUrl gains a case.
+describe('navigation link coverage', () => {
+  const PARAMS: Record<string, Record<string, any>> = {
+    get_issue_details: {issue_id: '123'},
+    get_trace_waterfall: {trace_id: 'abc'},
+    get_replay_details: {replay_id: 'replay-1'},
+    get_profile_flamegraph: {profile_id: 'prof-1', project_id: '1'},
+    get_event_details: {issue_id: '123', event_id: 'event-1'},
+    get_log_attributes: {trace_id: 'abc'},
+    get_metric_attributes: {trace_id: 'abc'},
+    telemetry_live_search: {query: 'is:unresolved'},
+  };
+
+  it('labels exactly the kinds that can build a URL', () => {
+    expect(Object.keys(NAV_LINK_LABELS).sort()).toEqual(Object.keys(PARAMS).sort());
+  });
+
+  it('resolves a URL for every labeled kind', () => {
+    const organization = OrganizationFixture();
+    const projects = [{id: '1', slug: 'project-slug'}];
+
+    for (const kind of Object.keys(NAV_LINK_LABELS)) {
+      expect(
+        buildToolLinkUrl({kind, params: PARAMS[kind]!}, organization, projects)
+      ).not.toBeNull();
+    }
+  });
+
+  it('uses human-readable labels, never a raw identifier', () => {
+    for (const [kind, label] of Object.entries(NAV_LINK_LABELS)) {
+      expect(label).not.toBe(kind);
+      expect(label).not.toContain('_');
+    }
   });
 });
