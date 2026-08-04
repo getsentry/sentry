@@ -23,6 +23,17 @@ class TestSentryCommand:
         assert isinstance(sentry_command(body), SentryReviewCommand)
 
     @pytest.mark.parametrize(
+        "body",
+        [
+            "@sentry reviewed this",
+            "@sentry  review",
+            "@sentry\nreviewed",
+        ],
+    )
+    def test_review_command_not_matched(self, body: str) -> None:
+        assert not isinstance(sentry_command(body), SentryReviewCommand)
+
+    @pytest.mark.parametrize(
         "body, expected_feedback",
         [
             ("@sentry fix the typo", "fix the typo"),
@@ -31,6 +42,10 @@ class TestSentryCommand:
             ("hey @sentry do the thing", "hey do the thing"),
             ("@sentry a @sentry b", "a b"),
             ("@Sentry fix this", "fix this"),
+            ("@sentry reviewed this", "reviewed this"),
+            ("@sentry  review", "review"),
+            ("@sentry fix docs@sentry.io", "fix docs@sentry.io"),
+            ("@sentry fix @sentry-cursor-agent", "fix @sentry-cursor-agent"),
         ],
     )
     def test_iterate_command(self, body: str, expected_feedback: str) -> None:
@@ -47,6 +62,11 @@ class TestSentryCommand:
             "review",
             "@sentry",
             "@sentry    ",
+            "@sentry-cursor-agent please help",
+            "@sentry-bot do something",
+            "email@sentry.io",
+            "@sentry_bot",
+            "check@sentrycode",
         ],
     )
     def test_returns_none(self, body: str | None) -> None:

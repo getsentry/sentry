@@ -1,14 +1,19 @@
 import jwt
 from django.test import override_settings
 
+from sentry.hybridcloud.models.outbox import CellOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.organizationmember import OrganizationMember
 from sentry.seer.agent.client_utils import (
     _normalize_wildcard_operators,
+    _sanitize_json_strings,
     collect_user_org_context,
+    enqueue_seer_run,
     get_proxy_headers,
     has_seer_agent_access_with_detail,
     snapshot_to_markdown,
 )
+from sentry.seer.models.run import SeerRunType
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.requests import make_request
@@ -462,3 +467,48 @@ class TestGetProxyHeaders(TestCase):
         assert "iat" in decoded
         assert "exp" in decoded
         assert decoded["iss"] == "sentry"
+
+
+class SanitizeJsonStringsTest(TestCase):
+    def test_strips_nul_from_nested_structures(self) -> None:
+        value = {
+            "title": "The input string '\x00' was not in a correct format.",
+            "nested": {"culprit": "foo\x00bar"},
+            "items": [{"name": "a\x00"}, "b\x00c", 3, None, True],
+        }
+        assert _sanitize_json_strings(value) == {
+            "title": "The input string '' was not in a correct format.",
+            "nested": {"culprit": "foobar"},
+            "items": [{"name": "a"}, "bc", 3, None, True],
+        }
+
+    def test_strips_lone_surrogates(self) -> None:
+        assert _sanitize_json_strings({"title": "bad\ud83dvalue"}) == {"title": "badvalue"}
+
+    def test_leaves_clean_values_untouched(self) -> None:
+        value = {"title": "plain", "count": 5, "flags": [True, None]}
+        assert _sanitize_json_strings(value) == value
+
+
+class EnqueueSeerRunSanitizeTest(TestCase):
+    def test_nul_in_body_does_not_break_outbox_insert(self) -> None:
+        run = enqueue_seer_run(
+            organization=self.organization,
+            run_type=SeerRunType.FEATURE_RUN,
+            body={
+                "feature_id": "night_shift",
+                "payload": {
+                    "candidates": [
+                        {"title": "System.FormatException: The input string '\x00' was..."}
+                    ]
+                },
+            },
+            viewer_context=None,
+            flush=False,
+        )
+        outbox = CellOutbox.objects.get(
+            category=OutboxCategory.SEER_RUN_CREATE, object_identifier=run.id
+        )
+        assert outbox.payload is not None
+        title = outbox.payload["body"]["payload"]["candidates"][0]["title"]
+        assert title == "System.FormatException: The input string '' was..."

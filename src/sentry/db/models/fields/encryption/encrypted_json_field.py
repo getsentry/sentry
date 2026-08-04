@@ -1,10 +1,10 @@
 import logging
 from typing import Any
 
-import sentry_sdk
 from django.db.models import JSONField
 
 from sentry.utils import json
+from sentry.utils.tracing import trace
 
 from ._base import EncryptedField
 
@@ -33,7 +33,7 @@ class EncryptedJSONField(EncryptedField, JSONField):
 
     _encrypted_field_key = "sentry_encrypted_field_value"
 
-    @sentry_sdk.trace
+    @trace
     def get_prep_value(self, value: Any) -> dict | None:
         """
         Prepare value for database storage.
@@ -57,7 +57,7 @@ class EncryptedJSONField(EncryptedField, JSONField):
         # This will be stored as jsonb, not as a string
         return {self._encrypted_field_key: encrypted_value}
 
-    @sentry_sdk.trace
+    @trace
     def to_python(self, value: Any) -> Any:
         """
         Convert database value to Python object.

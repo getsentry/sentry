@@ -160,7 +160,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
   return (
     <TimezoneProvider timezone={timezoneOverride}>
       <DetailLayout>
-        <DetectorDetailsHeader detector={detector} project={project} />
+        <DetectorDetailsHeader detector={detector} />
         <DetailLayout.Body>
           <DetailLayout.Main>
             <Flex gap="sm" justify="between" align="center">

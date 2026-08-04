@@ -15,6 +15,7 @@ from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMe
 
 from sentry.constants import DataCategory
 from sentry.sentry_metrics.indexer.strings import SHARED_TAG_STRINGS, SPAN_METRICS_NAMES
+from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
@@ -111,6 +112,10 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
     ) -> None:
         if quantity < 1:
             return
+
+        # This metric is here to verify that this consumer is no longer producing outcomes,
+        # as this work has now migrated to relay.
+        metrics.incr("relay.billing_metrics_consumer.accepted_outcome")
 
         # track_outcome does not guarantee to deliver the outcome, making this
         # an at-most-once delivery.

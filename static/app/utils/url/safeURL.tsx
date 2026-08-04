@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 /**
  * Does not throw error on invalid input and returns the parsed URL object
  * if the input is a valid URL, otherwise returns undefined.

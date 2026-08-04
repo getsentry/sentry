@@ -1,7 +1,8 @@
+import fetchMock from 'jest-fetch-mock';
+
 import {setWindowLocation} from 'sentry-test/utils';
 
-import type {Client} from 'sentry/api';
-import {Request} from 'sentry/api';
+import {Client, Request} from 'sentry/api';
 import {PROJECT_MOVED} from 'sentry/constants/apiErrorCodes';
 import type {ResponseMeta} from 'sentry/types/api';
 
@@ -13,6 +14,10 @@ describe('api', () => {
   beforeEach(() => {
     api = new MockApiClient();
     setWindowLocation('https://sentry.io/');
+  });
+
+  afterEach(() => {
+    fetchMock.resetMocks();
   });
 
   describe('Client', () => {
@@ -35,6 +40,15 @@ describe('api', () => {
 
         expect(req1.aborter?.abort).toHaveBeenCalledTimes(1);
         expect(req2.aborter?.abort).toHaveBeenCalledTimes(1);
+      });
+
+      it('aborts an in-flight fetch request', async () => {
+        fetchMock.mockResponse(() => '');
+        const request = new Client().request('/test');
+
+        request.cancel();
+
+        await expect(request.requestPromise).rejects.toHaveProperty('name', 'AbortError');
       });
     });
   });

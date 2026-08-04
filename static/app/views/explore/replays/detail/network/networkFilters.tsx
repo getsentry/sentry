@@ -9,7 +9,7 @@ import type {useNetworkFilters} from 'sentry/views/explore/replays/detail/networ
 
 type Props = {
   networkFrames: undefined | unknown[];
-} & ReturnType<typeof useNetworkFilters>;
+} & Omit<ReturnType<typeof useNetworkFilters>, 'items'>;
 
 export function NetworkFilters({
   getMethodTypes,

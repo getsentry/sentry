@@ -104,7 +104,6 @@ export function SpanDescription({
         op={span.op}
         category={span.sentry_tags?.category}
         group={groupHash}
-        project_id={node.event?.projectID}
         organization={organization}
       />
       {hasExploreEnabled && (

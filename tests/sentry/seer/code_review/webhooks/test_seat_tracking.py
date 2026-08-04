@@ -64,10 +64,10 @@ class TrackGitlabContributorSeatProcessorTest(GitLabTestCase):
         kwargs = mock_track.call_args.kwargs
         assert kwargs["organization"].id == self.organization.id
         assert kwargs["repo"].id == self.repo.id
-        assert kwargs["integration_id"] == self.integration.id
+        assert kwargs["integration"].id == self.integration.id
+        assert kwargs["integration"].provider == "gitlab"
         assert kwargs["user_id"] == 51
         assert kwargs["user_username"] == "root"
-        assert kwargs["provider"] == "gitlab"
 
     @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
     def test_no_call_without_cohort_flag(self, mock_track: Any) -> None:
@@ -119,7 +119,7 @@ class TrackGitlabContributorSeatProcessorTest(GitLabTestCase):
         # The MR author (object_attributes.author_id) and the webhook actor
         # (event.user) diverge — e.g. an MR opened via the API on behalf of
         # another author. Seeding would store the actor's username as the alias
-        # for the author's external_identifier, so we skip instead.
+        # for the author's external_identifier, so we skip silently instead.
         event = _make_event()
         event["user"]["id"] = event["object_attributes"]["author_id"] + 1
         self._call(event=event)
@@ -218,10 +218,10 @@ class TrackGitlabContributorActionProcessorTest(GitLabTestCase):
         kwargs = mock_record.call_args.kwargs
         assert kwargs["organization"].id == self.organization.id
         assert kwargs["repo"].id == self.repo.id
-        assert kwargs["integration_id"] == self.integration.id
+        assert kwargs["integration"].id == self.integration.id
+        assert kwargs["integration"].provider == "gitlab"
         assert kwargs["user_id"] == 51
         assert kwargs["user_username"] == "root"
-        assert kwargs["provider"] == "gitlab"
         assert kwargs["pr_number"] == 1
         assert kwargs["is_opened"] is True
         assert kwargs["tags"] == {"is_private": True}
@@ -288,7 +288,7 @@ class TrackGitlabContributorActionProcessorTest(GitLabTestCase):
     @patch("sentry.seer.code_review.webhooks.seat_tracking.record_contributor_action")
     def test_no_call_when_actor_is_not_author(self, mock_record: Any) -> None:
         # The row is keyed by the author id but seeded with the actor's username
-        # as the alias, so skip seeding when the actor is not the author.
+        # as the alias, so skip seeding silently when the actor is not the author.
         event = _make_event()
         event["user"]["id"] = event["object_attributes"]["author_id"] + 1
         track_gitlab_contributor_action_processor(

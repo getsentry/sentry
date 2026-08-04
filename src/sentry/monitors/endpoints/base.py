@@ -67,6 +67,7 @@ class MonitorEndpoint(Endpoint):
         self.check_object_permissions(request, project)
 
         Scope.get_isolation_scope().set_tag("project", project.id)
+        Scope.get_isolation_scope().set_attribute("project", project.id)
 
         bind_organization_context(project.organization)
 

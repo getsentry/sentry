@@ -5,7 +5,6 @@ from collections.abc import MutableMapping
 from typing import TYPE_CHECKING, Any
 
 import orjson
-import sentry_sdk
 from rest_framework import serializers
 from sentry_relay.processing import (
     convert_datascrubbing_config,
@@ -16,6 +15,7 @@ from sentry_relay.processing import (
 
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
+from sentry.utils.tracing import trace
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
@@ -88,7 +88,7 @@ def get_all_pii_configs(project):
     yield convert_datascrubbing_config(settings, json_dumps=orjson.dumps, json_loads=orjson.loads)
 
 
-@sentry_sdk.tracing.trace
+@trace
 def scrub_data(project: Project, event: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
     for config in get_all_pii_configs(project):
         metrics.distribution(

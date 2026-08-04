@@ -30,6 +30,11 @@ import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 const BYE_URL = '/';
 const leaveRedirect = () => (window.location.href = BYE_URL);
 
+const HookedCustomConfirmAccountClose = OverrideOrDefault({
+  overrideName: 'component:confirm-account-close',
+  defaultComponent: props => <ConfirmAccountClose {...props} />,
+});
+
 function GoodbyeModalContent({Header, Body, Footer}: ModalRenderProps) {
   return (
     <div>
@@ -133,11 +138,6 @@ function AccountClose() {
   const handleRemoveAccount = () => {
     removeAccount(Array.from(orgsToRemove));
   };
-
-  const HookedCustomConfirmAccountClose = OverrideOrDefault({
-    overrideName: 'component:confirm-account-close',
-    defaultComponent: props => <ConfirmAccountClose {...props} />,
-  });
 
   if (isLoading) {
     return <LoadingIndicator />;

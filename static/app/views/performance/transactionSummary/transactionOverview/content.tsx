@@ -42,11 +42,8 @@ import {RelatedIssues} from './relatedIssues';
 import {StatusBreakdown} from './statusBreakdown';
 
 type Props = {
-  error: unknown;
   eventView: EventView;
-  isLoading: boolean;
   location: Location;
-  onChangeFilter: (newFilter: SpanOperationBreakdownFilter | undefined) => void;
   organization: Organization;
   projectId: string;
   projects: Project[];

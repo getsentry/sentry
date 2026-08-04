@@ -7,7 +7,7 @@ import type {Location} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
+import {Stack, Grid, type GridProps} from '@sentry/scraps/layout';
 
 import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
@@ -79,7 +79,7 @@ export function SaveAsDropdown({
             <StyledOverlay arrowProps={arrowProps} animated>
               <FocusScope contain restoreFocus autoFocus>
                 <form onSubmit={modifiedHandleCreateQuery}>
-                  <Flex gap="md" direction="column">
+                  <Stack gap="md">
                     <Input
                       type="text"
                       name="query_name"
@@ -96,7 +96,7 @@ export function SaveAsDropdown({
                     >
                       {t('Save for Organization')}
                     </SaveAsButton>
-                  </Flex>
+                  </Stack>
                 </form>
               </FocusScope>
             </StyledOverlay>

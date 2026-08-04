@@ -680,11 +680,16 @@ def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, s
     from sentry.models.commit import Commit
     from sentry.models.files.file import File
     from sentry.models.grouprulestatus import GroupRuleStatus
-    from sentry.models.pullrequest import PullRequest, PullRequestActivity
+    from sentry.models.pullrequest import (
+        PullRequest,
+        PullRequestActivity,
+        PullRequestActivityLog,
+    )
     from sentry.models.release import Release
     from sentry.monitors.models import MonitorCheckIn
     from sentry.preprod.models import PreprodArtifact
     from sentry.replays.models import ReplayRecordingSegment
+    from sentry.seer.models.run import SeerRun
     from sentry.uptime.models import UptimeResponseCapture
 
     # Deletions that use the `deletions` code path (which handles their child relations)
@@ -698,10 +703,15 @@ def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, s
         (PreprodArtifact, "date_added", "date_added"),
         (PullRequest, "date_added", "date_added"),
         (PullRequestActivity, "date_added", "date_added"),
+        # Keyed on ``date_updated``: the doc is rewritten in place on every webhook,
+        # so a PR still receiving events must not be reaped on its (fixed) creation
+        # time — only once it has gone quiet for the retention window.
+        (PullRequestActivityLog, "date_updated", "date_updated"),
         (Release, "date_added", "date_added"),
         (File, "timestamp", "id"),
         (Commit, "date_added", "id"),
         (UptimeResponseCapture, "date_added", "date_added"),
+        (SeerRun, "last_triggered_at", "last_triggered_at"),
     ]
 
 
@@ -723,12 +733,14 @@ def remove_cross_project_models(
 ) -> list[tuple[type[BaseModel], str, str]]:
     from sentry.models.artifactbundle import ArtifactBundle
     from sentry.models.files.file import File
+    from sentry.seer.models.run import SeerRun
     from sentry.uptime.models import UptimeResponseCapture
 
     # These models span across projects, so let's skip them
     deletes.remove((ArtifactBundle, "date_added", "date_added"))
     deletes.remove((File, "timestamp", "id"))
     deletes.remove((UptimeResponseCapture, "date_added", "date_added"))
+    deletes.remove((SeerRun, "last_triggered_at", "last_triggered_at"))
     return deletes
 
 

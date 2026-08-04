@@ -1,12 +1,14 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {renderHook, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
 import * as explorerAutofixHooks from 'sentry/components/events/autofix/useExplorerAutofix';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {EntryType} from 'sentry/types/event';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import * as copyToClipboardModule from 'sentry/utils/useCopyToClipboard';
@@ -99,7 +101,67 @@ describe('useCopyIssueDetails', () => {
 
       expect(result).toContain(`# ${group.title}`);
       expect(result).toContain(`**Issue ID:** ${group.id}`);
+      expect(result).toContain(`**Short ID:** ${group.shortId}`);
       expect(result).toContain(`**Project:** ${group.project?.slug}`);
+    });
+
+    it("renders the date in the user's timezone and clock preference", () => {
+      const user = UserFixture();
+      user.options.timezone = 'America/New_York';
+      user.options.clock24Hours = false;
+      ConfigStore.set('user', user);
+
+      try {
+        const result = issueAndEventToMarkdown({group, event, organization});
+
+        // dateCreated is 2023-01-01T00:00:00Z, which is EST (UTC-5) in New York,
+        // and the timezone abbreviation is appended so it's unambiguous.
+        expect(result).toContain('**Date:** Dec 31, 2022 7:00:00 PM EST');
+      } finally {
+        ConfigStore.set('user', UserFixture());
+      }
+    });
+
+    it("renders the date with the user's 24-hour clock preference", () => {
+      const user = UserFixture();
+      user.options.timezone = 'America/New_York';
+      user.options.clock24Hours = true;
+      ConfigStore.set('user', user);
+
+      try {
+        const result = issueAndEventToMarkdown({group, event, organization});
+
+        expect(result).toContain('**Date:** Dec 31, 2022 19:00:00 EST');
+      } finally {
+        ConfigStore.set('user', UserFixture());
+      }
+    });
+
+    it('falls back to dateReceived when dateCreated is absent', () => {
+      const user = UserFixture();
+      user.options.timezone = 'America/New_York';
+      user.options.clock24Hours = false;
+      ConfigStore.set('user', user);
+
+      // Transaction/performance events (e.g. N+1 DB) carry dateReceived but not
+      // dateCreated.
+      const performanceEvent = EventFixture({
+        id: '123456',
+        dateCreated: undefined,
+        dateReceived: '2023-01-01T00:00:00Z',
+      });
+
+      try {
+        const result = issueAndEventToMarkdown({
+          group: performanceGroup,
+          event: performanceEvent,
+          organization,
+        });
+
+        expect(result).toContain('**Date:** Dec 31, 2022 7:00:00 PM EST');
+      } finally {
+        ConfigStore.set('user', UserFixture());
+      }
     });
 
     it('includes autofix data when provided', () => {

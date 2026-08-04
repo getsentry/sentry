@@ -4,6 +4,8 @@ from typing import Any
 
 from rest_framework import serializers
 
+from sentry.preprod.build_distribution_utils import parse_build_number
+
 
 class PreprodLatestInstallableBuildValidator(serializers.Serializer[Any]):
     """Validator for the public latest installable build endpoint (camelCase params)."""
@@ -18,9 +20,15 @@ class PreprodLatestInstallableBuildValidator(serializers.Serializer[Any]):
         required=False,
         help_text="Current build version. When provided, enables check-for-updates mode.",
     )
-    buildNumber = serializers.IntegerField(
+    buildNumber = serializers.CharField(
         required=False,
-        help_text="Current build number. Either this or mainBinaryIdentifier must be provided when buildVersion is set.",
+        help_text=(
+            "Current build number. Accepts a plain integer (e.g. 42) or a version "
+            "string of two to three period-separated integers (e.g. 1.2.3), each up "
+            "to 6 digits — the format used by build identifiers such as Apple's "
+            "CFBundleVersion. Either this or mainBinaryIdentifier must be provided "
+            "when buildVersion is set."
+        ),
     )
     mainBinaryIdentifier = serializers.CharField(
         required=False,
@@ -35,6 +43,17 @@ class PreprodLatestInstallableBuildValidator(serializers.Serializer[Any]):
         if value:
             return value.lower()
         return value
+
+    def validate_buildNumber(self, value: str | None) -> int | None:
+        if value is None or value == "":
+            return None
+        parsed = parse_build_number(value)
+        if parsed is None:
+            raise serializers.ValidationError(
+                "buildNumber must be an integer or two to three period-separated "
+                "integers of up to 6 digits each (e.g. 42 or 1.2.3)."
+            )
+        return parsed
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         build_version = data.get("buildVersion")

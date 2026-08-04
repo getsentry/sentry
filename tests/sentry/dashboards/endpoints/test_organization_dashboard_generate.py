@@ -10,7 +10,6 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 
 
-@with_feature("organizations:dashboards-ai-generate")
 @with_feature("organizations:gen-ai-features")
 class OrganizationDashboardGenerateEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-dashboards-generate"
@@ -54,12 +53,6 @@ class OrganizationDashboardGenerateEndpointTest(APITestCase):
         call_kwargs = mock_client.start_run.call_args[1]
         assert "Show me error rates by project" in call_kwargs["prompt"]
         assert call_kwargs["artifact_key"] == "dashboard"
-
-    @with_feature({"organizations:dashboards-ai-generate": False})
-    def test_post_without_feature_flag_returns_403(self) -> None:
-        data = {"prompt": "Show me error rates"}
-        response = self.client.post(self.url, data, format="json")
-        assert response.status_code == 403
 
     @patch(
         "sentry.dashboards.endpoints.organization_dashboard_generate.has_seer_access_with_detail"

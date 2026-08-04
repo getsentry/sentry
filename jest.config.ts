@@ -262,6 +262,8 @@ const config: Config.InitialOptions = {
   moduleNameMapper: {
     '\\.(css|less|png|gif|jpg|woff|mp4)$':
       '<rootDir>/tests/js/sentry-test/mocks/importStyleMock.js',
+    '^sentry/stories/storyManifest\\.generated$':
+      '<rootDir>/tests/js/sentry-test/mocks/storyManifestMock.ts',
     '^sentry/(.*)': '<rootDir>/static/app/$1',
     '^@sentry/scraps/(.*)': '<rootDir>/static/app/components/core/$1',
     '^getsentry/(.*)': '<rootDir>/static/gsApp/$1',
@@ -274,7 +276,7 @@ const config: Config.InitialOptions = {
 
     // Disable echarts in test, since they're very slow and take time to
     // transform
-    '^echarts/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
+    '^echarts(?:/.*)?$': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
     '^zrender/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
 
     // @sentry/sqlish is ESM-only with `exports` that only define `import`
@@ -288,7 +290,7 @@ const config: Config.InitialOptions = {
   },
   passWithNoTests: JEST_TESTS !== undefined,
   setupFiles: [
-    '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',
+    '<rootDir>/static/app/utils/silenceReactUnsafeWarnings.ts',
     'jest-canvas-mock',
   ],
   setupFilesAfterEnv: [

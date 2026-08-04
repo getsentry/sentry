@@ -3,6 +3,7 @@ from typing import TypedDict
 
 from django.db.models.query import QuerySet
 
+from sentry.integrations.types import MONITORING_PROVIDERS
 from sentry.models.promptsactivity import PromptsActivity
 
 
@@ -22,6 +23,7 @@ DEFAULT_PROMPTS: dict[str, _PromptConfig] = {
     "metric_alert_ignore_archived_issues": {"required_fields": ["organization_id", "project_id"]},
     "releases": {"required_fields": ["organization_id", "project_id"]},
     "seer_autofix_setup_acknowledged": {"required_fields": ["organization_id"]},
+    "seer_autofix_sw_notification": {"required_fields": ["organization_id"]},
     "stacktrace_link": {"required_fields": ["organization_id", "project_id"]},
     "user_snooze_deprecation": {"required_fields": ["organization_id", "project_id"]},
     "workflow_engine_onboarding_banner": {"required_fields": ["organization_id"]},
@@ -58,7 +60,18 @@ class PromptsConfig:
         return self.prompts[name]["required_fields"]
 
 
+def seer_monitoring_provider_dont_ask_feature(provider_type: str) -> str:
+    return f"seer_dont_ask_{provider_type}"
+
+
 prompt_config = PromptsConfig(DEFAULT_PROMPTS)
+
+# Dynamically register "don't ask again" dismissals for connecting monitoring providers to Seer.
+for provider_type in MONITORING_PROVIDERS:
+    prompt_config.add(
+        seer_monitoring_provider_dont_ask_feature(provider_type),
+        {"required_fields": ["organization_id"]},
+    )
 
 
 def get_prompt_activities_for_user(

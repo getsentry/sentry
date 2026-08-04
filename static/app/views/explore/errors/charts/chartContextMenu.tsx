@@ -17,9 +17,7 @@ export function ChartContextMenu({visible, setVisible}: ChartContextMenuProps) {
   const items: MenuItemProps[] = useMemo(() => {
     const menuItems = [];
 
-    const newAlertLabel = organization.features.includes('workflow-engine-ui')
-      ? t('Create a Monitor')
-      : t('Create an Alert');
+    const newAlertLabel = t('Create a Monitor');
 
     menuItems.push({
       key: 'create-alert',

@@ -48,7 +48,7 @@ export function useActivateNavigationGroupOnHover({
     activeTo?: string
   ): Omit<Partial<LinkProps>, 'to'> {
     const isActive = isPrimaryNavigationLinkActive(
-      normalizeUrl(activeTo ?? to, location),
+      normalizeUrl(activeTo ?? to),
       location.pathname
     );
 

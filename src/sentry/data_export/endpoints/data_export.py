@@ -52,6 +52,10 @@ SUPPORTED_DATASETS = {
 
 logger = logging.getLogger(__name__)
 MAX_EXPORT_LIMIT = 10_000
+# Largest in-product (browser) export we assemble during the request so the user
+# gets an immediate download link instead of an email. Keep in sync with
+# ROW_COUNT_VALUE_SYNC_LIMIT in the frontend.
+SYNC_EXPORT_ROW_LIMIT = 1_000
 
 
 def is_api_or_agent_request(request: Request) -> bool:
@@ -97,12 +101,12 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
             base_fields = [base_fields]
 
         is_jsonl_trace_item_full_export = query_type == ExportQueryType.TRACE_ITEM_FULL_EXPORT_STR
-
-        if len(base_fields) > MAX_FIELDS:
-            detail = f"You can export up to {MAX_FIELDS} fields at a time. Please delete some and try again."
-            raise serializers.ValidationError(detail)
-        elif len(base_fields) == 0 and not is_jsonl_trace_item_full_export:
-            raise serializers.ValidationError("at least one field is required to export")
+        if not is_jsonl_trace_item_full_export:
+            if len(base_fields) > MAX_FIELDS:
+                detail = f"You can export up to {MAX_FIELDS} fields at a time. Please delete some and try again."
+                raise serializers.ValidationError(detail)
+            elif len(base_fields) == 0:
+                raise serializers.ValidationError("at least one field is required to export")
 
         if "query" not in query_info:
             if is_jsonl_trace_item_full_export:
@@ -156,6 +160,44 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
                     raise serializers.ValidationError(
                         f"sampling mode: {sampling_mode} is not supported"
                     )
+        return query_info
+
+    def _validate_explore_eqs_query(
+        self,
+        organization: Organization,
+        query_type: str,
+        query_info: dict[str, Any],
+        full_export: bool = False,
+    ) -> dict[str, Any]:
+        # Validate the RPC query params, to avoid runtime failures later.
+        query_info = self._validate_query_info(query_type, query_info)
+        query_info = self._validate_dataset(query_type, query_info)
+        try:
+            explore_processor = ExploreProcessor(
+                explore_query=query_info,
+                organization=organization,
+            )
+
+            # ignore sort clause if full export.
+            sort = query_info.get("sort", []) if not full_export else []
+            orderby = [sort] if isinstance(sort, str) else sort
+
+            explore_processor.validate_export_query(
+                rpc_dataset_common.TableQuery(
+                    query_string=query_info["query"],
+                    selected_columns=query_info["field"],
+                    orderby=orderby,
+                    offset=0,
+                    limit=1,
+                    referrer=Referrer.DATA_EXPORT_TASKS_EXPLORE,
+                    sampling_mode=explore_processor.sampling_mode,
+                    resolver=explore_processor.search_resolver,
+                    equations=query_info.get("equations", []),
+                )
+            )
+        except InvalidSearchQuery as err:
+            sentry_sdk.capture_exception(err)
+            raise serializers.ValidationError("Invalid table query.")
         return query_info
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
@@ -216,37 +258,11 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
                 raise serializers.ValidationError("Invalid search query.")
 
         elif query_type == ExportQueryType.EXPLORE_STR:
-            query_info = self._validate_query_info(query_type, query_info)
-            query_info = self._validate_dataset(query_type, query_info)
-            explore_output_mode = OutputMode.from_value(export_format)
-            try:
-                explore_processor = ExploreProcessor(
-                    explore_query=query_info,
-                    organization=organization,
-                    output_mode=explore_output_mode,
-                )
-                sort = query_info.get("sort", [])
-                orderby = [sort] if isinstance(sort, str) else sort
-
-                explore_processor.validate_export_query(
-                    rpc_dataset_common.TableQuery(
-                        query_string=query_info["query"],
-                        selected_columns=query_info["field"],
-                        orderby=orderby,
-                        offset=0,
-                        limit=1,
-                        referrer=Referrer.DATA_EXPORT_TASKS_EXPLORE,
-                        sampling_mode=explore_processor.sampling_mode,
-                        resolver=explore_processor.search_resolver,
-                        equations=query_info.get("equations", []),
-                    )
-                )
-            except InvalidSearchQuery as err:
-                sentry_sdk.capture_exception(err)
-                raise serializers.ValidationError("Invalid table query.")
+            query_info = self._validate_explore_eqs_query(organization, query_type, query_info)
         elif query_type == ExportQueryType.TRACE_ITEM_FULL_EXPORT_STR:
-            query_info = self._validate_query_info(query_type, query_info)
-            query_info = self._validate_dataset(query_type, query_info)
+            query_info = self._validate_explore_eqs_query(
+                organization, query_type, query_info, full_export=True
+            )
             explore_output_mode = OutputMode.from_value(export_format)
             if explore_output_mode != OutputMode.JSONL:
                 raise serializers.ValidationError("For full export, output mode must be JSONL.")
@@ -296,8 +312,11 @@ class DataExportEndpoint(OrganizationEndpoint):
           - Browser/session requests (`is_api_request=False`):
               - logs full export: hard cap of ``MAX_EXPORT_LIMIT`` (the
                 sync download path is sized for this).
-              - discover / spans: no enforced cap; existing behavior is
-                preserved to avoid regressing in-product exports.
+              - discover / explore (spans): no enforced cap; existing
+                behavior is preserved to avoid regressing in-product exports.
+                Exports at or below ``SYNC_EXPORT_ROW_LIMIT`` are assembled
+                during the request so the user gets an immediate download
+                link instead of an email; larger ones stay async.
         """
         limit = data.get("limit")
 
@@ -312,11 +331,22 @@ class DataExportEndpoint(OrganizationEndpoint):
             and data["query_info"].get("dataset") == "logs"
         )
 
+        # Small in-product exports run synchronously so the user gets an
+        # immediate download instead of an email, matching the logs path.
+        is_small_browser_export = (
+            not is_api_request
+            and data["query_type"] in (ExportQueryType.DISCOVER_STR, ExportQueryType.EXPLORE_STR)
+            and limit is not None
+            and limit <= SYNC_EXPORT_ROW_LIMIT
+        )
+
+        run_sync = is_logs_full_export or is_small_browser_export
+
         if is_api_request or is_logs_full_export:
             if limit is None or limit > MAX_EXPORT_LIMIT:
                 limit = MAX_EXPORT_LIMIT
 
-        return limit, is_logs_full_export
+        return limit, run_sync
 
     def post(self, request: Request, organization: Organization) -> Response:
         """

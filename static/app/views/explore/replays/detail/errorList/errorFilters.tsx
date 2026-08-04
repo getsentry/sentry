@@ -8,7 +8,7 @@ import type {ErrorFrame} from 'sentry/utils/replays/types';
 import type {useErrorFilters} from 'sentry/views/explore/replays/detail/errorList/useErrorFilters';
 import {FiltersGrid} from 'sentry/views/explore/replays/detail/filtersGrid';
 
-interface Props extends ReturnType<typeof useErrorFilters> {
+interface Props extends Omit<ReturnType<typeof useErrorFilters>, 'items'> {
   errorFrames: undefined | ErrorFrame[];
 }
 

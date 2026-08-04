@@ -188,7 +188,7 @@ export function Slider({
       if (allowedValues) {
         return formatLabel
           ? formatLabel(allowedValues[val]!)
-          : state.getFormattedValue(allowedValues[val]!);
+          : state.getFormattedValue(allowedValues[val]);
       }
 
       return formatLabel ? formatLabel(val) : state.getFormattedValue(val);

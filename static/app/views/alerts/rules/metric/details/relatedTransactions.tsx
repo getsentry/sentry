@@ -5,8 +5,7 @@ import type {Location} from 'history';
 
 import {Link} from '@sentry/scraps/link';
 
-import {GridEditable} from 'sentry/components/tables/gridEditable';
-import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
+import {GridEditable, type ColumnAlign} from 'sentry/components/tables/gridEditable';
 import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -143,11 +142,11 @@ export function RelatedTransactions({
   );
 }
 
-const HeaderCell = styled('div')<{align: Alignments}>`
+const HeaderCell = styled('div')<{align: ColumnAlign}>`
   display: block;
   width: 100%;
   white-space: nowrap;
-  ${(p: {align: Alignments}) =>
+  ${(p: {align: ColumnAlign}) =>
     p.align
       ? css`
           text-align: ${p.align};

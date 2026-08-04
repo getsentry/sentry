@@ -76,6 +76,7 @@ export function CollapsibleContent({
 
 const Details = styled('details')`
   width: 100%;
+  min-width: 0;
 
   summary {
     list-style: none;

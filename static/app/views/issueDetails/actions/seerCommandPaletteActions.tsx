@@ -2,6 +2,7 @@ import {Fragment, useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
+import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
   organizationIntegrationsCodingAgents,
   type CodingAgentIntegration,
@@ -32,7 +33,7 @@ function useSeerState(group: Group, project: Project) {
   const issueTypeConfig = getConfigForIssueType(group, project);
   const issueTypeSupportsSeer = issueTypeConfig.autofix || issueTypeConfig.issueSummary;
 
-  const autofix = useExplorerAutofix(group.id, {
+  const autofix = useExplorerAutofix(group, {
     enabled: aiConfig.areAiFeaturesAllowed,
   });
 
@@ -98,7 +99,7 @@ export function SeerCommandPaletteActions({
   }
 
   const {runState, isPolling} = autofix;
-  const runId = runState?.run_id;
+  const runId = getAutofixRunId(runState);
 
   const canContinue = !isPolling && defined(runId);
 

@@ -1,7 +1,7 @@
 import {useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 
@@ -61,16 +61,15 @@ export function CreateFromSeerPrompt() {
 
   return (
     <Stack flex={1} padding="2xl 3xl">
-      <Flex direction="column" gap="lg" align="center" justify="center" flex="1">
-        <Flex direction="column" gap="sm" width="640px">
+      <Stack gap="lg" align="center" justify="center" flex="1">
+        <Stack gap="sm" width="640px">
           <Heading as="h3">{t('Describe your Dashboard')}</Heading>
           <Container paddingTop="lg">
-            <Flex
+            <Stack
               border="primary"
               radius="md"
               background="primary"
               padding="lg"
-              direction="column"
               gap="lg"
               align="end"
             >
@@ -95,10 +94,10 @@ export function CreateFromSeerPrompt() {
                   {t('Generate')}
                 </Button>
               </Container>
-            </Flex>
+            </Stack>
           </Container>
-        </Flex>
-      </Flex>
+        </Stack>
+      </Stack>
     </Stack>
   );
 }

@@ -1,5 +1,6 @@
 import type {Location} from 'history';
 
+import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {decodeList} from 'sentry/utils/queryString';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
@@ -56,11 +57,14 @@ export class WidgetLegendSelectionState {
 
       const thisWidgetWithReleasesWasSelected =
         Object.values(selected).filter(value => !value).length !== 1 &&
-        Object.keys(selected).includes(`Releases${SERIES_NAME_DELIMITER}${widget.id}`);
+        Object.keys(selected).includes(
+          `${t('Releases')}${SERIES_NAME_DELIMITER}${widget.id}`
+        );
 
       const thisWidgetWithoutReleasesWasSelected =
-        !Object.keys(selected).includes(`Releases${SERIES_NAME_DELIMITER}${widget.id}`) &&
-        Object.values(selected).filter(value => !value).length === 1;
+        !Object.keys(selected).includes(
+          `${t('Releases')}${SERIES_NAME_DELIMITER}${widget.id}`
+        ) && Object.values(selected).filter(value => !value).length === 1;
 
       // For new-path widgets the default is nothing hidden, so any toggle
       // should update the URL. The two conditions above only cover old-path
@@ -148,7 +152,7 @@ export class WidgetLegendSelectionState {
       : this.widgetRequiresLegendUnselection(widget)
         ? {
             [WidgetLegendNameEncoderDecoder.encodeSeriesNameForLegend(
-              'Releases',
+              t('Releases'),
               widget.id
             )]: false,
           }
@@ -178,7 +182,7 @@ export class WidgetLegendSelectionState {
 
   formatLegendDefaultQuery(widget: Widget) {
     return this.widgetRequiresLegendUnselection(widget)
-      ? `${widget.id}${WIDGET_ID_DELIMITER}Releases`
+      ? `${widget.id}${WIDGET_ID_DELIMITER}${t('Releases')}`
       : undefined;
   }
 

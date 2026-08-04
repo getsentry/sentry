@@ -20,11 +20,16 @@ from django.utils.http import urlencode
 from django.utils.translation import gettext_lazy as _
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ExistsFilter, TraceItemFilter
-from snuba_sdk import Column, Condition, Op
+from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
 from sentry import eventstore, eventtypes, options, tagstore
 from sentry.backup.scopes import RelocationScope
-from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
+from sentry.constants import (
+    ALLOWED_FUTURE_DELTA,
+    DEFAULT_LOGGER_NAME,
+    LOG_LEVELS,
+    MAX_CULPRIT_LENGTH,
+)
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedIntegerField,
@@ -37,13 +42,6 @@ from sentry.db.models import (
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.issues.action_log import publish_action_from_context
-from sentry.issues.action_log.types import (
-    ArchiveAction,
-    GroupAction,
-    ResolveAction,
-    UnresolveAction,
-)
 from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
 from sentry.issues.priority import (
     PRIORITY_TO_GROUP_HISTORY_STATUS,
@@ -243,17 +241,6 @@ STATUS_UPDATE_CHOICES = {
     "muted": GroupStatus.IGNORED,
 }
 
-# Maps the Activity type driving a status change to the action we record, mirroring
-# ACTIVITY_STATUS_TO_GROUP_HISTORY_STATUS. Substatus-only transitions (e.g.
-# AUTO_SET_ONGOING, SET_ESCALATING) have no entry and are intentionally not recorded.
-ACTIVITY_TYPE_TO_GROUP_ACTION: dict[int, type[GroupAction]] = {
-    ActivityType.SET_RESOLVED.value: ResolveAction,
-    ActivityType.SET_RESOLVED_IN_COMMIT.value: ResolveAction,
-    ActivityType.SET_RESOLVED_IN_RELEASE.value: ResolveAction,
-    ActivityType.SET_IGNORED.value: ArchiveAction,
-    ActivityType.SET_UNRESOLVED.value: UnresolveAction,
-}
-
 
 class EventOrdering(Enum):
     LATEST = ["project_id", "-timestamp", "-id"]
@@ -266,6 +253,78 @@ class EventOrdering(Enum):
         "-timestamp",
         "-id",
     ]
+
+
+def bulk_get_latest_event_ids(groups: Sequence[Group]) -> dict[int, tuple[int, str]]:
+    """Return the project and latest event IDs for a collection of groups."""
+    # Imported here because sentry.utils.snuba imports Group.
+    from sentry.utils.snuba import bulk_snuba_queries
+
+    partitions: dict[tuple[int, Dataset], list[Group]] = defaultdict(list)
+    for group in groups:
+        dataset = (
+            Dataset.Events if group.issue_category == GroupCategory.ERROR else Dataset.IssuePlatform
+        )
+        partitions[(group.project.organization_id, dataset)].append(group)
+
+    request_contexts: list[tuple[Request, dict[int, int]]] = []
+    end = timezone.now() + ALLOWED_FUTURE_DELTA + timedelta(seconds=1)
+    for (organization_id, dataset), partition in partitions.items():
+        # Use first_seen to avoid scanning partitions from before the issues existed.
+        # last_seen is asynchronously updated and may lag behind events already in Snuba.
+        start = min(group.first_seen for group in partition) - timedelta(minutes=5)
+        expired, start = outside_retention_with_modified_start(
+            start, end, Organization(organization_id)
+        )
+        if expired:
+            continue
+
+        project_ids_by_group = {group.id: group.project_id for group in partition}
+        request = Request(
+            dataset=dataset.value,
+            app_id="eventstore",
+            query=Query(
+                match=Entity(dataset.value),
+                select=[
+                    Column("group_id"),
+                    Function(
+                        "argMax",
+                        [
+                            Column("event_id"),
+                            Function("tuple", [Column("timestamp"), Column("event_id")]),
+                        ],
+                        "event_id",
+                    ),
+                ],
+                groupby=[Column("group_id")],
+                where=[
+                    Condition(
+                        Column("project_id"), Op.IN, list(set(project_ids_by_group.values()))
+                    ),
+                    Condition(Column("group_id"), Op.IN, list(project_ids_by_group)),
+                    Condition(Column("timestamp"), Op.GTE, start),
+                    Condition(Column("timestamp"), Op.LT, end),
+                ],
+                limit=Limit(len(partition)),
+            ),
+            tenant_ids={"organization_id": organization_id},
+        )
+        request_contexts.append((request, project_ids_by_group))
+
+    if not request_contexts:
+        return {}
+
+    latest_event_ids = {}
+    results = bulk_snuba_queries(
+        [request for request, _ in request_contexts],
+        referrer=Referrer.GROUP_GET_LATEST_BULK.value,
+    )
+    for (_request, project_ids_by_group), result in zip(request_contexts, results, strict=True):
+        for row in result["data"]:
+            group_id = int(row["group_id"])
+            latest_event_ids[group_id] = (project_ids_by_group[group_id], row["event_id"])
+
+    return latest_event_ids
 
 
 def get_oldest_or_latest_event(
@@ -604,14 +663,6 @@ class GroupManager(BaseManager["Group"]):
             )
             record_group_history_from_activity_type(group, activity_type.value)
 
-            action_cls = ACTIVITY_TYPE_TO_GROUP_ACTION.get(activity_type.value)
-            if action_cls is not None:
-                publish_action_from_context(
-                    action_cls(),
-                    group_id=group.id,
-                    project=group.project,
-                )
-
             if group.id in updated_priority:
                 new_priority = updated_priority[group.id]
                 Activity.objects.create_group_activity(
@@ -844,12 +895,6 @@ class Group(Model):
         if self.short_id is not None:
             return f"{self.project.slug.upper()}-{base32_encode(self.short_id)}"
 
-    def is_over_resolve_age(self):
-        resolve_age = self.project.get_option("sentry:resolve_age", None)
-        if not resolve_age:
-            return False
-        return self.last_seen < timezone.now() - timedelta(hours=int(resolve_age))
-
     def is_ignored(self):
         return self.get_status() == GroupStatus.IGNORED
 
@@ -935,14 +980,6 @@ class Group(Model):
             else:
                 if not snooze.is_valid(group=self):
                     status = GroupStatus.UNRESOLVED
-
-        # If the issue is UNRESOLVED but has resolved_at set, it means the user manually
-        # unresolved it after it was resolved. We should respect that and not override
-        # the status back to RESOLVED.
-        if status == GroupStatus.UNRESOLVED and self.is_over_resolve_age() and not self.resolved_at:
-            # Only auto-resolve if this group type has auto-resolve enabled
-            if self.issue_type.enable_auto_resolve:
-                return GroupStatus.RESOLVED
 
         return status
 

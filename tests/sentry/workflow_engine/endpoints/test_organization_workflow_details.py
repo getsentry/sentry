@@ -876,7 +876,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         self.create_data_condition(
             condition_group=when_condition_group,
             type=Condition.SEER_ACTIVITY_TRIGGER,
-            comparison=["rca_started"],
+            comparison=["rca_completed"],
             condition_result=True,
         )
         workflow = self.create_workflow(

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -12,6 +12,8 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 
 export default function OrganizationMcpCli() {
   const organization = useOrganization();
+  const orgScopedMcpUrl = `https://mcp.sentry.dev/mcp/${organization.slug}`;
+  const projectScopedMcpUrl = `${orgScopedMcpUrl}/your-project`;
 
   return (
     <Fragment>
@@ -23,9 +25,9 @@ export default function OrganizationMcpCli() {
         )}
       />
 
-      <Flex direction="column" gap="xl">
+      <Stack gap="xl">
         <Container padding="xl" border="primary" radius="md">
-          <Flex direction="column" gap="lg">
+          <Stack gap="lg">
             <Heading as="h3">{t('MCP Server')}</Heading>
             <Text variant="muted" size="lg">
               {t(
@@ -38,10 +40,8 @@ export default function OrganizationMcpCli() {
                 'You can scope the connection to a specific organization or project. Scoping to a project is recommended when possible — it sets defaults automatically and hides unnecessary discovery tools.'
               )}
             </Text>
-            <TextCopyInput>https://mcp.sentry.dev/mcp/your-org</TextCopyInput>
-            <TextCopyInput>
-              https://mcp.sentry.dev/mcp/your-org/your-project
-            </TextCopyInput>
+            <TextCopyInput>{orgScopedMcpUrl}</TextCopyInput>
+            <TextCopyInput>{projectScopedMcpUrl}</TextCopyInput>
             <div>
               <LinkButton
                 href="https://mcp.sentry.dev/?utm_source=sentry-mcp-settings-docs-btn"
@@ -51,11 +51,11 @@ export default function OrganizationMcpCli() {
                 {t('MCP Documentation')}
               </LinkButton>
             </div>
-          </Flex>
+          </Stack>
         </Container>
 
         <Container padding="xl" border="primary" radius="md">
-          <Flex direction="column" gap="lg">
+          <Stack gap="lg">
             <Heading as="h3">{t('Sentry CLI')}</Heading>
             <Text variant="muted" size="lg">
               {t(
@@ -69,9 +69,9 @@ export default function OrganizationMcpCli() {
                 {t('CLI Documentation')}
               </LinkButton>
             </div>
-          </Flex>
+          </Stack>
         </Container>
-      </Flex>
+      </Stack>
     </Fragment>
   );
 }

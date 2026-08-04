@@ -202,6 +202,7 @@ function FeedbackItemContexts({
 
 const OverflowPanelItem = styled(PanelItem)`
   overflow: auto;
+  overscroll-behavior: contain;
 
   flex-direction: column;
   flex-grow: 1;

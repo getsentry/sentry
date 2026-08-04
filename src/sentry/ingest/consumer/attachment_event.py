@@ -45,6 +45,9 @@ def decode_and_process_chunks(
         message: IngestMessage = msgpack.unpackb(raw_payload, use_list=False)
 
         if message["type"] == "attachment_chunk":
+            # Stuck events already have their chunks assembled in the cache, so we skip re-storing
+            # them. When reprocessing events missing from nodestore however, we *do* need to store
+            # the chunks again, as the (re)processed event depends on them being present.
             if not reprocess_only_stuck_events:
                 process_attachment_chunk(message)
             return None
@@ -61,7 +64,9 @@ def decode_and_process_chunks(
 
 
 def process_attachments_and_events(
-    raw_message: Message[IngestMessage], reprocess_only_stuck_events: bool
+    raw_message: Message[IngestMessage],
+    reprocess_only_stuck_events: bool,
+    reprocess_only_events_not_in_nodestore: bool,
 ) -> None:
     """
     The second pass for the `attachments` topic processes *individual* `attachments`
@@ -88,7 +93,9 @@ def process_attachments_and_events(
 
     try:
         if message_type == "attachment":
-            if not reprocess_only_stuck_events:
+            # Individual attachments are not idempotent, so we skip them in either reprocessing
+            # mode to avoid duplicating attachments for events that were already handled.
+            if not reprocess_only_stuck_events and not reprocess_only_events_not_in_nodestore:
                 process_individual_attachment(message, project)
         elif message_type == "event":
             process_event(
@@ -96,6 +103,7 @@ def process_attachments_and_events(
                 message,
                 project,
                 reprocess_only_stuck_events,
+                reprocess_only_events_not_in_nodestore,
             )
         elif message_type == "user_report":
             process_userreport(message, project)

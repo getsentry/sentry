@@ -172,7 +172,6 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
             stringAttributes={stringAttributes}
             numberAttributes={numberAttributes}
             booleanAttributes={booleanAttributes}
-            allowPagination
             embedded
             embeddedOptions={embeddedOptions}
             localOnlyItemFilters={{

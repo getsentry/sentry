@@ -53,18 +53,6 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
         assert response.data == {"slug": self.organization.slug}
 
     @with_feature("organizations:seer-public-rpc")
-    def test_org_level_method_get_organization_project_ids(self) -> None:
-        """Test that get_organization_project_ids returns projects for the org"""
-        path = self._get_path("get_organization_project_ids")
-        response = self.client.post(path, data={"args": {}}, format="json")
-
-        assert response.status_code == 200
-        assert "projects" in response.data
-        # Should include our project
-        project_ids = [p["id"] for p in response.data["projects"]]
-        assert self.project.id in project_ids
-
-    @with_feature("organizations:seer-public-rpc")
     def test_get_organization_projects(self) -> None:
         """instrumentation reflects project flags via get_instrumentation"""
         path = self._get_path("get_organization_projects")

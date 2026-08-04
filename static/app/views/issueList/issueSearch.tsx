@@ -21,7 +21,7 @@ function IssueSearchBar({query, onSearch, className}: IssueSearchProps) {
   const {displayAskSeer} = useSearchQueryBuilderAI();
 
   if (displayAskSeer) {
-    return <IssueListSeerComboBox />;
+    return <IssueListSeerComboBox className={className} />;
   }
 
   return (

@@ -1,0 +1,37 @@
+name: react-compiler-unexpected-error
+severity: info
+tags: [react, react-compiler, tooling, analyzer]
+
+why: |
+  `Unexpected error` is an analyzer failure, not an actionable description of
+  source behavior. The audit contained 20 such diagnostics with empty detail.
+  Treating them as application defects would invite arbitrary changes that may
+  merely hide an Oxlint bug.
+
+  This convention corresponds to the Oxlint React Compiler `Unexpected error`
+  diagnostic.
+
+  See: https://oxc.rs/docs/guide/usage/linter/rules/react/react-compiler.html
+
+detect: |
+  Use only an actual `react/react-compiler` analyzer result. Flag diagnostics
+  whose category is exactly `Unexpected error`. Do not infer this condition from
+  source code and do not manufacture a code-level explanation when the analyzer
+  supplies none.
+
+fix: |
+  Re-run the affected file with the latest Oxlint release. If it still fails,
+  reduce the file to the smallest reproduction and report the analyzer crash or
+  failure upstream with the version, command, and location. Do not modify
+  production behavior solely to make an internal analyzer error disappear.
+
+  The original audit used:
+    pnpm dlx oxlint@1.70.0 -A all -D react/react-compiler --react-plugin -f json <file>
+
+examples:
+  bad:
+    - 'react/react-compiler: Unexpected error (no detail)'
+  good:
+    - 'A minimized upstream report or a baseline entry pending an analyzer fix.'
+
+detect_command: 'bash {convention_dir}/react-compiler.detect.sh {repo_path} "Unexpected error"'

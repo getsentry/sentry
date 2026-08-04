@@ -22,6 +22,10 @@ import type {
   SelectSectionWithKey,
 } from './types';
 
+// Avoid the relatively expensive CSS.escape call for common keys while preserving
+// full escaping for values that are not already simple CSS identifiers.
+const SIMPLE_CSS_IDENTIFIER = /^-?(?!\d)\w[-\w]*$/;
+
 /**
  * Normalises the `search` prop into a plain config object (or `undefined` if
  * search is disabled). Accepts `true` as shorthand for `{}` and treats
@@ -40,7 +44,8 @@ export function getSearchConfig<Value extends SelectKey>(
 }
 
 export function getEscapedKey(value: SelectKey): string {
-  return CSS.escape(String(value));
+  const stringValue = String(value);
+  return SIMPLE_CSS_IDENTIFIER.test(stringValue) ? stringValue : CSS.escape(stringValue);
 }
 
 export function getItemsWithKeys<Value extends SelectKey>(

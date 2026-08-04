@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {MessageRow, ToolCallIndicator, type ToolCallStatus} from '@sentry/scraps/chat';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -8,13 +9,13 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconCheckmark, IconClose, IconLink, IconWarning} from 'sentry/icons';
+import {SeerMarkdown} from 'sentry/components/seer/markdown';
+import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import type {Block, TodoItem} from 'sentry/views/seerExplorer/types';
+import type {Block, TodoItem, ToolLink} from 'sentry/views/seerExplorer/types';
 import {
   buildToolLinkUrl,
   getToolsStringFromBlock,
@@ -22,14 +23,25 @@ import {
 } from 'sentry/views/seerExplorer/utils';
 
 import type {ToolUseBlockProps} from './shared';
-import {
-  type BlockStatus,
-  MessagePlaceholder,
-  SeerMarkdown,
-  Spinner,
-  getBlockStatus,
-  hasValidContent,
-} from './shared';
+import {MessagePlaceholder, getBlockStatus, hasValidContent} from './shared';
+
+// Result-status metadata rather than part of a link's identity: two entries pointing at the same
+// target are the same link whether or not one side also reports the call failed or came back empty.
+// Excluded from linkKey so the dedupe still matches a twin when only one channel carries them.
+const LINK_STATUS_PARAMS = new Set(['is_error', 'empty_results']);
+
+// Identity for deduping a bus link against the positional row link. Params are sorted so the key
+// does not depend on object key order — today both channels derive params from the same object, but
+// this keeps the dedupe correct if that ever stops being true.
+function linkKey(link: ToolLink) {
+  const params = link.params ?? {};
+  const sorted = Object.keys(params)
+    .filter(k => !LINK_STATUS_PARAMS.has(k))
+    .sort()
+    .map(k => `${k}=${JSON.stringify(params[k])}`)
+    .join(',');
+  return `${link.kind}:${sorted}`;
+}
 
 export function ToolUseBlock({
   block,
@@ -42,23 +54,25 @@ export function ToolUseBlock({
   }
 
   return (
-    <Stack padding="md xl" gap="md" minWidth={0} overflow="hidden">
-      {showThinking && hasValidContent(block.message.thinking_content) && (
-        <Disclosure size="sm">
-          <Disclosure.Title>
-            <Text size="sm" variant="muted" monospace>
-              {t('Thinking')}
-            </Text>
-          </Disclosure.Title>
-          <Disclosure.Content>
-            <SeerMarkdown raw={block.message.thinking_content} />
-          </Disclosure.Content>
-        </Disclosure>
-      )}
-      {block.message.tool_calls ? (
-        <ToolCallList block={block} blocks={blocks} getPageReferrer={getPageReferrer} />
-      ) : null}
-    </Stack>
+    <MessageRow from="assistant" density="compact">
+      <Stack gap="md" width="100%" minWidth={0} overflow="hidden">
+        {showThinking && hasValidContent(block.message.thinking_content) && (
+          <Disclosure size="sm">
+            <Disclosure.Title>
+              <Text size="sm" variant="muted" monospace>
+                {t('Thinking')}
+              </Text>
+            </Disclosure.Title>
+            <Disclosure.Content>
+              <SeerMarkdown raw={block.message.thinking_content} />
+            </Disclosure.Content>
+          </Disclosure>
+        )}
+        {block.message.tool_calls ? (
+          <ToolCallList block={block} blocks={blocks} getPageReferrer={getPageReferrer} />
+        ) : null}
+      </Stack>
+    </MessageRow>
   );
 }
 
@@ -92,10 +106,41 @@ function useToolLinks(block: Block) {
     return map;
   }, [block.tool_links, block.tool_results]);
 
+  // The positional links as seer sent them, before getValidToolLinks drops errored/unbuildable
+  // ones. Used only to dedupe the bus against the positional channel: an errored link still has to
+  // suppress its bus twin even though it never renders as a row link itself.
+  const rawToolLinkByCallId = useMemo(() => {
+    const map = new Map<string, ToolLink>();
+    (block.tool_results || []).forEach((result, idx) => {
+      const link = block.tool_links?.[idx];
+      if (result?.tool_call_id && link) {
+        map.set(result.tool_call_id, link);
+      }
+    });
+    return map;
+  }, [block.tool_links, block.tool_results]);
+
+  // The links bus (code-mode-effects-registry): a tool result carries its own deep-links in
+  // structuredContent.links as a {kind, params} list. Keyed by tool_call_id, so a result can hold
+  // many with no index alignment. When present, this is the source of truth for that result's
+  // links; when absent, we fall back to the positional block.tool_links below.
+  const busLinksByCallId = useMemo(() => {
+    const map = new Map<string, ToolLink[]>();
+    (block.tool_results || []).forEach(result => {
+      const links = result?.structuredContent?.links;
+      if (result?.tool_call_id && links?.length) {
+        map.set(result.tool_call_id, links);
+      }
+    });
+    return map;
+  }, [block.tool_results]);
+
   return {
     sortedToolLinks,
     toolCallToLinkIndexMap,
     toolLinkByCallId,
+    rawToolLinkByCallId,
+    busLinksByCallId,
     organization,
     projects,
   };
@@ -112,12 +157,13 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
     sortedToolLinks,
     toolCallToLinkIndexMap,
     toolLinkByCallId,
+    rawToolLinkByCallId,
+    busLinksByCallId,
     organization,
     projects,
   } = useToolLinks(block);
   const toolsUsed = getToolsStringFromBlock(block);
   const blockStatus = getBlockStatus(block);
-  const isLoading = blockStatus === 'loading' || blockStatus === 'pending';
 
   return (
     <Stack gap="md" width="100%" minWidth={0} paddingRight="lg">
@@ -127,31 +173,34 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
           ? toolLinkByCallId.get(toolCall.id)
           : undefined;
         const hasLink = correspondingLinkIndex !== undefined;
-        const toolUrl = hasLink
-          ? buildToolLinkUrl(
-              sortedToolLinks[correspondingLinkIndex],
-              organization,
-              projects
-            )
+        const positionalLink = hasLink
+          ? sortedToolLinks[correspondingLinkIndex]
+          : undefined;
+        const toolUrl = positionalLink
+          ? buildToolLinkUrl(positionalLink, organization, projects)
           : null;
 
-        const handleLinkClick = hasLink
-          ? (e: React.MouseEvent) => {
-              e.stopPropagation();
-              const selectedLink = sortedToolLinks[correspondingLinkIndex];
-              if (selectedLink) {
-                trackAnalytics('seer.explorer.global_panel.tool_link_navigation', {
-                  referrer: getPageReferrer?.() ?? '',
-                  organization,
-                  tool_kind: selectedLink.kind,
-                });
-              }
-            }
+        // Both channels' links stop propagation (so the click doesn't reach the blocks
+        // container's handler) and report the same navigation analytics.
+        const trackLinkClick = (kind: string) => (e: React.MouseEvent) => {
+          e.stopPropagation();
+          trackAnalytics('seer.explorer.global_panel.tool_link_navigation', {
+            referrer: getPageReferrer?.() ?? '',
+            organization,
+            tool_kind: kind,
+          });
+        };
+
+        const handleLinkClick = positionalLink
+          ? trackLinkClick(positionalLink.kind)
           : undefined;
 
-        const isTodoWrite = toolCall.function === 'todo_write';
+        // Render the checklist once per block (on the last tool-call row), regardless of
+        // which tool produced it — classic `todo_write` or Code Mode `sentry_api_execute`,
+        // which projects its todos onto block.todos (code-mode-effects-bus).
+        const isLastToolCall = idx === (block.message.tool_calls?.length ?? 0) - 1;
         const todos =
-          isTodoWrite &&
+          isLastToolCall &&
           block.todos?.length &&
           blocks?.findLast(b => b.todos?.length) === block
             ? block.todos
@@ -163,21 +212,53 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
             ? t('Tool call returned empty results')
             : null;
 
+        // Links bus: render the result's own links (structuredContent.links) as labeled links
+        // below the row. Dedupe the one already shown as the positional row link (classic tools
+        // populate both channels during migration), so a Code Mode execute's many links surface
+        // while classic single-link rendering is unchanged. Errored links are dropped here for
+        // the same reason getValidToolLinks drops them from the positional channel.
+        //
+        // Dedupe against the *raw* positional link, not the filtered `positionalLink`:
+        // getValidToolLinks drops errored (and unbuildable) links, so a failed classic tool has no
+        // `positionalLink` at all. Keying off that would leave its bus twin unmatched and render it
+        // as a success link under a row that failed.
+        const rawPositionalLink = toolCall.id
+          ? rawToolLinkByCallId.get(toolCall.id)
+          : undefined;
+        const positionalKey = rawPositionalLink ? linkKey(rawPositionalLink) : null;
+        const navItems = (toolCall.id ? (busLinksByCallId.get(toolCall.id) ?? []) : [])
+          .filter(link => link.params?.is_error !== true)
+          .filter(link => linkKey(link) !== positionalKey)
+          .map(link => ({
+            kind: link.kind,
+            url: buildToolLinkUrl(link, organization, projects),
+          }))
+          .filter(
+            (item): item is {kind: string; url: NonNullable<typeof item.url>} =>
+              !!item.url
+          );
+
         return (
           <ToolCallRow
             key={toolCall.id ?? `${toolCall.function}-${idx}`}
             toolString={toolsUsed[idx] ?? ''}
             blockStatus={idx === 0 ? blockStatus : undefined}
-            isLoading={isLoading}
             toolUrl={toolUrl}
             failureTooltip={failureTooltip}
             onLinkClick={handleLinkClick}
             todos={todos}
+            navItems={navItems}
+            onNavLinkClick={trackLinkClick}
           />
         );
       })}
     </Stack>
   );
+}
+
+interface NavItem {
+  kind: string;
+  url: NonNullable<ReturnType<typeof buildToolLinkUrl>>;
 }
 
 function ToolCallRow({
@@ -187,14 +268,17 @@ function ToolCallRow({
   failureTooltip,
   onLinkClick,
   todos,
+  navItems,
+  onNavLinkClick,
 }: {
-  blockStatus: BlockStatus | undefined;
+  blockStatus: ToolCallStatus | undefined;
   failureTooltip: string | null;
-  isLoading: boolean;
+  navItems: NavItem[];
   todos: TodoItem[] | null;
   toolString: string;
   toolUrl: ReturnType<typeof buildToolLinkUrl>;
   onLinkClick?: (e: React.MouseEvent) => void;
+  onNavLinkClick?: (kind: string) => (e: React.MouseEvent) => void;
 }) {
   const hasLink = toolUrl !== null;
 
@@ -218,7 +302,7 @@ function ToolCallRow({
           flexShrink={0}
           style={{transform: 'translateY(0.15em)'}}
         >
-          {blockStatus && <BlockStatusIndicator status={blockStatus} />}
+          {blockStatus && <ToolCallIndicator status={blockStatus} />}
         </Flex>
         {hasLink ? (
           <ToolCallLink to={toolUrl} onClick={onLinkClick}>
@@ -231,7 +315,44 @@ function ToolCallRow({
           <ToolCallPlainRow>{toolCallText}</ToolCallPlainRow>
         )}
       </Flex>
+      {navItems.length > 0 && (
+        <NavLinks navItems={navItems} onNavLinkClick={onNavLinkClick} />
+      )}
       {todos && <TodoList todos={todos} />}
+    </Stack>
+  );
+}
+
+const NAV_LINK_LABELS: Record<string, string> = {
+  get_issue_details: t('View issue'),
+  get_trace_waterfall: t('View trace'),
+  get_replay_details: t('View replay'),
+  get_profile_flamegraph: t('View profile'),
+};
+
+function NavLinks({
+  navItems,
+  onNavLinkClick,
+}: {
+  navItems: NavItem[];
+  onNavLinkClick?: (kind: string) => (e: React.MouseEvent) => void;
+}) {
+  return (
+    <Stack as="ul" gap="xs" padding="0">
+      {navItems.map((item, idx) => (
+        <Flex key={`${item.kind}-${idx}`} as="li" gap="sm" align="center">
+          {/* ToolCallText (not plain Text) so ToolCallLink's hover rule, which targets it by
+              class, colors the label the same way it does the positional row link. */}
+          <ToolCallLink to={item.url} onClick={onNavLinkClick?.(item.kind)}>
+            <ToolCallText size="xs" monospace>
+              {NAV_LINK_LABELS[item.kind] ?? item.kind}
+            </ToolCallText>
+            <ToolCallLinkIconWrapper>
+              <ToolCallLinkIcon size="xs" />
+            </ToolCallLinkIconWrapper>
+          </ToolCallLink>
+        </Flex>
+      ))}
     </Stack>
   );
 }
@@ -252,51 +373,6 @@ function TodoList({todos}: {todos: TodoItem[]}) {
       })}
     </Stack>
   );
-}
-
-function BlockStatusIndicator({status}: {status: BlockStatus}) {
-  switch (status) {
-    case 'loading':
-      return (
-        <Tooltip title={t('Running...')}>
-          <Spinner />
-        </Tooltip>
-      );
-    case 'pending':
-      return (
-        <Tooltip title={t('Waiting for approval')}>
-          <Spinner />
-        </Tooltip>
-      );
-    case 'failure':
-      return (
-        <Tooltip title={t('All tool calls failed')}>
-          <Text variant="danger">
-            <IconClose size="xs" />
-          </Text>
-        </Tooltip>
-      );
-    case 'mixed':
-      return (
-        <Tooltip title={t('Some tool calls succeeded and some failed')}>
-          <Text variant="warning">
-            <IconWarning size="xs" />
-          </Text>
-        </Tooltip>
-      );
-    case 'success':
-      return (
-        <Tooltip title={t('All tool calls succeeded')}>
-          <Text variant="success">
-            <IconCheckmark size="xs" />
-          </Text>
-        </Tooltip>
-      );
-    case 'content':
-      return null;
-    default:
-      return unreachable(status);
-  }
 }
 
 const ToolCallText = styled(Text)`

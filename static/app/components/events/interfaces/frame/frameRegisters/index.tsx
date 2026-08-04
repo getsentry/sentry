@@ -1,5 +1,9 @@
-import {useMemo} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+import {Text} from '@sentry/scraps/text';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {t} from 'sentry/locale';
@@ -10,74 +14,76 @@ import {getSortedRegisters} from './utils';
 import {FrameRegisterValue} from './value';
 
 type Props = {
+  deviceArch: string | undefined;
+  meta: Record<any, any> | undefined;
   registers: NonNullable<StacktraceType['registers']>;
-  deviceArch?: string;
-  meta?: Record<any, any>;
 };
 
 const CLIPPED_HEIGHT = 250;
+type RegisterFormat = 'hexadecimal' | 'decimal';
 
 export function FrameRegisters({registers, deviceArch, meta}: Props) {
+  const [registerFormat, setRegisterFormat] = useState<RegisterFormat>('hexadecimal');
   const sortedRegisters = useMemo(
     () => getSortedRegisters(registers, deviceArch),
     [registers, deviceArch]
   );
 
+  function handleRegisterFormatChange(format: RegisterFormat) {
+    setRegisterFormat(format);
+  }
+
   return (
-    <Wrapper>
+    <Container padding={{'screen:2xs': 'xs lg', 'screen:sm': 'md 2xl xl'}}>
       <StyledClippedBox clipHeight={CLIPPED_HEIGHT}>
-        <RegistersTitle>{t('Registers')}</RegistersTitle>
-        <Registers>
-          {sortedRegisters.map(([name, value]) => {
-            if (!defined(value)) {
-              return null;
-            }
-            return (
-              <Register key={name}>
-                {name}
-                <FrameRegisterValue value={value} meta={meta?.[name]?.['']} />
-              </Register>
-            );
-          })}
-        </Registers>
+        <Stack gap="md">
+          <Flex align="center" justify="between" gap="md" wrap="wrap" paddingLeft="sm">
+            <Text as="div" size="md">
+              {t('Registers')}
+            </Text>
+            <SegmentedControl
+              aria-label={t('Register value format')}
+              size="xs"
+              value={registerFormat}
+              onChange={handleRegisterFormatChange}
+            >
+              <SegmentedControl.Item key="hexadecimal">
+                {t('Hexadecimal')}
+              </SegmentedControl.Item>
+              <SegmentedControl.Item key="decimal">{t('Decimal')}</SegmentedControl.Item>
+            </SegmentedControl>
+          </Flex>
+          <Grid columns="repeat(auto-fit, minmax(min(100%, 14rem), 1fr))" gap="lg 2xl">
+            {sortedRegisters.map(([name, value]) => {
+              if (!defined(value)) {
+                return null;
+              }
+
+              return (
+                <Grid
+                  key={name}
+                  columns="minmax(1.5rem, max-content) minmax(0, 1fr)"
+                  align="center"
+                  gap="md"
+                >
+                  <Text monospace align="right" variant="muted">
+                    {name}
+                  </Text>
+                  <FrameRegisterValue
+                    value={value}
+                    meta={meta?.[name]?.['']}
+                    isHexadecimal={registerFormat === 'hexadecimal'}
+                  />
+                </Grid>
+              );
+            })}
+          </Grid>
+        </Stack>
       </StyledClippedBox>
-    </Wrapper>
+    </Container>
   );
 }
 
-const Wrapper = styled('div')`
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    padding: ${p => p.theme.space.md} ${p => p.theme.space['2xl']}
-      ${p => p.theme.space.xl};
-  }
-`;
-
-const RegistersTitle = styled('div')`
-  width: 80px;
-  padding: ${p => p.theme.space.md} 0;
-`;
-
-const Registers = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14.063rem, 1fr));
-  gap: ${p => p.theme.space.md};
-  flex-grow: 1;
-`;
-
-const Register = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.xs};
-  grid-template-columns: 3em 1fr;
-  align-items: center;
-  color: ${p => p.theme.tokens.content.secondary};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    text-align: right;
-  }
-`;
-
 const StyledClippedBox = styled(ClippedBox)`
-  padding: 0;
+  padding: ${p => p.theme.space.sm} 0;
 `;

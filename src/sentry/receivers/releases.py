@@ -1,20 +1,23 @@
 import logging
+from collections.abc import Sequence
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, router, transaction
 from django.db.models import F
 from django.db.models.signals import post_save, pre_save
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.integrations.analytics import IntegrationResolveCommitEvent, IntegrationResolvePREvent
+from sentry.integrations.utils.scm_actors import find_user_for_scm_actor
 from sentry.issues.action_log import (
+    SYSTEM_ACTOR,
     ActionSource,
     GroupActionActor,
     action_context_scope,
-    publish_action,
+    get_action_context,
 )
-from sentry.issues.action_log.types import PullRequestClosedAction
+from sentry.issues.action_log.types import GroupActorType
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -26,9 +29,12 @@ from sentry.models.grouphistory import (
 )
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupsubscription import GroupSubscription
-from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
-from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
+from sentry.models.pullrequest import (
+    PullRequest,
+    PullRequestLifecycleState,
+    is_open_pull_request_state,
+)
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
@@ -37,7 +43,6 @@ from sentry.signals import buffer_incr_complete
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 from sentry.types.activity import ActivityType
 from sentry.users.services.user import RpcUser
-from sentry.users.services.user.service import user_service
 from sentry.users.services.user_option import get_option_from_list, user_option_service
 
 logger = logging.getLogger(__name__)
@@ -65,7 +70,23 @@ def remove_resolved_link(link):
         link.delete()
 
 
-def _find_pull_request_author_user(author: CommitAuthor, organization_id: int) -> RpcUser | None:
+def remove_resolved_pull_request_link(link: GroupLink, pull_request: PullRequest) -> None:
+    group_id = link.group_id
+    with transaction.atomic(router.db_for_write(GroupLink)):
+        link.delete()
+        transaction.on_commit(
+            lambda: _create_pull_request_activities(
+                [group_id],
+                pull_request_id=pull_request.id,
+                activity_type=ActivityType.PULL_REQUEST_UNLINKED,
+            ),
+            router.db_for_write(GroupLink),
+        )
+
+
+def _find_pull_request_author_user(
+    author: CommitAuthor, organization_id: int, integration_id: int | None
+) -> RpcUser | None:
     if author.organization_id != organization_id:
         return None
 
@@ -73,28 +94,19 @@ def _find_pull_request_author_user(author: CommitAuthor, organization_id: int) -
     if users:
         return users[0]
 
-    # Commit resolution generally has a real commit author email, so find_users()
-    # can match an org member by verified email. PR webhooks can create authors
-    # from a GitHub actor with a placeholder email, so use the same ExternalActor
-    # fallback that serializes PR authors.
-    # Keep this lazy; receivers are imported during process initialization.
-    from sentry.api.serializers.models.release import get_author_users_by_external_actors
+    # Commit resolution usually has a real author email, so find_users() can
+    # match an organization member by verified email. PR webhooks may instead
+    # create an author with a placeholder email, so fall back to the shared SCM
+    # actor lookup also used to attribute PR lifecycle activity.
+    username = author.get_username_from_external_id()
+    if username is None or integration_id is None:
+        return None
 
-    external_actor_users, _ = get_author_users_by_external_actors(
-        [author],
-        organization_id,
+    return find_user_for_scm_actor(
+        organization_id=organization_id,
+        integration_id=integration_id,
+        username=username,
     )
-    user_id = external_actor_users.get(author)
-    if user_id is None:
-        return None
-
-    user_id_int = int(user_id)
-    if not OrganizationMember.objects.filter(
-        organization_id=organization_id, user_id=user_id_int
-    ).exists():
-        return None
-
-    return user_service.get_user(user_id=user_id_int)
 
 
 def resolved_in_commit(instance: Commit, created, **kwargs):
@@ -188,7 +200,20 @@ def resolved_in_commit(instance: Commit, created, **kwargs):
                 if acting_user is not None:
                     activity_kwargs["user_id"] = acting_user.id
 
-                Activity.objects.create(**activity_kwargs)
+                action_context = get_action_context()
+                if action_context is not None:
+                    source = action_context.source
+                    actor = action_context.actor
+                else:
+                    source = ActionSource.SYSTEM
+                    actor = (
+                        GroupActionActor.user(acting_user.id)
+                        if acting_user is not None
+                        else SYSTEM_ACTOR
+                    )
+
+                with action_context_scope(source=source, actor=actor):
+                    Activity.objects.create(**activity_kwargs)
 
         except IntegrityError:
             pass
@@ -215,7 +240,7 @@ def resolved_in_pull_request(instance: PullRequest, created, **kwargs):
     )
     for link in group_links:
         if link.group_id not in group_ids:
-            remove_resolved_link(link)
+            remove_resolved_pull_request_link(link, instance)
 
     if len(groups) == 0:
         return
@@ -225,7 +250,11 @@ def resolved_in_pull_request(instance: PullRequest, created, **kwargs):
     except Repository.DoesNotExist:
         repo = None
     acting_user = (
-        _find_pull_request_author_user(instance.author, instance.organization_id)
+        _find_pull_request_author_user(
+            instance.author,
+            instance.organization_id,
+            repo.integration_id if repo is not None else None,
+        )
         if instance.author
         else None
     )
@@ -248,14 +277,25 @@ def resolved_in_pull_request(instance: PullRequest, created, **kwargs):
                             group=group, assigned_to=acting_user, acting_user=acting_user
                         )
 
-                Activity.objects.create(
-                    project_id=group.project_id,
-                    group=group,
-                    type=ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
-                    ident=instance.id,
-                    user_id=acting_user.id if acting_user else None,
-                    data={"pull_request": instance.id},
-                )
+                pr_action_context = get_action_context()
+                if pr_action_context is not None:
+                    pr_source = pr_action_context.source
+                    pr_actor = pr_action_context.actor
+                else:
+                    pr_source = ActionSource.SYSTEM
+                    pr_actor = (
+                        GroupActionActor.user(acting_user.id) if acting_user else SYSTEM_ACTOR
+                    )
+
+                with action_context_scope(source=pr_source, actor=pr_actor):
+                    Activity.objects.create(
+                        project_id=group.project_id,
+                        group=group,
+                        type=ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
+                        ident=instance.id,
+                        user_id=acting_user.id if acting_user else None,
+                        data={"pull_request": instance.id},
+                    )
                 record_group_history(
                     group, GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST, actor=acting_user
                 )
@@ -272,20 +312,119 @@ def resolved_in_pull_request(instance: PullRequest, created, **kwargs):
                 )
 
 
-def pull_request_closing(instance: PullRequest, **kwargs: object) -> None:
+def _groups_with_other_open_prs(group_ids: Sequence[int], *, pull_request_id: int) -> set[int]:
     """
-    Emit PULL_REQUEST_CLOSED group activity when a PR transitions to closed.
+    Return the subset of `group_ids` that still have at least one linked PR
+    (other than `pull_request_id`) in an open state.
+
+    A PR counts as open when its state is OPEN/LOCKED or NULL. NULL rows are
+    legacy/unsynced PRs whose real state is unknown, so we conservatively count
+    them as open.
     """
+    sibling_links = list(
+        GroupLink.objects.filter(
+            linked_type=GroupLink.LinkedType.pull_request,
+            group_id__in=group_ids,
+        )
+        .exclude(linked_id=pull_request_id)
+        .values_list("group_id", "linked_id")
+    )
+    if not sibling_links:
+        return set()
+
+    sibling_pr_ids = {linked_id for _, linked_id in sibling_links}
+    open_pr_ids = {
+        pr_id
+        for pr_id, state in PullRequest.objects.filter(id__in=sibling_pr_ids).values_list(
+            "id", "state"
+        )
+        if is_open_pull_request_state(state)
+    }
+    return {group_id for group_id, linked_id in sibling_links if linked_id in open_pr_ids}
+
+
+def _create_pull_request_activities(
+    group_ids: Sequence[int],
+    *,
+    pull_request_id: int,
+    activity_type: ActivityType,
+    user_id: int | None = None,
+) -> None:
     try:
-        if instance.state != PullRequestLifecycleState.CLOSED:
+        groups = list(
+            Group.objects.filter(id__in=group_ids).select_related("project__organization")
+        )
+        # PULL_REQUEST_CLOSED predates the pr-lifecycle-activity flag and is always
+        # emitted. The other lifecycle events are gated behind the flag.
+        if activity_type != ActivityType.PULL_REQUEST_CLOSED:
+            groups = [
+                group
+                for group in groups
+                if features.has("organizations:pr-lifecycle-activity", group.project.organization)
+            ]
+        if not groups:
             return
 
-        if instance.pk is not None:
-            old = PullRequest.objects.filter(pk=instance.pk).first()
-            if old is None or old.state == PullRequestLifecycleState.CLOSED:
-                return
+        has_other_open_prs_by_group: set[int] | None = None
+        if activity_type != ActivityType.PULL_REQUEST_REOPENED:
+            has_other_open_prs_by_group = _groups_with_other_open_prs(
+                [group.id for group in groups], pull_request_id=pull_request_id
+            )
 
-        group_ids = list(
+        for group in groups:
+            data: dict[str, int | bool] = {"pull_request": pull_request_id}
+            if has_other_open_prs_by_group is not None:
+                data["has_other_open_prs"] = group.id in has_other_open_prs_by_group
+
+            Activity.objects.create(
+                project_id=group.project_id,
+                group=group,
+                type=activity_type.value,
+                ident=str(pull_request_id),
+                user_id=user_id,
+                data=data,
+            )
+    except Exception:
+        logger.exception(
+            "Failed to create pull request lifecycle activity",
+            extra={"activity_type": activity_type.name.lower()},
+        )
+
+
+def _get_pull_request_activity_type_from_state(
+    state: str | None,
+) -> ActivityType | None:
+    if is_open_pull_request_state(state):
+        return ActivityType.PULL_REQUEST_REOPENED
+
+    match state:
+        case PullRequestLifecycleState.CLOSED | PullRequestLifecycleState.SUPERSEDED:
+            return ActivityType.PULL_REQUEST_CLOSED
+        case PullRequestLifecycleState.MERGED:
+            return ActivityType.PULL_REQUEST_MERGED
+        case _:
+            return None
+
+
+def pull_request_state_changing(instance: PullRequest, **kwargs: object) -> None:
+    """Emit group activities when a linked PR moves between open and non-open states."""
+    try:
+        if instance.pk is None:
+            return
+
+        old_state = (
+            PullRequest.objects.filter(pk=instance.pk).values_list("state", flat=True).first()
+        )
+        previous_is_open = is_open_pull_request_state(old_state)
+        is_open = is_open_pull_request_state(instance.state)
+        if previous_is_open == is_open:
+            return
+
+        activity_type = _get_pull_request_activity_type_from_state(instance.state)
+        if activity_type is None:
+            return
+
+        group_ids: list[int] = list(
             GroupLink.objects.filter(
                 linked_type=GroupLink.LinkedType.pull_request,
                 linked_id=instance.id,
@@ -294,31 +433,24 @@ def pull_request_closing(instance: PullRequest, **kwargs: object) -> None:
         if not group_ids:
             return
 
-        def create_activities():
-            # This runs after the transaction commits, outside the try/except below,
-            # so it needs its own error handling to avoid propagating failures.
-            try:
-                for group in Group.objects.filter(id__in=group_ids).select_related("project"):
-                    Activity.objects.create(
-                        project_id=group.project_id,
-                        group=group,
-                        type=ActivityType.PULL_REQUEST_CLOSED.value,
-                        ident=str(instance.id),
-                        data={"pull_request": instance.id},
-                    )
-                    publish_action(
-                        PullRequestClosedAction(pull_request=instance.id),
-                        source=ActionSource.SYSTEM,
-                        group_id=group.id,
-                        project=group.project,
-                    )
-            except Exception:
-                logger.exception("Failed to create pull request closed activity")
-
-        transaction.on_commit(create_activities, router.db_for_write(PullRequest))
+        action_context = get_action_context()
+        user_id = (
+            action_context.actor.actor_id
+            if action_context is not None and action_context.actor.actor_type == GroupActorType.USER
+            else None
+        )
+        transaction.on_commit(
+            lambda: _create_pull_request_activities(
+                group_ids,
+                pull_request_id=instance.id,
+                activity_type=activity_type,
+                user_id=user_id,
+            ),
+            router.db_for_write(PullRequest),
+        )
     except Exception:
         # If something fails we don't want to block the model from saving.
-        logger.exception("Failed to create pull request closed activity")
+        logger.exception("Failed to create pull request lifecycle activity")
 
 
 pre_save.connect(
@@ -336,9 +468,9 @@ post_save.connect(resolved_in_commit, sender=Commit, dispatch_uid="resolved_in_c
 
 
 pre_save.connect(
-    pull_request_closing,
+    pull_request_state_changing,
     sender=PullRequest,
-    dispatch_uid="pull_request_closing",
+    dispatch_uid="pull_request_state_changing",
     weak=False,
 )
 

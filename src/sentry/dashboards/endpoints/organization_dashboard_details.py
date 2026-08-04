@@ -38,6 +38,8 @@ from sentry.apidocs.response_types import (
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsPermission
 from sentry.models.dashboard import (
     Dashboard,
+    DashboardFavoriteUser,
+    DashboardLastVisited,
     DashboardRevision,
 )
 from sentry.models.organization import Organization
@@ -256,6 +258,19 @@ class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
         dashboard.last_visited = timezone.now()
         dashboard.save(update_fields=["visits", "last_visited"])
 
+        # TODO: Only keep the last_visited per user logic once `dashboards-user-last-visited` is fully rolled out
+        if (
+            features.has(
+                "organizations:dashboards-user-last-visited", organization, actor=request.user
+            )
+            and request.user.is_authenticated
+        ):
+            DashboardLastVisited.objects.update_or_create(
+                user_id=request.user.id,
+                dashboard=dashboard,
+                defaults={"last_visited": timezone.now()},
+            )
+
         return Response(status=204)
 
 
@@ -280,13 +295,28 @@ class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
         if not request.user.is_authenticated:
             return Response(status=401)
 
-        is_favorited = request.data.get("isFavorited")
+        should_favorite = request.data.get("shouldFavorite", request.data.get("isFavorited"))
+
+        if features.has("organizations:dashboards-starred", organization, actor=request.user):
+            if should_favorite:
+                DashboardFavoriteUser.objects.insert_favorite_dashboard(
+                    organization=organization,
+                    user_id=request.user.id,
+                    dashboard=dashboard,
+                )
+            else:
+                DashboardFavoriteUser.objects.unfavorite_dashboard(
+                    organization=organization,
+                    user_id=request.user.id,
+                    dashboard=dashboard,
+                )
+            return Response(status=204)
 
         current_favorites = set(dashboard.favorited_by)
 
-        if is_favorited and request.user.id not in current_favorites:
+        if should_favorite and request.user.id not in current_favorites:
             current_favorites.add(request.user.id)
-        elif not is_favorited and request.user.id in current_favorites:
+        elif not should_favorite and request.user.id in current_favorites:
             current_favorites.remove(request.user.id)
         else:
             return Response(status=204)

@@ -1,0 +1,137 @@
+---
+title: SeerMarkdown
+description: Renders Seer's markdown output with issue linkification, embed widgets, and streaming support.
+source: 'sentry/components/seer/markdown'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/seer/markdown/index.tsx
+---
+
+import * as Storybook from 'sentry/stories';
+
+import {
+  BasicDemo,
+  EmbedRegistry,
+  LinkifyDemo,
+  StreamingEmbedDemo,
+} from './__stories__/components';
+
+`<SeerMarkdown>` wraps the core [`<Markdown>`](/stories/core/markdown/) component with Seer-specific overrides: issue short ID linkification, origin-relative links, flattened headings, and an **embed system** that renders structured widgets inline from tag syntax.
+
+```jsx
+import {SeerMarkdown} from 'sentry/components/seer/markdown';
+
+<SeerMarkdown raw={seerOutput} />;
+```
+
+## Basic Usage
+
+Renders standard markdown with Seer's component overrides and opinionated embeds applied.
+
+<Storybook.Demo>
+  <BasicDemo />
+</Storybook.Demo>
+
+```jsx
+<SeerMarkdown raw={markdownString} />
+```
+
+## Embeds
+
+Embeds are rich widgets rendered inline from [Markdoc-style tag syntax](https://markdoc.dev/). The Seer agent produces these tags; the frontend resolves them through a **registry + schema** system.
+
+### Syntax
+
+```
+{% timestamp %}{"value":"2025-07-15T14:30:00Z","format":"relative"}{% /timestamp %}
+```
+
+The JSON body between the opening and closing tags is the embed's data payload. It is validated against a Zod schema before rendering — invalid data renders nothing (with a dev-mode console warning).
+
+### Registry
+
+<EmbedRegistry />
+
+## Embed Architecture
+
+The embed system has four parts:
+
+| File                  | Role                                                                           |
+| --------------------- | ------------------------------------------------------------------------------ |
+| `embeds/schemas.ts`   | Zod schemas + metadata (description, level, feature flag) per embed            |
+| `embeds/utils.tsx`    | `defineSeerEmbed()` factory — creates components with automatic Zod validation |
+| `embeds/registry.tsx` | Runtime `Map` of name → component; queried by the `Tag` override               |
+| `embeds/index.ts`     | Imports all embed components and registers them                                |
+
+**Data flow:**
+
+1. The Seer agent produces markdown with `{% name %}{ ... }{% /name %}` tags
+2. The `marked` lexer (with tag extensions) tokenizes them as `TagToken`s
+3. `SeerMarkdown`'s `Tag` override looks up the name in `SeerEmbedRegistry`
+4. The registered component validates `data` against its Zod schema and renders
+
+**Backend codegen:** Schemas are exported to JSON Schema via `pnpm gen:embed-widgets`, producing `src/sentry/seer/agent/embed_widgets.generated.json`. The backend sends these schemas to the Seer agent so it knows what embeds are available and how to format them.
+
+### Adding a New Embed
+
+Adding a new embed requires three files and a codegen step. Use the `/seer-embed` skill for guided scaffolding.
+
+**1. Add the schema** in `embeds/schemas.ts`:
+
+```ts
+export const SEER_EMBED_SCHEMAS = {
+  // ...existing schemas
+  myWidget: {
+    description: 'A short description for the LLM.',
+    level: ['block'],
+    schema: z.object({
+      title: z.string(),
+      value: z.number(),
+    }),
+    examples: [{label: 'Basic', data: {title: 'Errors', value: 42}}],
+  },
+} as const satisfies Record<string, SeerEmbedSchema>;
+```
+
+**2. Create the component** in `embeds/components/myWidget.tsx`:
+
+```tsx
+import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
+
+export const MyWidget = defineSeerEmbed({
+  name: 'myWidget',
+  render({title, value}) {
+    return (
+      <span>
+        {title}: {value}
+      </span>
+    );
+  },
+});
+```
+
+**3. Register it** in `embeds/index.ts`:
+
+```ts
+import {MyWidget} from './components/myWidget';
+
+const embeds = [Timestamp, MyWidget];
+```
+
+**4. Regenerate the backend schema:**
+
+```bash
+pnpm gen:embed-widgets
+```
+
+## Props
+
+| Prop      | Type                      | Default    | Description                                                         |
+| --------- | ------------------------- | ---------- | ------------------------------------------------------------------- |
+| `raw`     | `string`                  | —          | The markdown string to render                                       |
+| `variant` | `'static' \| 'streaming'` | `'static'` | Streaming mode enables decode animation and suppresses partial tags |
+
+All other `Markdown` props are supported except `components`, which is pre-configured.
+
+## See Also
+
+- [Markdown](/stories/core/markdown/) — the base component this wraps; covers streaming, component overrides, and tag syntax in detail

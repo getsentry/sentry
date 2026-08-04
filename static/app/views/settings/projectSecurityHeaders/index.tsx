@@ -42,14 +42,6 @@ function ProjectSecurityHeaders() {
         name: 'Content Security Policy (CSP)',
         url: recreateRoute('csp/', {routes, params}),
       },
-      {
-        name: 'Certificate Transparency (Expect-CT)',
-        url: recreateRoute('expect-ct/', {routes, params}),
-      },
-      {
-        name: 'HTTP Public Key Pinning (HPKP)',
-        url: recreateRoute('hpkp/', {routes, params}),
-      },
     ],
     [routes, params]
   );

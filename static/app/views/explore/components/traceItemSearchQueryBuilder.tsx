@@ -33,11 +33,13 @@ export type TraceItemSearchQueryBuilderProps = {
   allowedAttributeKeys?: string[];
   attributeQuery?: string;
   caseInsensitive?: CaseInsensitive;
+  defaultToAskSeerOnFreeTextSearch?: SearchQueryBuilderProps['defaultToAskSeerOnFreeTextSearch'];
   disableRecentSearches?: boolean;
   disabled?: boolean;
   disallowFreeText?: boolean;
   disallowHas?: boolean;
   disallowLogicalOperators?: boolean;
+  disallowNegation?: boolean;
   hiddenAttributeKeys?: string[];
   invalidFilterKeys?: string[];
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
@@ -110,8 +112,10 @@ export function useTraceItemSearchQueryBuilderProps({
   disallowHas,
   disallowFreeText,
   disallowLogicalOperators,
+  disallowNegation,
   disableRecentSearches,
   disabled,
+  defaultToAskSeerOnFreeTextSearch,
   attributeQuery,
   hiddenAttributeKeys,
   allowedAttributeKeys,
@@ -121,6 +125,7 @@ export function useTraceItemSearchQueryBuilderProps({
   const placeholderText = placeholder ?? itemTypeToDefaultPlaceholder(itemType);
   const {selection} = usePageFilters();
   const effectiveProjects = projects ?? selection.projects;
+  const effectiveDatetime = datetime ?? selection.datetime;
 
   const functionTags = useFunctionTags(itemType, supportedAggregates);
   const filterKeySections = useFilterKeySections(itemType, stringAttributes);
@@ -152,6 +157,7 @@ export function useTraceItemSearchQueryBuilderProps({
     extraTags: functionTags,
     query: attributeQuery,
     hiddenKeys: hiddenAttributeKeys,
+    datetime,
   });
   // When an allowlist is in effect, the static filterKeys are already curated to
   // it. Skip the dynamic EAP fetch so typed-key autocomplete only matches against
@@ -163,7 +169,7 @@ export function useTraceItemSearchQueryBuilderProps({
       itemType,
       effectiveProjects,
       selection.environments,
-      selection.datetime,
+      effectiveDatetime,
       attributeQuery,
       hiddenAttributeKeys,
       allowedAttributeKeys,
@@ -171,10 +177,10 @@ export function useTraceItemSearchQueryBuilderProps({
     [
       allowedAttributeKeys,
       attributeQuery,
+      effectiveDatetime,
       effectiveProjects,
       hiddenAttributeKeys,
       itemType,
-      selection.datetime,
       selection.environments,
     ]
   );
@@ -206,6 +212,8 @@ export function useTraceItemSearchQueryBuilderProps({
       disallowUnsupportedFilters: !getTagKeys,
       disallowFreeText,
       disallowLogicalOperators,
+      disallowNegation,
+      defaultToAskSeerOnFreeTextSearch,
       recentSearches: disableRecentSearches
         ? undefined
         : itemTypeToRecentSearches(itemType),
@@ -230,8 +238,10 @@ export function useTraceItemSearchQueryBuilderProps({
       caseInsensitive,
       disableRecentSearches,
       disabled,
+      defaultToAskSeerOnFreeTextSearch,
       disallowFreeText,
       disallowLogicalOperators,
+      disallowNegation,
       filterKeySections,
       filterTags,
       getFilterTokenWarning,
@@ -277,6 +287,7 @@ export function TraceItemSearchQueryBuilder({
   projects,
   supportedAggregates = [],
   disabled,
+  defaultToAskSeerOnFreeTextSearch,
   namespace,
   caseInsensitive,
   onCaseInsensitiveClick,
@@ -285,6 +296,7 @@ export function TraceItemSearchQueryBuilder({
   disallowHas,
   disallowFreeText,
   disallowLogicalOperators,
+  disallowNegation,
   disableRecentSearches,
   attributeQuery,
   hiddenAttributeKeys,
@@ -301,6 +313,7 @@ export function TraceItemSearchQueryBuilder({
     numberSecondaryAliases,
     stringSecondaryAliases,
     initialQuery,
+    placeholder,
     searchSource,
     getFilterTokenWarning,
     onBlur,
@@ -317,12 +330,13 @@ export function TraceItemSearchQueryBuilder({
     disallowHas,
     disallowFreeText,
     disallowLogicalOperators,
+    disallowNegation,
     disableRecentSearches,
     disabled,
+    defaultToAskSeerOnFreeTextSearch,
     attributeQuery,
     hiddenAttributeKeys,
     allowedAttributeKeys,
-    placeholder,
     datetime,
     invalidFilterKeys,
   });

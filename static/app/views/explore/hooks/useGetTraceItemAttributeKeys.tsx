@@ -2,6 +2,7 @@ import {useCallback} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
@@ -15,6 +16,7 @@ interface UseGetTraceItemAttributeKeysProps extends Omit<
   UseTraceItemAttributeBaseProps,
   'type'
 > {
+  datetime?: PageFilters['datetime'];
   projectIds?: Array<string | number>;
   query?: string;
 }
@@ -23,6 +25,7 @@ export function useGetTraceItemAttributeKeys({
   traceItemType,
   projectIds,
   query,
+  datetime,
 }: UseGetTraceItemAttributeKeysProps) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
@@ -40,7 +43,7 @@ export function useGetTraceItemAttributeKeys({
         const {json} = await queryClient.fetchQuery(
           traceItemAttributeKeysOptions({
             organization,
-            selection,
+            selection: datetime ? {...selection, datetime} : selection,
             traceItemType,
             projectIds: projectIds ?? selection.projects,
             search: queryString,
@@ -53,6 +56,6 @@ export function useGetTraceItemAttributeKeys({
         throw new Error(`Unable to fetch trace item attribute keys: ${e}`);
       }
     },
-    [organization, projectIds, query, queryClient, selection, traceItemType]
+    [datetime, organization, projectIds, query, queryClient, selection, traceItemType]
   );
 }

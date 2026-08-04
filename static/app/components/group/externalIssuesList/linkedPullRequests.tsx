@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Avatar, UserAvatar} from '@sentry/scraps/avatar';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -32,6 +32,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {
   getPullRequestStatusLabel,
+  PullRequestChecksBadge,
+  PullRequestReviewBadge,
   PullRequestStatusBadge,
 } from './pullRequestStatusBadge';
 
@@ -99,6 +101,8 @@ function LinkedPullRequestRow({
           trackAnalytics('issue_details.external_issue_pull_request_clicked', {
             organization,
             attribution_type: pullRequest.attribution?.type,
+            checks_status: pullRequest.checksStatus,
+            review_status: pullRequest.reviewStatus,
             pull_request_id: pullRequest.id,
             pull_request_status: pullRequest.status,
             repository_id: pullRequest.repository.id,
@@ -115,7 +119,7 @@ function LinkedPullRequestRow({
               variant="muted"
             />
           </Flex>
-          <Flex direction="column" gap="xs" minWidth={0}>
+          <Stack gap="xs" minWidth={0}>
             <PullRequestTitle>
               <Text as="span" bold textWrap="nowrap">
                 {pullRequestLabel}
@@ -126,6 +130,12 @@ function LinkedPullRequestRow({
             </PullRequestTitle>
             <Flex align="center" gap="xs">
               <PullRequestStatusBadge status={pullRequest.status} />
+              {pullRequest.checksStatus && (
+                <PullRequestChecksBadge status={pullRequest.checksStatus} />
+              )}
+              {pullRequest.reviewStatus && (
+                <PullRequestReviewBadge status={pullRequest.reviewStatus} />
+              )}
               {pullRequest.attribution ? (
                 <PullRequestAttributionAvatar attribution={pullRequest.attribution} />
               ) : author ? (
@@ -140,7 +150,7 @@ function LinkedPullRequestRow({
                 />
               </Text>
             </Flex>
-          </Flex>
+          </Stack>
         </Grid>
       </PullRequestRow>
     </Tooltip>
@@ -229,6 +239,7 @@ export function useLinkedPullRequests({group}: {group: Group}) {
       '/organizations/$organizationIdOrSlug/issues/$issueId/pull-requests/',
       {
         path: {organizationIdOrSlug: organization.slug, issueId: group.id},
+        query: {expand: 'checksAndReview'},
         staleTime: 30_000,
       }
     )
@@ -244,7 +255,7 @@ export function LinkedPullRequests({group, showEmptyState}: LinkedPullRequestsPr
   }
 
   if (isPending && activityPullRequestIds.size > 0) {
-    return <Placeholder height="40px" />;
+    return <Placeholder height="52px" />;
   }
 
   if (data?.pullRequests.length === 0) {
@@ -260,10 +271,9 @@ export function LinkedPullRequests({group, showEmptyState}: LinkedPullRequestsPr
   }
 
   return (
-    <Flex
+    <Stack
       as="ul"
       aria-label={t('Linked pull requests')}
-      direction="column"
       border="primary"
       radius="md"
       overflow="hidden"
@@ -280,7 +290,7 @@ export function LinkedPullRequests({group, showEmptyState}: LinkedPullRequestsPr
           <LinkedPullRequestRow group={group} pullRequest={pullRequest} />
         </Container>
       ))}
-    </Flex>
+    </Stack>
   );
 }
 

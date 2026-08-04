@@ -75,7 +75,7 @@ function SearchComboBox<T extends SearchItem>(props: SearchComboBoxProps<T>) {
   const listBoxRef = useRef<HTMLUListElement | null>(null);
   const popoverRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
-  const handleSelectionChange = useCallback(
+  const handleValueChange = useCallback(
     (key: Key | null) => {
       if (key) {
         navigate({query: {source: key}}, {replace: true});
@@ -93,7 +93,7 @@ function SearchComboBox<T extends SearchItem>(props: SearchComboBoxProps<T>) {
     inputValue,
     onInputChange: setInputValue,
     defaultFilter: filter,
-    onSelectionChange: handleSelectionChange,
+    onChange: handleValueChange,
   });
 
   const {inputProps, listBoxProps, labelProps} = useSearchTokenCombobox<T>(

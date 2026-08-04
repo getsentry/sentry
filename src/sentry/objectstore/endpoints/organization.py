@@ -88,7 +88,7 @@ class ObjectstoreEndpoint(Endpoint):
             url=target_url,
             headers=headers,
             data=get_raw_body(request._request),
-            params=dict(request.GET) if request.GET else None,
+            params=request.META.get("QUERY_STRING") or None,
             stream=True,
             allow_redirects=False,
         )

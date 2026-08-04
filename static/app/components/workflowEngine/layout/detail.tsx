@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 
@@ -22,30 +21,25 @@ function DetailLayoutComponent({children}: WorkflowEngineDetailLayoutProps) {
   return <Stack flex={1}>{children}</Stack>;
 }
 
-const StyledBody = styled(Layout.Body)`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space['2xl']};
-`;
-
 interface RequiredChildren {
   children: React.ReactNode;
 }
+
+function Body({children}: RequiredChildren) {
+  return <Layout.Body gap="2xl">{children}</Layout.Body>;
+}
+
 function Main({children}: RequiredChildren) {
   return (
     <Layout.Main>
-      <Flex direction="column" gap="xl">
-        {children}
-      </Flex>
+      <Stack gap="xl">{children}</Stack>
     </Layout.Main>
   );
 }
 function Sidebar({children}: RequiredChildren) {
   return (
     <Layout.Side>
-      <Flex direction="column" gap="xl">
-        {children}
-      </Flex>
+      <Stack gap="xl">{children}</Stack>
     </Layout.Side>
   );
 }
@@ -64,7 +58,7 @@ function Title({title, project}: {title: string; project?: AvatarProject}) {
 }
 
 export const DetailLayout = Object.assign(DetailLayoutComponent, {
-  Body: StyledBody,
+  Body,
   Main,
   Sidebar,
   Title,

@@ -21,6 +21,8 @@ import urllib3
 from dateutil.parser import parse as parse_datetime
 from django.conf import settings
 from django.core.cache import cache
+from sentry_sdk.traces import StreamedSpan
+from sentry_sdk.tracing_utils import has_span_streaming_enabled
 from snuba_sdk import Column, DeleteQuery, Function, MetricsQuery, Request
 from snuba_sdk.legacy import json_to_snql
 from snuba_sdk.query import SelectableExpression
@@ -248,7 +250,7 @@ SPAN_EAP_COLUMN_MAP = {
     "user.ip": "attr_str[sentry.user.ip]",
     "user.geo.subregion": "attr_str[sentry.user.geo.subregion]",
     "user.geo.country_code": "attr_str[sentry.user.geo.country_code]",
-    "gen_ai.request.reasoning_effort": "attr_str[gen_ai.request.reasoning_effort]",
+    "gen_ai.request.reasoning.level": "attr_str[gen_ai.request.reasoning.level]",
     "cloudflare.durable_object.query.bindings": "attr_num[cloudflare.durable_object.query.bindings]",
     "cloudflare.durable_object.response.rows_read": "attr_num[cloudflare.durable_object.response.rows_read]",
     "cloudflare.durable_object.response.rows_written": "attr_num[cloudflare.durable_object.response.rows_written]",
@@ -1185,8 +1187,14 @@ def _apply_cache_and_build_results(
 ) -> ResultSet:
     parent_api: str = "<missing>"
     scope = sentry_sdk.get_current_scope()
-    if scope.transaction:
-        parent_api = scope.transaction.name
+
+    if has_span_streaming_enabled(sentry_sdk.get_client().options):
+        span = scope.streamed_span
+        if type(span) is StreamedSpan:
+            parent_api = span._segment.name
+    else:
+        if scope.transaction:
+            parent_api = scope.transaction.name
 
     # Store the original position of the query so that we can maintain the order
     snuba_requests_list: list[tuple[int, SnubaRequest]] = []
@@ -1419,8 +1427,13 @@ def _snuba_query(
     thread_isolation_scope, thread_current_scope, snuba_request = params
     with sentry_sdk.scope.use_isolation_scope(thread_isolation_scope):
         with sentry_sdk.scope.use_scope(thread_current_scope):
-            headers = snuba_request.headers
             request = snuba_request.request
+            headers = snuba_request.headers
+            # Delete queries do not benefit from compression
+            should_compress = not isinstance(request.query, DeleteQuery)
+            if should_compress:
+                headers = {**headers, "Accept-Encoding": "zstd"}
+
             try:
                 referrer = headers.get("referer", "unknown")
 
@@ -1434,6 +1447,9 @@ def _snuba_query(
                 # but we still want to know a general sense of how referrers impact performance
                 sentry_sdk.set_tag("query.referrer", referrer)
                 sentry_sdk.set_attribute("query.referrer", referrer)
+
+                # Whether client asked snuba to zstd-compress the resp.
+                sentry_sdk.set_attribute("snuba.request_compressed", should_compress)
 
                 if isinstance(request.query, MetricsQuery):
                     return (

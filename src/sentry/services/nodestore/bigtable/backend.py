@@ -4,12 +4,10 @@ import os
 from datetime import timedelta
 from typing import Any
 
-import sentry_sdk
-
 from sentry.objectstore.metrics import measure_storage_operation
 from sentry.services.nodestore.base import NodeStorage
 from sentry.utils.kvstore.bigtable import BigtableKVStorage
-from sentry.utils.tracing import set_span_tag, start_span
+from sentry.utils.tracing import set_span_tag, start_span, trace
 
 
 class BigtableNodeStorage(NodeStorage):
@@ -65,7 +63,7 @@ class BigtableNodeStorage(NodeStorage):
         self.automatic_expiry = automatic_expiry
         self.skip_deletes = automatic_expiry and "_SENTRY_CLEANUP" in os.environ
 
-    @sentry_sdk.tracing.trace
+    @trace
     def _get_bytes(self, id: str) -> bytes | None:
         # Note: This metric encapsulates any decompression performed by `self.store.get()`. Other
         # instances of this metric stop measuring before decompression happens.
@@ -75,7 +73,7 @@ class BigtableNodeStorage(NodeStorage):
                 metric_emitter.record_uncompressed_size(len(result))
             return result
 
-    @sentry_sdk.tracing.trace
+    @trace
     def _get_bytes_multi(self, id_list: list[str]) -> dict[str, bytes | None]:
         rv: dict[str, bytes | None] = {id: None for id in id_list}
         # Note: This metric encapsulates any decompression performed by `self.store.get_many()`. Other

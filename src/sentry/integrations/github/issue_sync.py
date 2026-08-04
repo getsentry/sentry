@@ -4,7 +4,6 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-from sentry import features
 from sentry.integrations.mixins.issues import IssueSyncIntegration, ResolveSyncAction
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -26,13 +25,6 @@ class GitHubIssueSyncSpec(IssueSyncIntegration):
     outbound_assignee_key = "sync_forward_assignment"
     inbound_assignee_key = "sync_reverse_assignment"
     resolution_strategy_key = "resolution_strategy"
-
-    def check_feature_flag(self) -> bool:
-        """
-        A temporary method so we can gate Github & Github Enterprise project management features.
-        """
-        ff_key = f"organizations:integrations-{self.model.provider}-project-management"
-        return features.has(ff_key, self.organization)
 
     def split_external_issue_key(
         self, external_issue_key: str
@@ -203,9 +195,6 @@ class GitHubIssueSyncSpec(IssueSyncIntegration):
         Given webhook data, check whether the GitHub issue status changed.
         GitHub issues only have open/closed state.
         """
-        if not self.check_feature_flag():
-            return ResolveSyncAction.NOOP
-
         if data.get("action") == IssueEvenntWebhookActionType.CLOSED.value:
             return ResolveSyncAction.RESOLVE
         elif data.get("action") == IssueEvenntWebhookActionType.REOPENED.value:

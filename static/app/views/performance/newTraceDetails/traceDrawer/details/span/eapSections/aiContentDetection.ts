@@ -1,3 +1,4 @@
+import {markdownRendersVisibleContent} from 'sentry/utils/marked/marked';
 import {parseJsonWithFix} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
 type AIContentType =
@@ -138,7 +139,12 @@ export function detectAIContentType(text: string): AIContentDetectionResult {
   }
 
   if (MARKDOWN_INDICATORS.some(re => re.test(trimmed))) {
-    return {type: 'markdown'};
+    // Some markdown renders to nothing (e.g. a bare/empty ``` fence). Treat it
+    // as plain text so the raw source is shown instead of a blank bubble.
+    // See TET-2670.
+    return markdownRendersVisibleContent(trimmed)
+      ? {type: 'markdown'}
+      : {type: 'plain-text'};
   }
 
   return {type: 'plain-text'};

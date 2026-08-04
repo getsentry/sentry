@@ -55,9 +55,9 @@ class BuildsExportEndpointTest(APITestCase):
         return list(csv.reader(io.StringIO(content)))
 
     def _create_installable_build(self, **kwargs) -> PreprodArtifact:
-        # Installable per is_installable_artifact(): an installable file plus a
-        # build_number (default APK, so no iOS signature check applies). Tests that want
-        # a non-installable build call create_preprod_artifact directly.
+        # Installable per is_installable_artifact(): an installable file (default APK,
+        # so no iOS signature check applies). Tests that want a non-installable build
+        # call create_preprod_artifact directly.
         kwargs.setdefault("installable_app_file_id", 1)
         kwargs.setdefault("build_number", 1)
         return self.create_preprod_artifact(**kwargs)
@@ -195,20 +195,21 @@ class BuildsExportEndpointTest(APITestCase):
 
     def test_excludes_non_installable_builds(self) -> None:
         # Matches the list/UI is_installable_artifact() definition: a build needs an
-        # installable file AND a build_number (iOS also needs a valid, non-app-store
-        # signature). Builds failing any of these are omitted, even with downloads.
+        # installable file (iOS also needs a valid, non-app-store signature). Builds
+        # without a file, or iOS builds with an invalid signature, are omitted even
+        # with downloads. A missing build_number does not exclude a build.
         installable = self._create_installable_build(app_id="com.example.installable")
         self.create_installable_preprod_artifact(installable, download_count=3)
 
-        # No installable file at all.
-        no_file = self.create_preprod_artifact(app_id="com.example.nofile")
-        self.create_installable_preprod_artifact(no_file, download_count=7)
-
-        # Has an installable file but no build_number.
+        # Has an installable file but no build_number — still installable.
         no_build_number = self.create_preprod_artifact(
             app_id="com.example.nobuildnum", installable_app_file_id=2
         )
         self.create_installable_preprod_artifact(no_build_number, download_count=11)
+
+        # No installable file at all.
+        no_file = self.create_preprod_artifact(app_id="com.example.nofile")
+        self.create_installable_preprod_artifact(no_file, download_count=7)
 
         # iOS build with file + build_number but an invalid code signature.
         bad_signature = self._create_installable_build(
@@ -219,9 +220,11 @@ class BuildsExportEndpointTest(APITestCase):
         self.create_installable_preprod_artifact(bad_signature, download_count=13)
 
         rows = self._csv_rows(self._request({}))
-        assert len(rows) == 2  # header + only the fully-installable build
-        assert _col(rows[1], "app_id") == "com.example.installable"
-        assert _col(rows[1], "download_count") == "3"
+        downloads_by_app_id = {_col(r, "app_id"): _col(r, "download_count") for r in rows[1:]}
+        assert downloads_by_app_id == {
+            "com.example.installable": "3",
+            "com.example.nobuildnum": "11",
+        }
 
     # --- filtering parity with the list endpoint ----------------------------
 

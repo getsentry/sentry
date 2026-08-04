@@ -2,6 +2,7 @@ import {
   isEventedProfile,
   isJSProfile,
   isSampledProfile,
+  isSentryAndroidContinuousProfileChunk,
   isSentryContinuousProfileChunk,
 } from 'sentry/utils/profiling/guards/profile';
 
@@ -56,4 +57,39 @@ describe('profile', () => {
   it('is js self profile', () => expect(isJSProfile(jsProfile)).toBe(true));
   it('is continuous profile chunk', () =>
     expect(isSentryContinuousProfileChunk(sentryContinuousProfileChunk)).toBe(true));
+
+  describe('isSentryAndroidContinuousProfileChunk', () => {
+    it('matches the explicit android trace version', () =>
+      expect(
+        isSentryAndroidContinuousProfileChunk({
+          platform: 'android',
+          version: '2.android-trace',
+        })
+      ).toBe(true));
+
+    it('matches an android chunk with a missing version', () =>
+      expect(
+        isSentryAndroidContinuousProfileChunk({
+          platform: 'android',
+          profile: {methods: []},
+        })
+      ).toBe(true));
+
+    it('matches an android chunk that stores frames in methods', () =>
+      expect(
+        isSentryAndroidContinuousProfileChunk({
+          platform: 'android',
+          version: '2',
+          profile: {methods: []},
+        })
+      ).toBe(true));
+
+    it('does not match a version="2" sampled android chunk', () =>
+      expect(
+        isSentryAndroidContinuousProfileChunk({
+          ...sentryContinuousProfileChunk,
+          platform: 'android',
+        })
+      ).toBe(false));
+  });
 });

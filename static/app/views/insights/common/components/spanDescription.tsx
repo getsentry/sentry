@@ -29,7 +29,6 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 interface Props {
   groupId: SpanResponse[SpanFields.SPAN_GROUP];
-  op: SpanResponse[SpanFields.SPAN_OP];
   preliminaryDescription?: string;
   shouldClipHeight?: boolean;
   showBorder?: boolean;
@@ -42,7 +41,7 @@ export function DatabaseSpanDescription({
   preliminaryDescription,
   showBorder = true,
   shouldClipHeight = true,
-}: Omit<Props, 'op'>) {
+}: Props) {
   const navigate = useNavigate();
   const location = useLocation();
   const {projects} = useProjects();

@@ -3,7 +3,6 @@ import type {Location} from 'history';
 import isInteger from 'lodash/isInteger';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
-import * as qs from 'query-string';
 
 import {
   ALL_ACCESS_PROJECTS,
@@ -28,6 +27,7 @@ import type {Environment, MinimalProject, Project} from 'sentry/types/project';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 
 type EnvironmentId = Environment['id'];
@@ -491,13 +491,12 @@ function updateParams(
 
   const newQuery = getNewQueryParams(obj, location.query, options);
 
-  // Only push new location if query params has changed because this will cause a heavy re-render
-  if (qs.stringify(newQuery) === qs.stringify(location.query)) {
-    return;
-  }
-
-  const to = {pathname: location.pathname, query: newQuery};
-  navigate(to, {replace: !!options?.replace});
+  navigateIfQueryChanged(
+    navigate,
+    location,
+    {query: newQuery},
+    {replace: options?.replace}
+  );
 }
 
 /**

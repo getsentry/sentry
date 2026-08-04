@@ -23,7 +23,9 @@ export function useGridListItem<T>({
 
   const onFocus = useCallback(
     (evt: FocusEvent<HTMLDivElement>) => {
-      if (focusable) {
+      // Only redirect when React Aria focuses the row itself. Focus events from a
+      // nested grid or input bubble through the row and must retain their target.
+      if (focusable && evt.target === evt.currentTarget) {
         shiftFocusToChild(evt.currentTarget, item, state);
       }
     },

@@ -20,7 +20,6 @@ import {IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
-import {DatasetSource} from 'sentry/utils/discover/types';
 import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -52,7 +51,7 @@ import {
 } from './layoutUtils';
 import {SortableWidget} from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
-import {DashboardFilterKeys, WidgetType} from './types';
+import {DashboardFilterKeys} from './types';
 import {connectDashboardCharts, getMergedDashboardFilters} from './utils';
 import type {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 
@@ -86,7 +85,6 @@ type Props = {
   onUpdate: (widgets: Widget[]) => void;
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
-  handleChangeSplitDataset?: (widget: Widget, index: number) => void;
   isEmbedded?: boolean;
   isPreview?: boolean;
   newWidget?: Widget;
@@ -295,27 +293,6 @@ function DashboardInner({
     [organization, dashboard.widgets, onEditWidget]
   );
 
-  const handleChangeSplitDataset = (widget: Widget, index: number) => {
-    const widgetCopy = cloneDeep({
-      ...widget,
-      id: undefined,
-    });
-
-    const nextList = [...dashboard.widgets];
-    const nextWidgetData = {
-      ...widgetCopy,
-      widgetType: WidgetType.TRANSACTIONS,
-      datasetSource: DatasetSource.USER,
-      id: widget.id,
-    };
-    nextList[index] = nextWidgetData;
-
-    onUpdate(nextList);
-    if (!isEditingDashboard) {
-      handleUpdateWidgetList(nextList);
-    }
-  };
-
   const handleLayoutChange = useCallback(
     (_: any, allLayouts: LayoutState) => {
       if (!isEditingDashboard) {
@@ -448,7 +425,6 @@ function DashboardInner({
               onDelete={handleDeleteWidget(widget)}
               onEdit={handleEditWidget(index)}
               onDuplicate={handleDuplicateWidget(widget)}
-              onSetTransactionsDataset={() => handleChangeSplitDataset(widget, index)}
               isEmbedded={isEmbedded}
               isPreview={isPreview}
               isPrebuiltDashboard={defined(dashboard.prebuiltId)}

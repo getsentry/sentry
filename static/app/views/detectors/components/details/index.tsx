@@ -22,7 +22,7 @@ export function DetectorDetailsContent({detector, project}: DetectorDetailsConte
   switch (detectorType) {
     case 'metric_issue':
       // Metric issue detectors do not support time period filters since the interval dictates what time periods are available.
-      return <MetricDetectorDetails detector={detector} project={project} />;
+      return <MetricDetectorDetails detector={detector} />;
     case 'uptime_domain_failure':
       return (
         <PageFiltersContainer>
@@ -52,14 +52,14 @@ export function DetectorDetailsContent({detector, project}: DetectorDetailsConte
     case 'preprod_size_analysis':
       return (
         <PageFiltersContainer>
-          <MobileBuildDetectorDetails detector={detector} project={project} />
+          <MobileBuildDetectorDetails detector={detector} />
         </PageFiltersContainer>
       );
     default:
       unreachable(detectorType);
       return (
         <PageFiltersContainer>
-          <FallbackDetectorDetails detector={detector} project={project} />
+          <FallbackDetectorDetails detector={detector} />
         </PageFiltersContainer>
       );
   }

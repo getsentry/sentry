@@ -1,5 +1,5 @@
 import {InfoTip} from '@sentry/scraps/info';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -26,10 +26,10 @@ export function PageHeadingQuestionTooltip({
   linkLabel,
 }: PageHeadingQuestionTooltipProps) {
   const contents = (
-    <Flex direction="column" align="start" gap="md">
+    <Stack align="start" gap="md">
       <Text align="left">{title}</Text>
       <ExternalLink href={docsUrl}>{linkLabel ?? t('Read the Docs')}</ExternalLink>
-    </Flex>
+    </Stack>
   );
 
   return <InfoTip title={contents} size="sm" position="right" />;

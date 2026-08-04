@@ -219,6 +219,219 @@ describe('FilterSelector', () => {
     expect(screen.getByRole('gridcell', {name: /Northern Europe/})).toBeInTheDocument();
   });
 
+  it('keeps the "is" operator when switching from "(no value)" to a real value', async () => {
+    render(
+      <FilterSelector
+        globalFilter={{...mockGlobalFilter, value: '!has:browser'}}
+        searchBarData={mockSearchBarData}
+        onUpdateFilter={mockOnUpdateFilter}
+        onRemoveFilter={mockOnRemoveFilter}
+      />
+    );
+
+    const button = screen.getByRole('button', {name: /browser/});
+    await userEvent.click(button);
+
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select (no value)'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select firefox'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+    expect(mockOnUpdateFilter).toHaveBeenCalledWith({
+      ...mockGlobalFilter,
+      value: 'browser:firefox',
+    });
+  });
+
+  it('keeps the "is not" operator when switching from "(no value)" to a real value', async () => {
+    render(
+      <FilterSelector
+        globalFilter={{...mockGlobalFilter, value: 'has:browser'}}
+        searchBarData={mockSearchBarData}
+        onUpdateFilter={mockOnUpdateFilter}
+        onRemoveFilter={mockOnRemoveFilter}
+      />
+    );
+
+    const button = screen.getByRole('button', {name: /browser/});
+    await userEvent.click(button);
+
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select (no value)'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select firefox'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+    expect(mockOnUpdateFilter).toHaveBeenCalledWith({
+      ...mockGlobalFilter,
+      value: '!browser:firefox',
+    });
+  });
+
+  it('collapses "contains" to "is" when only "(no value)" is persisted', async () => {
+    const {rerender} = render(
+      <FilterSelector
+        globalFilter={mockGlobalFilter}
+        searchBarData={mockSearchBarData}
+        onUpdateFilter={mockOnUpdateFilter}
+        onRemoveFilter={mockOnRemoveFilter}
+      />
+    );
+
+    const button = screen.getByRole('button', {
+      name: `${mockGlobalFilter.tag.key} contains All`,
+    });
+    await userEvent.click(button);
+
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select (no value)'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+    expect(mockOnUpdateFilter).toHaveBeenCalledWith({
+      ...mockGlobalFilter,
+      value: '!has:browser',
+    });
+
+    rerender(
+      <FilterSelector
+        globalFilter={{...mockGlobalFilter, value: '!has:browser'}}
+        searchBarData={mockSearchBarData}
+        onUpdateFilter={mockOnUpdateFilter}
+        onRemoveFilter={mockOnRemoveFilter}
+      />
+    );
+
+    const trigger = screen.getByRole('button', {name: /browser/});
+    await waitFor(() => expect(trigger).not.toHaveTextContent('contains'));
+    expect(trigger).toHaveTextContent('(no value)');
+  });
+
+  it('rewrites the value without corrupting the query when editing a combined value + "(no value)" filter', async () => {
+    render(
+      <FilterSelector
+        globalFilter={{...mockGlobalFilter, value: '(browser:chrome OR !has:browser)'}}
+        searchBarData={mockSearchBarData}
+        onUpdateFilter={mockOnUpdateFilter}
+        onRemoveFilter={mockOnRemoveFilter}
+      />
+    );
+
+    const button = screen.getByRole('button', {name: /browser/});
+    await userEvent.click(button);
+
+    expect(await screen.findByRole('checkbox', {name: 'Select chrome'})).toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Select (no value)'})).toBeChecked();
+
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select firefox'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+    const emittedValue = mockOnUpdateFilter.mock.calls.at(-1)?.[0]?.value as string;
+    expect(emittedValue).toBe('(browser:[chrome,firefox] OR !has:browser)');
+  });
+
+  it('intersects (AND) a value with "(no value)" when the operator is negated', async () => {
+    render(
+      <FilterSelector
+        globalFilter={{...mockGlobalFilter, value: 'has:browser'}}
+        searchBarData={mockSearchBarData}
+        onUpdateFilter={mockOnUpdateFilter}
+        onRemoveFilter={mockOnRemoveFilter}
+      />
+    );
+
+    const button = screen.getByRole('button', {name: /browser/});
+    await userEvent.click(button);
+
+    expect(
+      await screen.findByRole('checkbox', {name: 'Select (no value)'})
+    ).toBeChecked();
+
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select firefox'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+    expect(mockOnUpdateFilter).toHaveBeenCalledWith({
+      ...mockGlobalFilter,
+      value: '(!browser:firefox AND has:browser)',
+    });
+  });
+
+  describe('emits the correct query for each operator + "(no value)" combination', () => {
+    async function openSelector() {
+      await userEvent.click(screen.getByRole('button', {name: /browser/}));
+    }
+
+    async function selectOperator(target: string, current = 'contains') {
+      await userEvent.click(screen.getByRole('button', {name: current}));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: target}));
+    }
+
+    async function selectNoValue() {
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Select (no value)'}));
+    }
+
+    async function apply() {
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+    }
+
+    function lastEmittedValue() {
+      return mockOnUpdateFilter.mock.calls.at(-1)?.[0]?.value as string;
+    }
+
+    describe('with no existing value', () => {
+      it.each([
+        ['is', '!has:browser'],
+        ['is not', 'has:browser'],
+        ['contains', '!has:browser'],
+        ['does not contain', 'has:browser'],
+      ])('%s + (no value) -> %s', async (operator, expected) => {
+        render(
+          <FilterSelector
+            globalFilter={mockGlobalFilter}
+            searchBarData={mockSearchBarData}
+            onUpdateFilter={mockOnUpdateFilter}
+            onRemoveFilter={mockOnRemoveFilter}
+          />
+        );
+
+        await openSelector();
+        if (operator !== 'contains') {
+          await selectOperator(operator);
+        }
+        await selectNoValue();
+        await apply();
+
+        expect(lastEmittedValue()).toBe(expected);
+      });
+    });
+
+    describe('with an existing value', () => {
+      it.each([
+        ['is', '(browser:firefox OR !has:browser)'],
+        ['is not', '(!browser:firefox AND has:browser)'],
+        ['contains', `(browser:${WildcardOperators.CONTAINS}firefox OR !has:browser)`],
+        [
+          'does not contain',
+          `(!browser:${WildcardOperators.CONTAINS}firefox AND has:browser)`,
+        ],
+      ])('%s value + (no value) -> %s', async (operator, expected) => {
+        render(
+          <FilterSelector
+            globalFilter={mockGlobalFilter}
+            searchBarData={mockSearchBarData}
+            onUpdateFilter={mockOnUpdateFilter}
+            onRemoveFilter={mockOnRemoveFilter}
+          />
+        );
+
+        await openSelector();
+        if (operator !== 'contains') {
+          await selectOperator(operator);
+        }
+        await userEvent.click(screen.getByRole('checkbox', {name: 'Select firefox'}));
+        await selectNoValue();
+        await apply();
+
+        expect(lastEmittedValue()).toBe(expected);
+      });
+    });
+  });
+
   it('allows searching for values over 70 characters', async () => {
     // Create a long transaction name that exceeds 70 characters
     const longValue =
@@ -246,8 +459,8 @@ describe('FilterSelector', () => {
 
     // Wait for options to load - both values should be visible initially
     expect(await screen.findByText(shortValue)).toBeInTheDocument();
-    // Verify we have 2 checkboxes (one for each option)
-    expect(screen.getAllByRole('checkbox')).toHaveLength(2);
+    // Two tag values plus the prepended "(no value)" option
+    expect(screen.getAllByRole('checkbox')).toHaveLength(3);
 
     // Search for the entire long value to test that search works on the full textValue
     // even though the displayed label is truncated at 70 characters

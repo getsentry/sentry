@@ -93,6 +93,17 @@ SIMPLE_ISSUE: StreamGroupSerializerSnubaResponse = {
     "latestEventHasAttachments": False,
     "matchingEventId": None,
     "matchingEventEnvironment": None,
+    "derivedData": {
+        "blocker": "none",
+        "progress": "fix_applied",
+        "status": "open",
+        "viewCount": 42,
+        "hasOpenFixPr": False,
+        "isAssigned": True,
+        "hasRootCause": True,
+        "lastCompletedAutofixStep": "pr_created",
+        "lastProgressedAt": datetime.fromisoformat("2018-12-06T21:19:55Z"),
+    },
 }
 
 MUTATE_ISSUE_RESULT: MutateIssueResponse = {

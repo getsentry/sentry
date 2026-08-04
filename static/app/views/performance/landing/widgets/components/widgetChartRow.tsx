@@ -1,5 +1,4 @@
 import {useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -35,10 +34,8 @@ function getInitialChartSettings(
 }
 
 function ChartRow(props: ChartRowProps) {
-  const theme = useTheme();
   const {chartCount, chartHeight, allowedCharts} = props;
   const performanceType = usePerformanceDisplayType();
-  const palette = theme.chart.getColorPalette(chartCount);
 
   const [chartSettings, setChartSettings] = useState(
     getInitialChartSettings(chartCount, chartHeight, performanceType, allowedCharts)
@@ -58,7 +55,6 @@ function ChartRow(props: ChartRowProps) {
             key={index}
             index={index}
             chartHeight={chartHeight}
-            chartColor={palette[index]}
             defaultChartSetting={allowedCharts[index]!}
             rowChartSettings={chartSettings}
             setRowChartSettings={setChartSettings}

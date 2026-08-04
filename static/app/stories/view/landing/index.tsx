@@ -8,7 +8,7 @@ import heroImg from 'sentry-images/stories/landing/robopigeon.png';
 
 import type {LinkButtonProps} from '@sentry/scraps/button';
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -54,14 +54,14 @@ export function StoryLanding() {
       <StoryDarkModeProvider>
         <Hero>
           <Container>
-            <Flex direction="column" gap="2xl">
-              <Flex direction="column" gap="md">
+            <Stack gap="2xl">
+              <Stack gap="md">
                 <Border />
                 <h1>
                   Welcome to <TitleEmphasis>Scraps</TitleEmphasis>
                 </h1>
                 <p>{frontmatter.hero.tagline}</p>
-              </Flex>
+              </Stack>
               <Flex gap="md">
                 {frontmatter.hero.actions.map(props => {
                   // Normalize internal paths with organization context
@@ -72,7 +72,7 @@ export function StoryLanding() {
                   return <LinkButton {...props} to={to} key={props.to} />;
                 })}
               </Flex>
-            </Flex>
+            </Stack>
             <img
               alt={frontmatter.hero.image.alt}
               width={680}
@@ -88,14 +88,14 @@ export function StoryLanding() {
       </Container>
 
       <Container>
-        <Flex as="section" direction="column" gap="3xl" flex={1}>
-          <Flex direction="column" gap="md">
+        <Stack as="section" gap="3xl" flex={1}>
+          <Stack gap="md">
             <h2>Learn the Foundations</h2>
             <p>
               The following guides will help you understand Sentry's foundational design
               principles.
             </p>
-          </Flex>
+          </Stack>
           <CardGrid>
             <Card
               to={{
@@ -146,7 +146,7 @@ export function StoryLanding() {
               </CardFigure>
             </Card>
           </CardGrid>
-        </Flex>
+        </Stack>
       </Container>
     </Fragment>
   );

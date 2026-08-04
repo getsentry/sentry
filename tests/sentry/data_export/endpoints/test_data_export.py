@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from sentry.api.authentication import (
     ApiKeyAuthentication,
@@ -712,3 +712,55 @@ class DataExportTest(APITestCase):
         query_info = data_export.query_info
         assert query_info["field"] == ["span_id", "timestamp"]
         assert query_info["sort"] == ["-timestamp"]
+
+    @patch("sentry.data_export.endpoints.data_export.assemble_download")
+    @patch("sentry.data_export.endpoints.data_export.export_data_to_stored_blobs_sync")
+    def test_discover_export_within_sync_limit_runs_sync(
+        self, mock_sync: MagicMock, mock_assemble: MagicMock
+    ) -> None:
+        payload = self.make_payload("discover")
+        payload["limit"] = 500
+        with self.feature("organizations:discover-query"):
+            self.get_success_response(self.org.slug, status_code=201, **payload)
+
+        assert mock_sync.call_count == 1
+        assert mock_assemble.delay.call_count == 0
+        assert mock_sync.call_args.kwargs["export_limit"] == 500
+
+    @patch("sentry.data_export.endpoints.data_export.assemble_download")
+    @patch("sentry.data_export.endpoints.data_export.export_data_to_stored_blobs_sync")
+    def test_discover_export_above_sync_limit_runs_async(
+        self, mock_sync: MagicMock, mock_assemble: MagicMock
+    ) -> None:
+        payload = self.make_payload("discover")
+        payload["limit"] = 5000
+        with self.feature("organizations:discover-query"):
+            self.get_success_response(self.org.slug, status_code=201, **payload)
+
+        assert mock_sync.call_count == 0
+        assert mock_assemble.delay.call_count == 1
+
+    @patch("sentry.data_export.endpoints.data_export.assemble_download")
+    @patch("sentry.data_export.endpoints.data_export.export_data_to_stored_blobs_sync")
+    def test_discover_export_without_limit_runs_async(
+        self, mock_sync: MagicMock, mock_assemble: MagicMock
+    ) -> None:
+        payload = self.make_payload("discover")
+        with self.feature("organizations:discover-query"):
+            self.get_success_response(self.org.slug, status_code=201, **payload)
+
+        assert mock_sync.call_count == 0
+        assert mock_assemble.delay.call_count == 1
+
+    @patch("sentry.data_export.endpoints.data_export.assemble_download")
+    @patch("sentry.data_export.endpoints.data_export.export_data_to_stored_blobs_sync")
+    def test_explore_export_within_sync_limit_runs_sync(
+        self, mock_sync: MagicMock, mock_assemble: MagicMock
+    ) -> None:
+        payload = self.make_payload("explore")
+        payload["limit"] = 500
+        with self.feature("organizations:discover-query"):
+            self.get_success_response(self.org.slug, status_code=201, **payload)
+
+        assert mock_sync.call_count == 1
+        assert mock_assemble.delay.call_count == 0

@@ -27,6 +27,7 @@ import {
   IconClock,
   IconClose,
   IconCopy,
+  IconCopyId,
   IconDelete,
   IconDocs,
   IconDownload,
@@ -73,7 +74,7 @@ To create a basic button, wrap text in a `<Button>` and pass an `onClick` callba
 Buttons come in a few different styles: `primary`, `secondary` (default), `warning`, `danger`, `transparent`, and `link`.
 
 <Storybook.Demo>
-  <Button variant="transparent">Default</Button>
+  <Button>Default (default)</Button>
   <Button variant="primary">Primary</Button>
   <Button variant="warning">Warning</Button>
   <Button variant="danger">Danger</Button>
@@ -83,7 +84,7 @@ Buttons come in a few different styles: `primary`, `secondary` (default), `warni
   </div>
 </Storybook.Demo>
 ```jsx
-<Button variant="transparent">Default (default)</Button>
+<Button>Default (default)</Button>
 <Button variant="primary">Primary</Button>
 <Button variant="warning">Warning</Button>
 <Button variant="danger">Danger</Button>
@@ -154,6 +155,7 @@ The following table defines standardized call to action copy and icon pairings f
 | <IconClose />                              | `close`     | Cancel                                 | Exit without saving changes                               |
 | <IconLink />                               | `link`      | Share                                  | Copies link to paste anywhere                             |
 | <IconCopy />                               | `copy`      | Copy                                   | Copy data to clipboard                                    |
+| <IconCopyId />                             | `copyId`    | Copy ID                                | Copy an identifier (ID, short-ID, key, DSN) to clipboard  |
 | <IconDownload />                           | `download`  | Download                               | Download data as a file                                   |
 |                                            |             | Connect                                | Create link between two objects                           |
 |                                            |             | Disconnect                             | Break link between two objects                            |

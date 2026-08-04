@@ -98,10 +98,10 @@ function HeaderContent({children}: RequiredChildren) {
 
 function Title({title, project}: {title: string; project?: AvatarProject}) {
   return (
-    <Flex direction="column" gap="md">
+    <Stack gap="md">
       <Layout.Title>{title}</Layout.Title>
       {project && <ProjectBadge project={project} disableLink avatarSize={16} />}
-    </Flex>
+    </Stack>
   );
 }
 

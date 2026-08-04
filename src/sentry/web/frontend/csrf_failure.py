@@ -51,10 +51,13 @@ def view(request: HttpRequest, reason: str = "") -> HttpResponse:
 
         if is_staff:
             scope.set_tag("is_staff", "yes")
+            scope.set_attribute("is_staff", "yes")
         if is_superuser:
             scope.set_tag("is_superuser", "yes")
+            scope.set_attribute("is_superuser", "yes")
         if is_staff or is_superuser:
             scope.set_tag("csrf_failure", "yes")
+            scope.set_attribute("csrf_failure", "yes")
             logging.error("CSRF failure for staff or superuser")
 
     logger.info("csrf_failure", extra=extras)

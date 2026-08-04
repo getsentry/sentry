@@ -1,5 +1,4 @@
 import type {Tag} from 'sentry/types/group';
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
@@ -10,7 +9,6 @@ import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
   browserTypes?: BrowserType[];
-  dataset?: DiscoverDatasets;
   subregions?: SubregionCode[];
   tag?: Tag;
   transaction?: string;

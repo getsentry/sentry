@@ -89,7 +89,6 @@ export const SESSION_DURATION_ALERT = (
 
 type Props = {
   api: Client;
-  isEditingDashboard: boolean;
   selection: PageFilters;
   widget: TWidget;
   widgetLegendState: WidgetLegendSelectionState;
@@ -102,7 +101,6 @@ type Props = {
   forceDescriptionTooltip?: boolean;
   hasEditAccess?: boolean;
   index?: string;
-  isEditingWidget?: boolean;
   isMobile?: boolean;
   isPreview?: boolean;
   legendOptions?: LegendComponentOption;
@@ -112,8 +110,6 @@ type Props = {
   onDuplicate?: () => void;
   onEdit?: () => void;
   onLegendSelectChanged?: () => void;
-  onSetTransactionsDataset?: () => void;
-  onUpdate?: (widget: TWidget | null) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
   onWidgetTableSort?: (sort: Sort) => void;
@@ -121,7 +117,6 @@ type Props = {
   showConfidenceWarning?: boolean;
   showContextMenu?: boolean;
   showLoadingText?: boolean;
-  showStoredAlert?: boolean;
   tableItemLimit?: number;
   widgetInterval?: string;
   windowWidth?: number;
@@ -415,8 +410,6 @@ function WidgetCard(props: Props) {
               selection={selection}
               dashboardFilters={dashboardFilters}
               onDataFetched={onDataFetched}
-              onWidgetTableSort={onWidgetTableSort}
-              onWidgetTableResizeColumn={onWidgetTableResizeColumn}
               onDataFetchStart={onDataFetchStart}
               tableItemLimit={tableItemLimit}
               widgetInterval={widgetInterval}

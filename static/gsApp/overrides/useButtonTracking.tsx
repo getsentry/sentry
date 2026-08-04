@@ -1,6 +1,6 @@
 import {useMatches} from 'react-router-dom';
 
-import type {ButtonProps} from '@sentry/scraps/button';
+import type {TrackingProps} from '@sentry/scraps/trackingContext';
 
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -12,11 +12,12 @@ export function useButtonTracking() {
   const matches = useMatches();
 
   return ({
+    clickType,
     analyticsEventName,
     analyticsEventKey,
     analyticsParams,
     'aria-label': ariaLabel,
-  }: ButtonProps) => {
+  }: TrackingProps) => {
     const considerSendingAnalytics = organization && Boolean(matches);
 
     if (considerSendingAnalytics) {
@@ -27,7 +28,7 @@ export function useButtonTracking() {
       // note null means something different than undefined for eventName so
       // checking for that explicitly
       const eventKey =
-        analyticsEventKey === undefined
+        analyticsEventKey === undefined && clickType === 'button'
           ? `button_click.${reloadPath}`
           : analyticsEventKey;
       const eventName = analyticsEventName === undefined ? null : analyticsEventName;

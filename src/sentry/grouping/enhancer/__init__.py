@@ -11,7 +11,6 @@ from functools import cached_property
 from typing import Any, Literal, overload
 
 import msgpack
-import sentry_sdk
 import zstandard
 from sentry_ophio.enhancers import AssembleResult as RustStacktraceResult
 from sentry_ophio.enhancers import Cache as RustCache
@@ -23,6 +22,7 @@ from sentry.models.project import Project
 from sentry.stacktraces.functions import set_in_app
 from sentry.utils import metrics
 from sentry.utils.safe import get_path, set_path
+from sentry.utils.tracing import trace
 
 from .exceptions import InvalidEnhancerConfig
 from .matchers import create_match_frame
@@ -637,7 +637,7 @@ class EnhancementsConfig:
             )
 
     @classmethod
-    @sentry_sdk.tracing.trace
+    @trace
     def from_rules_text(
         cls,
         rules_text: str,

@@ -16,7 +16,7 @@ from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import get_path, set_path, setdefault_path
-from sentry.utils.tracing import set_span_data, start_span
+from sentry.utils.tracing import set_span_data, start_span, trace
 
 logger = logging.getLogger(__name__)
 op = "stacktrace_processing"
@@ -635,7 +635,7 @@ def dedup_errors(errors):
     return rv
 
 
-@sentry_sdk.tracing.trace
+@trace
 def process_stacktraces(
     data: MutableMapping[str, Any], make_processors=None, set_raw_stacktrace: bool = True
 ) -> MutableMapping[str, Any] | None:

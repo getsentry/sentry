@@ -5,7 +5,6 @@ from threading import Semaphore
 from typing import TYPE_CHECKING, Any, Generic, Self, TypeVar
 from uuid import uuid4
 
-import sentry_sdk
 from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 from taskbroker_client.task import Task
@@ -20,6 +19,7 @@ from sentry.models.files.utils import (
     nooplogger,
 )
 from sentry.utils import metrics
+from sentry.utils.tracing import trace
 
 MULTI_BLOB_UPLOAD_CONCURRENCY = 8
 
@@ -62,7 +62,7 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
         raise NotImplementedError(cls)
 
     @classmethod
-    @sentry_sdk.tracing.trace
+    @trace
     def from_files(cls, files, organization=None, logger=nooplogger) -> None:
         """A faster version of `from_file` for multiple files at the time.
         If an organization is provided it will also create `FileBlobOwner`
@@ -173,7 +173,7 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
             logger.debug("FileBlob.from_files.end")
 
     @classmethod
-    @sentry_sdk.tracing.trace
+    @trace
     def from_file_with_organization(cls, fileobj, organization=None, logger=nooplogger) -> Self:
         """
         Retrieve a single FileBlob instances for the given file and binds it to an organization via the FileBlobOwner.
@@ -184,7 +184,7 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
         return blob
 
     @classmethod
-    @sentry_sdk.tracing.trace
+    @trace
     def from_file(cls, fileobj, logger=nooplogger) -> Self:
         """
         Retrieve a single FileBlob instances for the given file.
@@ -222,7 +222,7 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
         pieces = [uuid_hex[:2], uuid_hex[2:6], uuid_hex[6:]]
         return "/".join(pieces)
 
-    @sentry_sdk.tracing.trace
+    @trace
     def delete(self, *args, **kwargs):
         if self.path:
             transaction.on_commit(

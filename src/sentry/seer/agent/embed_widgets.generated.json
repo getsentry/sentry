@@ -1,0 +1,189 @@
+[
+  {
+    "name": "timestamp",
+    "description": "Display a formatted timestamp inline. ALL datetime values MUST use this embed — never output a bare date/time or relative phrase (e.g. \"two days ago\") as plaintext. Use format \"absolute\" for a specific date/time and \"relative\" for a human-friendly relative duration (the UI renders it live). Do not include redundant plaintext alongside the embed.",
+    "level": ["inline"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "string"
+        },
+        "format": {
+          "default": "absolute",
+          "type": "string",
+          "enum": ["absolute", "relative"]
+        }
+      },
+      "required": ["value", "format"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Absolute",
+        "data": {
+          "value": "2025-07-15T14:30:00Z",
+          "format": "absolute"
+        }
+      },
+      {
+        "label": "Relative",
+        "data": {
+          "value": "2025-07-15T14:30:00Z",
+          "format": "relative"
+        }
+      }
+    ]
+  },
+  {
+    "name": "docs",
+    "description": "Link to a page in the Sentry documentation (docs.sentry.io only). The href MUST be an absolute https://docs.sentry.io/... URL. NEVER use this for Sentry issue links — use the `issue` or `issues` embed instead.",
+    "level": ["inline"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "href": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": ["href", "title"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Doc link",
+        "data": {
+          "href": "https://docs.sentry.io/product/issues/",
+          "title": "Issues"
+        }
+      }
+    ]
+  },
+  {
+    "name": "dsn",
+    "description": "Display a copyable Sentry DSN (Data Source Name) string. Use this whenever presenting a DSN to the user — never output it as bare text.",
+    "level": ["block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": ["value"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "DSN",
+        "data": {
+          "value": "https://examplePublicKey@o0.ingest.sentry.io/0"
+        }
+      }
+    ]
+  },
+  {
+    "name": "user",
+    "description": "Mention a Sentry user or team inline. Renders an avatar and display name. Use the actor type (\"user\" or \"team\") and the actor's ID and name.",
+    "level": ["inline"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["user", "team"]
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "type", "name"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "User",
+        "data": {
+          "id": "1",
+          "type": "user",
+          "name": "Jane Doe"
+        }
+      },
+      {
+        "label": "Team",
+        "data": {
+          "id": "2",
+          "type": "team",
+          "name": "platform"
+        }
+      }
+    ]
+  },
+  {
+    "name": "issue",
+    "description": "The ONLY way to reference a Sentry issue. Requires the issue short ID (e.g. \"PROJECT-123\"). Inline: renders a compact link with the short id. Block: renders a full interactive issue row with title, events, users, assignee, and trend graph — do NOT duplicate any of that data as text. MUST NOT appear inside a markdown table or list. When referencing 2+ issues, use the `issues` embed instead. Never use `docs` or markdown links for issue references.",
+    "level": ["inline", "block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": ["id"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Inline",
+        "data": {
+          "id": "JAVASCRIPT-22SP"
+        }
+      },
+      {
+        "label": "Block",
+        "data": {
+          "id": "JAVASCRIPT-22SP"
+        }
+      }
+    ]
+  },
+  {
+    "name": "issues",
+    "description": "The ONLY way to list multiple Sentry issues. Renders an interactive table with title, trend graph, events, users, priority, and assignee for each issue — do NOT duplicate any of that data as text. ALWAYS use this when referencing 2+ issues. MUST NOT appear inside a markdown table or list. Never use `docs`, `issue`, or markdown tables for multiple issues. Provide only the array of issue short IDs (e.g. \"PROJECT-123\").",
+    "level": ["block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": ["ids"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Block",
+        "data": {
+          "ids": ["JAVASCRIPT-22SP", "JAVASCRIPT-39HX", "JAVASCRIPT-39ZF"]
+        }
+      }
+    ]
+  }
+]

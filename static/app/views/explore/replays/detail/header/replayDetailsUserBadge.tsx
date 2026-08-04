@@ -1,7 +1,7 @@
 import invariant from 'invariant';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -68,11 +68,11 @@ function ReplayBadge({replay}: {replay: ReplayRecord}) {
           <IconDelete variant="muted" size="md" />
         </Flex>
 
-        <Flex direction="column" gap="xs" justify="center">
+        <Stack gap="xs" justify="center">
           <Text size="md" bold>
             {t('Deleted Replay')}
           </Text>
-        </Flex>
+        </Stack>
       </Grid>
     );
   }
@@ -117,7 +117,7 @@ function ReplayBadge({replay}: {replay: ReplayRecord}) {
         size={24}
       />
 
-      <Flex direction="column" gap="xs" justify="center">
+      <Stack gap="xs" justify="center">
         <Flex direction="row" align="center" gap="sm">
           {/* We use div here because the Text component has width 100% and will take up the
           full width of the container, causing a gap between the text and the badge */}
@@ -142,7 +142,7 @@ function ReplayBadge({replay}: {replay: ReplayRecord}) {
           </Flex>
           {isLive ? <LiveBadge /> : null}
         </Flex>
-      </Flex>
+      </Stack>
     </Flex>
   );
 }

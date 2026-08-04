@@ -1,4 +1,5 @@
 import type {GroupStatus} from 'sentry/types/group';
+import type {ProjectCreationVariant} from 'sentry/utils/analytics/projectCreationAnalyticsEvents';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
 import type {Tab} from 'sentry/views/issueDetails/types';
 
@@ -168,6 +169,9 @@ export type TeamInsightsEventParameters = {
     platform: string;
     project_id: string;
     rule_ids: string[];
+    // 'legacy' from CreateProject, 'scm' from the SCM wizard. Both variants
+    // populate the same payload; only this discriminator differs.
+    variant?: ProjectCreationVariant;
   };
   'project_detail.change_chart': {chart_index: number; metric: string};
   'project_detail.open_anr_issues': Record<string, unknown>;

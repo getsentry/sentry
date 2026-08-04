@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
@@ -76,7 +75,6 @@ export function MetricDetailsBody({
   selectedIncident,
   anomalies,
 }: MetricDetailsBodyProps) {
-  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
@@ -253,7 +251,6 @@ export function MetricDetailsBody({
             query={isCrashFreeAlert(dataset) ? query : queryWithTypeFilter}
             filter={getFilter(rule)}
             isOnDemandAlert={isOnDemandMetricAlert(dataset, aggregate, query)}
-            theme={theme}
           />
           <DetailWrapper>
             <Stack flex="1" width="100%">

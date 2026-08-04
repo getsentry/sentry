@@ -4,7 +4,6 @@ from collections.abc import Iterable
 from time import time
 
 import rb
-import sentry_sdk
 from sentry_redis_tools.clients import RedisCluster
 
 from sentry.constants import DataCategory
@@ -18,7 +17,7 @@ from sentry.utils.redis import (
     load_redis_script,
     validate_dynamic_cluster,
 )
-from sentry.utils.tracing import set_span_tag, start_span
+from sentry.utils.tracing import set_span_tag, start_span, trace
 
 is_rate_limited = load_redis_script("quotas/is_rate_limited.lua")
 
@@ -157,7 +156,7 @@ class RedisQuota(Quota):
     def get_refunded_quota_key(self, key: str) -> str:
         return f"r:{key}"
 
-    @sentry_sdk.tracing.trace
+    @trace
     def refund(
         self,
         project: Project,
