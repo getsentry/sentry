@@ -280,7 +280,12 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         resolved_run_id: int | None = None
         resolved_sentry_run_id: str | None = None
         if run_ref is not None:
-            resolved = resolve_seer_run(run_ref, group.organization, for_continue=True)
+            resolved = resolve_seer_run(
+                run_ref,
+                group.organization,
+                for_continue=True,
+                user_id=request.user.id if request.user else None,
+            )
             if isinstance(resolved, Response):
                 return resolved
             resolved_run_id = resolved.seer_run_state_id

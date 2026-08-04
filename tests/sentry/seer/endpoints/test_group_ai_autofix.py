@@ -182,7 +182,9 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_post_continue_with_sentry_run_id_resolves_to_numeric_id(self, mock_trigger_explorer):
         group = self.create_group()
-        run = self.create_seer_run(organization=self.organization, seer_run_state_id=555)
+        run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=555, user_id=self.user.id
+        )
         mock_trigger_explorer.return_value = run
 
         self.login_as(user=self.user)
@@ -200,7 +202,9 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     def test_post_continue_with_numeric_run_id_still_works(self, mock_trigger_explorer):
         """The legacy numeric run_id field keeps working unchanged."""
         group = self.create_group()
-        run = self.create_seer_run(organization=self.organization, seer_run_state_id=321)
+        run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=321, user_id=self.user.id
+        )
         mock_trigger_explorer.return_value = run
 
         self.login_as(user=self.user)
@@ -213,6 +217,51 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 202, response.data
         assert response.data == {"run_id": 321, "sentry_run_id": str(run.uuid)}
         assert mock_trigger_explorer.call_args.kwargs["run_id"] == 321
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_continue_owned_by_another_user_is_denied(self, mock_trigger_explorer):
+        group = self.create_group()
+        run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=555, user_id=self.user.id
+        )
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member")
+        self.login_as(user=member)
+
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "solution", "run_id": run.seer_run_state_id},
+            format="json",
+        )
+
+        assert response.status_code == 403, response.data
+        assert response.data == {
+            "detail": "This conversation belongs to another user and is read-only."
+        }
+        mock_trigger_explorer.assert_not_called()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_coding_agent_handoff")
+    def test_post_continue_with_api_key_is_denied(self, mock_handoff):
+        group = self.create_group()
+        run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=555, user_id=self.user.id
+        )
+        api_key = self.create_api_key(organization=self.organization, scope_list=["event:write"])
+
+        response = self.client.post(
+            self._get_url(group.id),
+            data={
+                "step": "coding_agent_handoff",
+                "run_id": run.seer_run_state_id,
+                "provider": "github_copilot",
+            },
+            format="json",
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
+        )
+
+        assert response.status_code == 403, response.data
+        assert response.data == {"detail": "A user account is required to continue a conversation."}
+        mock_handoff.assert_not_called()
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_post_continue_with_unknown_sentry_run_id_returns_404(self, mock_trigger_explorer):

@@ -52,6 +52,36 @@ class ResolveSeerRunTest(TestCase):
 
         assert result == ResolvedSeerRun(555, str(run.uuid))
 
+    def test_continuation_requires_a_user_id(self) -> None:
+        result = resolve_seer_run("555", self.organization, for_continue=True)
+
+        assert isinstance(result, Response)
+        assert result.status_code == status.HTTP_403_FORBIDDEN
+        assert result.data == {"detail": "A user account is required to continue a conversation."}
+
+    def test_user_scope_allows_legacy_numeric_run(self) -> None:
+        result = resolve_seer_run("555", self.organization, for_continue=True, user_id=self.user.id)
+
+        assert result == ResolvedSeerRun(555, None)
+
+    def test_user_scope_allows_unowned_numeric_run(self) -> None:
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=555)
+
+        result = resolve_seer_run(
+            str(run.seer_run_state_id), self.organization, for_continue=True, user_id=self.user.id
+        )
+
+        assert result == ResolvedSeerRun(555, str(run.uuid))
+
+    def test_user_scope_allows_unowned_uuid_run(self) -> None:
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=555)
+
+        result = resolve_seer_run(
+            str(run.uuid), self.organization, for_continue=True, user_id=self.user.id
+        )
+
+        assert result == ResolvedSeerRun(555, str(run.uuid))
+
     def test_user_scope_rejects_another_users_numeric_run(self) -> None:
         run = self.create_seer_run(
             organization=self.organization, seer_run_state_id=555, user_id=self.user.id
@@ -111,10 +141,13 @@ class ResolveSeerRunTest(TestCase):
         run = self.create_seer_run(
             organization=self.organization,
             seer_run_state_id=None,
+            user_id=self.user.id,
             mirror_status=SeerRunMirrorStatus.PENDING,
         )
 
-        result = resolve_seer_run(str(run.uuid), self.organization, for_continue=True)
+        result = resolve_seer_run(
+            str(run.uuid), self.organization, for_continue=True, user_id=self.user.id
+        )
 
         assert isinstance(result, Response)
         assert result.status_code == status.HTTP_409_CONFLICT
@@ -122,10 +155,13 @@ class ResolveSeerRunTest(TestCase):
     def test_uuid_failed_mirror_for_continue_returns_422(self) -> None:
         run = self.create_seer_run(
             organization=self.organization,
+            user_id=self.user.id,
             mirror_status=SeerRunMirrorStatus.FAILED,
         )
 
-        result = resolve_seer_run(str(run.uuid), self.organization, for_continue=True)
+        result = resolve_seer_run(
+            str(run.uuid), self.organization, for_continue=True, user_id=self.user.id
+        )
 
         assert isinstance(result, Response)
         assert result.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
