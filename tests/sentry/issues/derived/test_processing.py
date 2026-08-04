@@ -301,8 +301,62 @@ class ProcessGroupLogTest(TestCase):
             "sentry.issues.derived.processing.generate_group_derived_data.delay"
         ) as mock_generate:
             invalidate_group_derived_data(group.id)
-        assert GroupDerivedData.objects.filter(group_id=group.id).exists()
+        row = GroupDerivedData.objects.get(group_id=group.id)
+        # Soft invalidation nulls pipeline_hash but keeps the row readable.
+        assert row.pipeline_hash is None
         mock_generate.assert_called_once_with(group.id)
+
+    def test_invalidate_soft_no_trigger_skips_task(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        process_group_log(group.id)
+        assert (
+            GroupDerivedData.objects.get(group_id=group.id).pipeline_hash == PIPELINE.pipeline_hash
+        )
+
+        with (
+            patch(
+                "sentry.issues.derived.processing.generate_group_derived_data.delay"
+            ) as mock_generate,
+            patch("sentry.issues.derived.processing.process_group_log_task.delay") as mock_process,
+        ):
+            invalidate_group_derived_data(group.id, trigger_regenerate=False)
+        # Row is still invalidated (hash nulled) even without triggering regen.
+        assert GroupDerivedData.objects.get(group_id=group.id).pipeline_hash is None
+        mock_generate.assert_not_called()
+        mock_process.assert_not_called()
+
+    def test_invalidate_hard_no_trigger_deletes_without_task(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        process_group_log(group.id)
+        assert GroupDerivedData.objects.filter(group_id=group.id).exists()
+
+        with (
+            patch(
+                "sentry.issues.derived.processing.generate_group_derived_data.delay"
+            ) as mock_generate,
+            patch("sentry.issues.derived.processing.process_group_log_task.delay") as mock_process,
+        ):
+            invalidate_group_derived_data(group.id, soft=False, trigger_regenerate=False)
+        assert not GroupDerivedData.objects.filter(group_id=group.id).exists()
+        mock_generate.assert_not_called()
+        mock_process.assert_not_called()
+
+    def test_invalidate_pure_append_no_trigger_skips_process_task(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        derived = process_group_log(group.id)
+        old_cursor = derived.cursor_id
+
+        future = derived.cursor_date.replace(year=derived.cursor_date.year + 1)
+        with patch("sentry.issues.derived.processing.process_group_log_task.delay") as mock_delay:
+            invalidate_group_derived_data(
+                group.id,
+                cursor=(future, old_cursor + 1000),
+                trigger_regenerate=False,
+            )
+        mock_delay.assert_not_called()
 
     def test_invalidate_soft_rebuilds_via_generate(self) -> None:
         group = self.create_group()

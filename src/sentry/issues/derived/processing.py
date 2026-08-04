@@ -527,18 +527,22 @@ def invalidate_group_derived_data(
     group_id: int,
     cursor: tuple[datetime, int] | None = None,
     soft: bool = True,
+    trigger_regenerate: bool = True,
 ) -> None:
-    """Ensure derived data reflects a mutation to the group's action log.
+    """Mark a group's derived data as out-of-date with respect to its action log.
 
-    Schedules an async regeneration of the derived data. If *cursor* is
-    ``(date_added, id)`` of the earliest affected entry and the row's own
-    cursor is behind that point, the mutation is treated as a pure append
-    and regeneration is skipped in favor of an incremental drain.
+    *cursor* is ``(date_added, id)`` of the earliest affected entry. If the
+    row's own cursor is behind that point, the mutation is a pure append and
+    the row is left alone (an incremental drain will catch it up).
 
-    If *soft* is False the existing derived data is deleted first, with
-    the expectation that the scheduled regeneration will replace it soon.
-    Use this when readers must not observe the pre-mutation state (at the
-    cost of a window during which the row is missing entirely).
+    Otherwise the row is invalidated: ``soft=True`` (default) nulls
+    ``pipeline_hash`` so the row stays readable but is flagged stale for
+    bulk regeneration; ``soft=False`` deletes the row so readers cannot
+    observe pre-mutation state.
+
+    If *trigger_regenerate* is True (default), schedules a background task
+    to bring the row up to date. Pass False in bulk contexts that will
+    drive regeneration themselves.
     """
     if cursor is None:
         invalid_predicate = Q(group_id=group_id)
@@ -548,10 +552,20 @@ def invalidate_group_derived_data(
             Q(cursor_date__gt=cursor_date) | Q(cursor_date=cursor_date, cursor_id__gte=cursor_id)
         )
 
-    invalid = GroupDerivedData.objects.filter(invalid_predicate).exists()
+    # Reuse the invalidation predicate so a concurrent writer that already
+    # promoted past our cursor is not clobbered. Combining the check with the
+    # write avoids a second query.
+    qs = GroupDerivedData.objects.filter(invalid_predicate)
+    if soft:
+        affected = qs.update(pipeline_hash=None)
+    else:
+        affected, _ = qs.delete()
 
-    if not invalid:
-        process_group_log_task.delay(group_id)
+    if not affected:
+        # Pure append (or nothing to invalidate): a normal drain will pick
+        # up any new entries.
+        if trigger_regenerate:
+            process_group_log_task.delay(group_id)
         return
 
     logger.info(
@@ -561,12 +575,9 @@ def invalidate_group_derived_data(
             "cursor_date": str(cursor[0]) if cursor else None,
             "cursor_id": cursor[1] if cursor else None,
             "soft": soft,
+            "trigger_regenerate": trigger_regenerate,
         },
     )
 
-    if not soft:
-        # Reuse the invalidation predicate so a concurrent writer that
-        # already promoted past our cursor is not clobbered.
-        GroupDerivedData.objects.filter(invalid_predicate).delete()
-
-    generate_group_derived_data.delay(group_id)
+    if trigger_regenerate:
+        generate_group_derived_data.delay(group_id)
