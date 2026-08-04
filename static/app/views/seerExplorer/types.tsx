@@ -46,8 +46,8 @@ const codingAgentResultSchema = z.object({
   description: z.string(),
   repo_full_name: z.string(),
   repo_provider: z.string(),
-  pr_number: z.number().nullable().optional(),
-  pr_url: z.string().nullable().optional(),
+  pr_number: z.number().nullable(),
+  pr_url: z.string().nullable(),
 });
 
 const explorerCodingAgentStateSchema = z.object({
@@ -80,6 +80,11 @@ export interface ToolResult {
   content: string;
   tool_call_function: string;
   tool_call_id: string;
+  // MCP-style structured payload carried from seer (code-mode-effects-registry).
+  // The links bus: a tool result's own deep-links as a {kind, params} list — one result can
+  // carry many, so there's no index alignment. Optional — absent on old seer responses, in
+  // which case the frontend falls back to the positional block.tool_links.
+  structuredContent?: {links?: ToolLink[]} | null;
 }
 
 export interface ToolCall {

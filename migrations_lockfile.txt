@@ -31,9 +31,9 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0001_squashed_0007_organizationmember_replay_access
 
-seer: 0029_add_agent_write_grant
+seer: 0030_seer_run_milestone
 
-sentry: 1148_organizationcontributors_remove_integration_id_field
+sentry: 1149_organizationcontributors_delete_integration_id_column
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 

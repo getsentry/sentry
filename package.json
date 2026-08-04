@@ -191,7 +191,7 @@
     "nuqs": "2.7.1",
     "papaparse": "^5.3.2",
     "peggy": "5.0.6",
-    "platformicons": "^9.5.0",
+    "platformicons": "^9.6.0",
     "prismjs": "^1.30.0",
     "qrcode.react": "^3.1.0",
     "query-string": "7.0.1",
@@ -224,7 +224,7 @@
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
-    "@e18e/eslint-plugin": "^0.5.1",
+    "@e18e/eslint-plugin": "0.6.0",
     "@emotion/eslint-plugin": "^11.12.0",
     "@emotion/server": "^11.11.0",
     "@eslint/js": "9.32.0",

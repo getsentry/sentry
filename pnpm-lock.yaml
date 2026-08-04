@@ -442,8 +442,8 @@ importers:
         specifier: 5.0.6
         version: 5.0.6
       platformicons:
-        specifier: ^9.5.0
-        version: 9.5.0(react@19.2.3)
+        specifier: ^9.6.0
+        version: 9.6.0(react@19.2.3)
       prismjs:
         specifier: ^1.30.0
         version: 1.30.0
@@ -536,8 +536,8 @@ importers:
         version: 4.4.2
     devDependencies:
       '@e18e/eslint-plugin':
-        specifier: ^0.5.1
-        version: 0.5.1(eslint@9.34.0(jiti@2.7.0))
+        specifier: 0.6.0
+        version: 0.6.0(eslint@9.34.0(jiti@2.7.0))
       '@emotion/eslint-plugin':
         specifier: ^11.12.0
         version: 11.12.0(@typescript/typescript6@6.0.2)(eslint@9.34.0(jiti@2.7.0))
@@ -1205,11 +1205,11 @@ packages:
   '@dual-bundle/import-meta-resolve@4.1.0':
     resolution: {integrity: sha512-+nxncfwHM5SgAtrVzgpzJOI1ol0PkumhVo469KCf9lUi21IGcY90G98VuHm9VRrUypmAzawAHO9bs6hqeADaVg==}
 
-  '@e18e/eslint-plugin@0.5.1':
-    resolution: {integrity: sha512-mqUozeyNI9xvJbjrOO7y765dT7Kud3bwCm/DHwctxdEngPdJWQaS9BNGgpM1wCCzZfOtlKQh4ZRhm3VRomT9KA==}
+  '@e18e/eslint-plugin@0.6.0':
+    resolution: {integrity: sha512-JQkeXoZA12f9WM2H4t4IobIRqlPvYLeNAjZF6raFu2vmD5YoyuzKmwsLZNJ4g/39c3v1Se2ad3o+oq4y2et/RA==}
     peerDependencies:
       eslint: ^9.0.0 || ^10.0.0
-      oxlint: ^1.68.0
+      oxlint: ^1.72.0
     peerDependenciesMeta:
       eslint:
         optional: true
@@ -7229,8 +7229,8 @@ packages:
   module-details-from-path@1.0.4:
     resolution: {integrity: sha512-EGWKgxALGMgzvxYF1UyGTy0HXX/2vHLkw6+NvDKW2jypWbHpjQuj4UMcqQWXHERJhVGKikolT06G3bcKe4fi7w==}
 
-  module-replacements@3.0.0-beta.8:
-    resolution: {integrity: sha512-sc8TepP9elxoOBXEpxmhPzKKjTjbswHVcmsKGbgvm3k6jZlLu/WMV/Lfmga6IGMgHU/V3WtY2s6VEgM4nTElUQ==}
+  module-replacements@3.1.0:
+    resolution: {integrity: sha512-MSTNGqlp2q0seRlrAA/FK3SUkGnmPeexeKWuCjeJ7HobD2RCjk4f8ry8lJ+nUQFDVBAHSdC4TdjyJSaocnR7Uw==}
 
   moment-timezone@0.6.2:
     resolution: {integrity: sha512-lDsQv8FoGdBUdf0+TjGsq2orxKuXdwFlQ6Zw6TX3xIcTwTfEpCLyKqvEauvCHJ8iu3KBV8+uPhlv70YsNGdUBQ==}
@@ -7615,8 +7615,8 @@ packages:
     resolution: {integrity: sha512-emEcLuomt2j03vxD54giVB4SxTjnsqkU692xZOZXHDVoYyypEm+b3jpiTcc+Cf+myooc+/Ly0z01jqeNHVgJGw==}
     engines: {node: '>=16.0.0'}
 
-  platformicons@9.5.0:
-    resolution: {integrity: sha512-x3mWQ2XAxJKVGmy1fcQ5wytfTpw4U0n2As0rCsf1dKkeq7gtnDSi2Tl6FnPifPggjx4jz532JzSkOsiojOR3sg==}
+  platformicons@9.6.0:
+    resolution: {integrity: sha512-0yrEQgu424cPhEynOo3KD49KJNSNKNrg88ThJyXU5vD6B4VRkHd74MP8sivbMLwkRfv+F+aJXI02yqk4m62k/w==}
     peerDependencies:
       react: '*'
 
@@ -9697,10 +9697,10 @@ snapshots:
 
   '@dual-bundle/import-meta-resolve@4.1.0': {}
 
-  '@e18e/eslint-plugin@0.5.1(eslint@9.34.0(jiti@2.7.0))':
+  '@e18e/eslint-plugin@0.6.0(eslint@9.34.0(jiti@2.7.0))':
     dependencies:
       empathic: 2.0.1
-      module-replacements: 3.0.0-beta.8
+      module-replacements: 3.1.0
       semver: 7.8.5
     optionalDependencies:
       eslint: 9.34.0(jiti@2.7.0)
@@ -16676,7 +16676,7 @@ snapshots:
 
   module-details-from-path@1.0.4: {}
 
-  module-replacements@3.0.0-beta.8: {}
+  module-replacements@3.1.0: {}
 
   moment-timezone@0.6.2:
     dependencies:
@@ -17169,7 +17169,7 @@ snapshots:
       pvutils: 1.1.5
       tslib: 2.8.1
 
-  platformicons@9.5.0(react@19.2.3):
+  platformicons@9.6.0(react@19.2.3):
     dependencies:
       '@types/node': 24.13.2
       '@types/react': 19.2.1
