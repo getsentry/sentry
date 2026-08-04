@@ -250,7 +250,9 @@ _FORMATTERS: dict[Format, type[Formatter]] = {
 }
 
 # base event sections in render order
-EVENT_SECTIONS: list[SectionFn] = [
+# every section in render order, including the user identifiers that ``EVENT_SECTIONS`` holds
+# back. Pass this only from a surface that already exposes those fields to its caller.
+EVENT_SECTIONS_WITH_USER: list[SectionFn] = [
     title_section,
     message_section,
     detection_context_section,
@@ -264,6 +266,10 @@ EVENT_SECTIONS: list[SectionFn] = [
     tags_section,
     user_section,
 ]
+
+# the default: no email, IP, username or ID. Rendered output is bound for an LLM, so user
+# identifiers are opt-in -- a caller that doesn't think about it can't leak them into a prompt.
+EVENT_SECTIONS: list[SectionFn] = [s for s in EVENT_SECTIONS_WITH_USER if s is not user_section]
 
 
 def format_issue(

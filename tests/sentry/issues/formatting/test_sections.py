@@ -19,6 +19,7 @@ from sentry.issues.formatting.models import (
 )
 from sentry.issues.formatting.sections import (
     EVENT_SECTIONS,
+    EVENT_SECTIONS_WITH_USER,
     breadcrumbs_section,
     detection_context_section,
     exceptions_section,
@@ -358,8 +359,23 @@ def test_unadaptable_payload_renders_nothing() -> None:
 def test_event_sections_order() -> None:
     names = [s.__name__ for s in EVENT_SECTIONS]
     assert names[0] == "title_section"
-    assert names[-1] == "user_section"
+    assert names[-1] == "tags_section"
     assert "exceptions_section" in names
+
+
+def test_user_identifiers_are_opt_in() -> None:
+    # the default list must not carry email/IP/username/ID into an LLM prompt; only a caller
+    # that opts in with EVENT_SECTIONS_WITH_USER gets them
+    assert user_section not in EVENT_SECTIONS
+    assert user_section in EVENT_SECTIONS_WITH_USER
+    # opting in changes nothing else about the render order
+    assert [s.__name__ for s in EVENT_SECTIONS] == [
+        s.__name__ for s in EVENT_SECTIONS_WITH_USER if s is not user_section
+    ]
+
+    data = {"title": "t", "user": {"email": "someone@example.com", "ipAddress": "203.0.113.7"}}
+    assert "someone@example.com" not in format_issue(data)
+    assert "someone@example.com" in format_issue(data, sections=EVENT_SECTIONS_WITH_USER)
 
 
 def test_bare_stacktrace_entry_renders() -> None:
