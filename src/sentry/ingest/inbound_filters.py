@@ -510,16 +510,16 @@ def _custom_error_message_condition(values: list[str]) -> RuleCondition:
 
 
 # Builds the Relay condition that matches one filter condition's glob values.
-_ConditionMatcher = Callable[[list[str]], RuleCondition]
+ConditionMatcher = Callable[[list[str]], RuleCondition]
 
 
-def _field_matcher(name: str) -> _ConditionMatcher:
+def _field_matcher(name: str) -> ConditionMatcher:
     """Matches the glob values against a single Relay Getter field path."""
     return partial(_glob, name)
 
 
 @dataclass(frozen=True)
-class _OptionFilter:
+class OptionFilter:
     """
     The pre-v2 inbound filter over an item type's primary data, configured through a
     project option holding a list of globs instead of a ``CustomInboundFilter`` row.
@@ -530,7 +530,7 @@ class _OptionFilter:
 
 
 @dataclass(frozen=True)
-class _ItemType:
+class ItemFilter:
     """
     One kind of ingested item, and how custom inbound filter conditions match its data.
 
@@ -539,11 +539,11 @@ class _ItemType:
     """
 
     primary_condition: CustomInboundFilterConditionType
-    primary_match: _ConditionMatcher
-    release_match: _ConditionMatcher
-    option_filter: _OptionFilter | None = None
+    primary_match: ConditionMatcher
+    release_match: ConditionMatcher
+    option_filter: OptionFilter | None = None
 
-    def match(self, condition_type: CustomInboundFilterConditionType) -> _ConditionMatcher | None:
+    def match(self, condition_type: CustomInboundFilterConditionType) -> ConditionMatcher | None:
         """How to match one condition type, or None if this item type carries no such data."""
         if condition_type == self.primary_condition:
             return self.primary_match
@@ -552,24 +552,24 @@ class _ItemType:
         return None
 
 
-_EVENTS = _ItemType(
+_EVENTS = ItemFilter(
     primary_condition=CustomInboundFilterConditionType.ERROR_MESSAGE,
     primary_match=_custom_error_message_condition,
     release_match=_field_matcher("event.release"),
 )
 
-_LOGS = _ItemType(
+_LOGS = ItemFilter(
     primary_condition=CustomInboundFilterConditionType.LOG_MESSAGE,
     primary_match=_field_matcher("log.body"),
     release_match=_field_matcher("log.attributes.sentry.release.value"),
-    option_filter=_OptionFilter(filter_id="log-message", option=FilterTypes.LOG_MESSAGES),
+    option_filter=OptionFilter(filter_id="log-message", option=FilterTypes.LOG_MESSAGES),
 )
 
-_TRACE_METRICS = _ItemType(
+_TRACE_METRICS = ItemFilter(
     primary_condition=CustomInboundFilterConditionType.METRIC_NAME,
     primary_match=_field_matcher("trace_metric.name"),
     release_match=_field_matcher("trace_metric.attributes.sentry.release.value"),
-    option_filter=_OptionFilter(
+    option_filter=OptionFilter(
         filter_id="trace-metric-name", option=FilterTypes.TRACE_METRIC_NAMES
     ),
 )
@@ -577,7 +577,7 @@ _TRACE_METRICS = _ItemType(
 _ITEM_TYPES = (_EVENTS, _LOGS, _TRACE_METRICS)
 
 
-def _item_type_for(condition_types: Iterable[CustomInboundFilterConditionType]) -> _ItemType:
+def _item_type_for(condition_types: Iterable[CustomInboundFilterConditionType]) -> ItemFilter:
     """
     The item type a filter's conditions apply to.
 
@@ -593,7 +593,7 @@ def _item_type_for(condition_types: Iterable[CustomInboundFilterConditionType]) 
     return _EVENTS
 
 
-def _option_generic_filters(project: Project, item_type: _ItemType) -> list[GenericFilter]:
+def _option_generic_filters(project: Project, item_type: ItemFilter) -> list[GenericFilter]:
     """
     The item type's option-backed filter, matching the same data as its primary condition.
     """
