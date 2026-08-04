@@ -1,3 +1,5 @@
+import {useEffect, useEffectEvent, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useInfiniteQuery} from '@tanstack/react-query';
 import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
@@ -28,6 +30,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useMembers} from 'sentry/utils/members/useMembers';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {IssuePreview} from 'sentry/views/issueDetails/issuePreview/issuePreview';
 import {IssueListContainer} from 'sentry/views/issueList';
@@ -98,6 +101,8 @@ export default function InboxPage() {
 }
 
 function InboxContent() {
+  const theme = useTheme();
+  const isDesktop = useMedia(`(min-width: ${theme.breakpoints.md})`);
   const [assignmentFilter, setAssignmentFilter] = useQueryState(
     ASSIGNMENT_QUERY_PARAM,
     parseAsStringLiteral(ASSIGNMENT_FILTERS)
@@ -108,6 +113,41 @@ function InboxContent() {
     SELECTED_ISSUE_QUERY_PARAM,
     parseAsString.withOptions({history: 'replace'})
   );
+  const initialSectionResults = useRef(new Map<string, string | null>());
+  const hasFinishedInitialSelection = useRef(selectedIssueId !== null);
+
+  const handleInitialSectionResult = (
+    sectionKey: string,
+    firstIssueId: string | null
+  ) => {
+    if (hasFinishedInitialSelection.current) {
+      return;
+    }
+    if (!isDesktop || selectedIssueId !== null) {
+      hasFinishedInitialSelection.current = true;
+      return;
+    }
+
+    initialSectionResults.current.set(sectionKey, firstIssueId);
+    for (const section of SECTIONS) {
+      if (!initialSectionResults.current.has(section.key)) {
+        return;
+      }
+
+      const issueId = initialSectionResults.current.get(section.key);
+      if (issueId) {
+        hasFinishedInitialSelection.current = true;
+        void setSelectedIssueId(issueId);
+        return;
+      }
+    }
+    hasFinishedInitialSelection.current = true;
+  };
+
+  const handleAssignmentFilterChange = (value: AssignmentFilter) => {
+    hasFinishedInitialSelection.current = true;
+    void setAssignmentFilter(value);
+  };
 
   return (
     <Stack flex={1} minHeight={0} contain="size" overflow="hidden">
@@ -144,7 +184,7 @@ function InboxContent() {
               aria-label={t('Issue assignee')}
               size="xs"
               value={assignmentFilter}
-              onChange={setAssignmentFilter}
+              onChange={handleAssignmentFilterChange}
             >
               <SegmentedControl.Item key="me">{t('Me')}</SegmentedControl.Item>
               <SegmentedControl.Item key="my_teams">
@@ -160,6 +200,7 @@ function InboxContent() {
                 section={section}
                 assignmentFilter={assignmentFilter}
                 selectedIssueId={selectedIssueId}
+                onInitialResult={handleInitialSectionResult}
               />
             ))}
           </Stack>
@@ -196,11 +237,17 @@ function InboxContent() {
 
 interface InboxSectionProps {
   assignmentFilter: AssignmentFilter;
+  onInitialResult: (sectionKey: string, firstIssueId: string | null) => void;
   section: InboxSectionConfig;
   selectedIssueId: string | null;
 }
 
-function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSectionProps) {
+function InboxSection({
+  assignmentFilter,
+  onInitialResult,
+  section,
+  selectedIssueId,
+}: InboxSectionProps) {
   const organization = useOrganization();
   const queryResult = useInfiniteQuery({
     ...apiOptions.asInfinite<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
@@ -222,6 +269,17 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
   const maxCount = queryResult.data?.pages[0]?.headers['X-Max-Hits'];
   const {data: members = []} = useMembers();
   const membersById = new Map(members.map(member => [member.id, member]));
+  const hasReportedInitialResult = useRef(false);
+  const reportInitialResult = useEffectEvent(() => {
+    onInitialResult(section.key, groups[0]?.id ?? null);
+  });
+
+  useEffect(() => {
+    if (!queryResult.isPending && !hasReportedInitialResult.current) {
+      hasReportedInitialResult.current = true;
+      reportInitialResult();
+    }
+  }, [queryResult.isPending]);
 
   return (
     <Disclosure

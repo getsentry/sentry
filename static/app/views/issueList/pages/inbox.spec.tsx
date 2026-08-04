@@ -10,12 +10,14 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
+  cleanup,
   render,
   screen,
   userEvent,
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {mockMatchMedia} from 'sentry-test/utils';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {ProgressState} from 'sentry/types/group';
@@ -23,6 +25,7 @@ import {ProgressState} from 'sentry/types/group';
 import InboxPage from './inbox';
 
 describe('InboxPage', () => {
+  const defaultMatchMedia = window.matchMedia;
   const organization = OrganizationFixture({
     features: ['issue-stream-progress-ui'],
   });
@@ -129,7 +132,10 @@ describe('InboxPage', () => {
   });
 
   afterEach(() => {
+    cleanup();
     MockApiClient.clearMockResponses();
+    jest.restoreAllMocks();
+    window.matchMedia = defaultMatchMedia;
     jest.clearAllMocks();
   });
 
@@ -866,5 +872,34 @@ describe('InboxPage', () => {
     });
 
     expect(screen.getByText('Page Not Found')).toBeInTheDocument();
+  });
+
+  it('auto-selects the first issue on desktop', async () => {
+    mockMatchMedia(true);
+    mockSuccessfulSections();
+    mockIssuePreview();
+
+    const {router} = render(<InboxPage />, {organization, initialRouterConfig});
+
+    await waitFor(() => {
+      expect(router.location.query.preview).toBe(fixProposedGroup.id);
+    });
+    expect(router.location.query).toEqual({
+      project: project.id,
+      environment: 'production',
+      statsPeriod: '7d',
+      preview: fixProposedGroup.id,
+    });
+    expect(
+      within(screen.getByRole('region', {name: 'Fix Proposed'})).getByRole('link', {
+        name: /Fix proposed issue/,
+      })
+    ).toHaveAttribute('aria-current', 'true');
+    expect(
+      await within(screen.getByRole('complementary', {name: 'Issue preview'})).findByRole(
+        'heading',
+        {name: 'Fix proposed issue'}
+      )
+    ).toBeInTheDocument();
   });
 });
