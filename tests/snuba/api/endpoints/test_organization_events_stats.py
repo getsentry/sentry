@@ -198,8 +198,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
 
-    def test_errors_dataset_has_trace(self) -> None:
-        """Only traced events should count, without treating an empty value as a trace UUID."""
+    def _assert_errors_dataset_has_trace(self, trace_field: str) -> None:
         traced_event = self.store_event(
             data={
                 "event_id": uuid4().hex,
@@ -235,7 +234,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
                 "interval": "1h",
                 "dataset": "errors",
                 "project": self.project.id,
-                "query": f"issue:{traced_event.group.qualified_short_id} has:trace",
+                "query": f"issue:{traced_event.group.qualified_short_id} has:{trace_field}",
                 "yAxis": ["count()", "count_unique(user)"],
                 "partial": "1",
             },
@@ -250,6 +249,14 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             [{"count": 1}],
             [{"count": 0}],
         ]
+
+    def test_errors_dataset_has_trace(self) -> None:
+        """The has:trace filter returns only events that contain a trace ID."""
+        self._assert_errors_dataset_has_trace("trace")
+
+    def test_errors_dataset_has_trace_span(self) -> None:
+        """The has:trace.span filter returns only events that contain a span ID."""
+        self._assert_errors_dataset_has_trace("trace.span")
 
     def test_errors_dataset_with_environment(self) -> None:
         environment = self.create_environment(project=self.project)
