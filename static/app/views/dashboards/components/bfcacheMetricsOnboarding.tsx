@@ -9,9 +9,8 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 
-// TODO(bfcache): point at the real docs page once it is published.
 const DOCS_URL =
-  'https://docs.sentry.io/platforms/javascript/configuration/integrations/bfcachemetrics/';
+  'https://docs.sentry.io/platforms/javascript/configuration/integrations/bfcache/';
 
 const CODE_SNIPPET = `import * as Sentry from '@sentry/browser';
 
