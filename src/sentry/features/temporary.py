@@ -318,6 +318,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:autofix-pr-iteration-review-request", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Assign the triggering user and post a status comment once a Seer PR exhausts its CI-fix iteration cap
     manager.add("organizations:autofix-pr-iteration-cap-assign", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable the pr content verification prior to opening a PR
+    manager.add("organizations:autofix-verify-pr-content", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Expose one-shot question answers on the Seer runs list (?expand=questions)
     manager.add("organizations:seer-run-questions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable showing seer in a persistent sidebar
