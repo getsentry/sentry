@@ -7,7 +7,7 @@ import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/second
 
 describe('IssuesSecondaryNavigation', () => {
   const organization = OrganizationFixture({
-    features: ['issue-stream-progress-ui'],
+    features: ['issue-stream-progress-ui', 'seat-based-seer-enabled'],
   });
 
   beforeEach(() => {
@@ -33,7 +33,7 @@ describe('IssuesSecondaryNavigation', () => {
     );
   }
 
-  it('shows the inbox count for every progress section and the user and their teams', async () => {
+  it('shows the inbox count for Seer progress sections and the user and their teams', async () => {
     const request = mockInboxCount({
       'is:unresolved issue.progress:[fix_proposed,diagnosed,assigned] assignee:[me,my_teams]': 12,
     });
@@ -53,9 +53,25 @@ describe('IssuesSecondaryNavigation', () => {
     expect(query).toContain('assignee:[me,my_teams]');
   });
 
+  it('only counts fix proposed issues without Seer', async () => {
+    organization.features = ['issue-stream-progress-ui'];
+    const request = mockInboxCount({
+      'is:unresolved issue.progress:[fix_proposed] assignee:[me,my_teams]': 12,
+    });
+
+    renderNavigation();
+
+    expect(await screen.findByText('12')).toBeInTheDocument();
+
+    const [[, options]] = request.mock.calls;
+    expect(options.query.query).toEqual([
+      'is:unresolved issue.progress:[fix_proposed] assignee:[me,my_teams]',
+    ]);
+  });
+
   it('caps the count at 99+ since the endpoint stops counting at 100', async () => {
     mockInboxCount({
-      'is:unresolved issue.progress:[fix_proposed,diagnosed,assigned] assignee:[me,my_teams]': 100,
+      'is:unresolved issue.progress:[fix_proposed] assignee:[me,my_teams]': 100,
     });
 
     renderNavigation();
@@ -65,7 +81,7 @@ describe('IssuesSecondaryNavigation', () => {
 
   it('renders no badge when nothing is waiting', async () => {
     mockInboxCount({
-      'is:unresolved issue.progress:[fix_proposed,diagnosed,assigned] assignee:[me,my_teams]': 0,
+      'is:unresolved issue.progress:[fix_proposed] assignee:[me,my_teams]': 0,
     });
 
     renderNavigation();

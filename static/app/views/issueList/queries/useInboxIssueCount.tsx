@@ -15,6 +15,7 @@ export function useInboxIssueCount() {
     !organization.hideAiFeatures &&
     (organization.features.includes('seat-based-seer-enabled') ||
       organization.features.includes('seer-added'));
+  const inboxCountQuery = hasSeer ? INBOX_COUNT_QUERY : INBOX_COUNT_QUERY_NO_SEER;
 
   const {data} = useQuery({
     ...apiOptions.as<Record<string, number>>()(
@@ -22,7 +23,7 @@ export function useInboxIssueCount() {
       {
         path: {organizationIdOrSlug: organization.slug},
         query: {
-          query: [hasSeer ? INBOX_COUNT_QUERY : INBOX_COUNT_QUERY_NO_SEER],
+          query: [inboxCountQuery],
           project: [-1],
         },
         staleTime: 180_000,
@@ -31,5 +32,5 @@ export function useInboxIssueCount() {
     placeholderData: keepPreviousData,
   });
 
-  return data?.[INBOX_COUNT_QUERY] ?? null;
+  return data?.[inboxCountQuery] ?? null;
 }
