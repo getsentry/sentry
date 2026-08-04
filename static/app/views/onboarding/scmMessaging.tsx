@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useState} from 'react';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -41,6 +41,41 @@ interface ScmMessagingProps {
   genBackButton?: StepProps['genBackButton'];
 }
 
+function isIntegrationActive(integration: OrganizationIntegration): boolean {
+  return (
+    integration.status === 'active' &&
+    integration.organizationIntegrationStatus === 'active'
+  );
+}
+
+/**
+ * The fetched record only stands in for the saved destination when it still
+ * matches the identifiers held in session state and is active on both the
+ * integration and its organization link.
+ */
+function resolveSavedIntegration(
+  candidate: OrganizationIntegration | undefined,
+  messagingSetup: ScmMessagingSetup
+): OrganizationIntegration | undefined {
+  if (!candidate || messagingSetup.mode !== 'selected') {
+    return undefined;
+  }
+
+  const matchesProvider =
+    candidate.provider.key === messagingSetup.providerKey ||
+    candidate.provider.slug === messagingSetup.providerKey;
+
+  if (
+    candidate.id !== messagingSetup.integrationId ||
+    !matchesProvider ||
+    !isIntegrationActive(candidate)
+  ) {
+    return undefined;
+  }
+
+  return candidate;
+}
+
 /**
  * Revalidates the organization-scoped identifiers stored in session state.
  * A restored selection is not usable until both queries succeed and resolve
@@ -74,39 +109,15 @@ function useScmMessagingSetupValidation({
   });
 
   const isMissingIntegration = isNotFoundError(integrationQuery.error);
+  const fetchedIntegration = isMissingIntegration ? undefined : integrationQuery.data;
   const hasInactiveIntegration =
-    !isMissingIntegration &&
-    integrationQuery.data !== undefined &&
-    (integrationQuery.data.status !== 'active' ||
-      integrationQuery.data.organizationIntegrationStatus !== 'active');
+    fetchedIntegration !== undefined && !isIntegrationActive(fetchedIntegration);
+  const integration = resolveSavedIntegration(fetchedIntegration, messagingSetup);
 
-  const integration = useMemo(() => {
-    if (!hasSelectedDestination || isMissingIntegration) {
-      return;
-    }
-
-    const candidate = integrationQuery.data;
-    if (!candidate) {
-      return;
-    }
-
-    if (
-      candidate.id !== messagingSetup.integrationId ||
-      (candidate.provider.key !== messagingSetup.providerKey &&
-        candidate.provider.slug !== messagingSetup.providerKey) ||
-      candidate.status !== 'active' ||
-      candidate.organizationIntegrationStatus !== 'active'
-    ) {
-      return;
-    }
-
-    return candidate;
-  }, [
-    hasSelectedDestination,
-    integrationQuery.data,
-    isMissingIntegration,
-    messagingSetup,
-  ]);
+  // A 404 settles the query as conclusively as a successful fetch does; any
+  // other error leaves the saved integration unverified.
+  const isIntegrationSettled =
+    !integrationQuery.isFetching && (integrationQuery.isSuccess || isMissingIntegration);
 
   const channelsQuery = useQuery(
     apiOptions.as<ChannelListResponse>()(
@@ -123,12 +134,10 @@ function useScmMessagingSetupValidation({
     )
   );
 
-  const channel = useMemo(() => {
-    if (!hasSelectedDestination) {
-      return;
-    }
-    return channelsQuery.data?.results.find(item => item.id === messagingSetup.channelId);
-  }, [channelsQuery.data, hasSelectedDestination, messagingSetup]);
+  const areChannelsSettled = channelsQuery.isSuccess && !channelsQuery.isFetching;
+  const channel = hasSelectedDestination
+    ? channelsQuery.data?.results.find(item => item.id === messagingSetup.channelId)
+    : undefined;
 
   useEffect(() => {
     if (messagingSetup.mode === 'selected') {
@@ -137,11 +146,7 @@ function useScmMessagingSetupValidation({
   }, [messagingSetup]);
 
   useEffect(() => {
-    if (
-      messagingSetup.mode !== 'selected' ||
-      (!integrationQuery.isSuccess && !isMissingIntegration) ||
-      integrationQuery.isFetching
-    ) {
+    if (messagingSetup.mode !== 'selected' || !isIntegrationSettled) {
       return;
     }
 
@@ -151,7 +156,7 @@ function useScmMessagingSetupValidation({
       return;
     }
 
-    if (!channelsQuery.isSuccess || channelsQuery.isFetching) {
+    if (!areChannelsSettled) {
       return;
     }
 
@@ -180,15 +185,12 @@ function useScmMessagingSetupValidation({
     // comparison becomes false. Any future field written unconditionally here
     // turns that fixed point into a session-storage write loop.
   }, [
+    areChannelsSettled,
     channel,
     channelsQuery.data,
-    channelsQuery.isFetching,
-    channelsQuery.isSuccess,
-    integration,
-    integrationQuery.isFetching,
-    integrationQuery.isSuccess,
     hasInactiveIntegration,
-    isMissingIntegration,
+    integration,
+    isIntegrationSettled,
     messagingSetup,
     onMessagingSetupChange,
   ]);
@@ -203,11 +205,9 @@ function useScmMessagingSetupValidation({
       (integrationQuery.isFetching ||
         (integration !== undefined && channelsQuery.isFetching)),
     isValid:
-      hasSelectedDestination &&
-      integrationQuery.isSuccess &&
-      !integrationQuery.isFetching &&
-      channelsQuery.isSuccess &&
-      !channelsQuery.isFetching &&
+      isIntegrationSettled &&
+      integration !== undefined &&
+      areChannelsSettled &&
       channel !== undefined,
     staleReason,
   };
