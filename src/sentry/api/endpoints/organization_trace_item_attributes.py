@@ -101,7 +101,6 @@ from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.tracing import set_span_data, start_span
 
 SCALAR_ATTRIBUTE_TYPES = ["string", "number", "boolean"]
-# "array" is gated behind organizations:trace-item-array-query-support (see get()).
 POSSIBLE_ATTRIBUTE_TYPES = [*SCALAR_ATTRIBUTE_TYPES, "array"]
 
 # Subset of SupportedTraceItemType that get_column_definitions handles.
