@@ -270,13 +270,7 @@ export function S3Repository({Header, Body, Footer, onSubmit, sourceConfig}: S3P
         </Stack>
       </Body>
       <Footer>
-        <form.Subscribe selector={state => state.isPristine}>
-          {isPristine => (
-            <form.SubmitButton disabled={isPristine}>
-              {t('Save changes')}
-            </form.SubmitButton>
-          )}
-        </form.Subscribe>
+        <form.SubmitButton>{t('Save changes')}</form.SubmitButton>
       </Footer>
     </form.AppForm>
   );
@@ -475,13 +469,7 @@ export function GcsRepository({Header, Body, Footer, onSubmit, sourceConfig}: Gc
         </Stack>
       </Body>
       <Footer>
-        <form.Subscribe selector={state => state.isPristine}>
-          {isPristine => (
-            <form.SubmitButton disabled={isPristine}>
-              {t('Save changes')}
-            </form.SubmitButton>
-          )}
-        </form.Subscribe>
+        <form.SubmitButton>{t('Save changes')}</form.SubmitButton>
       </Footer>
     </form.AppForm>
   );

@@ -31,7 +31,10 @@ const CASING_OPTIONS = Object.entries(DEBUG_SOURCE_CASINGS).map(([value, label])
 const schema = z.object({
   id: z.string(),
   name: z.string().min(1, t('Name is required')),
-  url: z.string().min(1, t('Download Url is required')),
+  url: z
+    .string()
+    .min(1, t('Download Url is required'))
+    .pipe(z.url(t('Enter a valid URL'))),
   username: z.string().optional(),
   // `undefined` means the previously stored password should be kept untouched.
   password: z.string().optional(),
@@ -197,13 +200,7 @@ export function Http({Header, Body, Footer, onSubmit, initialData}: Props) {
         </Stack>
       </Body>
       <Footer>
-        <form.Subscribe selector={state => state.isPristine}>
-          {isPristine => (
-            <form.SubmitButton disabled={isPristine}>
-              {t('Save changes')}
-            </form.SubmitButton>
-          )}
-        </form.Subscribe>
+        <form.SubmitButton>{t('Save changes')}</form.SubmitButton>
       </Footer>
     </form.AppForm>
   );

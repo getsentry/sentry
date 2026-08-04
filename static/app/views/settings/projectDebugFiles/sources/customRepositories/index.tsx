@@ -1,5 +1,4 @@
 import {useCallback, useEffect} from 'react';
-import {useMutation} from '@tanstack/react-query';
 import type {Location} from 'history';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -21,7 +20,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {Repository} from './repository';
 import type {RepositoryConfig} from './updateCustomRepositoriesMutation';
-import {updateCustomRepositoriesMutationOptions} from './updateCustomRepositoriesMutation';
+import {useUpdateCustomRepositoriesMutation} from './updateCustomRepositoriesMutation';
 import {dropDownItems} from './utils';
 
 type Props = {
@@ -38,12 +37,9 @@ export function CustomRepositories({
   location,
 }: Props) {
   const navigate = useNavigate();
-  const {mutateAsync: updateCustomRepositories} = useMutation(
-    updateCustomRepositoriesMutationOptions({
-      currentRepositoryCount: repositories.length,
-      organizationSlug: organization.slug,
-      projectSlug: project.slug,
-    })
+  const {mutateAsync: updateCustomRepositories} = useUpdateCustomRepositoriesMutation(
+    project,
+    repositories.length
   );
 
   const persistData = useCallback(
@@ -51,10 +47,8 @@ export function CustomRepositories({
       updatedItems,
       updatedItem,
       index,
-      refresh,
     }: {
       index?: number;
-      refresh?: boolean;
       updatedItem?: RepositoryConfig;
       updatedItems?: RepositoryConfig[];
     }) => {
@@ -65,7 +59,7 @@ export function CustomRepositories({
         items.splice(index, 1, updatedItem);
       }
 
-      return updateCustomRepositories({repositories: items, refresh}).then(() => {});
+      return updateCustomRepositories({repositories: items}).then(() => {});
     },
     [repositories, updateCustomRepositories]
   );
@@ -122,10 +116,7 @@ export function CustomRepositories({
     const newRepositories = [...repositories];
     const index = newRepositories.findIndex(item => item.id === repoId);
     newRepositories.splice(index, 1);
-    persistData({
-      updatedItems: newRepositories,
-      refresh: false,
-    });
+    persistData({updatedItems: newRepositories});
   }
 
   function handleEditRepository(repoId: CustomRepo['id']) {

@@ -14,6 +14,22 @@ const modalProps = {
 };
 
 describe('DebugFileCustomRepository', () => {
+  it('validates the HTTP repository URL', async () => {
+    const onSubmit = jest.fn().mockResolvedValue(undefined);
+
+    render(<Http {...modalProps} onSubmit={onSubmit} />);
+
+    await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'HTTP Repository');
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Download Url'}),
+      'invalid-url'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Save changes'}));
+
+    expect(await screen.findByText('Enter a valid URL')).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it('keeps HTTP submissions pending and preserves an unchanged password', async () => {
     const {promise, resolve} = Promise.withResolvers<void>();
     const onSubmit = jest.fn(() => promise);
@@ -35,11 +51,9 @@ describe('DebugFileCustomRepository', () => {
     );
 
     const saveButton = screen.getByRole('button', {name: 'Save changes'});
-    expect(saveButton).toBeDisabled();
-
-    await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), ' Updated');
     expect(saveButton).toBeEnabled();
 
+    await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), ' Updated');
     await userEvent.click(saveButton);
 
     await waitFor(() =>
@@ -77,7 +91,7 @@ describe('DebugFileCustomRepository', () => {
     );
 
     const saveButton = screen.getByRole('button', {name: 'Save changes'});
-    expect(saveButton).toBeDisabled();
+    expect(saveButton).toBeEnabled();
 
     await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), ' Updated');
     await userEvent.click(saveButton);
