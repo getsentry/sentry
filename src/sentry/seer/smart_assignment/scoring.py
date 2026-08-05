@@ -25,6 +25,19 @@ logger = logging.getLogger(__name__)
 # Right now the agent only returns 3 ranked candidates; this is the limit we score against.
 HIT_RANK_LIMIT = 3
 
+# We invalidate scoring against "ground truth" assignments from these sources, because they're
+# basically non-human actions: our own auto-assignment, project ownership, CODEOWNERS,
+# and the suspect commit feature. The agent is likely to make similar choices, so scoring
+# against these would inflate our success rate.
+UNSCORABLE_ASSIGNMENT_ORIGINS = frozenset(
+    {
+        ActivityIntegration.SEER_SUGGESTED.value,
+        ActivityIntegration.PROJECT_OWNERSHIP.value,
+        ActivityIntegration.CODEOWNERS.value,
+        ActivityIntegration.SUSPECT_COMMITTER.value,
+    }
+)
+
 
 class RunUpdates(TypedDict, total=False):
     """The mirrored fields we write onto a run's ``extras`` before scoring."""
@@ -93,8 +106,7 @@ def _ground_truth_updates(
     carries no useful signal.
 
     For an assignment we mirror the current assignee (user and/or team), unless it is
-    our own auto-assignment (tagged with the ``SEER_SUGGESTED`` integration by
-    ProjectOwnership.handle_auto_assignment, which would score us against ourselves).
+    from a source in ``UNSCORABLE_ASSIGNMENT_ORIGINS``.
     For a user-driven resolution we record the resolver as the assumed assignee only
     when no explicit assignee has been recorded -- an assignment is better truth.
     """
@@ -127,12 +139,12 @@ def _ground_truth_updates(
 
 def _assignment_updates(group: Group) -> RunUpdates | None:
     """Mirror the current assignee (user and/or team), or ``None`` when the group has
-    no assignee or the assignment is our own auto-assignment.
+    no assignee or the assignment is one we can't grade a prediction against.
     """
     assignee = GroupAssignee.objects.filter(group=group).first()
     if assignee is None:
         return None
-    if _is_seer_auto_assignment(group):
+    if _is_unscorable_assignment(group):
         return None
     return {
         "actual_assignee_user_id": assignee.user_id,
@@ -141,20 +153,20 @@ def _assignment_updates(group: Group) -> RunUpdates | None:
     }
 
 
-def _is_seer_auto_assignment(group: Group) -> bool:
-    """Whether the group's current assignment came from our own auto-assignment,
-    determined by the most recent ``ASSIGNED`` activity being tagged with the
-    ``SEER_SUGGESTED`` integration."""
+def _is_unscorable_assignment(group: Group) -> bool:
+    """Whether the group's current assignment came from a source we can't grade a
+    prediction against. The latest ASSIGNED activity always represents the current assignment,
+    and its ``integration`` indicates if it came from a human or not.
+    """
     latest_assignment = (
         Activity.objects.filter(group=group, type=ActivityType.ASSIGNED.value)
-        .order_by("-datetime")
+        # ``id`` breaks ties so same-timestamp activities resolve to the one written last.
+        .order_by("-datetime", "-id")
         .first()
     )
     if latest_assignment is None:
         return False
-    return (latest_assignment.data or {}).get(
-        "integration"
-    ) == ActivityIntegration.SEER_SUGGESTED.value
+    return (latest_assignment.data or {}).get("integration") in UNSCORABLE_ASSIGNMENT_ORIGINS
 
 
 def _apply(run_id: int, updates: RunUpdates) -> bool:
