@@ -93,7 +93,7 @@ def _ground_truth_updates(
     """Build the ground-truth mirror updates for an activity, or ``None`` when it
     carries no useful signal.
 
-    For an assignment we mirror the current assignee (user and/or team), unless it is
+    For any activity we mirror the current assignee (user and/or team), unless it is
     from a source in ``UNSCORABLE_ASSIGNMENT_ORIGINS``.
     For a user-driven resolution we record the resolver as the assumed assignee only
     when no explicit assignee has been recorded -- an assignment is better truth.
@@ -114,11 +114,6 @@ def _ground_truth_updates(
             # A prior team assignee is treated as enough truth, so we drop the
             # resolver. (Could go the other way: merge the resolver in as the user.)
             return None
-        # The assignment may never have been mirrored onto the run, so fall back to
-        # the resolver only when the group truly has no assignee.
-        assignment = _assignment_updates(group)
-        if assignment is not None:
-            return assignment
         return {
             "actual_assignee_user_id": resolver_id,
             "ground_truth_source": activity_type.name,
