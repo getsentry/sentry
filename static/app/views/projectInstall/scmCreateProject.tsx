@@ -31,6 +31,7 @@ import {t, tct} from 'sentry/locale';
 import type {Integration, Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useReplayForCriticalFlow} from 'sentry/utils/replays/useReplayForCriticalFlow';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
@@ -77,6 +78,16 @@ export function ScmCreateProject() {
   // `variant` and to `referrer=getting-started` autofill — back-from-docs
   // must not reclassify an org-activation visit as existing_org.
   useRouteAnalyticsParams({variant: 'scm', origin: useProjectCreationPageOrigin()});
+
+  // Own flow tag rather than onboarding's `scm_onboarding`, so the two SCM
+  // funnels stay separately filterable in Replays. Sampling matches
+  // onboarding. Lives here, above the keyed wizard, so the per-mount sampling
+  // decision survives the restore remount below. Reaching this component
+  // already implies the SCM flag (see newProject), so no `enabled` gate.
+  useReplayForCriticalFlow({
+    flowName: 'scm_project_creation',
+    sampleRate: 0.5,
+  });
 
   // Snapshot of the last completed wizard session, written when a project is
   // created (see handleComplete in the wizard). Restored when this mount is a
