@@ -8,6 +8,7 @@ import {useComboBoxState} from '@react-stately/combobox';
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -27,7 +28,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
-import {IconClose, IconMegaphone, IconSearch, IconSeer, IconSync} from 'sentry/icons';
+import {IconClose, IconMegaphone, IconSearch, IconSync} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
@@ -424,6 +425,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
   const isDisplayingResults = !isPending && !isError && hasResults;
   const showQueryStatus =
     hasAskSeerUxRework && !state.isOpen && (isPending || isError || hasResults);
+  const queryStatusVariant = isPending ? 'accent' : isError ? 'danger' : 'success';
   const queryStatusLabel = isPending
     ? t('Seer is processing your query')
     : isError
@@ -467,11 +469,10 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
       </InputWrapper>
       <ButtonsWrapper>
         {showQueryStatus ? (
-          <IconSeer
-            animation={isPending ? 'loading' : undefined}
+          <StatusIndicator
+            variant={queryStatusVariant}
             aria-label={queryStatusLabel}
-            size="sm"
-            variant={isPending ? 'accent' : isError ? 'danger' : 'success'}
+            animationIterationCount={isPending ? 'infinite' : 10}
           />
         ) : null}
         <Button
