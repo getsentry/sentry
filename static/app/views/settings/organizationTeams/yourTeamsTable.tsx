@@ -1,10 +1,8 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Link} from '@sentry/scraps/link';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {IdBadge} from 'sentry/components/idBadge';
@@ -16,8 +14,15 @@ import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useLeaveTeam} from 'sentry/views/settings/organizationTeams/hooks/useLeaveTeam';
-import {RoleOverwritePanelAlert} from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
+import {
+  hasOrgRoleOverwrite,
+  RoleOverwritePanelAlert,
+} from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
 import {TeamProjectsCell} from 'sentry/views/settings/organizationTeams/teamProjectsCell';
+import {
+  TeamLink,
+  TeamsTable,
+} from 'sentry/views/settings/organizationTeams/teamsTableStyles';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
 
 interface YourTeamsTableProps {
@@ -84,7 +89,7 @@ export function YourTeamsTable({
   };
 
   return (
-    <StyledSimpleTable>
+    <TeamsTable>
       <SimpleTable.Header>
         <SimpleTable.HeaderCell>{t('Your Teams')}</SimpleTable.HeaderCell>
         <SimpleTable.HeaderCell data-column-name="role">
@@ -95,14 +100,16 @@ export function YourTeamsTable({
         </SimpleTable.HeaderCell>
         <SimpleTable.HeaderCell data-column-name="actions" />
       </SimpleTable.Header>
-      <FullWidthAlert>
-        <RoleOverwritePanelAlert
-          orgRole={orgRole}
-          orgRoleList={orgRoleList}
-          teamRoleList={teamRoleList}
-          isSelf
-        />
-      </FullWidthAlert>
+      {hasOrgRoleOverwrite({orgRole, orgRoleList, teamRoleList}) && (
+        <SimpleTable.FullWidthRow>
+          <RoleOverwritePanelAlert
+            orgRole={orgRole}
+            orgRoleList={orgRoleList}
+            teamRoleList={teamRoleList}
+            isSelf
+          />
+        </SimpleTable.FullWidthRow>
+      )}
       {isLoading
         ? Array.from({length: 3}).map((_, i) => (
             <SimpleTable.Row key={i}>
@@ -125,7 +132,7 @@ export function YourTeamsTable({
           : teams.map(team => (
               <YourTeamRow key={team.slug} team={team} projects={projects} />
             ))}
-    </StyledSimpleTable>
+    </TeamsTable>
   );
 }
 
@@ -164,7 +171,7 @@ function YourTeamRow({
 
   return (
     <SimpleTable.Row>
-      {canViewTeam && <InteractionStateLayer />}
+      {canViewTeam && <InteractionStateLayer as="td" />}
       <SimpleTable.RowCell>
         {canViewTeam ? (
           <TeamLink
@@ -206,36 +213,3 @@ function YourTeamRow({
     </SimpleTable.Row>
   );
 }
-
-const StyledSimpleTable = styled(SimpleTable)`
-  grid-template-columns: 1fr 125px 150px auto;
-  margin-bottom: ${p => p.theme.space.xl};
-
-  [data-column-name='actions'] {
-    padding-left: 0;
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: 1fr 125px auto;
-
-    [data-column-name='projects'] {
-      display: none;
-    }
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 1fr auto;
-
-    [data-column-name='role'] {
-      display: none;
-    }
-  }
-`;
-
-const TeamLink = styled(Link)`
-  ${SimpleTable.rowLinkStyle}
-`;
-
-const FullWidthAlert = styled('div')`
-  grid-column: 1 / -1;
-`;

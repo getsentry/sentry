@@ -60,7 +60,7 @@ describe('SimpleTable component', () => {
     );
   });
 
-  it('keeps the interaction state layer a direct child of the header cell when sortable', () => {
+  it('keeps the interaction state layer a direct child of the sort button when sortable', () => {
     render(
       <SimpleTable>
         <SimpleTable.Header>
@@ -69,9 +69,9 @@ describe('SimpleTable component', () => {
       </SimpleTable>
     );
 
-    const header = screen.getByRole('columnheader', {name: 'A'});
+    const button = screen.getByRole('button', {name: 'A'});
 
-    expect(within(header).getByRole('presentation').parentElement).toBe(header);
+    expect(within(button).getByRole('presentation').parentElement).toBe(button);
   });
 
   it('sorts when a sortable header is clicked', async () => {
@@ -86,8 +86,23 @@ describe('SimpleTable component', () => {
       </SimpleTable>
     );
 
-    await userEvent.click(screen.getByRole('columnheader', {name: 'A'}));
+    await userEvent.click(screen.getByRole('button', {name: 'A'}));
 
     expect(handleSortClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders a sortable header as a button inside a real column header', () => {
+    render(
+      <SimpleTable>
+        <SimpleTable.Header>
+          <SimpleTable.HeaderCell handleSortClick={jest.fn()}>A</SimpleTable.HeaderCell>
+        </SimpleTable.Header>
+      </SimpleTable>
+    );
+
+    const header = screen.getByRole('columnheader', {name: 'A'});
+
+    expect(header.tagName).toBe('TH');
+    expect(within(header).getByRole('button', {name: 'A'})).toBeInTheDocument();
   });
 });
