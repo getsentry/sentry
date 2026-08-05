@@ -89,6 +89,84 @@ type DetectorSettingsOptions = {
   resetVersion: number;
 };
 
+type DetectorFieldSettings = Pick<
+  DetectorSettingsOptions,
+  'isResetting' | 'performanceIssueSettings' | 'projectSlug' | 'resetVersion'
+>;
+
+function getDisabled(
+  {disabled, disabledReason}: DetectorDefinition,
+  isResetting: boolean
+) {
+  if (isResetting) {
+    return true;
+  }
+
+  return disabled ? (disabledReason ?? true) : false;
+}
+
+function BooleanField({
+  definition,
+  isResetting,
+  performanceIssueSettings,
+  projectSlug,
+  resetVersion,
+}: DetectorFieldSettings & {definition: DetectorBooleanDefinition}) {
+  const {defaultValue, disabled, disabledReason, ...props} = definition;
+
+  return (
+    <DetectorBooleanField
+      key={`${props.name}-${resetVersion}`}
+      {...props}
+      disabled={getDisabled({disabled, disabledReason}, isResetting)}
+      initialValue={Boolean(performanceIssueSettings[props.name] ?? defaultValue)}
+      projectSlug={projectSlug}
+    />
+  );
+}
+
+function RangeField({
+  definition,
+  isResetting,
+  performanceIssueSettings,
+  projectSlug,
+  resetVersion,
+}: DetectorFieldSettings & {definition: DetectorRangeDefinition}) {
+  const {defaultValue, disabled, disabledReason, ...props} = definition;
+  const value = performanceIssueSettings[props.name];
+
+  return (
+    <DetectorRangeField
+      key={`${props.name}-${resetVersion}`}
+      {...props}
+      disabled={getDisabled({disabled, disabledReason}, isResetting)}
+      initialValue={typeof value === 'number' ? value : defaultValue}
+      projectSlug={projectSlug}
+    />
+  );
+}
+
+function StringField({
+  definition,
+  isResetting,
+  performanceIssueSettings,
+  projectSlug,
+  resetVersion,
+}: DetectorFieldSettings & {definition: DetectorStringDefinition}) {
+  const {defaultValue = '', disabled, disabledReason, ...props} = definition;
+  const value = performanceIssueSettings[props.name];
+
+  return (
+    <DetectorStringField
+      key={`${props.name}-${resetVersion}`}
+      {...props}
+      disabled={getDisabled({disabled, disabledReason}, isResetting)}
+      initialValue={typeof value === 'string' ? value : defaultValue}
+      projectSlug={projectSlug}
+    />
+  );
+}
+
 /**
  * Admin-only toggles that turn an entire detector on or off. Keyed by issue
  * title so they can be prepended to the matching customer threshold group.
@@ -199,467 +277,508 @@ export function getProjectDetectorSettings({
     ? t('Detection of this issue has been disabled.')
     : null;
   const issueType = safeGetQsParam('issueType');
-
-  const getDisabled = ({disabled, disabledReason: reason}: DetectorDefinition) => {
-    if (isResetting) {
-      return true;
-    }
-
-    return disabled ? (reason ?? true) : false;
+  const fieldSettings = {
+    isResetting,
+    performanceIssueSettings,
+    projectSlug,
+    resetVersion,
   };
-  const getNumberSetting = (name: DetectorConfigCustomer, defaultValue: number) => {
-    const value = performanceIssueSettings[name];
-    return typeof value === 'number' ? value : defaultValue;
-  };
-  const getStringSetting = (name: DetectorConfigCustomer, defaultValue: string) => {
-    const value = performanceIssueSettings[name];
-    return typeof value === 'string' ? value : defaultValue;
-  };
-  const booleanField = ({defaultValue, visible, ...props}: DetectorBooleanDefinition) =>
-    visible === false ? null : (
-      <DetectorBooleanField
-        key={`${props.name}-${resetVersion}`}
-        {...props}
-        disabled={getDisabled(props)}
-        initialValue={Boolean(performanceIssueSettings[props.name] ?? defaultValue)}
-        projectSlug={projectSlug}
-      />
-    );
-  const rangeField = ({defaultValue, visible, ...props}: DetectorRangeDefinition) =>
-    visible === false ? null : (
-      <DetectorRangeField
-        key={`${props.name}-${resetVersion}`}
-        {...props}
-        disabled={getDisabled(props)}
-        initialValue={getNumberSetting(props.name, defaultValue)}
-        projectSlug={projectSlug}
-      />
-    );
-  const stringField = ({
-    defaultValue = '',
-    visible,
-    ...props
-  }: DetectorStringDefinition) =>
-    visible === false ? null : (
-      <DetectorStringField
-        key={`${props.name}-${resetVersion}`}
-        {...props}
-        disabled={getDisabled(props)}
-        initialValue={getStringSetting(props.name, defaultValue)}
-        projectSlug={projectSlug}
-      />
-    );
 
   const baseDetectorFields: DetectorFieldGroup[] = [
     {
       title: IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
       fields: [
-        rangeField({
-          name: DetectorConfigCustomer.N_PLUS_DB_DURATION,
-          label: t('Minimum Total Duration'),
-          defaultValue: 100, // ms
-          help: t(
-            'Setting the value to 100ms, means that an eligible event will be detected as a N+1 DB Query Issue only if the total duration of the involved spans exceeds 100ms'
-          ),
-          allowedValues: allowedDurationValues,
-          disabled: !(
-            hasAccess && performanceIssueSettings[DetectorConfigAdmin.N_PLUS_DB_ENABLED]
-          ),
-          tickValues: [0, allowedDurationValues.length - 1],
-          showTickLabels: true,
-          formatLabel: formatDuration,
-          disabledReason,
-        }),
-        rangeField({
-          name: DetectorConfigCustomer.N_PLUS_DB_COUNT,
-          label: t('Minimum Query Count'),
-          defaultValue: 5,
-          help: t(
-            'Setting the value to 5 means that an eligible event will be detected as an N+1 DB Query Issue only if the number of repeated queries exceeds 5'
-          ),
-          allowedValues: allowedCountValues,
-          disabled: !(
-            hasAccess && performanceIssueSettings[DetectorConfigAdmin.N_PLUS_DB_ENABLED]
-          ),
-          tickValues: [0, allowedCountValues.length - 1],
-          showTickLabels: true,
-          formatLabel: formatCount,
-          disabledReason,
-        }),
+        <RangeField
+          key={DetectorConfigCustomer.N_PLUS_DB_DURATION}
+          {...fieldSettings}
+          definition={{
+            name: DetectorConfigCustomer.N_PLUS_DB_DURATION,
+            label: t('Minimum Total Duration'),
+            defaultValue: 100, // ms
+            help: t(
+              'Setting the value to 100ms, means that an eligible event will be detected as a N+1 DB Query Issue only if the total duration of the involved spans exceeds 100ms'
+            ),
+            allowedValues: allowedDurationValues,
+            disabled: !(
+              hasAccess && performanceIssueSettings[DetectorConfigAdmin.N_PLUS_DB_ENABLED]
+            ),
+            tickValues: [0, allowedDurationValues.length - 1],
+            showTickLabels: true,
+            formatLabel: formatDuration,
+            disabledReason,
+          }}
+        />,
+        <RangeField
+          key={DetectorConfigCustomer.N_PLUS_DB_COUNT}
+          {...fieldSettings}
+          definition={{
+            name: DetectorConfigCustomer.N_PLUS_DB_COUNT,
+            label: t('Minimum Query Count'),
+            defaultValue: 5,
+            help: t(
+              'Setting the value to 5 means that an eligible event will be detected as an N+1 DB Query Issue only if the number of repeated queries exceeds 5'
+            ),
+            allowedValues: allowedCountValues,
+            disabled: !(
+              hasAccess && performanceIssueSettings[DetectorConfigAdmin.N_PLUS_DB_ENABLED]
+            ),
+            tickValues: [0, allowedCountValues.length - 1],
+            showTickLabels: true,
+            formatLabel: formatCount,
+            disabledReason,
+          }}
+        />,
       ],
       initiallyCollapsed: issueType !== IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     },
     {
       title: IssueTitle.PERFORMANCE_SLOW_DB_QUERY,
       fields: [
-        rangeField({
-          name: DetectorConfigCustomer.SLOW_DB_DURATION,
-          label: t('Minimum Duration'),
-          defaultValue: 1000, // ms
-          help: t(
-            'Setting the value to 1s, means that an eligible event will be detected as a Slow DB Query Issue only if the duration of the involved db span exceeds 1s.'
-          ),
-          tickValues: [0, allowedDurationValues.slice(5).length - 1],
-          showTickLabels: true,
-          allowedValues: allowedDurationValues.slice(5),
-          disabled: !(
-            hasAccess && performanceIssueSettings[DetectorConfigAdmin.SLOW_DB_ENABLED]
-          ),
-          formatLabel: formatDuration,
-          disabledReason,
-        }),
+        <RangeField
+          key={DetectorConfigCustomer.SLOW_DB_DURATION}
+          {...fieldSettings}
+          definition={{
+            name: DetectorConfigCustomer.SLOW_DB_DURATION,
+            label: t('Minimum Duration'),
+            defaultValue: 1000, // ms
+            help: t(
+              'Setting the value to 1s, means that an eligible event will be detected as a Slow DB Query Issue only if the duration of the involved db span exceeds 1s.'
+            ),
+            tickValues: [0, allowedDurationValues.slice(5).length - 1],
+            showTickLabels: true,
+            allowedValues: allowedDurationValues.slice(5),
+            disabled: !(
+              hasAccess && performanceIssueSettings[DetectorConfigAdmin.SLOW_DB_ENABLED]
+            ),
+            formatLabel: formatDuration,
+            disabledReason,
+          }}
+        />,
       ],
       initiallyCollapsed: issueType !== IssueType.PERFORMANCE_SLOW_DB_QUERY,
     },
     {
       title: IssueTitle.PERFORMANCE_N_PLUS_ONE_API_CALLS,
       fields: [
-        rangeField({
-          name: DetectorConfigCustomer.N_PLUS_API_CALLS_DURATION,
-          label: t('Minimum Total Duration'),
-          defaultValue: 300, // ms
-          help: t(
-            'Setting the value to 300ms, means that an eligible event will be detected as a N+1 API Calls Issue only if the total duration of the involved spans exceeds 300ms'
-          ),
-          allowedValues: allowedDurationValues.slice(5),
-          disabled: !(
-            hasAccess &&
-            performanceIssueSettings[DetectorConfigAdmin.N_PLUS_ONE_API_CALLS_ENABLED]
-          ),
-          tickValues: [0, allowedDurationValues.slice(5).length - 1],
-          showTickLabels: true,
-          formatLabel: formatDuration,
-          disabledReason,
-        }),
+        <RangeField
+          key={DetectorConfigCustomer.N_PLUS_API_CALLS_DURATION}
+          {...fieldSettings}
+          definition={{
+            name: DetectorConfigCustomer.N_PLUS_API_CALLS_DURATION,
+            label: t('Minimum Total Duration'),
+            defaultValue: 300, // ms
+            help: t(
+              'Setting the value to 300ms, means that an eligible event will be detected as a N+1 API Calls Issue only if the total duration of the involved spans exceeds 300ms'
+            ),
+            allowedValues: allowedDurationValues.slice(5),
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.N_PLUS_ONE_API_CALLS_ENABLED]
+            ),
+            tickValues: [0, allowedDurationValues.slice(5).length - 1],
+            showTickLabels: true,
+            formatLabel: formatDuration,
+            disabledReason,
+          }}
+        />,
       ],
       initiallyCollapsed: issueType !== IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
     },
     {
       title: IssueTitle.PERFORMANCE_RENDER_BLOCKING_ASSET,
       fields: [
-        rangeField({
-          name: DetectorConfigCustomer.RENDER_BLOCKING_ASSET_RATIO,
-          label: t('Minimum FCP Ratio'),
-          defaultValue: 0.33,
-          help: t(
-            'Setting the value to 33%, means that an eligible event will be detected as a Large Render Blocking Asset Issue only if the duration of the involved span is at least 33% of First Contentful Paint (FCP).'
-          ),
-          allowedValues: allowedPercentageValues,
-          tickValues: [0, allowedPercentageValues.length - 1],
-          showTickLabels: true,
-          disabled: !(
-            hasAccess &&
-            performanceIssueSettings[DetectorConfigAdmin.RENDER_BLOCK_ASSET_ENABLED]
-          ),
-          formatLabel: value => value && formatPercentage(value),
-          disabledReason,
-        }),
+        <RangeField
+          key={DetectorConfigCustomer.RENDER_BLOCKING_ASSET_RATIO}
+          {...fieldSettings}
+          definition={{
+            name: DetectorConfigCustomer.RENDER_BLOCKING_ASSET_RATIO,
+            label: t('Minimum FCP Ratio'),
+            defaultValue: 0.33,
+            help: t(
+              'Setting the value to 33%, means that an eligible event will be detected as a Large Render Blocking Asset Issue only if the duration of the involved span is at least 33% of First Contentful Paint (FCP).'
+            ),
+            allowedValues: allowedPercentageValues,
+            tickValues: [0, allowedPercentageValues.length - 1],
+            showTickLabels: true,
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.RENDER_BLOCK_ASSET_ENABLED]
+            ),
+            formatLabel: value => value && formatPercentage(value),
+            disabledReason,
+          }}
+        />,
       ],
       initiallyCollapsed: issueType !== IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
     },
     {
       title: IssueTitle.PERFORMANCE_LARGE_HTTP_PAYLOAD,
       fields: [
-        rangeField({
-          name: DetectorConfigCustomer.LARGE_HTTP_PAYLOAD_SIZE,
-          label: t('Minimum Size'),
-          defaultValue: 1000000, // 1MB in bytes
-          help: t(
-            'Setting the value to 1MB, means that an eligible event will be detected as a Large HTTP Payload Issue only if the involved HTTP span has a payload size that exceeds 1MB.'
-          ),
-          tickValues: [0, allowedSizeValues.slice(1).length - 1],
-          showTickLabels: true,
-          allowedValues: allowedSizeValues.slice(1),
-          disabled: !(
-            hasAccess &&
-            performanceIssueSettings[DetectorConfigAdmin.LARGE_HTTP_PAYLOAD_ENABLED]
-          ),
-          formatLabel: formatSize,
-          disabledReason,
-        }),
-        stringField({
-          name: DetectorConfigCustomer.LARGE_HTTP_PAYLOAD_FILTERED_PATHS,
-          label: t('Filtered Paths'),
-          placeholder: t('/api/download/, /download/file'),
-          help: t(
-            'Comma-separated list of URL paths to exclude from Large HTTP Payload detection. Any spans with these paths will be excluded. Supports partial matches (e.g., "/api/" will match "/api/users").'
-          ),
-          disabled: !(
-            hasAccess &&
-            performanceIssueSettings[DetectorConfigAdmin.LARGE_HTTP_PAYLOAD_ENABLED]
-          ),
-          disabledReason,
-          visible: true,
-        }),
+        <RangeField
+          key={DetectorConfigCustomer.LARGE_HTTP_PAYLOAD_SIZE}
+          {...fieldSettings}
+          definition={{
+            name: DetectorConfigCustomer.LARGE_HTTP_PAYLOAD_SIZE,
+            label: t('Minimum Size'),
+            defaultValue: 1000000, // 1MB in bytes
+            help: t(
+              'Setting the value to 1MB, means that an eligible event will be detected as a Large HTTP Payload Issue only if the involved HTTP span has a payload size that exceeds 1MB.'
+            ),
+            tickValues: [0, allowedSizeValues.slice(1).length - 1],
+            showTickLabels: true,
+            allowedValues: allowedSizeValues.slice(1),
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.LARGE_HTTP_PAYLOAD_ENABLED]
+            ),
+            formatLabel: formatSize,
+            disabledReason,
+          }}
+        />,
+        <StringField
+          key={DetectorConfigCustomer.LARGE_HTTP_PAYLOAD_FILTERED_PATHS}
+          {...fieldSettings}
+          definition={{
+            name: DetectorConfigCustomer.LARGE_HTTP_PAYLOAD_FILTERED_PATHS,
+            label: t('Filtered Paths'),
+            placeholder: t('/api/download/, /download/file'),
+            help: t(
+              'Comma-separated list of URL paths to exclude from Large HTTP Payload detection. Any spans with these paths will be excluded. Supports partial matches (e.g., "/api/" will match "/api/users").'
+            ),
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.LARGE_HTTP_PAYLOAD_ENABLED]
+            ),
+            disabledReason,
+            visible: true,
+          }}
+        />,
       ],
       initiallyCollapsed: issueType !== IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
     },
     {
       title: IssueTitle.PERFORMANCE_DB_MAIN_THREAD,
       fields: [
-        rangeField({
-          name: DetectorConfigCustomer.DB_ON_MAIN_THREAD_DURATION,
-          label: t('Frame Rate Drop'),
-          defaultValue: 16, // ms
-          help: t(
-            'Setting the value to 60fps, means that an eligible event will be detected as a DB on Main Thread Issue only if database spans on the main thread cause frame rate to drop below 60fps.'
-          ),
-          tickValues: [0, 3],
-          showTickLabels: true,
-          allowedValues: [10, 16, 33, 50], // representation of 100 to 20 fps in milliseconds
-          disabled: !(
-            hasAccess &&
-            performanceIssueSettings[DetectorConfigAdmin.DB_MAIN_THREAD_ENABLED]
-          ),
-          formatLabel: formatFrameRate,
-          disabledReason,
-        }),
+        <RangeField
+          key={DetectorConfigCustomer.DB_ON_MAIN_THREAD_DURATION}
+          {...fieldSettings}
+          definition={{
+            name: DetectorConfigCustomer.DB_ON_MAIN_THREAD_DURATION,
+            label: t('Frame Rate Drop'),
+            defaultValue: 16, // ms
+            help: t(
+              'Setting the value to 60fps, means that an eligible event will be detected as a DB on Main Thread Issue only if database spans on the main thread cause frame rate to drop below 60fps.'
+            ),
+            tickValues: [0, 3],
+            showTickLabels: true,
+            allowedValues: [10, 16, 33, 50], // representation of 100 to 20 fps in milliseconds
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.DB_MAIN_THREAD_ENABLED]
+            ),
+            formatLabel: formatFrameRate,
+            disabledReason,
+          }}
+        />,
       ],
       initiallyCollapsed: issueType !== IssueType.PERFORMANCE_DB_MAIN_THREAD,
     },
     {
       title: IssueTitle.PERFORMANCE_FILE_IO_MAIN_THREAD,
       fields: [
-        rangeField({
-          name: DetectorConfigCustomer.FILE_IO_MAIN_THREAD_DURATION,
-          label: t('Frame Rate Drop'),
-          defaultValue: 16, // ms
-          help: t(
-            'Setting the value to 60fps, means that an eligible event will be detected as a File I/O on Main Thread Issue only if File I/O spans on the main thread cause frame rate to drop below 60fps.'
-          ),
-          tickValues: [0, 3],
-          showTickLabels: true,
-          allowedValues: [10, 16, 33, 50], // representation of 100, 60, 30, 20 fps in milliseconds
-          disabled: !(
-            hasAccess && performanceIssueSettings[DetectorConfigAdmin.FILE_IO_ENABLED]
-          ),
-          formatLabel: formatFrameRate,
-          disabledReason,
-        }),
+        <RangeField
+          key={DetectorConfigCustomer.FILE_IO_MAIN_THREAD_DURATION}
+          {...fieldSettings}
+          definition={{
+            name: DetectorConfigCustomer.FILE_IO_MAIN_THREAD_DURATION,
+            label: t('Frame Rate Drop'),
+            defaultValue: 16, // ms
+            help: t(
+              'Setting the value to 60fps, means that an eligible event will be detected as a File I/O on Main Thread Issue only if File I/O spans on the main thread cause frame rate to drop below 60fps.'
+            ),
+            tickValues: [0, 3],
+            showTickLabels: true,
+            allowedValues: [10, 16, 33, 50], // representation of 100, 60, 30, 20 fps in milliseconds
+            disabled: !(
+              hasAccess && performanceIssueSettings[DetectorConfigAdmin.FILE_IO_ENABLED]
+            ),
+            formatLabel: formatFrameRate,
+            disabledReason,
+          }}
+        />,
       ],
       initiallyCollapsed: issueType !== IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD,
     },
     {
       title: IssueTitle.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
       fields: [
-        rangeField({
-          name: DetectorConfigCustomer.CONSECUTIVE_DB_MIN_TIME_SAVED,
-          label: t('Minimum Time Saved'),
-          defaultValue: 100, // ms
-          help: t(
-            'Setting the value to 100ms, means that an eligible event will be detected as a Consecutive DB Queries Issue only if the time saved by parallelizing the queries exceeds 100ms.'
-          ),
-          tickValues: [0, allowedDurationValues.slice(0, 23).length - 1],
-          showTickLabels: true,
-          allowedValues: allowedDurationValues.slice(0, 23),
-          disabled: !(
-            hasAccess &&
-            performanceIssueSettings[DetectorConfigAdmin.CONSECUTIVE_DB_ENABLED]
-          ),
-          formatLabel: formatDuration,
-          disabledReason,
-        }),
+        <RangeField
+          key={DetectorConfigCustomer.CONSECUTIVE_DB_MIN_TIME_SAVED}
+          {...fieldSettings}
+          definition={{
+            name: DetectorConfigCustomer.CONSECUTIVE_DB_MIN_TIME_SAVED,
+            label: t('Minimum Time Saved'),
+            defaultValue: 100, // ms
+            help: t(
+              'Setting the value to 100ms, means that an eligible event will be detected as a Consecutive DB Queries Issue only if the time saved by parallelizing the queries exceeds 100ms.'
+            ),
+            tickValues: [0, allowedDurationValues.slice(0, 23).length - 1],
+            showTickLabels: true,
+            allowedValues: allowedDurationValues.slice(0, 23),
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.CONSECUTIVE_DB_ENABLED]
+            ),
+            formatLabel: formatDuration,
+            disabledReason,
+          }}
+        />,
       ],
       initiallyCollapsed: issueType !== IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
     },
     {
       title: IssueTitle.PERFORMANCE_UNCOMPRESSED_ASSET,
       fields: [
-        rangeField({
-          name: DetectorConfigCustomer.UNCOMPRESSED_ASSET_SIZE,
-          label: t('Minimum Size'),
-          defaultValue: 512000, // in kilobytes
-          help: t(
-            'Setting the value to 512KB, means that an eligible event will be detected as an Uncompressed Asset Issue only if the size of the uncompressed asset being transferred exceeds 512KB.'
-          ),
-          tickValues: [0, allowedSizeValues.slice(1).length - 1],
-          showTickLabels: true,
-          allowedValues: allowedSizeValues.slice(1),
-          disabled: !(
-            hasAccess &&
-            performanceIssueSettings[DetectorConfigAdmin.UNCOMPRESSED_ASSET_ENABLED]
-          ),
-          formatLabel: formatSize,
-          disabledReason,
-        }),
-        rangeField({
-          name: DetectorConfigCustomer.UNCOMPRESSED_ASSET_DURATION,
-          label: t('Minimum Duration'),
-          defaultValue: 500, // in ms
-          help: t(
-            'Setting the value to 500ms, means that an eligible event will be detected as an Uncompressed Asset Issue only if the duration of the span responsible for transferring the uncompressed asset exceeds 500ms.'
-          ),
-          tickValues: [0, allowedDurationValues.slice(5).length - 1],
-          showTickLabels: true,
-          allowedValues: allowedDurationValues.slice(5),
-          disabled: !(
-            hasAccess &&
-            performanceIssueSettings[DetectorConfigAdmin.UNCOMPRESSED_ASSET_ENABLED]
-          ),
-          formatLabel: formatDuration,
-          disabledReason,
-        }),
+        <RangeField
+          key={DetectorConfigCustomer.UNCOMPRESSED_ASSET_SIZE}
+          {...fieldSettings}
+          definition={{
+            name: DetectorConfigCustomer.UNCOMPRESSED_ASSET_SIZE,
+            label: t('Minimum Size'),
+            defaultValue: 512000, // in kilobytes
+            help: t(
+              'Setting the value to 512KB, means that an eligible event will be detected as an Uncompressed Asset Issue only if the size of the uncompressed asset being transferred exceeds 512KB.'
+            ),
+            tickValues: [0, allowedSizeValues.slice(1).length - 1],
+            showTickLabels: true,
+            allowedValues: allowedSizeValues.slice(1),
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.UNCOMPRESSED_ASSET_ENABLED]
+            ),
+            formatLabel: formatSize,
+            disabledReason,
+          }}
+        />,
+        <RangeField
+          key={DetectorConfigCustomer.UNCOMPRESSED_ASSET_DURATION}
+          {...fieldSettings}
+          definition={{
+            name: DetectorConfigCustomer.UNCOMPRESSED_ASSET_DURATION,
+            label: t('Minimum Duration'),
+            defaultValue: 500, // in ms
+            help: t(
+              'Setting the value to 500ms, means that an eligible event will be detected as an Uncompressed Asset Issue only if the duration of the span responsible for transferring the uncompressed asset exceeds 500ms.'
+            ),
+            tickValues: [0, allowedDurationValues.slice(5).length - 1],
+            showTickLabels: true,
+            allowedValues: allowedDurationValues.slice(5),
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.UNCOMPRESSED_ASSET_ENABLED]
+            ),
+            formatLabel: formatDuration,
+            disabledReason,
+          }}
+        />,
       ],
       initiallyCollapsed: issueType !== IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
     },
     {
       title: IssueTitle.PERFORMANCE_CONSECUTIVE_HTTP,
       fields: [
-        rangeField({
-          name: DetectorConfigCustomer.CONSECUTIVE_HTTP_MIN_TIME_SAVED,
-          label: t('Minimum Time Saved'),
-          defaultValue: 2000, // in ms
-          help: t(
-            'Setting the value to 2s, means that an eligible event will be detected as a Consecutive HTTP Issue only if the time saved by parallelizing the http spans exceeds 2s.'
-          ),
-          tickValues: [0, allowedDurationValues.slice(14).length - 1],
-          showTickLabels: true,
-          allowedValues: allowedDurationValues.slice(14),
-          disabled: !(
-            hasAccess &&
-            performanceIssueSettings[DetectorConfigAdmin.CONSECUTIVE_HTTP_ENABLED]
-          ),
-          formatLabel: formatDuration,
-          disabledReason,
-        }),
+        <RangeField
+          key={DetectorConfigCustomer.CONSECUTIVE_HTTP_MIN_TIME_SAVED}
+          {...fieldSettings}
+          definition={{
+            name: DetectorConfigCustomer.CONSECUTIVE_HTTP_MIN_TIME_SAVED,
+            label: t('Minimum Time Saved'),
+            defaultValue: 2000, // in ms
+            help: t(
+              'Setting the value to 2s, means that an eligible event will be detected as a Consecutive HTTP Issue only if the time saved by parallelizing the http spans exceeds 2s.'
+            ),
+            tickValues: [0, allowedDurationValues.slice(14).length - 1],
+            showTickLabels: true,
+            allowedValues: allowedDurationValues.slice(14),
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.CONSECUTIVE_HTTP_ENABLED]
+            ),
+            formatLabel: formatDuration,
+            disabledReason,
+          }}
+        />,
       ],
       initiallyCollapsed: issueType !== IssueType.PERFORMANCE_CONSECUTIVE_HTTP,
     },
     {
       title: IssueTitle.PERFORMANCE_HTTP_OVERHEAD,
       fields: [
-        rangeField({
-          name: DetectorConfigCustomer.HTTP_OVERHEAD_REQUEST_DELAY,
-          label: t('Request Delay'),
-          defaultValue: 500, // in ms
-          help: t(
-            'Setting the value to 500ms, means that the HTTP request delay (wait time) will have to exceed 500ms for an HTTP Overhead issue to be created.'
-          ),
-          tickValues: [0, allowedDurationValues.slice(6, 17).length - 1],
-          showTickLabels: true,
-          allowedValues: allowedDurationValues.slice(6, 17),
-          disabled: !(
-            hasAccess &&
-            performanceIssueSettings[DetectorConfigAdmin.HTTP_OVERHEAD_ENABLED]
-          ),
-          formatLabel: formatDuration,
-          disabledReason,
-        }),
+        <RangeField
+          key={DetectorConfigCustomer.HTTP_OVERHEAD_REQUEST_DELAY}
+          {...fieldSettings}
+          definition={{
+            name: DetectorConfigCustomer.HTTP_OVERHEAD_REQUEST_DELAY,
+            label: t('Request Delay'),
+            defaultValue: 500, // in ms
+            help: t(
+              'Setting the value to 500ms, means that the HTTP request delay (wait time) will have to exceed 500ms for an HTTP Overhead issue to be created.'
+            ),
+            tickValues: [0, allowedDurationValues.slice(6, 17).length - 1],
+            showTickLabels: true,
+            allowedValues: allowedDurationValues.slice(6, 17),
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.HTTP_OVERHEAD_ENABLED]
+            ),
+            formatLabel: formatDuration,
+            disabledReason,
+          }}
+        />,
       ],
       initiallyCollapsed: issueType !== IssueType.PERFORMANCE_HTTP_OVERHEAD,
     },
     {
       title: IssueTitle.QUERY_INJECTION_VULNERABILITY,
       fields: [
-        rangeField({
-          name: DetectorConfigCustomer.SQL_INJECTION_QUERY_VALUE_LENGTH,
-          label: t('SQL Injection Query Value Length'),
-          defaultValue: 3,
-          help: t(
-            'Setting the value to 3, means that the query values with length 3 or more will be assessed when creating a DB Query Injection Vulnerability issue.'
-          ),
-          tickValues: [0, 7],
-          showTickLabels: true,
-          allowedValues: [3, 4, 5, 6, 7, 8, 9, 10],
-          disabled: !(
-            hasAccess &&
-            performanceIssueSettings[DetectorConfigAdmin.DB_QUERY_INJECTION_ENABLED]
-          ),
-          formatLabel: value => value && value.toString(),
-          disabledReason,
-          visible: organization.features.includes(
-            'issue-query-injection-vulnerability-visible'
-          ),
-        }),
+        <RangeField
+          key={DetectorConfigCustomer.SQL_INJECTION_QUERY_VALUE_LENGTH}
+          {...fieldSettings}
+          definition={{
+            name: DetectorConfigCustomer.SQL_INJECTION_QUERY_VALUE_LENGTH,
+            label: t('SQL Injection Query Value Length'),
+            defaultValue: 3,
+            help: t(
+              'Setting the value to 3, means that the query values with length 3 or more will be assessed when creating a DB Query Injection Vulnerability issue.'
+            ),
+            tickValues: [0, 7],
+            showTickLabels: true,
+            allowedValues: [3, 4, 5, 6, 7, 8, 9, 10],
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.DB_QUERY_INJECTION_ENABLED]
+            ),
+            formatLabel: value => value && value.toString(),
+            disabledReason,
+            visible: organization.features.includes(
+              'issue-query-injection-vulnerability-visible'
+            ),
+          }}
+        />,
       ],
       initiallyCollapsed: issueType !== IssueType.QUERY_INJECTION_VULNERABILITY,
     },
     {
       title: IssueTitle.WEB_VITALS,
       fields: [
-        rangeField({
-          name: DetectorConfigCustomer.WEB_VITALS_COUNT,
-          label: t('Minimum Sample Count'),
-          defaultValue: 10,
-          help: t(
-            'Setting the value to 10, means that web vital issues will only be created if there are at least 10 samples of the web vital type.'
-          ),
-          tickValues: [0, allowedCountValues.length - 1],
-          allowedValues: allowedCountValues,
-          showTickLabels: true,
-          formatLabel: formatCount,
-          disabled: !(
-            hasAccess && performanceIssueSettings[DetectorConfigAdmin.WEB_VITALS_ENABLED]
-          ),
-          disabledReason,
-          visible: hasWebVitalsSeerSuggestions,
-        }),
+        <RangeField
+          key={DetectorConfigCustomer.WEB_VITALS_COUNT}
+          {...fieldSettings}
+          definition={{
+            name: DetectorConfigCustomer.WEB_VITALS_COUNT,
+            label: t('Minimum Sample Count'),
+            defaultValue: 10,
+            help: t(
+              'Setting the value to 10, means that web vital issues will only be created if there are at least 10 samples of the web vital type.'
+            ),
+            tickValues: [0, allowedCountValues.length - 1],
+            allowedValues: allowedCountValues,
+            showTickLabels: true,
+            formatLabel: formatCount,
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.WEB_VITALS_ENABLED]
+            ),
+            disabledReason,
+            visible: hasWebVitalsSeerSuggestions,
+          }}
+        />,
       ],
       initiallyCollapsed: issueType !== IssueType.WEB_VITALS,
     },
     {
       title: aiDetectedGroupTitle,
       fields: [
-        booleanField({
-          name: DetectorConfigAdmin.AI_DETECTED_HTTP_ENABLED,
-          label: t('HTTP Issues'),
-          help: t('Allow HTTP issues to be created'),
-          defaultValue: true,
-          disabled: !(
-            hasAccess &&
-            performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
-          ),
-          disabledReason,
-          visible: hasAIIssueDetection,
-        }),
-        booleanField({
-          name: DetectorConfigAdmin.AI_DETECTED_DB_ENABLED,
-          label: t('Database Issues'),
-          help: t('Allow database issues to be created'),
-          defaultValue: true,
-          disabled: !(
-            hasAccess &&
-            performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
-          ),
-          disabledReason,
-          visible: hasAIIssueDetection,
-        }),
-        booleanField({
-          name: DetectorConfigAdmin.AI_DETECTED_RUNTIME_PERFORMANCE_ENABLED,
-          label: t('Runtime Performance Issues'),
-          help: t('Allow runtime performance issues to be created'),
-          defaultValue: true,
-          disabled: !(
-            hasAccess &&
-            performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
-          ),
-          disabledReason,
-          visible: hasAIIssueDetection,
-        }),
-        booleanField({
-          name: DetectorConfigAdmin.AI_DETECTED_SECURITY_ENABLED,
-          label: t('Security Issues'),
-          help: t('Allow security issues to be created'),
-          defaultValue: true,
-          disabled: !(
-            hasAccess &&
-            performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
-          ),
-          disabledReason,
-          visible: hasAIIssueDetection,
-        }),
-        booleanField({
-          name: DetectorConfigAdmin.AI_DETECTED_CODE_HEALTH_ENABLED,
-          label: t('Code Health Issues'),
-          help: t('Allow code health issues to be created'),
-          defaultValue: true,
-          disabled: !(
-            hasAccess &&
-            performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
-          ),
-          disabledReason,
-          visible: hasAIIssueDetection,
-        }),
+        <BooleanField
+          key={DetectorConfigAdmin.AI_DETECTED_HTTP_ENABLED}
+          {...fieldSettings}
+          definition={{
+            name: DetectorConfigAdmin.AI_DETECTED_HTTP_ENABLED,
+            label: t('HTTP Issues'),
+            help: t('Allow HTTP issues to be created'),
+            defaultValue: true,
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
+            ),
+            disabledReason,
+            visible: hasAIIssueDetection,
+          }}
+        />,
+        <BooleanField
+          key={DetectorConfigAdmin.AI_DETECTED_DB_ENABLED}
+          {...fieldSettings}
+          definition={{
+            name: DetectorConfigAdmin.AI_DETECTED_DB_ENABLED,
+            label: t('Database Issues'),
+            help: t('Allow database issues to be created'),
+            defaultValue: true,
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
+            ),
+            disabledReason,
+            visible: hasAIIssueDetection,
+          }}
+        />,
+        <BooleanField
+          key={DetectorConfigAdmin.AI_DETECTED_RUNTIME_PERFORMANCE_ENABLED}
+          {...fieldSettings}
+          definition={{
+            name: DetectorConfigAdmin.AI_DETECTED_RUNTIME_PERFORMANCE_ENABLED,
+            label: t('Runtime Performance Issues'),
+            help: t('Allow runtime performance issues to be created'),
+            defaultValue: true,
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
+            ),
+            disabledReason,
+            visible: hasAIIssueDetection,
+          }}
+        />,
+        <BooleanField
+          key={DetectorConfigAdmin.AI_DETECTED_SECURITY_ENABLED}
+          {...fieldSettings}
+          definition={{
+            name: DetectorConfigAdmin.AI_DETECTED_SECURITY_ENABLED,
+            label: t('Security Issues'),
+            help: t('Allow security issues to be created'),
+            defaultValue: true,
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
+            ),
+            disabledReason,
+            visible: hasAIIssueDetection,
+          }}
+        />,
+        <BooleanField
+          key={DetectorConfigAdmin.AI_DETECTED_CODE_HEALTH_ENABLED}
+          {...fieldSettings}
+          definition={{
+            name: DetectorConfigAdmin.AI_DETECTED_CODE_HEALTH_ENABLED,
+            label: t('Code Health Issues'),
+            help: t('Allow code health issues to be created'),
+            defaultValue: true,
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
+            ),
+            disabledReason,
+            visible: hasAIIssueDetection,
+          }}
+        />,
       ],
       initiallyCollapsed: !AI_DETECTED_ISSUE_TYPES.has(issueType as IssueType),
     },
@@ -679,12 +798,18 @@ export function getProjectDetectorSettings({
       ? {
           ...fieldGroup,
           fields: [
-            booleanField({
-              help: t('Controls whether or not Sentry should detect this type of issue.'),
-              ...manageField,
-              disabled: !hasAccess,
-              disabledReason: t('You do not have permission to manage detectors.'),
-            }),
+            <BooleanField
+              key={manageField.name}
+              {...fieldSettings}
+              definition={{
+                help: t(
+                  'Controls whether or not Sentry should detect this type of issue.'
+                ),
+                ...manageField,
+                disabled: !hasAccess,
+                disabledReason: t('You do not have permission to manage detectors.'),
+              }}
+            />,
             ...fieldGroup.fields,
           ],
         }
