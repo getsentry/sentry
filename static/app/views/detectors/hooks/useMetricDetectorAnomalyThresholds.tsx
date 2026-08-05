@@ -10,8 +10,8 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 // These are used as series names for chart lookup - do not translate
-export const UPPER_THRESHOLD_SERIES_NAME = 'Upper Threshold';
-export const LOWER_THRESHOLD_SERIES_NAME = 'Lower Threshold';
+const UPPER_THRESHOLD_SERIES_NAME = 'Upper Threshold';
+const LOWER_THRESHOLD_SERIES_NAME = 'Lower Threshold';
 
 interface AnomalyThresholdDataPoint {
   external_alert_id: number;
