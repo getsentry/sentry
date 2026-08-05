@@ -129,11 +129,17 @@ def link_pull_request_to_seer_run(
 
         # Covers the race where the link lands after the `opened` webhook (which skips
         # not-yet-linked PRs); the task re-checks the flag, rate-limit guard, and row.
-        fetch_pr_file_stats_task.delay(
-            pull_request_id=resolved.pull_request.id,
-            organization_id=organization.id,
-            repository_id=resolved.pull_request.repository_id,
-        )
+        try:
+            fetch_pr_file_stats_task.delay(
+                pull_request_id=resolved.pull_request.id,
+                organization_id=organization.id,
+                repository_id=resolved.pull_request.repository_id,
+            )
+        except Exception:
+            logger.exception(
+                "seer.pr_link.file_stats_enqueue_failed",
+                extra={**log_context, "pull_request_id": resolved.pull_request.id},
+            )
 
     return resolved.pull_request
 
