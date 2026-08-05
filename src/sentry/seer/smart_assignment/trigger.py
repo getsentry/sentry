@@ -69,7 +69,7 @@ def trigger_smart_assignment(
         # We only want to run Smart Assignment on issues that are manually assigned.
         metrics.incr(
             "smart_assignment.trigger.skipped",
-            tags={"reason": "automated_assignment"},
+            tags={"reason": "automatic_assignment"},
             sample_rate=1.0,
         )
         return
