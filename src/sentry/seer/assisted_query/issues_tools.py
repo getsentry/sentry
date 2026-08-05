@@ -727,10 +727,13 @@ def execute_issues_query(
         return ExecuteIssuesQuerySuccessResponse(__root__=resp.data)
     except ApiError as e:
         if e.status_code == 400:
-            error_detail = e.body.get("detail") if isinstance(e.body, dict) else None
-            return ExecuteQueryErrorResponse(
-                error=str(error_detail) if error_detail is not None else str(e.body)
+            detail = e.body.get("detail") if isinstance(e.body, dict) else None
+            error_detail = str(detail) if detail is not None else str(e.body)
+            logger.warning(
+                "execute_issues_query: bad request",
+                extra={"org_id": organization.id, "error_detail": error_detail},
             )
+            return ExecuteQueryErrorResponse(error=error_detail)
         raise
 
 
