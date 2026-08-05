@@ -48,6 +48,7 @@ export function useGetTraceItemAttributeKeys({
             projectIds: projectIds ?? selection.projects,
             search: queryString,
             query,
+            type: ['string', 'number', 'boolean', 'array'],
             staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
           })
         );

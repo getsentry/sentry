@@ -23,7 +23,7 @@ type AttributeType = {
   secondaryAliases?: string[];
 };
 
-type TraceItemAttributeType = 'string' | 'number' | 'boolean';
+type TraceItemAttributeType = 'string' | 'number' | 'boolean' | 'array';
 
 type TraceItemAttributeKeyOptions = Pick<
   ReturnType<typeof normalizeDateTimeParams>,
@@ -167,7 +167,7 @@ export function getTraceItemTagCollection(
     // SnQL forbids `-` but is allowed in RPC. So add it back later
     if (
       !/^[\w.:@-]+$/.test(attribute.key) &&
-      !/^tags\[[\w.:@-]+,(number|boolean|string)\]$/.test(attribute.key)
+      !/^tags\[[\w.:@-]+,(number|boolean|string|array)\]$/.test(attribute.key)
     ) {
       continue;
     }
@@ -178,11 +178,17 @@ export function getTraceItemTagCollection(
         ? attribute.attributeType
         : undefined;
 
-    if (attributeType === 'string') {
+    // TODO: Array plumbing is not done yet. For now an array's query syntax is the
+    // same as a string's, so array attributes are placed in the string collection as
+    // a placeholder until dedicated array query support is added. They are still
+    // tagged FieldKind.ARRAY (not TAG) to keep arrays distinct from strings — for the
+    // correct "array" type badge now, and as the seam that the expanded array query
+    // syntax will build on later.
+    if (attributeType === 'string' || attributeType === 'array') {
       stringAttributes[attribute.key] = {
         key: attribute.key,
         name: attribute.name,
-        kind: FieldKind.TAG,
+        kind: attributeType === 'array' ? FieldKind.ARRAY : FieldKind.TAG,
         secondaryAliases: attribute?.secondaryAliases ?? [],
         attributeSource: attribute.attributeSource?.source_type,
       };
@@ -213,7 +219,8 @@ export function getTraceItemTagCollection(
     return booleanAttributes;
   }
 
-  if (type === 'string') {
+  if (type === 'string' || type === 'array') {
+    // Arrays are placeholdered in the string collection for now (see above).
     return stringAttributes;
   }
 

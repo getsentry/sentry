@@ -14,7 +14,7 @@ type Attribute = {
   attributeSource: {
     source_type: 'sentry' | 'user';
   };
-  attributeType: 'boolean' | 'number' | 'string';
+  attributeType: 'array' | 'boolean' | 'number' | 'string';
   key: string;
   name: string;
 };
@@ -306,6 +306,22 @@ describe('getTraceItemTagCollection', () => {
         key,
         name: key,
         kind: FieldKind.TAG,
+        secondaryAliases: [],
+        attributeSource: 'user',
+      },
+    });
+  });
+
+  it('surfaces array tags in the string collection with FieldKind.ARRAY', () => {
+    const key = 'tags[data_export.csv_headers,array]';
+
+    // Arrays live in the string collection (they filter like string tags) but keep
+    // FieldKind.ARRAY so they resolve to the `array` value type and render as "array".
+    expect(getTraceItemTagCollection([makeAttribute(key, 'array')], 'array')).toEqual({
+      [key]: {
+        key,
+        name: key,
+        kind: FieldKind.ARRAY,
         secondaryAliases: [],
         attributeSource: 'user',
       },

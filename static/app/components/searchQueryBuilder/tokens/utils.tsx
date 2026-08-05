@@ -56,9 +56,9 @@ export function useShiftFocusToChild(
   };
 }
 
-const EXPLICIT_TAG_KEY_PATTERN = /^tags\[(.*),(string|number|boolean)\]$/;
+const EXPLICIT_TAG_KEY_PATTERN = /^tags\[(.*),(string|number|boolean|array)\]$/;
 
-type ExplicitTagType = 'string' | 'number' | 'boolean';
+type ExplicitTagType = 'string' | 'number' | 'boolean' | 'array';
 
 type FilterKeyResolverItem = {
   options?: FilterKeyResolverItem[];
@@ -118,7 +118,12 @@ function getTagsFromResolverItems(items: FilterKeyResolverItem[]): Tag[] {
 }
 
 function findExplicitTagMatch(tags: Tag[], input: string): string | null {
-  for (const tagType of ['string', 'number', 'boolean'] satisfies ExplicitTagType[]) {
+  for (const tagType of [
+    'string',
+    'number',
+    'boolean',
+    'array',
+  ] satisfies ExplicitTagType[]) {
     const match = tags.find(
       tag => getExplicitTagType(tag.key) === tagType && tagMatchesInput(tag, input)
     );
