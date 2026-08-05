@@ -22,6 +22,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {ProgressState} from 'sentry/types/group';
 import {useMedia} from 'sentry/utils/useMedia';
 import * as IssuePreviewModule from 'sentry/views/issueDetails/issuePreview/issuePreview';
+import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/queries/inbox';
 
 import InboxPage from './inbox';
 
@@ -153,7 +154,9 @@ describe('InboxPage', () => {
   ) {
     return MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
-      match: [MockApiClient.matchQuery({query})],
+      match: [
+        MockApiClient.matchQuery({query: `${query}${INBOX_AUTOFIX_CATEGORY_FILTER}`}),
+      ],
       body,
       headers: {'X-Hits': String(total)},
       statusCode,
@@ -297,7 +300,7 @@ describe('InboxPage', () => {
             method: 'GET',
             query: {
               project: [-1],
-              query,
+              query: `${query}${INBOX_AUTOFIX_CATEGORY_FILTER}`,
               sort: 'progress',
               limit: 10,
               collapse: ['stats', 'unhandled'],
@@ -409,7 +412,7 @@ describe('InboxPage', () => {
       url: '/organizations/org-slug/issues/',
       match: [
         MockApiClient.matchQuery({
-          query: 'issue.progress:fix_proposed is:unresolved assigned:[me,my_teams]',
+          query: `issue.progress:fix_proposed is:unresolved assigned:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`,
         }),
       ],
       body: [fixProposedGroup],
@@ -576,7 +579,7 @@ describe('InboxPage', () => {
       url: '/organizations/org-slug/issues/',
       match: [
         MockApiClient.matchQuery({
-          query: 'issue.progress:fix_proposed is:unresolved assigned:[me,my_teams]',
+          query: `issue.progress:fix_proposed is:unresolved assigned:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`,
         }),
       ],
       body: [fixProposedGroup],
@@ -589,7 +592,7 @@ describe('InboxPage', () => {
       url: '/organizations/org-slug/issues/',
       match: [
         MockApiClient.matchQuery({
-          query: 'issue.progress:fix_proposed is:unresolved assigned:[me,my_teams]',
+          query: `issue.progress:fix_proposed is:unresolved assigned:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`,
           cursor: '0:10:0',
         }),
       ],
