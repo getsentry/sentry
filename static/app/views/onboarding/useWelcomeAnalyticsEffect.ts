@@ -31,7 +31,7 @@ export function useWelcomeAnalyticsEffect() {
   useEffect(() => {
     if (onboardingContext.selectedPlatform) {
       // At this point the selectedSDK shall be undefined but just in case, cleaning this up here too
-      onboardingContext.setSelectedPlatform(undefined);
+      onboardingContext.resetOnboarding();
     }
   }, [onboardingContext]);
 }
