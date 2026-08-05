@@ -9,7 +9,6 @@ from django.http.response import HttpResponseBase
 from sentry.auth.helper import AuthHelper
 from sentry.auth.services.auth.model import RpcAuthProvider
 from sentry.auth.view import AuthView
-from sentry.models.authidentity import AuthIdentity
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.base.response import DeferredResponse
 from sentry.utils.forms import set_field_choices
@@ -87,38 +86,6 @@ class FetchUser(AuthView):
             pipeline.bind_state("user", user)
 
             return pipeline.next_step()
-
-
-class ConfirmEmailForm(forms.Form):
-    email = forms.EmailField(label="Email")
-
-
-class ConfirmEmail(AuthView):
-    def handle(self, request: HttpRequest, pipeline: AuthHelper) -> HttpResponseBase:
-        user: dict[str, Any] | None = pipeline.fetch_state("user")
-        assert user is not None
-
-        # TODO(dcramer): this isn't ideal, but our current flow doesnt really
-        # support this behavior;
-        try:
-            auth_identity = AuthIdentity.objects.select_related("user").get(
-                auth_provider=pipeline.provider_model, ident=user["id"]
-            )
-        except AuthIdentity.DoesNotExist:
-            pass
-        else:
-            user["email"] = auth_identity.user.email
-
-        if user.get("email"):
-            return pipeline.next_step()
-
-        form = ConfirmEmailForm(request.POST or None)
-        if form.is_valid():
-            user["email"] = form.cleaned_data["email"]
-            pipeline.bind_state("user", user)
-            return pipeline.next_step()
-
-        return self.respond("sentry_auth_github/enter-email.html", {"form": form})
 
 
 class SelectOrganizationForm(forms.Form):
