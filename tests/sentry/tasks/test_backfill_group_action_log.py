@@ -475,7 +475,7 @@ class BackfillGroupActionLogForProjectTest(TestCase):
 
         mock_reset.assert_not_called()
 
-    @patch("sentry.issues.derived.tasks.process_project_derived_data.delay")
+    @patch("sentry.issues.derived.tasks.generate_project_derived_data.delay")
     def test_triggers_derived_data_on_completion(self, mock_derived: Any) -> None:
         with self._options():
             backfill_group_action_log_for_project(self.project.id)
@@ -489,7 +489,9 @@ class BackfillGroupActionLogForProjectTest(TestCase):
                 "sentry.tasks.backfill_pr_lifecycle_action_log."
                 "backfill_pr_lifecycle_action_log_for_project.delay"
             ) as mock_pr_lifecycle,
-            patch("sentry.issues.derived.tasks.process_project_derived_data.delay") as mock_derived,
+            patch(
+                "sentry.issues.derived.tasks.generate_project_derived_data.delay"
+            ) as mock_derived,
         ):
             backfill_group_action_log_for_project(
                 self.project.id,
@@ -508,7 +510,9 @@ class BackfillGroupActionLogForProjectTest(TestCase):
                 "sentry.tasks.backfill_pr_lifecycle_action_log."
                 "backfill_pr_lifecycle_action_log_for_project.delay"
             ) as mock_pr_lifecycle,
-            patch("sentry.issues.derived.tasks.process_project_derived_data.delay") as mock_derived,
+            patch(
+                "sentry.issues.derived.tasks.generate_project_derived_data.delay"
+            ) as mock_derived,
         ):
             backfill_group_action_log_for_project(
                 self.project.id,
