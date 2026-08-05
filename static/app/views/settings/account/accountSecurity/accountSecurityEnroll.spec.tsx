@@ -365,6 +365,85 @@ describe('AccountSecurityEnroll', () => {
         screen.queryByRole('textbox', {name: 'Authenticator code'})
       ).not.toBeInTheDocument();
     });
+
+    it('returns to the phone step when sending the code fails', async () => {
+      MockApiClient.addMockResponse({
+        url: `${ENDPOINT}${authenticator.id}/enroll/`,
+        method: 'POST',
+        statusCode: 400,
+      });
+
+      render(<AccountSecurityEnroll />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/account/security/mfa/${authenticator.id}/enroll/`,
+          },
+          route: '/settings/account/security/mfa/:authId/enroll/',
+        },
+      });
+
+      const phoneInput = await screen.findByRole('textbox', {name: 'Phone number'});
+      await userEvent.type(phoneInput, '+15555550123');
+      await userEvent.click(screen.getByRole('button', {name: 'Send Code'}));
+
+      expect(await screen.findByRole('button', {name: 'Send Code'})).toBeInTheDocument();
+      expect(phoneInput).toBeEnabled();
+      expect(
+        screen.queryByRole('textbox', {name: 'Authenticator code'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('keeps the same enrollment session when OTP verification fails', async () => {
+      MockApiClient.addMockResponse({
+        url: `${ENDPOINT}${authenticator.id}/enroll/`,
+        method: 'POST',
+      });
+
+      render(<AccountSecurityEnroll />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/account/security/mfa/${authenticator.id}/enroll/`,
+          },
+          route: '/settings/account/security/mfa/:authId/enroll/',
+        },
+      });
+
+      await userEvent.type(
+        await screen.findByRole('textbox', {name: 'Phone number'}),
+        '+15555550123'
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Send Code'}));
+      await screen.findByRole('button', {name: 'Confirm'});
+
+      MockApiClient.clearMockResponses();
+      const refetchMock = MockApiClient.addMockResponse({
+        url: `${ENDPOINT}${authenticator.id}/enroll/`,
+        body: {...authenticator, secret: 'different-secret'},
+      });
+      const verifyMock = MockApiClient.addMockResponse({
+        url: `${ENDPOINT}${authenticator.id}/enroll/`,
+        method: 'POST',
+        statusCode: 400,
+      });
+
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Authenticator code'}),
+        '123456'
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
+      await waitFor(() => expect(verifyMock).toHaveBeenCalled());
+      expect(verifyMock).toHaveBeenCalledWith(
+        `${ENDPOINT}${authenticator.id}/enroll/`,
+        expect.objectContaining({
+          data: expect.objectContaining({secret: 'sms-secret'}),
+        })
+      );
+      expect(refetchMock).not.toHaveBeenCalled();
+      expect(
+        screen.getByRole('textbox', {name: 'Authenticator code'})
+      ).toBeInTheDocument();
+    });
   });
 
   describe('WebAuthn', () => {

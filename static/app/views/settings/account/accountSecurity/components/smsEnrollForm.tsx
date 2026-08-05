@@ -38,7 +38,7 @@ export function SmsEnrollForm({
 }: SmsEnrollFormProps): React.ReactElement {
   const enrollMutation = useEnrollAuthenticator(authenticator.id);
   const isCodeSent =
-    enrollMutation.status === 'success' || enrollMutation.status === 'error';
+    enrollMutation.status === 'success' || enrollMutation.variables?.otp !== undefined;
 
   const schema = useMemo(
     () =>
@@ -82,8 +82,11 @@ export function SmsEnrollForm({
               : t('Could not send the SMS code. Try again.')
           )
         );
-        onReset();
-        formApi.reset();
+        if (!isCodeSent) {
+          enrollMutation.reset();
+          onReset();
+          formApi.reset();
+        }
         return;
       }
 
