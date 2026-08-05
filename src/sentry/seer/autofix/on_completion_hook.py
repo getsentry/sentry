@@ -249,7 +249,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         :eyes:->:tada: swap on top-level comments and clearing the lingering :eyes:
         on inline ones.
         """
-        if not features.has("organizations:autofix-pr-iteration", organization=organization):
+        if not features.has("organizations:autofix-pr-iteration-manual", organization=organization):
             return
 
         current_step, _ = cls._get_current_step(state)
@@ -840,12 +840,17 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             extra={"run_id": run_id, "organization_id": group.organization.id},
         )
 
+        should_verify_pr_content = features.has(
+            "organizations:autofix-verify-pr-content", organization=group.organization
+        )
+
         try:
             trigger_push_changes(
                 group,
                 run_id,
                 referrer=AutofixReferrer.ON_COMPLETION_HOOK,
                 state=state,
+                verify_content=should_verify_pr_content,
             )
         except Exception:
             logger.exception(

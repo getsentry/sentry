@@ -324,7 +324,7 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
           >
             <NavigationButton
               {...triggerProps}
-              aria-label={layout === 'mobile' ? undefined : props.label}
+              aria-label={props.label}
               onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                 if (organization) {
                   trackAnalytics('navigation.primary_item_clicked', {
@@ -361,7 +361,7 @@ function NavigationButton(props: DistributedOmit<ButtonProps, 'size'>) {
   const {layout} = usePrimaryNavigation();
 
   return (
-    <Flex align="center" padding="xs" justify="center">
+    <PrimaryNavigationButtonContainer>
       {p => (
         <ButtonWithOverflowVisible
           {...p}
@@ -369,8 +369,12 @@ function NavigationButton(props: DistributedOmit<ButtonProps, 'size'>) {
           {...(layout === 'mobile' ? {variant: 'secondary'} : {variant: props.variant})}
         />
       )}
-    </Flex>
+    </PrimaryNavigationButtonContainer>
   );
+}
+
+function PrimaryNavigationButtonContainer(props: React.ComponentProps<typeof Flex>) {
+  return <Flex align="center" padding="xs" justify="center" {...props} />;
 }
 
 /**
@@ -569,6 +573,7 @@ export const PrimaryNavigation = {
   ListItem: PrimaryNavigationListItem,
   Link: PrimaryNavigationLink,
   Button: PrimaryNavigationButton,
+  ButtonContainer: PrimaryNavigationButtonContainer,
   ButtonBar: PrimaryNavigationButtonBar,
   Menu: PrimaryNavigationMenu,
   ButtonOverlay: PrimaryNavigationButtonOverlay,

@@ -1,6 +1,6 @@
 from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Literal
+from typing import Any
 
 import sentry_sdk
 from django.db.models import Q
@@ -73,6 +73,7 @@ from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
 from sentry.search.eap.types import (
     AttributeSourceType,
+    ColumnType,
     SearchResolverConfig,
     SupportedTraceItemType,
 )
@@ -99,7 +100,8 @@ from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.tracing import set_span_data, start_span
 
-POSSIBLE_ATTRIBUTE_TYPES = ["string", "number", "boolean"]
+SCALAR_ATTRIBUTE_TYPES = ["string", "number", "boolean"]
+POSSIBLE_ATTRIBUTE_TYPES = [*SCALAR_ATTRIBUTE_TYPES, "array"]
 
 # Subset of SupportedTraceItemType that get_column_definitions handles.
 SUPPORTED_DATASETS = [
@@ -319,7 +321,7 @@ SENTRY_ALWAYS_INCLUDED_ATTRIBUTES: dict[SupportedTraceItemType, frozenset[str]] 
 }
 
 
-def _search_type_to_context_type(search_type: str) -> Literal["string", "number", "boolean"]:
+def _search_type_to_context_type(search_type: str) -> ColumnType:
     """Collapse an EAP search type to the coarse type used for context matching."""
     if search_type == "string":
         return "string"
@@ -331,7 +333,7 @@ def _search_type_to_context_type(search_type: str) -> Literal["string", "number"
 def build_sentry_convention_context(
     public_name: str,
     internal_name: str,
-    attribute_type: Literal["string", "number", "boolean"] | None = None,
+    attribute_type: ColumnType | None = None,
 ) -> TraceItemAttributeContext | None:
     """
     Build the sentry conventions context for an attribute, if it maps to a known
@@ -394,7 +396,7 @@ def build_sentry_convention_context(
 
 def build_sentry_attribute_context(
     public_name: str,
-    attribute_type: Literal["string", "number", "boolean"] | None,
+    attribute_type: ColumnType | None,
     item_type: SupportedTraceItemType,
 ) -> TraceItemAttributeContext | None:
     """
@@ -513,7 +515,7 @@ def is_known_attribute(name: str, definitions: ColumnDefinitions) -> bool:
 
 def as_attribute_key(
     name: str,
-    attr_type: Literal["string", "number", "boolean"],
+    attr_type: ColumnType,
     item_type: SupportedTraceItemType,
     is_proxy: bool = False,
     include_context: bool = False,
@@ -532,6 +534,9 @@ def as_attribute_key(
         public_name = name
     elif attr_type == "boolean":
         public_key = f"tags[{name},boolean]"
+        public_name = name
+    elif attr_type == "array":
+        public_key = f"tags[{name},array]"
         public_name = name
     else:
         public_key = name
@@ -684,9 +689,19 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         substring_match = serialized.get("substring_match", "")
         query_string = serialized.get("query")
         attribute_types = serialized.get("attribute_type")
-        # When not passed the user wants all types
+        supports_arrays = features.has(
+            "organizations:trace-item-array-query-support",
+            organization,
+            actor=request.user,
+        )
+        allowed_attribute_types = (
+            POSSIBLE_ATTRIBUTE_TYPES if supports_arrays else SCALAR_ATTRIBUTE_TYPES
+        )
+        # When not passed the user wants all (allowed) types
         if attribute_types is None or len(attribute_types) == 0:
-            attribute_types = POSSIBLE_ATTRIBUTE_TYPES
+            attribute_types = allowed_attribute_types
+        else:
+            attribute_types = [t for t in attribute_types if t in allowed_attribute_types]
         # Deprecating this so we're using the same param name as the events endpoints
         item_type = serialized.get("item_type")
         # Dataset is going to replace item_type
@@ -700,7 +715,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         column_definitions = get_column_definitions(trace_item_type)
         resolver = SearchResolver(
             params=snuba_params,
-            config=SearchResolverConfig(),
+            config=SearchResolverConfig(disable_array_attributes=not supports_arrays),
             definitions=column_definitions,
         )
         with handle_query_errors():
@@ -788,7 +803,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         meta: RequestMeta,
         query_filter: TraceItemFilter | None,
         substring_match: str,
-        attribute_type: Literal["string", "number", "boolean"],
+        attribute_type: ColumnType,
         column_definitions: ColumnDefinitions,
         trace_item_type: SupportedTraceItemType,
         include_internal: bool,
@@ -910,7 +925,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
     def serialize_trace_attributes(
         self,
         rpc_response: TraceItemAttributeNamesResponse,
-        attribute_type: Literal["string", "number", "boolean"],
+        attribute_type: ColumnType,
         trace_item_type: SupportedTraceItemType,
         include_internal: bool,
         substring_match: str,
@@ -921,6 +936,12 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         attribute_keys = {}
         for attribute in rpc_response.attributes:
             if not attribute.name:
+                continue
+
+            # Remove following when we migrate to cooccurring-attrs v2. use attribute_type only.
+            # Then returned type should be same as attribute_type.
+            returned_bucket = constants.PROTO_TYPE_TO_ATTRIBUTE_TYPE_MAP.get(attribute.type)
+            if returned_bucket is not None and returned_bucket != attribute_type:
                 continue
             attr_key = as_attribute_key(
                 attribute.name,

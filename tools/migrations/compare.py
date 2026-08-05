@@ -19,9 +19,18 @@ DJANGO_TABLES = re.compile(
     re.M | re.DOTALL,
 )
 
+SET_COMPRESSION = re.compile(
+    r"^ALTER TABLE (?:ONLY )?[^;]* ALTER COLUMN [^;]* SET COMPRESSION [^;]*;\n?",
+    re.M,
+)
+
 
 def _remove_migrations_tables(s: str) -> str:
     return DJANGO_TABLES.sub("", s)
+
+
+def _remove_set_compression(s: str) -> str:
+    return SET_COMPRESSION.sub("", s)
 
 
 def norm(s: str) -> dict[str, str]:
@@ -33,6 +42,7 @@ def norm(s: str) -> dict[str, str]:
     create_table_parts: list[str] = []
 
     s = _remove_migrations_tables(s)
+    s = _remove_set_compression(s)
 
     for line in s.splitlines(True):
         if line.startswith(r"\connect "):

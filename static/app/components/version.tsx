@@ -116,13 +116,7 @@ export function Version({
   };
 
   const renderTooltipContent = () => (
-    <Flex
-      as="span"
-      align="center"
-      onClick={e => {
-        e.stopPropagation();
-      }}
-    >
+    <Flex as="span" align="center">
       <TooltipVersionWrapper>{version}</TooltipVersionWrapper>
       <CopyToClipboardButton
         variant="transparent"

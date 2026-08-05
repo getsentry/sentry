@@ -360,6 +360,7 @@ describe('SnapshotMainContent', () => {
         display_name: 'Button / light old',
         height: 180,
         image_file_name: 'button.light.old.png',
+        key: 'base-button-light-old',
         width: 320,
       },
       head_image: {
@@ -367,6 +368,7 @@ describe('SnapshotMainContent', () => {
         group: 'components',
         height: 180,
         image_file_name: 'button.light.png',
+        key: 'head-button-light',
         width: 320,
       },
     });
