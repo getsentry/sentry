@@ -93,6 +93,10 @@ def delete_replays(
                     "window_end": window_end,
                     "has_more": has_more,
                     "total_replays": total_replays,
+                    # How far the run got. A job killed at `max-job-duration` never reaches the end
+                    # of the loop, so this is the only record of where it stopped.
+                    "window_offset_days": window_offset_days,
+                    "after_replay_id_hash": cursor,
                 }
                 if dry_run:
                     logger.info(
