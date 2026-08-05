@@ -547,7 +547,7 @@ describe('ProjectFilters', () => {
       body: CustomInboundFilterFixture({id: '10', name: 'Block spam messages'}),
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Add Rule'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
     expect(await screen.findByText('Create Custom Filter')).toBeInTheDocument();
     await userEvent.type(
       screen.getByRole('textbox', {name: 'Name'}),
@@ -588,7 +588,7 @@ describe('ProjectFilters', () => {
       body: CustomInboundFilterFixture({id: '10', name: 'Undefined type errors'}),
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Add Rule'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
     expect(await screen.findByText('Create Custom Filter')).toBeInTheDocument();
     await userEvent.type(
       screen.getByRole('textbox', {name: 'Name'}),
@@ -638,7 +638,7 @@ describe('ProjectFilters', () => {
       body: {detail: 'Log message filters are not enabled for this organization.'},
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Add Rule'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
     await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Bad filter');
     await userEvent.type(screen.getByRole('textbox', {name: 'Condition value'}), 'x');
     await userEvent.click(screen.getByRole('button', {name: 'Create Filter'}));
@@ -744,7 +744,7 @@ describe('ProjectFilters', () => {
   it('gates log and metric data types behind ingestion features', async () => {
     renderInboundFilters([]);
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Add Rule'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
     await userEvent.click(screen.getByRole('textbox', {name: 'Data Type'}));
 
     expect(screen.getByRole('menuitemradio', {name: 'Errors'})).toBeInTheDocument();
@@ -769,7 +769,7 @@ describe('ProjectFilters', () => {
     });
     renderGlobalModal();
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Add Rule'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
     await userEvent.click(screen.getByRole('textbox', {name: 'Data Type'}));
 
     expect(screen.getByRole('menuitemradio', {name: 'Logs'})).toBeInTheDocument();
@@ -791,7 +791,7 @@ describe('ProjectFilters', () => {
     });
     renderGlobalModal();
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Add Rule'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
     // Data type defaults to Errors, so even with all ingestion features
     // enabled the property dropdown only offers error properties.
     await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
@@ -824,7 +824,7 @@ describe('ProjectFilters', () => {
     });
     renderGlobalModal();
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Add Rule'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
 
     await userEvent.hover(screen.getByText('matches'));
     expect(
@@ -872,7 +872,7 @@ describe('ProjectFilters', () => {
     });
     renderGlobalModal();
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Add Rule'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
     expect(screen.getByText('Error Message')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('textbox', {name: 'Data Type'}));
@@ -900,7 +900,7 @@ describe('ProjectFilters', () => {
     renderGlobalModal();
 
     expect(await screen.findByRole('checkbox', {name: 'Disable filter'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: 'Add Rule'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Add Filter'})).toBeDisabled();
     expect(screen.getByRole('button', {name: 'Edit filter'})).toBeDisabled();
     expect(screen.getByRole('button', {name: 'Delete filter'})).toBeDisabled();
   });

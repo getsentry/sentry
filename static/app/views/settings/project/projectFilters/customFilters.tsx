@@ -633,7 +633,7 @@ export function CustomFilters({project}: {project: Project}) {
             )
           }
         >
-          {t('Add Rule')}
+          {t('Add Filter')}
         </Button>
       </Flex>
 
