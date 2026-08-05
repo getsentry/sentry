@@ -8,12 +8,12 @@ import {useComboBoxState} from '@react-stately/combobox';
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {AskSeerFeedback} from 'sentry/components/searchQueryBuilder/askSeer/askSeerFeedback';
+import {AskSeerQueryStatusIndicator} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerQueryStatusIndicator';
 import {AskSeerSearchHeader} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchHeader';
 import {AskSeerSearchListBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchListBox';
 import {AskSeerSearchPopover} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchPopover';
@@ -35,6 +35,7 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay} from 'sentry/utils/useOverlay';
 import {useProjects} from 'sentry/utils/useProjects';
+
 // The menu size can change from things like loading states, long options,
 // or custom menus like a date picker. This hook ensures that the overlay
 // is updated in response to these changes.
@@ -423,13 +424,9 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
 
   const hasResults = queries.length > 0;
   const isDisplayingResults = !isPending && !isError && hasResults;
-  const showQueryStatus = hasAskSeerUxRework && (isPending || isError || hasResults);
-  const queryStatusVariant = isPending ? 'accent' : isError ? 'danger' : 'success';
-  const queryStatusLabel = isPending
-    ? t('Seer is processing your query')
-    : isError
-      ? t('Seer could not process your query')
-      : t('Seer processed your query');
+  const isUnsupported = Boolean(unsupportedReason) && !hasResults;
+  const hasQueryStatus =
+    hasAskSeerUxRework && (isPending || isError || hasResults || isUnsupported);
 
   useEffect(() => {
     if (enableAISearch && hasAskSeerUxRework && isDisplayingResults) {
@@ -460,18 +457,19 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
         <InvisibleInput
           {...inputProps}
           autoComplete="off"
-          hasQueryStatus={showQueryStatus}
+          hasQueryStatus={hasQueryStatus}
           onClick={() => state.open()}
           placeholder={t('Ask Seer with Natural Language')}
           ref={mergeRefs(inputRef, triggerProps.ref as React.Ref<HTMLInputElement>)}
         />
       </InputWrapper>
       <ButtonsWrapper>
-        {showQueryStatus ? (
-          <StatusIndicator
-            variant={queryStatusVariant}
-            aria-label={queryStatusLabel}
-            animationIterationCount={isPending ? 'infinite' : 10}
+        {hasQueryStatus ? (
+          <AskSeerQueryStatusIndicator
+            hasResults={hasResults}
+            isError={isError}
+            isPending={isPending}
+            unsupportedReason={unsupportedReason}
           />
         ) : null}
         <Button
