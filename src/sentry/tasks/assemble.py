@@ -288,8 +288,8 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     from sentry.lang.native.sources import record_last_upload
     from sentry.models.debugfile import (
         BadDif,
-        create_dif_from_fileobj,
         create_dif_from_file,
+        create_dif_from_fileobj,
         detect_single_dif_from_path,
     )
     from sentry.models.project import Project

@@ -17,8 +17,8 @@ from django.utils import timezone
 from sentry.models.debugfile import (
     DifMeta,
     ProjectDebugFile,
-    create_dif_from_fileobj,
     create_dif_from_file,
+    create_dif_from_fileobj,
     detect_dif_from_path,
     detect_single_dif_from_path,
     get_debug_id_from_dif_request,
