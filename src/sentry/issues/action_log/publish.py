@@ -143,6 +143,15 @@ def action_log_buffer() -> Generator[None]:
             raise ActionLogBufferError("Failed to flush group action log buffer") from error
 
 
+def _buffer_publications(publications: Sequence[_ActionPublication]) -> bool:
+    buffer = _action_log_buffer.get()
+    if buffer is None or _get_transaction_state(buffer.using) != buffer.transaction_state:
+        return False
+
+    buffer.actions.extend(publications)
+    return True
+
+
 def publish_action(
     action: GroupAction,
     *,
@@ -183,9 +192,7 @@ def publish_action(
         idempotency_key=idempotency_key,
         date_added=date_added,
     )
-    buffer = _action_log_buffer.get()
-    if buffer is not None and _get_transaction_state(buffer.using) == buffer.transaction_state:
-        buffer.actions.append(publication)
+    if _buffer_publications((publication,)):
         return
 
     _publish_action(publication)
@@ -338,21 +345,21 @@ def publish_actions_from_context_bulk(
         source = ctx.source
         actor = ctx.actor
 
-    _publish_actions_bulk(
-        [
-            _ActionPublication(
-                action=action,
-                source=source,
-                group_id=group_id,
-                project=project,
-                actor=actor,
-                force_async_derived=force_async_derived,
-                idempotency_key=idempotency_key,
-                date_added=date_added,
-            )
-            for action, project, group_id, idempotency_key, date_added in actions
-        ]
-    )
+    publications = [
+        _ActionPublication(
+            action=action,
+            source=source,
+            group_id=group_id,
+            project=project,
+            actor=actor,
+            force_async_derived=force_async_derived,
+            idempotency_key=idempotency_key,
+            date_added=date_added,
+        )
+        for action, project, group_id, idempotency_key, date_added in actions
+    ]
+    if not _buffer_publications(publications):
+        _publish_actions_bulk(publications)
 
 
 def _publish_actions_bulk(actions: Sequence[_ActionPublication]) -> None:

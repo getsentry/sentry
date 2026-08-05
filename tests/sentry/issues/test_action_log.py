@@ -311,6 +311,39 @@ class TestPublishActionFromContext(TestCase):
 
 
 class TestPublishActionsFromContextBulk(TestCase):
+    def test_respects_action_log_buffer(self) -> None:
+        from sentry.issues.action_log import publish_actions_from_context_bulk
+
+        with patch("sentry.issues.action_log.publish._publish_actions_bulk") as bulk_publish:
+            with action_context_scope(source=ActionSource.SYSTEM), action_log_buffer():
+                publish_actions_from_context_bulk(
+                    [
+                        (ViewAction(), self.group.project, self.group.id, None, None),
+                        (ResolveAction(), self.group.project, self.group.id, None, None),
+                    ]
+                )
+                bulk_publish.assert_not_called()
+
+        bulk_publish.assert_called_once()
+        assert len(bulk_publish.call_args.args[0]) == 2
+
+    def test_nested_savepoint_bypasses_outer_buffer(self) -> None:
+        from sentry.issues.action_log import publish_actions_from_context_bulk
+
+        group = self.group
+        with patch("sentry.issues.action_log.publish._publish_action") as publish:
+            with action_context_scope(source=ActionSource.SYSTEM), action_log_buffer():
+                with transaction.atomic(using=router.db_for_write(CellOutbox)):
+                    publish_actions_from_context_bulk(
+                        [
+                            (ViewAction(), group.project, group.id, None, None),
+                            (ResolveAction(), group.project, group.id, None, None),
+                        ]
+                    )
+                assert publish.call_count == 2
+
+        assert publish.call_count == 2
+
     def test_multiple_writes(self) -> None:
         from sentry.issues.action_log import action_context_scope, publish_actions_from_context_bulk
 
