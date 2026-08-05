@@ -108,6 +108,48 @@ export const SEER_EMBED_SCHEMAS = {
       },
     ],
   },
+  tool: {
+    description:
+      'Render one agent tool call inside a thinking block. ' +
+      'Use variant "read" (default) for quiet lookups — just a title plus an ' +
+      'optional `reference` chip naming the entity read (e.g. a trace or span id). ' +
+      'Use variant "query" to expose the search the tool ran: pass `query` as a ' +
+      'Sentry search string (rendered as filter pills) and `output` as the primary ' +
+      'result chip. `status` reflects the call lifecycle. Emit one embed per tool ' +
+      'call, in the order they ran. MUST NOT appear inside a markdown table or list.',
+    level: ['block'],
+    schema: z.object({
+      title: z.string(),
+      status: z
+        .enum(['loading', 'pending', 'success', 'failure', 'mixed'])
+        .default('success'),
+      variant: z.enum(['read', 'query']).default('read'),
+      query: z.string().optional(),
+      output: z.object({value: z.string(), label: z.string().optional()}).optional(),
+      reference: z.object({value: z.string(), label: z.string().optional()}).optional(),
+      notifications: z.array(z.string()).optional(),
+    }),
+    examples: [
+      {
+        label: 'Read',
+        data: {
+          title: 'Read trace waterfall',
+          status: 'success',
+          reference: {label: 'Trace', value: 'a3805648'},
+        },
+      },
+      {
+        label: 'Query',
+        data: {
+          title: 'Query spans',
+          status: 'success',
+          variant: 'query',
+          query: 'ai_conversation.id:28193042 dataset:spans span.description:DSL',
+          output: {label: 'Trace', value: 'a3805648'},
+        },
+      },
+    ],
+  },
 } as const satisfies Record<string, SeerEmbedSchema>;
 
 export type SeerEmbedName = keyof typeof SEER_EMBED_SCHEMAS;
