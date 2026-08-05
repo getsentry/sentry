@@ -81,7 +81,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("sentry", "1126_transactions_to_spans_widgets_self_hosted"),
-        ("discover", "0003_discover_json_field"),
+        ("discover", "0001_squashed_0003_discover_json_field"),
         ("explore", "0006_add_changed_reason_field_explore"),
     ]
 
