@@ -19,7 +19,7 @@ import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
 // The Feedback section is gated behind this feature flag; the wrapper below
 // injects it so every example renders it.
-const PR_ITERATION_FEATURE = 'autofix-pr-iteration';
+const PR_ITERATION_FEATURE = 'autofix-pr-iteration-manual';
 
 const noop = () => {};
 
@@ -447,7 +447,7 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
 });
 
 /**
- * Injects the `autofix-pr-iteration` feature into the surrounding organization
+ * Injects the `autofix-pr-iteration-manual` feature into the surrounding organization
  * so the Feedback section renders. Mirrors the pattern used by
  * activityLineItem.stories.tsx.
  */

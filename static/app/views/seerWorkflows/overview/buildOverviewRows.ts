@@ -45,7 +45,7 @@ export function deriveSectionKey(
     solution_ready: steps.has('solution'),
     needs_investigation: true,
   };
-  return [...PIPELINE].sort((a, b) => b.fill - a.fill).find(stage => reached[stage.key])!
+  return PIPELINE.toSorted((a, b) => b.fill - a.fill).find(stage => reached[stage.key])!
     .key;
 }
 

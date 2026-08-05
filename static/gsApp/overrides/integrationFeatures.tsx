@@ -97,16 +97,14 @@ function mapFeatureGroups({
     .map<GatedFeatureGroup>(plan => ({
       plan,
       features: groupedPlanFeatures[plan.id]!,
-      hasFeatures:
-        groupedPlanFeatures[plan.id]!.map(f => f.featureGate)
-          .map(f => organization.features.includes(f))
-          .filter(v => !v).length === 0,
+      hasFeatures: !groupedPlanFeatures[plan.id]!.map(f => f.featureGate)
+        .map(f => organization.features.includes(f))
+        .some(v => !v),
     }));
 
   // Are any features available for the current users plan?
   const disabled =
-    ungatedFeatures.length === 0 &&
-    gatedFeatureGroups.filter(group => group.hasFeatures).length === 0;
+    ungatedFeatures.length === 0 && !gatedFeatureGroups.some(group => group.hasFeatures);
 
   // Checks if 'disabled' and if there are any gatedFeatureGroups with plans,
   // then takes the cheapest tiered plan and generates the first error message.

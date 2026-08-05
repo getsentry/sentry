@@ -716,7 +716,7 @@ export function CommandPalette({
 function presortBySlotRef(
   nodes: Array<CollectionTreeNode<CMDKActionData>>
 ): Array<CollectionTreeNode<CMDKActionData>> {
-  return [...nodes].sort((a, b) => {
+  return nodes.toSorted((a, b) => {
     const aEl = a.ref?.current ?? null;
     const bEl = b.ref?.current ?? null;
 

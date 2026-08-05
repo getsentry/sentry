@@ -854,15 +854,21 @@ def _recommended_aggregation(
     total_3d = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {3 * 24 * hour}))"
     spike = f"least(1.0, divide({recent_6h}, plus({total_3d}, 1)))"
 
-    # Severity: max log level - maps fatal=1.0, error=0.75, warning=0.5, info=0.25, debug=0.0
+    # Severity: maps fatal=1.0, error=0.75, warning=0.5, info=0.25, debug=0.0
     severity_weight = options.get("snuba.search.recommended.severity-weight")
-    severity = (
-        "max(multiIf("
+    severity_signal = (
+        "multiIf("
         "equals(level, 'fatal'), 1.0, "
         "equals(level, 'error'), 0.75, "
         "equals(level, 'warning'), 0.5, "
         "equals(level, 'info'), 0.25, "
-        "0.0))"
+        "0.0)"
+    )
+    severity_aggregate = options.get("snuba.search.recommended.severity-aggregate")
+    severity = (
+        f"divide(sum({severity_signal}), count())"
+        if severity_aggregate == "mean"
+        else f"max({severity_signal})"
     )
 
     # User impact: ln(uniq(tags[sentry:user]) + 1)/ln(1001) - maps 1→~0, 10→0.33, 100→0.67, 1000→1.0

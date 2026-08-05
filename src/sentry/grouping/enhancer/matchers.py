@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any, Literal, TypedDict
 
 from sentry.grouping.utils import bool_from_string
@@ -104,40 +104,41 @@ def _get_function_name(frame_data: dict[str, Any], platform: str | None) -> str:
     return function_name or "<unknown>"
 
 
+def _encode_if_str(value: str | bytes | None) -> bytes | None:
+    return value.encode("utf-8") if isinstance(value, str) else value
+
+
+def _normalize_path(value: str | bytes | None) -> bytes | None:
+    # Path-like matchers are case-insensitive and use `/` as the file-system separator.
+    encoded_value = _encode_if_str(value)
+    if isinstance(encoded_value, bytes):
+        return encoded_value.lower().replace(b"\\", b"/")
+    return encoded_value
+
+
 def create_match_frame(frame_data: dict[str, Any], platform: str | None) -> MatchFrame:
     """Create flat dict of values relevant to matchers"""
-    match_frame = dict(
-        category=get_path(frame_data, "data", "category"),
-        family=get_behavior_family_for_platform(frame_data.get("platform") or platform),
-        function=_get_function_name(frame_data, platform),
-        in_app=frame_data.get("in_app"),
-        orig_in_app=get_path(frame_data, "data", "orig_in_app"),
-        module=get_path(frame_data, "module"),
-        package=frame_data.get("package"),
-        path=frame_data.get("abs_path") or frame_data.get("filename"),
-    )
+    frame_metadata = frame_data.get("data")
+    if not isinstance(frame_metadata, Mapping):
+        frame_metadata = {}
 
-    for key in list(match_frame.keys()):
-        value = match_frame[key]
-        if isinstance(value, (bytes, str)):
-            if isinstance(value, str):
-                value = match_frame[key] = value.encode("utf-8")
+    category = _encode_if_str(frame_metadata.get("category"))
+    module = _encode_if_str(frame_data.get("module"))
 
-            if key in ("package", "path"):
-                # NOTE: path-like matchers are case insensitive, and normalize
-                # file-system separators to `/`.
-                # We do this here in a central place instead of in each matcher separately.
-                value = match_frame[key] = value.lower().replace(b"\\", b"/")
+    package = _normalize_path(frame_data.get("package"))
+    path = _normalize_path(frame_data.get("abs_path") or frame_data.get("filename"))
 
     return MatchFrame(
-        category=match_frame["category"],
-        family=match_frame["family"],
-        function=match_frame["function"],
-        in_app=match_frame["in_app"],
-        orig_in_app=match_frame["orig_in_app"],
-        module=match_frame["module"],
-        package=match_frame["package"],
-        path=match_frame["path"],
+        category=category,
+        family=get_behavior_family_for_platform(frame_data.get("platform") or platform).encode(
+            "utf-8"
+        ),
+        function=_get_function_name(frame_data, platform).encode("utf-8"),
+        in_app=frame_data.get("in_app"),
+        orig_in_app=frame_metadata.get("orig_in_app"),
+        module=module,
+        package=package,
+        path=path,
     )
 
 

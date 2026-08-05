@@ -124,23 +124,18 @@ export function IssuesSecondaryNavigation() {
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         <IssueViews />
-        <ConfigureSection baseUrl={baseUrl} />
+        <ConfigureSection />
       </SecondaryNavigation.Body>
     </Fragment>
   );
 }
 
-function ConfigureSection({baseUrl}: {baseUrl: string}) {
+function ConfigureSection() {
   const organization = useOrganization();
   const {layout} = usePrimaryNavigation();
   const isSticky = layout === 'sidebar';
 
-  const hasWorkflowEngineUI = organization.features.includes('workflow-engine-ui');
-  const shouldRedirectToWorkflowEngineUI = hasWorkflowEngineUI;
-
-  const alertsLink = shouldRedirectToWorkflowEngineUI
-    ? makeAutomationBasePathname(organization.slug)
-    : `${baseUrl}/alerts/rules/`;
+  const alertsLink = makeAutomationBasePathname(organization.slug);
 
   return (
     <Fragment>
@@ -155,30 +150,27 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
           <SecondaryNavigation.ListItem>
             <SecondaryNavigation.Link
               to={alertsLink}
-              {...(!shouldRedirectToWorkflowEngineUI && {activeTo: `${baseUrl}/alerts/`})}
               analyticsItemName="issues_alerts"
               trailingItems={
-                hasWorkflowEngineUI ? (
-                  <Tooltip
-                    isHoverable
-                    title={
-                      <Fragment>
-                        <Text as="p">{t('Alerts now live under Monitors.')}</Text>
-                        <Text as="p">
-                          {tct('See the [link:new Alerts page here.]', {
-                            link: (
-                              <Link
-                                to={`/organizations/${organization.slug}/monitors/alerts/`}
-                              />
-                            ),
-                          })}
-                        </Text>
-                      </Fragment>
-                    }
-                  >
-                    <Badge variant="muted">{t('Moved')}</Badge>
-                  </Tooltip>
-                ) : null
+                <Tooltip
+                  isHoverable
+                  title={
+                    <Fragment>
+                      <Text as="p">{t('Alerts now live under Monitors.')}</Text>
+                      <Text as="p">
+                        {tct('See the [link:new Alerts page here.]', {
+                          link: (
+                            <Link
+                              to={`/organizations/${organization.slug}/monitors/alerts/`}
+                            />
+                          ),
+                        })}
+                      </Text>
+                    </Fragment>
+                  }
+                >
+                  <Badge variant="muted">{t('Moved')}</Badge>
+                </Tooltip>
               }
             >
               {t('Alerts')}
