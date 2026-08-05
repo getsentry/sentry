@@ -48,6 +48,9 @@ function renderMessaging(
 describe('ScmMessaging', () => {
   afterEach(() => {
     MockApiClient.clearMockResponses();
+    // Context-backed tests persist onboarding state to session storage, and
+    // useSessionStorage prefers a stored value over initialValue.
+    window.sessionStorage.clear();
   });
 
   it('revalidates a restored destination before showing it as selected', async () => {
