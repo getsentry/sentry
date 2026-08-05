@@ -1147,13 +1147,20 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
             project, "fixable", seer_fixability_score=0.9, times_seen=5
         )
 
-        run_night_shift_for_org(org.id)
+        with patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger:
+            run_night_shift_for_org(org.id)
 
         run = SeerNightShiftRun.objects.get(organization=org)
         assert run.shards.filter(seer_run__isnull=True).count() == 1
         assert run.date_completed is None
         assert run.extras["error_message"] == "Organization does not have Seer access"
         assert not SeerRun.objects.filter(organization=org).exists()
+        incomplete_log = next(
+            call.kwargs["extra"]
+            for call in mock_logger.info.call_args_list
+            if call.args[0] == "night_shift.shard_dispatch_incomplete"
+        )
+        assert incomplete_log["reason"] == "no_seer_access"
 
     def test_dispatch_failure_records_error(self) -> None:
         org = self.create_organization()

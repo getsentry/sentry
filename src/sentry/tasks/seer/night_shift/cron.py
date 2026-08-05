@@ -5,6 +5,7 @@ import logging
 import time
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
+from enum import StrEnum
 from typing import Any, Literal, TypedDict
 
 import sentry_sdk
@@ -124,6 +125,13 @@ class NightShiftShardPlan:
         if not isinstance(payload, dict) or not isinstance(title, str):
             return None
         return cls(payload=payload, title=title)
+
+
+class ShardDispatchStatus(StrEnum):
+    COMPLETE = "complete"
+    NO_SEER_ACCESS = "no_seer_access"
+    INVALID_SHARD_PLAN = "invalid_shard_plan"
+    PARTIAL_FAILURE = "partial_failure"
 
 
 @instrumented_task(
@@ -366,7 +374,12 @@ def run_night_shift_execution(
     logger.info("night_shift.execute.start", extra=log_extra)
 
     if run.shards.exists():
-        if not _dispatch_pending_shards(run, organization, log_extra, start_time):
+        dispatch_status = _dispatch_pending_shards(run, organization, log_extra, start_time)
+        if dispatch_status is not ShardDispatchStatus.COMPLETE:
+            logger.info(
+                "night_shift.shard_dispatch_incomplete",
+                extra={**log_extra, "reason": dispatch_status.value},
+            )
             return None
         _complete_run(run)
         return None
@@ -409,7 +422,12 @@ def run_night_shift_execution(
         return None
 
     _maybe_create_shard_plan(run, shard_plans)
-    if not _dispatch_pending_shards(run, organization, log_extra, start_time):
+    dispatch_status = _dispatch_pending_shards(run, organization, log_extra, start_time)
+    if dispatch_status is not ShardDispatchStatus.COMPLETE:
+        logger.info(
+            "night_shift.shard_dispatch_incomplete",
+            extra={**log_extra, "reason": dispatch_status.value},
+        )
         return None
     _complete_run(run)
 
@@ -754,14 +772,14 @@ def _dispatch_pending_shards(
     organization: Organization,
     log_extra: dict[str, object],
     start_time: float,
-) -> bool:
-    """Dispatch every unlinked shard and report whether all shards are linked."""
+) -> ShardDispatchStatus:
+    """Dispatch every unlinked shard and return its durable completion status."""
     try:
         client = SeerAgentClient(organization)
     except SeerPermissionError:
         logger.info("night_shift.no_seer_access", extra=log_extra)
         _record_run_error(run, "Organization does not have Seer access")
-        return False
+        return ShardDispatchStatus.NO_SEER_ACCESS
 
     using = router.db_for_write(SeerNightShiftRunShard)
     planned_shards = list(run.shards.order_by("id"))
@@ -779,7 +797,8 @@ def _dispatch_pending_shards(
                     "night_shift.invalid_shard_plan",
                     extra={**log_extra, "shard_index": shard_index},
                 )
-                return False
+                _record_run_error(run, "Invalid Night Shift shard plan")
+                return ShardDispatchStatus.INVALID_SHARD_PLAN
 
             def _link_shard(created: SeerRun) -> None:
                 shard.seer_run = created
@@ -819,7 +838,7 @@ def _dispatch_pending_shards(
                 "num_shards_dispatched": dispatched,
             },
         )
-        return False
+        return ShardDispatchStatus.PARTIAL_FAILURE
 
     sentry_sdk.metrics.distribution("night_shift.org_run_duration", time.monotonic() - start_time)
     logger.info(
@@ -832,4 +851,4 @@ def _dispatch_pending_shards(
             "num_shards_dispatched": dispatched,
         },
     )
-    return True
+    return ShardDispatchStatus.COMPLETE
