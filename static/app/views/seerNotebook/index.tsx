@@ -112,6 +112,7 @@ function SeerNotebookLauncherContent() {
   const listOptions = investigationListQueryOptions({
     organizationSlug: organization.slug,
     cursor,
+    query: search.trim() || undefined,
   });
   const investigationsQuery = useQuery(listOptions);
   const investigations = useMemo(
@@ -131,15 +132,10 @@ function SeerNotebookLauncherContent() {
   });
   const ownersById = new Map(owners.map(owner => [String(owner.id), owner]));
   const visibleInvestigations = useMemo(() => {
-    const normalizedSearch = search.trim().toLocaleLowerCase();
-    const filtered = investigations
-      .filter(investigation =>
-        investigation.title.toLocaleLowerCase().includes(normalizedSearch)
-      )
-      .map(investigation => ({
-        ...investigation,
-        isFavorited: favoriteOverrides[investigation.id] ?? investigation.isFavorited,
-      }));
+    const filtered = investigations.map(investigation => ({
+      ...investigation,
+      isFavorited: favoriteOverrides[investigation.id] ?? investigation.isFavorited,
+    }));
     const compareTitle = (left: InvestigationListItem, right: InvestigationListItem) =>
       left.title.localeCompare(right.title);
     const compareDate = (
@@ -175,7 +171,12 @@ function SeerNotebookLauncherContent() {
       }
       return compareDate(right, left, 'dateUpdated');
     });
-  }, [currentUser.id, favoriteOverrides, investigations, search, sort]);
+  }, [currentUser.id, favoriteOverrides, investigations, sort]);
+
+  const updateSearch = (value: string) => {
+    setSearch(value);
+    setCursor(undefined);
+  };
 
   const refreshInvestigations = () =>
     queryClient.invalidateQueries({queryKey: listOptions.queryKey});
@@ -400,7 +401,7 @@ function SeerNotebookLauncherContent() {
               defaultQuery=""
               query={search}
               placeholder={t('Search Investigations')}
-              onChange={setSearch}
+              onChange={updateSearch}
             />
             <CompactSelect
               value={sort}
