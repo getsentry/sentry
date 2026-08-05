@@ -3,42 +3,25 @@ import {useCallback} from 'react';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
+import {isNumericAttribute} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {useLogsSidebar} from 'sentry/views/explore/logs/logsSidebarContext';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {
+  useAddSearchFilter,
   useQueryParamsFields,
   useQueryParamsGroupBys,
-  useQueryParamsSearch,
   useSetQueryParamsFields,
   useSetQueryParamsGroupBys,
-  useSetQueryParamsSearch,
 } from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 
 export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
-  const setLogsSearch = useSetQueryParamsSearch();
-  const search = useQueryParamsSearch();
+  const addSearchFilter = useAddSearchFilter();
   const fields = useQueryParamsFields();
   const setLogFields = useSetQueryParamsFields();
   const groupBys = useQueryParamsGroupBys();
   const setGroupBys = useSetQueryParamsGroupBys();
   const sidebar = useLogsSidebar();
-
-  const addSearchFilter = useCallback(
-    (content: AttributesTreeContent, negated?: boolean) => {
-      const originalAttribute = content.originalAttribute;
-      if (!originalAttribute) {
-        return;
-      }
-      const newSearch = search.copy();
-      newSearch.addFilterValue(
-        `${negated ? '!' : ''}${originalAttribute.original_attribute_key}`,
-        String(content.value)
-      );
-      setLogsSearch(newSearch);
-    },
-    [setLogsSearch, search]
-  );
 
   const addColumn = useCallback(
     (content: AttributesTreeContent) => {
@@ -80,32 +63,58 @@ export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
       return [];
     }
 
+    const key = content.originalAttribute.original_attribute_key;
+    const value = content.value;
+    const isNumeric = isNumericAttribute({
+      value,
+      type: content.originalAttribute.type,
+      key,
+    });
+
     const items: MenuItemProps[] = [
       {
         key: 'search-for-value',
         label: t('Add to filter'),
-        onAction: () => addSearchFilter(content),
+        onAction: () => addSearchFilter({key, value: String(value)}),
       },
       {
         key: 'search-for-negated-value',
         label: t('Exclude this value'),
-        onAction: () => addSearchFilter(content, true),
+        onAction: () => addSearchFilter({key, value: String(value), negated: true}),
       },
+    ];
+
+    if (isNumeric) {
+      items.push(
+        {
+          key: 'search-for-greater-than',
+          label: t('Show values greater than'),
+          onAction: () => addSearchFilter({key, value: value!, op: '>'}),
+        },
+        {
+          key: 'search-for-less-than',
+          label: t('Show values less than'),
+          onAction: () => addSearchFilter({key, value: value!, op: '<'}),
+        }
+      );
+    }
+
+    items.push(
       {
         key: 'add-column',
         label: t('Add this as table column'),
         hidden: embedded,
-        disabled: fields.includes(content.originalAttribute.original_attribute_key),
+        disabled: fields.includes(key),
         onAction: () => addColumn(content),
       },
       {
         key: 'add-group-by',
         label: t('Group by attribute'),
         hidden: embedded,
-        disabled: groupBys.includes(content.originalAttribute.original_attribute_key),
+        disabled: groupBys.includes(key),
         onAction: () => addGroupBy(content),
-      },
-    ];
+      }
+    );
 
     return items;
   };
