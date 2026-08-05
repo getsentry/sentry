@@ -597,11 +597,21 @@ def handle_metrics(
         and features.has("organizations:pr-file-stats", organization)
         and pr.seer_run_links.exists()
     ):
-        fetch_pr_file_stats_task.delay(
-            pull_request_id=pr.id,
-            organization_id=organization.id,
-            repository_id=pr.repository_id,
-        )
+        try:
+            fetch_pr_file_stats_task.delay(
+                pull_request_id=pr.id,
+                organization_id=organization.id,
+                repository_id=pr.repository_id,
+            )
+        except Exception:
+            logger.exception(
+                "pr_metrics.metrics.file_stats_enqueue_failed",
+                extra={
+                    "organization_id": organization.id,
+                    "repository_id": repo.id,
+                    "pull_request_id": pr.id,
+                },
+            )
 
 
 def handle_activity(
