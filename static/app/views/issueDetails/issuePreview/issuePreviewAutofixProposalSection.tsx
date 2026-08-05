@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -65,16 +66,17 @@ export function IssuePreviewAutofixProposalSection({
             {Array.from(patchesByRepo.entries(), ([repoName, patches]) => (
               <Stack key={repoName} gap="md">
                 <Text bold>{repoName}</Text>
-                {patches.map(patch => (
-                  <FileDiffViewer
-                    key={patch.patch.path}
-                    patch={patch.patch}
-                    repoName={repoName}
-                    showBorder
-                    collapsible
-                    defaultExpanded
-                  />
-                ))}
+                <FileDiffList gap="0">
+                  {patches.map(patch => (
+                    <FileDiffViewer
+                      key={patch.patch.path}
+                      patch={patch.patch}
+                      repoName={repoName}
+                      showBorder
+                      collapsible
+                    />
+                  ))}
+                </FileDiffList>
               </Stack>
             ))}
           </Stack>
@@ -83,3 +85,16 @@ export function IssuePreviewAutofixProposalSection({
     </RetryableAutofixSection>
   );
 }
+
+const FileDiffList = styled(Stack)`
+  & > :not(:first-child) {
+    border-top: 0;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
+
+  & > :not(:last-child) {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+`;
