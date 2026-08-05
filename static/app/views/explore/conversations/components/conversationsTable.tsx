@@ -126,6 +126,28 @@ export function UserNotInstrumentedTooltip() {
   );
 }
 
+/**
+ * When no conversation on the page has tools, the tools column only ever renders
+ * a placeholder, so collapse it to the grid's minimum width and let the flexible
+ * conversation column absorb the freed space. This only kicks in while the column
+ * is still at its default width — once the user has resized it we respect their
+ * choice and leave it alone. The passed-in resize state is never mutated, so the
+ * column returns to its default width once a page with tools loads.
+ */
+export function collapseToolsColumnWhenUnused(
+  columnOrder: Array<GridColumnOrder<ColumnKey>>,
+  hasNoTools: boolean
+): Array<GridColumnOrder<ColumnKey>> {
+  const toolsColumn = columnOrder.find(column => column.key === 'tools');
+  const toolsColumnAtDefault = toolsColumn?.width === COLUMN_DEFAULTS.tools.width;
+  if (!hasNoTools || !toolsColumnAtDefault) {
+    return columnOrder;
+  }
+  return columnOrder.map(column =>
+    column.key === 'tools' ? {...column, width: COL_WIDTH_MINIMUM} : column
+  );
+}
+
 export function ConversationsTable() {
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -146,11 +168,6 @@ export function ConversationsTable() {
       })),
   });
 
-  // When no conversation on the page has tools, the tools column only ever
-  // renders a placeholder, so collapse it to the grid's minimum width and let
-  // the flexible conversation column absorb the freed space. The resize state
-  // is left untouched, so the column returns to its previous width once a page
-  // with tools loads.
   const hasNoTools = useMemo(
     () =>
       data.length > 0 && data.every(conversation => conversation.toolNames.length === 0),
@@ -158,12 +175,7 @@ export function ConversationsTable() {
   );
 
   const displayedColumns = useMemo(
-    () =>
-      hasNoTools
-        ? columnOrder.map(column =>
-            column.key === 'tools' ? {...column, width: COL_WIDTH_MINIMUM} : column
-          )
-        : columnOrder,
+    () => collapseToolsColumnWhenUnused(columnOrder, hasNoTools),
     [columnOrder, hasNoTools]
   );
 

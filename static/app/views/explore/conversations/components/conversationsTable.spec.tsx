@@ -3,8 +3,13 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {COL_WIDTH_MINIMUM} from 'sentry/components/tables/gridEditable';
 
-import {ConversationsTable, getVisibleToolCount} from './conversationsTable';
+import {
+  collapseToolsColumnWhenUnused,
+  ConversationsTable,
+  getVisibleToolCount,
+} from './conversationsTable';
 
 const BASE_CONVERSATION = {
   conversationId: 'conv-1',
@@ -169,6 +174,35 @@ describe('ConversationsTable', () => {
     await waitFor(() => {
       expect(router.location.pathname).toContain('conv-1');
     });
+  });
+});
+
+describe('collapseToolsColumnWhenUnused', () => {
+  const TOOLS_DEFAULT_WIDTH = 300;
+  const columns = [
+    {key: 'conversation' as const, name: 'Conversation', width: -1},
+    {key: 'tools' as const, name: 'Tools', width: TOOLS_DEFAULT_WIDTH},
+    {key: 'age' as const, name: 'Age', width: 110},
+  ];
+  const toolsWidth = (result: ReadonlyArray<{key: string; width?: number}>) =>
+    result.find(column => column.key === 'tools')?.width;
+
+  it('collapses the default-width tools column when there are no tools', () => {
+    const result = collapseToolsColumnWhenUnused(columns, true);
+    expect(toolsWidth(result)).toBe(COL_WIDTH_MINIMUM);
+  });
+
+  it('keeps the tools column at full width when there are tools', () => {
+    const result = collapseToolsColumnWhenUnused(columns, false);
+    expect(toolsWidth(result)).toBe(TOOLS_DEFAULT_WIDTH);
+  });
+
+  it('respects a user-resized tools column and does not collapse it', () => {
+    const resized = columns.map(column =>
+      column.key === 'tools' ? {...column, width: 420} : column
+    );
+    const result = collapseToolsColumnWhenUnused(resized, true);
+    expect(toolsWidth(result)).toBe(420);
   });
 });
 
