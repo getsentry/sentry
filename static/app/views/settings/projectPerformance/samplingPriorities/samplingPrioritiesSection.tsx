@@ -31,7 +31,7 @@ export function SamplingPrioritiesSection({
       <FieldGroup title={t('Sampling Priorities')}>
         {priorityFields.map(priority => (
           <AutoSaveForm
-            key={`${priority.name}-${isPriorityActive(priority.name)}`}
+            key={priority.name}
             name={priority.name}
             schema={z.object({[priority.name]: z.boolean()})}
             initialValue={isPriorityActive(priority.name)}

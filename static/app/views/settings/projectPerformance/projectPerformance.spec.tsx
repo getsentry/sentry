@@ -278,6 +278,40 @@ describe('projectPerformance', () => {
     });
   });
 
+  it('shows sampling priority save errors', async () => {
+    const dynamicSamplingBiases = [
+      {id: DynamicSamplingBiasType.BOOST_LATEST_RELEASES, active: false},
+      {id: DynamicSamplingBiasType.BOOST_ENVIRONMENTS, active: false},
+      {id: DynamicSamplingBiasType.BOOST_LOW_VOLUME_TRANSACTIONS, active: false},
+      {id: DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS, active: false},
+    ];
+    const detailedProject = {...ProjectFixture(), dynamicSamplingBiases};
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      method: 'GET',
+      body: detailedProject,
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      method: 'PUT',
+      body: {detail: 'Failed to save'},
+      statusCode: 500,
+    });
+
+    render(<ProjectPerformance />, {
+      organization: OrganizationFixture({features: ['dynamic-sampling']}),
+      initialRouterConfig,
+    });
+
+    const prioritySwitch = await screen.findByRole('checkbox', {
+      name: 'Prioritize new releases',
+    });
+    await userEvent.click(prioritySwitch);
+
+    expect(await screen.findByText('Failed to save')).toBeInTheDocument();
+    expect(prioritySwitch).not.toBeChecked();
+  });
+
   it('resets threshold settings', async () => {
     const initialThreshold = {
       id: project.id,
