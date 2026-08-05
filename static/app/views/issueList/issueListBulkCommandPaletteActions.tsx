@@ -68,7 +68,7 @@ function AssignActionItems({
   const {data: members = []} = useOrgMembers();
 
   const sortedTeams = useMemo(
-    () => [...teams].sort((a, b) => a.slug.localeCompare(b.slug)),
+    () => teams.toSorted((a, b) => a.slug.localeCompare(b.slug)),
     [teams]
   );
 
