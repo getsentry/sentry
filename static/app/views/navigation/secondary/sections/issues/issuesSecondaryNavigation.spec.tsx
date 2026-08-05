@@ -2,12 +2,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {INBOX_ISSUE_TYPE_EXCLUSION} from 'sentry/views/issueList/pages/inbox';
+import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/pages/inbox';
 import {IssuesSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/issues/issuesSecondaryNavigation';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 
 describe('IssuesSecondaryNavigation', () => {
-  const inboxCountQuery = `issue.progress:[fix_proposed, diagnosed, assigned] assigned:[me,my_teams]${INBOX_ISSUE_TYPE_EXCLUSION}`;
+  const inboxCountQuery = `issue.progress:[fix_proposed, diagnosed, assigned] assigned:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`;
   const organization = OrganizationFixture({
     features: ['issue-stream-progress-ui'],
   });

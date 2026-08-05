@@ -4,14 +4,14 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   ASSIGNMENT_QUERY_SUFFIXES,
-  INBOX_ISSUE_TYPE_EXCLUSION,
+  INBOX_AUTOFIX_CATEGORY_FILTER,
   SECTIONS,
 } from 'sentry/views/issueList/pages/inbox';
 
 const PROGRESS_STATES = SECTIONS.map(section => section.progress).join(', ');
 
 // A separate Snuba search runs per `query` param, so all the states travel as one.
-const INBOX_COUNT_QUERY = `issue.progress:[${PROGRESS_STATES}]${ASSIGNMENT_QUERY_SUFFIXES.my_teams}${INBOX_ISSUE_TYPE_EXCLUSION}`;
+const INBOX_COUNT_QUERY = `issue.progress:[${PROGRESS_STATES}]${ASSIGNMENT_QUERY_SUFFIXES.my_teams}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
 
 /** Number of issues waiting in the inbox, for the nav badge. */
 export function useInboxIssueCount() {

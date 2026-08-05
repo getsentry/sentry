@@ -23,7 +23,7 @@ import {QueryCount} from 'sentry/components/queryCount';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow, IconChevron} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {IssueType, ProgressState, type Group} from 'sentry/types/group';
+import {IssueCategory, ProgressState, type Group} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getMessage, getTitle} from 'sentry/utils/events';
@@ -54,10 +54,13 @@ export const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
   my_teams: ' assigned:[me,my_teams]',
   all: '',
 };
-export const INBOX_ISSUE_TYPE_EXCLUSION = ` !issue.type:[${[
-  IssueType.METRIC_ISSUE,
-  IssueType.MONITOR_CHECK_IN_FAILURE,
-  IssueType.UPTIME_DOMAIN_FAILURE,
+export const INBOX_AUTOFIX_CATEGORY_FILTER = ` issue.category:[${[
+  IssueCategory.ERROR,
+  IssueCategory.MOBILE,
+  IssueCategory.FRONTEND,
+  IssueCategory.DB_QUERY,
+  IssueCategory.HTTP_CLIENT,
+  IssueCategory.CONFIGURATION,
 ].join(',')}]`;
 
 interface InboxSectionConfig {
@@ -263,7 +266,7 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
       path: {organizationIdOrSlug: organization.slug},
       query: {
         project: [-1],
-        query: `${section.query}${ASSIGNMENT_QUERY_SUFFIXES[assignmentFilter]}${INBOX_ISSUE_TYPE_EXCLUSION}`,
+        query: `${section.query}${ASSIGNMENT_QUERY_SUFFIXES[assignmentFilter]}${INBOX_AUTOFIX_CATEGORY_FILTER}`,
         sort: IssueSortOptions.PROGRESS,
         limit: ISSUE_LIMIT,
         collapse: ['stats', 'unhandled'],

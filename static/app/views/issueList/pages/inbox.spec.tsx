@@ -20,7 +20,7 @@ import {
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {ProgressState} from 'sentry/types/group';
 
-import InboxPage, {INBOX_ISSUE_TYPE_EXCLUSION} from './inbox';
+import InboxPage, {INBOX_AUTOFIX_CATEGORY_FILTER} from './inbox';
 
 describe('InboxPage', () => {
   const organization = OrganizationFixture({
@@ -145,7 +145,9 @@ describe('InboxPage', () => {
   ) {
     return MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
-      match: [MockApiClient.matchQuery({query: `${query}${INBOX_ISSUE_TYPE_EXCLUSION}`})],
+      match: [
+        MockApiClient.matchQuery({query: `${query}${INBOX_AUTOFIX_CATEGORY_FILTER}`}),
+      ],
       body,
       headers: {'X-Hits': String(total)},
       statusCode,
@@ -287,7 +289,7 @@ describe('InboxPage', () => {
             method: 'GET',
             query: {
               project: [-1],
-              query: `${query}${INBOX_ISSUE_TYPE_EXCLUSION}`,
+              query: `${query}${INBOX_AUTOFIX_CATEGORY_FILTER}`,
               sort: 'progress',
               limit: 10,
               collapse: ['stats', 'unhandled'],
@@ -368,7 +370,7 @@ describe('InboxPage', () => {
       url: '/organizations/org-slug/issues/',
       match: [
         MockApiClient.matchQuery({
-          query: `issue.progress:fix_proposed assigned:[me,my_teams]${INBOX_ISSUE_TYPE_EXCLUSION}`,
+          query: `issue.progress:fix_proposed assigned:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`,
         }),
       ],
       body: [fixProposedGroup],
@@ -525,7 +527,7 @@ describe('InboxPage', () => {
       url: '/organizations/org-slug/issues/',
       match: [
         MockApiClient.matchQuery({
-          query: `issue.progress:fix_proposed assigned:[me,my_teams]${INBOX_ISSUE_TYPE_EXCLUSION}`,
+          query: `issue.progress:fix_proposed assigned:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`,
         }),
       ],
       body: [fixProposedGroup],
@@ -538,7 +540,7 @@ describe('InboxPage', () => {
       url: '/organizations/org-slug/issues/',
       match: [
         MockApiClient.matchQuery({
-          query: `issue.progress:fix_proposed assigned:[me,my_teams]${INBOX_ISSUE_TYPE_EXCLUSION}`,
+          query: `issue.progress:fix_proposed assigned:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`,
           cursor: '0:10:0',
         }),
       ],
