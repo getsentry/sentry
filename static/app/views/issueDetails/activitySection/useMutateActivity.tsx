@@ -107,7 +107,7 @@ export function useMutateActivity({organization, group}: Props) {
         }
       );
 
-      void queryClient.invalidateQueries({
+      return queryClient.invalidateQueries({
         queryKey: issueCommentsQueryOptions({
           organizationSlug: organization.slug,
           groupId: group.id,

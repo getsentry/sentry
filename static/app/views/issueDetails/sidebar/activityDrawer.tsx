@@ -62,7 +62,7 @@ export function ActivityDrawer({project}: ActivityDrawerProps) {
   }
 
   const comments = shouldFetchComments
-    ? (commentsQuery.data?.pages.flatMap(page => page.json) ?? [])
+    ? (commentsQuery.data?.pages.flatMap(page => page.json) ?? activityComments)
     : activityComments;
 
   return (
