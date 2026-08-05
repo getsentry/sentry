@@ -1,0 +1,66 @@
+---
+title: Chip
+description: A compact chonky-embossed token for search filters and standalone values.
+category: display
+source: '@sentry/scraps/chip'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/chip/chip.tsx
+---
+
+import {Chip} from '@sentry/scraps/chip';
+import {Flex} from '@sentry/scraps/layout';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/chip');
+
+The `Chip` renders a compact filter token — `property operator value` — or a
+standalone value. It's presentation only: it holds no filter state, so the
+caller owns the values and any dismiss behavior.
+
+## Variants
+
+- `query` — the value is emphasized in accent; use for an editable search filter.
+- `readonly-query` — the value reads as secondary; use for a non-interactive summary.
+- `value` — just the value, in primary; use for a standalone token.
+
+<Storybook.Demo>
+  <Flex gap="md" align="center" wrap="wrap">
+    <Chip variant="query" property="browser" operator="is" value="Chrome" />
+    <Chip variant="readonly-query" property="browser" operator="is" value="Chrome" />
+    <Chip variant="value" value="Chrome" />
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Chip variant="query" property="browser" operator="is" value="Chrome" />
+<Chip variant="readonly-query" property="browser" operator="is" value="Chrome" />
+<Chip variant="value" value="Chrome" />
+```
+
+## Sizes
+
+`size` is `xs`, `sm`, or `md` (default). `md`/`sm` use 14px text; `xs` uses 12px.
+
+<Storybook.Demo>
+  <Flex gap="md" align="center" wrap="wrap">
+    <Chip size="md" property="browser" operator="is" value="Chrome" />
+    <Chip size="sm" property="browser" operator="is" value="Chrome" />
+    <Chip size="xs" property="browser" operator="is" value="Chrome" />
+  </Flex>
+</Storybook.Demo>
+
+## Dismissable
+
+Pass `onDismiss` to render a trailing ✕ button. Omit it for a static chip.
+
+<Storybook.Demo>
+  <Flex gap="md" align="center" wrap="wrap">
+    <Chip property="browser" operator="is" value="Chrome" onDismiss={() => {}} />
+    <Chip variant="value" value="Chrome" onDismiss={() => {}} />
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Chip property="browser" operator="is" value="Chrome" onDismiss={() => removeFilter()} />
+```
