@@ -19,7 +19,7 @@ export function DetectorStringField({
   placeholder,
   projectSlug,
 }: DetectorStringFieldProps) {
-  const mutationOptions = useDetectorFieldMutationOptions(projectSlug);
+  const mutationOptions = useDetectorFieldMutationOptions({projectSlug});
 
   return (
     <AutoSaveForm

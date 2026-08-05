@@ -17,7 +17,7 @@ export function DetectorBooleanField({
   name,
   projectSlug,
 }: DetectorBooleanFieldProps) {
-  const mutationOptions = useDetectorFieldMutationOptions(projectSlug);
+  const mutationOptions = useDetectorFieldMutationOptions({projectSlug});
 
   return (
     <AutoSaveForm

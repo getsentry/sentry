@@ -28,7 +28,7 @@ export function DetectorRangeField({
   showTickLabels,
   tickValues,
 }: DetectorRangeFieldProps) {
-  const mutationOptions = useDetectorFieldMutationOptions(projectSlug);
+  const mutationOptions = useDetectorFieldMutationOptions({projectSlug});
 
   return (
     <AutoSaveForm

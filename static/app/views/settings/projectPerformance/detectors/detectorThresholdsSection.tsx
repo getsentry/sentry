@@ -37,10 +37,10 @@ export function AdminRegressionSettingsSection({
   performanceIssueSettings,
 }: AdminRegressionSettingsSectionProps) {
   const {projectId: projectSlug} = useParams<{projectId: string}>();
-  const mutationOptions = useDetectorFieldMutationOptions(
+  const mutationOptions = useDetectorFieldMutationOptions({
     projectSlug,
-    handleSuperUserError
-  );
+    onError: handleSuperUserError,
+  });
 
   return (
     <FieldGroup
