@@ -28,8 +28,13 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project(name="test_project")
-        self.range_start = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=1)
-        self.range_end = datetime.datetime.now(tz=datetime.UTC)
+        # Exactly one UTC day, so the job is a single window. These tests are about status
+        # transitions, checkpointing and Seer rather than windowing, and a range crossing midnight
+        # would make each of them chain an extra activation.
+        self.range_start = datetime.datetime.now(tz=datetime.UTC).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        self.range_end = self.range_start + datetime.timedelta(days=1)
         self.query = ""
         self.environments = ["prod"]
 
@@ -211,7 +216,9 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
     def test_run_bulk_replay_delete_job_chained_runs(self) -> None:
         project = self.create_project()
 
-        t1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
+        # Inside the job's window rather than relative to now, which lands in the previous UTC day
+        # when the suite runs just after midnight.
+        t1 = self.range_start + datetime.timedelta(seconds=10)
         replay_id1 = uuid.uuid4().hex
         replay_id2 = uuid.uuid4().hex
         replay_id3 = uuid.uuid4().hex
