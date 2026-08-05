@@ -21,7 +21,12 @@ SectionFn = Callable[["EventObject", "Formatter", Limits], str]
 
 def slug(title: str) -> str:
     """Turn a human title (e.g. "HTTP Request") into an xml-safe tag ("http_request")."""
-    return re.sub(r"[^a-z0-9]+", "_", title.strip().lower()).strip("_")
+    name = re.sub(r"[^a-z0-9]+", "_", title.strip().lower()).strip("_")
+    # tag keys and evidence names come from the event, so this has to cope with titles that
+    # slug away to nothing or start with a digit -- neither is a legal xml name on its own
+    if not name or name[0].isdigit():
+        name = f"_{name}"
+    return name
 
 
 class Formatter(ABC):
@@ -43,12 +48,12 @@ class Formatter(ABC):
         return "\n\n".join(parts)
 
     # syntax primitives: the only thing that differs per format
+    @abstractmethod
     def text(self, value: str) -> str:
-        """Prepare raw event content for embedding. Formats whose syntax content can forge
-        override this; sections must route anything not already wrapped by another primitive
-        through it, or that content can invent structure in the output.
+        """Make raw event content safe to embed. Sections pass anything not already wrapped by
+        another primitive through this, so a format whose syntax the content could forge has
+        somewhere to escape it. Abstract so a new format has to answer the question.
         """
-        return value
 
     @abstractmethod
     def block(self, title: str, body: str) -> str: ...
@@ -61,6 +66,9 @@ class Formatter(ABC):
 
 
 class MarkdownFormatter(Formatter):
+    def text(self, value: str) -> str:
+        return value  # markdown block bodies carry no structure content could forge
+
     def block(self, title: str, body: str) -> str:
         return f"## {title}\n{body}"
 

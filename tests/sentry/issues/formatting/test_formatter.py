@@ -158,3 +158,11 @@ def test_xml_output_is_well_formed_with_hostile_content_everywhere() -> None:
     assert "owned" not in {el.tag for el in root.iter()}
     # the content still survives, just inert
     assert "injected" in out
+
+
+@pytest.mark.parametrize("key", ["123abc", "\U0001f525", "###", "", "  ", "-x-"])
+def test_slug_always_yields_a_legal_xml_name(key: str) -> None:
+    # tag keys and evidence names come from the event, so a title can slug away to nothing or
+    # start with a digit; either would emit <> or <123> and break the parse
+    out = XmlFormatter().field(key, "v")
+    ElementTree.fromstring(f"<r>{out}</r>")
