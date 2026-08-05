@@ -5,7 +5,6 @@ from datetime import timedelta
 from typing import Any
 
 from django.utils import timezone
-from google.cloud.exceptions import NotFound
 from taskbroker_client.constants import CompressionType
 from taskbroker_client.retry import Retry
 from taskbroker_client.state import current_task
@@ -19,10 +18,11 @@ from sentry.replays.lib.storage import (
     filestore,
     make_recording_filename,
     storage,
-    storage_kv,
 )
 from sentry.replays.models import DeletionJobStatus, ReplayDeletionJobModel, ReplayRecordingSegment
 from sentry.replays.usecases.delete import (
+    DELETE_THREAD_POOL_SIZE,
+    delete_filenames_concurrently,
     delete_matched_rows,
     delete_seer_replay_data,
     fetch_rows_matching_pattern,
@@ -127,7 +127,7 @@ def delete_replays_script_async(
     for segment in segments:
         rrweb_filenames.append(make_recording_filename(segment))
 
-    _delete_filenames_concurrently(rrweb_filenames)
+    delete_filenames_concurrently(rrweb_filenames)
 
     # Backwards compatibility. Should be deleted one day.
     segments_from_django_models = ReplayRecordingSegment.objects.filter(
@@ -171,7 +171,7 @@ def delete_replay_recording(project_id: int, replay_id: str) -> None:
     # Make the threads reuse one client instead of racing to build their own
     if direct_storage_segments:
         storage.initialize_client()
-        max_workers = min(len(direct_storage_segments), _DELETE_THREAD_POOL_SIZE)
+        max_workers = min(len(direct_storage_segments), DELETE_THREAD_POOL_SIZE)
         with ContextPropagatingThreadPoolExecutor(max_workers=max_workers) as pool:
             pool.map(storage.delete, direct_storage_segments)
 
@@ -191,31 +191,6 @@ def archive_replay(project_id: int, replay_id: str) -> None:
     # We publish manually here because we sometimes provide a managed Kafka
     # publisher interface which has its own setup and teardown behavior.
     publish_replay_event(message)
-
-
-def _delete_if_exists(filename: str) -> None:
-    """Delete the blob if it exists or silence the 404."""
-    try:
-        storage_kv.delete(filename)
-    except NotFound:
-        pass
-
-
-#  Keeping this small bounds threads-per-task so `worker_concurrency x N` stays under pod memory limit
-_DELETE_THREAD_POOL_SIZE = 32
-
-
-def _delete_filenames_concurrently(filenames: list[str]) -> None:
-    if not filenames:
-        return
-
-    # Warm the process-global client before the threads start so they reuse it instead of racing to build their own
-    # Mimics the API endpoint's behavior
-    storage_kv.initialize_client()
-
-    max_workers = min(len(filenames), _DELETE_THREAD_POOL_SIZE)
-    with ContextPropagatingThreadPoolExecutor(max_workers=max_workers) as pool:
-        pool.map(_delete_if_exists, filenames)
 
 
 @instrumented_task(
