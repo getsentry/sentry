@@ -578,6 +578,55 @@ describe('ProjectFilters', () => {
     expect(await screen.findByText('Block spam messages')).toBeInTheDocument();
   });
 
+  it('creates a filter with an error type and an error message condition', async () => {
+    renderInboundFilters([]);
+    expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
+
+    const createMock = MockApiClient.addMockResponse({
+      url: CUSTOM_INBOUND_FILTERS_URL,
+      method: 'POST',
+      body: CustomInboundFilterFixture({id: '10', name: 'Undefined type errors'}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Rule'}));
+    expect(await screen.findByText('Create Custom Filter')).toBeInTheDocument();
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Name'}),
+      'Undefined type errors'
+    );
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Condition value'}),
+      '*undefined*'
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Condition'}));
+    const [, secondProperty] = screen.getAllByRole('textbox', {
+      name: 'Condition property',
+    });
+    await userEvent.click(secondProperty!);
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Error Type'}));
+    const [, secondValue] = screen.getAllByRole('textbox', {name: 'Condition value'});
+    await userEvent.type(secondValue!, 'TypeError');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Filter'}));
+
+    await waitFor(() =>
+      expect(createMock).toHaveBeenCalledWith(
+        CUSTOM_INBOUND_FILTERS_URL,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            name: 'Undefined type errors',
+            conditions: [
+              {type: 'error_message', value: ['*undefined*']},
+              {type: 'error_type', value: ['TypeError']},
+            ],
+          },
+        })
+      )
+    );
+  });
+
   it('keeps the modal open when creating a filter fails', async () => {
     renderInboundFilters([]);
     expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
@@ -750,6 +799,7 @@ describe('ProjectFilters', () => {
     expect(
       screen.getByRole('menuitemradio', {name: 'Error Message'})
     ).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Error Type'})).toBeInTheDocument();
     expect(screen.getByRole('menuitemradio', {name: 'Release'})).toBeInTheDocument();
     expect(
       screen.queryByRole('menuitemradio', {name: 'Metric Name'})
@@ -778,7 +828,16 @@ describe('ProjectFilters', () => {
 
     await userEvent.hover(screen.getByText('matches'));
     expect(
-      await screen.findByText(/Matches the exception type, the exception value/)
+      await screen.findByText(/Matches the exception message of an error/)
+    ).toBeInTheDocument();
+
+    // Error Type and Error Message each glob one field, so each carries its own
+    // explanation.
+    await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Error Type'}));
+    await userEvent.hover(screen.getByText('matches'));
+    expect(
+      await screen.findByText(/Matches the exception type of an error/)
     ).toBeInTheDocument();
 
     // Release lives on a different field per data type, so the explanation

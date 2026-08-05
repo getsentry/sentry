@@ -34,7 +34,12 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 // Condition types accepted by the custom inbound filters API. The values match
 // the `type` field on the backend serializer exactly.
-type ConditionType = 'error_message' | 'metric_name' | 'log_message' | 'release';
+type ConditionType =
+  | 'error_type'
+  | 'error_message'
+  | 'metric_name'
+  | 'log_message'
+  | 'release';
 
 type CustomInboundFilterCondition = {
   type: ConditionType;
@@ -53,8 +58,8 @@ type CustomInboundFilter = {
 
 type PropertyOption = {label: string; value: ConditionType};
 
-// The data type a filter applies to. Mirrors the backend's "primary" condition
-// types: a filter targets exactly one data type, which determines the condition
+// The data type a filter applies to. The backend rejects a filter that mixes
+// data types, so a filter targets exactly one, which determines the condition
 // properties available to it.
 type FilterDataType = 'error' | 'metric' | 'log';
 
@@ -88,32 +93,44 @@ const DATA_TYPE_FEATURE_FLAGS: Partial<Record<FilterDataType, string>> = {
   metric: 'tracemetrics-ingestion',
 };
 
-const PRIMARY_PROPERTY_BY_DATA_TYPE: Record<FilterDataType, ConditionType> = {
-  error: 'error_message',
-  metric: 'metric_name',
-  log: 'log_message',
-};
-
-const DATA_TYPE_BY_PRIMARY_PROPERTY: Partial<Record<ConditionType, FilterDataType>> = {
-  error_message: 'error',
-  metric_name: 'metric',
-  log_message: 'log',
+// The properties each data type reads, first one first. `release` is absent
+// because every data type carries a release.
+const PROPERTIES_BY_DATA_TYPE: Record<
+  FilterDataType,
+  readonly [ConditionType, ...ConditionType[]]
+> = {
+  error: ['error_message', 'error_type'],
+  metric: ['metric_name'],
+  log: ['log_message'],
 };
 
 const PROPERTY_LABELS: Record<ConditionType, string> = {
+  error_type: t('Error Type'),
   error_message: t('Error Message'),
   metric_name: t('Metric Name'),
   log_message: t('Log Message'),
   release: t('Release'),
 };
 
-// Each data type offers its primary property plus `release`, which applies to
+// The property a new condition row starts with, and the one existing rows
+// collapse to when the user changes the data type.
+function getDefaultProperty(dataType: FilterDataType): ConditionType {
+  return PROPERTIES_BY_DATA_TYPE[dataType][0];
+}
+
+// A filter does not store its data type, so it is read back from the
+// properties its conditions use. `release` belongs to every data type and
+// therefore identifies none.
+function getDataTypeForProperty(property: ConditionType): FilterDataType | undefined {
+  return DATA_TYPE_OPTIONS.map(option => option.value).find(dataType =>
+    PROPERTIES_BY_DATA_TYPE[dataType].includes(property)
+  );
+}
+
+// Each data type offers its own properties plus `release`, which applies to
 // every data type.
 function getPropertyOptions(dataType: FilterDataType): PropertyOption[] {
-  const properties: ConditionType[] = [
-    PRIMARY_PROPERTY_BY_DATA_TYPE[dataType],
-    'release',
-  ];
+  const properties: ConditionType[] = [...PROPERTIES_BY_DATA_TYPE[dataType], 'release'];
   return properties.map(value => ({value, label: PROPERTY_LABELS[value]}));
 }
 
@@ -134,7 +151,13 @@ const filterSchema = z.object({
   conditions: z
     .array(
       z.object({
-        property: z.enum(['error_message', 'metric_name', 'log_message', 'release']),
+        property: z.enum([
+          'error_type',
+          'error_message',
+          'metric_name',
+          'log_message',
+          'release',
+        ]),
         value: z.string().trim().min(1, t('Enter a value to match')),
       })
     )
@@ -142,23 +165,22 @@ const filterSchema = z.object({
 });
 
 // Expand the API's per-condition value lists into one editable row per value.
-// The data type is not stored on the filter; it is implied by the primary
-// condition property, so derive it (release-only filters default to errors).
+// The data type is not stored on the filter; every condition property except
+// `release` belongs to one data type, so derive it (release-only filters
+// default to errors).
 function filterToFormValues(filter: CustomInboundFilter): FilterFormValues {
   const conditions = filter.conditions.flatMap(condition =>
     condition.value.map(value => ({property: condition.type, value}))
   );
   const dataType =
     conditions
-      .map(condition => DATA_TYPE_BY_PRIMARY_PROPERTY[condition.property])
+      .map(condition => getDataTypeForProperty(condition.property))
       .find(Boolean) ?? 'error';
   return {
     name: filter.name ?? '',
     dataType,
     conditions:
-      conditions.length > 0
-        ? conditions
-        : [emptyCondition(PRIMARY_PROPERTY_BY_DATA_TYPE[dataType])],
+      conditions.length > 0 ? conditions : [emptyCondition(getDefaultProperty(dataType))],
   };
 }
 
@@ -195,14 +217,17 @@ const RELEASE_MATCH_DESCRIPTIONS: Record<FilterDataType, string> = {
   metric: t('Matches the release attribute of the metric.'),
 };
 
-// Names the fields a condition globs against. Error messages are the surprising
-// case: the backend globs the exception type, the exception value and the log
-// entry message separately, so a combined "type: value" pattern never matches.
+// Names the field a condition globs against. Each condition globs one field, so
+// a pattern that spans two of them never matches.
 function getMatchDescription(property: ConditionType, dataType: FilterDataType): string {
   switch (property) {
+    case 'error_type':
+      return t(
+        'Matches the exception type of an error, e.g. TypeError. Use an Error Message condition to match the message.'
+      );
     case 'error_message':
       return t(
-        'Matches the exception type, the exception value, or the message of an error. Sentry tests each of the three on its own, so a combined pattern like "TypeError: *" never matches.'
+        'Matches the exception message of an error, without the exception type. Also matches errors captured as a plain message.'
       );
     case 'log_message':
       return t('Matches the body of the log.');
@@ -217,6 +242,8 @@ function getMatchDescription(property: ConditionType, dataType: FilterDataType):
 
 function getValuePlaceholder(property: ConditionType) {
   switch (property) {
+    case 'error_type':
+      return t('Glob pattern, e.g. TypeError');
     case 'error_message':
       return t('Glob pattern, e.g. *ConnectionError*');
     case 'metric_name':
@@ -340,15 +367,16 @@ function CustomFilterModal({
                     value={dataTypeField.state.value}
                     onChange={value => {
                       dataTypeField.handleChange(value);
-                      // Carry existing rows over to the new data type: primary
-                      // properties are remapped, release rows stay as they are.
+                      // Carry existing rows over to the new data type. A row
+                      // whose property the new data type does not read falls
+                      // back to the default one; release rows stay as they are.
                       form.setFieldValue('conditions', conditions =>
                         conditions.map(condition =>
                           condition.property === 'release'
                             ? condition
                             : {
                                 ...condition,
-                                property: PRIMARY_PROPERTY_BY_DATA_TYPE[value],
+                                property: getDefaultProperty(value),
                               }
                         )
                       );
@@ -418,7 +446,7 @@ function CustomFilterModal({
                           icon={<IconAdd />}
                           onClick={() =>
                             conditionsField.pushValue(
-                              emptyCondition(PRIMARY_PROPERTY_BY_DATA_TYPE[dataType])
+                              emptyCondition(getDefaultProperty(dataType))
                             )
                           }
                         >
