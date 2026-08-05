@@ -92,8 +92,8 @@ function useScmMessagingSetupValidation({
   const [staleReason, setStaleReason] = useState<StaleDestinationReason>();
   const hasSelectedDestination = messagingSetup.mode === 'selected';
 
-  const integrationQuery = useQuery({
-    ...apiOptions.as<OrganizationIntegration>()(
+  const integrationQuery = useQuery(
+    apiOptions.as<OrganizationIntegration>()(
       '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
       {
         path: hasSelectedDestination
@@ -104,9 +104,8 @@ function useScmMessagingSetupValidation({
           : skipToken,
         staleTime: 0,
       }
-    ),
-    retry: (failureCount, error) => failureCount < 3 && !isNotFoundError(error),
-  });
+    )
+  );
 
   const isMissingIntegration = isNotFoundError(integrationQuery.error);
   const fetchedIntegration = isMissingIntegration ? undefined : integrationQuery.data;
