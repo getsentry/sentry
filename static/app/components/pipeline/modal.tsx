@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef} from 'react';
+import {Fragment, useEffect, useEffectEvent} from 'react';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -61,12 +61,15 @@ function PipelineModal<
     description,
   });
   const {stepDefinition} = pipeline;
-  const onErrorRef = useRef(onError);
-  onErrorRef.current = onError;
+  // Keeps `onError` out of the deps below. Every distinct error is reported, so a
+  // retry that fails again reports again.
+  const reportError = useEffectEvent((error: string) => {
+    onError?.(error);
+  });
 
   useEffect(() => {
     if (pipeline.error) {
-      onErrorRef.current?.(pipeline.error);
+      reportError(pipeline.error);
     }
   }, [pipeline.error]);
 
