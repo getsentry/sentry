@@ -86,9 +86,17 @@ describe('Table', () => {
   });
 
   it('pins the last column to its declared width when the last column is not flexible', () => {
-    render(<TestTable flexibleLastColumn={false} />);
+    render(
+      <TestTable
+        columns={[
+          {key: 'name', width: 200},
+          {key: 'count', width: 150},
+        ]}
+        flexibleLastColumn={false}
+      />
+    );
 
-    expect(gridTemplate()).toBe('200px 150px minmax(90px, auto)');
+    expect(gridTemplate()).toBe('200px 150px');
   });
 
   it('restores the auto width of a non-flexible column when its handle is double-clicked', async () => {
