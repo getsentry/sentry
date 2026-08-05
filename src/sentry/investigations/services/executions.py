@@ -126,7 +126,7 @@ def _materialize_notebook_context(
         block.investigation.blocks.filter(deleted_at__isnull=True)
         .exclude(id=block.id)
         .select_related("content_execution", "current_execution", "result_execution")
-        .order_by("position", "uuid")
+        .order_by("position", "id")
     )
     max_text_chars = min(
         MAX_CONTEXT_TEXT_CHARS,
