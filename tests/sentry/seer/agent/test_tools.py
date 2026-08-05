@@ -2122,6 +2122,16 @@ class TestGetEventDetails(
                         format="yaml",  # type: ignore[arg-type]
                     )
 
+        # ...and it can't depend on the lookup succeeding either: a bad argument is a bad
+        # argument, not a "not found"
+        with pytest.raises(ParseError):
+            get_event_details(
+                organization_id=self.organization.id,
+                event_id=uuid.uuid4().hex,
+                project_slug=self.project.slug,
+                format="yaml",  # type: ignore[arg-type]
+            )
+
     def test_include_breadcrumbs_false_drops_section(self) -> None:
         data = load_data("python", timestamp=before_now(minutes=5))
         data["breadcrumbs"] = {
