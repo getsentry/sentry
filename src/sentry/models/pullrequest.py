@@ -594,6 +594,9 @@ class PullRequestMetrics(DefaultFieldsModel):
     opened_by_bot = models.BooleanField(null=True)
     closed_by_bot = models.BooleanField(null=True)
     opened_and_closed_by_same_actor = models.BooleanField(null=True)
+    # SCM-sourced per-file diff stats, churn-sorted: [{path, additions, deletions, status}].
+    # null until populated; the task skips writing on an empty result, so it is never [].
+    file_stats = models.JSONField(null=True)
 
     class Meta:
         app_label = "sentry"

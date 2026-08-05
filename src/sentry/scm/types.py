@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Literal, TypedDict
 
 from scm.types import (
@@ -16,6 +17,13 @@ from scm.types import (
     PullRequestReviewAction,
     PullRequestReviewEventData,
 )
+
+
+class PullRequestFileStatus(StrEnum):
+    ADDED = "added"
+    MODIFIED = "modified"
+    REMOVED = "removed"
+    RENAMED = "renamed"
 
 
 class SubscriptionEvent(TypedDict):

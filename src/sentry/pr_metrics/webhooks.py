@@ -88,7 +88,11 @@ from sentry.pr_metrics.emit import (
     select_verdict,
 )
 from sentry.pr_metrics.lifecycle_mapping import is_stale_github_pull_request_payload
-from sentry.pr_metrics.tasks import emit_pr_metrics_cooldown_task, forward_pr_to_seer_task
+from sentry.pr_metrics.tasks import (
+    emit_pr_metrics_cooldown_task,
+    fetch_pr_file_stats_task,
+    forward_pr_to_seer_task,
+)
 from sentry.pr_metrics.utils import (
     DELEGATED_AGENT_AUTHOR_LOGINS,
     DELEGATED_AGENT_BRANCH_PREFIXES,
@@ -159,6 +163,10 @@ _DOC_ONLY_ACTIONS = frozenset({"reopened", "edited"})
 # terminal / its verdict is claimed (see ``is_activity_tracking_enabled``'s
 # ``for_terminal_event``). "closed" forks into CLOSED/MERGED; both are terminal.
 _TERMINAL_ACTIONS = frozenset({"closed", "reopened"})
+
+# Actions that can change a PR's diff (initial, push, close/merge); other actions leave
+# it untouched, so refetching per-file stats for them would be wasted work.
+_FILE_STATS_ACTIONS = frozenset({"opened", "synchronize", "closed"})
 
 
 def handle_attribution(
@@ -581,6 +589,29 @@ def handle_metrics(
         pull_request=pr,
         defaults=_metrics_counters(pull_request),
     )
+
+    # Enqueued after the row exists (the task writes onto it, never creates one). Gated
+    # cheaply here; the task re-checks every guard before spending a GitHub call.
+    if (
+        event.get("action") in _FILE_STATS_ACTIONS
+        and features.has("organizations:pr-file-stats", organization)
+        and pr.seer_run_links.exists()
+    ):
+        try:
+            fetch_pr_file_stats_task.delay(
+                pull_request_id=pr.id,
+                organization_id=organization.id,
+                repository_id=pr.repository_id,
+            )
+        except Exception:
+            logger.exception(
+                "pr_metrics.metrics.file_stats_enqueue_failed",
+                extra={
+                    "organization_id": organization.id,
+                    "repository_id": repo.id,
+                    "pull_request_id": pr.id,
+                },
+            )
 
 
 def handle_activity(

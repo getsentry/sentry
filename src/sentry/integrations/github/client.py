@@ -555,10 +555,12 @@ class GitHubBaseClient(
         """
         https://docs.github.com/en/rest/pulls/pulls#list-pull-requests-files
 
-        Returns up to 30 files associated with a pull request. Responses are paginated.
+        Returns the first page of files (up to 100) associated with a pull request.
+        Responses are paginated; this fetches only the first page.
         """
         return self.get(
             f"/repos/{repo}/pulls/{pull_number}/files",
+            params={"per_page": 100},
             api_request_type=GitHubApiRequestType.GET_PULL_REQUEST_FILES,
         )
 

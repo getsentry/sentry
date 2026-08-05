@@ -957,6 +957,64 @@ class HandleWebhookForPrMetricsCountersTest(TestCase):
         assert metrics_row.comments_count == 7
 
 
+@with_feature(["organizations:pr-metrics-emit", "organizations:pr-file-stats"])
+@cell_silo_test
+class HandleMetricsFileStatsEnqueueTest(TestCase):
+    def setUp(self) -> None:
+        self.project = self.create_project(organization=self.organization)
+        self.repo = self.create_repo(self.project, provider="integrations:github", external_id="99")
+        self.pull_request = self.create_pull_request(
+            repository_id=self.repo.id, organization_id=self.organization.id, key="42"
+        )
+
+    def _link_to_seer_run(self) -> None:
+        run = self.create_seer_run(organization=self.organization)
+        self.create_seer_run_pull_request(run=run, pull_request=self.pull_request)
+
+    def _call(self, action: str = "synchronize") -> None:
+        handle_metrics(
+            github_event=GithubWebhookType.PULL_REQUEST,
+            event={"action": action, "pull_request": {"number": 42}},
+            organization=self.organization,
+            repo=self.repo,
+        )
+
+    @patch(f"{MODULE}.fetch_pr_file_stats_task")
+    def test_enqueues_for_linked_pr_on_synchronize(self, mock_task: MagicMock) -> None:
+        self._link_to_seer_run()
+
+        self._call(action="synchronize")
+
+        mock_task.delay.assert_called_once_with(
+            pull_request_id=self.pull_request.id,
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+        )
+
+    @patch(f"{MODULE}.fetch_pr_file_stats_task")
+    def test_does_not_enqueue_for_unlinked_pr(self, mock_task: MagicMock) -> None:
+        self._call(action="synchronize")
+
+        mock_task.delay.assert_not_called()
+
+    @patch(f"{MODULE}.fetch_pr_file_stats_task")
+    def test_does_not_enqueue_for_unhandled_action(self, mock_task: MagicMock) -> None:
+        self._link_to_seer_run()
+
+        self._call(action="labeled")
+
+        mock_task.delay.assert_not_called()
+
+    @patch(f"{MODULE}.fetch_pr_file_stats_task")
+    def test_does_not_enqueue_when_file_stats_flag_off(self, mock_task: MagicMock) -> None:
+        self._link_to_seer_run()
+
+        with self.feature({"organizations:pr-file-stats": False}):
+            self._call(action="synchronize")
+
+        mock_task.delay.assert_not_called()
+
+
 @with_feature("organizations:pr-metrics-activity")
 @cell_silo_test
 class HandleWebhookForPrMetricsActivityTest(TestCase):

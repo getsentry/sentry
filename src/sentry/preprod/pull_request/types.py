@@ -6,13 +6,7 @@ from enum import StrEnum
 from pydantic import BaseModel
 
 from sentry.preprod.api.models.project_preprod_build_details_models import BuildDetailsApiResponse
-
-
-class PullRequestFileStatus(StrEnum):
-    ADDED = "added"
-    MODIFIED = "modified"
-    REMOVED = "removed"
-    RENAMED = "renamed"
+from sentry.scm.types import PullRequestFileStatus
 
 
 class PullRequestFileChange(BaseModel):
