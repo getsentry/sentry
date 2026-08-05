@@ -49,6 +49,7 @@ type Props = {
   widgetLimitReached: boolean;
   hasUnsavedFilters?: boolean;
   hideAddWidget?: boolean;
+  hideBreadcrumbActions?: boolean;
   isSaving?: boolean;
   onChangeEditAccess?: (newDashboardPermissions: DashboardPermissions) => void;
 };
@@ -58,6 +59,7 @@ export function Controls({
   dashboard,
   hasUnsavedFilters,
   hideAddWidget = false,
+  hideBreadcrumbActions = false,
   widgetLimitReached,
   onChangeEditAccess,
   onEdit,
@@ -218,40 +220,42 @@ export function Controls({
       <DashboardEditFeature>
         {hasFeature => (
           <Fragment>
-            <Tooltip title={isFavorited ? t('Starred Dashboard') : t('Star Dashboard')}>
-              <Button
-                size="sm"
-                aria-label={t('star-dashboard')}
-                icon={
-                  <IconStar
-                    variant={isFavorited ? 'warning' : 'muted'}
-                    isSolid={isFavorited}
-                    aria-label={isFavorited ? t('Unstar') : t('Star')}
-                    data-test-id={isFavorited ? 'yellow-star' : 'empty-star'}
-                  />
-                }
-                onClick={async () => {
-                  try {
-                    setIsFavorited(!isFavorited);
-                    await updateDashboardFavorite(
-                      api,
-                      queryClient,
-                      organization,
-                      dashboard.id,
-                      !isFavorited
-                    );
-                    trackAnalytics('dashboards_manage.toggle_favorite', {
-                      organization,
-                      dashboard_id: dashboard.id,
-                      favorited: !isFavorited,
-                    });
-                  } catch (error) {
-                    // If the api call fails, revert the state
-                    setIsFavorited(isFavorited);
+            {!hideBreadcrumbActions && (
+              <Tooltip title={isFavorited ? t('Starred Dashboard') : t('Star Dashboard')}>
+                <Button
+                  size="sm"
+                  aria-label={t('star-dashboard')}
+                  icon={
+                    <IconStar
+                      variant={isFavorited ? 'warning' : 'muted'}
+                      isSolid={isFavorited}
+                      aria-label={isFavorited ? t('Unstar') : t('Star')}
+                      data-test-id={isFavorited ? 'yellow-star' : 'empty-star'}
+                    />
                   }
-                }}
-              />
-            </Tooltip>
+                  onClick={async () => {
+                    try {
+                      setIsFavorited(!isFavorited);
+                      await updateDashboardFavorite(
+                        api,
+                        queryClient,
+                        organization,
+                        dashboard.id,
+                        !isFavorited
+                      );
+                      trackAnalytics('dashboards_manage.toggle_favorite', {
+                        organization,
+                        dashboard_id: dashboard.id,
+                        favorited: !isFavorited,
+                      });
+                    } catch (error) {
+                      // If the api call fails, revert the state
+                      setIsFavorited(isFavorited);
+                    }
+                  }}
+                />
+              </Tooltip>
+            )}
             <Feature features="dashboards-import">
               <Tooltip title={t('Export Dashboard')}>
                 <Button
@@ -314,7 +318,9 @@ export function Controls({
                 onChangeEditAccess={onChangeEditAccess}
               />
             )}
-            {hasFeature && <DashboardRevisionsButton dashboard={dashboard} />}
+            {hasFeature && !hideBreadcrumbActions && (
+              <DashboardRevisionsButton dashboard={dashboard} />
+            )}
             {hasFeature && !isPrebuiltDashboard && !hideAddWidget && (
               <Tooltip
                 title={tooltipMessage}
@@ -335,7 +341,7 @@ export function Controls({
                 />
               </Tooltip>
             )}
-            {hasFeature && isPrebuiltDashboard && (
+            {hasFeature && isPrebuiltDashboard && !hideBreadcrumbActions && (
               <DashboardCreateLimitWrapper>
                 {({
                   hasReachedDashboardLimit,

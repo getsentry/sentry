@@ -84,6 +84,7 @@ import {PrebuiltDashboardOnboardingGate} from './components/prebuiltDashboardOnb
 import {Controls} from './controls';
 import {validateDashboardAndRecordMetrics} from './createFromSeerUtils';
 import {Dashboard} from './dashboard';
+import {DashboardBreadcrumbTitle} from './dashboardBreadcrumbTitle';
 import {DashboardEditSeerChat} from './dashboardEditSeerChat';
 import {DashboardPageFilters} from './dashboardPageFilters';
 import {FiltersBar} from './filtersBar';
@@ -1205,20 +1206,15 @@ class DashboardDetail extends Component<Props, State> {
                         />
                       </TopBar.Slot>
                       <TopBar.Slot name="title">
-                        <BreadcrumbList.Title
-                          item={{
-                            type: 'editable-title',
-                            value: (modifiedDashboard ?? dashboard).title,
-                            onChange: newTitle =>
-                              this.setModifiedDashboard({
-                                ...(modifiedDashboard ?? dashboard),
-                                title: newTitle,
-                              }),
-                            isDisabled: !this.isEditingDashboard,
-                            errorMessage: t('Please set a title for this dashboard'),
-                            autoSelect: true,
-                            'aria-label': t('Edit Dashboard Name'),
-                          }}
+                        <DashboardBreadcrumbTitle
+                          dashboard={modifiedDashboard ?? dashboard}
+                          isEditing={this.isEditingDashboard}
+                          onChange={newTitle =>
+                            this.setModifiedDashboard({
+                              ...(modifiedDashboard ?? dashboard),
+                              title: newTitle,
+                            })
+                          }
                         />
                       </TopBar.Slot>
                     </Fragment>
@@ -1248,6 +1244,7 @@ class DashboardDetail extends Component<Props, State> {
                       organization={organization}
                       dashboard={dashboard}
                       hideAddWidget
+                      hideBreadcrumbActions={hasNewBreadcrumbs}
                       hasUnsavedFilters={hasUnsavedFilters}
                       onEdit={this.onEdit}
                       onCancel={this.onCancel}
