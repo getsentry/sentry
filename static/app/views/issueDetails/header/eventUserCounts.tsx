@@ -27,7 +27,14 @@ export function EventUserCounts({group, project}: EventUserCountsProps) {
   return (
     <Flex align="center" gap="sm">
       <Tooltip title={userLabel} skipWrapper>
-        <Flex as="span" align="center" gap="2xs" aria-label={userLabel}>
+        <Flex
+          as="span"
+          align="center"
+          gap="xs"
+          height="32px"
+          padding="sm 0"
+          aria-label={userLabel}
+        >
           <Text size="md" bold tabular>
             <Count value={userCount} />
           </Text>
@@ -38,7 +45,14 @@ export function EventUserCounts({group, project}: EventUserCountsProps) {
       </Tooltip>
       <Container aria-hidden borderLeft="muted" height="16px" />
       <Tooltip title={eventLabel} skipWrapper>
-        <Flex as="span" align="center" gap="2xs" aria-label={eventLabel}>
+        <Flex
+          as="span"
+          align="center"
+          gap="xs"
+          height="32px"
+          padding="sm 0"
+          aria-label={eventLabel}
+        >
           <Text size="md" bold tabular>
             <Count value={eventCount} />
           </Text>
