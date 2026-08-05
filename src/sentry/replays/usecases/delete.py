@@ -90,14 +90,21 @@ def _start_of_day(value: datetime) -> datetime:
 def datetime_as_start_of_day_conditions(start: datetime, end: datetime) -> list[Condition]:
     """Restate `[start, end)` as bounds on `toStartOfDay(timestamp)`.
 
-    Where a table is sorted by `toStartOfDay(timestamp)`, ClickHouse already derives day bounds from
-    a predicate on the raw column -- but a strict `timestamp < midnight` can only weaken to a
-    non-strict bound on the day, so the index also scans the day the range ends on. Naming the last
-    day the range really touches drops it: one day of granules at any range width, which on a table
-    with the real sort key took a one-day range from 25 granules to 13.
+    A table sorted by `toStartOfDay(timestamp)` keeps its rows grouped by day, and its index knows
+    only which day each block of rows belongs to. Conditions written in those same terms line up
+    with how the rows are ordered, so whole days can be skipped without being read at all. That is
+    what makes filtering by day cheap on such a table, and why it is worth asking for the day
+    directly.
 
-    The derived lower bound is already tight, so the `>=` here buys nothing measurable; it is stated
-    so the pair reads as the range of days it is instead of leaving one side implicit.
+    A condition on the raw `timestamp` has to be translated into days first, and the translation is
+    deliberately careful at the top end: it includes the day the upper bound falls in, because a
+    bound at, say, noon really does leave matching rows in that day. A bound at midnight leaves
+    none, but the day gets read regardless. Naming the last day the range actually reaches drops
+    it -- one day of blocks at any range width, which on a table with the real sort key took a
+    one-day range from 25 blocks to 13.
+
+    The bottom end translates exactly, so the `>=` neither costs nor saves anything measurable. It
+    is here so the pair reads as the span of days it is.
 
     `end` is exclusive, so a range ending exactly at midnight does not reach that day.
     """
