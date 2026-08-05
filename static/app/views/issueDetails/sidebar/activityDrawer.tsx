@@ -1,7 +1,11 @@
 import {useSearchParams} from 'react-router-dom';
+import {useInfiniteQuery} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Badge} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+import {Text} from '@sentry/scraps/text';
 
 import {
   CrumbContainer,
@@ -14,11 +18,13 @@ import {
   ShortId,
 } from 'sentry/components/events/eventDrawer';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
+import {issueCommentsQueryOptions} from 'sentry/views/issueDetails/activitySection/issueCommentsQueryOptions';
 import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
@@ -36,9 +42,20 @@ export function ActivityDrawer({project}: ActivityDrawerProps) {
   // (e.g. comment create/delete). The drawer's render function is captured in
   // a closure by openDrawer, so the group in context or props would go stale.
   const {data: group} = useGroup({groupId});
+  const commentsQuery = useInfiniteQuery({
+    ...issueCommentsQueryOptions({
+      organizationSlug: organization.slug,
+      groupId,
+    }),
+    enabled: filter === 'comments',
+  });
+  useFetchAllPages({result: commentsQuery, enabled: filter === 'comments'});
+
   if (!group) {
     return <LoadingIndicator />;
   }
+
+  const comments = commentsQuery.data?.pages.flatMap(page => page.json) ?? [];
 
   return (
     <EventDrawerContainer>
@@ -81,20 +98,39 @@ export function ActivityDrawer({project}: ActivityDrawerProps) {
             );
           }}
         >
-          <SegmentedControl.Item key="comments">
-            {t('Comments Only')}
+          <SegmentedControl.Item key="comments" textValue={t('Comments')}>
+            <Flex as="span" align="center" gap="sm">
+              {t('Comments')}
+              {group.numComments > 0 ? (
+                <Badge
+                  aria-label={tn('%s comment', '%s comments', group.numComments)}
+                  variant="muted"
+                >
+                  {group.numComments}
+                </Badge>
+              ) : null}
+            </Flex>
           </SegmentedControl.Item>
-          <SegmentedControl.Item key="all">{t('All Activity')}</SegmentedControl.Item>
+          <SegmentedControl.Item key="all">{t('All activity')}</SegmentedControl.Item>
         </SegmentedControl>
       </EventNavigator>
       <EventDrawerBody>
-        <ActivitySection
-          group={group}
-          variant="standalone"
-          filterComments={filter === 'comments'}
-          minHeight={72}
-          placeholder={t('Add a comment. Tag users with @, or teams with #')}
-        />
+        {filter === 'comments' && commentsQuery.isError ? (
+          <Text variant="muted">{t('Unable to load all comments.')}</Text>
+        ) : null}
+        {filter === 'comments' && commentsQuery.isPending ? (
+          <LoadingIndicator />
+        ) : (
+          <ActivitySection
+            group={group}
+            activities={filter === 'comments' ? comments : group.activity}
+            variant="standalone"
+            filterComments={filter === 'comments'}
+            minHeight={72}
+            placeholder={t('Add a comment. Tag users with @, or teams with #')}
+          />
+        )}
+        {commentsQuery.isFetchingNextPage ? <LoadingIndicator size={24} /> : null}
       </EventDrawerBody>
     </EventDrawerContainer>
   );

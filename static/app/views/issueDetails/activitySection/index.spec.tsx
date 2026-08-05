@@ -105,6 +105,32 @@ describe('ActivitySection', () => {
     expect(postMock).toHaveBeenCalled();
   });
 
+  it('opens the comments drawer route from the sidebar comment badge', async () => {
+    const groupWithComments = GroupFixture({
+      ...group,
+      numComments: 1,
+    });
+
+    const {router} = render(
+      <GroupDataContextProvider
+        group={groupWithComments}
+        project={groupWithComments.project}
+      >
+        <ActivitySection group={groupWithComments} />
+      </GroupDataContextProvider>
+    );
+
+    const commentsLink = screen.getByRole('button', {name: 'View 1 comment'});
+    expect(commentsLink).toHaveTextContent('1 comment');
+
+    await userEvent.click(commentsLink);
+
+    expect(router.location.pathname).toBe(
+      '/organizations/org-slug/issues/1337/activity/'
+    );
+    expect(router.location.query.filter).toBe('comments');
+  });
+
   it('allows submitting the comment field with hotkeys', async () => {
     const comment = 'nice work friends';
     const postMock = MockApiClient.addMockResponse({

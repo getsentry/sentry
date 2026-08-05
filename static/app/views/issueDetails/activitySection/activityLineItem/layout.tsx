@@ -114,4 +114,16 @@ export const ActivityLineList = styled('div')`
     width: 0;
     border-left: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
+
+  /* A tall final item (such as a comment) can extend well below its avatar. */
+  > ${ActivityLineRow}:last-child::after {
+    content: '';
+    position: absolute;
+    z-index: 0;
+    left: 10px;
+    top: 11px;
+    bottom: 0;
+    width: 2px;
+    background: ${p => p.theme.tokens.background.primary};
+  }
 `;
