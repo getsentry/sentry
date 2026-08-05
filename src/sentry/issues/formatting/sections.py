@@ -306,9 +306,9 @@ def contexts_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
     groups: list[str] = []
     for name, data in model.contexts.items():
         # drop the redundant "type" key each context echoes (e.g. browser -> type: "browser")
-        fields = [f"{key}: {value}" for key, value in data.items() if key != "type"]
+        fields = [fmt.text(f"{key}: {value}") for key, value in data.items() if key != "type"]
         if fields:
-            groups.append("\n".join([name, *fields]))
+            groups.append("\n".join([fmt.text(name), *fields]))
     if not groups:
         return ""
     return fmt.block("Contexts", _truncate("\n\n".join(groups), limits.max_contexts_chars))
