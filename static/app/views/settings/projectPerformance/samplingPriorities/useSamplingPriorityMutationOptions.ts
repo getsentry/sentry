@@ -20,16 +20,20 @@ export function useSamplingPriorityMutationOptions(project: DetailedProject) {
 
   const getMutationOptions = (priorityName: DynamicSamplingBiasType) => ({
     mutationKey,
-    mutationFn: (data: Record<string, boolean>) =>
-      updateProject({
-        dynamicSamplingBiases: priorityFields.map(({name}) => ({
-          id: name,
-          active:
-            name === priorityName
-              ? (data[priorityName] ?? false)
-              : isPriorityActive(name),
-        })),
-      }),
+    mutationFn: (data: Record<string, boolean>) => {
+      const updatedPriority = {
+        id: priorityName,
+        active: data[priorityName] ?? false,
+      };
+      const currentBiases = project.dynamicSamplingBiases ?? [];
+      const hasCurrentPriority = currentBiases.some(bias => bias.id === priorityName);
+
+      return updateProject({
+        dynamicSamplingBiases: hasCurrentPriority
+          ? currentBiases.map(bias => (bias.id === priorityName ? updatedPriority : bias))
+          : [...currentBiases, updatedPriority],
+      });
+    },
     onSuccess: (_response: DetailedProject, variables: Record<string, boolean>) => {
       trackAnalytics(
         variables[priorityName]

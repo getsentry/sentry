@@ -203,6 +203,7 @@ describe('projectPerformance', () => {
       {id: DynamicSamplingBiasType.BOOST_ENVIRONMENTS, active: false},
       {id: DynamicSamplingBiasType.BOOST_LOW_VOLUME_TRANSACTIONS, active: false},
       {id: DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS, active: false},
+      {id: DynamicSamplingBiasType.MINIMUM_SAMPLE_RATE, active: true},
     ];
     const detailedProject = {...ProjectFixture(), dynamicSamplingBiases};
     MockApiClient.addMockResponse({
@@ -271,6 +272,7 @@ describe('projectPerformance', () => {
             dynamicSamplingBiases: expect.arrayContaining([
               {id: DynamicSamplingBiasType.BOOST_LATEST_RELEASES, active: true},
               {id: DynamicSamplingBiasType.BOOST_ENVIRONMENTS, active: true},
+              {id: DynamicSamplingBiasType.MINIMUM_SAMPLE_RATE, active: true},
             ]),
           },
         })
