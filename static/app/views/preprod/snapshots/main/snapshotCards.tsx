@@ -392,7 +392,7 @@ function MetadataTooltip({json}: {json: string}) {
   );
 }
 
-const METADATA_BLOCKLIST = new Set(['key', 'diff_image_key']);
+const METADATA_BLOCKLIST = new Set(['diff_image_key']);
 
 function MetadataInfoButton({
   copyData,

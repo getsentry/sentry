@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useMemo} from 'react';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
@@ -35,8 +35,9 @@ export function SmsEnrollForm({
   onEnrollmentComplete,
   onReset,
 }: SmsEnrollFormProps): React.ReactElement {
-  const [isCodeSent, setIsCodeSent] = useState(false);
-  const {mutateAsync: enrollAuthenticator} = useEnrollAuthenticator(authenticator.id);
+  const enrollMutation = useEnrollAuthenticator(authenticator.id);
+  const isCodeSent =
+    enrollMutation.status === 'success' || enrollMutation.status === 'error';
 
   const schema = useMemo(
     () =>
@@ -66,7 +67,7 @@ export function SmsEnrollForm({
       );
 
       try {
-        await enrollAuthenticator({
+        await enrollMutation.mutateAsync({
           phone: value.phone,
           otp: isCodeSent ? value.otp : undefined,
           secret: authenticator.secret,
@@ -81,7 +82,6 @@ export function SmsEnrollForm({
           )
         );
         onReset();
-        setIsCodeSent(false);
         formApi.reset();
         return;
       }
@@ -91,13 +91,12 @@ export function SmsEnrollForm({
         return;
       }
 
-      setIsCodeSent(true);
       addSuccessMessage(t('Sent code to %s', value.phone));
     },
   });
 
   function resetEnrollment(): void {
-    setIsCodeSent(false);
+    enrollMutation.reset();
     onReset();
   }
 

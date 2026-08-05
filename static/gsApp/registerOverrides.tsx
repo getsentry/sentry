@@ -20,7 +20,7 @@ import DisabledDateRange from 'getsentry/components/features/disabledDateRange';
 import {DisabledDiscardGroup} from 'getsentry/components/features/disabledDiscardGroup';
 import {DisabledRateLimits} from 'getsentry/components/features/disabledRateLimits';
 import DisabledSelectorItems from 'getsentry/components/features/disabledSelectorItems';
-import InsightsDateRangeQueryLimitFooter from 'getsentry/components/features/insightsDateRangeQueryLimitFooter';
+import {InsightsDateRangeQueryLimitFooter} from 'getsentry/components/features/insightsDateRangeQueryLimitFooter';
 import {PerformanceNewProjectPrompt} from 'getsentry/components/features/performanceNewProjectPrompt';
 import {ProjectPerformanceScoreCard} from 'getsentry/components/features/projectPerformanceScoreCard';
 import {HelpSearchFooter} from 'getsentry/components/helpSearchFooter';

@@ -1,57 +1,37 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
-import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {PlanTier} from 'getsentry-test/planTier';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {InsightsDateRangeQueryLimitFooter} from 'getsentry/components/features/insightsDateRangeQueryLimitFooter';
 
-describe('InsightsUpsellPage', () => {
-  const organization = OrganizationFixture();
-  const subscription = SubscriptionFixture({
-    organization,
-    plan: 'am3_team',
-    isFree: true,
-  });
+describe('InsightsDateRangeQueryLimitFooter', () => {
+  const DESCRIPTION =
+    'To view more trends for your Performance data, upgrade to Business.';
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-config/`,
-      body: BillingConfigFixture(PlanTier.AM3),
-    });
+    // The nested footer is withSubscription-wrapped and loads the subscription.
     MockApiClient.addMockResponse({
       url: '/customers/org-slug/',
       body: {},
     });
-
-    subscription.planDetails.features = [];
   });
 
-  it('renders if plan includes feature', async () => {
-    subscription.planDetails.features = ['insights-query-date-range-limit'];
-
-    render(<InsightsDateRangeQueryLimitFooter subscription={subscription} />, {
-      organization,
+  it('renders if the org has the feature', async () => {
+    render(<InsightsDateRangeQueryLimitFooter />, {
+      organization: OrganizationFixture({
+        features: ['insights-query-date-range-limit'],
+      }),
     });
 
-    expect(
-      await screen.findByText(
-        'To view more trends for your Performance data, upgrade to Business.'
-      )
-    ).toBeInTheDocument();
+    expect(await screen.findByText(DESCRIPTION)).toBeInTheDocument();
   });
 
-  it('does not render if feature is not included', () => {
-    render(<InsightsDateRangeQueryLimitFooter subscription={subscription} />, {
-      organization,
+  it('does not render if the org lacks the feature', () => {
+    render(<InsightsDateRangeQueryLimitFooter />, {
+      organization: OrganizationFixture({features: []}),
     });
 
-    expect(
-      screen.queryByText(
-        'To view more trends for your Performance data, upgrade to Business.'
-      )
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(DESCRIPTION)).not.toBeInTheDocument();
   });
 });

@@ -14,7 +14,7 @@ from arroyo.types import Topic as ArroyoTopic
 from sentry.conf.types.kafka_definition import Topic
 from sentry.constants import DataCategory
 from sentry.utils import json, kafka_config, metrics
-from sentry.utils.arroyo_producer import get_arroyo_producer, get_producer
+from sentry.utils.arroyo_producer import get_arroyo_producer, get_future_tracking_producer
 from sentry.utils.dates import to_datetime
 
 # Aggregation key for grouping outcomes
@@ -173,11 +173,11 @@ def _get_billing_producer() -> KafkaProducer:
     )
 
 
-outcomes_producer = get_producer(
+outcomes_producer = get_future_tracking_producer(
     "sentry.utils.outcomes",
     _get_outcomes_producer,
 )
-billing_producer = get_producer(
+billing_producer = get_future_tracking_producer(
     "sentry.utils.outcomes.billing",
     _get_billing_producer,
 )

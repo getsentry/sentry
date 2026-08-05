@@ -146,7 +146,6 @@ export type SeerAnalyticsEventsParameters = {
     block_message: string;
     conversations_url: string | undefined;
     explorer_url: string | undefined;
-    langfuse_url: string | undefined;
     run_id: SeerExplorerRunId | undefined;
     type: 'positive' | 'negative';
   };

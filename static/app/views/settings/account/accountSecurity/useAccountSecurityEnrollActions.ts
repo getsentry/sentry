@@ -27,7 +27,7 @@ export function useAccountSecurityEnrollActions({
 }: UseAccountSecurityEnrollActionsOptions) {
   const api = useApi();
   const navigate = useNavigate();
-  const pendingInvitation = useMemo(getPendingInvite, []);
+  const pendingInvitation = useMemo(() => getPendingInvite(), []);
 
   const authenticatorName = authenticator?.name ?? 'Authenticator';
 

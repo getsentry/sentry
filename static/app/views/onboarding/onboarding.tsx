@@ -221,9 +221,11 @@ export function OnboardingWithoutContext() {
   // otherwise contaminate the experiment population. reportExposure does not
   // affect the returned `inExperiment` assignment, so step selection below still
   // works for everyone.
-  const isNewOrgOnboarding =
-    Date.now() - new Date(organization.dateCreated).getTime() <
-    NEW_ORG_ONBOARDING_WINDOW_MS;
+  const [isNewOrgOnboarding] = useState(
+    () =>
+      Date.now() - new Date(organization.dateCreated).getTime() <
+      NEW_ORG_ONBOARDING_WINDOW_MS
+  );
 
   const {inExperiment: hasScmOnboarding} = useExperiment({
     feature: 'onboarding-scm-experiment',
