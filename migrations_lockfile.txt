@@ -33,7 +33,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0030_seer_run_milestone
 
-sentry: 1149_organizationcontributors_delete_integration_id_column
+sentry: 1152_externalissue_provider_assignee_updated_at
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 

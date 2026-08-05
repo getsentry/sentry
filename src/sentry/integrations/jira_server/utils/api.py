@@ -15,6 +15,17 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def changelog_items(data: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    """
+    The changelog entries in an issue-updated payload, or none if it carries no usable ones.
+
+    The endpoint admits any truthy `changelog`, which does not guarantee an `items` key.
+    """
+    changelog = data.get("changelog") or {}
+    items = changelog.get("items")
+    return items if isinstance(items, list) else []
+
+
 def get_assignee_email(
     integration: RpcIntegration | Integration,
     assignee: Mapping[str, str],
@@ -28,7 +39,7 @@ def handle_assignee_change(
     data: Mapping[str, Any],
 ) -> None:
     assignee_changed = any(
-        item for item in data["changelog"]["items"] if item["field"] == "assignee"
+        item for item in changelog_items(data) if item.get("field") == "assignee"
     )
     if not assignee_changed:
         return
@@ -38,9 +49,15 @@ def handle_assignee_change(
     # If there is no assignee, assume it was unassigned.
     assignee = fields.get("assignee")
     issue_key = data["issue"]["key"]
+    # `assignee` is a snapshot of the issue's current assignee, only the newest state if it
+    # is applied last. For an assignee change this is when the change happened; it orders
+    # deliveries.
+    updated = fields.get("updated")
 
     if assignee is None:
-        sync_group_assignee_inbound(integration, None, issue_key, assign=False)
+        sync_group_assignee_inbound(
+            integration, None, issue_key, assign=False, provider_event_updated_at=updated
+        )
         return
 
     email = get_assignee_email(integration, assignee)
@@ -51,20 +68,22 @@ def handle_assignee_change(
         )
         return
 
-    sync_group_assignee_inbound(integration, email, issue_key, assign=True)
+    sync_group_assignee_inbound(
+        integration, email, issue_key, assign=True, provider_event_updated_at=updated
+    )
 
 
 def handle_status_change(
     integration: RpcIntegration | Integration, data: Mapping[str, Any]
 ) -> None:
-    status_changed = any(item for item in data["changelog"]["items"] if item["field"] == "status")
+    status_changed = any(item for item in changelog_items(data) if item.get("field") == "status")
     if not status_changed:
         return
 
     issue_key = data["issue"]["key"]
 
     try:
-        changelog = next(item for item in data["changelog"]["items"] if item["field"] == "status")
+        changelog = next(item for item in changelog_items(data) if item.get("field") == "status")
     except StopIteration:
         logger.info(
             "missing-changelog-status",

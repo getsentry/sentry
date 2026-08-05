@@ -11,12 +11,17 @@ from rest_framework.response import Response
 from fixtures.integrations.stub_service import StubService
 from sentry.integrations.jira.webhooks.base import JiraTokenError, JiraWebhookBase
 from sentry.integrations.mixins.issues import IssueSyncIntegration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.utils.atlassian_connect import AtlassianConnectValidationError
+from sentry.models.group import Group
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.useremail import UserEmail
 from sentry.viewer_context import ActorType, get_viewer_context
 
 TOKEN = "JWT anexampletoken"
@@ -52,7 +57,11 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
             data = StubService.get_stub_data("jira", "edit_issue_assignee_payload.json")
             self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
             mock_sync_group_assignee_inbound.assert_called_with(
-                self.integration, "jess@sentry.io", "APP-123", assign=True
+                self.integration,
+                "jess@sentry.io",
+                "APP-123",
+                assign=True,
+                provider_event_updated_at="2023-01-01T00:00:00.000+0000",
             )
 
     @override_settings(JIRA_USE_EMAIL_SCOPE=True)
@@ -115,7 +124,11 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
             data = StubService.get_stub_data("jira", "edit_issue_no_assignee_payload.json")
             self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
             mock_sync_group_assignee_inbound.assert_called_with(
-                self.integration, None, "APP-123", assign=False
+                self.integration,
+                None,
+                "APP-123",
+                assign=False,
+                provider_event_updated_at="2023-01-01T00:00:00.000+0000",
             )
 
     @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")
@@ -128,9 +141,77 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
         ):
             data = StubService.get_stub_data("jira", "edit_issue_assignee_missing_payload.json")
             self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
+            # The payload carries no `updated`, so the ordering guard stays inert.
             mock_sync_group_assignee_inbound.assert_called_with(
-                self.integration, None, "APP-123", assign=False
+                self.integration, None, "APP-123", assign=False, provider_event_updated_at=None
             )
+
+    def _linked_group_for_assignee_sync(self) -> Group:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=self.integration.id
+            ).update(config={"sync_reverse_assignment": True})
+
+        group = self.create_group(project=self.project)
+        self.create_integration_external_issue(
+            group=group, integration=self.integration, key="APP-123"
+        )
+        return group
+
+    def _create_jira_member(self, email: str):
+        member = self.create_user(email=email, is_superuser=False)
+        self.create_member(organization=self.organization, user=member, teams=[self.team])
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            UserEmail.objects.filter(user=member).update(is_verified=True)
+        return member
+
+    def _assignee_payload(self, email: str, updated: str) -> dict:
+        data = StubService.get_stub_data("jira", "edit_issue_assignee_payload.json")
+        data["issue"]["fields"]["assignee"]["emailAddress"] = email
+        data["issue"]["fields"]["updated"] = updated
+        return data
+
+    def _post_assignee_payload(self, data: dict) -> None:
+        with patch(
+            "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
+            return_value=self.integration,
+        ):
+            self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
+
+    def test_assignment_delivered_out_of_order_keeps_newer_assignee(self) -> None:
+        # The reassignment to bob happened after the one to alice, so it wins even though
+        # it was delivered first.
+        group = self._linked_group_for_assignee_sync()
+        self._create_jira_member("alice@example.com")
+        bob = self._create_jira_member("bob@example.com")
+
+        with self.feature("organizations:integrations-issue-sync"):
+            self._post_assignee_payload(
+                self._assignee_payload("bob@example.com", "2023-01-01T00:00:03.000+0000")
+            )
+            self._post_assignee_payload(
+                self._assignee_payload("alice@example.com", "2023-01-01T00:00:00.000+0000")
+            )
+
+        assignee = group.get_assignee()
+        assert assignee is not None
+        assert assignee.id == bob.id
+
+    def test_unassignment_delivered_out_of_order_stays_unassigned(self) -> None:
+        # Jira deassigns via a null `assignee` snapshot, on the same code path.
+        group = self._linked_group_for_assignee_sync()
+        self._create_jira_member("alice@example.com")
+
+        unassigned = StubService.get_stub_data("jira", "edit_issue_no_assignee_payload.json")
+        unassigned["issue"]["fields"]["updated"] = "2023-01-01T00:00:03.000+0000"
+
+        with self.feature("organizations:integrations-issue-sync"):
+            self._post_assignee_payload(unassigned)
+            self._post_assignee_payload(
+                self._assignee_payload("alice@example.com", "2023-01-01T00:00:00.000+0000")
+            )
+
+        assert group.get_assignee() is None
 
     @patch.object(IssueSyncIntegration, "sync_status_inbound")
     def test_simple_status_sync_inbound(self, mock_sync_status_inbound: MagicMock) -> None:
@@ -216,6 +297,19 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
             data = StubService.get_stub_data("jira", "changelog_missing.json")
             self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
 
+    def test_changelog_without_items(self) -> None:
+        # The endpoint admits any truthy `changelog`, so one carrying no `items` reaches
+        # both handlers and must not blow them up.
+        with patch(
+            "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
+            return_value=self.integration,
+        ):
+            data = {
+                "changelog": {"id": "10172"},
+                "issue": {"key": "APP-123", "fields": {}},
+            }
+            self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
+
     @with_feature("organizations:jira-issue-updated-payload-logging")
     @patch("sentry.integrations.jira.webhooks.issue_updated.sentry_sdk.capture_exception")
     @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")
@@ -245,7 +339,11 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
             self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
 
         mock_sync_group_assignee_inbound.assert_called_with(
-            self.integration, "jess@sentry.io", "APP-123", assign=True
+            self.integration,
+            "jess@sentry.io",
+            "APP-123",
+            assign=True,
+            provider_event_updated_at="2023-01-01T00:00:00.000+0000",
         )
         mock_capture_exception.assert_called_once_with(error)
 
