@@ -1,7 +1,13 @@
+from __future__ import annotations
+
+from pathlib import Path
+
 import pytest
 from django.db import IntegrityError, router, transaction
+from rest_framework.exceptions import ValidationError
 
 from sentry.backup.scopes import RelocationScope
+from sentry.investigations.contracts import validate_query_result
 from sentry.investigations.models import (
     Investigation,
     InvestigationBlock,
@@ -20,6 +26,7 @@ from sentry.investigations.models import (
     InvestigationSourceType,
 )
 from sentry.testutils.cases import TestCase
+from sentry.utils import json
 
 
 class InvestigationModelTest(TestCase):
@@ -201,3 +208,72 @@ class InvestigationModelTest(TestCase):
         assert parameter_link.block == block
         assert execution.block == block
         assert self.cell.investigation.cells.get() == self.cell
+
+
+def test_query_result_contract_accepts_the_versioned_wire_shape() -> None:
+    result = validate_query_result(
+        {
+            "schemaVersion": 1,
+            "tableMarkdown": "| Time | Errors |\n| --- | ---: |\n| 2026-07-31 | 12 |",
+            "chart": {
+                "title": "Errors over time",
+                "visualization": "area",
+                "x_axis": "time",
+                "y_axis_unit": "number",
+                "series": [
+                    {
+                        "name": "count()",
+                        "data": [{"x": "2026-07-31T12:00:00Z", "y": 12}],
+                    }
+                ],
+            },
+            "preferredView": "chart",
+            "isEmpty": False,
+            "chartUnavailableReason": None,
+            "queryLinks": [],
+        }
+    )
+
+    assert result["schemaVersion"] == 1
+    assert result["preferredView"] == "chart"
+
+
+def test_query_result_contract_rejects_unknown_versions() -> None:
+    with pytest.raises(ValidationError):
+        validate_query_result(
+            {
+                "schemaVersion": 2,
+                "tableMarkdown": "| Result |\n| --- |",
+                "chart": None,
+                "preferredView": "table",
+                "isEmpty": True,
+                "chartUnavailableReason": "No numeric result.",
+                "queryLinks": [],
+            }
+        )
+
+
+def test_shared_golden_payload_round_trips_without_contract_drift() -> None:
+    fixture = Path(__file__).parents[2] / "fixtures" / "investigation_query_result_v1.json"
+    payload = json.loads(fixture.read_text())
+
+    assert validate_query_result(payload) == payload
+
+
+def test_query_result_contract_rejects_an_empty_chart_series() -> None:
+    fixture = Path(__file__).parents[2] / "fixtures" / "investigation_query_result_v1.json"
+    payload = json.loads(fixture.read_text())
+    payload["chart"]["series"] = []
+
+    with pytest.raises(ValidationError):
+        validate_query_result(payload)
+
+
+def test_query_result_contract_rejects_non_bar_category_chart() -> None:
+    fixture = Path(__file__).parents[2] / "fixtures" / "investigation_query_result_v1.json"
+    payload = json.loads(fixture.read_text())
+    payload["chart"]["x_axis"] = "category"
+    payload["chart"]["visualization"] = "line"
+
+    with pytest.raises(ValidationError):
+        validate_query_result(payload)
