@@ -162,7 +162,11 @@ export const useDroppedColumnsWarning = (widget: Widget): React.JSX.Element | nu
 };
 
 export const useDiscoverSplitWarning = (widget: Widget): React.JSX.Element | null => {
-  if (widget.widgetType === WidgetType.DISCOVER || !widget.widgetType) {
+  // make sure there's widget queries so we know it's not a text widget
+  if (
+    (widget.widgetType === WidgetType.DISCOVER || !widget.widgetType) &&
+    widget.queries.length > 0
+  ) {
     return (
       <div>
         <StyledText as="p">
