@@ -14,6 +14,7 @@ import {Count} from 'sentry/components/count';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {
+  COL_WIDTH_MINIMUM,
   COL_WIDTH_UNDEFINED,
   GridEditable,
   type GridColumnHeader,
@@ -145,6 +146,27 @@ export function ConversationsTable() {
       })),
   });
 
+  // When no conversation on the page has tools, the tools column only ever
+  // renders a placeholder, so collapse it to the grid's minimum width and let
+  // the flexible conversation column absorb the freed space. The resize state
+  // is left untouched, so the column returns to its previous width once a page
+  // with tools loads.
+  const hasNoTools = useMemo(
+    () =>
+      data.length > 0 && data.every(conversation => conversation.toolNames.length === 0),
+    [data]
+  );
+
+  const displayedColumns = useMemo(
+    () =>
+      hasNoTools
+        ? columnOrder.map(column =>
+            column.key === 'tools' ? {...column, width: COL_WIDTH_MINIMUM} : column
+          )
+        : columnOrder,
+    [columnOrder, hasNoTools]
+  );
+
   const showMissingMessagesAlert =
     !isFetching &&
     !error &&
@@ -199,7 +221,7 @@ export function ConversationsTable() {
             isLoading={isFetching}
             error={error}
             data={data}
-            columnOrder={columnOrder}
+            columnOrder={displayedColumns}
             columnSortBy={[]}
             stickyHeader
             // GridEditable's Panel body has a default bottom margin; drop it so

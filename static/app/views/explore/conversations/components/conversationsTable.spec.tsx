@@ -130,6 +130,35 @@ describe('ConversationsTable', () => {
     expect(screen.getAllByText('execute_query').length).toBeGreaterThan(0);
   });
 
+  it('keeps the tools column at full width when a conversation has tools', async () => {
+    mockConversations([
+      {...BASE_CONVERSATION, title: 'With tools', toolNames: ['execute_query']},
+    ]);
+
+    renderTable();
+
+    await screen.findByText('With tools');
+
+    // The tools column keeps its default 300px width in the grid template.
+    expect(screen.getByTestId('grid-editable').style.gridTemplateColumns).toContain(
+      '300px'
+    );
+  });
+
+  it('collapses the tools column when no conversation has tools', async () => {
+    mockConversations([{...BASE_CONVERSATION, title: 'No tools', toolNames: []}]);
+
+    renderTable();
+
+    await screen.findByText('No tools');
+
+    // The default 300px tools width is dropped so the space goes to the
+    // flexible conversation column.
+    expect(screen.getByTestId('grid-editable').style.gridTemplateColumns).not.toContain(
+      '300px'
+    );
+  });
+
   it('navigates to the conversation detail on row click', async () => {
     mockConversations([{...BASE_CONVERSATION, title: 'Open me'}]);
 
