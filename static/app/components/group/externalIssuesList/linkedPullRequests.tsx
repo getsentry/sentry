@@ -231,7 +231,13 @@ function SeerAttributionAvatar() {
   );
 }
 
-export function useLinkedPullRequests({group}: {group: Group}) {
+export function useLinkedPullRequests({
+  group,
+  includeChecksAndReview = true,
+}: {
+  group: Group;
+  includeChecksAndReview?: boolean;
+}) {
   const organization = useOrganization();
 
   return useQuery(
@@ -239,7 +245,7 @@ export function useLinkedPullRequests({group}: {group: Group}) {
       '/organizations/$organizationIdOrSlug/issues/$issueId/pull-requests/',
       {
         path: {organizationIdOrSlug: organization.slug, issueId: group.id},
-        query: {expand: 'checksAndReview'},
+        query: includeChecksAndReview ? {expand: 'checksAndReview'} : {},
         staleTime: 30_000,
       }
     )

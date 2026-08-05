@@ -416,7 +416,7 @@ function InboxIssueCard({
   const prefetchHoverProps = useInboxPreviewPrefetch(group.id);
 
   return (
-    <IssueCard>
+    <Container position="relative">
       <IssueCardLink
         {...prefetchHoverProps}
         aria-current={selected ? 'true' : undefined}
@@ -478,7 +478,7 @@ function InboxIssueCard({
         </Grid>
       </IssueCardLink>
       {showPullRequests && <InboxPullRequestBadges group={group} />}
-    </IssueCard>
+    </Container>
   );
 }
 
@@ -491,7 +491,7 @@ const PULL_REQUEST_BADGE_VARIANTS = {
 } satisfies Record<PullRequestStatus, ComponentProps<typeof Badge>['variant']>;
 
 function InboxPullRequestBadges({group}: {group: Group}) {
-  const {data} = useLinkedPullRequests({group});
+  const {data} = useLinkedPullRequests({group, includeChecksAndReview: false});
 
   if (!data?.pullRequests.length) {
     return null;
@@ -534,19 +534,16 @@ const StickySectionHeader = styled(Container)`
   z-index: 1;
 `;
 
-const IssueCard = styled('div')`
-  position: relative;
-`;
-
 const PullRequestBadgePositioner = styled('div')`
   position: absolute;
   right: ${p => p.theme.space.xl};
   bottom: ${p => p.theme.space.lg};
   left: ${p => p.theme.space.xl};
-  z-index: 1;
+  pointer-events: none;
 `;
 
 const PullRequestBadgeLink = styled(ExternalLink)`
+  pointer-events: auto;
   text-decoration: none;
 `;
 
