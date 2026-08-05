@@ -144,6 +144,13 @@ def fetch_rows_matching_pattern(
             Condition(Column("timestamp"), Op.LT, end),
             Condition(Column("timestamp"), Op.GTE, start),
             # We only match segment rows because those contain the PII we want to delete.
+            #
+            # Note for anyone adding an "already archived, skip it" filter here to make re-runs
+            # converge: archive rows carry `segment_id = NULL`, so this condition discards them
+            # before grouping and any `HAVING max(is_archived) = 0` will therefore always be true.
+            # Such a filter has to move this check into the HAVING clause (for example
+            # `count(segment_id) > 0`) and widen the query window, because archive rows are stamped
+            # at deletion time rather than the replay's own timestamp.
             Condition(Column("segment_id"), Op.IS_NOT_NULL),
             *where,
         ],
@@ -159,7 +166,7 @@ def fetch_rows_matching_pattern(
     # because our most likely failure is rate limit related. Blasting Snuba with more queries will
     # increase the chance of failure not reduce it.
     policy = ConditionalRetryPolicy(
-        test_function=lambda a, e: a < 5 and e in SNUBA_RETRY_EXCEPTIONS,
+        test_function=lambda a, e: a < 5 and isinstance(e, SNUBA_RETRY_EXCEPTIONS),
         delay_function=exponential_delay(1.0),
     )
     response = policy(

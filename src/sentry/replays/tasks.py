@@ -225,7 +225,11 @@ def _delete_filenames_concurrently(filenames: list[str]) -> None:
     # any activations that were enqueued before this deploy (with
     # namespace="replays") continue to resolve and execute.
     alias_namespace=replays_tasks,
-    retry=Retry(times=5, on=(ProcessingDeadlineExceeded,)),
+    # `on=` is an allow-list, so listing only `ProcessingDeadlineExceeded` meant a transient Snuba
+    # read timeout or blob-store blip was never redelivered. Paired with the handler below marking
+    # the job `failed` on its first exception, one blip permanently killed a job part-way through
+    # with no API to resume it. Retry everything instead; the work is idempotent.
+    retry=Retry(times=5, delay=5, on=(ProcessingDeadlineExceeded, Exception)),
     processing_deadline_duration=600,
     silo_mode=SiloMode.CELL,
 )
@@ -293,20 +297,14 @@ def run_bulk_replay_delete_job(
                     [row["replay_id"] for row in results["rows"]],
                 )
     except ProcessingDeadlineExceeded:
-        # A BaseException, so it escapes the handler below. Once retries run out the broker
-        # discards the activation, which leaves the job reporting "in-progress" forever with
-        # nothing left to advance it.
-        task = current_task()
-        if task is not None and not task.retries_remaining:
-            logger.warning("Bulk delete replays exhausted its processing deadline retries.")
-            metrics.incr("replays.bulk_delete_job", tags={"status": "failed"}, sample_rate=1.0)
-            _transition_status(job.id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.FAILED)
+        # A BaseException, so it escapes the handler below.
+        _fail_if_retries_exhausted(
+            job.id, "Bulk delete replays exhausted its processing deadline retries."
+        )
         raise
     except Exception:
         logger.exception("Bulk delete replays failed.")
-
-        metrics.incr("replays.bulk_delete_job", tags={"status": "failed"}, sample_rate=1.0)
-        _transition_status(job.id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.FAILED)
+        _fail_if_retries_exhausted(job.id, "Bulk delete replays exhausted its retries.")
         raise
 
     # `next_offset` is the SQL pagination cursor for the current window.
@@ -348,6 +346,22 @@ def run_bulk_replay_delete_job(
     _transition_status(job.id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.COMPLETED)
     metrics.incr("replays.bulk_delete_job", tags={"status": "completed"}, sample_rate=1.0)
     return None
+
+
+def _fail_if_retries_exhausted(job_id: int, message: str) -> None:
+    """Mark the job failed only once the broker will stop redelivering the activation.
+
+    Failing on the first exception made every transient error terminal: the status guard at the top
+    of the task makes each subsequent attempt return immediately, and there is no API to resume a
+    failed job. When there is no task context (direct calls, tests) treat it as the final attempt.
+    """
+    task = current_task()
+    if task is not None and task.retries_remaining:
+        return
+
+    logger.warning(message)
+    metrics.incr("replays.bulk_delete_job", tags={"status": "failed"}, sample_rate=1.0)
+    _transition_status(job_id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.FAILED)
 
 
 def _advance_offset(job_id: int, offset: int) -> None:
