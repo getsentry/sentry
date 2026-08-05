@@ -434,7 +434,6 @@ export default typescript.config([
       'e18e/prefer-array-at': 'off',
       'e18e/prefer-array-fill': 'off',
       'e18e/prefer-array-some': 'off',
-      'e18e/prefer-array-to-reversed': 'off',
       'e18e/prefer-array-to-sorted': 'off',
       'e18e/prefer-object-has-own': 'off',
       'e18e/prefer-regex-test': 'off',
