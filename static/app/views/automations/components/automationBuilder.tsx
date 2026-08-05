@@ -4,10 +4,11 @@ import styled from '@emotion/styled';
 import {Alert} from '@sentry/scraps/alert';
 import {Container, Stack} from '@sentry/scraps/layout';
 import type {SelectValue} from '@sentry/scraps/select';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {PurpleTextButton} from 'sentry/components/workflowEngine/ui/purpleTextButton';
-import {IconAdd} from 'sentry/icons';
+import {IconAdd, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {
   DataConditionGroupLogicType,
@@ -33,6 +34,8 @@ export function AutomationBuilder() {
   const conflictData = useMemo(() => {
     return findConflictingConditions(state.triggers, state.actionFilters);
   }, [state]);
+
+  const hasNoWhenConditions = state.triggers.conditions.length === 0;
 
   return (
     <AutomationBuilderConflictContext.Provider value={conflictData}>
@@ -71,6 +74,16 @@ export function AutomationBuilder() {
                 <strong>{t('any')}</strong>
               ),
             })}
+            {hasNoWhenConditions && (
+              <Tooltip
+                title={t(
+                  'Without selecting a trigger, every event or issue activity that occurs will trigger this alert'
+                )}
+                containerDisplayMode="inline-flex"
+              >
+                <IconWarning size="md" />
+              </Tooltip>
+            )}
           </StepLead>
         </Step>
         <DataConditionNodeList
