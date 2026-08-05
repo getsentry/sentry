@@ -3,9 +3,11 @@ from __future__ import annotations
 import functools
 import logging
 from collections.abc import Iterator
+from concurrent.futures import Future
 from datetime import datetime
 from typing import TypedDict
 
+import sentry_sdk
 from google.cloud.exceptions import NotFound
 from snuba_sdk import (
     Column,
@@ -75,6 +77,47 @@ def delete_matched_rows(project_id: int, rows: list[MatchedRow]) -> int | None:
     return None
 
 
+# A batch is on the order of a thousand blobs, and a context that size is truncated to uselessness,
+# so the attached filenames are capped. The counts stay exact.
+_REPORTED_FILENAMES_LIMIT = 50
+
+
+def _raise_for_failed_blob_deletes(futures: dict[str, Future[None]], attempted: int) -> None:
+    """Raise if any blob could not be deleted, naming the ones that failed.
+
+    A blob we failed to delete is PII we would otherwise report as deleted. Raising happens before
+    the archive event is published, so a failure leaves the replay unarchived, and the finder does
+    not exclude unarchived replays -- the next pass over the range picks it up again rather than
+    hiding PII behind an archive marker. The task retries, so a transient failure costs a retry
+    rather than the job.
+    """
+    errors = {
+        filename: error
+        for filename, error in ((name, future.exception()) for name, future in futures.items())
+        if error is not None
+    }
+    if not errors:
+        return
+
+    metrics.incr(
+        "replays.delete_recording_blobs",
+        amount=len(errors),
+        tags={"status": "failed"},
+        sample_rate=1.0,
+    )
+    sentry_sdk.set_context(
+        "replay_recording_blobs",
+        {
+            "attempted": attempted,
+            "failed": len(errors),
+            # Each filename is `{retention_days}/{project_id}/{replay_id}/{segment_id}`, so these
+            # name the replays that still need deleting.
+            "failed_filenames": sorted(errors)[:_REPORTED_FILENAMES_LIMIT],
+        },
+    )
+    raise next(iter(errors.values()))
+
+
 def delete_replays(project_id: int, replay_ids: list[str]) -> None:
     """Set the archived bit flag to true on each replay."""
     for replay_id in replay_ids:
@@ -95,7 +138,11 @@ def delete_filenames_concurrently(filenames: list[str]) -> None:
 
     max_workers = min(len(filenames), DELETE_THREAD_POOL_SIZE)
     with ContextPropagatingThreadPoolExecutor(max_workers=max_workers) as pool:
-        pool.map(_delete_if_exists, filenames)
+        # Keep the futures. `pool.map` returns a lazy iterator, so dropping its return value never
+        # retrieved a worker exception, which is why a failed blob delete has never been visible.
+        futures = {filename: pool.submit(_delete_if_exists, filename) for filename in filenames}
+
+    _raise_for_failed_blob_deletes(futures, attempted=len(filenames))
 
 
 def _delete_if_exists(filename: str) -> None:
