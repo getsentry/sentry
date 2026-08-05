@@ -25,12 +25,13 @@ BATCH_PROCESSING_DEADLINE = timedelta(seconds=30)  # taskworker hard kill timeou
 BATCH_RETRIGGER_TIMEOUT = timedelta(seconds=20)  # self-reschedule before the hard kill
 
 _BATCH_TASK_KEY = "process_project_derived_data_batch"
+_GENERATE_PROJECT_TASK_KEY = "generate_project_derived_data"
 _GENERATE_BATCH_TASK_KEY = "generate_project_derived_data_batch"
 _GENERATE_GROUP_TASK_KEY = "generate_group_derived_data"
 
 # Cap self-rescheduling rebuilds to avoid infinite loops on very large groups.
 _MAX_GENERATION_RUNS = 20
-# Hard limit on group IDs loaded per project-level task to bound memory.
+# Maximum group IDs loaded by one project-level task invocation.
 _MAX_PROJECT_GROUPS = 10_000
 
 
@@ -490,54 +491,65 @@ def process_project_derived_data_batch(
     silo_mode=SiloMode.CELL,
 )
 def generate_project_derived_data(
-    project_id: int, *, stale_only: bool = False, **kwargs: object
+    project_id: int,
+    cursor_group_id: int = 0,
+    *,
+    stale_only: bool = False,
+    **kwargs: object,
 ) -> None:
     """Generate derived data for groups in a project via build-and-promote.
 
-    Fans out ``build_and_promote_derived_data`` batches, which replace
-    existing rows via CAS without deleting them.
+    Pages through group IDs and fans out ``build_and_promote_derived_data``
+    batches, which replace existing rows via CAS without deleting them.
 
     When *stale_only* is True, only groups with a ``GroupDerivedData``
     row whose ``pipeline_hash`` is outdated or NULL are included.
     Groups without a row are not affected.
     """
+    from taskbroker_client.state import current_task
+
     from sentry import options
     from sentry.issues.derived.processing import PIPELINE
     from sentry.models.group import Group
+    from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
+
+    task_state = current_task()
+    activation_id = task_state.id if task_state else None
+    if activation_id and already_spawned(_GENERATE_PROJECT_TASK_KEY, activation_id):
+        logger.info(
+            "generate_project_derived_data.duplicate_redelivery.skipped",
+            extra={"project_id": project_id, "activation_id": activation_id},
+        )
+        metrics.incr(
+            "taskworker.selfchain.duplicate_skipped",
+            tags={"task": _GENERATE_PROJECT_TASK_KEY},
+        )
+        return
 
     batch_size = options.get("issues.derived.project-batch-size")
     max_tasks = options.get("issues.derived.project-max-tasks")
 
-    # TODO: support very large projects via paginated iteration
-    qs = Group.objects.filter(project_id=project_id)
+    page_size = min(_MAX_PROJECT_GROUPS, batch_size * max_tasks)
+    if page_size <= 0:
+        logger.error(
+            "generate_project_derived_data.invalid_batch_configuration",
+            extra={"batch_size": batch_size, "max_tasks": max_tasks},
+        )
+        return
+
+    qs = Group.objects.filter(project_id=project_id, id__gt=cursor_group_id)
     if stale_only:
         qs = _stale_pipeline_filter(qs, PIPELINE.pipeline_hash)
-    group_ids = list(qs.order_by("id").values_list("id", flat=True)[:_MAX_PROJECT_GROUPS])
+    group_ids = list(qs.order_by("id").values_list("id", flat=True)[: page_size + 1])
 
     if not group_ids:
         return
 
-    if len(group_ids) >= _MAX_PROJECT_GROUPS:
-        logger.error(
-            "generate_project_derived_data.too_many_groups",
-            extra={
-                "project_id": project_id,
-                "limit": _MAX_PROJECT_GROUPS,
-            },
-        )
+    has_more = len(group_ids) > page_size
+    group_ids = group_ids[:page_size]
+    next_cursor_group_id = group_ids[-1] if has_more else None
 
     ranges = _chunk_group_ids_into_ranges(group_ids, batch_size)
-
-    if len(ranges) > max_tasks:
-        logger.error(
-            "generate_project_derived_data.too_many_tasks",
-            extra={
-                "project_id": project_id,
-                "task_count": len(ranges),
-                "max_tasks": max_tasks,
-            },
-        )
-        return
 
     for start, end in ranges:
         generate_project_derived_data_batch.delay(
@@ -547,12 +559,25 @@ def generate_project_derived_data(
             stale_only=stale_only,
         )
 
+    if next_cursor_group_id is not None:
+        generate_project_derived_data.apply_async(
+            kwargs={
+                "project_id": project_id,
+                "cursor_group_id": next_cursor_group_id,
+                "stale_only": stale_only,
+            },
+            headers={"sentry-propagate-traces": False},
+        )
+        if activation_id:
+            mark_spawned(_GENERATE_PROJECT_TASK_KEY, activation_id)
+
     logger.info(
         "generate_project_derived_data.scheduled",
         extra={
             "project_id": project_id,
             "group_count": len(group_ids),
             "task_count": len(ranges),
+            "next_cursor_group_id": next_cursor_group_id,
         },
     )
 
