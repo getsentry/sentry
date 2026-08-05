@@ -146,7 +146,13 @@ def delete_replay_ids(
     if has_seer_data:
         # The finder strips dashes from `replay_id`; Seer keys on the dashed UUID
         replay_ids = [str(uuid.UUID(replay_id)) for _, replay_id, _ in rows]
-        delete_seer_replay_data(organization_id, project_id, replay_ids)
+        # Chunked because `make_replay_delete_request` uses a 5 second timeout with a single retry.
+        # A whole page's worth of ids in one request reliably exceeded it, and the failure is only
+        # logged, so Seer data was being left behind silently.
+        for i in range(0, len(replay_ids), _SEER_DELETE_BATCH_SIZE):
+            delete_seer_replay_data(
+                organization_id, project_id, replay_ids[i : i + _SEER_DELETE_BATCH_SIZE]
+            )
 
     logger.info("Scheduling %d replays for deletion.", len(rows), extra=logging_context)
 
@@ -164,6 +170,9 @@ def delete_replay_ids(
         "of RRWeb data will complete asynchronously.",
         extra=logging_context,
     )
+
+
+_SEER_DELETE_BATCH_SIZE = 100
 
 
 def _get_rows_matching_deletion_pattern(

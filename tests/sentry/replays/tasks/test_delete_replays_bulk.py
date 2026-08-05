@@ -377,6 +377,38 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
             "replays.bulk_delete_job", tags={"status": "failed"}, sample_rate=1.0
         )
 
+    def test_run_bulk_replay_delete_job_retry_policy_covers_transient_errors(self) -> None:
+        """Test ordinary errors are redelivered, which the retries_remaining guard assumes
+
+        `on=` is an allow-list. Listing only the deadline meant a Snuba read timeout was never
+        retried, so one blip ended the job.
+        """
+        retry = run_bulk_replay_delete_job.retry
+        assert retry is not None
+
+        assert retry.should_retry(retry.initial_state(), ValueError("snuba is unhappy"))
+
+    @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
+    def test_run_bulk_replay_delete_job_failure_with_retries_stays_in_progress(
+        self, mock_fetch_rows: MagicMock
+    ) -> None:
+        """Test a retryable failure leaves the job in-progress so redelivery can finish it
+
+        Failing on the first exception was terminal: the status guard at the top of the task returns
+        early on every later attempt, and there is no API to resume a failed job.
+        """
+        mock_fetch_rows.side_effect = ValueError("snuba is unhappy")
+
+        self.job.status = DeletionJobStatus.IN_PROGRESS
+        self.job.save()
+
+        with patch("sentry.replays.tasks.current_task", return_value=Mock(retries_remaining=2)):
+            with pytest.raises(ValueError):
+                run_bulk_replay_delete_job(self.job.id, offset=0)
+
+        self.job.refresh_from_db()
+        assert self.job.status == "in-progress"
+
     @patch("sentry.replays.tasks.metrics")
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     def test_run_bulk_replay_delete_job_failure_preserves_offset(
