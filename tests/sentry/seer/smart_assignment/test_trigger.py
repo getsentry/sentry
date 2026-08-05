@@ -262,6 +262,26 @@ class TriggerSmartAssignmentTest(TestCase):
         mock_client_cls.return_value.start_feature_run.assert_not_called()
 
     @patch(CLIENT_PATH)
+    def test_automated_assignment_leaves_a_waiting_run_untouched(
+        self, mock_client_cls: MagicMock
+    ) -> None:
+        self._mirror(trigger=ActivityType.SEER_RCA_STARTED.name)
+        team = self.create_team(organization=self.organization)
+        GroupAssignee.objects.create(group=self.group, project=self.group.project, team=team)
+        with self.feature("organizations:seer-smart-assignment-run"):
+            trigger_smart_assignment(
+                self.group,
+                ActivityType.ASSIGNED,
+                self._assigned_activity(
+                    team.id, "team", integration=ActivityIntegration.CODEOWNERS.value
+                ),
+            )
+
+        extras = self._mirrors()[0].extras
+        assert "actual_assignee_team_id" not in extras
+        assert "actual_assignee_user_id" not in extras
+
+    @patch(CLIENT_PATH)
     def test_seer_start_dispatches_on_an_automatically_assigned_issue(
         self, mock_client_cls: MagicMock
     ) -> None:

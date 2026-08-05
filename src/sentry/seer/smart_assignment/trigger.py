@@ -72,11 +72,13 @@ def trigger_smart_assignment(
             tags={"reason": "automated_assignment"},
             sample_rate=1.0,
         )
+        return
+
     # Policy gate: today we predict at most once per issue, ever. This lives in app
     # code (not a DB constraint) so re-runs are cheap to enable later -- e.g. gate on
     # a cooldown or a new-signal check against the latest run instead. The run mirror
     # is our durable record that a run was dispatched.
-    elif not _already_predicted(group) and not _dispatch_rate_limited(organization):
+    if not _already_predicted(group) and not _dispatch_rate_limited(organization):
         _dispatch(group, activity_type, activity)
 
     record_ground_truth(group, activity_type, activity)
