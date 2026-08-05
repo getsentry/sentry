@@ -366,7 +366,8 @@ def run_night_shift_execution(
     logger.info("night_shift.execute.start", extra=log_extra)
 
     if run.shards.exists():
-        if _dispatch_pending_shards(run, organization, log_extra, start_time):
+        all_shards_dispatched = _dispatch_pending_shards(run, organization, log_extra, start_time)
+        if all_shards_dispatched:
             _complete_run(run)
         return None
 
@@ -408,7 +409,8 @@ def run_night_shift_execution(
         return None
 
     _maybe_create_shard_plan(run, shard_plans)
-    if _dispatch_pending_shards(run, organization, log_extra, start_time):
+    all_shards_dispatched = _dispatch_pending_shards(run, organization, log_extra, start_time)
+    if all_shards_dispatched:
         _complete_run(run)
 
 
@@ -753,6 +755,7 @@ def _dispatch_pending_shards(
     log_extra: dict[str, object],
     start_time: float,
 ) -> bool:
+    """Dispatch every unlinked shard and report whether all shards are linked."""
     try:
         client = SeerAgentClient(organization)
     except SeerPermissionError:
