@@ -776,7 +776,7 @@ describe('ProjectFilters', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'Add Rule'}));
 
-    await userEvent.hover(screen.getByRole('img', {name: 'More information'}));
+    await userEvent.hover(screen.getByText('matches'));
     expect(
       await screen.findByText(/Matches the exception type, the exception value/)
     ).toBeInTheDocument();
@@ -785,14 +785,14 @@ describe('ProjectFilters', () => {
     // follows the selected data type.
     await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Release'}));
-    await userEvent.hover(screen.getByRole('img', {name: 'More information'}));
+    await userEvent.hover(screen.getByText('matches'));
     expect(
       await screen.findByText('Matches the release of the error.')
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('textbox', {name: 'Data Type'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Logs'}));
-    await userEvent.hover(screen.getByRole('img', {name: 'More information'}));
+    await userEvent.hover(screen.getByText('matches'));
     expect(
       await screen.findByText('Matches the release attribute of the log.')
     ).toBeInTheDocument();

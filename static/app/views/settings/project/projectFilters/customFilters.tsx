@@ -7,7 +7,7 @@ import {z} from 'zod';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {InfoTip} from '@sentry/scraps/info';
+import {InfoText} from '@sentry/scraps/info';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
@@ -22,7 +22,6 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {PurpleTextButton} from 'sentry/components/workflowEngine/ui/purpleTextButton';
 import {IconAdd, IconDelete, IconEdit, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -366,53 +365,56 @@ function CustomFilterModal({
                 {conditionsField => {
                   const conditions = conditionsField.state.value;
                   return (
-                    <Stack gap="sm">
-                      {conditions.map((condition, index) => (
-                        <Grid
-                          key={index}
-                          columns="160px max-content 1fr max-content max-content"
-                          gap="md"
-                          align="center"
-                        >
-                          <form.AppField name={`conditions[${index}].property`}>
-                            {propertyField => (
-                              <propertyField.Select
-                                aria-label={t('Condition property')}
-                                clearable={false}
-                                options={getPropertyOptions(dataType)}
-                                value={propertyField.state.value}
-                                onChange={value => propertyField.handleChange(value)}
-                              />
-                            )}
-                          </form.AppField>
-                          <Text variant="muted">{t('matches')}</Text>
-                          <form.AppField name={`conditions[${index}].value`}>
-                            {valueField => (
-                              <valueField.Input
-                                aria-label={t('Condition value')}
-                                placeholder={getValuePlaceholder(condition.property)}
-                                value={valueField.state.value}
-                                onChange={valueField.handleChange}
-                              />
-                            )}
-                          </form.AppField>
-                          <InfoTip
-                            title={getMatchDescription(condition.property, dataType)}
-                          />
-                          <Button
-                            size="sm"
-                            variant="transparent"
-                            icon={<IconDelete />}
-                            aria-label={t('Remove condition')}
-                            disabled={conditions.length === 1}
-                            onClick={() => conditionsField.removeValue(index)}
-                          />
-                        </Grid>
-                      ))}
+                    <Stack gap="lg">
+                      <Stack gap="sm">
+                        {conditions.map((condition, index) => (
+                          <Grid
+                            key={index}
+                            columns="160px max-content 1fr max-content"
+                            gap="md"
+                            align="center"
+                          >
+                            <form.AppField name={`conditions[${index}].property`}>
+                              {propertyField => (
+                                <propertyField.Select
+                                  aria-label={t('Condition property')}
+                                  clearable={false}
+                                  options={getPropertyOptions(dataType)}
+                                  value={propertyField.state.value}
+                                  onChange={value => propertyField.handleChange(value)}
+                                />
+                              )}
+                            </form.AppField>
+                            <InfoText
+                              variant="muted"
+                              title={getMatchDescription(condition.property, dataType)}
+                            >
+                              {t('matches')}
+                            </InfoText>
+                            <form.AppField name={`conditions[${index}].value`}>
+                              {valueField => (
+                                <valueField.Input
+                                  aria-label={t('Condition value')}
+                                  placeholder={getValuePlaceholder(condition.property)}
+                                  value={valueField.state.value}
+                                  onChange={valueField.handleChange}
+                                />
+                              )}
+                            </form.AppField>
+                            <Button
+                              size="sm"
+                              variant="transparent"
+                              icon={<IconDelete />}
+                              aria-label={t('Remove condition')}
+                              disabled={conditions.length === 1}
+                              onClick={() => conditionsField.removeValue(index)}
+                            />
+                          </Grid>
+                        ))}
+                      </Stack>
                       <Flex>
-                        <AddConditionButton
-                          variant="transparent"
-                          size="xs"
+                        <Button
+                          size="sm"
                           icon={<IconAdd />}
                           onClick={() =>
                             conditionsField.pushValue(
@@ -421,7 +423,7 @@ function CustomFilterModal({
                           }
                         >
                           {t('Add Condition')}
-                        </AddConditionButton>
+                        </Button>
                       </Flex>
                     </Stack>
                   );
@@ -711,12 +713,6 @@ export function CustomFilters({project}: {project: Project}) {
     </Stack>
   );
 }
-
-// PurpleTextButton's negative margin makes the hover background overflow the
-// modal's content edge, so keep the button box flush with the rows instead.
-const AddConditionButton = styled(PurpleTextButton)`
-  margin: 0;
-`;
 
 const CustomFiltersTable = styled(SimpleTable)`
   grid-template-columns:
