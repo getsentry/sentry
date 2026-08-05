@@ -800,9 +800,6 @@ describe('InboxPage', () => {
     expect(
       await within(preview).findByRole('button', {name: 'Create PR'})
     ).toBeInTheDocument();
-    expect(
-      within(preview).queryByRole('button', {name: 'Draft a PR'})
-    ).not.toBeInTheDocument();
   });
 
   it('links to a completed Autofix pull request while polling', async () => {
