@@ -18,10 +18,15 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.investigations.endpoints.serializers import (
+    InvestigationBlockSerializer,
     InvestigationDetailsSerializer,
     InvestigationSerializer,
 )
 from sentry.investigations.endpoints.validators import (
+    BlockCreateValidator,
+    BlockDeleteValidator,
+    BlockOrderValidator,
+    BlockUpdateValidator,
     FavoriteUpdateValidator,
     InvestigationCreateValidator,
     InvestigationDeleteValidator,
@@ -44,9 +49,13 @@ from sentry.investigations.services import (
     InvestigationSourceNotFound,
     InvestigationValidationError,
     archive_investigation,
+    create_cell,
     create_manual_investigation,
     create_template_investigation,
+    delete_cell,
     duplicate_investigation,
+    reorder_blocks,
+    update_cell,
     update_investigation,
 )
 from sentry.models.organization import Organization
@@ -195,6 +204,20 @@ def _serialize_investigation(
         can_manage=_can_manage(request, organization, investigation),
     )
     return data
+
+
+def _serialize_block(
+    block: InvestigationBlock,
+    request: Request,
+    accessible_project_ids: set[int],
+) -> dict[str, Any]:
+    return dict(
+        serialize(
+            block,
+            request.user,
+            InvestigationBlockSerializer(accessible_project_ids=accessible_project_ids),
+        )
+    )
 
 
 class OrganizationInvestigationBase(OrganizationEndpoint):
@@ -355,6 +378,144 @@ class OrganizationInvestigationsEndpoint(OrganizationEndpoint):
                 accessible_project_ids=accessible_project_ids,
             ),
             status=status.HTTP_201_CREATED,
+        )
+
+
+@extend_schema(tags=["Investigations"])
+@cell_silo_endpoint
+class OrganizationInvestigationBlocksEndpoint(OrganizationInvestigationBase):
+    publish_status = {"POST": ApiPublishStatus.PRIVATE}
+
+    def post(
+        self, request: Request, organization: Organization, investigation: Investigation
+    ) -> Response:
+        serializer = BlockCreateValidator(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        values = dict(serializer.validated_data)
+        investigation_version = values.pop("investigation_version")
+        values["prompt"] = values.pop("generation_prompt", "")
+        try:
+            block = create_cell(
+                investigation=investigation,
+                expected_investigation_version=investigation_version,
+                user_id=_user_id(request),
+                values=values,
+            )
+        except Exception as error:
+            response = _service_error(error)
+            if response is not None:
+                return response
+            raise
+        return Response(
+            _serialize_block(
+                block,
+                request,
+                _accessible_project_ids(self, request, organization),
+            ),
+            status=status.HTTP_201_CREATED,
+        )
+
+
+@extend_schema(tags=["Investigations"])
+@cell_silo_endpoint
+class OrganizationInvestigationBlockDetailsEndpoint(OrganizationInvestigationBlockBase):
+    publish_status = {"PUT": ApiPublishStatus.PRIVATE, "DELETE": ApiPublishStatus.PRIVATE}
+
+    def put(
+        self,
+        request: Request,
+        organization: Organization,
+        investigation: Investigation,
+        block: InvestigationBlock,
+    ) -> Response:
+        if block.deleted_at is not None:
+            raise ResourceDoesNotExist
+        serializer = BlockUpdateValidator(data=request.data, context={"block": block})
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        values = dict(serializer.validated_data)
+        expected_investigation_version = values.pop("investigation_version")
+        expected_block_version = values.pop("version")
+        if "generation_prompt" in values:
+            values["prompt"] = values.pop("generation_prompt")
+        try:
+            updated = update_cell(
+                block=block,
+                expected_investigation_version=expected_investigation_version,
+                expected_block_version=expected_block_version,
+                user_id=_user_id(request),
+                values=values,
+            )
+        except Exception as error:
+            response = _service_error(error)
+            if response is not None:
+                return response
+            raise
+        return Response(
+            _serialize_block(
+                updated,
+                request,
+                _accessible_project_ids(self, request, organization),
+            )
+        )
+
+    def delete(
+        self,
+        request: Request,
+        organization: Organization,
+        investigation: Investigation,
+        block: InvestigationBlock,
+    ) -> Response:
+        if block.deleted_at is not None:
+            raise ResourceDoesNotExist
+        serializer = BlockDeleteValidator(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            delete_cell(
+                block=block,
+                expected_investigation_version=serializer.validated_data["investigation_version"],
+                expected_block_version=serializer.validated_data["version"],
+            )
+        except Exception as error:
+            response = _service_error(error)
+            if response is not None:
+                return response
+            raise
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@extend_schema(tags=["Investigations"])
+@cell_silo_endpoint
+class OrganizationInvestigationBlockOrderEndpoint(OrganizationInvestigationBase):
+    publish_status = {"PUT": ApiPublishStatus.PRIVATE}
+
+    def put(
+        self, request: Request, organization: Organization, investigation: Investigation
+    ) -> Response:
+        serializer = BlockOrderValidator(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            updated = reorder_blocks(
+                investigation=investigation,
+                expected_version=serializer.validated_data["investigation_version"],
+                block_ids=serializer.validated_data["block_ids"],
+            )
+        except Exception as error:
+            response = _service_error(error)
+            if response is not None:
+                return response
+            raise
+        return Response(
+            _serialize_investigation(
+                updated,
+                request,
+                organization,
+                detailed=True,
+                accessible_project_ids=_accessible_project_ids(self, request, organization),
+            )
         )
 
 
