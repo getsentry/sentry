@@ -18,6 +18,7 @@ import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
 import * as analytics from 'sentry/utils/analytics';
+import {QUERY_API_CLIENT} from 'sentry/utils/queryClient';
 import {CreateProject} from 'sentry/views/projectInstall/createProject';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 
@@ -978,11 +979,15 @@ describe('CreateProject', () => {
         teamSlug: teamWithAccess.slug,
       });
 
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/integrations/${integration.id}/channel-validate/`,
-        asyncDelay: 10_000,
-        body: {valid: true},
-      });
+      const validateChannelUrl = `/organizations/${organization.slug}/integrations/${integration.id}/channel-validate/`;
+      const requestPromise = QUERY_API_CLIENT.requestPromise.bind(QUERY_API_CLIENT);
+      jest
+        .spyOn(QUERY_API_CLIENT, 'requestPromise')
+        .mockImplementation((path, options) =>
+          path === validateChannelUrl
+            ? new Promise(() => {})
+            : requestPromise(path, options)
+        );
 
       render(<CreateProject />, {organization});
       await userEvent.click(screen.getByTestId('platform-apple-ios'));
