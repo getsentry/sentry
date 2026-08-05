@@ -13,7 +13,6 @@ from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     fetch_projects_with_total_root_transaction_count_and_rates,
     query_project_counts_by_org,
 )
-from sentry.dynamic_sampling.tasks.common import SPANS_CONFIG
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     get_boost_low_volume_projects_sample_rate,
 )
@@ -514,9 +513,7 @@ class TestSpanMetricQuery(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
             org_id=org.id,
         )
 
-        results = fetch_projects_with_total_root_transaction_count_and_rates(
-            org_ids=[org.id], config=SPANS_CONFIG
-        )
+        results = fetch_projects_with_total_root_transaction_count_and_rates(org_ids=[org.id])
 
         assert len(results[org.id]) == 2
         assert (p1.id, 10.0, 3, 7) in results[org.id]
@@ -666,43 +663,6 @@ class TestEndToEndDispatching(BaseMetricsLayerTestCase, TestCase, SnubaTestCase)
 
         # Should only see the span/segment metrics (3 + 7 = 10), not the transaction metrics (100)
         assert results[org.id] == [(project.id, 10.0, 3, 7)]
-
-    @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
-    def test_spans_query_uses_span_mri_without_is_segment(self) -> None:
-        """
-        With SPANS_CONFIG the Snuba query should use SpanMRI but NOT filter by
-        is_segment (counts all spans).
-        """
-        org = self.create_organization("test-org")
-        project = self.create_project(organization=org)
-
-        # Store span metrics WITH is_segment=true
-        self.store_performance_metric(
-            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"transaction": "foo", "decision": "keep", "is_segment": "true"},
-            minutes_before_now=30,
-            value=3,
-            project_id=project.id,
-            org_id=org.id,
-        )
-
-        # Store span metrics WITHOUT is_segment tag
-        self.store_performance_metric(
-            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"transaction": "bar", "decision": "keep"},
-            minutes_before_now=30,
-            value=7,
-            project_id=project.id,
-            org_id=org.id,
-        )
-
-        results = fetch_projects_with_total_root_transaction_count_and_rates(
-            org_ids=[org.id], config=SPANS_CONFIG
-        )
-
-        # SPANS_CONFIG should count ALL spans (both with and without is_segment)
-        # Total = 3 + 7 = 10, all keeps
-        assert results[org.id] == [(project.id, 10.0, 10, 0)]
 
     @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
     def test_with_query_task_skips_project_mode_orgs(self) -> None:

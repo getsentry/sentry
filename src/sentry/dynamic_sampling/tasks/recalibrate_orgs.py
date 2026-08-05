@@ -11,11 +11,7 @@ from sentry.dynamic_sampling.rules.utils import DecisionKeepCount, OrganizationI
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     fetch_projects_with_total_root_transaction_count_and_rates,
 )
-from sentry.dynamic_sampling.tasks.common import (
-    SPANS_CONFIG,
-    GetActiveOrgsVolumes,
-    OrganizationDataVolume,
-)
+from sentry.dynamic_sampling.tasks.common import GetActiveOrgsVolumes, OrganizationDataVolume
 from sentry.dynamic_sampling.tasks.constants import MAX_REBALANCE_FACTOR, MIN_REBALANCE_FACTOR
 from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
     compute_adjusted_factor,
@@ -157,7 +153,7 @@ def recalibrate_org(org_id: OrganizationId, total: int, indexed: int) -> None:
 @dynamic_sampling_task
 def recalibrate_projects_batch(orgs: list[OrganizationId]) -> None:
     for org_id, projects in fetch_projects_with_total_root_transaction_count_and_rates(
-        org_ids=orgs, config=SPANS_CONFIG
+        org_ids=orgs
     ).items():
         sample_rates = ProjectOption.objects.get_value_bulk_id(
             [t[0] for t in projects], "sentry:target_sample_rate"

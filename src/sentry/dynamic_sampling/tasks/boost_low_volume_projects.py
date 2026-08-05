@@ -39,7 +39,6 @@ from sentry.dynamic_sampling.rules.utils import (
 from sentry.dynamic_sampling.tasks.common import (
     SEGMENTS_CONFIG,
     GetActiveOrgs,
-    QueryConfig,
     are_equal_with_epsilon,
     sample_rate_to_float,
 )
@@ -222,14 +221,13 @@ def boost_low_volume_projects_of_org(
 def fetch_projects_with_total_root_transaction_count_and_rates(
     org_ids: list[int],
     query_interval: timedelta | None = None,
-    config: QueryConfig = SEGMENTS_CONFIG,
 ) -> Mapping[OrganizationId, Sequence[ProjectVolumes]]:
     """
     Fetches for each org and each project the total root transaction count and how many transactions were kept and
     dropped.
     """
     aggregated_projects = defaultdict(list)
-    project_count_query_iter = query_project_counts_by_org(org_ids, query_interval, config)
+    project_count_query_iter = query_project_counts_by_org(org_ids, query_interval)
     for chunk in project_count_query_iter:
         for org_id, project_id, root_count_value, keep_count, drop_count in chunk:
             aggregated_projects[org_id].append(
@@ -248,7 +246,6 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
 def query_project_counts_by_org(
     org_ids: list[int],
     query_interval: timedelta | None = None,
-    config: QueryConfig = SEGMENTS_CONFIG,
 ) -> Iterator[Sequence[OrgProjectVolumes]]:
     """Queries the total root transaction count and how many transactions were kept and dropped
     for each project in a given interval (defaults to the last hour).
@@ -280,8 +277,8 @@ def query_project_counts_by_org(
     decision_string_id = indexer.resolve_shared_org("decision")
     decision_tag = f"tags_raw[{decision_string_id}]"
 
-    metric_id = indexer.resolve_shared_org(str(config["mri"]))
-    use_case_id = config["use_case_id"]
+    metric_id = indexer.resolve_shared_org(str(SEGMENTS_CONFIG["mri"]))
+    use_case_id = SEGMENTS_CONFIG["use_case_id"]
 
     where_conditions = [
         Condition(Column("timestamp"), Op.GTE, deprecated_utcnow() - query_interval),
@@ -292,7 +289,7 @@ def query_project_counts_by_org(
     ]
 
     # Add tag filters from config
-    for tag_name, tag_value in config["tags"].items():
+    for tag_name, tag_value in SEGMENTS_CONFIG["tags"].items():
         tag_string_id = indexer.resolve_shared_org(tag_name)
         tag_column = f"tags_raw[{tag_string_id}]"
         where_conditions.append(Condition(Column(tag_column), Op.EQ, tag_value))

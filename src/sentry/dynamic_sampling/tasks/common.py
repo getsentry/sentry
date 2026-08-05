@@ -37,8 +37,8 @@ ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL = timedelta(minutes=5)
 ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY = Granularity(60)
 
 
-class QueryConfig(TypedDict):
-    """Configuration for a dynamic sampling volume query."""
+class SegmentsConfig(TypedDict):
+    """Configuration for the segments query used by dynamic sampling."""
 
     mri: str
     use_case_id: UseCaseID
@@ -46,18 +46,10 @@ class QueryConfig(TypedDict):
 
 
 # SpanMRI with is_segment=true filter, i.e. counting only root spans (segments).
-SEGMENTS_CONFIG: QueryConfig = {
+SEGMENTS_CONFIG: SegmentsConfig = {
     "mri": SpanMRI.COUNT_PER_ROOT_PROJECT.value,
     "use_case_id": UseCaseID.SPANS,
     "tags": {"is_segment": "true"},
-}
-
-# SpanMRI without the is_segment filter, i.e. counting all spans. Only used by
-# project-mode recalibration.
-SPANS_CONFIG: QueryConfig = {
-    "mri": SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-    "use_case_id": UseCaseID.SPANS,
-    "tags": {},
 }
 
 

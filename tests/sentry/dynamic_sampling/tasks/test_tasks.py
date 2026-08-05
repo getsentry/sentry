@@ -881,7 +881,7 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
 
 @freeze_time(MOCK_DATETIME)
 class TestSlidingWindowOrgTask(TasksTestCase):
-    """Tests for the sliding_window_org task with measure parameter support."""
+    """Tests for the sliding_window_org task."""
 
     @property
     def now(self):
@@ -914,7 +914,7 @@ class TestSlidingWindowOrgTask(TasksTestCase):
         extrapolate_monthly_volume: MagicMock,
     ) -> None:
         """
-        Test that sliding_window_org processes all orgs using SEGMENTS measure by default.
+        Test that sliding_window_org processes all orgs using segment metrics.
         """
         extrapolate_monthly_volume.side_effect = lambda volume, hours: volume
         get_transaction_sampling_tier_for_volume.return_value = (1000, 0.25)
