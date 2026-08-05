@@ -50,6 +50,7 @@ from sentry.seer.autofix.utils import (
     clear_preference_automation_handoff,
     get_automation_handoff,
 )
+from sentry.seer.autofix_rca.models import FEATURE_ID as AUTOFIX_RCA_FEATURE_ID
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.models import (
     SeerAgentRun,
@@ -100,6 +101,7 @@ def _stopping_point_from_run(organization: Organization, run_id: int) -> str | N
         SeerAgentRun.objects.filter(
             run__organization_id=organization.id,
             run__seer_run_state_id=run_id,
+            source=AUTOFIX_RCA_FEATURE_ID,
         )
         .values_list("extras__stopping_point", flat=True)
         .first()
@@ -113,6 +115,7 @@ def _group_and_referrer_from_run(
         SeerAgentRun.objects.filter(
             run__organization_id=organization.id,
             run__seer_run_state_id=run_id,
+            source=AUTOFIX_RCA_FEATURE_ID,
         )
         .values("group_id", "extras")
         .first()
@@ -155,10 +158,11 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             )
             return
 
-        # Fall back to the Sentry-side run mirror for runs Seer started without
-        # metadata (the autofix_rca feature), same as the stopping point.
-        run_group_id, run_referrer = _group_and_referrer_from_run(organization, run_id)
-        group_id = (state.metadata or {}).get("group_id") or run_group_id
+        metadata = state.metadata or {}
+        group_id = metadata.get("group_id")
+        run_referrer = None
+        if group_id is None:
+            group_id, run_referrer = _group_and_referrer_from_run(organization, run_id)
         if group_id is None:
             logger.warning(
                 "autofix.on_completion_hook.missing_group_id",
