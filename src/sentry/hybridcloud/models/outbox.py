@@ -89,12 +89,25 @@ class OutboxBase(Model):
         return outbox_model
 
     @classmethod
-    def next_object_identifier(cls) -> int:
+    def next_object_identifiers(cls, count: int) -> list[int]:
+        if count < 0:
+            raise ValueError("count must be non-negative")
+        if count == 0:
+            return []
+
         using = router.db_for_write(cls)
-        with transaction.atomic(using=using):
+        # Sequence increments do not roll back, so avoid a savepoint inside an existing transaction.
+        with transaction.atomic(using=using, savepoint=False):
             with connections[using].cursor() as cursor:
-                cursor.execute("SELECT nextval(%s)", [f"{cls._meta.db_table}_id_seq"])
-                return cursor.fetchone()[0]
+                cursor.execute(
+                    "SELECT nextval(%s) FROM generate_series(1,%s);",
+                    [f"{cls._meta.db_table}_id_seq", count],
+                )
+                return [identifier for (identifier,) in cursor.fetchall()]
+
+    @classmethod
+    def next_object_identifier(cls) -> int:
+        return cls.next_object_identifiers(1)[0]
 
     @classmethod
     def find_scheduled_shards(cls, low: int = 0, hi: int | None = None) -> list[Mapping[str, Any]]:
@@ -194,14 +207,17 @@ class OutboxBase(Model):
     def next_schedule(self, now: datetime.datetime) -> datetime.datetime:
         return now + min((self.last_delay() * 2), datetime.timedelta(hours=1))
 
+    def schedule_drain_on_commit(self) -> None:
+        if _outbox_context.flushing_enabled:
+            transaction.on_commit(lambda: self.drain_shard(), using=router.db_for_write(type(self)))
+
     def save(self, *args: Any, **kwargs: Any) -> None:
         if not OutboxScope.scope_has_category(self.shard_scope, self.category):
             raise InvalidOutboxError(
                 f"Outbox.category {self.category} ({OutboxCategory(self.category).name}) not configured for scope {self.shard_scope} ({OutboxScope(self.shard_scope).name})"
             )
 
-        if _outbox_context.flushing_enabled:
-            transaction.on_commit(lambda: self.drain_shard(), using=router.db_for_write(type(self)))
+        self.schedule_drain_on_commit()
 
         tags = {"category": OutboxCategory(self.category).name}
         metrics.incr("outbox.saved", 1, tags=tags)
