@@ -7,7 +7,6 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {t, tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
@@ -32,13 +31,12 @@ export function IssuesSecondaryNavigation() {
   const organization = useOrganization();
   const baseUrl = `/organizations/${organization.slug}/issues`;
   const hasProgressUi = organization.features.includes('issue-stream-progress-ui');
-  const areAiFeaturesAllowed =
-    !organization.hideAiFeatures && organization.features.includes('gen-ai-features');
-  const {billing, isPending} = useOrganizationSeerSetup({
-    enabled: hasProgressUi && areAiFeaturesAllowed,
-  });
-  const hasInbox =
-    hasProgressUi && areAiFeaturesAllowed && (isPending || billing.hasAutofixQuota);
+  const hasAutofix =
+    !organization.hideAiFeatures &&
+    organization.features.includes('gen-ai-features') &&
+    (organization.features.includes('seat-based-seer-enabled') ||
+      organization.features.includes('seer-added'));
+  const hasInbox = hasProgressUi && hasAutofix;
   return (
     <Fragment>
       <SecondaryNavigation.Header>{t('Issues')}</SecondaryNavigation.Header>

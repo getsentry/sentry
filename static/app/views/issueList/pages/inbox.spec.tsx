@@ -18,14 +18,11 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {ProgressState} from 'sentry/types/group';
 import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/queries/inbox';
 
 import InboxPage from './inbox';
-
-jest.mock('sentry/components/events/autofix/useOrganizationSeerSetup');
 
 describe('InboxPage', () => {
   const organization = OrganizationFixture({
@@ -128,11 +125,6 @@ describe('InboxPage', () => {
   });
 
   beforeEach(() => {
-    jest.mocked(useOrganizationSeerSetup).mockReturnValue({
-      areAiFeaturesAllowed: true,
-      billing: {hasAutofixQuota: true, hasScannerQuota: false},
-      isPending: false,
-    } as ReturnType<typeof useOrganizationSeerSetup>);
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
@@ -360,44 +352,13 @@ describe('InboxPage', () => {
     });
   });
 
-  it('does not render without Autofix quota', () => {
-    jest.mocked(useOrganizationSeerSetup).mockReturnValue({
-      areAiFeaturesAllowed: true,
-      billing: {hasAutofixQuota: false, hasScannerQuota: false},
-      isPending: false,
-    } as ReturnType<typeof useOrganizationSeerSetup>);
-
+  it('does not render without Autofix access', () => {
     render(<InboxPage />, {
-      organization,
+      organization: aiOnlyOrganization,
       initialRouterConfig,
     });
 
     expect(screen.getByText('Page Not Found')).toBeInTheDocument();
-  });
-
-  it('hides Diagnosed/Assigned/Identified sections when organization does not have Seer', () => {
-    const requests = mockSuccessfulSections();
-    const identifiedRequest = mockSection('issue.progress:identified is:unresolved', []);
-    mockSection('issue.progress:fix_proposed is:unresolved', [fixProposedGroup]);
-    mockSection('issue.progress:fix_applied is:unresolved', []);
-
-    render(<InboxPage />, {
-      organization: aiOnlyOrganization,
-      initialRouterConfig: {
-        ...initialRouterConfig,
-        location: {
-          ...initialRouterConfig.location,
-          query: {...initialRouterConfig.location.query, assignment: 'all'},
-        },
-      },
-    });
-
-    expect(screen.queryByRole('region', {name: 'Diagnosed'})).not.toBeInTheDocument();
-    expect(screen.queryByRole('region', {name: 'Assigned'})).not.toBeInTheDocument();
-    expect(screen.queryByRole('region', {name: 'Identified'})).not.toBeInTheDocument();
-    expect(requests[1]).not.toHaveBeenCalled();
-    expect(requests[2]).not.toHaveBeenCalled();
-    expect(identifiedRequest).not.toHaveBeenCalled();
   });
 
   it('only shows the Identified section for all assignees', async () => {
