@@ -61,10 +61,7 @@ def delete_matched_rows(project_id: int, rows: list[MatchedRow]) -> int | None:
     if not rows:
         return None
 
-    with ContextPropagatingThreadPoolExecutor(max_workers=100) as pool:
-        filenames = list(_make_recording_filenames(project_id, rows))
-        pool.map(_delete_if_exists, filenames)
-
+    delete_filenames_concurrently(list(_make_recording_filenames(project_id, rows)))
     delete_replays(project_id, [row["replay_id"] for row in rows])
     return None
 
@@ -73,6 +70,23 @@ def delete_replays(project_id: int, replay_ids: list[str]) -> None:
     """Set the archived bit flag to true on each replay."""
     for replay_id in replay_ids:
         publish_replay_event(archive_event(project_id, replay_id))
+
+
+#  Keeping this small bounds threads-per-task so `worker_concurrency x N` stays under pod memory limit
+DELETE_THREAD_POOL_SIZE = 32
+
+
+def delete_filenames_concurrently(filenames: list[str]) -> None:
+    if not filenames:
+        return
+
+    # Warm the process-global client before the threads start so they reuse it instead of racing to
+    # build their own.
+    storage_kv.initialize_client()
+
+    max_workers = min(len(filenames), DELETE_THREAD_POOL_SIZE)
+    with ContextPropagatingThreadPoolExecutor(max_workers=max_workers) as pool:
+        pool.map(_delete_if_exists, filenames)
 
 
 def _delete_if_exists(filename: str) -> None:
