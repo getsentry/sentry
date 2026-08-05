@@ -13,10 +13,16 @@ import {
 } from './continuousTimeSeries';
 import type {Plottable} from './plottable';
 
-export class Area extends ContinuousTimeSeries implements Plottable {
+interface AreaConfig extends ContinuousTimeSeriesConfig {
+  stack?: string;
+}
+
+// Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
+export class Area extends ContinuousTimeSeries<AreaConfig> implements Plottable {
   #timeSeriesAndIsIncomplete: Array<[TimeSeries, boolean]>;
 
-  constructor(timeSeries: TimeSeries, config?: ContinuousTimeSeriesConfig) {
+  constructor(timeSeries: TimeSeries, config?: AreaConfig) {
     super(timeSeries, config);
 
     this.#timeSeriesAndIsIncomplete = segmentTimeSeriesByIncompleteData(timeSeries);
@@ -80,7 +86,7 @@ export class Area extends ContinuousTimeSeries implements Plottable {
         plottableSeries.push(
           LineSeries({
             ...commonOptions,
-            stack: `complete-${index}`,
+            stack: config.stack ?? `complete-${index}`,
             areaStyle: {
               color,
               opacity: 1,
