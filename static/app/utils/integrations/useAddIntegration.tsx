@@ -51,7 +51,7 @@ export type AddIntegrationState =
   | {status: 'idle'}
   | {providerKey: string; status: 'installing'}
   | {integration: IntegrationWithConfig; providerKey: string; status: 'complete'}
-  | {providerKey: string; status: 'cancelled'}
+  | {providerKey: string; status: 'cancelled'; lastError?: string}
   | {error: string; providerKey: string; status: 'error'};
 
 /**
@@ -82,6 +82,12 @@ export function useAddIntegration() {
     const is_scm = isScmProvider(provider);
     let cancelled = false;
     let completed = false;
+    // Gates analytics only. Deliberately not part of the `onClose` guard below:
+    // closing after a failure must still call onCancel so the inline row restores.
+    let failureReported = false;
+    // Retained so the terminal `cancelled` state can distinguish a failed attempt
+    // from a clean back-out.
+    let lastError: string | undefined;
 
     setState({status: 'installing', providerKey: provider.key});
 
@@ -116,13 +122,17 @@ export function useAddIntegration() {
       },
       onError: error => {
         setState({status: 'error', providerKey: provider.key, error});
-        trackIntegrationAnalytics('integrations.installation_failed', {
-          integration: provider.key,
-          integration_type: 'first_party',
-          is_scm,
-          organization,
-          ...analyticsParams,
-        });
+        lastError = error;
+        if (!failureReported) {
+          failureReported = true;
+          trackIntegrationAnalytics('integrations.installation_failed', {
+            integration: provider.key,
+            integration_type: 'first_party',
+            is_scm,
+            organization,
+            ...analyticsParams,
+          });
+        }
         onError?.(error);
       },
       onClose: () => {
@@ -130,14 +140,16 @@ export function useAddIntegration() {
           return;
         }
         cancelled = true;
-        setState({status: 'cancelled', providerKey: provider.key});
-        trackIntegrationAnalytics('integrations.installation_cancelled', {
-          integration: provider.key,
-          integration_type: 'first_party',
-          is_scm,
-          organization,
-          ...analyticsParams,
-        });
+        setState({status: 'cancelled', providerKey: provider.key, lastError});
+        if (!failureReported) {
+          trackIntegrationAnalytics('integrations.installation_cancelled', {
+            integration: provider.key,
+            integration_type: 'first_party',
+            is_scm,
+            organization,
+            ...analyticsParams,
+          });
+        }
         onCancel?.();
       },
     });

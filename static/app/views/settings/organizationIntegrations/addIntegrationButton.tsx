@@ -57,6 +57,7 @@ export function AddIntegrationButton({
     onInstall: onAddIntegration,
     analyticsParams,
     suppressSuccessMessage,
+    startFlow,
   });
 
   return (

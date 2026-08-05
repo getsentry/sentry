@@ -7,6 +7,7 @@ import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 import * as indicators from 'sentry/actionCreators/indicator';
 import * as pipelineModal from 'sentry/components/pipeline/modal';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
+import * as integrationUtil from 'sentry/utils/integrationUtil';
 
 describe('useAddIntegration', () => {
   const provider = GitHubIntegrationProviderFixture();
@@ -259,6 +260,132 @@ describe('useAddIntegration', () => {
     expect(result.current.state).toEqual({
       status: 'cancelled',
       providerKey: 'github',
+      lastError: 'Installation failed',
+    });
+  });
+
+  it('tracks installation_failed once and not installation_cancelled when closing after a failure', () => {
+    const onCancel = jest.fn();
+    const trackSpy = jest.spyOn(integrationUtil, 'trackIntegrationAnalytics');
+    let onClose: (() => void) | undefined;
+    let handleError: ((error: string) => void) | undefined;
+    jest.spyOn(pipelineModal, 'openPipelineModal').mockImplementation(options => {
+      onClose = options.onClose;
+      handleError = options.onError;
+    });
+
+    const {result} = renderHookWithProviders(() => useAddIntegration());
+
+    act(() =>
+      result.current.startFlow({
+        provider,
+        organization: OrganizationFixture(),
+        onInstall: jest.fn(),
+        onCancel,
+      })
+    );
+    act(() => {
+      handleError?.('Installation failed');
+      onClose?.();
+    });
+
+    expect(trackSpy).toHaveBeenCalledWith(
+      'integrations.installation_failed',
+      expect.any(Object)
+    );
+    expect(trackSpy).not.toHaveBeenCalledWith(
+      'integrations.installation_cancelled',
+      expect.any(Object)
+    );
+    // UI restore still fires
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('tracks installation_failed once even when the pipeline fails twice, and calls onError both times', () => {
+    const onError = jest.fn();
+    const trackSpy = jest.spyOn(integrationUtil, 'trackIntegrationAnalytics');
+    let handleError: ((error: string) => void) | undefined;
+    jest.spyOn(pipelineModal, 'openPipelineModal').mockImplementation(options => {
+      handleError = options.onError;
+    });
+
+    const {result} = renderHookWithProviders(() => useAddIntegration());
+
+    act(() =>
+      result.current.startFlow({
+        provider,
+        organization: OrganizationFixture(),
+        onInstall: jest.fn(),
+        onError,
+      })
+    );
+    act(() => {
+      handleError?.('Installation failed');
+      handleError?.('Installation failed');
+    });
+
+    const failedCalls = trackSpy.mock.calls.filter(
+      ([event]) => event === 'integrations.installation_failed'
+    );
+    expect(failedCalls).toHaveLength(1);
+    expect(onError).toHaveBeenCalledTimes(2);
+  });
+
+  it('tracks installation_cancelled when closing with no failure', () => {
+    const trackSpy = jest.spyOn(integrationUtil, 'trackIntegrationAnalytics');
+    let onClose: (() => void) | undefined;
+    jest.spyOn(pipelineModal, 'openPipelineModal').mockImplementation(options => {
+      onClose = options.onClose;
+    });
+
+    const {result: _result} = renderHookWithProviders(() => useAddIntegration());
+
+    act(() =>
+      _result.current.startFlow({
+        provider,
+        organization: OrganizationFixture(),
+        onInstall: jest.fn(),
+      })
+    );
+    act(() => onClose?.());
+
+    expect(trackSpy).toHaveBeenCalledWith(
+      'integrations.installation_cancelled',
+      expect.any(Object)
+    );
+    expect(trackSpy).not.toHaveBeenCalledWith(
+      'integrations.installation_failed',
+      expect.any(Object)
+    );
+  });
+
+  it('sets lastError to the most recent failure message when closing after multiple errors', () => {
+    let onClose: (() => void) | undefined;
+    let handleError: ((error: string) => void) | undefined;
+    jest.spyOn(pipelineModal, 'openPipelineModal').mockImplementation(options => {
+      onClose = options.onClose;
+      handleError = options.onError;
+    });
+
+    const {result} = renderHookWithProviders(() => useAddIntegration());
+
+    act(() =>
+      result.current.startFlow({
+        provider,
+        organization: OrganizationFixture(),
+        onInstall: jest.fn(),
+      })
+    );
+    act(() => {
+      handleError?.('First error');
+      handleError?.('Second error');
+      onClose?.();
+    });
+
+    expect(result.current.state).toEqual({
+      status: 'cancelled',
+      providerKey: 'github',
+      lastError: 'Second error',
     });
   });
 });
