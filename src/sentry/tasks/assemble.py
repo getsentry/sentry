@@ -289,7 +289,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     from sentry.models.debugfile import (
         BadDif,
         create_dif_from_fileobj,
-        create_dif_from_id,
+        create_dif_from_file,
         detect_single_dif_from_path,
     )
     from sentry.models.project import Project
@@ -334,7 +334,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
                     temp_file.seek(0)
                     dif, created = create_dif_from_fileobj(project, meta, temp_file)
                 else:
-                    dif, created = create_dif_from_id(project, meta, file)
+                    dif, created = create_dif_from_file(project, meta, file)
             except BadDif as e:
                 set_assemble_status(
                     AssembleTask.DIF, project_id, checksum, ChunkFileState.ERROR, detail=e.args[0]

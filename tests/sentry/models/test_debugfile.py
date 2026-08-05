@@ -18,7 +18,7 @@ from sentry.models.debugfile import (
     DifMeta,
     ProjectDebugFile,
     create_dif_from_fileobj,
-    create_dif_from_id,
+    create_dif_from_file,
     detect_dif_from_path,
     detect_single_dif_from_path,
     get_debug_id_from_dif_request,
@@ -341,7 +341,7 @@ class CreateDebugFileTest(APITestCase):
         if file.size is None:
             file.size = 0
             file.save(update_fields=["size"])
-        return create_dif_from_id(self.project, self._create_meta(**kwargs), file)
+        return create_dif_from_file(self.project, self._create_meta(**kwargs), file)
 
     def create_dif_from_fileobj(self, fileobj, **kwargs):
         return create_dif_from_fileobj(self.project, self._create_meta(**kwargs), fileobj)
@@ -356,7 +356,7 @@ class CreateDebugFileTest(APITestCase):
         file.putfile(ContentFile(content))
         return file
 
-    def test_create_dif_from_id(self) -> None:
+    def test_create_dif_from_file(self) -> None:
         file = self.create_stored_file(b"debug symbols")
         dif, created = self.create_dif(file)
 
@@ -367,7 +367,7 @@ class CreateDebugFileTest(APITestCase):
         assert ProjectDebugFile.objects.filter(id=dif.id).exists()
 
     @requires_objectstore
-    def test_objectstore_backed_create_dif_from_id(self) -> None:
+    def test_objectstore_backed_create_dif_from_file(self) -> None:
         with open(self.file_path, "rb") as f:
             content = f.read()
 
@@ -377,7 +377,7 @@ class CreateDebugFileTest(APITestCase):
         file.putfile(ContentFile(content))
 
         with self.feature("organizations:objectstore-debugfiles-write"):
-            dif, created = create_dif_from_id(
+            dif, created = create_dif_from_file(
                 self.project, detect_single_dif_from_path(self.file_path), file
             )
 

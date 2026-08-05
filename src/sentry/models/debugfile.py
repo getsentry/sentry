@@ -541,16 +541,18 @@ def find_existing_dif(project: Project, meta: DifMeta, checksum: str) -> Project
     )
 
 
-def create_dif_from_id(
+def create_dif_from_file(
     project: Project,
     meta: DifMeta,
     file: File,
 ) -> tuple[ProjectDebugFile, bool]:
-    """Creates a ``ProjectDebugFile`` for an existing legacy ``File``.
+    """Creates a legacy-backed ``ProjectDebugFile`` from an existing ``File``.
 
-    The existing ``File`` is always retained. If the double-write flag is enabled, its contents
-    are also uploaded to Objectstore. A failed Objectstore upload does not prevent creation of
-    the legacy-backed DIF.
+    Use this when the DIF has already been written to Sentry's legacy ``File`` storage. The
+    existing ``File`` is retained. If the double-write flag is enabled, its contents are also
+    uploaded to Objectstore, but an Objectstore upload failure does not prevent creation of the
+    legacy-backed DIF. To create an Objectstore-only DIF from a file-like object, use
+    ``create_dif_from_fileobj`` instead.
     """
     file_size = file.size
     assert file_size is not None
@@ -633,10 +635,13 @@ def create_dif_from_id(
 def create_dif_from_fileobj(
     project: Project, meta: DifMeta, fileobj: BinaryIO
 ) -> tuple[ProjectDebugFile, bool]:
-    """Creates an Objectstore-backed ``ProjectDebugFile`` from a local file object.
+    """Creates an Objectstore-backed ``ProjectDebugFile`` from a file-like object.
 
-    This function intentionally does not check feature flags: callers must only use it when
-    exclusive Objectstore writes are enabled. Objectstore upload failures are fatal.
+    Use this when the DIF content is available in a readable file object and should be stored
+    only in Objectstore. To create a DIF from an existing legacy ``File``, use
+    ``create_dif_from_file`` instead. This function intentionally does not check feature flags:
+    callers must only use it when exclusive Objectstore writes are enabled. Objectstore upload
+    failures are fatal.
     """
     file_size = 0
     h = hashlib.sha1()
@@ -1023,7 +1028,7 @@ def create_debug_file_from_dif(
             else:
                 file = File.objects.create(name=meta.debug_id)
                 file.putfile(f)
-                dif, created = create_dif_from_id(project, meta, file)
+                dif, created = create_dif_from_file(project, meta, file)
                 if not created:
                     file.delete()
             if created:
