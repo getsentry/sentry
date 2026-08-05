@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Grid} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -308,7 +309,11 @@ export function ActivitySection({
 
   return (
     <SidebarFoldSection
-      title={t('Activity')}
+      title={
+        <Heading as="h3" size="md">
+          {t('Activity')}
+        </Heading>
+      }
       titleTrailingItems={
         group.numComments > 0 ? (
           <LinkButton
