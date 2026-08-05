@@ -598,3 +598,14 @@ def test_contexts_are_escaped_in_xml() -> None:
     out = contexts_section(event, XmlFormatter(), LIMITS_DEFAULT)
     ElementTree.fromstring(out)
     assert "<x>" not in out
+
+
+def test_evidence_truncation_never_splits_markup() -> None:
+    # the body is a join of rendered <name>value</name> pieces, so a mid-way slice would leave
+    # an unclosed tag
+    event = EventObject(title="t", evidence=[("regression", "x" * 200), ("other", "y" * 200)])
+    for cap in range(20, 400):
+        out = evidence_section(
+            event, XmlFormatter(), dataclasses.replace(LIMITS_DEFAULT, max_evidence_chars=cap)
+        )
+        ElementTree.fromstring(out)  # raises if a tag was split

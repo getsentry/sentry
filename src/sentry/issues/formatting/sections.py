@@ -297,9 +297,14 @@ def evidence_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
     if not model.evidence:
         return ""
     # occurrence.evidenceDisplay is an arbitrary-length list of arbitrary-length pairs, unlike
-    # Seer's fixed four-key allowlist, so it needs the same cap the other open-ended sections get
-    body = "\n".join(fmt.field(name, value) for name, value in model.evidence)
-    return fmt.block("Evidence", _truncate(body, limits.max_evidence_chars))
+    # Seer's fixed four-key allowlist, so it needs the same cap the other open-ended sections get.
+    # Cap each value before marking it up -- _truncate_items always keeps the first piece, so a
+    # single oversized value would otherwise carry the whole section past the cap.
+    rendered = [
+        fmt.field(name, _truncate(value, limits.max_evidence_chars))
+        for name, value in model.evidence
+    ]
+    return fmt.block("Evidence", _truncate_items(rendered, "\n", limits.max_evidence_chars))
 
 
 def contexts_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
