@@ -201,12 +201,14 @@ def normalize_stacktraces_for_grouping(
 
                 if platform == "javascript":
                     try:
-                        parsed_filename = urlparse(frame.get("filename", ""))
-                        if parsed_filename.query:
-                            stripped_querystring = True
-                            frame["filename"] = frame["filename"].replace(
-                                f"?{parsed_filename.query}", ""
-                            )
+                        filename = frame.get("filename", "")
+                        if "?" in filename:
+                            parsed_filename = urlparse(filename)
+                            if parsed_filename.query:
+                                stripped_querystring = True
+                                frame["filename"] = filename.replace(
+                                    f"?{parsed_filename.query}", ""
+                                )
                     # ignore unparsable filenames
                     except Exception:
                         pass
