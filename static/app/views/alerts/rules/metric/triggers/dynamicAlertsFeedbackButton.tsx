@@ -14,6 +14,7 @@ export function DynamicAlertsFeedbackButton() {
   return (
     <ButtonContainer>
       <FeedbackButton
+        variant="secondary"
         feedbackOptions={{
           formTitle: t('Anomaly Detection Feedback'),
           messagePlaceholder: t(
