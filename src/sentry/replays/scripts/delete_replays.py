@@ -26,8 +26,8 @@ from sentry.replays.query import replay_url_parser_config
 from sentry.replays.tasks import archive_replay, delete_replays_script_async
 from sentry.replays.usecases.delete import (
     SNUBA_RETRY_EXCEPTIONS,
+    datetime_as_start_of_day_conditions,
     day_aligned_windows,
-    day_pin_conditions,
     delete_seer_replay_data,
 )
 from sentry.replays.usecases.query import execute_query, handle_search_filters
@@ -202,7 +202,7 @@ def _get_rows_matching_deletion_pattern(
             Condition(Column("timestamp"), Op.LT, end),
             Condition(Column("timestamp"), Op.GTE, start),
             Condition(Column("segment_id"), Op.IS_NOT_NULL),
-            *day_pin_conditions(start, end),
+            *datetime_as_start_of_day_conditions(start, end),
             *where,
         ],
         # Group by both the `replay_id` and `cityHash64(replay_id)` so we are able

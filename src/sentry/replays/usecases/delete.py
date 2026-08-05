@@ -62,60 +62,47 @@ def day_aligned_windows(
 ) -> list[tuple[datetime, datetime]]:
     """Split `[range_start, range_end)` into one window per UTC day it touches.
 
-    Each window is a whole UTC day intersected with the range, so the caller's own bounds survive:
-    the first window opens at `range_start`, the last closes at `range_end`, and only those two are
-    ever shorter than a day. Consecutive windows meet exactly, so the range is covered with no gaps
-    and no overlap. All datetimes are UTC.
+    Every window but the last runs from where the previous one ended to the next UTC midnight; the
+    last closes at `range_end`. The caller's own bounds therefore survive -- the first window opens
+    at `range_start`, not at midnight -- and only the first and last are ever shorter than a day.
+    Consecutive windows meet exactly, so the range is covered with no gaps and no overlap. All
+    datetimes are UTC.
 
-    Whole days rather than `range_start` plus a day is what keeps a window from straddling midnight.
-    See `day_pin_conditions` for why a day is the unit worth paging in.
+    Never crossing midnight is what lets `datetime_as_start_of_day_conditions` assert a window's
+    day. A day also holds a window's replay count well under the storage's `max_rows_to_group_by`,
+    which is paired with `group_by_overflow_mode = break`: past a million replays the finders' GROUP
+    BY is truncated rather than rejected, and the replays past the cut go quietly undeleted.
     """
+    if range_start >= range_end:
+        return []
+
     windows = []
 
-    day_start = _start_of_day(range_start)
-    while window := _intersect(
-        (day_start, day_start + timedelta(days=1)), (range_start, range_end)
-    ):
-        windows.append(window)
-        day_start += timedelta(days=1)
+    start = range_start
+    while (next_midnight := _start_of_day(start) + timedelta(days=1)) < range_end:
+        windows.append((start, next_midnight))
+        start = next_midnight
+
+    windows.append((start, range_end))
 
     return windows
-
-
-def _intersect(
-    first: tuple[datetime, datetime], second: tuple[datetime, datetime]
-) -> tuple[datetime, datetime] | None:
-    """Overlap of two half-open intervals, or None when they do not overlap."""
-    start, end = max(first[0], second[0]), min(first[1], second[1])
-
-    return (start, end) if start < end else None
 
 
 def _start_of_day(value: datetime) -> datetime:
     return value.replace(hour=0, minute=0, second=0, microsecond=0)
 
 
-def day_pin_conditions(start: datetime, end: datetime) -> list[Condition]:
-    """Assert the UTC day, when the window lies inside one.
+def datetime_as_start_of_day_conditions(start: datetime, end: datetime) -> list[Condition]:
+    """Restate a single-day window as an equality on `toStartOfDay(timestamp)`.
 
-    `timestamp < midnight` only degrades to a *non-strict* bound on `toStartOfDay(timestamp)`,
-    because that function is not injective, so the primary index selects the following day as well.
-    Asserting the day collapses that. Measured against a table with the real sort key, a single-day
-    window went from 25 granules to 13 with identical row counts.
+    Worth doing because the replays sort key holds `timestamp` only as `toStartOfDay(timestamp)`. A
+    strict `timestamp < midnight` degrades to a non-strict bound on that, so the primary index reads
+    the following day as well. The equality collapses it: measured against a table with the real
+    sort key, a single-day window went from 25 granules to 13 for identical row counts.
 
-    This assertion is why the finders page a day at a time. `timestamp` is in the replays sort key
-    only at day granularity, so a narrower window prunes nothing -- 24h, 6h, 1h and 1min all read the
-    same granules -- while a wider one cannot assert a day at all and so reads roughly twice as
-    many. A day also stays well under the storage's `max_rows_to_group_by = 1000000`, which is paired
-    with `group_by_overflow_mode = break`: because the finders group by `replay_id`, a window holding
-    more than a million replays is silently truncated rather than rejected, and the replays past the
-    cut go quietly undeleted. The 7-day window this replaced truncated for any project above ~143k
-    replays/day.
-
-    Every window from `day_aligned_windows` lies inside one day, so in practice the pin always
-    applies. The guard stays because the finders accept an arbitrary range: pinning one that spanned
-    days would silently drop every row past the first day, which on this path means PII reported as
-    deleted that was not.
+    Returns nothing when the window crosses midnight, where the equality would be false for the rows
+    after it. No window from `day_aligned_windows` can, but the finders accept an arbitrary range,
+    and dropping those rows silently would mean PII reported as deleted that was not.
     """
     day = _start_of_day(start)
     if end > day + timedelta(days=1):
@@ -241,7 +228,7 @@ def fetch_rows_matching_pattern(
             Condition(Column("timestamp"), Op.GTE, start),
             # We only match segment rows because those contain the PII we want to delete.
             Condition(Column("segment_id"), Op.IS_NOT_NULL),
-            *day_pin_conditions(start, end),
+            *datetime_as_start_of_day_conditions(start, end),
             *where,
         ],
         having=having,

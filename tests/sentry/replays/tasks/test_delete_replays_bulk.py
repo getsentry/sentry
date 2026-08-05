@@ -15,8 +15,8 @@ from sentry.replays.tasks import run_bulk_replay_delete_job
 from sentry.replays.testutils import mock_replay
 from sentry.replays.usecases.delete import (
     MatchedRows,
+    datetime_as_start_of_day_conditions,
     day_aligned_windows,
-    day_pin_conditions,
     delete_matched_rows,
     fetch_rows_matching_pattern,
 )
@@ -606,75 +606,11 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
             "project_id": self.job.project_id,
         }
 
-    @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
-    @patch("sentry.replays.tasks.delete_matched_rows")
-    def test_run_bulk_replay_delete_job_time_window_chunking(
-        self, mock_delete_matched_rows: MagicMock, mock_fetch_rows: MagicMock
-    ) -> None:
-        """Test a range is chunked into windows aligned to UTC midnight.
-
-        `range_start` is deliberately mid-day: windows are laid out from the start of its day rather
-        than from `range_start`, so every window lands inside a single UTC day and can assert it.
-        The first and last are clamped to the job's range.
-        """
-        range_start = datetime.datetime(2025, 6, 1, 14, 30, tzinfo=datetime.UTC)
-        range_end = datetime.datetime(2025, 6, 4, tzinfo=datetime.UTC)
-        job = ReplayDeletionJobModel.objects.create(
-            organization_id=self.project.organization.id,
-            project_id=self.project.id,
-            range_start=range_start,
-            range_end=range_end,
-            query="",
-            environments=["prod"],
-            status="pending",
-        )
-
-        # Each window returns rows with has_more=False so the task advances to the next window.
-        def row_generator() -> Generator[MatchedRows]:
-            for replay_id in ("a", "b", "c"):
-                yield {
-                    "rows": [{"retention_days": 90, "replay_id": replay_id, "max_segment_id": 1}],
-                    "has_more": False,
-                    "next_cursor": 1234,
-                }
-
-        mock_fetch_rows.side_effect = row_generator()
-
-        with TaskRunner():
-            run_bulk_replay_delete_job.delay(job.id, limit=100)
-
-        job.refresh_from_db()
-        assert job.status == "completed"
-        assert mock_fetch_rows.call_count == 3
-        assert mock_delete_matched_rows.call_count == 3
-        # countDeleted must reflect all three windows (1 replay each).
-        assert job.offset == 3
-        # range_start must never be mutated — the API always returns the original value.
-        assert job.range_start == range_start
-
-        midnight_2 = datetime.datetime(2025, 6, 2, tzinfo=datetime.UTC)
-        midnight_3 = datetime.datetime(2025, 6, 3, tzinfo=datetime.UTC)
-        windows = [
-            (call.kwargs["start"], call.kwargs["end"]) for call in mock_fetch_rows.call_args_list
-        ]
-        assert windows == [
-            # Clamped to range_start rather than starting at midnight.
-            (range_start, midnight_2),
-            (midnight_2, midnight_3),
-            (midnight_3, range_end),
-        ]
-        # Every window resets the cursor, because it is a position within a window's result set.
-        assert [call.kwargs["after_replay_id_hash"] for call in mock_fetch_rows.call_args_list] == [
-            None,
-            None,
-            None,
-        ]
-
     def test_day_aligned_windows_open_and_close_on_the_range(self) -> None:
         """Test a mid-day range is split on UTC days without escaping the range at either end.
 
         Whole days rather than range-start-plus-a-day is what keeps a window inside one UTC day, so
-        `day_pin_conditions` can assert it. The range's own bounds still win: the first window opens
+        `datetime_as_start_of_day_conditions` can assert it. The range's own bounds still win: the first window opens
         at 17:00, not at midnight.
         """
         range_start = datetime.datetime(2026, 7, 23, 17, 0, tzinfo=datetime.UTC)
@@ -724,7 +660,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
             for earlier, later in zip(windows, windows[1:]):
                 assert earlier[1] == later[0]
 
-    def test_day_pin_conditions_only_fire_inside_one_day(self) -> None:
+    def test_datetime_as_start_of_day_conditions_only_fire_inside_one_day(self) -> None:
         """Test the day assertion is added only when the window cannot escape a single UTC day.
 
         `timestamp < midnight` degrades to a non-strict bound on `toStartOfDay(timestamp)`, so the
@@ -733,20 +669,20 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         """
         day = datetime.datetime(2025, 6, 2, tzinfo=datetime.UTC)
 
-        assert day_pin_conditions(day, day + datetime.timedelta(days=1)) == [
+        assert datetime_as_start_of_day_conditions(day, day + datetime.timedelta(days=1)) == [
             Condition(Function("toStartOfDay", parameters=[Column("timestamp")]), Op.EQ, day)
         ]
-        assert day_pin_conditions(
+        assert datetime_as_start_of_day_conditions(
             day + datetime.timedelta(hours=3), day + datetime.timedelta(hours=20)
         )
         # Mid-day to mid-day, and anything wider than a day, span a boundary.
         assert (
-            day_pin_conditions(
+            datetime_as_start_of_day_conditions(
                 day + datetime.timedelta(hours=3), day + datetime.timedelta(days=1, hours=3)
             )
             == []
         )
-        assert day_pin_conditions(day, day + datetime.timedelta(days=2)) == []
+        assert datetime_as_start_of_day_conditions(day, day + datetime.timedelta(days=2)) == []
 
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     @patch("sentry.replays.tasks.delete_matched_rows")

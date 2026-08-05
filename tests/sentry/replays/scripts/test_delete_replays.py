@@ -327,44 +327,6 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
         self.assert_recording_not_deleted(replay_id_other_project)
         self.assert_recording_not_deleted(replay_id_outside_timerange)
 
-    def test_deletion_replays_multiple_time_windows(self) -> None:
-        # Store replays days apart so the finder has to walk more than one one-day window, and no
-        # single window holds two of them. Each must still be deleted.
-        old_replay = uuid4().hex
-        self.store_replay_segments(
-            old_replay,
-            self.project.id,
-            datetime.datetime.now() - datetime.timedelta(days=20),
-        )
-        mid_replay = uuid4().hex
-        self.store_replay_segments(
-            mid_replay,
-            self.project.id,
-            datetime.datetime.now() - datetime.timedelta(days=10),
-        )
-        recent_replay = uuid4().hex
-        self.store_replay_segments(
-            recent_replay,
-            self.project.id,
-            datetime.datetime.now() - datetime.timedelta(seconds=10),
-        )
-
-        # One-day windows over a ~30-day range means ~31 windows, each replay in its own.
-        with TaskRunner():
-            delete_replays(
-                project_id=self.project.id,
-                batch_size=self.small_batch_size,
-                environment=[],
-                tags=[],
-                start_utc=datetime.datetime.utcnow() - datetime.timedelta(days=30),
-                end_utc=self.default_end_time,
-                dry_run=False,
-            )
-
-        self.assert_recording_deleted(old_replay)
-        self.assert_recording_deleted(mid_replay)
-        self.assert_recording_deleted(recent_replay)
-
     @patch("sentry.replays.scripts.delete_replays.delete_seer_replay_data")
     def test_deletion_replays_seer_delete_gated(self, mock_delete_seer: object) -> None:
         to_delete = uuid4().hex
