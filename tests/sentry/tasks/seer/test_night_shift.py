@@ -658,6 +658,18 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
         assert run.extras.get("error_message") is None
         assert "num_candidates" not in run.extras
 
+    def test_extras_update_refreshes_run_instance(self) -> None:
+        org = self.create_organization()
+
+        with patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution"):
+            run_id = run_night_shift_for_org(org.id, schedule_id="2024-07-22T22:00")
+
+        assert run_id is not None
+        run = SeerNightShiftRun.objects.get(id=run_id)
+        _update_run_extras(run, {"num_candidates": 1})
+
+        assert run.extras["num_candidates"] == 1
+
     def test_different_schedule_ids_create_separate_runs(self) -> None:
         org = self.create_organization()
 

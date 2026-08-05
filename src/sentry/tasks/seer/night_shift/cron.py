@@ -512,13 +512,19 @@ def _get_eligible_orgs_from_batch(
     return eligible
 
 
-def _update_run_extras(run: SeerNightShiftRun, updates: Mapping[str, object]) -> None:
+def _update_run_extras(
+    run: SeerNightShiftRun, updates: Mapping[str, object]
+) -> dict[str, object] | None:
     using = router.db_for_write(SeerNightShiftRun)
     with transaction.atomic(using=using):
         locked_run = SeerNightShiftRun.objects.select_for_update().get(id=run.id)
         if locked_run.date_completed is not None:
-            return
-        locked_run.update(extras={**(locked_run.extras or {}), **updates})
+            return None
+
+        extras = {**(locked_run.extras or {}), **updates}
+        locked_run.update(extras=extras)
+        run.extras = extras
+        return extras
 
 
 def _complete_run(run: SeerNightShiftRun) -> None:
