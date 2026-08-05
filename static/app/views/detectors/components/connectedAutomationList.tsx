@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
 
@@ -105,7 +106,7 @@ export function ConnectedAutomationsList({
         });
 
   return (
-    <Container {...props}>
+    <Container containerType="inline-size" {...props}>
       <SimpleTableWithColumns>
         <SimpleTable.Header>
           <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
@@ -173,10 +174,6 @@ export function ConnectedAutomationsList({
   );
 }
 
-const Container = styled('div')`
-  container-type: inline-size;
-`;
-
 const SimpleTableWithColumns = styled(SimpleTable)`
   grid-template-columns: 1fr 200px 180px auto;
 
@@ -190,7 +187,7 @@ const SimpleTableWithColumns = styled(SimpleTable)`
     width: 140px;
   }
 
-  @container (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     grid-template-columns: 1fr 180px auto;
 
     [data-column-name='last-triggered'] {
@@ -198,7 +195,7 @@ const SimpleTableWithColumns = styled(SimpleTable)`
     }
   }
 
-  @container (max-width: ${p => p.theme.breakpoints.xs}) {
+  @container (max-width: ${p => p.theme.container.sm}) {
     grid-template-columns: 1fr auto;
 
     [data-column-name='action-filters'] {

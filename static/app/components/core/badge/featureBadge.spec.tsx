@@ -1,4 +1,9 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 
@@ -31,7 +36,9 @@ describe('FeatureBadge', () => {
     expect(await screen.findByText(NEW_FEATURE_TOOLTIP)).toBeInTheDocument();
 
     await userEvent.tab();
-    expect(screen.queryByText(NEW_FEATURE_TOOLTIP)).not.toBeInTheDocument();
+    // The tooltip is hoverable, so blur closes it after a short grace period
+    // rather than synchronously.
+    await waitForElementToBeRemoved(() => screen.queryByText(NEW_FEATURE_TOOLTIP));
   });
 
   it('recognizes roving focus targets with tabIndex=-1', () => {
