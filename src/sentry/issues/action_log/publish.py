@@ -6,14 +6,13 @@ action_log.types — safe to import from models and other dependency-sensitive c
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Generator
+from collections.abc import Callable, Generator, Sequence
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional, Sequence
+from typing import TYPE_CHECKING
 
-from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
     ActionSource,
@@ -53,7 +52,33 @@ class ActionContext:
     actor: GroupActionActor = SYSTEM_ACTOR
 
 
+@dataclass(frozen=True)
+class _ActionPublication:
+    action: GroupAction
+    source: str
+    group_id: int
+    project: Project
+    actor: GroupActionActor
+    force_async_derived: bool
+    idempotency_key: str | None
+    date_added: datetime | None
+
+
+@dataclass
+class _ActionLogBuffer:
+    actions: list[_ActionPublication]
+    using: str
+    transaction_state: tuple[bool, tuple[str | None, ...]]
+
+
+class ActionLogBufferError(Exception):
+    """Raised when buffered actions cannot be published on a successful scope exit."""
+
+
 _action_context: ContextVar[ActionContext | None] = ContextVar("action_context", default=None)
+_action_log_buffer: ContextVar[_ActionLogBuffer | None] = ContextVar(
+    "action_log_buffer", default=None
+)
 
 
 @contextmanager
@@ -71,6 +96,51 @@ def action_context_scope(source: str, actor: GroupActionActor = SYSTEM_ACTOR) ->
 
 def get_action_context() -> ActionContext | None:
     return _action_context.get()
+
+
+def _get_transaction_state(using: str) -> tuple[bool, tuple[str | None, ...]]:
+    from django.db import connections
+
+    connection = connections[using]
+    return connection.in_atomic_block, tuple(connection.savepoint_ids)
+
+
+@contextmanager
+def action_log_buffer() -> Generator[None]:
+    """Buffer actions published at the current transaction level and flush them in bulk.
+
+    Actions published from a nested transaction or savepoint bypass this buffer so their
+    outbox rows retain the nested transaction's rollback semantics.
+    """
+    current_buffer = _action_log_buffer.get()
+    if current_buffer is not None:
+        yield
+        return
+
+    from django.db import router
+
+    from sentry.hybridcloud.models.outbox import CellOutbox
+
+    using = router.db_for_write(CellOutbox)
+    buffer = _ActionLogBuffer(
+        actions=[], using=using, transaction_state=_get_transaction_state(using)
+    )
+    token = _action_log_buffer.set(buffer)
+    try:
+        yield
+    except BaseException:
+        _action_log_buffer.reset(token)
+        try:
+            _publish_actions_bulk(buffer.actions)
+        except Exception:
+            logger.exception("Failed to flush group action log buffer during exception handling")
+        raise
+    else:
+        _action_log_buffer.reset(token)
+        try:
+            _publish_actions_bulk(buffer.actions)
+        except Exception as error:
+            raise ActionLogBufferError("Failed to flush group action log buffer") from error
 
 
 def publish_action(
@@ -103,8 +173,26 @@ def publish_action(
     Log publishing is managed by an outbox that flushes on commit by
     default. Wrap in ``outbox_context(flush=False)`` to defer the drain.
     """
-    # Deferred imports: keep this module free of Django/outbox/features deps at
-    # load time so it can be imported from models without creating cycles.
+    publication = _ActionPublication(
+        action=action,
+        source=source,
+        group_id=group_id,
+        project=project,
+        actor=actor,
+        force_async_derived=force_async_derived,
+        idempotency_key=idempotency_key,
+        date_added=date_added,
+    )
+    buffer = _action_log_buffer.get()
+    if buffer is not None and _get_transaction_state(buffer.using) == buffer.transaction_state:
+        buffer.actions.append(publication)
+        return
+
+    _publish_action(publication)
+
+
+def _publish_action(publication: _ActionPublication) -> None:
+    # Deferred imports keep this module safe to import from models without creating cycles.
     from django.db import router, transaction
 
     from sentry import features
@@ -113,17 +201,23 @@ def publish_action(
     from sentry.utils import metrics
 
     for callback in _publish_callbacks.get():
-        callback(action, source, group_id, project, actor)
+        callback(
+            publication.action,
+            publication.source,
+            publication.group_id,
+            publication.project,
+            publication.actor,
+        )
 
-    action_name = action.get_type().name.lower()
-    write_to_db = features.has("projects:issue-action-log-write-to-db", project)
+    action_name = publication.action.get_type().name.lower()
+    write_to_db = features.has("projects:issue-action-log-write-to-db", publication.project)
 
     metrics.incr(
         "issues.action_log",
         tags={
             "action": action_name,
-            "source": source,
-            "actor_type": actor.actor_type.name.lower(),
+            "source": publication.source,
+            "actor_type": publication.actor.actor_type.name.lower(),
             "persisted": write_to_db,
         },
     )
@@ -131,15 +225,15 @@ def publish_action(
         "group.action_log",
         extra={
             "action": action_name,
-            "source": source,
+            "source": publication.source,
             # IDs are stringified so large values aren't rendered in scientific
             # notation by downstream log tooling.
-            "group_id": str(group_id),
-            "organization_id": str(project.organization_id),
-            "project_id": str(project.id),
-            "actor_type": actor.actor_type.name.lower(),
-            "actor_id": str(actor.actor_id),
-            "metadata": action.dict(),
+            "group_id": str(publication.group_id),
+            "organization_id": str(publication.project.organization_id),
+            "project_id": str(publication.project.id),
+            "actor_type": publication.actor.actor_type.name.lower(),
+            "actor_id": str(publication.actor.actor_id),
+            "metadata": publication.action.dict(),
         },
     )
 
@@ -147,24 +241,24 @@ def publish_action(
         return
 
     payload: GroupActionLogPayload = {
-        "group_id": group_id,
-        "project_id": project.id,
-        "type": action.get_type().value,
-        "actor_type": actor.actor_type.value,
-        "actor_id": actor.actor_id,
-        "source": source,
-        "data": action.dict(),
-        "force_async_derived": force_async_derived,
+        "group_id": publication.group_id,
+        "project_id": publication.project.id,
+        "type": publication.action.get_type().value,
+        "actor_type": publication.actor.actor_type.value,
+        "actor_id": publication.actor.actor_id,
+        "source": publication.source,
+        "data": publication.action.dict(),
+        "force_async_derived": publication.force_async_derived,
     }
 
-    if idempotency_key is not None:
-        payload["idempotency_key"] = idempotency_key
-    if date_added is not None:
-        payload["date_added"] = date_added.isoformat()
+    if publication.idempotency_key is not None:
+        payload["idempotency_key"] = publication.idempotency_key
+    if publication.date_added is not None:
+        payload["date_added"] = publication.date_added.isoformat()
 
     outbox = CellOutbox(
         shard_scope=OutboxScope.GROUP_SCOPE,
-        shard_identifier=group_id,
+        shard_identifier=publication.group_id,
         category=OutboxCategory.GROUP_ACTION_LOG_EVENT,
         object_identifier=CellOutbox.next_object_identifier(),
         payload=payload,
@@ -180,7 +274,7 @@ def publish_action_from_context(
     group_id: int,
     project: Project,
     force_async_derived: bool = False,
-    idempotency_key: Optional[str] = None,
+    idempotency_key: str | None = None,
     date_added: datetime | None = None,
 ) -> None:
     """
@@ -214,7 +308,7 @@ def publish_action_from_context(
 
 
 def publish_actions_from_context_bulk(
-    actions: Sequence[tuple[GroupAction, Project, int, str | None]],
+    actions: Sequence[tuple[GroupAction, Project, int, str | None, datetime | None]],
     *,
     force_async_derived: bool = False,
 ) -> None:
@@ -223,7 +317,8 @@ def publish_actions_from_context_bulk(
     publish_action_from_context. The distinction is that this is a function to publish
     multiple GroupActions at once while only flushing the Outbox once.
 
-    Input is a sequence of tuples of (GroupAction, Project, GroupID, IdempotencyKey)
+    Input is a sequence of tuples of
+    (GroupAction, Project, GroupID, IdempotencyKey, DateAdded).
     """
     if len(actions) == 0:
         return
@@ -243,25 +338,32 @@ def publish_actions_from_context_bulk(
         source = ctx.source
         actor = ctx.actor
 
-    with outbox_context(flush=False):
-        for apgi in actions[:-1]:
-            publish_action(
-                apgi[0],
+    _publish_actions_bulk(
+        [
+            _ActionPublication(
+                action=action,
                 source=source,
-                group_id=apgi[2],
-                project=apgi[1],
+                group_id=group_id,
+                project=project,
                 actor=actor,
                 force_async_derived=force_async_derived,
-                idempotency_key=apgi[3],
+                idempotency_key=idempotency_key,
+                date_added=date_added,
             )
+            for action, project, group_id, idempotency_key, date_added in actions
+        ]
+    )
+
+
+def _publish_actions_bulk(actions: Sequence[_ActionPublication]) -> None:
+    if not actions:
+        return
+
+    from sentry.hybridcloud.models.outbox import outbox_context
+
+    with outbox_context(flush=False):
+        for action in actions[:-1]:
+            _publish_action(action)
 
     # Flushes the outbox by default.
-    publish_action(
-        actions[-1][0],
-        source=source,
-        group_id=actions[-1][2],
-        project=actions[-1][1],
-        actor=actor,
-        force_async_derived=force_async_derived,
-        idempotency_key=actions[-1][3],
-    )
+    _publish_action(actions[-1])

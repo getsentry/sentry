@@ -171,7 +171,13 @@ class ActivityManager(BaseManager["Activity"]):
                 # This loads the group just to fetch the ID, which isn't ideal... but we need the
                 # group ID for each activity, which can be different. No real way around it.
                 # Thankfully, this function is rarely-used (and isn't in any perf-sensitive paths)
-                (aa[0], aa[1].project, aa[1].group.id, activity_action_idempotency_key(aa[1]))
+                (
+                    aa[0],
+                    aa[1].project,
+                    aa[1].group.id,
+                    activity_action_idempotency_key(aa[1]),
+                    aa[1].datetime,
+                )
                 for aa in actions_with_activities
                 if aa[0] is not None and aa[1].group is not None
             ]

@@ -1,9 +1,11 @@
+from datetime import timedelta
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
+from django.utils import timezone
 
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
@@ -13,6 +15,7 @@ from sentry.issues.action_log import (
     ActionContext,
     GroupActionActor,
     action_context_scope,
+    action_log_buffer,
     get_action_context,
     publish_action,
     resolve_action_actor,
@@ -281,22 +284,50 @@ class TestPublishActionFromContext(TestCase):
         info_record = [r for r in logs.records if r.message == "group.action_log"][0]
         assert getattr(info_record, "source") == "unknown"
 
+    def test_buffer_preserves_each_action_context(self) -> None:
+        from sentry.issues.action_log import publish_action_from_context
+
+        first_actor = GroupActionActor.user(1)
+        second_actor = GroupActionActor.user(2)
+        with capture_action_log() as log, action_log_buffer():
+            with action_context_scope(source=ActionSource.API, actor=first_actor):
+                publish_action_from_context(
+                    ViewAction(), group_id=self.group.id, project=self.group.project
+                )
+            with action_context_scope(source=ActionSource.SLACK, actor=second_actor):
+                publish_action_from_context(
+                    ResolveAction(), group_id=self.group.id, project=self.group.project
+                )
+
+        log.assert_logged(
+            ViewAction, group_id=self.group.id, source=ActionSource.API, actor=first_actor
+        )
+        log.assert_logged(
+            ResolveAction,
+            group_id=self.group.id,
+            source=ActionSource.SLACK,
+            actor=second_actor,
+        )
+
 
 class TestPublishActionsFromContextBulk(TestCase):
     def test_multiple_writes(self) -> None:
         from sentry.issues.action_log import action_context_scope, publish_actions_from_context_bulk
 
         actor = GroupActionActor.user(42)
+        date_added = timezone.now() - timedelta(minutes=1)
         with self.feature("projects:issue-action-log-write-to-db"), outbox_runner():
             with action_context_scope(source="web", actor=actor):
                 publish_actions_from_context_bulk(
                     [
-                        (ViewAction(), self.group.project, self.group.id, None),
-                        (ResolveAction(), self.group.project, self.group.id, None),
+                        (ViewAction(), self.group.project, self.group.id, None, date_added),
+                        (ResolveAction(), self.group.project, self.group.id, None, date_added),
                     ],
                 )
 
-        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 2
+        entries = GroupActionLogEntry.objects.filter(group_id=self.group.id)
+        assert entries.count() == 2
+        assert all(entry.date_added == date_added for entry in entries)
 
 
 class TestActionLogIntegration(APITestCase, SnubaTestCase):
@@ -444,6 +475,28 @@ class TestUpdateGroupStatusActionLog(APITestCase, SnubaTestCase):
                     activity_type=ActivityType.SET_IGNORED,
                 )
         log.assert_logged(ArchiveAction, group_id=group.id, source=ActionSource.SYSTEM)
+
+    def test_multiple_groups_publish_actions_in_one_batch(self) -> None:
+        groups = [
+            self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING),
+            self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING),
+        ]
+
+        with patch("sentry.issues.action_log.publish._publish_actions_bulk") as bulk_publish:
+            with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+                Group.objects.update_group_status(
+                    groups=groups,
+                    status=GroupStatus.RESOLVED,
+                    substatus=None,
+                    activity_type=ActivityType.SET_RESOLVED,
+                )
+
+        bulk_publish.assert_called_once()
+        publications = bulk_publish.call_args.args[0]
+        assert len(publications) == 2
+        assert {publication.group_id for publication in publications} == {
+            group.id for group in groups
+        }
 
 
 class TestExternalIssueLinkingActionLog(APITestCase, SnubaTestCase):
@@ -622,6 +675,88 @@ class TestPublishActionWrite(TestCase):
         entries = list(GroupActionLogEntry.objects.filter(group_id=self.group.id))
         assert len(entries) == 1
         assert entries[0].type == GroupActionType.VIEW
+
+    def test_buffered_action_rolls_back_with_transaction(self) -> None:
+        with self.feature("projects:issue-action-log-write-to-db"):
+            try:
+                with transaction.atomic(using=router.db_for_write(CellOutbox)):
+                    with action_log_buffer():
+                        publish_action(
+                            ViewAction(),
+                            source=ActionSource.API,
+                            group_id=self.group.id,
+                            project=self.group.project,
+                        )
+
+                    assert CellOutbox.objects.filter(
+                        category=OutboxCategory.GROUP_ACTION_LOG_EVENT
+                    ).exists()
+                    raise IntentionalRollback()
+            except IntentionalRollback:
+                pass
+
+        assert not CellOutbox.objects.filter(
+            category=OutboxCategory.GROUP_ACTION_LOG_EVENT
+        ).exists()
+
+    def test_nested_savepoint_action_bypasses_outer_buffer(self) -> None:
+        with self.feature("projects:issue-action-log-write-to-db"), outbox_runner():
+            with action_log_buffer():
+                publish_action(
+                    ViewAction(),
+                    source=ActionSource.API,
+                    group_id=self.group.id,
+                    project=self.group.project,
+                )
+                assert not CellOutbox.objects.filter(
+                    category=OutboxCategory.GROUP_ACTION_LOG_EVENT
+                ).exists()
+
+                try:
+                    with transaction.atomic(using=router.db_for_write(CellOutbox)):
+                        publish_action(
+                            ResolveAction(),
+                            source=ActionSource.API,
+                            group_id=self.group.id,
+                            project=self.group.project,
+                        )
+                        assert (
+                            CellOutbox.objects.filter(
+                                category=OutboxCategory.GROUP_ACTION_LOG_EVENT
+                            ).count()
+                            == 1
+                        )
+                        raise IntentionalRollback()
+                except IntentionalRollback:
+                    pass
+
+                assert not CellOutbox.objects.filter(
+                    category=OutboxCategory.GROUP_ACTION_LOG_EVENT
+                ).exists()
+
+        entries = list(GroupActionLogEntry.objects.filter(group_id=self.group.id))
+        assert len(entries) == 1
+        assert entries[0].type == GroupActionType.VIEW
+
+    def test_nested_buffers_flush_once(self) -> None:
+        with patch("sentry.issues.action_log.publish._publish_actions_bulk") as bulk_publish:
+            with action_log_buffer():
+                publish_action(
+                    ViewAction(),
+                    source=ActionSource.API,
+                    group_id=self.group.id,
+                    project=self.group.project,
+                )
+                with action_log_buffer():
+                    publish_action(
+                        ResolveAction(),
+                        source=ActionSource.API,
+                        group_id=self.group.id,
+                        project=self.group.project,
+                    )
+
+        bulk_publish.assert_called_once()
+        assert len(bulk_publish.call_args.args[0]) == 2
 
     def test_feature_disabled_skips_write(self) -> None:
         publish_action(
@@ -820,6 +955,52 @@ class TestCaptureActionLog(TestCase):
 
 
 class TestActivitiesCreateActions(TestCase):
+    def test_buffered_activity_loop_publishes_one_batch(self) -> None:
+        from sentry.issues.action_log.publish import _publish_actions_bulk
+        from sentry.utils.action_log.activity_translator import activity_action_idempotency_key
+
+        activity_types = [
+            ActivityType.SET_RESOLVED,
+            ActivityType.SET_UNRESOLVED,
+            ActivityType.SET_REGRESSION,
+        ]
+        with (
+            self.feature("projects:issue-action-log-write-to-db"),
+            outbox_runner(),
+            patch(
+                "sentry.issues.action_log.publish._publish_actions_bulk",
+                wraps=_publish_actions_bulk,
+            ) as bulk_publish,
+        ):
+            with (
+                action_context_scope(source=ActionSource.SYSTEM),
+                action_log_buffer(),
+            ):
+                activities = [
+                    Activity.objects.create(
+                        group=self.group,
+                        project=self.project,
+                        type=activity_type.value,
+                        user_id=self.user.id,
+                        data={},
+                    )
+                    for activity_type in activity_types
+                ]
+
+        bulk_publish.assert_called_once()
+        assert len(bulk_publish.call_args.args[0]) == len(activities)
+        assert Activity.objects.filter(id__in=[activity.id for activity in activities]).count() == 3
+
+        entries = list(GroupActionLogEntry.objects.filter(group_id=self.group.id))
+        assert {entry.type for entry in entries} == {
+            GroupActionType.RESOLVE,
+            GroupActionType.UNRESOLVE,
+            GroupActionType.SET_REGRESSED,
+        }
+        assert {entry.idempotency_key for entry in entries} == {
+            activity_action_idempotency_key(activity) for activity in activities
+        }
+
     def test_basic(self) -> None:
         with capture_action_log() as log:
             Activity.objects.create(
