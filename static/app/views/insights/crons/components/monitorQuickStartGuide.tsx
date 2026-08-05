@@ -62,7 +62,7 @@ const onboardingGuides: Record<string, OnboardingGuide> = {
   },
   python: {
     label: 'Python',
-    icon: <PlatformIcon size={16} platform="python" />,
+    icon: <PlatformIcon size={16} platform="python" alt="" />,
     Guide: PythonCronQuickStart,
     platforms: new Set([
       'python',
@@ -80,50 +80,50 @@ const onboardingGuides: Record<string, OnboardingGuide> = {
   },
   pythonCelery: {
     label: 'Celery',
-    icon: <PlatformIcon size={16} platform="python-celery" />,
+    icon: <PlatformIcon size={16} platform="python-celery" alt="" />,
     Guide: PythonCeleryCronQuickStart,
     platforms: new Set(['python-celery']),
   },
   php: {
     label: 'PHP',
-    icon: <PlatformIcon size={16} platform="php" />,
+    icon: <PlatformIcon size={16} platform="php" alt="" />,
     Guide: PHPCronQuickStart,
     platforms: new Set(['php', 'php-monolog', 'php-symfony']),
   },
   phpLaravel: {
     label: 'Laravel',
-    icon: <PlatformIcon size={16} platform="php-laravel" />,
+    icon: <PlatformIcon size={16} platform="php-laravel" alt="" />,
     Guide: PHPLaravelCronQuickStart,
     platforms: new Set(['php-laravel']),
   },
   nodeJs: {
     label: 'Node',
-    icon: <PlatformIcon size={16} platform="node" />,
+    icon: <PlatformIcon size={16} platform="node" alt="" />,
     Guide: NodeJSCronQuickStart,
     platforms: new Set(['node']),
   },
   go: {
     label: 'Go',
-    icon: <PlatformIcon size={16} platform="go" />,
+    icon: <PlatformIcon size={16} platform="go" alt="" />,
     Guide: GoCronQuickStart,
     platforms: new Set(['go']),
   },
   java: {
     label: 'Java',
-    icon: <PlatformIcon size={16} platform="java" />,
+    icon: <PlatformIcon size={16} platform="java" alt="" />,
     Guide: JavaCronQuickStart,
     platforms: new Set(['java', 'java-log4j2', 'java-logback']),
   },
   javaSpringBoot: {
     label: 'Spring',
-    icon: <PlatformIcon size={16} platform="java-spring" />,
+    icon: <PlatformIcon size={16} platform="java-spring" alt="" />,
     Guide: JavaSpringBootCronQuickStart,
     platforms: new Set(['java-spring-boot', 'java-spring']),
   },
   javaQuartz: {
     label: 'Quartz',
     Guide: JavaQuartzCronQuickStart,
-    icon: <PlatformIcon size={16} platform="java-spring" />,
+    icon: <PlatformIcon size={16} platform="java-spring" alt="" />,
     platforms: new Set([
       'java',
       'java-log4j2',
@@ -134,25 +134,25 @@ const onboardingGuides: Record<string, OnboardingGuide> = {
   },
   ruby: {
     label: 'Ruby',
-    icon: <PlatformIcon size={16} platform="ruby" />,
+    icon: <PlatformIcon size={16} platform="ruby" alt="" />,
     Guide: RubyCronQuickStart,
     platforms: new Set(['ruby']),
   },
   rubyRails: {
     label: 'Rails',
-    icon: <PlatformIcon size={16} platform="ruby-rails" />,
+    icon: <PlatformIcon size={16} platform="ruby-rails" alt="" />,
     Guide: RubyRailsCronQuickStart,
     platforms: new Set(['ruby', 'ruby-rails']),
   },
   rubySidekiq: {
     label: 'Sidekiq',
-    icon: <PlatformIcon size={16} platform="ruby" />,
+    icon: <PlatformIcon size={16} platform="ruby" alt="" />,
     Guide: RubySidekiqCronQuickStart,
     platforms: new Set(['ruby', 'ruby-rails']),
   },
   dotnet: {
     label: '.NET',
-    icon: <PlatformIcon size={16} platform="dotnet" />,
+    icon: <PlatformIcon size={16} platform="dotnet" alt="" />,
     Guide: DotNetCronQuickStart,
     platforms: new Set([
       'dotnet',
@@ -169,7 +169,7 @@ const onboardingGuides: Record<string, OnboardingGuide> = {
   },
   dotnetHangfire: {
     label: 'Hangfire',
-    icon: <PlatformIcon size={16} platform="dotnet" />,
+    icon: <PlatformIcon size={16} platform="dotnet" alt="" />,
     Guide: DotNetHangfireCronQuickStart,
     platforms: new Set([
       'dotnet',

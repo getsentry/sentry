@@ -2,6 +2,7 @@ import {useState} from 'react';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 
+import {getAutofixNextStep} from 'sentry/components/events/autofix/getAutofixNextStep';
 import {
   findCodingAgentResultLink,
   getRepoPullRequestLink,
@@ -9,11 +10,10 @@ import {
 import {getCodingAgentName} from 'sentry/components/events/autofix/types';
 import {
   getOrderedAutofixSections,
-  type ExplorerAutofixState,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconOpen, IconRefresh, IconSeer} from 'sentry/icons';
+import {IconGithub, IconOpen, IconRefresh, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
@@ -34,6 +34,7 @@ interface SeerAction {
   kind: SeerActionKind;
   label: string;
   href?: string;
+  isPullRequest?: boolean;
   repoName?: string;
   tooltip?: string | null;
 }
@@ -68,15 +69,11 @@ const AUTOFIX_ANALYTICS = {
   },
 } as const;
 
-function getAutofixPrimaryAction(
-  runState: ExplorerAutofixState | null
-): SeerAction | null {
+function getAutofixPrimaryAction(autofix: ExplorerAutofix): SeerAction | null {
+  const {runState} = autofix;
   const sections = getOrderedAutofixSections(runState);
-  const lastCompletedSection = sections.findLast(
-    section => section.status === 'completed'
-  );
 
-  if (!runState || !lastCompletedSection) {
+  if (!runState || sections.length === 0) {
     return {
       ...AUTOFIX_ANALYTICS.root_cause,
       kind: 'root_cause',
@@ -110,6 +107,7 @@ function getAutofixPrimaryAction(
       kind: 'link',
       label: completedPullRequestLink.label,
       href: completedPullRequestLink.url,
+      isPullRequest: true,
     };
   }
 
@@ -125,75 +123,49 @@ function getAutofixPrimaryAction(
     };
   }
 
-  switch (lastCompletedSection.step) {
-    case 'pull_request': {
-      const pullRequest = pullRequests[0];
-      if (!pullRequest) {
-        return null;
-      }
+  const codingAgents = Object.values(runState.coding_agents ?? {});
+  const resultLink = findCodingAgentResultLink(codingAgents);
 
-      return {
-        ...AUTOFIX_ANALYTICS.create_pr,
-        kind: 'create_pr',
-        label: t('Retry PR in %s', pullRequest.repo_name),
-        repoName: pullRequest.repo_name,
-        tooltip: pullRequest.pr_creation_error,
-      };
-    }
+  if (resultLink) {
+    return {
+      ...AUTOFIX_ANALYTICS.view,
+      kind: 'link',
+      label: resultLink.label,
+      href: resultLink.url,
+    };
+  }
 
-    case 'coding_agents': {
-      const codingAgents = Object.values(runState.coding_agents ?? {});
-      const resultLink = findCodingAgentResultLink(codingAgents);
+  const codingAgent = codingAgents.find(agent => agent.agent_url);
+  if (codingAgent?.agent_url) {
+    return {
+      ...AUTOFIX_ANALYTICS.view,
+      kind: 'link',
+      label: t('Open in %s', getCodingAgentName(codingAgent.provider)),
+      href: codingAgent.agent_url,
+    };
+  }
 
-      if (resultLink) {
-        return {
-          ...AUTOFIX_ANALYTICS.view,
-          kind: 'link',
-          label: resultLink.label,
-          href: resultLink.url,
-        };
-      }
+  const nextStep = getAutofixNextStep({sections});
 
-      const codingAgent = codingAgents.find(agent => agent.agent_url);
-      if (codingAgent?.agent_url) {
-        return {
-          ...AUTOFIX_ANALYTICS.view,
-          kind: 'link',
-          label: t('Open in %s', getCodingAgentName(codingAgent.provider)),
-          href: codingAgent.agent_url,
-        };
-      }
-
-      return null;
-    }
-
+  switch (nextStep?.action) {
+    case 'create_pr':
+      return {...AUTOFIX_ANALYTICS.create_pr, kind: 'create_pr', label: t('Draft a PR')};
     case 'code_changes':
-      return {
-        ...AUTOFIX_ANALYTICS.create_pr,
-        kind: 'create_pr',
-        label: t('Draft a PR'),
-      };
-
-    case 'solution':
       return {
         ...AUTOFIX_ANALYTICS.code_changes,
         kind: 'code_changes',
         label: t('Write a Code Fix'),
       };
-
-    case 'root_cause':
+    case 'solution':
+      return {...AUTOFIX_ANALYTICS.solution, kind: 'solution', label: t('Make a Plan')};
+    case 'pr_iteration':
       return {
-        ...AUTOFIX_ANALYTICS.solution,
-        kind: 'solution',
-        label: t('Make a Plan'),
+        ...AUTOFIX_ANALYTICS.view,
+        kind: 'view_autofix',
+        label: t('Continue in Seer'),
       };
-
     default:
-      return {
-        ...AUTOFIX_ANALYTICS.root_cause,
-        kind: 'root_cause',
-        label: t('Find Root Cause'),
-      };
+      return null;
   }
 }
 
@@ -224,7 +196,7 @@ function IssuePreviewSeerButton({
   onContinueInSeer,
 }: IssuePreviewSeerActionsProps) {
   const [isStartingAction, setIsStartingAction] = useState(false);
-  const action = getAutofixPrimaryAction(autofix.runState);
+  const action = getAutofixPrimaryAction(autofix);
   const runId = autofix.runState?.run_id;
   const busy = autofix.isPolling || isStartingAction;
 
@@ -267,7 +239,13 @@ function IssuePreviewSeerButton({
         external
         variant="primary"
         size="sm"
-        icon={<IconOpen />}
+        icon={
+          action.isPullRequest ? (
+            <IconGithub data-test-id="pull-request-github" />
+          ) : (
+            <IconOpen />
+          )
+        }
         href={action.href}
         disabled={disabled}
         tooltipProps={action.tooltip ? {title: action.tooltip} : undefined}

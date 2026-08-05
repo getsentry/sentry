@@ -6,7 +6,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, ExtrapolationMode
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter
 
-from sentry.search.eap.types import SupportedTraceItemType
+from sentry.search.eap.types import ColumnType, SupportedTraceItemType
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS, DurationUnit, SizeUnit
 from sentry.search.events.types import SAMPLING_MODES
 
@@ -258,4 +258,19 @@ ATTRIBUTES_QUERY_PARAM_TO_ATTRIBUTE_TYPE_MAP = {
     "number": AttributeKey.Type.TYPE_DOUBLE,
     "boolean": AttributeKey.Type.TYPE_BOOLEAN,
     "string": AttributeKey.Type.TYPE_STRING,
+    "array": AttributeKey.Type.TYPE_ARRAY,
+}
+
+
+PROTO_TYPE_TO_ATTRIBUTE_TYPE_MAP: dict[AttributeKey.Type.ValueType, ColumnType] = {
+    AttributeKey.Type.TYPE_STRING: "string",
+    AttributeKey.Type.TYPE_BOOLEAN: "boolean",
+    AttributeKey.Type.TYPE_INT: "number",
+    AttributeKey.Type.TYPE_FLOAT: "number",
+    AttributeKey.Type.TYPE_DOUBLE: "number",
+    AttributeKey.Type.TYPE_ARRAY: "array",
+    AttributeKey.Type.TYPE_ARRAY_STRING: "array",
+    AttributeKey.Type.TYPE_ARRAY_INT: "array",
+    AttributeKey.Type.TYPE_ARRAY_DOUBLE: "array",
+    AttributeKey.Type.TYPE_ARRAY_BOOL: "array",
 }

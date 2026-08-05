@@ -483,14 +483,18 @@ def upload_dif_to_objectstore(
     content_type: str,
     file_size: int,
     filename: str,
+    *,
+    key: str | None = None,
 ) -> str:
     """Uploads a debug file to Objectstore, returning the key under which the file was uploaded."""
     if file_size <= OBJECTSTORE_MULTIPART_UPLOAD_THRESHOLD:
-        return session.put(cast(IO[bytes], fileobj), content_type=content_type, filename=filename)
+        return session.put(
+            cast(IO[bytes], fileobj), key=key, content_type=content_type, filename=filename
+        )
 
     with _ensure_seekable_fileobj(fileobj) as seekable_fileobj:
         return _upload_dif_to_objectstore_multipart(
-            session, seekable_fileobj, content_type, file_size, filename
+            session, seekable_fileobj, content_type, file_size, filename, key=key
         )
 
 
@@ -517,9 +521,13 @@ def _upload_dif_to_objectstore_multipart(
     content_type: str,
     file_size: int,
     filename: str,
+    *,
+    key: str | None = None,
 ) -> str:
     """Uploads a debug file to Objectstore via parallel multipart upload."""
-    upload = session.initiate_multipart_upload(content_type=content_type, filename=filename)
+    upload = session.initiate_multipart_upload(
+        key=key, content_type=content_type, filename=filename
+    )
 
     lock = threading.Lock()
     num_parts = max(1, math.ceil(file_size / OBJECTSTORE_MULTIPART_UPLOAD_PART_SIZE))
