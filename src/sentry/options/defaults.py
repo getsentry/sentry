@@ -511,11 +511,10 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# No longer read: the bulk delete job always windows by one UTC day. See `day_aligned_window` for
-# why nothing else is worth using. Kept registered pending removal.
+# Chunk size for bulk delete job
 register(
     "replay.bulk_delete_job.chunk_size_days",
-    default=1,
+    default=7,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
