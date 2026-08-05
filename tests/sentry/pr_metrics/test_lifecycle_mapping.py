@@ -172,12 +172,33 @@ class UpdatePullRequestFromScmSnapshotTest(TestCase):
             event_updated_at=provider_updated_at,
         )
 
+    def test_serializes_writers_before_the_row_exists(self) -> None:
+        # The decision must be serialized from before the first read, not from the
+        # first read. SELECT ... FOR UPDATE has nothing to lock until the row exists,
+        # so on a first delivery it grants no exclusion at all and two writers would
+        # both skip the staleness guard. The advisory lock is keyed on the natural key
+        # and so covers the create path too; it has to be taken before any read of the
+        # row, or the gap it exists to close is still open.
+        connection = connections[router.db_for_write(PullRequest)]
+        with CaptureQueriesContext(connection) as queries:
+            self._upsert(
+                state=PullRequestLifecycleState.OPEN,
+                provider_updated_at=datetime(2015, 5, 5, 23, 40, tzinfo=timezone.utc),
+                title="opened",
+            )
+
+        sql = [q["sql"] for q in queries.captured_queries]
+        advisory = [i for i, q in enumerate(sql) if "pg_advisory_xact_lock" in q]
+        reads = [
+            i for i, q in enumerate(sql) if q.startswith("SELECT") and "sentry_pull_request" in q
+        ]
+        assert advisory, "expected the natural key to be locked"
+        assert reads, "expected a read of the PR row"
+        assert advisory[0] < reads[0]
+
     def test_locks_the_row_for_the_staleness_decision(self) -> None:
-        # Deliveries from one mailbox run concurrently, so the read the decision is
-        # based on has to hold the row until the write lands — otherwise both writers
-        # see the pre-write row and the older one lands last. update_or_create takes
-        # its own lock, but only after this read, so the first read must be the locked
-        # one.
+        # The row lock stays as a second line of defence, so a writer that creates the
+        # row by another path (the pr_metrics stub) is still held off.
         self._upsert(
             state=PullRequestLifecycleState.OPEN,
             provider_updated_at=datetime(2015, 5, 5, 23, 40, tzinfo=timezone.utc),
@@ -199,6 +220,36 @@ class UpdatePullRequestFromScmSnapshotTest(TestCase):
         ]
         assert reads
         assert "FOR UPDATE" in reads[0]
+
+    def test_newer_snapshot_wins_whichever_delivery_lands_first(self) -> None:
+        # The invariant serialization has to deliver: of two first deliveries for the
+        # same PR, the surviving row reflects the newer provider timestamp regardless
+        # of completion order. Serializing turns the concurrent case into these two,
+        # so both orders are asserted.
+        older = datetime(2015, 5, 5, 23, 40, tzinfo=timezone.utc)
+        newer = datetime(2015, 5, 5, 23, 45, tzinfo=timezone.utc)
+
+        self._upsert(
+            state=PullRequestLifecycleState.OPEN, provider_updated_at=older, title="opened"
+        )
+        self._upsert(
+            state=PullRequestLifecycleState.MERGED, provider_updated_at=newer, title="merged"
+        )
+        row = PullRequest.objects.get(repository_id=self.repo.id, key="42")
+        assert row.state == PullRequestLifecycleState.MERGED
+        assert row.provider_updated_at == newer
+
+        PullRequest.objects.filter(repository_id=self.repo.id, key="42").delete()
+
+        self._upsert(
+            state=PullRequestLifecycleState.MERGED, provider_updated_at=newer, title="merged"
+        )
+        self._upsert(
+            state=PullRequestLifecycleState.OPEN, provider_updated_at=older, title="opened"
+        )
+        row = PullRequest.objects.get(repository_id=self.repo.id, key="42")
+        assert row.state == PullRequestLifecycleState.MERGED
+        assert row.provider_updated_at == newer
 
     def test_stale_snapshot_leaves_the_row_untouched(self) -> None:
         self._upsert(
