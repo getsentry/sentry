@@ -1,4 +1,4 @@
-import {Fragment, type RefObject, useMemo, useRef} from 'react';
+import {Fragment, type PropsWithChildren, type RefObject, useMemo, useRef} from 'react';
 import {mergeProps} from '@react-aria/utils';
 import {motion, type MotionProps} from 'framer-motion';
 
@@ -92,7 +92,12 @@ export function Navigation() {
             paddingBottom="md"
           >
             <PrimaryNavigation.FooterItems>
-              <PrimaryNavigationFooterItems />
+              <PrimaryNavigationFooterItems>
+                <ErrorBoundary customComponent={null}>
+                  <PrimaryNavigationWhatsNew />
+                </ErrorBoundary>
+                <PrimaryNavigationHelpMenu />
+              </PrimaryNavigationFooterItems>
             </PrimaryNavigation.FooterItems>
             <PrimaryNavigation.FooterItems>
               <PrimaryNavigationFooterItemsUserDropdown />
@@ -282,7 +287,7 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
 /**
  * Returns the list of items from the footer of the primary navigation
  */
-export function PrimaryNavigationFooterItems() {
+export function PrimaryNavigationFooterItems({children}: PropsWithChildren) {
   const organization = useOrganization();
 
   return (
@@ -302,10 +307,7 @@ export function PrimaryNavigationFooterItems() {
       <ErrorBoundary customComponent={null}>
         <PrimaryNavigationServiceIncidents />
       </ErrorBoundary>
-      <ErrorBoundary customComponent={null}>
-        <PrimaryNavigationWhatsNew />
-      </ErrorBoundary>
-      <PrimaryNavigationHelpMenu />
+      {children}
     </Fragment>
   );
 }
