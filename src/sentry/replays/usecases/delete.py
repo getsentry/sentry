@@ -15,7 +15,6 @@ from snuba_sdk import (
     Function,
     Granularity,
     Limit,
-    Offset,
     Op,
     OrderBy,
     Query,
@@ -114,6 +113,7 @@ class MatchedRow(TypedDict):
 class MatchedRows(TypedDict):
     rows: list[MatchedRow]
     has_more: bool
+    next_cursor: int | None
 
 
 def fetch_rows_matching_pattern(
@@ -123,7 +123,7 @@ def fetch_rows_matching_pattern(
     query: str,
     environment: list[str],
     limit: int,
-    offset: int,
+    after_replay_id_hash: int | None = None,
 ) -> MatchedRows:
     search_filters = parse_search_query(query, config=replay_url_parser_config)
     having = handle_search_filters(agg_search_config, search_filters)
@@ -132,12 +132,27 @@ def fetch_rows_matching_pattern(
     if environment:
         where.append(Condition(Column("environment"), Op.IN, environment))
 
+    # Fetch `cityHash64(replay_id)`. Unlike raw `replay_id` it is part of the table's
+    # _sort key_, so ClickHouse can use it to skip granules while scanning.
+    replay_id_hash_column = Function(
+        "cityHash64", parameters=[Column("replay_id")], alias="replay_id_hash"
+    )
+    if after_replay_id_hash is not None:
+        where.append(
+            Condition(
+                Function("cityHash64", parameters=[Column("replay_id")]),
+                Op.GT,
+                after_replay_id_hash,
+            )
+        )
+
     query = Query(
         match=Entity("replays"),
         select=[
             Function("any", parameters=[Column("retention_days")], alias="retention_days"),
             Column("replay_id"),
             Function("max", parameters=[Column("segment_id")], alias="max_segment_id"),
+            replay_id_hash_column,
         ],
         where=[
             Condition(Column("project_id"), Op.EQ, project_id),
@@ -148,11 +163,13 @@ def fetch_rows_matching_pattern(
             *where,
         ],
         having=having,
-        groupby=[Column("replay_id")],
-        orderby=[OrderBy(Function("min", parameters=[Column("timestamp")]), Direction.ASC)],
+        # Group by both the `replay_id` and `cityHash64(replay_id)` so we are able
+        # to keep track of the cursor _and_ still get the Replay IDs out. Since
+        # the hash is a function of the ID, this doesn't change the row contents.
+        groupby=[Column("replay_id"), replay_id_hash_column],
+        orderby=[OrderBy(replay_id_hash_column, Direction.ASC)],
         granularity=Granularity(3600),
         limit=Limit(limit),
-        offset=Offset(offset),
     )
 
     # Queries are retried for a max for 5 attempts. Retries are exponentially delayed. This is
@@ -174,8 +191,11 @@ def fetch_rows_matching_pattern(
     rows = response.get("data", [])
     has_more = len(rows) == limit
 
+    next_cursor = rows[-1]["replay_id_hash"] if rows else None
+
     return {
         "has_more": has_more,
+        "next_cursor": next_cursor,
         "rows": [
             {
                 "max_segment_id": row["max_segment_id"],
