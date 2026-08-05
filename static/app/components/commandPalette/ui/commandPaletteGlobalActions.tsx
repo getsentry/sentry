@@ -701,7 +701,6 @@ export function GlobalCommandPaletteActions() {
                   // some orgs have thousands of projects.
                   // `params.projectId`/`queryProjectIds` bust the cache when
                   // the active project changes (affects "Current" tag display).
-                  // eslint-disable-next-line @tanstack/query/exhaustive-deps
                   cmdkQueryOptions({
                     queryKey: [
                       'project-settings',
