@@ -98,8 +98,12 @@ export function CategoricalSeriesWidgetVisualization(
 
   // Extract all unique categories from all plottables and convert to display strings
   // for ECharts compatibility (xAxis.data expects string[])
-  const allCategories = uniq(
-    props.plottables.flatMap(plottable => plottable.categories.map(formatXAxisValue))
+  const allCategories = useMemo(
+    () =>
+      uniq(
+        props.plottables.flatMap(plottable => plottable.categories.map(formatXAxisValue))
+      ),
+    [props.plottables]
   );
 
   // Configure the Y axis (value axis)
@@ -160,8 +164,7 @@ export function CategoricalSeriesWidgetVisualization(
         truncationFormatter(trimmed[i]!, truncateLength, false),
       ])
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allCategories.join(','), props.truncateCategoryLabels]);
+  }, [allCategories, props.truncateCategoryLabels]);
 
   // Configure the X axis (category axis)
   const xAxis: BaseChartProps['xAxis'] = {

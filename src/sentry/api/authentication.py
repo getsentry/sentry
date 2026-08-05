@@ -628,10 +628,12 @@ class AgentTokenAuthentication(StandardAuthentication):
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
         try:
             claims = agent_token.decode_agent_token(token_str)
-            user_id = int(claims["sub"])
             # Building the token casts org and scopes too, so any missing/mis-typed claim
             # in a signed token is a clean 401 here, not a 500 downstream.
             auth_token = agent_token.build_authenticated_token(claims)
+            user_id = auth_token.user_id
+            if user_id is None:
+                raise ValueError("Agent token has no user principal")
         except (PyJWTError, KeyError, ValueError, TypeError):
             raise AuthenticationFailed("Invalid agent token")
 

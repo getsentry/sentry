@@ -94,7 +94,10 @@ def _make_recording_filenames(project_id: int, rows: list[MatchedRow]) -> Iterat
         # We assume every segment between 0 and the max_segment_id exists. Its a waste of time to
         # delete a non-existent segment but its not so significant that we'd want to query ClickHouse
         # to verify it exists.
-        replay_id = row["replay_id"]
+
+        # Snuba returns `replay_id` in dashed UUID form because the column is a ClickHouse UUID, but
+        # blob storage keys use the dash-stripped 32-hex form.
+        replay_id = row["replay_id"].replace("-", "")
         retention_days = row["retention_days"]
 
         for segment_id in range(row["max_segment_id"] + 1):
@@ -163,7 +166,7 @@ def fetch_rows_matching_pattern(
         functools.partial(
             execute_query,
             query,
-            {"tenant_id": Organization.objects.filter(project__id=project_id).get().id},
+            {"organization_id": Organization.objects.filter(project__id=project_id).get().id},
             Referrer.REPLAYS_DELETE_REPLAYS_BULK.value,
         )
     )

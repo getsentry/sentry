@@ -2,14 +2,16 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import timedelta
-from typing import NamedTuple
-from unittest.mock import patch
+from typing import Any, NamedTuple
+from unittest.mock import DEFAULT, patch
 
 import pytest
 from django.core.exceptions import ObjectDoesNotExist
 
+from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org.configuration import (
     AutomaticDynamicSamplingConfiguration,
+    BaseDynamicSamplingConfiguration,
     CustomDynamicSamplingOrganizationConfiguration,
     CustomDynamicSamplingProjectConfiguration,
     NoDynamicSamplingConfiguration,
@@ -24,8 +26,27 @@ from sentry.dynamic_sampling.tasks.helpers.sliding_window import FALLBACK_SLIDIN
 from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
+from tests.sentry.dynamic_sampling.per_org.test_helpers import (
+    BLENDED_SAMPLE_RATE,
+    CALCULATE_FACTOR,
+    DELETE_FACTOR,
+    GET_FACTOR,
+    OUTCOMES_VOLUME,
+    SAMPLED_VOLUME,
+    SET_FACTOR,
+    SLIDING_WINDOW_RATE,
+    patch_configuration,
+)
 
 SpanOrgIds = Callable[[Organization], list[int]]
+
+
+def assert_measure(
+    configuration: BaseDynamicSamplingConfiguration, expected: SamplingMeasure
+) -> None:
+    assert configuration.measure == expected
+    assert configuration.is_span_based == (expected == SamplingMeasure.SPANS)
+    assert configuration.is_segment_based == (expected == SamplingMeasure.SEGMENTS)
 
 
 class MeasureOptionCase(NamedTuple):
@@ -51,23 +72,26 @@ MEASURE_OPTION_CASES = (
 
 
 class DynamicSamplingOrgConfigurationTest(TestCase):
+    def measure_options(self, case: MeasureOptionCase, organization: Organization) -> Any:
+        return self.options(
+            {
+                "dynamic-sampling.check_span_feature_flag": case.check_span_feature_flag,
+                "dynamic-sampling.measure.spans": case.span_org_ids(organization),
+            }
+        )
+
     def test_subscription_backed_org_uses_blended_sample_rate(self) -> None:
         org = self.create_organization()
 
-        with patch(
-            "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
-            return_value=0.5,
-        ) as get_blended_sample_rate:
+        with patch_configuration({BLENDED_SAMPLE_RATE: 0.5}) as mocks:
             configuration = get_configuration(org.id)
 
         assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
         assert configuration.is_enabled
-        assert configuration.measure == SamplingMeasure.SEGMENTS
-        assert configuration.is_segment_based
-        assert not configuration.is_span_based
+        assert_measure(configuration, SamplingMeasure.SEGMENTS)
         assert configuration.sample_rate == 0.5
         assert configuration.project_sample_rates == {}
-        get_blended_sample_rate.assert_called_once_with(organization_id=org.id)
+        mocks[BLENDED_SAMPLE_RATE].assert_called_once_with(organization_id=org.id)
         assert configuration.get_sample_rate() == 0.5
 
     def test_subscription_backed_org_uses_outcomes_sliding_window_sample_rate(self) -> None:
@@ -75,31 +99,25 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
         self.create_project(organization=org)
         sliding_window_volume = OrganizationDataVolume(org_id=org.id, total=1000, indexed=250)
 
-        with (
-            patch(
-                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
-                return_value=0.5,
-            ),
-            patch(
-                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
-                return_value=sliding_window_volume,
-            ) as get_volume,
-            patch(
-                "sentry.dynamic_sampling.per_org.configuration.compute_sliding_window_sample_rate",
-                return_value=0.25,
-            ) as compute_sample_rate,
-        ):
+        with patch_configuration(
+            {
+                BLENDED_SAMPLE_RATE: 0.5,
+                OUTCOMES_VOLUME: sliding_window_volume,
+                SLIDING_WINDOW_RATE: 0.25,
+                SAMPLED_VOLUME: None,
+            }
+        ) as mocks:
             configuration = get_configuration(org.id)
 
         assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
         assert configuration.get_sample_rate() == 0.25
         # Blended rate is below 100%, so serving is not gated and matches the usage rate.
         assert configuration.get_serving_sample_rate() == 0.25
-        get_volume.assert_called_once()
-        assert get_volume.call_args.kwargs["time_interval"] == timedelta(
+        mocks[OUTCOMES_VOLUME].assert_called_once()
+        assert mocks[OUTCOMES_VOLUME].call_args.kwargs["time_interval"] == timedelta(
             hours=FALLBACK_SLIDING_WINDOW_SIZE
         )
-        compute_sample_rate.assert_called_once_with(
+        mocks[SLIDING_WINDOW_RATE].assert_called_once_with(
             org_id=org.id,
             project_id=None,
             total_root_count=1000,
@@ -111,19 +129,12 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
         self.create_project(organization=org)
         sliding_window_volume = OrganizationDataVolume(org_id=org.id, total=1000, indexed=250)
 
-        with (
-            patch(
-                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
-                return_value=1.0,
-            ),
-            patch(
-                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
-                return_value=sliding_window_volume,
-            ),
-            patch(
-                "sentry.dynamic_sampling.per_org.configuration.compute_sliding_window_sample_rate",
-                return_value=0.25,
-            ),
+        with patch_configuration(
+            {
+                BLENDED_SAMPLE_RATE: 1.0,
+                OUTCOMES_VOLUME: sliding_window_volume,
+                SLIDING_WINDOW_RATE: 0.25,
+            }
         ):
             configuration = get_configuration(org.id)
 
@@ -140,56 +151,184 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
         org = self.create_organization()
         self.create_project(organization=org)
 
-        with (
-            patch(
-                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
-                return_value=0.5,
-            ),
-            patch(
-                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
-                return_value=None,
-            ),
-            patch(
-                "sentry.dynamic_sampling.per_org.configuration.compute_sliding_window_sample_rate",
-            ) as compute_sample_rate,
-        ):
+        with patch_configuration(
+            {
+                BLENDED_SAMPLE_RATE: 0.5,
+                OUTCOMES_VOLUME: None,
+                SLIDING_WINDOW_RATE: DEFAULT,
+                SAMPLED_VOLUME: None,
+            }
+        ) as mocks:
             configuration = get_configuration(org.id)
 
         assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
         assert configuration.get_sample_rate() == 0.5
-        compute_sample_rate.assert_not_called()
+        mocks[SLIDING_WINDOW_RATE].assert_not_called()
+
+    def test_subscription_backed_org_calculates_recalibration_factor(self) -> None:
+        org = self.create_organization()
+        self.create_project(organization=org, teams=[])
+        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
+
+        with patch_configuration(
+            {
+                BLENDED_SAMPLE_RATE: 0.5,
+                OUTCOMES_VOLUME: None,
+                SAMPLED_VOLUME: org_volume,
+                GET_FACTOR: 1.4,
+                SET_FACTOR: DEFAULT,
+                CALCULATE_FACTOR: 0.7,
+            }
+        ) as mocks:
+            configuration = get_configuration(org.id)
+
+            assert configuration.recalibrate() == 0.7
+
+        assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
+        assert configuration.organization_recalibration_factor == 0.7
+        mocks[SAMPLED_VOLUME].assert_called_once()
+        mocks[GET_FACTOR].assert_called_once_with(org.id)
+        mocks[CALCULATE_FACTOR].assert_called_once_with(org_volume, 1.4, 0.5)
+        mocks[SET_FACTOR].assert_called_once_with(org.id, 0.7)
+
+    def test_subscription_backed_org_deletes_recalibration_factor_when_out_of_bounds(
+        self,
+    ) -> None:
+        org = self.create_organization()
+        self.create_project(organization=org, teams=[])
+        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=1)
+
+        with patch_configuration(
+            {
+                BLENDED_SAMPLE_RATE: 0.5,
+                OUTCOMES_VOLUME: None,
+                SAMPLED_VOLUME: org_volume,
+                GET_FACTOR: 1.0,
+                DELETE_FACTOR: DEFAULT,
+                SET_FACTOR: DEFAULT,
+            }
+        ) as mocks:
+            configuration = get_configuration(org.id)
+
+            assert configuration.recalibrate() is None
+
+        assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
+        assert configuration.organization_recalibration_factor is None
+        mocks[DELETE_FACTOR].assert_called_once_with(org.id)
+        mocks[SET_FACTOR].assert_not_called()
+
+    def test_subscription_backed_org_leaves_recalibration_factor_when_not_computed(
+        self,
+    ) -> None:
+        org = self.create_organization()
+        self.create_project(organization=org, teams=[])
+        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
+
+        with patch_configuration(
+            {
+                BLENDED_SAMPLE_RATE: 0.5,
+                OUTCOMES_VOLUME: None,
+                SAMPLED_VOLUME: org_volume,
+                GET_FACTOR: 1.0,
+                CALCULATE_FACTOR: None,
+                DELETE_FACTOR: DEFAULT,
+                SET_FACTOR: DEFAULT,
+            }
+        ) as mocks:
+            configuration = get_configuration(org.id)
+
+            assert configuration.recalibrate() is None
+
+        assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
+        assert configuration.organization_recalibration_factor is None
+        mocks[DELETE_FACTOR].assert_not_called()
+        mocks[SET_FACTOR].assert_not_called()
+
+    def test_building_configuration_does_not_recalibrate(self) -> None:
+        org = self.create_organization()
+        self.create_project(organization=org, teams=[])
+
+        with patch_configuration(
+            {
+                BLENDED_SAMPLE_RATE: 0.5,
+                OUTCOMES_VOLUME: None,
+                SAMPLED_VOLUME: DEFAULT,
+                SET_FACTOR: DEFAULT,
+                DELETE_FACTOR: DEFAULT,
+            }
+        ) as mocks:
+            configuration = get_configuration(org.id)
+
+        assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
+        assert configuration.organization_recalibration_factor is None
+        mocks[SAMPLED_VOLUME].assert_not_called()
+        mocks[SET_FACTOR].assert_not_called()
+        mocks[DELETE_FACTOR].assert_not_called()
+
+    def test_org_mode_custom_dynamic_sampling_recalibrates_against_target_sample_rate(self) -> None:
+        org = self.create_organization()
+        self.create_project(organization=org, teams=[])
+        org.update_option("sentry:target_sample_rate", 0.3)
+        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
+
+        with (
+            self.feature("organizations:dynamic-sampling-custom"),
+            patch_configuration(
+                {
+                    SAMPLED_VOLUME: org_volume,
+                    GET_FACTOR: 1.2,
+                    CALCULATE_FACTOR: 0.9,
+                    SET_FACTOR: DEFAULT,
+                }
+            ) as mocks,
+        ):
+            configuration = get_configuration(org.id)
+
+            assert configuration.recalibrate() == 0.9
+
+        assert isinstance(configuration, CustomDynamicSamplingOrganizationConfiguration)
+        assert configuration.organization_recalibration_factor == 0.9
+        mocks[CALCULATE_FACTOR].assert_called_once_with(org_volume, 1.2, 0.3)
+        mocks[SET_FACTOR].assert_called_once_with(org.id, 0.9)
+
+    def test_project_mode_custom_dynamic_sampling_does_not_recalibrate(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        org.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
+        project.update_option("sentry:target_sample_rate", 0.2)
+
+        with (
+            self.feature("organizations:dynamic-sampling-custom"),
+            patch_configuration({SAMPLED_VOLUME: DEFAULT, SET_FACTOR: DEFAULT}) as mocks,
+        ):
+            configuration = get_configuration(org.id)
+
+            assert configuration.recalibrate() is None
+
+        assert isinstance(configuration, CustomDynamicSamplingProjectConfiguration)
+        assert configuration.organization_recalibration_factor is None
+        mocks[SAMPLED_VOLUME].assert_not_called()
+        mocks[SET_FACTOR].assert_not_called()
 
     def test_subscription_backed_org_without_sample_rate_is_disabled(self) -> None:
         org = self.create_organization()
         self.create_project(organization=org)
 
-        with (
-            patch(
-                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
-                return_value=None,
-            ),
-            patch(
-                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
-            ) as get_volume,
-        ):
+        with patch_configuration({BLENDED_SAMPLE_RATE: None, OUTCOMES_VOLUME: DEFAULT}) as mocks:
             configuration = get_configuration(org.id)
 
         assert isinstance(configuration, NoDynamicSamplingConfiguration)
         assert not configuration.is_enabled
-        get_volume.assert_not_called()
+        mocks[OUTCOMES_VOLUME].assert_not_called()
         with pytest.raises(AttributeError):
             getattr(configuration, "measure")
-        with pytest.raises(AttributeError):
-            getattr(configuration, "sample_rate")
+        assert configuration.sample_rate is None
 
     def test_subscription_backed_org_without_subscription_bubbles_terminal_status(self) -> None:
         org = self.create_organization()
 
         with (
-            patch(
-                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
-                side_effect=ObjectDoesNotExist,
-            ),
+            patch(BLENDED_SAMPLE_RATE, side_effect=ObjectDoesNotExist),
             pytest.raises(DynamicSamplingException) as exc_info,
         ):
             get_configuration(org.id)
@@ -200,10 +339,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
         org = self.create_organization()
         org.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
 
-        with patch(
-            "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
-            return_value=0.5,
-        ):
+        with patch_configuration({BLENDED_SAMPLE_RATE: 0.5}):
             configuration = get_configuration(org.id)
 
         assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
@@ -211,42 +347,29 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
         assert configuration.project_sample_rates == {}
 
     def test_org_mode_custom_dynamic_sampling_uses_org_target_sample_rate(self) -> None:
-        for measure_case in MEASURE_OPTION_CASES:
-            with self.subTest(measure_case=measure_case.name):
+        for case in MEASURE_OPTION_CASES:
+            with self.subTest(measure_case=case.name):
                 org = self.create_organization()
                 org.update_option("sentry:target_sample_rate", 0.3)
 
                 with (
                     self.feature("organizations:dynamic-sampling-custom"),
-                    self.options(
-                        {
-                            "dynamic-sampling.check_span_feature_flag": measure_case.check_span_feature_flag,
-                            "dynamic-sampling.measure.spans": measure_case.span_org_ids(org),
-                        }
-                    ),
-                    patch(
-                        "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate"
-                    ) as get_blended_sample_rate,
+                    self.measure_options(case, org),
+                    patch_configuration({BLENDED_SAMPLE_RATE: DEFAULT}) as mocks,
                 ):
                     configuration = get_configuration(org.id)
 
                 assert isinstance(configuration, CustomDynamicSamplingOrganizationConfiguration)
                 assert configuration.is_enabled
-                assert configuration.measure == measure_case.expected_measure
-                assert configuration.is_span_based == (
-                    measure_case.expected_measure == SamplingMeasure.SPANS
-                )
-                assert configuration.is_segment_based == (
-                    measure_case.expected_measure == SamplingMeasure.SEGMENTS
-                )
+                assert_measure(configuration, case.expected_measure)
                 assert configuration.sample_rate == 0.3
                 assert configuration.get_sample_rate() == 0.3
                 assert configuration.project_sample_rates == {}
-                get_blended_sample_rate.assert_not_called()
+                mocks[BLENDED_SAMPLE_RATE].assert_not_called()
 
     def test_project_mode_custom_dynamic_sampling_stores_project_sample_rates(self) -> None:
-        for measure_case in MEASURE_OPTION_CASES:
-            with self.subTest(measure_case=measure_case.name):
+        for case in MEASURE_OPTION_CASES:
+            with self.subTest(measure_case=case.name):
                 org = self.create_organization()
                 project = self.create_project(organization=org)
                 project_without_rate = self.create_project(organization=org)
@@ -255,115 +378,75 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
 
                 with (
                     self.feature("organizations:dynamic-sampling-custom"),
-                    self.options(
-                        {
-                            "dynamic-sampling.check_span_feature_flag": measure_case.check_span_feature_flag,
-                            "dynamic-sampling.measure.spans": measure_case.span_org_ids(org),
-                        }
-                    ),
-                    patch(
-                        "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate"
-                    ) as get_blended_sample_rate,
+                    self.measure_options(case, org),
+                    patch_configuration({BLENDED_SAMPLE_RATE: DEFAULT}) as mocks,
                 ):
                     configuration = get_configuration(org.id)
 
                 assert isinstance(configuration, CustomDynamicSamplingProjectConfiguration)
                 assert configuration.is_enabled
-                assert configuration.measure == measure_case.expected_measure
-                assert configuration.is_span_based == (
-                    measure_case.expected_measure == SamplingMeasure.SPANS
-                )
-                assert configuration.is_segment_based == (
-                    measure_case.expected_measure == SamplingMeasure.SEGMENTS
-                )
+                assert_measure(configuration, case.expected_measure)
                 assert configuration.project_sample_rates == {
                     project.id: 0.2,
                     project_without_rate.id: None,
                 }
                 assert configuration.get_sample_rate() is None
-                with pytest.raises(AttributeError):
-                    getattr(configuration, "sample_rate")
-                get_blended_sample_rate.assert_not_called()
+                assert configuration.sample_rate is None
+                mocks[BLENDED_SAMPLE_RATE].assert_not_called()
 
     def test_project_mode_custom_dynamic_sampling_without_project_rates_is_disabled(
         self,
     ) -> None:
-        for measure_case in MEASURE_OPTION_CASES:
-            with self.subTest(measure_case=measure_case.name):
+        for case in MEASURE_OPTION_CASES:
+            with self.subTest(measure_case=case.name):
                 org = self.create_organization()
                 project = self.create_project(organization=org)
                 org.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
 
                 with (
                     self.feature("organizations:dynamic-sampling-custom"),
-                    self.options(
-                        {
-                            "dynamic-sampling.check_span_feature_flag": measure_case.check_span_feature_flag,
-                            "dynamic-sampling.measure.spans": measure_case.span_org_ids(org),
-                        }
-                    ),
+                    self.measure_options(case, org),
                 ):
                     configuration = get_configuration(org.id)
 
                 assert isinstance(configuration, CustomDynamicSamplingProjectConfiguration)
                 assert not configuration.is_enabled
-                assert configuration.measure == measure_case.expected_measure
+                assert configuration.measure == case.expected_measure
                 assert configuration.project_sample_rates == {project.id: None}
-                with pytest.raises(AttributeError):
-                    getattr(configuration, "sample_rate")
+                assert configuration.sample_rate is None
 
     def test_project_mode_custom_dynamic_sampling_without_projects_is_disabled(self) -> None:
-        for measure_case in MEASURE_OPTION_CASES:
-            with self.subTest(measure_case=measure_case.name):
+        for case in MEASURE_OPTION_CASES:
+            with self.subTest(measure_case=case.name):
                 org = self.create_organization()
                 org.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
 
                 with (
                     self.feature("organizations:dynamic-sampling-custom"),
-                    self.options(
-                        {
-                            "dynamic-sampling.check_span_feature_flag": measure_case.check_span_feature_flag,
-                            "dynamic-sampling.measure.spans": measure_case.span_org_ids(org),
-                        }
-                    ),
+                    self.measure_options(case, org),
                 ):
                     configuration = get_configuration(org.id)
 
                 assert isinstance(configuration, CustomDynamicSamplingProjectConfiguration)
                 assert not configuration.is_enabled
-                assert configuration.measure == measure_case.expected_measure
+                assert configuration.measure == case.expected_measure
                 assert configuration.project_sample_rates == {}
-                with pytest.raises(AttributeError):
-                    getattr(configuration, "sample_rate")
+                assert configuration.sample_rate is None
 
     def test_subscription_backed_org_uses_measure_options(self) -> None:
-        for measure_case in MEASURE_OPTION_CASES:
-            with self.subTest(measure_case=measure_case.name):
+        for case in MEASURE_OPTION_CASES:
+            with self.subTest(measure_case=case.name):
                 org = self.create_organization()
 
                 with (
-                    self.options(
-                        {
-                            "dynamic-sampling.check_span_feature_flag": measure_case.check_span_feature_flag,
-                            "dynamic-sampling.measure.spans": measure_case.span_org_ids(org),
-                        }
-                    ),
-                    patch(
-                        "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
-                        return_value=1.0,
-                    ),
+                    self.measure_options(case, org),
+                    patch_configuration({BLENDED_SAMPLE_RATE: 1.0}),
                 ):
                     configuration = get_configuration(org.id)
 
                 assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
                 assert configuration.is_enabled
-                assert configuration.measure == measure_case.expected_measure
-                assert configuration.is_span_based == (
-                    measure_case.expected_measure == SamplingMeasure.SPANS
-                )
-                assert configuration.is_segment_based == (
-                    measure_case.expected_measure == SamplingMeasure.SEGMENTS
-                )
+                assert_measure(configuration, case.expected_measure)
                 assert configuration.sample_rate == 1.0
 
 
@@ -380,7 +463,13 @@ class GetProjectSampleRatesTest(TestCase):
         org.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
         project_a.update_option("sentry:target_sample_rate", 0.2)
 
-        with self.feature("organizations:dynamic-sampling-custom"):
+        with (
+            self.feature("organizations:dynamic-sampling-custom"),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_sampled_volume",
+                return_value=None,
+            ),
+        ):
             configuration = get_configuration(org.id)
 
         assert isinstance(configuration, CustomDynamicSamplingProjectConfiguration)
@@ -390,15 +479,19 @@ class GetProjectSampleRatesTest(TestCase):
         }
 
     def test_org_mode_uses_rebalanced_project_rates(self) -> None:
-        from sentry.dynamic_sampling.models.common import RebalancedItem
-
         org = self.create_organization()
         project_a = self.create_project(organization=org)
         project_b = self.create_project(organization=org)
         org.update_option("sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION)
         org.update_option("sentry:target_sample_rate", 0.5)
 
-        with self.feature("organizations:dynamic-sampling-custom"):
+        with (
+            self.feature("organizations:dynamic-sampling-custom"),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_sampled_volume",
+                return_value=None,
+            ),
+        ):
             configuration = get_configuration(org.id)
 
         assert isinstance(configuration, CustomDynamicSamplingOrganizationConfiguration)
@@ -420,7 +513,13 @@ class GetProjectSampleRatesTest(TestCase):
         org.update_option("sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION)
         org.update_option("sentry:target_sample_rate", 0.5)
 
-        with self.feature("organizations:dynamic-sampling-custom"):
+        with (
+            self.feature("organizations:dynamic-sampling-custom"),
+            patch(
+                "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_sampled_volume",
+                return_value=None,
+            ),
+        ):
             configuration = get_configuration(org.id)
 
         assert isinstance(configuration, CustomDynamicSamplingOrganizationConfiguration)
@@ -430,15 +529,10 @@ class GetProjectSampleRatesTest(TestCase):
         assert configuration.get_project_sample_rates() == {}
 
     def test_automatic_mode_uses_rebalanced_project_rates(self) -> None:
-        from sentry.dynamic_sampling.models.common import RebalancedItem
-
         org = self.create_organization()
         project = self.create_project(organization=org)
 
-        with patch(
-            "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
-            return_value=0.5,
-        ):
+        with patch_configuration({BLENDED_SAMPLE_RATE: 0.5, SAMPLED_VOLUME: None}):
             configuration = get_configuration(org.id)
 
         assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
@@ -452,10 +546,7 @@ class GetProjectSampleRatesTest(TestCase):
         self.create_project(organization=org)
         self.create_project(organization=org)
 
-        with patch(
-            "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
-            return_value=0.5,
-        ):
+        with patch_configuration({BLENDED_SAMPLE_RATE: 0.5, SAMPLED_VOLUME: None}):
             configuration = get_configuration(org.id)
 
         assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
