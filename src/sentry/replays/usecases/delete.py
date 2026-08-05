@@ -57,41 +57,29 @@ SNUBA_RETRY_EXCEPTIONS = (
 logger = logging.getLogger(__name__)
 
 
-def day_aligned_window(
-    range_start: datetime, range_end: datetime, offset_days: int
-) -> tuple[datetime, datetime] | None:
-    """Return the `offset_days`th UTC day of `[range_start, range_end)`, or None past the end.
-
-    A window is one whole UTC day intersected with the requested range, so the caller's own bounds
-    survive: the first window opens at `range_start`, the last closes at `range_end`, and only those
-    two are ever shorter than a day. Consecutive windows meet exactly, so the range is covered with
-    no gaps and no overlap. All datetimes are UTC.
-
-    Taking whole days, rather than `range_start` plus a day, is what stops a window from straddling
-    midnight -- which is what lets `day_pin_conditions` assert the window's day.
-
-    One day per window is the only size worth using:
-      - `timestamp` is in the replays sort key at day granularity, so a narrower window prunes
-        nothing.
-      - A wider window cannot assert its day and so reads roughly twice the granules.
-      - The replays storage sets `max_rows_to_group_by = 1000000` with `group_by_overflow_mode =
-        break`, and the finders group by `replay_id`. A window holding more than a million replays is
-        silently truncated rather than rejected, so replays go quietly undeleted. A day leaves ample
-        headroom; the 7-day window this replaced truncated for any project above ~143k replays/day.
-    """
-    day_start = _start_of_day(range_start) + timedelta(days=offset_days)
-
-    return _intersect((day_start, day_start + timedelta(days=1)), (range_start, range_end))
-
-
 def day_aligned_windows(
     range_start: datetime, range_end: datetime
-) -> Iterator[tuple[datetime, datetime]]:
-    """Walk `[range_start, range_end)` one UTC day at a time. See `day_aligned_window`."""
-    offset_days = 0
-    while window := day_aligned_window(range_start, range_end, offset_days):
-        yield window
-        offset_days += 1
+) -> list[tuple[datetime, datetime]]:
+    """Split `[range_start, range_end)` into one window per UTC day it touches.
+
+    Each window is a whole UTC day intersected with the range, so the caller's own bounds survive:
+    the first window opens at `range_start`, the last closes at `range_end`, and only those two are
+    ever shorter than a day. Consecutive windows meet exactly, so the range is covered with no gaps
+    and no overlap. All datetimes are UTC.
+
+    Whole days rather than `range_start` plus a day is what keeps a window from straddling midnight.
+    See `day_pin_conditions` for why a day is the unit worth paging in.
+    """
+    windows = []
+
+    day_start = _start_of_day(range_start)
+    while window := _intersect(
+        (day_start, day_start + timedelta(days=1)), (range_start, range_end)
+    ):
+        windows.append(window)
+        day_start += timedelta(days=1)
+
+    return windows
 
 
 def _intersect(
@@ -115,7 +103,16 @@ def day_pin_conditions(start: datetime, end: datetime) -> list[Condition]:
     Asserting the day collapses that. Measured against a table with the real sort key, a single-day
     window went from 25 granules to 13 with identical row counts.
 
-    Every window from `day_aligned_window` lies inside one day, so in practice the pin always
+    This assertion is why the finders page a day at a time. `timestamp` is in the replays sort key
+    only at day granularity, so a narrower window prunes nothing -- 24h, 6h, 1h and 1min all read the
+    same granules -- while a wider one cannot assert a day at all and so reads roughly twice as
+    many. A day also stays well under the storage's `max_rows_to_group_by = 1000000`, which is paired
+    with `group_by_overflow_mode = break`: because the finders group by `replay_id`, a window holding
+    more than a million replays is silently truncated rather than rejected, and the replays past the
+    cut go quietly undeleted. The 7-day window this replaced truncated for any project above ~143k
+    replays/day.
+
+    Every window from `day_aligned_windows` lies inside one day, so in practice the pin always
     applies. The guard stays because the finders accept an arbitrary range: pinning one that spanned
     days would silently drop every row past the first day, which on this path means PII reported as
     deleted that was not.

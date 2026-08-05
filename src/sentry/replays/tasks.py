@@ -20,7 +20,7 @@ from sentry.replays.lib.storage import (
 from sentry.replays.models import DeletionJobStatus, ReplayDeletionJobModel, ReplayRecordingSegment
 from sentry.replays.usecases.delete import (
     DELETE_THREAD_POOL_SIZE,
-    day_aligned_window,
+    day_aligned_windows,
     delete_filenames_concurrently,
     delete_matched_rows,
     delete_seer_replay_data,
@@ -235,16 +235,17 @@ def run_bulk_replay_delete_job(
     if job.status != DeletionJobStatus.IN_PROGRESS:
         return None
 
-    # Derive the current window from the immutable job range and the cursor. job.range_start is
-    # never mutated, so the API always returns the original range.
-    window = day_aligned_window(job.range_start, job.range_end, window_offset_days)
-    if window is None:
-        # The cursor is past the end of the range; there is nothing left to delete.
+    # Windows are recomputed from the job's range on every activation rather than stored, so
+    # job.range_start is never mutated and the API always returns the original range. One window per
+    # day means `window_offset_days` indexes them directly.
+    windows = day_aligned_windows(job.range_start, job.range_end)
+    if window_offset_days >= len(windows):
+        # An activation pointing past the last window has nothing left to delete.
         _transition_status(job.id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.COMPLETED)
         metrics.incr("replays.bulk_delete_job", tags={"status": "completed"}, sample_rate=1.0)
         return None
 
-    window_start, window_end = window
+    window_start, window_end = windows[window_offset_days]
 
     try:
         # Delete the replays within a limited range. If more replays exist a cursor to seek the next
@@ -314,11 +315,9 @@ def run_bulk_replay_delete_job(
         )
         return None
 
-    # Current window exhausted. Check if more time windows remain.
-    if window_end < job.range_end:
-        # Advance to the next window by incrementing the day offset in the task args, and reset the
-        # cursor: it is a position within a window's result set, not a global one.
-        # job.range_start is never mutated so the API always returns the original range.
+    # Current window exhausted. Advance if any windows remain.
+    if window_offset_days + 1 < len(windows):
+        # Reset the cursor: it is a position within a window's result set, not a global one.
         _advance_offset(job.id, new_total)
         run_bulk_replay_delete_job.delay(
             job.id,

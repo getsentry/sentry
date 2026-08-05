@@ -15,7 +15,6 @@ from sentry.replays.tasks import run_bulk_replay_delete_job
 from sentry.replays.testutils import mock_replay
 from sentry.replays.usecases.delete import (
     MatchedRows,
-    day_aligned_window,
     day_aligned_windows,
     day_pin_conditions,
     delete_matched_rows,
@@ -671,13 +670,31 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
             None,
         ]
 
-    def test_day_aligned_windows_never_escape_a_utc_day(self) -> None:
-        """Test windows tile the range without gaps and each stays inside one UTC day.
+    def test_day_aligned_windows_open_and_close_on_the_range(self) -> None:
+        """Test a mid-day range is split on UTC days without escaping the range at either end.
 
-        Laying windows out from the start of the range's day, rather than from the range start, is
-        what lets `day_pin_conditions` assert a day. Both ends are clamped to the range, so the
-        first and last windows can be short.
+        Whole days rather than range-start-plus-a-day is what keeps a window inside one UTC day, so
+        `day_pin_conditions` can assert it. The range's own bounds still win: the first window opens
+        at 17:00, not at midnight.
         """
+        range_start = datetime.datetime(2026, 7, 23, 17, 0, tzinfo=datetime.UTC)
+        range_end = datetime.datetime(2026, 7, 26, 9, 30, tzinfo=datetime.UTC)
+
+        assert day_aligned_windows(range_start, range_end) == [
+            (range_start, datetime.datetime(2026, 7, 24, tzinfo=datetime.UTC)),
+            (
+                datetime.datetime(2026, 7, 24, tzinfo=datetime.UTC),
+                datetime.datetime(2026, 7, 25, tzinfo=datetime.UTC),
+            ),
+            (
+                datetime.datetime(2026, 7, 25, tzinfo=datetime.UTC),
+                datetime.datetime(2026, 7, 26, tzinfo=datetime.UTC),
+            ),
+            (datetime.datetime(2026, 7, 26, tzinfo=datetime.UTC), range_end),
+        ]
+
+    def test_day_aligned_windows_never_escape_a_utc_day(self) -> None:
+        """Test windows tile the range without gaps and each stays inside one UTC day."""
         cases = [
             (
                 datetime.datetime(2026, 7, 23, tzinfo=datetime.UTC),
@@ -697,7 +714,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
             ),
         ]
         for range_start, range_end in cases:
-            windows = list(day_aligned_windows(range_start, range_end))
+            windows = day_aligned_windows(range_start, range_end)
 
             assert windows[0][0] == range_start
             assert windows[-1][1] == range_end
@@ -706,16 +723,6 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
                 assert start.date() == (end - datetime.timedelta(microseconds=1)).date()
             for earlier, later in zip(windows, windows[1:]):
                 assert earlier[1] == later[0]
-
-    def test_day_aligned_window_returns_none_past_the_end(self) -> None:
-        """Test the accessor the task uses agrees with the iterator and terminates."""
-        range_start = datetime.datetime(2026, 7, 23, 14, 30, tzinfo=datetime.UTC)
-        range_end = datetime.datetime(2026, 7, 26, tzinfo=datetime.UTC)
-
-        assert [day_aligned_window(range_start, range_end, offset) for offset in range(3)] == (
-            list(day_aligned_windows(range_start, range_end))
-        )
-        assert day_aligned_window(range_start, range_end, 3) is None
 
     def test_day_pin_conditions_only_fire_inside_one_day(self) -> None:
         """Test the day assertion is added only when the window cannot escape a single UTC day.
