@@ -287,6 +287,11 @@ class SyncArtifactBundlesTest(TestCase):
         assert target_project_debug_file.file_size == len(content)
         assert target_project_debug_file.date_created == date_created
         assert target_project_debug_file.get_file().read() == content
+        target_metadata = get_debug_files_session(self.target_org.id, self.target_proj_foo.id).head(
+            target_project_debug_file.storage_path
+        )
+        assert target_metadata is not None
+        assert target_metadata.compression == "zstd"
 
         target_project_debug_file.delete()
         source_project_debug_file.refresh_from_db()

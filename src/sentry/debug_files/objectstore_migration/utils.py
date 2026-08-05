@@ -17,7 +17,6 @@ from sentry.constants import KNOWN_DIF_FORMATS
 from sentry.models.debugfile import (
     ProjectDebugFile,
     _dif_file_extension,
-    _upload_dif_to_objectstore,
 )
 from sentry.models.files.file import File
 from sentry.models.project import Project
@@ -167,13 +166,11 @@ def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | N
                 f"(checksum={local_checksum!r} expected={expected_checksum!r}, "
                 f"size={local_size} expected={expected_size})"
             )
-        storage_path = _upload_dif_to_objectstore(
-            session,
+        storage_path = session.put(
             tmp,
-            content_type,
-            expected_size,
-            filename,
             key=f"legacy.{debug_file.id}",
+            content_type=content_type,
+            filename=filename,
         )
     finally:
         tmp.close()

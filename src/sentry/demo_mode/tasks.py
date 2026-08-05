@@ -250,7 +250,6 @@ def _sync_project_debug_file(
                         target_org.id, target_project.id
                     ).put(
                         source_fileobj,
-                        compression="none",
                         content_type=source_project_debug_file.get_content_type(),
                     )
                 finally:
