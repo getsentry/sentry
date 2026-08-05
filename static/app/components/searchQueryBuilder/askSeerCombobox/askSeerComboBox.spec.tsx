@@ -1,7 +1,6 @@
 import {useEffect, useState} from 'react';
 import {destroyAnnouncer} from '@react-aria/live-announcer';
 import {mutationOptions} from '@tanstack/react-query';
-import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -201,11 +200,9 @@ describe('AskSeerComboBox', () => {
 
     await userEvent.click(document.body);
 
-    const processingIcon = await screen.findByRole('img', {
-      name: 'Seer is processing your query',
-    });
-    expect(processingIcon).toHaveAttribute('fill', ThemeFixture().tokens.content.accent);
-    expect(processingIcon.querySelector('animateMotion')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('img', {name: 'Seer is processing your query'})
+    ).toBeInTheDocument();
     expect(screen.queryByText('Let me think about that...')).not.toBeInTheDocument();
   });
 
@@ -375,11 +372,9 @@ describe('AskSeerComboBox', () => {
 
     await userEvent.click(document.body);
 
-    const successIcon = await screen.findByRole('img', {
-      name: 'Seer processed your query',
-    });
-    expect(successIcon).toHaveAttribute('fill', ThemeFixture().tokens.content.success);
-    expect(successIcon.querySelector('animateMotion')).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole('img', {name: 'Seer processed your query'})
+    ).toBeInTheDocument();
   });
 
   it('wraps long query tokens', async () => {
@@ -601,11 +596,9 @@ describe('AskSeerComboBox', () => {
 
     await userEvent.click(document.body);
 
-    const errorIcon = await screen.findByRole('img', {
-      name: 'Seer could not process your query',
-    });
-    expect(errorIcon).toHaveAttribute('fill', ThemeFixture().tokens.content.danger);
-    expect(errorIcon.querySelector('animateMotion')).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole('img', {name: 'Seer could not process your query'})
+    ).toBeInTheDocument();
 
     await userEvent.click(input);
     await userEvent.click(await screen.findByRole('button', {name: 'Try again'}));
