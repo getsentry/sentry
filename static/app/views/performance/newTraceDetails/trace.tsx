@@ -126,13 +126,13 @@ function snapshotVisibleTraceItems(nodes: BaseNode[], _version: number): BaseNod
   return nodes.slice();
 }
 
-function collectTraceSpanIds(root: BaseNode, _version: number): string[] {
+function collectTraceSpanIds(nodes: BaseNode[]): string[] {
   const spanIds: string[] = [];
-  root.forEachChild(node => {
+  for (const node of nodes) {
     if (isEAPSpan(node.value)) {
       spanIds.push(node.value.event_id);
     }
-  });
+  }
   return spanIds;
 }
 
@@ -215,8 +215,8 @@ export function Trace({
     [trace.list, forceRerender]
   );
   const pinnedAttributeSpanIds = useMemo(
-    () => (pinnedAttribute ? collectTraceSpanIds(trace.root, forceRerender) : []),
-    [trace.root, forceRerender, pinnedAttribute]
+    () => (pinnedAttribute ? collectTraceSpanIds(visibleTraceItems) : []),
+    [visibleTraceItems, pinnedAttribute]
   );
   const pinnedAttributeData = useTracePinnedAttributeData({
     pinnedAttribute,

@@ -57,8 +57,9 @@ export interface TracePinnedAttributeData {
 
 /**
  * Loads the pinned field and span ID from the events endpoint without changing
- * the trace query. Span IDs are requested in waterfall order, one batch at a
- * time, so values fill in from the top of the trace downward.
+ * the trace query. Span IDs should be the visible waterfall rows (trace.list),
+ * requested in that order one batch at a time so values fill in top-down for
+ * what the user can see.
  */
 export function useTracePinnedAttributeData({
   pinnedAttribute,
