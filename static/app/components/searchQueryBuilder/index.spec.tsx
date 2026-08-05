@@ -42,6 +42,8 @@ import {
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {getHasTag} from 'sentry/utils/tag';
 
+jest.unmock('@tanstack/react-pacer');
+
 const FILTER_KEYS: TagCollection = {
   [FieldKey.AGE]: {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD},
   [FieldKey.ASSIGNED]: {
@@ -1009,6 +1011,10 @@ describe('SearchQueryBuilder', () => {
         });
       });
 
+      afterEach(() => {
+        jest.useRealTimers();
+      });
+
       it('displays recent search queries when query is empty', async () => {
         render(
           <SearchQueryBuilder
@@ -1075,7 +1081,16 @@ describe('SearchQueryBuilder', () => {
 
         await userEvent.click(getLastInput());
 
-        await userEvent.click(await screen.findByRole('option', {name: 'assigned:me'}));
+        const recentSearchOption = await screen.findByRole('option', {
+          name: 'assigned:me',
+        });
+        jest.useFakeTimers();
+        await userEvent.click(recentSearchOption, {delay: null});
+
+        expect(mockCreateRecentSearch).not.toHaveBeenCalled();
+
+        await act(() => jest.advanceTimersByTimeAsync(3000));
+        jest.useRealTimers();
         await waitFor(() => {
           expect(mockOnSearch).toHaveBeenCalledWith('assigned:me', expect.anything());
         });
@@ -1092,6 +1107,40 @@ describe('SearchQueryBuilder', () => {
             data: {query: 'assigned:me', type: SavedSearchType.ISSUE},
           })
         );
+        expect(mockCreateRecentSearch).toHaveBeenCalledTimes(1);
+      });
+
+      it('saves a selected recent search when unmounted during the debounce', async () => {
+        const mockCreateRecentSearch = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/recent-searches/',
+          method: 'POST',
+        });
+        const {unmount} = render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            recentSearches={SavedSearchType.ISSUE}
+            initialQuery=""
+          />
+        );
+
+        await userEvent.click(getLastInput());
+        const recentSearchOption = await screen.findByRole('option', {
+          name: 'assigned:me',
+        });
+        jest.useFakeTimers();
+        await userEvent.click(recentSearchOption, {delay: null});
+
+        expect(mockCreateRecentSearch).not.toHaveBeenCalled();
+
+        act(() => unmount());
+
+        expect(mockCreateRecentSearch).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: {query: 'assigned:me', type: SavedSearchType.ISSUE},
+          })
+        );
+        expect(mockCreateRecentSearch).toHaveBeenCalledTimes(1);
       });
     });
 
