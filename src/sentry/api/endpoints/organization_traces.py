@@ -7,6 +7,7 @@ from typing import Any, Literal, NotRequired, TypedDict
 
 import sentry_sdk
 from django.utils import timezone
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -39,8 +40,18 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.endpoints.organization_events import EventsMeta
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -104,6 +115,55 @@ class TraceResult(TypedDict):
     breakdowns: list[TraceInterval]
 
 
+# Only used for api docs — the shape `handle_results_with_meta` emits.
+class TracesApiResponse(TypedDict):
+    data: list[TraceResult]
+    meta: EventsMeta
+
+
+DATASET_QUERY_PARAM = OpenApiParameter(
+    name="dataset",
+    location="query",
+    required=False,
+    type=str,
+    enum=["spans"],
+    description="The dataset to query. Defaults to `spans`.",
+)
+
+TRACES_QUERY_PARAM = OpenApiParameter(
+    name="query",
+    location="query",
+    required=False,
+    many=True,
+    type=str,
+    description=(
+        "Sentry [search syntax](https://docs.sentry.io/concepts/search/) matched against spans. "
+        "Pass the parameter more than once to require that a trace contain a span matching each "
+        "query, which is how you find traces where several conditions co-occur."
+    ),
+)
+
+SORT_QUERY_PARAM = OpenApiParameter(
+    name="sort",
+    location="query",
+    required=False,
+    type=str,
+    enum=["timestamp", "-timestamp"],
+    description="Sort order for the returned traces.",
+)
+
+BREAKDOWN_SLICES_QUERY_PARAM = OpenApiParameter(
+    name="breakdownSlices",
+    location="query",
+    required=False,
+    type=int,
+    description=(
+        "Number of time slices used to compute each trace's per-project breakdown. "
+        "Defaults to 40; must be between 1 and 100."
+    ),
+)
+
+
 class OrganizationTracesSerializer(serializers.Serializer):
     dataset = serializers.ChoiceField(["spans"], required=False, default="spans")
 
@@ -147,9 +207,40 @@ class OrganizationTracesEndpointBase(OrganizationEventsEndpointBase):
     owner = ApiOwner.DATA_BROWSING
 
 
+@extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
-    def get(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="listOrganizationTraces",
+        summary="List an Organization's Traces",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            DATASET_QUERY_PARAM,
+            TRACES_QUERY_PARAM,
+            SORT_QUERY_PARAM,
+            BREAKDOWN_SLICES_QUERY_PARAM,
+            VisibilityParams.PER_PAGE,
+        ],
+        responses={
+            200: inline_sentry_response_serializer("ListTracesResponse", TracesApiResponse),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[TracesApiResponse] | Response[ValidationErrorResponse] | Response[None]:
+        """
+        List traces matching one or more span queries, with a per-project timing
+        breakdown for each trace.
+        """
         if not features.has(
             "organizations:visibility-explore-view", organization, actor=request.user
         ):
@@ -167,7 +258,7 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
 
         serializer = OrganizationTracesSerializer(data=request.GET)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
         serialized = serializer.validated_data
 
         with handle_query_errors():
