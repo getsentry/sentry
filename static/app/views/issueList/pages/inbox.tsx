@@ -133,6 +133,53 @@ export default function InboxPage() {
   );
 }
 
+function useSelectFirstLoadedIssue({
+  disabled,
+  onSelect,
+  resetKey,
+  sections,
+}: {
+  disabled: boolean;
+  onSelect: (issueId: string) => void;
+  resetKey: AssignmentFilter;
+  sections: InboxSectionConfig[];
+}) {
+  const sectionResults = useRef(new Map<string, string | null>());
+  const hasFinished = useRef(disabled);
+  const previousResetKey = useRef(resetKey);
+
+  if (previousResetKey.current !== resetKey) {
+    previousResetKey.current = resetKey;
+    sectionResults.current.clear();
+    hasFinished.current = disabled;
+  }
+
+  return (sectionKey: string, firstIssueId: string | null) => {
+    if (hasFinished.current) {
+      return;
+    }
+    if (disabled) {
+      hasFinished.current = true;
+      return;
+    }
+
+    sectionResults.current.set(sectionKey, firstIssueId);
+    for (const section of sections) {
+      if (!sectionResults.current.has(section.key)) {
+        return;
+      }
+
+      const issueId = sectionResults.current.get(section.key);
+      if (issueId) {
+        hasFinished.current = true;
+        onSelect(issueId);
+        return;
+      }
+    }
+    hasFinished.current = true;
+  };
+}
+
 function InboxContent() {
   const theme = useTheme();
   const isDesktop = useMedia(`(min-width: ${theme.breakpoints.md})`);
@@ -169,43 +216,12 @@ function InboxContent() {
     onResizeEnd: setStoredSize,
   });
 
-  // Collect available child-query results so one-time selection follows section order,
-  // rather than whichever request finishes first.
-  const initialSectionResults = useRef(new Map<string, string | null>());
-  const hasFinishedInitialSelection = useRef(selectedIssueId !== null);
-
-  const handleInitialSectionResult = (
-    sectionKey: string,
-    firstIssueId: string | null
-  ) => {
-    if (hasFinishedInitialSelection.current) {
-      return;
-    }
-    if (!isDesktop || selectedIssueId !== null) {
-      hasFinishedInitialSelection.current = true;
-      return;
-    }
-
-    initialSectionResults.current.set(sectionKey, firstIssueId);
-    for (const section of sections) {
-      if (!initialSectionResults.current.has(section.key)) {
-        return;
-      }
-
-      const issueId = initialSectionResults.current.get(section.key);
-      if (issueId) {
-        hasFinishedInitialSelection.current = true;
-        void setSelectedIssueId(issueId);
-        return;
-      }
-    }
-    hasFinishedInitialSelection.current = true;
-  };
-
-  const handleAssignmentFilterChange = (value: AssignmentFilter) => {
-    hasFinishedInitialSelection.current = true;
-    void setAssignmentFilter(value);
-  };
+  const handleInitialSectionResult = useSelectFirstLoadedIssue({
+    disabled: !isDesktop || selectedIssueId !== null,
+    onSelect: issueId => void setSelectedIssueId(issueId),
+    resetKey: assignmentFilter,
+    sections,
+  });
 
   return (
     <Stack flex={1} minHeight={0} contain="size" overflow="hidden">
@@ -243,7 +259,7 @@ function InboxContent() {
               aria-label={t('Issue assignee')}
               size="xs"
               value={assignmentFilter}
-              onChange={handleAssignmentFilterChange}
+              onChange={setAssignmentFilter}
             >
               <SegmentedControl.Item key="me">{t('Me')}</SegmentedControl.Item>
               <SegmentedControl.Item key="my_teams">

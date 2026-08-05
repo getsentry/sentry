@@ -21,7 +21,6 @@ import {
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {ProgressState} from 'sentry/types/group';
 import {useMedia} from 'sentry/utils/useMedia';
-import * as IssuePreviewModule from 'sentry/views/issueDetails/issuePreview/issuePreview';
 import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/queries/inbox';
 
 import InboxPage from './inbox';
@@ -1032,15 +1031,11 @@ describe('InboxPage', () => {
   describe('on desktop', () => {
     beforeEach(() => {
       jest.mocked(useMedia).mockImplementation(query => query.startsWith('(min-width:'));
-      jest.spyOn(IssuePreviewModule, 'IssuePreview').mockReturnValue(<div />);
-    });
-
-    afterEach(() => {
-      jest.restoreAllMocks();
     });
 
     it('auto-selects the first issue', async () => {
       mockSuccessfulSections();
+      mockIssuePreview();
 
       const {router, unmount} = render(<InboxPage />, {
         organization,
