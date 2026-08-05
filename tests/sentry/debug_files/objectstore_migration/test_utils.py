@@ -57,7 +57,7 @@ class DebugFileObjectstoreMigrationUtilsTest(TestCase):
                 return_value=session,
             ),
             patch(
-                "sentry.debug_files.objectstore_migration.utils._upload_dif_to_objectstore",
+                "sentry.debug_files.objectstore_migration.utils.upload_dif_to_objectstore",
                 return_value="uploaded-key",
             ),
             patch("sentry.utils.retries.time.sleep"),
@@ -118,7 +118,7 @@ class DebugFileObjectstoreMigrationUtilsTest(TestCase):
                 return_value=session,
             ),
             patch(
-                "sentry.debug_files.objectstore_migration.utils._upload_dif_to_objectstore",
+                "sentry.debug_files.objectstore_migration.utils.upload_dif_to_objectstore",
                 return_value="os-key",
             ),
             self.captureOnCommitCallbacks(execute=True),
