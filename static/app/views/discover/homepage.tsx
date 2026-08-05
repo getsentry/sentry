@@ -1,5 +1,6 @@
 import {useEffect} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
+import type {Query} from 'history';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -78,27 +79,24 @@ function Homepage() {
       savedQuery &&
       ((hasFetchedSavedQuery && !hasValidEventViewInURL) || sidebarClicked)
     ) {
+      let query: Query = {};
+      const pageFilterState = getPageFilterStorage(organization.slug);
+      let dataset = savedQuery?.queryDataset;
+
       if (shouldHideThisTransactionsQuery) {
         // use default error view instead of homepage
         const defaultEventView = EventView.fromNewQueryWithLocation(
           DEFAULT_EVENT_VIEW_MAP[SavedQueryDatasets.ERRORS],
           location
         );
-        navigate(
-          {
-            ...location,
-            query: defaultEventView.generateQueryStringObject(),
-          },
-          {replace: true}
-        );
-        return;
+        query = {...defaultEventView.generateQueryStringObject()};
+        dataset = SavedQueryDatasets.ERRORS;
+      } else {
+        const eventView = EventView.fromSavedQuery(savedQuery);
+        query = {
+          ...eventView.generateQueryStringObject(),
+        };
       }
-
-      const eventView = EventView.fromSavedQuery(savedQuery);
-      const pageFilterState = getPageFilterStorage(organization.slug);
-      let query = {
-        ...eventView.generateQueryStringObject(),
-      };
 
       // Handle locked filters explicitly because we can't expect
       // PageFilterContainer to properly overwrite stored filters
@@ -129,7 +127,7 @@ function Homepage() {
           ...location,
           query: {
             ...query,
-            queryDataset: savedQuery?.queryDataset,
+            queryDataset: dataset,
           },
         },
         {replace: true}
@@ -168,7 +166,8 @@ function Homepage() {
       selection={selection}
       setSavedQuery={setSavedQuery}
       isHomepage
-      savedQuery={shouldHideThisTransactionsQuery ? undefined : savedQuery}
+      // savedQuery={shouldHideThisTransactionsQuery ? undefined : savedQuery}
+      savedQuery={savedQuery}
     />
   );
 }

@@ -567,18 +567,21 @@ describe('Discover > Homepage', () => {
       },
     });
 
-    render(<Homepage />, {
+    const {router} = render(<Homepage />, {
       initialRouterConfig: {
         location: {
-          pathname: `/organizations/${organization.slug}/explore/discover/homepage/`,
+          pathname: `/organizations/${organization.slug}/explore/errors/homepage/`,
         },
-        route: '/organizations/:orgId/explore/discover/homepage/',
+        route: '/organizations/:orgId/explore/errors/homepage/',
       },
       organization,
     });
 
-    expect(await screen.findByText('New Query')).toBeInTheDocument();
+    expect(await screen.findByText('Results')).toBeInTheDocument();
     expect(screen.queryByText('homepage query')).not.toBeInTheDocument();
     expect(screen.queryByText('environment')).not.toBeInTheDocument();
+
+    expect(router.location.query.dataset).toBe('errors');
+    expect(router.location.query.queryDataset).toBe('error-events');
   });
 });
