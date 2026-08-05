@@ -17,6 +17,7 @@ from sentry.investigations.models import (
     InvestigationBlockParameter,
     InvestigationParameter,
     InvestigationParameterSource,
+    InvestigationPermissions,
     InvestigationProject,
     InvestigationSourceType,
     InvestigationStatus,
@@ -135,6 +136,7 @@ def create_manual_investigation(
             source_type=InvestigationSourceType.MANUAL,
             filters=filters,
         )
+        InvestigationPermissions.objects.create(investigation=investigation)
         _create_project_links(investigation, project_ids)
     return investigation
 
@@ -157,6 +159,7 @@ def duplicate_investigation(*, investigation: Investigation, user_id: int) -> In
             source_ref={},
             filters=deepcopy(source.filters),
         )
+        InvestigationPermissions.objects.create(investigation=duplicate)
         _create_project_links(
             duplicate,
             source.project_links.values_list("project_id", flat=True),
@@ -365,6 +368,7 @@ def _create_template_investigation(
             source_revision=(latest_revision or 0) + 1,
             filters=filters,
         )
+        InvestigationPermissions.objects.create(investigation=investigation)
         _create_project_links(investigation, project_ids)
 
         parameters_by_key: dict[str, InvestigationParameter] = {}

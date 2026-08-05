@@ -1,0 +1,493 @@
+from __future__ import annotations
+
+from typing import Any
+
+from django.db.models import Count, Exists, OuterRef, Q
+from drf_spectacular.utils import extend_schema
+from rest_framework import status
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+from sentry import features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import cell_silo_endpoint
+from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.paginator import DateTimePaginator
+from sentry.api.serializers import serialize
+from sentry.investigations.endpoints.serializers import (
+    InvestigationDetailsSerializer,
+    InvestigationSerializer,
+)
+from sentry.investigations.endpoints.validators import (
+    FavoriteUpdateValidator,
+    InvestigationCreateValidator,
+    InvestigationDeleteValidator,
+    InvestigationUpdateValidator,
+)
+from sentry.investigations.models import (
+    Investigation,
+    InvestigationBlock,
+    InvestigationFavoriteUser,
+    InvestigationPermissions,
+    InvestigationSourceType,
+    InvestigationStatus,
+)
+from sentry.investigations.permissions import (
+    InvestigationPermission,
+    is_organization_manager,
+)
+from sentry.investigations.services import (
+    InvestigationConflictError,
+    InvestigationSourceNotFound,
+    InvestigationValidationError,
+    archive_investigation,
+    create_manual_investigation,
+    create_template_investigation,
+    duplicate_investigation,
+    update_investigation,
+)
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+
+FEATURE = "organizations:investigations"
+QUERY_EXECUTION_FEATURE = "organizations:investigations-query-execution"
+
+
+def _feature_enabled(request: Request, organization: Organization) -> bool:
+    return features.has(FEATURE, organization, actor=request.user)
+
+
+def _query_execution_enabled(request: Request, organization: Organization) -> bool:
+    return features.has(QUERY_EXECUTION_FEATURE, organization, actor=request.user)
+
+
+def _require_breached_metric_feature(request: Request, organization: Organization) -> None:
+    if not _feature_enabled(request, organization) or not _query_execution_enabled(
+        request, organization
+    ):
+        raise ResourceDoesNotExist
+
+
+def _parse_group_ids(value: Any) -> list[int] | None:
+    if not isinstance(value, list) or not 1 <= len(value) <= 100:
+        return None
+    parsed: list[int] = []
+    for item in value:
+        if isinstance(item, bool) or not isinstance(item, int | str):
+            return None
+        try:
+            parsed.append(int(item))
+        except (TypeError, ValueError):
+            return None
+    return list(dict.fromkeys(parsed))
+
+
+def _service_error(error: Exception) -> Response | None:
+    if isinstance(error, InvestigationValidationError):
+        return Response(error.errors, status=status.HTTP_400_BAD_REQUEST)
+    if isinstance(error, InvestigationConflictError):
+        return Response({"detail": str(error)}, status=status.HTTP_409_CONFLICT)
+    if isinstance(error, InvestigationSourceNotFound):
+        raise ResourceDoesNotExist
+    return None
+
+
+def _accessible_project_ids(
+    endpoint: OrganizationEndpoint, request: Request, organization: Organization
+) -> set[int]:
+    return {project.id for project in endpoint.get_projects(request, organization)}
+
+
+def _required_investigation_project_ids(investigation: Investigation) -> set[int]:
+    selected = set(investigation.projects.values_list("id", flat=True))
+    visible_execution_ids: set[int] = set()
+    for result_execution_id, content_execution_id in InvestigationBlock.objects.filter(
+        investigation=investigation, deleted_at__isnull=True
+    ).values_list("result_execution_id", "content_execution_id"):
+        if result_execution_id is not None:
+            visible_execution_ids.add(result_execution_id)
+        if content_execution_id is not None:
+            visible_execution_ids.add(content_execution_id)
+    represented = set(
+        Project.objects.filter(
+            investigationblockexecutionproject__execution_id__in=visible_execution_ids,
+        ).values_list("id", flat=True)
+    )
+    return selected | represented
+
+
+def _user_id(request: Request) -> int:
+    user_id = request.user.id
+    if user_id is None:
+        raise PermissionDenied
+    return user_id
+
+
+def _require_authenticated_user(request: Request) -> int:
+    if not request.user.is_authenticated or request.user.is_sentry_app:
+        raise PermissionDenied
+    return _user_id(request)
+
+
+def _require_manager_or_creator(
+    request: Request, organization: Organization, investigation: Investigation
+) -> None:
+    if _user_id(request) == investigation.created_by_id:
+        return
+    if is_organization_manager(request, organization):
+        return
+    raise PermissionDenied
+
+
+def _can_edit(request: Request, organization: Organization, investigation: Investigation) -> bool:
+    return is_organization_manager(
+        request, organization
+    ) or investigation.permissions.has_edit_permissions(_user_id(request))
+
+
+def _can_manage(request: Request, organization: Organization, investigation: Investigation) -> bool:
+    return _user_id(request) == investigation.created_by_id or is_organization_manager(
+        request, organization
+    )
+
+
+def _serialize_permissions(
+    investigation: Investigation,
+    *,
+    user_id: int,
+    can_edit: bool,
+    can_manage: bool,
+) -> dict[str, Any]:
+    permissions, _ = InvestigationPermissions.objects.get_or_create(
+        investigation=investigation
+    )
+    return {
+        "isEditableByEveryone": permissions.is_editable_by_everyone,
+        "teamIds": sorted(permissions.teams_with_edit_access.values_list("id", flat=True)),
+        "canEdit": can_edit,
+        "canManage": can_manage,
+    }
+
+
+def _serialize_investigation(
+    investigation: Investigation,
+    request: Request,
+    organization: Organization,
+    *,
+    detailed: bool,
+    accessible_project_ids: set[int] | None = None,
+) -> dict[str, Any]:
+    serializer = (
+        InvestigationDetailsSerializer(
+            accessible_project_ids=accessible_project_ids or set()
+        )
+        if detailed
+        else InvestigationSerializer()
+    )
+    data = dict(serialize(investigation, request.user, serializer))
+    data["permissions"] = _serialize_permissions(
+        investigation,
+        user_id=_user_id(request),
+        can_edit=_can_edit(request, organization, investigation),
+        can_manage=_can_manage(request, organization, investigation),
+    )
+    return data
+
+
+class OrganizationInvestigationBase(OrganizationEndpoint):
+    owner = ApiOwner.ML_AI
+    permission_classes = (InvestigationPermission,)
+
+    def convert_args(
+        self,
+        request: Request,
+        organization_id_or_slug: str | int,
+        investigation_id: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
+        organization = kwargs["organization"]
+        if not _feature_enabled(request, organization):
+            raise ResourceDoesNotExist
+        try:
+            investigation = Investigation.objects.select_related("organization").get(
+                id=investigation_id, organization=organization
+            )
+        except (Investigation.DoesNotExist, ValueError):
+            raise ResourceDoesNotExist
+        kwargs["investigation"] = investigation
+        self.check_object_permissions(request, investigation)
+        if not _required_investigation_project_ids(investigation).issubset(
+            _accessible_project_ids(self, request, organization)
+        ):
+            raise PermissionDenied("You do not have access to every project in this investigation.")
+        return args, kwargs
+
+
+class OrganizationInvestigationBlockBase(OrganizationInvestigationBase):
+    def convert_args(
+        self,
+        request: Request,
+        organization_id_or_slug: str | int,
+        investigation_id: str,
+        block_id: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        args, kwargs = super().convert_args(
+            request, organization_id_or_slug, investigation_id, *args, **kwargs
+        )
+        try:
+            kwargs["block"] = InvestigationBlock.objects.select_related("investigation").get(
+                id=block_id, investigation=kwargs["investigation"]
+            )
+        except (InvestigationBlock.DoesNotExist, ValueError):
+            raise ResourceDoesNotExist
+        return args, kwargs
+
+
+@extend_schema(tags=["Investigations"])
+@cell_silo_endpoint
+class OrganizationInvestigationsEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ML_AI
+    permission_classes = (InvestigationPermission,)
+    publish_status = {"GET": ApiPublishStatus.PRIVATE, "POST": ApiPublishStatus.PRIVATE}
+
+    def get(self, request: Request, organization: Organization) -> Response:
+        if not _feature_enabled(request, organization):
+            raise ResourceDoesNotExist
+        requested_status = request.GET.get("status", InvestigationStatus.ACTIVE)
+        if requested_status not in InvestigationStatus.values:
+            return Response(
+                {"detail": "Must be active or archived."}, status=status.HTTP_400_BAD_REQUEST
+            )
+        favorite = InvestigationFavoriteUser.objects.filter(
+            investigation_id=OuterRef("id"), user_id=_user_id(request)
+        )
+        newer_lineage_revision = Investigation.objects.filter(
+            organization_id=OuterRef("organization_id"),
+            source_type=OuterRef("source_type"),
+            source_key=OuterRef("source_key"),
+            status=requested_status,
+            source_revision__gt=OuterRef("source_revision"),
+        )
+        investigations = (
+            Investigation.objects.filter(organization=organization, status=requested_status)
+            .filter(Q(source_type=InvestigationSourceType.MANUAL) | ~Exists(newer_lineage_revision))
+            .select_related("permissions")
+            .prefetch_related("permissions__teams_with_edit_access")
+            .annotate(
+                active_block_count=Count(
+                    "blocks", filter=Q(blocks__deleted_at__isnull=True), distinct=True
+                ),
+                is_favorited=Exists(favorite),
+            )
+        )
+        query = request.GET.get("query")
+        if query:
+            investigations = investigations.filter(title__icontains=query)
+        return self.paginate(
+            request=request,
+            queryset=investigations,
+            paginator_cls=DateTimePaginator,
+            order_by="-date_updated",
+            on_results=lambda values: [
+                _serialize_investigation(
+                    value,
+                    request,
+                    organization,
+                    detailed=False,
+                )
+                for value in values
+            ],
+        )
+
+    def post(self, request: Request, organization: Organization) -> Response:
+        _require_authenticated_user(request)
+        if not _feature_enabled(request, organization):
+            raise ResourceDoesNotExist
+        serializer = InvestigationCreateValidator(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        values = serializer.validated_data
+        accessible_project_ids = _accessible_project_ids(self, request, organization)
+        try:
+            if "template_key" in values:
+                investigation = create_template_investigation(
+                    organization=organization,
+                    user_id=_user_id(request),
+                    template_key=values["template_key"],
+                    template_version=values["template_version"],
+                    source_ref=values["source_ref"],
+                    supplied_parameters=values.get("parameters", {}),
+                    accessible_project_ids=accessible_project_ids,
+                    title=values.get("title"),
+                )
+            else:
+                project_ids = values.get("project_ids", [])
+                if not set(project_ids).issubset(accessible_project_ids):
+                    return Response(
+                        {"detail": "One or more projects are inaccessible."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                investigation = create_manual_investigation(
+                    organization=organization,
+                    user_id=_user_id(request),
+                    title=values["title"],
+                    project_ids=project_ids,
+                    filters=values.get("filters", {}),
+                )
+        except Exception as error:
+            response = _service_error(error)
+            if response is not None:
+                return response
+            raise
+        return Response(
+            _serialize_investigation(
+                investigation,
+                request,
+                organization,
+                detailed=True,
+                accessible_project_ids=accessible_project_ids,
+            ),
+            status=status.HTTP_201_CREATED,
+        )
+
+
+@extend_schema(tags=["Investigations"])
+@cell_silo_endpoint
+class OrganizationInvestigationDetailsEndpoint(OrganizationInvestigationBase):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+        "DELETE": ApiPublishStatus.PRIVATE,
+    }
+
+    def get(
+        self, request: Request, organization: Organization, investigation: Investigation
+    ) -> Response:
+        return Response(
+            _serialize_investigation(
+                investigation,
+                request,
+                organization,
+                detailed=True,
+                accessible_project_ids=_accessible_project_ids(self, request, organization),
+            )
+        )
+
+    def put(
+        self, request: Request, organization: Organization, investigation: Investigation
+    ) -> Response:
+        serializer = InvestigationUpdateValidator(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        values = dict(serializer.validated_data)
+        expected_version = values.pop("investigation_version")
+        project_ids = values.pop("project_ids", None)
+        if project_ids is not None and not set(project_ids).issubset(
+            _accessible_project_ids(self, request, organization)
+        ):
+            return Response(
+                {"detail": "One or more projects are inaccessible."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if "status" in values and values["status"] != investigation.status:
+            _require_manager_or_creator(request, organization, investigation)
+        if investigation.status == InvestigationStatus.ARCHIVED and values != {
+            "status": InvestigationStatus.ACTIVE
+        }:
+            return Response(
+                {"detail": "Archived investigations are read-only."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            updated = update_investigation(
+                investigation=investigation,
+                expected_version=expected_version,
+                fields=values,
+                project_ids=project_ids,
+            )
+        except Exception as error:
+            response = _service_error(error)
+            if response is not None:
+                return response
+            raise
+        return Response(
+            _serialize_investigation(
+                updated,
+                request,
+                organization,
+                detailed=True,
+                accessible_project_ids=_accessible_project_ids(self, request, organization),
+            )
+        )
+
+    def delete(
+        self, request: Request, organization: Organization, investigation: Investigation
+    ) -> Response:
+        _require_manager_or_creator(request, organization, investigation)
+        serializer = InvestigationDeleteValidator(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            archive_investigation(
+                investigation=investigation,
+                expected_version=serializer.validated_data["investigation_version"],
+            )
+        except Exception as error:
+            response = _service_error(error)
+            if response is not None:
+                return response
+            raise
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@extend_schema(tags=["Investigations"])
+@cell_silo_endpoint
+class OrganizationInvestigationFavoriteEndpoint(OrganizationInvestigationBase):
+    publish_status = {"PUT": ApiPublishStatus.PRIVATE}
+    collaboration_endpoint = True
+
+    def put(
+        self, request: Request, organization: Organization, investigation: Investigation
+    ) -> Response:
+        user_id = _require_authenticated_user(request)
+        serializer = FavoriteUpdateValidator(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        if serializer.validated_data["should_favorite"]:
+            InvestigationFavoriteUser.objects.get_or_create(
+                investigation=investigation, user_id=user_id
+            )
+        else:
+            InvestigationFavoriteUser.objects.filter(
+                investigation=investigation, user_id=user_id
+            ).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@extend_schema(tags=["Investigations"])
+@cell_silo_endpoint
+class OrganizationInvestigationDuplicateEndpoint(OrganizationInvestigationBase):
+    publish_status = {"POST": ApiPublishStatus.PRIVATE}
+
+    def post(
+        self, request: Request, organization: Organization, investigation: Investigation
+    ) -> Response:
+        user_id = _require_authenticated_user(request)
+        duplicate = duplicate_investigation(investigation=investigation, user_id=user_id)
+        return Response(
+            _serialize_investigation(
+                duplicate,
+                request,
+                organization,
+                detailed=True,
+                accessible_project_ids=_accessible_project_ids(self, request, organization),
+            ),
+            status=status.HTTP_201_CREATED,
+        )

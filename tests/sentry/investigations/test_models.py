@@ -4,6 +4,7 @@ import pytest
 from django.db import IntegrityError, router, transaction
 
 from sentry.backup.scopes import RelocationScope
+from sentry.db.models.base import DefaultFieldsModel
 from sentry.investigations.models import (
     Investigation,
     InvestigationBlock,
@@ -18,6 +19,8 @@ from sentry.investigations.models import (
     InvestigationCellParameter,
     InvestigationFavoriteUser,
     InvestigationParameter,
+    InvestigationPermissions,
+    InvestigationPermissionsTeam,
     InvestigationProject,
     InvestigationSourceType,
 )
@@ -162,6 +165,28 @@ class InvestigationModelTest(TestCase):
         assert parameter_link.date_added is not None
         assert execution_project.date_added is not None
 
+    def test_permission_requires_active_team_membership(self) -> None:
+        team = self.create_team(organization=self.organization)
+        permissions = self.create_investigation_permissions(
+            investigation=self.investigation,
+            teams=[team],
+            is_editable_by_everyone=False,
+        )
+        editor = self.create_user()
+        member = self.create_member(
+            organization=self.organization, user=editor, role="member", teams=[]
+        )
+
+        assert not permissions.has_edit_permissions(editor.id)
+        membership = self.create_team_membership(team=team, member=member)
+        assert permissions.has_edit_permissions(editor.id)
+        membership.is_active = False
+        membership.save(update_fields=["is_active"])
+        assert not permissions.has_edit_permissions(editor.id)
+
+    def test_permissions_use_default_timestamp_fields(self) -> None:
+        assert issubclass(InvestigationPermissions, DefaultFieldsModel)
+
     def test_all_investigation_models_are_excluded_from_relocation(self) -> None:
         models = (
             Investigation,
@@ -178,6 +203,8 @@ class InvestigationModelTest(TestCase):
             InvestigationCellParameter,
             InvestigationCellExecution,
             InvestigationCellExecutionProject,
+            InvestigationPermissions,
+            InvestigationPermissionsTeam,
         )
         assert all(model.__relocation_scope__ == RelocationScope.Excluded for model in models)
 
