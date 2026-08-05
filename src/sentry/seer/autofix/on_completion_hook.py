@@ -51,7 +51,7 @@ from sentry.seer.autofix.utils import (
     get_automation_handoff,
 )
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
-from sentry.seer.milestones import milestones_from_state, reconcile_milestones
+from sentry.seer.milestones import reconcile_milestones
 from sentry.seer.models import (
     SeerAutomationHandoffConfiguration,
     SeerRun,
@@ -451,7 +451,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             return
 
         if seer_run is not None:
-            reconcile_milestones(seer_run, desired=milestones_from_state(state))
+            reconcile_milestones(seer_run, state)
 
         event_name = webhook_action_type.value
 

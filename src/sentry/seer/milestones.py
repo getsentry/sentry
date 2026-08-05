@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Collection
 from typing import TYPE_CHECKING
 
 from django.db import router, transaction
@@ -51,12 +50,12 @@ def milestones_from_state(state: SeerRunState) -> set[str]:
     return milestones
 
 
-def reconcile_milestones(seer_run: SeerRun, desired: Collection[str]) -> None:
-    """Make the run's SEER_STATE_MILESTONES match ``desired``, inserting missing
-    ones and deleting no-longer-desired ones. Milestones outside that set (e.g.
-    PULL_REQUESTS_MERGED) are left untouched.
+def reconcile_milestones(seer_run: SeerRun, state: SeerRunState) -> None:
+    """Make the run's SEER_STATE_MILESTONES match what ``state`` has reached,
+    inserting newly-reached ones and deleting ones a re-run undid. Milestones
+    outside that set (e.g. PULL_REQUESTS_MERGED) are left untouched.
     """
-    desired_managed = set(desired) & SEER_STATE_MILESTONES
+    desired_managed = milestones_from_state(state) & SEER_STATE_MILESTONES
     with transaction.atomic(using=router.db_for_write(SeerRunMilestone)):
         existing = set(
             SeerRunMilestone.objects.filter(
