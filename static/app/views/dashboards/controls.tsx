@@ -272,6 +272,7 @@ export function Controls({
               </Tooltip>
             </Feature>
             {hasFeature &&
+              !hasNewBreadcrumbs &&
               (isPrebuiltDashboard ? (
                 <Button
                   data-test-id="dashboard-edit"

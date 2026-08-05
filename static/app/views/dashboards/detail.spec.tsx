@@ -672,7 +672,10 @@ describe('Dashboards > Detail', () => {
       expect(
         screen.getByRole('menuitemradio', {name: 'Dashboard Revisions'})
       ).toBeVisible();
-      expect(screen.getByRole('button', {name: 'edit-dashboard'})).toBeVisible();
+      expect(screen.getByRole('menuitemradio', {name: 'Edit Dashboard'})).toBeVisible();
+      expect(
+        screen.queryByRole('button', {name: 'edit-dashboard'})
+      ).not.toBeInTheDocument();
       expect(screen.getByText('Editors:')).toBeVisible();
     });
 

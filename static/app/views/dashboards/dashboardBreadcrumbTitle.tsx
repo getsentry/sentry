@@ -5,7 +5,7 @@ import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {IconClock, IconCopy, IconEllipsis, IconStar} from 'sentry/icons';
+import {IconClock, IconCopy, IconEdit, IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
@@ -16,7 +16,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {useOpenDashboardRevisions} from 'sentry/views/dashboards/dashboardRevisions';
-import {useDuplicatePrebuiltDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
+import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import type {DashboardDetails} from 'sentry/views/dashboards/types';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
 
@@ -24,12 +24,14 @@ interface DashboardBreadcrumbTitleProps {
   dashboard: DashboardDetails;
   isEditing: boolean;
   onChange: (title: string) => void;
+  onEdit: () => void;
 }
 
 export function DashboardBreadcrumbTitle({
   dashboard,
   isEditing,
   onChange,
+  onEdit,
 }: DashboardBreadcrumbTitleProps) {
   const [isFavorited, setIsFavorited] = useState(dashboard.isFavorited);
   const api = useApi();
@@ -39,7 +41,7 @@ export function DashboardBreadcrumbTitle({
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
   const openDashboardRevisions = useOpenDashboardRevisions(dashboard);
-  const {duplicatePrebuiltDashboard} = useDuplicatePrebuiltDashboard({
+  const duplicateDashboard = useDuplicateDashboard({
     onSuccess: newDashboard => {
       navigate(
         normalizeUrl(`/organizations/${organization.slug}/dashboard/${newDashboard.id}/`)
@@ -71,7 +73,8 @@ export function DashboardBreadcrumbTitle({
     dashboard.createdBy
   );
   const isPrebuiltDashboard = defined(dashboard.prebuiltId);
-  const menuItems = hasEditAccess
+  const isDashboardEditor = hasEditAccess && !isPrebuiltDashboard;
+  const menuItems = isDashboardEditor
     ? [
         {
           key: 'favorite',
@@ -98,31 +101,33 @@ export function DashboardBreadcrumbTitle({
             }
           },
         },
-        isPrebuiltDashboard
-          ? null
-          : {
-              key: 'revisions',
-              label: t('Dashboard Revisions'),
-              leadingItems: <IconClock />,
-              onAction: openDashboardRevisions,
-            },
+        {
+          key: 'revisions',
+          label: t('Dashboard Revisions'),
+          leadingItems: <IconClock />,
+          onAction: openDashboardRevisions,
+        },
+        {
+          key: 'edit',
+          label: t('Edit Dashboard'),
+          leadingItems: <IconEdit />,
+          onAction: onEdit,
+        },
       ].filter(item => item !== null)
-    : isPrebuiltDashboard
-      ? [
-          {
-            key: 'duplicate',
-            label: t('Duplicate Dashboard'),
-            leadingItems: <IconCopy />,
-            onAction: () => {
-              openConfirmModal({
-                message: t('Are you sure you want to duplicate this dashboard?'),
-                priority: 'primary',
-                onConfirm: () => duplicatePrebuiltDashboard(dashboard.id),
-              });
-            },
+    : [
+        {
+          key: 'duplicate',
+          label: t('Duplicate Dashboard'),
+          leadingItems: <IconCopy />,
+          onAction: () => {
+            openConfirmModal({
+              message: t('Are you sure you want to duplicate this dashboard?'),
+              priority: 'primary',
+              onConfirm: () => duplicateDashboard(dashboard, 'detail'),
+            });
           },
-        ]
-      : [];
+        },
+      ];
 
   return (
     <BreadcrumbList.Title

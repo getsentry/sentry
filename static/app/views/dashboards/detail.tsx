@@ -1215,6 +1215,7 @@ class DashboardDetail extends Component<Props, State> {
                               title: newTitle,
                             })
                           }
+                          onEdit={this.onEdit}
                         />
                       </TopBar.Slot>
                     </Fragment>
