@@ -3,7 +3,7 @@ from __future__ import annotations
 import functools
 import logging
 from collections.abc import Sequence
-from typing import Any, TypedDict, cast
+from typing import Any, NotRequired, cast
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
@@ -42,7 +42,11 @@ from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.endpoints.project_event_details import wrap_event_response
 from sentry.issues.formatting.formatter import FormattedResponse
-from sentry.issues.formatting.mixin import FormattableResponseMixin, format_event_response
+from sentry.issues.formatting.mixin import (
+    VALID_FORMATS,
+    FormattableResponseMixin,
+    format_event_response,
+)
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -129,15 +133,9 @@ def issue_search_query_to_conditions(
     return snql_conditions, resolved_legacy_conditions
 
 
-class _GroupEventDetailsFormattedResponseOptional(TypedDict, total=False):
-    # present only when ``?llmFormat`` is requested and the formatter option is on
-    formatted: FormattedResponse
-
-
-class GroupEventDetailsFormattedResponse(
-    GroupEventDetailsResponse, _GroupEventDetailsFormattedResponseOptional
-):
-    pass
+class GroupEventDetailsFormattedResponse(GroupEventDetailsResponse):
+    # present only when ``?llmFormat`` is requested and the formatter feature is on
+    formatted: NotRequired[FormattedResponse]
 
 
 @extend_schema(tags=["Events"])
@@ -172,7 +170,7 @@ class GroupEventDetailsEndpoint(FormattableResponseMixin, GroupEndpoint):
                 location=OpenApiParameter.QUERY,
                 required=False,
                 type=str,
-                enum=["markdown", "xml"],
+                enum=list(VALID_FORMATS),
                 description=(
                     "If set, adds a `formatted` field to the response with the event rendered "
                     "as the requested format for LLM consumption."
