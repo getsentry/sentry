@@ -644,8 +644,12 @@ def convert_search_filter_to_snuba_query(
             if search_filter.value.is_wildcard():
                 raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
             elif not search_filter.value.is_event_id():
-                label = "Filter ID" if name == "id" else "Filter Trace ID"
-                raise InvalidSearchQuery(INVALID_ID_DETAILS.format(label))
+                if name == "id":
+                    raise InvalidSearchQuery(
+                        "To filter issues by their numeric ID, use the `id` query parameter (e.g. `?id=<issue_id>`) instead of the `id:` search filter. "
+                        + INVALID_ID_DETAILS.format("Filter ID")
+                    )
+                raise InvalidSearchQuery(INVALID_ID_DETAILS.format("Filter Trace ID"))
 
         # most field aliases are handled above but timestamp.to_{hour,day} are
         # handled here

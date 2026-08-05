@@ -70,6 +70,8 @@ from sentry.users.services.user.service import user_service
 from sentry.users.services.user_option import user_option_service
 from sentry.utils import metrics
 
+from sentry.exceptions import InvalidSearchQuery
+
 from . import ACTIVITIES_COUNT, BULK_MUTATION_LIMIT, SearchFunction, delete_group_list
 from .lookup import get_group_list
 from .validators import GroupValidator, ValidationError
@@ -304,7 +306,7 @@ def update_groups_with_search_fn(
         group_list = get_group_list(organization_id, projects, group_ids)
     else:
         try:
-            # It can raise ValidationError
+            # It can raise ValidationError or InvalidSearchQuery
             cursor_result, _ = search_fn(
                 {
                     "limit": BULK_MUTATION_LIMIT,
@@ -316,6 +318,8 @@ def update_groups_with_search_fn(
             return Response(
                 {"detail": "Invalid query. Error getting group ids and group list"}, status=400
             )
+        except InvalidSearchQuery as e:
+            return Response({"detail": str(e)}, status=400)
 
         group_list = list(cursor_result)
 
