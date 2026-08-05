@@ -241,7 +241,6 @@ export function useConversation(
   const queryParams = {
     project,
     per_page: 1000,
-    apiVersion: 2,
     ...datetimeParams,
   };
 

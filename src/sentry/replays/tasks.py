@@ -98,7 +98,8 @@ def process_replay_recording(message_bytes: bytes) -> None:
 
 @instrumented_task(
     name="sentry.replays.tasks.delete_recording_async",
-    namespace=replays_tasks,
+    namespace=replays_long_tasks,
+    alias_namespace=replays_tasks,
     processing_deadline_duration=120,
     retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.CELL,
@@ -107,8 +108,11 @@ def delete_replays_script_async(
     retention_days: int,
     project_id: int,
     replay_id: str,
-    max_segment_id: int,
+    max_segment_id: int | None,
 ) -> None:
+    if max_segment_id is None:
+        return None
+
     segments = [
         RecordingSegmentStorageMeta(
             project_id=project_id,
@@ -116,15 +120,14 @@ def delete_replays_script_async(
             segment_id=i,
             retention_days=retention_days,
         )
-        for i in range(0, max_segment_id)
+        for i in range(max_segment_id + 1)
     ]
 
     rrweb_filenames = []
     for segment in segments:
         rrweb_filenames.append(make_recording_filename(segment))
 
-    with ContextPropagatingThreadPoolExecutor(max_workers=100) as pool:
-        pool.map(_delete_if_exists, rrweb_filenames)
+    _delete_filenames_concurrently(rrweb_filenames)
 
     # Backwards compatibility. Should be deleted one day.
     segments_from_django_models = ReplayRecordingSegment.objects.filter(
@@ -165,8 +168,11 @@ def delete_replay_recording(project_id: int, replay_id: str) -> None:
             direct_storage_segments.append(segment)
 
     # Issue concurrent delete requests when interacting with a remote service provider.
-    with ContextPropagatingThreadPoolExecutor(max_workers=100) as pool:
-        if direct_storage_segments:
+    # Make the threads reuse one client instead of racing to build their own
+    if direct_storage_segments:
+        storage.initialize_client()
+        max_workers = min(len(direct_storage_segments), _DELETE_THREAD_POOL_SIZE)
+        with ContextPropagatingThreadPoolExecutor(max_workers=max_workers) as pool:
             pool.map(storage.delete, direct_storage_segments)
 
     # This will only run if "filestore" was used to store the files. This hasn't been the
@@ -193,6 +199,23 @@ def _delete_if_exists(filename: str) -> None:
         storage_kv.delete(filename)
     except NotFound:
         pass
+
+
+#  Keeping this small bounds threads-per-task so `worker_concurrency x N` stays under pod memory limit
+_DELETE_THREAD_POOL_SIZE = 32
+
+
+def _delete_filenames_concurrently(filenames: list[str]) -> None:
+    if not filenames:
+        return
+
+    # Warm the process-global client before the threads start so they reuse it instead of racing to build their own
+    # Mimics the API endpoint's behavior
+    storage_kv.initialize_client()
+
+    max_workers = min(len(filenames), _DELETE_THREAD_POOL_SIZE)
+    with ContextPropagatingThreadPoolExecutor(max_workers=max_workers) as pool:
+        pool.map(_delete_if_exists, filenames)
 
 
 @instrumented_task(
@@ -226,6 +249,7 @@ def run_bulk_replay_delete_job(
 
     # If this is the first run of the task we set the model to in-progress.
     if job.status == DeletionJobStatus.PENDING:
+        metrics.incr("replays.bulk_delete_job", tags={"status": "started"}, sample_rate=1.0)
         _transition_status(job.id, DeletionJobStatus.PENDING, DeletionJobStatus.IN_PROGRESS)
         job.status = DeletionJobStatus.IN_PROGRESS
 
@@ -254,6 +278,14 @@ def run_bulk_replay_delete_job(
         # Delete the matched rows if any rows were returned.
         if len(results["rows"]) > 0:
             delete_matched_rows(job.project_id, results["rows"])
+            # Track job progress with a state transition metric
+            metrics.incr("replays.bulk_delete_job", tags={"status": "in_progress"}, sample_rate=1.0)
+            # Track the count of deleted rows separately
+            metrics.incr(
+                "replays.bulk_delete_job.rows_deleted",
+                amount=len(results["rows"]),
+                sample_rate=1.0,
+            )
             if has_seer_data:
                 delete_seer_replay_data(
                     job.organization_id,
@@ -267,11 +299,13 @@ def run_bulk_replay_delete_job(
         task = current_task()
         if task is not None and not task.retries_remaining:
             logger.warning("Bulk delete replays exhausted its processing deadline retries.")
+            metrics.incr("replays.bulk_delete_job", tags={"status": "failed"}, sample_rate=1.0)
             _transition_status(job.id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.FAILED)
         raise
     except Exception:
         logger.exception("Bulk delete replays failed.")
 
+        metrics.incr("replays.bulk_delete_job", tags={"status": "failed"}, sample_rate=1.0)
         _transition_status(job.id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.FAILED)
         raise
 
@@ -312,6 +346,7 @@ def run_bulk_replay_delete_job(
     # All windows processed. Mark the job as completed.
     _advance_offset(job.id, new_total)
     _transition_status(job.id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.COMPLETED)
+    metrics.incr("replays.bulk_delete_job", tags={"status": "completed"}, sample_rate=1.0)
     return None
 
 

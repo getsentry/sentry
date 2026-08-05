@@ -17,7 +17,7 @@ class FetchConversationTitlesTest(TestCase):
 
         titles = fetch_conversation_titles([("conv-1", self.project.id)])
 
-        assert titles == {("conv-1", self.project.id): "Reset my password"}
+        assert titles == {"conv-1": "Reset my password"}
 
     def test_skips_untitled_rows(self) -> None:
         self.create_ai_conversation_metadata(
@@ -63,32 +63,99 @@ class FetchConversationTitlesTest(TestCase):
         )
 
         assert titles == {
-            ("conv-1", self.project.id): "Owned by project one",
-            ("conv-2", other_project.id): "Second conversation",
+            "conv-1": "Owned by project one",
+            "conv-2": "Second conversation",
         }
 
-    def test_returns_both_projects_when_both_requested(self) -> None:
+    def test_earliest_source_timestamp_wins(self) -> None:
         other_project = self.create_project(organization=self.organization)
-
         self.create_ai_conversation_metadata(
             project=self.project,
             conversation_id="conv-1",
-            title="Owned by project one",
+            title="Later half of the conversation",
+            title_source_timestamp=datetime(2024, 5, 1, 12, 0, tzinfo=UTC),
         )
         self.create_ai_conversation_metadata(
             project=other_project,
             conversation_id="conv-1",
-            title="Owned by project two",
+            title="Start of the conversation",
+            title_source_timestamp=datetime(2024, 5, 1, 11, 0, tzinfo=UTC),
         )
 
         titles = fetch_conversation_titles(
             [("conv-1", self.project.id), ("conv-1", other_project.id)]
         )
 
-        assert titles == {
-            ("conv-1", self.project.id): "Owned by project one",
-            ("conv-1", other_project.id): "Owned by project two",
-        }
+        assert titles == {"conv-1": "Start of the conversation"}
+
+    def test_null_source_timestamp_loses(self) -> None:
+        other_project = self.create_project(organization=self.organization)
+        self.create_ai_conversation_metadata(
+            project=self.project,
+            conversation_id="conv-1",
+            title="Unknown when this started",
+            title_source_timestamp=None,
+        )
+        self.create_ai_conversation_metadata(
+            project=other_project,
+            conversation_id="conv-1",
+            title="Start of the conversation",
+            title_source_timestamp=datetime(2024, 5, 1, 11, 0, tzinfo=UTC),
+        )
+
+        titles = fetch_conversation_titles(
+            [("conv-1", self.project.id), ("conv-1", other_project.id)]
+        )
+
+        assert titles == {"conv-1": "Start of the conversation"}
+
+    def test_ties_break_on_project_id(self) -> None:
+        source_timestamp = datetime(2024, 5, 1, tzinfo=UTC)
+        lower_project, higher_project = sorted(
+            (
+                self.create_project(organization=self.organization),
+                self.create_project(organization=self.organization),
+            ),
+            key=lambda project: project.id,
+        )
+
+        self.create_ai_conversation_metadata(
+            project=lower_project,
+            conversation_id="conv-1",
+            title="Lower project id",
+            title_source_timestamp=source_timestamp,
+        )
+        self.create_ai_conversation_metadata(
+            project=higher_project,
+            conversation_id="conv-1",
+            title="Higher project id",
+            title_source_timestamp=source_timestamp,
+        )
+
+        titles = fetch_conversation_titles(
+            [("conv-1", lower_project.id), ("conv-1", higher_project.id)]
+        )
+
+        assert titles == {"conv-1": "Lower project id"}
+
+    def test_unrequested_earlier_title_does_not_win(self) -> None:
+        other_project = self.create_project(organization=self.organization)
+        self.create_ai_conversation_metadata(
+            project=self.project,
+            conversation_id="conv-1",
+            title="Requested project title",
+            title_source_timestamp=datetime(2024, 5, 1, 12, 0, tzinfo=UTC),
+        )
+        self.create_ai_conversation_metadata(
+            project=other_project,
+            conversation_id="conv-1",
+            title="Earlier but unrequested",
+            title_source_timestamp=datetime(2024, 5, 1, 11, 0, tzinfo=UTC),
+        )
+
+        titles = fetch_conversation_titles([("conv-1", self.project.id)])
+
+        assert titles == {"conv-1": "Requested project title"}
 
 
 class FetchConversationTitleTest(TestCase):

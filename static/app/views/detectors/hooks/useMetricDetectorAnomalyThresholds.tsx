@@ -29,7 +29,7 @@ interface UseMetricDetectorAnomalyThresholdsProps {
   detectorId: string;
   detectionType?: string;
   endTimestamp?: number;
-  isLegacyAlert?: boolean; // for Alerts, remove this once organizations:workflow-engine-ui is GAd
+  isLegacyAlert?: boolean; // for Alerts, remove this once every AlertRule has a migrated Detector
   series?: Series[];
   startTimestamp?: number;
 }

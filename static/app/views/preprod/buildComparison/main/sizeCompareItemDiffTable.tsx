@@ -66,7 +66,7 @@ export function SizeCompareItemDiffTable({
 
   const [currentPage, setCurrentPage] = useState(0);
 
-  const sortedDiffItems = [...diffItems].sort((a: DiffItem, b: DiffItem) => {
+  const sortedDiffItems = diffItems.toSorted((a: DiffItem, b: DiffItem) => {
     const {field, kind} = sort;
 
     let aValue: number | string = '';

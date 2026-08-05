@@ -263,7 +263,7 @@ export function mergeRowsByTimestampDescending(
   sortedRows: readonly LogTableRowItem[],
   injectedRows: readonly LogTableRowItem[]
 ): LogTableRowItem[] {
-  const sortedInjectedRows = [...injectedRows].sort(
+  const sortedInjectedRows = injectedRows.toSorted(
     (a, b) => getLogRowTimestampMillis(b) - getLogRowTimestampMillis(a)
   );
 

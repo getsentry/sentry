@@ -15,7 +15,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import type {Block, TodoItem} from 'sentry/views/seerExplorer/types';
+import type {Block, TodoItem, ToolLink} from 'sentry/views/seerExplorer/types';
 import {
   buildToolLinkUrl,
   getToolsStringFromBlock,
@@ -24,6 +24,24 @@ import {
 
 import type {ToolUseBlockProps} from './shared';
 import {MessagePlaceholder, getBlockStatus, hasValidContent} from './shared';
+
+// Result-status metadata rather than part of a link's identity: two entries pointing at the same
+// target are the same link whether or not one side also reports the call failed or came back empty.
+// Excluded from linkKey so the dedupe still matches a twin when only one channel carries them.
+const LINK_STATUS_PARAMS = new Set(['is_error', 'empty_results']);
+
+// Identity for deduping a bus link against the positional row link. Params are sorted so the key
+// does not depend on object key order — today both channels derive params from the same object, but
+// this keeps the dedupe correct if that ever stops being true.
+function linkKey(link: ToolLink) {
+  const params = link.params ?? {};
+  const sorted = Object.keys(params)
+    .filter(k => !LINK_STATUS_PARAMS.has(k))
+    .sort()
+    .map(k => `${k}=${JSON.stringify(params[k])}`)
+    .join(',');
+  return `${link.kind}:${sorted}`;
+}
 
 export function ToolUseBlock({
   block,
@@ -88,10 +106,41 @@ function useToolLinks(block: Block) {
     return map;
   }, [block.tool_links, block.tool_results]);
 
+  // The positional links as seer sent them, before getValidToolLinks drops errored/unbuildable
+  // ones. Used only to dedupe the bus against the positional channel: an errored link still has to
+  // suppress its bus twin even though it never renders as a row link itself.
+  const rawToolLinkByCallId = useMemo(() => {
+    const map = new Map<string, ToolLink>();
+    (block.tool_results || []).forEach((result, idx) => {
+      const link = block.tool_links?.[idx];
+      if (result?.tool_call_id && link) {
+        map.set(result.tool_call_id, link);
+      }
+    });
+    return map;
+  }, [block.tool_links, block.tool_results]);
+
+  // The links bus (code-mode-effects-registry): a tool result carries its own deep-links in
+  // structuredContent.links as a {kind, params} list. Keyed by tool_call_id, so a result can hold
+  // many with no index alignment. When present, this is the source of truth for that result's
+  // links; when absent, we fall back to the positional block.tool_links below.
+  const busLinksByCallId = useMemo(() => {
+    const map = new Map<string, ToolLink[]>();
+    (block.tool_results || []).forEach(result => {
+      const links = result?.structuredContent?.links;
+      if (result?.tool_call_id && links?.length) {
+        map.set(result.tool_call_id, links);
+      }
+    });
+    return map;
+  }, [block.tool_results]);
+
   return {
     sortedToolLinks,
     toolCallToLinkIndexMap,
     toolLinkByCallId,
+    rawToolLinkByCallId,
+    busLinksByCallId,
     organization,
     projects,
   };
@@ -108,11 +157,14 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
     sortedToolLinks,
     toolCallToLinkIndexMap,
     toolLinkByCallId,
+    rawToolLinkByCallId,
+    busLinksByCallId,
     organization,
     projects,
   } = useToolLinks(block);
   const toolsUsed = getToolsStringFromBlock(block);
   const blockStatus = getBlockStatus(block);
+  const latestTodos = useMemo(() => findLatestTodos(blocks), [blocks]);
 
   return (
     <Stack gap="md" width="100%" minWidth={0} paddingRight="lg">
@@ -122,44 +174,76 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
           ? toolLinkByCallId.get(toolCall.id)
           : undefined;
         const hasLink = correspondingLinkIndex !== undefined;
-        const toolUrl = hasLink
-          ? buildToolLinkUrl(
-              sortedToolLinks[correspondingLinkIndex],
-              organization,
-              projects
-            )
+        const positionalLink = hasLink
+          ? sortedToolLinks[correspondingLinkIndex]
+          : undefined;
+        const toolUrl = positionalLink
+          ? buildToolLinkUrl(positionalLink, organization, projects)
           : null;
 
-        const handleLinkClick = hasLink
-          ? (e: React.MouseEvent) => {
-              e.stopPropagation();
-              const selectedLink = sortedToolLinks[correspondingLinkIndex];
-              if (selectedLink) {
-                trackAnalytics('seer.explorer.global_panel.tool_link_navigation', {
-                  referrer: getPageReferrer?.() ?? '',
-                  organization,
-                  tool_kind: selectedLink.kind,
-                });
-              }
-            }
+        // Both channels' links stop propagation (so the click doesn't reach the blocks
+        // container's handler) and report the same navigation analytics.
+        const trackLinkClick = (kind: string) => (e: React.MouseEvent) => {
+          e.stopPropagation();
+          trackAnalytics('seer.explorer.global_panel.tool_link_navigation', {
+            referrer: getPageReferrer?.() ?? '',
+            organization,
+            tool_kind: kind,
+          });
+        };
+
+        const handleLinkClick = positionalLink
+          ? trackLinkClick(positionalLink.kind)
           : undefined;
 
-        // Render the checklist once per block (on the last tool-call row), regardless of
-        // which tool produced it — classic `todo_write` or Code Mode `sentry_api_execute`,
-        // which projects its todos onto block.todos (code-mode-effects-bus).
+        // Render the checklist once per block, on the last tool-call row of whichever block holds
+        // the newest snapshot — from either channel (codemode-structured-content-only).
         const isLastToolCall = idx === (block.message.tool_calls?.length ?? 0) - 1;
         const todos =
-          isLastToolCall &&
-          block.todos?.length &&
-          blocks?.findLast(b => b.todos?.length) === block
-            ? block.todos
-            : null;
+          isLastToolCall && latestTodos?.block === block ? latestTodos.todos : null;
 
         const failureTooltip = toolLinkParams?.is_error
           ? t('Tool call failed')
           : toolLinkParams?.empty_results
             ? t('Tool call returned empty results')
             : null;
+
+        // Links bus: render the result's own links (structuredContent.links) as labeled links
+        // below the row. Dedupe the one already shown as the positional row link (classic tools
+        // populate both channels during migration), so a Code Mode execute's many links surface
+        // while classic single-link rendering is unchanged. Errored links are dropped here for
+        // the same reason getValidToolLinks drops them from the positional channel.
+        //
+        // Dedupe against the *raw* positional link, not the filtered `positionalLink`:
+        // getValidToolLinks drops errored (and unbuildable) links, so a failed classic tool has no
+        // `positionalLink` at all. Keying off that would leave its bus twin unmatched and render it
+        // as a success link under a row that failed.
+        const rawPositionalLink = toolCall.id
+          ? rawToolLinkByCallId.get(toolCall.id)
+          : undefined;
+        const positionalKey = rawPositionalLink ? linkKey(rawPositionalLink) : null;
+        const navItems = (toolCall.id ? (busLinksByCallId.get(toolCall.id) ?? []) : [])
+          .filter(link => link.params?.is_error !== true)
+          .filter(link => linkKey(link) !== positionalKey)
+          .map(link => ({
+            kind: link.kind,
+            label: navLinkLabel(link.kind),
+            url: buildToolLinkUrl(link, organization, projects),
+          }))
+          // Fail closed on both axes: drop a link we cannot build a URL for, and drop one we have
+          // no label for rather than falling back to the raw kind. An unsupported kind already has
+          // no URL builder, so the label check only bites if a builder is ever added without a
+          // label — the coverage test keeps those two sets in step, and this is the backstop that
+          // keeps an internal identifier off screen if it drifts anyway.
+          .filter(
+            (
+              item
+            ): item is {
+              kind: string;
+              label: string;
+              url: NonNullable<typeof item.url>;
+            } => !!item.url && !!item.label
+          );
 
         return (
           <ToolCallRow
@@ -170,11 +254,20 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
             failureTooltip={failureTooltip}
             onLinkClick={handleLinkClick}
             todos={todos}
+            navItems={navItems}
+            onNavLinkClick={trackLinkClick}
           />
         );
       })}
     </Stack>
   );
+}
+
+interface NavItem {
+  kind: string;
+  /** Resolved at construction, so an unlabeled kind never reaches the renderer. */
+  label: string;
+  url: NonNullable<ReturnType<typeof buildToolLinkUrl>>;
 }
 
 function ToolCallRow({
@@ -184,13 +277,17 @@ function ToolCallRow({
   failureTooltip,
   onLinkClick,
   todos,
+  navItems,
+  onNavLinkClick,
 }: {
   blockStatus: ToolCallStatus | undefined;
   failureTooltip: string | null;
+  navItems: NavItem[];
   todos: TodoItem[] | null;
   toolString: string;
   toolUrl: ReturnType<typeof buildToolLinkUrl>;
   onLinkClick?: (e: React.MouseEvent) => void;
+  onNavLinkClick?: (kind: string) => (e: React.MouseEvent) => void;
 }) {
   const hasLink = toolUrl !== null;
 
@@ -227,7 +324,83 @@ function ToolCallRow({
           <ToolCallPlainRow>{toolCallText}</ToolCallPlainRow>
         )}
       </Flex>
+      {navItems.length > 0 && (
+        <NavLinks navItems={navItems} onNavLinkClick={onNavLinkClick} />
+      )}
       {todos && <TodoList todos={todos} />}
+    </Stack>
+  );
+}
+
+// One entry per link kind buildToolLinkUrl can resolve. A kind absent here is not rendered at all
+// (see navLinkLabel): showing the raw kind would leak an internal function name like
+// `get_log_attributes` as the visible link text. Keeping this in step with buildToolLinkUrl's cases
+// is enforced by a test, so a kind seer starts emitting cannot reach users unlabeled.
+export const NAV_LINK_LABELS: Record<string, string> = {
+  get_issue_details: t('View issue'),
+  get_trace_waterfall: t('View trace'),
+  get_replay_details: t('View replay'),
+  get_profile_flamegraph: t('View profile'),
+  get_event_details: t('View event'),
+  get_log_attributes: t('View logs'),
+  get_metric_attributes: t('View metrics'),
+  // Dataset-dependent (issues / errors / spans / logs), so the label stays neutral.
+  telemetry_live_search: t('View results'),
+};
+
+/** The visible label for a bus link, or undefined when the kind is not renderable. */
+function navLinkLabel(kind: string): string | undefined {
+  return NAV_LINK_LABELS[kind];
+}
+
+/**
+ * The newest todo snapshot in the conversation and the block that carries it.
+ *
+ * A snapshot arrives on either channel: a classic `todo_write` writes `block.todos`, while Code Mode
+ * returns it on a tool result's `structuredContent.todos`. Neither is converted into the other, so
+ * both are walked in run order — blocks in sequence, and within a block its tool results in sequence,
+ * with the legacy field first so a same-block collision resolves to the structured value. Returns
+ * null when no block carries one.
+ */
+function findLatestTodos(blocks?: Block[]): {block: Block; todos: TodoItem[]} | null {
+  let latest: {block: Block; todos: TodoItem[]} | null = null;
+  for (const block of blocks ?? []) {
+    if (block.todos?.length) {
+      latest = {block, todos: block.todos};
+    }
+    for (const result of block.tool_results ?? []) {
+      const todos = result?.structuredContent?.todos;
+      if (todos?.length) {
+        latest = {block, todos};
+      }
+    }
+  }
+  return latest;
+}
+
+function NavLinks({
+  navItems,
+  onNavLinkClick,
+}: {
+  navItems: NavItem[];
+  onNavLinkClick?: (kind: string) => (e: React.MouseEvent) => void;
+}) {
+  return (
+    <Stack as="ul" gap="xs" padding="0">
+      {navItems.map((item, idx) => (
+        <Flex key={`${item.kind}-${idx}`} as="li" gap="sm" align="center">
+          {/* ToolCallText (not plain Text) so ToolCallLink's hover rule, which targets it by
+              class, colors the label the same way it does the positional row link. */}
+          <ToolCallLink to={item.url} onClick={onNavLinkClick?.(item.kind)}>
+            <ToolCallText size="xs" monospace>
+              {item.label}
+            </ToolCallText>
+            <ToolCallLinkIconWrapper>
+              <ToolCallLinkIcon size="xs" />
+            </ToolCallLinkIconWrapper>
+          </ToolCallLink>
+        </Flex>
+      ))}
     </Stack>
   );
 }

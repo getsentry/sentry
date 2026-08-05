@@ -12,7 +12,7 @@ export type EmbedOutput<N extends SeerEmbedName> = z.output<
 
 interface DefineSeerEmbedOptions<N extends SeerEmbedName> {
   name: N;
-  render: (props: EmbedOutput<N>) => ReactNode;
+  render: (props: EmbedOutput<N>, level: SeerEmbedProps['level']) => ReactNode;
 }
 
 export function defineSeerEmbed<N extends SeerEmbedName>({
@@ -21,7 +21,7 @@ export function defineSeerEmbed<N extends SeerEmbedName>({
 }: DefineSeerEmbedOptions<N>) {
   const {schema} = SEER_EMBED_SCHEMAS[name];
 
-  function Embed({data}: SeerEmbedProps) {
+  function Embed({data, level}: SeerEmbedProps) {
     const parsed = schema.safeParse(data);
     if (!parsed.success) {
       if (NODE_ENV === 'development') {
@@ -30,7 +30,7 @@ export function defineSeerEmbed<N extends SeerEmbedName>({
       }
       return null;
     }
-    return render(parsed.data as EmbedOutput<N>);
+    return render(parsed.data as EmbedOutput<N>, level);
   }
   Embed.displayName = name;
 

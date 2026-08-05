@@ -206,7 +206,7 @@ export function Content({
         data-test-id="stack-trace-content"
       >
         <StyledList data-test-id="frames">
-          {newestFirst ? [...convertedFrames].reverse() : convertedFrames}
+          {newestFirst ? convertedFrames.toReversed() : convertedFrames}
         </StyledList>
       </StackTraceContentPanel>
     </Wrapper>

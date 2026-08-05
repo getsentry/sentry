@@ -16,6 +16,7 @@ from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, S
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
 @with_feature("organizations:seer-explorer")
@@ -164,6 +165,9 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_continue_conversation_calls_client(self, mock_client_class: MagicMock) -> None:
+        run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=789, user_id=self.user.id
+        )
         mock_client = MagicMock()
         mock_client.continue_run.return_value = 789
         mock_client_class.return_value = mock_client
@@ -172,10 +176,10 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             "query": "Follow up question",
             "insert_index": 2,
         }
-        response = self.client.post(f"{self.url}789/", data, format="json")
+        response = self.client.post(f"{self.url}{run.seer_run_state_id}/", data, format="json")
 
         assert response.status_code == 200
-        assert response.data == {"run_id": 789, "sentry_run_id": None}
+        assert response.data == {"run_id": 789, "sentry_run_id": str(run.uuid)}
         mock_client_class.assert_called_once_with(
             self.organization,
             ANY,
@@ -216,6 +220,30 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         mock_client.get_run.assert_called_once_with(run_id=555)
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_get_allows_reading_another_users_conversation(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=555, user_id=self.user.id
+        )
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member")
+        self.login_as(user=member)
+        mock_client = MagicMock()
+        mock_client.get_run.return_value = SeerRunState(
+            run_id=555,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+        mock_client_class.return_value = mock_client
+
+        response = self.client.get(f"{self.url}{run.uuid}/")
+
+        assert response.status_code == 200
+        mock_client.get_run.assert_called_once_with(run_id=555)
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_get_with_unknown_uuid_returns_null_session(self, mock_client_class: MagicMock) -> None:
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
@@ -243,7 +271,9 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_continue_with_uuid_resolves(self, mock_client_class: MagicMock) -> None:
-        run = self.create_seer_run(organization=self.organization, seer_run_state_id=555)
+        run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=555, user_id=self.user.id
+        )
         mock_client = MagicMock()
         mock_client.continue_run.return_value = 555
         mock_client_class.return_value = mock_client
@@ -253,6 +283,53 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {"run_id": 555, "sentry_run_id": str(run.uuid)}
         assert mock_client.continue_run.call_args.kwargs["run_id"] == 555
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_post_continuing_another_users_conversation_is_denied(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=555, user_id=self.user.id
+        )
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member")
+        self.login_as(user=member)
+
+        response = self.client.post(
+            f"{self.url}{run.seer_run_state_id}/", {"query": "More"}, format="json"
+        )
+
+        assert response.status_code == 403
+        assert response.data == {
+            "detail": "This conversation belongs to another user and is read-only."
+        }
+        mock_client_class.assert_not_called()
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_post_continue_with_org_auth_token_is_denied(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=555, user_id=self.user.id
+        )
+        token = generate_token(self.organization.slug, "")
+        self.create_org_auth_token(
+            name="org-auth-token",
+            token_hashed=hash_token(token),
+            organization_id=self.organization.id,
+            scope_list=["org:read"],
+        )
+
+        response = self.client.post(
+            f"{self.url}{run.seer_run_state_id}/",
+            {"query": "More"},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token}",
+        )
+
+        assert response.status_code == 403
+        assert response.data == {"detail": "A user account is required to continue a conversation."}
+        mock_client_class.assert_not_called()
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_continue_with_unknown_uuid_returns_404(
@@ -281,6 +358,9 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_continue_conversation_enable_coding(self, mock_client_class: MagicMock) -> None:
+        run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=789, user_id=self.user.id
+        )
         for i, (feature_enabled, option_enabled) in enumerate(
             [(True, True), (True, False), (False, True), (False, False)]
         ):
@@ -291,7 +371,9 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             data = {"query": "Follow up question", "insert_index": 2}
             self.organization.update_option("sentry:enable_seer_coding", option_enabled)
             with self.feature({"organizations:seer-explorer-chat-coding": feature_enabled}):
-                response = self.client.post(f"{self.url}789/", data, format="json")
+                response = self.client.post(
+                    f"{self.url}{run.seer_run_state_id}/", data, format="json"
+                )
 
             assert response.status_code == 200
             assert mock_client_class.call_count == i + 1
@@ -331,16 +413,19 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         self, mock_client_class: MagicMock
     ) -> None:
         """POST with run_id should succeed for orgs with Seer access even without seer-explorer."""
+        run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=789, user_id=self.user.id
+        )
         mock_client = MagicMock()
         mock_client.continue_run.return_value = 789
         mock_client_class.return_value = mock_client
 
         data = {"query": "Follow up question"}
         with self.feature({"organizations:seer-explorer": False}):
-            response = self.client.post(f"{self.url}789/", data, format="json")
+            response = self.client.post(f"{self.url}{run.seer_run_state_id}/", data, format="json")
 
         assert response.status_code == 200
-        assert response.data == {"run_id": 789, "sentry_run_id": None}
+        assert response.data == {"run_id": 789, "sentry_run_id": str(run.uuid)}
 
     def test_new_run_denied_without_seer_explorer_flag(self) -> None:
         """POST without run_id should be denied for orgs without seer-explorer, even with Seer access."""
