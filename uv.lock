@@ -2595,7 +2595,7 @@ wheels = [
 
 [[package]]
 name = "sentry-protos"
-version = "0.58.1"
+version = "0.59.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "grpc-stubs", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2603,7 +2603,7 @@ dependencies = [
     { name = "protobuf", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.58.1-py3-none-any.whl", hash = "sha256:5f9a209965bfc3ca94879510f7094efcfd9b6e20c65e4bf1d8e3041ef701e853" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.59.0-py3-none-any.whl", hash = "sha256:240341d19c720cf53abd540e3d1d4cbd58316ae8e655163ebca30f03ad1ca365" },
 ]
 
 [[package]]
