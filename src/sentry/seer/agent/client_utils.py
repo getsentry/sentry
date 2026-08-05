@@ -123,7 +123,6 @@ class SeerFeatureRunRequest(TypedDict):
     feature_id: str
     payload: dict[str, Any]
     agent_run_options: NotRequired[dict[str, Any]]
-    is_context_engine_enabled: NotRequired[bool]
 
 
 class SeerFeatureRunWireRequest(SeerFeatureRunRequest):

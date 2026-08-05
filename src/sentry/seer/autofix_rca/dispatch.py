@@ -27,6 +27,7 @@ def trigger_autofix_rca_feature(
     stopping_point: AutofixStoppingPoint | None = None,
     intelligence_level: Literal["low", "medium", "high"] = "medium",
     reasoning_effort: Literal["low", "medium", "high"] | None = "medium",
+    flush: bool = True,
 ) -> SeerRun:
     has_budget: bool = quotas.backend.check_seer_quota(
         org_id=group.organization.id,
@@ -55,7 +56,7 @@ def trigger_autofix_rca_feature(
     )
 
     # Store the stopping point here for delivery to use when advancing steps.
-    extras: dict[str, Any] = {"group_id": group.id, "referrer": referrer.value}
+    extras: dict[str, Any] = {"referrer": referrer.value}
     if stopping_point is not None:
         extras["stopping_point"] = stopping_point.value
 
@@ -63,8 +64,7 @@ def trigger_autofix_rca_feature(
         feature_id=FEATURE_ID,
         payload=payload.dict(),
         title=f"Autofix RCA — {payload.short_id}",
-        # flush=True: dispatch inline so seer_run_state_id is populated before we return
-        flush=True,
+        flush=flush,
         extras=extras,
     )
 

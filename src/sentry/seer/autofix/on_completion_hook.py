@@ -106,43 +106,26 @@ def _stopping_point_from_run(organization: Organization, run_id: int) -> str | N
     )
 
 
-def record_fixability(
-    *,
-    organization: Organization,
-    group: Group,
-    run_id: int,
-    artifact: RootCauseArtifact,
-    step: AutofixStep,
-    referrer: AutofixReferrer,
-    reached_stopping_point: bool,
-) -> FixabilityAssessment:
-    analytics.record(
-        AiAutofixIntrospectionEvent(
-            organization_id=organization.id,
-            project_id=group.project_id,
-            group_id=group.id,
-            run_id=run_id,
-            referrer=referrer.value,
-            step=step.value,
-            action=artifact.fixability.assessment,
-            reached_stopping_point=reached_stopping_point,
+def _group_and_referrer_from_run(
+    organization: Organization, run_id: int
+) -> tuple[int | None, AutofixReferrer | None]:
+    run_context = (
+        SeerAgentRun.objects.filter(
+            run__organization_id=organization.id,
+            run__seer_run_state_id=run_id,
         )
+        .values("group_id", "extras")
+        .first()
     )
-    logger.info(
-        "autofix.on_completion_hook.introspection",
-        extra={
-            "organization_id": organization.id,
-            "project_id": group.project_id,
-            "group_id": group.id,
-            "referrer": referrer.value,
-            "step": step.value,
-            "action": artifact.fixability.assessment,
-            "reason": artifact.fixability.reason,
-            "reached_stopping_point": reached_stopping_point,
-        },
-    )
+    if run_context is None:
+        return None, None
 
-    return artifact.fixability
+    raw_referrer = (run_context["extras"] or {}).get("referrer")
+    try:
+        referrer = AutofixReferrer(raw_referrer) if isinstance(raw_referrer, str) else None
+    except ValueError:
+        referrer = None
+    return run_context["group_id"], referrer
 
 
 class AutofixOnCompletionHook(AgentOnCompletionHook):
@@ -172,11 +155,28 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             )
             return
 
-        group_id = state.metadata.get("group_id") if state.metadata else None
+        # Fall back to the Sentry-side run mirror for runs Seer started without
+        # metadata (the autofix_rca feature), same as the stopping point.
+        run_group_id, run_referrer = _group_and_referrer_from_run(organization, run_id)
+        group_id = (state.metadata or {}).get("group_id") or run_group_id
         if group_id is None:
+            logger.warning(
+                "autofix.on_completion_hook.missing_group_id",
+                extra={"run_id": run_id, "organization_id": organization.id},
+            )
             return
 
-        group = Group.objects.get(id=group_id, project__organization_id=organization.id)
+        group = Group.objects.filter(id=group_id, project__organization_id=organization.id).first()
+        if group is None:
+            logger.warning(
+                "autofix.on_completion_hook.group_not_found",
+                extra={
+                    "run_id": run_id,
+                    "organization_id": organization.id,
+                    "group_id": group_id,
+                },
+            )
+            return
         now = timezone.now()
         with transaction.atomic(using=router.db_for_write(Group)):
             group.update(seer_explorer_autofix_last_triggered=now)
@@ -186,7 +186,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             ).update(last_triggered_at=now)
 
         # Send webhook for the completed step
-        cls._send_step_webhook(organization, run_id, state, group)
+        cls._send_step_webhook(organization, run_id, state, group, fallback_referrer=run_referrer)
 
         # When a tool failed because the GitHub App installation is missing
         # permissions the user needs to re-accept, comment on the affected PRs
@@ -197,7 +197,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         cls._maybe_react_to_completed_iteration(organization, run_id, state)
 
         # Continue the automated pipeline if stopping_point hasn't been reached
-        cls._maybe_continue_pipeline(organization, run_id, state, group)
+        cls._maybe_continue_pipeline(
+            organization, run_id, state, group, fallback_referrer=run_referrer
+        )
 
     @classmethod
     def _maybe_comment_on_missing_permissions(
@@ -426,13 +428,15 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         run_id: int,
         state: SeerRunState,
         group: Group,
-    ):
+        fallback_referrer: AutofixReferrer | None = None,
+    ) -> None:
         """
         Send webhook for the completed step.
 
         Determines which step just completed and sends the appropriate webhook event.
         """
         current_step, current_referrer = cls._get_current_step(state)
+        current_referrer = current_referrer or fallback_referrer
 
         sentry_run_id = (
             SeerRun.objects.filter(
@@ -651,6 +655,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         run_id: int,
         state: SeerRunState,
         group: Group,
+        fallback_referrer: AutofixReferrer | None = None,
     ) -> None:
         """
         Continue to the next step if stopping_point hasn't been reached.
@@ -661,7 +666,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             state: The current run state
         """
         current_step, referrer = cls._get_current_step(state)
-        referrer = referrer or AutofixReferrer.ON_COMPLETION_HOOK
+        referrer = referrer or fallback_referrer or AutofixReferrer.ON_COMPLETION_HOOK
 
         if current_step is None:
             logger.warning(
@@ -798,26 +803,44 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         if step != AutofixStep.ROOT_CAUSE:
             return None
 
-        artifact = state.get_artifacts().get(AutofixStep.ROOT_CAUSE.value)
+        try:
+            artifact = state.get_artifact("root_cause", RootCauseArtifact)
+        except ValidationError:
+            # The agent may produce artifacts that dont follow the schema
+            return None
 
         if artifact is None:
             return None
 
-        try:
-            root_cause_artifact = RootCauseArtifact.parse_obj(artifact.data)
-        except ValidationError:
-            # The agent may produce artifacts that don't follow the schema.
-            return None
+        fixability = artifact.fixability
 
-        return record_fixability(
-            organization=organization,
-            group=group,
-            run_id=run_id,
-            artifact=root_cause_artifact,
-            step=step,
-            referrer=referrer,
-            reached_stopping_point=reached_stopping_point,
+        analytics.record(
+            AiAutofixIntrospectionEvent(
+                organization_id=organization.id,
+                project_id=group.project_id,
+                group_id=group.id,
+                run_id=run_id,
+                referrer=referrer.value,
+                step=step.value,
+                action=fixability.assessment,
+                reached_stopping_point=reached_stopping_point,
+            )
         )
+        logger.info(
+            "autofix.on_completion_hook.introspection",
+            extra={
+                "organization_id": organization.id,
+                "project_id": group.project_id,
+                "group_id": group.id,
+                "referrer": referrer.value,
+                "step": step.value,
+                "action": fixability.assessment,
+                "reason": fixability.reason,
+                "reached_stopping_point": reached_stopping_point,
+            },
+        )
+
+        return fixability
 
     @classmethod
     def _iteration_terminal_errored_repos(cls, state: SeerRunState) -> list[str]:

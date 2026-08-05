@@ -570,7 +570,6 @@ class SeerAgentClient:
             if on_run_created is not None:
                 on_run_created(run)
 
-        agent_run_options = self._build_agent_run_options()
         return enqueue_seer_run(
             organization=self.organization,
             run_type=SeerRunType.FEATURE_RUN,
@@ -578,10 +577,7 @@ class SeerAgentClient:
             body=SeerFeatureRunRequest(
                 feature_id=feature_id,
                 payload=payload,
-                agent_run_options=agent_run_options,
-                is_context_engine_enabled=bool(
-                    agent_run_options.get("is_context_engine_enabled", False)
-                ),
+                agent_run_options=self._build_agent_run_options(),
             ),
             viewer_context=self.viewer_context,
             user_id=user_id,

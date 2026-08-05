@@ -270,7 +270,7 @@ class TestStoppingPointFromRun(TestCase):
         assert _stopping_point_from_run(self.organization, 999) is None
 
     def test_returns_none_when_run_has_no_stopping_point(self) -> None:
-        self._create_run(123, extras={"group_id": self.group.id})
+        self._create_run(123)
         assert _stopping_point_from_run(self.organization, 123) is None
 
     def test_returns_recorded_stopping_point(self) -> None:
