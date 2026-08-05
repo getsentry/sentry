@@ -231,11 +231,22 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
           .filter(link => linkKey(link) !== positionalKey)
           .map(link => ({
             kind: link.kind,
+            label: navLinkLabel(link.kind),
             url: buildToolLinkUrl(link, organization, projects),
           }))
+          // Fail closed on both axes: drop a link we cannot build a URL for, and drop one we have
+          // no label for rather than falling back to the raw kind. An unsupported kind already has
+          // no URL builder, so the label check only bites if a builder is ever added without a
+          // label — the coverage test keeps those two sets in step, and this is the backstop that
+          // keeps an internal identifier off screen if it drifts anyway.
           .filter(
-            (item): item is {kind: string; url: NonNullable<typeof item.url>} =>
-              !!item.url
+            (
+              item
+            ): item is {
+              kind: string;
+              label: string;
+              url: NonNullable<typeof item.url>;
+            } => !!item.url && !!item.label
           );
 
         return (
@@ -258,6 +269,8 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
 
 interface NavItem {
   kind: string;
+  /** Resolved at construction, so an unlabeled kind never reaches the renderer. */
+  label: string;
   url: NonNullable<ReturnType<typeof buildToolLinkUrl>>;
 }
 
@@ -323,12 +336,26 @@ function ToolCallRow({
   );
 }
 
-const NAV_LINK_LABELS: Record<string, string> = {
+// One entry per link kind buildToolLinkUrl can resolve. A kind absent here is not rendered at all
+// (see navLinkLabel): showing the raw kind would leak an internal function name like
+// `get_log_attributes` as the visible link text. Keeping this in step with buildToolLinkUrl's cases
+// is enforced by a test, so a kind seer starts emitting cannot reach users unlabeled.
+export const NAV_LINK_LABELS: Record<string, string> = {
   get_issue_details: t('View issue'),
   get_trace_waterfall: t('View trace'),
   get_replay_details: t('View replay'),
   get_profile_flamegraph: t('View profile'),
+  get_event_details: t('View event'),
+  get_log_attributes: t('View logs'),
+  get_metric_attributes: t('View metrics'),
+  // Dataset-dependent (issues / errors / spans / logs), so the label stays neutral.
+  telemetry_live_search: t('View results'),
 };
+
+/** The visible label for a bus link, or undefined when the kind is not renderable. */
+function navLinkLabel(kind: string): string | undefined {
+  return NAV_LINK_LABELS[kind];
+}
 
 function NavLinks({
   navItems,
@@ -345,7 +372,7 @@ function NavLinks({
               class, colors the label the same way it does the positional row link. */}
           <ToolCallLink to={item.url} onClick={onNavLinkClick?.(item.kind)}>
             <ToolCallText size="xs" monospace>
-              {NAV_LINK_LABELS[item.kind] ?? item.kind}
+              {item.label}
             </ToolCallText>
             <ToolCallLinkIconWrapper>
               <ToolCallLinkIcon size="xs" />
