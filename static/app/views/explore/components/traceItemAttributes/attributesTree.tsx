@@ -20,7 +20,7 @@ import {AttributesTreeValue} from './attributesTreeValue';
 const MAX_TREE_DEPTH = 4;
 const INVALID_BRANCH_REGEX = /\.{2,}/;
 
-export interface Attribute {
+interface Attribute {
   attribute_key: string;
   attribute_value: string | number | null;
   original_attribute_key: string;
