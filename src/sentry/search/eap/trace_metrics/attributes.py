@@ -97,7 +97,6 @@ TRACE_METRICS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[
     | {
         # sentry.service is the project id as a string, but map to project for convenience
         "sentry.service": "project",
-        ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME: "transaction",
     },
     "boolean": {
         definition.internal_name: definition.public_alias
