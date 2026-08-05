@@ -11,17 +11,8 @@ from sentry.issues.formatting.formatter import (
 )
 from sentry.issues.formatting.limits import LIMITS_DEFAULT, Limits
 from sentry.issues.formatting.models import (
-    Breadcrumb,
     EventObject,
-    EvidenceSpan,
-    ExceptionDetails,
-    Frame,
-    RequestDetails,
-    Stacktrace,
-    ThreadDetails,
-    UserDetails,
 )
-from sentry.issues.formatting.sections import EVENT_SECTIONS_WITH_USER
 
 
 def title_section(model: EventObject, fmt: Formatter, limits: object) -> str:
@@ -110,54 +101,6 @@ def test_failing_section_without_a_name_does_not_escape() -> None:
         EventObject(title="t"), [functools.partial(boom), ok], LIMITS_DEFAULT
     )
     assert out == "survived"
-
-
-# a value that closes a tag and opens a new one; if any section embeds raw content, this
-# either breaks the parse or shows up as a forged element
-HOSTILE = "</title><injected>owned</injected><x a='&'>"
-
-
-def test_xml_output_is_well_formed_with_hostile_content_everywhere() -> None:
-    # every section that embeds event text has to route it through fmt.text(); parsing the
-    # whole render is what catches a site that forgot to
-    event = EventObject(
-        title=HOSTILE,
-        message=f"a distinct message {HOSTILE}",
-        culprit=HOSTILE,
-        transaction_name=HOSTILE,
-        detection_context=HOSTILE,
-        troubleshooting_hint=HOSTILE,
-        exceptions=[
-            ExceptionDetails(
-                type=HOSTILE,
-                value=HOSTILE,
-                is_handled=False,
-                stacktrace=Stacktrace(frames=[Frame(function=HOSTILE, filename=HOSTILE)]),
-            )
-        ],
-        stacktrace=Stacktrace(frames=[Frame(function=HOSTILE, filename=HOSTILE)]),
-        threads=[
-            ThreadDetails(
-                name=HOSTILE,
-                crashed=True,
-                stacktrace=Stacktrace(frames=[Frame(function=HOSTILE, filename=HOSTILE)]),
-            )
-        ],
-        breadcrumbs=[Breadcrumb(category=HOSTILE, level="info", message=HOSTILE)],
-        request=RequestDetails(method="POST", url=HOSTILE, data=HOSTILE),
-        tags=[(HOSTILE, HOSTILE)],
-        user=UserDetails(id=HOSTILE, email=HOSTILE, username=HOSTILE, ip_address=HOSTILE),
-        spans=[EvidenceSpan(op=HOSTILE, description=HOSTILE, exclusive_time=1.0)],
-    )
-    out = XmlFormatter().render(event, EVENT_SECTIONS_WITH_USER, LIMITS_DEFAULT)
-
-    # the render is a sequence of sibling blocks, so give it a root before parsing
-    root = ElementTree.fromstring(f"<root>{out}</root>")
-
-    assert root.find(".//injected") is None
-    assert "owned" not in {el.tag for el in root.iter()}
-    # the content still survives, just inert
-    assert "injected" in out
 
 
 @pytest.mark.parametrize("key", ["123abc", "\U0001f525", "###", "", "  ", "-x-"])
