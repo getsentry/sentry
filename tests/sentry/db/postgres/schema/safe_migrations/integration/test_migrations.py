@@ -5,7 +5,7 @@ from django.db.migrations.executor import MigrationExecutor
 from django.test import override_settings
 from django_zero_downtime_migrations.backends.postgres.schema import UnsafeOperationException
 
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import TestCase, TransactionTestCase
 
 
 def one_line_sql(sql: str) -> str:
@@ -27,7 +27,7 @@ def split_sql_queries(sql: str) -> list[str]:
     ]
 
 
-class BaseSafeMigrationTest(TestCase):
+class SafeMigrationRunMixin:
     BASE_PATH = "fixtures.safe_migrations_apps"
     # abstract
     app: str
@@ -49,16 +49,36 @@ class BaseSafeMigrationTest(TestCase):
             executor.loader.project_state(target).apps
             executor.migrate(target)
 
-    def sql_migrate(self, app, migration_name):
+    def _migrate_to_zero(self, app):
+        with override_settings(
+            INSTALLED_APPS=(f"{self.BASE_PATH}.{self.app}",), MIGRATION_MODULES={}
+        ):
+            executor = MigrationExecutor(connection)
+            executor.loader.build_graph()
+            executor.migrate([(app, None)])
+
+    def sql_migrate(self, app, migration_name, backwards=False):
         with override_settings(
             INSTALLED_APPS=(f"{self.BASE_PATH}.{self.app}",), MIGRATION_MODULES={}
         ):
             executor = MigrationExecutor(connection)
             migration = executor.loader.get_migration_by_prefix(app, migration_name)
             target = (app, migration.name)
-            plan = [(executor.loader.graph.nodes[target], None)]
+            plan = [(executor.loader.graph.nodes[target], backwards)]
             sql_statements = executor.loader.collect_sql(plan)  # type: ignore[attr-defined]
             return "\n".join(sql_statements)
+
+
+class BaseSafeMigrationTest(SafeMigrationRunMixin, TestCase):
+    pass
+
+
+class BaseSafeMigrationTransactionTest(SafeMigrationRunMixin, TransactionTestCase):
+    """
+    For tests that execute concurrent index operations (`CREATE/DROP INDEX
+    CONCURRENTLY`), which can't run inside the transaction that `TestCase`
+    wraps around each test.
+    """
 
 
 class AddColWithDefaultTest(BaseSafeMigrationTest):
@@ -495,3 +515,91 @@ class DeletionFieldGoodDeleteSimpleLockTimeoutTest(BaseSafeMigrationTest):
                 "SET statement_timeout TO '0ms';",
                 "SET lock_timeout TO '0ms';",
             ]
+
+
+class ReverseRemoveIndexSQLTest(BaseSafeMigrationTest):
+    app = "good_flow_reverse_remove_index_app"
+
+    def test(self) -> None:
+        # Reversing a RemoveIndex must rebuild the index concurrently, just like the
+        # forward removal drops it concurrently.
+        assert split_sql_queries(self.sql_migrate(self.app, "0002_remove_index")) == [
+            'DROP INDEX CONCURRENTLY IF EXISTS "test_reverse_name_idx";',
+        ]
+        assert split_sql_queries(
+            self.sql_migrate(self.app, "0002_remove_index", backwards=True)
+        ) == [
+            'CREATE INDEX CONCURRENTLY "test_reverse_name_idx" ON '
+            '"good_flow_reverse_remove_index_app_testtable" ("name");',
+        ]
+
+
+class ReverseRemoveIndexRunTest(BaseSafeMigrationTransactionTest):
+    app = "good_flow_reverse_remove_index_app"
+
+    def index_exists(self, index_name):
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1 FROM pg_class WHERE relname = %s", [index_name])
+            return cursor.fetchone() is not None
+
+    def test(self) -> None:
+        self._run_migration(self.app, "0001_initial")
+        assert self.index_exists("test_reverse_name_idx")
+        self._run_migration(self.app, "0002_remove_index")
+        assert not self.index_exists("test_reverse_name_idx")
+
+        # Reverse of the RemoveIndex rebuilds the index (concurrently).
+        self._run_migration(self.app, "0001_initial")
+        assert self.index_exists("test_reverse_name_idx")
+
+        # Reverse of the initial CreateModel/AddIndex drops the index and table again.
+        self._migrate_to_zero(self.app)
+        assert not self.index_exists("test_reverse_name_idx")
+        assert f"{self.app}_testtable" not in connection.introspection.table_names()
+
+
+class UncheckedReverseRemoveIndexSQLTest(BaseSafeMigrationTest):
+    app = "unchecked_reverse_remove_index_app"
+
+    def test(self) -> None:
+        # `checked = False` disables the safety framework in both directions, so the
+        # reverse runs through the unsafe editor and creates the index with a plain,
+        # blocking CREATE INDEX.
+        assert split_sql_queries(
+            self.sql_migrate(self.app, "0002_remove_index_unchecked", backwards=True)
+        ) == [
+            'CREATE INDEX "test_unchecked_name_idx" ON '
+            '"unchecked_reverse_remove_index_app_testtable" ("name");',
+        ]
+
+
+class ReverseAdditiveMigrationTest(BaseSafeMigrationTest, ColExistsMixin):
+    app = "good_flow_reverse_additive_app"
+
+    def test(self) -> None:
+        self._run_migration(self.app, "0001_initial")
+        self._run_migration(self.app, "0002_additions")
+        assert self.col_exists("field")
+        assert f"{self.app}_secondtable" in connection.introspection.table_names()
+
+        # Rolling back an additive migration drops exactly what it created; the
+        # pending-deletion workflow guards don't apply on the reverse path.
+        self._run_migration(self.app, "0001_initial")
+        assert not self.col_exists("field")
+        assert f"{self.app}_secondtable" not in connection.introspection.table_names()
+
+
+class ReverseUnsafeAlterTypeTest(BaseSafeMigrationTest):
+    app = "bad_flow_reverse_char_type_narrowing_app"
+
+    def test(self) -> None:
+        self._run_migration(self.app, "0001_initial")
+        # Widening a varchar is safe and applies cleanly.
+        self._run_migration(self.app, "0002_widen_field")
+        # The reverse would narrow the type, which is unsafe DDL; it now raises
+        # instead of silently running through the unsafe schema editor.
+        with pytest.raises(
+            UnsafeOperationException,
+            match="Altering the type of column TestTable.field in this way is unsafe",
+        ):
+            self._run_migration(self.app, "0001_initial")

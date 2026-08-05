@@ -157,12 +157,32 @@ class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDataba
         super(DatabaseSchemaEditorMixin, self).remove_field(model, field)
 
 
+class SafeReversePostgresDatabaseSchemaEditor(SafePostgresDatabaseSchemaEditor):
+    """
+    Schema editor used when a checked migration is unapplied.
+
+    Reversing an additive operation drops exactly the schema its forward operation
+    created (`CreateModel` -> `delete_model`, `AddField` -> `remove_field`), so
+    requiring the pending-deletion workflow here would turn every rollback of an
+    additive migration into a hard failure. Those two guards are lifted on this
+    editor; all other safety machinery (lock/statement timeouts, concurrent index
+    creation/removal, unsafe DDL detection) behaves exactly like
+    `SafePostgresDatabaseSchemaEditor`.
+    """
+
+    def delete_model(self, model, is_safe=False):
+        super().delete_model(model, is_safe=True)
+
+    def remove_field(self, model, field, is_safe=False):
+        super().remove_field(model, field, is_safe=True)
+
+
 class DatabaseSchemaEditorProxy:
     """
     Wrapper that allows us to use either the `SafePostgresDatabaseSchemaEditor` or
-    `PostgresDatabaseSchemaEditor`. Can be configured by setting the `safe` property
-    before using to edit the schema. If already in use, attempts to modify `safe` will
-    fail.
+    `PostgresDatabaseSchemaEditor`. Can be configured by setting the `safe` and
+    `reverse` properties before using to edit the schema. If already in use,
+    attempts to modify these properties will fail.
     """
 
     class AlreadyInUse(Exception):
@@ -172,6 +192,7 @@ class DatabaseSchemaEditorProxy:
         self.args = args
         self.kwargs = kwargs
         self._safe = False
+        self._reverse = False
         self._schema_editor = None
 
     @property
@@ -186,11 +207,28 @@ class DatabaseSchemaEditorProxy:
         self._safe = safe
 
     @property
+    def reverse(self):
+        return self._reverse
+
+    @reverse.setter
+    def reverse(self, reverse):
+        if self._schema_editor is not None:
+            raise self.AlreadyInUse("Schema editor already in use, can't set `reverse`")
+
+        self._reverse = reverse
+
+    @property
     def schema_editor(self):
         if self._schema_editor is None:
-            schema_editor_cls = (
-                SafePostgresDatabaseSchemaEditor if self.safe else MakeBtreeGistSchemaEditor
-            )
+            schema_editor_cls: type[PostgresDatabaseSchemaEditor]
+            if self.safe:
+                schema_editor_cls = (
+                    SafeReversePostgresDatabaseSchemaEditor
+                    if self.reverse
+                    else SafePostgresDatabaseSchemaEditor
+                )
+            else:
+                schema_editor_cls = MakeBtreeGistSchemaEditor
             schema_editor = schema_editor_cls(*self.args, **self.kwargs)
             schema_editor.__enter__()
             self._schema_editor = schema_editor
