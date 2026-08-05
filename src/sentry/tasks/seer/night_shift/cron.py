@@ -47,7 +47,6 @@ from sentry.seer.models.workflow import SeerWorkflowConfig, SeerWorkflowStrategy
 from sentry.seer.night_shift.models import NightShiftPayload, TriageCandidate, TriageTweaks
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.seer.night_shift.simple_triage import (
-    ScoredCandidate,
     fixability_score_strategy,
     fixability_score_strategy_per_project,
     priority_label,
@@ -401,9 +400,15 @@ def run_night_shift_execution(
         _complete_run(run)
         return None
 
-    if _plan_and_dispatch_shards(
-        run, organization, eligible, resolved_options, log_extra, start_time
-    ):
+    shard_plans, num_candidates = _build_shard_plans(organization, eligible, resolved_options)
+    _update_run_extras(run, {"num_candidates": num_candidates})
+    if not shard_plans:
+        logger.info("night_shift.no_candidates", extra=log_extra)
+        _complete_run(run)
+        return None
+
+    _ensure_shard_plan(run, shard_plans)
+    if _dispatch_pending_shards(run, organization, log_extra, start_time):
         _complete_run(run)
 
 
@@ -669,54 +674,6 @@ def _should_use_per_project_quotas(source: NightShiftRunSource, organization_id:
     return org_tweaks is not None and org_tweaks.allowed_project_slugs is not None
 
 
-def _build_triage_payload(
-    candidates: Sequence[ScoredCandidate],
-    resolved_options: SeerNightShiftRunOptions,
-    repos_by_project: dict[int, list[str]],
-    tuning_by_project: dict[int, str],
-) -> NightShiftPayload:
-    return NightShiftPayload(
-        candidates=[
-            TriageCandidate(
-                group_id=c.group.id,
-                title=c.group.title,
-                culprit=c.group.culprit,
-                fixability=c.fixability,
-                times_seen=c.group.times_seen,
-                first_seen=c.group.first_seen.isoformat(),
-                priority=priority_label(c.group.priority),
-                connected_repos=repos_by_project.get(c.group.project_id, []),
-                automation_tuning=tuning_by_project.get(c.group.project_id),
-            )
-            for c in candidates
-        ],
-        tweaks=TriageTweaks(
-            intelligence_level=resolved_options["intelligence_level"],
-            reasoning_effort=resolved_options["reasoning_effort"],
-            extra_triage_instructions=resolved_options["extra_triage_instructions"],
-        ),
-    )
-
-
-def _plan_and_dispatch_shards(
-    run: SeerNightShiftRun,
-    organization: Organization,
-    eligible: Sequence[EligibleProject],
-    resolved_options: SeerNightShiftRunOptions,
-    log_extra: dict[str, object],
-    start_time: float,
-) -> bool:
-    """Build, persist, then dispatch one durable plan for this run."""
-    shard_plans, num_candidates = _build_shard_plans(organization, eligible, resolved_options)
-    _update_run_extras(run, {"num_candidates": num_candidates})
-    if not shard_plans:
-        logger.info("night_shift.no_candidates", extra=log_extra)
-        return True
-
-    _ensure_shard_plan(run, shard_plans)
-    return _dispatch_pending_shards(run, organization, log_extra, start_time)
-
-
 def _build_shard_plans(
     organization: Organization,
     eligible: Sequence[EligibleProject],
@@ -739,8 +696,26 @@ def _build_shard_plans(
     chunks = list(chunked(scored, shard_size))
     shard_plans: list[NightShiftShardPlan] = []
     for shard_index, chunk in enumerate(chunks):
-        payload = _build_triage_payload(
-            chunk, resolved_options, repos_by_project, tuning_by_project
+        payload = NightShiftPayload(
+            candidates=[
+                TriageCandidate(
+                    group_id=candidate.group.id,
+                    title=candidate.group.title,
+                    culprit=candidate.group.culprit,
+                    fixability=candidate.fixability,
+                    times_seen=candidate.group.times_seen,
+                    first_seen=candidate.group.first_seen.isoformat(),
+                    priority=priority_label(candidate.group.priority),
+                    connected_repos=repos_by_project.get(candidate.group.project_id, []),
+                    automation_tuning=tuning_by_project.get(candidate.group.project_id),
+                )
+                for candidate in chunk
+            ],
+            tweaks=TriageTweaks(
+                intelligence_level=resolved_options["intelligence_level"],
+                reasoning_effort=resolved_options["reasoning_effort"],
+                extra_triage_instructions=resolved_options["extra_triage_instructions"],
+            ),
         )
         num_candidates = len(payload.candidates)
         title = ngettext(
