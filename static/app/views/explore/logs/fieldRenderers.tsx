@@ -2,6 +2,8 @@ import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
+import type {Location} from 'history';
+import omit from 'lodash/omit';
 
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
@@ -10,9 +12,12 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration/duration';
 import {useStacktraceLink} from 'sentry/components/events/interfaces/frame/useStacktraceLink';
+import {ALL_DATE_TIME_QUERY_KEYS} from 'sentry/components/pageFilters/constants';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {Version} from 'sentry/components/version';
 import {IconPlay} from 'sentry/icons';
 import {tct} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -73,6 +78,7 @@ export interface RendererExtra extends RenderFunctionBaggage {
   >;
   attributes: Record<string, string | number | boolean>;
   caseSensitiveHighlighting: boolean;
+  datetime: PageFilters['datetime'];
   highlightTerms: string[];
   logColors: ReturnType<typeof getLogColors>;
   align?: 'left' | 'center' | 'right';
@@ -406,20 +412,24 @@ function FilteredTooltip({
 
 function TraceIDRenderer(props: LogFieldRendererProps) {
   const traceId = adjustLogTraceID(props.item.value as string);
+  const timestamp = props.extra.attributes?.[OurLogKnownFieldKey.TIMESTAMP] as
+    | string
+    | number
+    | undefined;
   const location = stripLogParamsFromLocation(props.extra.location);
-  const timestamp = props.extra.attributes?.[OurLogKnownFieldKey.TIMESTAMP];
   const target = getTraceDetailsUrl({
     traceSlug: traceId,
-    timestamp:
-      typeof timestamp === 'string' || typeof timestamp === 'number'
-        ? timestamp
-        : undefined,
+    timestamp,
     organization: props.extra.organization,
-    dateSelection: props.extra.location,
-    location,
+    dateSelection: timestamp ? {} : normalizeDateTimeParams(props.extra.datetime),
+    location: timestamp ? stripDateParamsFromLocation(location) : location,
     source: TraceViewSources.LOGS,
   });
   return <Link to={target}>{props.basicRendered}</Link>;
+}
+
+function stripDateParamsFromLocation(location: Location): Location {
+  return {...location, query: omit(location.query, ALL_DATE_TIME_QUERY_KEYS)};
 }
 
 function ReleaseRenderer(props: LogFieldRendererProps) {

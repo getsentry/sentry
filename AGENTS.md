@@ -4,8 +4,6 @@
 
 ## Command Execution Guide
 
-This section contains critical command execution instructions that apply across all Sentry development.
-
 ### Python Command Execution Requirements
 
 **CRITICAL**: When running Python commands (pytest, mypy, prek, etc.), you MUST use the virtual environment.
@@ -85,32 +83,17 @@ For backend-scoped changes, prioritize running the individual relevant pytest fi
 #### Database Operations
 
 ```bash
-# Run migrations
-sentry django migrate
-
-# Create new migration
-sentry django makemigrations
-
 # Update migration after rebase conflict (handles renaming, dependencies, lockfile)
 ./bin/update-migration <migration_name_or_number> <app_label>
 # Example: ./bin/update-migration 0101_workflow_when_condition_group_unique workflow_engine
-
-# Reset database
-make reset-db
 ```
 
 ### Frontend Development Commands
 
 #### Development Setup
 
-```bash
-# Start the full development server (requires devservices up)
-pnpm run dev
-
-# Start only the UI development server with hot reload
-# Proxies API requests to production sentry.io
-pnpm run dev-ui
-```
+`pnpm run dev` starts the full development server (requires `devservices up`).
+`pnpm run dev-ui` starts only the UI dev server with hot reload, proxying API requests to production sentry.io.
 
 **Dev server URLs:**
 
@@ -119,36 +102,18 @@ pnpm run dev-ui
 
 #### Typechecking
 
-To typecheck frontend code, run `pnpm typecheck` script.
+To typecheck frontend code, run `pnpm run typecheck`.
 It checks the whole project and does not accept file paths.
 DO NOT use `tsc` directly.
 
-```bash
-pnpm run typecheck
-```
-
 #### Linting
 
-```bash
-# JavaScript/TypeScript linting
-pnpm run lint:js
-
-# Linting for specific file(s)
-pnpm run lint:js components/avatar.tsx [...other files]
-
-# Fix linting issues
-pnpm run fix
-```
+`pnpm run lint:js` lints JS/TS; it accepts file paths (`pnpm run lint:js components/avatar.tsx`).
+`pnpm run fix` fixes what it can automatically.
 
 #### Testing
 
-```bash
-# Run JavaScript tests
-pnpm test-ci <file_path>
-
-# Run specific test file(s)
-pnpm test-ci components/avatar.spec.tsx
-```
+`pnpm test-ci <file_path>` runs JS tests for the given file(s).
 
 ### Git worktrees
 
@@ -177,49 +142,9 @@ Skills under `.agents/skills/` should follow the same current-practice conventio
 - Keep skill descriptions aligned with natural user requests like PR review, branch audit, and Warden follow-up.
 - If a downstream review harness controls the final response shape, do not hardcode a competing output format in the skill. Specify required evidence instead.
 
-## Backend
-
-For backend development patterns, security guidelines, and architecture, see `src/AGENTS.md`.
-For backend testing patterns and best practices, see `tests/AGENTS.md`.
-
-## Frontend
-
-For frontend development patterns, design system guidelines, and React testing best practices, see `static/AGENTS.md`.
-
 ## Feature Flags (FlagPole)
 
-New features should be gated behind a feature flag.
-
-1. **Register** the flag in `src/sentry/features/temporary.py`:
-
-   ```python
-   manager.add("organizations:my-feature", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-   ```
-
-   Use `api_expose=True` if the frontend needs to check the flag. Use `ProjectFeature` and a `projects:` prefix for project-scoped flags.
-
-2. **Python check**:
-
-   ```python
-   if features.has("organizations:my-feature", organization, actor=user):
-   ```
-
-3. **Frontend check** (requires `api_expose=True`):
-
-   ```typescript
-   organization.features.includes('my-feature');
-   ```
-
-4. **Tests**:
-
-   ```python
-   with self.feature("organizations:my-feature"):
-       ...
-   ```
-
-5. **Rollout**: FlagPole YAML config lives in the `sentry-options-automator` repo, not here.
-
-See https://develop.sentry.dev/feature-flags/ for full docs.
+New features should be gated behind a feature flag. See the **feature-flags** skill (`.agents/skills/feature-flags/`) for registration, the `features.has(...)` check, the frontend check, and test usage.
 
 ## Customer Information
 
