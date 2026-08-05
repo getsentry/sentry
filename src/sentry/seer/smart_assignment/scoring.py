@@ -98,8 +98,9 @@ def _ground_truth_updates(
     For a user-driven resolution we record the resolver as the assumed assignee only
     when no explicit assignee has been recorded -- an assignment is better truth.
     """
-    if activity_type == ActivityType.ASSIGNED:
-        return _assignment_updates(group)
+    assignment = _assignment_updates(group)
+    if assignment is not None:
+        return assignment
     if activity_type in RESOLUTION_ACTIVITIES:
         resolver_id = resolver_user_id(activity)
         if resolver_id is None:
@@ -169,6 +170,9 @@ def _apply(run_id: int, updates: RunUpdates) -> bool:
             # The row is a terminal snapshot once scored. Applying later prediction or
             # ground-truth updates would drift the mirrored fields away from what we
             # actually scored against, leaving `result`/`hit_rank` inconsistent.
+            return False
+        if all(key in extras and extras[key] == value for key, value in updates.items()):
+            # The "update" would be a no-op.
             return False
         extras.update(updates)
         # Score the prediction against the ground truth if it's already landed.
