@@ -27,6 +27,8 @@ import {GroupActivityType, PriorityLevel} from 'sentry/types/group';
 import {RepositoryStatus} from 'sentry/types/integrations';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
+import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
+import {ActivityDrawer} from 'sentry/views/issueDetails/sidebar/activityDrawer';
 
 describe('ActivitySection', () => {
   const project = ProjectFixture();
@@ -103,32 +105,6 @@ describe('ActivitySection', () => {
 
     await userEvent.click(submitButton);
     expect(postMock).toHaveBeenCalled();
-  });
-
-  it('opens the comments drawer route from the sidebar comment badge', async () => {
-    const groupWithComments = GroupFixture({
-      ...group,
-      numComments: 1,
-    });
-
-    const {router} = render(
-      <GroupDataContextProvider
-        group={groupWithComments}
-        project={groupWithComments.project}
-      >
-        <ActivitySection group={groupWithComments} />
-      </GroupDataContextProvider>
-    );
-
-    const commentsLink = screen.getByRole('button', {name: 'View 1 comment'});
-    expect(commentsLink).toHaveTextContent('1 comment');
-
-    await userEvent.click(commentsLink);
-
-    expect(router.location.pathname).toBe(
-      '/organizations/org-slug/issues/1337/activity/'
-    );
-    expect(router.location.query.filter).toBe('comments');
   });
 
   it('allows submitting the comment field with hotkeys', async () => {
@@ -867,17 +843,44 @@ describe('ActivitySection', () => {
 
     const updatedActivityGroup = GroupFixture({
       id: '1338',
-      activity: activities,
+      activity: [],
+      numComments: activities.length,
       project,
+    });
+    const commentsUrl = '/organizations/org-slug/issues/1338/comments/';
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1338/',
+      body: updatedActivityGroup,
+    });
+    MockApiClient.addMockResponse({
+      url: commentsUrl,
+      body: activities.slice(0, 3),
+      headers: {
+        Link: `<${commentsUrl}?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"`,
+      },
+      match: [MockApiClient.matchQuery({cursor: undefined})],
+    });
+    MockApiClient.addMockResponse({
+      url: commentsUrl,
+      body: activities.slice(3),
+      headers: {
+        Link: `<${commentsUrl}?cursor=0:200:0>; rel="next"; results="false"; cursor="0:200:0"`,
+      },
+      match: [MockApiClient.matchQuery({cursor: '0:100:0'})],
     });
 
     render(
-      <GroupDataContextProvider
-        group={updatedActivityGroup}
-        project={updatedActivityGroup.project}
-      >
-        <ActivitySection group={updatedActivityGroup} variant="standalone" />
-      </GroupDataContextProvider>
+      <GroupIdProvider groupId={updatedActivityGroup.id}>
+        <ActivityDrawer project={project} />
+      </GroupIdProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/org-slug/issues/${updatedActivityGroup.id}/activity/`,
+            query: {filter: 'comments'},
+          },
+        },
+      }
     );
 
     for (const activity of activities) {
@@ -912,20 +915,30 @@ describe('ActivitySection', () => {
     const updatedActivityGroup = GroupFixture({
       id: '1338',
       activity: activities,
+      numComments: 3,
       project,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1338/',
+      body: updatedActivityGroup,
+    });
+    const commentsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1338/comments/',
+      body: activities.filter(activity => activity.type === GroupActivityType.NOTE),
     });
 
     render(
-      <GroupDataContextProvider
-        group={updatedActivityGroup}
-        project={updatedActivityGroup.project}
-      >
-        <ActivitySection
-          group={updatedActivityGroup}
-          variant="standalone"
-          filterComments
-        />
-      </GroupDataContextProvider>
+      <GroupIdProvider groupId={updatedActivityGroup.id}>
+        <ActivityDrawer project={project} />
+      </GroupIdProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/org-slug/issues/${updatedActivityGroup.id}/activity/`,
+            query: {filter: 'comments'},
+          },
+        },
+      }
     );
 
     for (const activity of activities) {
@@ -937,6 +950,7 @@ describe('ActivitySection', () => {
         ).toBeInTheDocument();
       }
     }
+    expect(commentsMock).not.toHaveBeenCalled();
   });
 
   it.each<{

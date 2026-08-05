@@ -42,6 +42,7 @@ interface ActivityFeedRowProps {
   inputVariant: 'compact' | 'full';
   item: ActivityFeedItem;
   onCommentEdited?: (activity: GroupActivity[]) => void;
+  showConnector?: boolean;
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }
 
@@ -51,13 +52,19 @@ function ActivityFeedRow({
   onCommentEdited,
   group,
   inputVariant,
+  showConnector,
   timestampUnitStyle,
 }: ActivityFeedRowProps) {
   const {activity} = item;
 
   if (!isActivityNote(activity)) {
     return (
-      <ActivityLine item={item} group={group} timestampUnitStyle={timestampUnitStyle} />
+      <ActivityLine
+        item={item}
+        group={group}
+        showConnector={showConnector}
+        timestampUnitStyle={timestampUnitStyle}
+      />
     );
   }
 
@@ -68,6 +75,7 @@ function ActivityFeedRow({
       inputVariant={inputVariant}
       onDelete={() => handleDelete(activity)}
       onCommentEdited={onCommentEdited}
+      showConnector={showConnector}
       timestampUnitStyle={timestampUnitStyle}
     />
   );
@@ -162,7 +170,7 @@ function removeAdjacentDuplicatePullRequestActivities(activities: GroupActivity[
 
 export function ActivitySection({
   group,
-  activities = group.activity,
+  activities: providedActivities,
   filterComments,
   onCommentCreated,
   onCommentDeleted,
@@ -175,6 +183,7 @@ export function ActivitySection({
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
   const [inputId, setInputId] = useState(() => uniqueId());
+  const activities = providedActivities ?? group.activity;
 
   const noteProps = {
     minHeight,
@@ -235,7 +244,7 @@ export function ActivitySection({
   const inputVariant = variant === 'sidebar' ? 'compact' : 'full';
   const timestampUnitStyle = variant === 'sidebar' ? 'short' : undefined;
 
-  const renderActivityItem = (item: ActivityFeedItem) => (
+  const renderActivityItem = (item: ActivityFeedItem, showConnector: boolean) => (
     <ActivityFeedRow
       item={item}
       handleDelete={handleDelete}
@@ -243,6 +252,7 @@ export function ActivitySection({
       group={group}
       key={item.activity.id}
       inputVariant={inputVariant}
+      showConnector={showConnector}
       timestampUnitStyle={timestampUnitStyle}
     />
   );
@@ -262,7 +272,9 @@ export function ActivitySection({
 
   const timeline = (
     <ActivityLineList data-test-id="activity-timeline">
-      {displayedActivities.map(renderActivityItem)}
+      {displayedActivities.map((item, index) =>
+        renderActivityItem(item, index < displayedActivities.length - 1)
+      )}
     </ActivityLineList>
   );
   const hiddenActivityCount =
@@ -271,7 +283,7 @@ export function ActivitySection({
     hiddenActivityCount > 0 ? displayedActivities.slice(0, 3) : displayedActivities;
   const sidebarActivityItems = (
     <Fragment>
-      {sidebarVisibleActivities.map(renderActivityItem)}
+      {sidebarVisibleActivities.map(item => renderActivityItem(item, true))}
       <MoreActivityRow>
         <MoreActivityIcon>
           <RotatedEllipsisIcon direction="up" />
@@ -353,16 +365,6 @@ const MoreActivityRow = styled('div')`
   align-items: center;
   grid-template-columns: 22px minmax(0, 1fr);
   grid-column-gap: ${p => p.theme.space.md};
-
-  &::after {
-    content: '';
-    position: absolute;
-    left: 10.5px;
-    top: 50%;
-    bottom: 0;
-    width: 1px;
-    background: ${p => p.theme.tokens.background.primary};
-  }
 `;
 
 const MoreActivityIcon = styled('div')`

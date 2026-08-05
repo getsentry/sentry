@@ -24,6 +24,7 @@ interface ActivityLineNoteProps {
   inputVariant: ActivityLineVariant;
   onDelete: () => Promise<void>;
   onCommentEdited?: (activity: GroupActivity[]) => void;
+  showConnector?: boolean;
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }
 
@@ -37,6 +38,7 @@ export function ActivityLineNote({
   inputVariant,
   onDelete,
   onCommentEdited,
+  showConnector,
   timestampUnitStyle,
 }: ActivityLineNoteProps) {
   const [editing, setEditing] = useState(false);
@@ -47,7 +49,7 @@ export function ActivityLineNote({
   );
 
   return (
-    <ActivityLineRow>
+    <ActivityLineRow showConnector={showConnector}>
       <ActivityLineMarker item={activity} showProgress={showProgress} />
       <ActivityLineNoteHeadline
         title={t('%s commented', getActivityNoteAuthor(activity))}

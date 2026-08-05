@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -50,7 +51,9 @@ export function ActivityLineHeadline({
   );
 }
 
-export const ActivityLineRow = styled('div')`
+export const ActivityLineRow = styled('div', {
+  shouldForwardProp: prop => prop !== 'showConnector',
+})<{showConnector?: boolean}>`
   position: relative;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -61,6 +64,19 @@ export const ActivityLineRow = styled('div')`
   @container activity-list (min-width: 90px) {
     column-gap: ${p => p.theme.space.sm};
   }
+
+  ${p =>
+    p.showConnector &&
+    css`
+      &::before {
+        content: '';
+        position: absolute;
+        left: 10.5px;
+        top: 11px;
+        bottom: calc(-${p.theme.space.md} - 11px);
+        border-left: 1px solid ${p.theme.tokens.border.transparent.neutral.muted};
+      }
+    `}
 `;
 
 const ActivityLineSentence = styled('span')`
@@ -98,32 +114,9 @@ export const ActivityLineContent = styled('div')`
 `;
 
 export const ActivityLineList = styled('div')`
-  position: relative;
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.md};
   container-name: activity-list;
   container-type: inline-size;
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: 10.5px;
-    top: 11px;
-    bottom: 11px;
-    width: 0;
-    border-left: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
-  }
-
-  /* A tall final item (such as a comment) can extend well below its avatar. */
-  > ${ActivityLineRow}:last-child::after {
-    content: '';
-    position: absolute;
-    z-index: 0;
-    left: 10px;
-    top: 11px;
-    bottom: 0;
-    width: 2px;
-    background: ${p => p.theme.tokens.background.primary};
-  }
 `;

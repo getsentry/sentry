@@ -45,11 +45,6 @@ export function useMutateActivity({organization, group}: Props) {
     organizationSlug: organization.slug,
     groupId: group.id,
   });
-  const commentsQueryKey = issueCommentsQueryOptions({
-    organizationSlug: organization.slug,
-    groupId: group.id,
-  }).queryKey;
-
   const {mutateAsync} = useMutation<TData, TError, TVariables>({
     mutationFn: ([{note, noteId}, method]) => {
       const url =
@@ -112,7 +107,12 @@ export function useMutateActivity({organization, group}: Props) {
         }
       );
 
-      void queryClient.invalidateQueries({queryKey: commentsQueryKey});
+      void queryClient.invalidateQueries({
+        queryKey: issueCommentsQueryOptions({
+          organizationSlug: organization.slug,
+          groupId: group.id,
+        }).queryKey,
+      });
     },
     gcTime: 0,
   });

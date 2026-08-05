@@ -24,6 +24,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
+import {isActivityNote} from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
 import {issueCommentsQueryOptions} from 'sentry/views/issueDetails/activitySection/issueCommentsQueryOptions';
 import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
@@ -42,20 +43,27 @@ export function ActivityDrawer({project}: ActivityDrawerProps) {
   // (e.g. comment create/delete). The drawer's render function is captured in
   // a closure by openDrawer, so the group in context or props would go stale.
   const {data: group} = useGroup({groupId});
+  const activityComments = group?.activity.filter(isActivityNote) ?? [];
+  const shouldFetchComments =
+    filter === 'comments' &&
+    group !== undefined &&
+    activityComments.length < group.numComments;
   const commentsQuery = useInfiniteQuery({
     ...issueCommentsQueryOptions({
       organizationSlug: organization.slug,
       groupId,
     }),
-    enabled: filter === 'comments',
+    enabled: shouldFetchComments,
   });
-  useFetchAllPages({result: commentsQuery, enabled: filter === 'comments'});
+  useFetchAllPages({result: commentsQuery, enabled: shouldFetchComments});
 
   if (!group) {
     return <LoadingIndicator />;
   }
 
-  const comments = commentsQuery.data?.pages.flatMap(page => page.json) ?? [];
+  const comments = shouldFetchComments
+    ? (commentsQuery.data?.pages.flatMap(page => page.json) ?? [])
+    : activityComments;
 
   return (
     <EventDrawerContainer>
@@ -115,10 +123,10 @@ export function ActivityDrawer({project}: ActivityDrawerProps) {
         </SegmentedControl>
       </EventNavigator>
       <EventDrawerBody>
-        {filter === 'comments' && commentsQuery.isError ? (
+        {shouldFetchComments && commentsQuery.isError ? (
           <Text variant="muted">{t('Unable to load all comments.')}</Text>
         ) : null}
-        {filter === 'comments' && commentsQuery.isPending ? (
+        {shouldFetchComments && commentsQuery.isPending ? (
           <LoadingIndicator />
         ) : (
           <ActivitySection
