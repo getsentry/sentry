@@ -34,7 +34,7 @@ describe('ThinkingBlock', () => {
     expect(screen.getByText('10.0s')).toBeInTheDocument();
   });
 
-  it('is expanded by default and collapses when endTime arrives', async () => {
+  it('is expanded by default and collapses when endTime arrives', () => {
     jest.useRealTimers();
     const start = new Date();
 
