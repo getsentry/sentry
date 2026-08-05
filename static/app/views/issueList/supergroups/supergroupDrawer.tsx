@@ -90,6 +90,7 @@ export function SupergroupDetailDrawer({
             <Badge variant="experimental">{t('Experimental')}</Badge>
           </Flex>
           <FeedbackButton
+            variant="secondary"
             size="xs"
             feedbackOptions={{
               formTitle: t('Give feedback on Issue Groups'),
