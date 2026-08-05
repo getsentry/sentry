@@ -6,6 +6,7 @@ content mirrors Seer's per-section output.
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Mapping, Sequence
 from datetime import UTC
 from typing import Any, Literal
@@ -18,10 +19,42 @@ from sentry.issues.formatting.models import EventObject, Frame, Stacktrace
 logger = logging.getLogger(__name__)
 
 
+_TRUNCATED = "... (truncated)"
+
+
 def _truncate(text: str, max_chars: int | None) -> str:
+    """Cap a run of plain text. Only for content the formatter has not marked up yet -- use
+    ``_truncate_items`` once a body is a join of rendered pieces.
+    """
     if max_chars is None or len(text) <= max_chars:
         return text
-    return text[:max_chars].rstrip() + "\n... (truncated)"
+    # the caller may have escaped this already, so don't leave half an entity behind:
+    # "&amp;" cut to "&am" is not well-formed xml
+    cut = re.sub(r"&[#a-zA-Z0-9]*$", "", text[:max_chars])
+    return cut.rstrip() + f"\n{_TRUNCATED}"
+
+
+def _truncate_items(items: Sequence[str], sep: str, max_chars: int | None) -> str:
+    """Join rendered pieces, dropping whole ones once the cap is hit.
+
+    Slicing a joined body mid-way would cut through a tag a section already emitted and leave
+    the output unparseable, so entire items go instead.
+    """
+    if max_chars is None:
+        return sep.join(items)
+
+    kept: list[str] = []
+    total = 0
+    for item in items:
+        cost = len(item) + (len(sep) if kept else 0)
+        # always keep the first piece: a section rendering nothing but "(truncated)" has lost
+        # its content entirely, which is worse than overshooting the cap once
+        if kept and total + cost > max_chars:
+            kept.append(_TRUNCATED)
+            break
+        kept.append(item)
+        total += cost
+    return sep.join(kept)
 
 
 def _contains_filtered(value: Any) -> bool:
@@ -104,7 +137,7 @@ def exceptions_section(model: EventObject, fmt: Formatter, limits: Limits) -> st
             parts.append(fmt.code_block(_render_stacktrace(exc.stacktrace, limits)))
         blocks.append("\n".join(parts))
 
-    body = _truncate("\n\n".join(blocks), limits.max_exceptions_chars)
+    body = _truncate_items(blocks, "\n\n", limits.max_exceptions_chars)
     return fmt.block("Exception", body)
 
 

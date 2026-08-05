@@ -1,6 +1,7 @@
 import dataclasses
 from datetime import datetime, timezone
 from typing import Any
+from xml.etree import ElementTree
 
 import pytest
 
@@ -423,3 +424,51 @@ def test_exception_stacktrace_not_duplicated() -> None:
     assert "## Exception" in out
     assert "## Stacktrace" not in out
     assert stacktrace_section(event, MD, LIMITS_DEFAULT) == ""
+
+
+def test_truncating_a_rendered_body_never_splits_markup() -> None:
+    # section bodies are joins of already-rendered pieces, so slicing mid-way would cut through
+    # a tag and leave the xml unparseable; whole pieces are dropped instead
+    event = EventObject(
+        title="t",
+        exceptions=[
+            ExceptionDetails(type=f"E{i}", value="v" * 40, is_handled=False) for i in range(4)
+        ],
+    )
+    for cap in range(20, 260):
+        out = exceptions_section(
+            event, XmlFormatter(), dataclasses.replace(LIMITS_DEFAULT, max_exceptions_chars=cap)
+        )
+        ElementTree.fromstring(out)  # raises if a tag was split
+
+
+def test_truncating_a_rendered_body_keeps_markdown_fences_balanced() -> None:
+    # the markdown equivalent of the check above: each piece is already fenced, so cutting
+    # through one would drop its closing fence and swallow the rest of the output in a code block
+    stacktrace = Stacktrace(
+        frames=[Frame(function="f", filename="a.py", line_no=1, context=[(1, "x = 1")])]
+    )
+    event = EventObject(
+        title="t",
+        exceptions=[
+            # backtick-heavy values, so a widened fence is in play too
+            ExceptionDetails(type=f"E{i}", value="``` v " * 10, stacktrace=stacktrace)
+            for i in range(4)
+        ],
+    )
+    for cap in range(20, 600):
+        out = exceptions_section(
+            event, MD, dataclasses.replace(LIMITS_DEFAULT, max_exceptions_chars=cap)
+        )
+        fences = [line for line in out.splitlines() if line and set(line) == {"`"}]
+        assert len(fences) % 2 == 0, f"unbalanced fence at cap={cap}"
+
+
+def test_capping_a_rendered_body_keeps_the_first_piece() -> None:
+    # dropping every piece would leave a section carrying nothing but "(truncated)"; overshooting
+    # the cap once beats losing the content the section exists to render
+    event = EventObject(title="t", exceptions=[ExceptionDetails(type="E", value="v" * 200)])
+    out = exceptions_section(
+        event, MD, dataclasses.replace(LIMITS_DEFAULT, max_exceptions_chars=10)
+    )
+    assert "E: " + "v" * 200 in out
