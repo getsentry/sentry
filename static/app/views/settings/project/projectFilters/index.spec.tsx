@@ -500,6 +500,25 @@ describe('ProjectFilters', () => {
     expect(screen.queryByText('Drop debug log spam')).not.toBeInTheDocument();
   });
 
+  it('keeps a condition type it does not know', async () => {
+    // A newer deploy can store a condition type this bundle has no description
+    // for. It has to stay visible and editable, not break the page or the modal.
+    renderInboundFilters([
+      CustomInboundFilterFixture({
+        id: '1',
+        name: 'Filter from a newer deploy',
+        conditions: [{type: 'error_value', value: ['*boom*']}],
+      }),
+    ]);
+
+    expect(await screen.findByText('Filter from a newer deploy')).toBeInTheDocument();
+    expect(screen.getByText('error_value:*boom*')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Edit filter'}));
+    expect(await screen.findByText('Edit Custom Filter')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Condition value'})).toHaveValue('*boom*');
+  });
+
   it('shows an error when the filters fail to load', async () => {
     MockApiClient.addMockResponse({
       url: CUSTOM_INBOUND_FILTERS_URL,

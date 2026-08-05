@@ -153,12 +153,27 @@ const FILTER_DATA_TYPES = Object.keys(DATA_TYPES) as [
   ...FilterDataType[],
 ];
 
+// Reads go through a map because a stored filter may name a condition type this
+// revision does not know, e.g. one a newer deploy added. Such a condition keeps
+// its row in the modal and gets a generic description, instead of breaking it.
+const CONDITION_SPECS = new Map<string, ConditionSpec>(Object.entries(CONDITIONS));
+
+function getCondition(property: string): ConditionSpec {
+  return (
+    CONDITION_SPECS.get(property) ?? {
+      label: property,
+      placeholder: t('Glob pattern'),
+      description: '',
+    }
+  );
+}
+
 // A data type offers the conditions that read its own fields, plus `release`.
 function getPropertyOptions(dataType: FilterDataType): PropertyOption[] {
   return CONDITION_TYPES.filter(value => {
-    const owner = CONDITIONS[value].dataType;
+    const owner = getCondition(value).dataType;
     return owner === undefined || owner === dataType;
-  }).map(value => ({value, label: CONDITIONS[value].label}));
+  }).map(value => ({value, label: getCondition(value).label}));
 }
 
 // The property a new condition row starts with, and the one existing rows
@@ -166,7 +181,7 @@ function getPropertyOptions(dataType: FilterDataType): PropertyOption[] {
 // one condition; errors stand in if that ever stops holding.
 function getDefaultProperty(dataType: FilterDataType): ConditionType {
   return (
-    CONDITION_TYPES.find(value => CONDITIONS[value].dataType === dataType) ??
+    CONDITION_TYPES.find(value => getCondition(value).dataType === dataType) ??
     'error_message'
   );
 }
@@ -208,8 +223,9 @@ function filterToFormValues(filter: CustomInboundFilter): FilterFormValues {
     condition.value.map(value => ({property: condition.type, value}))
   );
   const dataType =
-    conditions.map(condition => CONDITIONS[condition.property].dataType).find(Boolean) ??
-    'error';
+    conditions
+      .map(condition => getCondition(condition.property).dataType)
+      .find(Boolean) ?? 'error';
   return {
     name: filter.name ?? '',
     dataType,
@@ -239,14 +255,8 @@ function getErrorDetail(error: unknown, fallback: string): string {
   return fallback;
 }
 
-// A stored filter may name a condition type this revision does not know, so fall
-// back to the raw value the API returned.
-function getPropertyLabel(value: string) {
-  return value in CONDITIONS ? CONDITIONS[value as ConditionType].label : value;
-}
-
-function getMatchDescription(property: ConditionType, dataType: FilterDataType): string {
-  const {description} = CONDITIONS[property];
+function getMatchDescription(property: string, dataType: FilterDataType): string {
+  const {description} = getCondition(property);
   return typeof description === 'string' ? description : description[dataType];
 }
 
@@ -281,7 +291,7 @@ function ConditionTag({type, value}: {type: ConditionType; value: string}) {
   return (
     <Tag variant="muted">
       <Text monospace size="sm">
-        {`${getPropertyLabel(type)}:${value}`}
+        {`${getCondition(type).label}:${value}`}
       </Text>
     </Tag>
   );
@@ -416,7 +426,9 @@ function CustomFilterModal({
                               {valueField => (
                                 <valueField.Input
                                   aria-label={t('Condition value')}
-                                  placeholder={CONDITIONS[condition.property].placeholder}
+                                  placeholder={
+                                    getCondition(condition.property).placeholder
+                                  }
                                   value={valueField.state.value}
                                   onChange={valueField.handleChange}
                                 />
@@ -476,8 +488,8 @@ function matchesQuery(filter: CustomInboundFilter, query: string) {
     ...filter.conditions.flatMap(condition =>
       condition.value.flatMap(value => [
         value,
-        getPropertyLabel(condition.type),
-        `${getPropertyLabel(condition.type)}:${value}`,
+        getCondition(condition.type).label,
+        `${getCondition(condition.type).label}:${value}`,
       ])
     ),
   ];
