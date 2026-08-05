@@ -14,6 +14,9 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase, UnknownEnvironments
 from sentry.api.utils import handle_query_errors
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
@@ -142,7 +145,7 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
     def serialize_response(
         self,
         validity: ValidationResponse,
-    ) -> Response:
+    ) -> Response[ValidationResponse]:
         return Response(
             status=200 if validity["valid"] else 400,
             data=validity,
@@ -195,7 +198,43 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
                 )
         return validities, attributes_to_lookup, valid
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="validateOrganizationEventsQuery",
+        summary="Validate an Explore Query",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            VisibilityParams.DATASET,
+            VisibilityParams.FIELD,
+            VisibilityParams.QUERY,
+            VisibilityParams.SORT,
+        ],
+        responses={
+            # Both statuses carry the same body: the endpoint reports validity in
+            # `valid` and returns 400 when any part of the query is invalid.
+            200: inline_sentry_response_serializer(
+                "ValidateEventsQueryResponse", ValidationResponse
+            ),
+            400: inline_sentry_response_serializer(
+                "InvalidEventsQueryResponse", ValidationResponse
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[ValidationResponse] | Response[None]:
+        """
+        Check whether a set of fields, a search query, and a sort would form a valid
+        query, without running it. Reports each field, orderby, and query term
+        separately so an invalid one can be corrected in place; `valid` is false and
+        the status is 400 when any part fails.
+        """
         if not self.has_feature(organization, request):
             return Response(status=400)
 
