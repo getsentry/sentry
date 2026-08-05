@@ -1046,6 +1046,7 @@ class PrMetricsEmissionTest(TestCase):
         assert row.ci_heads_failed == 1
         assert row.ci_heads_passed == 1
         assert row.ci_heads_inconclusive == 0
+        assert row.ci_heads_by_actor is not None
         assert sentry_json.loads(row.ci_heads_by_actor) == {
             "bot": {"failed": 0, "inconclusive": 0, "passed": 0},
             "delegated": {"failed": 0, "inconclusive": 0, "passed": 0},
@@ -1098,6 +1099,7 @@ class PrMetricsEmissionTest(TestCase):
             attributions=[{"signal_type": "seer_delegated:claude_code", "source": "seer_data"}],
             group_ids=[],
         )
+        assert row.ci_heads_by_actor is not None
         by_actor = sentry_json.loads(row.ci_heads_by_actor)
         assert by_actor["delegated"]["failed"] == 1
         assert by_actor["seer"]["failed"] == 0
@@ -1128,6 +1130,7 @@ class PrMetricsEmissionTest(TestCase):
         assert row.ci_heads_failed == 0
         assert row.ci_heads_passed == 0
         assert row.ci_heads_inconclusive == 0
+        assert row.ci_heads_by_actor is not None
         assert sentry_json.loads(row.ci_heads_by_actor) == {
             "bot": {"failed": 0, "inconclusive": 0, "passed": 0},
             "delegated": {"failed": 0, "inconclusive": 0, "passed": 0},
@@ -1177,6 +1180,7 @@ class PrMetricsEmissionTest(TestCase):
             attributions=[],
             group_ids=[],
         )
+        assert row.ci_heads_by_actor is not None
         by_actor = sentry_json.loads(row.ci_heads_by_actor)
         assert by_actor["seer"] == {"failed": 1, "inconclusive": 0, "passed": 1}
         assert by_actor["unknown"] == {"failed": 0, "inconclusive": 0, "passed": 0}
