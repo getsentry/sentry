@@ -212,6 +212,9 @@ def _get_rows_matching_deletion_pattern(
         ],
         # The hash is a function of `replay_id`, so grouping by both leaves cardinality unchanged
         # while keeping every selected and ordered expression a group key.
+        # Group by both the `replay_id` and `cityHash64(replay_id)` so we able
+        # to keep track of the cursor _and_ still get the Replay IDs out. Since
+        # the hash is a function of the ID, this doesn't change the row contents.
         groupby=[Column("replay_id"), replay_id_hash_column],
         orderby=[OrderBy(replay_id_hash_column, Direction.ASC)],
         granularity=Granularity(3600),
@@ -234,7 +237,6 @@ def _get_rows_matching_deletion_pattern(
     data = response.get("data", [])
     has_more = len(data) == limit
 
-    # Rows are ordered by the hash, so the next page seeks past the last row's hash.
     next_cursor = data[-1]["replay_id_hash"] if data else None
 
     return (
