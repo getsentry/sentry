@@ -65,6 +65,8 @@ describe('InboxPage', () => {
     hasSeen: false,
     lastSeen: '2026-07-19T12:00:00Z',
     level: 'error',
+    count: '2600',
+    userCount: 11,
     assignedTo: {id: '10', name: 'Jane Doe', type: 'user'},
     metadata: {
       type: 'TypeError',
@@ -672,6 +674,12 @@ describe('InboxPage', () => {
         name: 'Fix proposed issue',
       })
     ).toBeInTheDocument();
+    expect(within(preview).getByLabelText('11 affected users')).toHaveTextContent(
+      '11Users'
+    );
+    expect(within(preview).getByLabelText('2,600 events')).toHaveTextContent(
+      '2.6KEvents'
+    );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Back to inbox'}));
     expect(router.location.query.preview).toBeUndefined();
