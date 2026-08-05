@@ -259,8 +259,8 @@ class CustomInboundFiltersTest(APITestCase):
 
     def test_rejects_conditions_without_required_ingestion_feature(self) -> None:
         cases = [
-            ("log_message", ["Rate limit*"], "Log message filters are not enabled"),
-            ("metric_name", ["counter.*"], "Metric name filters are not enabled"),
+            ("log_message", ["Rate limit*"], "Log filters are not enabled"),
+            ("metric_name", ["counter.*"], "Metric filters are not enabled"),
         ]
         for condition_type, value, expected in cases:
             with self.feature(self.features):
