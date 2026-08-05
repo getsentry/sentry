@@ -407,7 +407,7 @@ def run_night_shift_execution(
         _complete_run(run)
         return None
 
-    _ensure_shard_plan(run, shard_plans)
+    _maybe_create_shard_plan(run, shard_plans)
     if _dispatch_pending_shards(run, organization, log_extra, start_time):
         _complete_run(run)
 
@@ -730,7 +730,9 @@ def _build_shard_plans(
     return shard_plans, len(scored)
 
 
-def _ensure_shard_plan(run: SeerNightShiftRun, shard_plans: Sequence[NightShiftShardPlan]) -> None:
+def _maybe_create_shard_plan(
+    run: SeerNightShiftRun, shard_plans: Sequence[NightShiftShardPlan]
+) -> None:
     using = router.db_for_write(SeerNightShiftRunShard)
     with transaction.atomic(using=using):
         locked_run = SeerNightShiftRun.objects.select_for_update().get(id=run.id)
