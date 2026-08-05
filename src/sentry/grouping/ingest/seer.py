@@ -11,6 +11,10 @@ from sentry import ratelimits as ratelimiter
 from sentry.eventtypes.error import ErrorEvent
 from sentry.grouping.fingerprinting.utils import get_fingerprint_type
 from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
+from sentry.grouping.ingest.exception_types import (
+    REJECTING_REASONS,
+    classify_exception_type_mismatch,
+)
 from sentry.grouping.ingest.grouphash_metadata import (
     check_grouphashes_for_positive_fingerprint_match,
 )
@@ -533,13 +537,12 @@ def _should_use_seer_match_for_grouping(
     check is hybrid-fingerprint-related (for metrics accounting).
 
     Checks applied in order:
-    - Exception type mismatch: rejects when event and parent have different exception types.
-      Skipped for synthetic exceptions (matching regular grouping behavior).
+    - Exception type mismatch: rejects when event and parent have exception types whose difference
+      we're confident is meaningful (see `sentry.grouping.ingest.exception_types`). Other mismatches
+      are logged and accepted. Skipped for synthetic exceptions (matching regular grouping
+      behavior).
     - Hybrid fingerprint compatibility: rejects when fingerprint types or values don't match.
     """
-    # Exception type check — log mismatches for now so we can assess how often Seer matches
-    # across different exception types before deciding whether to reject them.
-
     parent_group = parent_grouphash.group
     if parent_group is None:
         raise SimilarHashMissingGroupError(
@@ -551,10 +554,24 @@ def _should_use_seer_match_for_grouping(
         and parent_exception_type
         and event_exception_type != parent_exception_type
     ):
+        mismatch_reason = classify_exception_type_mismatch(
+            event_exception_type, parent_exception_type, event.platform
+        )
+        # We only reject when the type difference is by itself proof that Seer got it wrong.
+        # Everything else falls through and is accepted, so we keep the (frequently useful) Seer
+        # matches that cross type boundaries while we narrow down further categories.
+        reject = mismatch_reason in REJECTING_REASONS and options.get(
+            "seer.similarity.ingest.reject_exception_type_mismatches"
+        )
+
         metrics.incr(
             "grouping.similarity.exception_type_mismatch",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"platform": event.platform},
+            tags={
+                "platform": event.platform,
+                "reason": mismatch_reason.value,
+                "rejected": reject,
+            },
         )
         logger.info(
             "seer.exception_type_mismatch",
@@ -570,8 +587,15 @@ def _should_use_seer_match_for_grouping(
                 "parent_exception_value": get_path(parent_group.data, "metadata", "value"),
                 "parent_group_id": parent_group.id,
                 "parent_hash": parent_grouphash.hash,
+                "mismatch_reason": mismatch_reason.value,
+                "rejected": reject,
             },
         )
+
+        if reject:
+            # Not hybrid-fingerprint-related, so this rejection shouldn't count towards the hybrid
+            # fingerprint metrics.
+            return SeerMatchResult(accepted=False, hybrid_related=False)
 
     parent_has_hybrid_fingerprint = (
         get_fingerprint_type(parent_grouphash.get_associated_fingerprint()) == "hybrid"

@@ -1197,6 +1197,17 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Whether to reject Seer matches whose exception type differs from the parent's in a way we're
+# confident is meaningful (see `sentry.grouping.ingest.exception_types`). Off by default so the
+# categorization can be validated against the `seer.exception_type_mismatch` logs before it starts
+# splitting groups; mismatches are logged either way.
+register(
+    "seer.similarity.ingest.reject_exception_type_mismatches",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # TODO: Once Seer grouping is GA-ed, we probably either want to turn this down or get rid of it in
 # favor of the default 10% sample rate
