@@ -18,6 +18,7 @@ import type {Member} from 'sentry/types/organization';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -53,7 +54,7 @@ export function IntegrationExternalUserMappings(props: Props) {
       {
         path: {organizationIdOrSlug: organization.slug},
         query: {
-          ...location.query,
+          cursor: decodeScalar(location.query.cursor),
           query: 'hasExternalUsers:true',
           expand: 'externalUsers',
         },
