@@ -23,6 +23,7 @@ from sentry.analytics.events.manual_issue_assignment import ManualIssueAssignmen
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.api.serializers.models.groupactionlogentry import serialize_first_seen_entry
+from sentry.exceptions import InvalidSearchQuery
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.action_log import (
@@ -69,8 +70,6 @@ from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.users.services.user_option import user_option_service
 from sentry.utils import metrics
-
-from sentry.exceptions import InvalidSearchQuery
 
 from . import ACTIVITIES_COUNT, BULK_MUTATION_LIMIT, SearchFunction, delete_group_list
 from .lookup import get_group_list
