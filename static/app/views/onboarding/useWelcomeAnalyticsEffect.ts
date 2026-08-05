@@ -39,5 +39,5 @@ export function useWelcomeAnalyticsEffect() {
         onboardingContext.resetOnboarding();
       }
     }
-  }, [onboardingContext]);
+  }, [onboardingContext, hasScmOnboarding]);
 }
