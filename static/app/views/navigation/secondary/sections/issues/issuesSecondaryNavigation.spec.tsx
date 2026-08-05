@@ -113,4 +113,19 @@ describe('IssuesSecondaryNavigation', () => {
     expect(screen.queryByRole('link', {name: /Inbox/})).not.toBeInTheDocument();
     expect(request).not.toHaveBeenCalled();
   });
+
+  it('keeps Inbox visible while Autofix access is loading', async () => {
+    mockInboxCount({});
+    jest.mocked(useOrganizationSeerSetup).mockReturnValue({
+      areAiFeaturesAllowed: true,
+      billing: {hasAutofixQuota: false, hasScannerQuota: false},
+      isPending: true,
+    } as ReturnType<typeof useOrganizationSeerSetup>);
+
+    renderNavigation();
+
+    expect(
+      await screen.findByRole('link', {name: 'Inbox experimental'})
+    ).toBeInTheDocument();
+  });
 });
