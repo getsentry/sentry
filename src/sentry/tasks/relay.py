@@ -4,7 +4,6 @@ import time
 import sentry_sdk
 from django.db import connections, router, transaction
 
-from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
@@ -354,10 +353,7 @@ def schedule_invalidate_project_config(
         name="relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
     ) as span:
         set_span_tag(span, "transaction_db", transaction_db)
-        if (
-            options.get("relay.invalidation-direct-outside-atomic")
-            and not connections[transaction_db].in_atomic_block
-        ):
+        if not connections[transaction_db].in_atomic_block:
             _do_schedule()
         else:
             transaction.on_commit(_do_schedule, using=transaction_db)
