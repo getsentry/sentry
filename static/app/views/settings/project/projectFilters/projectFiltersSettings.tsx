@@ -727,7 +727,7 @@ export function ProjectFiltersSettings({project, params}: Props) {
                             organization,
                             project_id: parseInt(project.id, 10),
                             filter: filter.id,
-                            new_state: [...newSubfilters].sort().join(','),
+                            new_state: newSubfilters.toSorted().join(','),
                           });
                           return fetchMutation({
                             url: `${filtersEndpoint}${filter.id}/`,

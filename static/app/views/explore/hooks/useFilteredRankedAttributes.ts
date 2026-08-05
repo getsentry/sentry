@@ -28,7 +28,7 @@ export function useFilteredRankedAttributes({
       );
     }
 
-    return [...filtered].sort((a, b) => {
+    return filtered.toSorted((a, b) => {
       const aOrder = a.order.rrr;
       const bOrder = b.order.rrr;
       if (aOrder === null && bOrder === null) {

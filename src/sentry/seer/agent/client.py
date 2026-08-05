@@ -353,8 +353,11 @@ class SeerAgentClient:
 
         self.enable_coding = enable_coding
 
-        if enable_pr_context_tools and not features.has(
-            "organizations:autofix-pr-iteration", organization, actor=user
+        # PR context tools back both the automated CI and the manual iteration flows,
+        # so either flag grants them.
+        if enable_pr_context_tools and not (
+            features.has("organizations:autofix-pr-iteration", organization, actor=user)
+            or features.has("organizations:autofix-pr-iteration-manual", organization, actor=user)
         ):
             raise SeerPermissionError("PR context tools are not enabled for this organization")
 
@@ -936,6 +939,7 @@ class SeerAgentClient:
         blocking: bool = True,
         pr_description_suffix: str | None = None,
         ready_for_review: bool = True,
+        verify_content: bool = False,
         poll_interval: float = 2.0,
         poll_timeout: float = 120.0,
     ) -> SeerRunState | None:
@@ -968,6 +972,7 @@ class SeerAgentClient:
         payload: dict[str, Any] = {
             "type": "create_pr",
             "ready_for_review": ready_for_review,
+            "verify_content": verify_content,
             # Include an idempotency key in the request so that if
             # the request is retried by anything, it will not create duplicate PRs
             # This is regenerated per attempt to permit retries.

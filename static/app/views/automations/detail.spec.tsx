@@ -18,7 +18,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import AutomationDetail from 'sentry/views/automations/detail';
 
 describe('AutomationDetail', () => {
-  const organization = OrganizationFixture({features: ['workflow-engine-ui']});
+  const organization = OrganizationFixture();
   const automation = AutomationFixture({
     id: '123',
     name: 'Test Automation',
@@ -277,7 +277,6 @@ describe('AutomationDetail', () => {
 
   it('disables action buttons without alerts:write permission', async () => {
     const noWriteOrg = OrganizationFixture({
-      features: ['workflow-engine-ui'],
       access: ['org:read', 'alerts:read'],
     });
 

@@ -78,8 +78,8 @@ class UIFrames {
     const toSlowFinalUnit = makeFormatTo(slowFrames.unit, this.toUnit);
     const toFrozenFinalUnit = makeFormatTo(frozenFrames.unit, this.toUnit);
 
-    const slowFramesQueue = [...slowFrames.values].sort(sortFramesByStartedTime);
-    const frozenFramesQueue = [...frozenFrames.values].sort(sortFramesByStartedTime);
+    const slowFramesQueue = slowFrames.values.toSorted(sortFramesByStartedTime);
+    const frozenFramesQueue = frozenFrames.values.toSorted(sortFramesByStartedTime);
 
     while (slowFramesQueue.length > 0 || frozenFramesQueue.length > 0) {
       const nextType = slowFramesQueue.length
