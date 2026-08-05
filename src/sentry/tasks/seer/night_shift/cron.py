@@ -110,9 +110,21 @@ class SeerNightShiftRunOptionsPartial(TypedDict, total=False):
     extra_triage_instructions: str
 
 
-class NightShiftShardPlan(TypedDict):
+@dataclasses.dataclass(frozen=True)
+class NightShiftShardPlan:
     payload: dict[str, Any]
     title: str
+
+    def to_extras(self) -> dict[str, object]:
+        return {"payload": self.payload, "title": self.title}
+
+    @classmethod
+    def from_extras(cls, extras: Mapping[str, object]) -> NightShiftShardPlan | None:
+        payload = extras.get("payload")
+        title = extras.get("title")
+        if not isinstance(payload, dict) or not isinstance(title, str):
+            return None
+        return cls(payload=payload, title=title)
 
 
 @instrumented_task(
@@ -694,11 +706,22 @@ def _plan_and_dispatch_shards(
     log_extra: dict[str, object],
     start_time: float,
 ) -> bool:
-    """Persist the full shard plan before creating any Seer runs.
+    """Build, persist, then dispatch one durable plan for this run."""
+    shard_plans, num_candidates = _build_shard_plans(organization, eligible, resolved_options)
+    _update_run_extras(run, {"num_candidates": num_candidates})
+    if not shard_plans:
+        logger.info("night_shift.no_candidates", extra=log_extra)
+        return True
 
-    A redelivered task can then dispatch only plan rows without a SeerRun,
-    avoiding duplicate feature runs after an interrupted execution.
-    """
+    _ensure_shard_plan(run, shard_plans)
+    return _dispatch_pending_shards(run, organization, log_extra, start_time)
+
+
+def _build_shard_plans(
+    organization: Organization,
+    eligible: Sequence[EligibleProject],
+    resolved_options: SeerNightShiftRunOptions,
+) -> tuple[list[NightShiftShardPlan], int]:
     eligible_projects = [ep.project for ep in eligible]
     repos_by_project = {ep.project.id: ep.connected_repos for ep in eligible}
     tuning_by_project = {
@@ -711,14 +734,10 @@ def _plan_and_dispatch_shards(
         fixability_score_strategy_per_project if per_project_quotas else fixability_score_strategy
     )
     scored = score_strategy(eligible_projects, resolved_options["max_candidates"])
-    _update_run_extras(run, {"num_candidates": len(scored)})
-    if not scored:
-        logger.info("night_shift.no_candidates", extra=log_extra)
-        return True
 
     shard_size = max(1, options.get("seer.night_shift.shard_size"))
     chunks = list(chunked(scored, shard_size))
-    shard_plan: list[NightShiftShardPlan] = []
+    shard_plans: list[NightShiftShardPlan] = []
     for shard_index, chunk in enumerate(chunks):
         payload = _build_triage_payload(
             chunk, resolved_options, repos_by_project, tuning_by_project
@@ -731,26 +750,24 @@ def _plan_and_dispatch_shards(
         ) % {"count": num_candidates}
         if len(chunks) > 1:
             title += f" — part {shard_index + 1} of {len(chunks)}"
-        shard_plan.append({"payload": payload.dict(), "title": title})
+        shard_plans.append(NightShiftShardPlan(payload=payload.dict(), title=title))
 
-    _get_or_create_shard_plan(run, shard_plan)
-    return _dispatch_pending_shards(run, organization, log_extra, start_time)
+    return shard_plans, len(scored)
 
 
-def _get_or_create_shard_plan(
-    run: SeerNightShiftRun, shard_plan: Sequence[NightShiftShardPlan]
-) -> list[SeerNightShiftRunShard]:
+def _ensure_shard_plan(run: SeerNightShiftRun, shard_plans: Sequence[NightShiftShardPlan]) -> None:
     using = router.db_for_write(SeerNightShiftRunShard)
     with transaction.atomic(using=using):
         locked_run = SeerNightShiftRun.objects.select_for_update().get(id=run.id)
-        planned_shards = list(locked_run.shards.order_by("id"))
-        if planned_shards:
-            return planned_shards
+        if locked_run.shards.exists():
+            return
 
         SeerNightShiftRunShard.objects.bulk_create(
-            [SeerNightShiftRunShard(run=locked_run, extras=plan) for plan in shard_plan]
+            [
+                SeerNightShiftRunShard(run=locked_run, extras=plan.to_extras())
+                for plan in shard_plans
+            ]
         )
-        return list(locked_run.shards.order_by("id"))
 
 
 def _dispatch_pending_shards(
@@ -776,9 +793,8 @@ def _dispatch_pending_shards(
                 dispatched += 1
                 continue
 
-            payload = shard.extras.get("payload")
-            title = shard.extras.get("title")
-            if not isinstance(payload, dict) or not isinstance(title, str):
+            shard_plan = NightShiftShardPlan.from_extras(shard.extras)
+            if shard_plan is None:
                 logger.error(
                     "night_shift.invalid_shard_plan",
                     extra={**log_extra, "shard_index": shard_index},
@@ -792,8 +808,8 @@ def _dispatch_pending_shards(
             try:
                 client.start_feature_run(
                     feature_id="night_shift",
-                    payload=payload,
-                    title=title,
+                    payload=shard_plan.payload,
+                    title=shard_plan.title,
                     flush=False,
                     on_run_created=_link_shard,
                 )
