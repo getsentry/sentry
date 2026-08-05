@@ -89,10 +89,11 @@ function SeerWorkflows() {
   const sourceFilter = decodeList(location.query.source);
   const period = decodeScalar(location.query.period);
 
+  const [now] = useState(() => Date.now());
   const periodCutoffMs = useMemo(() => {
     const days = PERIOD_TO_DAYS[period ?? ''];
-    return days === undefined ? null : Date.now() - days * 24 * 60 * 60 * 1000;
-  }, [period]);
+    return days === undefined ? null : now - days * 24 * 60 * 60 * 1000;
+  }, [period, now]);
 
   const sourceOptions = useMemo(() => {
     const sources = new Set<string>();
@@ -150,7 +151,7 @@ function SeerWorkflows() {
   const sortedRows = useMemo(() => {
     const cmp = (a: WorkflowRow, b: WorkflowRow) =>
       Date.parse(a.dateAdded) - Date.parse(b.dateAdded);
-    const next = [...filteredRows].sort(cmp);
+    const next = filteredRows.toSorted(cmp);
     return sortDirection === 'desc' ? next.reverse() : next;
   }, [filteredRows, sortDirection]);
 

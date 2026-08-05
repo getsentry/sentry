@@ -90,6 +90,7 @@ export function SupergroupDetailDrawer({
             <Badge variant="experimental">{t('Experimental')}</Badge>
           </Flex>
           <FeedbackButton
+            variant="secondary"
             size="xs"
             feedbackOptions={{
               formTitle: t('Give feedback on Issue Groups'),
@@ -220,7 +221,7 @@ function SupergroupIssueList({
   const sortedGroupIds = useMemo(
     () =>
       filterWithCurrentSearch
-        ? [...groupIds].sort(
+        ? groupIds.toSorted(
             (a, b) =>
               Number(matchedIds.has(String(b))) - Number(matchedIds.has(String(a)))
           )
@@ -360,8 +361,7 @@ function DrawerActionsBar({groupIds}: {groupIds: string[]}) {
     useIssueSelectionSummary();
 
   const selectedProjectSlug = useMemo(() => {
-    const projects = [...selectedIdsSet]
-      .map(id => GroupStore.get(id))
+    const projects = Array.from(selectedIdsSet, id => GroupStore.get(id))
       .filter((group): group is Group => !!group?.project)
       .map(group => group.project.slug);
     const uniqProjects = uniq(projects);

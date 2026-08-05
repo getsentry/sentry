@@ -280,9 +280,28 @@ class GroupNotesDetailsTest(APITestCase):
         assert delete_entry.data["comment_id"] == original_entry.id
 
     @with_feature("projects:issue-action-log-activity")
-    def test_put_falls_back_to_activity_without_gale_entry(self) -> None:
-        # read flag on but write flag off: no COMMENT entry was ever written, so
-        # the edit can't reference one and the endpoint returns the activity.
+    def test_put_returns_404_without_gale_entry(self) -> None:
+        # activity flag on: GALE is authoritative for existence, so a missing
+        # entry means the note is already gone and we 404 instead of editing
+        # the Activity. (In production the activity flag is only turned on for
+        # projects where write-to-db is already on, so there should always be
+        # a mirror GALE for any Activity note.)
+        del self.activity.data["external_id"]
+        self.activity.save()
+        self.login_as(user=self.user)
+
+        response = self.client.put(self.url, format="json", data={"text": "updated"})
+        assert response.status_code == 404, response.content
+
+        assert not GroupActionLogEntry.objects.filter(
+            group_id=self.group.id, type=GroupActionType.COMMENT_EDIT.value
+        ).exists()
+
+    @with_feature("projects:issue-action-log-write-to-db")
+    def test_put_without_gale_entry_write_only(self) -> None:
+        # write flag on but activity flag off: the write flag must not change
+        # the response contract, so a PUT against an Activity that predates the
+        # rollout (no mirror GALE) still edits the Activity and returns 200.
         del self.activity.data["external_id"]
         self.activity.save()
         self.login_as(user=self.user)
@@ -292,9 +311,18 @@ class GroupNotesDetailsTest(APITestCase):
 
         assert response.data["id"] == str(self.activity.id)
         assert response.data["data"]["text"] == "updated"
-        assert not GroupActionLogEntry.objects.filter(
-            group_id=self.group.id, type=GroupActionType.COMMENT_EDIT.value
-        ).exists()
+
+    @with_feature("projects:issue-action-log-write-to-db")
+    def test_delete_without_gale_entry_write_only(self) -> None:
+        # write flag on but activity flag off: the write flag must not change
+        # the response contract, so a DELETE against an Activity that predates
+        # the rollout (no mirror GALE) still deletes the Activity and returns
+        # 204.
+        self.login_as(user=self.user)
+
+        response = self.client.delete(self.url, format="json")
+        assert response.status_code == 204, response.status_code
+        assert not Activity.objects.filter(id=self.activity.id).exists()
 
     @patch("sentry.integrations.mixins.issues.IssueBasicIntegration.update_comment")
     def test_put_no_external_id(self, mock_update_comment: MagicMock) -> None:

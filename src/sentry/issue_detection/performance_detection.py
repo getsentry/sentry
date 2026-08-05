@@ -688,6 +688,10 @@ DETECTOR_CLASSES: list[type[PerformanceDetector]] = [
     QueryInjectionDetector,
 ]
 
+DETECTOR_TYPE_TO_CLASS_MAP = {
+    detector_class.type.value: detector_class for detector_class in DETECTOR_CLASSES
+}
+
 
 def _detect_performance_problems(
     data: dict[str, Any],

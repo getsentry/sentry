@@ -1545,7 +1545,7 @@ function traceQueueIterator(
 ) {
   if (!isTraceSplitResult(trace)) {
     // Eap spans are not sorted by default
-    const spans = [...trace].sort((a, b) => a.start_timestamp - b.start_timestamp);
+    const spans = trace.toSorted((a, b) => a.start_timestamp - b.start_timestamp);
     for (const span of spans) {
       visitor(root, span);
     }
@@ -1558,10 +1558,10 @@ function traceQueueIterator(
   const tLen = trace.transactions.length;
   const oLen = trace.orphan_errors.length;
 
-  const transactions = [...trace.transactions].sort(
+  const transactions = trace.transactions.toSorted(
     (a, b) => a.start_timestamp - b.start_timestamp
   );
-  const orphan_errors = [...trace.orphan_errors].sort(
+  const orphan_errors = trace.orphan_errors.toSorted(
     (a, b) => (a?.timestamp ?? 0) - (b?.timestamp ?? 0)
   );
   // Items in each queue are sorted by timestamp, so we just take

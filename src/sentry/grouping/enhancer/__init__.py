@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import base64
-import logging
 import os
 import re
 import zlib
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from functools import cached_property
 from typing import Any, Literal, overload
@@ -28,8 +27,6 @@ from .exceptions import InvalidEnhancerConfig
 from .matchers import create_match_frame
 from .parser import parse_enhancements
 from .rules import EnhancementRule
-
-logger = logging.getLogger(__name__)
 
 # NOTE: The 1_000 here is pretty arbitrary. Our builtin base enhancements have about ~300 rules,
 # So this leaves quite a bit of headroom for custom enhancement rules as well.
@@ -129,10 +126,15 @@ def _make_rust_exception_data(
     exception_data: dict[str, Any] | None,
 ) -> RustExceptionData:
     exception_data = exception_data or {}
+    mechanism = exception_data.get("mechanism")
     rust_data = {
         "type": exception_data.get("type"),
         "value": exception_data.get("value"),
-        "mechanism": get_path(exception_data, "mechanism", "type"),
+        "mechanism": (
+            mechanism.get("type")
+            if isinstance(mechanism, Mapping)
+            else getattr(mechanism, "type", None)
+        ),
     }
 
     # Convert string values to bytes
