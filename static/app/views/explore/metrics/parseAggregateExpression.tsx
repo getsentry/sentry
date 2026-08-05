@@ -3,7 +3,7 @@ import {
   type TokenFunction,
 } from 'sentry/components/arithmeticBuilder/token';
 import {tokenizeExpression} from 'sentry/components/arithmeticBuilder/tokenizer';
-import {EQUATION_PREFIX, isEquation} from 'sentry/utils/discover/fields';
+import {EQUATION_PREFIX, isEquation, parseFunction} from 'sentry/utils/discover/fields';
 import {DEFAULT_EQUATION_LABEL} from 'sentry/views/explore/metrics/constants';
 import {
   defaultMetricQuery,
@@ -31,8 +31,6 @@ interface ParsedAggregateExpression {
   metricQueries: BaseMetricQuery[];
 }
 
-const IF_SUFFIX = '_if';
-
 interface ParsedEquationComponent {
   /**
    * The filter query from the conditional aggregation if applicable.
@@ -52,22 +50,15 @@ interface ParsedEquationComponent {
  * applicable and extraction of the query from that combinator.
  */
 export function normalizeFunctionToken(token: TokenFunction): ParsedEquationComponent {
-  if (!token.function.endsWith(IF_SUFFIX) || token.attributes.length === 0) {
+  const parsed = parseFunction(token.text, {normalizeIfCombinator: true});
+  if (!parsed?.filter) {
     return {plainAggregate: token.text, filterQuery: ''};
   }
 
-  const plainName = token.function.slice(0, -IF_SUFFIX.length);
-  const [filterAttr, ...restAttrs] = token.attributes;
-  const filterText = filterAttr?.text ?? '';
-
-  // Extract the query from the first argument, checking if it's wrapped in backticks.
-  const filterQuery =
-    filterText.startsWith('`') && filterText.endsWith('`')
-      ? filterText.slice(1, -1)
-      : filterText;
-
-  const plainAggregate = `${plainName}(${restAttrs.map(a => a.text).join(',')})`;
-  return {plainAggregate, filterQuery};
+  return {
+    plainAggregate: `${parsed.name}(${parsed.arguments.join(',')})`,
+    filterQuery: parsed.filter,
+  };
 }
 
 function makeMetricQuery(
@@ -83,7 +74,7 @@ function makeMetricQuery(
     label,
     queryParams: base.queryParams.replace({
       aggregateFields: [new VisualizeFunction(plainAggregate)],
-      query: token.function.endsWith(IF_SUFFIX) ? filterQuery : defaultFilter,
+      query: filterQuery || defaultFilter,
     }),
   };
 }

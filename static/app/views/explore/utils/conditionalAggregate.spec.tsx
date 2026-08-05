@@ -24,6 +24,8 @@ describe('escapeConditionalFilter', () => {
   });
 });
 
+// The parsing itself is covered by parseFunction's `normalizeIfCombinator` tests in
+// static/app/utils/discover/fields.spec.tsx.
 describe('parseConditionalAggregate', () => {
   it('parses a plain aggregate', () => {
     expect(parseConditionalAggregate('avg(span.duration)')).toEqual({
@@ -38,38 +40,6 @@ describe('parseConditionalAggregate', () => {
       name: 'avg',
       arguments: ['span.duration'],
       filter: 'span.op:db',
-    });
-  });
-
-  it('parses an _if aggregate whose filter contains commas', () => {
-    expect(
-      parseConditionalAggregate(
-        'avg_if(`span.op:[db,http] AND span.status:ok`,span.duration)'
-      )
-    ).toEqual({
-      name: 'avg',
-      arguments: ['span.duration'],
-      filter: 'span.op:[db,http] AND span.status:ok',
-    });
-  });
-
-  it('parses an _if aggregate whose filter contains quotes', () => {
-    expect(
-      parseConditionalAggregate(
-        'count_if(`span.description:"GET /foo, /bar"`,span.duration)'
-      )
-    ).toEqual({
-      name: 'count',
-      arguments: ['span.duration'],
-      filter: 'span.description:"GET /foo, /bar"',
-    });
-  });
-
-  it('leaves Discover style count_if untouched', () => {
-    expect(parseConditionalAggregate('count_if(span.duration,equals,300)')).toEqual({
-      name: 'count_if',
-      arguments: ['span.duration', 'equals', '300'],
-      filter: '',
     });
   });
 
@@ -158,6 +128,15 @@ describe('withReadableConditionalFilter', () => {
     expect(
       withReadableConditionalFilter(`avg_if(\`span.op:${contains}db\`,span.duration)`)
     ).toBe('avg_if(`span.op:*db*`,span.duration)');
+  });
+
+  it('rewrites wildcard markers on each item of a list value', () => {
+    const contains = '\uF00DContains\uF00D';
+    expect(
+      withReadableConditionalFilter(
+        `avg_if(\`span.op:${contains}[db,http]\`,span.duration)`
+      )
+    ).toBe('avg_if(`span.op:[*db*,*http*]`,span.duration)');
   });
 
   it('leaves plain filters unchanged', () => {

@@ -204,11 +204,11 @@ describe('SearchQueryBuilder', () => {
       <SearchQueryBuilder {...defaultProps} showSearchIcon={false} />
     );
 
-    const builder = await screen.findByTestId('search-query-builder');
-    expect(builder).toHaveAttribute('data-hide-search-icon', 'true');
+    await screen.findByTestId('search-query-builder');
+    expect(screen.queryByTestId('search-query-builder-icon')).not.toBeInTheDocument();
 
     rerender(<SearchQueryBuilder {...defaultProps} />);
-    expect(builder).not.toHaveAttribute('data-hide-search-icon');
+    expect(screen.getByTestId('search-query-builder-icon')).toBeInTheDocument();
   });
 
   describe('portalTarget', () => {

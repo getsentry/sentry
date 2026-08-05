@@ -342,11 +342,12 @@ function SearchQueryBuilderUI({
       ref={setWrapperRef}
       aria-disabled={disabled}
       data-test-id="search-query-builder"
+      // Styling hook only; the icon itself is what tests should look for.
       data-hide-search-icon={showSearchIcon ? undefined : true}
     >
       <PanelProvider>
         {showSearchIcon ? (
-          <PositionedSearchIconContainer>
+          <PositionedSearchIconContainer data-test-id="search-query-builder-icon">
             <SearchIcon size="sm" />
           </PositionedSearchIconContainer>
         ) : null}

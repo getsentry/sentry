@@ -123,6 +123,76 @@ describe('parseFunction', () => {
       arguments: ['`span.op:db`'],
     });
   });
+
+  describe('normalizeIfCombinator', () => {
+    it('returns null on non aggregate fields', () => {
+      expect(parseFunction('span.duration', {normalizeIfCombinator: true})).toBeNull();
+    });
+
+    it('leaves plain aggregates alone with an empty filter', () => {
+      expect(parseFunction('avg(span.duration)', {normalizeIfCombinator: true})).toEqual({
+        name: 'avg',
+        arguments: ['span.duration'],
+        filter: '',
+      });
+    });
+
+    it('splits the filter out of an _if aggregate', () => {
+      expect(
+        parseFunction('avg_if(`span.op:db`,span.duration)', {
+          normalizeIfCombinator: true,
+        })
+      ).toEqual({
+        name: 'avg',
+        arguments: ['span.duration'],
+        filter: 'span.op:db',
+      });
+    });
+
+    it('splits out filters containing commas and quotes', () => {
+      expect(
+        parseFunction('avg_if(`span.op:[db,http] AND span.status:ok`,span.duration)', {
+          normalizeIfCombinator: true,
+        })
+      ).toEqual({
+        name: 'avg',
+        arguments: ['span.duration'],
+        filter: 'span.op:[db,http] AND span.status:ok',
+      });
+      expect(
+        parseFunction('count_if(`span.description:"GET /foo, /bar"`,span.duration)', {
+          normalizeIfCombinator: true,
+        })
+      ).toEqual({
+        name: 'count',
+        arguments: ['span.duration'],
+        filter: 'span.description:"GET /foo, /bar"',
+      });
+    });
+
+    it('leaves Discover style count_if untouched', () => {
+      expect(
+        parseFunction('count_if(span.duration,equals,300)', {
+          normalizeIfCombinator: true,
+        })
+      ).toEqual({
+        name: 'count_if',
+        arguments: ['span.duration', 'equals', '300'],
+        filter: '',
+      });
+    });
+
+    it('is opt in', () => {
+      expect(parseFunction('count_if(`span.op:db`,span.duration)')).toEqual({
+        name: 'count_if',
+        arguments: ['`span.op:db`', 'span.duration'],
+      });
+      expect(parseFunction('count_if(span.duration,equals,300)')).toEqual({
+        name: 'count_if',
+        arguments: ['span.duration', 'equals', '300'],
+      });
+    });
+  });
 });
 
 describe('generateFieldAsString', () => {

@@ -1,4 +1,7 @@
-import {parseFunction, type ParsedFunction} from 'sentry/utils/discover/fields';
+import {
+  parseFunction,
+  type ParsedConditionalFunction,
+} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
 import {prettifyQueryConditions} from 'sentry/views/dashboards/utils/prettifyQueryConditions';
 
@@ -26,17 +29,7 @@ const FILTERABLE_AGGREGATES: string[] = [
   AggregationKey.P100,
 ];
 
-export interface ConditionalAggregate extends ParsedFunction {
-  /**
-   * The search query applied by the `_if` combinator. Empty when the aggregate is
-   * unconditional.
-   */
-  filter: string;
-}
-
-function isSearchFilterArgument(value: string): boolean {
-  return value.length >= 2 && value.startsWith('`') && value.endsWith('`');
-}
+export type ConditionalAggregate = ParsedConditionalFunction;
 
 /**
  * Remove backticks so the filter can be safely wrapped in them.
@@ -59,24 +52,7 @@ export function escapeConditionalFilter(filter: string): string {
  * `avg(span.duration)` → `{name: 'avg', arguments: ['span.duration'], filter: ''}`
  */
 export function parseConditionalAggregate(yAxis: string): ConditionalAggregate | null {
-  const parsed = parseFunction(yAxis);
-  if (!parsed) {
-    return null;
-  }
-
-  const [firstArgument, ...restArguments] = parsed.arguments;
-
-  // Discover style conditionals such as `count_if(span.duration,equals,300)` do not wrap
-  // their first argument in backticks, and are left untouched.
-  if (!parsed.name.endsWith(IF_SUFFIX) || !isSearchFilterArgument(firstArgument ?? '')) {
-    return {...parsed, filter: ''};
-  }
-
-  return {
-    name: parsed.name.slice(0, -IF_SUFFIX.length),
-    arguments: restArguments,
-    filter: firstArgument!.slice(1, -1),
-  };
+  return parseFunction(yAxis, {normalizeIfCombinator: true});
 }
 
 /**
