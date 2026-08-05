@@ -42,17 +42,17 @@ export function useMetricAttributesTreeActions() {
       },
     ];
 
-    if (isNumeric) {
+    if (isNumeric && value !== null) {
       items.push(
         {
           key: 'search-for-greater-than',
           label: t('Show values greater than'),
-          onAction: () => addSearchFilter({key, value: value!, op: '>'}),
+          onAction: () => addSearchFilter({key, value, op: '>'}),
         },
         {
           key: 'search-for-less-than',
           label: t('Show values less than'),
-          onAction: () => addSearchFilter({key, value: value!, op: '<'}),
+          onAction: () => addSearchFilter({key, value, op: '<'}),
         }
       );
     }
