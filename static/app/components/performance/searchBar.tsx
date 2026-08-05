@@ -1,4 +1,4 @@
-import {useCallback, useRef, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -48,207 +48,236 @@ export function SearchBar(props: SearchBarProps) {
   const transactionCount = searchResults[0]?.children?.length || 0;
   const [highlightedItemIndex, setHighlightedItemIndex] = useState(-1);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const openDropdown = () => setIsDropdownOpen(true);
-  const closeDropdown = () => setIsDropdownOpen(false);
+  const openDropdown = useCallback(() => setIsDropdownOpen(true), []);
+  const closeDropdown = useCallback(() => setIsDropdownOpen(false), []);
   const [loading, setLoading] = useState(false);
   const [searchString, setSearchString] = useState(searchQuery);
   const containerRef = useRef<HTMLDivElement>(null);
-  useOnClickOutside(containerRef, useCallback(closeDropdown, []));
+  useOnClickOutside(containerRef, closeDropdown);
 
   const api = useApi();
   const eventView = _eventView.clone();
 
   const url = `/organizations/${organization.slug}/events/`;
 
-  const projectIdStrings = (eventView.project as Array<Readonly<number>>)?.map(String);
-
-  const handleSearchChange = (query: any) => {
-    setSearchString(query);
-
-    if (query.length === 0) {
-      onSearch('');
-    }
-
-    if (query.length < 3) {
+  const handleSearch = useCallback(
+    (query: string, asRawText: boolean) => {
       setSearchResults([]);
+      setSearchString(query);
+      query = new MutableSearch(query).formatString();
+
+      const fullQuery = asRawText ? query : `transaction:"${query}"`;
+      onSearch(query ? fullQuery : '');
       closeDropdown();
-      return;
-    }
-
-    openDropdown();
-    getSuggestedTransactions(query);
-  };
-
-  const handleKeyDown = (event: React.KeyboardEvent) => {
-    const {key} = event;
-
-    if (loading) {
-      return;
-    }
-
-    if (key === 'Escape' && isDropdownOpen) {
-      closeDropdown();
-      return;
-    }
-
-    if (
-      (key === 'ArrowUp' || key === 'ArrowDown') &&
-      isDropdownOpen &&
-      transactionCount > 0
-    ) {
-      const currentHighlightedItem = searchResults[0]!.children[highlightedItemIndex];
-      const nextHighlightedItemIndex =
-        (highlightedItemIndex + transactionCount + (key === 'ArrowUp' ? -1 : 1)) %
-        transactionCount;
-      setHighlightedItemIndex(nextHighlightedItemIndex);
-      const nextHighlightedItem = searchResults[0]!.children[nextHighlightedItemIndex];
-
-      let newSearchResults = searchResults;
-      if (currentHighlightedItem) {
-        newSearchResults = getSearchGroupWithItemMarkedActive(
-          searchResults,
-          currentHighlightedItem,
-          false
-        );
-      }
-
-      if (nextHighlightedItem) {
-        newSearchResults = getSearchGroupWithItemMarkedActive(
-          newSearchResults,
-          nextHighlightedItem,
-          true
-        );
-      }
-
-      setSearchResults(newSearchResults);
-      return;
-    }
-
-    if (key === 'Enter') {
-      event.preventDefault();
-      const currentItem = searchResults[0]?.children[highlightedItemIndex];
-
-      if (currentItem?.value) {
-        handleChooseItem(currentItem.value);
-      } else {
-        handleSearch(searchString, true);
-      }
-    }
-  };
-
-  const projectIdStringsKey = projectIdStrings.join(',');
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const getSuggestedTransactions = useCallback(
-    debounce(
-      async query => {
-        try {
-          setLoading(true);
-          const conditions = additionalConditions?.copy() ?? new MutableSearch('');
-          conditions.addFilterValues('transaction', [wrapQueryInWildcards(query)], false);
-          conditions.addFilterValues('event.type', ['transaction']);
-
-          // clear any active requests
-          if (Object.keys(api.activeRequests).length) {
-            api.clear();
-          }
-          const parsedPeriodHours = eventView.statsPeriod
-            ? parsePeriodToHours(eventView.statsPeriod)
-            : 0;
-          const parsedDefaultHours = parsePeriodToHours(TRANSACTION_SEARCH_PERIOD);
-
-          const statsPeriod =
-            parsedDefaultHours > parsedPeriodHours
-              ? TRANSACTION_SEARCH_PERIOD
-              : eventView.statsPeriod;
-
-          const [results] = await doDiscoverQuery<{
-            data: DataItem[];
-          }>(api, url, {
-            field: ['transaction', 'project_id', 'count()'],
-            project: projectIdStrings,
-            sort: '-count()',
-            query: conditions.formatString(),
-            statsPeriod,
-            referrer: 'api.insights.transaction-name-search-bar',
-          });
-
-          const parsedResults = results.data.reduce(
-            (searchGroup: SearchGroup, item) => {
-              searchGroup.children.push({
-                value: encodeItemToValue(item),
-                title: item.transaction,
-                type: ItemType.LINK,
-                desc: '',
-              });
-              return searchGroup;
-            },
-            {
-              title: 'All Transactions',
-              children: [],
-              icon: null,
-              type: 'header',
-            }
-          );
-
-          setHighlightedItemIndex(-1);
-
-          setSearchResults([parsedResults]);
-        } catch (_) {
-          throw new Error('Unable to fetch event field values');
-        } finally {
-          setLoading(false);
-        }
-      },
-      DEFAULT_DEBOUNCE_DURATION,
-      {leading: true}
-    ),
-    [api, url, eventView.statsPeriod, projectIdStringsKey]
+    },
+    [onSearch, closeDropdown]
   );
 
-  const handleChooseItem = (value: string) => {
-    const item = decodeValueToItem(value);
-    handleSearch(item.transaction, false);
-  };
+  const navigateToItemTransactionSummary = useCallback(
+    (item: DataItem) => {
+      const {transaction, project_id} = item;
 
-  const handleClickItemIcon = (value: string) => {
-    const item = decodeValueToItem(value);
-    navigateToItemTransactionSummary(item);
-  };
+      const query = eventView.generateQueryStringObject();
+      setSearchResults([]);
 
-  const handleSearch = (query: string, asRawText: boolean) => {
-    setSearchResults([]);
-    setSearchString(query);
-    query = new MutableSearch(query).formatString();
+      const next = transactionSummaryRouteWithQuery({
+        organization,
+        transaction,
+        projectID: String(project_id),
+        query,
+      });
 
-    const fullQuery = asRawText ? query : `transaction:"${query}"`;
-    onSearch(query ? fullQuery : '');
-    closeDropdown();
-  };
+      navigate(next);
+    },
+    [eventView, organization, navigate]
+  );
 
-  const navigateToItemTransactionSummary = (item: DataItem) => {
-    const {transaction, project_id} = item;
+  const handleChooseItem = useCallback(
+    (value: string) => {
+      const item = decodeValueToItem(value);
+      handleSearch(item.transaction, false);
+    },
+    [handleSearch]
+  );
 
-    const query = eventView.generateQueryStringObject();
-    setSearchResults([]);
+  const handleClickItemIcon = useCallback(
+    (value: string) => {
+      const item = decodeValueToItem(value);
+      navigateToItemTransactionSummary(item);
+    },
+    [navigateToItemTransactionSummary]
+  );
 
-    const next = transactionSummaryRouteWithQuery({
-      organization,
-      transaction,
-      projectID: String(project_id),
-      query,
-    });
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      const {key} = event;
 
-    navigate(next);
-  };
-  const logDocsOpenedEvent = () => {
+      if (loading) {
+        return;
+      }
+
+      if (key === 'Escape' && isDropdownOpen) {
+        closeDropdown();
+        return;
+      }
+
+      if (
+        (key === 'ArrowUp' || key === 'ArrowDown') &&
+        isDropdownOpen &&
+        transactionCount > 0
+      ) {
+        const currentHighlightedItem = searchResults[0]!.children[highlightedItemIndex];
+        const nextHighlightedItemIndex =
+          (highlightedItemIndex + transactionCount + (key === 'ArrowUp' ? -1 : 1)) %
+          transactionCount;
+        setHighlightedItemIndex(nextHighlightedItemIndex);
+        const nextHighlightedItem = searchResults[0]!.children[nextHighlightedItemIndex];
+
+        let newSearchResults = searchResults;
+        if (currentHighlightedItem) {
+          newSearchResults = getSearchGroupWithItemMarkedActive(
+            searchResults,
+            currentHighlightedItem,
+            false
+          );
+        }
+
+        if (nextHighlightedItem) {
+          newSearchResults = getSearchGroupWithItemMarkedActive(
+            newSearchResults,
+            nextHighlightedItem,
+            true
+          );
+        }
+
+        setSearchResults(newSearchResults);
+        return;
+      }
+
+      if (key === 'Enter') {
+        event.preventDefault();
+        const currentItem = searchResults[0]?.children[highlightedItemIndex];
+
+        if (currentItem?.value) {
+          handleChooseItem(currentItem.value);
+        } else {
+          handleSearch(searchString, true);
+        }
+      }
+    },
+    [
+      loading,
+      isDropdownOpen,
+      closeDropdown,
+      transactionCount,
+      searchResults,
+      highlightedItemIndex,
+      searchString,
+      handleChooseItem,
+      handleSearch,
+    ]
+  );
+
+  const getSuggestedTransactions = useMemo(
+    () =>
+      debounce(
+        async query => {
+          try {
+            setLoading(true);
+            const conditions = additionalConditions?.copy() ?? new MutableSearch('');
+            conditions.addFilterValues(
+              'transaction',
+              [wrapQueryInWildcards(query)],
+              false
+            );
+            conditions.addFilterValues('event.type', ['transaction']);
+
+            // clear any active requests
+            if (Object.keys(api.activeRequests).length) {
+              api.clear();
+            }
+            const parsedPeriodHours = eventView.statsPeriod
+              ? parsePeriodToHours(eventView.statsPeriod)
+              : 0;
+            const parsedDefaultHours = parsePeriodToHours(TRANSACTION_SEARCH_PERIOD);
+
+            const statsPeriod =
+              parsedDefaultHours > parsedPeriodHours
+                ? TRANSACTION_SEARCH_PERIOD
+                : eventView.statsPeriod;
+
+            const [results] = await doDiscoverQuery<{
+              data: DataItem[];
+            }>(api, url, {
+              field: ['transaction', 'project_id', 'count()'],
+              project: (eventView.project as Array<Readonly<number>>)?.map(String),
+              sort: '-count()',
+              query: conditions.formatString(),
+              statsPeriod,
+              referrer: 'api.insights.transaction-name-search-bar',
+            });
+
+            const parsedResults = results.data.reduce(
+              (searchGroup: SearchGroup, item) => {
+                searchGroup.children.push({
+                  value: encodeItemToValue(item),
+                  title: item.transaction,
+                  type: ItemType.LINK,
+                  desc: '',
+                });
+                return searchGroup;
+              },
+              {
+                title: 'All Transactions',
+                children: [],
+                icon: null,
+                type: 'header',
+              }
+            );
+
+            setHighlightedItemIndex(-1);
+
+            setSearchResults([parsedResults]);
+          } catch (_) {
+            throw new Error('Unable to fetch event field values');
+          } finally {
+            setLoading(false);
+          }
+        },
+        DEFAULT_DEBOUNCE_DURATION,
+        {leading: true}
+      ),
+    [api, url, eventView.statsPeriod, eventView.project, additionalConditions]
+  );
+
+  const handleSearchChange = useCallback(
+    (query: any) => {
+      setSearchString(query);
+
+      if (query.length === 0) {
+        onSearch('');
+      }
+
+      if (query.length < 3) {
+        setSearchResults([]);
+        closeDropdown();
+        return;
+      }
+
+      openDropdown();
+      getSuggestedTransactions(query);
+    },
+    [onSearch, closeDropdown, openDropdown, getSuggestedTransactions]
+  );
+
+  const logDocsOpenedEvent = useCallback(() => {
     trackAnalytics('search.docs_opened', {
       organization,
       search_type: 'performance',
       search_source: 'performance_landing',
       query: props.query,
     });
-  };
+  }, [organization, props.query]);
 
   return (
     <Container
@@ -270,7 +299,7 @@ export function SearchBar(props: SearchBarProps) {
           items={searchResults}
           onClick={handleChooseItem}
           onIconClick={handleClickItemIcon}
-          onDocsOpen={() => logDocsOpenedEvent()}
+          onDocsOpen={logDocsOpenedEvent}
         />
       )}
     </Container>
