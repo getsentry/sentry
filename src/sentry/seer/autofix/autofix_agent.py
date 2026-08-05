@@ -8,6 +8,7 @@ from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal, cast
 
 import sentry_sdk
+from django.utils import timezone
 from pydantic import BaseModel
 from rest_framework.exceptions import PermissionDenied
 from scm.types import GetBranchProtocol, GetRepositoryProtocol
@@ -335,6 +336,25 @@ def _get_group_run_state(client: SeerAgentClient, group: Group, run_id: int) -> 
     return state
 
 
+def _resolve_default_branch(
+    group: Group, repo: SeerRepoDefinition, referrer: AutofixReferrer
+) -> str | None:
+    if repo.repository_id is None:
+        return None
+    from sentry.scm import factory as scm_factory
+
+    try:
+        scm = scm_factory.new(group.organization.id, repo.repository_id, referrer.value)
+        if isinstance(scm, GetRepositoryProtocol):
+            return scm.get_repository()["data"]["default_branch"]
+    except Exception:
+        logger.exception(
+            "autofix.resolve_default_branch_failed",
+            extra={"repo": f"{repo.owner}/{repo.name}", "group_id": group.id},
+        )
+    return None
+
+
 def _build_base_shas_metadata(group: Group, referrer: AutofixReferrer) -> str | None:
     preference = read_preference_from_sentry_db(group.project)
     # Imported lazily to avoid a circular import: sentry.scm pulls in the
@@ -409,7 +429,12 @@ def trigger_autofix_agent(
 
     config = STEP_CONFIGS[step]
 
-    pr_iteration_enabled = features.has("organizations:autofix-pr-iteration", group.organization)
+    # Either flag enables the PR_ITERATION step itself: automated CI iteration runs
+    # under `autofix-pr-iteration`, human-triggered iteration under the `-manual`
+    # variant. Both reach this function via `trigger_autofix_agent`.
+    pr_iteration_enabled = features.has(
+        "organizations:autofix-pr-iteration", group.organization
+    ) or features.has("organizations:autofix-pr-iteration-manual", group.organization)
     is_iteration_step = step == AutofixStep.PR_ITERATION
 
     client = get_autofix_agent_client(
@@ -490,6 +515,8 @@ def trigger_autofix_agent(
             insert_index=insert_index,
         )
 
+    activity_datetime = timezone.now().isoformat()
+
     # Emit the started event after run_id is resolved so it can be joined to
     # downstream completed/PR events.
     if config.started_event is not None:
@@ -523,6 +550,7 @@ def trigger_autofix_agent(
                 "event_type": sentry_app_event_type,
                 "event_payload": payload,
                 "organization_id": group.organization.id,
+                "activity_datetime": activity_datetime,
             }
             if is_iteration_step:
                 activity_attribution: SeerActivityAttribution = {
@@ -571,7 +599,7 @@ def trigger_autofix_agent(
     return run
 
 
-def get_autofix_agent_state(organization: Organization, group_id: int):
+def get_autofix_agent_state(organization: Organization, group_id: int) -> SeerRunState | None:
     """
     Get the current state of an agent-based autofix run for a group.
 
@@ -757,6 +785,9 @@ def trigger_coding_agent_handoff(
 
     repo = _get_relevant_repo(state, repo_definitions, run_id, group)
 
+    if not repo.branch_name:
+        repo.branch_name = _resolve_default_branch(group, repo, referrer)
+
     short_id = group.qualified_short_id
     issue_url = group.get_absolute_url() if short_id else None
 
@@ -814,6 +845,7 @@ def trigger_push_changes(
     referrer: AutofixReferrer,
     state: SeerRunState | None = None,
     repo_name: str | None = None,
+    verify_content: bool = False,
 ):
     if not group.organization.get_option(
         "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
@@ -843,6 +875,7 @@ def trigger_push_changes(
         repo_name=repo_name,
         pr_description_suffix=build_pr_description_suffix(group),
         ready_for_review=not _should_open_autofix_pr_as_draft(group.organization),
+        verify_content=verify_content,
         blocking=False,
     )
 
@@ -875,7 +908,7 @@ def build_pr_description_suffix(group: Group) -> str | None:
             linear_id = external_issue.display_name.replace("#", "-")
             lines.append(f"Fixes [{linear_id}]({external_issue.web_url})")
 
-    if features.has("organizations:autofix-pr-iteration", group.organization):
+    if features.has("organizations:autofix-pr-iteration-manual", group.organization):
         lines.append(
             "\n<sub>Comment `@sentry <feedback>` on this PR to have Autofix iterate on the changes.</sub>"
         )

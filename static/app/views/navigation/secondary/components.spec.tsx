@@ -25,7 +25,6 @@ const ALL_AVAILABLE_FEATURES = [
   'performance-view',
   'profiling',
   'visibility-explore-view',
-  'workflow-engine-ui',
 ];
 
 function setupMocks() {

@@ -41,7 +41,6 @@ import type {Block, SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer
 import {
   getExplorerFeedbackOptions,
   getExplorerUrl,
-  getLangfuseUrl,
   getRelativeExplorerUrl,
   useCopySessionDataToClipboard,
   useSeerExplorerDeepLink,
@@ -311,7 +310,6 @@ export function SeerExplorerContent({
     }
   }, [runId, organization]);
 
-  const langfuseUrl = runId ? getLangfuseUrl(runId) : undefined;
   const conversationsUrl = useMemo(() => {
     if (runId === null) {
       return;
@@ -337,13 +335,6 @@ export function SeerExplorerContent({
       referrer: 'seer.agent.in-chat-link',
     });
   }, [runId, blocks]);
-
-  const handleOpenLangfuse = useCallback(() => {
-    // Command handler. Disabled in slash command menu for non-employees
-    if (langfuseUrl) {
-      window.open(langfuseUrl, '_blank');
-    }
-  }, [langfuseUrl]);
 
   const handleOpenConversations = useCallback(() => {
     // Command handler. Disabled in slash command menu for non-employees
@@ -385,7 +376,6 @@ export function SeerExplorerContent({
     slashCommandHandlers: {
       onNew: startNewSession,
       onFeedback: openFeedbackForm ? handleFeedback : undefined,
-      onLangfuse: langfuseUrl ? handleOpenLangfuse : undefined,
       onConversations: conversationsUrl ? handleOpenConversations : undefined,
       onBashMode: organization?.features.includes('seer-explorer-allow-bash-mode')
         ? setOverrideBashModeEnabled

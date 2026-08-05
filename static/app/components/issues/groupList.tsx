@@ -78,6 +78,7 @@ type Props = {
   renderErrorMessage?: (props: {detail: string}, retry: () => void) => React.ReactNode;
   // where the group list is rendered
   source?: string;
+  staleTime?: number;
   useFilteredStats?: boolean;
   useTintRow?: boolean;
   withChart?: boolean;
@@ -113,6 +114,7 @@ export function GroupList({
   customStatsPeriod,
   queryFilterDescription,
   source,
+  staleTime = 0,
   query,
   numPlaceholderRows,
   withColumns = DEFAULT_COLUMNS,
@@ -201,12 +203,12 @@ export function GroupList({
       ? apiOptions.as<Group[]>()(endpoint.path, {
           path: {organizationIdOrSlug: organization.slug},
           query: computedQueryParams,
-          staleTime: 0,
+          staleTime,
         })
       : apiOptions.as<Group[]>()(endpoint.path, {
           path: {organizationIdOrSlug: organization.slug, version: endpoint.version},
           query: computedQueryParams,
-          staleTime: 0,
+          staleTime,
         });
   const {
     data,
@@ -349,7 +351,7 @@ export function GroupList({
         {withHeader && <GroupListHeader withChart={!!withChart} withColumns={columns} />}
         <PanelBody>
           {loading
-            ? [...Array.from({length: numPlaceholderRows})].map((_, i) => (
+            ? Array.from({length: numPlaceholderRows}, (_, i) => (
                 <GroupPlaceholder key={i}>
                   <Placeholder height="50px" />
                 </GroupPlaceholder>

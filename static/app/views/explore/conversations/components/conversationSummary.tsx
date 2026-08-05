@@ -438,8 +438,9 @@ export function ConversationAggregatesBar({
     query: `gen_ai.conversation.id:"${escapeDoubleQuotes(conversationId)}" span.status:[internal_error,error]`,
   });
 
+  // minHeight matches the tool Tag height so the row stays the same height whether or not tools render
   return (
-    <Flex align="center" gap="lg" minWidth={0}>
+    <Flex align="center" gap="lg" minWidth={0} minHeight="20px">
       <AggregateItem
         label={t('LLM Calls')}
         value={<Count value={aggregates.llmCalls} />}

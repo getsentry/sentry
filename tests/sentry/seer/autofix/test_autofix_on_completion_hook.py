@@ -320,6 +320,7 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
             123,
             referrer=AutofixReferrer.ON_COMPLETION_HOOK,
             state=state,
+            verify_content=False,
         )
 
     @patch(
@@ -557,6 +558,10 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         assert call_kwargs["payload"]["pull_requests"][0]["provider"] == "github"
         assert call_kwargs["payload"]["pull_requests"][0]["pull_request"]["pr_number"] == 7
         mock_process_autofix_updates.assert_called_once()
+        assert (
+            mock_process_autofix_updates.call_args.kwargs["kwargs"]["activity_datetime"]
+            == state.updated_at
+        )
         assert (
             mock_analytics.call_args.args[0].referrer
             == AutofixReferrer.GROUP_AUTOFIX_ENDPOINT.value
@@ -942,7 +947,7 @@ class TestMaybeReactToCompletedIteration(TestCase):
         mock_make_scm.return_value = scm
         state = self._state_with([self._top_level_source(111), self._review_source(222)])
 
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             AutofixOnCompletionHook._maybe_react_to_completed_iteration(
                 self.organization, 123, state
             )
@@ -958,7 +963,7 @@ class TestMaybeReactToCompletedIteration(TestCase):
     @patch(f"{REACT_PATH}._add_comment_reaction")
     def test_noop_on_error_status(self, mock_react, mock_make_scm):
         state = self._state_with([self._top_level_source()], status="error")
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             AutofixOnCompletionHook._maybe_react_to_completed_iteration(
                 self.organization, 123, state
             )
@@ -968,7 +973,7 @@ class TestMaybeReactToCompletedIteration(TestCase):
     @patch(f"{REACT_PATH}._add_comment_reaction")
     def test_noop_when_step_not_pr_iteration(self, mock_react, mock_make_scm):
         state = run_state(blocks=[solution_memory_block()])
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             AutofixOnCompletionHook._maybe_react_to_completed_iteration(
                 self.organization, 123, state
             )
@@ -985,7 +990,7 @@ class TestMaybeReactToCompletedIteration(TestCase):
                 "owner/repo": RepoPRState(repo_name="owner/repo", pr_number=7, commit_sha="old-sha")
             },
         )
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             AutofixOnCompletionHook._maybe_react_to_completed_iteration(
                 self.organization, 123, state
             )
@@ -993,9 +998,14 @@ class TestMaybeReactToCompletedIteration(TestCase):
 
     @patch(f"{REACT_PATH}.make_scm")
     @patch(f"{REACT_PATH}._add_comment_reaction")
-    def test_noop_when_feature_disabled(self, mock_react, mock_make_scm):
+    def test_noop_when_manual_feature_disabled(self, mock_react, mock_make_scm):
         state = self._state_with([self._top_level_source()])
-        AutofixOnCompletionHook._maybe_react_to_completed_iteration(self.organization, 123, state)
+        # Automated CI iteration on, manual off: only comment-triggered iterations have
+        # a comment to react to, so the automated flag must not enable the reaction.
+        with self.feature("organizations:autofix-pr-iteration"):
+            AutofixOnCompletionHook._maybe_react_to_completed_iteration(
+                self.organization, 123, state
+            )
         mock_react.assert_not_called()
 
     @patch(f"{REACT_PATH}.make_scm")
@@ -1017,7 +1027,7 @@ class TestMaybeReactToCompletedIteration(TestCase):
             ),
         }
 
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             AutofixOnCompletionHook._maybe_react_to_completed_iteration(
                 self.organization, 123, state
             )
@@ -1045,7 +1055,7 @@ class TestMaybeReactToCompletedIteration(TestCase):
             },
         )
 
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             AutofixOnCompletionHook._maybe_react_to_completed_iteration(
                 self.organization, 123, state
             )
@@ -1065,7 +1075,7 @@ class TestMaybeReactToCompletedIteration(TestCase):
         )
         state = self._state_with([self._top_level_source()])
 
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             AutofixOnCompletionHook._maybe_react_to_completed_iteration(
                 self.organization, 123, state
             )
@@ -1084,7 +1094,7 @@ class TestMaybeReactToCompletedIteration(TestCase):
         mock_make_scm.return_value = scm
         state = self._state_with([self._top_level_source(111)])
 
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             AutofixOnCompletionHook._maybe_react_to_completed_iteration(
                 self.organization, 123, state
             )
@@ -1109,7 +1119,7 @@ class TestMaybeReactToCompletedIteration(TestCase):
         mock_make_scm.return_value = scm
         state = self._state_with([self._top_level_source(111), self._review_source(222)])
 
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             AutofixOnCompletionHook._maybe_react_to_completed_iteration(
                 self.organization, 123, state
             )
@@ -1139,7 +1149,7 @@ class TestMaybeReactToCompletedIteration(TestCase):
         mock_make_scm.return_value = scm
         state = self._state_with([self._top_level_source(111)])
 
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             AutofixOnCompletionHook._maybe_react_to_completed_iteration(
                 self.organization, 123, state
             )

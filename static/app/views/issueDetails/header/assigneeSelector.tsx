@@ -25,7 +25,6 @@ import type {Project} from 'sentry/types/project';
 import {buildTeamId} from 'sentry/utils';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {selectUsersFromMembers} from 'sentry/utils/members/shared';
-import {useCommitters} from 'sentry/utils/useCommitters';
 import {useIssueEventOwners} from 'sentry/utils/useIssueEventOwners';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -116,16 +115,16 @@ export function GroupHeaderAssigneeSelector({
     eventId: event?.id ?? '',
     projectSlug: project.slug,
   });
-  const {data: committersResponse} = useCommitters({
-    eventId: event?.id ?? '',
-    projectSlug: project.slug,
-    group,
+  const {data: memberList = []} = useQuery({
+    ...useProjectMembersQueryOptions([project.id]),
+    select: resp => selectUsersFromMembers(resp.json),
   });
 
   const owners = getOwnerList(
-    committersResponse?.committers ?? [],
+    group.owners ?? [],
     eventOwners,
-    group.assignedTo
+    group.assignedTo,
+    memberList
   );
 
   return (
@@ -172,21 +171,12 @@ export function GroupHeaderAssigneeCommandPaletteAction({
     eventId: event?.id ?? '',
     projectSlug: project.slug,
   });
-  const {data: committersResponse} = useCommitters({
-    eventId: event?.id ?? '',
-    projectSlug: project.slug,
-    group,
-  });
   const {data: members = []} = useQuery({
     ...useProjectMembersQueryOptions([project.id]),
     select: resp => selectUsersFromMembers(resp.json),
   });
 
-  const owners = getOwnerList(
-    committersResponse?.committers ?? [],
-    eventOwners,
-    group.assignedTo
-  );
+  const owners = getOwnerList(group.owners ?? [], eventOwners, group.assignedTo, members);
   const currentAssigneeIcon = group.assignedTo ? (
     <ActorAvatar actor={group.assignedTo} size={16} hasTooltip={false} />
   ) : (

@@ -59,10 +59,10 @@ export function IssuePreviewAutofixSummary({runState}: IssuePreviewAutofixSummar
     return null;
   }
 
-  const hasProposal = patchesByRepo.size > 0;
   const isProposalProcessing = proposalSection?.status === 'processing';
   const isPlanProcessing = planSection?.status === 'processing';
   const isRootCauseProcessing = rootCauseSection?.status === 'processing';
+  const hasProposal = patchesByRepo.size > 0;
   if (
     !hasProposal &&
     !isProposalProcessing &&
@@ -82,12 +82,22 @@ export function IssuePreviewAutofixSummary({runState}: IssuePreviewAutofixSummar
     patchesByRepo.size === 1
       ? tn('%s file changed in 1 repo', '%s files changed in 1 repo', filesChanged)
       : t('%s files changed in %s repos', filesChanged, patchesByRepo.size);
+  const defaultExpandedSection = hasProposal
+    ? 'proposal'
+    : planArtifact || isPlanProcessing
+      ? 'plan'
+      : 'rootCause';
 
   return (
     <Dividers>
       {hasProposal || isProposalProcessing ? (
         <Container>
-          <Disclosure as="section" aria-label={t('Proposal')} size="md">
+          <Disclosure
+            as="section"
+            aria-label={t('Proposal')}
+            size="md"
+            defaultExpanded={defaultExpandedSection === 'proposal'}
+          >
             <Disclosure.Title>
               <Heading as="h3" size="md">
                 {t('Proposal')}
@@ -102,19 +112,20 @@ export function IssuePreviewAutofixSummary({runState}: IssuePreviewAutofixSummar
             </SummaryContainer>
             <Disclosure.Content>
               <Stack gap="lg">
-                {[...patchesByRepo.entries()].map(([repoName, patches]) => (
+                {Array.from(patchesByRepo.entries(), ([repoName, patches]) => (
                   <Stack key={repoName} gap="md">
                     <Text bold>{repoName}</Text>
-                    {patches.map(patch => (
-                      <FileDiffViewer
-                        key={patch.patch.path}
-                        patch={patch.patch}
-                        repoName={repoName}
-                        showBorder
-                        collapsible
-                        defaultExpanded
-                      />
-                    ))}
+                    <FileDiffList gap="0">
+                      {patches.map(patch => (
+                        <FileDiffViewer
+                          key={patch.patch.path}
+                          patch={patch.patch}
+                          repoName={repoName}
+                          showBorder
+                          collapsible
+                        />
+                      ))}
+                    </FileDiffList>
                   </Stack>
                 ))}
               </Stack>
@@ -125,7 +136,12 @@ export function IssuePreviewAutofixSummary({runState}: IssuePreviewAutofixSummar
 
       {planArtifact || isPlanProcessing ? (
         <Container>
-          <Disclosure as="section" aria-label={t('Implementation Plan')} size="md">
+          <Disclosure
+            as="section"
+            aria-label={t('Implementation Plan')}
+            size="md"
+            defaultExpanded={defaultExpandedSection === 'plan'}
+          >
             <Disclosure.Title>
               <Heading as="h3" size="md">
                 {t('Implementation Plan')}
@@ -165,7 +181,12 @@ export function IssuePreviewAutofixSummary({runState}: IssuePreviewAutofixSummar
 
       {rootCauseArtifact || isRootCauseProcessing ? (
         <Container>
-          <Disclosure as="section" aria-label={t('Root Cause')} size="md">
+          <Disclosure
+            as="section"
+            aria-label={t('Root Cause')}
+            size="md"
+            defaultExpanded={defaultExpandedSection === 'rootCause'}
+          >
             <Disclosure.Title>
               <Heading as="h3" size="md">
                 {t('Root Cause')}
@@ -230,6 +251,19 @@ const SummaryContainer = styled(Container)`
 
 const WorkingSpinner = styled(LoadingIndicator)`
   margin: 0;
+`;
+
+const FileDiffList = styled(Stack)`
+  & > :not(:first-child) {
+    border-top: 0;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
+
+  & > :not(:last-child) {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
 `;
 
 const Dividers = styled('div')`

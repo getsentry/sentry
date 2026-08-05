@@ -760,7 +760,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 ## End of AI Conversations
 
 ## Billing
-/src/sentry/api/endpoints/check_am2_compatibility.py    @getsentry/revenue
 /tests/js/getsentry-test/                               @getsentry/revenue
 /src/sentry/billing/                                    @getsentry/revenue
 /tests/sentry/billing/                                  @getsentry/revenue

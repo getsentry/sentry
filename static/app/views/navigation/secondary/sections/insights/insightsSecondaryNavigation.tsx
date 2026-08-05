@@ -37,7 +37,6 @@ export function InsightsSecondaryNavigation() {
   const organization = useOrganization();
   const baseUrl = `/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}`;
 
-  const hasWorkflowEngineUI = organization.features.includes('workflow-engine-ui');
   const hasInsightsToDashboards = organization.features.includes(
     'insights-to-dashboards-ui-rollout'
   );
@@ -100,24 +99,49 @@ export function InsightsSecondaryNavigation() {
           <SecondaryNavigation.List>
             <SecondaryNavigation.ListItem>
               <SecondaryNavigation.Link
-                to={
-                  hasWorkflowEngineUI
-                    ? `${makeMonitorBasePathname(organization.slug)}crons/?insightsRedirect=true`
-                    : `${baseUrl}/crons/`
-                }
+                to={`${makeMonitorBasePathname(organization.slug)}crons/?insightsRedirect=true`}
                 analyticsItemName="insights_crons"
                 trailingItems={
-                  hasWorkflowEngineUI ? (
+                  <Tooltip
+                    isHoverable
+                    title={
+                      <Fragment>
+                        <Text as="p">{t('Crons now live under Monitors.')}</Text>
+                        <Text as="p">
+                          {tct('See the [link:new Crons page here.]', {
+                            link: (
+                              <Link
+                                to={`${makeMonitorBasePathname(organization.slug)}crons/`}
+                              />
+                            ),
+                          })}
+                        </Text>
+                      </Fragment>
+                    }
+                  >
+                    <Badge variant="muted">{t('Moved')}</Badge>
+                  </Tooltip>
+                }
+              >
+                {t('Crons')}
+              </SecondaryNavigation.Link>
+            </SecondaryNavigation.ListItem>
+            <Feature features={['uptime']}>
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={`${makeMonitorBasePathname(organization.slug)}uptime/?insightsRedirect=true`}
+                  analyticsItemName="insights_uptime"
+                  trailingItems={
                     <Tooltip
                       isHoverable
                       title={
                         <Fragment>
-                          <Text as="p">{t('Crons now live under Monitors.')}</Text>
+                          <Text as="p">{t('Uptime now lives under Monitors.')}</Text>
                           <Text as="p">
-                            {tct('See the [link:new Crons page here.]', {
+                            {tct('See the [link:new Uptime page here.]', {
                               link: (
                                 <Link
-                                  to={`${makeMonitorBasePathname(organization.slug)}crons/`}
+                                  to={`${makeMonitorBasePathname(organization.slug)}uptime/`}
                                 />
                               ),
                             })}
@@ -127,43 +151,6 @@ export function InsightsSecondaryNavigation() {
                     >
                       <Badge variant="muted">{t('Moved')}</Badge>
                     </Tooltip>
-                  ) : null
-                }
-              >
-                {t('Crons')}
-              </SecondaryNavigation.Link>
-            </SecondaryNavigation.ListItem>
-            <Feature features={['uptime']}>
-              <SecondaryNavigation.ListItem>
-                <SecondaryNavigation.Link
-                  to={
-                    hasWorkflowEngineUI
-                      ? `${makeMonitorBasePathname(organization.slug)}uptime/?insightsRedirect=true`
-                      : `${baseUrl}/uptime/`
-                  }
-                  analyticsItemName="insights_uptime"
-                  trailingItems={
-                    hasWorkflowEngineUI ? (
-                      <Tooltip
-                        isHoverable
-                        title={
-                          <Fragment>
-                            <Text as="p">{t('Uptime now lives under Monitors.')}</Text>
-                            <Text as="p">
-                              {tct('See the [link:new Uptime page here.]', {
-                                link: (
-                                  <Link
-                                    to={`${makeMonitorBasePathname(organization.slug)}uptime/`}
-                                  />
-                                ),
-                              })}
-                            </Text>
-                          </Fragment>
-                        }
-                      >
-                        <Badge variant="muted">{t('Moved')}</Badge>
-                      </Tooltip>
-                    ) : null
                   }
                 >
                   {t('Uptime')}

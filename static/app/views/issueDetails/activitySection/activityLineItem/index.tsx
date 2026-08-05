@@ -5,8 +5,7 @@ import {GroupActivityType, type Group} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {ActivityFeedItem} from './activityFeedItem';
-import {ActivityLineBody} from './body';
-import {getCompactGroupActivityItem} from './compactActivityItem';
+import {getActivityItem} from './activityItem';
 import {ActivityLineHeadline, ActivityLineRow} from './layout';
 import {ActivityLineMarker} from './progressMarker';
 
@@ -21,9 +20,9 @@ export function ActivityLine({item, group, timestampUnitStyle}: ActivityLineProp
   const showProgress = organization.features.includes('issue-activity-progress');
   const {issueCategory, project} = group;
   const {activity} = item;
-  const compactItem = useMemo(
+  const activityItem = useMemo(
     () =>
-      getCompactGroupActivityItem({
+      getActivityItem({
         item,
         organization,
         project,
@@ -34,10 +33,12 @@ export function ActivityLine({item, group, timestampUnitStyle}: ActivityLineProp
   const timestamp = (
     <TimeSince date={activity.dateCreated} unitStyle={timestampUnitStyle} />
   );
-  const actorActivity =
-    item.type === GroupActivityType.SEER_ITERATION_COMPLETED
-      ? item.startedActivity
-      : activity;
+  let actorActivity = activity;
+  if (item.type === GroupActivityType.SEER_ITERATION_COMPLETED) {
+    actorActivity = item.startedActivity;
+  } else if (item.type === 'activity' && item.actorActivity) {
+    actorActivity = item.actorActivity;
+  }
 
   return (
     <ActivityLineRow>
@@ -47,11 +48,10 @@ export function ActivityLine({item, group, timestampUnitStyle}: ActivityLineProp
         showProgress={showProgress}
       />
       <ActivityLineHeadline
-        title={compactItem.title}
-        details={compactItem.details}
+        title={activityItem.title}
+        details={activityItem.details}
         timestamp={timestamp}
       />
-      <ActivityLineBody subtext={compactItem.subtext} />
     </ActivityLineRow>
   );
 }

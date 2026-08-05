@@ -561,7 +561,7 @@ export type SuggestedOwnerReason =
   | 'codeowners';
 
 // Received from the backend to denote suggested owners of an issue
-type SuggestedOwner = {
+export type SuggestedOwner = {
   date_added: string;
   owner: string;
   type: SuggestedOwnerReason;
@@ -930,7 +930,7 @@ export interface GroupActivitySetEscalating extends GroupActivityBase {
   type: GroupActivityType.SET_ESCALATING;
 }
 
-export interface GroupActivitySetPriority extends GroupActivityBase {
+interface GroupActivitySetPriority extends GroupActivityBase {
   data: {
     priority: PriorityLevel;
     reason: string;
@@ -961,7 +961,7 @@ export interface GroupActivityAssigned extends GroupActivityBase {
   type: GroupActivityType.ASSIGNED;
 }
 
-export interface GroupActivityCreateIssue extends GroupActivityBase {
+interface GroupActivityCreateIssue extends GroupActivityBase {
   data: {
     location: string;
     provider: string;

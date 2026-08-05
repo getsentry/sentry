@@ -6,7 +6,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, ExtrapolationMode
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter
 
-from sentry.search.eap.types import SupportedTraceItemType
+from sentry.search.eap.types import ColumnType, SupportedTraceItemType
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS, DurationUnit, SizeUnit
 from sentry.search.events.types import SAMPLING_MODES
 
@@ -139,6 +139,19 @@ TYPE_MAP: dict[SearchType, AttributeKey.Type.ValueType] = {
     "array": ARRAY,
 }
 
+# Widest window that still hits tier 1. Snuba downsamples queries starting >31d ago.
+EAP_FULL_FIDELITY_RETENTION_DAYS = 30
+# Equal to retention; midnight flooring can leave ~1s of headroom before the boundary.
+EAP_FULL_FIDELITY_QUERY_DAYS = EAP_FULL_FIDELITY_RETENTION_DAYS
+
+# Never downsampled. Mirrors snuba ITEM_TYPE_FULL_RETENTION.
+FULL_RETENTION_ITEM_TYPES = frozenset(
+    {
+        SupportedTraceItemType.UPTIME_RESULTS,
+        SupportedTraceItemType.PREPROD,
+    }
+)
+
 # https://github.com/getsentry/snuba/blob/master/snuba/web/rpc/v1/endpoint_time_series.py
 # The RPC limits us to 10100 points per timeseries
 # MAX 1 minute granularity over 7 days (10080 buckets) + extra buckets to allow for partial time buckets on
@@ -245,4 +258,19 @@ ATTRIBUTES_QUERY_PARAM_TO_ATTRIBUTE_TYPE_MAP = {
     "number": AttributeKey.Type.TYPE_DOUBLE,
     "boolean": AttributeKey.Type.TYPE_BOOLEAN,
     "string": AttributeKey.Type.TYPE_STRING,
+    "array": AttributeKey.Type.TYPE_ARRAY,
+}
+
+
+PROTO_TYPE_TO_ATTRIBUTE_TYPE_MAP: dict[AttributeKey.Type.ValueType, ColumnType] = {
+    AttributeKey.Type.TYPE_STRING: "string",
+    AttributeKey.Type.TYPE_BOOLEAN: "boolean",
+    AttributeKey.Type.TYPE_INT: "number",
+    AttributeKey.Type.TYPE_FLOAT: "number",
+    AttributeKey.Type.TYPE_DOUBLE: "number",
+    AttributeKey.Type.TYPE_ARRAY: "array",
+    AttributeKey.Type.TYPE_ARRAY_STRING: "array",
+    AttributeKey.Type.TYPE_ARRAY_INT: "array",
+    AttributeKey.Type.TYPE_ARRAY_DOUBLE: "array",
+    AttributeKey.Type.TYPE_ARRAY_BOOL: "array",
 }
