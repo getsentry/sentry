@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from sentry import quotas
 from sentry.constants import DataCategory
 from sentry.seer.agent.client import SeerAgentClient
+from sentry.seer.autofix.autofix_agent import NoSeerQuotaException
 from sentry.seer.autofix_rca.models import FEATURE_ID, AutofixRCAPayload, AutofixRCATweaks
 from sentry.utils import metrics
 
@@ -27,6 +28,13 @@ def trigger_autofix_rca_feature(
     intelligence_level: Literal["low", "medium", "high"] = "medium",
     reasoning_effort: Literal["low", "medium", "high"] | None = "medium",
 ) -> SeerRun:
+    has_budget: bool = quotas.backend.check_seer_quota(
+        org_id=group.organization.id,
+        data_category=DataCategory.SEER_AUTOFIX,
+    )
+    if not has_budget:
+        raise NoSeerQuotaException()
+
     payload = AutofixRCAPayload(
         group_id=group.id,
         short_id=group.qualified_short_id or str(group.id),
@@ -60,7 +68,6 @@ def trigger_autofix_rca_feature(
         extras=extras,
     )
 
-    # Match trigger_autofix_agent: a new run consumes Seer autofix budget.
     quotas.backend.record_seer_run(
         group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
     )

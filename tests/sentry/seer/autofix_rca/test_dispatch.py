@@ -1,5 +1,8 @@
 from unittest.mock import patch
 
+import pytest
+
+from sentry.seer.autofix.autofix_agent import NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix_rca.dispatch import trigger_autofix_rca_feature
 from sentry.testutils.cases import TestCase
@@ -50,3 +53,19 @@ class TestTriggerAutofixRCAFeature(TestCase):
 
         # A new run consumes Seer autofix budget.
         mock_quotas.backend.record_seer_run.assert_called_once()
+
+    def test_raises_when_out_of_budget(self) -> None:
+        with (
+            patch("sentry.seer.autofix_rca.dispatch.SeerAgentClient") as MockClient,
+            patch("sentry.seer.autofix_rca.dispatch.quotas") as mock_quotas,
+        ):
+            mock_quotas.backend.check_seer_quota.return_value = False
+
+            with pytest.raises(NoSeerQuotaException):
+                trigger_autofix_rca_feature(
+                    self.group,
+                    referrer=AutofixReferrer.NIGHT_SHIFT,
+                )
+
+        MockClient.return_value.start_feature_run.assert_not_called()
+        mock_quotas.backend.record_seer_run.assert_not_called()

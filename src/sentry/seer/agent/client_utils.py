@@ -123,8 +123,6 @@ class SeerFeatureRunRequest(TypedDict):
     feature_id: str
     payload: dict[str, Any]
     agent_run_options: NotRequired[dict[str, Any]]
-    # Top-level context-engine flag Seer's feature runner reads
-    # (FeatureRunRequest.is_context_engine_enabled) to gate context-engine tools.
     is_context_engine_enabled: NotRequired[bool]
 
 
