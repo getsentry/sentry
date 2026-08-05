@@ -166,7 +166,7 @@ describe('AskSeerComboBox', () => {
     expect(header).toBeInTheDocument();
   });
 
-  it('shows that Seer is still processing after the popover closes', async () => {
+  it('shows a processing status while Seer is thinking', async () => {
     const reworkedOrganization = {
       ...organization,
       features: [...organization.features, 'gen-ai-ask-seer-ux-rework'],
@@ -195,15 +195,8 @@ describe('AskSeerComboBox', () => {
 
     expect(await screen.findByText('Let me think about that...')).toBeInTheDocument();
     expect(
-      screen.queryByRole('img', {name: 'Seer is processing your query'})
-    ).not.toBeInTheDocument();
-
-    await userEvent.click(document.body);
-
-    expect(
-      await screen.findByRole('img', {name: 'Seer is processing your query'})
+      screen.getByRole('img', {name: 'Seer is processing your query'})
     ).toBeInTheDocument();
-    expect(screen.queryByText('Let me think about that...')).not.toBeInTheDocument();
   });
 
   it('only shows the reworked footer after results are displayed', async () => {
@@ -369,11 +362,8 @@ describe('AskSeerComboBox', () => {
     await userEvent.type(input, 'test{Enter}');
 
     expect(await screen.findByText('Filter')).toBeInTheDocument();
-
-    await userEvent.click(document.body);
-
     expect(
-      await screen.findByRole('img', {name: 'Seer processed your query'})
+      screen.getByRole('img', {name: 'Seer processed your query'})
     ).toBeInTheDocument();
   });
 
@@ -593,14 +583,10 @@ describe('AskSeerComboBox', () => {
     expect(errorMessage).toBeInTheDocument();
     expect(screen.getByRole('img', {name: 'Error'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Give Feedback'})).toBeInTheDocument();
-
-    await userEvent.click(document.body);
-
     expect(
-      await screen.findByRole('img', {name: 'Seer could not process your query'})
+      screen.getByRole('img', {name: 'Seer could not process your query'})
     ).toBeInTheDocument();
 
-    await userEvent.click(input);
     await userEvent.click(await screen.findByRole('button', {name: 'Try again'}));
 
     await waitFor(() => expect(queryRequest).toHaveBeenCalledTimes(2));
@@ -635,8 +621,6 @@ describe('AskSeerComboBox', () => {
     expect(screen.queryByRole('img', {name: 'Error'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Try again'})).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Give Feedback'})).toBeInTheDocument();
-
-    await userEvent.click(document.body);
     expect(
       screen.queryByRole('img', {name: 'Seer could not process your query'})
     ).not.toBeInTheDocument();
