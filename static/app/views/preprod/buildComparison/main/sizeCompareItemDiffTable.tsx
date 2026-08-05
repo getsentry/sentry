@@ -66,7 +66,7 @@ export function SizeCompareItemDiffTable({
 
   const [currentPage, setCurrentPage] = useState(0);
 
-  const sortedDiffItems = [...diffItems].sort((a: DiffItem, b: DiffItem) => {
+  const sortedDiffItems = diffItems.toSorted((a: DiffItem, b: DiffItem) => {
     const {field, kind} = sort;
 
     let aValue: number | string = '';
@@ -137,7 +137,7 @@ export function SizeCompareItemDiffTable({
   };
 
   return (
-    <Flex direction="column" gap="md">
+    <Stack gap="md">
       <DiffTableWithColumns gridTemplateColumns="150px minmax(200px, 3fr) 120px 120px 120px">
         <DiffTableHeader>
           {tableHeaders.map(header => (
@@ -274,6 +274,6 @@ export function SizeCompareItemDiffTable({
           </ButtonBar>
         </Flex>
       )}
-    </Flex>
+    </Stack>
   );
 }

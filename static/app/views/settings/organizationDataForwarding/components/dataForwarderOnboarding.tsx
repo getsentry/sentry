@@ -4,7 +4,7 @@ import tracingTelescopeImg from 'sentry-images/spot/tracing-telescope.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Image} from '@sentry/scraps/image';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {Access} from 'sentry/components/acl/access';
@@ -19,7 +19,7 @@ export function DataForwarderOnboarding({hasFeature}: {hasFeature: boolean}) {
   return (
     <Container border="primary" radius="md" padding="2xl">
       <Flex direction="row" align="center">
-        <Flex direction="column" gap="xl" maxWidth="600px" flex={3} align="start">
+        <Stack gap="xl" maxWidth="600px" flex={3} align="start">
           <Heading as="h2">{t('Keep your data pipeline flowing.')}</Heading>
           <Text variant="muted" size="lg">
             {t(
@@ -48,7 +48,7 @@ export function DataForwarderOnboarding({hasFeature}: {hasFeature: boolean}) {
               </LinkButton>
             )}
           </Access>
-        </Flex>
+        </Stack>
         <OversizedImage
           src={tracingTelescopeImg}
           alt={t('Data jumps between planets, sentry tracks it with a telescope')}

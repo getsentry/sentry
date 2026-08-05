@@ -4,7 +4,7 @@ import {AnimatePresence} from 'framer-motion';
 
 import {Backdrop} from '@sentry/scraps/backdrop';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 import {Heading} from '@sentry/scraps/text';
 
@@ -92,7 +92,7 @@ export function AppSizeInsightsSidebar({
           panelWidth={`${constrainedWidth}px`}
           ariaLabel={t('App size insights details')}
         >
-          <Flex height="100%" direction="column">
+          <Stack height="100%">
             <Header padding="xl" align="center" justify="between">
               <Flex align="center" gap="sm">
                 <Heading as="h2" size="xl">
@@ -124,7 +124,7 @@ export function AppSizeInsightsSidebar({
               </ResizeHandle>
 
               <Flex flex={1} overflowY="auto" padding="xl">
-                <Flex direction="column" gap="xl" width="100%">
+                <Stack gap="xl" width="100%">
                   {processedInsights.map(insight => {
                     const isGroupedInsight =
                       insight.key === 'duplicate_files' || insight.key === 'loose_images';
@@ -140,10 +140,10 @@ export function AppSizeInsightsSidebar({
                       />
                     );
                   })}
-                </Flex>
+                </Stack>
               </Flex>
             </Flex>
-          </Flex>
+          </Stack>
         </SlideOverPanel>
       )}
     </Fragment>

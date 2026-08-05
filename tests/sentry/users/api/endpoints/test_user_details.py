@@ -173,44 +173,72 @@ class UserDetailsUpdateTest(UserDetailsTest):
             user = User.objects.get(id=self.user.id)
             assert user
 
-    def test_change_username_when_different(self) -> None:
-        # if email != username and we change username, only username should change
+    def test_change_username_with_different_email(self) -> None:
         user = self.create_user(email="c@example.com", username="diff@example.com")
         self.login_as(user=user, superuser=False)
 
-        self.create_useremail(user, "new@example.com", is_verified=True)
-        response = self.get_success_response("me", username="new@example.com")
+        response = self.get_success_response("me", username="john")
         user = User.objects.get(id=user.id)
 
         assert user.email == "c@example.com"
         assert response.data["email"] == "c@example.com"
-        assert user.username == "new@example.com"
+        assert user.username == "john"
 
-    def test_change_username_when_same(self) -> None:
-        # if email == username and we change username,
-        # keep email in sync
+    def test_change_username_with_same_email(self) -> None:
         user = self.create_user(email="c@example.com", username="c@example.com")
         self.login_as(user=user)
 
-        self.create_useremail(user, "new@example.com", is_verified=True)
         self.get_success_response("me", username="new@example.com")
 
         user = User.objects.get(id=user.id)
 
-        assert user.email == "new@example.com"
+        assert user.email == "c@example.com"
         assert user.username == "new@example.com"
 
-    def test_cannot_change_username_to_non_verified(self) -> None:
-        user = self.create_user(email="c@example.com", username="c@example.com")
+    def test_cannot_edit_email_through_this_endpoint(self) -> None:
+        user = self.create_user(email="c@example.com", username="diff@example.com")
         self.login_as(user=user)
+        self.create_useremail(user, "new@example.com", is_verified=True)
 
-        self.create_useremail(user, "new@example.com", is_verified=False)
-        resp = self.get_error_response("me", username="new@example.com", status_code=400)
-        assert resp.data["detail"] == "Verified email address is not found."
+        self.get_success_response("me", email="new@example.com")
 
         user = User.objects.get(id=user.id)
 
         assert user.email == "c@example.com"
+        assert user.username == "diff@example.com"
+
+    def test_cannot_take_another_users_email_as_username(self) -> None:
+        self.create_user(email="user_a@example.com", username="sso-abc123")
+        user_b = self.create_user(email="b_user@example.com", username="user_b@example.com")
+        self.login_as(user=user_b)
+
+        resp = self.get_error_response("me", username="user_a@example.com", status_code=400)
+        assert resp.data["username"] == ["That username is already in use."]
+
+        user_b = User.objects.get(id=user_b.id)
+        assert user_b.username == "user_b@example.com"
+
+    def test_change_username_to_own_secondary_email(self) -> None:
+        user = self.create_user(email="c@example.com", username="c@example.com")
+        self.create_useremail(user, "secondary@example.com", is_verified=True)
+        self.login_as(user=user)
+
+        self.get_success_response("me", username="secondary@example.com")
+
+        user = User.objects.get(id=user.id)
+        assert user.username == "secondary@example.com"
+        assert user.email == "c@example.com"
+
+    def test_cannot_take_another_users_verified_secondary_email_as_username(self) -> None:
+        other = self.create_user(email="other@example.com", username="other@example.com")
+        self.create_useremail(other, "shared@example.com", is_verified=True)
+        user = self.create_user(email="c@example.com", username="c@example.com")
+        self.login_as(user=user)
+
+        resp = self.get_error_response("me", username="shared@example.com", status_code=400)
+        assert resp.data["username"] == ["That username is already in use."]
+
+        user = User.objects.get(id=user.id)
         assert user.username == "c@example.com"
 
     @override_settings(SENTRY_MODE=SentryMode.SAAS)
@@ -598,9 +626,6 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
     def test_superuser_can_update_non_privileged_fields_without_permission(self) -> None:
         """Test that superuser can update non-privileged fields even without users.admin permission"""
         self.login_as(user=self.superuser, superuser=True)
-
-        # Create a verified email for the user before updating username
-        self.create_useremail(self.user, "newemail@example.com", is_verified=True)
 
         resp = self.get_success_response(
             self.user.id,

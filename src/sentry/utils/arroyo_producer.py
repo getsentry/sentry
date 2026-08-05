@@ -1,14 +1,22 @@
 from __future__ import annotations
 
 import atexit
+import os
 from collections import deque
 from collections.abc import Callable
 
 from arroyo.backends.abstract import ProducerFuture
-from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_producer_configuration
+from arroyo.backends.kafka import (
+    FutureTrackingProducer,
+    KafkaPayload,
+    KafkaProducer,
+    build_kafka_producer_configuration,
+)
+from arroyo.backends.kafka.producer import CloseableProducerProtocol
 from arroyo.types import BrokerValue, Partition
 from arroyo.types import Topic as ArroyoTopic
 
+from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
@@ -78,7 +86,7 @@ class SingletonProducer:
 
 def get_arroyo_producer(
     name: str,
-    topic: Topic,
+    topic: Topic | str,
     additional_config: dict | None = None,
     exclude_config_keys: list[str] | None = None,
     **kafka_producer_kwargs,
@@ -100,6 +108,13 @@ def get_arroyo_producer(
 
     producer_config = get_kafka_producer_cluster_options(topic_definition["cluster"])
 
+    # temp(benmckerry): roll out poll metrics to our producers
+    poll_metrics_map = options.get("arroyo.producer.record_poll_metrics") or []
+    record_poll_metrics = False
+    if name in poll_metrics_map or "all" in poll_metrics_map:
+        record_poll_metrics = True
+    poll_metric_frequency = options.get("arroyo.producer.poll_metric_frequency")
+
     # Remove any excluded config keys
     if exclude_config_keys:
         for key in exclude_config_keys:
@@ -112,5 +127,31 @@ def get_arroyo_producer(
     producer_config["client.id"] = name
 
     return KafkaProducer(
-        build_kafka_producer_configuration(default_config=producer_config), **kafka_producer_kwargs
+        build_kafka_producer_configuration(default_config=producer_config),
+        record_poll_metrics=record_poll_metrics,
+        poll_metric_frequency=poll_metric_frequency,
+        **kafka_producer_kwargs,
+    )
+
+
+def get_future_tracking_producer(
+    producer_name: str,
+    producer_factory: Callable[[], CloseableProducerProtocol],
+) -> FutureTrackingProducer:
+    """
+    Helper function to get a FutureTrackingProducer instance.
+    This producer:
+    - Applies backpressure on produces if the librdkafka produce buffer is filling up
+    - Optionally tracks producer futures if the `ARROYO_TRACK_PRODUCER_FUTURES` env var
+      is configured
+      - This is used by taskworkers to guarantee at-least-once delivery for messages
+        produced from tasks
+
+    For more information please see the `FutureTrackingProducer` docstring.
+    """
+
+    return FutureTrackingProducer(
+        name=producer_name,
+        producer_factory=producer_factory,
+        should_track_futures=os.getenv("ARROYO_TRACK_PRODUCER_FUTURES", "").lower() == "true",
     )

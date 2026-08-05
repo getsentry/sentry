@@ -424,7 +424,7 @@ function CustomizeMetricSection({step}: {step?: number}) {
   return (
     <Container>
       <FormSection step={step} title={t('Customize Metric')}>
-        <Flex direction="column" gap="xs">
+        <Stack gap="xs">
           <DatasetRow>
             <DatasetField
               placeholder={t('Dataset')}
@@ -482,7 +482,7 @@ function CustomizeMetricSection({step}: {step?: number}) {
               </DisabledSection>
             </Tooltip>
           </DatasetRow>
-        </Flex>
+        </Stack>
         <Tooltip
           title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
           isHoverable
@@ -558,9 +558,9 @@ function DetectSection({step}: {step?: number}) {
         }
       >
         <DetectionType />
-        <Flex direction="column">
+        <Stack>
           {(!detectionType || detectionType === 'static') && (
-            <Flex direction="column">
+            <Stack>
               <DefineThresholdParagraph>
                 <Text bold>{t('Define threshold & set priority')}</Text>
                 <Text variant="muted">
@@ -579,10 +579,10 @@ function DetectSection({step}: {step?: number}) {
                   aggregate={aggregate}
                 />
               </Stack>
-            </Flex>
+            </Stack>
           )}
           {detectionType === 'percent' && (
-            <Flex direction="column">
+            <Stack>
               <DefineThresholdParagraph>
                 <Text bold>{t('Define threshold & set priority')}</Text>
                 <Text variant="muted">
@@ -602,10 +602,10 @@ function DetectSection({step}: {step?: number}) {
                   aggregate={aggregate}
                 />
               </Stack>
-            </Flex>
+            </Stack>
           )}
           {detectionType === 'dynamic' && (
-            <Flex direction="column">
+            <Stack>
               <SelectField
                 required
                 name={METRIC_DETECTOR_FORM_FIELDS.sensitivity}
@@ -638,9 +638,9 @@ function DetectSection({step}: {step?: number}) {
                 }
                 preserveOnUnmount
               />
-            </Flex>
+            </Stack>
           )}
-        </Flex>
+        </Stack>
         {detectionType !== 'dynamic' && (
           <Fragment>
             <DefineThresholdParagraph>

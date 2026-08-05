@@ -5,28 +5,10 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import type {Repository} from 'sentry/types/integrations';
+import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import type {ScmInstallation} from 'sentry/views/settings/organizationRepositories/types';
 
 import {InstallationOverrideProvider, ScmRepositoryTable} from './scmRepositoryTable';
-
-// `useVirtualizer` only renders rows whose computed bounding rect overlaps
-// the scroll container. Without a stub it sees a 0×0 viewport and renders
-// nothing — fake a non-zero box on every element so the rows mount.
-function stubBoundingClientRect() {
-  jest
-    .spyOn(window.Element.prototype, 'getBoundingClientRect')
-    .mockImplementation(() => ({
-      x: 0,
-      y: 0,
-      width: 600,
-      height: 400,
-      left: 0,
-      top: 0,
-      right: 600,
-      bottom: 400,
-      toJSON: jest.fn(),
-    }));
-}
 
 function makeRepo(id: string, name: string): Repository {
   return RepositoryFixture({
@@ -55,7 +37,7 @@ const provider = GitHubIntegrationProviderFixture();
 
 describe('ScmRepositoryTable', () => {
   beforeEach(() => {
-    stubBoundingClientRect();
+    mockElementSize({width: 600, height: 400});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [

@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {createContext, Fragment, useCallback, useContext, useMemo, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import type {Event} from '@sentry/core';
 import {
@@ -82,6 +82,118 @@ export type FeedbackModalProps<T extends Data> = (
   /** Use the actual user feedback feature instead of simply creating a message event. */
   useNewUserFeedback?: boolean;
 };
+
+type FeedbackModalContextValue = {
+  Body: ModalRenderProps['Body'];
+  Footer: ModalRenderProps['Footer'];
+  Header: ModalRenderProps['Header'];
+  closeModal: () => void;
+  handleSubmit: (submitEventData?: Event) => void;
+  isCustomChildren: boolean;
+  isScreenSmall: boolean;
+  isSelfHosted: boolean;
+  state: Data;
+};
+
+const FeedbackModalContext = createContext<FeedbackModalContextValue | null>(null);
+
+function useFeedbackModalContext(): FeedbackModalContextValue {
+  const ctx = useContext(FeedbackModalContext);
+  if (!ctx) {
+    throw new Error('useFeedbackModalContext must be used within FeedbackModal');
+  }
+  return ctx;
+}
+
+function FeedbackModalHeader({children: headerChildren}: {children: React.ReactNode}) {
+  const {Header} = useFeedbackModalContext();
+  return (
+    <Header closeButton>
+      <h3>{headerChildren}</h3>
+    </Header>
+  );
+}
+
+type FooterProps = {
+  onBack?: () => void;
+  onNext?: () => void;
+  primaryDisabledReason?: string;
+  secondaryAction?: React.ReactNode;
+  submitEventData?: Event;
+};
+
+function FeedbackModalFooter({
+  onBack,
+  onNext,
+  submitEventData,
+  primaryDisabledReason,
+  secondaryAction,
+}: FooterProps) {
+  const {Footer, closeModal, handleSubmit, isScreenSmall, isCustomChildren, state} =
+    useFeedbackModalContext();
+  return (
+    <Footer>
+      {secondaryAction && (
+        <Container flex="1" alignSelf="center">
+          {secondaryAction}
+        </Container>
+      )}
+      {onBack && (
+        <Container marginRight="md" width="100%">
+          <Button onClick={onBack}>{t('Back')}</Button>
+        </Container>
+      )}
+      <Grid flow="column" align="center" gap="md">
+        <Button onClick={closeModal}>{t('Cancel')}</Button>
+        <Button
+          variant="primary"
+          tooltipProps={{
+            title: isCustomChildren
+              ? primaryDisabledReason
+              : defined(state.subject)
+                ? undefined
+                : t('Required fields must be filled out'),
+          }}
+          onClick={onNext ?? (() => handleSubmit(submitEventData))}
+          disabled={
+            isCustomChildren ? defined(primaryDisabledReason) : !defined(state.subject)
+          }
+        >
+          {onNext ? t('Next') : isScreenSmall ? t('Submit') : t('Submit Feedback')}
+        </Button>
+      </Grid>
+    </Footer>
+  );
+}
+
+type BodyProps = {
+  children: React.ReactNode;
+  showSelfHostedMessage?: boolean;
+};
+
+function FeedbackModalBody({
+  children: bodyChildren,
+  showSelfHostedMessage = true,
+}: BodyProps) {
+  const {Body, isSelfHosted} = useFeedbackModalContext();
+  return (
+    <Body>
+      {bodyChildren}
+      {isSelfHosted && showSelfHostedMessage && (
+        <Alert.Container>
+          <Alert variant="info" showIcon={false}>
+            {tct(
+              "You agree that any feedback you submit is subject to Sentry's [privacyPolicy:Privacy Policy] and Sentry may use such feedback without restriction or obligation.",
+              {
+                privacyPolicy: <ExternalLink href="https://sentry.io/privacy/" />,
+              }
+            )}
+          </Alert>
+        </Alert.Container>
+      )}
+    </Body>
+  );
+}
 
 /**
  * A modal that allows users to submit feedback to Sentry (feedbacks project).
@@ -194,156 +306,100 @@ export function FeedbackModal<T extends Data>({
     ]
   );
 
-  const ModalHeader = useCallback(
-    ({children: headerChildren}: {children: React.ReactNode}) => {
-      return (
-        <Header closeButton>
-          <h3>{headerChildren}</h3>
-        </Header>
-      );
-    },
-    [Header]
-  );
-
-  const ModalFooter = useCallback(
-    ({
-      onBack,
-      onNext,
-      submitEventData,
-      primaryDisabledReason,
-      secondaryAction,
-    }: Parameters<ChildrenProps<T>['Footer']>[0]) => {
-      return (
-        <Footer>
-          {secondaryAction && (
-            <Container flex="1" alignSelf="center">
-              {secondaryAction}
-            </Container>
-          )}
-          {onBack && (
-            <Container marginRight="md" width="100%">
-              <Button onClick={onBack}>{t('Back')}</Button>
-            </Container>
-          )}
-          <Grid flow="column" align="center" gap="md">
-            <Button onClick={closeModal}>{t('Cancel')}</Button>
-            <Button
-              variant="primary"
-              tooltipProps={{
-                title:
-                  props.children === undefined
-                    ? defined(state.subject)
-                      ? undefined
-                      : t('Required fields must be filled out')
-                    : primaryDisabledReason,
-              }}
-              onClick={onNext ?? (() => handleSubmit(submitEventData))}
-              disabled={
-                props.children === undefined
-                  ? !defined(state.subject)
-                  : defined(primaryDisabledReason)
-              }
-            >
-              {onNext ? t('Next') : isScreenSmall ? t('Submit') : t('Submit Feedback')}
-            </Button>
-          </Grid>
-        </Footer>
-      );
-    },
-    [Footer, isScreenSmall, closeModal, handleSubmit, state, props.children]
-  );
-
-  const ModalBody = useCallback(
-    ({
-      children: bodyChildren,
-      showSelfHostedMessage = true,
-    }: Parameters<ChildrenProps<T>['Body']>[0]) => {
-      return (
-        <Body>
-          {bodyChildren}
-          {isSelfHosted && showSelfHostedMessage && (
-            <Alert.Container>
-              <Alert variant="info" showIcon={false}>
-                {tct(
-                  "You agree that any feedback you submit is subject to Sentry's [privacyPolicy:Privacy Policy] and Sentry may use such feedback without restriction or obligation.",
-                  {
-                    privacyPolicy: <ExternalLink href="https://sentry.io/privacy/" />,
-                  }
-                )}
-              </Alert>
-            </Alert.Container>
-          )}
-        </Body>
-      );
-    },
-    [Body, isSelfHosted]
-  );
-
   function handleFieldChange<Field extends keyof T>(field: Field, value: T[Field]) {
     const newState = cloneDeep(state);
     newState[field] = value;
     setState(newState);
   }
 
+  const contextValue: FeedbackModalContextValue = useMemo(
+    () => ({
+      Header,
+      Body,
+      Footer,
+      closeModal,
+      handleSubmit,
+      isSelfHosted,
+      isScreenSmall,
+      isCustomChildren: props.children !== undefined,
+      state,
+    }),
+    [
+      Header,
+      Body,
+      Footer,
+      closeModal,
+      handleSubmit,
+      isSelfHosted,
+      isScreenSmall,
+      props.children,
+      state,
+    ]
+  );
+
   if (props.children === undefined) {
     const feedbackTypes = props.feedbackTypes ?? defaultFeedbackTypes;
 
     return (
-      <Fragment>
-        <ModalHeader>{t('Submit Feedback')}</ModalHeader>
-        <ModalBody>
-          <SelectField
-            label={t('Type of feedback')}
-            name="subject"
-            inline={false}
-            options={feedbackTypes.map((feedbackType, index) => ({
-              value: index,
-              label: feedbackType,
-            }))}
-            placeholder={t('Select type of feedback')}
-            value={state.subject}
-            onChange={(value: any) => setState({...state, subject: value})}
-            flexibleControlStateSize
-            stacked
-            required
-          />
-          <FieldGroup
-            label={t('Additional feedback')}
-            inline={false}
-            required={false}
-            flexibleControlStateSize
-            stacked
-          >
-            <TextArea
-              name="additional-feedback"
-              value={state.additionalInfo}
-              rows={5}
-              autosize
-              placeholder={t('What did you expect?')}
-              onChange={event =>
-                setState({
-                  ...state,
-                  additionalInfo: event.target.value,
-                })
-              }
+      <FeedbackModalContext.Provider value={contextValue}>
+        <Fragment>
+          <FeedbackModalHeader>{t('Submit Feedback')}</FeedbackModalHeader>
+          <FeedbackModalBody>
+            <SelectField
+              label={t('Type of feedback')}
+              name="subject"
+              inline={false}
+              options={feedbackTypes.map((feedbackType, index) => ({
+                value: index,
+                label: feedbackType,
+              }))}
+              placeholder={t('Select type of feedback')}
+              value={state.subject}
+              onChange={(value: any) => setState({...state, subject: value})}
+              flexibleControlStateSize
+              stacked
+              required
             />
-          </FieldGroup>
-        </ModalBody>
-        <ModalFooter secondaryAction={props?.secondaryAction} />
-      </Fragment>
+            <FieldGroup
+              label={t('Additional feedback')}
+              inline={false}
+              required={false}
+              flexibleControlStateSize
+              stacked
+            >
+              <TextArea
+                name="additional-feedback"
+                value={state.additionalInfo}
+                rows={5}
+                autosize
+                placeholder={t('What did you expect?')}
+                onChange={event =>
+                  setState({
+                    ...state,
+                    additionalInfo: event.target.value,
+                  })
+                }
+              />
+            </FieldGroup>
+          </FeedbackModalBody>
+          <FeedbackModalFooter secondaryAction={props?.secondaryAction} />
+        </Fragment>
+      </FeedbackModalContext.Provider>
     );
   }
 
   return (
-    <Fragment>
-      {props.children({
-        Header: ModalHeader,
-        Body: ModalBody,
-        Footer: ModalFooter,
-        onFieldChange: handleFieldChange,
-        state,
-      })}
-    </Fragment>
+    <FeedbackModalContext.Provider value={contextValue}>
+      <Fragment>
+        {props.children({
+          Header: FeedbackModalHeader,
+          Body: FeedbackModalBody,
+          Footer: FeedbackModalFooter,
+          onFieldChange: handleFieldChange,
+          state,
+        })}
+      </Fragment>
+    </FeedbackModalContext.Provider>
   );
 }
 

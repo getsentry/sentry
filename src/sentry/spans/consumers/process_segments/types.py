@@ -37,10 +37,10 @@ class CompatibleSpan(SpanEvent, total=True):
     hash: NotRequired[str]
 
 
-def attribute_value(span: Mapping[str, Any], key: str) -> Any:
+def attribute_value(span: Mapping[str, Any], key: str, *, default: Any | None = None) -> Any:
     attributes = span.get("attributes") or {}
     attr: dict[str, Any] = attributes.get(key) or {}
-    return attr.get("value")
+    return attr.get("value", default)
 
 
 def is_gen_ai_span(span: SpanEvent) -> bool:

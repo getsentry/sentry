@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -91,7 +91,7 @@ export function MergedItem({
             </Flex>
           </Tooltip>
 
-          <Flex direction="column" gap="xs" minWidth={0}>
+          <Stack gap="xs" minWidth={0}>
             <Text size="md" data-issue-title-primary>
               {latestEvent.title}
             </Text>
@@ -131,7 +131,7 @@ export function MergedItem({
                 )}
               </Flex>
             )}
-          </Flex>
+          </Stack>
         </Flex>
 
         <Button

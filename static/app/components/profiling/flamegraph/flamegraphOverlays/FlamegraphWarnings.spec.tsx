@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {FlamegraphWarnings} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/FlamegraphWarnings';

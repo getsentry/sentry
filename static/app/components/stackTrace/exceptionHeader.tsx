@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -48,7 +48,7 @@ export function ExceptionDescription({
   const valueMeta = meta?.value?.[''];
 
   return (
-    <Flex direction="column" gap={gap}>
+    <Stack gap={gap}>
       {valueMeta && !value ? (
         <ExceptionValue>
           <AnnotatedText value={value} meta={valueMeta} />
@@ -57,7 +57,7 @@ export function ExceptionDescription({
         <ExceptionValue>{renderLinksInText({exceptionText: value})}</ExceptionValue>
       ) : null}
       {mechanism && <Mechanism data={mechanism} meta={meta?.mechanism} />}
-    </Flex>
+    </Stack>
   );
 }
 

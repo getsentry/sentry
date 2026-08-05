@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import invariant from 'invariant';
 
 import {ProjectAvatar, UserAvatar} from '@sentry/scraps/avatar';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {DateTime} from 'sentry/components/dateTime';
@@ -38,7 +38,7 @@ export function ReplayBadge({replay}: Props) {
           <IconDelete variant="primary" size="md" />
         </Flex>
 
-        <Flex direction="column" gap="xs" justify="center">
+        <Stack gap="xs" justify="center">
           <Text size="md" bold>
             {t('Deleted Replay')}
           </Text>
@@ -48,7 +48,7 @@ export function ReplayBadge({replay}: Props) {
               {events.getShortEventId(replay.id)}
             </Text>
           </Flex>
-        </Flex>
+        </Stack>
       </Grid>
     );
   }
@@ -71,7 +71,7 @@ export function ReplayBadge({replay}: Props) {
         size={24}
       />
 
-      <Flex direction="column" gap="xs" justify="center">
+      <Stack gap="xs" justify="center">
         <Flex direction="row" align="center" gap="xs">
           {/* We use div here because the Text component has 100% width and will push live indicator to the far right */}
           <div>
@@ -106,7 +106,7 @@ export function ReplayBadge({replay}: Props) {
             </Text>
           </Flex>
         </Flex>
-      </Flex>
+      </Stack>
     </Wrapper>
   );
 }

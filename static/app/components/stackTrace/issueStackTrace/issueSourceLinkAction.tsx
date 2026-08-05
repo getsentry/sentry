@@ -83,7 +83,7 @@ export function IssueSourceLinkAction({isHovering = false}: IssueSourceLinkActio
 
 const FrameActionsSlot = styled(Flex)<{reserveSpace: boolean}>`
   align-items: center;
-  gap: ${p => p.theme.space.sm};
+  gap: ${p => p.theme.space.xs};
   justify-content: flex-end;
   width: ${p => (p.reserveSpace ? 'max-content' : '0')};
   flex: ${p => (p.reserveSpace ? '0 0 max-content' : '0 0 0')};

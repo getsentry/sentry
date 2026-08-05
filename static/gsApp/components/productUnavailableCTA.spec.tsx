@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';

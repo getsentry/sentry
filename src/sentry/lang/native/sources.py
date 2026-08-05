@@ -360,10 +360,11 @@ def get_scraping_config(project: Project) -> dict[str, Any]:
     if allow_scraping:
         allowed_origins = list(get_origins(project))
 
-        token = project.get_option("sentry:token")
-        if token:
-            token_header = project.get_option("sentry:token_header") or "X-Sentry-Token"
-            scraping_headers[token_header] = token
+        if "*" not in allowed_origins:
+            token = project.get_option("sentry:token")
+            if token:
+                token_header = project.get_option("sentry:token_header") or "X-Sentry-Token"
+                scraping_headers[token_header] = token
 
     return {
         "enabled": allow_scraping,

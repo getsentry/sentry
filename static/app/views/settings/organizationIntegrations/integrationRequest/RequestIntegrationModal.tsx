@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 

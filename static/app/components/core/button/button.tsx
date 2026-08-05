@@ -4,6 +4,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {IndeterminateLoader} from '@sentry/scraps/loader';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Tooltip} from '@sentry/scraps/tooltip';
+import {useClickTracking} from '@sentry/scraps/trackingContext';
 
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 
@@ -26,12 +27,14 @@ export function Button({
 }: ButtonProps) {
   const contextSize = useSizeContext();
   const size = explicitSize ?? contextSize ?? 'md';
-  const {handleClick, hasChildren, accessibleLabel} = useButtonFunctionality({
+  const buttonProps = {
     ...props,
     type,
     disabled,
     busy,
-  });
+  } satisfies ButtonProps;
+  const {hasChildren, accessibleLabel} = useButtonFunctionality(buttonProps);
+  const {handleClick} = useClickTracking(buttonProps, 'button');
 
   return (
     <Tooltip

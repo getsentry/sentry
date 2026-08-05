@@ -64,8 +64,7 @@ describe('ReleaseHeader', () => {
   it('renders breadcrumbs with a link to releases and the release version', () => {
     renderHeader();
 
-    const breadcrumbs = screen.getByTestId('breadcrumb-list');
-    expect(within(breadcrumbs).getByRole('link', {name: 'Releases'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: 'Releases'})).toHaveAttribute(
       'href',
       `/organizations/${organization.slug}/explore/releases/?project=${project.id}`
     );
@@ -77,9 +76,8 @@ describe('ReleaseHeader', () => {
     renderHeader(pageFrameOrg);
 
     const topbarSlot = screen.getByTestId('topbar-title-slot');
-    const breadcrumbs = within(topbarSlot).getByTestId('breadcrumb-list');
 
-    expect(within(breadcrumbs).getByRole('link', {name: 'Releases'})).toHaveAttribute(
+    expect(within(topbarSlot).getByRole('link', {name: 'Releases'})).toHaveAttribute(
       'href',
       `/organizations/${pageFrameOrg.slug}/explore/releases/?project=${project.id}`
     );

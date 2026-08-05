@@ -10,6 +10,15 @@ export type WritableAggregateField = GroupBy | BaseVisualize;
 
 export type AggregateField = GroupBy | Visualize;
 
+export function serializeAggregateField(
+  aggregateField: AggregateField
+): WritableAggregateField {
+  if (isGroupBy(aggregateField)) {
+    return aggregateField;
+  }
+  return aggregateField.serialize();
+}
+
 export function getAggregateFieldsFromLocation(
   location: Location,
   key: string

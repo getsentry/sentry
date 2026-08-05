@@ -261,7 +261,7 @@ export function CommandPalette({
     );
   }, [actions]);
 
-  const treeState = useTreeState({
+  const treeState = useTreeState<CommandPaletteActionMenuItem>({
     disabledKeys: sectionKeys,
     children: actions.map(action => {
       const menuItem = makeMenuItemFromAction(action, prefixMap);
@@ -572,7 +572,7 @@ export function CommandPalette({
 
   const content = (
     <Fragment>
-      <Flex direction="column" align="start" gap="md">
+      <Stack align="start" gap="md">
         <Flex position="relative" direction="row" align="center" gap="xs" width="100%">
           {p => {
             return (
@@ -660,7 +660,7 @@ export function CommandPalette({
             );
           }}
         </Flex>
-      </Flex>
+      </Stack>
 
       {treeState.collection.size === 0 ? (
         isEmptyPromptQuery || isLoading ? null : (
@@ -716,7 +716,7 @@ export function CommandPalette({
 function presortBySlotRef(
   nodes: Array<CollectionTreeNode<CMDKActionData>>
 ): Array<CollectionTreeNode<CMDKActionData>> {
-  return [...nodes].sort((a, b) => {
+  return nodes.toSorted((a, b) => {
     const aEl = a.ref?.current ?? null;
     const bEl = b.ref?.current ?? null;
 
@@ -1231,14 +1231,7 @@ function CommandPaletteHints() {
 
 function CommandPaletteNoResults() {
   return (
-    <Flex
-      direction="column"
-      align="center"
-      justify="center"
-      gap="lg"
-      padding="2xl lg"
-      height="400px"
-    >
+    <Stack align="center" justify="center" gap="lg" padding="2xl lg" height="400px">
       <Image src={errorIllustration} alt="No results" width="400px" />
       <Stack align="center" gap="md">
         <Container padding="0 2xl">
@@ -1262,7 +1255,7 @@ function CommandPaletteNoResults() {
           />
         </Container>
       </Stack>
-    </Flex>
+    </Stack>
   );
 }
 

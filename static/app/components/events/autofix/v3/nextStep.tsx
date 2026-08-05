@@ -3,13 +3,14 @@ import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
+import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
   organizationIntegrationsCodingAgents,
   type CodingAgentIntegration,
@@ -42,6 +43,7 @@ import {
   isGitHubProvider,
 } from 'sentry/utils/seer/seerProjectRepos';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 import {getProviderPermissionsUrl} from 'sentry/views/settings/organizationRepositories/getProviderConfigUrl';
 
 interface SeerDrawerNextStepProps {
@@ -51,7 +53,7 @@ interface SeerDrawerNextStepProps {
 }
 
 export function SeerDrawerNextStep({sections, group, autofix}: SeerDrawerNextStepProps) {
-  const runId = autofix.runState?.run_id;
+  const runId = getAutofixRunId(autofix.runState);
   const section = sections[sections.length - 1];
   const referrer = autofix.runState?.blocks?.[0]?.message?.metadata?.referrer;
 
@@ -140,7 +142,7 @@ function PullRequestNextStep({autofix, group, runId, referrer}: NextStepProps) {
 interface NextStepProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
   group: Group;
-  runId: number;
+  runId: SeerExplorerRunId;
   section: AutofixSection;
   referrer?: string;
 }
@@ -532,7 +534,7 @@ function NextStepTemplate({
 
   if (clickedNo) {
     return (
-      <Flex direction="column" gap="lg">
+      <Stack gap="lg">
         <Text>{rethinkPrompt}</Text>
         <TextArea
           autosize
@@ -551,12 +553,12 @@ function NextStepTemplate({
             {labelRethink}
           </Button>
         </Flex>
-      </Flex>
+      </Stack>
     );
   }
 
   return (
-    <Flex direction="column" gap="lg">
+    <Stack gap="lg">
       <Text>{prompt}</Text>
       <Flex gap="md">
         <Button disabled={isProcessing} onClick={() => handleClickedNo(true)}>
@@ -594,7 +596,7 @@ function NextStepTemplate({
           )}
         </ButtonBar>
       </Flex>
-    </Flex>
+    </Stack>
   );
 }
 
@@ -602,7 +604,7 @@ interface UseCodingAgentsOptions {
   autofix: ReturnType<typeof useExplorerAutofix>;
   group: Group;
   referrer: string | undefined;
-  runId: number;
+  runId: SeerExplorerRunId;
   step: 'root_cause' | 'solution';
 }
 

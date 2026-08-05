@@ -1,29 +1,80 @@
-import {Fragment, useState} from 'react';
-import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
+import {z} from 'zod';
+
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Form} from 'sentry/components/forms/form';
-import JsonForm from 'sentry/components/forms/jsonForm';
-import {FormModel} from 'sentry/components/forms/model';
 import {INTEGRATION_CATEGORIES} from 'sentry/components/modals/sentryAppPublishRequestModal/sentryAppUtils';
 import {t, tct} from 'sentry/locale';
 import type {SentryApp} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {safeURL} from 'sentry/utils/url/safeURL';
 
-function transformData(data: Record<string, any>, model: FormModel) {
-  // map object to list of questions
-  const questionnaire = Array.from(model.fieldDescriptor.values()).map(
-    field =>
-      // we read the meta for the question that has a react node for the label
-      ({
-        question: field.meta || field.label,
-        answer: data[field.name],
-      })
-  );
-  return {questionnaire};
-}
+const urlValidation = z
+  .string()
+  .min(1, t('Field is required'))
+  .pipe(z.string().refine(value => Boolean(safeURL(value)), t('Enter a valid URL')));
+
+const schema = z.object({
+  question0: z.string().min(1, t('Field is required')),
+  question1: z.string().min(1, t('Field is required')),
+  question2: z
+    .string()
+    .nullable()
+    .refine(value => value !== null, t('Field is required')),
+  question3: urlValidation,
+  supportEmail: z
+    .string()
+    .min(1, t('Field is required'))
+    .pipe(z.email(t('Enter a valid email address'))),
+  question4: urlValidation,
+});
+
+type FormValues = z.input<typeof schema>;
+
+// No translations since we need to be able to read these questions :)
+const QUESTIONS: ReadonlyArray<{name: keyof FormValues; question: string}> = [
+  {
+    name: 'question0',
+    question:
+      'Provide a description about your integration, how this benefits developers using Sentry along with what’s needed to set up this integration.',
+  },
+  {
+    name: 'question1',
+    question:
+      'Provide a one-liner describing your integration. Subject to approval, we’ll use this to describe your integration on Sentry Integrations.',
+  },
+  {
+    name: 'question2',
+    question: 'Select what category best describes your integration.',
+  },
+  {
+    name: 'question3',
+    question: 'Link to your documentation page.',
+  },
+  {
+    name: 'supportEmail',
+    question: 'Email address for user support.',
+  },
+  {
+    name: 'question4',
+    question:
+      'Link to a video showing installation, setup and user flow for your submission.',
+  },
+];
+
+const CATEGORY_OPTIONS = INTEGRATION_CATEGORIES.map(([value, label]) => ({
+  value,
+  label,
+}));
 
 type Props = ModalRenderProps & {
   app: SentryApp;
@@ -31,196 +82,207 @@ type Props = ModalRenderProps & {
   organization: Organization;
 };
 
-export function SentryAppPublishRequestModal(props: Props) {
-  const [formModel] = useState<FormModel>(() => new FormModel({transformData}));
-  const {app, closeModal, Header, Body, onPublishSubmission} = props;
-
-  const formFields = () => {
-    // No translations since we need to be able to read this email :)
-    const baseFields: React.ComponentProps<typeof JsonForm>['fields'] = [
-      {
-        type: 'textarea',
-        required: true,
-        label: t(
-          'Provide a description about your integration, how this benefits developers using Sentry along with what’s needed to set up this integration.'
-        ),
-        meta: 'Provide a description about your integration, how this benefits developers using Sentry along with what’s needed to set up this integration.',
-        autosize: true,
-        rows: 1,
-        inline: false,
-        name: 'question0',
-      },
-      {
-        type: 'textarea',
-        required: true,
-        meta: 'Provide a one-liner describing your integration. Subject to approval, we’ll use this to describe your integration on Sentry Integrations.',
-        label: (
-          <Fragment>
-            {t(
-              'Provide a one-liner describing your integration. Subject to approval, we’ll use this to describe your integration on '
-            )}
-            <a target="_blank" href="https://sentry.io/integrations/" rel="noreferrer">
-              {t('Sentry Integrations')}
-            </a>
-            .
-          </Fragment>
-        ),
-        autosize: true,
-        rows: 1,
-        inline: false,
-        name: 'question1',
-      },
-      {
-        type: 'select',
-        required: true,
-        meta: 'Select what category best describes your integration.',
-        label: (
-          <Fragment>
-            {t('Select what category best describes your integration. ')}
-            <a
-              target="_blank"
-              href="https://docs.sentry.io/organization/integrations/"
-              rel="noreferrer"
-            >
-              {t('Documentation for reference.')}
-            </a>
-          </Fragment>
-        ),
-        autosize: true,
-        choices: INTEGRATION_CATEGORIES,
-        rows: 1,
-        inline: false,
-        name: 'question2',
-      },
-      {
-        type: 'url',
-        required: true,
-        label: t('Link to your documentation page.'),
-        meta: 'Link to your documentation page.',
-        autosize: true,
-        rows: 1,
-        inline: false,
-        name: 'question3',
-        validate: ({id, form}) =>
-          safeURL(form[id])
-            ? []
-            : [[id, t('Invalid link: URL must start with https://')]],
-      },
-      {
-        type: 'email',
-        required: true,
-        label: t('Email address for user support.'),
-        meta: 'Email address for user support.',
-        autosize: true,
-        rows: 1,
-        inline: false,
-        name: 'supportEmail',
-      },
-      {
-        type: 'url',
-        required: true,
-        label: t(
-          'Link to a video showing installation, setup and user flow for your submission.'
-        ),
-        meta: 'Link to a video showing installation, setup and user flow for your submission.',
-        autosize: true,
-        rows: 1,
-        inline: false,
-        name: 'question4',
-        validate: ({id, form}) =>
-          safeURL(form[id])
-            ? []
-            : [[id, t('Invalid link: URL must start with https://')]],
-      },
-    ];
-
-    return baseFields;
-  };
-
-  const handleSubmitSuccess = () => {
-    addSuccessMessage(t('Request to publish %s successful.', app.slug));
-    closeModal();
-    onPublishSubmission();
-  };
-
-  const handleSubmitError = (err: any) => {
-    addErrorMessage(
-      tct('Request to publish [app] fails. [detail]', {
-        app: app.slug,
-        detail: err?.responseJSON?.detail,
-      })
-    );
-  };
-
-  const endpoint = `/sentry-apps/${app.slug}/publish-request/`;
-  const forms = [
-    {
-      title: t('Questions to answer'),
-      fields: formFields(),
+export function SentryAppPublishRequestModal({
+  app,
+  closeModal,
+  Header,
+  Body,
+  Footer,
+  onPublishSubmission,
+}: Props) {
+  const {mutateAsync: submitPublishRequest} = useMutation({
+    mutationFn: (data: {questionnaire: Array<{answer: string; question: string}>}) =>
+      fetchMutation({
+        method: 'POST',
+        url: `/sentry-apps/${app.slug}/publish-request/`,
+        data,
+      }),
+    onSuccess: () => {
+      addSuccessMessage(t('Request to publish %s successful.', app.slug));
+      closeModal();
+      onPublishSubmission();
     },
-  ];
+    onError: error => {
+      const rawDetail =
+        error instanceof RequestError ? error.responseJSON?.detail : undefined;
+      const detail = typeof rawDetail === 'string' ? rawDetail : rawDetail?.message;
+      addErrorMessage(
+        detail
+          ? tct('Request to publish [app] fails. [detail]', {app: app.slug, detail})
+          : t('Request to publish %s fails.', app.slug)
+      );
+    },
+  });
 
-  const renderFooter = () => {
-    return (
-      <Footer>
-        <FooterParagraph>
-          {t(
-            'By submitting your integration, you acknowledge and agree that Sentry reserves the right to remove your integration at any time in its sole discretion.'
-          )}
-        </FooterParagraph>
-        <FooterParagraph>
-          {t(
-            'After submission, our team will review your integration to ensure it meets our guidelines. Our current processing time for integration publishing requests is 4 weeks. You’ll hear from us once the integration is approved or if any changes are required.'
-          )}
-        </FooterParagraph>
-        <FooterParagraph>
-          {t(
-            'You must notify Sentry of any changes or modifications to the integration after publishing. We encourage you to maintain a changelog of modifications on your docs page.'
-          )}
-        </FooterParagraph>
-        <p>{t('Thank you for contributing to the Sentry community!')}</p>
-      </Footer>
-    );
+  const defaultValues: FormValues = {
+    question0: '',
+    question1: '',
+    question2: null,
+    question3: '',
+    supportEmail: '',
+    question4: '',
   };
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues,
+    validators: {onDynamic: schema},
+    onSubmit: ({value}) => {
+      const parsed = schema.parse(value);
+      const questionnaire = QUESTIONS.map(({name, question}) => ({
+        question,
+        answer: String(parsed[name] ?? ''),
+      }));
+      return submitPublishRequest({questionnaire}).catch(() => {});
+    },
+  });
+
   return (
-    <Fragment>
+    <form.AppForm form={form}>
       <Header>
         <h1>{t('Publish Request Questionnaire')}</h1>
       </Header>
       <Body>
-        <Explanation>
-          {t(
-            `Please fill out this questionnaire in order to get your integration evaluated for publication.
+        <Stack gap="xl">
+          <Text as="p">
+            {t(
+              `Please fill out this questionnaire in order to get your integration evaluated for publication.
               Once your integration has been approved, users outside of your organization will be able to install it.`
-          )}
-        </Explanation>
-        <Form
-          allowUndo
-          apiMethod="POST"
-          apiEndpoint={endpoint}
-          onSubmitSuccess={handleSubmitSuccess}
-          onSubmitError={handleSubmitError}
-          model={formModel}
-          submitLabel={t('Request Publication')}
-          onCancel={closeModal}
-        >
-          <JsonForm forms={forms} />
-          {renderFooter()}
-        </Form>
+            )}
+          </Text>
+
+          <form.AppField name="question0">
+            {field => (
+              <field.Layout.Stack
+                label={t(
+                  'Provide a description about your integration, how this benefits developers using Sentry along with what’s needed to set up this integration.'
+                )}
+                required
+              >
+                <field.TextArea
+                  autosize
+                  rows={3}
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+
+          <form.AppField name="question1">
+            {field => (
+              <field.Layout.Stack
+                label={tct(
+                  'Provide a one-liner describing your integration. Subject to approval, we’ll use this to describe your integration on [link:Sentry Integrations].',
+                  {
+                    link: <ExternalLink href="https://sentry.io/integrations/" />,
+                  }
+                )}
+                required
+              >
+                <field.TextArea
+                  autosize
+                  rows={3}
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+
+          <form.AppField name="question2">
+            {field => (
+              <field.Layout.Stack
+                label={tct(
+                  'Select what category best describes your integration. [link:Documentation for reference.]',
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/organization/integrations/" />
+                    ),
+                  }
+                )}
+                required
+              >
+                <field.Select
+                  options={CATEGORY_OPTIONS}
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+
+          <form.AppField name="question3">
+            {field => (
+              <field.Layout.Stack label={t('Link to your documentation page.')} required>
+                <field.Input
+                  type="url"
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+
+          <form.AppField name="supportEmail">
+            {field => (
+              <field.Layout.Stack label={t('Email address for user support.')} required>
+                <field.Input
+                  type="email"
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+
+          <form.AppField name="question4">
+            {field => (
+              <field.Layout.Stack
+                label={t(
+                  'Link to a video showing installation, setup and user flow for your submission.'
+                )}
+                required
+              >
+                <field.Input
+                  type="url"
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+
+          <Alert variant="info">
+            <Stack gap="lg">
+              <Text as="p">
+                {t(
+                  'By submitting your integration, you acknowledge and agree that Sentry reserves the right to remove your integration at any time in its sole discretion.'
+                )}
+              </Text>
+              <Text as="p">
+                {t(
+                  'After submission, our team will review your integration to ensure it meets our guidelines. Our current processing time for integration publishing requests is 4 weeks. You’ll hear from us once the integration is approved or if any changes are required.'
+                )}
+              </Text>
+              <Text as="p">
+                {t(
+                  'You must notify Sentry of any changes or modifications to the integration after publishing. We encourage you to maintain a changelog of modifications on your docs page.'
+                )}
+              </Text>
+              <Text as="p">
+                {t('Thank you for contributing to the Sentry community!')}
+              </Text>
+            </Stack>
+          </Alert>
+        </Stack>
       </Body>
-    </Fragment>
+      <Footer>
+        <Flex gap="md">
+          <Button onClick={closeModal}>{t('Cancel')}</Button>
+          <form.SubmitButton>{t('Request Publication')}</form.SubmitButton>
+        </Flex>
+      </Footer>
+    </form.AppForm>
   );
 }
-
-const Explanation = styled('div')`
-  margin: ${p => p.theme.space.lg} 0px;
-  font-size: ${p => p.theme.font.size.md};
-`;
-
-const Footer = styled('div')`
-  font-size: ${p => p.theme.font.size.md};
-`;
-
-const FooterParagraph = styled('p')`
-  margin-bottom: ${p => p.theme.space.md};
-`;

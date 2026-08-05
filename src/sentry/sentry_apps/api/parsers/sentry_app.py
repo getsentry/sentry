@@ -68,7 +68,6 @@ class EventListField(serializers.Field):
         if data is None:
             return
 
-        # Individual events (vs whole resources) are flag-gated at the endpoint.
         valid = set(VALID_EVENT_RESOURCES) | set(VALID_EVENTS)
         if not set(data).issubset(valid):
             raise ValidationError(

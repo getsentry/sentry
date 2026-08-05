@@ -36,6 +36,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {TagBar} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
 import {getUserTagValue} from 'sentry/views/issueDetails/utils';
@@ -309,7 +310,9 @@ function TagValueActionsMenu({
       items={[
         {
           key: 'open-in-discover',
-          label: t('Open in Discover'),
+          label: getDiscoverDeprecation(organization)
+            ? t('Open in Explore')
+            : t('Open in Discover'),
           to: eventView.getResultsViewUrlTarget(
             organization,
             false,

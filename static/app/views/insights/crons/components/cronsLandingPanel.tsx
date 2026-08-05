@@ -5,10 +5,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 
-import {
-  CopyMarkdownButton,
-  CopySetupInstructionsGate,
-} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {CopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Panel} from 'sentry/components/panels/panel';
@@ -21,6 +18,11 @@ import {MonitorCreateForm} from 'sentry/views/insights/crons/components/monitorC
 
 import {PlatformPickerPanel} from './platformPickerPanel';
 import {useCronsUpsertGuideState} from './useCronsUpsertGuideState';
+
+const OnboardingPanelHook = OverrideOrDefault({
+  overrideName: 'component:crons-onboarding-panel',
+  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
+});
 
 /**
  * Wrapper for guide tab content with a ref for innerHTML-based markdown
@@ -63,11 +65,6 @@ export function CronsLandingPanel() {
       return '';
     }
   };
-
-  const OnboardingPanelHook = OverrideOrDefault({
-    overrideName: 'component:crons-onboarding-panel',
-    defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
-  });
 
   useEffect(() => {
     if (!guideVisibile) {
@@ -117,13 +114,11 @@ export function CronsLandingPanel() {
                 ]}
               </TabList>
               {guideKey !== 'manual' && (
-                <CopySetupInstructionsGate>
-                  <CopyMarkdownButton
-                    borderless
-                    getMarkdown={getGuideMarkdown}
-                    source="crons_upsert_guide"
-                  />
-                </CopySetupInstructionsGate>
+                <CopyMarkdownButton
+                  borderless
+                  getMarkdown={getGuideMarkdown}
+                  source="crons_upsert_guide"
+                />
               )}
             </Flex>
             <TabPanels>

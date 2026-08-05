@@ -117,7 +117,10 @@ def get_repos(
 
 def get_environment_for_deploy(deploy: Deploy | None) -> str:
     if deploy:
-        environment = Environment.objects.get(id=deploy.environment_id)
+        try:
+            environment = Environment.objects.get(id=deploy.environment_id)
+        except Environment.DoesNotExist:
+            return "Default Environment"
         if environment and environment.name:
             return str(environment.name)
     return "Default Environment"
@@ -270,12 +273,10 @@ def get_parent_and_repeating_spans(
     repeating_spans = None
 
     for span in spans:
-        if problem.parent_span_ids:
-            if problem.parent_span_ids[0] == span.get("span_id"):
-                parent_span = span
-        if problem.offender_span_ids:
-            if problem.offender_span_ids[0] == span.get("span_id"):
-                repeating_spans = span
+        if problem.parent_span_ids and problem.parent_span_ids[0] == span.get("span_id"):
+            parent_span = span
+        if problem.offender_span_ids and problem.offender_span_ids[0] == span.get("span_id"):
+            repeating_spans = span
         if parent_span is not None and repeating_spans is not None:
             break
 
@@ -394,9 +395,7 @@ class PerformanceProblemContext:
             "transaction_name": self.transaction,
             "parent_span": get_span_evidence_value(self.parent_span),
             "repeating_spans": get_span_evidence_value(self.repeating_spans),
-            "num_repeating_spans": (
-                str(len(self.problem.offender_span_ids)) if self.problem.offender_span_ids else ""
-            ),
+            "num_repeating_spans": str(len(self.problem.offender_span_ids)),
         }
 
     @property
@@ -470,9 +469,7 @@ class NPlusOneAPICallProblemContext(PerformanceProblemContext):
             "transaction_name": self.transaction,
             "repeating_spans": self.path_prefix,
             "parameters": self.parameters,
-            "num_repeating_spans": (
-                str(len(self.problem.offender_span_ids)) if self.problem.offender_span_ids else ""
-            ),
+            "num_repeating_spans": str(len(self.problem.offender_span_ids)),
         }
 
     @property
@@ -527,7 +524,7 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
 
     @property
     def starting_span(self) -> str:
-        if not self.problem.cause_span_ids or len(self.problem.cause_span_ids) < 1:
+        if not self.problem.cause_span_ids:
             return ""
 
         starting_span_id = self.problem.cause_span_ids[0]
@@ -536,7 +533,7 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
 
     @property
     def parallelizable_spans(self) -> list[str]:
-        if not self.problem.offender_span_ids or len(self.problem.offender_span_ids) < 1:
+        if not self.problem.offender_span_ids:
             return [""]
 
         offender_span_ids = self.problem.offender_span_ids
@@ -555,7 +552,7 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
         this is where thresholds come in
         """
         independent_spans = [self._find_span_by_id(id) for id in self.problem.offender_span_ids]
-        consecutive_spans = [self._find_span_by_id(id) for id in self.problem.cause_span_ids or ()]
+        consecutive_spans = [self._find_span_by_id(id) for id in self.problem.cause_span_ids]
         total_duration = self._sum_span_duration(consecutive_spans)
 
         max_independent_span_duration = max(

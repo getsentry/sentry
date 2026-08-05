@@ -208,9 +208,7 @@ export function getFormatter({
     // If axis, timestamp comes from axis, otherwise for a single item it is defined in the data attribute.
     // The data attribute is usually a list of [name, value] but can also be an object of {name, value} when
     // there is item specific formatting being used.
-    const timestamp = Array.isArray(seriesParamsOrParam)
-      ? seriesParams[0].value[0]
-      : getSeriesValue(seriesParams[0], 0);
+    const timestamp = getSeriesValue(seriesParams[0], 0);
 
     const date =
       seriesParams.length &&
@@ -226,7 +224,9 @@ export function getFormatter({
 
     if (limit) {
       const originalLength = seriesParams.length;
-      seriesParams = seriesParams.sort((a, b) => b.value[1] - a.value[1]).slice(0, limit);
+      seriesParams = seriesParams
+        .sort((a, b) => getSeriesValue(b, 1) - getSeriesValue(a, 1))
+        .slice(0, limit);
       if (originalLength > limit) {
         seriesParams.push({
           seriesName: `+${originalLength - limit} more`,

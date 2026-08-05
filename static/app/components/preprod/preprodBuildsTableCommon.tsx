@@ -2,9 +2,11 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -12,7 +14,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconCheckmark, IconCommit, IconNot} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {InstallAppButton} from 'sentry/views/preprod/components/installAppButton';
 import {getDistributionErrorTooltip} from 'sentry/views/preprod/components/installDetailsContent';
 import {
@@ -44,23 +46,32 @@ interface PreprodBuildsRowCellsProps {
   build: BuildDetailsApiResponse;
   showInteraction: boolean;
   showProjectColumn: boolean;
+  showInstallGroups?: boolean;
   showInstallabilityIndicator?: boolean;
 }
+
+const MAX_VISIBLE_INSTALL_GROUPS = 3;
 
 export function PreprodBuildsRowCells({
   build,
   showInteraction,
   showProjectColumn,
+  showInstallGroups = false,
   showInstallabilityIndicator = false,
 }: PreprodBuildsRowCellsProps) {
   const buildNumber = getBuildNumber(build.app_info);
+  const installGroups = showInstallGroups
+    ? (build.distribution_info?.install_groups ?? [])
+    : [];
+  const visibleInstallGroups = installGroups.slice(0, MAX_VISIBLE_INSTALL_GROUPS);
+  const hiddenInstallGroups = installGroups.slice(MAX_VISIBLE_INSTALL_GROUPS);
 
   return (
     <Fragment>
       {showInteraction && <InteractionStateLayer />}
       <SimpleTable.RowCell justify="start">
         {build.app_info?.name || build.app_info?.app_id ? (
-          <Flex direction="column" gap="xs">
+          <Stack gap="xs">
             <Flex align="center" gap="2xs">
               {build.app_info?.platform && (
                 <PlatformIcon platform={build.app_info.platform} />
@@ -112,15 +123,18 @@ export function PreprodBuildsRowCells({
                   <Text size="sm" variant="muted">
                     {' • '}
                   </Text>
-                  <Tooltip title={t('Build configuration')}>
-                    <Text size="sm" variant="muted" monospace>
-                      {build.app_info.build_configuration}
-                    </Text>
-                  </Tooltip>
+                  <InfoText
+                    title={t('Build configuration')}
+                    size="sm"
+                    variant="muted"
+                    monospace
+                  >
+                    {build.app_info.build_configuration}
+                  </InfoText>
                 </Fragment>
               )}
             </Flex>
-          </Flex>
+          </Stack>
         ) : null}
       </SimpleTable.RowCell>
 
@@ -131,7 +145,7 @@ export function PreprodBuildsRowCells({
       )}
 
       <SimpleTable.RowCell justify="start" minWidth={0}>
-        <Flex direction="column" gap="xs" minWidth={0} width="100%">
+        <Stack gap="xs" minWidth={0} width="100%">
           <Flex align="center" gap="xs">
             {build.app_info?.version !== null && (
               <Text size="lg" bold>
@@ -163,20 +177,49 @@ export function PreprodBuildsRowCells({
                   –
                 </Text>
                 <Flex flex={1} minWidth={0} overflow="hidden">
-                  <Tooltip
+                  <InfoText
                     title={build.vcs_info?.head_ref || undefined}
-                    showOnlyOnOverflow
-                    skipWrapper
+                    mode="overflowOnly"
+                    size="sm"
+                    variant="muted"
                   >
-                    <Text size="sm" variant="muted" ellipsis>
-                      {build.vcs_info?.head_ref || '--'}
-                    </Text>
-                  </Tooltip>
+                    {build.vcs_info?.head_ref || t('N/A')}
+                  </InfoText>
                 </Flex>
               </Fragment>
             )}
           </Flex>
-        </Flex>
+          {visibleInstallGroups.length > 0 && (
+            <Flex align="center" gap="xs" wrap="wrap">
+              {visibleInstallGroups.map(group => (
+                <Tag
+                  key={group}
+                  style={{maxWidth: '100%', minWidth: 0}}
+                  title={group}
+                  variant="muted"
+                >
+                  <Text ellipsis variant="inherit">
+                    {group}
+                  </Text>
+                </Tag>
+              ))}
+              {hiddenInstallGroups.length > 0 && (
+                <Tooltip title={hiddenInstallGroups.join(', ')}>
+                  <Tag
+                    aria-label={tn(
+                      '%s more install group',
+                      '%s more install groups',
+                      hiddenInstallGroups.length
+                    )}
+                    variant="muted"
+                  >
+                    +{hiddenInstallGroups.length}
+                  </Tag>
+                </Tooltip>
+              )}
+            </Flex>
+          )}
+        </Stack>
       </SimpleTable.RowCell>
     </Fragment>
   );

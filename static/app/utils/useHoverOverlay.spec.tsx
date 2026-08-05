@@ -49,7 +49,11 @@ describe('useHoverOverlay', () => {
       return wrapTrigger(<InnerComponent ref={ref} />);
     };
 
-    render(<WrappedComponent />);
+    const {rerender} = render(<WrappedComponent />);
     expect(ref).toHaveBeenCalled();
+
+    const callsAfterMount = ref.mock.calls.length;
+    rerender(<WrappedComponent />);
+    expect(ref).toHaveBeenCalledTimes(callsAfterMount);
   });
 });

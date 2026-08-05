@@ -17,21 +17,20 @@ export function DetailSection({
   trailingItems,
 }: DetailSectionProps) {
   return (
-    <Flex
+    <Stack
       as="section"
       role="region"
-      direction="column"
       gap={description ? 'lg' : 'md'}
       className={className}
     >
-      <Flex direction="column" gap="xs">
+      <Stack gap="xs">
         <Flex justify="between" align="center">
           <Heading as="h3">{title}</Heading>
           {trailingItems ?? null}
         </Flex>
         {description ? <Text variant="muted">{description}</Text> : null}
-      </Flex>
+      </Stack>
       <Stack gap="md">{children}</Stack>
-    </Flex>
+    </Stack>
   );
 }

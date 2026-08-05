@@ -178,8 +178,8 @@ Each entry shows the function signature, the rounding/precision logic, and concr
 | Input (bytes) | Output      |
 | ------------- | ----------- |
 | `500`         | `"500 B"`   |
-| `1000`        | `"1 KB"`    |
-| `1500`        | `"1.5 KB"`  |
+| `1000`        | `"1 kB"`    |
+| `1500`        | `"1.5 kB"`  |
 | `1000000`     | `"1 MB"`    |
 | `1234567`     | `"1.23 MB"` |
 | `1000000000`  | `"1 GB"`    |
@@ -217,18 +217,19 @@ Each entry shows the function signature, the rounding/precision logic, and concr
 
 ### `formatAbbreviatedNumber(number, maximumSignificantDigits?, includeDecimals?)`
 
-[formatters.tsx](../formatters.tsx) · K/M/B abbreviations. If `shortValue > 10` or evenly divisible → integer. Otherwise truncates (via `formatFloat`) to `maxSigDigits` (default **1**). Falls through to `toLocaleString` for numbers < 1 000.
+[formatters.tsx](../formatters.tsx) · K/M/B/T abbreviations (maximum multiplier: **T**, trillions / `1e12`). If `shortValue > 10` or evenly divisible → integer. Otherwise truncates (via `formatFloat`) to `maxSigDigits` (default **1**). Falls through to `toLocaleString` for numbers < 1 000. Values ≥ 1 000 T (`1e15`) exceed the largest suffix and render as e.g. `"1000T"`.
 
-| Input        | `maxSigDigits` | `includeDecimals` | Output    |
-| ------------ | -------------- | ----------------- | --------- |
-| `999`        | —              | —                 | `"999"`   |
-| `1000`       | —              | —                 | `"1K"`    |
-| `1500`       | —              | —                 | `"1.5K"`  |
-| `15000`      | —              | —                 | `"15K"`   |
-| `1234567`    | —              | —                 | `"1.2M"`  |
-| `1234567`    | `3`            | —                 | `"1.23M"` |
-| `1000000000` | —              | —                 | `"1B"`    |
-| `-1500`      | —              | —                 | `"-1.5K"` |
+| Input           | `maxSigDigits` | `includeDecimals` | Output    |
+| --------------- | -------------- | ----------------- | --------- |
+| `999`           | —              | —                 | `"999"`   |
+| `1000`          | —              | —                 | `"1K"`    |
+| `1500`          | —              | —                 | `"1.5K"`  |
+| `15000`         | —              | —                 | `"15K"`   |
+| `1234567`       | —              | —                 | `"1.2M"`  |
+| `1234567`       | `3`            | —                 | `"1.23M"` |
+| `1000000000`    | —              | —                 | `"1B"`    |
+| `1000000000000` | —              | —                 | `"1T"`    |
+| `-1500`         | —              | —                 | `"-1.5K"` |
 
 ---
 
@@ -245,6 +246,7 @@ Each entry shows the function signature, the rounding/precision logic, and concr
 | `12345`   | `"12.3K"` |
 | `123456`  | `"123K"`  |
 | `1234567` | `"1.23M"` |
+| `1e12`    | `"1T"`    |
 
 ---
 

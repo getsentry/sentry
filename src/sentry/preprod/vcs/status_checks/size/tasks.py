@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any
+from typing import Any, NamedTuple
 
 from sentry import analytics as sentry_analytics
 from sentry.api.event_search import SearchFilter, parse_search_query
@@ -12,6 +12,7 @@ from sentry.integrations.source_code_management.status_check import (
     StatusCheckStatus,
 )
 from sentry.models.commitcomparison import CommitComparison
+from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodStatusCheckTriggeredRulePostedEvent
 from sentry.preprod.models import (
     PreprodArtifact,
@@ -106,6 +107,117 @@ def _get_matching_base_metric(
     )
 
 
+class SizeEvaluation(NamedTuple):
+    status: StatusCheckStatus
+    triggered_rules: list[TriggeredRule]
+    title: str
+    subtitle: str
+    summary: str
+    # The filtered artifacts actually evaluated; empty when every artifact was
+    # skipped or had no size metrics (i.e. there is no size data to report).
+    evaluated_artifacts: list[PreprodArtifact]
+
+
+def evaluate_size_and_format_messages(
+    project: Project,
+    all_artifacts: list[PreprodArtifact],
+    rules: list[StatusCheckRule],
+) -> SizeEvaluation:
+    """Evaluate size rules for a commit's artifacts and render the summary.
+
+    Shared by the size status check and the size PR comment so the two can never
+    render differently. Given the sibling ``all_artifacts`` and the ``rules`` the
+    caller loaded (callers choose the option source), this assembles size metrics
+    and approvals, filters to size-analyzed artifacts, and returns a
+    ``SizeEvaluation``. ``evaluated_artifacts`` is the filtered list actually
+    evaluated (empty when every artifact was skipped/non-size). Caller-specific
+    concerns (target_url, completed_at, posting) are intentionally excluded.
+    """
+    size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]] = {}
+    approvals_map: dict[int, PreprodComparisonApproval] = {}
+    if all_artifacts:
+        artifact_ids = [artifact.id for artifact in all_artifacts]
+        size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact_id__in=artifact_ids,
+        ).select_related("preprod_artifact")
+
+        for metrics in size_metrics_qs:
+            if metrics.preprod_artifact_id not in size_metrics_map:
+                size_metrics_map[metrics.preprod_artifact_id] = []
+            size_metrics_map[metrics.preprod_artifact_id].append(metrics)
+
+        approval_qs = PreprodComparisonApproval.objects.filter(
+            preprod_artifact_id__in=artifact_ids,
+            preprod_feature_type=PreprodComparisonApproval.FeatureType.SIZE,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        )
+        for approval in approval_qs:
+            approvals_map[approval.preprod_artifact_id] = approval
+
+    # Filter out artifacts not in the size analysis pipeline (e.g., snapshot-only artifacts).
+    # Symmetric with snapshots/tasks.py which filters to snapshot-only artifacts.
+    evaluated_artifacts = [a for a in all_artifacts if a.id in size_metrics_map]
+
+    # Filter out SKIPPED artifacts (user didn't request size analysis)
+    evaluated_artifacts = [
+        a
+        for a in evaluated_artifacts
+        if not _is_artifact_size_skipped(size_metrics_map.get(a.id, []))
+    ]
+
+    triggered_rules: list[TriggeredRule] = []
+    if not evaluated_artifacts:
+        title, subtitle, summary = format_all_skipped_messages(project)
+        return SizeEvaluation(
+            StatusCheckStatus.NEUTRAL,
+            triggered_rules,
+            title,
+            subtitle,
+            summary,
+            evaluated_artifacts,
+        )
+
+    # Check if any artifact hit quota limits - show neutral status with quota message
+    if _has_no_quota_artifact(evaluated_artifacts, size_metrics_map):
+        title, subtitle, summary = format_no_quota_messages()
+        return SizeEvaluation(
+            StatusCheckStatus.NEUTRAL,
+            triggered_rules,
+            title,
+            subtitle,
+            summary,
+            evaluated_artifacts,
+        )
+
+    base_artifact_map, base_size_metrics_map = _fetch_base_size_metrics(evaluated_artifacts)
+
+    status, triggered_rules = _compute_overall_status(
+        evaluated_artifacts,
+        size_metrics_map,
+        rules=rules,
+        base_artifact_map=base_artifact_map,
+        base_metrics_by_artifact=base_size_metrics_map,
+        approvals_map=approvals_map,
+    )
+
+    title, subtitle, summary = format_status_check_messages(
+        evaluated_artifacts,
+        size_metrics_map,
+        status,
+        project,
+        base_artifact_map,
+        base_size_metrics_map,
+        triggered_rules,
+    )
+
+    # When no rules are configured, always show neutral status.
+    # When rules exist, show actual status (in_progress, failure, success).
+    if not rules:
+        status = StatusCheckStatus.NEUTRAL
+
+    return SizeEvaluation(status, triggered_rules, title, subtitle, summary, evaluated_artifacts)
+
+
 @instrumented_task(
     name="sentry.preprod.tasks.create_preprod_status_check",
     namespace=preprod_tasks,
@@ -194,106 +306,47 @@ def create_preprod_status_check_task(
         )
         return
 
-    size_metrics_map: dict[int, list[PreprodArtifactSizeMetrics]] = {}
-    approvals_map: dict[int, PreprodComparisonApproval] = {}
-    if all_artifacts:
-        artifact_ids = [artifact.id for artifact in all_artifacts]
-        size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-            preprod_artifact_id__in=artifact_ids,
-        ).select_related("preprod_artifact")
+    rules = get_status_check_rules(preprod_artifact.project)
+    evaluation = evaluate_size_and_format_messages(preprod_artifact.project, all_artifacts, rules)
 
-        for metrics in size_metrics_qs:
-            if metrics.preprod_artifact_id not in size_metrics_map:
-                size_metrics_map[metrics.preprod_artifact_id] = []
-            size_metrics_map[metrics.preprod_artifact_id].append(metrics)
-
-        approval_qs = PreprodComparisonApproval.objects.filter(
-            preprod_artifact_id__in=artifact_ids,
-            preprod_feature_type=PreprodComparisonApproval.FeatureType.SIZE,
-            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
-        )
-        for approval in approval_qs:
-            approvals_map[approval.preprod_artifact_id] = approval
-
-    # Filter out artifacts not in the size analysis pipeline (e.g., snapshot-only artifacts).
-    # Symmetric with snapshots/tasks.py which filters to snapshot-only artifacts.
-    all_artifacts = [a for a in all_artifacts if a.id in size_metrics_map]
-
-    # Filter out SKIPPED artifacts (user didn't request size analysis)
-    all_artifacts = [
-        a for a in all_artifacts if not _is_artifact_size_skipped(size_metrics_map.get(a.id, []))
-    ]
-    if not all_artifacts:
+    if not evaluation.evaluated_artifacts:
         logger.info(
             "preprod.status_checks.create.all_skipped",
             extra={"preprod_artifact_id": preprod_artifact.id},
         )
-        title, subtitle, summary = format_all_skipped_messages(preprod_artifact.project)
-        status = StatusCheckStatus.NEUTRAL
-        completed_at = preprod_artifact.date_updated
         target_url = get_preprod_artifact_url(preprod_artifact)
-        triggered_rules: list[TriggeredRule] = []
     else:
         url_artifact = (
             preprod_artifact
-            if preprod_artifact.id in {a.id for a in all_artifacts}
-            else all_artifacts[0]
+            if preprod_artifact.id in {a.id for a in evaluation.evaluated_artifacts}
+            else evaluation.evaluated_artifacts[0]
         )
         target_url = get_preprod_artifact_url(url_artifact)
-        completed_at = None
 
-        # Check if any artifact hit quota limits - show neutral status with quota message
-        if _has_no_quota_artifact(all_artifacts, size_metrics_map):
-            title, subtitle, summary = format_no_quota_messages()
-            status = StatusCheckStatus.NEUTRAL
-            completed_at = preprod_artifact.date_updated
-            triggered_rules = []
-        else:
-            rules = get_status_check_rules(preprod_artifact.project)
-            base_artifact_map, base_size_metrics_map = _fetch_base_size_metrics(all_artifacts)
-
-            status, triggered_rules = _compute_overall_status(
-                all_artifacts,
-                size_metrics_map,
-                rules=rules,
-                base_artifact_map=base_artifact_map,
-                base_metrics_by_artifact=base_size_metrics_map,
-                approvals_map=approvals_map,
-            )
-
-            title, subtitle, summary = format_status_check_messages(
-                all_artifacts,
-                size_metrics_map,
-                status,
-                preprod_artifact.project,
-                base_artifact_map,
-                base_size_metrics_map,
-                triggered_rules,
-            )
-
-            if GITHUB_STATUS_CHECK_STATUS_MAPPING[status] == GitHubCheckStatus.COMPLETED:
-                completed_at = preprod_artifact.date_updated
-
-            # When no rules are configured, always show neutral status.
-            # When rules exist, show actual status (in_progress, failure, success).
-            if not rules:
-                status = StatusCheckStatus.NEUTRAL
-                completed_at = preprod_artifact.date_updated
+    # NEUTRAL (all-skipped, no-quota, no-rules) and terminal states map to a
+    # COMPLETED GitHub check, so completed_at is derived from the final status.
+    completed_at = (
+        preprod_artifact.date_updated
+        if GITHUB_STATUS_CHECK_STATUS_MAPPING[evaluation.status] == GitHubCheckStatus.COMPLETED
+        else None
+    )
 
     try:
         check_id = provider.create_status_check(
             repo=commit_comparison.head_repo_name,
             sha=commit_comparison.head_sha,
-            status=status,
-            title=title,
-            subtitle=subtitle,
+            status=evaluation.status,
+            title=evaluation.title,
+            subtitle=evaluation.subtitle,
             text=None,  # TODO(telkins): add text field support
-            summary=summary,
+            summary=evaluation.summary,
             external_id=str(preprod_artifact.id),
             target_url=target_url,
             started_at=preprod_artifact.date_added,
             completed_at=completed_at,
-            approve_action_identifier=APPROVE_SIZE_ACTION_IDENTIFIER if triggered_rules else None,
+            approve_action_identifier=(
+                APPROVE_SIZE_ACTION_IDENTIFIER if evaluation.triggered_rules else None
+            ),
         )
     except Exception as e:
         extra: dict[str, Any] = {
@@ -326,7 +379,7 @@ def create_preprod_status_check_task(
 
     update_posted_status_check(preprod_artifact, check_type="size", success=True, check_id=check_id)
 
-    if triggered_rules:
+    if evaluation.triggered_rules:
         sentry_analytics.record(
             PreprodStatusCheckTriggeredRulePostedEvent(
                 organization_id=preprod_artifact.project.organization_id,
@@ -340,7 +393,7 @@ def create_preprod_status_check_task(
         "preprod.status_checks.create.success",
         extra={
             "preprod_artifact_id": preprod_artifact.id,
-            "status": status.value,
+            "status": evaluation.status.value,
             "check_id": check_id,
             "organization_id": preprod_artifact.project.organization_id,
             "organization_slug": preprod_artifact.project.organization.slug,

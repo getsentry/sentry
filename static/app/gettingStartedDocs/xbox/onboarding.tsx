@@ -1,6 +1,7 @@
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
+import {docsFlowGamingOrigin} from 'sentry/components/onboarding/gettingStartedDoc/docsFlowAnalytics';
 import {
   StepType,
   type OnboardingConfig,
@@ -47,7 +48,7 @@ export const onboarding: OnboardingConfig = {
               gamingPlatform="xbox"
               organization={params.organization}
               projectId={params.project.id}
-              origin={params.newOrg ? 'onboarding' : 'project-creation'}
+              origin={docsFlowGamingOrigin(params.docsFlow)}
             />
           ),
         },

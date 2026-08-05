@@ -154,15 +154,15 @@ describe('ReplayClipPreview', () => {
     expect(screen.getByTestId('replay-loading-placeholder')).toBeInTheDocument();
   });
 
-  it('Should throw error when there is a fetch error', () => {
+  it('Should throw an error when server did not find the replay', () => {
     // Change the mocked hook to return a fetch error
     mockUseLoadReplayReader.mockImplementationOnce(() => {
       return {
         attachmentError: undefined,
         attachments: [],
         errors: [],
-        fetchError: new RequestError('GET', '/replay/', new Error('bad request'), {
-          status: 400,
+        fetchError: new RequestError('GET', '/replay/', new Error('server error'), {
+          status: 500,
         } as ResponseMeta),
         isError: true,
         isPending: false,
@@ -178,6 +178,45 @@ describe('ReplayClipPreview', () => {
     render(<ReplayClipPreview {...defaultProps} />);
 
     expect(screen.getByTestId('replay-error')).toBeVisible();
+    expect(
+      screen.getByText('There was an error loading the replay.')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
+  });
+
+  it('Should show a missing replay alert for 404 fetch errors', () => {
+    mockUseLoadReplayReader.mockImplementationOnce(() => {
+      return {
+        attachmentError: undefined,
+        attachments: [],
+        errors: [],
+        fetchError: new RequestError('GET', '/replay/', new Error('not found'), {
+          status: 404,
+        } as ResponseMeta),
+        isError: true,
+        isPending: false,
+        onRetry: jest.fn(),
+        projectSlug: ProjectFixture().slug,
+        replay: null,
+        replayId: mockReplayId,
+        replayRecord: ReplayRecordFixture(),
+        status: 'error' as const,
+      };
+    });
+
+    render(<ReplayClipPreview {...defaultProps} />);
+
+    expect(
+      screen.getByText(/A replay isn't available for this event/)
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'check your replay usage'})).toHaveAttribute(
+      'href',
+      `/settings/${mockOrgSlug}/stats/?dataCategory=replays`
+    );
+    expect(
+      screen.queryByText('There was an error loading the replay.')
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
   });
 
   it('Should throw throttled error when fetch returns 429', () => {

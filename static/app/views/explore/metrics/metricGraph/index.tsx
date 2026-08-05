@@ -63,7 +63,7 @@ export function getMetricsChartTypeOptions(
       ...EXPLORE_CHART_TYPE_OPTIONS,
       {
         value: ChartType.HEATMAP,
-        label: t('Heat Map'),
+        label: t('Heatmap'),
         disabled: defined(disabledReason),
         tooltip: disabledReason,
       },
@@ -77,13 +77,13 @@ function getVisualizationTypeDisabledReason(
   metric?: TraceMetric
 ): string | undefined {
   if (isEquation) {
-    return t('Heat maps are not available for equations.');
+    return t('Heatmaps are not available for equations.');
   }
   if (!metric) {
-    return t('Select a metric to visualize it as a heat map.');
+    return t('Select a metric to visualize it as a heatmap.');
   }
   if (!doesMetricSupportHeatMapVisualization(metric)) {
-    return t('Heat maps can only visualize distribution metrics.');
+    return t('Heatmaps can only visualize distribution metrics.');
   }
   return undefined;
 }

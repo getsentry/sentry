@@ -68,13 +68,11 @@ EXPOSABLE_FEATURES = [
     "organizations:view-hierarchy-scrubbing",
     "organizations:performance-issues-spans",
     "organizations:relay-playstation-ingestion",
-    "projects:span-v2-experimental-processing",
     "projects:span-v2-attachment-processing",
     "projects:trace-attachment-processing",
-    "projects:relay-minidump-attachment-uploads",
     "projects:relay-minidump-uploads",
     "projects:relay-playstation-uploads",
-    "projects:minidump-multi-exception",
+    "projects:relay-upload-multipart",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -936,10 +934,12 @@ def _get_project_config(
             config["downsampledEventRetention"] = downsampled_event_retention
     with start_span(op="get_retentions", name="get_retentions"):
         retentions = quotas.backend.get_retentions(project.organization)
+        # Iterate the mapping (not the backend's dict) so that wire-name
+        # collisions resolve deterministically: the last mapping wins.
         retentions_config = {
-            RETENTIONS_CONFIG_MAPPING[c]: v.to_object()
-            for c, v in retentions.items()
-            if c in RETENTIONS_CONFIG_MAPPING
+            name: retentions[c].to_object()
+            for c, name in RETENTIONS_CONFIG_MAPPING.items()
+            if c in retentions
         }
         if retentions_config:
             config["retentions"] = retentions_config
@@ -1117,8 +1117,10 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
 
 
 def _should_extract_transaction_metrics(project: Project) -> bool:
-    return features.has(
-        "organizations:transaction-metrics-extraction", project.organization
-    ) and not killswitches.killswitch_matches_context(
-        "relay.drop-transaction-metrics", {"project_id": project.id}
+    return (
+        features.has("organizations:transaction-metrics-extraction", project.organization)
+        and not options.get("relay.drop-transaction-metrics2")
+        and not killswitches.killswitch_matches_context(
+            "relay.drop-transaction-metrics", {"project_id": project.id}
+        )
     )

@@ -271,12 +271,15 @@ class ScheduleWebhooksTest(TestCase):
 
 
 def create_payloads(num: int, mailbox: str, provider: str | None = None) -> list[WebhookPayload]:
+    # Keep path aligned with provider so responses mocks aren't misleading.
+    request_path = f"/extensions/{provider}/webhook/" if provider else "/extensions/github/webhook/"
     created = []
     for _ in range(0, num):
         hook = Factories.create_webhook_payload(
             mailbox_name=mailbox,
             cell_name="us",
             provider=provider,
+            request_path=request_path,
         )
         created.append(hook)
     return created
@@ -327,7 +330,7 @@ class DrainMailboxTest(TestCase):
     @responses.activate
     @override_cells(cell_config)
     def test_drain_stops_on_failure_for_non_allowlisted_provider(self) -> None:
-        url = "http://us.testserver/extensions/github/webhook/"
+        url = "http://us.testserver/extensions/jira/webhook/"
         responses.add(responses.POST, url, status=200, body="")
         responses.add(responses.POST, url, status=500, body="")
         records = create_payloads(5, "jira:123", provider="jira")
@@ -622,17 +625,62 @@ class DrainMailboxParallelTest(TestCase):
             status=500,
             body="",
         )
+        # provider=None is not in the skip-on-failure allowlist.
         records = create_payloads(5, "github:123")
         drain_mailbox_parallel(records[0].id)
 
         worker_threads = options.get("hybridcloud.webhookpayload.worker_threads")
-        # We'll attempt one thread batch, but the second+ will fail
+        # We'll attempt one thread batch, but the second+ will fail and stop the drain.
         assert len(responses.calls) == worker_threads
 
         # Mailbox should have 4 records left
         assert WebhookPayload.objects.count() == 4
 
         # Remaining record should be scheduled to run later.
+        first = WebhookPayload.objects.order_by("id").first()
+        assert first
+        assert first.attempts == 1
+        assert first.schedule_for > timezone.now()
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_skip_on_failure_for_allowlisted_provider(self) -> None:
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        responses.add(responses.POST, url, status=500, body="")
+        responses.add(responses.POST, url, status=200, body="")
+        responses.add(responses.POST, url, status=200, body="")
+        responses.add(responses.POST, url, status=200, body="")
+        records = create_payloads(5, "github:123", provider="github")
+        drain_mailbox_parallel(records[0].id)
+
+        # github is in the skip-on-failure allowlist: failed messages are skipped
+        # and processing continues across parallel batches.
+        assert len(responses.calls) == 5
+
+        # Only the failed message remains in the mailbox.
+        assert WebhookPayload.objects.count() == 1
+
+        first = WebhookPayload.objects.order_by("id").first()
+        assert first
+        assert first.attempts == 1
+        assert first.schedule_for > timezone.now()
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_stops_on_failure_for_non_allowlisted_provider(self) -> None:
+        url = "http://us.testserver/extensions/jira/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        responses.add(responses.POST, url, status=500, body="")
+        records = create_payloads(5, "jira:123", provider="jira")
+        drain_mailbox_parallel(records[0].id)
+
+        worker_threads = options.get("hybridcloud.webhookpayload.worker_threads")
+        # jira is not in the allowlist: processing stops after the first batch
+        # that encounters a retryable failure.
+        assert len(responses.calls) == worker_threads
+        assert WebhookPayload.objects.count() == 4
+
         first = WebhookPayload.objects.order_by("id").first()
         assert first
         assert first.attempts == 1

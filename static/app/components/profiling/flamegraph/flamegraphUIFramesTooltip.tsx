@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import {Fragment, useMemo} from 'react';
 import type {vec2} from 'gl-matrix';
 

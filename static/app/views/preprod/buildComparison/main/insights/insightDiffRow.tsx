@@ -2,7 +2,7 @@ import {useMemo, useState} from 'react';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {IconChevron} from 'sentry/icons';
@@ -58,9 +58,9 @@ export function InsightDiffRow({
 
   return (
     <Container background="primary" radius="lg" padding="0" border="primary">
-      <Flex direction="column" gap="0">
+      <Stack gap="0">
         <Flex align="center" justify="between" padding="xl">
-          <Flex direction="column" gap="xs" flex={1}>
+          <Stack gap="xs" flex={1}>
             <Flex align="center" gap="sm" justify="between">
               <Flex align="center" gap="sm">
                 <Heading as="h3">{config.name}</Heading>
@@ -82,7 +82,7 @@ export function InsightDiffRow({
               </Flex>
 
               <Flex align="center" gap="sm">
-                <Flex direction="column" align="end" gap="xs">
+                <Stack align="end" gap="xs">
                   <Text>
                     {t(
                       'Potential savings: %s',
@@ -95,7 +95,7 @@ export function InsightDiffRow({
                       {totalSavingsChangePercentage}%)
                     </Text>
                   </Text>
-                </Flex>
+                </Stack>
                 <Button
                   variant="transparent"
                   size="sm"
@@ -115,10 +115,10 @@ export function InsightDiffRow({
             <Text size="sm" variant="muted">
               {config.description}
             </Text>
-          </Flex>
+          </Stack>
         </Flex>
         {isExpanded ? children : null}
-      </Flex>
+      </Stack>
     </Container>
   );
 }

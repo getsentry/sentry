@@ -43,10 +43,7 @@ export const enum SectionKey {
   HYDRATION_DIFF = 'hydration-diff',
   REPLAY = 'replay',
 
-  HPKP = 'hpkp',
   CSP = 'csp',
-  EXPECTCT = 'expectct',
-  EXPECTSTAPLE = 'expectstaple',
   TEMPLATE = 'template',
 
   BREADCRUMBS = 'breadcrumbs',
@@ -57,6 +54,7 @@ export const enum SectionKey {
    * Also called images loaded
    */
   DEBUGMETA = 'debugmeta',
+  PROGUARD = 'proguard',
   REQUEST = 'request',
 
   TAGS = 'tags',

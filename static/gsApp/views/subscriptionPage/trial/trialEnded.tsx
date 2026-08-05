@@ -9,6 +9,7 @@ import {showIntercom} from 'sentry/utils/intercom';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {Subscription} from 'getsentry/types';
+import {isTrial} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 type Props = {
@@ -20,7 +21,7 @@ export function TrialEnded({subscription}: Props) {
   const canRequestTrial =
     subscription.canSelfServe && subscription.planDetails?.trialPlan;
   const shouldRender = !(
-    subscription.isTrial ||
+    isTrial(subscription) ||
     subscription.canTrial ||
     !canRequestTrial
   );

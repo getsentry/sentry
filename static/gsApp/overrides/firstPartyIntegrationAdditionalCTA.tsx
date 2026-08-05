@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import {Flex} from '@sentry/scraps/layout';
 
 import type {Integration} from 'sentry/types/integrations';

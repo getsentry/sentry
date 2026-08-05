@@ -12,7 +12,11 @@ type AttributeDistributionData = Record<string, Array<{label: string; value: num
 
 type AttributeBreakdowns = {
   data: Array<{
-    attribute_distributions: {
+    // Read both keys during the backend rename rollout (attribute_distributions -> attributeDistributions).
+    attributeDistributions?: {
+      data: AttributeDistributionData;
+    };
+    attribute_distributions?: {
       data: AttributeDistributionData;
     };
   }>;
@@ -68,7 +72,9 @@ export function useAttributeBreakdowns({
   });
 
   return {
-    data: response?.json?.data[0]?.attribute_distributions?.data,
+    data:
+      response?.json?.data[0]?.attributeDistributions?.data ??
+      response?.json?.data[0]?.attribute_distributions?.data,
     isLoading,
     error,
     pageLinks: response?.headers.Link ?? null,

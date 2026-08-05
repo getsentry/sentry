@@ -103,3 +103,30 @@ class FormatPrCommentTest(TestCase):
     def test_empty_list_raises(self) -> None:
         with pytest.raises(ValueError, match="No installable artifacts"):
             format_pr_comment([], project=self.project)
+
+    def test_untrusted_fields_are_escaped(self) -> None:
+        self.build_config.name = "Release [x](https://sentry.io)"
+        self.build_config.save()
+        artifact = self._create_artifact(
+            app_id="com.example|evil",
+            app_name="App](https://sentry.io) [",
+        )
+
+        result = format_pr_comment([artifact], project=self.project)
+
+        assert "App](" not in result
+        assert "App\\](https://sentry.io) \\[" in result
+        # A pipe in app_id would otherwise open a new table column.
+        assert "com.example\\|evil" in result
+        assert "[x](https://sentry.io)" not in result
+        assert "Release \\[x\\](https://sentry.io)" in result
+
+    def test_benign_fields_not_mangled(self) -> None:
+        artifact = self._create_artifact(app_name="My Cool App")
+
+        result = format_pr_comment([artifact], project=self.project)
+
+        assert "[My Cool App](" in result
+        assert "com.example.app" in result
+        assert "1.2.3 (456)" in result
+        assert "Release" in result

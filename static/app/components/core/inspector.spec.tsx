@@ -9,13 +9,6 @@ import {SentryComponentInspector, serializeTraceForLLM} from './inspector';
 
 jest.mock('sentry/constants');
 
-// We need to mock this as require.context is not available
-jest.mock('sentry/stories/view/useStoriesLoader', () => {
-  return {
-    useStoryBookFiles: jest.fn(() => []),
-  };
-});
-
 describe('SentryComponentInspector', () => {
   it.each([
     ['development', true],

@@ -2,7 +2,6 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
-import debounce from 'lodash/debounce';
 import startCase from 'lodash/startCase';
 
 import {DocIntegrationAvatar, SentryAppAvatar} from '@sentry/scraps/avatar';
@@ -31,7 +30,6 @@ import type {
   SentryApp,
   SentryAppInstallation,
 } from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {uniq} from 'sentry/utils/array/uniq';
 import {
@@ -62,20 +60,35 @@ const FirstPartyIntegrationAlert = OverrideOrDefault({
   defaultComponent: () => null,
 });
 
+const WEBHOOK_ROW_CATEGORIES = ['notification action'];
+
 /**
- * Debounce the tracking of integration search events to avoid spamming the
- * analytics endpoint.
+ * Everything the directory renders for a search: the matching integrations
+ * plus the synthetic legacy webhook row. Search analytics report numResults
+ * so the count must stay in sync with what is shown.
  */
-const TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS = 1000;
-const debouncedTrackIntegrationSearch = debounce(
-  (props: {num_results: number; organization: Organization; search_term: string}) => {
-    trackIntegrationAnalytics('integrations.directory_item_searched', {
-      view: 'integrations_directory',
-      ...props,
-    });
-  },
-  TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS
-);
+function getDisplayedResults(
+  list: AppOrProviderOrPlugin[],
+  search: string,
+  category: string,
+  hasLegacyWebhooks: boolean
+) {
+  const term = search.toLowerCase();
+  const matches = list.filter(
+    integration =>
+      integration.name.toLowerCase().includes(term) &&
+      (!category || getCategoriesForIntegration(integration).includes(category))
+  );
+  const showLegacyWebhookRow =
+    hasLegacyWebhooks &&
+    t('Webhooks (Legacy)').toLowerCase().includes(term) &&
+    (!category || WEBHOOK_ROW_CATEGORIES.includes(category));
+  return {
+    matches,
+    showLegacyWebhookRow,
+    numResults: matches.length + (showLegacyWebhookRow ? 1 : 0),
+  };
+}
 
 function useIntegrationList() {
   const queryOptions = {staleTime: 0};
@@ -221,34 +234,19 @@ export default function IntegrationListDirectory() {
   const category = decodeScalar(location.query.category) ?? '';
   const search = decodeScalar(location.query.search) ?? '';
 
-  const webhookName = t('Webhooks (Legacy)');
-  const webhookCategories = ['notification action'];
-  const showLegacyWebhookRow =
-    !!legacyWebhooks &&
-    (!search || webhookName.toLowerCase().includes(search.toLowerCase())) &&
-    (!category || webhookCategories.includes(category));
+  const legacyWebhookProjectCount = legacyWebhooks?.projects?.length ?? 0;
 
-  const displayList = useMemo(() => {
-    let listToDisplay = [...list];
-
-    if (search) {
-      listToDisplay = list.filter(integration =>
-        integration.name.toLowerCase().includes(search.toLowerCase())
-      );
-    }
-
-    if (category) {
-      listToDisplay = listToDisplay.filter(integration =>
-        getCategoriesForIntegration(integration).includes(category)
-      );
-    }
-
-    return sortIntegrations({
-      list: listToDisplay,
-      sentryAppInstalls: appInstalls,
-      integrationInstalls: integrations,
-    });
-  }, [list, appInstalls, integrations, category, search]);
+  const {displayList, showLegacyWebhookRow} = useMemo(() => {
+    const results = getDisplayedResults(list, search, category, !!legacyWebhooks);
+    return {
+      displayList: sortIntegrations({
+        list: results.matches,
+        sentryAppInstalls: appInstalls,
+        integrationInstalls: integrations,
+      }),
+      showLegacyWebhookRow: results.showLegacyWebhookRow,
+    };
+  }, [list, search, category, legacyWebhooks, appInstalls, integrations]);
 
   const getAppInstall = useCallback(
     (app: SentryApp) => appInstalls.find(i => i.app.slug === app.slug),
@@ -283,14 +281,16 @@ export default function IntegrationListDirectory() {
         {replace: true}
       );
       if (newSearch) {
-        debouncedTrackIntegrationSearch({
+        trackIntegrationAnalytics('integrations.directory_item_searched', {
+          view: 'integrations_directory',
           search_term: newSearch,
-          num_results: list.length,
+          num_results: getDisplayedResults(list, newSearch, category, !!legacyWebhooks)
+            .numResults,
           organization,
         });
       }
     },
-    [location, navigate, organization, list.length]
+    [location, navigate, organization, list, category, legacyWebhooks]
   );
 
   /**
@@ -456,12 +456,10 @@ export default function IntegrationListDirectory() {
                       type="firstParty"
                       slug="legacy-webhooks"
                       displayName={t('Webhooks (Legacy)')}
-                      status={
-                        legacyWebhooks.projects?.length ? 'Installed' : 'Not Installed'
-                      }
+                      status={legacyWebhookProjectCount ? 'Installed' : 'Not Installed'}
                       publishStatus="published"
-                      configurations={legacyWebhooks.projects?.length ?? 0}
-                      categories={webhookCategories}
+                      configurations={legacyWebhookProjectCount}
+                      categories={WEBHOOK_ROW_CATEGORIES}
                       customIcon={<PluginIcon pluginId="webhooks" size={36} />}
                     />
                   )}

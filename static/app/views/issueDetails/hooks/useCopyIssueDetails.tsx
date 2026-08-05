@@ -54,7 +54,7 @@ function formatStacktraceToMarkdown(stacktrace: StacktraceType): string {
   const frames = stacktrace.frames?.slice(-maxFrames) ?? [];
 
   // Display frames in reverse order (most recent call first)
-  [...frames].reverse().forEach(frame => {
+  frames.toReversed().forEach(frame => {
     const function_name = frame.function || 'Unknown function';
     const filename = frame.filename || 'unknown file';
     const lineInfo =
@@ -340,7 +340,7 @@ export const issueAndEventToMarkdown = ({
 export const useCopyIssueDetails = (group: Group, event?: Event) => {
   const organization = useOrganization();
 
-  const {runState: autofixData} = useExplorerAutofix(group.id, {enabled: false});
+  const {runState: autofixData} = useExplorerAutofix(group, {enabled: false});
   const activeThreadId = useActiveThreadId();
 
   const text = useMemo(() => {

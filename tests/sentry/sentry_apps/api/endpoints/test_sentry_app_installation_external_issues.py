@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 
+from sentry.models.organization import Organization
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
@@ -75,6 +76,26 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
         )
 
         assert response.status_code == 404
+
+    def test_member_without_project_access(self) -> None:
+        self._set_up_sentry_app("Testin", ["event:write"])
+        with assume_test_silo_mode_of(Organization):
+            self.org.flags.allow_joinleave = False
+            self.org.save()
+
+        member_team = self.create_team(organization=self.org)
+        self.create_project(organization=self.org, teams=[member_team])
+        restricted_member = self.create_user(email="restricted@example.com")
+        self.create_member(
+            organization=self.org, user=restricted_member, role="member", teams=[member_team]
+        )
+        self.login_as(restricted_member)
+
+        response = self.client.post(self.url, data=self._post_data())
+
+        assert response.status_code == 403
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            assert not PlatformExternalIssue.objects.exists()
 
     def test_invalid_scopes(self) -> None:
         self._set_up_sentry_app("Testin", ["project:read"])

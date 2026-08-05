@@ -112,6 +112,7 @@ from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.services.eventstore.reprocessing import reprocessing_store
+from sentry.services.eventstore.reprocessing.base import ReprocessingInfo
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.occurrences_rpc import OccurrenceCategory
 from sentry.snuba.referrer import Referrer
@@ -197,7 +198,7 @@ def pull_event_data(project_id: int, event_id: str) -> ReprocessableEvent:
     if data is None:
         raise CannotReprocess("unprocessed_event.not_found")
 
-    required_attachment_types = get_required_attachment_types(data)
+    required_attachment_types = set(get_required_attachment_types(data))
     attachments = list(
         EventAttachment.objects.filter(
             project_id=project_id, event_id=event_id, type__in=list(required_attachment_types)
@@ -435,7 +436,9 @@ def _maybe_copy_attachment_into_cache(
         # move the attachment into objectstore and update the record
         with attachment.getfile() as fp:
             stored_id = get_attachments_session(project.organization_id, project.id).put(
-                fp, expiration_policy=TimeToLive(timedelta(days=retention_days))
+                fp,
+                filename=attachment.name,
+                expiration_policy=TimeToLive(timedelta(days=retention_days)),
             )
         attachment.blob_path = V2_PREFIX + stored_id
         attachment.save()
@@ -722,7 +725,9 @@ def is_group_finished(group_id: int) -> bool:
     return pending <= 0
 
 
-def get_progress(group_id: int, project_id: int | None = None) -> tuple[int, Any | None]:
+def get_progress(
+    group_id: int, project_id: int | None = None
+) -> tuple[int, ReprocessingInfo | None]:
     pending, ttl = reprocessing_store.get_pending(group_id)
     info = reprocessing_store.get_progress(group_id)
     if pending is None:

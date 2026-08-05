@@ -4,15 +4,14 @@ import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 
-const METRIC_DETECTOR_SUPPORTED_ACTIONS = new Set<ActionType>([
-  ActionType.EMAIL,
-  ActionType.SLACK,
-  ActionType.SLACK_STAGING,
-  ActionType.MSTEAMS,
-  ActionType.PAGERDUTY,
-  ActionType.OPSGENIE,
-  ActionType.DISCORD,
-  ActionType.SENTRY_APP,
+// Ticketing actions deliver via the issue-alert (create-a-ticket) path, which is
+// not wired up for metric issues. Every other action type fires for metric issues.
+const METRIC_DETECTOR_UNSUPPORTED_ACTIONS = new Set<ActionType>([
+  ActionType.GITHUB,
+  ActionType.GITHUB_ENTERPRISE,
+  ActionType.JIRA,
+  ActionType.JIRA_SERVER,
+  ActionType.AZURE_DEVOPS,
 ]);
 
 const SEER_ACTIVITY_SUPPORTED_ACTIONS = new Set<ActionType>([
@@ -48,7 +47,7 @@ export function getIncompatibleActionWarnings(
   }
 
   if (
-    !METRIC_DETECTOR_SUPPORTED_ACTIONS.has(action.type) &&
+    METRIC_DETECTOR_UNSUPPORTED_ACTIONS.has(action.type) &&
     connectedDetectors.some(detector => detector.type === 'metric_issue')
   ) {
     warnings.push(t('This action will not fire for metric issues.'));
