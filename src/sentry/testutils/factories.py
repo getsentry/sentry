@@ -82,15 +82,20 @@ from sentry.integrations.utils.hostname import instance_hostname
 from sentry.investigations.models import (
     Investigation,
     InvestigationBlock,
+    InvestigationBlockComment,
     InvestigationBlockDependency,
     InvestigationBlockExecution,
     InvestigationBlockExecutionProject,
     InvestigationBlockParameter,
+    InvestigationBlockReaction,
     InvestigationCell,
     InvestigationCellDependency,
     InvestigationCellExecution,
     InvestigationCellExecutionProject,
     InvestigationCellParameter,
+    InvestigationCommentReaction,
+    InvestigationCommentTeamMention,
+    InvestigationCommentUserMention,
     InvestigationFavoriteUser,
     InvestigationParameter,
     InvestigationPermissions,
@@ -523,6 +528,35 @@ class Factories:
         return InvestigationBlockExecutionProject.objects.create(
             execution=execution, project=project
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_block_comment(block, author=None, **kwargs):
+        return InvestigationBlockComment.objects.create(
+            block=block, author_id=author.id if author else None, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_block_reaction(block, user, **kwargs):
+        return InvestigationBlockReaction.objects.create(block=block, user_id=user.id, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_comment_reaction(comment, user, **kwargs):
+        return InvestigationCommentReaction.objects.create(
+            comment=comment, user_id=user.id, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_comment_user_mention(comment, user):
+        return InvestigationCommentUserMention.objects.create(comment=comment, user_id=user.id)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_comment_team_mention(comment, team):
+        return InvestigationCommentTeamMention.objects.create(comment=comment, team=team)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
