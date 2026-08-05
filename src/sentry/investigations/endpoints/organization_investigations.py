@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from django.db.models import Count, Exists, OuterRef, Q
+from django.db.models import Count, Exists, OuterRef, Q, QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
@@ -19,7 +19,9 @@ from sentry.api.paginator import DateTimePaginator
 from sentry.investigations.models import (
     Investigation,
     InvestigationBlock,
+    InvestigationBlockComment,
     InvestigationFavoriteUser,
+    InvestigationReaction,
     InvestigationSourceType,
     InvestigationStatus,
 )
@@ -32,13 +34,16 @@ from sentry.investigations.serializers import (
     BlockDeleteSerializer,
     BlockOrderSerializer,
     BlockUpdateSerializer,
+    CommentSerializer,
     FavoriteUpdateSerializer,
     InvestigationCreateSerializer,
     InvestigationDeleteSerializer,
     InvestigationUpdateSerializer,
     ParameterValuesSerializer,
     PermissionsUpdateSerializer,
+    comments_with_serialization_data,
     serialize_block,
+    serialize_comment,
     serialize_investigation_detail,
     serialize_investigation_list,
     serialize_permissions,
@@ -49,15 +54,21 @@ from sentry.investigations.services import (
     InvestigationValidationError,
     archive_investigation,
     create_block,
+    create_comment,
     create_manual_investigation,
     create_template_investigation,
     delete_block,
+    delete_comment,
     duplicate_investigation,
     reorder_blocks,
+    set_block_reaction,
+    set_comment_reaction,
     update_block,
+    update_comment,
     update_investigation,
     update_parameter_values,
     update_permissions,
+    validate_mentions,
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -218,6 +229,30 @@ class OrganizationInvestigationBlockBase(OrganizationInvestigationBase):
         return args, kwargs
 
 
+class OrganizationInvestigationCommentBase(OrganizationInvestigationBase):
+    collaboration_endpoint = True
+
+    def convert_args(
+        self,
+        request: Request,
+        organization_id_or_slug: str | int,
+        investigation_id: str,
+        comment_id: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        args, kwargs = super().convert_args(
+            request, organization_id_or_slug, investigation_id, *args, **kwargs
+        )
+        try:
+            kwargs["comment"] = InvestigationBlockComment.objects.select_related(
+                "block__investigation"
+            ).get(id=comment_id, block__investigation=kwargs["investigation"])
+        except (InvestigationBlockComment.DoesNotExist, ValueError):
+            raise ResourceDoesNotExist
+        return args, kwargs
+
+
 @extend_schema(tags=["Investigations"])
 @cell_silo_endpoint
 class OrganizationInvestigationsEndpoint(OrganizationEndpoint):
@@ -324,6 +359,197 @@ class OrganizationInvestigationsEndpoint(OrganizationEndpoint):
             ),
             status=status.HTTP_201_CREATED,
         )
+
+
+@extend_schema(tags=["Investigations"])
+@cell_silo_endpoint
+class OrganizationInvestigationCommentsEndpoint(OrganizationInvestigationBlockBase):
+    collaboration_endpoint = True
+    publish_status = {"GET": ApiPublishStatus.PRIVATE, "POST": ApiPublishStatus.PRIVATE}
+
+    def get(
+        self,
+        request: Request,
+        organization: Organization,
+        investigation: Investigation,
+        block: InvestigationBlock,
+    ) -> Response:
+        comments: QuerySet[InvestigationBlockComment] = comments_with_serialization_data(
+            InvestigationBlockComment.objects.filter(block=block)
+        )
+        return self.paginate(
+            request=request,
+            queryset=comments,
+            paginator_cls=DateTimePaginator,
+            order_by="date_added",
+            on_results=lambda values: [
+                serialize_comment(value, user_id=_user_id(request)) for value in values
+            ],
+        )
+
+    def post(
+        self,
+        request: Request,
+        organization: Organization,
+        investigation: Investigation,
+        block: InvestigationBlock,
+    ) -> Response:
+        author_id = _require_authenticated_user(request)
+        serializer = CommentSerializer(data=request.data, context={"organization": organization})
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user_ids, team_ids = validate_mentions(
+                organization=organization,
+                mentions=serializer.validated_data.get("mentions", []),
+            )
+            comment = create_comment(
+                block=block,
+                author_id=author_id,
+                body=serializer.validated_data["body"],
+                user_ids=user_ids,
+                team_ids=team_ids,
+            )
+        except Exception as error:
+            response = _service_error(error)
+            if response is not None:
+                return response
+            raise
+        return Response(
+            serialize_comment(comment, user_id=_user_id(request)),
+            status=status.HTTP_201_CREATED,
+        )
+
+
+@extend_schema(tags=["Investigations"])
+@cell_silo_endpoint
+class OrganizationInvestigationCommentDetailsEndpoint(OrganizationInvestigationCommentBase):
+    publish_status = {"PUT": ApiPublishStatus.PRIVATE, "DELETE": ApiPublishStatus.PRIVATE}
+
+    def put(
+        self,
+        request: Request,
+        organization: Organization,
+        investigation: Investigation,
+        comment: InvestigationBlockComment,
+    ) -> Response:
+        _require_authenticated_user(request)
+        if comment.author_id != _user_id(request):
+            raise PermissionDenied
+        serializer = CommentSerializer(data=request.data, context={"organization": organization})
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user_ids, team_ids = validate_mentions(
+                organization=organization,
+                mentions=serializer.validated_data.get("mentions", []),
+            )
+            updated = update_comment(
+                comment=comment,
+                body=serializer.validated_data["body"],
+                user_ids=user_ids,
+                team_ids=team_ids,
+            )
+        except Exception as error:
+            response = _service_error(error)
+            if response is not None:
+                return response
+            raise
+        return Response(serialize_comment(updated, user_id=_user_id(request)))
+
+    def delete(
+        self,
+        request: Request,
+        organization: Organization,
+        investigation: Investigation,
+        comment: InvestigationBlockComment,
+    ) -> Response:
+        _require_authenticated_user(request)
+        if comment.author_id != _user_id(request) and not is_organization_manager(
+            request, organization
+        ):
+            raise PermissionDenied
+        try:
+            delete_comment(comment)
+        except Exception as error:
+            response = _service_error(error)
+            if response is not None:
+                return response
+            raise
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@extend_schema(tags=["Investigations"])
+@cell_silo_endpoint
+class OrganizationInvestigationBlockReactionEndpoint(OrganizationInvestigationBlockBase):
+    collaboration_endpoint = True
+    publish_status = {"PUT": ApiPublishStatus.PRIVATE, "DELETE": ApiPublishStatus.PRIVATE}
+
+    def _set(
+        self, request: Request, block: InvestigationBlock, reaction: str, *, enabled: bool
+    ) -> Response:
+        user_id = _require_authenticated_user(request)
+        if reaction not in InvestigationReaction.values:
+            return Response({"detail": "Unsupported reaction."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            set_block_reaction(block=block, user_id=user_id, reaction=reaction, enabled=enabled)
+        except Exception as error:
+            response = _service_error(error)
+            if response is not None:
+                return response
+            raise
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def put(
+        self, request: Request, block: InvestigationBlock, reaction: str, **kwargs: Any
+    ) -> Response:
+        return self._set(request, block, reaction, enabled=True)
+
+    def delete(
+        self, request: Request, block: InvestigationBlock, reaction: str, **kwargs: Any
+    ) -> Response:
+        return self._set(request, block, reaction, enabled=False)
+
+
+@extend_schema(tags=["Investigations"])
+@cell_silo_endpoint
+class OrganizationInvestigationCommentReactionEndpoint(OrganizationInvestigationCommentBase):
+    publish_status = {"PUT": ApiPublishStatus.PRIVATE, "DELETE": ApiPublishStatus.PRIVATE}
+
+    def _set(
+        self,
+        request: Request,
+        comment: InvestigationBlockComment,
+        reaction: str,
+        *,
+        enabled: bool,
+    ) -> Response:
+        user_id = _require_authenticated_user(request)
+        if reaction not in InvestigationReaction.values:
+            return Response({"detail": "Unsupported reaction."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            set_comment_reaction(
+                comment=comment,
+                user_id=user_id,
+                reaction=reaction,
+                enabled=enabled,
+            )
+        except Exception as error:
+            response = _service_error(error)
+            if response is not None:
+                return response
+            raise
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def put(
+        self, request: Request, comment: InvestigationBlockComment, reaction: str, **kwargs: Any
+    ) -> Response:
+        return self._set(request, comment, reaction, enabled=True)
+
+    def delete(
+        self, request: Request, comment: InvestigationBlockComment, reaction: str, **kwargs: Any
+    ) -> Response:
+        return self._set(request, comment, reaction, enabled=False)
 
 
 @extend_schema(tags=["Investigations"])

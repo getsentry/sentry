@@ -229,6 +229,21 @@ class Fixtures:
     def create_investigation_block_execution_project(self, *args, **kwargs):
         return Factories.create_investigation_block_execution_project(*args, **kwargs)
 
+    def create_investigation_block_comment(self, *args, **kwargs):
+        return Factories.create_investigation_block_comment(*args, **kwargs)
+
+    def create_investigation_block_reaction(self, *args, **kwargs):
+        return Factories.create_investigation_block_reaction(*args, **kwargs)
+
+    def create_investigation_comment_reaction(self, *args, **kwargs):
+        return Factories.create_investigation_comment_reaction(*args, **kwargs)
+
+    def create_investigation_comment_user_mention(self, *args, **kwargs):
+        return Factories.create_investigation_comment_user_mention(*args, **kwargs)
+
+    def create_investigation_comment_team_mention(self, *args, **kwargs):
+        return Factories.create_investigation_comment_team_mention(*args, **kwargs)
+
     def create_member(self, *args, **kwargs):
         return Factories.create_member(*args, **kwargs)
 
