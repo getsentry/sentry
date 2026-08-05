@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
@@ -39,35 +39,35 @@ function getEvidenceItem({
   switch (evidenceKey) {
     case KnownEvidence.ENVIRONMENT:
       return (
-        <Flex direction="column">
+        <Stack>
           <ItemTitle>{t('Environment')}</ItemTitle>
           <ItemValue>{evidence.value}</ItemValue>
-        </Flex>
+        </Stack>
       );
     case KnownEvidence.STATUS_CODE:
       return (
-        <Flex direction="column">
+        <Stack>
           <ItemTitle>{t('Status Code')}</ItemTitle>
           <ItemValue>{evidence.value}</ItemValue>
-        </Flex>
+        </Stack>
       );
     case KnownEvidence.FAILURE_REASON:
       return (
-        <Flex direction="column">
+        <Stack>
           <ItemTitle>{t('Reason')}</ItemTitle>
           <ItemValue>{evidence.value}</ItemValue>
-        </Flex>
+        </Stack>
       );
     case KnownEvidence.LAST_SUCCESSFUL_CHECK_IN:
       return (
-        <Flex direction="column">
+        <Stack>
           <ItemTitle>{t('Last Successful Check-In')}</ItemTitle>
           {moment(evidence.value).isValid() ? (
             <ItemTimeSince date={evidence.value} />
           ) : (
             <ItemValue>{evidence.value}</ItemValue>
           )}
-        </Flex>
+        </Stack>
       );
     default:
       return null;
@@ -91,12 +91,12 @@ export function OccurrenceSummary({group, event, className}: OccurrenceSummaryPr
 
   if (issueTypeConfig.header.occurrenceSummary.downtime) {
     items.push(
-      <Flex direction="column">
+      <Stack>
         <ItemTitle>{t('Downtime')}</ItemTitle>
         <ItemValue>
           <DowntimeDuration group={group} />
         </ItemValue>
-      </Flex>
+      </Stack>
     );
   }
 
@@ -109,19 +109,19 @@ export function OccurrenceSummary({group, event, className}: OccurrenceSummaryPr
 
     if (detectorType === 'metric_alert' && detectorPath) {
       items.push(
-        <Flex direction="column">
+        <Stack>
           <ItemTitle>{t('Alert ID')}</ItemTitle>
           <ItemLink to={detectorPath}>{detectorId}</ItemLink>
-        </Flex>
+        </Stack>
       );
     }
 
     if (['cron_monitor', 'uptime_monitor'].includes(detectorType ?? '') && detectorPath) {
       items.push(
-        <Flex direction="column">
+        <Stack>
           <ItemTitle>{t('Monitor ID')}</ItemTitle>
           <ItemLink to={detectorPath}>{detectorId}</ItemLink>
-        </Flex>
+        </Stack>
       );
     }
   }

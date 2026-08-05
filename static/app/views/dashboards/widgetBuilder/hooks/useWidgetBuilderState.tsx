@@ -583,7 +583,22 @@ export function useWidgetBuilderState(): {
               // to the default. The metric-less placeholder lets the metric
               // picker auto-select the first distribution metric.
               if (nextFields.length === 0) {
-                nextFields.push({...currentDatasetConfig.defaultField, alias: undefined});
+                const fallbackField = {
+                  ...currentDatasetConfig.defaultField,
+                  alias: undefined,
+                };
+                // The shared default field is sum(value), but heat maps always
+                // count(). Coerce it so the fallback seeds count() as the
+                // aggregate; otherwise the auto-selected metric preserves the
+                // sum and the Visualize section shows the wrong aggregate.
+                if (fallbackField.kind === FieldValueKind.FUNCTION) {
+                  fallbackField.function = [
+                    AggregationKey.COUNT,
+                    fallbackField.function[1],
+                    ...fallbackField.function.slice(2),
+                  ];
+                }
+                nextFields.push(fallbackField);
               }
             }
             setFields(nextFields, options);

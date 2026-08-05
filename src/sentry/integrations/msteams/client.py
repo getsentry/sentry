@@ -146,6 +146,11 @@ class OAuthMsTeamsClient(ApiClient):
         super().__init__()
         self.client_id = client_id
         self.client_secret = client_secret
+        # tenant_id is required for single-tenant bots to authenticate. The bot framework
+        # base_url is specific to multi-tenant bots which microsoft no longer provisions.
+        tenant_id = options.get("msteams.tenant-id")
+        if tenant_id:
+            self.base_url = f"https://login.microsoftonline.com/{tenant_id}"
 
     def exchange_token(self):
         headers = {"Content-Type": "application/x-www-form-urlencoded"}

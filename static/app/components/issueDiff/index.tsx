@@ -1,7 +1,7 @@
 import {lazy, useEffect, useRef} from 'react';
 import {skipToken, useQueries} from '@tanstack/react-query';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {isStacktraceNewestFirst} from 'sentry/components/events/interfaces/utils';
 import {LazyLoad} from 'sentry/components/lazyLoad';
@@ -199,9 +199,9 @@ export function IssueDiff({
 
   if (hasError) {
     return (
-      <Flex background="secondary" overflow="auto" padding="md" direction="column">
+      <Stack background="secondary" overflow="auto" padding="md">
         <LoadingError message={t('Error loading events')} />
-      </Flex>
+      </Stack>
     );
   }
 
@@ -210,7 +210,7 @@ export function IssueDiff({
   }
 
   return (
-    <Flex background="secondary" overflow="auto" padding="md" direction="column">
+    <Stack background="secondary" overflow="auto" padding="md">
       <LazyLoad
         LazyComponent={SplitDiffLazy}
         base={combinedBase}
@@ -218,27 +218,26 @@ export function IssueDiff({
         type="lines"
         loadingFallback={<IssueDiffLoadingSkeletonRows />}
       />
-    </Flex>
+    </Stack>
   );
 }
 
 function IssueDiffLoadingState() {
   return (
-    <Flex
+    <Stack
       background="primary"
       overflow="auto"
       padding="md"
-      direction="column"
       data-test-id="issue-diff-loading-skeleton"
     >
       <IssueDiffLoadingSkeletonRows />
-    </Flex>
+    </Stack>
   );
 }
 
 function IssueDiffLoadingSkeletonRows() {
   return (
-    <Flex direction="column" gap="sm">
+    <Stack gap="sm">
       {Array.from({length: SKELETON_ROW_COUNT}).map((_, index) => (
         <Flex key={index} align="center">
           <Placeholder height="18px" style={{flex: 1}} />
@@ -246,6 +245,6 @@ function IssueDiffLoadingSkeletonRows() {
           <Placeholder height="18px" style={{flex: 1}} />
         </Flex>
       ))}
-    </Flex>
+    </Stack>
   );
 }

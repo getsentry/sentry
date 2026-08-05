@@ -537,7 +537,6 @@ function SlowDBQueryEvidence({
           op={span.op}
           category={sentryTags?.category}
           group={groupHash}
-          project_id={event.projectID}
           organization={organization}
         />
         {hasExplore && span.description && (

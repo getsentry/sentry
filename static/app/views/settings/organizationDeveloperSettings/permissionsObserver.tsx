@@ -8,15 +8,12 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Scope} from 'sentry/types/core';
-import type {
-  PermissionResource,
-  Permissions,
-  WebhookEvent,
-} from 'sentry/types/integrations';
+import type {PermissionResource, Permissions} from 'sentry/types/integrations';
 import {
   comparePermissionLevels,
   toResourcePermissions,
 } from 'sentry/utils/consolidatedScopes';
+import type {WebhookSubscription} from 'sentry/views/settings/organizationDeveloperSettings/constants';
 import {
   PermissionSelection,
   permissionStateToList,
@@ -24,20 +21,18 @@ import {
 import {Subscriptions} from 'sentry/views/settings/organizationDeveloperSettings/resourceSubscriptions';
 
 type Props = {
-  events: WebhookEvent[];
+  events: WebhookSubscription[];
   newApp: boolean;
   scopes: Scope[];
   appPublished?: boolean;
   continuousIntegrationError?: string;
-  onEventsChange?: (events: WebhookEvent[]) => void;
+  onEventsChange?: (events: WebhookSubscription[]) => void;
   onScopesChange?: (scopes: Scope[]) => void;
   permissionErrors?: Partial<Record<PermissionResource, string>>;
-  webhookDisabled?: boolean;
 };
 
 export function PermissionsObserver({
   appPublished = false,
-  webhookDisabled = false,
   events: initialEvents,
   newApp,
   scopes,
@@ -91,7 +86,7 @@ export function PermissionsObserver({
     setElevating(isElevating);
   };
 
-  const handleEventChange = (newEvents: WebhookEvent[]) => {
+  const handleEventChange = (newEvents: WebhookSubscription[]) => {
     setEvents(newEvents);
     onEventsChange?.(newEvents);
   };
@@ -127,7 +122,6 @@ export function PermissionsObserver({
             permissions={permissions}
             events={events}
             onChange={handleEventChange}
-            webhookDisabled={webhookDisabled}
           />
         </PanelBody>
       </Panel>

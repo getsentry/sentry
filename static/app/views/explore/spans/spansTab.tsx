@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
@@ -64,13 +64,12 @@ import {useCrossEventDatasetAvailability} from 'sentry/views/explore/spans/cross
 import {DroppedFieldsAlert} from 'sentry/views/explore/spans/droppedFieldsAlert';
 import {ExtrapolationEnabledAlert} from 'sentry/views/explore/spans/extrapolationEnabledAlert';
 import {SettingsDropdown} from 'sentry/views/explore/spans/settingsDropdown';
-import {SpansExportSwitch} from 'sentry/views/explore/spans/spansExportSwitch';
 import {SpanTabSearchSection} from 'sentry/views/explore/spans/spansTabSearchSection';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
+import {TracesExportModalButton} from 'sentry/views/explore/spans/tracesExportModalButton';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
-import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {Onboarding} from 'sentry/views/performance/onboarding';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
@@ -274,18 +273,6 @@ function SpanTabContentSectionInner({
       },
     });
 
-  const confidences = useMemo(
-    () =>
-      visualizes.map(visualize => {
-        const dedupedYAxes = [visualize.yAxis];
-        const series = dedupedYAxes
-          .flatMap(yAxis => timeseriesResult.data[yAxis])
-          .filter(defined);
-        return combineConfidenceForSeries(series);
-      }),
-    [timeseriesResult.data, visualizes]
-  );
-
   const [interval] = useChartInterval();
 
   useAnalytics({
@@ -329,7 +316,7 @@ function SpanTabContentSectionInner({
           {controlSectionExpanded ? null : t('Advanced')}
         </ChevronButton>
         <Flex gap="xs">
-          <SpansExportSwitch
+          <TracesExportModalButton
             aggregatesTableResult={aggregatesTableResult}
             spansTableResult={spansTableResult}
             rawSpanCounts={rawSpanCounts}
@@ -358,7 +345,6 @@ function SpanTabContentSectionInner({
         {props => (
           <div {...props}>
             <ExploreCharts
-              confidences={confidences}
               query={query}
               extrapolate={extrapolate}
               timeseriesResult={timeseriesResult}
@@ -371,7 +357,6 @@ function SpanTabContentSectionInner({
               aggregatesTableResult={aggregatesTableResult}
               spansTableResult={spansTableResult}
               tracesTableResult={tracesTableResult}
-              confidences={confidences}
               tab={tab}
               setTab={(newTab, reason) => {
                 if (newTab === Mode.AGGREGATE) {

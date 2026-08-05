@@ -126,8 +126,9 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
             utc,
           }
         : {
-            start: moment(start).utc().format(),
-            end: moment(end).utc().format(),
+            // Treat start/end URL params as UTC (consistent with DatePageFilter)
+            start: moment.utc(start).format(),
+            end: moment.utc(end).format(),
             utc,
           };
     }
@@ -375,7 +376,6 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
                 <ErrorBoundary mini>
                   <UsageStatsProjects
                     dataCategory={this.dataCategoryInfo}
-                    dataCategoryName={this.dataCategoryInfo.titleName}
                     isSingleProject={this.isSingleProject}
                     projectIds={this.projectIds}
                     dataDatetime={this.dataDatetime}

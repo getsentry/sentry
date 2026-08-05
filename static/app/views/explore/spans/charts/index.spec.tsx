@@ -35,7 +35,6 @@ describe('ExploreCharts', () => {
         <ChartSelectionProvider>
           <ExploreCharts
             extrapolate
-            confidences={[]}
             query=""
             timeseriesResult={loadingTimeseriesResult}
             visualizes={defaultVisualizes()}
@@ -75,7 +74,6 @@ describe('ExploreCharts', () => {
           <ChartSelectionProvider>
             <ExploreCharts
               extrapolate
-              confidences={[]}
               query=""
               timeseriesResult={timeseriesResultFixture()}
               visualizes={visualizes}

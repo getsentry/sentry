@@ -109,7 +109,6 @@ function PerformanceSetupBanner({
       }
       localStorageKey={LOCAL_STORAGE_KEY}
       docsRoute="https://docs.sentry.io/product/performance/"
-      organization={organization}
       primaryButtonText={t('Set Up Tracing')}
     />
   );
@@ -156,7 +155,6 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
   return (
     <TraceWarningComponents.Banner
       localStorageKey={`${props.traceSlug}:transaction-usage-warning-banner-hide`}
-      organization={props.organization}
       image={emptyTraceImg}
       title={title}
       description={tct(

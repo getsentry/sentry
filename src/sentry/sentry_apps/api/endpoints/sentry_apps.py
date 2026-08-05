@@ -26,6 +26,7 @@ from sentry.sentry_apps.api.serializers.sentry_app import (
 )
 from sentry.sentry_apps.logic import SentryAppCreator
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.utils.webhooks import has_error_events
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -97,7 +98,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             ),
         }
 
-        if self._has_hook_events(request) and not features.has(
+        if has_error_events(request.data.get("events")) and not features.has(
             "organizations:integrations-event-hooks", organization, actor=request.user
         ):
             return Response(
@@ -182,9 +183,3 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                 owner_ids.append(o.id)
 
         return queryset.filter(owner_id__in=owner_ids)
-
-    def _has_hook_events(self, request: Request):
-        if not request.data.get("events"):
-            return False
-
-        return "error" in request.data["events"]

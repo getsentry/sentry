@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
+import uuid
 from collections import defaultdict, namedtuple
 from collections.abc import Collection, Iterable, Mapping, Sequence
 from datetime import datetime, timedelta
@@ -20,11 +21,16 @@ from django.utils.http import urlencode
 from django.utils.translation import gettext_lazy as _
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ExistsFilter, TraceItemFilter
-from snuba_sdk import Column, Condition, Op
+from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
 from sentry import eventstore, eventtypes, options, tagstore
 from sentry.backup.scopes import RelocationScope
-from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
+from sentry.constants import (
+    ALLOWED_FUTURE_DELTA,
+    DEFAULT_LOGGER_NAME,
+    LOG_LEVELS,
+    MAX_CULPRIT_LENGTH,
+)
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedIntegerField,
@@ -37,13 +43,6 @@ from sentry.db.models import (
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.issues.action_log import publish_action_from_context
-from sentry.issues.action_log.types import (
-    ArchiveAction,
-    GroupAction,
-    ResolveAction,
-    UnresolveAction,
-)
 from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
 from sentry.issues.priority import (
     PRIORITY_TO_GROUP_HISTORY_STATUS,
@@ -55,7 +54,7 @@ from sentry.models.grouphistory import record_group_history, record_group_histor
 from sentry.models.organization import Organization
 from sentry.search.eap.occurrences.query_utils import build_event_id_in_filter
 from sentry.search.eap.rpc_utils import and_trace_item_filters
-from sentry.services.eventstore.models import GroupEvent
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.types.activity import ActivityType
@@ -68,6 +67,7 @@ from sentry.types.group import (
 from sentry.utils import metrics
 from sentry.utils.dates import outside_retention_with_modified_start
 from sentry.utils.numbers import base32_decode, base32_encode
+from sentry.utils.safe import get_path
 from sentry.utils.strings import strip, truncatechars
 
 if TYPE_CHECKING:
@@ -243,17 +243,6 @@ STATUS_UPDATE_CHOICES = {
     "muted": GroupStatus.IGNORED,
 }
 
-# Maps the Activity type driving a status change to the action we record, mirroring
-# ACTIVITY_STATUS_TO_GROUP_HISTORY_STATUS. Substatus-only transitions (e.g.
-# AUTO_SET_ONGOING, SET_ESCALATING) have no entry and are intentionally not recorded.
-ACTIVITY_TYPE_TO_GROUP_ACTION: dict[int, type[GroupAction]] = {
-    ActivityType.SET_RESOLVED.value: ResolveAction,
-    ActivityType.SET_RESOLVED_IN_COMMIT.value: ResolveAction,
-    ActivityType.SET_RESOLVED_IN_RELEASE.value: ResolveAction,
-    ActivityType.SET_IGNORED.value: ArchiveAction,
-    ActivityType.SET_UNRESOLVED.value: UnresolveAction,
-}
-
 
 class EventOrdering(Enum):
     LATEST = ["project_id", "-timestamp", "-id"]
@@ -266,6 +255,78 @@ class EventOrdering(Enum):
         "-timestamp",
         "-id",
     ]
+
+
+def bulk_get_latest_event_ids(groups: Sequence[Group]) -> dict[int, tuple[int, str]]:
+    """Return the project and latest event IDs for a collection of groups."""
+    # Imported here because sentry.utils.snuba imports Group.
+    from sentry.utils.snuba import bulk_snuba_queries
+
+    partitions: dict[tuple[int, Dataset], list[Group]] = defaultdict(list)
+    for group in groups:
+        dataset = (
+            Dataset.Events if group.issue_category == GroupCategory.ERROR else Dataset.IssuePlatform
+        )
+        partitions[(group.project.organization_id, dataset)].append(group)
+
+    request_contexts: list[tuple[Request, dict[int, int]]] = []
+    end = timezone.now() + ALLOWED_FUTURE_DELTA + timedelta(seconds=1)
+    for (organization_id, dataset), partition in partitions.items():
+        # Use first_seen to avoid scanning partitions from before the issues existed.
+        # last_seen is asynchronously updated and may lag behind events already in Snuba.
+        start = min(group.first_seen for group in partition) - timedelta(minutes=5)
+        expired, start = outside_retention_with_modified_start(
+            start, end, Organization(organization_id)
+        )
+        if expired:
+            continue
+
+        project_ids_by_group = {group.id: group.project_id for group in partition}
+        request = Request(
+            dataset=dataset.value,
+            app_id="eventstore",
+            query=Query(
+                match=Entity(dataset.value),
+                select=[
+                    Column("group_id"),
+                    Function(
+                        "argMax",
+                        [
+                            Column("event_id"),
+                            Function("tuple", [Column("timestamp"), Column("event_id")]),
+                        ],
+                        "event_id",
+                    ),
+                ],
+                groupby=[Column("group_id")],
+                where=[
+                    Condition(
+                        Column("project_id"), Op.IN, list(set(project_ids_by_group.values()))
+                    ),
+                    Condition(Column("group_id"), Op.IN, list(project_ids_by_group)),
+                    Condition(Column("timestamp"), Op.GTE, start),
+                    Condition(Column("timestamp"), Op.LT, end),
+                ],
+                limit=Limit(len(partition)),
+            ),
+            tenant_ids={"organization_id": organization_id},
+        )
+        request_contexts.append((request, project_ids_by_group))
+
+    if not request_contexts:
+        return {}
+
+    latest_event_ids = {}
+    results = bulk_snuba_queries(
+        [request for request, _ in request_contexts],
+        referrer=Referrer.GROUP_GET_LATEST_BULK.value,
+    )
+    for (_request, project_ids_by_group), result in zip(request_contexts, results, strict=True):
+        for row in result["data"]:
+            group_id = int(row["group_id"])
+            latest_event_ids[group_id] = (project_ids_by_group[group_id], row["event_id"])
+
+    return latest_event_ids
 
 
 def get_oldest_or_latest_event(
@@ -307,11 +368,17 @@ def get_oldest_or_latest_event(
     return None
 
 
+# Arbitrary number of candidate events to consider when we need to pick a
+# recommended event whose session replay is verified to exist.
+RECOMMENDED_EVENT_REPLAY_CANDIDATES = 10
+
+
 def get_recommended_event(
     group: Group,
     conditions: Sequence[Condition] | None = None,
     start: datetime | None = None,
     end: datetime | None = None,
+    verify_replay_exists: bool = False,
 ) -> GroupEvent | None:
     if group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
@@ -329,22 +396,27 @@ def get_recommended_event(
     default_end = group.last_seen + timedelta(minutes=1)
     default_start = default_end - timedelta(days=7)
 
+    resolved_start = start if start else default_start
+    resolved_end = end if end else default_end
+
     expired, _ = outside_retention_with_modified_start(
-        start=start if start else default_start,
-        end=end if end else default_end,
+        start=resolved_start,
+        end=resolved_end,
         organization=Organization(group.project.organization_id),
     )
 
     if expired:
         return None
 
+    limit = RECOMMENDED_EVENT_REPLAY_CANDIDATES if verify_replay_exists else 1
+
     events = eventstore.backend.get_events_snql(
         organization_id=group.project.organization_id,
         group_id=group.id,
-        start=start if start else default_start,
-        end=end if end else default_end,
+        start=resolved_start,
+        end=resolved_end,
         conditions=all_conditions,
-        limit=1,
+        limit=limit,
         orderby=EventOrdering.RECOMMENDED.value,
         referrer="Group.get_helpful",
         dataset=dataset,
@@ -352,10 +424,90 @@ def get_recommended_event(
         inner_limit=1000,
     )
 
-    if events:
-        return events[0].for_group(group)
+    if not events:
+        return None
 
-    return None
+    if verify_replay_exists:
+        event = _select_event_with_existing_replay(group, events, resolved_start, resolved_end)
+    else:
+        event = events[0]
+
+    return event.for_group(group)
+
+
+def _get_replay_id_from_event(event: Event) -> str | None:
+    replay_id = get_path(event.data, "contexts", "replay", "replay_id")
+    if replay_id:
+        return replay_id
+    return event.get_tag("replayId")
+
+
+def _normalize_replay_id(replay_id: str | None) -> str | None:
+    """Normalize a replay id to the 32 char dashless hex used by the replays dataset."""
+    if not replay_id:
+        return None
+    try:
+        return uuid.UUID(hex=replay_id).hex
+    except ValueError:
+        return None
+
+
+def _select_event_with_existing_replay(
+    group: Group,
+    events: Sequence[Event],
+    start: datetime,
+    end: datetime,
+) -> Event:
+    """
+    Select an event with a replay id after it has been verified to exist in the replays dataset.
+    """
+    from sentry.replays.usecases.replay_existence import filter_existing_replay_ids
+    from sentry.utils.snuba import SnubaError
+
+    replay_id_to_event: dict[str, Event] = {}
+    for event in events:
+        # Replays store ids as dash-less hex strings.
+        normalized = _normalize_replay_id(_get_replay_id_from_event(event))
+        if normalized is not None and normalized not in replay_id_to_event:
+            replay_id_to_event[normalized] = event
+
+    if not replay_id_to_event:
+        metrics.incr(
+            "issue_details.recommended_event.replay_verify",
+            tags={"outcome": "no_candidates"},
+        )
+        return events[0]
+
+    try:
+        with metrics.timer("issue_details.recommended_event.replay_verify_duration"):
+            existing_replay_ids = filter_existing_replay_ids(
+                project_ids=[group.project.id],
+                start=start,
+                end=end,
+                replay_ids=list(replay_id_to_event.keys()),
+                tenant_ids={"organization_id": group.project.organization_id},
+            )
+    except SnubaError:
+        logger.exception("issue_details.recommended_event.replay_verify_error")
+        metrics.incr(
+            "issue_details.recommended_event.replay_verify",
+            tags={"outcome": "query_error"},
+        )
+        return events[0]
+
+    for replay_id, event in replay_id_to_event.items():
+        if replay_id in existing_replay_ids:
+            metrics.incr(
+                "issue_details.recommended_event.replay_verify",
+                tags={"outcome": "verified"},
+            )
+            return event
+
+    metrics.incr(
+        "issue_details.recommended_event.replay_verify",
+        tags={"outcome": "fell_back"},
+    )
+    return events[0]
 
 
 class GroupManager(BaseManager["Group"]):
@@ -604,14 +756,6 @@ class GroupManager(BaseManager["Group"]):
             )
             record_group_history_from_activity_type(group, activity_type.value)
 
-            action_cls = ACTIVITY_TYPE_TO_GROUP_ACTION.get(activity_type.value)
-            if action_cls is not None:
-                publish_action_from_context(
-                    action_cls(),
-                    group_id=group.id,
-                    project=group.project,
-                )
-
             if group.id in updated_priority:
                 new_priority = updated_priority[group.id]
                 Activity.objects.create_group_activity(
@@ -844,12 +988,6 @@ class Group(Model):
         if self.short_id is not None:
             return f"{self.project.slug.upper()}-{base32_encode(self.short_id)}"
 
-    def is_over_resolve_age(self):
-        resolve_age = self.project.get_option("sentry:resolve_age", None)
-        if not resolve_age:
-            return False
-        return self.last_seen < timezone.now() - timedelta(hours=int(resolve_age))
-
     def is_ignored(self):
         return self.get_status() == GroupStatus.IGNORED
 
@@ -936,14 +1074,6 @@ class Group(Model):
                 if not snooze.is_valid(group=self):
                     status = GroupStatus.UNRESOLVED
 
-        # If the issue is UNRESOLVED but has resolved_at set, it means the user manually
-        # unresolved it after it was resolved. We should respect that and not override
-        # the status back to RESOLVED.
-        if status == GroupStatus.UNRESOLVED and self.is_over_resolve_age() and not self.resolved_at:
-            # Only auto-resolve if this group type has auto-resolve enabled
-            if self.issue_type.enable_auto_resolve:
-                return GroupStatus.RESOLVED
-
         return status
 
     def get_share_id(self):
@@ -1020,17 +1150,23 @@ class Group(Model):
         conditions: Sequence[Condition] | None = None,
         start: datetime | None = None,
         end: datetime | None = None,
+        verify_replay_exists: bool = False,
     ) -> GroupEvent | None:
         """
         Returns a recommended event given the conditions and time range.
         If a helpful recommendation is not found, it will fallback to the latest event.
         If neither are found, returns None.
+
+        When ``verify_replay_exists`` is set, the recommendation prefers the
+        highest-ranked event whose session replay is verified to exist in the
+        replays dataset, falling back to the normal recommendation otherwise.
         """
         maybe_event = get_recommended_event(
             group=self,
             conditions=conditions,
             start=start,
             end=end,
+            verify_replay_exists=verify_replay_exists,
         )
         return (
             maybe_event

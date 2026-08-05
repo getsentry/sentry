@@ -137,8 +137,8 @@ class TestEvaluateMetricDetector(BaseMetricIssueTest):
         data_packet = self.create_subscription_packet(value)
         results = process_data_packet(data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
         evaluation_result = results[0][1][self.detector_group_key]
-        assert evaluation_result.event_data is not None
-        assert evaluation_result.event_data["environment"] == self.environment.name
+        assert evaluation_result.data["event_data"] is not None
+        assert evaluation_result.data["event_data"]["environment"] == self.environment.name
 
     def test_event_data_environment_unset(self) -> None:
         self.snuba_query.environment = None
@@ -147,8 +147,8 @@ class TestEvaluateMetricDetector(BaseMetricIssueTest):
         data_packet = self.create_subscription_packet(value)
         results = process_data_packet(data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
         evaluation_result = results[0][1][self.detector_group_key]
-        assert evaluation_result.event_data is not None
-        assert evaluation_result.event_data["environment"] is None
+        assert evaluation_result.data["event_data"] is not None
+        assert evaluation_result.data["event_data"]["environment"] is None
 
     def test_flipped_detector_trigger(self) -> None:
         self.warning_detector_trigger.delete()

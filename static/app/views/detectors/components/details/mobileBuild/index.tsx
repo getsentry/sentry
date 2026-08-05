@@ -4,7 +4,6 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
 import type {PreprodDetector} from 'sentry/types/workflowEngine/detectors';
 import {
   DisableDetectorAction,
@@ -18,16 +17,12 @@ import {MobileBuildDetectorDetailsSidebar} from 'sentry/views/detectors/componen
 
 type MobileBuildDetectorDetailsProps = {
   detector: PreprodDetector;
-  project: Project;
 };
 
-export function MobileBuildDetectorDetails({
-  detector,
-  project,
-}: MobileBuildDetectorDetailsProps) {
+export function MobileBuildDetectorDetails({detector}: MobileBuildDetectorDetailsProps) {
   return (
     <DetailLayout>
-      <DetectorDetailsHeader detector={detector} project={project} />
+      <DetectorDetailsHeader detector={detector} />
       <DetailLayout.Body>
         <DetailLayout.Main>
           <DisabledAlert

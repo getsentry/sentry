@@ -15,7 +15,7 @@
     "skipLibCheck": true,
 
     // Explicitly list which @types/* packages to include as global types
-    "types": ["gtag.js", "jest", "node", "webpack-env"],
+    "types": ["gtag.js", "jest", "node", "@rspack/core/module"],
 
     // We do not actually use tsc to output any JavaScript anywhere
     "noEmit": true,
@@ -57,19 +57,7 @@
       "getsentry/*": ["./static/gsApp/*"],
       "getsentry-images/*": ["./static/images/*"],
       "admin/*": ["./static/gsAdmin/*"]
-    },
-
-    "plugins": [
-      // The styled plugin provides language server autocompletion for styled
-      // component template strings
-      {
-        "name": "@styled/typescript-styled-plugin",
-        "lint": {
-          "validProperties": ["container-type"],
-          "unknownAtRules": "ignore"
-        }
-      }
-    ]
+    }
   },
   "include": [
     "*.config.*s",

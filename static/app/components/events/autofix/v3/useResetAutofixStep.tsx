@@ -1,6 +1,7 @@
 import {useMemo, useState} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
   type AutofixExplorerStep,
   type AutofixSection,
@@ -24,7 +25,7 @@ export function useResetAutofixStep({
   const [shouldShowReset, setShouldShowReset] = useState(false);
 
   const {runState, startStep} = autofix;
-  const runId = runState?.run_id;
+  const runId = getAutofixRunId(runState);
   const notProcessing = autofix.runState?.status !== 'processing';
   const noPRs = Object.values(autofix.runState?.repo_pr_states ?? {}).length === 0;
   const noCodingAgents =

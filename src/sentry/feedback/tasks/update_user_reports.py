@@ -5,6 +5,7 @@ import sentry_sdk
 from django.utils import timezone
 
 from sentry import quotas
+from sentry.constants import DataCategory
 from sentry.feedback.lib.utils import FeedbackCreationSource, is_in_feedback_denylist
 from sentry.feedback.usecases.ingest.shim_to_feedback import shim_to_feedback
 from sentry.models.project import Project
@@ -17,6 +18,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
+from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
 
@@ -124,8 +126,17 @@ def update_user_reports(
                             FeedbackCreationSource.UPDATE_USER_REPORTS_TASK,
                         )
                     else:
-                        metrics.incr("feedback.ingest.denylist")
-
+                        track_outcome(
+                            org_id=project.organization_id,
+                            project_id=project.id,
+                            key_id=None,
+                            outcome=Outcome.RATE_LIMITED,
+                            reason="feedback_denylist",
+                            timestamp=datetime.fromisoformat(event.timestamp),
+                            event_id=event.event_id,
+                            category=DataCategory.USER_REPORT_V2,
+                            quantity=1,
+                        )
                 # XXX(aliu): If a report has environment_id but not group_id, this report was shimmed from a feedback issue, so no need to shim again.
                 report.update(group_id=event.group_id, environment_id=event.get_environment().id)
                 updated_reports += 1

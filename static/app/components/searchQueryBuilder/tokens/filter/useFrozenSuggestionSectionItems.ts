@@ -107,10 +107,16 @@ export function useFrozenSuggestionSectionItems({
   }
 
   return useMemo<SuggestionSectionItem[]>(() => {
-    const currentSelectedValues = selectedValuesRef.current;
-    const selectedValueSet = new Set(
-      currentSelectedValues.map(selectedValue => selectedValue.value)
-    );
+    const selectedValueSet = new Set<string>();
+    // Identical values (e.g. a hand-typed `[foo,foo]`) should pin a single
+    // suggestion, not one per occurrence, so their item keys stay unique.
+    const currentSelectedValues = selectedValuesRef.current.filter(selectedValue => {
+      if (selectedValueSet.has(selectedValue.value)) {
+        return false;
+      }
+      selectedValueSet.add(selectedValue.value);
+      return true;
+    });
     const allSuggestions = new Map(
       suggestionGroups.flatMap(group =>
         group.suggestions.map(suggestion => [suggestion.value, suggestion] as const)

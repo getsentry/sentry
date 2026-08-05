@@ -32,6 +32,7 @@ from sentry.models.dashboard_widget import (
 )
 from sentry.models.team import Team
 from sentry.relay.config.metric_extraction import get_current_widget_specs, widget_exceeds_max_specs
+from sentry.search.eap.trace_metrics.validator import extract_trace_metric_from_aggregate
 from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.fields import is_function
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
@@ -169,9 +170,6 @@ DATASET_CONFIG: dict[int, DatasetConfig] = {
                 DashboardWidgetDisplayTypes.BAR_CHART,
                 DashboardWidgetDisplayTypes.BIG_NUMBER,
                 DashboardWidgetDisplayTypes.CATEGORICAL_BAR_CHART,
-                # HEATMAP is additionally gated behind the
-                # ``data-browsing-heat-map-widget`` feature flag in
-                # ``validate_display_type``.
                 DashboardWidgetDisplayTypes.HEATMAP,
             }
         )
@@ -405,15 +403,6 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     def validate_display_type(self, display_type):
         display_type_id = DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
 
-        # Heat map widgets are only available to organizations with the feature
-        # flag. Without it, creating or updating a heat map widget is rejected.
-        if display_type_id == DashboardWidgetDisplayTypes.HEATMAP and not features.has(
-            "organizations:data-browsing-heat-map-widget", self.context["organization"]
-        ):
-            raise serializers.ValidationError(
-                f"Display type '{display_type}' is not available for this organization."
-            )
-
         widget_type_name = self.context.get("widget_type")
         if widget_type_name is not None and display_type_id is not None:
             widget_type_id = DashboardWidgetTypes.get_id_for_type_name(widget_type_name)
@@ -539,6 +528,13 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                     raise serializers.ValidationError(
                         {"queries": "Tracemetrics timeseries widgets support at most one equation."}
                     )
+        elif data.get("display_type") == DashboardWidgetDisplayTypes.HEATMAP:
+            for query in data.get("queries"):
+                aggregates = query.get("aggregates") or []
+                if any(is_equation(aggregate) for aggregate in aggregates):
+                    raise serializers.ValidationError(
+                        {"queries": "Heatmap widgets don't support equations."}
+                    )
 
         return data
 
@@ -593,6 +589,12 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             if data.get("widget_type") == DashboardWidgetTypes.TRACEMETRICS:
                 self._validate_tracemetrics_equation_constraints(data)
 
+            if data.get("display_type") == DashboardWidgetDisplayTypes.HEATMAP:
+                if len(data.get("queries")) > 1:
+                    raise serializers.ValidationError(
+                        {"queries": "Heatmap widgets cannot have multiple queries"}
+                    )
+
             # Check each query to see if they have an issue or discover error depending on the type of the widget
             for query in data.get("queries"):
                 if len(query.get("columns", [])) > 0:
@@ -614,6 +616,54 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 ) and "discover_query_error" in query:
                     query_errors.append(query["discover_query_error"])
                     has_query_error = True
+
+                # Heatmap widgets aggregates and columns validation
+                elif data.get("display_type") == DashboardWidgetDisplayTypes.HEATMAP:
+                    heatmap_query_errors: dict[str, str] = {}
+                    if query.get("aggregates"):
+                        if len(query.get("aggregates")) > 1:
+                            if query.get("selected_aggregate") is None:
+                                heatmap_query_errors["selected_aggregate"] = (
+                                    "Heatmap widgets with multiple aggregates must have a selected aggregate"
+                                )
+                                has_query_error = True
+
+                        heatmap_aggregates = query.get("aggregates")
+                        for heatmap_aggregate in heatmap_aggregates:
+                            try:
+                                trace_metric = extract_trace_metric_from_aggregate(
+                                    heatmap_aggregate
+                                )
+                                if not trace_metric:
+                                    heatmap_query_errors["aggregates"] = (
+                                        "Heatmap widgets are only supported by metric aggregates"
+                                    )
+                                    has_query_error = True
+
+                                elif trace_metric.metric_type != "distribution":
+                                    heatmap_query_errors["aggregates"] = (
+                                        "Heatmap widgets are only supported by distribution type metrics"
+                                    )
+                                    has_query_error = True
+                            except InvalidSearchQuery:
+                                heatmap_query_errors["aggregates"] = (
+                                    f"Invalid aggregate: {heatmap_aggregate}"
+                                )
+                                has_query_error = True
+
+                    else:
+                        heatmap_query_errors["aggregates"] = "Heatmap widgets require an aggregate"
+                        has_query_error = True
+
+                    if query.get("columns") and len(query.get("columns")) > 0:
+                        heatmap_query_errors["columns"] = (
+                            "Heatmap widgets don't support group-by columns"
+                        )
+                        has_query_error = True
+
+                    if heatmap_query_errors:
+                        query_errors.append(heatmap_query_errors)
+
                 else:
                     query_errors.append({})
 
@@ -712,6 +762,11 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
         # Validate widget thresholds
         thresholds = data.get("thresholds")
+        if data.get("display_type") == DashboardWidgetDisplayTypes.HEATMAP and thresholds:
+            raise serializers.ValidationError(
+                {"thresholds": "Heatmap widgets do not support thresholds."}
+            )
+
         if thresholds:
             max_values = thresholds.get("max_values")
             allowed_max_keys = [key.value for key in ThresholdMaxKeys]

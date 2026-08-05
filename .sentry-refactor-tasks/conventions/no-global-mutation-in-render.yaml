@@ -1,0 +1,49 @@
+name: no-global-mutation-in-render
+severity: error
+tags: [react, react-compiler, purity, globals]
+
+why: |
+  Rendering must not mutate values defined outside the component or hook. React
+  may render more than once, abandon a render, or interleave work. Reassigning a
+  module-level or otherwise global binding during render therefore leaks work
+  from an uncommitted render and makes output depend on execution order.
+
+  This convention corresponds to the React Compiler `Globals` diagnostic (for
+  example, "`queryParams` cannot be reassigned").
+
+  See: https://react.dev/reference/eslint-plugin-react-hooks/lints/globals
+
+detect: |
+  Flag assignment, increment/decrement, or mutation of a value declared outside
+  the current component or hook when it occurs during render or synchronous hook
+  execution. Include indirect mutation through a local helper called during
+  render.
+
+  Do NOT flag:
+    - Reading a global value without changing it.
+    - Mutation in an event handler or Effect that runs after render, unless that
+      mutation is independently unsafe.
+    - Test setup performed outside a rendered component or hook callback.
+    - Local variables created and fully consumed within the current render.
+
+fix: |
+  Keep per-render calculations local. Put persistent component-owned values in
+  state or refs, but only mutate refs outside render. Move intentional external
+  synchronization into an Effect or event handler. In tests, create a fresh
+  value per test or configure the mock outside the render callback.
+
+examples:
+  bad:
+    - |
+      let lastQuery = '';
+      function Results({query}: Props) {
+        lastQuery = query;
+        return <List query={query} />;
+      }
+  good:
+    - |
+      function Results({query}: Props) {
+        return <List query={query} />;
+      }
+
+detect_command: 'bash {convention_dir}/react-compiler.detect.sh {repo_path} Globals'

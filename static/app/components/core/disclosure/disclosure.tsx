@@ -9,7 +9,7 @@ import {usePress} from '@react-aria/interactions';
 import {useDisclosureState, type DisclosureState} from '@react-stately/disclosure';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {IconChevron} from 'sentry/icons';
@@ -68,9 +68,9 @@ function DisclosureComponent({
     <DisclosureContext.Provider
       value={{buttonProps, panelProps, panelRef, state, context: {size}}}
     >
-      <Flex data-disclosure direction="column" align="start" ref={ref} {...props}>
+      <Stack data-disclosure align="start" ref={ref} {...props}>
         {children}
-      </Flex>
+      </Stack>
     </DisclosureContext.Provider>
   );
 }

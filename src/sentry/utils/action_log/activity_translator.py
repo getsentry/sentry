@@ -1,5 +1,5 @@
 import logging
-from typing import Mapping
+from typing import TYPE_CHECKING, Mapping
 
 from pydantic.error_wrappers import ValidationError
 
@@ -15,8 +15,11 @@ from sentry.issues.action_log.types import (
     MarkReviewedAction,
     MergeFromOtherAction,
     NewProcessingIssuesAction,
+    PullRequestClosedAction,
+    PullRequestMergedAction,
+    PullRequestReopenedAction,
+    PullRequestUnlinkedAction,
     ReferencedInCommitAction,
-    RelatedPullRequestClosedAction,
     ReprocessAction,
     ResolveAction,
     ResolvedInPullRequestAction,
@@ -37,19 +40,26 @@ from sentry.issues.action_log.types import (
     SetResolvedByAgeAction,
     SetResolvedInCommitAction,
     SetResolvedInReleaseAction,
+    TriggerAutofixAction,
     UnassignAction,
     UnmergeDestinationAction,
     UnmergeSourceAction,
     UnresolveAction,
 )
-from sentry.models.activity import Activity
 from sentry.types.activity import ActivityType
 from sentry.utils.env import in_test_environment
+
+if TYPE_CHECKING:
+    from sentry.models.activity import Activity
+
 
 ACTIVITY_TYPES_WITH_NO_ACTION: frozenset[int] = frozenset(
     (
         ActivityType.FIRST_SEEN.value,
         ActivityType.RELEASE.value,
+        # Internal signal that drives smart-assignment scoring/auto-assign off a
+        # workflow activity handler; not a user-facing group action.
+        ActivityType.SMART_ASSIGNMENT_COMPLETED.value,
     )
 )
 
@@ -89,7 +99,11 @@ ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE: Mapping[int, type[GroupAction]] = {
     ActivityType.SEER_PR_CREATED.value: SeerPRCreatedAction,
     ActivityType.SEER_ITERATION_STARTED.value: SeerIterationStartedAction,
     ActivityType.SEER_ITERATION_COMPLETED.value: SeerIterationCompletedAction,
-    ActivityType.PULL_REQUEST_CLOSED.value: RelatedPullRequestClosedAction,
+    ActivityType.PULL_REQUEST_CLOSED.value: PullRequestClosedAction,
+    ActivityType.PULL_REQUEST_REOPENED.value: PullRequestReopenedAction,
+    ActivityType.PULL_REQUEST_MERGED.value: PullRequestMergedAction,
+    ActivityType.PULL_REQUEST_UNLINKED.value: PullRequestUnlinkedAction,
+    ActivityType.TRIGGER_AUTOFIX.value: TriggerAutofixAction,
 }
 
 ACTIVITY_TYPE_TO_ARG_TRANSLATIONS: Mapping[int, Mapping[str, str]] = {
@@ -115,11 +129,31 @@ ACTIVITY_TYPE_TO_ARG_TRANSLATIONS: Mapping[int, Mapping[str, str]] = {
     },
 }
 
+# GroupActionTypes are serialized with the same `type` string as their
+# equivalent Activity so the frontend can consume both identically
+GROUP_ACTION_TYPE_TO_ACTIVITY_TYPE = {
+    action_cls.get_type().value: activity_type
+    for activity_type, action_cls in ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE.items()
+}
+
+# GALE payloads are stored with the snake_case GroupAction field names, but the
+# frontend consumes the Activity `data` shape. Reverse the camelCase -> snake_case
+# renames that activity_translator applies when mirroring Activities into
+# GroupActions, keyed by GroupActionType value.
+GROUP_ACTION_TYPE_TO_ACTIVITY_KEYS = {
+    action_cls.get_type().value: {
+        gale_key: activity_key
+        for activity_key, gale_key in ACTIVITY_TYPE_TO_ARG_TRANSLATIONS[activity_type].items()
+    }
+    for activity_type, action_cls in ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE.items()
+    if activity_type in ACTIVITY_TYPE_TO_ARG_TRANSLATIONS
+}
+
 
 logger = logging.getLogger(__name__)
 
 
-def activity_to_action(activity: Activity) -> GroupAction | None:
+def activity_to_action(activity: "Activity") -> GroupAction | None:
     """
     Translates an Activity to a GroupAction. None is returned in the error case.
     Does not publish the GroupAction to a GroupActionLogEntry.
@@ -169,3 +203,7 @@ def activity_to_action(activity: Activity) -> GroupAction | None:
         if in_test_environment():
             raise
         return None
+
+
+def activity_action_idempotency_key(activity: "Activity") -> str:
+    return f"activity:{activity.id}"

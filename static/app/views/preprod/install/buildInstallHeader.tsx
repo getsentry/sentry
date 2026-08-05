@@ -20,7 +20,10 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {AppIcon} from 'sentry/views/preprod/components/appIcon';
-import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {
+  getBuildNumber,
+  type BuildDetailsApiResponse,
+} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
   getLabels,
   getReadableArtifactTypeLabel,
@@ -98,7 +101,7 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
   const appInfo = buildDetailsData.app_info;
   const labels = getLabels(appInfo.platform ?? undefined);
   const version = appInfo.version;
-  const buildNumber = appInfo.build_number;
+  const buildNumber = getBuildNumber(appInfo);
   const versionTitle = version
     ? `v${version}${buildNumber ? ` (${buildNumber})` : ''}`
     : undefined;
@@ -141,7 +144,7 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
           <Tooltip title={t('Platform')}>
             <Flex gap="2xs" align="center">
               <Flex align="center" justify="center" width="24px" height="24px">
-                <PlatformIcon platform={appInfo.platform} />
+                <PlatformIcon platform={appInfo.platform} alt="" />
               </Flex>
               <Text size="sm" variant="muted">
                 {getReadablePlatformLabel(appInfo.platform)}

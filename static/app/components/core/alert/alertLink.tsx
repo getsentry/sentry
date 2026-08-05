@@ -45,7 +45,7 @@ type AlertLinkProps =
 
 export function AlertLink(props: AlertLinkProps): React.ReactNode {
   const alertProps: AlertProps = {
-    variant: props.variant ?? 'info',
+    variant: props.variant,
     system: props.system,
     trailingItems: props.trailingItems ?? <IconChevron direction="right" />,
   };

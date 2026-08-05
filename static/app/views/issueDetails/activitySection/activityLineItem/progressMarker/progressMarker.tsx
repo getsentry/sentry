@@ -2,17 +2,23 @@ import styled from '@emotion/styled';
 
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
+import {ProgressState} from 'sentry/types/group';
 import {getProgressIcon} from 'sentry/views/issueList/utils/progress';
 
 import {formatActivityMarkerState, type ActivityMarkerState} from './variant';
 
 interface ProgressMarkerProps {
   state: ActivityMarkerState;
+  label?: string;
   tooltipProps?: Omit<TooltipProps, 'children' | 'skipWrapper' | 'title'>;
 }
 
-export function ActivityProgressMarker({state, tooltipProps}: ProgressMarkerProps) {
-  const label = formatActivityMarkerState(state);
+export function ActivityProgressMarker({
+  label: labelOverride,
+  state,
+  tooltipProps,
+}: ProgressMarkerProps) {
+  const label = labelOverride ?? formatActivityMarkerState(state);
   const marker =
     state === 'activity' ? (
       <ProgressDotFrame aria-label={label} role="img">
@@ -23,6 +29,10 @@ export function ActivityProgressMarker({state, tooltipProps}: ProgressMarkerProp
         {getProgressIcon(state)}
       </ProgressIconFrame>
     );
+
+  if (state === 'activity' || state === ProgressState.FIX_APPLIED) {
+    return marker;
+  }
 
   return (
     <Tooltip title={label} {...tooltipProps} skipWrapper>

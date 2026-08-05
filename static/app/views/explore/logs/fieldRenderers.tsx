@@ -442,7 +442,7 @@ function ReleaseRenderer(props: LogFieldRendererProps) {
 
 export function LogBodyRenderer(props: LogFieldRendererProps) {
   const attribute_value = props.item.value as string;
-  const highlightTerm = props.extra?.highlightTerms[0] ?? '';
+  const highlightTerms = props.extra?.highlightTerms ?? [];
   const template = props.extra.attributes?.[OurLogKnownFieldKey.TEMPLATE];
   const templateText =
     props.extra.canAppendTemplateToBody && template ? template : undefined;
@@ -457,13 +457,12 @@ export function LogBodyRenderer(props: LogFieldRendererProps) {
       <WrappingText wrapText={props.extra.wrapBody}>
         <LogsHighlight
           caseSensitive={props.extra.caseSensitiveHighlighting}
-          text={highlightTerm}
+          terms={highlightTerms}
         >
           {stripAnsi(attribute_value)}
         </LogsHighlight>
         {isBodyFiltered && templateText && (
           <FieldReplacementHelper
-            original={attribute_value}
             replacement={templateText as string}
             extra={props.extra}
             item={props.item}
@@ -564,9 +563,7 @@ function ProjectRenderer(props: LogFieldRendererProps) {
   return <span>{props.item.value}</span>;
 }
 
-function FieldReplacementHelper(
-  props: {original: string; replacement: string} & LogFieldRendererProps
-) {
+function FieldReplacementHelper(props: {replacement: string} & LogFieldRendererProps) {
   return <LogsFilteredHelperText>{props.replacement}</LogsFilteredHelperText>;
 }
 

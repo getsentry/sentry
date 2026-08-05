@@ -1,4 +1,4 @@
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {AutomationBuilderInput} from 'sentry/components/workflowEngine/form/automationBuilderInput';
@@ -43,7 +43,7 @@ export function DiscordDetails({
 
 export function DiscordNode() {
   return (
-    <Flex direction="column" gap="md" flex="1">
+    <Stack gap="md" flex="1">
       <RowLine>
         {tct('Send a [logo] Discord message to [server] server, to [channel]', {
           logo: ActionMetadata[ActionType.DISCORD]?.icon,
@@ -64,7 +64,7 @@ export function DiscordNode() {
           }
         )}
       </DismissableInfoAlert>
-    </Flex>
+    </Stack>
   );
 }
 

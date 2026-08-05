@@ -2,6 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {
+  DocIntegrationAvatar,
   OrganizationAvatar,
   SentryAppAvatar,
   TeamAvatar,
@@ -23,6 +24,7 @@ import {IconUpload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Avatar} from 'sentry/types/core';
 import type {
+  DocIntegration,
   SentryApp,
   SentryAppAvatarPhotoType,
   SentryAppAvatar as SentryAppAvatarType,
@@ -41,7 +43,13 @@ interface SimpleAvatar {
 
 type AvatarType = Avatar['avatarType'];
 
-type AvatarModel = AvatarUser | Team | Organization | SentryApp | SimpleAvatar;
+type AvatarModel =
+  | AvatarUser
+  | Team
+  | Organization
+  | SentryApp
+  | DocIntegration
+  | SimpleAvatar;
 
 type DefaultChoice = {
   description?: React.ReactNode;
@@ -80,7 +88,7 @@ type AvatarChooserProps = AvatarChooserBaseProps &
         onSave?: (model: SimpleAvatar) => void;
       }
     | {
-        model: SimpleAvatar;
+        model: DocIntegration;
         type: 'docIntegration';
         onSave?: (model: SimpleAvatar) => void;
       }
@@ -262,6 +270,11 @@ export function AvatarChooser({
       <TeamAvatar {...sharedAvatarProps} team={model as Team} />
     ) : type === 'organization' ? (
       <OrganizationAvatar {...sharedAvatarProps} organization={model as Organization} />
+    ) : type === 'docIntegration' ? (
+      <DocIntegrationAvatar
+        {...sharedAvatarProps}
+        docIntegration={model as DocIntegration}
+      />
     ) : isSentryApp ? (
       <SentryAppAvatar
         {...sharedAvatarProps}

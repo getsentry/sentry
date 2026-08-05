@@ -30,6 +30,18 @@ describe('useConversations', () => {
     MockApiClient.clearMockResponses();
   });
 
+  it('requests 50 conversations per page', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/ai-conversations/`,
+      body: [],
+      match: [MockApiClient.matchQuery({per_page: 50})],
+    });
+
+    const {result} = renderHookWithProviders(() => useConversations(), {organization});
+
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+  });
+
   it('normalizes firstInput when it is a string', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/`,
@@ -38,7 +50,7 @@ describe('useConversations', () => {
 
     const {result} = renderHookWithProviders(() => useConversations(), {organization});
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
 
     expect(result.current.data[0]?.firstInput).toBe('hello');
   });
@@ -60,7 +72,7 @@ describe('useConversations', () => {
 
     const {result} = renderHookWithProviders(() => useConversations(), {organization});
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
 
     expect(result.current.data[0]?.firstInput).toBe('hello from array');
   });
@@ -79,7 +91,7 @@ describe('useConversations', () => {
 
     const {result} = renderHookWithProviders(() => useConversations(), {organization});
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
 
     expect(result.current.data[0]?.firstInput).toBeNull();
   });
@@ -92,7 +104,7 @@ describe('useConversations', () => {
 
     const {result} = renderHookWithProviders(() => useConversations(), {organization});
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
 
     expect(result.current.data[0]?.lastOutput).toBe('world');
   });
@@ -114,7 +126,7 @@ describe('useConversations', () => {
 
     const {result} = renderHookWithProviders(() => useConversations(), {organization});
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
 
     // This was the bug: lastOutput was passed through as an array, causing
     // `.replace is not a function` when rendering the table cell
@@ -135,7 +147,7 @@ describe('useConversations', () => {
 
     const {result} = renderHookWithProviders(() => useConversations(), {organization});
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
 
     expect(result.current.data[0]?.lastOutput).toBeNull();
   });
@@ -148,7 +160,7 @@ describe('useConversations', () => {
 
     const {result} = renderHookWithProviders(() => useConversations(), {organization});
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
 
     expect(result.current.data[0]?.firstInput).toBeNull();
     expect(result.current.data[0]?.lastOutput).toBeNull();
@@ -165,9 +177,36 @@ describe('useConversations', () => {
 
     const {result} = renderHookWithProviders(() => useConversations(), {organization});
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
 
     expect(result.current.data[0]?.conversationId).toBe('newer');
     expect(result.current.data[1]?.conversationId).toBe('older');
+  });
+
+  it('reports a direct hit when the header is present', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/ai-conversations/`,
+      body: [{...BASE_CONVERSATION, firstInput: null, lastOutput: null}],
+      headers: {'X-Sentry-Direct-Hit': '1'},
+    });
+
+    const {result} = renderHookWithProviders(() => useConversations(), {organization});
+
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+
+    expect(result.current.isDirectHit).toBe(true);
+  });
+
+  it('does not report a direct hit when the header is absent', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/ai-conversations/`,
+      body: [{...BASE_CONVERSATION, firstInput: null, lastOutput: null}],
+    });
+
+    const {result} = renderHookWithProviders(() => useConversations(), {organization});
+
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+
+    expect(result.current.isDirectHit).toBe(false);
   });
 });

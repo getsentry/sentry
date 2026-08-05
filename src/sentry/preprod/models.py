@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from enum import IntEnum, StrEnum
-from typing import ClassVar, Self, assert_never
+from typing import ClassVar, Self, TypedDict, assert_never, cast
 
 import sentry_sdk
 from django.db import models
@@ -794,6 +794,14 @@ class PreprodArtifactSizeComparison(DefaultFieldsModel):
         unique_together = ("organization_id", "head_size_analysis", "base_size_analysis")
 
 
+class PreprodArtifactMobileAppInfoExtras(TypedDict, total=False):
+    """Known keys stored in PreprodArtifactMobileAppInfo.extras."""
+
+    # Unparsed build identifier (e.g. raw CFBundleVersion) for display, since
+    # build_number may be a synthesized sortable int rather than the literal value.
+    build_number_raw: str
+
+
 @cell_silo_model
 class PreprodArtifactMobileAppInfo(DefaultFieldsModel):
     """
@@ -814,14 +822,18 @@ class PreprodArtifactMobileAppInfo(DefaultFieldsModel):
     app_icon_id = models.CharField(max_length=255, null=True)
     # The name of the app, e.g. "My App"
     app_name = models.CharField(max_length=255, null=True)
-    # Miscellaneous fields that we don't need columns for
+    # Miscellaneous fields that we don't need columns for; see PreprodArtifactMobileAppInfoExtras.
     extras = models.JSONField(null=True)
 
     def format_version_string(self, default: str = "--") -> str:
         parts: list[str] = []
         if self.build_version:
             parts.append(self.build_version)
-        if self.build_number:
+        extras = cast(PreprodArtifactMobileAppInfoExtras, self.extras) if self.extras else None
+        build_number_raw = extras.get("build_number_raw") if extras else None
+        if build_number_raw:
+            parts.append(f"({build_number_raw})")
+        elif self.build_number:
             parts.append(f"({self.build_number})")
         return " ".join(parts) if parts else default
 

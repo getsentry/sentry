@@ -5,13 +5,12 @@ import logging
 import os
 import re
 import zlib
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from functools import cached_property
 from typing import Any, Literal, overload
 
 import msgpack
-import sentry_sdk
 import zstandard
 from sentry_ophio.enhancers import AssembleResult as RustStacktraceResult
 from sentry_ophio.enhancers import Cache as RustCache
@@ -23,6 +22,7 @@ from sentry.models.project import Project
 from sentry.stacktraces.functions import set_in_app
 from sentry.utils import metrics
 from sentry.utils.safe import get_path, set_path
+from sentry.utils.tracing import trace
 
 from .exceptions import InvalidEnhancerConfig
 from .matchers import create_match_frame
@@ -129,10 +129,15 @@ def _make_rust_exception_data(
     exception_data: dict[str, Any] | None,
 ) -> RustExceptionData:
     exception_data = exception_data or {}
+    mechanism = exception_data.get("mechanism")
     rust_data = {
         "type": exception_data.get("type"),
         "value": exception_data.get("value"),
-        "mechanism": get_path(exception_data, "mechanism", "type"),
+        "mechanism": (
+            mechanism.get("type")
+            if isinstance(mechanism, Mapping)
+            else getattr(mechanism, "type", None)
+        ),
     }
 
     # Convert string values to bytes
@@ -637,7 +642,7 @@ class EnhancementsConfig:
             )
 
     @classmethod
-    @sentry_sdk.tracing.trace
+    @trace
     def from_rules_text(
         cls,
         rules_text: str,

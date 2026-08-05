@@ -3,7 +3,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {
@@ -28,10 +27,9 @@ import {useDetectorStatsPeriods} from 'sentry/views/detectors/hooks/useDetectorS
 
 type MetricDetectorDetailsProps = {
   detector: MetricDetector;
-  project: Project;
 };
 
-export function MetricDetectorDetails({detector, project}: MetricDetectorDetailsProps) {
+export function MetricDetectorDetails({detector}: MetricDetectorDetailsProps) {
   const dataSource = detector.dataSources[0];
   const snubaQuery = dataSource.queryObj?.snubaQuery;
 
@@ -50,7 +48,7 @@ export function MetricDetectorDetails({detector, project}: MetricDetectorDetails
 
   return (
     <DetailLayout>
-      <DetectorDetailsHeader detector={detector} project={project} />
+      <DetectorDetailsHeader detector={detector} />
       <DetailLayout.Body>
         <DetailLayout.Main>
           <DisabledAlert
@@ -68,9 +66,7 @@ export function MetricDetectorDetails({detector, project}: MetricDetectorDetails
               <EditDetectorAction detector={detector} />
             </Flex>
           </Flex>
-          {snubaQuery && (
-            <MetricDetectorDetailsChart detector={detector} snubaQuery={snubaQuery} />
-          )}
+          {snubaQuery && <MetricDetectorDetailsChart detector={detector} />}
           <ErrorBoundary mini>
             <DetectorDetailsOpenPeriodIssues
               detector={detector}

@@ -1,0 +1,132 @@
+name: deprecated-needs-replacement
+severity: warning
+tags: [docs, migration, deprecation]
+
+why: |
+  An `@deprecated` annotation is only useful if it tells the reader what to do
+  instead. A bare `@deprecated`, or one that just says "do not use this",
+  signals that something is on its way out but leaves every caller to guess at
+  the migration path — which symbol, hook, component, or import replaces it, or
+  whether they should simply delete the usage. That guesswork is exactly what
+  the annotation is supposed to remove.
+
+  Requiring an explicit migration note on every deprecation turns the
+  annotation into an actionable instruction: a reader (human or agent) hitting
+  the deprecated symbol can immediately see their next step instead of grepping
+  the codebase or asking around. It also makes the eventual removal tractable,
+  because each call site already documents where it should move.
+
+  See: https://tsdoc.org/pages/tags/deprecated/ (the `@deprecated` tag "should
+  ideally" be accompanied by guidance on what to use instead.)
+
+detect: |
+  Look for `@deprecated` JSDoc/TSDoc tags whose accompanying text does NOT give
+  the reader a concrete next step. Flag the deprecated declaration (the
+  `@deprecated` line and the symbol it documents).
+
+  A deprecation is CONFORMING (do NOT flag) when its text does at least one of:
+    - Names a concrete replacement the caller should move to — a symbol, hook,
+      component, import path, or option. Phrasings like "Use `X` instead",
+      "Prefer `X`", "Switch to `X`", "use `useFoo()`" all qualify, as long as a
+      specific target is named.
+    - Explicitly states the symbol is being removed / is no longer needed AND
+      tells callers what to do about it (e.g. "remove this usage; the value is
+      now always present", "delete the prop, the layout handles this now").
+
+  A deprecation is NON-CONFORMING (FLAG it) when its text:
+    - Is bare: `@deprecated` with no following prose at all.
+    - Only forbids use without redirecting: "Do not use this", "do not use",
+      "don't use in new code" with no named alternative.
+    - Announces removal but leaves callers' next move unstated: "will be removed
+      in new UI", "this is going away" — with no replacement and no instruction
+      to remove the usage (per this convention, removal-only deprecations must
+      still spell out the caller's action).
+    - Names a vague direction but no concrete target: "use a hook instead",
+      "use the new API", "consider a different approach".
+
+  Treat a named target inside backticks, or any clearly-identifiable symbol
+  name, as concrete even if the surrounding sentence is terse.
+
+  Do NOT flag:
+    - `@deprecated` appearing in comments that are documentation ABOUT the tag
+      itself (e.g. this convention, lint rules, or codemods that match on it).
+    - `@deprecated` inside strings, test fixtures, or mocks.
+    - Re-exports / type aliases that merely forward an already-documented
+      deprecation, where the original declaration carries the migration note.
+
+fix: |
+  Add the migration target to the `@deprecated` text so a reader knows their
+  next step without leaving the file.
+
+    - If a replacement exists, name it concretely and link it with backticks:
+        `@deprecated Use \`useProjects()\` instead.`
+    - If the symbol is going away with no replacement, say so AND tell callers
+      what to do:
+        `@deprecated Being removed with the new UI — delete usages; there is no
+        replacement.`
+    - If the deprecation is conditional (e.g. waiting on a backend change),
+      state the trigger and the eventual action:
+        `@deprecated Temporary shim until the API returns corrected timestamps;
+        remove once it does.`
+
+  Prefer a single sentence that answers "what do I do instead?". Keep the
+  existing tag placement (same JSDoc block / line); only the text changes. Do
+  not silently drop a deprecation just because it lacks a replacement — if it is
+  truly safe to use, remove the `@deprecated` tag instead; if not, document the
+  path.
+
+  Gotchas:
+    1. Naming a replacement that is ITSELF deprecated just moves the problem —
+       point at the live target.
+    2. When the replacement is in another package, include the import source
+       (`Use \`Text\` from \`@sentry/scraps/text\``) so callers can find it.
+    3. A `@deprecated` on a type/interface member documents that field; the note
+       should describe the field's replacement, not the whole type's.
+
+examples:
+  bad:
+    - |
+      /** @deprecated */
+      export function getOldThing() {}
+    - |
+      /**
+       * @deprecated Do not use this
+       */
+      export const legacyClient = makeClient();
+    - |
+      /** @deprecated This icon will be removed in new UI. */
+      export function IconLegacy() {}
+    - |
+      /** @deprecated use a hook instead */
+      export function withThing(Component) {}
+  good:
+    - |
+      /** @deprecated Use `useProjects()` instead. */
+      export function getProjects() {}
+    - |
+      /** @deprecated Use `Text` from `@sentry/scraps/text` instead. */
+      export function LegacyText() {}
+    - |
+      /**
+       * @deprecated Being removed with the new UI — delete usages; there is no
+       * replacement.
+       */
+      export function IconLegacy() {}
+    - |
+      /**
+       * @deprecated Temporary shim until the API returns corrected timestamps;
+       * remove once it does.
+       */
+      export function adjustTimestamps() {}
+
+include:
+  - 'static/**/*.tsx'
+  - 'static/**/*.ts'
+exclude:
+  - '**/__fixtures__/**'
+  - '**/__mocks__/**'
+  - '**/*.spec.*'
+  - '**/*.test.*'
+  - '**/test/**'
+
+prefilter: "grep -rl --include='*.tsx' --include='*.ts' '@deprecated' {repo_path}/static/"

@@ -24,7 +24,6 @@ import {
   SessionStatus,
   type SessionApiResponse,
 } from 'sentry/types/organization';
-import type {PlatformKey} from 'sentry/types/platform';
 import {
   ReleaseComparisonChartType,
   type ReleaseProject,
@@ -71,7 +70,6 @@ type Props = {
   errored: boolean;
   hasHealthData: boolean;
   loading: boolean;
-  platform: PlatformKey;
   project: ReleaseProject;
   release: ReleaseWithHealth;
   releaseSessions: SessionApiResponse | null;
@@ -97,7 +95,6 @@ export function ReleaseComparisonChart({
   project,
   releaseSessions,
   allSessions,
-  platform,
   loading,
   reloading,
   errored,
@@ -217,6 +214,7 @@ export function ReleaseComparisonChart({
               'event.type:error',
               `release:${release.version}`,
             ]).formatString(),
+            dataset: DiscoverDatasets.ERRORS,
             ...commonQuery,
           },
         }),
@@ -224,6 +222,7 @@ export function ReleaseComparisonChart({
           query: {
             field: ['count()'],
             query: new MutableSearch(['event.type:error']).formatString(),
+            dataset: DiscoverDatasets.ERRORS,
             ...commonQuery,
           },
         }),
@@ -1091,7 +1090,6 @@ export function ReleaseComparisonChart({
                       release={release}
                       project={project}
                       chartType={activeChart}
-                      platform={platform}
                       period={period ?? undefined}
                       start={start}
                       end={end}

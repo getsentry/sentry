@@ -1,12 +1,10 @@
 import {Flex} from '@sentry/scraps/layout';
 
 import {AlertsMonitorsShowcaseButton} from 'sentry/components/workflowEngine/alertsMonitorsShowcaseButton';
-import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 
 interface DetectorListActionsProps {
   children?: React.ReactNode;
-  detectorType?: DetectorType;
 }
 
 export function DetectorListActions({children}: DetectorListActionsProps) {

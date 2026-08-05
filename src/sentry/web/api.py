@@ -15,7 +15,7 @@ from sentry.web.frontend.base import all_silo_view, control_silo_view
 # and the URL of these pages may still appear in search results
 ROBOTS_SENTRY_IO = """\
 User-agent: *
-Content-Signal: search=yes, ai-input=yes, ai-train=no
+Content-Signal: search=yes, ai-input=yes, ai-train=yes
 Disallow: /api/
 Allow: /
 

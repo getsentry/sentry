@@ -11,26 +11,8 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import OrganizationRepositories from 'sentry/views/settings/organizationRepositories';
-
-// ScmRepositoryTable uses @tanstack/react-virtual, which only renders rows
-// whose bounding rect overlaps the scroll container. Without this stub it
-// sees a 0×0 viewport and renders nothing.
-function stubBoundingClientRect() {
-  jest
-    .spyOn(window.Element.prototype, 'getBoundingClientRect')
-    .mockImplementation(() => ({
-      x: 0,
-      y: 0,
-      width: 600,
-      height: 400,
-      left: 0,
-      top: 0,
-      right: 600,
-      bottom: 400,
-      toJSON: jest.fn(),
-    }));
-}
 
 const GITHUB_PROVIDER = GitHubIntegrationProviderFixture();
 const GITHUB_INTEGRATION = OrganizationIntegrationsFixture({
@@ -72,7 +54,7 @@ function setupDefaultMocks() {
 
 describe('OrganizationRepositories', () => {
   beforeEach(() => {
-    stubBoundingClientRect();
+    mockElementSize({width: 600, height: 400});
   });
 
   it('shows a loading indicator while queries are pending', async () => {

@@ -9,6 +9,7 @@ from sentry.issues.ingest import hash_fingerprint
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.group import Group, GroupStatus
+from sentry.utils.tracing import trace
 from sentry.web_vitals.types import WebVitalIssueDetectionGroupingType, WebVitalIssueGroupData
 
 
@@ -18,7 +19,7 @@ def create_fingerprint(vital_grouping: WebVitalIssueDetectionGroupingType, trans
     return fingerprint
 
 
-@sentry_sdk.tracing.trace
+@trace
 def send_web_vitals_issue_to_platform(data: WebVitalIssueGroupData, trace_id: str) -> bool:
     project = data["project"]
     sentry_sdk.set_tag("project_id", project.id)

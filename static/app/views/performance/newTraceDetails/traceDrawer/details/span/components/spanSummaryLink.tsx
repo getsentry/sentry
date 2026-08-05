@@ -18,7 +18,6 @@ interface Props {
   group: string | undefined;
   op: string | undefined;
   organization: Organization;
-  project_id: string | undefined;
 }
 
 export function SpanSummaryLink(props: Props) {

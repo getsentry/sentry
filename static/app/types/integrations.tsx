@@ -163,9 +163,18 @@ type SeerAttribution = {
 
 export type PullRequestAttribution = SeerAttribution;
 
+export type PullRequestChecksStatus = 'success' | 'failure' | 'pending';
+
+export type PullRequestReviewStatus =
+  | 'approved'
+  | 'changes_requested'
+  | 'review_required';
+
 export interface LinkedPullRequest extends Omit<PullRequest, 'author'> {
   attribution: PullRequestAttribution | null;
+  checksStatus: PullRequestChecksStatus | null;
   dateLinked: string;
+  reviewStatus: PullRequestReviewStatus | null;
   status: PullRequestStatus;
   author?: PullRequestAuthor;
 }
@@ -239,7 +248,8 @@ export type SentryAppSchemaElement =
   | SentryAppSchemaStacktraceLink;
 
 export type SentryApp = {
-  author: string;
+  // Null for internal integrations, which have no author.
+  author: string | null;
   events: WebhookEvent[];
   featureData: IntegrationFeature[];
   isAlertable: boolean;
@@ -256,6 +266,9 @@ export type SentryApp = {
   status: SentryAppStatus;
   uuid: string;
   verifyInstall: boolean;
+  // The stored subscriptions as exact event tokens, where `events` consolidates
+  // them to resource names.
+  webhookEvents: string[];
   webhookUrl: string | null;
   allowedOrigins?: string[];
   avatars?: SentryAppAvatar[];

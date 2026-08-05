@@ -1,0 +1,48 @@
+name: preserve-manual-memoization
+severity: warning
+tags: [react, react-compiler, memoization, performance]
+
+why: |
+  Existing `useMemo`, `useCallback`, or `memo` boundaries may be observable
+  behavior, not merely an optimization. If the compiler cannot preserve their
+  inputs or lifetime, compiling the component could change when values and
+  callbacks are recreated. React skips unsafe optimization rather than silently
+  weakening the manual boundary.
+
+  This convention corresponds to the React Compiler `PreserveManualMemo`
+  diagnostic: "Could not preserve existing manual memoization", "Could not
+  preserve existing memoization", or "This dependency may be modified later."
+
+  See: https://react.dev/reference/eslint-plugin-react-hooks/lints/preserve-manual-memoization
+
+detect: |
+  Flag a manual memoization boundary the compiler cannot safely reproduce,
+  especially when:
+    - The inferred reactive inputs do not match the written dependency list.
+    - A dependency or its binding may be modified after the memo is created.
+    - The memo returns or captures a value whose identity/lifetime escapes in a
+      way the compiler cannot track.
+    - Nested memoization or control flow obscures the intended boundary.
+
+  Do not assume every manual memo is necessary. Report the incompatible
+  boundary, then determine from its consumers whether identity is observable.
+
+fix: |
+  Make the memo's data flow explicit and immutable: correct its dependencies,
+  avoid reassigning captured bindings, and calculate intermediate values before
+  the memo when that clarifies the inputs. If stable identity is not observable
+  and profiling does not justify the memo, remove it. Keep manual memoization
+  when a memoized child, imperative API, or external cache relies on identity.
+
+examples:
+  bad:
+    - |
+      let options = props.options;
+      const result = useMemo(() => compute(options), []);
+      options = normalize(options);
+  good:
+    - |
+      const options = normalize(props.options);
+      const result = useMemo(() => compute(options), [options]);
+
+detect_command: 'bash {convention_dir}/react-compiler.detect.sh {repo_path} PreserveManualMemo'

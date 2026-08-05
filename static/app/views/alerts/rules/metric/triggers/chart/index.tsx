@@ -3,8 +3,6 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
-import maxBy from 'lodash/maxBy';
-import minBy from 'lodash/minBy';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -392,8 +390,6 @@ class TriggersChart extends PureComponent<Props, State> {
           <ThresholdsChart
             theme={this.props.theme}
             period={statsPeriod}
-            minValue={minBy(timeseriesData[0]?.data, ({value}) => value)?.value}
-            maxValue={maxBy(timeseriesData[0]?.data, ({value}) => value)?.value}
             data={timeseriesData}
             comparisonData={comparisonData ?? []}
             comparisonSeriesName={this.comparisonSeriesName}

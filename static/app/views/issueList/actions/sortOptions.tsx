@@ -8,9 +8,11 @@ import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import {IconSort} from 'sentry/icons/iconSort';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import {
   FOR_REVIEW_QUERIES,
   getSortLabel,
+  getStoredIssueSort,
   IssueSortOptions,
 } from 'sentry/views/issueList/utils';
 
@@ -36,13 +38,11 @@ function getSortTooltip(key: IssueSortOptions) {
     case IssueSortOptions.USER:
       return t('Number of users affected.');
     case IssueSortOptions.RECOMMENDED:
-      return t('Issues ranked by combined recency, severity, and impact signals.');
+    case IssueSortOptions.RECOMMENDED_V1:
     case IssueSortOptions.RECOMMENDED_EXPERIMENTAL:
-      return t(
-        'Experimental recommended sort with additional relevance and lifecycle signals.'
-      );
+      return t('Relevance and impact.');
     case IssueSortOptions.PROGRESS:
-      return t('Issues ranked by how far along they are toward a fix.');
+      return t('Progress toward a fix.');
     case IssueSortOptions.DATE:
     default:
       return t('Last time the issue occurred.');
@@ -58,30 +58,38 @@ export function IssueListSortOptions({
   showIcon = true,
 }: Props) {
   const organization = useOrganization();
+  const {viewId} = useParams<{viewId?: string}>();
+  const hasRecommendedSortDefault = organization.features.includes(
+    'issue-stream-recommended-sort-default'
+  );
+  // The trigger badge announces the Recommended default. A stored sort means
+  // the user has already made an explicit choice, so stop announcing.
+  const hasChosenSort = getStoredIssueSort(organization.slug) !== null;
+  const hasProgressSort =
+    organization.features.includes('issue-stream-progress-sort') ||
+    sort === IssueSortOptions.PROGRESS;
+  // The explicit v1/v2 sort values are URL-only escape hatches for pinning one of
+  // the two recommended scorers; the dropdown just shows them as Recommended.
+  const isPinnedRecommended =
+    sort === IssueSortOptions.RECOMMENDED_V1 ||
+    sort === IssueSortOptions.RECOMMENDED_EXPERIMENTAL;
+  const sortKey = isPinnedRecommended
+    ? IssueSortOptions.RECOMMENDED
+    : sort || IssueSortOptions.DATE;
   const hasRecommendedSort =
     organization.features.includes('issue-stream-recommended-sort') ||
     // If Recommended is the default sort it must also be selectable, otherwise a
     // user with a stored non-recommended sort can't switch back to it.
     organization.features.includes('issue-stream-recommended-sort-default') ||
-    sort === IssueSortOptions.RECOMMENDED;
-  const hasExperimentalRecommendedSort =
-    organization.features.includes('issue-stream-recommended-sort-experimental') ||
-    sort === IssueSortOptions.RECOMMENDED_EXPERIMENTAL;
-  const hasProgressSort =
-    organization.features.includes('issue-stream-progress-sort') ||
-    sort === IssueSortOptions.PROGRESS;
-  const sortKey = sort || IssueSortOptions.DATE;
+    sortKey === IssueSortOptions.RECOMMENDED;
   const sortKeys = [
+    ...(hasRecommendedSort ? [IssueSortOptions.RECOMMENDED] : []),
     ...(FOR_REVIEW_QUERIES.includes(query || '') ? [IssueSortOptions.INBOX] : []),
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
     IssueSortOptions.TRENDS,
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
-    ...(hasRecommendedSort ? [IssueSortOptions.RECOMMENDED] : []),
-    ...(hasExperimentalRecommendedSort
-      ? [IssueSortOptions.RECOMMENDED_EXPERIMENTAL]
-      : []),
     ...(hasProgressSort ? [IssueSortOptions.PROGRESS] : []),
   ];
 
@@ -94,6 +102,9 @@ export function IssueListSortOptions({
         value: key,
         label: getSortLabel(key),
         details: getSortTooltip(key),
+        ...(key === IssueSortOptions.RECOMMENDED
+          ? {trailingItems: <FeatureBadge type="new" />}
+          : {}),
       }))}
       menuWidth={240}
       value={sortKey}
@@ -103,7 +114,9 @@ export function IssueListSortOptions({
           size={triggerSize}
           icon={showIcon && <IconSort />}
         >
-          {organization.features.includes('issue-stream-recommended-sort-default') &&
+          {hasRecommendedSortDefault &&
+          !hasChosenSort &&
+          !viewId &&
           sortKey === IssueSortOptions.RECOMMENDED ? (
             <Flex as="span" gap="sm" align="center">
               {triggerProps.children}

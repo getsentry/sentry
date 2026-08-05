@@ -1,5 +1,4 @@
 import {useEffect, useRef} from 'react';
-import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
@@ -23,6 +22,7 @@ import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {PreprodQuotaAlert} from 'sentry/views/preprod/components/preprodQuotaAlert';
 import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
 import {
+  getBuildNumber,
   isSizeInfoPendingOrProcessing,
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -124,7 +124,7 @@ export default function BuildDetails() {
   const buildDetails = buildDetailsQuery.data;
   const projectSlug = buildDetails?.project_slug;
   const version = buildDetails?.app_info?.version;
-  const buildNumber = buildDetails?.app_info?.build_number;
+  const buildNumber = getBuildNumber(buildDetails?.app_info);
   const project = ProjectsStore.getBySlug(projectSlug);
   const projectType = project?.platform ?? null;
 
@@ -194,17 +194,21 @@ export default function BuildDetails() {
           />
         </Layout.Header>
 
-        <BuildDetailsBody>
+        <Layout.Body gap={{zero: '2xl', '4xl': '3xl'}}>
           <UrlParamBatchProvider>
-            <BuildDetailsSide>
+            <Layout.Side
+              minWidth={{zero: 'auto', '4xl': '325px'}}
+              maxWidth={{zero: 'none', '4xl': '325px'}}
+              row={{zero: 'auto', '4xl': '1'}}
+            >
               <BuildDetailsSidebarContent
                 buildDetailsData={buildDetailsQuery.data}
                 isBuildDetailsPending={buildDetailsQuery.isLoading}
                 artifactId={artifactId}
                 projectId={projectSlug ?? null}
               />
-            </BuildDetailsSide>
-            <BuildDetailsMain>
+            </Layout.Side>
+            <Layout.Main row={{zero: 'auto', '4xl': '1'}}>
               <BuildDetailsMainContent
                 appSizeQuery={appSizeQuery}
                 onRerunAnalysis={onRerunAnalysis}
@@ -214,31 +218,10 @@ export default function BuildDetails() {
                 projectType={projectType}
                 projectId={projectSlug}
               />
-            </BuildDetailsMain>
+            </Layout.Main>
           </UrlParamBatchProvider>
-        </BuildDetailsBody>
+        </Layout.Body>
       </Stack>
     </SentryDocumentTitle>
   );
 }
-
-const BuildDetailsBody = styled(Layout.Body)`
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    display: flex;
-    flex-direction: row-reverse;
-    gap: ${p => p.theme.space['3xl']};
-  }
-`;
-
-const BuildDetailsMain = styled(Layout.Main)`
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    width: 100%;
-  }
-`;
-
-const BuildDetailsSide = styled(Layout.Side)`
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    min-width: 325px;
-    max-width: 325px;
-  }
-`;

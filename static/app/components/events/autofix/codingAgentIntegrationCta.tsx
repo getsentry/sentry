@@ -1,7 +1,7 @@
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -155,7 +155,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
           marginTop="2xl"
           marginBottom="2xl"
         >
-          <Flex direction="column" gap="lg">
+          <Stack gap="lg">
             <Heading as="h3">
               <Flex direction="row" gap="sm" align="center">
                 <PluginIcon pluginId={config.pluginId} />{' '}
@@ -181,7 +181,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
                 {t('Install %s Integration', config.displayName)}
               </LinkButton>
             </div>
-          </Flex>
+          </Stack>
         </Container>
       );
     }
@@ -195,7 +195,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
           marginTop="2xl"
           marginBottom="2xl"
         >
-          <Flex direction="column" gap="lg">
+          <Stack gap="lg">
             <Heading as="h3">
               <Flex direction="row" gap="sm" align="center">
                 <PluginIcon pluginId={config.pluginId} />{' '}
@@ -221,7 +221,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
                 {t('Set Seer to hand off to %s', config.displayName)}
               </Button>
             </div>
-          </Flex>
+          </Stack>
         </Container>
       );
     }
@@ -234,7 +234,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
         marginTop="2xl"
         marginBottom="2xl"
       >
-        <Flex direction="column" gap="lg">
+        <Stack gap="lg">
           <Heading as="h3">
             <Flex direction="row" gap="sm" align="center">
               <PluginIcon pluginId={config.pluginId} />{' '}
@@ -250,7 +250,7 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
               }
             )}
           </Text>
-        </Flex>
+        </Stack>
       </Container>
     );
   };

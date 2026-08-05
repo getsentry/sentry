@@ -67,6 +67,36 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
             f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
 
+    def test_regression_with_event_id_block(self) -> None:
+        """
+        Test that the Slack notification URL links to the specific event that
+        caused the regression when event_id is present in activity data.
+        """
+        event_id = "a" * 32
+        with self.tasks():
+            self.create_notification(self.group, {"event_id": event_id}).send()
+
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
+        assert blocks[1]["text"]["text"] == (
+            f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/events/{event_id}/?referrer=regression_activity-slack&notification_uuid={notification_uuid}|*{self.group.title}*>"
+        )
+
+    def test_regression_with_event_id_and_release_block(self) -> None:
+        """
+        Test that the URL includes the event_id even when a release version is
+        also present.
+        """
+        event_id = "b" * 32
+        with self.tasks():
+            self.create_notification(self.group, {"event_id": event_id, "version": "1.0.0"}).send()
+
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
+        assert blocks[1]["text"]["text"] == (
+            f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/events/{event_id}/?referrer=regression_activity-slack&notification_uuid={notification_uuid}|*{self.group.title}*>"
+        )
+
     @mock.patch(
         "sentry.services.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_PERF_ISSUE_OCCURRENCE,

@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 from typing import Any, TypedDict
 
 import msgspec
-import sentry_sdk
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.constants import DataCategory
@@ -35,6 +34,7 @@ from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
+from sentry.utils.tracing import trace
 
 LOG_SAMPLE_RATE = 0.01
 
@@ -147,7 +147,7 @@ class ProcessedEvent:
     video_size: int | None
 
 
-@sentry_sdk.trace
+@trace
 def process_recording_event(
     message: Event, use_new_recording_parser: bool = False
 ) -> ProcessedEvent:
@@ -281,12 +281,12 @@ def extract_user_info(replay_event: dict[str, Any] | None) -> dict[str, str | No
     return result
 
 
-@sentry_sdk.trace
+@trace
 def pack_replay_video(recording: bytes, video: bytes):
     return zlib.compress(pack(rrweb=recording, video=video))
 
 
-@sentry_sdk.trace
+@trace
 def commit_recording_message(recording: ProcessedEvent, context: ProcessorContext) -> None:
     # Write to GCS.
     storage_kv.set(recording.filename, recording.filedata)
@@ -340,7 +340,7 @@ def commit_recording_message(recording: ProcessedEvent, context: ProcessorContex
     emit_trace_items_to_eap(recording.trace_items)
 
 
-@sentry_sdk.trace
+@trace
 def emit_replay_events(
     event_meta: ParsedEventMeta,
     org_id: int,
@@ -460,7 +460,7 @@ def _track_initial_segment_event_new(
     )
 
 
-@sentry_sdk.trace
+@trace
 def track_recording_metadata(recording: ProcessedEvent) -> None:
     # Report size metrics to determine usage patterns.
     metrics.distribution(

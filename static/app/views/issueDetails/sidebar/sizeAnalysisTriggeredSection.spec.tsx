@@ -1,10 +1,8 @@
 import type {ComponentProps} from 'react';
 import {EventFixture} from 'sentry-fixture/event';
-import {GroupFixture} from 'sentry-fixture/group';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {IssueCategory, IssueType} from 'sentry/types/group';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import type {MetricCondition} from 'sentry/types/workflowEngine/detectors';
 import {SizeAnalysisTriggeredSection} from 'sentry/views/issueDetails/sidebar/sizeAnalysisTriggeredSection';
@@ -16,11 +14,6 @@ describe('SizeAnalysisTriggeredSection', () => {
     comparison: 1000000,
     conditionResult: 75,
   };
-
-  const defaultGroup = GroupFixture({
-    issueType: IssueType.PREPROD_SIZE_ANALYSIS,
-    issueCategory: IssueCategory.PREPROD,
-  });
 
   const defaultEvidenceData = {
     detectorId: 8,
@@ -54,7 +47,6 @@ describe('SizeAnalysisTriggeredSection', () => {
   });
 
   const defaultProps: ComponentProps<typeof SizeAnalysisTriggeredSection> = {
-    group: defaultGroup,
     event: defaultEvent,
   };
 

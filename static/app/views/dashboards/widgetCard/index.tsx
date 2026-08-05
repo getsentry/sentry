@@ -89,7 +89,6 @@ export const SESSION_DURATION_ALERT = (
 
 type Props = {
   api: Client;
-  isEditingDashboard: boolean;
   selection: PageFilters;
   widget: TWidget;
   widgetLegendState: WidgetLegendSelectionState;
@@ -102,7 +101,6 @@ type Props = {
   forceDescriptionTooltip?: boolean;
   hasEditAccess?: boolean;
   index?: string;
-  isEditingWidget?: boolean;
   isMobile?: boolean;
   isPreview?: boolean;
   legendOptions?: LegendComponentOption;
@@ -112,8 +110,6 @@ type Props = {
   onDuplicate?: () => void;
   onEdit?: () => void;
   onLegendSelectChanged?: () => void;
-  onSetTransactionsDataset?: () => void;
-  onUpdate?: (widget: TWidget | null) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
   onWidgetTableSort?: (sort: Sort) => void;
@@ -121,7 +117,6 @@ type Props = {
   showConfidenceWarning?: boolean;
   showContextMenu?: boolean;
   showLoadingText?: boolean;
-  showStoredAlert?: boolean;
   tableItemLimit?: number;
   widgetInterval?: string;
   windowWidth?: number;
@@ -415,8 +410,6 @@ function WidgetCard(props: Props) {
               selection={selection}
               dashboardFilters={dashboardFilters}
               onDataFetched={onDataFetched}
-              onWidgetTableSort={onWidgetTableSort}
-              onWidgetTableResizeColumn={onWidgetTableResizeColumn}
               onDataFetchStart={onDataFetchStart}
               tableItemLimit={tableItemLimit}
               widgetInterval={widgetInterval}
@@ -533,6 +526,8 @@ function useTimeRangeWarning({widget}: {widget: TWidget}) {
   const retentionLimitDays = useRetentionLimit({
     dataset: widget.widgetType ?? WidgetType.ERRORS,
   });
+  // Capture now once per mount instead of reading it during render
+  const [now] = useState(() => Date.now());
 
   if (!retentionLimitDays) {
     return null;
@@ -547,8 +542,8 @@ function useTimeRangeWarning({widget}: {widget: TWidget}) {
 
   // Convert the number of days to ms so we can get an end date to check if the
   // widget is querying more than its retention allows
-  const statsPeriodToEnd = new Date(Date.now() - statsPeriodDaysFromNow * DAYS_TO_MS);
-  const retentionLimitDate = new Date(Date.now() - retentionLimitDays * DAYS_TO_MS);
+  const statsPeriodToEnd = new Date(now - statsPeriodDaysFromNow * DAYS_TO_MS);
+  const retentionLimitDate = new Date(now - retentionLimitDays * DAYS_TO_MS);
   if (
     (retentionLimitDate && datetime.end && retentionLimitDate > datetime.end) ||
     (retentionLimitDate && statsPeriodToEnd && retentionLimitDate > statsPeriodToEnd)

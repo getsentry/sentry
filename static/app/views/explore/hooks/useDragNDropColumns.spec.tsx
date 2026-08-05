@@ -88,6 +88,37 @@ describe('useDragNDropColumns', () => {
     expect(columns).toEqual(['span_id', 'timestamp', 'span.op']);
   });
 
+  it('should reject a reorder before moving columns or unique IDs', () => {
+    let columns!: string[];
+    let setColumns: (columns: string[]) => void;
+    let editableColumns!: Array<Column<string>>;
+    let onDragEnd: (arg: any) => void;
+
+    function TestPage() {
+      [columns, setColumns] = useState(initialColumns);
+      ({editableColumns, onDragEnd} = useDragNDropColumns({
+        columns,
+        setColumns,
+        canReorder: (oldIndex, newIndex) => oldIndex === newIndex,
+      }));
+      return null;
+    }
+
+    render(<TestPage />);
+
+    const uniqueIdsBefore = editableColumns.map(column => column.uniqueId);
+
+    act(() =>
+      onDragEnd({
+        active: {id: 1},
+        over: {id: 3},
+      })
+    );
+
+    expect(columns).toEqual(initialColumns);
+    expect(editableColumns.map(column => column.uniqueId)).toEqual(uniqueIdsBefore);
+  });
+
   it('should generate unique UUIDs for editable columns', () => {
     let columns!: string[];
     let setColumns: (columns: string[]) => void;

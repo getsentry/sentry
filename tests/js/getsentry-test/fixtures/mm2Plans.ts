@@ -48,7 +48,6 @@ export const MM2_PLANS = {
     features: [
       'advanced-search',
       'sso-basic',
-      'weekly-reports',
       'integrations-issue-basic',
       'integrations-issue-sync',
       'events',
@@ -92,7 +91,6 @@ export const MM2_PLANS = {
     features: [
       'advanced-search',
       'sso-basic',
-      'weekly-reports',
       'integrations-issue-basic',
       'integrations-issue-sync',
       'events',
@@ -136,7 +134,6 @@ export const MM2_PLANS = {
     features: [
       'advanced-search',
       'sso-basic',
-      'weekly-reports',
       'integrations-issue-basic',
       'integrations-issue-sync',
       'events',
@@ -180,7 +177,6 @@ export const MM2_PLANS = {
     features: [
       'advanced-search',
       'sso-basic',
-      'weekly-reports',
       'integrations-issue-basic',
       'integrations-issue-sync',
       'events',
@@ -224,7 +220,6 @@ export const MM2_PLANS = {
     features: [
       'advanced-search',
       'sso-basic',
-      'weekly-reports',
       'integrations-issue-basic',
       'integrations-issue-sync',
       'events',
@@ -268,7 +263,6 @@ export const MM2_PLANS = {
     features: [
       'advanced-search',
       'sso-basic',
-      'weekly-reports',
       'integrations-issue-basic',
       'integrations-issue-sync',
       'events',
@@ -312,7 +306,6 @@ export const MM2_PLANS = {
     features: [
       'advanced-search',
       'sso-basic',
-      'weekly-reports',
       'integrations-issue-basic',
       'integrations-issue-sync',
       'events',
@@ -346,7 +339,6 @@ export const MM2_PLANS = {
     features: [
       'advanced-search',
       'sso-basic',
-      'weekly-reports',
       'integrations-issue-basic',
       'integrations-issue-sync',
       'events',
@@ -380,7 +372,6 @@ export const MM2_PLANS = {
     features: [
       'advanced-search',
       'sso-basic',
-      'weekly-reports',
       'integrations-issue-basic',
       'integrations-issue-sync',
       'events',
@@ -415,7 +406,6 @@ export const MM2_PLANS = {
     features: [
       'advanced-search',
       'sso-basic',
-      'weekly-reports',
       'integrations-issue-basic',
       'integrations-issue-sync',
       'events',
@@ -449,7 +439,6 @@ export const MM2_PLANS = {
     features: [
       'advanced-search',
       'sso-basic',
-      'weekly-reports',
       'integrations-issue-basic',
       'integrations-issue-sync',
       'events',
@@ -483,7 +472,6 @@ export const MM2_PLANS = {
     features: [
       'advanced-search',
       'sso-basic',
-      'weekly-reports',
       'integrations-issue-basic',
       'integrations-issue-sync',
       'events',
@@ -539,7 +527,6 @@ export const MM2_PLANS = {
       'integrations-issue-basic',
       'integrations-issue-sync',
       'sso-basic',
-      'weekly-reports',
       'custom-inbound-filters',
       'custom-symbol-sources',
       'data-forwarding',

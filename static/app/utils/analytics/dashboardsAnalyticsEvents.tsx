@@ -1,5 +1,3 @@
-import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
-
 export enum WidgetBuilderVersion {
   PAGE = 'page',
   SLIDEOUT = 'slideout',
@@ -91,12 +89,9 @@ export type DashboardsEventParameters = {
   'dashboards_manage.change_sort': {
     sort: string;
   };
-  'dashboards_manage.change_view_type': {
-    view_type: DashboardsLayout;
-  };
   'dashboards_manage.create.start': Record<string, unknown>;
-  'dashboards_manage.delete': {dashboard_id: number; view_type: DashboardsLayout};
-  'dashboards_manage.duplicate': {dashboard_id: number; view_type: DashboardsLayout};
+  'dashboards_manage.delete': {dashboard_id: number; view_type: 'table'};
+  'dashboards_manage.duplicate': {dashboard_id: number; view_type: 'table'};
   'dashboards_manage.generate.start': Record<string, unknown>;
   'dashboards_manage.paginate': Record<string, unknown>;
   'dashboards_manage.search': Record<string, unknown>;
@@ -190,7 +185,6 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
   'dashboards_views.widget_library.opened': 'Dashboards2: Add Widget Library opened',
   'dashboards_manage.search': 'Dashboards Manager: Search',
   'dashboards_manage.change_sort': 'Dashboards Manager: Sort By Changed',
-  'dashboards_manage.change_view_type': 'Dashboards Manager: View Type Toggled',
   'dashboards_manage.create.start': 'Dashboards Manager: Dashboard Create Started',
   'dashboards_manage.generate.start':
     'Dashboards Manager: Dashboard Seer Generate Started',

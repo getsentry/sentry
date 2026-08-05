@@ -40,17 +40,23 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import ExternalActorSource, ExternalProviders
 from sentry.middleware.integrations.parsers.github import GithubRequestParser
+from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.grouplink import GroupLink
-from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
+from sentry.models.pullrequest import (
+    PullRequest,
+    PullRequestLifecycleState,
+    PullRequestMetrics,
+)
 from sentry.models.repository import Repository
 from sentry.pr_metrics.webhooks import handle_check_suite as pr_metrics_handle_check_suite
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.types.activity import ActivityType
 from sentry.utils import json
 
 
@@ -1327,6 +1333,24 @@ class PullRequestEventWebhookTest(APITestCase):
         )
         assert response.status_code == 204
 
+    def _create_integration_and_repo(self) -> Repository:
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=self.organization,
+                external_id="12345",
+                provider="github",
+                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+            )
+            integration.add_organization(self.project.organization.id, self.user)
+
+        return self.create_repo(
+            name="baxterthehacker/public-repo",
+            provider="integrations:github",
+            external_id="35129377",
+            integration_id=integration.id,
+        )
+
     def _create_integration_and_send_pull_request_opened_event(self):
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -1710,6 +1734,189 @@ class PullRequestEventWebhookTest(APITestCase):
             == 1
         )
 
+    def test_stale_synchronize_after_merge_does_not_regress_state(self) -> None:
+        # A `synchronize` that failed its first delivery is retried minutes later,
+        # landing after the `closed` (merged) event it preceded. Its payload is a
+        # snapshot of an open PR, so replaying it would rewrite the merged PR back
+        # to open. The older snapshot must be dropped wholesale.
+        repo = self._create_integration_and_repo()
+
+        merged = json.loads(PULL_REQUEST_CLOSED_EVENT_EXAMPLE)
+        merged["pull_request"]["updated_at"] = "2015-05-05T23:45:00Z"
+        merged["pull_request"]["closed_at"] = "2015-05-05T23:45:00Z"
+        merged["pull_request"]["merged_at"] = "2015-05-05T23:45:00Z"
+        self._post_pull_request_event(json.dumps(merged).encode())
+
+        stale = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        stale["action"] = "synchronize"
+        stale["pull_request"]["updated_at"] = "2015-05-05T23:41:00Z"
+        stale["pull_request"]["title"] = "stale title"
+        stale["pull_request"]["head"]["sha"] = "1" * 40
+        self._post_pull_request_event(json.dumps(stale).encode())
+
+        pr = PullRequest.objects.get(
+            repository_id=repo.id, organization_id=self.project.organization.id, key="1"
+        )
+        assert pr.state == PullRequestLifecycleState.MERGED
+        assert pr.merged_at == datetime(2015, 5, 5, 23, 45, tzinfo=timezone.utc)
+        assert pr.closed_at == datetime(2015, 5, 5, 23, 45, tzinfo=timezone.utc)
+        assert pr.merge_commit_sha == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"
+        assert pr.title == "new closed title"
+        assert pr.head_commit_sha == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"
+
+    def test_stale_synchronize_after_close_does_not_reopen(self) -> None:
+        # Same reordering, but the PR was closed unmerged. `closed` -> `open` is a
+        # legitimate transition (a reopen), so only the payload timestamp can tell
+        # the stale replay from a real reopen.
+        repo = self._create_integration_and_repo()
+
+        closed = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        closed["action"] = "closed"
+        closed["pull_request"]["state"] = "closed"
+        closed["pull_request"]["updated_at"] = "2015-05-05T23:45:00Z"
+        closed["pull_request"]["closed_at"] = "2015-05-05T23:45:00Z"
+        self._post_pull_request_event(json.dumps(closed).encode())
+
+        stale = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        stale["action"] = "synchronize"
+        stale["pull_request"]["updated_at"] = "2015-05-05T23:41:00Z"
+        self._post_pull_request_event(json.dumps(stale).encode())
+
+        pr = PullRequest.objects.get(
+            repository_id=repo.id, organization_id=self.project.organization.id, key="1"
+        )
+        assert pr.state == PullRequestLifecycleState.CLOSED
+        assert pr.closed_at == datetime(2015, 5, 5, 23, 45, tzinfo=timezone.utc)
+
+    def test_reopen_after_close_is_applied(self) -> None:
+        # The guard rejects only *older* snapshots: a genuine reopen carries a
+        # later updated_at and must still land.
+        repo = self._create_integration_and_repo()
+
+        closed = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        closed["action"] = "closed"
+        closed["pull_request"]["state"] = "closed"
+        closed["pull_request"]["updated_at"] = "2015-05-05T23:45:00Z"
+        closed["pull_request"]["closed_at"] = "2015-05-05T23:45:00Z"
+        self._post_pull_request_event(json.dumps(closed).encode())
+
+        reopened = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+        reopened["action"] = "reopened"
+        reopened["pull_request"]["updated_at"] = "2015-05-05T23:50:00Z"
+        self._post_pull_request_event(json.dumps(reopened).encode())
+
+        pr = PullRequest.objects.get(
+            repository_id=repo.id, organization_id=self.project.organization.id, key="1"
+        )
+        assert pr.state == PullRequestLifecycleState.OPEN
+        assert pr.closed_at is None
+        assert pr.provider_updated_at == datetime(2015, 5, 5, 23, 50, tzinfo=timezone.utc)
+
+    def test_stale_synchronize_after_merge_leaves_issue_timeline_untouched(self) -> None:
+        # The state column is not the only casualty of a replayed snapshot. Flipping
+        # the row back to open fires `pull_request_state_changing`, which writes a
+        # "reopened this pull request" entry onto every issue the PR resolves, and
+        # re-deriving group links from the stale title/body unlinks the issue.
+        # Dropping the whole snapshot keeps both off the timeline.
+        group = self.create_group(project=self.project, short_id=7)
+        repo = self._create_integration_and_repo()
+        fixes_body = f"Fixes {group.qualified_short_id}"
+
+        with self.feature("organizations:pr-lifecycle-activity"):
+            opened = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            opened["pull_request"]["body"] = fixes_body
+            opened["pull_request"]["updated_at"] = "2015-05-05T23:40:00Z"
+            self._post_pull_request_event(json.dumps(opened).encode())
+
+            merged = json.loads(PULL_REQUEST_CLOSED_EVENT_EXAMPLE)
+            merged["pull_request"]["body"] = fixes_body
+            merged["pull_request"]["updated_at"] = "2015-05-05T23:45:00Z"
+            merged["pull_request"]["closed_at"] = "2015-05-05T23:45:00Z"
+            merged["pull_request"]["merged_at"] = "2015-05-05T23:45:00Z"
+            self._post_pull_request_event(json.dumps(merged).encode())
+
+            stale = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            stale["action"] = "synchronize"
+            stale["pull_request"]["body"] = "no issue reference yet"
+            stale["pull_request"]["updated_at"] = "2015-05-05T23:41:00Z"
+            self._post_pull_request_event(json.dumps(stale).encode())
+
+        pr = PullRequest.objects.get(
+            repository_id=repo.id, organization_id=self.project.organization.id, key="1"
+        )
+        assert pr.state == PullRequestLifecycleState.MERGED
+        assert (
+            Activity.objects.filter(
+                group=group, type=ActivityType.PULL_REQUEST_MERGED.value
+            ).count()
+            == 1
+        )
+        assert not Activity.objects.filter(
+            group=group, type=ActivityType.PULL_REQUEST_REOPENED.value
+        ).exists()
+        assert GroupLink.objects.filter(
+            group_id=group.id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            linked_id=pr.id,
+        ).exists()
+
+    def test_stale_synchronize_after_merge_does_not_regress_metrics_counters(self) -> None:
+        # The PullRequest row and the PullRequestMetrics row are written from the
+        # same payload by different processors, so they have to agree on staleness.
+        # Rejecting the replay for one and applying it to the other would leave
+        # select_verdict reading zero discussion off a PR that had reviewer
+        # engagement, while the PR row still looked correct.
+        repo = self._create_integration_and_repo()
+
+        with self.feature("organizations:pr-metrics-emit"):
+            merged = json.loads(PULL_REQUEST_CLOSED_EVENT_EXAMPLE)
+            merged["pull_request"]["updated_at"] = "2015-05-05T23:45:00Z"
+            merged["pull_request"]["merged_at"] = "2015-05-05T23:45:00Z"
+            merged["pull_request"]["comments"] = 4
+            merged["pull_request"]["review_comments"] = 6
+            self._post_pull_request_event(json.dumps(merged).encode())
+
+            stale = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            stale["action"] = "synchronize"
+            stale["pull_request"]["updated_at"] = "2015-05-05T23:41:00Z"
+            stale["pull_request"]["comments"] = 0
+            stale["pull_request"]["review_comments"] = 0
+            self._post_pull_request_event(json.dumps(stale).encode())
+
+        pr = PullRequest.objects.get(
+            repository_id=repo.id, organization_id=self.project.organization.id, key="1"
+        )
+        assert pr.state == PullRequestLifecycleState.MERGED
+        metrics_row = PullRequestMetrics.objects.get(pull_request=pr)
+        assert metrics_row.comments_count == 4
+        assert metrics_row.review_comments_count == 6
+
+    def test_edit_after_merge_is_applied(self) -> None:
+        # An edit after the merge is newer, keeps the merged state, and must still
+        # refresh the mutable fields.
+        repo = self._create_integration_and_repo()
+
+        merged = json.loads(PULL_REQUEST_CLOSED_EVENT_EXAMPLE)
+        merged["pull_request"]["updated_at"] = "2015-05-05T23:45:00Z"
+        merged["pull_request"]["closed_at"] = "2015-05-05T23:45:00Z"
+        merged["pull_request"]["merged_at"] = "2015-05-05T23:45:00Z"
+        self._post_pull_request_event(json.dumps(merged).encode())
+
+        edited = json.loads(PULL_REQUEST_CLOSED_EVENT_EXAMPLE)
+        edited["action"] = "edited"
+        edited["pull_request"]["title"] = "edited after merge"
+        edited["pull_request"]["updated_at"] = "2015-05-06T00:00:00Z"
+        edited["pull_request"]["closed_at"] = "2015-05-05T23:45:00Z"
+        edited["pull_request"]["merged_at"] = "2015-05-05T23:45:00Z"
+        self._post_pull_request_event(json.dumps(edited).encode())
+
+        pr = PullRequest.objects.get(
+            repository_id=repo.id, organization_id=self.project.organization.id, key="1"
+        )
+        assert pr.title == "edited after merge"
+        assert pr.state == PullRequestLifecycleState.MERGED
+        assert pr.merged_at == datetime(2015, 5, 5, 23, 45, tzinfo=timezone.utc)
+
     @patch("sentry.integrations.github.webhook.metrics")
     def test_closed(self, mock_metrics: MagicMock) -> None:
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
@@ -1768,6 +1975,65 @@ class PullRequestEventWebhookTest(APITestCase):
 
         assert mock_metrics.incr.call_count == 1
 
+    @patch("sentry.integrations.github.webhook.track_contributor_seat")
+    def test_pr_lifecycle_activities_are_attributed_to_acting_user(
+        self, _mock_track_contributor_seat: MagicMock
+    ) -> None:
+        group = self.create_group(project=self.project, short_id=7)
+
+        with self.feature("organizations:pr-lifecycle-activity"):
+            integration = self._create_integration_and_send_pull_request_opened_event()
+            self.create_external_user(
+                user=self.user,
+                organization=self.organization,
+                integration=integration,
+                provider=ExternalProviders.GITHUB.value,
+                external_name="@octocat",
+                external_id="583231",
+            )
+            other_user = self.create_user(email="other@example.com")
+            self.create_member(organization=self.organization, user=other_user)
+            self.create_external_user(
+                user=other_user,
+                organization=self.organization,
+                integration=integration,
+                provider=ExternalProviders.GITHUB.value,
+                external_name="@octocat",
+                external_id="999999",
+            )
+
+            closed = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            closed["action"] = "closed"
+            closed["pull_request"]["state"] = "closed"
+            closed["sender"] = {"id": 583231, "login": "octocat"}
+            self._post_pull_request_event(json.dumps(closed).encode())
+
+            reopened = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            reopened["action"] = "reopened"
+            reopened["sender"] = {"id": 583231, "login": "octocat"}
+            self._post_pull_request_event(json.dumps(reopened).encode())
+
+            merged = json.loads(PULL_REQUEST_CLOSED_EVENT_EXAMPLE)
+            merged["pull_request"]["body"] = f"Fixes {group.qualified_short_id}"
+            merged["pull_request"]["merged_by"] = {"id": 583231, "login": "octocat"}
+            self._post_pull_request_event(json.dumps(merged).encode())
+
+        closed_activity = Activity.objects.get(
+            group=group,
+            type=ActivityType.PULL_REQUEST_CLOSED.value,
+        )
+        assert closed_activity.user_id == self.user.id
+        reopened_activity = Activity.objects.get(
+            group=group,
+            type=ActivityType.PULL_REQUEST_REOPENED.value,
+        )
+        assert reopened_activity.user_id == self.user.id
+        merged_activity = Activity.objects.get(
+            group=group,
+            type=ActivityType.PULL_REQUEST_MERGED.value,
+        )
+        assert merged_activity.user_id == self.user.id
+
     def assert_group_link(self, group, pr):
         link = GroupLink.objects.get()
         assert link.group_id == group.id
@@ -1790,10 +2056,10 @@ class PullRequestEventWebhookTest(APITestCase):
 
         mock_track_contributor_seat.assert_called_once()
         call_kwargs = mock_track_contributor_seat.call_args[1]
-        assert call_kwargs["integration_id"] == integration.id
+        assert call_kwargs["integration"].id == integration.id
+        assert call_kwargs["integration"].provider == "github"
         assert str(call_kwargs["user_id"]) == "6752317"
         assert call_kwargs["user_username"] == "baxterthehacker"
-        assert call_kwargs["provider"] == "github"
         assert call_kwargs["organization"] == self.project.organization
         assert call_kwargs["repo"] == repo
 
@@ -2102,10 +2368,10 @@ class TrackContributorActionProcessorTest(TestCase):
         kwargs = mock_record.call_args.kwargs
         assert kwargs["organization"].id == self.organization.id
         assert kwargs["repo"].id == self.repo.id
-        assert kwargs["integration_id"] == self.integration.id
+        assert kwargs["integration"].id == self.integration.id
+        assert kwargs["integration"].provider == "github"
         assert kwargs["user_id"] == "6752317"
         assert kwargs["user_username"] == "baxterthehacker"
-        assert kwargs["provider"] == "github"
         assert kwargs["pr_number"] == 1
         assert kwargs["is_opened"] is True
         assert kwargs["logs_extra"] == {"github_event_action": "opened"}

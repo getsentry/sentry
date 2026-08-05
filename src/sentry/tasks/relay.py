@@ -15,7 +15,7 @@ from sentry.taskworker.namespaces import relay_tasks
 from sentry.utils import metrics
 from sentry.utils.exceptions import quiet_redis_noise
 from sentry.utils.sdk import set_current_event_project
-from sentry.utils.tracing import set_span_tag, start_span
+from sentry.utils.tracing import set_span_tag, start_span, trace
 
 logger = logging.getLogger(__name__)
 
@@ -273,7 +273,7 @@ def invalidate_project_config(
     projectconfig_cache.backend.set_many(updated_configs)
 
 
-@sentry_sdk.tracing.trace
+@trace
 def schedule_invalidate_project_config(
     *,
     trigger,

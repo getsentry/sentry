@@ -219,4 +219,46 @@ describe('InstallDetailsContent', () => {
     expect(await screen.findByText('5 downloads')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Download'})).toBeInTheDocument();
   });
+
+  it('renders install groups when provided', async () => {
+    MockApiClient.addMockResponse({
+      url: INSTALL_DETAILS_URL,
+      body: {
+        platform: 'apple',
+        install_url: 'https://example.com/install',
+        is_code_signature_valid: true,
+      },
+    });
+
+    render(
+      <InstallDetailsContent
+        artifactId="artifact-1"
+        projectSlug="my-project"
+        installGroups={['qa', 'beta']}
+      />,
+      {organization}
+    );
+
+    expect(await screen.findByText('Install Groups')).toBeInTheDocument();
+    expect(screen.getByText('qa')).toBeInTheDocument();
+    expect(screen.getByText('beta')).toBeInTheDocument();
+  });
+
+  it('does not render install groups section when none are provided', async () => {
+    MockApiClient.addMockResponse({
+      url: INSTALL_DETAILS_URL,
+      body: {
+        platform: 'apple',
+        install_url: 'https://example.com/install',
+        is_code_signature_valid: true,
+      },
+    });
+
+    render(<InstallDetailsContent artifactId="artifact-1" projectSlug="my-project" />, {
+      organization,
+    });
+
+    expect(await screen.findByRole('button', {name: 'Download'})).toBeInTheDocument();
+    expect(screen.queryByText('Install Groups')).not.toBeInTheDocument();
+  });
 });

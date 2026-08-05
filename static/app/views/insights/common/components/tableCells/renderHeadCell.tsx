@@ -3,8 +3,7 @@ import type {Location} from 'history';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
-import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
+import type {ColumnAlign, GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
@@ -149,7 +148,7 @@ export const renderHeadCell = ({column, location, sort, sortParameterName}: Opti
   return sortLink;
 };
 
-const getAlignment = (key: string): Alignments => {
+const getAlignment = (key: string): ColumnAlign => {
   const result = parseFunction(key);
 
   if (result) {

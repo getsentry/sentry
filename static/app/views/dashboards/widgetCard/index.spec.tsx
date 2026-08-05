@@ -166,7 +166,6 @@ describe('Dashboards > WidgetCard', () => {
         api={api}
         widget={multipleQueryWidget}
         selection={selection}
-        isEditingDashboard={false}
         onDelete={() => {}}
         onEdit={() => {}}
         onDuplicate={() => {}}
@@ -190,7 +189,6 @@ describe('Dashboards > WidgetCard', () => {
         api={api}
         widget={{...multipleQueryWidget, queries: [multipleQueryWidget.queries[0]!]}}
         selection={selection}
-        isEditingDashboard={false}
         onDelete={() => {}}
         onEdit={() => {}}
         onDuplicate={() => {}}
@@ -213,7 +211,6 @@ describe('Dashboards > WidgetCard', () => {
         api={api}
         widget={multipleQueryWidget}
         selection={selection}
-        isEditingDashboard={false}
         onDelete={() => {}}
         onEdit={() => {}}
         onDuplicate={() => {}}
@@ -247,7 +244,6 @@ describe('Dashboards > WidgetCard', () => {
           ],
         }}
         selection={selection}
-        isEditingDashboard={false}
         onDelete={() => {}}
         onEdit={() => {}}
         onDuplicate={() => {}}
@@ -281,7 +277,6 @@ describe('Dashboards > WidgetCard', () => {
           ],
         }}
         selection={selection}
-        isEditingDashboard={false}
         onDelete={() => {}}
         onEdit={() => {}}
         onDuplicate={() => {}}
@@ -317,7 +312,6 @@ describe('Dashboards > WidgetCard', () => {
           ],
         }}
         selection={selection}
-        isEditingDashboard={false}
         onDelete={() => {}}
         onEdit={() => {}}
         onDuplicate={() => {}}
@@ -345,7 +339,6 @@ describe('Dashboards > WidgetCard', () => {
           queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
         }}
         selection={selection}
-        isEditingDashboard={false}
         onDelete={() => {}}
         onEdit={() => {}}
         onDuplicate={mock}
@@ -371,7 +364,6 @@ describe('Dashboards > WidgetCard', () => {
           queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
         }}
         selection={selection}
-        isEditingDashboard={false}
         onDelete={() => {}}
         onEdit={() => {}}
         onDuplicate={mock}
@@ -397,7 +389,6 @@ describe('Dashboards > WidgetCard', () => {
           queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
         }}
         selection={selection}
-        isEditingDashboard={false}
         onDelete={() => {}}
         onEdit={mock}
         onDuplicate={() => {}}
@@ -423,7 +414,6 @@ describe('Dashboards > WidgetCard', () => {
           queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
         }}
         selection={selection}
-        isEditingDashboard={false}
         onDelete={mock}
         onEdit={() => {}}
         onDuplicate={() => {}}
@@ -456,7 +446,6 @@ describe('Dashboards > WidgetCard', () => {
           queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
         }}
         selection={selection}
-        isEditingDashboard={false}
         onDelete={mock}
         onEdit={() => {}}
         onDuplicate={() => {}}
@@ -490,7 +479,6 @@ describe('Dashboards > WidgetCard', () => {
           queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
         }}
         selection={selection}
-        isEditingDashboard={false}
         onDelete={mock}
         onEdit={() => {}}
         onDuplicate={() => {}}
@@ -535,7 +523,6 @@ describe('Dashboards > WidgetCard', () => {
         api={api}
         widget={tableWidget}
         selection={selection}
-        isEditingDashboard={false}
         onDelete={() => {}}
         onEdit={() => {}}
         onDuplicate={() => {}}
@@ -578,7 +565,6 @@ describe('Dashboards > WidgetCard', () => {
         api={api}
         widget={widget}
         selection={selection}
-        isEditingDashboard={false}
         onDelete={() => {}}
         onEdit={() => {}}
         onDuplicate={() => {}}
@@ -615,7 +601,6 @@ describe('Dashboards > WidgetCard', () => {
         api={api}
         widget={widget}
         selection={selection}
-        isEditingDashboard={false}
         onDelete={() => {}}
         onEdit={() => {}}
         onDuplicate={() => {}}
@@ -643,7 +628,6 @@ describe('Dashboards > WidgetCard', () => {
           description: 'Valid widget description',
         }}
         selection={selection}
-        isEditingDashboard={false}
         onDelete={() => {}}
         onEdit={() => {}}
         onDuplicate={() => {}}
@@ -664,7 +648,6 @@ describe('Dashboards > WidgetCard', () => {
         api={api}
         widget={transactionQueryWidget}
         selection={selection}
-        isEditingDashboard={false}
         onDelete={() => {}}
         onEdit={() => {}}
         onDuplicate={() => {}}
@@ -703,7 +686,6 @@ describe('Dashboards > WidgetCard', () => {
           api={api}
           widget={spansWidget}
           selection={selection}
-          isEditingDashboard={false}
           onDelete={() => {}}
           onEdit={() => {}}
           onDuplicate={() => {}}
@@ -723,7 +705,6 @@ describe('Dashboards > WidgetCard', () => {
           api={api}
           widget={spansWidget}
           selection={selection}
-          isEditingDashboard={false}
           onDelete={() => {}}
           onEdit={() => {}}
           onDuplicate={() => {}}
@@ -764,7 +745,6 @@ describe('Dashboards > WidgetCard', () => {
           api={api}
           widget={spanWidget}
           selection={selection}
-          isEditingDashboard={false}
           onDelete={() => {}}
           onEdit={() => {}}
           onDuplicate={() => {}}

@@ -6,7 +6,7 @@ import moment from 'moment-timezone';
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
@@ -234,7 +234,7 @@ function UsageHistoryRow({history}: RowProps) {
             icon={<IconChevron direction={expanded ? 'up' : 'down'} />}
             aria-label={t('Expand history')}
           />
-          <Flex direction="column" gap="sm">
+          <Stack gap="sm">
             <Flex gap="sm" align="center">
               <Text variant="muted">
                 {moment(history.periodStart).format('ll')} -{' '}
@@ -243,7 +243,7 @@ function UsageHistoryRow({history}: RowProps) {
               {history.isCurrent && <Badge variant="muted">{t('Current')}</Badge>}
             </Flex>
             <Text bold>{tct('[planName] Plan', {planName: history.planName})}</Text>
-          </Flex>
+          </Stack>
         </Flex>
         <Grid flow="column" align="center" gap="md">
           <Button

@@ -89,6 +89,7 @@ export default function ReplayComparisonModal({
               ) : null}
               {focusTrap ? (
                 <FeedbackButton
+                  variant="secondary"
                   feedbackOptions={{
                     onFormOpen: () => {
                       focusTrap.pause();

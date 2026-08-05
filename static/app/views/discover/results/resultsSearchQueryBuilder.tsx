@@ -80,7 +80,6 @@ type Props = {
   query?: string;
   recentSearches?: SavedSearchType;
   searchSource?: string;
-  supportedTags?: TagCollection | undefined;
 } & DataProviderProps;
 
 interface ErrorsSearchBarProps {

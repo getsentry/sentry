@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex, Grid, type GridProps, Container} from '@sentry/scraps/layout';
+import {Flex, Grid, type GridProps, Container, Stack} from '@sentry/scraps/layout';
 
 import {NoProjectEmptyState} from 'sentry/components/illustrations/NoProjectEmptyState';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -88,7 +88,7 @@ export function NoProjectMessage({
         <StyledNoProjectEmptyState />
       </Flex>
 
-      <Flex direction="column" justify="center">
+      <Stack justify="center">
         <Layout.Title>{t('Remain Calm')}</Layout.Title>
         <Container marginBottom="xl">
           {t('You need at least one project to use this view')}
@@ -103,7 +103,7 @@ export function NoProjectMessage({
             createProjectAction
           )}
         </Actions>
-      </Flex>
+      </Stack>
     </Flex>
   );
 }

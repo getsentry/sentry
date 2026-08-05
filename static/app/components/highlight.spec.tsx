@@ -1,54 +1,83 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {HighlightComponent} from 'sentry/components/highlight';
+import {MultiHighlight} from 'sentry/components/highlight';
 
-describe('Highlight', () => {
-  it('highlights text', () => {
-    const wrapper = render(
-      <HighlightComponent text="ILL">billy@sentry.io</HighlightComponent>
+describe('MultiHighlight', () => {
+  it('highlights every provided term when the text contains multiple terms', () => {
+    render(
+      <MultiHighlight terms={['error', 'timeout']}>
+        request failed with error after timeout
+      </MultiHighlight>
     );
-    expect(wrapper.container.childNodes).toHaveLength(3);
-    expect(wrapper.container.childNodes[0]).toHaveTextContent('b');
-    expect(wrapper.container.childNodes[1]).toHaveTextContent('ill');
-    expect(wrapper.container.childNodes[2]).toHaveTextContent('y@sentry.io');
+
+    expect(screen.getByText('error').tagName.toLowerCase()).toBe('span');
+    expect(screen.getByText('timeout').tagName.toLowerCase()).toBe('span');
   });
 
-  it('highlights with a case-insensitive match when caseSensitive is falsy', () => {
-    const wrapper = render(
-      <HighlightComponent text="Apple">apple Apple APPLE</HighlightComponent>
+  it('highlights every occurrence of a term when it repeats', () => {
+    render(<MultiHighlight terms={['db']}>db read then db write</MultiHighlight>);
+
+    const highlighted = screen.getAllByText('db');
+
+    expect(highlighted).toHaveLength(2);
+    expect(highlighted.every(el => el.tagName.toLowerCase() === 'span')).toBe(true);
+  });
+
+  it('escapes regex special characters in terms', () => {
+    render(
+      <MultiHighlight terms={['[ERR-1+2]', '.*']}>
+        got [ERR-1+2] and a .* glob
+      </MultiHighlight>
     );
-    expect(wrapper.container.childNodes).toHaveLength(2);
-    expect(wrapper.container.childNodes[0]).toHaveTextContent('apple');
-    expect(wrapper.container.childNodes[1]).toHaveTextContent('Apple APPLE');
+
+    expect(screen.getByText('[ERR-1+2]').tagName.toLowerCase()).toBe('span');
+    expect(screen.getByText('.*').tagName.toLowerCase()).toBe('span');
   });
 
-  it('highlights with a case-sensitive match when caseSensitive is true', () => {
-    const wrapper = render(
-      <HighlightComponent caseSensitive text="Apple">
-        apple Apple APPLE
-      </HighlightComponent>
+  it('matches regardless of case when caseSensitive is not set', () => {
+    render(<MultiHighlight terms={['error']}>ERROR occurred</MultiHighlight>);
+
+    expect(screen.getByText('ERROR').tagName.toLowerCase()).toBe('span');
+  });
+
+  it('matches only the exact case when caseSensitive is set', () => {
+    render(
+      <MultiHighlight caseSensitive terms={['error']}>
+        ERROR then error
+      </MultiHighlight>
     );
-    expect(wrapper.container.childNodes).toHaveLength(3);
-    expect(wrapper.container.childNodes[0]).toHaveTextContent('apple');
-    expect(wrapper.container.childNodes[1]).toHaveTextContent('Apple');
-    expect(wrapper.container.childNodes[2]).toHaveTextContent('APPLE');
+
+    expect(screen.getByText('error').tagName.toLowerCase()).toBe('span');
+    expect(screen.queryByText('ERROR')).not.toBeInTheDocument();
   });
 
-  it('does not have highlighted text if `text` prop is not found in main text', () => {
-    render(<HighlightComponent text="invalid">billy@sentry.io</HighlightComponent>);
+  it('renders plain text when no terms are provided', () => {
+    render(<MultiHighlight terms={[]}>nothing to highlight</MultiHighlight>);
 
-    expect(screen.getByText('billy@sentry.io')).toBeInTheDocument();
+    expect(screen.getByText('nothing to highlight').tagName.toLowerCase()).not.toBe(
+      'span'
+    );
   });
 
-  it('does not have highlighted text if `text` prop is empty', () => {
-    render(<HighlightComponent text="">billy@sentry.io</HighlightComponent>);
+  it('renders plain text when disabled', () => {
+    render(
+      <MultiHighlight disabled terms={['error']}>
+        error occurred
+      </MultiHighlight>
+    );
 
-    expect(screen.getByText('billy@sentry.io')).toBeInTheDocument();
+    expect(screen.getByText('error occurred').tagName.toLowerCase()).not.toBe('span');
   });
 
-  it('does not have highlighted text if `disabled` prop is true', () => {
-    render(<HighlightComponent text="">billy@sentry.io</HighlightComponent>);
+  it('highlights the longest term when a shorter term overlaps it', () => {
+    render(
+      <MultiHighlight terms={['work', 'workflow']}>workflow then work</MultiHighlight>
+    );
 
-    expect(screen.getByText('billy@sentry.io')).toBeInTheDocument();
+    // The longer term wins where both could match, so "workflow" stays intact
+    // (a broken order would split it into "work" + an orphaned "flow").
+    expect(screen.getByText('workflow').tagName.toLowerCase()).toBe('span');
+    expect(screen.getByText('work').tagName.toLowerCase()).toBe('span');
+    expect(screen.queryByText('flow')).not.toBeInTheDocument();
   });
 });

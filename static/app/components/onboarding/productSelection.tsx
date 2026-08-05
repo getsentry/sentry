@@ -11,12 +11,12 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {openModal} from 'sentry/actionCreators/modal';
 import {FeatureDisabledModal} from 'sentry/components/acl/featureDisabledModal';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {useOnboardingQueryParams} from 'sentry/components/onboarding/useOnboardingQueryParams';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
-import {useOnboardingQueryParams} from 'sentry/views/onboarding/components/useOnboardingQueryParams';
 
 interface DisabledProduct {
   reason: ReactNode;

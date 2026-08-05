@@ -10,8 +10,9 @@ from django.conf import settings
 from django.core.cache import cache
 from usageaccountant import UsageUnit
 
-from sentry import features
+from sentry import features, nodestore
 from sentry.attachments import CachedAttachment, attachment_cache, store_attachments_for_event
+from sentry.constants import DataCategory
 from sentry.event_manager import save_attachment
 from sentry.feedback.lib.utils import FeedbackCreationSource, is_in_feedback_denylist
 from sentry.feedback.usecases.ingest.userreport import Conflict, save_userreport
@@ -20,6 +21,7 @@ from sentry.killswitches import killswitch_matches_context
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.services import eventstore
+from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.processing import (
     event_processing_store,
     transaction_processing_store,
@@ -31,6 +33,7 @@ from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.dates import to_datetime
 from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
+from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.snuba import RateLimitExceeded
 from sentry.utils.tracing import start_span
 
@@ -78,6 +81,7 @@ def process_event(
     message: IngestMessage,
     project: Project,
     reprocess_only_stuck_events: bool = False,
+    reprocess_only_events_not_in_nodestore: bool = False,
     inline_save_event: bool = False,
     inline_save_event_transaction: bool = False,
 ) -> None:
@@ -183,6 +187,14 @@ def process_event(
                 if not processing_store.exists(data):
                     return
 
+        # If we only want to reprocess events that never made it into `nodestore`, we check whether the event body has
+        # already been persisted. We only continue here if the event is *not* present.
+        if reprocess_only_events_not_in_nodestore:
+            with start_span(op="nodestore.exists", name="nodestore.exists"):
+                node_id = Event.generate_node_id(project_id, event_id)
+                if nodestore.backend.get(node_id) is not None:
+                    return
+
         attachment_objects = [
             CachedAttachment(type=attachment.pop("attachment_type"), **attachment)
             for attachment in attachments
@@ -190,8 +202,14 @@ def process_event(
         if attachment_objects:
             store_attachments_for_event(project, data, attachment_objects, timeout=CACHE_TIMEOUT)
 
-        with metrics.timer("ingest_consumer._store_event"):
-            cache_key = processing_store.store(data)
+        # Feedback events pass their payload inline to `save_event_feedback` and
+        # never read it back from the processing store, so skip the Redis write
+        # for them. Storing would orphan the payload in Redis until its TTL
+        # expires, since nothing on the feedback path deletes it.
+        cache_key = None
+        if data.get("type") != "feedback":
+            with metrics.timer("ingest_consumer._store_event"):
+                cache_key = processing_store.store(data)
         if consumer_type == ConsumerType.Transactions:
             track_sampled_event(
                 data["event_id"], ConsumerType.Transactions, TransactionStageStatus.REDIS_PUT
@@ -249,14 +267,24 @@ def process_event(
         elif data.get("type") == "feedback":
             if not is_in_feedback_denylist(project.organization):
                 save_event_feedback.delay(
-                    cache_key=None,  # no need to cache as volume is low
+                    cache_key=None,  # data is passed inline; not stored in Redis
                     data=data,
                     start_time=start_time,
                     event_id=event_id,
                     project_id=project_id,
                 )
             else:
-                metrics.incr("feedback.ingest.denylist")
+                track_outcome(
+                    org_id=project.organization_id,
+                    project_id=project_id,
+                    key_id=None,
+                    outcome=Outcome.RATE_LIMITED,
+                    reason="feedback_denylist",
+                    timestamp=to_datetime(start_time),
+                    event_id=event_id,
+                    category=DataCategory.USER_REPORT_V2,
+                    quantity=1,
+                )
         else:
             # Preprocess this event, which spawns either process_event or
             # save_event. Pass data explicitly to avoid fetching it again from the

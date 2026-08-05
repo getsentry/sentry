@@ -17,7 +17,11 @@ import type {AddToDashboardModalProps} from 'sentry/components/modals/widgetBuil
 import type {ConsoleModalProps} from 'sentry/components/onboarding/consoleModal';
 import type {Category} from 'sentry/components/platformPicker';
 import {ModalStore} from 'sentry/stores/modalStore';
-import type {CustomRepoType} from 'sentry/types/debugFiles';
+import type {
+  CustomRepo,
+  CustomRepoFormData,
+  CustomRepoType,
+} from 'sentry/types/debugFiles';
 import type {Event} from 'sentry/types/event';
 import type {IssueOwnership} from 'sentry/types/group';
 import type {MissingMember, Organization, OrgRole} from 'sentry/types/organization';
@@ -200,11 +204,11 @@ export async function openTeamAccessRequestModal(options: TeamAccessRequestModal
 }
 
 type DebugFileSourceModalOptions = {
-  onSave: (data: Record<string, any>) => Promise<void>;
+  onSave: (data: CustomRepoFormData) => Promise<void>;
   organization: Organization;
   sourceType: CustomRepoType;
   onClose?: () => void;
-  sourceConfig?: Record<string, any>;
+  sourceConfig?: CustomRepo;
 };
 
 export async function openDebugFileSourceModal({

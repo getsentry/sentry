@@ -67,9 +67,13 @@ def _read_manifest_by_key(session: Session, key: str) -> _ManifestRead:
     """Fetch and parse a manifest. Pure objectstore I/O — no ORM access, so this is safe to
     run from a worker thread (see _fetch_manifests)."""
     try:
-        payload = session.get(key).payload.read()
+        response = session.get(key)
+        if response is None:
+            # May still arrive -> defer.
+            return _ManifestRead(None)
+        payload = response.payload.read()
     except RequestError:
-        # Object not found / transient objectstore error: may still arrive -> defer.
+        # Transient objectstore error: may still arrive -> defer.
         return _ManifestRead(None)
     try:
         return _ManifestRead(SnapshotManifest(**orjson.loads(payload)))

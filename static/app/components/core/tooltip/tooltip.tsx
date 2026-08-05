@@ -95,7 +95,20 @@ export function Tooltip({
         snapClosed ? null : (
           <AnimatePresence>
             {isOpen ? (
-              <PositionWrapper zIndex={theme.zIndex.tooltip} {...overlayProps}>
+              <PositionWrapper
+                zIndex={theme.zIndex.tooltip}
+                {...overlayProps}
+                // The tooltip content is portaled to the document body, but
+                // React events still bubble through the React tree — so a click
+                // inside the tooltip would reach the trigger's interactive
+                // ancestor (a Link, tab, menu item, ...) and fire its action.
+                // Stop the interaction-initiating events here so interacting
+                // with tooltip content (selecting text, clicking a copy button)
+                // never triggers the element the tooltip is attached to.
+                onClick={stopPropagation}
+                onMouseDown={stopPropagation}
+                onPointerDown={stopPropagation}
+              >
                 <TooltipContent
                   animated
                   maxWidth={maxWidth}
@@ -115,6 +128,10 @@ export function Tooltip({
       )}
     </Fragment>
   );
+}
+
+function stopPropagation(e: React.SyntheticEvent) {
+  e.stopPropagation();
 }
 
 const TooltipContent = styled(Overlay, {

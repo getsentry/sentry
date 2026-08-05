@@ -6,6 +6,7 @@ from django.conf import settings
 from django.core.signing import BadSignature, SignatureExpired
 
 from sentry.auth.email_verification import (
+    is_email_verified_by_trusted_provider,
     send_signup_verification_email,
     verify_signup_link,
 )
@@ -88,3 +89,20 @@ class UnsignSignupVerificationTest(TestCase):
         signed = sign(salt="wrong-salt", email="a@b.com", expires_at=exp)
         with pytest.raises(BadSignature):
             verify_signup_link(signed)
+
+
+@control_silo_test
+class IsEmailVerifiedByTrustedProviderTest(TestCase):
+    def test_trusted_check(self) -> None:
+        cases = [
+            ("google", {"email_verified": True}, True),
+            ("github", {"email_verified": True}, False),
+            ("google", {"email_verified": False}, False),
+            ("google", {}, False),
+            ("saml2", {"email_verified": True}, False),
+            ("okta", {"email_verified": False}, False),
+        ]
+        for provider_key, identity, expected in cases:
+            assert is_email_verified_by_trusted_provider(provider_key, identity) is expected, (
+                f"{provider_key=} {identity=}"
+            )

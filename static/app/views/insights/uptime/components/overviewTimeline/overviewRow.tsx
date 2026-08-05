@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -150,9 +150,9 @@ export function OverviewRow({summary, uptimeDetector, timeWindowConfig, single}:
 function DetailsLink(props: LinkProps) {
   return (
     <Container border="primary" style={{borderWidth: 0, borderRightWidth: 1}}>
-      <Flex direction="column" gap="sm" padding="xl">
+      <Stack gap="sm" padding="xl">
         {flexProps => <InnerDetailsLink {...props} {...flexProps} />}
-      </Flex>
+      </Stack>
     </Container>
   );
 }
@@ -164,7 +164,7 @@ function Name(props: {children: React.ReactNode}) {
 function Details(props: {children: React.ReactNode}) {
   return (
     <IconDefaultsProvider size="xs">
-      <Flex direction="column" gap="xs" {...props} />
+      <Stack gap="xs" {...props} />
     </IconDefaultsProvider>
   );
 }

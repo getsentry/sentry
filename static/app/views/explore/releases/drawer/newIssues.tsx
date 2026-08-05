@@ -40,7 +40,9 @@ export function NewIssues({release, projectId, withChart = false}: Props) {
       queryParams={queryParams}
       query={
         releaseDetails
-          ? `release:"${escapeDoubleQuotes(releaseDetails?.versionInfo.version.raw)}"`
+          ? `release:"${escapeDoubleQuotes(
+              releaseDetails.versionInfo?.version.raw ?? releaseDetails.version
+            )}"`
           : ''
       }
       canSelectGroups={false}

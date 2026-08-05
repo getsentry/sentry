@@ -30,6 +30,7 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   errorStatusCode: undefined,
   isTimedOut: false,
   runId: null,
+  overrideBashModeEnabled: false,
   overrideCtxEngEnable: true,
   overrideCodeModeEnable: 'off',
   hasSentInterrupt: false,
@@ -39,6 +40,7 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   interruptRun: jest.fn(),
   respondToUserInput: jest.fn(),
   createPR: jest.fn(),
+  setOverrideBashModeEnabled: jest.fn(),
   setOverrideCtxEngEnable: jest.fn(),
   setOverrideCodeModeEnable: jest.fn(),
 };

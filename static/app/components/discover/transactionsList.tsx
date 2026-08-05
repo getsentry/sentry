@@ -26,7 +26,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-import {decodeColumnOrder} from 'sentry/views/discover/utils';
+import {decodeColumnOrder, getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import type {DomainView, DomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {mapShowTransactionToPercentile} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
@@ -325,7 +325,9 @@ class _TransactionsList extends Component<Props> {
                 size="xs"
                 data-test-id="discover-open"
               >
-                {t('Open in Discover')}
+                {getDiscoverDeprecation(organization)
+                  ? t('Open in Explore')
+                  : t('Open in Discover')}
               </DiscoverButton>
             </GuideAnchor>
           ))}

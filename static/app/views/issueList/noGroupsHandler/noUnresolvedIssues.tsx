@@ -1,14 +1,18 @@
-import {Fragment} from 'react';
-import styled from '@emotion/styled';
-
 import zeroInboxIssuesImg from 'sentry-images/spot/zero-inbox-issues.svg';
+
+import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 function Message({title, subtitle}: {subtitle: React.ReactNode; title: React.ReactNode}) {
   return (
-    <Fragment>
-      <EmptyMessage>{title}</EmptyMessage>
-      <p>{subtitle}</p>
-    </Fragment>
+    <Stack gap="xs">
+      <Text bold size={{zero: 'md', sm: 'xl'}} align="center" variant="muted">
+        {title}
+      </Text>
+      <Text as="p" size="md" align="center" variant="muted">
+        {subtitle}
+      </Text>
+    </Stack>
   );
 }
 
@@ -19,30 +23,9 @@ type Props = {
 
 export function NoUnresolvedIssues({title, subtitle}: Props) {
   return (
-    <Wrapper>
+    <Stack align="center" padding="3xl">
       <img src={zeroInboxIssuesImg} alt="No issues found spot illustration" />
       <Message title={title} subtitle={subtitle} />
-    </Wrapper>
+    </Stack>
   );
 }
-
-const Wrapper = styled('div')`
-  display: flex;
-  padding: ${p => p.theme.space['3xl']} ${p => p.theme.space['3xl']};
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  color: ${p => p.theme.tokens.content.secondary};
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: ${p => p.theme.font.size.md};
-  }
-`;
-
-const EmptyMessage = styled('div')`
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: ${p => p.theme.font.size.xl};
-  }
-`;

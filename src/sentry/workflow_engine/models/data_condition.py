@@ -9,15 +9,15 @@ from jsonschema import ValidationError, validate
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, cell_silo_model, sane_repr
 from sentry.utils import metrics, registry
+from sentry.workflow_engine.processors.evaluations import (
+    DataConditionEvaluation,
+    DataConditionEvaluationException,
+)
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import ConditionError, DataConditionResult, DetectorPriorityLevel
 from sentry.workflow_engine.utils import scopedstats
 
 logger = logging.getLogger(__name__)
-
-
-class DataConditionEvaluationException(Exception):
-    pass
 
 
 class Condition(StrEnum):
@@ -38,13 +38,14 @@ class Condition(StrEnum):
     EVENT_ATTRIBUTE = "event_attribute"
     EVENT_CREATED_BY_DETECTOR = "event_created_by_detector"
     EVENT_SEEN_COUNT = "event_seen_count"
+    EVERY_EVENT = "every_event"
     EXISTING_HIGH_PRIORITY_ISSUE = "existing_high_priority_issue"
     FIRST_SEEN_EVENT = "first_seen_event"
     ISSUE_CATEGORY = "issue_category"
     ISSUE_OCCURRENCES = "issue_occurrences"
     ISSUE_OPEN_DURATION = "issue_open_duration"
-    ISSUE_PRIORITY_EQUALS = "issue_priority_equals"
     ISSUE_PRIORITY_DEESCALATING = "issue_priority_deescalating"
+    ISSUE_PRIORITY_EQUALS = "issue_priority_equals"
     ISSUE_PRIORITY_GREATER_OR_EQUAL = "issue_priority_greater_or_equal"
     ISSUE_RESOLUTION_CHANGE = "issue_resolution_change"
     ISSUE_RESOLVED_TRIGGER = "issue_resolved_trigger"
@@ -64,9 +65,6 @@ class Condition(StrEnum):
     EVENT_UNIQUE_USER_FREQUENCY_PERCENT = "event_unique_user_frequency_percent"
     PERCENT_SESSIONS_COUNT = "percent_sessions_count"
     PERCENT_SESSIONS_PERCENT = "percent_sessions_percent"
-
-    # Migration Only
-    EVERY_EVENT = "every_event"
 
     # Activity trigger conditions
     SEER_ACTIVITY_TRIGGER = "seer_activity_trigger"
@@ -172,10 +170,13 @@ class DataCondition(DefaultFieldsModel):
                 return ConditionError(msg="Invalid condition result")
 
     def _evaluate_operator(
-        self, condition_type: Condition, value: T
+        self,
+        condition_type: Condition,
+        value: T,
     ) -> DataConditionResult | ConditionError:
         # If the condition is a base type, handle it directly
         op = CONDITION_OPS[condition_type]
+
         try:
             return op(cast(Any, value), self.comparison)
         except TypeError:
@@ -226,29 +227,37 @@ class DataCondition(DefaultFieldsModel):
 
         return result
 
-    def evaluate_value(self, value: T) -> DataConditionResult | ConditionError:
+    def evaluate_value(self, value: T) -> DataConditionEvaluation:
+        error: ConditionError | None = None
+
         try:
             condition_type = Condition(self.type)
-        except ValueError:
-            logger.exception(
-                "Invalid condition type",
-                extra={"type": self.type, "id": self.id},
-            )
-            return ConditionError(msg="Invalid condition type")
 
-        result: DataConditionResult | ConditionError
-        if condition_type in CONDITION_OPS:
-            result = self._evaluate_operator(condition_type, value)
-        else:
-            result = self._evaluate_condition(condition_type, value)
+            if condition_type in CONDITION_OPS:
+                result = self._evaluate_operator(condition_type, value)
+            else:
+                result = self._evaluate_condition(condition_type, value)
+        except ValueError as ve:
+            # TODO - Determine if we want to catch other exceptions here to have generic
+            # handling of DataConditionEvaluationExceptions.
+            raise DataConditionEvaluationException("Unable to evaluate condition") from ve
+
+        if isinstance(result, bool):
+            result = self.get_condition_result() if result else None
+
+        if isinstance(result, ConditionError):
+            error = result
+            result = None
 
         metrics.incr("workflow_engine.data_condition.evaluation", tags={"type": self.type})
 
-        if isinstance(result, bool):
-            # If the result is True, get the result from `.condition_result`
-            return self.get_condition_result() if result else None
-
-        return result
+        return DataConditionEvaluation(
+            condition=self,
+            triggered=(result is not None),
+            error=error,
+            result=result,
+            data=value,
+        )
 
 
 def is_slow_condition(condition: DataCondition) -> bool:
