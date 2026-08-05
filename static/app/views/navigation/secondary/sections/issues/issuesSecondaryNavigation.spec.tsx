@@ -13,7 +13,7 @@ describe('IssuesSecondaryNavigation', () => {
   const inboxCountQuery = `is:unresolved issue.progress:[fix_proposed,diagnosed,assigned] assigned:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`;
   const inboxCountNoSeerQuery = `is:unresolved issue.progress:[fix_proposed] assigned:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`;
   const organization = OrganizationFixture({
-    features: ['issue-stream-progress-ui', 'seat-based-seer-enabled'],
+    features: ['issue-stream-progress-ui', 'gen-ai-features', 'seat-based-seer-enabled'],
   });
 
   beforeEach(() => {
@@ -64,7 +64,7 @@ describe('IssuesSecondaryNavigation', () => {
   });
 
   it('only counts fix proposed issues without Seer', async () => {
-    organization.features = ['issue-stream-progress-ui'];
+    organization.features = ['issue-stream-progress-ui', 'gen-ai-features'];
     const request = mockInboxCount({
       [inboxCountNoSeerQuery]: 12,
     });

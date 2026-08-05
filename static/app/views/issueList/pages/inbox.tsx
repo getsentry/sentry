@@ -122,8 +122,10 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
 export default function InboxPage() {
   const organization = useOrganization();
   const hasProgressUi = organization.features.includes('issue-stream-progress-ui');
-  const {areAiFeaturesAllowed, billing, isPending} = useOrganizationSeerSetup({
-    enabled: hasProgressUi,
+  const areAiFeaturesAllowed =
+    !organization.hideAiFeatures && organization.features.includes('gen-ai-features');
+  const {billing, isPending} = useOrganizationSeerSetup({
+    enabled: hasProgressUi && areAiFeaturesAllowed,
   });
 
   if (!hasProgressUi || !areAiFeaturesAllowed) {
