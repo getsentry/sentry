@@ -209,7 +209,11 @@ function IssuePreviewContent() {
         <Dividers>
           <LinkedPullRequests group={group} showEmptyState={false} />
           {hasAutofix ? (
-            <IssuePreviewAutofixSummary key={group.id} runState={autofix.runState} />
+            <IssuePreviewAutofixSummary
+              key={group.id}
+              groupId={group.id}
+              runState={autofix.runState}
+            />
           ) : null}
           <Container>
             <ErrorBoundary mini>
