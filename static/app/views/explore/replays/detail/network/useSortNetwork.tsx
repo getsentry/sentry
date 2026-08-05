@@ -70,7 +70,7 @@ export function useSortNetwork({items}: Opts) {
 }
 
 function sortNetwork(network: SpanFrame[], sortConfig: SortConfig): SpanFrame[] {
-  return [...network].sort((a, b) => {
+  return network.toSorted((a, b) => {
     let valueA = sortConfig.getValue(a);
     let valueB = sortConfig.getValue(b);
 

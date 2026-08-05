@@ -45,5 +45,7 @@ export function getQueryHintLegend(widgets: Widget[]): Record<string, string> {
     w.displayType === DisplayType.TOP_N ? DisplayType.AREA : w.displayType
   );
   const uniqueTypes = new Set(resolved);
-  return Object.fromEntries([...uniqueTypes].map(dt => [dt, getWidgetQueryLLMHint(dt)]));
+  return Object.fromEntries(
+    Array.from(uniqueTypes, dt => [dt, getWidgetQueryLLMHint(dt)])
+  );
 }

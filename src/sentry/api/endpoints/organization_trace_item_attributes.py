@@ -1,6 +1,6 @@
 from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Literal
+from typing import Any
 
 import sentry_sdk
 from django.db.models import Q
@@ -44,9 +44,14 @@ from sentry.api.event_search import translate_escape_sequences
 from sentry.api.paginator import ChainPaginator, GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import MAX_STATS_PERIOD, default_start_end_dates, handle_query_errors
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
 from sentry.apidocs.examples.trace_item_attribute_examples import TraceItemAttributeExamples
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
@@ -73,6 +78,7 @@ from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
 from sentry.search.eap.types import (
     AttributeSourceType,
+    ColumnType,
     SearchResolverConfig,
     SupportedTraceItemType,
 )
@@ -93,13 +99,14 @@ from sentry.search.events.constants import (
 from sentry.search.events.filter import _flip_field_sort
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
-from sentry.tagstore.types import TagValue
+from sentry.tagstore.types import TagValue, TagValueSerializerResponse
 from sentry.utils import snuba_rpc
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.tracing import set_span_data, start_span
 
-POSSIBLE_ATTRIBUTE_TYPES = ["string", "number", "boolean"]
+SCALAR_ATTRIBUTE_TYPES = ["string", "number", "boolean"]
+POSSIBLE_ATTRIBUTE_TYPES = [*SCALAR_ATTRIBUTE_TYPES, "array"]
 
 # Subset of SupportedTraceItemType that get_column_definitions handles.
 SUPPORTED_DATASETS = [
@@ -191,6 +198,14 @@ SEARCH_QUERY_PARAM = OpenApiParameter(
     required=False,
     type=str,
     description="Sentry [search syntax](https://docs.sentry.io/concepts/search/) to filter trace items before computing attributes.",
+)
+
+VALUE_SUBSTRING_MATCH_QUERY_PARAM = OpenApiParameter(
+    name="substringMatch",
+    location="query",
+    required=False,
+    type=str,
+    description="Restrict results to attribute values containing this substring.",
 )
 
 EXPAND_QUERY_PARAM = OpenApiParameter(
@@ -319,7 +334,7 @@ SENTRY_ALWAYS_INCLUDED_ATTRIBUTES: dict[SupportedTraceItemType, frozenset[str]] 
 }
 
 
-def _search_type_to_context_type(search_type: str) -> Literal["string", "number", "boolean"]:
+def _search_type_to_context_type(search_type: str) -> ColumnType:
     """Collapse an EAP search type to the coarse type used for context matching."""
     if search_type == "string":
         return "string"
@@ -331,7 +346,7 @@ def _search_type_to_context_type(search_type: str) -> Literal["string", "number"
 def build_sentry_convention_context(
     public_name: str,
     internal_name: str,
-    attribute_type: Literal["string", "number", "boolean"] | None = None,
+    attribute_type: ColumnType | None = None,
 ) -> TraceItemAttributeContext | None:
     """
     Build the sentry conventions context for an attribute, if it maps to a known
@@ -394,7 +409,7 @@ def build_sentry_convention_context(
 
 def build_sentry_attribute_context(
     public_name: str,
-    attribute_type: Literal["string", "number", "boolean"] | None,
+    attribute_type: ColumnType | None,
     item_type: SupportedTraceItemType,
 ) -> TraceItemAttributeContext | None:
     """
@@ -513,7 +528,7 @@ def is_known_attribute(name: str, definitions: ColumnDefinitions) -> bool:
 
 def as_attribute_key(
     name: str,
-    attr_type: Literal["string", "number", "boolean"],
+    attr_type: ColumnType,
     item_type: SupportedTraceItemType,
     is_proxy: bool = False,
     include_context: bool = False,
@@ -532,6 +547,9 @@ def as_attribute_key(
         public_name = name
     elif attr_type == "boolean":
         public_key = f"tags[{name},boolean]"
+        public_name = name
+    elif attr_type == "array":
+        public_key = f"tags[{name},array]"
         public_name = name
     else:
         public_key = name
@@ -684,9 +702,19 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         substring_match = serialized.get("substring_match", "")
         query_string = serialized.get("query")
         attribute_types = serialized.get("attribute_type")
-        # When not passed the user wants all types
+        supports_arrays = features.has(
+            "organizations:trace-item-array-query-support",
+            organization,
+            actor=request.user,
+        )
+        allowed_attribute_types = (
+            POSSIBLE_ATTRIBUTE_TYPES if supports_arrays else SCALAR_ATTRIBUTE_TYPES
+        )
+        # When not passed the user wants all (allowed) types
         if attribute_types is None or len(attribute_types) == 0:
-            attribute_types = POSSIBLE_ATTRIBUTE_TYPES
+            attribute_types = allowed_attribute_types
+        else:
+            attribute_types = [t for t in attribute_types if t in allowed_attribute_types]
         # Deprecating this so we're using the same param name as the events endpoints
         item_type = serialized.get("item_type")
         # Dataset is going to replace item_type
@@ -700,7 +728,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         column_definitions = get_column_definitions(trace_item_type)
         resolver = SearchResolver(
             params=snuba_params,
-            config=SearchResolverConfig(),
+            config=SearchResolverConfig(disable_array_attributes=not supports_arrays),
             definitions=column_definitions,
         )
         with handle_query_errors():
@@ -788,7 +816,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         meta: RequestMeta,
         query_filter: TraceItemFilter | None,
         substring_match: str,
-        attribute_type: Literal["string", "number", "boolean"],
+        attribute_type: ColumnType,
         column_definitions: ColumnDefinitions,
         trace_item_type: SupportedTraceItemType,
         include_internal: bool,
@@ -910,7 +938,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
     def serialize_trace_attributes(
         self,
         rpc_response: TraceItemAttributeNamesResponse,
-        attribute_type: Literal["string", "number", "boolean"],
+        attribute_type: ColumnType,
         trace_item_type: SupportedTraceItemType,
         include_internal: bool,
         substring_match: str,
@@ -921,6 +949,12 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         attribute_keys = {}
         for attribute in rpc_response.attributes:
             if not attribute.name:
+                continue
+
+            # Remove following when we migrate to cooccurring-attrs v2. use attribute_type only.
+            # Then returned type should be same as attribute_type.
+            returned_bucket = constants.PROTO_TYPE_TO_ATTRIBUTE_TYPE_MAP.get(attribute.type)
+            if returned_bucket is not None and returned_bucket != attribute_type:
                 continue
             attr_key = as_attribute_key(
                 attribute.name,
@@ -982,15 +1016,53 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         return attributes
 
 
+@extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttributesEndpointBase):
-    def get(self, request: Request, organization: Organization, key: str) -> Response:
+    @extend_schema(
+        operation_id="listOrganizationTraceItemAttributeValues",
+        summary="List Trace Item Attribute Values",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            OpenApiParameter(
+                name="key",
+                location="path",
+                required=True,
+                type=str,
+                description="The attribute key to list values for.",
+            ),
+            DATASET_QUERY_PARAM,
+            ITEM_TYPE_QUERY_PARAM,
+            VALUE_SUBSTRING_MATCH_QUERY_PARAM,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListTraceItemAttributeValuesResponse", list[TagValueSerializerResponse]
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization, key: str
+    ) -> Response[list[TagValueSerializerResponse]] | Response[ValidationErrorResponse]:
+        """
+        List the values seen for a given attribute key on a trace item dataset (spans,
+        logs, trace metrics, etc.), most frequent first.
+        """
         if not self.has_feature(organization, request):
             return Response(status=404)
 
         serializer = OrganizationTraceItemAttributesEndpointSerializer(data=request.GET)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         try:
             snuba_params = self.get_snuba_params(request, organization)

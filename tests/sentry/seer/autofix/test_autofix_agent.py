@@ -16,6 +16,7 @@ from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     NoSeerQuotaException,
     PrIterationNoPullRequestException,
+    PrIterationNotEnabledException,
     _build_base_shas_metadata,
     build_step_prompt,
     generate_autofix_handoff_prompt,
@@ -579,6 +580,54 @@ class TestTriggerAutofixAgent(TestCase):
 
         mock_client.continue_run.assert_not_called()
         mock_broadcast.assert_not_called()
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_pr_iteration_enabled_by_either_flag(
+        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
+    ):
+        """Automated CI iteration and manual iteration each enable the PR_ITERATION step.
+
+        Automated CI iteration runs under ``autofix-pr-iteration`` and manual
+        iteration under the ``-manual`` variant, so either flag alone is enough and
+        neither flag rejects the step.
+        """
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.get_run.return_value = _state_with_blocks(
+            [_iteration_block(1)],
+            group_id=self.group.id,
+            repo_pr_states={
+                "owner/repo": RepoPRState(
+                    repo_name="owner/repo", pr_url="https://example.com/pull/7"
+                )
+            },
+        )
+        mock_client.continue_run.return_value = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=67890
+        )
+
+        def trigger() -> None:
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.PR_ITERATION,
+                referrer=AutofixReferrer.GITHUB_PR_COMMENT,
+                run_id=67890,
+            )
+
+        with pytest.raises(PrIterationNotEnabledException):
+            trigger()
+        mock_client.continue_run.assert_not_called()
+
+        with self.feature("organizations:autofix-pr-iteration"):
+            trigger()
+        assert mock_client.continue_run.call_count == 1
+
+        with self.feature("organizations:autofix-pr-iteration-manual"):
+            trigger()
+        assert mock_client.continue_run.call_count == 2
 
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=False)
@@ -1381,6 +1430,28 @@ class TestTriggerCodingAgentHandoff(TestCase):
 
         repos = mock_client.launch_coding_agents.call_args.kwargs["repos"]
         assert repos[0].branch_name == "release/v2"
+
+    @patch("sentry.seer.autofix.autofix_agent._resolve_default_branch", return_value="main")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_trigger_coding_agent_handoff_resolves_default_branch_when_empty(
+        self, mock_client_class, mock_resolve
+    ):
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.get_run.return_value = self._make_run_state()
+        mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
+        self._make_repo_and_projectrepo(external_id="1", branch_name="")
+
+        trigger_coding_agent_handoff(
+            group=self.group,
+            run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
+            integration_id=456,
+        )
+
+        mock_resolve.assert_called_once()
+        repos = mock_client.launch_coding_agents.call_args.kwargs["repos"]
+        assert repos[0].branch_name == "main"
 
 
 class TestTriggerPushChanges(TestCase):

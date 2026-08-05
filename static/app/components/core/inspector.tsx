@@ -791,7 +791,7 @@ export function serializeTraceForLLM(
   targetElement: TraceElement
 ): string {
   // Reverse the trace array to show root to leaf (trace is leaf to root)
-  const reversedTrace = [...trace].reverse();
+  const reversedTrace = trace.toReversed();
   const targetIndex = reversedTrace.indexOf(targetElement);
 
   // Only include components up to and including the target

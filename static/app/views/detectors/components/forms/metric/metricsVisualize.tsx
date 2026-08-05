@@ -139,11 +139,11 @@ export function MetricsVisualize() {
     ];
   }, [metricOptionsData, optionFromTraceMetric, traceMetric.name, hasMetricUnitsUI]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const debouncedSetSearch = useCallback(
-    debounce((newSearch: string) => {
-      setSearch(newSearch);
-    }, DEFAULT_DEBOUNCE_DURATION),
+  const debouncedSetSearch = useMemo(
+    () =>
+      debounce((newSearch: string) => {
+        setSearch(newSearch);
+      }, DEFAULT_DEBOUNCE_DURATION),
     [setSearch]
   );
 

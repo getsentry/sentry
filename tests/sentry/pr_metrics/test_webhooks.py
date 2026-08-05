@@ -887,6 +887,75 @@ class HandleWebhookForPrMetricsCountersTest(TestCase):
         )
         assert PullRequestMetrics.objects.count() == 0
 
+    def test_stale_replay_after_merge_does_not_regress_counters(self) -> None:
+        # The merge landed first, so the row already reads merged (written by
+        # PullRequestEventWebhook before this processor runs). The retried
+        # `synchronize` carries pre-merge counters; applying them would leave
+        # select_verdict reading zero discussion off a PR that had reviewer
+        # engagement and emitting a permanent CLOSED_UNMERGED.
+        self.pull_request.update(
+            state=PullRequestLifecycleState.MERGED,
+            provider_updated_at=datetime(2015, 5, 5, 23, 45, tzinfo=timezone.utc),
+        )
+        self._call(
+            action="closed",
+            state="closed",
+            merged=True,
+            updated_at="2015-05-05T23:45:00Z",
+            comments=4,
+            review_comments=6,
+            commits=3,
+        )
+
+        self._call(
+            action="synchronize",
+            state="open",
+            updated_at="2015-05-05T23:41:00Z",
+            comments=0,
+            review_comments=0,
+            commits=1,
+        )
+
+        metrics_row = PullRequestMetrics.objects.get(pull_request=self.pull_request)
+        assert metrics_row.comments_count == 4
+        assert metrics_row.review_comments_count == 6
+        assert metrics_row.commits_count == 3
+
+    def test_stale_replay_after_close_does_not_regress_counters(self) -> None:
+        # Closed unmerged, so the terminal-state rule can't fire — only the payload
+        # timestamp separates this replay from a real reopen.
+        self.pull_request.update(
+            state=PullRequestLifecycleState.CLOSED,
+            provider_updated_at=datetime(2015, 5, 5, 23, 45, tzinfo=timezone.utc),
+        )
+        self._call(action="closed", state="closed", updated_at="2015-05-05T23:45:00Z", comments=4)
+
+        self._call(
+            action="synchronize", state="open", updated_at="2015-05-05T23:41:00Z", comments=0
+        )
+
+        metrics_row = PullRequestMetrics.objects.get(pull_request=self.pull_request)
+        assert metrics_row.comments_count == 4
+
+    def test_newer_payload_still_refreshes_counters(self) -> None:
+        # The guard rejects only older snapshots; counters must keep tracking a PR
+        # that is still moving forward.
+        self.pull_request.update(
+            state=PullRequestLifecycleState.OPEN,
+            provider_updated_at=datetime(2015, 5, 5, 23, 40, tzinfo=timezone.utc),
+        )
+        self._call(action="opened", state="open", updated_at="2015-05-05T23:40:00Z", comments=1)
+
+        self.pull_request.update(
+            provider_updated_at=datetime(2015, 5, 5, 23, 50, tzinfo=timezone.utc)
+        )
+        self._call(
+            action="synchronize", state="open", updated_at="2015-05-05T23:50:00Z", comments=7
+        )
+
+        metrics_row = PullRequestMetrics.objects.get(pull_request=self.pull_request)
+        assert metrics_row.comments_count == 7
+
 
 @with_feature("organizations:pr-metrics-activity")
 @cell_silo_test

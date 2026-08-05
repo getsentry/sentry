@@ -468,6 +468,7 @@ class JiraIntegration(IssueSyncIntegration):
         """
         config = self.org_integration.config
         audit_data: dict[str, Any] = {}
+        audit_data: dict[str, Any] = {}
 
         if self.outbound_status_key in data:
             raw_project_mappings = data.pop(self.outbound_status_key)

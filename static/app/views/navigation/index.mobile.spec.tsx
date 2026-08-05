@@ -1,9 +1,11 @@
+import {BroadcastFixture} from 'sentry-fixture/broadcast';
 import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
   render,
+  renderGlobalModal,
   screen,
   userEvent,
   within,
@@ -27,7 +29,6 @@ const ALL_AVAILABLE_FEATURES = [
   'performance-view',
   'profiling',
   'visibility-explore-view',
-  'workflow-engine-ui',
 ];
 
 function navigationContext({
@@ -183,6 +184,34 @@ describe('mobile navigation', () => {
     expect(
       screen.getByRole('navigation', {name: 'Primary Navigation'})
     ).toBeInTheDocument();
+  });
+
+  it("moves the Command Palette into the mobile row and What's New into the Help menu", async () => {
+    const context = navigationContext();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/broadcasts/',
+      body: [BroadcastFixture({title: 'Mobile Broadcast', hasSeen: true})],
+    });
+
+    render(
+      <PrimaryNavigationContextProvider>
+        <Navigation />
+      </PrimaryNavigationContextProvider>,
+      context
+    );
+    renderGlobalModal({organization: context.organization});
+
+    const mobileHeader = within(screen.getByRole('banner'));
+    expect(
+      mobileHeader.getByRole('button', {name: 'Command Palette'})
+    ).toBeInTheDocument();
+    expect(mobileHeader.getByRole('button', {name: 'Help'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: "What's New"})).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Help'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: "What's New"}));
+
+    expect(await screen.findByText('Mobile Broadcast')).toBeInTheDocument();
   });
 
   describe('secondary nav route inference', () => {

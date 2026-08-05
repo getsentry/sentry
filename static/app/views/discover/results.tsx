@@ -1012,7 +1012,12 @@ function SearchBar({
   }
 
   return (
-    <Wrapper>
+    <Flex
+      direction={{zero: 'column', xl: 'row'}}
+      justify="between"
+      gap="md"
+      marginBottom="xl"
+    >
       <ResultsSearchQueryBuilder
         projectIds={eventView.project}
         query={eventView.query}
@@ -1024,7 +1029,7 @@ function SearchBar({
         includeTransactions
         recentSearches={savedSearchType}
       />
-    </Wrapper>
+    </Flex>
   );
 }
 
@@ -1470,7 +1475,12 @@ function DiscoverPageFilters({
   }
 
   return (
-    <Wrapper>
+    <Flex
+      direction={{zero: 'column', xl: 'row'}}
+      justify="between"
+      gap="md"
+      marginBottom="xl"
+    >
       <PageFilterBar condensed>
         <ProjectPageFilter />
         <EnvironmentPageFilter />
@@ -1521,21 +1531,9 @@ function DiscoverPageFilters({
           errorCode={errorCode}
         />
       </Flex>
-    </Wrapper>
+    </Flex>
   );
 }
-
-const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  gap: ${p => p.theme.space.md};
-  margin-bottom: ${p => p.theme.space.xl};
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    flex-direction: column;
-  }
-`;
 
 const Top = styled(Layout.Main)`
   flex-grow: 0;

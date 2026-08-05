@@ -1,6 +1,8 @@
 import enum
 import logging
 import time
+from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import NamedTuple
 
@@ -10,9 +12,9 @@ from django.db.models import Q
 from django.utils import timezone
 
 from sentry.issues.derived.aggregators import AGGREGATORS
-from sentry.issues.derived.framework import Pipeline
+from sentry.issues.derived.framework import Pipeline, State
 from sentry.issues.derived.store import GroupDerivedDataStore
-from sentry.issues.derived.tasks import process_group_log_task
+from sentry.issues.derived.tasks import generate_group_derived_data, process_group_log_task
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
 from sentry.models.group import Group
@@ -55,6 +57,37 @@ class ProcessingStrategy(enum.Enum):
     SYNC = "sync"  # process all pending actions now
     ASYNC = "async"  # schedule a task to process all pending actions
     INLINE = "inline"  # try to process all pending actions quickly; fall back to ASYNC
+
+
+@dataclass(frozen=True)
+class DerivedMetrics:
+    """Encapsulates derived-data metric reporting; incremental mode adds per-entry latency."""
+
+    mode: ProcessingStrategy
+    incremental: bool
+
+    def report_batch_processed(
+        self,
+        entries: Sequence[GroupActionLogEntry],
+        result: State,
+    ) -> None:
+        if self.incremental:
+            now = timezone.now()
+            tags = {"mode": self.mode.value}
+            for entry in entries:
+                age_seconds = (now - entry.date_added).total_seconds()
+                metrics.distribution(
+                    "issues.derived.incremental_processing_latency",
+                    age_seconds,
+                    tags=tags,
+                    unit="second",
+                )
+        for f in result.updated:
+            metrics.incr(
+                "issues.derived.feature_updated",
+                sample_rate=1.0,
+                tags={"feature": f.name},
+            )
 
 
 def _ensure_derived(group_id: int, pipeline_hash: str) -> GroupDerivedData:
@@ -101,6 +134,7 @@ def _process_batch(
     batch_size: int,
     *,
     persist: bool = True,
+    derived_metrics: DerivedMetrics | None = None,
 ) -> bool:
     """
     Process up to `batch_size` entries for a group. Updates derived in place.
@@ -119,6 +153,11 @@ def _process_batch(
     This is an optimistic concurrency scheme — no locks are held, and the
     last-writer-wins semantics are safe because all writers compute the
     same deterministic result for overlapping entry ranges.
+
+    Invalidated rows (null pipeline_hash) are treated as compatible with
+    any writer's hash: the row is known to be out of date and awaiting
+    replacement, but there's no reason to freeze incremental progress in
+    the meantime.
 
     When *persist* is False, only the in-memory object is updated — the
     caller is responsible for persisting the result (e.g. via
@@ -147,15 +186,12 @@ def _process_batch(
     updated = GroupDerivedData.objects.filter(
         Q(id=derived.id, generated_at=derived.generated_at)
         & (Q(cursor_date__lt=last_date) | Q(cursor_date=last_date, cursor_id__lte=last_id))
-        & Q(pipeline_hash=derived.pipeline_hash)
+        & (Q(pipeline_hash=derived.pipeline_hash) | Q(pipeline_hash__isnull=True))
     ).update(cursor_date=last_date, cursor_id=last_id, **state_update)
 
     if updated:
-        # Features updated in this batch (not total; a feature appears at most once per batch)
-        for f in result.updated:
-            metrics.incr(
-                "issues.derived.feature_updated", sample_rate=1.0, tags={"feature": f.name}
-            )
+        if derived_metrics is not None:
+            derived_metrics.report_batch_processed(entries, result)
         derived.cursor_date = last_date
         derived.cursor_id = last_id
         GroupDerivedDataStore.apply_to_instance(derived, state_update)
@@ -204,6 +240,7 @@ def _drain_log(
     *,
     time_limit: timedelta,
     persist: bool = True,
+    derived_metrics: DerivedMetrics | None = None,
 ) -> bool:
     """Process pending log entries into *derived*, batching as needed.
 
@@ -214,7 +251,9 @@ def _drain_log(
     When *persist* is False, batches update only the in-memory object.
     """
     deadline = time.monotonic() + time_limit.total_seconds()
-    while _process_batch(pipeline, derived, batch_size, persist=persist):
+    while _process_batch(
+        pipeline, derived, batch_size, persist=persist, derived_metrics=derived_metrics
+    ):
         if time.monotonic() >= deadline:
             return False
     return True
@@ -230,6 +269,7 @@ def process_group_log(
     batch_size: int = DEFAULT_BATCH_SIZE,
     pipeline: Pipeline[GroupActionLogEntry] | None = None,
     timeout: timedelta | None = None,
+    derived_metrics: DerivedMetrics | None = None,
 ) -> GroupDerivedData:
     """Fully drain all pending entries for a group's row.
 
@@ -243,12 +283,14 @@ def process_group_log(
         derived = _ensure_derived(group_id, p.pipeline_hash)
 
     if timeout is not None:
-        drained = _drain_log(derived, p, batch_size, time_limit=timeout)
+        drained = _drain_log(
+            derived, p, batch_size, time_limit=timeout, derived_metrics=derived_metrics
+        )
         if not drained:
             raise GroupLogTimeout(group_id)
     else:
         # No timeout — drain to completion.
-        while _process_batch(p, derived, batch_size):
+        while _process_batch(p, derived, batch_size, derived_metrics=derived_metrics):
             pass
 
     return derived
@@ -265,12 +307,15 @@ def trigger_group_log_processing(group_id: int, *, strategy: ProcessingStrategy)
       INLINE — try to process all pending actions quickly; fall back to ASYNC
     """
     if strategy is ProcessingStrategy.ASYNC:
-        process_group_log_task.delay(group_id)
+        process_group_log_task.delay(group_id, incremental=True)
         return
 
     if strategy is ProcessingStrategy.SYNC:
         try:
-            process_group_log(group_id)
+            process_group_log(
+                group_id,
+                derived_metrics=DerivedMetrics(mode=strategy, incremental=True),
+            )
         except ObjectDoesNotExist:
             pass
         return
@@ -286,12 +331,17 @@ def trigger_group_log_processing(group_id: int, *, strategy: ProcessingStrategy)
         except ObjectDoesNotExist:
             return
 
-        has_more = _process_batch(pipeline, derived, INLINE_BATCH_SIZE)
+        has_more = _process_batch(
+            pipeline,
+            derived,
+            INLINE_BATCH_SIZE,
+            derived_metrics=DerivedMetrics(mode=strategy, incremental=True),
+        )
     if has_more:
         # Derived data will be stale for any code running between now and
         # when the task completes.
         metrics.incr("issues.derived.inline_fallback_to_async")
-        process_group_log_task.delay(group_id)
+        process_group_log_task.delay(group_id, incremental=True)
 
 
 # ---------------------------------------------------------------------------
@@ -430,7 +480,14 @@ def build_and_promote_derived_data(
     result = PromotionResult.CURSOR_BEHIND
     for attempt in range(MAX_PROMOTION_ATTEMPTS):
         remaining = timedelta(seconds=max(0, deadline - time.monotonic()))
-        drained = _drain_log(derived, PIPELINE, batch_size, time_limit=remaining, persist=False)
+        drained = _drain_log(
+            derived,
+            PIPELINE,
+            batch_size,
+            time_limit=remaining,
+            persist=False,
+            derived_metrics=DerivedMetrics(mode=ProcessingStrategy.ASYNC, incremental=False),
+        )
         if not drained:
             _generation_cache.set(current_gen_id, derived)
             raise GroupLogTimeout(group_id, generation_id=current_gen_id)
@@ -474,33 +531,58 @@ def build_and_promote_derived_data(
 def invalidate_group_derived_data(
     group_id: int,
     cursor: tuple[datetime, int] | None = None,
+    soft: bool = True,
+    trigger_regenerate: bool = True,
 ) -> None:
-    """Delete derived state so it is rebuilt from scratch on the next pass,
-    then kicks off an async task to regenerate the derived data.
+    """Mark a group's derived data as out-of-date with respect to its action log.
 
-    If *cursor* is ``(date_added, id)`` of the earliest affected entry, the
-    row is only deleted when its cursor is at or past that point; otherwise
-    the mutation is still ahead of processing and no invalidation is needed.
-    Without a cursor the invalidation is unconditional.
+    *cursor* is ``(date_added, id)`` of the earliest affected entry. If the
+    row's own cursor is behind that point, the mutation is a pure append and
+    the row is left alone (an incremental drain will catch it up).
+
+    Otherwise the row is invalidated: ``soft=True`` (default) nulls
+    ``pipeline_hash`` so the row stays readable but is flagged stale for
+    bulk regeneration; ``soft=False`` deletes the row so readers cannot
+    observe pre-mutation state.
+
+    If *trigger_regenerate* is True (default), schedules a background task
+    to bring the row up to date. Pass False in bulk contexts that will
+    drive regeneration themselves.
     """
     if cursor is None:
-        GroupDerivedData.objects.filter(group_id=group_id).delete()
-        process_group_log_task.delay(group_id)
+        invalid_predicate = Q(group_id=group_id)
+    else:
+        cursor_date, cursor_id = cursor
+        invalid_predicate = Q(group_id=group_id) & (
+            Q(cursor_date__gt=cursor_date) | Q(cursor_date=cursor_date, cursor_id__gte=cursor_id)
+        )
+
+    # Reuse the invalidation predicate so a concurrent writer that already
+    # promoted past our cursor is not clobbered. Combining the check with the
+    # write avoids a second query.
+    qs = GroupDerivedData.objects.filter(invalid_predicate)
+    if soft:
+        affected = qs.update(pipeline_hash=None)
+    else:
+        affected, _ = qs.delete()
+
+    if not affected:
+        # Pure append (or nothing to invalidate): a normal drain will pick
+        # up any new entries.
+        if trigger_regenerate:
+            process_group_log_task.delay(group_id)
         return
 
-    # Only invalidate if the row has already processed past the affected point.
-    cursor_date, cursor_id = cursor
-    deleted, _ = GroupDerivedData.objects.filter(
-        Q(group_id=group_id)
-        & (Q(cursor_date__gt=cursor_date) | Q(cursor_date=cursor_date, cursor_id__gte=cursor_id)),
-    ).delete()
-    if deleted:
-        logger.info(
-            "issues.derived.invalidated",
-            extra={
-                "group_id": group_id,
-                "cursor_date": str(cursor_date),
-                "cursor_id": cursor_id,
-            },
-        )
-        process_group_log_task.delay(group_id)
+    logger.info(
+        "issues.derived.invalidated",
+        extra={
+            "group_id": group_id,
+            "cursor_date": str(cursor[0]) if cursor else None,
+            "cursor_id": cursor[1] if cursor else None,
+            "soft": soft,
+            "trigger_regenerate": trigger_regenerate,
+        },
+    )
+
+    if trigger_regenerate:
+        generate_group_derived_data.delay(group_id)

@@ -275,7 +275,7 @@ describe('IssueList', () => {
     it('caches the search results', async () => {
       issuesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
-        body: [...Array.from({length: 25})].map((_, i) =>
+        body: Array.from(Array.from({length: 25}), (_, i) =>
           GroupFixture({id: `${i}`, project})
         ),
         headers: {
@@ -990,7 +990,7 @@ describe('IssueList', () => {
   it('displays a count that represents the current page', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
-      body: [...Array.from({length: 25})].map((_, i) =>
+      body: Array.from(Array.from({length: 25}), (_, i) =>
         GroupFixture({id: `${i}`, project})
       ),
       headers: {
