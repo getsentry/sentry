@@ -37,7 +37,10 @@ export function AdminRegressionSettingsSection({
   performanceIssueSettings,
 }: AdminRegressionSettingsSectionProps) {
   const {projectId: projectSlug} = useParams<{projectId: string}>();
-  const mutationOptions = useDetectorFieldMutationOptions(projectSlug);
+  const mutationOptions = useDetectorFieldMutationOptions(
+    projectSlug,
+    handleSuperUserError
+  );
 
   return (
     <FieldGroup
@@ -51,7 +54,7 @@ export function AdminRegressionSettingsSection({
             DetectorConfigAdmin.TRANSACTION_DURATION_REGRESSION_ENABLED
           ]
         )}
-        mutationOptions={{...mutationOptions, onError: handleSuperUserError}}
+        mutationOptions={mutationOptions}
       >
         {field => (
           <field.Layout.Row label={t('Transaction Duration Regression Enabled')}>
@@ -71,7 +74,7 @@ export function AdminRegressionSettingsSection({
             DetectorConfigAdmin.FUNCTION_DURATION_REGRESSION_ENABLED
           ]
         )}
-        mutationOptions={{...mutationOptions, onError: handleSuperUserError}}
+        mutationOptions={mutationOptions}
       >
         {field => (
           <field.Layout.Row label={t('Function Duration Regression Enabled')}>

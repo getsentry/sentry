@@ -22,7 +22,10 @@ export const getPerformanceIssueSettingsQueryOptions = (
 export const getDetectorSettingsMutationKey = (orgSlug: string, projectSlug: string) =>
   ['project-performance-detector-settings', orgSlug, projectSlug] as const;
 
-export function useDetectorFieldMutationOptions(projectSlug: string) {
+export function useDetectorFieldMutationOptions(
+  projectSlug: string,
+  onError?: (error: Error) => void
+) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const mutationKey = getDetectorSettingsMutationKey(organization.slug, projectSlug);
@@ -70,10 +73,12 @@ export function useDetectorFieldMutationOptions(projectSlug: string) {
         });
       }
     },
-    onSettled: (_data, error, _variables, context) => {
-      if (error && context?.previousData) {
+    onError: (error, _variables, context) => {
+      if (context?.previousData) {
         queryClient.setQueryData(queryOptions.queryKey, context.previousData);
       }
+
+      onError?.(error);
     },
   });
 }
