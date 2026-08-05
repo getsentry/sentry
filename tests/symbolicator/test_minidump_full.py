@@ -250,6 +250,7 @@ class SymbolicatorLargeCompressedDifIntegrationTest(RelayStoreHelper, Transactio
                     with open(get_fixture_path("native", "windows.sym"), "rb") as fixture:
                         symbol_file.write(fixture.read())
 
+                    # Pad the Breakpad .sym file with random (incompressible) comment lines to make the upload large without changing its symbol data.
                     remaining = 300 * 1024 * 1024  # 300 MB
                     while remaining:
                         chunk_size = min(64 * 1024, remaining)
