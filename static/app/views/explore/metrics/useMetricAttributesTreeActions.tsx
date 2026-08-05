@@ -1,46 +1,61 @@
-import {useCallback} from 'react';
-
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
+import {isNumericAttribute} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {useAddSearchFilter} from 'sentry/views/explore/queryParams/context';
 
 export function useMetricAttributesTreeActions() {
   const addSearchFilter = useAddSearchFilter();
-
-  const addAttributeSearchFilter = useCallback(
-    (content: AttributesTreeContent, negated?: boolean) => {
-      const originalAttribute = content.originalAttribute;
-      if (!originalAttribute) {
-        return;
-      }
-
-      addSearchFilter({
-        key: originalAttribute.original_attribute_key,
-        value: String(content.value),
-        negated,
-      });
-    },
-    [addSearchFilter]
-  );
 
   return (content: AttributesTreeContent) => {
     if (!content.originalAttribute) {
       return [];
     }
 
+    const key = content.originalAttribute.original_attribute_key;
+    const value = content.value;
+    const isNumeric = isNumericAttribute({
+      value,
+      type: content.originalAttribute.type,
+      key,
+    });
+
     const items: MenuItemProps[] = [
       {
         key: 'search-for-value',
         label: t('Add to filter'),
-        onAction: () => addAttributeSearchFilter(content),
+        onAction: () =>
+          addSearchFilter({
+            key,
+            value: String(value),
+          }),
       },
       {
         key: 'search-for-negated-value',
         label: t('Exclude this value'),
-        onAction: () => addAttributeSearchFilter(content, true),
+        onAction: () =>
+          addSearchFilter({
+            key,
+            value: String(value),
+            negated: true,
+          }),
       },
     ];
+
+    if (isNumeric) {
+      items.push(
+        {
+          key: 'search-for-greater-than',
+          label: t('Show values greater than'),
+          onAction: () => addSearchFilter({key, value: value!, op: '>'}),
+        },
+        {
+          key: 'search-for-less-than',
+          label: t('Show values less than'),
+          onAction: () => addSearchFilter({key, value: value!, op: '<'}),
+        }
+      );
+    }
 
     return items;
   };
