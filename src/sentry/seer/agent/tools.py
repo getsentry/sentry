@@ -2010,6 +2010,11 @@ def get_event_details(
     if bool(event_id) == bool(issue_id):
         raise BadRequest("Either event_id or issue_id must be provided, but not both.")
 
+    # `format` arrives as an unvalidated RPC argument. Reject unknown values alongside the other
+    # argument checks, so a bad request is a 400 whatever the lookup finds or the rollout says.
+    if format is not None and format not in get_args(Format):
+        raise ParseError(f"Unsupported format: {format!r}")
+
     organization = Organization.objects.get(id=organization_id)
 
     event: Event | GroupEvent | None
@@ -2091,11 +2096,6 @@ def get_event_details(
 
     serialized_event = dict(serialize(event, user=None, serializer=EventSerializer()))
     serialized_event.update(_get_event_troubleshooting_context(event))
-
-    # `format` arrives as an unvalidated RPC argument, so reject unknown values before the
-    # feature check: a bad request stays a 400 whether or not the org has the rollout
-    if format is not None and format not in get_args(Format):
-        raise ParseError(f"Unsupported format: {format!r}")
 
     # Opt-in shared-formatter output for Seer, gated behind the rollout feature so it can be
     # ramped gradually; when the feature is off, callers fall back to their own formatter.
