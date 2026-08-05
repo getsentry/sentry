@@ -166,7 +166,6 @@ function Homepage() {
       selection={selection}
       setSavedQuery={setSavedQuery}
       isHomepage
-      // savedQuery={shouldHideThisTransactionsQuery ? undefined : savedQuery}
       savedQuery={savedQuery}
     />
   );
