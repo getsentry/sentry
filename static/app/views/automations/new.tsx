@@ -131,7 +131,7 @@ export default function AutomationNewSettings() {
   const model = useMemo(() => new FormModel(), []);
   const {state, actions} = useAutomationBuilderReducer();
   const theme = useTheme();
-  const maxWidth = theme.breakpoints.lg;
+  const maxWidth = theme.container['4xl'];
   const initialData = useInitialFormData();
 
   const {

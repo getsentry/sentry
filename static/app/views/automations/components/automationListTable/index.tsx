@@ -232,7 +232,7 @@ const AutomationsSimpleTable = styled(SimpleTable)`
     display: none;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xs}) {
+  @container (min-width: ${p => p.theme.container.sm}) {
     grid-template-columns: 2.5fr 1fr;
 
     [data-column-name='projects'] {
@@ -240,7 +240,7 @@ const AutomationsSimpleTable = styled(SimpleTable)`
     }
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+  @container (min-width: ${p => p.theme.container.xl}) {
     grid-template-columns: 2.5fr 1fr 1fr;
 
     [data-column-name='action'] {
@@ -248,7 +248,7 @@ const AutomationsSimpleTable = styled(SimpleTable)`
     }
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
+  @container (min-width: ${p => p.theme.container['3xl']}) {
     grid-template-columns: 2.5fr minmax(160px, 1fr) 1fr 1fr;
 
     [data-column-name='last-triggered'] {
@@ -256,7 +256,7 @@ const AutomationsSimpleTable = styled(SimpleTable)`
     }
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
+  @container (min-width: ${p => p.theme.container['4xl']}) {
     grid-template-columns: minmax(0, 3fr) minmax(160px, 1fr) 1fr 1fr 1fr;
 
     [data-column-name='connected-monitors'] {

@@ -98,7 +98,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const theme = useTheme();
-  const maxWidth = theme.breakpoints.lg;
+  const maxWidth = theme.container['4xl'];
   const initialData = useMemo((): Record<string, FieldValue> | undefined => {
     if (!automation) {
       return undefined;
