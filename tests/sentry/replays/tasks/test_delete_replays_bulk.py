@@ -662,15 +662,15 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         # Window 1
         assert calls[0].kwargs["start"] == range_start
         assert calls[0].kwargs["end"] == range_start + datetime.timedelta(days=7)
-        assert calls[0].kwargs["offset"] == 0
+        assert calls[0].kwargs["after_replay_id_hash"] is None
         # Window 2
         assert calls[1].kwargs["start"] == range_start + datetime.timedelta(days=7)
         assert calls[1].kwargs["end"] == range_start + datetime.timedelta(days=14)
-        assert calls[1].kwargs["offset"] == 0
+        assert calls[1].kwargs["after_replay_id_hash"] is None
         # Window 3
         assert calls[2].kwargs["start"] == range_start + datetime.timedelta(days=14)
         assert calls[2].kwargs["end"] == range_end
-        assert calls[2].kwargs["offset"] == 0
+        assert calls[2].kwargs["after_replay_id_hash"] is None
 
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     @patch("sentry.replays.tasks.delete_matched_rows")
@@ -724,18 +724,18 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         assert job.range_start == range_start
 
         calls = mock_fetch_rows.call_args_list
-        # Window 1, page 1 — offset 0
+        # Window 1, page 1 — no cursor yet
         assert calls[0].kwargs["start"] == range_start
         assert calls[0].kwargs["end"] == range_start + datetime.timedelta(days=7)
-        assert calls[0].kwargs["offset"] == 0
-        # Window 1, page 2 — offset 1
+        assert calls[0].kwargs["after_replay_id_hash"] is None
+        # Window 1, page 2 — seeks from the cursor page 1 returned
         assert calls[1].kwargs["start"] == range_start
         assert calls[1].kwargs["end"] == range_start + datetime.timedelta(days=7)
-        assert calls[1].kwargs["offset"] == 1
-        # Window 2 — offset reset to 0
+        assert calls[1].kwargs["after_replay_id_hash"] == 1234
+        # Window 2 — cursor reset, because it is a position within a window's result set
         assert calls[2].kwargs["start"] == range_start + datetime.timedelta(days=7)
         assert calls[2].kwargs["end"] == range_end
-        assert calls[2].kwargs["offset"] == 0
+        assert calls[2].kwargs["after_replay_id_hash"] is None
 
     @patch("requests.post")
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")

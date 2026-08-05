@@ -183,8 +183,6 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
         # We don't check Seer features because an org may have previously had them on, then turned them off.
         has_seer_data = features.has("organizations:replay-ai-summaries", project.organization)
 
-        # A null cursor starts from the beginning of the range. Future work doesn't need to obey
-        # this: pass `after_replay_id_hash` to resume from a known `cityHash64(replay_id)` position.
         run_bulk_replay_delete_job.delay(job.id, has_seer_data=has_seer_data)
 
         self.create_audit_entry(
