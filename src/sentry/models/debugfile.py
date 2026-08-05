@@ -647,7 +647,7 @@ def create_dif_from_file(
 
 
 def create_dif_from_fileobj(
-    project: Project, meta: DifMeta, fileobj: BinaryIO
+    project: Project, meta: DifMeta, fileobj: IO[bytes]
 ) -> tuple[ProjectDebugFile, bool]:
     """Creates an Objectstore-backed ``ProjectDebugFile`` from a file-like object.
 

@@ -5,7 +5,7 @@ import logging
 import tempfile
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING, BinaryIO, NamedTuple, cast
+from typing import IO, TYPE_CHECKING, NamedTuple
 
 import orjson
 import sentry_sdk
@@ -75,7 +75,7 @@ class AssembleResult(NamedTuple):
     # File object stored in the database.
     bundle: File
     # Temporary in-memory object representing the file used for efficiency.
-    bundle_temp_file: BinaryIO
+    bundle_temp_file: IO[bytes]
 
     def delete_bundle(self):
         self.bundle.delete()
@@ -172,7 +172,7 @@ def assemble_file(task, org_or_project, name, checksum, chunks, file_type) -> As
 
 
 @trace
-def assemble_file_blobs(task, org_or_project, name, checksum, chunks) -> BinaryIO | None:
+def assemble_file_blobs(task, org_or_project, name, checksum, chunks) -> IO[bytes] | None:
     """Assembles uploaded chunks into a temporary file without creating a ``File``."""
     from sentry.models.files.fileblob import FileBlob
 
@@ -204,7 +204,7 @@ def assemble_file_blobs(task, org_or_project, name, checksum, chunks) -> BinaryI
 
     temp_file.flush()
     temp_file.seek(0)
-    return cast(BinaryIO, temp_file)
+    return temp_file
 
 
 def _get_cache_key(task, scope, checksum):
