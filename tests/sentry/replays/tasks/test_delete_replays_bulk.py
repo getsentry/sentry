@@ -41,10 +41,14 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
             status="pending",
         )
 
+    @patch("sentry.replays.tasks.metrics")
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     @patch("sentry.replays.tasks.delete_matched_rows")
     def test_run_bulk_replay_delete_job_first_run(
-        self, mock_delete_matched_rows: MagicMock, mock_fetch_rows: MagicMock
+        self,
+        mock_delete_matched_rows: MagicMock,
+        mock_fetch_rows: MagicMock,
+        mock_metrics: MagicMock,
     ) -> None:
         """Test the first run of the bulk deletion job"""
         # Mock the fetch_rows_matching_pattern to return some rows
@@ -88,10 +92,26 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
             offset=0,
         )
 
+        # Verify metrics were recorded
+        assert mock_metrics.incr.call_count == 3
+        mock_metrics.incr.assert_any_call(
+            "replays.bulk_delete_job", tags={"status": "started"}, sample_rate=1.0
+        )
+        mock_metrics.incr.assert_any_call(
+            "replays.bulk_delete_job", tags={"status": "in_progress"}, sample_rate=1.0
+        )
+        mock_metrics.incr.assert_any_call(
+            "replays.bulk_delete_job.rows_deleted", amount=2, sample_rate=1.0
+        )
+
+    @patch("sentry.replays.tasks.metrics")
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     @patch("sentry.replays.tasks.delete_matched_rows")
     def test_run_bulk_replay_delete_job_completion(
-        self, mock_delete_matched_rows: MagicMock, mock_fetch_rows: MagicMock
+        self,
+        mock_delete_matched_rows: MagicMock,
+        mock_fetch_rows: MagicMock,
+        mock_metrics: MagicMock,
     ) -> None:
         """Test the completion of the bulk deletion job"""
         # Mock the fetch_rows_matching_pattern to return no more rows
@@ -132,6 +152,21 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
             environment=self.environments,
             limit=100,
             offset=100,
+        )
+
+        # Verify metrics were recorded
+        assert mock_metrics.incr.call_count == 4
+        mock_metrics.incr.assert_any_call(
+            "replays.bulk_delete_job", tags={"status": "started"}, sample_rate=1.0
+        )
+        mock_metrics.incr.assert_any_call(
+            "replays.bulk_delete_job", tags={"status": "in_progress"}, sample_rate=1.0
+        )
+        mock_metrics.incr.assert_any_call(
+            "replays.bulk_delete_job.rows_deleted", amount=2, sample_rate=1.0
+        )
+        mock_metrics.incr.assert_any_call(
+            "replays.bulk_delete_job", tags={"status": "completed"}, sample_rate=1.0
         )
 
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
@@ -313,9 +348,10 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         self.job.refresh_from_db()
         assert self.job.status == "in-progress"
 
+    @patch("sentry.replays.tasks.metrics")
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     def test_run_bulk_replay_delete_job_deadline_exceeded_without_retries(
-        self, mock_fetch_rows: MagicMock
+        self, mock_fetch_rows: MagicMock, mock_metrics: MagicMock
     ) -> None:
         """Test the job is failed rather than stalled when deadline retries run out"""
         mock_fetch_rows.side_effect = ProcessingDeadlineExceeded()
@@ -330,9 +366,15 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         self.job.refresh_from_db()
         assert self.job.status == "failed"
 
+        # Verify failed metric was recorded
+        mock_metrics.incr.assert_called_once_with(
+            "replays.bulk_delete_job", tags={"status": "failed"}, sample_rate=1.0
+        )
+
+    @patch("sentry.replays.tasks.metrics")
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     def test_run_bulk_replay_delete_job_failure_preserves_offset(
-        self, mock_fetch_rows: MagicMock
+        self, mock_fetch_rows: MagicMock, mock_metrics: MagicMock
     ) -> None:
         """Test a failure records the status without reverting the checkpoint"""
         mock_fetch_rows.side_effect = ValueError("snuba is unhappy")
@@ -347,6 +389,11 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         self.job.refresh_from_db()
         assert self.job.status == "failed"
         assert self.job.offset == 200
+
+        # Verify failed metric was recorded
+        mock_metrics.incr.assert_called_once_with(
+            "replays.bulk_delete_job", tags={"status": "failed"}, sample_rate=1.0
+        )
 
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     @patch("sentry.replays.tasks.delete_matched_rows")
