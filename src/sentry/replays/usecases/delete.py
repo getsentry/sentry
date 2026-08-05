@@ -60,34 +60,28 @@ logger = logging.getLogger(__name__)
 def day_aligned_window(
     range_start: datetime, range_end: datetime, offset_days: int
 ) -> tuple[datetime, datetime] | None:
-    """Return the window `offset_days` into `[range_start, range_end)`, or None past the end.
+    """Return the `offset_days`th UTC day of `[range_start, range_end)`, or None past the end.
 
-    One UTC day per window, which is the only size worth using:
+    A window is one whole UTC day intersected with the requested range, so the caller's own bounds
+    survive: the first window opens at `range_start`, the last closes at `range_end`, and only those
+    two are ever shorter than a day. Consecutive windows meet exactly, so the range is covered with
+    no gaps and no overlap. All datetimes are UTC.
+
+    Taking whole days, rather than `range_start` plus a day, is what stops a window from straddling
+    midnight -- which is what lets `day_pin_conditions` assert the window's day.
+
+    One day per window is the only size worth using:
       - `timestamp` is in the replays sort key at day granularity, so a narrower window prunes
         nothing.
-      - A wider window cannot assert its day (see `day_pin_conditions`) and so reads roughly twice
-        the granules.
+      - A wider window cannot assert its day and so reads roughly twice the granules.
       - The replays storage sets `max_rows_to_group_by = 1000000` with `group_by_overflow_mode =
         break`, and the finders group by `replay_id`. A window holding more than a million replays is
         silently truncated rather than rejected, so replays go quietly undeleted. A day leaves ample
         headroom; the 7-day window this replaced truncated for any project above ~143k replays/day.
-
-    Windows are laid out from the start of `range_start`'s UTC day rather than from `range_start`
-    itself, so each one lands inside a single day. Both ends are clamped to the range, so the first
-    and last windows can be shorter than a day.
-
-    Consecutive windows meet exactly -- window N ends where window N+1 begins -- so the range is
-    covered without gaps or overlap.
     """
-    day = range_start.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(
-        days=offset_days
-    )
+    day_start = _start_of_day(range_start) + timedelta(days=offset_days)
 
-    start = max(day, range_start)
-    if start >= range_end:
-        return None
-
-    return start, min(day + timedelta(days=1), range_end)
+    return _intersect((day_start, day_start + timedelta(days=1)), (range_start, range_end))
 
 
 def day_aligned_windows(
@@ -98,6 +92,19 @@ def day_aligned_windows(
     while window := day_aligned_window(range_start, range_end, offset_days):
         yield window
         offset_days += 1
+
+
+def _intersect(
+    first: tuple[datetime, datetime], second: tuple[datetime, datetime]
+) -> tuple[datetime, datetime] | None:
+    """Overlap of two half-open intervals, or None when they do not overlap."""
+    start, end = max(first[0], second[0]), min(first[1], second[1])
+
+    return (start, end) if start < end else None
+
+
+def _start_of_day(value: datetime) -> datetime:
+    return value.replace(hour=0, minute=0, second=0, microsecond=0)
 
 
 def day_pin_conditions(start: datetime, end: datetime) -> list[Condition]:
@@ -113,7 +120,7 @@ def day_pin_conditions(start: datetime, end: datetime) -> list[Condition]:
     days would silently drop every row past the first day, which on this path means PII reported as
     deleted that was not.
     """
-    day = start.replace(hour=0, minute=0, second=0, microsecond=0)
+    day = _start_of_day(start)
     if end > day + timedelta(days=1):
         return []
 
