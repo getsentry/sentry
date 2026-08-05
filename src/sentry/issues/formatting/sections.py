@@ -97,7 +97,7 @@ def exceptions_section(model: EventObject, fmt: Formatter, limits: Limits) -> st
     blocks: list[str] = []
     for exc in model.exceptions:
         header = ": ".join(p for p in (exc.type, exc.value) if p) or "Error"
-        parts = [header]
+        parts = [fmt.text(header)]
         if exc.is_handled is not None:
             parts.append(fmt.field("Handled", "Yes" if exc.is_handled else "No"))
         if exc.stacktrace and exc.stacktrace.frames:
@@ -118,7 +118,7 @@ def stacktrace_section(model: EventObject, fmt: Formatter, limits: Limits) -> st
 
 def title_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
     # transaction and date mirror the line Seer's format_event opens with
-    lines = [model.title]
+    lines = [fmt.text(model.title)]
     if model.transaction_name:
         lines.append(fmt.field("Transaction", model.transaction_name))
     if model.culprit:
@@ -134,20 +134,20 @@ def message_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
     # only render the message when it adds something beyond the title (matches Seer)
     if not model.message or model.message in model.title:
         return ""
-    return fmt.block("Message", model.message)
+    return fmt.block("Message", fmt.text(model.message))
 
 
 def detection_context_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
     # why a detector opened the issue; only detector-backed issue types carry it
     if not model.detection_context:
         return ""
-    return fmt.block("Detection Context", model.detection_context)
+    return fmt.block("Detection Context", fmt.text(model.detection_context))
 
 
 def troubleshooting_hint_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
     if not model.troubleshooting_hint:
         return ""
-    return fmt.block("Troubleshooting Hint", model.troubleshooting_hint)
+    return fmt.block("Troubleshooting Hint", fmt.text(model.troubleshooting_hint))
 
 
 def breadcrumbs_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
@@ -164,7 +164,7 @@ def breadcrumbs_section(model: EventObject, fmt: Formatter, limits: Limits) -> s
         if crumb.data:
             line += f" {crumb.data}"
         if line:
-            lines.append(_truncate(line, limits.max_single_breadcrumb_chars))
+            lines.append(fmt.text(_truncate(line, limits.max_single_breadcrumb_chars)))
 
     if not lines:
         return ""
@@ -178,7 +178,7 @@ def request_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
 
     parts: list[str] = []
     if req.method or req.url:
-        parts.append(f"{req.method or ''} {req.url or ''}".strip())
+        parts.append(fmt.text(f"{req.method or ''} {req.url or ''}".strip()))
     if req.data:
         parts.append(fmt.code_block(_truncate(str(req.data), limits.max_request_chars)))
     return fmt.block("Request", "\n".join(parts))
@@ -215,7 +215,7 @@ def threads_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
         if not (st and st.frames):
             continue
         label = thread.name or (str(thread.id) if thread.id is not None else "Thread")
-        parts = [label]
+        parts = [fmt.text(label)]
         if thread.crashed:
             parts.append(fmt.field("Crashed", "Yes"))
         parts.append(fmt.code_block(_render_stacktrace(st, limits)))
@@ -235,7 +235,7 @@ def spans_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
         timing = f" ({span.exclusive_time}ms)" if span.exclusive_time is not None else ""
         line = f"{label}{timing}".strip()
         if line:
-            lines.append(line)
+            lines.append(fmt.text(line))
 
     if not lines:
         return ""

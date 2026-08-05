@@ -9,6 +9,7 @@ import logging
 import re
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Sequence
+from xml.sax.saxutils import escape
 
 from sentry.issues.formatting.limits import Limits
 from sentry.issues.formatting.models import EventObject
@@ -42,6 +43,13 @@ class Formatter(ABC):
         return "\n\n".join(parts)
 
     # syntax primitives: the only thing that differs per format
+    def text(self, value: str) -> str:
+        """Prepare raw event content for embedding. Formats whose syntax content can forge
+        override this; sections must route anything not already wrapped by another primitive
+        through it, or that content can invent structure in the output.
+        """
+        return value
+
     @abstractmethod
     def block(self, title: str, body: str) -> str: ...
 
@@ -72,9 +80,13 @@ class XmlFormatter(Formatter):
         tag = slug(title)
         return f"<{tag}>\n{body}\n</{tag}>"
 
+    def text(self, value: str) -> str:
+        # & and < are all it takes to forge a tag; > goes too so output stays well-formed
+        return escape(value)
+
     def field(self, key: str, value: str) -> str:
         tag = slug(key)
-        return f"<{tag}>{value}</{tag}>"
+        return f"<{tag}>{self.text(value)}</{tag}>"
 
     def code_block(self, text: str) -> str:
-        return f"<code>{text}</code>"
+        return f"<code>{self.text(text)}</code>"
