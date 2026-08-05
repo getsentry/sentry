@@ -70,6 +70,11 @@ TRACE_METRICS_ATTRIBUTE_DEFINITIONS = {
             internal_name="sentry.metric_unit",
             search_type="string",
         ),
+        ResolvedAttribute(
+            public_alias="transaction",
+            internal_name=ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME,
+            search_type="string",
+        ),
     ]
 }
 
