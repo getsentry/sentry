@@ -46,6 +46,7 @@ export function Tooltip({
   title,
   disabled = false,
   maxWidth,
+  isHoverable = true,
   ...hoverOverlayProps
 }: TooltipProps) {
   const theme = useTheme();
@@ -60,7 +61,7 @@ export function Tooltip({
     arrowProps,
     reset,
     update,
-  } = useHoverOverlay(hoverOverlayProps);
+  } = useHoverOverlay({...hoverOverlayProps, isHoverable});
 
   const {forceVisible} = hoverOverlayProps;
 
