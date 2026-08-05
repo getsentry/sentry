@@ -209,6 +209,19 @@ const scmMessagingOnboardingSteps: StepDescriptor[] = [
   },
 ];
 
+function getOnboardingSteps({
+  hasScmOnboarding,
+  hasScmMessaging,
+}: {
+  hasScmMessaging: boolean;
+  hasScmOnboarding: boolean;
+}): StepDescriptor[] {
+  if (!hasScmOnboarding) {
+    return legacyOnboardingSteps;
+  }
+  return hasScmMessaging ? scmMessagingOnboardingSteps : scmOnboardingSteps;
+}
+
 interface ContainerVariableProps {
   hasFooter: boolean;
   hasScmOnboarding: boolean;
@@ -295,11 +308,7 @@ export function OnboardingWithoutContext() {
     reportExposure: false,
   });
 
-  const onboardingSteps = hasScmOnboarding
-    ? hasScmMessaging
-      ? scmMessagingOnboardingSteps
-      : scmOnboardingSteps
-    : legacyOnboardingSteps;
+  const onboardingSteps = getOnboardingSteps({hasScmOnboarding, hasScmMessaging});
 
   useReplayForCriticalFlow({
     flowName: 'scm_onboarding',
