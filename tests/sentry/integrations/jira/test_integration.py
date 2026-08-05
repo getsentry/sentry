@@ -9,7 +9,11 @@ from django.urls import reverse
 
 from fixtures.integrations.jira.stub_client import StubJiraApiClient
 from fixtures.integrations.stub_service import StubService
-from sentry.integrations.jira.integration import JiraIntegrationProvider
+from sentry.integrations.jira.integration import (
+    JiraIntegrationProvider,
+    _build_project_mapping_audit_data,
+    _ProjectStatusMapping,
+)
 from sentry.integrations.jira.views import SALT
 from sentry.integrations.mixins.issues import IntegrationSyncTargetNotFound
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -39,6 +43,77 @@ pytestmark = [requires_snuba]
 
 def get_client():
     return StubJiraApiClient()
+
+
+def test_build_project_mapping_audit_data() -> None:
+    upserts = {
+        external_id: _ProjectStatusMapping(
+            on_resolve=f"resolve-{external_id}", on_unresolve=f"unresolve-{external_id}"
+        )
+        for external_id in ("1", "2", "3")
+    }
+    existing = {
+        external_id: _ProjectStatusMapping(
+            on_resolve=f"previous-resolve-{external_id}",
+            on_unresolve=f"previous-unresolve-{external_id}",
+        )
+        for external_id in ("2", "3", "4", "5", "6")
+    }
+
+    assert _build_project_mapping_audit_data(
+        additions=["1"],
+        updates=["2", "3"],
+        removals=["4", "5", "6"],
+        upserts=upserts,
+        existing=existing,
+    ) == {
+        "added_count": 1,
+        "updated_count": 2,
+        "removed_count": 3,
+        "added_project_mappings": [
+            {"external_id": "1", "on_resolve": "resolve-1", "on_unresolve": "unresolve-1"}
+        ],
+        "updated_project_mappings": [
+            {
+                "external_id": "2",
+                "on_resolve": "resolve-2",
+                "on_unresolve": "unresolve-2",
+                "previous_on_resolve": "previous-resolve-2",
+                "previous_on_unresolve": "previous-unresolve-2",
+            },
+            {
+                "external_id": "3",
+                "on_resolve": "resolve-3",
+                "on_unresolve": "unresolve-3",
+                "previous_on_resolve": "previous-resolve-3",
+                "previous_on_unresolve": "previous-unresolve-3",
+            },
+        ],
+        "removed_project_mappings": [
+            {
+                "external_id": "4",
+                "on_resolve": "previous-resolve-4",
+                "on_unresolve": "previous-unresolve-4",
+            },
+            {
+                "external_id": "5",
+                "on_resolve": "previous-resolve-5",
+                "on_unresolve": "previous-unresolve-5",
+            },
+            {
+                "external_id": "6",
+                "on_resolve": "previous-resolve-6",
+                "on_unresolve": "previous-unresolve-6",
+            },
+        ],
+    }
+
+    assert (
+        _build_project_mapping_audit_data(
+            additions=[], updates=[], removals=[], upserts={}, existing={}
+        )
+        is None
+    )
 
 
 class RegionJiraIntegrationTest(APITestCase):
@@ -1163,7 +1238,7 @@ class JiraIntegrationTest(APITestCase):
             == 1
         )
 
-        # test disable forward -- an explicit tombstone for every mapping
+        # test disable forward -- an explicit removal for every mapping
         data = {
             "sync_comments": True,
             "sync_forward_assignment": True,
@@ -1436,7 +1511,7 @@ class JiraIntegrationTest(APITestCase):
             }
         }
 
-        # Removing "3" now takes an explicit tombstone.
+        # Removing "3" now takes an explicit removal.
         audit_data = installation.update_organization_config({"sync_status_forward": {"3": None}})
 
         assert self._mappings(org_integration.id) == {
@@ -1449,8 +1524,8 @@ class JiraIntegrationTest(APITestCase):
             {"external_id": "3", "on_resolve": "done", "on_unresolve": "in_progress"}
         ]
 
-    def test_update_organization_config_removes_only_tombstoned_mappings(self) -> None:
-        """One tombstone removes exactly one mapping, and records its prior statuses."""
+    def test_update_organization_config_removes_only_explicit_removals(self) -> None:
+        """One explicit removal removes exactly one mapping and records its prior statuses."""
         installation, org_integration = self._jira_installation_with_mappings("1", "2", "3")
 
         audit_data = installation.update_organization_config({"sync_status_forward": {"2": None}})
@@ -1518,9 +1593,9 @@ class JiraIntegrationTest(APITestCase):
         assert installation.org_integration is not None
         assert installation.org_integration.config["sync_status_forward"] is True
 
-    def test_update_organization_config_ignores_tombstone_for_unknown_mapping(self) -> None:
+    def test_update_organization_config_ignores_removal_for_unknown_mapping(self) -> None:
         """
-        The settings form produces a stale tombstone by deleting a row twice before the
+        The settings form produces a stale removal by deleting a row twice before the
         refetch lands, so an unknown id is a silent no-op rather than an error.
         """
         installation, org_integration = self._jira_installation_with_mappings("1")
@@ -1558,7 +1633,7 @@ class JiraIntegrationTest(APITestCase):
                 "integration_id": installation.model.id,
                 "omitted_count": 2,
                 "upsert_count": 1,
-                "tombstone_count": 0,
+                "removal_count": 0,
             },
         )
 
@@ -1685,7 +1760,7 @@ class JiraIntegrationTest(APITestCase):
             {"": {"on_resolve": "done", "on_unresolve": "open"}},
             {"   ": None},
             # Two keys that collide once normalized -- ambiguous, and would let one payload
-            # both upsert and tombstone the same mapping.
+            # both upsert and remove the same mapping.
             {10100: {"on_resolve": "done", "on_unresolve": "open"}, "10100": None},
         ):
             with pytest.raises(IntegrationError):
@@ -1697,8 +1772,8 @@ class JiraIntegrationTest(APITestCase):
         """A failure part-way through must not leave the mappings half-written."""
         installation, org_integration = self._jira_installation_with_mappings("1", "2")
 
-        # The tombstoned row is deleted before anything is written, so a failing insert has
-        # to bring it back.
+        # The explicitly removed row is deleted before anything is written, so a failing
+        # insert has to bring it back.
         with patch.object(
             IntegrationExternalProject.objects,
             "bulk_create",

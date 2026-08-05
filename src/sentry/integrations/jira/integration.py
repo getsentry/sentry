@@ -153,14 +153,77 @@ HIDDEN_ISSUE_FIELDS = ["issuelinks"]
 MAX_PER_PROJECT_QUERIES = 10
 
 
-def _stored_statuses(iep: IntegrationExternalProject) -> dict[str, str]:
+class _ProjectStatusMapping(TypedDict):
+    on_resolve: str
+    on_unresolve: str
+
+
+class _ProjectMappingDiff(NamedTuple):
+    upserts: dict[str, _ProjectStatusMapping]
+    removals: set[str]
+
+
+class _ProjectMappingAuditData(TypedDict):
+    added_count: int
+    updated_count: int
+    removed_count: int
+    added_project_mappings: list[dict[str, object]]
+    updated_project_mappings: list[dict[str, object]]
+    removed_project_mappings: list[dict[str, object]]
+
+
+def _stored_statuses(iep: IntegrationExternalProject) -> _ProjectStatusMapping:
     """A stored mapping's statuses, in the same shape as the `sync_status_forward` payload."""
     return {"on_resolve": iep.resolved_status, "on_unresolve": iep.unresolved_status}
 
 
+def _build_project_mapping_audit_data(
+    *,
+    additions: Sequence[str],
+    updates: Sequence[str],
+    removals: Sequence[str],
+    upserts: Mapping[str, _ProjectStatusMapping],
+    existing: Mapping[str, _ProjectStatusMapping],
+) -> _ProjectMappingAuditData | None:
+    if not additions and not updates and not removals:
+        return None
+
+    return {
+        "added_count": len(additions),
+        "updated_count": len(updates),
+        "removed_count": len(removals),
+        "added_project_mappings": [
+            {
+                "external_id": external_id,
+                "on_resolve": upserts[external_id]["on_resolve"],
+                "on_unresolve": upserts[external_id]["on_unresolve"],
+            }
+            for external_id in additions
+        ],
+        "updated_project_mappings": [
+            {
+                "external_id": external_id,
+                "on_resolve": upserts[external_id]["on_resolve"],
+                "on_unresolve": upserts[external_id]["on_unresolve"],
+                "previous_on_resolve": existing[external_id]["on_resolve"],
+                "previous_on_unresolve": existing[external_id]["on_unresolve"],
+            }
+            for external_id in updates
+        ],
+        "removed_project_mappings": [
+            {
+                "external_id": external_id,
+                "on_resolve": existing[external_id]["on_resolve"],
+                "on_unresolve": existing[external_id]["on_unresolve"],
+            }
+            for external_id in removals
+        ],
+    }
+
+
 class _MappingReconcileResult(NamedTuple):
     # Detail for the audit log entry, or `None` when the payload asked for nothing at all.
-    audit: dict[str, Any] | None
+    audit: _ProjectMappingAuditData | None
     # How many mappings left, used to see if we should turn off sync_status_forward.
     remaining_count: int
 
@@ -339,7 +402,7 @@ class JiraIntegration(IssueSyncIntegration):
                 },
                 "mappedColumnLabel": _("Jira Project"),
                 "formatMessageValue": False,
-                # For the frontend form to support explicit removals (upsert + tombstone)
+                # For the frontend form to support incremental upserts and explicit removals.
                 "supportsExplicitRemovals": True,
             },
             {
@@ -407,8 +470,9 @@ class JiraIntegration(IssueSyncIntegration):
         audit_data: dict[str, Any] = {}
 
         if self.outbound_status_key in data:
-            project_mappings = data.pop(self.outbound_status_key)
-            result = self._reconcile_project_status_mappings(project_mappings)
+            raw_project_mappings = data.pop(self.outbound_status_key)
+            mapping_diff = self._validate_project_status_mapping_diff(raw_project_mappings)
+            result = self._reconcile_project_status_mappings(mapping_diff)
             if result.audit is not None:
                 audit_data[self.outbound_status_key] = result.audit
 
@@ -453,11 +517,11 @@ class JiraIntegration(IssueSyncIntegration):
         return [pm for pm in project_mappings if pm.external_id in project_ids_set]
 
     @staticmethod
-    def _validate_project_status_mappings(
+    def _validate_project_status_mapping_diff(
         project_mappings: object,
-    ) -> tuple[dict[str, dict[str, str]], set[str]]:
+    ) -> _ProjectMappingDiff:
         """
-        Normalize the `sync_status_forward` payload into upserts and tombstones.
+        Validate and normalize the `sync_status_forward` payload into a mapping diff.
 
         Keyed by Jira project id: an object upserts, `null` deletes, and an absent key is
         left alone. Everything is validated before the caller writes a single row.
@@ -466,20 +530,20 @@ class JiraIntegration(IssueSyncIntegration):
         if not isinstance(project_mappings, Mapping):
             raise IntegrationError("Sync Sentry Status to Jira must be a mapping of projects.")
 
-        upserts: dict[str, dict[str, str]] = {}
-        tombstones: set[str] = set()
+        upserts: dict[str, _ProjectStatusMapping] = {}
+        removals: set[str] = set()
 
         for raw_external_id, statuses in project_mappings.items():
             external_id = str(raw_external_id).strip()
             if not external_id:
                 raise IntegrationError("A Jira project is required for each status mapping.")
-            if external_id in upserts or external_id in tombstones:
+            if external_id in upserts or external_id in removals:
                 raise IntegrationError(
                     f"Jira project {external_id} appears more than once in the status mappings."
                 )
 
             if statuses is None:
-                tombstones.add(external_id)
+                removals.add(external_id)
                 continue
 
             if not isinstance(statuses, Mapping) or not (
@@ -492,18 +556,19 @@ class JiraIntegration(IssueSyncIntegration):
                 "on_unresolve": str(statuses["on_unresolve"]),
             }
 
-        return upserts, tombstones
+        return _ProjectMappingDiff(upserts=upserts, removals=removals)
 
     def _reconcile_project_status_mappings(
-        self, project_mappings: object
+        self, mapping_diff: _ProjectMappingDiff
     ) -> _MappingReconcileResult:
         """
-        Apply a `sync_status_forward` payload to the stored `IntegrationExternalProject` rows.
+        Apply a mapping diff to create/update/delete `IntegrationExternalProject` rows.
 
-        Only the explicit tombstones are removed. Returns the audit detail for the change plus
-        the number of mappings left behind, which is what the config bool is derived from.
+        Only explicit removals are deleted. Returns the audit detail for the change plus the
+        number of mappings left behind, which is what the config bool is derived from.
         """
-        upserts, tombstones = self._validate_project_status_mappings(project_mappings)
+        upserts = mapping_diff.upserts
+        requested_removals = mapping_diff.removals
 
         with transaction.atomic(router.db_for_write(IntegrationExternalProject)):
             existing = {
@@ -512,48 +577,36 @@ class JiraIntegration(IssueSyncIntegration):
                     organization_integration_id=self.org_integration.id
                 )
             }
+            existing_statuses = {
+                external_id: _stored_statuses(iep) for external_id, iep in existing.items()
+            }
 
-            removals = [external_id for external_id in tombstones if external_id in existing]
+            removals = [
+                external_id for external_id in requested_removals if external_id in existing
+            ]
             additions = [external_id for external_id in upserts if external_id not in existing]
             updates = [
                 external_id
                 for external_id in upserts
                 if external_id in existing
-                and _stored_statuses(existing[external_id]) != upserts[external_id]
+                and existing_statuses[external_id] != upserts[external_id]
             ]
 
             # only used for tracking rollout of feature
             omitted_count = sum(
-                external_id not in upserts and external_id not in tombstones
+                external_id not in upserts and external_id not in requested_removals
                 for external_id in existing
             )
 
             # Built before the writes below, while the existing rows still hold their prior
             # statuses, so a mapping removed or overwritten by mistake can be rebuilt from this.
-            audit_data: dict[str, Any] | None = None
-            if removals or additions or updates:
-                audit_data = {
-                    "added_count": len(additions),
-                    "updated_count": len(updates),
-                    "removed_count": len(removals),
-                    "added_project_mappings": [
-                        {"external_id": external_id, **upserts[external_id]}
-                        for external_id in additions
-                    ],
-                    "updated_project_mappings": [
-                        {
-                            "external_id": external_id,
-                            **upserts[external_id],
-                            "previous_on_resolve": existing[external_id].resolved_status,
-                            "previous_on_unresolve": existing[external_id].unresolved_status,
-                        }
-                        for external_id in updates
-                    ],
-                    "removed_project_mappings": [
-                        {"external_id": external_id, **_stored_statuses(existing[external_id])}
-                        for external_id in removals
-                    ],
-                }
+            audit_data = _build_project_mapping_audit_data(
+                additions=additions,
+                updates=updates,
+                removals=removals,
+                upserts=upserts,
+                existing=existing_statuses,
+            )
 
             if removals:
                 IntegrationExternalProject.objects.filter(
@@ -594,7 +647,7 @@ class JiraIntegration(IssueSyncIntegration):
                     "integration_id": self.model.id,
                     "omitted_count": omitted_count,
                     "upsert_count": len(upserts),
-                    "tombstone_count": len(tombstones),
+                    "removal_count": len(requested_removals),
                 },
             )
 
