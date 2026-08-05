@@ -27,8 +27,7 @@ export function copyToClipboard(
       ? undefined
       : (options?.errorMessage ?? t('Error copying to clipboard'));
 
-  const promise = navigator.clipboard
-    .writeText(text)
+  const promise = writeTextToClipboard(text)
     .then(() => {
       if (successMessage) {
         addSuccessMessage(successMessage);
@@ -43,6 +42,33 @@ export function copyToClipboard(
     });
 
   return promise;
+}
+
+function writeTextToClipboard(text: string): Promise<void> {
+  if (navigator.clipboard) {
+    return navigator.clipboard.writeText(text);
+  }
+
+  // The Clipboard API is unavailable on non-secure origins, including the
+  // local HTTP origin used by Scraps.
+  const textArea = document.createElement('textarea');
+  textArea.value = text;
+  textArea.style.position = 'fixed';
+  textArea.style.opacity = '0';
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+
+  try {
+    if (!document.execCommand('copy')) {
+      return Promise.reject(new Error('Unable to copy to clipboard'));
+    }
+    return Promise.resolve();
+  } catch (error) {
+    return Promise.reject(error instanceof Error ? error : new Error(String(error)));
+  } finally {
+    textArea.remove();
+  }
 }
 
 export function useCopyToClipboard(): {copy: CopyCallback} {
