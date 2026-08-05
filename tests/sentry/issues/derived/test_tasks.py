@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 from sentry.issues.action_log.publish import publish_action
@@ -368,6 +369,47 @@ class GenerateProjectDerivedDataStaleOnlyTest(DerivedDataTaskTestBase):
         mock_delay.assert_called_once()
         assert mock_delay.call_args[1]["group_id_start"] == group_ids[0]
         assert mock_delay.call_args[1]["group_id_end"] == group_ids[0] + 1
+
+
+@with_feature("projects:issue-action-log-write-to-db")
+class GenerateProjectDerivedDataBatchResumeTest(DerivedDataTaskTestBase):
+    def test_resume_generation_id_not_applied_when_start_group_filtered_out(self) -> None:
+        # A resume ``GenerationId`` identifies a specific group. If that
+        # group is no longer in the batch queryset (e.g. under stale_only
+        # it was already rebuilt to the current hash), the resume must
+        # be dropped — it must NOT get applied to whichever group happens
+        # to be first, because the cached partial progress belongs to a
+        # different group.
+        groups = self.create_unprocessed_groups(2)
+        group_ids = sorted(g.id for g in groups)
+        group_a, group_b = group_ids
+
+        for gid in group_ids:
+            process_group_log(gid)
+
+        # A is at the current hash (not stale); B is stale.
+        GroupDerivedData.objects.filter(group_id=group_b).update(pipeline_hash="stale")
+
+        resume_generated_at = datetime(2024, 1, 1, tzinfo=timezone.utc).isoformat()
+        resume_pipeline_hash = "prevhash"
+
+        with patch("sentry.issues.derived.processing.build_and_promote_derived_data") as mock_build:
+            generate_project_derived_data_batch(
+                project_id=self.project.id,
+                group_id_start=group_a,
+                group_id_end=group_b + 1,
+                resume_generated_at=resume_generated_at,
+                resume_pipeline_hash=resume_pipeline_hash,
+                stale_only=True,
+            )
+
+        # Only B is processed (A is filtered by stale_only).
+        mock_build.assert_called_once()
+        call_kwargs = mock_build.call_args.kwargs
+        assert mock_build.call_args.args[0] == group_b
+        # And critically, B does NOT inherit the resume generation_id
+        # that was built for A.
+        assert call_kwargs["generation_id"] is None
 
 
 @with_feature("projects:issue-action-log-write-to-db")
