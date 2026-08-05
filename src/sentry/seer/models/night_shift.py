@@ -22,8 +22,8 @@ class SeerNightShiftRun(DefaultFieldsModel):
     workflow_config = FlexibleForeignKey(
         "seer.SeerWorkflowConfig", on_delete=models.SET_NULL, null=True
     )
-    # Cron-derived schedule window (currently YYYY-MM-DDTHH:MM); nullable for
-    # manual and historical runs, with standard capacity for future formats.
+    # Cron-derived schedule window (currently YYYY-MM-DDTHH:MM), nullable for
+    # manual and historical runs.
     schedule_id = models.CharField(max_length=256, null=True)
     date_completed = models.DateTimeField(null=True)
     extras = models.JSONField(db_default={}, default=dict)
