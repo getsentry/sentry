@@ -493,6 +493,7 @@ class DifAssembleProguardCloneBackendTransitionTest(APITestCase):
         file_contents = b"proguard mapping"
         checksum = sha1(file_contents).hexdigest()
         blob = FileBlob.from_file_with_organization(ContentFile(file_contents), self.organization)
+        multipart_upload.return_value = "source-storage-path"
 
         with self.feature({"organizations:objectstore-debugfiles-write": True}):
             self._assemble_source(checksum, [blob.checksum])
