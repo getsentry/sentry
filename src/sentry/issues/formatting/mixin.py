@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Mapping
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, get_args
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 FORMATTER_FEATURE = "organizations:issue-standardized-markdown-for-llm"
 # not "format": DRF reserves that query param for renderer content-negotiation
 QUERY_PARAM = "llmFormat"
-_VALID_FORMATS: tuple[Format, ...] = ("markdown", "xml")
+VALID_FORMATS: tuple[Format, ...] = get_args(Format)
 
 
 class FormattableResponseMixin(_Base):
@@ -50,7 +50,7 @@ class FormattableResponseMixin(_Base):
         organization = getattr(request, "organization", None)
         if (
             adapter is None
-            or fmt not in _VALID_FORMATS
+            or fmt not in VALID_FORMATS
             or organization is None
             or not features.has(FORMATTER_FEATURE, organization, actor=request.user)
         ):
