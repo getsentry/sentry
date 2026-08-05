@@ -19,7 +19,6 @@ import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
 import * as analytics from 'sentry/utils/analytics';
 import {CreateProject} from 'sentry/views/projectInstall/createProject';
-import * as useValidateChannelModule from 'sentry/views/projectInstall/useValidateChannel';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 
 jest.mock('sentry/actionCreators/indicator');
@@ -979,10 +978,10 @@ describe('CreateProject', () => {
         teamSlug: teamWithAccess.slug,
       });
 
-      jest.spyOn(useValidateChannelModule, 'useValidateChannel').mockReturnValue({
-        isFetching: true,
-        clear: jest.fn(),
-        error: undefined,
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/${integration.id}/channel-validate/`,
+        asyncDelay: 10_000,
+        body: {valid: true},
       });
 
       render(<CreateProject />, {organization});
@@ -992,7 +991,13 @@ describe('CreateProject', () => {
           name: /Notify via integration/,
         })
       );
-      expect(screen.getByRole('button', {name: 'Create Project'})).toBeDisabled();
+      await selectEvent.create(screen.getByLabelText('channel'), '#custom-channel', {
+        waitForElement: false,
+        createOptionText: '#custom-channel',
+      });
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Create Project'})).toBeDisabled()
+      );
       await userEvent.hover(screen.getByRole('button', {name: 'Create Project'}));
       expect(
         await screen.findByText(/Validating integration channel/)
