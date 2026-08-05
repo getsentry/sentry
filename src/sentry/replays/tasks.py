@@ -4,7 +4,6 @@ import logging
 from typing import Any
 
 from django.utils import timezone
-from taskbroker_client.constants import CompressionType
 from taskbroker_client.retry import Retry
 from taskbroker_client.state import current_task
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
@@ -67,9 +66,7 @@ def delete_replay(
 @instrumented_task(
     name=PROCESS_REPLAY_RECORDING_TASK_NAME,
     namespace=replays_raw_tasks,
-    processing_deadline_duration=90,
     retry=Retry(times=3, delay=5),
-    compression_type=CompressionType.ZSTD,
     silo_mode=SiloMode.CELL,
 )
 def process_replay_recording(message_bytes: bytes) -> None:
