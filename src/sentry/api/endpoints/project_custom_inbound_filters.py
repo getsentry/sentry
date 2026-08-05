@@ -25,19 +25,27 @@ MAX_FILTERS_PER_PROJECT = 50
 
 
 class CustomInboundFilterConditionType(StrEnum):
+    ERROR_TYPE = "error_type"
     ERROR_MESSAGE = "error_message"
     LOG_MESSAGE = "log_message"
     METRIC_NAME = "metric_name"
     RELEASE = "release"
 
 
-PRIMARY_CONDITION_TYPES = frozenset(
-    (
-        CustomInboundFilterConditionType.ERROR_MESSAGE,
-        CustomInboundFilterConditionType.LOG_MESSAGE,
-        CustomInboundFilterConditionType.METRIC_NAME,
-    )
-)
+class CustomInboundFilterDataType(StrEnum):
+    ERROR = "error"
+    LOG = "log"
+    METRIC = "metric"
+
+
+# A filter matches one data type, so conditions that read fields of two data types
+# cannot be combined. `release` is absent because every data type carries a release.
+DATA_TYPE_BY_CONDITION_TYPE = {
+    CustomInboundFilterConditionType.ERROR_TYPE: CustomInboundFilterDataType.ERROR,
+    CustomInboundFilterConditionType.ERROR_MESSAGE: CustomInboundFilterDataType.ERROR,
+    CustomInboundFilterConditionType.LOG_MESSAGE: CustomInboundFilterDataType.LOG,
+    CustomInboundFilterConditionType.METRIC_NAME: CustomInboundFilterDataType.METRIC,
+}
 
 
 class CustomInboundFilterCondition(TypedDict):
@@ -87,7 +95,11 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
         request = self.context["request"]
         condition_types = [condition["type"] for condition in conditions]
 
-        primary_condition_types = PRIMARY_CONDITION_TYPES.intersection(condition_types)
+        data_types = {
+            DATA_TYPE_BY_CONDITION_TYPE[condition_type]
+            for condition_type in condition_types
+            if condition_type in DATA_TYPE_BY_CONDITION_TYPE
+        }
         if CustomInboundFilterConditionType.LOG_MESSAGE in condition_types and not features.has(
             "organizations:ourlogs-ingestion", organization, actor=request.user
         ):
@@ -101,9 +113,10 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
             raise serializers.ValidationError(
                 "Metric name filters are not enabled for this organization."
             )
-        if len(primary_condition_types) > 1:
+        if len(data_types) > 1:
             raise serializers.ValidationError(
-                "Only one of error_message, log_message, or metric_name can be used in a filter."
+                "A filter matches one data type, so error, log, and metric conditions "
+                "cannot be combined."
             )
 
         return conditions
