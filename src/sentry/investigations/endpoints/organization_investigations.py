@@ -31,6 +31,8 @@ from sentry.investigations.endpoints.validators import (
     InvestigationCreateValidator,
     InvestigationDeleteValidator,
     InvestigationUpdateValidator,
+    ParameterValuesValidator,
+    PermissionsUpdateValidator,
 )
 from sentry.investigations.models import (
     Investigation,
@@ -49,17 +51,20 @@ from sentry.investigations.services import (
     InvestigationSourceNotFound,
     InvestigationValidationError,
     archive_investigation,
-    create_cell,
+    create_block,
     create_manual_investigation,
     create_template_investigation,
-    delete_cell,
+    delete_block,
     duplicate_investigation,
     reorder_blocks,
-    update_cell,
+    update_block,
     update_investigation,
+    update_parameter_values,
+    update_permissions,
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.team import Team
 
 FEATURE = "organizations:investigations"
 QUERY_EXECUTION_FEATURE = "organizations:investigations-query-execution"
@@ -397,7 +402,7 @@ class OrganizationInvestigationBlocksEndpoint(OrganizationInvestigationBase):
         investigation_version = values.pop("investigation_version")
         values["prompt"] = values.pop("generation_prompt", "")
         try:
-            block = create_cell(
+            block = create_block(
                 investigation=investigation,
                 expected_investigation_version=investigation_version,
                 user_id=user_id,
@@ -442,7 +447,7 @@ class OrganizationInvestigationBlockDetailsEndpoint(OrganizationInvestigationBlo
         if "generation_prompt" in values:
             values["prompt"] = values.pop("generation_prompt")
         try:
-            updated = update_cell(
+            updated = update_block(
                 block=block,
                 expected_investigation_version=expected_investigation_version,
                 expected_block_version=expected_block_version,
@@ -476,7 +481,7 @@ class OrganizationInvestigationBlockDetailsEndpoint(OrganizationInvestigationBlo
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         try:
-            delete_cell(
+            delete_block(
                 block=block,
                 expected_investigation_version=serializer.validated_data["investigation_version"],
                 expected_block_version=serializer.validated_data["version"],
@@ -519,6 +524,96 @@ class OrganizationInvestigationBlockOrderEndpoint(OrganizationInvestigationBase)
                 organization,
                 detailed=True,
                 accessible_project_ids=_accessible_project_ids(self, request, organization),
+            )
+        )
+
+
+@extend_schema(tags=["Investigations"])
+@cell_silo_endpoint
+class OrganizationInvestigationParametersEndpoint(OrganizationInvestigationBase):
+    publish_status = {"PUT": ApiPublishStatus.PRIVATE}
+
+    def put(
+        self, request: Request, organization: Organization, investigation: Investigation
+    ) -> Response:
+        serializer = ParameterValuesValidator(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            updated = update_parameter_values(
+                investigation=investigation,
+                expected_version=serializer.validated_data["investigation_version"],
+                values=serializer.validated_data["values"],
+                accessible_project_ids=_accessible_project_ids(self, request, organization),
+            )
+        except Exception as error:
+            response = _service_error(error)
+            if response is not None:
+                return response
+            raise
+        return Response(
+            _serialize_investigation(
+                updated,
+                request,
+                organization,
+                detailed=True,
+                accessible_project_ids=_accessible_project_ids(self, request, organization),
+            )
+        )
+
+
+@extend_schema(tags=["Investigations"])
+@cell_silo_endpoint
+class OrganizationInvestigationPermissionsEndpoint(OrganizationInvestigationBase):
+    manager_or_creator_only = True
+    publish_status = {"GET": ApiPublishStatus.PRIVATE, "PUT": ApiPublishStatus.PRIVATE}
+
+    def get(
+        self, request: Request, organization: Organization, investigation: Investigation
+    ) -> Response:
+        return Response(
+            _serialize_permissions(
+                investigation,
+                user_id=_user_id(request),
+                can_edit=_can_edit(request, organization, investigation),
+                can_manage=_can_manage(request, organization, investigation),
+            )
+        )
+
+    def put(
+        self, request: Request, organization: Organization, investigation: Investigation
+    ) -> Response:
+        serializer = PermissionsUpdateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        team_ids = serializer.validated_data["team_ids"]
+        if set(team_ids) != set(
+            Team.objects.filter(organization=organization, id__in=team_ids).values_list(
+                "id", flat=True
+            )
+        ):
+            return Response(
+                {"detail": "Teams must belong to the organization."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            update_permissions(
+                investigation=investigation,
+                expected_version=serializer.validated_data["investigation_version"],
+                editable_by_everyone=serializer.validated_data["is_editable_by_everyone"],
+                team_ids=team_ids,
+            )
+        except Exception as error:
+            response = _service_error(error)
+            if response is not None:
+                return response
+            raise
+        return Response(
+            _serialize_permissions(
+                investigation,
+                user_id=_user_id(request),
+                can_edit=_can_edit(request, organization, investigation),
+                can_manage=_can_manage(request, organization, investigation),
             )
         )
 
