@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
 from typing import Any
 
 from django.utils import timezone
@@ -22,6 +21,7 @@ from sentry.replays.lib.storage import (
 from sentry.replays.models import DeletionJobStatus, ReplayDeletionJobModel, ReplayRecordingSegment
 from sentry.replays.usecases.delete import (
     DELETE_THREAD_POOL_SIZE,
+    day_aligned_window,
     delete_filenames_concurrently,
     delete_matched_rows,
     delete_seer_replay_data,
@@ -237,15 +237,16 @@ def run_bulk_replay_delete_job(
     if job.status != DeletionJobStatus.IN_PROGRESS:
         return None
 
-    # Derive the current window boundaries from the immutable job range and the cursor. Windows
-    # are laid out from the start of `range_start`'s UTC day rather than from `range_start` itself,
-    # so that a one-day window lands inside a single day and can assert it. See
-    # `day_pin_conditions`. Both ends are clamped to the job's range.
-    range_day_start = job.range_start.replace(hour=0, minute=0, second=0, microsecond=0)
-    window_start = max(range_day_start + timedelta(days=window_offset_days), job.range_start)
-    window_end = min(
-        range_day_start + timedelta(days=window_offset_days + chunk_size_days), job.range_end
-    )
+    # Derive the current window from the immutable job range and the cursor. job.range_start is
+    # never mutated, so the API always returns the original range.
+    window = day_aligned_window(job.range_start, job.range_end, window_offset_days, chunk_size_days)
+    if window is None:
+        # The cursor is past the end of the range; there is nothing left to delete.
+        _transition_status(job.id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.COMPLETED)
+        metrics.incr("replays.bulk_delete_job", tags={"status": "completed"}, sample_rate=1.0)
+        return None
+
+    window_start, window_end = window
 
     try:
         # Delete the replays within a limited range. If more replays exist a cursor to seek the next

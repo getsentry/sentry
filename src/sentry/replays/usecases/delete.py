@@ -57,6 +57,37 @@ SNUBA_RETRY_EXCEPTIONS = (
 logger = logging.getLogger(__name__)
 
 
+def day_aligned_window(
+    range_start: datetime, range_end: datetime, offset_days: int, days_per_window: int
+) -> tuple[datetime, datetime] | None:
+    """Return the window `offset_days` into `[range_start, range_end)`, or None past the end.
+
+    Windows are laid out from the start of `range_start`'s UTC day rather than from `range_start`
+    itself, so a one-day window lands inside a single UTC day and `day_pin_conditions` can assert
+    it. Both ends are clamped to the range, so the first and last windows can be shorter.
+
+    Consecutive windows meet exactly -- window N ends where window N+1 begins -- so the range is
+    covered without gaps or overlap.
+    """
+    day_start = range_start.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    start = max(day_start + timedelta(days=offset_days), range_start)
+    if start >= range_end:
+        return None
+
+    return start, min(day_start + timedelta(days=offset_days + days_per_window), range_end)
+
+
+def day_aligned_windows(
+    range_start: datetime, range_end: datetime, days_per_window: int
+) -> Iterator[tuple[datetime, datetime]]:
+    """Walk `[range_start, range_end)` as day-aligned windows. See `day_aligned_window`."""
+    offset_days = 0
+    while window := day_aligned_window(range_start, range_end, offset_days, days_per_window):
+        yield window
+        offset_days += days_per_window
+
+
 def day_pin_conditions(start: datetime, end: datetime) -> list[Condition]:
     """Assert the UTC day, when the window lies inside one.
 

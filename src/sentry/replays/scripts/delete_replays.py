@@ -4,7 +4,7 @@ import functools
 import logging
 import uuid
 from collections.abc import Sequence
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from snuba_sdk import (
     Column,
@@ -26,6 +26,7 @@ from sentry.replays.query import replay_url_parser_config
 from sentry.replays.tasks import archive_replay, delete_replays_script_async
 from sentry.replays.usecases.delete import (
     SNUBA_RETRY_EXCEPTIONS,
+    day_aligned_windows,
     day_pin_conditions,
     delete_seer_replay_data,
 )
@@ -61,19 +62,7 @@ def delete_replays(
     # Chunk the range into fixed-size windows
     chunk_size_days = options.get("replay.bulk_delete_job.chunk_size_days") or 7
 
-    # Windows are laid out from the start of `start_utc`'s UTC day rather than from `start_utc`,
-    # so a one-day window lands inside a single day and can assert it. See `day_pin_conditions`.
-    range_day_start = start_utc.replace(hour=0, minute=0, second=0, microsecond=0)
-
-    window_offset_days = 0
-    while True:
-        window_start = max(range_day_start + timedelta(days=window_offset_days), start_utc)
-        if window_start >= end_utc:
-            break
-        window_end = min(
-            range_day_start + timedelta(days=window_offset_days + chunk_size_days), end_utc
-        )
-
+    for window_start, window_end in day_aligned_windows(start_utc, end_utc, chunk_size_days):
         # Reset per window because the cursor space is scoped to the window's result set
         cursor = None
 
@@ -116,8 +105,6 @@ def delete_replays(
                         has_seer_data=has_seer_data,
                         total_replays=total_replays,
                     )
-
-        window_offset_days += chunk_size_days
 
 
 def translate_cli_tags_param_to_snuba_tag_param(tags: list[str]) -> Sequence[QueryToken]:
