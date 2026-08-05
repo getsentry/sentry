@@ -37,9 +37,7 @@ def _resolve_autofix_check_suite(
     if check_suite_event.action != "completed":
         return None
 
-    conclusion_type = CHECK_SUITE_CONCLUSION_TYPES.get(
-        check_suite_event.check_suite["conclusion"]
-    )
+    conclusion_type = CHECK_SUITE_CONCLUSION_TYPES.get(check_suite_event.check_suite["conclusion"])
     if conclusion_type is None:
         return None
 
