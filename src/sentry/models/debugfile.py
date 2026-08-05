@@ -445,11 +445,13 @@ def upload_dif_to_objectstore(
     file_size: int,
     filename: str,
     *,
+    key: str | None = None,
     compression: str = "none",
 ) -> str:
     """Uploads a debug file to Objectstore, returning the key under which the file was uploaded."""
     return session.put(
         fileobj,
+        key=key,
         compression=compression,
         content_type=content_type,
         filename=filename,
