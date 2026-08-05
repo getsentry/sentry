@@ -792,7 +792,7 @@ describe('InboxPage', () => {
 
     const preview = await openFixProposedPreview();
     const pullRequestButton = await within(preview).findByRole('button', {
-      name: 'View org/repository#10',
+      name: 'View PR',
     });
     expect(pullRequestButton).toHaveAttribute(
       'href',
@@ -840,7 +840,7 @@ describe('InboxPage', () => {
     const preview = await openFixProposedPreview();
     expect(
       await within(preview).findByRole('button', {
-        name: 'View org/repository#649',
+        name: 'View PR',
       })
     ).toHaveAttribute('href', 'https://github.com/org/repository/pull/649');
   });
