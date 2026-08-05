@@ -51,9 +51,16 @@ def _exception(v: Mapping[str, Any]) -> ExceptionDetails:
 
 
 def _thread(v: Mapping[str, Any]) -> ThreadDetails:
-    thread = ThreadDetails.parse_obj(v)
-    thread.stacktrace = _best_stacktrace(v)  # same raw/processed fallback as exceptions
-    return thread
+    # built field by field rather than parsed: .parse_obj would validate the whole frame tree
+    # under "stacktrace" only for _best_stacktrace to discard it and parse it again
+    return ThreadDetails(
+        id=v.get("id"),
+        name=v.get("name"),
+        crashed=v.get("crashed"),
+        current=v.get("current"),
+        state=v.get("state"),
+        stacktrace=_best_stacktrace(v),  # same raw/processed fallback as exceptions
+    )
 
 
 def _tags(data: Mapping[str, Any]) -> tuple[list[tuple[str, str | None]], str | None]:
