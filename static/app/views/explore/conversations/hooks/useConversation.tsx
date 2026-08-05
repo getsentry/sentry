@@ -354,7 +354,7 @@ export function useConversation(
     if (!isFetching && canFetchNextPage) {
       fetchNextPage();
     }
-  }, [isFetching, canFetchNextPage, fetchNextPage, currentNumberPages]);
+  }, [data, isFetching, canFetchNextPage, fetchNextPage]);
 
   const allSpans = useMemo(
     () => data?.pages.flatMap(page => page.json.spans ?? []) ?? [],
