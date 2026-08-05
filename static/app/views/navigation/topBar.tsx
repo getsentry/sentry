@@ -11,6 +11,7 @@ import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SearchButton} from 'sentry/views/navigation/searchButton';
+import {useTopBarActionDisplay} from 'sentry/views/navigation/useTopBarActionDisplay';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 import {AskSeerButton} from 'sentry/views/seerExplorer/components/askSeerButton';
 import {useSeerExplorerChatState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
@@ -33,6 +34,7 @@ function TopBarContent() {
   const {pageContentTop} = useTopOffset();
 
   const organization = useOrganization({allowNull: true});
+  const {isSearchInMobileRow} = useTopBarActionDisplay();
 
   useEffect(() => {
     document.documentElement.style.setProperty(TOP_BAR_HEIGHT_CSS_VAR, pageContentTop);
@@ -88,16 +90,11 @@ function TopBarContent() {
           containerType="inline-size"
         >
           <Slot.Outlet name="breadcrumbs">
-            {(props, hasConsumers) => (
-              <Flex
-                {...props}
-                align="center"
-                gap="sm"
-                minWidth="0"
-                flex="0 1 auto"
-                display={hasConsumers ? 'flex' : 'none'}
-              />
-            )}
+            {(props, hasConsumers) =>
+              hasConsumers ? (
+                <Flex {...props} align="center" gap="sm" minWidth="0" flex="0 1 auto" />
+              ) : null
+            }
           </Slot.Outlet>
 
           <Slot.Outlet name="title">
@@ -113,15 +110,19 @@ function TopBarContent() {
 
         <Flex align="center" gap="sm">
           <Slot.Outlet name="search">
-            {props => <Flex {...props} align="center" gap="sm" />}
+            {(props, hasConsumers) =>
+              hasConsumers ? <Flex {...props} align="center" gap="sm" /> : null
+            }
           </Slot.Outlet>
 
           <Slot.Outlet name="actions">
-            {props => <Flex {...props} align="center" gap="sm" />}
+            {(props, hasConsumers) =>
+              hasConsumers ? <Flex {...props} align="center" gap="sm" /> : null
+            }
           </Slot.Outlet>
 
-          <SearchButton />
           {isSeerExplorerEnabled(organization) ? <AskSeerButton /> : null}
+          {isSearchInMobileRow ? null : <SearchButton />}
 
           <Slot.Outlet name="feedback">
             {props => (
