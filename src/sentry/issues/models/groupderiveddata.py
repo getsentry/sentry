@@ -81,7 +81,8 @@ class GroupDerivedData(DefaultFieldsModel):
 
     # Pipeline hash stamped at row creation. If it doesn't match the current
     # pipeline hash, this row wasn't fully generated with the current config
-    # and needs to be regenerated.
+    # and needs to be regenerated. A NULL value officially marks the row as
+    # invalidated (known-out-of-date, awaiting replacement).
     pipeline_hash = models.CharField(max_length=16, null=True, default=None)
 
     class Meta:

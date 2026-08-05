@@ -10,7 +10,7 @@ jest.mock('sentry/components/events/autofix/useOrganizationSeerSetup');
 
 describe('IssuesSecondaryNavigation', () => {
   const organization = OrganizationFixture({
-    features: ['issue-stream-progress-ui', 'gen-ai-features', 'seat-based-seer-enabled'],
+    features: ['issue-stream-progress-ui', 'seat-based-seer-enabled'],
   });
 
   beforeEach(() => {
@@ -40,9 +40,9 @@ describe('IssuesSecondaryNavigation', () => {
     );
   }
 
-  it('shows the inbox count for every progress section and the user and their teams', async () => {
+  it('shows the inbox count for Seer progress sections and the user and their teams', async () => {
     const request = mockInboxCount({
-      'issue.progress:[fix_proposed, diagnosed, assigned] assigned:[me,my_teams]': 12,
+      'is:unresolved issue.progress:[fix_proposed,diagnosed,assigned] assigned:[me,my_teams]': 12,
     });
 
     renderNavigation();
@@ -56,12 +56,29 @@ describe('IssuesSecondaryNavigation', () => {
     expect(query).toContain('fix_proposed');
     expect(query).toContain('diagnosed');
     expect(query).toContain('assigned');
+    expect(query).toContain('is:unresolved');
     expect(query).toContain('assigned:[me,my_teams]');
+  });
+
+  it('only counts fix proposed issues without Seer', async () => {
+    organization.features = ['issue-stream-progress-ui'];
+    const request = mockInboxCount({
+      'is:unresolved issue.progress:[fix_proposed] assigned:[me,my_teams]': 12,
+    });
+
+    renderNavigation();
+
+    expect(await screen.findByText('12')).toBeInTheDocument();
+
+    const [[, options]] = request.mock.calls;
+    expect(options.query.query).toEqual([
+      'is:unresolved issue.progress:[fix_proposed] assigned:[me,my_teams]',
+    ]);
   });
 
   it('caps the count at 99+ since the endpoint stops counting at 100', async () => {
     mockInboxCount({
-      'issue.progress:[fix_proposed, diagnosed, assigned] assigned:[me,my_teams]': 100,
+      'is:unresolved issue.progress:[fix_proposed] assigned:[me,my_teams]': 100,
     });
 
     renderNavigation();
@@ -71,7 +88,7 @@ describe('IssuesSecondaryNavigation', () => {
 
   it('renders no badge when nothing is waiting', async () => {
     mockInboxCount({
-      'issue.progress:[fix_proposed, diagnosed, assigned] assigned:[me,my_teams]': 0,
+      'is:unresolved issue.progress:[fix_proposed] assigned:[me,my_teams]': 0,
     });
 
     renderNavigation();

@@ -51,11 +51,17 @@ const INBOX_DEFAULT_SIZE = 480;
 const INBOX_MIN_SIZE = 320;
 const INBOX_MAX_SIZE = 640;
 type AssignmentFilter = (typeof ASSIGNMENT_FILTERS)[number];
-export const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
+
+const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
   me: ' assigned:me',
   my_teams: ' assigned:[me,my_teams]',
   all: '',
 };
+
+interface InboxSectionContext {
+  assignmentFilter: AssignmentFilter;
+  hasSeer: boolean;
+}
 
 interface InboxSectionConfig {
   defaultExpanded: boolean;
@@ -64,13 +70,14 @@ interface InboxSectionConfig {
   label: string;
   progress: ProgressState;
   query: string;
+  hidden?: (context: InboxSectionContext) => boolean;
 }
 
-export const SECTIONS: InboxSectionConfig[] = [
+const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
   {
     key: 'fix-proposed',
     label: t('Fix Proposed'),
-    query: 'issue.progress:fix_proposed',
+    query: 'issue.progress:fix_proposed is:unresolved',
     emptyMessage: t('No issues with a proposed fix'),
     progress: ProgressState.FIX_PROPOSED,
     defaultExpanded: true,
@@ -78,17 +85,36 @@ export const SECTIONS: InboxSectionConfig[] = [
   {
     key: 'diagnosed',
     label: t('Diagnosed'),
-    query: 'issue.progress:diagnosed',
+    query: 'issue.progress:diagnosed is:unresolved',
     emptyMessage: t('No diagnosed issues'),
     progress: ProgressState.DIAGNOSED,
     defaultExpanded: true,
+    hidden: ({hasSeer}) => !hasSeer,
   },
   {
     key: 'assigned',
     label: t('Assigned'),
-    query: 'issue.progress:assigned',
+    query: 'issue.progress:assigned is:unresolved',
     emptyMessage: t('No assigned issues'),
     progress: ProgressState.ASSIGNED,
+    defaultExpanded: false,
+    hidden: ({hasSeer}) => !hasSeer,
+  },
+  {
+    key: 'identified',
+    label: t('Identified'),
+    query: 'issue.progress:identified is:unresolved',
+    emptyMessage: t('No identified issues'),
+    progress: ProgressState.IDENTIFIED,
+    defaultExpanded: false,
+    hidden: ({assignmentFilter, hasSeer}) => !hasSeer || assignmentFilter !== 'all',
+  },
+  {
+    key: 'fix-applied',
+    label: t('Fix Applied'),
+    query: 'issue.progress:fix_applied is:unresolved',
+    emptyMessage: t('No issues with an applied fix'),
+    progress: ProgressState.FIX_APPLIED,
     defaultExpanded: false,
   },
 ];
@@ -121,6 +147,11 @@ function InboxContent() {
   const {layout} = usePrimaryNavigation();
   const isMobile = layout === 'mobile';
   const resizableContainerRef = useRef<HTMLDivElement>(null);
+  const organization = useOrganization();
+  const hasSeer =
+    !organization.hideAiFeatures &&
+    (organization.features.includes('seat-based-seer-enabled') ||
+      organization.features.includes('seer-added'));
   const [assignmentFilter, setAssignmentFilter] = useQueryState(
     ASSIGNMENT_QUERY_PARAM,
     parseAsStringLiteral(ASSIGNMENT_FILTERS)
@@ -189,7 +220,9 @@ function InboxContent() {
             </SegmentedControl>
           </Flex>
           <Stack flex={1} minHeight={0} overflowY="auto" overscrollBehavior="contain">
-            {SECTIONS.map(section => (
+            {SECTIONS.filter(
+              section => !section.hidden?.({assignmentFilter, hasSeer})
+            ).map(section => (
               <InboxSection
                 key={section.key}
                 section={section}

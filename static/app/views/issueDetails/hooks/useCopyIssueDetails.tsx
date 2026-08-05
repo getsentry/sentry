@@ -54,7 +54,7 @@ function formatStacktraceToMarkdown(stacktrace: StacktraceType): string {
   const frames = stacktrace.frames?.slice(-maxFrames) ?? [];
 
   // Display frames in reverse order (most recent call first)
-  [...frames].reverse().forEach(frame => {
+  frames.toReversed().forEach(frame => {
     const function_name = frame.function || 'Unknown function';
     const filename = frame.filename || 'unknown file';
     const lineInfo =
