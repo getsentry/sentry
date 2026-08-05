@@ -1,11 +1,9 @@
 from typing import Literal
 
+from sentry_conventions.attributes import ATTRIBUTE_NAMES
+
 from sentry.search.eap import constants
-from sentry.search.eap.columns import (
-    AttributeContext,
-    ResolvedAttribute,
-    simple_sentry_field,
-)
+from sentry.search.eap.columns import AttributeContext, ResolvedAttribute, simple_sentry_field
 from sentry.search.eap.common_columns import COMMON_COLUMNS, project_virtual_contexts
 from sentry.search.utils import validate_event_id
 from sentry.utils.validators import normalize_event_id_strict
@@ -94,6 +92,7 @@ TRACE_METRICS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[
     | {
         # sentry.service is the project id as a string, but map to project for convenience
         "sentry.service": "project",
+        ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME: "transaction",
     },
     "boolean": {
         definition.internal_name: definition.public_alias
