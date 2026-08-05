@@ -10,7 +10,7 @@ import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {TagCollection} from 'sentry/types/group';
+import type {Tag, TagCollection} from 'sentry/types/group';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {DetailedProject, Project} from 'sentry/types/project';
 import {escapeDoubleQuotes} from 'sentry/utils';
@@ -641,21 +641,30 @@ export function prettifyAggregation(aggregation: string): string | null {
   return null;
 }
 
+// The hidden lists target Sentry-defined fields. A user-sent attribute is kept
+// even when its name collides with a reserved field (e.g. a custom
+// `organization.id`), so it stays selectable in search and the column editor.
+export const isHiddenAttribute = (tag: Tag, hiddenKeys: Set<string>): boolean => {
+  if (tag.attributeSource === 'user') {
+    return false;
+  }
+  // Hide by both the raw key and the display name. Explicitly-typed keys such as
+  // `tags[project_id,number]` carry a display name (`project_id`) that is what
+  // appears in the hidden lists.
+  return hiddenKeys.has(tag.key) || (!!tag.name && hiddenKeys.has(tag.name));
+};
+
 export const removeHiddenKeys = (
   tagCollection: TagCollection,
-  hiddenKeys: string[]
+  hiddenKeys: Set<string>
 ): TagCollection => {
-  const hiddenKeySet = new Set(hiddenKeys);
   const result: TagCollection = {};
   for (const key in tagCollection) {
     const tag = tagCollection[key];
     if (!key || !tag) {
       continue;
     }
-    // Hide by both the raw key and the display name, matching the column
-    // editor. Explicitly-typed keys such as `tags[project_id,number]` carry a
-    // display name (`project_id`) that is what appears in the hidden lists.
-    if (hiddenKeySet.has(key) || (tag.name && hiddenKeySet.has(tag.name))) {
+    if (isHiddenAttribute(tag, hiddenKeys)) {
       continue;
     }
     result[key] = tag;

@@ -1,35 +1,19 @@
 import {createContext, useContext, useEffect, useMemo, useRef} from 'react';
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import type {IntegrationAction} from 'sentry/types/alerts';
 import type {Integration, Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
-import type {AlertRuleOptions} from 'sentry/views/projectInstall/issueAlertOptions';
-
-/**
- * Persisted form state from the SCM project details step. Stored so the
- * form can be restored when the user navigates back from setup-docs.
- * Cleared by the platform features step when the platform changes, so
- * stale inputs don't carry across platform selections.
- */
-export interface ProjectDetailsFormState {
-  alertRuleConfig?: AlertRuleOptions;
-  notificationAction?: IntegrationAction;
-  projectName?: string;
-  teamSlug?: string;
-}
 
 type OnboardingContextProps = {
   clearDerivedState: () => void;
+  resetOnboarding: () => void;
   setCreatedProjectSlug: (slug?: string) => void;
-  setProjectDetailsForm: (form?: ProjectDetailsFormState) => void;
   setSelectedFeatures: (features?: ProductSolution[]) => void;
   setSelectedIntegration: (integration?: Integration) => void;
   setSelectedPlatform: (selectedSDK?: OnboardingSelectedSDK) => void;
   setSelectedRepository: (repo?: Repository) => void;
   createdProjectSlug?: string;
-  projectDetailsForm?: ProjectDetailsFormState;
   selectedFeatures?: ProductSolution[];
   selectedIntegration?: Integration;
   selectedPlatform?: OnboardingSelectedSDK;
@@ -38,7 +22,6 @@ type OnboardingContextProps = {
 
 type OnboardingSessionState = {
   createdProjectSlug?: string;
-  projectDetailsForm?: ProjectDetailsFormState;
   selectedFeatures?: ProductSolution[];
   selectedIntegration?: Integration;
   selectedPlatform?: OnboardingSelectedSDK;
@@ -59,9 +42,8 @@ const OnboardingContext = createContext<OnboardingContextProps>({
   setSelectedFeatures: () => {},
   createdProjectSlug: undefined,
   setCreatedProjectSlug: () => {},
-  projectDetailsForm: undefined,
-  setProjectDetailsForm: () => {},
   clearDerivedState: () => {},
+  resetOnboarding: () => {},
 });
 
 type ProviderProps = {
@@ -97,7 +79,6 @@ export function OnboardingContextProvider({children, initialValue}: ProviderProp
         selectedPlatform: undefined,
         selectedFeatures: undefined,
         createdProjectSlug: undefined,
-        projectDetailsForm: undefined,
       }));
     }
   }, [setOnboarding]);
@@ -106,11 +87,7 @@ export function OnboardingContextProvider({children, initialValue}: ProviderProp
     () => ({
       selectedPlatform: onboarding?.selectedPlatform,
       setSelectedPlatform: (selectedPlatform?: OnboardingSelectedSDK) => {
-        if (selectedPlatform === undefined) {
-          removeOnboarding();
-        } else {
-          setOnboarding(prev => ({...prev, selectedPlatform}));
-        }
+        setOnboarding(prev => ({...prev, selectedPlatform}));
       },
       selectedIntegration: onboarding?.selectedIntegration,
       setSelectedIntegration: (selectedIntegration?: Integration) => {
@@ -128,10 +105,6 @@ export function OnboardingContextProvider({children, initialValue}: ProviderProp
       setCreatedProjectSlug: (createdProjectSlug?: string) => {
         setOnboarding(prev => ({...prev, createdProjectSlug}));
       },
-      projectDetailsForm: onboarding?.projectDetailsForm,
-      setProjectDetailsForm: (projectDetailsForm?: ProjectDetailsFormState) => {
-        setOnboarding(prev => ({...prev, projectDetailsForm}));
-      },
       // Clear state derived from the selected repository (platform, features,
       // created project) without wiping the entire session. Use this when the
       // repo changes so downstream steps start fresh.
@@ -141,9 +114,13 @@ export function OnboardingContextProvider({children, initialValue}: ProviderProp
           selectedPlatform: undefined,
           selectedFeatures: undefined,
           createdProjectSlug: undefined,
-          projectDetailsForm: undefined,
         }));
       },
+      // Full-flow exits should clear every staged choice explicitly. Do not
+      // reach for a selected-platform reset to do this: clearing one field must
+      // stay local to that field so organization-scoped state added later
+      // survives local repository and platform changes.
+      resetOnboarding: removeOnboarding,
     }),
     [onboarding, setOnboarding, removeOnboarding]
   );

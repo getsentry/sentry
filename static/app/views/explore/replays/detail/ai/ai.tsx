@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import aiBanner from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
@@ -264,6 +264,7 @@ function ThumbsUpDownButton({
 }) {
   return (
     <FeedbackButton
+      variant="secondary"
       aria-label={t('Give feedback on the replay summary section')}
       icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
       tooltipProps={{
@@ -295,16 +296,17 @@ function ThumbsUpDownButton({
  * Use `useRef` to store the message so that it is not changed after the initial render. (Alternatively, React.memo or React Compiler would also work)
  */
 function NoReplaySummary() {
-  const noSummaryMessageRef = useRef(
-    NO_REPLAY_SUMMARY_MESSAGES[
-      Math.floor(Math.random() * NO_REPLAY_SUMMARY_MESSAGES.length)
-    ]
+  const [noSummaryMessage] = useState(
+    () =>
+      NO_REPLAY_SUMMARY_MESSAGES[
+        Math.floor(Math.random() * NO_REPLAY_SUMMARY_MESSAGES.length)
+      ]
   );
 
   return (
     <Fragment>
       <img src={aiBanner} alt="" />
-      <div>{noSummaryMessageRef.current}</div>
+      <div>{noSummaryMessage}</div>
     </Fragment>
   );
 }

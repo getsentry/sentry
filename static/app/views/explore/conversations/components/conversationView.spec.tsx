@@ -44,7 +44,7 @@ const CONVERSATION_BODY = [
 function mockConversation() {
   MockApiClient.addMockResponse({
     url: `/organizations/org-slug/ai-conversations/${CONVERSATION_ID}/`,
-    body: CONVERSATION_BODY,
+    body: {conversationId: CONVERSATION_ID, title: null, spans: CONVERSATION_BODY},
   });
   // The detail pane fetches full attributes per span; keep it empty.
   MockApiClient.addMockResponse({
@@ -73,8 +73,10 @@ function detailPane() {
 
 describe('ConversationViewContent', () => {
   beforeEach(() => {
-    // jsdom doesn't implement Element.scrollTo, which the detail pane calls.
+    // jsdom implements neither scroll API the view relies on: the detail pane
+    // calls scrollTo, and switching tabs reveals a selected span via scrollIntoView.
     Element.prototype.scrollTo = jest.fn();
+    Element.prototype.scrollIntoView = jest.fn();
     MockApiClient.clearMockResponses();
     act(() => {
       PageFiltersStore.reset();
@@ -120,6 +122,79 @@ describe('ConversationViewContent', () => {
     await userEvent.click(await screen.findByText('First answer'));
 
     expect(onSelectSpan).toHaveBeenCalledWith('span-a');
+  });
+
+  it('scrolls the selected span into view when switching tabs', async () => {
+    const {rerender} = renderView({
+      activeTab: 'transcript',
+      selectedSpanId: 'span-a',
+    });
+
+    // Wait for the deep-linked selection to render before asserting the switch.
+    expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
+
+    jest.mocked(Element.prototype.scrollIntoView).mockClear();
+
+    rerender(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="timeline"
+        selectedSpanId="span-a"
+      />
+    );
+
+    await waitFor(() =>
+      expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({block: 'nearest'})
+    );
+  });
+
+  it('does not snap to the timeline default when no span is selected', async () => {
+    // The timeline opens on a default span, but that view-local default is not a
+    // real selection: entering the timeline must restore its saved offset rather
+    // than scroll the default span into view.
+    const {rerender} = renderView({activeTab: 'transcript'});
+    expect(await screen.findByText('First answer')).toBeInTheDocument();
+
+    jest.mocked(Element.prototype.scrollIntoView).mockClear();
+
+    rerender(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="timeline"
+      />
+    );
+
+    // The default span still opens the detail pane...
+    expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
+    // ...but nothing is scrolled into view, so the saved offset is restored.
+    expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
+  });
+
+  it('does not scroll into view when returning to a tab with no selection', async () => {
+    const {rerender} = renderView({activeTab: 'transcript'});
+    expect(await screen.findByText('First answer')).toBeInTheDocument();
+
+    // Neither switch has a sticky selection, so both restore the saved offset
+    // rather than scroll a row into view.
+    rerender(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="timeline"
+      />
+    );
+    expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
+
+    jest.mocked(Element.prototype.scrollIntoView).mockClear();
+
+    rerender(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="transcript"
+      />
+    );
+
+    expect(await screen.findByText('First answer')).toBeInTheDocument();
+    expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
   });
 
   it('closes the timeline default and does not reopen it', async () => {

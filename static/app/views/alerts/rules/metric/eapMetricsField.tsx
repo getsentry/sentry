@@ -135,11 +135,11 @@ export function EAPMetricsField({
     ];
   }, [metricOptionsData, optionFromTraceMetric, traceMetric.name, hasMetricUnitsUI]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const debouncedSetSearch = useCallback(
-    debounce(newSearch => {
-      setSearch(newSearch);
-    }, DEFAULT_DEBOUNCE_DURATION),
+  const debouncedSetSearch = useMemo(
+    () =>
+      debounce(newSearch => {
+        setSearch(newSearch);
+      }, DEFAULT_DEBOUNCE_DURATION),
     [setSearch]
   );
 

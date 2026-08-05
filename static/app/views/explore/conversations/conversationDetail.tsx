@@ -43,7 +43,7 @@ function ConversationDetailPage() {
 
   const conversation = useMemo(() => ({conversationId}), [conversationId]);
 
-  const {nodes, nodeTraceMap, isLoading} = useConversation(conversation);
+  const {nodes, nodeTraceMap, isLoading, title} = useConversation(conversation);
 
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
 
@@ -85,6 +85,7 @@ function ConversationDetailPage() {
           nodes={nodes}
           nodeTraceMap={nodeTraceMap}
           conversationId={conversationId}
+          title={title}
           isLoading={isLoading}
         />
       </Container>

@@ -10,7 +10,6 @@ import {AiSetupDataConsent} from 'getsentry/components/ai/AiSetupDataConsent';
 import CronsBillingBanner from 'getsentry/components/crons/cronsBillingBanner';
 import {DashboardBanner} from 'getsentry/components/dashboardBanner';
 import DataConsentBanner from 'getsentry/components/dataConsentBanner';
-import {DataConsentOrgCreationCheckbox} from 'getsentry/components/dataConsentCheckbox';
 import DataConsentPriorityLearnMore from 'getsentry/components/dataConsentPriorityLearnMore';
 import DateRangeQueryLimitFooter from 'getsentry/components/features/dateRangeQueryLimitFooter';
 import {DisabledAlertWizard} from 'getsentry/components/features/disabledAlertWizard';
@@ -21,7 +20,7 @@ import DisabledDateRange from 'getsentry/components/features/disabledDateRange';
 import {DisabledDiscardGroup} from 'getsentry/components/features/disabledDiscardGroup';
 import {DisabledRateLimits} from 'getsentry/components/features/disabledRateLimits';
 import DisabledSelectorItems from 'getsentry/components/features/disabledSelectorItems';
-import InsightsDateRangeQueryLimitFooter from 'getsentry/components/features/insightsDateRangeQueryLimitFooter';
+import {InsightsDateRangeQueryLimitFooter} from 'getsentry/components/features/insightsDateRangeQueryLimitFooter';
 import {PerformanceNewProjectPrompt} from 'getsentry/components/features/performanceNewProjectPrompt';
 import {ProjectPerformanceScoreCard} from 'getsentry/components/features/projectPerformanceScoreCard';
 import {HelpSearchFooter} from 'getsentry/components/helpSearchFooter';
@@ -275,7 +274,6 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
   'component:dashboards-limit-provider': () => DashboardsLimitProvider,
   'component:data-consent-banner': () => DataConsentBanner,
   'component:data-consent-priority-learn-more': () => DataConsentPriorityLearnMore,
-  'component:data-consent-org-creation-checkbox': () => DataConsentOrgCreationCheckbox,
   'component:organization-membership-settings': () => OrganizationMembershipSettingsForm,
   'component:metric-alert-quota-message': MetricAlertQuotaMessage,
   'component:metric-alert-quota-icon': MetricAlertQuotaIcon,

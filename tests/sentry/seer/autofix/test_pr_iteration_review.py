@@ -79,7 +79,7 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
         self, mock_contexts: MagicMock, mock_delay: MagicMock
     ) -> None:
         self._mock_org_contexts(mock_contexts)
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             handle_pull_request_review_for_autofix_iteration(self._event())
 
         mock_delay.assert_called_once()
@@ -91,6 +91,7 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
         assert kwargs["review_id"] == 500
         # Author is threaded to the task, which gates on its repo write access.
         assert kwargs["author_username"] == "reviewer"
+        assert kwargs["author_external_id"] == "999"
         # Human authorship is threaded through so the task can apply the
         # automated-only streak cap.
         assert kwargs["author_is_bot"] is False
@@ -101,7 +102,7 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
         self, mock_contexts: MagicMock, mock_delay: MagicMock
     ) -> None:
         self._mock_org_contexts(mock_contexts)
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             handle_pull_request_review_for_autofix_iteration(self._event(action="edited"))
         mock_delay.assert_not_called()
 
@@ -113,7 +114,7 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
         self._mock_org_contexts(mock_contexts)
         # The listener dispatches every submitted review, bots included; the repo
         # write-access gate is enforced downstream in the task, not here.
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             handle_pull_request_review_for_autofix_iteration(
                 self._event(author_id="333333", is_bot=True)
             )
@@ -123,11 +124,14 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
 
     @patch(f"{TASK_PATH}.trigger_pr_iteration_from_review.delay")
     @patch(f"{REVIEW_PATH}.integration_service.organization_contexts")
-    def test_skips_when_feature_disabled(
+    def test_skips_when_manual_feature_disabled(
         self, mock_contexts: MagicMock, mock_delay: MagicMock
     ) -> None:
         self._mock_org_contexts(mock_contexts)
-        handle_pull_request_review_for_autofix_iteration(self._event())
+        # Automated CI iteration on, manual off: the review trigger is manual-only,
+        # so the automated flag must not enable it.
+        with self.feature("organizations:autofix-pr-iteration"):
+            handle_pull_request_review_for_autofix_iteration(self._event())
         mock_delay.assert_not_called()
 
     @patch(f"{TASK_PATH}.trigger_pr_iteration_from_review.delay")
@@ -136,7 +140,7 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
         self, mock_contexts: MagicMock, mock_delay: MagicMock
     ) -> None:
         mock_contexts.return_value = MagicMock(integration=None, organization_integrations=[])
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             handle_pull_request_review_for_autofix_iteration(self._event())
         mock_delay.assert_not_called()
 
@@ -144,7 +148,7 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
     @patch(f"{REVIEW_PATH}.integration_service.organization_contexts")
     def test_skips_when_missing_ids(self, mock_contexts: MagicMock, mock_delay: MagicMock) -> None:
         self._mock_org_contexts(mock_contexts)
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             handle_pull_request_review_for_autofix_iteration(self._event(installation_id=None))
         mock_delay.assert_not_called()
 
@@ -169,6 +173,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
     mock_consume: MagicMock
     mock_make_scm: MagicMock
     mock_actions: MagicMock
+    mock_find_user: MagicMock
 
     def setUp(self) -> None:
         super().setUp()
@@ -190,6 +195,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
             ("mock_consume", "consume_queued_autofix_feedback.apply_async"),
             ("mock_make_scm", "make_scm"),
             ("mock_actions", "scm_actions"),
+            ("mock_find_user", "find_user_for_scm_actor"),
         ):
             patcher = patch(f"{TASK_PATH}.{target}")
             setattr(self, attr, patcher.start())
@@ -211,6 +217,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
         # Default the author to a repo collaborator with write access; tests that
         # exercise the gate override this.
         self.mock_actions.get_repository_user_permission.return_value = {"data": {"perms": "write"}}
+        self.mock_find_user.return_value = self.user
 
     def _agent_state(self, blocks: list[MemoryBlock] | None = None) -> SeerRunState:
         return SeerRunState(
@@ -272,7 +279,12 @@ class TriggerPrIterationFromReviewTest(TestCase):
     def _review_result(self, review: dict[str, Any]) -> dict[str, Any]:
         return {"data": review, "type": "github", "raw": {}}
 
-    def _run(self, author_username: str | None = "reviewer", author_is_bot: bool = False) -> None:
+    def _run(
+        self,
+        author_username: str | None = "reviewer",
+        author_external_id: str | int | None = "999",
+        author_is_bot: bool = False,
+    ) -> None:
         trigger_pr_iteration_from_review(
             organization_id=self.organization.id,
             repo_id=self.repo.id,
@@ -280,6 +292,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
             pr_number=7,
             review_id=500,
             author_username=author_username,
+            author_external_id=author_external_id,
             author_is_bot=author_is_bot,
         )
 
@@ -323,6 +336,9 @@ class TriggerPrIterationFromReviewTest(TestCase):
         assert all(
             c.kwargs["referrer"] == AutofixReferrer.GITHUB_PR_REVIEW
             for c in self.mock_enqueue.call_args_list
+        )
+        assert all(
+            c.kwargs["actor_user_id"] == self.user.id for c in self.mock_enqueue.call_args_list
         )
         self.mock_consume.assert_called_once()
 

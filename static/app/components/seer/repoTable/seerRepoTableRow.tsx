@@ -158,7 +158,7 @@ export function SeerRepoTableRow({
       <SimpleTable.RowCell justify="end">
         <Text size="sm">
           {repository.settings?.codeReviewTriggers
-            .sort()
+            .toSorted()
             .map(triggerToLabel)
             .map((label, index, array) => (
               <div key={label}>

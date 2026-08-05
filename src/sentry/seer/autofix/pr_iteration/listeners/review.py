@@ -142,7 +142,7 @@ def handle_pull_request_review_for_autofix_iteration(event: PullRequestReviewEve
             continue
 
         repo_log_extra = {**log_extra, "organization_id": organization.id, "repo_id": repo.id}
-        if not features.has("organizations:autofix-pr-iteration", organization):
+        if not features.has("organizations:autofix-pr-iteration-manual", organization):
             logger.info(
                 "autofix.pr_iteration.review_listener.feature_disabled", extra=repo_log_extra
             )
@@ -158,6 +158,7 @@ def handle_pull_request_review_for_autofix_iteration(event: PullRequestReviewEve
             pr_number=pr_number,
             review_id=review_id,
             author_username=event.author.get("username"),
+            author_external_id=event.author.get("id"),
             author_is_bot=event.is_bot,
         )
         dispatched = True

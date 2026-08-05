@@ -21,6 +21,7 @@ import {
   CONVERSATIONS_SIDEBAR_LABEL,
 } from 'sentry/views/explore/conversations/settings';
 import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 
 const COPY_ID_LABEL = t('Copy conversation ID');
 
@@ -51,6 +52,7 @@ export function ConversationsBreadcrumbs({
   project,
 }: ConversationsBreadcrumbsProps) {
   const organization = useOrganization();
+  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
   const location = useLocation();
   const conversationsBaseUrl = normalizeUrl(
     `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/`
@@ -67,7 +69,7 @@ export function ConversationsBreadcrumbs({
     referrer: 'conversations-breadcrumb',
   };
 
-  if (organization.features.includes('ui-migration-breadcrumbs')) {
+  if (hasNewBreadcrumbs) {
     return (
       <Fragment>
         <TopBar.Slot name="breadcrumbs">

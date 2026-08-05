@@ -380,13 +380,7 @@ USE_TZ = True
 # so that responses aren't modified after Content-Length is set, or have the
 # response modifying middleware reset the Content-Length header.
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
-APIGW_ASYNC = os.environ.get("SENTRY_APIGW_ASYNC", "").lower() in ("1", "true", "y", "yes")
 APIGW_WARN_REQS = os.environ.get("SENTRY_APIGW_WARN_REQS", "").lower() in ("1", "true", "y", "yes")
-APIGW_MIDDLEWARE = (
-    "sentry.hybridcloud.apigateway_async.middleware.ApiGatewayMiddleware"
-    if APIGW_ASYNC
-    else "sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware"
-)
 MIDDLEWARE: tuple[str, ...] = (
     "csp.middleware.CSPMiddleware",
     "sentry.middleware.health.HealthCheck",
@@ -405,7 +399,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.viewer_context.ViewerContextMiddleware",
     "sentry.middleware.ai_agent.AIAgentMiddleware",
     "sentry.middleware.integrations.IntegrationControlMiddleware",
-    APIGW_MIDDLEWARE,
+    "sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware",
     "sentry.middleware.demo_mode_guard.DemoModeGuardMiddleware",
     "sentry.middleware.customer_domain.CustomerDomainMiddleware",
     "sentry.middleware.sudo.SudoMiddleware",
@@ -877,6 +871,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.ai_monitoring.tasks",
     "sentry.conduit.tasks",
     "sentry.data_export.tasks",
+    "sentry.debug_files.objectstore_migration.tasks",
     "sentry.debug_files.tasks",
     "sentry.deletions.tasks.groups",
     "sentry.deletions.tasks.hybrid_cloud",
@@ -963,13 +958,13 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.auth.cleanup_pending_users",
     "sentry.tasks.auto_ongoing_issues",
     "sentry.tasks.backfill_group_action_log",
+    "sentry.tasks.backfill_pr_lifecycle_action_log",
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.auto_source_code_config",
     "sentry.tasks.seer.autofix",
     "sentry.tasks.seer.pr_iteration",
     "sentry.tasks.beacon",
-    "sentry.tasks.check_am2_compatibility",
     "sentry.tasks.clear_expired_resolutions",
     "sentry.tasks.clear_expired_rulesnoozes",
     "sentry.tasks.clear_expired_snoozes",
@@ -2264,7 +2259,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.7.1"
+SELF_HOSTED_STABLE_VERSION = "26.7.2"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses

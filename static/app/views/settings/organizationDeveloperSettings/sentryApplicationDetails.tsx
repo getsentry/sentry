@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState, type MouseEvent} from 'react';
+import {createElement, Fragment, useEffect, useState, type MouseEvent} from 'react';
 import styled from '@emotion/styled';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
@@ -445,6 +445,7 @@ function ClaudeRoutineTemplateForm() {
       token: '',
       scopes: CLAUDE_ROUTINE_SCOPES,
       events: CLAUDE_ROUTINE_EVENTS,
+      isAlertable: true,
     },
     validators: {
       onDynamic: claudeRoutineSchema,
@@ -547,18 +548,18 @@ export default function SentryApplicationDetails() {
   const template = getSentryAppTemplates(organization).find(
     entry => entry.slug === templateSlug
   );
-  const TemplateForm = template && TEMPLATE_FORMS[template.slug];
+  const templateFormSlug = template?.slug;
   const referrer = decodeScalar(location.query.referrer);
 
   useEffect(() => {
-    if (template && TemplateForm) {
+    if (templateFormSlug && TEMPLATE_FORMS[templateFormSlug]) {
       trackAnalytics('integrations.sentry_app_template_applied', {
         organization,
         referrer,
-        template: template.slug,
+        template: templateFormSlug,
       });
     }
-  }, [template, TemplateForm, organization, referrer]);
+  }, [templateFormSlug, organization, referrer]);
 
   const sentryAppQueryOptions = sentryAppApiOptions({appSlug: appSlug ?? null});
 
@@ -597,10 +598,10 @@ export default function SentryApplicationDetails() {
         <LoadingIndicator />
       ) : isError ? (
         <LoadingError onRetry={refetch} />
-      ) : template && TemplateForm ? (
+      ) : template && templateFormSlug && TEMPLATE_FORMS[templateFormSlug] ? (
         <Fragment>
           <TemplateHeader template={template} />
-          <TemplateForm key={template.slug} />
+          {createElement(TEMPLATE_FORMS[templateFormSlug])}
         </Fragment>
       ) : isInternalRoute ? (
         <InternalSentryAppCreationForm />

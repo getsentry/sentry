@@ -240,7 +240,9 @@ class EventAttachment(Model):
             organization_id = _get_organization(project_id)
             session = get_attachments_session(organization_id, project_id)
             key = session.put(
-                data, expiration_policy=TimeToLive(timedelta(days=attachment.retention_days))
+                data,
+                filename=attachment.name,
+                expiration_policy=TimeToLive(timedelta(days=attachment.retention_days)),
             )
             blob_path = V2_PREFIX + key
 

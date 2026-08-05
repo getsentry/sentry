@@ -146,9 +146,13 @@ class BaseAttachmentCache:
             if attachment.stored_id is not None and attachment._data is not UNINITIALIZED_DATA:
                 assert project
                 session = get_attachments_session(project.organization_id, project.id)
+                # A keyed `put` replaces the object wholesale, so metadata that is not
+                # sent here is lost rather than preserved from the previous write.
                 session.put(
                     contents=attachment._data,
                     key=attachment.stored_id,
+                    content_type=attachment.content_type,
+                    filename=attachment.name,
                     expiration_policy=TimeToLive(timedelta(days=attachment.retention_days)),
                 )
 

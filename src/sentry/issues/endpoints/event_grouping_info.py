@@ -1,4 +1,5 @@
 import orjson
+import sentry_sdk
 from django.http import HttpRequest, HttpResponse
 
 from sentry.api.api_owners import ApiOwner
@@ -32,6 +33,8 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
         event = eventstore.backend.get_event_by_id(project.id, event_id)
         if event is None:
             raise ResourceDoesNotExist
+
+        sentry_sdk.set_attribute("event.type", event.get_event_type())
 
         grouping_config = load_grouping_config(event.get_grouping_config())
 

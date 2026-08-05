@@ -50,7 +50,7 @@ export function FileInsightItemDiffTable({fileDiffItems}: FileInsightItemDiffTab
 
   const [currentPage, setCurrentPage] = useState(0);
 
-  const sortedDiffItems = [...fileDiffItems].sort((a: DiffItem, b: DiffItem) => {
+  const sortedDiffItems = fileDiffItems.toSorted((a: DiffItem, b: DiffItem) => {
     const {field, kind} = sort;
 
     let aValue: number | string = '';

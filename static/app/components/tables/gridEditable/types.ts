@@ -24,15 +24,6 @@ export type GridColumnSortBy<K = ObjectKey> = GridColumn<K> & {
   order: 'desc' | 'asc';
 };
 
-/**
- * Store state at the start of "resize" action
- */
-export type ColResizeMetadata = {
-  columnIndex: number; // Column being resized
-  columnWidth: number; // Column width at start of resizing
-  cursorX: number; // X-coordinate of cursor on window
-};
-
 export type GridData<
   DataRow,
   Order extends GridColumnOrder<unknown> = GridColumnOrder<keyof DataRow>,

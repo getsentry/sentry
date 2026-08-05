@@ -1,4 +1,10 @@
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
@@ -37,12 +43,19 @@ function ArithmeticBuilderWrapper({
   );
 }
 
+function getTokenRows() {
+  const tokenGrid = screen.getByRole('grid', {name: 'Enter an equation'});
+  return within(tokenGrid)
+    .getAllByRole('row')
+    .filter(row => row.closest('[role="grid"]') === tokenGrid);
+}
+
 describe('ArithmeticBuilder', () => {
   it('navigates between tokens with arrow keys', async () => {
     const expression = '( sum(span.duration) + count(span.self_time) )';
     render(<ArithmeticBuilderWrapper expression={expression} />);
 
-    expect(screen.queryAllByRole('row')).toHaveLength(11);
+    expect(getTokenRows()).toHaveLength(11);
 
     // the combobox inside the free text tokens will get the focus
     const freeTextTokens = screen.queryAllByRole('combobox', {name: 'Add a term'});
@@ -100,7 +113,7 @@ describe('ArithmeticBuilder', () => {
     const expression = 'count_if(span.op,equals,db)';
     render(<ArithmeticBuilderWrapper expression={expression} />);
 
-    expect(screen.queryAllByRole('row')).toHaveLength(3);
+    expect(getTokenRows()).toHaveLength(3);
 
     // the combobox inside the free text tokens will get the focus
     const freeTextTokens = screen.queryAllByRole('combobox', {name: 'Add a term'});
@@ -155,7 +168,7 @@ describe('ArithmeticBuilder', () => {
     const expression = '( sum(span.duration) + count_if(span.op,equals,db))';
     render(<ArithmeticBuilderWrapper expression={expression} />);
 
-    expect(screen.queryAllByRole('row')).toHaveLength(11);
+    expect(getTokenRows()).toHaveLength(11);
 
     // the combobox inside the free text tokens will get the focus
     const freeTextTokens = screen.queryAllByRole('combobox', {name: 'Add a term'});
@@ -214,7 +227,7 @@ describe('ArithmeticBuilder', () => {
     render(<ArithmeticBuilderWrapper expression={expression} />);
 
     await waitFor(() => {
-      expect(screen.getAllByRole('row')).toHaveLength(11);
+      expect(getTokenRows()).toHaveLength(11);
     });
 
     // the combobox inside the free text tokens will get the focus

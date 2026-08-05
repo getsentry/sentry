@@ -9,7 +9,7 @@ import logging
 from typing import NamedTuple
 
 from sentry.models.organization import Organization
-from sentry.models.pullrequest import parse_pull_request_number
+from sentry.models.pullrequest import parse_pull_request_url
 from sentry.seer.autofix.constants import CodingAgentStatus
 from sentry.seer.autofix.utils import (
     CodingAgentProviderType,
@@ -122,7 +122,8 @@ def sync_coding_agent_status(
                 return CodingAgentSyncResult(known_to_seer=False, run_id=run_id, group_id=group_id)
 
         if result and result.pr_url:
-            pr_number = parse_pull_request_number(result.pr_url)
+            parsed_pr = parse_pull_request_url(result.pr_url)
+            pr_number = parsed_pr.number if parsed_pr else None
             link_log_context = {
                 **log_context,
                 "repo_name": result.repo_full_name,

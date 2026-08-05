@@ -15,7 +15,7 @@ import {
 
 describe('DetectorSection', () => {
   const detectorId = '123';
-  const organization = OrganizationFixture({features: ['workflow-engine-ui']});
+  const organization = OrganizationFixture();
   const project = ProjectFixture();
   const issueDetailsContext = {
     sectionData: {},
@@ -184,49 +184,5 @@ describe('DetectorSection', () => {
     expect(
       screen.getByText('This issue was created by an uptime monitoring alert rule.')
     ).toBeInTheDocument();
-  });
-
-  it('links to metric alert rule details when workflow engine UI is disabled', async () => {
-    const alertRuleId = 456;
-    const event = EventFixture({
-      occurrence: {
-        evidenceData: {
-          detectorId,
-        },
-        type: 8001,
-      },
-    });
-    const group = GroupFixture({
-      issueCategory: IssueCategory.METRIC,
-      issueType: IssueType.METRIC_ISSUE,
-    });
-    const orgWithOnlyMetricIssues = OrganizationFixture();
-    const metricDetector = MetricDetectorFixture({
-      id: detectorId,
-      alertRuleId,
-    });
-    const detectorDetails = getDetectorDetails({
-      event,
-      organization: orgWithOnlyMetricIssues,
-      project,
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${orgWithOnlyMetricIssues.slug}/detectors/${detectorId}/`,
-      body: metricDetector,
-    });
-
-    render(
-      <IssueDetailsContext value={{...issueDetailsContext, detectorDetails}}>
-        <DetectorSection group={group} project={project} />
-      </IssueDetailsContext>,
-      {organization: orgWithOnlyMetricIssues}
-    );
-
-    const link = await screen.findByRole('button', {name: 'View metric alert details'});
-    expect(link).toHaveAttribute(
-      'href',
-      `/organizations/${orgWithOnlyMetricIssues.slug}/issues/alerts/rules/details/${alertRuleId}/`
-    );
   });
 });

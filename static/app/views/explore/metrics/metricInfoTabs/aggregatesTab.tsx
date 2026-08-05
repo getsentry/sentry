@@ -263,7 +263,11 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
                       data={displayRow}
                       unit={getMetricsUnit(meta, field)}
                       meta={meta}
-                      allowActions={METRICS_AGGREGATES_CELL_ACTIONS}
+                      allowActions={
+                        field === TraceMetricKnownFieldKey.METRIC_NAME
+                          ? METRICS_AGGREGATES_CELL_ACTIONS
+                          : undefined
+                      }
                       usePortalOnDropdown
                     />
                   </AggregatesStyledRowCell>

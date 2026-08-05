@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
+import {useIsInsideInteractiveElement} from '@sentry/scraps/useIsInsideInteractiveElement';
 
 import {IconBroadcast} from 'sentry/icons/iconBroadcast';
 import {IconBug} from 'sentry/icons/iconBug';
@@ -38,15 +39,33 @@ const iconMap: Record<FeatureBadgeProps['type'], React.ReactNode> = {
 
 export interface FeatureBadgeProps extends Omit<TagProps, 'children' | 'variant'> {
   type: 'alpha' | 'beta' | 'new' | 'experimental' | 'debug';
-  tooltipProps?: Partial<TooltipProps>;
+  tooltipProps?: Omit<Partial<TooltipProps>, 'isHoverable' | 'skipWrapper'>;
 }
 
 export function FeatureBadge({type, tooltipProps, ...props}: FeatureBadgeProps) {
   const title = tooltipProps?.title ?? defaultTitles[type] ?? '';
 
+  const {ref, isInsideInteractiveElement, isInteractiveElementFocusVisible} =
+    useIsInsideInteractiveElement(props.ref);
+
   return (
-    <Tooltip title={title} position="right" {...tooltipProps} skipWrapper>
-      <SquareTag variant={variantMap[type]} aria-label={type} {...props}>
+    <Tooltip
+      title={title}
+      position="right"
+      {...tooltipProps}
+      isHoverable
+      skipWrapper
+      forceVisible={
+        isInteractiveElementFocusVisible ? 'delayed' : tooltipProps?.forceVisible
+      }
+    >
+      <SquareTag
+        {...props}
+        tabIndex={isInsideInteractiveElement ? undefined : 0}
+        variant={variantMap[type]}
+        aria-label={type}
+        ref={ref}
+      >
         {iconMap[type]}
       </SquareTag>
     </Tooltip>
@@ -58,4 +77,8 @@ const SquareTag = styled(Tag)`
   flex-shrink: 0;
   padding: 0;
   justify-content: center;
+
+  &:focus-visible {
+    ${p => p.theme.focusRing()}
+  }
 `;

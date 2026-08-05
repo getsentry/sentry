@@ -151,6 +151,7 @@ class ActivityManager(BaseManager["Activity"]):
                         group_id=group_id,
                         project=activity.project,
                         idempotency_key=activity_action_idempotency_key(activity),
+                        date_added=activity.datetime,
                     )
             except Exception:
                 _default_logger.info("Failed to translate activity %d to GALE", activity.id)

@@ -3,12 +3,12 @@ import type {Location} from 'history';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {getContextKeys} from 'sentry/components/events/contexts/utils';
-import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
+import {getTraceTargetFromEvent} from 'sentry/views/performance/traceDetails/traceTarget';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 enum TraceContextKeys {
@@ -66,7 +66,7 @@ export function getTraceContextData({
           const traceWasSampled = data?.sampled ?? true;
 
           if (traceWasSampled) {
-            const link = generateTraceTarget(event, organization, location);
+            const link = getTraceTargetFromEvent(event, organization, location);
             const hasPerformanceView = organization.features.includes('performance-view');
 
             return {

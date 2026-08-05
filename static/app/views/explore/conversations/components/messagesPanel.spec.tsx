@@ -31,11 +31,20 @@ function createMockNode(overrides: {
 function createMockToolNode(overrides: {
   id: string;
   toolName: string;
+  endTimestamp?: number;
   hasError?: boolean;
+  output?: string;
   startTimestamp?: number;
 }) {
-  const {id, toolName, startTimestamp = 1000, hasError = false} = overrides;
-  const end = startTimestamp + 100;
+  const {
+    id,
+    toolName,
+    startTimestamp = 1000,
+    hasError = false,
+    output,
+    endTimestamp,
+  } = overrides;
+  const end = endTimestamp ?? startTimestamp + 100;
   return {
     id,
     type: 'span' as const,
@@ -47,6 +56,7 @@ function createMockToolNode(overrides: {
       [SpanFields.GEN_AI_OPERATION_TYPE]: 'tool',
       [SpanFields.GEN_AI_TOOL_NAME]: toolName,
       ...(hasError ? {[SpanFields.SPAN_STATUS]: 'internal_error'} : {}),
+      ...(output === undefined ? {} : {'gen_ai.tool.call.result': output}),
     },
     errors: new Set(),
   };
@@ -307,6 +317,50 @@ describe('MessagesPanel', () => {
 
     expect(screen.getByText('5 tool calls')).toBeInTheDocument();
     expect(screen.getByText('2 errors')).toBeInTheDocument();
+  });
+
+  it('summarizes the combined output size and time in the tool call summary', () => {
+    const requestMessages = JSON.stringify([{role: 'user', content: 'Question?'}]);
+    const firstGeneration = createMockNode({
+      id: 'span-1',
+      startTimestamp: 1000,
+      attributes: {
+        [SpanFields.GEN_AI_REQUEST_MESSAGES]: requestMessages,
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Let me check',
+      },
+    });
+    // Five calls, each 30 bytes of output over 0.1s, so the summary totals
+    // 150 B across 500.00ms — distinct from every per-row "30 B" / "100.00ms".
+    const toolNodes = Array.from({length: 5}, (_, index) => {
+      const start = 1500 + index * 100;
+      return createMockToolNode({
+        id: `tool-${index}`,
+        toolName: `t${index}`,
+        startTimestamp: start,
+        endTimestamp: start + 0.1,
+        output: 'x'.repeat(30),
+      });
+    });
+    const secondGeneration = createMockNode({
+      id: 'span-2',
+      startTimestamp: 3000,
+      attributes: {
+        [SpanFields.GEN_AI_REQUEST_MESSAGES]: requestMessages,
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Here is the answer',
+      },
+    });
+
+    render(
+      <MessagesPanel
+        nodes={[firstGeneration, ...toolNodes, secondGeneration] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(screen.getByText('5 tool calls')).toBeInTheDocument();
+    expect(screen.getByText('150 B')).toBeInTheDocument();
+    expect(screen.getByText('500.00ms')).toBeInTheDocument();
   });
 
   it('expands the tool call group when one of its calls is selected', () => {

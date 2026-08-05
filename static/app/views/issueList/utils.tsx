@@ -1,7 +1,5 @@
 import type {Location, LocationDescriptorObject} from 'history';
 
-import {useContainerBreakpoint} from '@sentry/scraps/layout';
-
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -91,19 +89,6 @@ export const DISCOVER_EXCLUSION_FIELDS: string[] = [
 ];
 
 export const FOR_REVIEW_QUERIES: string[] = [Query.FOR_REVIEW];
-
-export const SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY =
-  'issue-stream-saved-searches-sidebar-open';
-
-export function useIsIssueListContainerNarrow(isSavedSearchesOpen: boolean) {
-  const breakpoint = useContainerBreakpoint();
-
-  if (isSavedSearchesOpen) {
-    return breakpoint !== '5xl';
-  }
-
-  return breakpoint !== '3xl' && breakpoint !== '4xl' && breakpoint !== '5xl';
-}
 
 const ISSUE_STREAM_SORT_LOCALSTORAGE_KEY = 'issue-stream-sort';
 
