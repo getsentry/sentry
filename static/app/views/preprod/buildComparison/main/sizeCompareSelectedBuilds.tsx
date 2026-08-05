@@ -196,7 +196,7 @@ export function SizeCompareSelectedBuilds({
     <Flex
       direction={{zero: 'column', xl: 'row'}}
       wrap="wrap"
-      align="center"
+      align={{zero: 'stretch', xl: 'center'}}
       justify="center"
       gap="lg"
       width="100%"
@@ -213,7 +213,7 @@ export function SizeCompareSelectedBuilds({
         )}
       </Container>
 
-      <Text>{t('vs')}</Text>
+      <Text align="center">{t('vs')}</Text>
 
       {baseBuildDetails ? (
         <Container
