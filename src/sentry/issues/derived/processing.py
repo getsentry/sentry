@@ -154,6 +154,11 @@ def _process_batch(
     last-writer-wins semantics are safe because all writers compute the
     same deterministic result for overlapping entry ranges.
 
+    Invalidated rows (null pipeline_hash) are treated as compatible with
+    any writer's hash: the row is known to be out of date and awaiting
+    replacement, but there's no reason to freeze incremental progress in
+    the meantime.
+
     When *persist* is False, only the in-memory object is updated — the
     caller is responsible for persisting the result (e.g. via
     ``promote_to_live``). Used for full generations that accumulate
@@ -181,7 +186,7 @@ def _process_batch(
     updated = GroupDerivedData.objects.filter(
         Q(id=derived.id, generated_at=derived.generated_at)
         & (Q(cursor_date__lt=last_date) | Q(cursor_date=last_date, cursor_id__lte=last_id))
-        & Q(pipeline_hash=derived.pipeline_hash)
+        & (Q(pipeline_hash=derived.pipeline_hash) | Q(pipeline_hash__isnull=True))
     ).update(cursor_date=last_date, cursor_id=last_id, **state_update)
 
     if updated:
