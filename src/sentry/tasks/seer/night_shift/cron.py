@@ -366,9 +366,9 @@ def run_night_shift_execution(
     logger.info("night_shift.execute.start", extra=log_extra)
 
     if run.shards.exists():
-        all_shards_dispatched = _dispatch_pending_shards(run, organization, log_extra, start_time)
-        if all_shards_dispatched:
-            _complete_run(run)
+        if not _dispatch_pending_shards(run, organization, log_extra, start_time):
+            return None
+        _complete_run(run)
         return None
 
     if not quotas.backend.check_seer_quota(
@@ -409,9 +409,9 @@ def run_night_shift_execution(
         return None
 
     _maybe_create_shard_plan(run, shard_plans)
-    all_shards_dispatched = _dispatch_pending_shards(run, organization, log_extra, start_time)
-    if all_shards_dispatched:
-        _complete_run(run)
+    if not _dispatch_pending_shards(run, organization, log_extra, start_time):
+        return None
+    _complete_run(run)
 
 
 def _night_shift_cron_expr() -> str:
