@@ -1,9 +1,14 @@
+import {Fragment, useState} from 'react';
 import {QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {
+  OnboardingContextProvider,
+  useOnboardingContext,
+} from 'sentry/components/onboarding/onboardingContext';
 import type {ScmMessagingSetup} from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
@@ -213,5 +218,86 @@ describe('ScmMessaging', () => {
       )
     ).toBeInTheDocument();
     expect(onMessagingSetupChange).toHaveBeenCalledWith({mode: 'unconfigured'});
+  });
+
+  it('keeps the stale channel warning across unrelated context updates', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/15/',
+      body: OrganizationIntegrationsFixture({id: '15'}),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/15/channels/',
+      body: {results: [{id: 'C999', name: 'general', display: '#general'}]},
+    });
+
+    function Harness() {
+      const {messagingSetup, setMessagingSetup, setSelectedPlatform} =
+        useOnboardingContext();
+
+      return (
+        <Fragment>
+          <button onClick={() => setSelectedPlatform(selectedPlatform)}>
+            Touch context
+          </button>
+          <ScmMessaging
+            messagingSetup={messagingSetup}
+            onMessagingSetupChange={setMessagingSetup}
+            selectedPlatform={selectedPlatform}
+          />
+        </Fragment>
+      );
+    }
+
+    render(
+      <OnboardingContextProvider initialValue={{messagingSetup: selectedMessagingSetup}}>
+        <Harness />
+      </OnboardingContextProvider>
+    );
+
+    const warning = "We couldn't verify the saved channel. Choose a destination again.";
+    expect(await screen.findByText(warning)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Touch context'}));
+
+    expect(screen.getByText(warning)).toBeInTheDocument();
+  });
+
+  it('keeps the stale channel warning when the messagingSetup reference changes', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/15/',
+      body: OrganizationIntegrationsFixture({id: '15'}),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/15/channels/',
+      body: {results: [{id: 'C999', name: 'general', display: '#general'}]},
+    });
+
+    function Harness() {
+      const [messagingSetup, setMessagingSetup] = useState(selectedMessagingSetup);
+
+      return (
+        <Fragment>
+          <button onClick={() => setMessagingSetup(prev => ({...prev}))}>
+            New reference
+          </button>
+          <ScmMessaging
+            messagingSetup={messagingSetup}
+            onMessagingSetupChange={setMessagingSetup}
+            selectedPlatform={selectedPlatform}
+          />
+        </Fragment>
+      );
+    }
+
+    render(<Harness />);
+
+    const warning = "We couldn't verify the saved channel. Choose a destination again.";
+    expect(await screen.findByText(warning)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'New reference'}));
+    expect(screen.getByText(warning)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'New reference'}));
+    expect(screen.getByText(warning)).toBeInTheDocument();
   });
 });
