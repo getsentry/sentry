@@ -854,6 +854,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "snuba.search.recommended.severity-aggregate",
+    type=String,
+    default="max",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "snuba.search.recommended.user-impact-weight",
     default=0.05,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -3219,11 +3225,6 @@ register(
 register(
     "spans.buffer.use-msgspec-decoder",
     default=0.0,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "spans.process-segments.detect-performance-problems.enable",
-    default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(

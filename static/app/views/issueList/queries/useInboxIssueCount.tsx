@@ -2,28 +2,35 @@ import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ASSIGNMENT_QUERY_SUFFIXES, SECTIONS} from 'sentry/views/issueList/pages/inbox';
 
-const PROGRESS_STATES = SECTIONS.map(section => section.progress).join(', ');
+// Count all issues assigned to me/my teams which are assigned or further along
+const INBOX_COUNT_QUERY =
+  'is:unresolved issue.progress:[fix_proposed,diagnosed,assigned] assigned:[me,my_teams]';
+const INBOX_COUNT_QUERY_NO_SEER =
+  'is:unresolved issue.progress:[fix_proposed] assigned:[me,my_teams]';
 
-// A separate Snuba search runs per `query` param, so all the states travel as one.
-const INBOX_COUNT_QUERY = `issue.progress:[${PROGRESS_STATES}]${ASSIGNMENT_QUERY_SUFFIXES.my_teams}`;
-
-/** Number of issues waiting in the inbox, for the nav badge. */
 export function useInboxIssueCount() {
   const organization = useOrganization();
+  const hasSeer =
+    !organization.hideAiFeatures &&
+    (organization.features.includes('seat-based-seer-enabled') ||
+      organization.features.includes('seer-added'));
+  const inboxCountQuery = hasSeer ? INBOX_COUNT_QUERY : INBOX_COUNT_QUERY_NO_SEER;
 
   const {data} = useQuery({
     ...apiOptions.as<Record<string, number>>()(
       '/organizations/$organizationIdOrSlug/issues-count/',
       {
         path: {organizationIdOrSlug: organization.slug},
-        query: {query: [INBOX_COUNT_QUERY], project: [-1]},
+        query: {
+          query: [inboxCountQuery],
+          project: [-1],
+        },
         staleTime: 180_000,
       }
     ),
     placeholderData: keepPreviousData,
   });
 
-  return data?.[INBOX_COUNT_QUERY] ?? null;
+  return data?.[inboxCountQuery] ?? null;
 }

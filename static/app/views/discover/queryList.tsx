@@ -106,7 +106,7 @@ class QueryList extends Component<Props> {
     }
     cards = cards.concat(this.renderSavedQueries());
 
-    if (cards.filter(Boolean).length === 0) {
+    if (!cards.some(Boolean)) {
       return (
         <StyledEmptyStateWarning>
           <p>{t('No saved queries match that filter')}</p>

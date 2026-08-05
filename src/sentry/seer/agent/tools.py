@@ -1528,7 +1528,7 @@ def get_issue_details(
             type__in=_SEER_EXPLORER_ACTIVITY_TYPES,
         ).order_by("-datetime")[:50]
         serialized_activities = serialize(
-            list(activities), user=None, serializer=ActivitySerializer()
+            list(activities), user=None, serializer=ActivitySerializer(resolve_mentions=True)
         )
     except Exception:
         logger.exception(
