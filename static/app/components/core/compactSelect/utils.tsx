@@ -276,7 +276,7 @@ export function getSortedItems<Value extends SelectKey>(
       if ('options' in item) {
         return {
           ...item,
-          options: [...item.options].sort(
+          options: item.options.toSorted(
             (a, b) => (scores.get(b.key) ?? 0) - (scores.get(a.key) ?? 0)
           ),
         };
@@ -285,7 +285,7 @@ export function getSortedItems<Value extends SelectKey>(
     });
   }
 
-  return [...items].sort(
+  return items.toSorted(
     (a, b) =>
       (scores.get((b as SelectOptionWithKey<Value>).key) ?? 0) -
       (scores.get((a as SelectOptionWithKey<Value>).key) ?? 0)

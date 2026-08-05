@@ -517,7 +517,9 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
           )}
           {showFooter ? (
             <Flex
+              containerType="inline-size"
               justify={showLeftFooterAction ? 'between' : 'end'}
+              align="start"
               borderTop="primary"
               paddingTop="sm"
               paddingBottom="sm"
@@ -526,7 +528,11 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
               background={showLeftFooterAction ? 'secondary' : 'primary'}
               onMouseDown={e => e.preventDefault()}
             >
-              <Flex gap="sm">
+              <Flex
+                direction={{zero: 'column', md: 'row'}}
+                align={{zero: 'start', md: 'center'}}
+                gap="sm"
+              >
                 {showLeftFooterAction ? (
                   <Button
                     icon={<IconSync />}
