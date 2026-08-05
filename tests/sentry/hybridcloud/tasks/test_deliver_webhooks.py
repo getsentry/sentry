@@ -327,6 +327,7 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_cells(cell_config)
+    @override_options({"hybridcloud.webhookpayload.claim_dispatch_rollout": 1.0})
     def test_drain_reads_primary_when_replica_lags(self) -> None:
         responses.add(
             responses.POST,
@@ -345,6 +346,46 @@ class DrainMailboxTest(TestCase):
 
         assert len(responses.calls) == 1
         assert not WebhookPayload.objects.filter(id=webhook.id).exists()
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_gives_up_on_replica_lag_while_rollout_inactive(self) -> None:
+        # claim_dispatch_rollout defaults to 0.0: deploying must not change drain
+        # behavior, so the primary fallback stays dormant and replica lag keeps
+        # counting as a lost race.
+        webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+
+        lagging_replica = MagicMock()
+        lagging_replica.get.side_effect = WebhookPayload.DoesNotExist
+        with patch.object(WebhookPayload.objects, "using_replica", return_value=lagging_replica):
+            drain_mailbox(webhook.id)
+
+        assert len(responses.calls) == 0
+        assert WebhookPayload.objects.filter(id=webhook.id).exists()
+
+    @responses.activate
+    @override_cells(cell_config)
+    @override_options(
+        {
+            "hybridcloud.webhookpayload.push_drain_trigger": True,
+            "hybridcloud.webhookpayload.claim_dispatch_rollout": 1.0,
+        }
+    )
+    def test_drain_lease_mode_gives_up_on_replica_lag(self) -> None:
+        # A lease-mode drain (mailbox_name passed) holds no claim, so giving up on
+        # replica lag costs only the ~10s scheduler retry; it must skip the primary
+        # fallback and release its lease instead.
+        webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+        cache.add(f"wh:drain_active:{webhook.mailbox_name}", 1, timeout=15)
+
+        lagging_replica = MagicMock()
+        lagging_replica.get.side_effect = WebhookPayload.DoesNotExist
+        with patch.object(WebhookPayload.objects, "using_replica", return_value=lagging_replica):
+            drain_mailbox(webhook.id, mailbox_name=webhook.mailbox_name)
+
+        assert len(responses.calls) == 0
+        assert WebhookPayload.objects.filter(id=webhook.id).exists()
+        assert cache.get(f"wh:drain_active:{webhook.mailbox_name}") is None
 
     @responses.activate
     def test_drain_unknown_region(self) -> None:
@@ -1205,6 +1246,37 @@ class PushTriggerTest(TestCase):
         mock_drain.delay.assert_not_called()
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    @override_options(CLAIM_MODE_OPTIONS)
+    def test_claim_trigger_graceful_on_redis_failure(self, mock_drain: MagicMock) -> None:
+        webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+        with patch(
+            "sentry.hybridcloud.tasks.deliver_webhooks.cache.add",
+            side_effect=Exception("Cache unavailable"),
+        ):
+            # Should not raise — the scheduler covers delivery.
+            maybe_trigger_drain(webhook.mailbox_name)
+        mock_drain.delay.assert_not_called()
+        # No dispatch means no claim; the head must stay due for the scheduler.
+        webhook.refresh_from_db()
+        assert webhook.schedule_for < timezone.now()
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    @override_options(CLAIM_MODE_OPTIONS)
+    def test_claim_trigger_releases_guard_when_enqueue_fails(self, mock_drain: MagicMock) -> None:
+        webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+        mock_drain.delay.side_effect = Exception("broker down")
+
+        # Should not raise
+        maybe_trigger_drain(webhook.mailbox_name)
+
+        # The guard must not outlive the trigger even when enqueueing fails.
+        assert cache.get(f"wh:drain_active:{webhook.mailbox_name}") is None
+        # The claim stands, so the batch waits out its horizon (≤3 min) before any
+        # dispatcher retries — the same failure mode the scheduler path has.
+        webhook.refresh_from_db()
+        assert webhook.schedule_for > timezone.now()
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
     @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
     def test_scheduler_skips_locked_mailboxes(self, mock_drain: MagicMock) -> None:
         webhook_a = self.create_webhook_payload(mailbox_name="github:111", cell_name="us")
@@ -1230,6 +1302,23 @@ class PushTriggerTest(TestCase):
         # The guard only serializes the claim; new webhooks must be able to trigger
         # as soon as scheduling is done.
         assert cache.get(f"wh:drain_active:{webhook.mailbox_name}") is None
+
+    @override_options(CLAIM_MODE_OPTIONS)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_scheduler_claims_and_dispatches_when_cache_down(self, mock_drain: MagicMock) -> None:
+        webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+
+        with patch(
+            "sentry.hybridcloud.tasks.deliver_webhooks.cache.add",
+            side_effect=Exception("Cache unavailable"),
+        ):
+            schedule_webhook_delivery()
+
+        # The guard is best-effort; claims alone keep dispatchers apart across
+        # cycles, so a cache outage must not stop scheduled delivery.
+        assert mock_drain.delay.call_count == 1
+        webhook.refresh_from_db()
+        assert webhook.schedule_for > timezone.now()
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
     @responses.activate

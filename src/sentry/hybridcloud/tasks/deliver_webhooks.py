@@ -1,6 +1,6 @@
 import datetime
+import enum
 import logging
-import zlib
 from concurrent.futures import as_completed
 
 import orjson
@@ -20,6 +20,7 @@ from sentry.hybridcloud.models.webhookpayload import (
     DestinationType,
     WebhookPayload,
 )
+from sentry.options.rollout import in_rollout_group
 from sentry.shared_integrations.exceptions import (
     ApiConflictError,
     ApiConnectionResetError,
@@ -141,6 +142,11 @@ def _release_drain_lock(mailbox_name: str) -> None:
         pass
 
 
+def _claim_dispatch_active() -> bool:
+    """Whether any integration currently dispatches drains via batch claims."""
+    return options.get("hybridcloud.webhookpayload.claim_dispatch_rollout") > 0.0
+
+
 def _use_claim_dispatch(mailbox_name: str) -> bool:
     """
     Whether this mailbox dispatches drains via batch claims instead of the
@@ -152,13 +158,8 @@ def _use_claim_dispatch(mailbox_name: str) -> bool:
     Mixed regimes compose safely either way: every dispatcher honors the lock,
     and a claimed head is not due for any of them.
     """
-    rate = options.get("hybridcloud.webhookpayload.claim_dispatch_rollout")
-    if rate <= 0.0:
-        return False
-    if rate >= 1.0:
-        return True
     integration_prefix = ":".join(mailbox_name.split(":", 2)[:2])
-    return (zlib.crc32(integration_prefix.encode("utf-8")) % 100_000) / 100_000 < rate
+    return in_rollout_group("hybridcloud.webhookpayload.claim_dispatch_rollout", integration_prefix)
 
 
 def _claim_mailbox_batch(head_id: int, mailbox_name: str) -> int:
@@ -180,30 +181,38 @@ def _claim_mailbox_batch(head_id: int, mailbox_name: str) -> int:
     )
 
 
-def _claim_and_dispatch(head_id: int, mailbox_name: str) -> str:
+class DispatchOutcome(enum.StrEnum):
+    """What `_claim_and_dispatch` did for a mailbox; doubles as a metric tag."""
+
+    NOT_DUE = "not_due"
+    SEQUENTIAL = "sequential"
+    PARALLEL = "parallel"
+
+
+def _claim_and_dispatch(head_id: int, mailbox_name: str) -> DispatchOutcome:
     """
     Claim a batch for the mailbox and dispatch the drain matching its depth.
     Callers must hold the mailbox's drain lock so concurrent dispatchers cannot
     interleave between the due-check and the claim.
 
-    Returns "parallel" or "sequential" for the dispatched drain, or "not_due" when
-    the head has already been claimed, delivered, or moved into a retry backoff.
-    The scheduler discovers mailbox heads on a replica, so this re-check against
-    the primary is what stops a stale read from double-dispatching a drain.
+    Returns the dispatched drain's mode, or NOT_DUE when the head has already
+    been claimed, delivered, or moved into a retry backoff. The scheduler
+    discovers mailbox heads on a replica, so this re-check against the primary
+    is what stops a stale read from double-dispatching a drain.
     """
     is_due = WebhookPayload.objects.filter(id=head_id, schedule_for__lte=timezone.now()).exists()
     if not is_due:
-        return "not_due"
+        return DispatchOutcome.NOT_DUE
     claimed = _claim_mailbox_batch(head_id, mailbox_name)
     if not claimed:
-        return "not_due"
+        return DispatchOutcome.NOT_DUE
     # A mailbox this deep is behind; parallel throughput is worth its loss of
     # strict ordering.
     if claimed >= PARALLEL_DRAIN_THRESHOLD:
         drain_mailbox_parallel.delay(head_id)
-        return "parallel"
+        return DispatchOutcome.PARALLEL
     drain_mailbox.delay(head_id)
-    return "sequential"
+    return DispatchOutcome.SEQUENTIAL
 
 
 def _maybe_trigger_drain_claim(mailbox_name: str) -> None:
@@ -241,7 +250,7 @@ def _maybe_trigger_drain_claim(mailbox_name: str) -> None:
             )
             return
         outcome = _claim_and_dispatch(head[0], mailbox_name)
-        if outcome == "not_due":
+        if outcome is DispatchOutcome.NOT_DUE:
             # The head moved between our read and the claim; whoever moved it has
             # the mailbox covered.
             metrics.incr(
@@ -439,13 +448,20 @@ def drain_mailbox(payload_id: int, mailbox_name: str | None = None) -> None:
     try:
         payload = payload_source.get(id=payload_id)
     except WebhookPayload.DoesNotExist:
-        try:
-            # The batch was claimed on the primary and the replica can lag behind
-            # it; giving up here would strand the claim until it expires. Read the
-            # primary for this run instead.
-            payload = WebhookPayload.objects.get(id=payload_id)
-            payload_source = WebhookPayload.objects.all()
-        except WebhookPayload.DoesNotExist:
+        # A claim-backed dispatch (no mailbox_name) that gives up here strands its
+        # claim until the horizon expires, so read the primary for this run
+        # instead. Lease-mode push drains lose only ~10s giving up — the scheduler
+        # retries once the replica catches up — and gating on the rollout option
+        # keeps the fallback dormant until claim dispatch actually ramps.
+        payload = None
+        if mailbox_name is None and _claim_dispatch_active():
+            try:
+                payload = WebhookPayload.objects.get(id=payload_id)
+                payload_source = WebhookPayload.objects.all()
+                metrics.incr("hybridcloud.deliver_webhooks.drain.primary_fallback")
+            except WebhookPayload.DoesNotExist:
+                pass
+        if payload is None:
             # We could have hit a race condition. Since we've lost already return
             # and let the other process continue, or a future process.
             metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "race"})

@@ -2439,8 +2439,9 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Fraction of mailboxes (bucketed by mailbox_name hash) whose drains are
-# dispatched via batch claims instead of the drain-lock lease.
+# Fraction of integrations (bucketed by the provider:integration_id prefix of
+# mailbox_name, so all of an integration's mailboxes switch together) whose
+# drains are dispatched via batch claims instead of the drain-lock lease.
 register(
     "hybridcloud.webhookpayload.claim_dispatch_rollout",
     type=Float,
