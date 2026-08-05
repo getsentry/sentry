@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -29,36 +27,26 @@ export function EventUserCounts({group, project}: EventUserCountsProps) {
   return (
     <Flex align="center" gap="sm">
       <Tooltip title={userLabel} skipWrapper>
-        <StatItem as="span" align="center" gap="xs" padding="sm 0" aria-label={userLabel}>
+        <Flex as="span" align="center" gap="xs" padding="sm 0" aria-label={userLabel}>
           <Text size="md" bold tabular>
             <Count value={userCount} />
           </Text>
           <Text size="sm" variant="muted">
             {t('Users')}
           </Text>
-        </StatItem>
+        </Flex>
       </Tooltip>
       <Container aria-hidden borderLeft="muted" height="16px" />
       <Tooltip title={eventLabel} skipWrapper>
-        <StatItem
-          as="span"
-          align="center"
-          gap="xs"
-          padding="sm 0"
-          aria-label={eventLabel}
-        >
+        <Flex as="span" align="center" gap="xs" padding="sm 0" aria-label={eventLabel}>
           <Text size="md" bold tabular>
             <Count value={eventCount} />
           </Text>
           <Text size="sm" variant="muted">
             {t('Events')}
           </Text>
-        </StatItem>
+        </Flex>
       </Tooltip>
     </Flex>
   );
 }
-
-const StatItem = styled(Flex)`
-  height: ${p => p.theme.space['3xl']};
-`;
