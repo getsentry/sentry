@@ -297,6 +297,19 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
             data = StubService.get_stub_data("jira", "changelog_missing.json")
             self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
 
+    def test_changelog_without_items(self) -> None:
+        # The endpoint admits any truthy `changelog`, so one carrying no `items` reaches
+        # both handlers and must not blow them up.
+        with patch(
+            "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
+            return_value=self.integration,
+        ):
+            data = {
+                "changelog": {"id": "10172"},
+                "issue": {"key": "APP-123", "fields": {}},
+            }
+            self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
+
     @with_feature("organizations:jira-issue-updated-payload-logging")
     @patch("sentry.integrations.jira.webhooks.issue_updated.sentry_sdk.capture_exception")
     @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")

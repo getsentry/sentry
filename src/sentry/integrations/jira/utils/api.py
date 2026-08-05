@@ -31,6 +31,19 @@ def _get_client(integration: RpcIntegration) -> JiraCloudClient:
     )
 
 
+def changelog_items(data: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    """
+    The changelog entries in a `jira:issue_updated` payload, or none if it carries no usable
+    ones.
+
+    The endpoint admits any truthy `changelog`, which does not guarantee an `items` key —
+    an assumption the endpoint's own diagnostic logging already declines to make.
+    """
+    changelog = data.get("changelog") or {}
+    items = changelog.get("items")
+    return items if isinstance(items, list) else []
+
+
 def set_badge(integration: RpcIntegration, issue_key: str, group_link_num: int) -> Response:
     client = _get_client(integration)
     return client.set_issue_property(issue_key, group_link_num)
@@ -59,7 +72,7 @@ def handle_assignee_change(
 
     log_context = {"issue_key": issue_key, "integration_id": integration.id}
     assignee_changed = any(
-        item for item in data["changelog"]["items"] if item["field"] == "assignee"
+        item for item in changelog_items(data) if item.get("field") == "assignee"
     )
     if not assignee_changed:
         logger.info("jira.assignee-not-in-changelog", extra=log_context)
@@ -97,7 +110,7 @@ def handle_status_change(integration: RpcIntegration, data: Mapping[str, Any]) -
     ).capture() as lifecycle:
         issue_key = data["issue"]["key"]
         status_changed = any(
-            item for item in data["changelog"]["items"] if item["field"] == "status"
+            item for item in changelog_items(data) if item.get("field") == "status"
         )
         log_context = {"issue_key": issue_key, "integration_id": integration.id}
 
@@ -107,7 +120,7 @@ def handle_status_change(integration: RpcIntegration, data: Mapping[str, Any]) -
 
         try:
             changelog = next(
-                item for item in data["changelog"]["items"] if item["field"] == "status"
+                item for item in changelog_items(data) if item.get("field") == "status"
             )
         except StopIteration:
             lifecycle.record_halt(

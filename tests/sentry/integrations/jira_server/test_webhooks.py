@@ -95,6 +95,14 @@ class JiraServerWebhookEndpointTest(APITestCase):
             provider_event_updated_at="2023-01-01T00:00:00.000+0000",
         )
 
+    def test_changelog_without_items(self) -> None:
+        # The endpoint admits any truthy `changelog`, so one carrying no `items` reaches
+        # both handlers and must not blow them up.
+        self.get_success_response(
+            self.jwt_token,
+            **{"changelog": {"id": 12345}, "issue": {"key": "APP-1", "fields": {}}},
+        )
+
     def _linked_group_for_assignee_sync(self) -> Group:
         with assume_test_silo_mode(SiloMode.CONTROL):
             OrganizationIntegration.objects.get(
