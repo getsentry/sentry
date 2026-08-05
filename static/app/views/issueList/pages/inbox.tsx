@@ -120,13 +120,13 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
 export default function InboxPage() {
   const organization = useOrganization();
   const hasProgressUi = organization.features.includes('issue-stream-progress-ui');
-  const hasAutofix =
+  const hasSeer =
     !organization.hideAiFeatures &&
     organization.features.includes('gen-ai-features') &&
     (organization.features.includes('seat-based-seer-enabled') ||
       organization.features.includes('seer-added'));
 
-  if (!hasProgressUi || !hasAutofix) {
+  if (!hasProgressUi || !hasSeer) {
     return <NotFound />;
   }
 

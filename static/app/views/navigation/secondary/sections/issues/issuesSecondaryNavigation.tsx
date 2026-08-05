@@ -31,12 +31,12 @@ export function IssuesSecondaryNavigation() {
   const organization = useOrganization();
   const baseUrl = `/organizations/${organization.slug}/issues`;
   const hasProgressUi = organization.features.includes('issue-stream-progress-ui');
-  const hasAutofix =
+  const hasSeer =
     !organization.hideAiFeatures &&
     organization.features.includes('gen-ai-features') &&
     (organization.features.includes('seat-based-seer-enabled') ||
       organization.features.includes('seer-added'));
-  const hasInbox = hasProgressUi && hasAutofix;
+  const hasInbox = hasProgressUi && hasSeer;
   return (
     <Fragment>
       <SecondaryNavigation.Header>{t('Issues')}</SecondaryNavigation.Header>
