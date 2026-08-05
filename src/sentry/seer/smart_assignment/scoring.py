@@ -5,7 +5,7 @@ from typing import TypedDict
 
 from django.db import router, transaction
 
-from sentry.models.activity import Activity, ActivityIntegration
+from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -14,6 +14,7 @@ from sentry.seer.smart_assignment.models import (
     RESOLUTION_ACTIVITIES,
     SEER_FEATURE_ID,
     SmartAssignmentScore,
+    is_unscorable_assignment,
 )
 from sentry.seer.utils import latest_run_for_group
 from sentry.types.activity import ActivityType
@@ -93,8 +94,7 @@ def _ground_truth_updates(
     carries no useful signal.
 
     For an assignment we mirror the current assignee (user and/or team), unless it is
-    our own auto-assignment (tagged with the ``SEER_SUGGESTED`` integration by
-    ProjectOwnership.handle_auto_assignment, which would score us against ourselves).
+    from a source in ``UNSCORABLE_ASSIGNMENT_ORIGINS``.
     For a user-driven resolution we record the resolver as the assumed assignee only
     when no explicit assignee has been recorded -- an assignment is better truth.
     """
@@ -127,12 +127,12 @@ def _ground_truth_updates(
 
 def _assignment_updates(group: Group) -> RunUpdates | None:
     """Mirror the current assignee (user and/or team), or ``None`` when the group has
-    no assignee or the assignment is our own auto-assignment.
+    no assignee or the assignment is one we can't grade a prediction against.
     """
     assignee = GroupAssignee.objects.filter(group=group).first()
     if assignee is None:
         return None
-    if _is_seer_auto_assignment(group):
+    if _has_unscorable_assignment(group):
         return None
     return {
         "actual_assignee_user_id": assignee.user_id,
@@ -141,20 +141,17 @@ def _assignment_updates(group: Group) -> RunUpdates | None:
     }
 
 
-def _is_seer_auto_assignment(group: Group) -> bool:
-    """Whether the group's current assignment came from our own auto-assignment,
-    determined by the most recent ``ASSIGNED`` activity being tagged with the
-    ``SEER_SUGGESTED`` integration."""
-    latest_assignment = (
+def _has_unscorable_assignment(group: Group) -> bool:
+    """Whether the group's current assignment came from a source we can't grade a
+    prediction against. The latest ASSIGNED activity always represents the current assignment,
+    and its ``integration`` indicates if it came from a human or not.
+    """
+    return is_unscorable_assignment(
         Activity.objects.filter(group=group, type=ActivityType.ASSIGNED.value)
-        .order_by("-datetime")
+        # ``id`` breaks ties so same-timestamp activities resolve to the one written last.
+        .order_by("-datetime", "-id")
         .first()
     )
-    if latest_assignment is None:
-        return False
-    return (latest_assignment.data or {}).get(
-        "integration"
-    ) == ActivityIntegration.SEER_SUGGESTED.value
 
 
 def _apply(run_id: int, updates: RunUpdates) -> bool:
