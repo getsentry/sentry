@@ -934,10 +934,12 @@ def _get_project_config(
             config["downsampledEventRetention"] = downsampled_event_retention
     with start_span(op="get_retentions", name="get_retentions"):
         retentions = quotas.backend.get_retentions(project.organization)
+        # Iterate the mapping (not the backend's dict) so that wire-name
+        # collisions resolve deterministically: the last mapping wins.
         retentions_config = {
-            RETENTIONS_CONFIG_MAPPING[c]: v.to_object()
-            for c, v in retentions.items()
-            if c in RETENTIONS_CONFIG_MAPPING
+            name: retentions[c].to_object()
+            for c, name in RETENTIONS_CONFIG_MAPPING.items()
+            if c in retentions
         }
         if retentions_config:
             config["retentions"] = retentions_config

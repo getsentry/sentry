@@ -49,7 +49,8 @@ const INBOX_DEFAULT_SIZE = 480;
 const INBOX_MIN_SIZE = 320;
 const INBOX_MAX_SIZE = 640;
 type AssignmentFilter = (typeof ASSIGNMENT_FILTERS)[number];
-export const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
+
+const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
   me: ' assigned:me',
   my_teams: ' assigned:[me,my_teams]',
   all: '',
@@ -63,6 +64,11 @@ export const INBOX_AUTOFIX_CATEGORY_FILTER = ` issue.category:[${[
   IssueCategory.CONFIGURATION,
 ].join(',')}]`;
 
+interface InboxSectionContext {
+  assignmentFilter: AssignmentFilter;
+  hasSeer: boolean;
+}
+
 interface InboxSectionConfig {
   defaultExpanded: boolean;
   emptyMessage: string;
@@ -70,13 +76,14 @@ interface InboxSectionConfig {
   label: string;
   progress: ProgressState;
   query: string;
+  hidden?: (context: InboxSectionContext) => boolean;
 }
 
-export const SECTIONS: InboxSectionConfig[] = [
+const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
   {
     key: 'fix-proposed',
     label: t('Fix Proposed'),
-    query: 'issue.progress:fix_proposed',
+    query: 'issue.progress:fix_proposed is:unresolved',
     emptyMessage: t('No issues with a proposed fix'),
     progress: ProgressState.FIX_PROPOSED,
     defaultExpanded: true,
@@ -84,17 +91,36 @@ export const SECTIONS: InboxSectionConfig[] = [
   {
     key: 'diagnosed',
     label: t('Diagnosed'),
-    query: 'issue.progress:diagnosed',
+    query: 'issue.progress:diagnosed is:unresolved',
     emptyMessage: t('No diagnosed issues'),
     progress: ProgressState.DIAGNOSED,
     defaultExpanded: true,
+    hidden: ({hasSeer}) => !hasSeer,
   },
   {
     key: 'assigned',
     label: t('Assigned'),
-    query: 'issue.progress:assigned',
+    query: 'issue.progress:assigned is:unresolved',
     emptyMessage: t('No assigned issues'),
     progress: ProgressState.ASSIGNED,
+    defaultExpanded: false,
+    hidden: ({hasSeer}) => !hasSeer,
+  },
+  {
+    key: 'identified',
+    label: t('Identified'),
+    query: 'issue.progress:identified is:unresolved',
+    emptyMessage: t('No identified issues'),
+    progress: ProgressState.IDENTIFIED,
+    defaultExpanded: false,
+    hidden: ({assignmentFilter, hasSeer}) => !hasSeer || assignmentFilter !== 'all',
+  },
+  {
+    key: 'fix-applied',
+    label: t('Fix Applied'),
+    query: 'issue.progress:fix_applied is:unresolved',
+    emptyMessage: t('No issues with an applied fix'),
+    progress: ProgressState.FIX_APPLIED,
     defaultExpanded: false,
   },
 ];
@@ -191,7 +217,7 @@ function InboxContent() {
           </Flex>
           <Stack flex={1} minHeight={0} overflowY="auto" overscrollBehavior="contain">
             {SECTIONS.filter(
-              section => hasSeer || section.progress !== ProgressState.DIAGNOSED
+              section => !section.hidden?.({assignmentFilter, hasSeer})
             ).map(section => (
               <InboxSection
                 key={section.key}
