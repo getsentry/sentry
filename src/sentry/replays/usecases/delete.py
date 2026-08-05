@@ -67,12 +67,6 @@ def day_aligned_windows(
     at `range_start`, not at midnight -- and only the first and last are ever shorter than a day.
     Consecutive windows meet exactly, so the range is covered with no gaps and no overlap. All
     datetimes are UTC.
-
-    Never crossing midnight is what lets `datetime_as_start_of_day_conditions` narrow the sort key
-    to a single day. A day also holds a window's replay count under the storage's
-    `max_rows_to_group_by`,
-    which is paired with `group_by_overflow_mode = break`: past a million replays the finders' GROUP
-    BY is truncated rather than rejected, and the replays past the cut go quietly undeleted.
     """
     if range_start >= range_end:
         return []
@@ -96,10 +90,14 @@ def _start_of_day(value: datetime) -> datetime:
 def datetime_as_start_of_day_conditions(start: datetime, end: datetime) -> list[Condition]:
     """Restate `[start, end)` as bounds on `toStartOfDay(timestamp)`.
 
-    Where a table is sorted by `toStartOfDay(timestamp)` rather than by `timestamp`, a bound on the
-    raw column only bounds the day it lands in, so the primary index also scans the day the range
-    ends on. Naming the first and last day the range touches removes that. A range inside one day
-    bounds that day from both sides, which the index reads as an equality.
+    Where a table is sorted by `toStartOfDay(timestamp)`, ClickHouse already derives day bounds from
+    a predicate on the raw column -- but a strict `timestamp < midnight` can only weaken to a
+    non-strict bound on the day, so the index also scans the day the range ends on. Naming the last
+    day the range really touches drops it: one day of granules at any range width, which on a table
+    with the real sort key took a one-day range from 25 granules to 13.
+
+    The derived lower bound is already tight, so the `>=` here buys nothing measurable; it is stated
+    so the pair reads as the range of days it is instead of leaving one side implicit.
 
     `end` is exclusive, so a range ending exactly at midnight does not reach that day.
     """
