@@ -229,6 +229,21 @@ def test_tags_section() -> None:
     assert "**release:** " in out
 
 
+def test_tags_section_drops_the_derived_user_tag() -> None:
+    # ingest sets sentry:user from the EventUser and the serializer exposes it as `user`, so
+    # rendering it would put an identifier in the default output regardless of user_section
+    event = EventObject(
+        title="t",
+        tags=[("user", "email:someone@example.com"), ("browser", "Chrome")],
+        user=UserDetails(email="someone@example.com"),
+    )
+    out = format_issue({"title": "t", "tags": [{"key": k, "value": v} for k, v in event.tags]})
+    assert "someone@example.com" not in out
+    assert "**browser:** Chrome" in out
+    # a tags block with nothing but the user tag renders nothing at all
+    assert tags_section(EventObject(title="t", tags=[("user", "id:7")]), MD, LIMITS_DEFAULT) == ""
+
+
 def test_user_only_present_fields() -> None:
     event = EventObject(title="t", user=UserDetails(email="user@example.com"))
     out = user_section(event, MD, LIMITS_DEFAULT)

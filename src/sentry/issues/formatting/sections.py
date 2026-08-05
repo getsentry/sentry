@@ -214,9 +214,14 @@ def request_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
 
 
 def tags_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
-    if not model.tags:
+    # ingest derives a `sentry:user` tag from the EventUser and the serializer exposes it as
+    # plain `user` ("email:someone@example.com"), so leaving it here would put an identifier in
+    # the default output that ``user_section`` is held back to keep out. It carries nothing
+    # ``user_section`` doesn't render properly for the callers that do opt in.
+    tags = [(key, value) for key, value in model.tags if key != "user"]
+    if not tags:
         return ""
-    body = "\n".join(fmt.field(key, value or "") for key, value in model.tags)
+    body = "\n".join(fmt.field(key, value or "") for key, value in tags)
     return fmt.block("Tags", body)
 
 
