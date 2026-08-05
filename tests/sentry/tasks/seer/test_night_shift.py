@@ -1139,8 +1139,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         # No SeerRun for the org -> no outbox either (created in one transaction).
         assert not SeerRun.objects.filter(organization=org).exists()
 
-    def test_no_seer_access_skips_dispatch(self) -> None:
-        # Without gen-ai-features the SeerAgentClient access gate blocks dispatch.
+    def test_no_seer_access_keeps_shard_plan_for_resume(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         self._make_eligible(project)
@@ -1151,7 +1150,8 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         run_night_shift_for_org(org.id)
 
         run = SeerNightShiftRun.objects.get(organization=org)
-        assert not run.shards.exists()
+        assert run.shards.filter(seer_run__isnull=True).count() == 1
+        assert run.date_completed is None
         assert run.extras["error_message"] == "Organization does not have Seer access"
         assert not SeerRun.objects.filter(organization=org).exists()
 

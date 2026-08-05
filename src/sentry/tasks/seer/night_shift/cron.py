@@ -110,6 +110,11 @@ class SeerNightShiftRunOptionsPartial(TypedDict, total=False):
     extra_triage_instructions: str
 
 
+class NightShiftShardPlan(TypedDict):
+    payload: dict[str, Any]
+    title: str
+
+
 @instrumented_task(
     name="sentry.tasks.seer.night_shift.schedule_night_shift",
     namespace=seer_tasks,
@@ -711,16 +716,9 @@ def _plan_and_dispatch_shards(
         logger.info("night_shift.no_candidates", extra=log_extra)
         return True
 
-    try:
-        SeerAgentClient(organization)
-    except SeerPermissionError:
-        logger.info("night_shift.no_seer_access", extra=log_extra)
-        _record_run_error(run, "Organization does not have Seer access")
-        return False
-
     shard_size = max(1, options.get("seer.night_shift.shard_size"))
     chunks = list(chunked(scored, shard_size))
-    shard_plan: list[dict[str, object]] = []
+    shard_plan: list[NightShiftShardPlan] = []
     for shard_index, chunk in enumerate(chunks):
         payload = _build_triage_payload(
             chunk, resolved_options, repos_by_project, tuning_by_project
@@ -740,7 +738,7 @@ def _plan_and_dispatch_shards(
 
 
 def _get_or_create_shard_plan(
-    run: SeerNightShiftRun, shard_plan: Sequence[dict[str, object]]
+    run: SeerNightShiftRun, shard_plan: Sequence[NightShiftShardPlan]
 ) -> list[SeerNightShiftRunShard]:
     using = router.db_for_write(SeerNightShiftRunShard)
     with transaction.atomic(using=using):
