@@ -26,7 +26,7 @@ from sentry.dynamic_sampling.models.transactions_rebalancing import (
     TransactionsRebalancingInput,
     TransactionsRebalancingModel,
 )
-from sentry.dynamic_sampling.tasks.common import MEASURE_CONFIGS, GetActiveOrgs
+from sentry.dynamic_sampling.tasks.common import SEGMENTS_CONFIG, GetActiveOrgs
 from sentry.dynamic_sampling.tasks.constants import (
     BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
     CHUNK_SIZE,
@@ -40,7 +40,6 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import 
     set_transactions_resampling_rates,
 )
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
-from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.dynamic_sampling.utils import has_dynamic_sampling, is_project_mode_sampling
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
@@ -97,22 +96,17 @@ def boost_low_volume_transactions() -> None:
     for orgs in GetActiveOrgs(
         max_projects=MAX_PROJECTS_PER_QUERY,
         granularity=Granularity(60),
-        measure=SamplingMeasure.SEGMENTS,
     ):
         metrics.incr(
             "dynamic_sampling.boost_low_volume_transactions.orgs_partitioned",
-            tags={"metric_type": "segment"},
             amount=len(orgs),
         )
-        _process_orgs_for_boost_low_volume_transactions(
-            orgs, num_big_trans, measure=SamplingMeasure.SEGMENTS
-        )
+        _process_orgs_for_boost_low_volume_transactions(orgs, num_big_trans)
 
 
 def _process_orgs_for_boost_low_volume_transactions(
     orgs: list[int],
     num_big_trans: int,
-    measure: SamplingMeasure,
 ) -> None:
     """
     Process a batch of organizations for boost low volume transactions.
@@ -120,11 +114,10 @@ def _process_orgs_for_boost_low_volume_transactions(
     if not orgs:
         return
 
-    totals_it = FetchProjectTransactionTotals(orgs, measure=measure)
+    totals_it = FetchProjectTransactionTotals(orgs)
     big_transactions_it = FetchProjectTransactionVolumes(
         orgs,
         max_transactions=num_big_trans,
-        measure=measure,
     )
 
     for project_transactions in transactions_zip(totals_it, big_transactions_it):
@@ -297,15 +290,13 @@ class FetchProjectTransactionTotals:
     project in the given organizations
     """
 
-    def __init__(self, orgs: Sequence[int], measure: SamplingMeasure = SamplingMeasure.SEGMENTS):
+    def __init__(self, orgs: Sequence[int]):
         transaction_string_id = indexer.resolve_shared_org("transaction")
         self.transaction_tag = f"tags_raw[{transaction_string_id}]"
 
-        config = MEASURE_CONFIGS[measure]
-        self.metric_id = indexer.resolve_shared_org(str(config["mri"]))
-        self.use_case_id = config["use_case_id"]
-        self.tag_filters = config["tags"]
-        self.measure = measure
+        self.metric_id = indexer.resolve_shared_org(str(SEGMENTS_CONFIG["mri"]))
+        self.use_case_id = SEGMENTS_CONFIG["use_case_id"]
+        self.tag_filters = SEGMENTS_CONFIG["tags"]
 
         self.org_ids = list(orgs)
         self.offset = 0
@@ -373,10 +364,9 @@ class FetchProjectTransactionTotals:
                 referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_TRANSACTION_TOTALS.value,
             )["data"]
 
-            metric_type = self.measure.value
             metrics.incr(
                 "dynamic_sampling.boost_low_volume_transactions.query",
-                tags={"query_type": "totals", "metric_type": metric_type},
+                tags={"query_type": "totals"},
                 sample_rate=1,
             )
 
@@ -422,15 +412,12 @@ class FetchProjectTransactionVolumes:
     org_ids: the orgs for which the projects & transactions should be returned
 
     max_transactions: maximum number of transactions to return
-
-    measure: which SamplingMeasure to use for querying metrics
     """
 
     def __init__(
         self,
         orgs: list[int],
         max_transactions: int,
-        measure: SamplingMeasure = SamplingMeasure.SEGMENTS,
     ):
         self.max_transactions = max_transactions
         self.org_ids = orgs
@@ -438,11 +425,9 @@ class FetchProjectTransactionVolumes:
         transaction_string_id = indexer.resolve_shared_org("transaction")
         self.transaction_tag = f"tags_raw[{transaction_string_id}]"
 
-        config = MEASURE_CONFIGS[measure]
-        self.metric_id = indexer.resolve_shared_org(str(config["mri"]))
-        self.use_case_id = config["use_case_id"]
-        self.tag_filters = config["tags"]
-        self.measure = measure
+        self.metric_id = indexer.resolve_shared_org(str(SEGMENTS_CONFIG["mri"]))
+        self.use_case_id = SEGMENTS_CONFIG["use_case_id"]
+        self.tag_filters = SEGMENTS_CONFIG["tags"]
 
         self.has_more_results = True
         self.cache: list[ProjectTransactions] = []
@@ -521,10 +506,9 @@ class FetchProjectTransactionVolumes:
                 referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION.value,
             )["data"]
 
-            metric_type = self.measure.value
             metrics.incr(
                 "dynamic_sampling.boost_low_volume_transactions.query",
-                tags={"query_type": "volumes", "metric_type": metric_type},
+                tags={"query_type": "volumes"},
                 sample_rate=1,
             )
 

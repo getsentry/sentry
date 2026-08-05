@@ -22,7 +22,7 @@ from snuba_sdk import (
 )
 from taskbroker_client.retry import Retry
 
-from sentry import options, quotas
+from sentry import quotas
 from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
 from sentry.dynamic_sampling.models.projects_rebalancing import (
@@ -37,8 +37,9 @@ from sentry.dynamic_sampling.rules.utils import (
     get_redis_client_for_ds,
 )
 from sentry.dynamic_sampling.tasks.common import (
-    MEASURE_CONFIGS,
+    SEGMENTS_CONFIG,
     GetActiveOrgs,
+    QueryConfig,
     are_equal_with_epsilon,
     sample_rate_to_float,
 )
@@ -53,7 +54,7 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
 )
 from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
-from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
+from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.dynamic_sampling.utils import has_dynamic_sampling, is_project_mode_sampling
 from sentry.models.options import OrganizationOption
 from sentry.models.organization import Organization
@@ -81,33 +82,15 @@ ProjectVolumes = tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
 OrgProjectVolumes = tuple[OrganizationId, ProjectId, int, DecisionKeepCount, DecisionDropCount]
 
 
-@metrics.wraps("dynamic_sampling.partition_by_measure")
-def _partition_orgs_by_measure(
-    org_ids: list[int],
-) -> dict[SamplingMeasure, list[int]]:
+@metrics.wraps("dynamic_sampling.filter_orgs")
+def _filter_orgs(org_ids: list[int]) -> list[int]:
     """
-    Partition organizations by their sampling measure.
-    Project-mode orgs are filtered out. SPANS orgs (AM3/project-mode) are
-    split off when the check_span_feature_flag option is enabled.
-    All remaining orgs use SEGMENTS.
+    Filter out project-mode orgs, which are not rebalanced here.
     """
     modes_per_org = OrganizationOption.objects.get_value_bulk_id(org_ids, "sentry:sampling_mode")
-    filtered_org_ids = {
+    return sorted(
         org_id for org_id, mode in modes_per_org.items() if mode != DynamicSamplingMode.PROJECT
-    }
-
-    if not options.get("dynamic-sampling.check_span_feature_flag"):
-        return {
-            SamplingMeasure.SEGMENTS: sorted(filtered_org_ids),
-        }
-
-    span_org_ids: set[int] = set(options.get("dynamic-sampling.measure.spans") or [])
-    filtered_span_org_ids: set[int] = span_org_ids & filtered_org_ids
-    remaining_org_ids: set[int] = filtered_org_ids - filtered_span_org_ids
-    return {
-        SamplingMeasure.SEGMENTS: sorted(remaining_org_ids),
-        SamplingMeasure.SPANS: sorted(filtered_span_org_ids),
-    }
+    )
 
 
 @instrumented_task(
@@ -125,19 +108,11 @@ def boost_low_volume_projects() -> None:
     for orgs in GetActiveOrgs(
         max_projects=MAX_PROJECTS_PER_QUERY,
         granularity=Granularity(60),
-        measure=SamplingMeasure.SEGMENTS,
     ):
-        orgs_by_measure = _partition_orgs_by_measure(orgs)
-
-        for measure, org_ids in orgs_by_measure.items():
-            _record_partitioning_metrics({measure: org_ids})
-            _process_orgs_for_boost(org_ids, measure)
+        _process_orgs_for_boost(_filter_orgs(orgs))
 
 
-def _process_orgs_for_boost(
-    org_ids: list[int],
-    measure: SamplingMeasure,
-) -> None:
+def _process_orgs_for_boost(org_ids: list[int]) -> None:
     """
     Process organizations for boost_low_volume_projects.
 
@@ -149,11 +124,10 @@ def _process_orgs_for_boost(
     metrics.incr(
         "dynamic_sampling.boost_low_volume_projects.orgs_processed",
         amount=len(org_ids),
-        tags={"measure": str(measure.value)},
     )
 
     for org_id, projects in fetch_projects_with_total_root_transaction_count_and_rates(
-        org_ids=org_ids, measure=measure
+        org_ids=org_ids
     ).items():
         boost_low_volume_projects_of_org.apply_async(
             kwargs={
@@ -161,16 +135,6 @@ def _process_orgs_for_boost(
                 "projects_with_tx_count_and_rates": projects,
             },
             headers={"sentry-propagate-traces": False},
-        )
-
-
-def _record_partitioning_metrics(orgs_by_measure: dict[SamplingMeasure, list[int]]) -> None:
-    for measure, org_ids in orgs_by_measure.items():
-        metrics.incr(
-            "dynamic_sampling.partition_by_measure.measure",
-            amount=len(org_ids),
-            tags={"measure": measure.value},
-            sample_rate=1,
         )
 
 
@@ -196,16 +160,8 @@ def boost_low_volume_projects_of_org_with_query(org_id: OrganizationId) -> None:
     if is_project_mode_sampling(org):
         return
 
-    orgs_by_measure = _partition_orgs_by_measure([org_id])
-    measures: dict[int, SamplingMeasure] = {}
-    for m, org_ids in orgs_by_measure.items():
-        for oid in org_ids:
-            measures[oid] = m
-    measure = measures.get(org_id, SamplingMeasure.SEGMENTS)
-
     projects_with_tx_count_and_rates = fetch_projects_with_total_root_transaction_count_and_rates(
         org_ids=[org_id],
-        measure=measure,
     )[org_id]
     rebalanced_projects = calculate_sample_rates_of_projects(
         org_id, projects_with_tx_count_and_rates
@@ -265,15 +221,15 @@ def boost_low_volume_projects_of_org(
 @metrics.wraps("dynamic_sampling.fetch_projects_with_total_root_transaction_count_and_rates")
 def fetch_projects_with_total_root_transaction_count_and_rates(
     org_ids: list[int],
-    measure: SamplingMeasure,
     query_interval: timedelta | None = None,
+    config: QueryConfig = SEGMENTS_CONFIG,
 ) -> Mapping[OrganizationId, Sequence[ProjectVolumes]]:
     """
     Fetches for each org and each project the total root transaction count and how many transactions were kept and
     dropped.
     """
     aggregated_projects = defaultdict(list)
-    project_count_query_iter = query_project_counts_by_org(org_ids, measure, query_interval)
+    project_count_query_iter = query_project_counts_by_org(org_ids, query_interval, config)
     for chunk in project_count_query_iter:
         for org_id, project_id, root_count_value, keep_count, drop_count in chunk:
             aggregated_projects[org_id].append(
@@ -290,7 +246,9 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
 
 @dynamic_sampling_task
 def query_project_counts_by_org(
-    org_ids: list[int], measure: SamplingMeasure, query_interval: timedelta | None = None
+    org_ids: list[int],
+    query_interval: timedelta | None = None,
+    config: QueryConfig = SEGMENTS_CONFIG,
 ) -> Iterator[Sequence[OrgProjectVolumes]]:
     """Queries the total root transaction count and how many transactions were kept and dropped
     for each project in a given interval (defaults to the last hour).
@@ -311,7 +269,6 @@ def query_project_counts_by_org(
     metrics.incr(
         "dynamic_sampling.query_project_counts_by_org.count",
         amount=len(org_ids),
-        tags={"measure": str(measure.value)},
     )
 
     org_ids = list(org_ids)
@@ -322,10 +279,6 @@ def query_project_counts_by_org(
     )
     decision_string_id = indexer.resolve_shared_org("decision")
     decision_tag = f"tags_raw[{decision_string_id}]"
-
-    config = MEASURE_CONFIGS.get(measure)
-    if config is None:
-        raise ValueError(f"Unsupported measure: {measure}")
 
     metric_id = indexer.resolve_shared_org(str(config["mri"]))
     use_case_id = config["use_case_id"]
@@ -385,10 +338,7 @@ def query_project_counts_by_org(
     offset = 0
     more_results: bool = True
     while more_results:
-        with metrics.timer(
-            "dynamic_sampling.query_project_counts_by_org.query_time",
-            tags={"measure": str(measure.value)},
-        ):
+        with metrics.timer("dynamic_sampling.query_project_counts_by_org.query_time"):
             request = Request(
                 dataset=Dataset.PerformanceMetrics.value,
                 app_id="dynamic_sampling",

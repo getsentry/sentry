@@ -82,7 +82,7 @@ from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     calculate_sample_rates_of_projects,
     query_project_counts_by_org,
 )
-from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
+from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.dynamic_sampling.utils import (
     has_custom_dynamic_sampling,
     is_organization_mode_sampling,
@@ -1331,16 +1331,9 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         # TODO: this will take a long time for organizations with a lot of projects
         #       so we need to refactor this into an async task we can run and observe
         org_id = organization.id
-        measure = SamplingMeasure.SEGMENTS
-        if options.get("dynamic-sampling.check_span_feature_flag"):
-            span_org_ids = options.get("dynamic-sampling.measure.spans") or []
-            if org_id in span_org_ids:
-                measure = SamplingMeasure.SPANS
 
         projects_with_tx_count_and_rates = []
-        for chunk in query_project_counts_by_org(
-            [org_id], measure, query_interval=timedelta(days=30)
-        ):
+        for chunk in query_project_counts_by_org([org_id], query_interval=timedelta(days=30)):
             for row in chunk:
                 projects_with_tx_count_and_rates.append(row[1:])
 
@@ -1459,7 +1452,6 @@ class DeleteConfirmationArgs(TypedDict):
 
 
 def send_delete_confirmation(delete_confirmation_args: DeleteConfirmationArgs):
-    from sentry import options
     from sentry.utils.email import MessageBuilder
 
     organization = delete_confirmation_args["organization"]

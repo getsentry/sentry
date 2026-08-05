@@ -15,10 +15,9 @@ from sentry.constants import DataCategory
 from sentry.dynamic_sampling.rules.utils import ProjectId
 from sentry.dynamic_sampling.tasks.common import (
     ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
-    MEASURE_CONFIGS,
+    SEGMENTS_CONFIG,
     OrganizationDataVolume,
 )
-from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.constants import SAMPLING_MODE_HIGHEST_ACCURACY
@@ -251,8 +250,7 @@ def get_generic_metrics_organization_volume(
     end_time = end or datetime.now(UTC)
     start_time = end_time - time_interval
 
-    config = MEASURE_CONFIGS[SamplingMeasure.SEGMENTS]
-    metric_id = indexer.resolve_shared_org(str(config["mri"]))
+    metric_id = indexer.resolve_shared_org(str(SEGMENTS_CONFIG["mri"]))
 
     where: list[Condition] = [
         Condition(Column("timestamp"), Op.GTE, start_time),
@@ -260,7 +258,7 @@ def get_generic_metrics_organization_volume(
         Condition(Column("metric_id"), Op.EQ, metric_id),
         Condition(Column("org_id"), Op.IN, [org_id]),
     ]
-    for tag_name, tag_value in config["tags"].items():
+    for tag_name, tag_value in SEGMENTS_CONFIG["tags"].items():
         tag_string_id = indexer.resolve_shared_org(tag_name)
         tag_column = f"tags_raw[{tag_string_id}]"
         where.append(Condition(Column(tag_column), Op.EQ, tag_value))
@@ -280,7 +278,7 @@ def get_generic_metrics_organization_volume(
         app_id="dynamic_sampling",
         query=query,
         tenant_ids={
-            "use_case_id": config["use_case_id"].value,
+            "use_case_id": SEGMENTS_CONFIG["use_case_id"].value,
             "cross_org_query": 1,
         },
     )

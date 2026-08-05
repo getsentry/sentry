@@ -11,7 +11,11 @@ from sentry.dynamic_sampling.rules.utils import DecisionKeepCount, OrganizationI
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     fetch_projects_with_total_root_transaction_count_and_rates,
 )
-from sentry.dynamic_sampling.tasks.common import GetActiveOrgsVolumes, OrganizationDataVolume
+from sentry.dynamic_sampling.tasks.common import (
+    SPANS_CONFIG,
+    GetActiveOrgsVolumes,
+    OrganizationDataVolume,
+)
 from sentry.dynamic_sampling.tasks.constants import MAX_REBALANCE_FACTOR, MIN_REBALANCE_FACTOR
 from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
     compute_adjusted_factor,
@@ -24,7 +28,7 @@ from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
 )
 from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
-from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
+from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.dynamic_sampling.utils import has_dynamic_sampling
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
@@ -43,7 +47,7 @@ from sentry.taskworker.namespaces import telemetry_experience_tasks
 )
 @dynamic_sampling_task
 def recalibrate_orgs() -> None:
-    for segment_volumes in GetActiveOrgsVolumes(measure=SamplingMeasure.SEGMENTS):
+    for segment_volumes in GetActiveOrgsVolumes():
         _process_orgs_volumes(segment_volumes)
 
 
@@ -153,7 +157,7 @@ def recalibrate_org(org_id: OrganizationId, total: int, indexed: int) -> None:
 @dynamic_sampling_task
 def recalibrate_projects_batch(orgs: list[OrganizationId]) -> None:
     for org_id, projects in fetch_projects_with_total_root_transaction_count_and_rates(
-        org_ids=orgs, measure=SamplingMeasure.SPANS
+        org_ids=orgs, config=SPANS_CONFIG
     ).items():
         sample_rates = ProjectOption.objects.get_value_bulk_id(
             [t[0] for t in projects], "sentry:target_sample_rate"

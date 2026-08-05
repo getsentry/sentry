@@ -22,7 +22,6 @@ from snuba_sdk import (
 from sentry import quotas
 from sentry.dynamic_sampling.tasks.constants import CHUNK_SIZE, MAX_ORGS_PER_QUERY
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import extrapolate_monthly_volume
-from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -38,28 +37,27 @@ ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL = timedelta(minutes=5)
 ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY = Granularity(60)
 
 
-class MeasureConfig(TypedDict):
-    """Configuration for a sampling measure query."""
+class QueryConfig(TypedDict):
+    """Configuration for a dynamic sampling volume query."""
 
     mri: str
     use_case_id: UseCaseID
     tags: dict[str, str]
 
 
-# Configuration for each sampling measure type
-MEASURE_CONFIGS: dict[SamplingMeasure, MeasureConfig] = {
-    # SEGMENTS: SpanMRI with is_segment=true filter (replacement for transactions)
-    SamplingMeasure.SEGMENTS: {
-        "mri": SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-        "use_case_id": UseCaseID.SPANS,
-        "tags": {"is_segment": "true"},
-    },
-    # SPANS: SpanMRI without is_segment filter (AM3/project mode - counts all spans)
-    SamplingMeasure.SPANS: {
-        "mri": SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-        "use_case_id": UseCaseID.SPANS,
-        "tags": {},
-    },
+# SpanMRI with is_segment=true filter, i.e. counting only root spans (segments).
+SEGMENTS_CONFIG: QueryConfig = {
+    "mri": SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+    "use_case_id": UseCaseID.SPANS,
+    "tags": {"is_segment": "true"},
+}
+
+# SpanMRI without the is_segment filter, i.e. counting all spans. Only used by
+# project-mode recalibration.
+SPANS_CONFIG: QueryConfig = {
+    "mri": SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+    "use_case_id": UseCaseID.SPANS,
+    "tags": {},
 }
 
 
@@ -78,12 +76,10 @@ class GetActiveOrgs:
         max_projects: int | None = None,
         time_interval: timedelta = ACTIVE_ORGS_DEFAULT_TIME_INTERVAL,
         granularity: Granularity = ACTIVE_ORGS_DEFAULT_GRANULARITY,
-        measure: SamplingMeasure = SamplingMeasure.SEGMENTS,
     ) -> None:
-        config = MEASURE_CONFIGS[measure]
-        self.metric_id = indexer.resolve_shared_org(str(config["mri"]))
-        self.use_case_id = config["use_case_id"]
-        self.tag_filters = config["tags"]
+        self.metric_id = indexer.resolve_shared_org(str(SEGMENTS_CONFIG["mri"]))
+        self.use_case_id = SEGMENTS_CONFIG["use_case_id"]
+        self.tag_filters = SEGMENTS_CONFIG["tags"]
 
         self.offset = 0
         self.last_result: list[tuple[int, int]] = []
@@ -237,15 +233,13 @@ class GetActiveOrgsVolumes:
         granularity: Granularity = ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY,
         include_keep: bool = True,
         orgs: list[int] | None = None,
-        measure: SamplingMeasure = SamplingMeasure.SEGMENTS,
     ) -> None:
         self.include_keep = include_keep
         self.orgs = orgs
 
-        config = MEASURE_CONFIGS[measure]
-        self.metric_id = indexer.resolve_shared_org(str(config["mri"]))
-        self.use_case_id = config["use_case_id"]
-        self.tag_filters = config["tags"]
+        self.metric_id = indexer.resolve_shared_org(str(SEGMENTS_CONFIG["mri"]))
+        self.use_case_id = SEGMENTS_CONFIG["use_case_id"]
+        self.tag_filters = SEGMENTS_CONFIG["tags"]
 
         if self.include_keep:
             decision_string_id = indexer.resolve_shared_org("decision")

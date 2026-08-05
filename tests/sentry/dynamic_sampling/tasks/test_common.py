@@ -9,7 +9,6 @@ from sentry.dynamic_sampling.tasks.common import (
     OrganizationDataVolume,
     get_organization_volume,
 )
-from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -149,54 +148,18 @@ class TestGetActiveOrgsVolumes(BaseMetricsLayerTestCase, TestCase, SnubaTestCase
 
 
 @freeze_time(MOCK_DATETIME)
-class TestGetActiveOrgsMeasureFiltering(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
+class TestGetActiveOrgsSegmentFiltering(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     """
-    Tests that SEGMENTS and SPANS measures filter metrics correctly.
+    Tests that segment metrics are filtered correctly.
     """
 
     @property
     def now(self):
         return MOCK_DATETIME
 
-    def test_segments_measure_only_counts_segment_spans(self) -> None:
+    def test_only_counts_segment_spans(self) -> None:
         """
-        Test that SEGMENTS measure only counts SpanMRI with is_segment=true.
-        """
-        org1 = self.create_organization("test-org-1")
-        project1 = self.create_project(organization=org1)
-        org2 = self.create_organization("test-org-2")
-        project2 = self.create_project(organization=org2)
-
-        # Store span metric with is_segment=true (should be counted by SEGMENTS measure)
-        self.store_performance_metric(
-            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"transaction": "foo", "decision": "keep", "is_segment": "true"},
-            minutes_before_now=30,
-            value=1,
-            project_id=project1.id,
-            org_id=org1.id,
-        )
-
-        # Store span metric without is_segment (should NOT be counted by SEGMENTS measure)
-        self.store_performance_metric(
-            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"transaction": "bar", "decision": "keep"},
-            minutes_before_now=30,
-            value=100,
-            project_id=project2.id,
-            org_id=org2.id,
-        )
-
-        found_orgs = []
-        for orgs in GetActiveOrgs(max_orgs=10, measure=SamplingMeasure.SEGMENTS):
-            found_orgs.extend(orgs)
-
-        assert org1.id in found_orgs
-        assert org2.id not in found_orgs
-
-    def test_segments_measure_excludes_non_segment_spans(self) -> None:
-        """
-        Test that SEGMENTS measure excludes SpanMRI without is_segment=true.
+        Test that only SpanMRI with is_segment=true is counted.
         """
         org1 = self.create_organization("test-org-1")
         project1 = self.create_project(organization=org1)
@@ -224,15 +187,51 @@ class TestGetActiveOrgsMeasureFiltering(BaseMetricsLayerTestCase, TestCase, Snub
         )
 
         found_orgs = []
-        for orgs in GetActiveOrgs(max_orgs=10, measure=SamplingMeasure.SEGMENTS):
+        for orgs in GetActiveOrgs(max_orgs=10):
             found_orgs.extend(orgs)
 
         assert org1.id in found_orgs
         assert org2.id not in found_orgs
 
-    def test_segments_measure_multiple_orgs(self) -> None:
+    def test_excludes_non_segment_spans(self) -> None:
         """
-        Test GetActiveOrgs with SEGMENTS measure for multiple organizations.
+        Test that SpanMRI without is_segment=true is excluded.
+        """
+        org1 = self.create_organization("test-org-1")
+        project1 = self.create_project(organization=org1)
+        org2 = self.create_organization("test-org-2")
+        project2 = self.create_project(organization=org2)
+
+        # Store span metric with is_segment=true (should be counted)
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "foo", "decision": "keep", "is_segment": "true"},
+            minutes_before_now=30,
+            value=1,
+            project_id=project1.id,
+            org_id=org1.id,
+        )
+
+        # Store span metric without is_segment (should NOT be counted)
+        self.store_performance_metric(
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"transaction": "bar", "decision": "keep"},
+            minutes_before_now=30,
+            value=100,
+            project_id=project2.id,
+            org_id=org2.id,
+        )
+
+        found_orgs = []
+        for orgs in GetActiveOrgs(max_orgs=10):
+            found_orgs.extend(orgs)
+
+        assert org1.id in found_orgs
+        assert org2.id not in found_orgs
+
+    def test_multiple_orgs(self) -> None:
+        """
+        Test GetActiveOrgs for multiple organizations.
         """
         created_org_ids = []
         for i in range(5):
@@ -249,7 +248,7 @@ class TestGetActiveOrgsMeasureFiltering(BaseMetricsLayerTestCase, TestCase, Snub
             )
 
         found_orgs = []
-        for orgs in GetActiveOrgs(max_orgs=10, measure=SamplingMeasure.SEGMENTS):
+        for orgs in GetActiveOrgs(max_orgs=10):
             found_orgs.extend(orgs)
 
         for org_id in created_org_ids:
@@ -257,18 +256,18 @@ class TestGetActiveOrgsMeasureFiltering(BaseMetricsLayerTestCase, TestCase, Snub
 
 
 @freeze_time(MOCK_DATETIME)
-class TestGetActiveOrgsVolumesMeasureFiltering(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
+class TestGetActiveOrgsVolumesSegmentFiltering(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     """
-    Tests that SEGMENTS measure filters volumes correctly.
+    Tests that segment volumes are filtered correctly.
     """
 
     @property
     def now(self):
         return MOCK_DATETIME
 
-    def test_segments_measure_volumes(self) -> None:
+    def test_segment_volumes(self) -> None:
         """
-        Test that GetActiveOrgsVolumes correctly queries SEGMENTS measure.
+        Test that GetActiveOrgsVolumes correctly queries segment metrics.
         """
         org = self.create_organization("test-org")
         project = self.create_project(organization=org)
@@ -292,7 +291,7 @@ class TestGetActiveOrgsVolumesMeasureFiltering(BaseMetricsLayerTestCase, TestCas
         )
 
         found_volumes = []
-        for volumes in GetActiveOrgsVolumes(max_orgs=10, measure=SamplingMeasure.SEGMENTS):
+        for volumes in GetActiveOrgsVolumes(max_orgs=10):
             found_volumes.extend(volumes)
 
         # Should only find the is_segment=true span metrics
@@ -301,9 +300,9 @@ class TestGetActiveOrgsVolumesMeasureFiltering(BaseMetricsLayerTestCase, TestCas
         assert found_volumes[0].total == 15  # 5 + 10
         assert found_volumes[0].indexed == 5  # only keep
 
-    def test_segments_measure_excludes_non_segment_spans(self) -> None:
+    def test_excludes_non_segment_spans(self) -> None:
         """
-        Test that non-segment spans are excluded from SEGMENTS volume calculation.
+        Test that non-segment spans are excluded from volume calculation.
         """
         org = self.create_organization("test-org")
         project = self.create_project(organization=org)
@@ -319,7 +318,7 @@ class TestGetActiveOrgsVolumesMeasureFiltering(BaseMetricsLayerTestCase, TestCas
         )
 
         found_volumes = []
-        for volumes in GetActiveOrgsVolumes(max_orgs=10, measure=SamplingMeasure.SEGMENTS):
+        for volumes in GetActiveOrgsVolumes(max_orgs=10):
             found_volumes.extend(volumes)
 
         # Should find no volumes since there are no is_segment=true spans
