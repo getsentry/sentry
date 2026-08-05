@@ -58,34 +58,46 @@ logger = logging.getLogger(__name__)
 
 
 def day_aligned_window(
-    range_start: datetime, range_end: datetime, offset_days: int, days_per_window: int
+    range_start: datetime, range_end: datetime, offset_days: int
 ) -> tuple[datetime, datetime] | None:
     """Return the window `offset_days` into `[range_start, range_end)`, or None past the end.
 
+    One UTC day per window, which is the only size worth using:
+      - `timestamp` is in the replays sort key at day granularity, so a narrower window prunes
+        nothing.
+      - A wider window cannot assert its day (see `day_pin_conditions`) and so reads roughly twice
+        the granules.
+      - The replays storage sets `max_rows_to_group_by = 1000000` with `group_by_overflow_mode =
+        break`, and the finders group by `replay_id`. A window holding more than a million replays is
+        silently truncated rather than rejected, so replays go quietly undeleted. A day leaves ample
+        headroom; the 7-day window this replaced truncated for any project above ~143k replays/day.
+
     Windows are laid out from the start of `range_start`'s UTC day rather than from `range_start`
-    itself, so a one-day window lands inside a single UTC day and `day_pin_conditions` can assert
-    it. Both ends are clamped to the range, so the first and last windows can be shorter.
+    itself, so each one lands inside a single day. Both ends are clamped to the range, so the first
+    and last windows can be shorter than a day.
 
     Consecutive windows meet exactly -- window N ends where window N+1 begins -- so the range is
     covered without gaps or overlap.
     """
-    day_start = range_start.replace(hour=0, minute=0, second=0, microsecond=0)
+    day = range_start.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(
+        days=offset_days
+    )
 
-    start = max(day_start + timedelta(days=offset_days), range_start)
+    start = max(day, range_start)
     if start >= range_end:
         return None
 
-    return start, min(day_start + timedelta(days=offset_days + days_per_window), range_end)
+    return start, min(day + timedelta(days=1), range_end)
 
 
 def day_aligned_windows(
-    range_start: datetime, range_end: datetime, days_per_window: int
+    range_start: datetime, range_end: datetime
 ) -> Iterator[tuple[datetime, datetime]]:
-    """Walk `[range_start, range_end)` as day-aligned windows. See `day_aligned_window`."""
+    """Walk `[range_start, range_end)` one UTC day at a time. See `day_aligned_window`."""
     offset_days = 0
-    while window := day_aligned_window(range_start, range_end, offset_days, days_per_window):
+    while window := day_aligned_window(range_start, range_end, offset_days):
         yield window
-        offset_days += days_per_window
+        offset_days += 1
 
 
 def day_pin_conditions(start: datetime, end: datetime) -> list[Condition]:
@@ -96,7 +108,10 @@ def day_pin_conditions(start: datetime, end: datetime) -> list[Condition]:
     Asserting the day collapses that. Measured against a table with the real sort key, a single-day
     window went from 25 granules to 13 with identical row counts.
 
-    Returns nothing when the window spans a day boundary, where the assertion would be wrong.
+    Every window from `day_aligned_window` lies inside one day, so in practice the pin always
+    applies. The guard stays because the finders accept an arbitrary range: pinning one that spanned
+    days would silently drop every row past the first day, which on this path means PII reported as
+    deleted that was not.
     """
     day = start.replace(hour=0, minute=0, second=0, microsecond=0)
     if end > day + timedelta(days=1):

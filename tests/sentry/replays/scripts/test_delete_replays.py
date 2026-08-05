@@ -328,8 +328,8 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
         self.assert_recording_not_deleted(replay_id_outside_timerange)
 
     def test_deletion_replays_multiple_time_windows(self) -> None:
-        # Store replays spread across a range wider than the chunk size so the finder has to walk
-        # more than one time window. Each must still be deleted.
+        # Store replays days apart so the finder has to walk more than one one-day window, and no
+        # single window holds two of them. Each must still be deleted.
         old_replay = uuid4().hex
         self.store_replay_segments(
             old_replay,
@@ -349,9 +349,8 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
             datetime.datetime.now() - datetime.timedelta(seconds=10),
         )
 
-        # A 3-day chunk over a ~30-day range forces roughly ten windows, so each replay lands in a
-        # different window from the others.
-        with self.options({"replay.bulk_delete_job.chunk_size_days": 3}), TaskRunner():
+        # One-day windows over a ~30-day range means ~31 windows, each replay in its own.
+        with TaskRunner():
             delete_replays(
                 project_id=self.project.id,
                 batch_size=self.small_batch_size,

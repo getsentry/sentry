@@ -19,7 +19,7 @@ from snuba_sdk import (
     Query,
 )
 
-from sentry import features, options
+from sentry import features
 from sentry.api.event_search import QueryToken, parse_search_query
 from sentry.models.organization import Organization
 from sentry.replays.query import replay_url_parser_config
@@ -59,10 +59,7 @@ def delete_replays(
     # Running tally of replays to be deleted, accumulated across windows and pages
     total_replays = 0
 
-    # Chunk the range into fixed-size windows
-    chunk_size_days = options.get("replay.bulk_delete_job.chunk_size_days") or 7
-
-    for window_start, window_end in day_aligned_windows(start_utc, end_utc, chunk_size_days):
+    for window_start, window_end in day_aligned_windows(start_utc, end_utc):
         # Reset per window because the cursor space is scoped to the window's result set
         cursor = None
 

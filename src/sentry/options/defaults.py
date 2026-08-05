@@ -511,15 +511,8 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Window size the bulk delete job pages within. One day is the useful value:
-#   - `timestamp` is in the replays sort key only at day granularity, so narrowing below a day
-#     prunes nothing.
-#   - A window wider than a day cannot assert its day and reads roughly twice the granules.
-#   - The replays storage sets `max_rows_to_group_by = 1000000` with `group_by_overflow_mode =
-#     break`, and the finder groups by `replay_id`. A window holding more than a million replays is
-#     therefore silently truncated rather than rejected, so replays go quietly undeleted. One day
-#     leaves ample headroom; the previous 7-day default truncated for any project above ~143k
-#     replays/day.
+# No longer read: the bulk delete job always windows by one UTC day. See `day_aligned_window` for
+# why nothing else is worth using. Kept registered pending removal.
 register(
     "replay.bulk_delete_job.chunk_size_days",
     default=1,

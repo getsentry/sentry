@@ -697,7 +697,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
             ),
         ]
         for range_start, range_end in cases:
-            windows = list(day_aligned_windows(range_start, range_end, 1))
+            windows = list(day_aligned_windows(range_start, range_end))
 
             assert windows[0][0] == range_start
             assert windows[-1][1] == range_end
@@ -712,10 +712,10 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         range_start = datetime.datetime(2026, 7, 23, 14, 30, tzinfo=datetime.UTC)
         range_end = datetime.datetime(2026, 7, 26, tzinfo=datetime.UTC)
 
-        assert [day_aligned_window(range_start, range_end, offset, 1) for offset in range(3)] == (
-            list(day_aligned_windows(range_start, range_end, 1))
+        assert [day_aligned_window(range_start, range_end, offset) for offset in range(3)] == (
+            list(day_aligned_windows(range_start, range_end))
         )
-        assert day_aligned_window(range_start, range_end, 3, 1) is None
+        assert day_aligned_window(range_start, range_end, 3) is None
 
     def test_day_pin_conditions_only_fire_inside_one_day(self) -> None:
         """Test the day assertion is added only when the window cannot escape a single UTC day.
