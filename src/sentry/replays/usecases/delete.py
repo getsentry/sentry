@@ -163,8 +163,6 @@ def fetch_rows_matching_pattern(
             *where,
         ],
         having=having,
-        # The hash is a function of `replay_id`, so grouping by both leaves cardinality unchanged
-        # while keeping every selected and ordered expression a group key.
         # Group by both the `replay_id` and `cityHash64(replay_id)` so we able
         # to keep track of the cursor _and_ still get the Replay IDs out. Since
         # the hash is a function of the ID, this doesn't change the row contents.
