@@ -4,7 +4,7 @@ import functools
 import logging
 import uuid
 from collections.abc import Sequence
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from snuba_sdk import (
     Column,
@@ -19,12 +19,18 @@ from snuba_sdk import (
     Query,
 )
 
-from sentry import features, options
+from sentry import features
 from sentry.api.event_search import QueryToken, parse_search_query
 from sentry.models.organization import Organization
 from sentry.replays.query import replay_url_parser_config
 from sentry.replays.tasks import archive_replay, delete_replays_script_async
-from sentry.replays.usecases.delete import SNUBA_RETRY_EXCEPTIONS, delete_seer_replay_data
+from sentry.replays.usecases.delete import (
+    SNUBA_RETRY_EXCEPTIONS,
+    delete_seer_replay_data,
+    initial_window_offset_minutes,
+    window_bounds,
+    window_size_minutes,
+)
 from sentry.replays.usecases.query import execute_query, handle_search_filters
 from sentry.replays.usecases.query.configs.scalar import scalar_search_config
 from sentry.snuba.referrer import Referrer
@@ -54,15 +60,16 @@ def delete_replays(
     # Running tally of replays to be deleted, accumulated across windows and pages
     total_replays = 0
 
-    # Chunk the range into fixed-size windows
-    chunk_size_days = options.get("replay.bulk_delete_job.chunk_size_days") or 7
+    # Chunk the range into wall-clock-aligned windows so none spans a UTC day boundary
+    window_size = window_size_minutes()
 
-    window_offset_days = 0
+    window_offset_minutes = initial_window_offset_minutes(start_utc, window_size)
     while True:
-        window_start = start_utc + timedelta(days=window_offset_days)
+        window_start, window_end = window_bounds(
+            start_utc, end_utc, window_offset_minutes, window_size
+        )
         if window_start >= end_utc:
             break
-        window_end = min(window_start + timedelta(days=chunk_size_days), end_utc)
 
         # Reset per window because the cursor space is scoped to the window's result set
         last_replay_id = None
@@ -107,7 +114,7 @@ def delete_replays(
                         total_replays=total_replays,
                     )
 
-        window_offset_days += chunk_size_days
+        window_offset_minutes += window_size
 
 
 def translate_cli_tags_param_to_snuba_tag_param(tags: list[str]) -> Sequence[QueryToken]:

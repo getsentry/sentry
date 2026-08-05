@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
 from typing import Any
 
 from django.utils import timezone
@@ -11,7 +10,6 @@ from taskbroker_client.retry import Retry
 from taskbroker_client.state import current_task
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
-from sentry import options
 from sentry.replays.consumers.recording import commit_message, process_message
 from sentry.replays.lib.kafka import PROCESS_REPLAY_RECORDING_TASK_NAME, publish_replay_event
 from sentry.replays.lib.storage import (
@@ -26,6 +24,9 @@ from sentry.replays.usecases.delete import (
     delete_matched_rows,
     delete_seer_replay_data,
     fetch_rows_matching_pattern,
+    initial_window_offset_minutes,
+    window_bounds,
+    window_size_minutes,
 )
 from sentry.replays.usecases.events import archive_event
 from sentry.replays.usecases.ingest.types import ProcessorContext
@@ -235,7 +236,8 @@ def run_bulk_replay_delete_job(
     limit: int = 100,
     has_seer_data: bool = False,
     total_deleted: int = 0,
-    window_offset_days: int = 0,
+    window_offset_days: int | None = None,
+    window_offset_minutes: int | None = None,
 ) -> None:
     """Replay bulk deletion task.
 
@@ -244,7 +246,7 @@ def run_bulk_replay_delete_job(
     in the model. Restarting the task will use the offset passed by the caller. If you want to
     restart the task from the previous checkpoint you must pass the checkpoint explicitly.
     """
-    chunk_size_days = options.get("replay.bulk_delete_job.chunk_size_days") or 7
+    window_size = window_size_minutes()
     job = ReplayDeletionJobModel.objects.get(id=replay_delete_job_id)
 
     # If this is the first run of the task we set the model to in-progress.
@@ -257,10 +259,13 @@ def run_bulk_replay_delete_job(
     if job.status != DeletionJobStatus.IN_PROGRESS:
         return None
 
-    # Derive the current window boundaries from the immutable job range and the cursor.
-    # Chunking into 7-day windows avoids full table scans in ClickHouse.
-    window_start = job.range_start + timedelta(days=window_offset_days)
-    window_end = min(window_start + timedelta(days=chunk_size_days), job.range_end)
+    # Derive the current window boundaries from the immutable job range and the cursor. Windows
+    # are snapped to the wall clock so none of them spans a UTC day boundary; see `window_bounds`.
+    if window_offset_minutes is None:
+        window_offset_minutes = initial_window_offset_minutes(job.range_start, window_size)
+    window_start, window_end = window_bounds(
+        job.range_start, job.range_end, window_offset_minutes, window_size
+    )
 
     try:
         # Delete the replays within a limited range. If more replays exist an incremented offset value
@@ -324,13 +329,13 @@ def run_bulk_replay_delete_job(
             limit=limit,
             has_seer_data=has_seer_data,
             total_deleted=new_total,
-            window_offset_days=window_offset_days,
+            window_offset_minutes=window_offset_minutes,
         )
         return None
 
     # Current window exhausted. Check if more time windows remain.
     if window_end < job.range_end:
-        # Advance to the next 7-day window by incrementing the cursor in the task args.
+        # Advance to the next window by incrementing the offset in the task args.
         # job.range_start is never mutated so the API always returns the original range.
         _advance_offset(job.id, new_total)
         run_bulk_replay_delete_job.delay(
@@ -339,7 +344,7 @@ def run_bulk_replay_delete_job(
             limit=limit,
             has_seer_data=has_seer_data,
             total_deleted=new_total,
-            window_offset_days=window_offset_days + chunk_size_days,
+            window_offset_minutes=window_offset_minutes + window_size,
         )
         return None
 

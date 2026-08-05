@@ -511,10 +511,20 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Chunk size for bulk delete job
+# Superseded by replay.bulk_delete_job.chunk_size_minutes and no longer read. Still registered so
+# existing automator config does not fail validation; remove once that config is gone.
 register(
     "replay.bulk_delete_job.chunk_size_days",
     default=7,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Window size the bulk delete job pages within. Must divide 1440: the replays table sort key holds
+# toStartOfDay(timestamp) in second position, so a window covering two day values stops ClickHouse
+# pruning granules with the cityHash64(replay_id) cursor.
+register(
+    "replay.bulk_delete_job.chunk_size_minutes",
+    default=60,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

@@ -16,9 +16,13 @@ from sentry.replays.usecases.delete import (
     MatchedRows,
     delete_matched_rows,
     fetch_rows_matching_pattern,
+    initial_window_offset_minutes,
+    window_bounds,
+    window_size_minutes,
 )
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.helpers import TaskRunner
+from sentry.testutils.helpers.options import override_options
 
 
 class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
@@ -422,6 +426,63 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         self.job.refresh_from_db()
         assert self.job.status == "completed"
 
+    def test_window_size_minutes_rejects_sizes_that_straddle_a_day(self) -> None:
+        """Test a size that does not divide 1440 falls back rather than crossing midnight."""
+        with override_options({"replay.bulk_delete_job.chunk_size_minutes": 60}):
+            assert window_size_minutes() == 60
+        with override_options({"replay.bulk_delete_job.chunk_size_minutes": 1440}):
+            assert window_size_minutes() == 1440
+        # 50 does not divide 1440, so windows would drift across the boundary.
+        with override_options({"replay.bulk_delete_job.chunk_size_minutes": 50}):
+            assert window_size_minutes() == 60
+        with override_options({"replay.bulk_delete_job.chunk_size_minutes": 0}):
+            assert window_size_minutes() == 60
+
+    def test_initial_window_offset_minutes_snaps_back_to_the_wall_clock(self) -> None:
+        """Test the first offset is the aligned slot containing range_start, not range_start."""
+        assert (
+            initial_window_offset_minutes(
+                datetime.datetime(2025, 6, 1, 0, 0, tzinfo=datetime.UTC), 60
+            )
+            == 0
+        )
+        assert (
+            initial_window_offset_minutes(
+                datetime.datetime(2025, 6, 1, 3, 30, tzinfo=datetime.UTC), 60
+            )
+            == 180
+        )
+        assert (
+            initial_window_offset_minutes(
+                datetime.datetime(2025, 6, 1, 23, 59, tzinfo=datetime.UTC), 60
+            )
+            == 1380
+        )
+
+    def test_window_bounds_stay_inside_one_day_across_a_multi_day_range(self) -> None:
+        """Test every window in a multi-day range lands within a single UTC day."""
+        range_start = datetime.datetime(2025, 6, 1, 3, 30, tzinfo=datetime.UTC)
+        range_end = datetime.datetime(2025, 6, 4, 0, 0, tzinfo=datetime.UTC)
+
+        offset = initial_window_offset_minutes(range_start, 60)
+        windows = []
+        start, end = window_bounds(range_start, range_end, offset, 60)
+        while start < range_end:
+            windows.append((start, end))
+            offset += 60
+            start, end = window_bounds(range_start, range_end, offset, 60)
+
+        # 3:30 to midnight on day one, then two full days.
+        assert len(windows) == 21 + 24 + 24
+        assert windows[0] == (range_start, datetime.datetime(2025, 6, 1, 4, 0, tzinfo=datetime.UTC))
+        assert windows[-1][1] == range_end
+        for window_start, window_end in windows:
+            assert window_start < window_end
+            assert window_start.date() == (window_end - datetime.timedelta(microseconds=1)).date()
+        # The windows tile the range with no gaps.
+        for earlier, later in zip(windows, windows[1:]):
+            assert earlier[1] == later[0]
+
     def test_fetch_rows_matching_pattern(self) -> None:
         t1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
         t2 = datetime.datetime.now() + datetime.timedelta(seconds=10)
@@ -565,10 +626,13 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
     def test_run_bulk_replay_delete_job_time_window_chunking(
         self, mock_delete_matched_rows: MagicMock, mock_fetch_rows: MagicMock
     ) -> None:
-        """Test that wide date ranges are chunked into 7-day windows."""
-        # Create a job spanning 20 days so it requires 3 windows (7 + 7 + 6).
-        range_start = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=20)
-        range_end = datetime.datetime.now(tz=datetime.UTC)
+        """Test a range is chunked into windows snapped to the wall clock.
+
+        `range_start` is deliberately mid-hour: the first window must start at `range_start` while
+        every later boundary lands on the hour, so windows cannot drift across a day boundary.
+        """
+        range_start = datetime.datetime(2025, 6, 1, 3, 30, tzinfo=datetime.UTC)
+        range_end = datetime.datetime(2025, 6, 1, 6, 0, tzinfo=datetime.UTC)
         job = ReplayDeletionJobModel.objects.create(
             organization_id=self.project.organization.id,
             project_id=self.project.id,
@@ -581,17 +645,14 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
 
         # Each window returns rows with has_more=False so the task advances to the next window.
         def row_generator() -> Generator[MatchedRows]:
-            # Window 1: range_start to range_start + 7 days
             yield {
                 "rows": [{"retention_days": 90, "replay_id": "a", "max_segment_id": 1}],
                 "has_more": False,
             }
-            # Window 2: range_start + 7 days to range_start + 14 days
             yield {
                 "rows": [{"retention_days": 90, "replay_id": "b", "max_segment_id": 1}],
                 "has_more": False,
             }
-            # Window 3: range_start + 14 days to range_end
             yield {
                 "rows": [{"retention_days": 90, "replay_id": "c", "max_segment_id": 1}],
                 "has_more": False,
@@ -611,20 +672,61 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         # range_start must never be mutated — the API always returns the original value.
         assert job.range_start == range_start
 
-        # Verify each call used the correct window boundaries.
-        calls = mock_fetch_rows.call_args_list
-        # Window 1
-        assert calls[0].kwargs["start"] == range_start
-        assert calls[0].kwargs["end"] == range_start + datetime.timedelta(days=7)
-        assert calls[0].kwargs["offset"] == 0
-        # Window 2
-        assert calls[1].kwargs["start"] == range_start + datetime.timedelta(days=7)
-        assert calls[1].kwargs["end"] == range_start + datetime.timedelta(days=14)
-        assert calls[1].kwargs["offset"] == 0
-        # Window 3
-        assert calls[2].kwargs["start"] == range_start + datetime.timedelta(days=14)
-        assert calls[2].kwargs["end"] == range_end
-        assert calls[2].kwargs["offset"] == 0
+        windows = [
+            (call.kwargs["start"], call.kwargs["end"]) for call in mock_fetch_rows.call_args_list
+        ]
+        assert windows == [
+            # Clamped to range_start rather than starting at 03:00.
+            (range_start, datetime.datetime(2025, 6, 1, 4, 0, tzinfo=datetime.UTC)),
+            (
+                datetime.datetime(2025, 6, 1, 4, 0, tzinfo=datetime.UTC),
+                datetime.datetime(2025, 6, 1, 5, 0, tzinfo=datetime.UTC),
+            ),
+            # Clamped to range_end.
+            (datetime.datetime(2025, 6, 1, 5, 0, tzinfo=datetime.UTC), range_end),
+        ]
+
+    @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
+    @patch("sentry.replays.tasks.delete_matched_rows")
+    def test_run_bulk_replay_delete_job_windows_never_span_a_day_boundary(
+        self, mock_delete_matched_rows: MagicMock, mock_fetch_rows: MagicMock
+    ) -> None:
+        """Test a range crossing midnight is split at the boundary.
+
+        A window covering two `toStartOfDay(timestamp)` values gives up the granule pruning that
+        paging on `cityHash64(replay_id)` exists to get, so the split is the point of the feature.
+        """
+        range_start = datetime.datetime(2025, 6, 1, 23, 30, tzinfo=datetime.UTC)
+        range_end = datetime.datetime(2025, 6, 2, 0, 30, tzinfo=datetime.UTC)
+        job = ReplayDeletionJobModel.objects.create(
+            organization_id=self.project.organization.id,
+            project_id=self.project.id,
+            range_start=range_start,
+            range_end=range_end,
+            query="",
+            environments=["prod"],
+            status="pending",
+        )
+
+        def row_generator() -> Generator[MatchedRows]:
+            yield {"rows": [], "has_more": False}
+            yield {"rows": [], "has_more": False}
+
+        mock_fetch_rows.side_effect = row_generator()
+
+        with TaskRunner():
+            run_bulk_replay_delete_job.delay(job.id, offset=0, limit=100)
+
+        job.refresh_from_db()
+        assert job.status == "completed"
+
+        midnight = datetime.datetime(2025, 6, 2, 0, 0, tzinfo=datetime.UTC)
+        windows = [
+            (call.kwargs["start"], call.kwargs["end"]) for call in mock_fetch_rows.call_args_list
+        ]
+        assert windows == [(range_start, midnight), (midnight, range_end)]
+        for start, end in windows:
+            assert start.date() == (end - datetime.timedelta(microseconds=1)).date()
 
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     @patch("sentry.replays.tasks.delete_matched_rows")
@@ -632,8 +734,8 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         self, mock_delete_matched_rows: MagicMock, mock_fetch_rows: MagicMock
     ) -> None:
         """Test pagination within a time window followed by advancing to the next window."""
-        range_start = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=10)
-        range_end = datetime.datetime.now(tz=datetime.UTC)
+        range_start = datetime.datetime(2025, 6, 1, 0, 0, tzinfo=datetime.UTC)
+        range_end = datetime.datetime(2025, 6, 1, 2, 0, tzinfo=datetime.UTC)
         job = ReplayDeletionJobModel.objects.create(
             organization_id=self.project.organization.id,
             project_id=self.project.id,
@@ -675,16 +777,17 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         assert job.range_start == range_start
 
         calls = mock_fetch_rows.call_args_list
+        hour_one = datetime.datetime(2025, 6, 1, 1, 0, tzinfo=datetime.UTC)
         # Window 1, page 1 — offset 0
         assert calls[0].kwargs["start"] == range_start
-        assert calls[0].kwargs["end"] == range_start + datetime.timedelta(days=7)
+        assert calls[0].kwargs["end"] == hour_one
         assert calls[0].kwargs["offset"] == 0
-        # Window 1, page 2 — offset 1
+        # Window 1, page 2 — offset 1, same window
         assert calls[1].kwargs["start"] == range_start
-        assert calls[1].kwargs["end"] == range_start + datetime.timedelta(days=7)
+        assert calls[1].kwargs["end"] == hour_one
         assert calls[1].kwargs["offset"] == 1
         # Window 2 — offset reset to 0
-        assert calls[2].kwargs["start"] == range_start + datetime.timedelta(days=7)
+        assert calls[2].kwargs["start"] == hour_one
         assert calls[2].kwargs["end"] == range_end
         assert calls[2].kwargs["offset"] == 0
 

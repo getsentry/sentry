@@ -3,7 +3,7 @@ from __future__ import annotations
 import functools
 import logging
 from collections.abc import Iterator
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import TypedDict
 
 from google.cloud.exceptions import NotFound
@@ -22,6 +22,7 @@ from snuba_sdk import (
 )
 from urllib3 import Retry
 
+from sentry import options
 from sentry.api.event_search import parse_search_query
 from sentry.models.organization import Organization
 from sentry.replays.lib.kafka import publish_replay_event
@@ -56,6 +57,52 @@ SNUBA_RETRY_EXCEPTIONS = (
 )
 
 logger = logging.getLogger(__name__)
+
+
+_MINUTES_PER_DAY = 1440
+_DEFAULT_WINDOW_MINUTES = 60
+
+
+def window_size_minutes() -> int:
+    """Return the configured window size, rejecting values that would straddle a day boundary."""
+    minutes = options.get("replay.bulk_delete_job.chunk_size_minutes")
+    if minutes <= 0 or _MINUTES_PER_DAY % minutes != 0:
+        logger.warning(
+            "Ignoring replay.bulk_delete_job.chunk_size_minutes=%s, it must divide %s.",
+            minutes,
+            _MINUTES_PER_DAY,
+        )
+        return _DEFAULT_WINDOW_MINUTES
+    return minutes
+
+
+def initial_window_offset_minutes(range_start: datetime, size_minutes: int) -> int:
+    """Return the offset of the first window, which is the one containing `range_start`."""
+    elapsed = range_start - _start_of_day(range_start)
+    return (int(elapsed.total_seconds()) // 60 // size_minutes) * size_minutes
+
+
+def window_bounds(
+    range_start: datetime, range_end: datetime, offset_minutes: int, size_minutes: int
+) -> tuple[datetime, datetime]:
+    """Return the window at `offset_minutes`, measured from the start of `range_start`'s UTC day.
+
+    Windows are snapped to the wall clock rather than laid out from `range_start`, so that no window
+    spans a UTC day boundary. That matters because the sort key is
+    `(project_id, toStartOfDay(timestamp), cityHash64(replay_id), event_hash)`: a condition on the
+    third component only prunes granules while the first two are pinned to single values, so a
+    window covering two days gives up the pruning that paging on the hash exists to get. Snapping
+    holds across days as long as the size divides 1440, which `window_size_minutes` enforces.
+
+    The first and last windows are clamped to the job's range, so they can be shorter than
+    `size_minutes`.
+    """
+    aligned = _start_of_day(range_start) + timedelta(minutes=offset_minutes)
+    return max(aligned, range_start), min(aligned + timedelta(minutes=size_minutes), range_end)
+
+
+def _start_of_day(value: datetime) -> datetime:
+    return value.replace(hour=0, minute=0, second=0, microsecond=0)
 
 
 def delete_matched_rows(project_id: int, rows: list[MatchedRow]) -> int | None:
