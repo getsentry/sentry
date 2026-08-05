@@ -221,7 +221,7 @@ function SupergroupIssueList({
   const sortedGroupIds = useMemo(
     () =>
       filterWithCurrentSearch
-        ? [...groupIds].sort(
+        ? groupIds.toSorted(
             (a, b) =>
               Number(matchedIds.has(String(b))) - Number(matchedIds.has(String(a)))
           )
