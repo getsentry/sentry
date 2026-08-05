@@ -400,6 +400,19 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
 
         assert str(self.workflow.id) in {workflow["id"] for workflow in response.data}
 
+    def test_filter_by_project_excludes_all_projects_workflow_without_flag(self) -> None:
+        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+        self.create_detector_workflow(
+            workflow=self.workflow,
+            detector=all_projects_detector,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params=[("project", self.project.id)]
+        )
+
+        assert str(self.workflow.id) not in {workflow["id"] for workflow in response.data}
+
     def test_query_filter_by_action(self) -> None:
         self._create_action_for_workflow(self.workflow, Action.Type.SLACK, self.FAKE_SLACK_CONFIG)
         self._create_action_for_workflow(self.workflow, Action.Type.SLACK, self.FAKE_SLACK_CONFIG)
@@ -1117,6 +1130,48 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
             if call.kwargs.get("event") == audit_log.get_event_id("DETECTOR_WORKFLOW_ADD")
         ]
         assert len(detector_workflow_audit_calls) == 1
+
+    @mock.patch("sentry.workflow_engine.endpoints.validators.utils.create_audit_entry")
+    @with_feature("organizations:workflow-engine-all-projects-detector")
+    def test_create_workflow_with_all_projects_detector(self, mock_audit: mock.MagicMock) -> None:
+        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+        workflow_data = {**self.valid_workflow, "detectorIds": [all_projects_detector.id]}
+
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=workflow_data,
+        )
+
+        assert response.status_code == 201
+
+        created_detector_workflows = DetectorWorkflow.objects.filter(
+            workflow_id=response.data["id"]
+        )
+        assert created_detector_workflows.count() == 1
+        assert created_detector_workflows.get().detector_id == all_projects_detector.id
+
+        detector_workflow_audit_calls = [
+            call
+            for call in mock_audit.call_args_list
+            if call.kwargs.get("event") == audit_log.get_event_id("DETECTOR_WORKFLOW_ADD")
+        ]
+        assert len(detector_workflow_audit_calls) == 1
+
+    @with_feature("organizations:workflow-engine-all-projects-detector")
+    def test_create_workflow_with_all_projects_detector_requires_org_write(self) -> None:
+        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+        workflow_data = {**self.valid_workflow, "detectorIds": [all_projects_detector.id]}
+
+        self.organization.update_option("sentry:alerts_member_write", True)
+        self.login_as(user=self.member_user)
+
+        self.get_error_response(
+            self.organization.slug,
+            raw_data=workflow_data,
+            status_code=403,
+        )
 
     def test_create_workflow_with_invalid_detector_ids(self) -> None:
         workflow_data = {

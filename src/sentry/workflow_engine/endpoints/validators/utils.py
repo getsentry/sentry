@@ -118,6 +118,14 @@ def can_delete_detector(detector: Detector, request: Request) -> bool:
     return can_edit_user_created_detectors(request, detector.linked_project)
 
 
+def can_edit_all_project_detector_workflow_connections(request: Request) -> bool:
+    """
+    Exclude alerts:write scope from creating all-project workflow connections.
+    Since projects
+    """
+    return any(request.access.has_scope(scope) for scope in SYSTEM_CREATED_DETECTOR_REQUIRED_SCOPES)
+
+
 def can_edit_detector_workflow_connections(detector: Detector, request: Request) -> bool:
     """
     Anyone with alert write access to the project can connect/disconnect detectors of any type,
@@ -125,9 +133,7 @@ def can_edit_detector_workflow_connections(detector: Detector, request: Request)
     The only exception is the all project detector, which requires system-created detector scopes.
     """
     if not detector.project:
-        return any(
-            request.access.has_scope(scope) for scope in SYSTEM_CREATED_DETECTOR_REQUIRED_SCOPES
-        )
+        return can_edit_all_project_detector_workflow_connections(request)
 
     return request.access.has_any_project_scope(
         detector.linked_project, USER_CREATED_DETECTOR_REQUIRED_SCOPES
@@ -387,4 +393,17 @@ def should_include_all_projects_detector(request: Request, organization: Organiz
     return (
         features.has("organizations:workflow-engine-all-projects-detector", organization)
         and request.method == "GET"
+    )
+
+
+def should_include_all_projects_detector_workflows(
+    request: Request, organization: Organization
+) -> bool:
+    """
+    The flag is always required to show these workflows, but if it isn't a GET request, also check
+    that the caller has org:write. alerts:write is not sufficient to connect an all projects detector.
+    """
+    return features.has("organizations:workflow-engine-all-projects-detector", organization) and (
+        request.method == "GET"
+        or can_edit_all_project_detector_workflow_connections(request=request)
     )

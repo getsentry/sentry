@@ -64,7 +64,9 @@ from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowVa
 from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
     DetectorWorkflowMutationValidator,
 )
-from sentry.workflow_engine.endpoints.validators.utils import should_include_all_projects_detector
+from sentry.workflow_engine.endpoints.validators.utils import (
+    should_include_all_projects_detector_workflows,
+)
 from sentry.workflow_engine.models import DetectorWorkflow, Workflow
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 from sentry.workflow_engine.types import DetectorId
@@ -215,7 +217,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         accessible_workflows = Q(detectorworkflow__detector__project__in=projects) | Q(
             detectorworkflow__isnull=True
         )
-        if should_include_all_projects_detector(request=request, organization=organization):
+        if should_include_all_projects_detector_workflows(request, organization):
             accessible_workflows |= Q(
                 detectorworkflow__detector__project__isnull=True,
                 detectorworkflow__detector__type=IssueStreamGroupType.slug,
