@@ -51,6 +51,7 @@ from sentry.models.debugfile import (
     ProguardArtifactRelease,
     ProjectDebugFile,
     build_proguard_reupload_dif_meta,
+    clean_redundant_difs,
     create_files_from_dif_zip,
     find_existing_dif,
     get_debug_id_from_dif_request,
@@ -847,12 +848,15 @@ def _clone_proguard_debug_file_for_reupload(
     dif = find_existing_dif(project, meta, checksum)
     if dif is None:
         objectstore_metadata: dict[str, object] = {}
+        objectstore_session = None
+        storage_path = None
         if debug_file.storage_path is not None:
             content_type = debug_file.get_content_type()
             file_size = debug_file.get_file_size()
+            objectstore_session = debug_file.get_objectstore_session()
             with closing(debug_file.get_file()) as source_fileobj:
                 storage_path = upload_dif_to_objectstore(
-                    debug_file.get_objectstore_session(),
+                    objectstore_session,
                     source_fileobj,
                     content_type,
                     file_size,
@@ -866,18 +870,30 @@ def _clone_proguard_debug_file_for_reupload(
                 "date_created": timezone.now(),
             }
 
-        dif = ProjectDebugFile.objects.create(
-            file=debug_file.file,
-            checksum=checksum,
-            debug_id=meta.debug_id,
-            code_id=meta.code_id,
-            cpu_name=meta.arch,
-            object_name="proguard-mapping",
-            project_id=project.id,
-            data=meta.data,
-            **objectstore_metadata,
-        )
+        try:
+            dif = ProjectDebugFile.objects.create(
+                file=debug_file.file,
+                checksum=checksum,
+                debug_id=meta.debug_id,
+                code_id=meta.code_id,
+                cpu_name=meta.arch,
+                object_name="proguard-mapping",
+                project_id=project.id,
+                data=meta.data,
+                **objectstore_metadata,
+            )
+        except Exception:
+            if storage_path is not None:
+                assert objectstore_session is not None
+                try:
+                    objectstore_session.delete(storage_path)
+                except Exception:
+                    logger.exception(
+                        "Failed to clean up Objectstore debug file after database error"
+                    )
+            raise
 
+        clean_redundant_difs(project, meta.debug_id)
         record_last_upload(project)
 
     return {

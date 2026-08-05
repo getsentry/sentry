@@ -1,9 +1,11 @@
 from hashlib import sha1
 from unittest.mock import MagicMock, patch
 
+import pytest
 from django.core.files.base import ContentFile
 from django.urls import reverse
 
+from sentry.api.endpoints.debug_files import _clone_proguard_debug_file_for_reupload
 from sentry.models.apitoken import ApiToken
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.files.file import File
@@ -482,3 +484,83 @@ class DifAssembleProguardCloneBackendTransitionTest(APITestCase):
         assert second_dif.storage_path is not None
         assert second_dif.storage_path != first_dif.storage_path
         assert second_dif.get_file().read() == file_contents
+
+    @patch("sentry.models.debugfile.OBJECTSTORE_MULTIPART_UPLOAD_THRESHOLD", 0)
+    @patch("sentry.models.debugfile._upload_dif_to_objectstore_multipart")
+    def test_clone_objectstore_source_spools_stream_before_upload(
+        self, multipart_upload: MagicMock
+    ) -> None:
+        file_contents = b"proguard mapping"
+        checksum = sha1(file_contents).hexdigest()
+        blob = FileBlob.from_file_with_organization(ContentFile(file_contents), self.organization)
+        multipart_upload.return_value = "source-storage-path"
+
+        with self.feature({"organizations:objectstore-debugfiles-write": True}):
+            self._assemble_source(checksum, [blob.checksum])
+
+        source_dif = ProjectDebugFile.objects.get(
+            project_id=self.project.id,
+            debug_id="00000000-0000-0000-0000-000000000000",
+        )
+        source_fileobj = MagicMock(spec=["read", "close"])
+        source_fileobj.read.side_effect = [file_contents, b""]
+
+        def upload_clone(_session, fileobj, *_args):
+            assert fileobj.seekable()
+            assert fileobj.read() == file_contents
+            return "cloned-storage-path"
+
+        multipart_upload.side_effect = upload_clone
+        with (
+            patch.object(source_dif, "get_file", return_value=source_fileobj),
+            patch("sentry.api.endpoints.debug_files.clean_redundant_difs") as clean_redundant_difs,
+        ):
+            _clone_proguard_debug_file_for_reupload(
+                self.project,
+                source_dif,
+                "11111111-1111-1111-1111-111111111111",
+                True,
+            )
+
+        source_fileobj.close.assert_called_once()
+        clean_redundant_difs.assert_called_once_with(
+            self.project, "11111111-1111-1111-1111-111111111111"
+        )
+
+    @patch("sentry.api.endpoints.debug_files.upload_dif_to_objectstore")
+    def test_clone_objectstore_source_cleans_up_after_database_error(
+        self, upload: MagicMock
+    ) -> None:
+        file_contents = b"proguard mapping"
+        checksum = sha1(file_contents).hexdigest()
+        blob = FileBlob.from_file_with_organization(ContentFile(file_contents), self.organization)
+
+        with self.feature({"organizations:objectstore-debugfiles-write": True}):
+            self._assemble_source(checksum, [blob.checksum])
+
+        source_dif = ProjectDebugFile.objects.get(
+            project_id=self.project.id,
+            debug_id="00000000-0000-0000-0000-000000000000",
+        )
+        source_fileobj = MagicMock(spec=["read", "close"])
+        source_fileobj.read.side_effect = [file_contents, b""]
+        objectstore_session = MagicMock()
+        upload.return_value = "cloned-storage-path"
+
+        with (
+            patch.object(source_dif, "get_file", return_value=source_fileobj),
+            patch.object(source_dif, "get_objectstore_session", return_value=objectstore_session),
+            patch(
+                "sentry.api.endpoints.debug_files.ProjectDebugFile.objects.create",
+                side_effect=RuntimeError,
+            ),
+            pytest.raises(RuntimeError),
+        ):
+            _clone_proguard_debug_file_for_reupload(
+                self.project,
+                source_dif,
+                "11111111-1111-1111-1111-111111111111",
+                True,
+            )
+
+        objectstore_session.delete.assert_called_once_with("cloned-storage-path")

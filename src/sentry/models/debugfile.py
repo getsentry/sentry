@@ -15,9 +15,19 @@ import threading
 import time
 import uuid
 import zipfile
-from collections.abc import Container, Iterable, Mapping
+from collections.abc import Container, Iterable, Iterator, Mapping
 from datetime import datetime
-from typing import IO, TYPE_CHECKING, Any, BinaryIO, ClassVar
+from typing import (
+    IO,
+    TYPE_CHECKING,
+    Any,
+    BinaryIO,
+    ClassVar,
+    Protocol,
+    TypeGuard,
+    cast,
+    runtime_checkable,
+)
 
 from django.db import models
 from django.db.models import ProtectedError, Q
@@ -63,6 +73,24 @@ _proguard_file_re = re.compile(r"/proguard/(?:mapping-)?(.*?)\.txt$")
 
 OBJECTSTORE_MULTIPART_UPLOAD_THRESHOLD = 128 * 1024 * 1024  # 128 MiB
 OBJECTSTORE_MULTIPART_UPLOAD_PART_SIZE = 32 * 1024 * 1024  # 32 MiB
+
+
+@runtime_checkable
+class ReadableBinaryIO(Protocol):
+    """A readable binary stream that callers must close."""
+
+    def read(self, size: int = -1, /) -> bytes: ...
+
+    def close(self) -> None: ...
+
+
+@runtime_checkable
+class SeekableBinaryIO(ReadableBinaryIO, Protocol):
+    """A readable binary stream suitable for multipart uploads."""
+
+    def seek(self, offset: int, whence: int = 0, /) -> int: ...
+
+    def seekable(self) -> bool: ...
 
 
 def _dif_file_extension(file_format: str, file_type: str | None) -> str:
@@ -279,7 +307,7 @@ class ProjectDebugFile(Model):
             logger.exception("Project doesn't exist, probably deleted")
             raise
 
-    def get_file(self) -> IO[bytes]:
+    def get_file(self) -> ReadableBinaryIO:
         """Returns the underlying contents as a file-like object. The caller is responsible for closing it."""
 
         if self.uses_objectstore_for_read():
@@ -438,21 +466,41 @@ def detect_single_dif_from_path(
 
 def upload_dif_to_objectstore(
     session: Session,
-    fileobj: IO[bytes],
+    fileobj: ReadableBinaryIO,
     content_type: str,
     file_size: int,
     filename: str,
 ) -> str:
     """Uploads a debug file to Objectstore, returning the key under which the file was uploaded."""
     if file_size <= OBJECTSTORE_MULTIPART_UPLOAD_THRESHOLD:
-        return session.put(fileobj, content_type=content_type, filename=filename)
+        return session.put(cast(IO[bytes], fileobj), content_type=content_type, filename=filename)
 
-    return _upload_dif_to_objectstore_multipart(session, fileobj, content_type, file_size, filename)
+    with _ensure_seekable_fileobj(fileobj) as seekable_fileobj:
+        return _upload_dif_to_objectstore_multipart(
+            session, seekable_fileobj, content_type, file_size, filename
+        )
+
+
+def _is_seekable_fileobj(fileobj: ReadableBinaryIO) -> TypeGuard[SeekableBinaryIO]:
+    return isinstance(fileobj, SeekableBinaryIO) and fileobj.seekable()
+
+
+@contextlib.contextmanager
+def _ensure_seekable_fileobj(fileobj: ReadableBinaryIO) -> Iterator[SeekableBinaryIO]:
+    """Yield a seekable stream, spooling non-seekable streams to a temporary file."""
+    if _is_seekable_fileobj(fileobj):
+        yield fileobj
+        return
+
+    with tempfile.TemporaryFile() as temporary_file:
+        shutil.copyfileobj(fileobj, temporary_file)
+        temporary_file.seek(0)
+        yield temporary_file
 
 
 def _upload_dif_to_objectstore_multipart(
     session: Session,
-    fileobj: IO[bytes],
+    fileobj: SeekableBinaryIO,
     content_type: str,
     file_size: int,
     filename: str,
