@@ -85,7 +85,7 @@ const COLUMN_DEFAULTS: Record<ColumnKey, {name: string; width: number}> = {
   messages: {name: t('Messages'), width: 120},
   errors: {name: t('Errors'), width: 100},
   cost: {name: t('Cost'), width: 120},
-  tools: {name: t('Tools'), width: 300},
+  tools: {name: t('Tools'), width: 220},
   age: {name: t('Age'), width: 110},
 };
 

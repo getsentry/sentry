@@ -144,9 +144,9 @@ describe('ConversationsTable', () => {
 
     await screen.findByText('With tools');
 
-    // The tools column keeps its default 300px width in the grid template.
+    // The tools column keeps its default 220px width in the grid template.
     expect(screen.getByTestId('grid-editable').style.gridTemplateColumns).toContain(
-      '300px'
+      '220px'
     );
   });
 
@@ -157,10 +157,10 @@ describe('ConversationsTable', () => {
 
     await screen.findByText('No tools');
 
-    // The default 300px tools width is dropped so the space goes to the
+    // The default 220px tools width is dropped so the space goes to the
     // flexible conversation column.
     expect(screen.getByTestId('grid-editable').style.gridTemplateColumns).not.toContain(
-      '300px'
+      '220px'
     );
   });
 
@@ -178,7 +178,7 @@ describe('ConversationsTable', () => {
 });
 
 describe('collapseToolsColumnWhenUnused', () => {
-  const TOOLS_DEFAULT_WIDTH = 300;
+  const TOOLS_DEFAULT_WIDTH = 220;
   const columns = [
     {key: 'conversation' as const, name: 'Conversation', width: -1},
     {key: 'tools' as const, name: 'Tools', width: TOOLS_DEFAULT_WIDTH},
