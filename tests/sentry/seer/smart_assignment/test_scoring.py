@@ -455,13 +455,13 @@ class AssignmentOriginTest(ScoringTestBase):
     """
 
     def _truth(self, run: SeerAgentRun) -> tuple[int | None, int | None]:
-        record_ground_truth(
-            self.group,
-            ActivityType.ASSIGNED,
+        latest_assignment = (
             Activity.objects.filter(group=self.group, type=ActivityType.ASSIGNED.value)
             .order_by("-datetime", "-id")
-            .first(),
+            .first()
         )
+        assert latest_assignment is not None
+        record_ground_truth(self.group, ActivityType.ASSIGNED, latest_assignment)
         run.refresh_from_db()
         return (
             run.extras.get("actual_assignee_user_id"),
