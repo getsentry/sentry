@@ -14,7 +14,7 @@ export function ToggleSidebar({size = 'md'}: {size?: 'md' | 'sm'}) {
   const {isSidebarOpen, dispatch} = useIssueDetails();
 
   return (
-    <Container position="relative" display={{'2xs': 'none', lg: 'block'}}>
+    <Container position="relative" display={{zero: 'none', '4xl': 'block'}}>
       <ToggleButton
         expanded={isSidebarOpen}
         onClick={() => dispatch({type: 'UPDATE_SIDEBAR_STATE', isOpen: !isSidebarOpen})}

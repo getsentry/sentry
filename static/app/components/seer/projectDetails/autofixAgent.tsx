@@ -7,7 +7,7 @@ import {
 } from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
-import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
+import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -50,7 +50,7 @@ export function AutofixAgent({canWrite, project}: Props) {
     knownAgentIntegrationsQueryOptions({organization})
   );
 
-  const {data: agentSelectOptions = []} = useQuery(
+  const {data: agentSelectOptions = [], isPending: isAgentOptionsPending} = useQuery(
     seerAgentIntegrationsSelectQueryOptions({organization})
   );
   const stoppingPointOptions = useStoppingPointSelectOptions();
@@ -117,7 +117,11 @@ export function AutofixAgent({canWrite, project}: Props) {
     persistAgentOption,
   ]);
 
-  if (isPending) {
+  // The "Handoff to Agent" select's value comes from the settings query, but its
+  // options come from `agentSelectOptions`. Rendering before the options load
+  // leaves the select with a value that matches nothing, so it briefly shows its
+  // placeholder before the option pops in. Wait for both queries to settle.
+  if (isPending || isAgentOptionsPending) {
     return (
       <Flex justify="center" padding="xl">
         <LoadingIndicator />
@@ -142,80 +146,84 @@ export function AutofixAgent({canWrite, project}: Props) {
   }
 
   return (
-    <FieldGroup>
-      <AutoSaveForm
-        name="agentOption"
-        schema={seerProjectSettingsSchema}
-        initialValue={coalesePreferredAgent(data.agent, data.integrationId)}
-        mutationOptions={getMutateSeerProjectSettingsOptions({
-          organization,
-          project: {slug: project.slug},
-          queryClient,
-          knownAgents,
-        })}
-      >
-        {field => (
-          <Stack gap="md">
-            {restrictToSeer && <Alert variant="info">{NON_GITHUB_HANDOFF_WARNING}</Alert>}
+    <FormSearch route="/settings/:orgId/projects/:projectId/seer">
+      <FieldGroup>
+        <AutoSaveForm
+          name="agentOption"
+          schema={seerProjectSettingsSchema}
+          initialValue={coalesePreferredAgent(data.agent, data.integrationId)}
+          mutationOptions={getMutateSeerProjectSettingsOptions({
+            organization,
+            project: {slug: project.slug},
+            queryClient,
+            knownAgents,
+          })}
+        >
+          {field => (
+            <Stack gap="md">
+              {restrictToSeer && (
+                <Alert variant="info">{NON_GITHUB_HANDOFF_WARNING}</Alert>
+              )}
+              <field.Layout.Row
+                label={t('Handoff to Agent')}
+                hintText={tct(
+                  'Select your preferred agent to create a plan, and code up an issue fix. Seer Agent will always be used for the Root Cause Analysis step. [manageLink:Manage Coding Agents].',
+                  {
+                    manageLink: (
+                      <Link
+                        to={{
+                          pathname: `/settings/${organization.slug}/integrations/`,
+                          query: {category: 'coding agent'},
+                        }}
+                      />
+                    ),
+                  }
+                )}
+              >
+                <field.Select
+                  disabled={!canWrite || !reposLoaded || hasNonGithubRepo}
+                  multiple={false}
+                  onChange={field.handleChange}
+                  options={agentSelectOptions}
+                  value={restrictToSeer ? 'seer' : field.state.value}
+                />
+              </field.Layout.Row>
+            </Stack>
+          )}
+        </AutoSaveForm>
+
+        <AutoSaveForm
+          name="stoppingPoint"
+          schema={seerProjectSettingsSchema}
+          initialValue={coaleseStoppingPoint(data.stoppingPoint, data.automationTuning)}
+          mutationOptions={getMutateSeerProjectSettingsOptions({
+            organization,
+            project: {slug: project.slug},
+            queryClient,
+          })}
+        >
+          {field => (
             <field.Layout.Row
-              label={t('Handoff to Agent')}
+              label={t('Automation Steps')}
               hintText={tct(
-                'Select your preferred agent to create a plan, and code up an issue fix. Seer Agent will always be used for the Root Cause Analysis step. [manageLink:Manage Coding Agents].',
+                'Choose which steps Seer should run automatically on issues. Depending on how [actionable:actionable] the issue is, Seer may stop at an earlier step.',
                 {
-                  manageLink: (
-                    <Link
-                      to={{
-                        pathname: `/settings/${organization.slug}/integrations/`,
-                        query: {category: 'coding agent'},
-                      }}
-                    />
+                  actionable: (
+                    <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works" />
                   ),
                 }
               )}
             >
               <field.Select
-                disabled={!canWrite || !reposLoaded || hasNonGithubRepo}
-                multiple={false}
+                disabled={!canWrite}
+                value={field.state.value}
                 onChange={field.handleChange}
-                options={agentSelectOptions}
-                value={restrictToSeer ? 'seer' : field.state.value}
+                options={stoppingPointOptions}
               />
             </field.Layout.Row>
-          </Stack>
-        )}
-      </AutoSaveForm>
-
-      <AutoSaveForm
-        name="stoppingPoint"
-        schema={seerProjectSettingsSchema}
-        initialValue={coaleseStoppingPoint(data.stoppingPoint, data.automationTuning)}
-        mutationOptions={getMutateSeerProjectSettingsOptions({
-          organization,
-          project: {slug: project.slug},
-          queryClient,
-        })}
-      >
-        {field => (
-          <field.Layout.Row
-            label={t('Automation Steps')}
-            hintText={tct(
-              'Choose which steps Seer should run automatically on issues. Depending on how [actionable:actionable] the issue is, Seer may stop at an earlier step.',
-              {
-                actionable: (
-                  <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works" />
-                ),
-              }
-            )}
-          >
-            <field.Select
-              disabled={!canWrite}
-              value={field.state.value}
-              onChange={field.handleChange}
-              options={stoppingPointOptions}
-            />
-          </field.Layout.Row>
-        )}
-      </AutoSaveForm>
-    </FieldGroup>
+          )}
+        </AutoSaveForm>
+      </FieldGroup>
+    </FormSearch>
   );
 }

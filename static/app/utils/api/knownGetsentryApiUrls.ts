@@ -60,6 +60,7 @@ export type KnownGetsentryApiUrls =
   | '/organizations/$organizationIdOrSlug/console-sdk-invites/'
   | '/organizations/$organizationIdOrSlug/data-consent/'
   | '/organizations/$organizationIdOrSlug/issues/force-auto-assignment/'
+  | '/organizations/$organizationIdOrSlug/low-value-spans-costs/'
   | '/organizations/$organizationIdOrSlug/monitor-count/'
   | '/organizations/$organizationIdOrSlug/partnership-agreements/'
   | '/organizations/$organizationIdOrSlug/payments/$paymentId/new/'

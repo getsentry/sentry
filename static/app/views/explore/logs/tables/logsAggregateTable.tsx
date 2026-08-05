@@ -2,11 +2,12 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
 import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {IconStack} from 'sentry/icons/iconStack';
@@ -15,7 +16,8 @@ import {parseCursor} from 'sentry/utils/cursor';
 import {defined} from 'sentry/utils/defined';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
-import {prettifyTagKey} from 'sentry/utils/fields';
+import {FieldValueType, prettifyTagKey} from 'sentry/utils/fields';
+import {isRateLimitError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -27,6 +29,8 @@ import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';
 import {LogFieldRenderer} from 'sentry/views/explore/logs/fieldRenderers';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/logs/logsQueryParams';
 import {getLogColors} from 'sentry/views/explore/logs/styles';
+import {addValidatedFieldTypesToLogsMeta} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
+import {LogsRateLimitError} from 'sentry/views/explore/logs/tables/logsRateLimitError';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {type LogsAggregatesTableResult} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 import {
@@ -48,19 +52,29 @@ import {
 
 export function LogsAggregateTable({
   aggregatesTableResult,
+  validatedFieldTypes = {},
 }: {
   aggregatesTableResult: LogsAggregatesTableResult;
+  validatedFieldTypes?: Partial<Record<string, FieldValueType>>;
 }) {
-  const {data, pageLinks, isLoading, error, eventView} = aggregatesTableResult;
+  const {data, pageLinks, isLoading, error, refetch, eventView} = aggregatesTableResult;
+  const meta = useMemo(
+    () =>
+      addValidatedFieldTypesToLogsMeta({
+        meta: data?.meta,
+        validatedFieldTypes,
+      }),
+    [data?.meta, validatedFieldTypes]
+  );
 
   const columns = useMemo(() => {
     return eventView
-      ?.getColumns()
+      ?.getColumns(meta)
       ?.reduce<Record<string, TableColumn<string>>>((acc, col) => {
         acc[col.key] = col;
         return acc;
       }, {});
-  }, [eventView]);
+  }, [eventView, meta]);
 
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
@@ -77,6 +91,15 @@ export function LogsAggregateTable({
   const theme = useTheme();
   const organization = useOrganization();
   const {projects} = useProjects();
+  const {selection} = usePageFilters();
+
+  if (isRateLimitError(error)) {
+    return (
+      <Flex justify="center" align="center" padding="3xl" minHeight="200px">
+        <LogsRateLimitError onRetry={refetch} />
+      </Flex>
+    );
+  }
 
   const allFields: string[] = [];
   allFields.push(
@@ -162,8 +185,9 @@ export function LogsAggregateTable({
             );
             const extra: RendererExtra = {
               attributes: row,
-              attributeTypes: data?.meta?.fields ?? {},
+              attributeTypes: meta.fields,
               caseSensitiveHighlighting: false,
+              datetime: selection.datetime,
               highlightTerms: [],
               logColors: getLogColors(level, theme),
               location,
@@ -177,7 +201,7 @@ export function LogsAggregateTable({
               <LogFieldRenderer
                 key={column.key}
                 extra={extra}
-                meta={data?.meta}
+                meta={meta}
                 item={{
                   fieldKey: column.key,
                   value,

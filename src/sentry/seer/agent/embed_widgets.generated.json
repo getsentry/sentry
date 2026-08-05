@@ -1,7 +1,7 @@
 [
   {
     "name": "timestamp",
-    "description": "Display a formatted timestamp inline.",
+    "description": "Display a formatted timestamp inline. ALL datetime values MUST use this embed — never output a bare date/time or relative phrase (e.g. \"two days ago\") as plaintext. Use format \"absolute\" for a specific date/time and \"relative\" for a human-friendly relative duration (the UI renders it live). Do not include redundant plaintext alongside the embed.",
     "level": ["inline"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -18,6 +18,369 @@
       },
       "required": ["value", "format"],
       "additionalProperties": false
-    }
+    },
+    "examples": [
+      {
+        "label": "Absolute",
+        "data": {
+          "value": "2025-07-15T14:30:00Z",
+          "format": "absolute"
+        }
+      },
+      {
+        "label": "Relative",
+        "data": {
+          "value": "2025-07-15T14:30:00Z",
+          "format": "relative"
+        }
+      }
+    ]
+  },
+  {
+    "name": "docs",
+    "description": "Link to a page in the Sentry documentation (docs.sentry.io only). The href MUST be an absolute https://docs.sentry.io/... URL. NEVER use this for Sentry issue links — use the `issue` or `issues` embed instead.",
+    "level": ["inline"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "href": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": ["href", "title"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Doc link",
+        "data": {
+          "href": "https://docs.sentry.io/product/issues/",
+          "title": "Issues"
+        }
+      }
+    ]
+  },
+  {
+    "name": "dsn",
+    "description": "Display a copyable Sentry DSN (Data Source Name) string. Use this whenever presenting a DSN to the user — never output it as bare text.",
+    "level": ["block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": ["value"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "DSN",
+        "data": {
+          "value": "https://examplePublicKey@o0.ingest.sentry.io/0"
+        }
+      }
+    ]
+  },
+  {
+    "name": "user",
+    "description": "Mention a Sentry user or team inline. Renders an avatar and display name. Use the actor type (\"user\" or \"team\") and the actor's ID and name.",
+    "level": ["inline"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["user", "team"]
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "type", "name"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "User",
+        "data": {
+          "id": "1",
+          "type": "user",
+          "name": "Jane Doe"
+        }
+      },
+      {
+        "label": "Team",
+        "data": {
+          "id": "2",
+          "type": "team",
+          "name": "platform"
+        }
+      }
+    ]
+  },
+  {
+    "name": "issue",
+    "description": "The ONLY way to reference a Sentry issue. Requires the issue short ID (e.g. \"PROJECT-123\"). Inline: renders a compact link with the short id. Block: renders a full interactive issue row with title, events, users, assignee, and trend graph — do NOT duplicate any of that data as text. MUST NOT appear inside a markdown table or list. When referencing 2+ issues, use the `issues` embed instead. Never use `docs` or markdown links for issue references.",
+    "level": ["inline", "block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": ["id"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Inline",
+        "data": {
+          "id": "JAVASCRIPT-22SP"
+        }
+      },
+      {
+        "label": "Block",
+        "data": {
+          "id": "JAVASCRIPT-22SP"
+        }
+      }
+    ]
+  },
+  {
+    "name": "issues",
+    "description": "The ONLY way to list multiple Sentry issues. Renders an interactive table with title, trend graph, events, users, priority, and assignee for each issue — do NOT duplicate any of that data as text. ALWAYS use this when referencing 2+ issues. MUST NOT appear inside a markdown table or list. Never use `docs`, `issue`, or markdown tables for multiple issues. Provide only the array of issue short IDs (e.g. \"PROJECT-123\").",
+    "level": ["block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": ["ids"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Block",
+        "data": {
+          "ids": ["JAVASCRIPT-22SP", "JAVASCRIPT-39HX", "JAVASCRIPT-39ZF"]
+        }
+      }
+    ]
+  },
+  {
+    "name": "chart",
+    "description": "Display numeric data as a compact Sentry-style chart. For line, area, and bar charts, prefer at least three points. Use x_axis \"time\" only with offset-bearing ISO 8601 timestamps. Category axes are supported for bar charts only. Duration values are milliseconds, percentage values are 0-100, and byte values are raw bytes.",
+    "level": ["block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subtitle": {
+          "type": "string"
+        },
+        "visualization": {
+          "default": "line",
+          "type": "string",
+          "enum": ["line", "area", "bar"]
+        },
+        "x_axis": {
+          "default": "time",
+          "type": "string",
+          "enum": ["time", "category"]
+        },
+        "y_axis_unit": {
+          "default": "number",
+          "type": "string",
+          "enum": ["number", "percentage", "duration", "bytes"]
+        },
+        "series": {
+          "minItems": 1,
+          "maxItems": 5,
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "description": "Legend label for the series"
+                  },
+                  "data": {
+                    "minItems": 1,
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "x": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "number"
+                            }
+                          ]
+                        },
+                        "y": {
+                          "type": "number"
+                        }
+                      },
+                      "required": ["x", "y"],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": ["label", "data"],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Legacy alias for label"
+                  },
+                  "data": {
+                    "minItems": 1,
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "x": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "number"
+                            }
+                          ]
+                        },
+                        "y": {
+                          "type": "number"
+                        }
+                      },
+                      "required": ["x", "y"],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": ["name", "data"],
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      },
+      "required": ["title", "visualization", "x_axis", "y_axis_unit", "series"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Error volume",
+        "data": {
+          "title": "Error volume",
+          "subtitle": "Last 6 hours",
+          "visualization": "area",
+          "x_axis": "time",
+          "y_axis_unit": "number",
+          "series": [
+            {
+              "label": "Errors",
+              "data": [
+                {
+                  "x": "2026-07-30T12:00:00Z",
+                  "y": 12
+                },
+                {
+                  "x": "2026-07-30T13:00:00Z",
+                  "y": 18
+                },
+                {
+                  "x": "2026-07-30T14:00:00Z",
+                  "y": 15
+                },
+                {
+                  "x": "2026-07-30T15:00:00Z",
+                  "y": 31
+                },
+                {
+                  "x": "2026-07-30T16:00:00Z",
+                  "y": 46
+                },
+                {
+                  "x": "2026-07-30T17:00:00Z",
+                  "y": 38
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "autofix",
+    "description": "Render one step of a Seer Autofix run (root cause, solution, or code changes) as a collapsible block linking back to the issue. Emit this embed whenever the user signals intent to fix, solve, debug, or resolve a problem — e.g. \"fix this issue\", \"solve the problem\", \"find the root cause\", \"why is this happening\", \"how do I resolve this error\" — or asks for the status/result of an autofix run already in progress. `id` and `shortId` are the issue the run belongs to, exactly as the issue API returns them. `step` is the autofix step identifier exactly as the autofix API reports it — the UI renders the human-readable label, so do not send a display string. `result` is the full markdown write-up for that step. Prefer this embed over a plaintext explanation whenever an issue can be autofixed, and emit one embed per step rather than combining multiple steps into one.",
+    "level": ["block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "step": {
+          "type": "string",
+          "enum": ["root_cause", "solution", "code_changes", "pr_iteration"]
+        },
+        "result": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "shortId": {
+          "type": "string"
+        }
+      },
+      "required": ["step", "result", "id", "shortId"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Root cause",
+        "data": {
+          "id": "1234567890",
+          "shortId": "EXMPL-123",
+          "result": "The root cause of the issue is that the code is not working correctly.",
+          "step": "root_cause"
+        }
+      }
+    ],
+    "featureFlag": "organizations:seer-agent-autofix"
   }
 ]

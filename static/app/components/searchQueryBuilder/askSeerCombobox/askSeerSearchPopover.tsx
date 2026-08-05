@@ -4,6 +4,7 @@ import type {AriaPopoverProps} from '@react-aria/overlays';
 import type {OverlayTriggerState} from '@react-stately/overlays';
 
 import {Overlay} from 'sentry/components/overlay';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay} from 'sentry/utils/useOverlay';
 
 type OverlayProps = ReturnType<typeof useOverlay>['overlayProps'];
@@ -19,6 +20,9 @@ interface PopoverProps extends Omit<AriaPopoverProps, 'popoverRef'> {
 export function AskSeerSearchPopover(props: PopoverProps) {
   const ref = useRef<HTMLDivElement>(null);
   const {popoverRef = ref, state, children, overlayProps} = props;
+  const hasAskSeerUxRework = useOrganization().features.includes(
+    'gen-ai-ask-seer-ux-rework'
+  );
 
   return (
     <StyledPositionWrapper {...overlayProps} visible={state.isOpen}>
@@ -43,7 +47,9 @@ export function AskSeerSearchPopover(props: PopoverProps) {
           };
         }}
       >
-        <BackgroundColorWrapper>{children}</BackgroundColorWrapper>
+        <BackgroundColorWrapper $hasAskSeerUxRework={hasAskSeerUxRework}>
+          {children}
+        </BackgroundColorWrapper>
       </ListBoxOverlay>
     </StyledPositionWrapper>
   );
@@ -55,10 +61,14 @@ const ListBoxOverlay = styled(Overlay)`
   overflow-y: auto;
   border-top-left-radius: 0;
   border-top-right-radius: 0;
+  will-change: auto;
 `;
 
-const BackgroundColorWrapper = styled('div')`
-  background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+const BackgroundColorWrapper = styled('div')<{$hasAskSeerUxRework: boolean}>`
+  background-color: ${p =>
+    p.$hasAskSeerUxRework
+      ? p.theme.tokens.background.primary
+      : p.theme.tokens.background.transparent.accent.muted};
 `;
 
 const StyledPositionWrapper = styled('div')<{visible?: boolean}>`

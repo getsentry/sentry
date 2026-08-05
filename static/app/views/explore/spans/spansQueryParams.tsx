@@ -152,6 +152,11 @@ export function getTargetWithReadableQueryParams(
 
   updateNullableLocation(
     target,
+    SPANS_AGGREGATE_CURSOR,
+    writableQueryParams.aggregateCursor
+  );
+  updateNullableLocation(
+    target,
     SPANS_AGGREGATE_FIELD_KEY,
     writableQueryParams.aggregateFields?.map(aggregateField =>
       JSON.stringify(aggregateField)

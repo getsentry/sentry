@@ -125,6 +125,7 @@ class IntegrationFeatures(StrEnum):
     CODEOWNERS = "codeowners"
     USER_MAPPING = "user-mapping"
     CODING_AGENT = "coding-agent"
+    MONITORING = "monitoring"
 
     # features currently only existing on plugins:
     DATA_FORWARDING = "data-forwarding"

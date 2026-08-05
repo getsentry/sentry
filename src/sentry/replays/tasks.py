@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from typing import Any
 
-from google.cloud.exceptions import NotFound
+from django.utils import timezone
 from taskbroker_client.constants import CompressionType
 from taskbroker_client.retry import Retry
+from taskbroker_client.state import current_task
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
+from sentry import options
 from sentry.replays.consumers.recording import commit_message, process_message
 from sentry.replays.lib.kafka import PROCESS_REPLAY_RECORDING_TASK_NAME, publish_replay_event
 from sentry.replays.lib.storage import (
@@ -14,10 +18,11 @@ from sentry.replays.lib.storage import (
     filestore,
     make_recording_filename,
     storage,
-    storage_kv,
 )
 from sentry.replays.models import DeletionJobStatus, ReplayDeletionJobModel, ReplayRecordingSegment
 from sentry.replays.usecases.delete import (
+    DELETE_THREAD_POOL_SIZE,
+    delete_filenames_concurrently,
     delete_matched_rows,
     delete_seer_replay_data,
     fetch_rows_matching_pattern,
@@ -27,7 +32,7 @@ from sentry.replays.usecases.ingest.types import ProcessorContext
 from sentry.replays.usecases.reader import fetch_segments_metadata
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import replays_raw_tasks, replays_tasks
+from sentry.taskworker.namespaces import replays_long_tasks, replays_raw_tasks, replays_tasks
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
@@ -93,7 +98,8 @@ def process_replay_recording(message_bytes: bytes) -> None:
 
 @instrumented_task(
     name="sentry.replays.tasks.delete_recording_async",
-    namespace=replays_tasks,
+    namespace=replays_long_tasks,
+    alias_namespace=replays_tasks,
     processing_deadline_duration=120,
     retry=Retry(times=5, delay=5),
     silo_mode=SiloMode.CELL,
@@ -102,8 +108,11 @@ def delete_replays_script_async(
     retention_days: int,
     project_id: int,
     replay_id: str,
-    max_segment_id: int,
+    max_segment_id: int | None,
 ) -> None:
+    if max_segment_id is None:
+        return None
+
     segments = [
         RecordingSegmentStorageMeta(
             project_id=project_id,
@@ -111,15 +120,14 @@ def delete_replays_script_async(
             segment_id=i,
             retention_days=retention_days,
         )
-        for i in range(0, max_segment_id)
+        for i in range(max_segment_id + 1)
     ]
 
     rrweb_filenames = []
     for segment in segments:
         rrweb_filenames.append(make_recording_filename(segment))
 
-    with ContextPropagatingThreadPoolExecutor(max_workers=100) as pool:
-        pool.map(_delete_if_exists, rrweb_filenames)
+    delete_filenames_concurrently(rrweb_filenames)
 
     # Backwards compatibility. Should be deleted one day.
     segments_from_django_models = ReplayRecordingSegment.objects.filter(
@@ -160,8 +168,11 @@ def delete_replay_recording(project_id: int, replay_id: str) -> None:
             direct_storage_segments.append(segment)
 
     # Issue concurrent delete requests when interacting with a remote service provider.
-    with ContextPropagatingThreadPoolExecutor(max_workers=100) as pool:
-        if direct_storage_segments:
+    # Make the threads reuse one client instead of racing to build their own
+    if direct_storage_segments:
+        storage.initialize_client()
+        max_workers = min(len(direct_storage_segments), DELETE_THREAD_POOL_SIZE)
+        with ContextPropagatingThreadPoolExecutor(max_workers=max_workers) as pool:
             pool.map(storage.delete, direct_storage_segments)
 
     # This will only run if "filestore" was used to store the files. This hasn't been the
@@ -182,87 +193,155 @@ def archive_replay(project_id: int, replay_id: str) -> None:
     publish_replay_event(message)
 
 
-def _delete_if_exists(filename: str) -> None:
-    """Delete the blob if it exists or silence the 404."""
-    try:
-        storage_kv.delete(filename)
-    except NotFound:
-        pass
-
-
 @instrumented_task(
     name="sentry.replays.tasks.run_bulk_replay_delete_job",
-    namespace=replays_tasks,
-    retry=Retry(times=5),
-    processing_deadline_duration=300,
+    namespace=replays_long_tasks,
+    # Keep the task registered under the old `replays` namespace as well so
+    # any activations that were enqueued before this deploy (with
+    # namespace="replays") continue to resolve and execute.
+    alias_namespace=replays_tasks,
+    retry=Retry(times=5, on=(ProcessingDeadlineExceeded,)),
+    processing_deadline_duration=600,
     silo_mode=SiloMode.CELL,
 )
 def run_bulk_replay_delete_job(
-    replay_delete_job_id: int, offset: int, limit: int = 100, has_seer_data: bool = False
+    replay_delete_job_id: int,
+    offset: int | None = None,
+    limit: int = 100,
+    has_seer_data: bool = False,
+    total_deleted: int = 0,
+    window_offset_days: int = 0,
+    after_replay_id_hash: int | None = None,
 ) -> None:
     """Replay bulk deletion task.
 
-    We specify retry behavior in the task definition. However, if the task fails more than 5 times
-    the process will stop and the task has permanently failed. We checkpoint our offset position
-    in the model. Restarting the task will use the offset passed by the caller. If you want to
-    restart the task from the previous checkpoint you must pass the checkpoint explicitly.
+    Pages through the job's range with a keyset cursor on `cityHash64(replay_id)` and chains a
+    follow-up activation per page. Each page is idempotent: re-running one re-deletes blobs that
+    are already gone (a swallowed 404) and re-publishes an archive event.
+
+    `offset` is the cursor from the previous deploy's `OFFSET` pagination. It is accepted and
+    ignored so activations enqueued before this deploy still resolve; such an activation restarts
+    its window from the beginning rather than failing. Remove the argument once the queue has
+    drained.
     """
+    chunk_size_days = options.get("replay.bulk_delete_job.chunk_size_days") or 7
     job = ReplayDeletionJobModel.objects.get(id=replay_delete_job_id)
 
     # If this is the first run of the task we set the model to in-progress.
     if job.status == DeletionJobStatus.PENDING:
+        metrics.incr("replays.bulk_delete_job", tags={"status": "started"}, sample_rate=1.0)
+        _transition_status(job.id, DeletionJobStatus.PENDING, DeletionJobStatus.IN_PROGRESS)
         job.status = DeletionJobStatus.IN_PROGRESS
-        job.save()
 
     # Exit if the job status is failed or completed.
     if job.status != DeletionJobStatus.IN_PROGRESS:
         return None
 
+    # Derive the current window boundaries from the immutable job range and the cursor.
+    # Chunking into 7-day windows avoids full table scans in ClickHouse.
+    window_start = job.range_start + timedelta(days=window_offset_days)
+    window_end = min(window_start + timedelta(days=chunk_size_days), job.range_end)
+
     try:
-        # Delete the replays within a limited range. If more replays exist an incremented offset value
-        # is returned.
+        # Delete the replays within a limited range. If more replays exist a cursor to seek the next
+        # page from is returned.
         results = fetch_rows_matching_pattern(
             project_id=job.project_id,
-            start=job.range_start,
-            end=job.range_end,
+            start=window_start,
+            end=window_end,
             query=job.query,
             environment=job.environments,
             limit=limit,
-            offset=offset,
+            after_replay_id_hash=after_replay_id_hash,
         )
 
         # Delete the matched rows if any rows were returned.
         if len(results["rows"]) > 0:
             delete_matched_rows(job.project_id, results["rows"])
+            # Track job progress with a state transition metric
+            metrics.incr("replays.bulk_delete_job", tags={"status": "in_progress"}, sample_rate=1.0)
+            # Track the count of deleted rows separately
+            metrics.incr(
+                "replays.bulk_delete_job.rows_deleted",
+                amount=len(results["rows"]),
+                sample_rate=1.0,
+            )
             if has_seer_data:
                 delete_seer_replay_data(
                     job.organization_id,
                     job.project_id,
                     [row["replay_id"] for row in results["rows"]],
                 )
+    except ProcessingDeadlineExceeded:
+        # A BaseException, so it escapes the handler below. Once retries run out the broker
+        # discards the activation, which leaves the job reporting "in-progress" forever with
+        # nothing left to advance it.
+        task = current_task()
+        if task is not None and not task.retries_remaining:
+            logger.warning("Bulk delete replays exhausted its processing deadline retries.")
+            metrics.incr("replays.bulk_delete_job", tags={"status": "failed"}, sample_rate=1.0)
+            _transition_status(job.id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.FAILED)
+        raise
     except Exception:
         logger.exception("Bulk delete replays failed.")
 
-        job.status = DeletionJobStatus.FAILED
-        job.save()
+        metrics.incr("replays.bulk_delete_job", tags={"status": "failed"}, sample_rate=1.0)
+        _transition_status(job.id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.FAILED)
         raise
 
-    # Compute the next offset to start from. If no further processing is required then this serves
-    # as a count of replays deleted.
-    next_offset = offset + len(results["rows"])
+    # `new_total` is the running count of all replays deleted across all windows.
+    num_rows_deleted = len(results["rows"])
+    new_total = total_deleted + num_rows_deleted
 
-    if results["has_more"]:
-        # Checkpoint before continuing.
-        job.offset = next_offset
-        job.save()
+    # A null cursor with `has_more` set only happens for `limit=0`, where every page is empty and
+    # seeks nowhere. Treating that as "window done" stops it chaining activations forever.
+    next_cursor = results["next_cursor"]
+
+    if results["has_more"] and next_cursor is not None:
+        # Checkpoint before continuing within the same window.
+        _advance_offset(job.id, new_total)
         run_bulk_replay_delete_job.delay(
-            job.id, next_offset, limit=limit, has_seer_data=has_seer_data
+            job.id,
+            limit=limit,
+            has_seer_data=has_seer_data,
+            total_deleted=new_total,
+            window_offset_days=window_offset_days,
+            after_replay_id_hash=next_cursor,
         )
         return None
-    else:
-        # If we've finished deleting all the replays for the selection. We can move the status to
-        # completed and exit the call chain.
-        job.offset = next_offset
-        job.status = DeletionJobStatus.COMPLETED
-        job.save()
+
+    # Current window exhausted. Check if more time windows remain.
+    if window_end < job.range_end:
+        # Advance to the next window by incrementing the day offset in the task args, and reset the
+        # cursor: it is a position within a window's result set, not a global one.
+        # job.range_start is never mutated so the API always returns the original range.
+        _advance_offset(job.id, new_total)
+        run_bulk_replay_delete_job.delay(
+            job.id,
+            limit=limit,
+            has_seer_data=has_seer_data,
+            total_deleted=new_total,
+            window_offset_days=window_offset_days + chunk_size_days,
+            after_replay_id_hash=None,
+        )
         return None
+
+    # All windows processed. Mark the job as completed.
+    _advance_offset(job.id, new_total)
+    _transition_status(job.id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.COMPLETED)
+    metrics.incr("replays.bulk_delete_job", tags={"status": "completed"}, sample_rate=1.0)
+    return None
+
+
+def _advance_offset(job_id: int, offset: int) -> None:
+    """Checkpoint progress, filtered so a lagging duplicate chain cannot rewind the counter."""
+    ReplayDeletionJobModel.objects.filter(id=job_id, offset__lt=offset).update(
+        offset=offset, date_updated=timezone.now()
+    )
+
+
+def _transition_status(job_id: int, expected: DeletionJobStatus, new: DeletionJobStatus) -> None:
+    """Transition status only from `expected`, and without `save()` rewriting the whole row."""
+    ReplayDeletionJobModel.objects.filter(id=job_id, status=expected).update(
+        status=new, date_updated=timezone.now()
+    )

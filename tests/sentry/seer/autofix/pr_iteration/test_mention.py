@@ -1,7 +1,10 @@
 from unittest.mock import MagicMock, patch
 
+from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
+    GithubPrCommentFeedbackSource,
+)
 from sentry.seer.autofix.pr_iteration.mention import handle_issue_comment_for_autofix_iteration
-from sentry.seer.autofix.pr_iteration.types import Feedback, GithubPrCommentFeedbackSource
 from sentry.testutils.cases import TestCase
 
 MENTION_PATH = "sentry.seer.autofix.pr_iteration.mention"
@@ -40,7 +43,7 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
 
     @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
     def test_schedules_task_for_valid_command(self, mock_delay: MagicMock) -> None:
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             self._call(self._event())
 
         mock_delay.assert_called_once()
@@ -57,12 +60,13 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
         assert isinstance(source, GithubPrCommentFeedbackSource)
         assert feedback.text == "fix it"
         assert source.comment_feedback == "fix it"
-        assert source.comment["id"] == 999
-        assert source.comment["user"]["login"] == "octocat"
+        assert source.comment.id == 999
+        assert source.comment.user is not None
+        assert source.comment.user.login == "octocat"
 
     @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
     def test_skips_non_created_action(self, mock_delay: MagicMock) -> None:
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             self._call(self._event(action="edited"))
         mock_delay.assert_not_called()
 
@@ -70,25 +74,49 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
     def test_skips_when_not_pr_comment(self, mock_delay: MagicMock) -> None:
         event = self._event()
         event["issue"].pop("pull_request")
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             self._call(event)
         mock_delay.assert_not_called()
 
     @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
     def test_skips_when_not_iterate_command(self, mock_delay: MagicMock) -> None:
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             self._call(self._event(body="just a comment"))
         mock_delay.assert_not_called()
 
     @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
-    def test_skips_when_feature_disabled(self, mock_delay: MagicMock) -> None:
-        self._call(self._event())
+    def test_skips_when_manual_feature_disabled(self, mock_delay: MagicMock) -> None:
+        # Automated CI iteration on, manual off: the comment trigger is manual-only,
+        # so the automated flag must not enable it.
+        with self.feature("organizations:autofix-pr-iteration"):
+            self._call(self._event())
         mock_delay.assert_not_called()
 
     @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
     def test_skips_when_no_pr_number(self, mock_delay: MagicMock) -> None:
         event = self._event()
         event["issue"].pop("number")
-        with self.feature("organizations:autofix-pr-iteration"):
+        with self.feature("organizations:autofix-pr-iteration-manual"):
             self._call(event)
+        mock_delay.assert_not_called()
+
+    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
+    def test_skips_when_mention_has_hyphen_suffix(self, mock_delay: MagicMock) -> None:
+        """Test that @sentry-cursor-agent doesn't trigger the command."""
+        with self.feature("organizations:autofix-pr-iteration-manual"):
+            self._call(self._event(body="@sentry-cursor-agent please help"))
+        mock_delay.assert_not_called()
+
+    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
+    def test_skips_when_mention_has_underscore_suffix(self, mock_delay: MagicMock) -> None:
+        """Test that @sentry_bot doesn't trigger the command."""
+        with self.feature("organizations:autofix-pr-iteration-manual"):
+            self._call(self._event(body="@sentry_bot do something"))
+        mock_delay.assert_not_called()
+
+    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
+    def test_skips_when_mention_in_email(self, mock_delay: MagicMock) -> None:
+        """Test that email@sentry.io doesn't trigger the command."""
+        with self.feature("organizations:autofix-pr-iteration-manual"):
+            self._call(self._event(body="contact email@sentry.io for help"))
         mock_delay.assert_not_called()

@@ -1,3 +1,0 @@
-sentry_dsn: https://ad8776b7d06d9bd1ab9261c63ac3a9bd@o1.ingest.us.sentry.io/4511567035432960
-default_model: haiku
-scan_concurrency: 4

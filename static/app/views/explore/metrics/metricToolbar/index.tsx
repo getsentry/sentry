@@ -61,7 +61,7 @@ export function MetricToolbar({
   const setTraceMetric = useSetTraceMetric();
   const isHeatmap = visualize.chartType === ChartType.HEATMAP;
   const disabledReason = isHeatmap
-    ? t('Not configurable for Heat Map visualizations')
+    ? t('Not configurable for Heatmap visualizations')
     : undefined;
 
   const hasUnresolvedMetrics = metricQueries.some(

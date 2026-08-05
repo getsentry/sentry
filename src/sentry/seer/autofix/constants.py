@@ -63,6 +63,8 @@ class AutofixReferrer(enum.StrEnum):
     MCP = "api.mcp"
     WEB = "api.web"
     GITHUB_PR_COMMENT = "github.pr_comment"
+    GITHUB_PR_REVIEW = "github.pr_review"
+    GITHUB_CHECK_SUITE = "github.check_suite"
     UNKNOWN = "unknown"
 
 
@@ -70,3 +72,19 @@ class SeerAutomationSource(enum.Enum):
     ISSUE_DETAILS = "issue_details"
     POST_PROCESS = "post_process"
     NIGHT_SHIFT = "night_shift"
+
+
+class CodingAgentStatus(enum.StrEnum):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+    @classmethod
+    def from_cursor_status(cls, cursor_status: str) -> "CodingAgentStatus | None":
+        status_mapping = {
+            "FINISHED": cls.COMPLETED,
+            "ERROR": cls.FAILED,
+        }
+
+        return status_mapping.get(cursor_status.upper(), None)

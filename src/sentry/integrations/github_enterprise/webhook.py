@@ -34,6 +34,7 @@ from sentry.integrations.github.webhook import (
     PullRequestReviewThreadEventWebhook,
     PushEventWebhook,
     get_github_external_id,
+    get_scm_stream_extra,
 )
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.github_enterprise.client import GitHubEnterpriseApiClient
@@ -407,6 +408,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
                 "event_type_hint": request.headers.get("X-GitHub-Event"),
                 "event": request.body.decode("utf-8"),
                 "extra": {
+                    **get_scm_stream_extra(event),
                     "host": host,
                     "skipped-authentication": skipped_authentication,
                     "enterprise-version": request.headers.get("x-github-enterprise-version"),

@@ -94,6 +94,11 @@ class AppService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
+    def get_sentry_apps_by_ids(self, *, ids: list[int]) -> list[RpcSentryApp]:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
     def get_installation_by_id(self, *, id: int) -> RpcSentryAppInstallation | None:
         pass
 

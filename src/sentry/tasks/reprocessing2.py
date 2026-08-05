@@ -7,6 +7,13 @@ from django.db import router, transaction
 from taskbroker_client.retry import Retry
 
 from sentry import eventstream, nodestore
+from sentry.issues.action_log import (
+    SYSTEM_ACTOR,
+    ActionSource,
+    GroupActionActor,
+    GroupActorType,
+    action_context_scope,
+)
 from sentry.models.project import Project
 from sentry.reprocessing2 import buffered_delete_old_primary_hash
 from sentry.search.eap.occurrences.query_utils import build_group_id_in_filter
@@ -61,13 +68,19 @@ def reprocess_group(
         metrics.incr("events.reprocessing.start_group_reprocessing", sample_rate=1.0)
         sentry_sdk.set_tag("is_start", "true")
         sentry_sdk.set_attribute("is_start", "true")
-        new_group_id = start_group_reprocessing(
-            project_id,
-            group_id,
-            max_events=max_events,
-            acting_user_id=acting_user_id,
-            remaining_events=remaining_events,
+        group_action_actor = (
+            GroupActionActor(GroupActorType.USER, acting_user_id)
+            if acting_user_id is not None
+            else SYSTEM_ACTOR
         )
+        with action_context_scope(ActionSource.SYSTEM, group_action_actor):
+            new_group_id = start_group_reprocessing(
+                project_id,
+                group_id,
+                max_events=max_events,
+                acting_user_id=acting_user_id,
+                remaining_events=remaining_events,
+            )
 
     assert new_group_id is not None
 

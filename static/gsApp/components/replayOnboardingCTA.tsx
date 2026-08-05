@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import type {ReactNode} from 'react';
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';

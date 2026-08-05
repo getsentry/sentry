@@ -11,6 +11,7 @@ import {MotionGlobalConfig} from 'framer-motion';
 import {enableFetchMocks} from 'jest-fetch-mock';
 import {ConfigFixture} from 'sentry-fixture/config';
 
+import {MockResizeObserver, resetResizeObservers} from 'sentry-test/resizeObserver';
 import {resetMockDate} from 'sentry-test/utils';
 
 // eslint-disable-next-line jest/no-mocks-import
@@ -27,7 +28,7 @@ import * as performanceForSentry from 'sentry/utils/performanceForSentry';
 setLocale(DEFAULT_LOCALE_DATA);
 
 /**
- * Setup fetch mocks (needed to define the `Request` global)
+ * Enable fetch mocks and provide fetch primitives missing from jsdom.
  */
 enableFetchMocks();
 
@@ -68,12 +69,21 @@ jest.mock('lodash/debounce', () =>
     return fn;
   })
 );
+// Preserve the synchronous test behavior of the global lodash/debounce mock when
+// migrating callback-style debounces to Pacer. Other Pacer primitives retain
+// their real scheduling and state behavior.
+jest.mock('@tanstack/react-pacer', () => ({
+  ...jest.requireActual('@tanstack/react-pacer'),
+  asyncDebounce: jest.fn(fn => fn),
+  debounce: jest.fn(fn => fn),
+  useAsyncDebouncedCallback: jest.fn(fn => fn),
+  useDebouncedCallback: jest.fn(fn => fn),
+}));
 jest.mock('sentry/utils/recreateRoute');
 jest.mock('sentry/api');
 jest
   .spyOn(performanceForSentry, 'VisuallyCompleteWithData')
   .mockImplementation(props => props.children as ReactElement);
-jest.mock('scroll-to-element', () => jest.fn());
 
 jest.mock('@sentry-internal/global-search', () => ({
   SentryGlobalSearch: jest.fn().mockImplementation(() => ({
@@ -206,6 +216,7 @@ jest.mock('sentry/utils/testableWindowLocation', () => ({
 
 // Close any open modals before each test
 beforeEach(closeModal);
+afterEach(resetResizeObservers);
 
 jest.mock('echarts-for-react/lib/core', function echartsMockFactory() {
   // We need to do this because `jest.mock` gets hoisted before imports and `React` is not
@@ -374,11 +385,7 @@ window.IntersectionObserver = class IntersectionObserver {
   disconnect() {}
 };
 
-window.ResizeObserver = class ResizeObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-};
+window.ResizeObserver = MockResizeObserver;
 
 // Mock the crypto.subtle API for Gravatar
 Object.defineProperty(global.self, 'crypto', {

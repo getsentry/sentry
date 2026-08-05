@@ -12,7 +12,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
-import type {PreviewData, Subscription} from 'getsentry/types';
+import type {PreviewInvoiceItem, Subscription} from 'getsentry/types';
 import {
   displayBudgetName,
   getCreditApplied,
@@ -21,6 +21,16 @@ import {
 } from 'getsentry/utils/billing';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 import {SubscriptionHeaderCard} from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
+
+type NextBillInvoiceItem = Pick<PreviewInvoiceItem, 'amount' | 'type' | 'description'>;
+
+type NextBillPreview = {
+  billedAmount: number;
+  creditApplied: number;
+  effectiveAt: string;
+  invoiceItems: NextBillInvoiceItem[];
+  isAnnual: boolean;
+};
 
 export function NextBillCard({
   subscription,
@@ -33,7 +43,7 @@ export function NextBillCard({
     data: nextBill,
     isLoading,
     isError,
-  } = useApiQuery<PreviewData>(
+  } = useApiQuery<NextBillPreview>(
     [
       getApiUrl('/customers/$organizationIdOrSlug/subscription/next-bill/', {
         path: {organizationIdOrSlug: organization.slug},

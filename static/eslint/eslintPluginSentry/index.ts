@@ -1,16 +1,16 @@
-import {noCallingComponentsAsFunctions} from './no-calling-components-as-functions';
-import {noDefaultExports} from './no-default-exports';
-import {noDigitsInTn} from './no-digits-in-tn';
-import {noDynamicTranslations} from './no-dynamic-translations';
-import {noFlagComments} from './no-flag-comments';
-import {noQueryDataTypeParameters} from './no-query-data-type-parameters';
-import {noRawCssInStyled} from './no-raw-css-in-styled';
-import {noStaticTranslations} from './no-static-translations';
-import {noStyledShortcut} from './no-styled-shortcut';
-import {noUnnecessaryTypeAnnotation} from './no-unnecessary-type-annotation';
-import {noUnnecessaryTypeNarrowing} from './no-unnecessary-type-narrowing';
-import {noUnnecessaryUseCallback} from './no-unnecessary-use-callback';
-import {noUselessCssInterpolationSemicolon} from './no-useless-css-interpolation-semicolon';
+import {noCallingComponentsAsFunctions} from './noCallingComponentsAsFunctions';
+import {noDefaultExports} from './noDefaultExports';
+import {noDigitsInTn} from './noDigitsInTn';
+import {noDynamicTranslations} from './noDynamicTranslations';
+import {noFlagComments} from './noFlagComments';
+import {noQueryDataTypeParameters} from './noQueryDataTypeParameters';
+import {noRawCssInStyled} from './noRawCssInStyled';
+import {noStaticTranslations} from './noStaticTranslations';
+import {noStyledShortcut} from './noStyledShortcut';
+import {noUnnecessaryTypeAnnotation} from './noUnnecessaryTypeAnnotation';
+import {noUnnecessaryTypeNarrowing} from './noUnnecessaryTypeNarrowing';
+import {noUnnecessaryUseCallback} from './noUnnecessaryUseCallback';
+import {noUselessCssInterpolationSemicolon} from './noUselessCssInterpolationSemicolon';
 
 export const rules = {
   'no-calling-components-as-functions': noCallingComponentsAsFunctions,

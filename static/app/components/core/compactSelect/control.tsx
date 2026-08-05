@@ -38,10 +38,10 @@ import type {
   SearchConfig,
   SearchMatchResult,
   SelectKey,
-  SelectOptionOrSection,
+  SelectOptionOrSectionWithKey,
   SelectOptionWithKey,
 } from './types';
-import {getSearchConfig} from './utils';
+import {getDisabledOptions, getHiddenOptions, getSearchConfig} from './utils';
 
 // autoFocus react attribute is sync called on render, this causes
 // layout thrashing and is bad for performance. This thin wrapper function
@@ -206,7 +206,7 @@ export interface ControlProps
 /**
  * Controls Select's open state and exposes SelectContext to all chidlren.
  */
-export function Control({
+export function Control<Value extends SelectKey>({
   // Control props
   autoFocus,
   trigger,
@@ -234,6 +234,7 @@ export function Control({
   menuFooter,
   onOpenChange,
   items = [],
+  isOptionDisabled,
   value,
 
   // Select props
@@ -247,9 +248,10 @@ export function Control({
   menuRef,
   ...wrapperProps
 }: ControlProps & {
-  items?: Array<SelectOptionOrSection<SelectKey>>;
+  isOptionDisabled?: (option: SelectOptionWithKey<Value>) => boolean;
+  items?: Array<SelectOptionOrSectionWithKey<Value>>;
   menuRef?: React.Ref<HTMLDivElement>;
-  value?: SelectKey | SelectKey[] | undefined;
+  value?: Value | Value[] | undefined;
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -273,6 +275,31 @@ export function Control({
     }
   };
 
+  const selectableOptionCount = useMemo(() => {
+    const {hidden: hiddenOptions} = getHiddenOptions(
+      items,
+      search,
+      Infinity,
+      searchFilter
+    );
+    const disabledOptions = new Set(getDisabledOptions(items, isOptionDisabled));
+
+    return items.reduce((count, item) => {
+      if ('options' in item) {
+        return (
+          count +
+          item.options.filter(
+            option => !hiddenOptions.has(option.key) && !disabledOptions.has(option.key)
+          ).length
+        );
+      }
+
+      return (
+        count + (!hiddenOptions.has(item.key) && !disabledOptions.has(item.key) ? 1 : 0)
+      );
+    }, 0);
+  }, [items, search, searchFilter, isOptionDisabled]);
+
   const {keyboardProps: searchKeyboardProps} = useKeyboard({
     onKeyDown: e => {
       // When the search input is focused, and the user presses Arrow Down,
@@ -286,9 +313,34 @@ export function Control({
           ?.focus();
       }
 
-      // Prevent form submissions on Enter key press in search box
-      if (e.key === 'Enter') {
+      if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
         e.preventDefault();
+
+        const firstOption = overlayRef.current?.querySelector<HTMLLIElement>(
+          `li[role="${mode === 'grid' ? 'row' : 'option'}"]:not([aria-disabled="true"])`
+        );
+        const focusOptionList = () => {
+          if (firstOption) {
+            firstOption.focus();
+            return;
+          }
+
+          overlayRef.current
+            ?.querySelector<HTMLUListElement>(
+              `ul[role="${mode === 'grid' ? 'grid' : 'listbox'}"]`
+            )
+            ?.focus();
+        };
+
+        if (selectableOptionCount > 0 && !loading) {
+          if (selectableOptionCount === 1 && firstOption) {
+            firstOption.click();
+          } else {
+            // Move focus to the first option, matching the next focus target when tabbing
+            // out of the search input.
+            focusOptionList();
+          }
+        }
       }
 
       // Continue propagation, otherwise the overlay won't close on Esc key press

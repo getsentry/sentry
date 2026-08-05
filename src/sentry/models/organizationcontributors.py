@@ -7,7 +7,6 @@ from django.db import models
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedIntegerField, FlexibleForeignKey, cell_silo_model
 from sentry.db.models.base import DefaultFieldsModel
-from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD = 2
 
@@ -46,12 +45,12 @@ class OrganizationContributors(DefaultFieldsModel):
 
     organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
 
-    integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="DO_NOTHING")
-
     external_identifier = models.CharField(max_length=255, db_index=True)
-    provider = models.CharField(max_length=64, null=True)
+
+    provider = models.CharField(max_length=64)
+
     # Disambiguate external identifiers for self-hosted instances.
-    hostname = models.CharField(max_length=255, null=True)
+    hostname = models.CharField(max_length=255)
 
     alias = models.CharField(max_length=255, null=True, blank=True)
     num_actions = BoundedIntegerField(default=0)
@@ -61,8 +60,8 @@ class OrganizationContributors(DefaultFieldsModel):
         db_table = "sentry_organizationcontributors"
         constraints = [
             models.UniqueConstraint(
-                fields=["organization_id", "integration_id", "external_identifier"],
-                name="sentry_orgcont_unique_org_cont",
+                fields=["organization_id", "provider", "hostname", "external_identifier"],
+                name="sentry_orgcont_unique_contributor",
             ),
         ]
         indexes = [

@@ -14,6 +14,9 @@ export function useWelcomeAnalyticsEffect() {
     reportExposure: false,
   });
 
+  // Kept separate from the cleanup below: the onboarding context value changes
+  // identity whenever session state is written, so sharing an effect would let
+  // the cleanup re-fire this event.
   useEffect(() => {
     if (hasScmOnboarding) {
       trackAnalytics('onboarding.scm_welcome_step_viewed', {organization});
@@ -23,10 +26,12 @@ export function useWelcomeAnalyticsEffect() {
         source: ONBOARDING_WELCOME_SCREEN_SOURCE,
       });
     }
+  }, [organization, hasScmOnboarding]);
 
+  useEffect(() => {
     if (onboardingContext.selectedPlatform) {
       // At this point the selectedSDK shall be undefined but just in case, cleaning this up here too
-      onboardingContext.setSelectedPlatform(undefined);
+      onboardingContext.resetOnboarding();
     }
-  }, [organization, onboardingContext, hasScmOnboarding]);
+  }, [onboardingContext]);
 }

@@ -1,5 +1,6 @@
 import posixpath
 
+import sentry_sdk
 from django.http import StreamingHttpResponse
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
@@ -20,6 +21,11 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import superuser_has_permission
 from sentry.auth.system import is_system_auth
 from sentry.constants import ATTACHMENTS_ROLE_DEFAULT
+from sentry.issues.action_log import (
+    action_context_scope,
+    resolve_action_actor,
+    resolve_action_source,
+)
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.organizationmember import OrganizationMember
@@ -147,6 +153,8 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         if event is None:
             return self.respond({"detail": "Event not found"}, status=404)
 
+        sentry_sdk.set_attribute("event.type", event.get_event_type())
+
         try:
             attachment = EventAttachment.objects.filter(
                 project_id=project.id, event_id=event.event_id, id=attachment_id
@@ -184,12 +192,15 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
 
         # an activity with no group cannot be associated with an issue or displayed in an issue details page
         if attachment.group_id is not None:
-            Activity.objects.create(
-                group_id=attachment.group_id,
-                project=project,
-                type=ActivityType.DELETED_ATTACHMENT.value,
-                user_id=request.user.id,
-                data={},
-            )
+            with action_context_scope(
+                source=resolve_action_source(request), actor=resolve_action_actor(request)
+            ):
+                Activity.objects.create(
+                    group_id=attachment.group_id,
+                    project=project,
+                    type=ActivityType.DELETED_ATTACHMENT.value,
+                    user_id=request.user.id,
+                    data={},
+                )
         attachment.delete()
         return self.respond(status=204)

@@ -518,7 +518,7 @@ export function CheckoutSuccess({
 
   const isImmediateCharge = !!invoice; // if they paid for something now, the changes are effective immediately
   const data = isImmediateCharge ? invoice : previewData;
-  const invoiceItems = isImmediateCharge
+  const invoiceItems: Array<InvoiceItem | PreviewInvoiceItem> = isImmediateCharge
     ? invoice.items
     : (previewData?.invoiceItems ?? []);
   const planItem = invoiceItems.find(item => item.type === 'subscription');
@@ -615,7 +615,11 @@ export function CheckoutSuccess({
             >
               {t('Edit plan')}
             </LinkButton>
-            <FeedbackButton feedbackOptions={checkoutSuccessFeedbackOptions} size="md" />
+            <FeedbackButton
+              variant="secondary"
+              feedbackOptions={checkoutSuccessFeedbackOptions}
+              size="md"
+            />
           </Flex>
         </Stack>
       </Stack>

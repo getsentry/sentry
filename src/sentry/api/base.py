@@ -67,6 +67,7 @@ from ..utils.pagination_factory import (
     get_paginator,
 )
 from .authentication import (
+    AgentTokenAuthentication,
     ApiKeyAuthentication,
     OrgAuthTokenAuthentication,
     UserAuthTokenAuthentication,
@@ -105,6 +106,7 @@ CURSOR_LINK_HEADER = (
 DEFAULT_AUTHENTICATION = (
     UserAuthTokenAuthentication,
     OrgAuthTokenAuthentication,
+    AgentTokenAuthentication,
     ApiKeyAuthentication,
     ViewerContextAuthentication,
     SessionAuthentication,

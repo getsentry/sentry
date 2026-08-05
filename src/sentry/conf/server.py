@@ -380,13 +380,7 @@ USE_TZ = True
 # so that responses aren't modified after Content-Length is set, or have the
 # response modifying middleware reset the Content-Length header.
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
-APIGW_ASYNC = os.environ.get("SENTRY_APIGW_ASYNC", "").lower() in ("1", "true", "y", "yes")
 APIGW_WARN_REQS = os.environ.get("SENTRY_APIGW_WARN_REQS", "").lower() in ("1", "true", "y", "yes")
-APIGW_MIDDLEWARE = (
-    "sentry.hybridcloud.apigateway_async.middleware.ApiGatewayMiddleware"
-    if APIGW_ASYNC
-    else "sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware"
-)
 MIDDLEWARE: tuple[str, ...] = (
     "csp.middleware.CSPMiddleware",
     "sentry.middleware.health.HealthCheck",
@@ -405,7 +399,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.viewer_context.ViewerContextMiddleware",
     "sentry.middleware.ai_agent.AIAgentMiddleware",
     "sentry.middleware.integrations.IntegrationControlMiddleware",
-    APIGW_MIDDLEWARE,
+    "sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware",
     "sentry.middleware.demo_mode_guard.DemoModeGuardMiddleware",
     "sentry.middleware.customer_domain.CustomerDomainMiddleware",
     "sentry.middleware.sudo.SudoMiddleware",
@@ -479,6 +473,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.processing_errors",
     "sentry.uptime",
     "sentry.tempest",
+    "sentry.ai_monitoring",
     "sentry.replays",
     "sentry.release_health",
     "sentry.search",
@@ -873,8 +868,10 @@ TASKWORKER_DEFAULT_TOPIC = os.getenv("TASKWORKER_DEFAULT_TOPIC")
 # accessible to the worker.
 # This list includes all tasks even if they are imported transitively by other modules.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
+    "sentry.ai_monitoring.tasks",
     "sentry.conduit.tasks",
     "sentry.data_export.tasks",
+    "sentry.debug_files.objectstore_migration.tasks",
     "sentry.debug_files.tasks",
     "sentry.deletions.tasks.groups",
     "sentry.deletions.tasks.hybrid_cloud",
@@ -929,6 +926,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.preprod.snapshots.tasks",
     "sentry.preprod.snapshots.zip_tasks",
     "sentry.preprod.tasks",
+    "sentry.preprod.vcs.pr_comments.size_tasks",
     "sentry.preprod.vcs.pr_comments.snapshot_tasks",
     "sentry.preprod.vcs.pr_comments.tasks",
     "sentry.preprod.vcs.status_checks.size.tasks",
@@ -960,13 +958,13 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.auth.cleanup_pending_users",
     "sentry.tasks.auto_ongoing_issues",
     "sentry.tasks.backfill_group_action_log",
+    "sentry.tasks.backfill_pr_lifecycle_action_log",
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.auto_source_code_config",
     "sentry.tasks.seer.autofix",
     "sentry.tasks.seer.pr_iteration",
     "sentry.tasks.beacon",
-    "sentry.tasks.check_am2_compatibility",
     "sentry.tasks.clear_expired_resolutions",
     "sentry.tasks.clear_expired_rulesnoozes",
     "sentry.tasks.clear_expired_snoozes",
@@ -1188,6 +1186,11 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         # Run every 12 hours, at 10:00 and 22:00 UTC
         "schedule": crontab("0", "10,22", "*", "*", "*"),
     },
+    "pr-metrics-reap-stuck-judge-verdicts": {
+        "task": "seer.code_review:sentry.pr_metrics.tasks.reap_stuck_judge_verdicts",
+        # Run once a day at 04:00 UTC, off-peak.
+        "schedule": crontab("0", "4", "*", "*", "*"),
+    },
     "refresh-artifact-bundles-in-use": {
         "task": "attachments:sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
         "schedule": crontab("*/1", "*", "*", "*", "*"),
@@ -1204,6 +1207,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "demomode:sentry.demo_mode.tasks.sync_debug_artifacts",
         "schedule": crontab("0", "*/1", "*", "*", "*"),
     },
+    "pr-metrics-detect-stale": {
+        "task": "seer.code_review:sentry.pr_metrics.tasks.detect_stale_pull_requests",
+        "schedule": crontab("0", "2", "*", "*", "*"),
+    },
     "relocation-find-transfer-region": {
         "task": "relocation:sentry.relocation.transfer.find_relocation_transfer_region",
         "schedule": crontab("*/5", "*", "*", "*", "*"),
@@ -1219,6 +1226,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "web-vitals-issue-detection": {
         "task": "issues:sentry.tasks.web_vitals_issue_detection.run_web_vitals_issue_detection",
         "schedule": crontab("0", "0", "*", "1,15", "*"),
+    },
+    "heal-stale-derived-data": {
+        "task": "issues:sentry.issues.derived.tasks.heal_stale_derived_data",
+        "schedule": crontab("*/15", "*", "*", "*", "*"),
     },
 }
 
@@ -1539,7 +1550,7 @@ SENTRY_POST_PROCESS_GROUP_APM_SAMPLING = 1 if DEBUG else 0
 # sample rate for all reprocessing tasks (except for the per-event ones)
 SENTRY_REPROCESSING_APM_SAMPLING = 1 if DEBUG else 0
 
-# sample rate for the ingest-replay-recordings processing (consumer and task)
+# sample rate for the ingest-replay-recordings task
 SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING = 0
 
 # ----
@@ -2248,7 +2259,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.6.0"
+SELF_HOSTED_STABLE_VERSION = "26.7.2"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2273,6 +2284,8 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.opsgenie.OpsgenieIntegrationProvider",
     "sentry.integrations.cursor.integration.CursorAgentIntegrationProvider",
     "sentry.integrations.claude_code.integration.ClaudeCodeAgentIntegrationProvider",
+    "sentry.integrations.datadog.integration.DatadogIntegrationProvider",
+    "sentry.integrations.gcp.integration.GcpIntegrationProvider",
     "sentry.integrations.github_copilot.integration.GithubCopilotIntegrationProvider",
     "sentry.integrations.perforce.integration.PerforceIntegrationProvider",
 )
@@ -2363,13 +2376,13 @@ SENTRY_INTERCOM_API_SECRET = ""
 SENTRY_RELAY_STATIC_AUTH: dict[str, Any] = {}
 SENTRY_OBJECTSTORE_CONFIG: dict[str, Any] = {
     "base_url": "http://127.0.0.1:8888",
-    # Test-only token generator with no permissions. Only active when no real
+    # Test-only token generator with read permission. Only active when no real
     # objectstore config is deployed. Exists so mint_token() does not raise in
     # test/dev environments that lack signing keys.
     "token_generator": {
         "kid": "test",
         "secret_key": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIOrZqzixETRBXsZl85d83N5nwb71ctTZ3/mwu1TX90vG\n-----END PRIVATE KEY-----\n",
-        "permissions": [],
+        "permissions": ["object.read"],
     },
 }
 SENTRY_VIEWER_CONTEXT_ENABLED = True
@@ -3207,12 +3220,8 @@ REGION_PINNED_URL_NAMES = {
     # New usage of these is region scoped.
     "sentry-js-sdk-loader",
     "sentry-release-hook",
-    "sentry-api-0-organizations",
     "sentry-api-0-projects",
     "sentry-api-0-accept-project-transfer",
-    "sentry-organization-avatar-url-deprecated",
-    "sentry-chartcuterie-config",
-    "sentry-robots-txt",
 }
 # Used in tests to skip forwarding relay paths to a region silo that does not exist.
 APIGATEWAY_PROXY_SKIP_RELAY = False

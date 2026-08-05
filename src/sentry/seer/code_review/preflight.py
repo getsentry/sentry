@@ -5,11 +5,15 @@ from dataclasses import dataclass
 from enum import StrEnum
 from functools import cached_property
 
+import sentry_sdk
+
 from sentry import features, options, quotas
 from sentry.constants import (
     HIDE_AI_FEATURES_DEFAULT,
     DataCategory,
 )
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.utils.hostname import InstanceHostnameError, instance_hostname
 from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.repository import Repository
@@ -43,12 +47,12 @@ class CodeReviewPreflightService:
         self,
         organization: Organization,
         repo: Repository,
-        integration_id: int | None = None,
+        integration: RpcIntegration | None = None,
         pr_author_external_id: str | None = None,
     ):
         self.organization = organization
         self.repo = repo
-        self.integration_id = integration_id
+        self.integration = integration
         self.pr_author_external_id = pr_author_external_id
 
         repo_settings = RepositorySettings.objects.filter(repository=repo).first()
@@ -101,13 +105,20 @@ class CodeReviewPreflightService:
         then that means that they've opened a PR before, and either have a seat already OR it's their
         "Free action."
         """
-        if self.integration_id is None or self.pr_author_external_id is None:
+        if self.integration is None or self.pr_author_external_id is None:
+            return PreflightDenialReason.BILLING_MISSING_CONTRIBUTOR_INFO
+
+        try:
+            hostname = instance_hostname(self.integration)
+        except InstanceHostnameError as e:
+            sentry_sdk.capture_exception(e)
             return PreflightDenialReason.BILLING_MISSING_CONTRIBUTOR_INFO
 
         try:
             contributor = OrganizationContributors.objects.get(
                 organization_id=self.organization.id,
-                integration_id=self.integration_id,
+                provider=self.integration.provider,
+                hostname=hostname,
                 external_identifier=self.pr_author_external_id,
             )
         except OrganizationContributors.DoesNotExist:

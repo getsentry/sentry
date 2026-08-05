@@ -1,9 +1,22 @@
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Self
+from typing import Any, Self, TypedDict
 
 from sentry.issues.grouptype import GroupType, get_group_type_by_type_id
-from sentry.issues.issue_occurrence import IssueEvidence
+from sentry.issues.issue_occurrence import IssueEvidence, IssueEvidenceData
+
+
+# A serialized version of the `PerformanceProblem` dataclass
+class PerformanceProblemDict(TypedDict):
+    fingerprint: str
+    op: str
+    desc: str
+    type: int
+    parent_span_ids: list[str]
+    cause_span_ids: list[str]
+    offender_span_ids: list[str]
+    evidence_data: dict[str, Any]
+    evidence_display: list[IssueEvidenceData]
 
 
 @dataclass
@@ -12,9 +25,9 @@ class PerformanceProblem:
     op: str
     desc: str
     type: type[GroupType]
-    parent_span_ids: Sequence[str] | None
+    parent_span_ids: Sequence[str]
     # For related spans that caused the bad spans
-    cause_span_ids: Sequence[str] | None
+    cause_span_ids: Sequence[str]
     # The actual bad spans
     offender_span_ids: Sequence[str]
     # Evidence to be used for the group
@@ -24,16 +37,16 @@ class PerformanceProblem:
 
     def to_dict(
         self,
-    ) -> Mapping[str, Any]:
+    ) -> PerformanceProblemDict:
         return {
             "fingerprint": self.fingerprint,
             "op": self.op,
             "desc": self.desc,
             "type": self.type.type_id,
-            "parent_span_ids": self.parent_span_ids,
-            "cause_span_ids": self.cause_span_ids,
-            "offender_span_ids": self.offender_span_ids,
-            "evidence_data": self.evidence_data,
+            "parent_span_ids": list(self.parent_span_ids),
+            "cause_span_ids": list(self.cause_span_ids),
+            "offender_span_ids": list(self.offender_span_ids),
+            "evidence_data": dict(self.evidence_data),
             "evidence_display": [evidence.to_dict() for evidence in self.evidence_display],
         }
 

@@ -36,7 +36,11 @@ from sentry.api.serializers.models.group_stream import (
     StreamGroupSerializerSnuba,
     StreamGroupSerializerSnubaResponse,
 )
-from sentry.api.utils import get_date_range_from_stats_period, handle_query_errors
+from sentry.api.utils import (
+    get_date_range_from_stats_period,
+    handle_query_errors,
+    to_valid_int_id_list,
+)
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -56,12 +60,11 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALLOWED_FUTURE_DELTA, DEFAULT_SORT_OPTION
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.environment import Environment
-from sentry.models.group import QUERY_STATUS_LOOKUP, Group, GroupStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.groupinbox import GroupInbox
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.snuba.backend import assigned_or_suggested_filter
 from sentry.search.snuba.executors import get_search_filter
 from sentry.utils.cursors import Cursor, CursorResult
@@ -255,18 +258,6 @@ def search_and_serialize_issues(
         ),
         request=request,
     )
-
-    # HACK: remove auto resolved entries
-    # TODO: We should try to integrate this into the search backend, since
-    # this can cause us to arbitrarily return fewer results than requested.
-    status = [
-        search_filter
-        for search_filter in query_kwargs.get("search_filters", [])
-        if search_filter.key.name == "status" and search_filter.operator in EQUALITY_OPERATORS
-    ]
-    if status and (GroupStatus.UNRESOLVED in status[0].value.raw_value):
-        status_labels = {QUERY_STATUS_LOOKUP[s] for s in status[0].value.raw_value}
-        rows = [r for r in rows if "status" not in r or r["status"] in status_labels]
 
     return rows, cursor_result, query_kwargs
 
@@ -534,7 +525,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             self.get_environments(request, organization),
         )
 
-        ids = [int(id) for id in request.GET.getlist("id")]
+        ids = to_valid_int_id_list("id", request.GET.getlist("id"))
         return update_groups_with_search_fn(request, ids, projects, organization.id, search_fn)
 
     @extend_schema(

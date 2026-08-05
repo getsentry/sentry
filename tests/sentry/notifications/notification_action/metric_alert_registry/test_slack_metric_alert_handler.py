@@ -75,8 +75,8 @@ class TestSlackMetricAlertHandlerSendAlert(MetricAlertHandlerBase):
             ),
             open_period_context=OpenPeriodContext.from_group(self.group),
             trigger_status=TriggerStatus.ACTIVE,
-            project=self.detector.project,
-            organization=self.detector.project.organization,
+            project=self.detector.linked_project,
+            organization=self.detector.linked_project.organization,
             notification_uuid=str(uuid.uuid4()),
         )
 
@@ -211,7 +211,7 @@ class TestSlackMetricAlertHandlerInvokeRegistry(MetricAlertHandlerBase):
             date_closed=None,
         )
 
-        assert organization == self.detector.project.organization
+        assert organization == self.detector.linked_project.organization
         assert isinstance(notification_uuid, str)
 
     @mock.patch(
@@ -290,5 +290,5 @@ class TestSlackMetricAlertHandlerInvokeRegistry(MetricAlertHandlerBase):
             date_closed=None,
         )
 
-        assert organization == self.detector.project.organization
+        assert organization == self.detector.linked_project.organization
         assert isinstance(notification_uuid, str)

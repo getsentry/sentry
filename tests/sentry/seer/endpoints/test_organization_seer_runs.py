@@ -2,7 +2,7 @@ from collections.abc import Mapping
 from typing import Any
 from unittest.mock import patch
 
-from sentry.seer.models.run import SeerRunType
+from sentry.seer.models.run import SeerRunPullRequest, SeerRunType
 from sentry.seer.run_questions import QUESTIONS, question_hash
 from sentry.seer.runs_query import filtered_runs_queryset
 from sentry.testutils.cases import APITestCase, TestCase
@@ -371,6 +371,45 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
         data = response.data[0]
         assert data["id"] == str(run.uuid)
         assert data["userId"] == str(self.user.id)
+
+    def test_pull_requests_serialized_with_state(self) -> None:
+        run = self.create_seer_run(
+            organization=self.organization,
+            user_id=self.user.id,
+            last_triggered_at=before_now(minutes=1),
+        )
+        without_prs = self.create_seer_run(
+            organization=self.organization,
+            user_id=self.user.id,
+            last_triggered_at=before_now(minutes=10),
+        )
+        project = self.create_project(organization=self.organization)
+        repo = self.create_repo(project, name="getsentry/sentry")
+        merged_pr = self.create_pull_request(
+            repository_id=repo.id, organization_id=self.organization.id, key="123"
+        )
+        merged_at = before_now(minutes=5)
+        merged_pr.update(state="merged", merged_at=merged_at)
+        open_pr = self.create_pull_request(
+            repository_id=repo.id, organization_id=self.organization.id, key="124"
+        )
+        SeerRunPullRequest.objects.create(seer_run=run, pull_request=merged_pr)
+        SeerRunPullRequest.objects.create(seer_run=run, pull_request=open_pr)
+
+        response = self.get_success_response(self.organization.slug)
+        by_id = {r["id"]: r for r in response.data}
+
+        # The PR number is exposed as the serializer's ``id`` (PullRequest.key).
+        prs_by_key = {pr["id"]: pr for pr in by_id[str(run.uuid)]["pullRequests"]}
+        assert prs_by_key["123"]["status"] == "merged"
+        assert prs_by_key["123"]["mergedAt"] == merged_at
+        # Standard PullRequestSerializer fields come through too.
+        assert "repository" in prs_by_key["123"]
+        # No webhook has reported a state for the second PR.
+        assert prs_by_key["124"]["status"] is None
+        assert prs_by_key["124"]["mergedAt"] is None
+
+        assert by_id[str(without_prs.uuid)]["pullRequests"] == []
 
     def test_outputs_absent_without_flag(self) -> None:
         self.create_seer_run(

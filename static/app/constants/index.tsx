@@ -717,7 +717,6 @@ export const SPAN_PROPS_DOCS_URL =
   'https://docs.sentry.io/concepts/search/searchable-properties/spans/';
 
 export {IS_ACCEPTANCE_TEST, NODE_ENV} from './env';
-export const UI_DEV_ENABLE_PROFILING = process.env.UI_DEV_ENABLE_PROFILING;
 export const USE_TANSTACK_DEVTOOL = process.env.USE_TANSTACK_DEVTOOL;
 
 export const DEFAULT_ERROR_JSON = {

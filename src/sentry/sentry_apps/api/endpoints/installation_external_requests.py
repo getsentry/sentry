@@ -12,6 +12,7 @@ from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEnd
 from sentry.sentry_apps.external_requests.utils import validate_sentry_app_uri
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
 from sentry.sentry_apps.services.cell import sentry_app_cell_service
+from sentry.users.services.user.serial import serialize_generic_user
 
 logger = logging.getLogger("sentry.sentry-apps")
 
@@ -35,7 +36,8 @@ class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEnd
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        if not request.user.is_authenticated:
+        rpc_user = serialize_generic_user(request.user)
+        if rpc_user is None:
             return Response({"detail": "Authentication credentials were not provided."}, status=401)
 
         validated = serializer.validated_data
@@ -47,6 +49,7 @@ class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEnd
             project_id=validated.get("projectId"),
             query=validated.get("query"),
             dependent_data=validated.get("dependentData"),
+            user=rpc_user,
         )
 
         if result.error:

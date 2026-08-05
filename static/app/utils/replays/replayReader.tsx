@@ -686,11 +686,9 @@ export class ReplayReader {
   );
 
   getMobileNavigationFrames = memoize(() =>
-    [
-      ...this._sortedBreadcrumbFrames.filter(frame =>
-        ['replay.init', 'navigation'].includes(frame.category)
-      ),
-    ].sort(sortFrames)
+    this._sortedBreadcrumbFrames
+      .filter(frame => ['replay.init', 'navigation'].includes(frame.category))
+      .toSorted(sortFrames)
   );
 
   getNetworkFrames = memoize(() =>

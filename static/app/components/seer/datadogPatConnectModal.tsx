@@ -15,17 +15,7 @@ import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-
-const DATADOG_SITES = [
-  {value: 'datadoghq.com', label: 'datadoghq.com (US1)'},
-  {value: 'us3.datadoghq.com', label: 'us3.datadoghq.com (US3)'},
-  {value: 'us5.datadoghq.com', label: 'us5.datadoghq.com (US5)'},
-  {value: 'datadoghq.eu', label: 'datadoghq.eu (EU)'},
-  {value: 'ddog-gov.com', label: 'ddog-gov.com (US1-FED)'},
-  {value: 'us2.ddog-gov.com', label: 'us2.ddog-gov.com (US2-FED)'},
-  {value: 'ap1.datadoghq.com', label: 'ap1.datadoghq.com (AP1)'},
-  {value: 'ap2.datadoghq.com', label: 'ap2.datadoghq.com (AP2)'},
-];
+import {DATADOG_SITES} from 'sentry/utils/seer/datadogSites';
 
 interface DatadogPatConnectModalProps extends ModalRenderProps {
   onSuccess: () => void;

@@ -26,7 +26,6 @@ describe('MemberListHeader', () => {
   const sub = SubscriptionFixture({
     organization,
     canTrial: false,
-    isTrial: false,
     plan: 'am1_f',
   });
   SubscriptionStore.set(organization.slug, sub);

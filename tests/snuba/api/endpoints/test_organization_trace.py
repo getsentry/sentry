@@ -361,7 +361,14 @@ class OrganizationEventsTraceEndpointTest(
             "app.vitals.ttid.value": 1200.0,
             "app.vitals.ttfd.value": 2400.0,
         }
-        assert span["measurements"]["measurements.app_start_cold"] == 0.0
+        # TODO(mjq): This works around a chicken-and-egg problem where a Snuba
+        # fix causes this value to change, but we can't merge it because
+        # Sentry's assertion here would fail. Temporarily allow either value.
+        # Current buggy value: 0.0
+        # Fixed value after Snuba PR is merged: 1600.0
+        # Once https://github.com/getsentry/snuba/pull/8217 is merged, this can
+        # be updated to assert `== 1600.0` alone.
+        assert span["measurements"]["measurements.app_start_cold"] in (0.0, 1600.0)
 
     def test_with_mobile_frames_rate_vitals(self) -> None:
         self.load_trace()

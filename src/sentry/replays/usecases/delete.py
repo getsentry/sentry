@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import logging
+from collections.abc import Iterator
 from datetime import datetime
 from typing import TypedDict
 
@@ -14,7 +15,6 @@ from snuba_sdk import (
     Function,
     Granularity,
     Limit,
-    Offset,
     Op,
     OrderBy,
     Query,
@@ -35,6 +35,7 @@ from sentry.replays.usecases.events import archive_event
 from sentry.replays.usecases.query import execute_query, handle_search_filters
 from sentry.replays.usecases.query.configs.aggregate import search_config as agg_search_config
 from sentry.seer.signed_seer_api import SeerViewerContext
+from sentry.snuba.referrer import Referrer
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import (
@@ -60,9 +61,7 @@ def delete_matched_rows(project_id: int, rows: list[MatchedRow]) -> int | None:
     if not rows:
         return None
 
-    for row in rows:
-        delete_replay_recordings(project_id, row)
-
+    delete_filenames_concurrently(list(_make_recording_filenames(project_id, rows)))
     delete_replays(project_id, [row["replay_id"] for row in rows])
     return None
 
@@ -73,9 +72,21 @@ def delete_replays(project_id: int, replay_ids: list[str]) -> None:
         publish_replay_event(archive_event(project_id, replay_id))
 
 
-def delete_replay_recordings(project_id: int, row: MatchedRow) -> None:
-    with ContextPropagatingThreadPoolExecutor(max_workers=100) as pool:
-        pool.map(_delete_if_exists, _make_recording_filenames(project_id, row))
+#  Keeping this small bounds threads-per-task so `worker_concurrency x N` stays under pod memory limit
+DELETE_THREAD_POOL_SIZE = 32
+
+
+def delete_filenames_concurrently(filenames: list[str]) -> None:
+    if not filenames:
+        return
+
+    # Warm the process-global client before the threads start so they reuse it instead of racing to
+    # build their own.
+    storage_kv.initialize_client()
+
+    max_workers = min(len(filenames), DELETE_THREAD_POOL_SIZE)
+    with ContextPropagatingThreadPoolExecutor(max_workers=max_workers) as pool:
+        pool.map(_delete_if_exists, filenames)
 
 
 def _delete_if_exists(filename: str) -> None:
@@ -86,24 +97,25 @@ def _delete_if_exists(filename: str) -> None:
         pass
 
 
-def _make_recording_filenames(project_id: int, row: MatchedRow) -> list[str]:
-    # Null segment_ids can cause this to fail. If no segments were ingested then we can skip
-    # deleting the segements.
-    if row["max_segment_id"] is None:
-        return []
+def _make_recording_filenames(project_id: int, rows: list[MatchedRow]) -> Iterator[str]:
+    for row in rows:
+        # Null segment_ids can cause this to fail. If no segments were ingested then we can skip
+        # deleting the segements.
+        if row["max_segment_id"] is None:
+            continue
 
-    # We assume every segment between 0 and the max_segment_id exists. Its a waste of time to
-    # delete a non-existent segment but its not so significant that we'd want to query ClickHouse
-    # to verify it exists.
-    replay_id = row["replay_id"]
-    retention_days = row["retention_days"]
+        # We assume every segment between 0 and the max_segment_id exists. Its a waste of time to
+        # delete a non-existent segment but its not so significant that we'd want to query ClickHouse
+        # to verify it exists.
 
-    filenames = []
-    for segment_id in range(row["max_segment_id"] + 1):
-        segment = RecordingSegmentStorageMeta(project_id, replay_id, segment_id, retention_days)
-        filenames.append(make_recording_filename(segment))
+        # Snuba returns `replay_id` in dashed UUID form because the column is a ClickHouse UUID, but
+        # blob storage keys use the dash-stripped 32-hex form.
+        replay_id = row["replay_id"].replace("-", "")
+        retention_days = row["retention_days"]
 
-    return filenames
+        for segment_id in range(row["max_segment_id"] + 1):
+            segment = RecordingSegmentStorageMeta(project_id, replay_id, segment_id, retention_days)
+            yield make_recording_filename(segment)
 
 
 class MatchedRow(TypedDict):
@@ -115,6 +127,7 @@ class MatchedRow(TypedDict):
 class MatchedRows(TypedDict):
     rows: list[MatchedRow]
     has_more: bool
+    next_cursor: int | None
 
 
 def fetch_rows_matching_pattern(
@@ -124,7 +137,7 @@ def fetch_rows_matching_pattern(
     query: str,
     environment: list[str],
     limit: int,
-    offset: int,
+    after_replay_id_hash: int | None = None,
 ) -> MatchedRows:
     search_filters = parse_search_query(query, config=replay_url_parser_config)
     having = handle_search_filters(agg_search_config, search_filters)
@@ -133,12 +146,27 @@ def fetch_rows_matching_pattern(
     if environment:
         where.append(Condition(Column("environment"), Op.IN, environment))
 
+    # Fetch `cityHash64(replay_id)`. Unlike raw `replay_id` it is part of the table's
+    # _sort key_, so ClickHouse can use it to skip granules while scanning.
+    replay_id_hash_column = Function(
+        "cityHash64", parameters=[Column("replay_id")], alias="replay_id_hash"
+    )
+    if after_replay_id_hash is not None:
+        where.append(
+            Condition(
+                Function("cityHash64", parameters=[Column("replay_id")]),
+                Op.GT,
+                after_replay_id_hash,
+            )
+        )
+
     query = Query(
         match=Entity("replays"),
         select=[
             Function("any", parameters=[Column("retention_days")], alias="retention_days"),
             Column("replay_id"),
             Function("max", parameters=[Column("segment_id")], alias="max_segment_id"),
+            replay_id_hash_column,
         ],
         where=[
             Condition(Column("project_id"), Op.EQ, project_id),
@@ -149,11 +177,13 @@ def fetch_rows_matching_pattern(
             *where,
         ],
         having=having,
-        groupby=[Column("replay_id")],
-        orderby=[OrderBy(Function("min", parameters=[Column("timestamp")]), Direction.ASC)],
+        # Group by both the `replay_id` and `cityHash64(replay_id)` so we are able
+        # to keep track of the cursor _and_ still get the Replay IDs out. Since
+        # the hash is a function of the ID, this doesn't change the row contents.
+        groupby=[Column("replay_id"), replay_id_hash_column],
+        orderby=[OrderBy(replay_id_hash_column, Direction.ASC)],
         granularity=Granularity(3600),
         limit=Limit(limit),
-        offset=Offset(offset),
     )
 
     # Queries are retried for a max for 5 attempts. Retries are exponentially delayed. This is
@@ -167,16 +197,19 @@ def fetch_rows_matching_pattern(
         functools.partial(
             execute_query,
             query,
-            {"tenant_id": Organization.objects.filter(project__id=project_id).get().id},
-            "replays.delete_replays_bulk",
+            {"organization_id": Organization.objects.filter(project__id=project_id).get().id},
+            Referrer.REPLAYS_DELETE_REPLAYS_BULK.value,
         )
     )
 
     rows = response.get("data", [])
     has_more = len(rows) == limit
 
+    next_cursor = rows[-1]["replay_id_hash"] if rows else None
+
     return {
         "has_more": has_more,
+        "next_cursor": next_cursor,
         "rows": [
             {
                 "max_segment_id": row["max_segment_id"],

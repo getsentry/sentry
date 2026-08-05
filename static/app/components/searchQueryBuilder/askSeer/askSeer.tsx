@@ -16,8 +16,9 @@ import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 export function AskSeer<T>({state}: {state: ComboBoxState<T>}) {
   const organization = useOrganization();
+  const hasAskSeerUxRework = organization.features.includes('gen-ai-ask-seer-ux-rework');
 
-  const {displayAskSeerFeedback} = useSearchQueryBuilderAI();
+  const {displayAskSeerFeedback, enableAISearch} = useSearchQueryBuilderAI();
 
   const isMutating = useIsMutating({
     mutationKey: [setupCheckQueryKey(organization.slug)],
@@ -41,7 +42,7 @@ export function AskSeer<T>({state}: {state: ComboBoxState<T>}) {
     );
   }
 
-  if (displayAskSeerFeedback) {
+  if (displayAskSeerFeedback && !hasAskSeerUxRework) {
     return (
       <AskSeerPane>
         <AskSeerListItem justifyContent="space-between" cursor="auto">
@@ -49,6 +50,10 @@ export function AskSeer<T>({state}: {state: ComboBoxState<T>}) {
         </AskSeerListItem>
       </AskSeerPane>
     );
+  }
+
+  if (enableAISearch && hasAskSeerUxRework) {
+    return null;
   }
 
   return (

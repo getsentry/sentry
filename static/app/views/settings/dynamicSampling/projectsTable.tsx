@@ -105,6 +105,11 @@ export function ProjectsTable({
     return itemsWithExpanded;
   }, [items, expandedItems, tableSort]);
 
+  const getItemKey = useCallback(
+    (index: number) => sortedItems[index]?.project.id ?? index,
+    [sortedItems]
+  );
+
   const virtualizer = useVirtualizer({
     count: sortedItems.length,
     getScrollElement: () => scrollContainerRef.current,
@@ -113,7 +118,7 @@ export function ProjectsTable({
         ? BASE_ROW_HEIGHT + (sortedItems[index].subProjects.length + 1) * 21
         : BASE_ROW_HEIGHT,
     overscan: 5,
-    getItemKey: index => sortedItems[index]?.project.id ?? index,
+    getItemKey,
   });
 
   return (

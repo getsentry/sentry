@@ -5,7 +5,7 @@ import {FieldValueType} from 'sentry/utils/fields';
 import {addValidatedFieldTypesToMeta} from 'sentry/views/explore/tables/spansTable';
 
 describe('addValidatedFieldTypesToMeta', () => {
-  it('uses validated field types over table meta field types', () => {
+  it('preserves table meta field types over validated field types', () => {
     const meta = addValidatedFieldTypesToMeta({
       meta: {
         fields: {
@@ -20,7 +20,7 @@ describe('addValidatedFieldTypesToMeta', () => {
     });
 
     expect(meta.fields).toEqual({
-      'custom.duration': FieldValueType.NUMBER,
+      'custom.duration': FieldValueType.STRING,
       id: FieldValueType.STRING,
       'span.op': FieldValueType.STRING,
     });
@@ -40,7 +40,7 @@ describe('addValidatedFieldTypesToMeta', () => {
       LocationFixture({query: {field: ['sentry.duration']}})
     );
     const meta = addValidatedFieldTypesToMeta({
-      meta: {fields: {'sentry.duration': FieldValueType.STRING}},
+      meta: {fields: {}},
       validatedFieldTypes: {'sentry.duration': FieldValueType.NUMBER},
     });
 

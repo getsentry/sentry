@@ -58,6 +58,30 @@ describe('ExploreSecondaryNavigation', () => {
     expect(screen.getByText('Traces')).toBeInTheDocument();
   });
 
+  it('marks Releases as active on preprod pages', () => {
+    render(
+      <PrimaryNavigationContextProvider>
+        <SecondaryNavigationContextProvider>
+          <Navigation />
+          <div id="main" />
+        </SecondaryNavigationContextProvider>
+      </PrimaryNavigationContextProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/preprod/snapshots/123/',
+          },
+        },
+      }
+    );
+
+    expect(screen.getByRole('link', {name: 'Releases'})).toHaveAttribute(
+      'aria-current',
+      'page'
+    );
+  });
+
   it('links Discover to homepage when discover-query is enabled', () => {
     const {organization: orgWithQuery} = initializeOrg({
       organization: {

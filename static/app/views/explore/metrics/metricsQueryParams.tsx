@@ -2,9 +2,7 @@ import type {ReactNode} from 'react';
 import {createContext, useCallback, useContext, useMemo} from 'react';
 
 import {defined} from 'sentry/utils/defined';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {canUseMetricsEquations} from 'sentry/views/explore/metrics/metricsFlags';
 import {
   MetricsFrozenContextProvider,
   type MetricsFrozenForTracesProviderProps,
@@ -130,13 +128,10 @@ function getUpdatedValue<T>(
 }
 
 export function useMetricVisualize(): Visualize {
-  const organization = useOrganization();
   const visualizes = useQueryParamsVisualizes();
-  const hasEquations = canUseMetricsEquations(organization);
   if (
     visualizes.length > 0 &&
-    (isVisualizeFunction(visualizes[0]!) ||
-      (isVisualizeEquation(visualizes[0]!) && hasEquations))
+    (isVisualizeFunction(visualizes[0]!) || isVisualizeEquation(visualizes[0]!))
   ) {
     return visualizes[0];
   }
@@ -144,14 +139,10 @@ export function useMetricVisualize(): Visualize {
 }
 
 export function useMetricVisualizes(): readonly Visualize[] {
-  const organization = useOrganization();
   const visualizes = useQueryParamsVisualizes();
-  const hasEquations = canUseMetricsEquations(organization);
   if (
     visualizes.length > 0 &&
-    visualizes.every(
-      v => isVisualizeFunction(v) || (isVisualizeEquation(v) && hasEquations)
-    )
+    visualizes.every(v => isVisualizeFunction(v) || isVisualizeEquation(v))
   ) {
     return visualizes;
   }

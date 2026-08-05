@@ -462,7 +462,6 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         )
 
     @responses.activate
-    @with_feature("organizations:integrations-github_enterprise-project-management")
     def test_get_organization_config(self) -> None:
         # Mock the repositories endpoint
         responses.add(

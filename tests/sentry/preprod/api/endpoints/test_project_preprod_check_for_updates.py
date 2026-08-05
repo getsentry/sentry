@@ -208,6 +208,51 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
         assert data["update"]["build_version"] == "1.1.0"
         assert data["update"]["build_number"] == 1
 
+    def test_dotted_build_number_matches_packed_current(self) -> None:
+        """A dotted build code (e.g. "1.2.3") is expanded to the sortable int
+        launchpad stored so it matches the current artifact."""
+        self._create_android_artifact(
+            main_binary_identifier="test-identifier",
+            build_version="1.0.0",
+            build_number=1_000_002_000_003,
+        )
+
+        url = self._get_url()
+        response = self.client.get(
+            url + "?app_id=com.example.app&platform=android&build_version=1.0.0&build_number=1.2.3",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token}",
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["current"] is not None
+        assert data["current"]["build_version"] == "1.0.0"
+
+    def test_invalid_build_number_returns_400(self) -> None:
+        """A build_number that is neither an integer nor a dotted build code is rejected."""
+        url = self._get_url()
+        response = self.client.get(
+            url
+            + "?app_id=com.example.app&platform=android&build_version=1.0.0&build_number=not-a-build",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token}",
+        )
+        assert response.status_code == 400
+        assert "Invalid build_number format" in response.json()["error"]
+
+    def test_overflowing_build_number_returns_400(self) -> None:
+        """A build_number larger than the column can hold is rejected, not a 500."""
+        url = self._get_url()
+        response = self.client.get(
+            url
+            + "?app_id=com.example.app&platform=android&build_version=1.0.0&build_number=99999999999999999999999999",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token}",
+        )
+        assert response.status_code == 400
+        assert "Invalid build_number format" in response.json()["error"]
+
     def test_platform_specific_filtering_android(self) -> None:
         """Test that Android platform only returns AAB/APK artifacts"""
         # Create Android artifact
