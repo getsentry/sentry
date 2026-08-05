@@ -105,7 +105,7 @@ function Title({children, leadingItems, trailingItems, ...rest}: DisclosureTitle
   // the visual anchor and the toggle still reads label-then-affordance.
   if (leadingItems) {
     return (
-      <Flex
+      <TitleRow
         justify="start"
         gap={context.size}
         align="center"
@@ -127,12 +127,12 @@ function Title({children, leadingItems, trailingItems, ...rest}: DisclosureTitle
           </Flex>
         </StretchedButton>
         {trailingItems ?? null}
-      </Flex>
+      </TitleRow>
     );
   }
 
   return (
-    <Flex
+    <TitleRow
       justify="start"
       gap={context.size}
       align="center"
@@ -151,14 +151,34 @@ function Title({children, leadingItems, trailingItems, ...rest}: DisclosureTitle
         {children}
       </StretchedButton>
       {trailingItems ?? null}
-    </Flex>
+    </TitleRow>
   );
 }
+
+// The row owns the hover/press background so it spans the full title — behind
+// the leading and trailing items — rather than only the toggle button between
+// them.
+const TitleRow = styled(Flex)`
+  &:hover {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &:active {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
+  }
+`;
 
 const StretchedButton = styled(Button)`
   flex-grow: 1;
   justify-content: flex-start;
   padding-left: ${p => p.theme.space.xs};
+
+  /* The TitleRow provides the hover/press background; suppress the button's own
+   * so the two don't stack into a darker patch behind the label. */
+  &&:hover,
+  &&:active {
+    background-color: transparent;
+  }
 `;
 
 interface DisclosureContentProps extends React.HTMLAttributes<HTMLElement> {
