@@ -480,7 +480,7 @@ const InboxSectionContent = styled(Disclosure.Content)`
 `;
 
 const StickySectionHeader = styled(Container)`
-  z-index: 1;
+  z-index: ${p => p.theme.zIndex.initial + 1};
 `;
 
 const ResizeHandle = styled('div')<{atMaxWidth: boolean; atMinWidth: boolean}>`
