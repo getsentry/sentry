@@ -3,7 +3,7 @@ from __future__ import annotations
 import functools
 import logging
 from collections.abc import Sequence
-from typing import Any, NotRequired, cast
+from typing import Any, cast
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
@@ -133,9 +133,12 @@ def issue_search_query_to_conditions(
     return snql_conditions, resolved_legacy_conditions
 
 
-class GroupEventDetailsFormattedResponse(GroupEventDetailsResponse):
+# total=False rather than NotRequired: this module uses `from __future__ import annotations`, so
+# NotRequired arrives as a string, TypedDict marks the key required, and the openapi schema then
+# fails the api-docs example validator. Inherited keys keep their own totality.
+class GroupEventDetailsFormattedResponse(GroupEventDetailsResponse, total=False):
     # present only when ``?llmFormat`` is requested and the formatter feature is on
-    formatted: NotRequired[FormattedResponse]
+    formatted: FormattedResponse
 
 
 @extend_schema(tags=["Events"])
