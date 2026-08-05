@@ -87,6 +87,7 @@ from sentry.pr_metrics.emit import (
     select_fallback_verdict,
     select_verdict,
 )
+from sentry.pr_metrics.lifecycle_mapping import is_stale_github_pull_request_payload
 from sentry.pr_metrics.tasks import emit_pr_metrics_cooldown_task, forward_pr_to_seer_task
 from sentry.pr_metrics.utils import (
     DELEGATED_AGENT_AUTHOR_LOGINS,
@@ -540,6 +541,11 @@ def handle_metrics(
     reflects the final counts. Gated by the emit flag, the sole consumer; it
     writes only the webhook-sourced counters, leaving the other columns to their
     own producers.
+
+    Skips a payload the ``PullRequest`` row rejected as stale: both writes come from
+    one snapshot, and letting a replay clobber the counters while the PR row holds
+    would feed ``select_verdict`` zeroed discussion counts and emit a permanent
+    ``CLOSED_UNMERGED``.
     """
     pull_request = event.get("pull_request")
     if not pull_request:
@@ -556,6 +562,19 @@ def handle_metrics(
         github_event=github_event,
     )
     if pr is None:
+        return
+
+    if is_stale_github_pull_request_payload(pr, pull_request):
+        metrics.incr("pr_metrics.metrics.stale_snapshot")
+        logger.info(
+            "pr_metrics.metrics.stale_snapshot",
+            extra={
+                "organization_id": organization.id,
+                "repository_id": repo.id,
+                "pull_request_id": pr.id,
+                "github_delivery_id": kwargs.get("github_delivery_id"),
+            },
+        )
         return
 
     PullRequestMetrics.objects.update_or_create(
