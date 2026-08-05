@@ -17,6 +17,8 @@ from sentry.investigations.models import (
     InvestigationBlockParameter,
     InvestigationParameter,
     InvestigationParameterSource,
+    InvestigationPermissions,
+    InvestigationPermissionsTeam,
     InvestigationProject,
     InvestigationSourceType,
     InvestigationStatus,
@@ -710,3 +712,30 @@ def update_parameter_values(
 
         bump_investigation_version(locked)
     return locked
+
+
+def update_permissions(
+    *,
+    investigation: Investigation,
+    expected_version: int,
+    editable_by_everyone: bool,
+    team_ids: list[int],
+) -> InvestigationPermissions:
+    with transaction.atomic(using=router.db_for_write(Investigation)):
+        locked_investigation = lock_investigation(investigation, expected_version)
+        if locked_investigation.status != InvestigationStatus.ACTIVE:
+            raise InvestigationValidationError({"detail": "Archived investigations are read-only."})
+        permissions, _ = InvestigationPermissions.objects.select_for_update().get_or_create(
+            investigation=locked_investigation
+        )
+        permissions.is_editable_by_everyone = editable_by_everyone
+        permissions.save(update_fields=["is_editable_by_everyone", "date_updated"])
+        InvestigationPermissionsTeam.objects.filter(permissions=permissions).delete()
+        InvestigationPermissionsTeam.objects.bulk_create(
+            [
+                InvestigationPermissionsTeam(permissions=permissions, team_id=team_id)
+                for team_id in sorted(set(team_ids))
+            ]
+        )
+        bump_investigation_version(locked_investigation)
+    return permissions
