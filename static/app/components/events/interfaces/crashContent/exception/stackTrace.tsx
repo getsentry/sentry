@@ -49,7 +49,7 @@ export function StackTrace({
 
   if (
     stackView === StackView.APP &&
-    (stacktrace.frames ?? []).filter(frame => frame.inApp).length === 0 &&
+    !(stacktrace.frames ?? []).some(frame => frame.inApp) &&
     !chainedException
   ) {
     return (
