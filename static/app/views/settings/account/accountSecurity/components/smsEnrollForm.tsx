@@ -6,6 +6,7 @@ import {
   defaultFormOptions,
   FieldGroup as FormPanel,
   useScrapsForm,
+  useStore,
 } from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
@@ -94,6 +95,7 @@ export function SmsEnrollForm({
       addSuccessMessage(t('Sent code to %s', value.phone));
     },
   });
+  const isSubmitting = useStore(form.store, state => state.isSubmitting);
 
   function resetEnrollment(): void {
     enrollMutation.reset();
@@ -102,57 +104,53 @@ export function SmsEnrollForm({
 
   return (
     <form.AppForm form={form}>
-      <form.Subscribe selector={state => state.isSubmitting}>
-        {isSubmitting => (
-          <FormPanel title={t('Configuration')}>
-            <form.AppField name="phone">
-              {field => (
-                <field.Layout.Row
-                  label={getServerFieldLabel(authenticator.form, 'phone')}
-                  required
-                >
-                  <field.Input
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    disabled={isSubmitting || isCodeSent}
-                    autoComplete="off"
-                    maxLength={PHONE_MAX_LENGTH}
-                  />
-                </field.Layout.Row>
-              )}
-            </form.AppField>
+      <FormPanel title={t('Configuration')}>
+        <form.AppField name="phone">
+          {field => (
+            <field.Layout.Row
+              label={getServerFieldLabel(authenticator.form, 'phone')}
+              required
+            >
+              <field.Input
+                value={field.state.value}
+                onChange={field.handleChange}
+                disabled={isSubmitting || isCodeSent}
+                autoComplete="off"
+                maxLength={PHONE_MAX_LENGTH}
+              />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
 
-            {isCodeSent && (
-              <form.AppField name="otp">
-                {field => (
-                  <field.Layout.Row
-                    label={getServerFieldLabel(authenticator.form, 'otp')}
-                    required
-                  >
-                    <field.Input
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      autoComplete="off"
-                      maxLength={OTP_MAX_LENGTH}
-                    />
-                  </field.Layout.Row>
-                )}
-              </form.AppField>
+        {isCodeSent && (
+          <form.AppField name="otp">
+            {field => (
+              <field.Layout.Row
+                label={getServerFieldLabel(authenticator.form, 'otp')}
+                required
+              >
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  autoComplete="off"
+                  maxLength={OTP_MAX_LENGTH}
+                />
+              </field.Layout.Row>
             )}
-
-            <Flex justify="end" align="center" gap="md">
-              {isCodeSent && (
-                <Button type="button" onClick={resetEnrollment} disabled={isSubmitting}>
-                  {t('Start Over')}
-                </Button>
-              )}
-              <form.SubmitButton>
-                {isCodeSent ? t('Confirm') : t('Send Code')}
-              </form.SubmitButton>
-            </Flex>
-          </FormPanel>
+          </form.AppField>
         )}
-      </form.Subscribe>
+
+        <Flex justify="end" align="center" gap="md">
+          {isCodeSent && (
+            <Button type="button" onClick={resetEnrollment} disabled={isSubmitting}>
+              {t('Start Over')}
+            </Button>
+          )}
+          <form.SubmitButton>
+            {isCodeSent ? t('Confirm') : t('Send Code')}
+          </form.SubmitButton>
+        </Flex>
+      </FormPanel>
     </form.AppForm>
   );
 }
