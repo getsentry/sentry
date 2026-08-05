@@ -134,12 +134,10 @@ TRACES_QUERY_PARAM = OpenApiParameter(
     name="query",
     location="query",
     required=False,
-    many=True,
     type=str,
     description=(
         "Sentry [search syntax](https://docs.sentry.io/concepts/search/) matched against spans. "
-        "Pass the parameter more than once to require that a trace contain a span matching each "
-        "query, which is how you find traces where several conditions co-occur."
+        "A trace is returned when any of its spans match. Only one query is supported."
     ),
 )
 
@@ -172,6 +170,14 @@ class OrganizationTracesSerializer(serializers.Serializer):
         required=False, allow_empty=True, child=serializers.CharField(allow_blank=True)
     )
     sort = serializers.CharField(required=False)
+
+    def validate_query(self, value: list[str]) -> list[str]:
+        # process_rpc_user_queries only supports a single query and raises
+        # ValueError beyond that, which would surface as a 500. Reject it here so
+        # the caller gets a 400 alongside the other validation errors.
+        if len(value) > 1:
+            raise serializers.ValidationError("Only 1 query is supported.")
+        return value
 
     def validate_dataset(self, value):
         sentry_sdk.set_tag("query.dataset", value)
@@ -238,8 +244,8 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
         self, request: Request, organization: Organization
     ) -> Response[TracesApiResponse] | Response[ValidationErrorResponse] | Response[None]:
         """
-        List traces matching one or more span queries, with a per-project timing
-        breakdown for each trace.
+        List traces containing at least one span that matches the query, with a
+        per-project timing breakdown for each trace.
         """
         if not features.has(
             "organizations:visibility-explore-view", organization, actor=request.user
