@@ -19,8 +19,9 @@ import {
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {ProgressState} from 'sentry/types/group';
+import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/queries/inbox';
 
-import InboxPage, {INBOX_AUTOFIX_CATEGORY_FILTER} from './inbox';
+import InboxPage from './inbox';
 
 describe('InboxPage', () => {
   const organization = OrganizationFixture({

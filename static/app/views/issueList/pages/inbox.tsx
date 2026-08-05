@@ -23,7 +23,7 @@ import {QueryCount} from 'sentry/components/queryCount';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow, IconChevron} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {IssueCategory, ProgressState, type Group} from 'sentry/types/group';
+import {ProgressState, type Group} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getMessage, getTitle} from 'sentry/utils/events';
@@ -35,6 +35,7 @@ import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageStat
 import {IssuePreview} from 'sentry/views/issueDetails/issuePreview/issuePreview';
 import {IssueListContainer} from 'sentry/views/issueList';
 import {useInboxPreviewPrefetch} from 'sentry/views/issueList/pages/useInboxPreviewPrefetch';
+import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/queries/inbox';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {getProgressIcon} from 'sentry/views/issueList/utils/progress';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
@@ -55,15 +56,6 @@ const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
   my_teams: ' assigned:[me,my_teams]',
   all: '',
 };
-export const INBOX_AUTOFIX_CATEGORY_FILTER = ` issue.category:[${[
-  IssueCategory.ERROR,
-  IssueCategory.MOBILE,
-  IssueCategory.FRONTEND,
-  IssueCategory.DB_QUERY,
-  IssueCategory.HTTP_CLIENT,
-  IssueCategory.CONFIGURATION,
-].join(',')}]`;
-
 interface InboxSectionContext {
   assignmentFilter: AssignmentFilter;
   hasSeer: boolean;
