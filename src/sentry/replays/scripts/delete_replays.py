@@ -181,8 +181,8 @@ def _get_rows_matching_deletion_pattern(
     if environment:
         where.append(Condition(Column("environment"), Op.IN, environment))
 
-    # Fetch `cityHash64(replay_id)`. This, unlike `replay_id` is part of the
-    # _sharding key_, which allows ClickHouse to skip granules while scanning.
+    # Fetch `cityHash64(replay_id)`. Unlike raw `replay_id` it is part of the table's
+    # _sort key_, so ClickHouse can use it to skip granules while scanning.
     replay_id_hash_column = Function(
         "cityHash64", parameters=[Column("replay_id")], alias="replay_id_hash"
     )
@@ -210,9 +210,7 @@ def _get_rows_matching_deletion_pattern(
             Condition(Column("segment_id"), Op.IS_NOT_NULL),
             *where,
         ],
-        # The hash is a function of `replay_id`, so grouping by both leaves cardinality unchanged
-        # while keeping every selected and ordered expression a group key.
-        # Group by both the `replay_id` and `cityHash64(replay_id)` so we able
+        # Group by both the `replay_id` and `cityHash64(replay_id)` so we are able
         # to keep track of the cursor _and_ still get the Replay IDs out. Since
         # the hash is a function of the ID, this doesn't change the row contents.
         groupby=[Column("replay_id"), replay_id_hash_column],
