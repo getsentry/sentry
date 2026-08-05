@@ -5,33 +5,35 @@ import {AssistantMessage, MessageRow, UserMessage} from '@sentry/scraps/chat';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Stack} from '@sentry/scraps/layout';
 
+import type {AutofixExplorerStep} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {IconArrow} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
-const ISSUE = {issue_short_id: 'CHECKOUT-42', issue_id: '6789012345'};
+const ISSUE = {id: '6789012345', shortId: 'CHECKOUT-42'};
 
-function autofix(step: string, result: string): string {
+function autofix(step: AutofixExplorerStep, result: string): string {
   return `{% autofix %}${JSON.stringify({...ISSUE, step, result})}{% /autofix %}`;
 }
 
 const ROOT_CAUSE = autofix(
-  'Root Cause',
+  'root_cause',
   '`CartService.total()` calls `items.reduce((sum, item) => sum + item.price)` without an initial accumulator. When a customer empties their cart the array is empty, so `reduce` throws `TypeError: Reduce of empty array with no initial value` and the checkout request 500s.'
 );
 
 const SOLUTION = autofix(
-  'Solution',
+  'solution',
   'Seed the reduction with `0` so an empty cart totals to zero instead of throwing: `items.reduce((sum, item) => sum + item.price, 0)`.'
 );
 
 const CODE_CHANGES = autofix(
-  'Code Changes',
+  'code_changes',
   'Updated `src/checkout/cartService.ts` to pass the initial value and added a regression test covering the empty-cart path.'
 );
 
-const PLAN = autofix(
-  'Plan',
+// Autofix has no "plan" step — a plan is the write-up of the solution step.
+const PLANNED_SOLUTION = autofix(
+  'solution',
   'Guard `CartService.total()` with an initial accumulator of `0`, add a regression test covering the empty-cart path, then backfill a smoke test that renders the checkout page with zero items.'
 );
 
@@ -103,7 +105,7 @@ export default Storybook.story('Autofix', story => {
     <ChatShell>
       <User>
         The checkout page is throwing errors for a bunch of users. Can you fix{' '}
-        {ISSUE.issue_short_id} all the way?
+        {ISSUE.shortId} all the way?
       </User>
       <Seer
         raw={`On it — running Autofix now. First, the root cause:\n\n${ROOT_CAUSE}`}
@@ -117,7 +119,7 @@ export default Storybook.story('Autofix', story => {
 
   story('Ask for current status', () => (
     <ChatShell>
-      <User>What's the status of Autofix on {ISSUE.issue_short_id}?</User>
+      <User>What's the status of Autofix on {ISSUE.shortId}?</User>
       <Seer
         raw={`Autofix has reached the last step. Here's where it landed:\n\n${CODE_CHANGES}`}
       />
@@ -129,10 +131,8 @@ export default Storybook.story('Autofix', story => {
       <User>Hey, are error rates up today?</User>
       <Seer raw="Yes — checkout errors spiked about 40 minutes ago, concentrated on the `/checkout` endpoint." />
       <User>Ugh. Which issue is it?</User>
-      <Seer
-        raw={`It's ${ISSUE.issue_short_id}, and it accounts for most of the new volume.`}
-      />
-      <User>Show me the root cause of {ISSUE.issue_short_id}.</User>
+      <Seer raw={`It's ${ISSUE.shortId}, and it accounts for most of the new volume.`} />
+      <User>Show me the root cause of {ISSUE.shortId}.</User>
       <Seer raw={ROOT_CAUSE} />
     </ChatShell>
   ));
@@ -140,12 +140,12 @@ export default Storybook.story('Autofix', story => {
   story('From root cause to a plan', () => (
     <ChatShell>
       <Seer
-        raw={`I dug into ${ISSUE.issue_short_id} and here's the root cause:\n\n${ROOT_CAUSE}`}
+        raw={`I dug into ${ISSUE.shortId} and here's the root cause:\n\n${ROOT_CAUSE}`}
       />
       <User>So it only breaks when the cart is completely empty?</User>
       <Seer raw="Exactly — any cart with at least one item supplies the accumulator implicitly, so the crash is scoped to the empty-cart path." />
       <User>Got it. Put together a plan to fix it.</User>
-      <Seer raw={`Here's the plan:\n\n${PLAN}`} />
+      <Seer raw={`Here's the plan:\n\n${PLANNED_SOLUTION}`} />
     </ChatShell>
   ));
 });
