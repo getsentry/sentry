@@ -111,7 +111,7 @@ const CONDITIONS: Record<ConditionType, ConditionSpec> = {
   error_message: {
     dataType: 'error',
     label: t('Error Message'),
-    placeholder: t('Glob pattern, e.g. *ConnectionError*'),
+    placeholder: t('Glob pattern, e.g. *connection refused*'),
     description: t(
       'Matches the exception message of an error, without the exception type. Also matches errors captured as a plain message.'
     ),
