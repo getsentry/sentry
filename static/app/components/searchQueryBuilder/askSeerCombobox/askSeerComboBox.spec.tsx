@@ -367,6 +367,45 @@ describe('AskSeerComboBox', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows a warning status when Seer returns an unsupported reason', async () => {
+    const reworkedOrganization = {
+      ...organization,
+      features: [...organization.features, 'gen-ai-ask-seer-ux-rework'],
+    };
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-explorer-ai/query/',
+      method: 'POST',
+      body: {
+        status: 'ok',
+        queries: [],
+        unsupported_reason: 'This query type is not supported yet',
+      },
+    });
+
+    render(
+      <SearchQueryBuilderProvider {...defaultProps}>
+        <AskSeerComboBox
+          initialQuery=""
+          askSeerMutationOptions={askSeerMutationOptions}
+          applySeerSearchQuery={() => {}}
+        />
+      </SearchQueryBuilderProvider>,
+      {organization: reworkedOrganization}
+    );
+
+    const input = await screen.findByRole('combobox', {
+      name: 'Ask Seer with Natural Language',
+    });
+    await userEvent.type(input, 'test{Enter}');
+
+    expect(
+      await screen.findByText('This query type is not supported yet')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', {name: 'Seer does not support this query'})
+    ).toBeInTheDocument();
+  });
+
   it('wraps long query tokens', async () => {
     const longValue = 'a'.repeat(400);
     MockApiClient.addMockResponse({
