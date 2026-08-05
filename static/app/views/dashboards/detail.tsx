@@ -105,10 +105,6 @@ import {DashboardFilterKeys, DashboardState, MAX_WIDGETS, WidgetType} from './ty
 import {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
 
-export const UNSAVED_FILTERS_MESSAGE = t(
-  'You have unsaved dashboard filters. You can save or discard them.'
-);
-
 const OverrideHeader = OverrideOrDefault({
   overrideName: 'component:dashboards-header',
 });
@@ -1208,7 +1204,9 @@ class DashboardDetail extends Component<Props, State> {
                       <TopBar.Slot name="title">
                         <DashboardBreadcrumbTitle
                           dashboard={modifiedDashboard ?? dashboard}
+                          hasUnsavedFilters={hasUnsavedFilters}
                           isEditing={this.isEditingDashboard}
+                          isSaving={isCommittingChanges}
                           onChange={newTitle =>
                             this.setModifiedDashboard({
                               ...(modifiedDashboard ?? dashboard),

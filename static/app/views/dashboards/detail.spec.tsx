@@ -712,6 +712,11 @@ describe('Dashboards > Detail', () => {
       expect(
         screen.getByRole('menuitemradio', {name: 'Duplicate Dashboard'})
       ).toBeVisible();
+      expect(screen.getByRole('menuitemradio', {name: 'Star Dashboard'})).toBeVisible();
+      expect(screen.getByRole('menuitemradio', {name: 'Edit Dashboard'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
 
     it('renders the legacy dashboard breadcrumb in the top bar (flag off)', async () => {
