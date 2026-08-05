@@ -850,7 +850,7 @@ register(
 )
 register(
     "snuba.search.recommended.severity-weight",
-    default=0.20,
+    default=0.10,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
