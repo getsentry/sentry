@@ -35,6 +35,7 @@ from sentry.seer.autofix.artifact_schemas import (
     RootCauseArtifact,
     SolutionArtifact,
 )
+from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
@@ -408,6 +409,7 @@ def trigger_autofix_agent(
     user: User | RpcUser | AnonymousUser | None = None,
     enable_bash_tools: bool = False,
     actor_user_id: int | None = None,
+    commit_author: SeerCommitAuthor | None = None,
 ) -> SeerRun:
     """
     Start or continue an agent-based autofix run.
@@ -472,6 +474,10 @@ def trigger_autofix_agent(
     feedback_items = list(feedback or [])
     if step == AutofixStep.PR_ITERATION and feedback_items:
         prompt_metadata["feedback"] = serialize_feedback(feedback_items)
+
+    # Read back in the completion hook, which pushes long after this request.
+    if is_iteration_step and commit_author is not None:
+        prompt_metadata["commit_author"] = json.dumps(commit_author)
 
     if iteration_index is not None:
         prompt_metadata["iteration_index"] = str(iteration_index)
@@ -846,6 +852,7 @@ def trigger_push_changes(
     state: SeerRunState | None = None,
     repo_name: str | None = None,
     verify_content: bool = False,
+    author: SeerCommitAuthor | None = None,
 ):
     if not group.organization.get_option(
         "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
@@ -877,6 +884,7 @@ def trigger_push_changes(
         ready_for_review=not _should_open_autofix_pr_as_draft(group.organization),
         verify_content=verify_content,
         blocking=False,
+        author=author,
     )
 
     metrics.incr(

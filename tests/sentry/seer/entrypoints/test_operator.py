@@ -4,6 +4,7 @@ from typing import Any, TypedDict, cast
 from unittest.mock import Mock, patch
 
 from fixtures.seer.webhooks import MOCK_RUN_ID
+from sentry.integrations.types import ExternalProviders
 from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
     ActionSource,
@@ -177,6 +178,37 @@ class SeerOperatorTest(TestCase):
             actor=GroupActionActor.user(self.user.id),
             referrer=AutofixReferrer.SLACK.value,
         )
+
+    @patch("sentry.seer.autofix.autofix_agent.get_autofix_agent_state", return_value=None)
+    @patch("sentry.seer.autofix.autofix_agent.trigger_push_changes")
+    def test_slack_open_pr_passes_commit_author(self, mock_push_changes, _mock_get_autofix_state):
+        def open_pr() -> None:
+            self.operator.trigger_autofix(
+                group=self.group,
+                user=self.user,
+                stopping_point=AutofixStoppingPoint.OPEN_PR,
+                run_id=MOCK_RUN_ID,
+            )
+
+        open_pr()
+        assert mock_push_changes.call_args.kwargs["author"] is None
+
+        self.create_external_user(
+            user=self.user,
+            organization=self.organization,
+            provider=ExternalProviders.GITHUB.value,
+            external_name="@octocat",
+            external_id="583231",
+            integration=self.create_integration(
+                organization=self.organization, provider="github", external_id="gh:1"
+            ),
+        )
+
+        open_pr()
+        assert mock_push_changes.call_args.kwargs["author"] == {
+            "name": self.user.get_display_name(),
+            "email": "583231+octocat@users.noreply.github.com",
+        }
 
     @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
     def test_trigger_handoff_no_config_is_silent_halt(self, mock_trigger_handoff_helper):
