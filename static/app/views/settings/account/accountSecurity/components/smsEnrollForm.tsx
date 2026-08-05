@@ -38,7 +38,10 @@ export function SmsEnrollForm({
 }: SmsEnrollFormProps): React.ReactElement {
   const enrollMutation = useEnrollAuthenticator(authenticator.id);
   const isCodeSent =
-    enrollMutation.status === 'success' || enrollMutation.variables?.otp !== undefined;
+    enrollMutation.status === 'success' ||
+    (enrollMutation.variables !== undefined &&
+      'otp' in enrollMutation.variables &&
+      enrollMutation.variables.otp !== undefined);
 
   const schema = useMemo(
     () =>
