@@ -240,9 +240,10 @@ def run_bulk_replay_delete_job(
     # day means `window_offset_days` indexes them directly.
     windows = day_aligned_windows(job.range_start, job.range_end)
     if window_offset_days >= len(windows):
-        # An activation pointing past the last window has nothing left to delete.
-        _transition_status(job.id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.COMPLETED)
-        metrics.incr("replays.bulk_delete_job", tags={"status": "completed"}, sample_rate=1.0)
+        # The chain never schedules an offset past the last window, so this only catches an
+        # activation enqueued before the range was windowed the way it is now. Complete rather than
+        # let the index raise, which would fail the task and strand the job in progress.
+        _complete_job(job.id)
         return None
 
     window_start, window_end = windows[window_offset_days]
@@ -302,9 +303,11 @@ def run_bulk_replay_delete_job(
     # seeks nowhere. Treating that as "window done" stops it chaining activations forever.
     next_cursor = results["next_cursor"]
 
+    # This page's deletes are done, so checkpoint before deciding what comes next.
+    _advance_offset(job.id, new_total)
+
     if results["has_more"] and next_cursor is not None:
-        # Checkpoint before continuing within the same window.
-        _advance_offset(job.id, new_total)
+        # More pages in this window.
         run_bulk_replay_delete_job.delay(
             job.id,
             limit=limit,
@@ -315,25 +318,26 @@ def run_bulk_replay_delete_job(
         )
         return None
 
-    # Current window exhausted. Advance if any windows remain.
-    if window_offset_days + 1 < len(windows):
-        # Reset the cursor: it is a position within a window's result set, not a global one.
-        _advance_offset(job.id, new_total)
-        run_bulk_replay_delete_job.delay(
-            job.id,
-            limit=limit,
-            has_seer_data=has_seer_data,
-            total_deleted=new_total,
-            window_offset_days=window_offset_days + 1,
-            after_replay_id_hash=None,
-        )
+    # Window exhausted and there is no next one to schedule, so the job is done.
+    if window_offset_days + 1 >= len(windows):
+        _complete_job(job.id)
         return None
 
-    # All windows processed. Mark the job as completed.
-    _advance_offset(job.id, new_total)
-    _transition_status(job.id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.COMPLETED)
-    metrics.incr("replays.bulk_delete_job", tags={"status": "completed"}, sample_rate=1.0)
+    run_bulk_replay_delete_job.delay(
+        job.id,
+        limit=limit,
+        has_seer_data=has_seer_data,
+        total_deleted=new_total,
+        window_offset_days=window_offset_days + 1,
+        # Reset the cursor: it is a position within a window's result set, not a global one.
+        after_replay_id_hash=None,
+    )
     return None
+
+
+def _complete_job(job_id: int) -> None:
+    _transition_status(job_id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.COMPLETED)
+    metrics.incr("replays.bulk_delete_job", tags={"status": "completed"}, sample_rate=1.0)
 
 
 def _advance_offset(job_id: int, offset: int) -> None:

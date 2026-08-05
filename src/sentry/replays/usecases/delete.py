@@ -93,16 +93,14 @@ def _start_of_day(value: datetime) -> datetime:
 
 
 def datetime_as_start_of_day_conditions(start: datetime, end: datetime) -> list[Condition]:
-    """Restate a single-day window as an equality on `toStartOfDay(timestamp)`.
+    """Restate a window that falls within one day as an equality on `toStartOfDay(timestamp)`.
 
-    Worth doing because the replays sort key holds `timestamp` only as `toStartOfDay(timestamp)`. A
-    strict `timestamp < midnight` degrades to a non-strict bound on that, so the primary index reads
-    the following day as well. The equality collapses it: measured against a table with the real
-    sort key, a single-day window went from 25 granules to 13 for identical row counts.
+    Where a table is sorted by `toStartOfDay(timestamp)` rather than by `timestamp`, a bound on the
+    raw column only bounds the day it lands in, so the primary index also scans the day the window
+    ends on. Naming the day directly removes that.
 
-    Returns nothing when the window crosses midnight, where the equality would be false for the rows
-    after it. No window from `day_aligned_windows` can, but the finders accept an arbitrary range,
-    and dropping those rows silently would mean PII reported as deleted that was not.
+    Returns nothing for a window that crosses midnight, where the equality would exclude rows the
+    caller asked for.
     """
     day = _start_of_day(start)
     if end > day + timedelta(days=1):
