@@ -93,12 +93,15 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         )
 
         # Verify metrics were recorded
-        assert mock_metrics.incr.call_count == 2
+        assert mock_metrics.incr.call_count == 3
         mock_metrics.incr.assert_any_call(
-            "replays.bulk_delete_job", amount=1, tags={"status": "started"}
+            "replays.bulk_delete_job", tags={"status": "started"}, sample_rate=1.0
         )
         mock_metrics.incr.assert_any_call(
-            "replays.bulk_delete_job", amount=2, tags={"status": "in_progress"}
+            "replays.bulk_delete_job", tags={"status": "in_progress"}, sample_rate=1.0
+        )
+        mock_metrics.incr.assert_any_call(
+            "replays.bulk_delete_job.rows_deleted", amount=2, sample_rate=1.0
         )
 
     @patch("sentry.replays.tasks.metrics")
@@ -152,15 +155,18 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         )
 
         # Verify metrics were recorded
-        assert mock_metrics.incr.call_count == 3
+        assert mock_metrics.incr.call_count == 4
         mock_metrics.incr.assert_any_call(
-            "replays.bulk_delete_job", amount=1, tags={"status": "started"}
+            "replays.bulk_delete_job", tags={"status": "started"}, sample_rate=1.0
         )
         mock_metrics.incr.assert_any_call(
-            "replays.bulk_delete_job", amount=2, tags={"status": "in_progress"}
+            "replays.bulk_delete_job", tags={"status": "in_progress"}, sample_rate=1.0
         )
         mock_metrics.incr.assert_any_call(
-            "replays.bulk_delete_job", amount=1, tags={"status": "completed"}
+            "replays.bulk_delete_job.rows_deleted", amount=2, sample_rate=1.0
+        )
+        mock_metrics.incr.assert_any_call(
+            "replays.bulk_delete_job", tags={"status": "completed"}, sample_rate=1.0
         )
 
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
@@ -362,7 +368,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
 
         # Verify failed metric was recorded
         mock_metrics.incr.assert_called_once_with(
-            "replays.bulk_delete_job", amount=1, tags={"status": "failed"}
+            "replays.bulk_delete_job", tags={"status": "failed"}, sample_rate=1.0
         )
 
     @patch("sentry.replays.tasks.metrics")
@@ -386,7 +392,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
 
         # Verify failed metric was recorded
         mock_metrics.incr.assert_called_once_with(
-            "replays.bulk_delete_job", amount=1, tags={"status": "failed"}
+            "replays.bulk_delete_job", tags={"status": "failed"}, sample_rate=1.0
         )
 
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
