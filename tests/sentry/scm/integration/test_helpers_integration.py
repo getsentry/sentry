@@ -1,9 +1,16 @@
+from unittest import mock
+
+from scm.errors import RateLimitExceeded, ResourceForbidden, UnhandledException
 from scm.providers.github.provider import GitHubProvider
 from scm.types import Repository
 
 from sentry.constants import ObjectStatus
 from sentry.models.repository import Repository as RepositoryModel
-from sentry.scm.private.helpers import fetch_repository, fetch_service_provider
+from sentry.scm.private.helpers import (
+    fetch_repository,
+    fetch_service_provider,
+    report_error_to_sentry,
+)
 from sentry.testutils.cases import TestCase
 
 
@@ -261,3 +268,62 @@ class TestFetchServiceProvider(TestCase):
             ),
         ):
             assert fetch_service_provider(self.organization.id, repository) is None
+
+
+class TestReportErrorToSentry(TestCase):
+    """report_error_to_sentry must not capture expected external conditions
+    (ACL blocks, rate limits) as Sentry error events.  Only true defects
+    should be forwarded to sentry_sdk.capture_exception."""
+
+    def test_resource_forbidden_is_not_captured(self) -> None:
+        """IP-allowlist and other ACL blocks must produce a warning log, not a
+        Sentry capture, so they do not pollute the error stream."""
+        exc = ResourceForbidden(
+            detail="the `stanbridge` organization has an IP allow list enabled"
+        )
+        with (
+            mock.patch("sentry_sdk.capture_exception") as mock_capture,
+            mock.patch("sentry.scm.private.helpers.logger") as mock_logger,
+        ):
+            report_error_to_sentry(exc)
+
+        mock_capture.assert_not_called()
+        mock_logger.warning.assert_called_once()
+
+    def test_rate_limit_exceeded_is_not_captured(self) -> None:
+        """Rate-limit errors are an expected external condition and must not
+        be forwarded to Sentry."""
+        exc = RateLimitExceeded()
+        with (
+            mock.patch("sentry_sdk.capture_exception") as mock_capture,
+            mock.patch("sentry.scm.private.helpers.logger") as mock_logger,
+        ):
+            report_error_to_sentry(exc)
+
+        mock_capture.assert_not_called()
+        mock_logger.warning.assert_called_once()
+
+    def test_unhandled_exception_is_captured(self) -> None:
+        """Errors that are true defects (UnhandledException) must still be
+        forwarded to Sentry for alerting."""
+        exc = UnhandledException()
+        with (
+            mock.patch("sentry_sdk.capture_exception") as mock_capture,
+            mock.patch("sentry.scm.private.helpers.logger") as mock_logger,
+        ):
+            report_error_to_sentry(exc)
+
+        mock_capture.assert_called_once_with(exc)
+        mock_logger.warning.assert_not_called()
+
+    def test_generic_exception_is_captured(self) -> None:
+        """Non-SCMCodedError exceptions must be forwarded to Sentry."""
+        exc = ValueError("something unexpected")
+        with (
+            mock.patch("sentry_sdk.capture_exception") as mock_capture,
+            mock.patch("sentry.scm.private.helpers.logger") as mock_logger,
+        ):
+            report_error_to_sentry(exc)
+
+        mock_capture.assert_called_once_with(exc)
+        mock_logger.warning.assert_not_called()
