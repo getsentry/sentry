@@ -16,6 +16,7 @@ from sentry.investigations.models import (
     InvestigationBlockParameter,
     InvestigationParameter,
     InvestigationParameterSource,
+    InvestigationPermissions,
     InvestigationProject,
     InvestigationSourceType,
     InvestigationStatus,
@@ -118,6 +119,7 @@ def create_manual_investigation(
             source_type=InvestigationSourceType.MANUAL,
             filters=filters,
         )
+        InvestigationPermissions.objects.create(investigation=investigation)
         _create_project_links(investigation, project_ids)
     return investigation
 
@@ -137,6 +139,7 @@ def duplicate_investigation(*, investigation: Investigation, user_id: int) -> In
             source_ref={},
             filters=deepcopy(source.filters),
         )
+        InvestigationPermissions.objects.create(investigation=duplicate)
         _create_project_links(
             duplicate,
             source.project_links.values_list("project_id", flat=True),
@@ -341,6 +344,7 @@ def _create_template_investigation(
             source_revision=(latest_revision or 0) + 1,
             filters=filters,
         )
+        InvestigationPermissions.objects.create(investigation=investigation)
         _create_project_links(investigation, project_ids)
 
         parameters_by_key: dict[str, InvestigationParameter] = {}
@@ -562,7 +566,7 @@ def delete_cell(
         bump_investigation_version(investigation)
 
 
-def reorder_cells(
+def reorder_blocks(
     *, investigation: Investigation, expected_version: int, block_ids: list[int]
 ) -> Investigation:
     with transaction.atomic(using=router.db_for_write(Investigation)):
@@ -576,10 +580,10 @@ def reorder_cells(
         )
         existing = {block.id: block for block in blocks}
         if len(block_ids) != len(set(block_ids)):
-            raise InvestigationValidationError({"cellIds": "Block IDs must be unique."})
+            raise InvestigationValidationError({"blockIds": "Block IDs must be unique."})
         if set(block_ids) != set(existing):
             raise InvestigationValidationError(
-                {"cellIds": "Must contain every active block exactly once."}
+                {"blockIds": "Must contain every active block exactly once."}
             )
         ordered = [existing[block_id] for block_id in block_ids]
         for position, block in enumerate(ordered):

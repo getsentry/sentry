@@ -22,6 +22,7 @@ from sentry.investigations.models import (
     InvestigationBlockParameter,
     InvestigationFavoriteUser,
     InvestigationParameter,
+    InvestigationPermissions,
     InvestigationStatus,
 )
 
@@ -312,6 +313,23 @@ def serialize_parameter(parameter: InvestigationParameter) -> dict[str, Any]:
     }
 
 
+def serialize_permissions(
+    permissions: InvestigationPermissions,
+    *,
+    user_id: int,
+    can_edit: bool | None = None,
+    can_manage: bool | None = None,
+) -> dict[str, Any]:
+    return {
+        "isEditableByEveryone": permissions.is_editable_by_everyone,
+        "teamIds": sorted(team.id for team in permissions.teams_with_edit_access.all()),
+        "canEdit": permissions.has_edit_permissions(user_id) if can_edit is None else can_edit,
+        "canManage": (
+            user_id == permissions.investigation.created_by_id if can_manage is None else can_manage
+        ),
+    }
+
+
 def serialize_block(
     block: InvestigationBlock, *, user_id: int, accessible_project_ids: set[int]
 ) -> dict[str, Any]:
@@ -357,7 +375,7 @@ def serialize_block(
         content = ""
         generated_content = ""
 
-    return {
+    data = {
         "id": str(block.id),
         "position": block.position,
         "kind": block.kind,
@@ -405,6 +423,7 @@ def serialize_block(
             str(block.last_edited_by_id) if block.last_edited_by_id is not None else None
         ),
     }
+    return data
 
 
 def serialize_investigation_list(
@@ -424,7 +443,7 @@ def serialize_investigation_list(
     if active_block_count is None:
         active_block_count = investigation.blocks.filter(deleted_at__isnull=True).count()
 
-    return {
+    data = {
         "id": str(investigation.id),
         "title": investigation.title,
         "status": investigation.status,
@@ -435,9 +454,17 @@ def serialize_investigation_list(
         "dateCreated": investigation.date_added,
         "dateUpdated": investigation.date_updated,
         "version": investigation.version,
-        "cellCount": active_block_count,
+        "blockCount": active_block_count,
         "isFavorited": bool(is_favorited),
     }
+    if user_id is not None:
+        data["permissions"] = serialize_permissions(
+            investigation.permissions,
+            user_id=user_id,
+            can_edit=can_edit,
+            can_manage=can_manage,
+        )
+    return data
 
 
 def serialize_investigation_detail(
@@ -448,6 +475,7 @@ def serialize_investigation_detail(
     can_edit: bool | None = None,
     can_manage: bool | None = None,
 ) -> dict[str, Any]:
+    permissions, _ = InvestigationPermissions.objects.get_or_create(investigation=investigation)
     blocks = (
         InvestigationBlock.objects.filter(investigation=investigation, deleted_at__isnull=True)
         .select_related("content_execution", "current_execution", "result_execution")
@@ -491,6 +519,12 @@ def serialize_investigation_detail(
         },
         "filters": investigation.filters,
         "projectIds": list(investigation.projects.order_by("id").values_list("id", flat=True)),
+        "permissions": serialize_permissions(
+            permissions,
+            user_id=user_id,
+            can_edit=can_edit,
+            can_manage=can_manage,
+        ),
         "parameters": [
             serialize_parameter(parameter)
             for parameter in investigation.parameters.order_by("position", "id")
