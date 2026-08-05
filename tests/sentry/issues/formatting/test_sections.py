@@ -22,6 +22,7 @@ from sentry.issues.formatting.models import (
 from sentry.issues.formatting.sections import (
     EVENT_SECTIONS,
     EVENT_SECTIONS_WITH_USER,
+    _truncate,
     breadcrumbs_section,
     contexts_section,
     csp_section,
@@ -581,3 +582,19 @@ def test_evidence_section_is_capped() -> None:
     out = evidence_section(event, MD, LIMITS_DEFAULT)
     assert "... (truncated)" in out
     assert len(out) < 6_000  # max_evidence_chars=5_000, plus the surrounding block
+
+
+def test_truncation_never_splits_an_escaped_entity() -> None:
+    # sections cap their body after escaping, so slicing mid-entity would emit "&am" and make
+    # the xml unparseable
+    body = "a &amp; b" * 100
+    for cap in range(1, 12):
+        cut = _truncate(body, cap)
+        ElementTree.fromstring(f"<r>{cut}</r>")  # raises if the slice broke an entity
+
+
+def test_contexts_are_escaped_in_xml() -> None:
+    event = EventObject(title="t", contexts={"browser": {"name": "</contexts><x>"}})
+    out = contexts_section(event, XmlFormatter(), LIMITS_DEFAULT)
+    ElementTree.fromstring(out)
+    assert "<x>" not in out
