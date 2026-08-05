@@ -24,9 +24,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import AutomationsList from 'sentry/views/automations/list';
 
 describe('AutomationsList', () => {
-  const organization = OrganizationFixture({
-    features: ['workflow-engine-ui'],
-  });
+  const organization = OrganizationFixture();
   const project = ProjectFixture({id: '1', slug: 'project-1'});
   const detector = MetricDetectorFixture({
     id: '1',
@@ -637,7 +635,6 @@ describe('AutomationsList', () => {
 
   it('disables the create alert button without alerts:write permission', async () => {
     const noWriteOrg = OrganizationFixture({
-      features: ['workflow-engine-ui'],
       access: ['org:read', 'alerts:read'],
     });
 

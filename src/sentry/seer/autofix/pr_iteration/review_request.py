@@ -17,6 +17,12 @@ unset so the next green event retries.
 
 The ready-for-review marker is intentionally *not* a gate here — undraft and
 review-request succeed/fail/retry independently.
+
+We ask the best reviewer candidate (see ``reviewer_candidates``): the user
+who triggered the run — the person most invested in the fix landing — or,
+for runs without a resolvable triggering user (e.g. Night Shift), the best
+of the fallback sources (suspect-commit author, code owners, recent
+committers), which is what makes those PRs routable at all.
 """
 
 from __future__ import annotations
@@ -165,7 +171,11 @@ def request_review_from_context(ctx: GreenCheckSuiteContext) -> None:
     pr_author = (raw_pr.get("user") or {}).get("login")
     candidates = collect_reviewer_candidates(
         organization=resolved.organization,
+        repository=resolved.autofix_run.repository,
         seer_run=resolved.seer_run,
+        group_id=resolved.autofix_run.group_id,
+        scm=ctx.scm,
+        pr_number=resolved.pr_number,
         exclude_logins={pr_author} if pr_author else (),
         log_extra=resolved.log_extra,
     )

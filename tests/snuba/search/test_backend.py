@@ -4183,6 +4183,83 @@ class EventsRecommendedSortTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin)
         # Fatal event should score higher despite being slightly older
         assert scores[fatal_group.id] > scores[info_group.id]
 
+    def test_recommended_sort_severity_mean_uses_event_distribution(self) -> None:
+        timestamp = before_now(hours=1).isoformat()
+
+        for i in range(20):
+            self.store_event(
+                data={
+                    "fingerprint": ["mostly-error-group"],
+                    "event_id": f"a{i:031x}",
+                    "message": "mostly error",
+                    "timestamp": timestamp,
+                    "level": "error",
+                },
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    "fingerprint": ["mostly-fatal-group"],
+                    "event_id": f"b{i:031x}",
+                    "message": "mostly fatal",
+                    "timestamp": timestamp,
+                    "level": "fatal",
+                },
+                project_id=self.project.id,
+            )
+
+        self.store_event(
+            data={
+                "fingerprint": ["mostly-error-group"],
+                "event_id": "c" * 32,
+                "message": "mostly error",
+                "timestamp": timestamp,
+                "level": "fatal",
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "fingerprint": ["mostly-fatal-group"],
+                "event_id": "d" * 32,
+                "message": "mostly fatal",
+                "timestamp": timestamp,
+                "level": "error",
+            },
+            project_id=self.project.id,
+        )
+
+        mostly_error = Group.objects.get(project=self.project, message="mostly error")
+        mostly_fatal = Group.objects.get(project=self.project, message="mostly fatal")
+        severity_only_options = {
+            "snuba.search.recommended.recency-weight": 0.0,
+            "snuba.search.recommended.spike-weight": 0.0,
+            "snuba.search.recommended.severity-weight": 1.0,
+            "snuba.search.recommended.user-impact-weight": 0.0,
+            "snuba.search.recommended.event-volume-weight": 0.0,
+            "snuba.search.recommended.group-type-boost": {},
+            "snuba.search.recommended.message-penalty-weight": 0.0,
+        }
+
+        with self.options(
+            {
+                **severity_only_options,
+                "snuba.search.recommended.severity-aggregate": "mean",
+            }
+        ):
+            mean_scores = self._recommended_scores([mostly_error.id, mostly_fatal.id])
+
+        with self.options(
+            {
+                **severity_only_options,
+                "snuba.search.recommended.severity-aggregate": "max",
+            }
+        ):
+            max_scores = self._recommended_scores([mostly_error.id, mostly_fatal.id])
+
+        assert mean_scores[mostly_error.id] < mean_scores[mostly_fatal.id]
+        assert max_scores[mostly_error.id] >= max_scores[mostly_fatal.id]
+
     def test_recommended_user_impact(self) -> None:
         base_datetime = before_now(hours=1)
 

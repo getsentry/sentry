@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import debounce from 'lodash/debounce';
 import {DetectedPlatformFixture} from 'sentry-fixture/detectedPlatform';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RepositoryFixture} from 'sentry-fixture/repository';
@@ -10,21 +11,13 @@ import * as analytics from 'sentry/utils/analytics';
 
 import {ScmPlatformFeaturesCore} from './scmPlatformFeaturesCore';
 
-interface MockDebouncedCallback {
+type MockDebouncedFunction = ReturnType<typeof jest.fn> & {
   callback: () => void;
-  isActive: () => boolean;
-}
+};
 
-const mockDebouncedCallbacks: MockDebouncedCallback[] = [];
-
-jest.mock('lodash/debounce', () => (callback: () => void) => {
-  const debounced = jest.fn();
-  mockDebouncedCallbacks.push({
-    callback,
-    isActive: () => debounced.mock.calls.length > 0,
-  });
-  return debounced;
-});
+jest.mock('lodash/debounce', () =>
+  jest.fn((callback: () => void) => Object.assign(jest.fn(), {callback}))
+);
 
 // Mock the virtualizer so the manual-picker Select renders in JSDOM (no layout
 // engine).
@@ -89,7 +82,7 @@ describe('ScmPlatformFeaturesCore', () => {
   const organization = OrganizationFixture();
 
   beforeEach(() => {
-    mockDebouncedCallbacks.length = 0;
+    jest.mocked(debounce).mockClear();
   });
 
   afterEach(() => {
@@ -221,9 +214,10 @@ describe('ScmPlatformFeaturesCore', () => {
       expect.anything()
     );
 
-    const activeDebouncedCallbacks = mockDebouncedCallbacks.filter(({isActive}) =>
-      isActive()
-    );
+    const activeDebouncedCallbacks = jest
+      .mocked(debounce)
+      .mock.results.map(({value}) => value as unknown as MockDebouncedFunction)
+      .filter(debounced => debounced.mock.calls.length > 0);
     expect(activeDebouncedCallbacks).toHaveLength(1);
 
     act(() => {

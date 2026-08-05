@@ -96,7 +96,9 @@ export type IntegrationEventParameters = {
   'integrations.index_viewed': MultipleIntegrationsEventParams;
   'integrations.install_modal_auto_opened': SingleIntegrationEventParams;
   'integrations.install_modal_opened': SingleIntegrationEventParams;
+  'integrations.installation_cancelled': IntegrationInstallEventParams;
   'integrations.installation_complete': IntegrationInstallEventParams;
+  'integrations.installation_failed': IntegrationInstallEventParams;
   'integrations.installation_input_value_changed': IntegrationInstallationInputValueChangeEventParams;
   'integrations.installation_start': IntegrationInstallEventParams;
   'integrations.integration_tab_clicked': SingleIntegrationEventParams;
@@ -125,6 +127,8 @@ export const integrationEventMap: Record<IntegrationAnalyticsKey, string> = {
   'integrations.integration_viewed': 'Integrations: Integration Viewed',
   'integrations.installation_start': 'Integrations: Installation Start',
   'integrations.installation_complete': 'Integrations: Installation Complete',
+  'integrations.installation_cancelled': 'Integrations: Installation Cancelled',
+  'integrations.installation_failed': 'Integrations: Installation Failed',
   'integrations.uninstall_clicked': 'Integrations: Uninstall Clicked',
   'integrations.uninstall_completed': 'Integrations: Uninstall Completed',
   'integrations.enabled': 'Integrations: Enabled',

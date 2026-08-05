@@ -230,7 +230,7 @@ export function SplitPanel({
           // pane gets its basis.
           style={hasFill && availableSize === 0 ? {visibility: 'hidden'} : undefined}
         >
-          {isSizedFirst ? panes : [...panes].reverse()}
+          {isSizedFirst ? panes : panes.toReversed()}
         </RootElement>
       )}
     </Flex>
