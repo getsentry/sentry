@@ -4,7 +4,11 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 
-import {ConversationsTable, getVisibleToolCount} from './conversationsTable';
+import {
+  ConversationsTable,
+  getUserDisplayName,
+  getVisibleToolCount,
+} from './conversationsTable';
 
 const BASE_CONVERSATION = {
   conversationId: 'conv-1',
@@ -110,6 +114,12 @@ describe('ConversationsTable', () => {
     renderTable();
 
     expect(await screen.findByText('sarah@example.com')).toBeInTheDocument();
+  });
+
+  it('uses the user ID when no other identifying fields are available', () => {
+    expect(
+      getUserDisplayName({id: '123', email: null, username: null, ip_address: null})
+    ).toBe('123');
   });
 
   it('renders tool tags', async () => {
