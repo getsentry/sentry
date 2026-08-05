@@ -29,6 +29,7 @@ import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWr
 import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
 import {useDuplicatePrebuiltDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {DashboardRevisionsButton} from './dashboardRevisions';
@@ -49,7 +50,6 @@ type Props = {
   widgetLimitReached: boolean;
   hasUnsavedFilters?: boolean;
   hideAddWidget?: boolean;
-  hideBreadcrumbActions?: boolean;
   isSaving?: boolean;
   onChangeEditAccess?: (newDashboardPermissions: DashboardPermissions) => void;
 };
@@ -59,7 +59,6 @@ export function Controls({
   dashboard,
   hasUnsavedFilters,
   hideAddWidget = false,
-  hideBreadcrumbActions = false,
   widgetLimitReached,
   onChangeEditAccess,
   onEdit,
@@ -87,6 +86,7 @@ export function Controls({
   }
 
   const organization = useOrganization();
+  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
   const api = useApi();
@@ -220,7 +220,7 @@ export function Controls({
       <DashboardEditFeature>
         {hasFeature => (
           <Fragment>
-            {!hideBreadcrumbActions && (
+            {!hasNewBreadcrumbs && (
               <Tooltip title={isFavorited ? t('Starred Dashboard') : t('Star Dashboard')}>
                 <Button
                   size="sm"
@@ -318,7 +318,7 @@ export function Controls({
                 onChangeEditAccess={onChangeEditAccess}
               />
             )}
-            {hasFeature && !hideBreadcrumbActions && (
+            {hasFeature && !hasNewBreadcrumbs && (
               <DashboardRevisionsButton dashboard={dashboard} />
             )}
             {hasFeature && !isPrebuiltDashboard && !hideAddWidget && (
@@ -341,7 +341,7 @@ export function Controls({
                 />
               </Tooltip>
             )}
-            {hasFeature && isPrebuiltDashboard && !hideBreadcrumbActions && (
+            {hasFeature && isPrebuiltDashboard && !hasNewBreadcrumbs && (
               <DashboardCreateLimitWrapper>
                 {({
                   hasReachedDashboardLimit,

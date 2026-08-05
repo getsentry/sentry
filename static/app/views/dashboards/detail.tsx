@@ -1244,7 +1244,6 @@ class DashboardDetail extends Component<Props, State> {
                       organization={organization}
                       dashboard={dashboard}
                       hideAddWidget
-                      hideBreadcrumbActions={hasNewBreadcrumbs}
                       hasUnsavedFilters={hasUnsavedFilters}
                       onEdit={this.onEdit}
                       onCancel={this.onCancel}
