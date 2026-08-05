@@ -43,7 +43,7 @@ export function PlatformList({
       );
     }
 
-    const platformIcons = visiblePlatforms.slice().reverse();
+    const platformIcons = visiblePlatforms.toReversed();
 
     return (
       <PlatformIcons>
