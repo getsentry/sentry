@@ -46,7 +46,7 @@ class TestValidateDetectorsExistAndHavePermissions(TestCase):
         result = validate_detectors_exist_and_have_permissions(
             [project_detector.id, all_projects_detector.id], self.organization, request
         )
-        assert set(result.values_list("id", flat=True)) == {
+        assert {detector.id for detector in result} == {
             project_detector.id,
             all_projects_detector.id,
         }

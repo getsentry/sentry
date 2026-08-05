@@ -5,8 +5,6 @@ from sentry.models.organization import Organization
 from sentry.workflow_engine.models import Detector, Workflow
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
-ALL_PROJECTS_DETECTOR_REQUIRED_SCOPES = {"org:write"}
-
 
 def is_all_projects_detector(detector: Detector, organization: Organization) -> bool:
     return (
@@ -17,16 +15,15 @@ def is_all_projects_detector(detector: Detector, organization: Organization) -> 
 
 
 def is_workflow_connected_to_all_projects_detector(workflow: Workflow) -> bool:
-    return Detector.objects.filter(
-        detectorworkflow__workflow=workflow,
-        project__isnull=True,
-        type=IssueStreamGroupType.slug,
-        config__organization_id=workflow.organization_id,
-    ).exists()
+    return (
+        Detector.objects.all_projects_for_organization(workflow.organization_id)
+        .filter(detectorworkflow__workflow=workflow)
+        .exists()
+    )
 
 
 def can_edit_all_project_detector_workflow_connections(request: Request) -> bool:
-    return any(request.access.has_scope(scope) for scope in ALL_PROJECTS_DETECTOR_REQUIRED_SCOPES)
+    return request.access.has_scope("org:write")
 
 
 def should_include_all_projects_detector(request: Request, organization: Organization) -> bool:

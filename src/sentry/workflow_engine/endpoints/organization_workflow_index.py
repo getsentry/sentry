@@ -68,10 +68,9 @@ from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowVa
 from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
     DetectorWorkflowMutationValidator,
 )
-from sentry.workflow_engine.models import DetectorWorkflow, Workflow
+from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 from sentry.workflow_engine.types import DetectorId
-from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 # Maps API field name to database field name, with synthetic aggregate fields keeping
 # to our field naming scheme for consistency.
@@ -221,22 +220,17 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         # not just those explicitly requested. This filter is ALWAYS applied to ensure
         # users with no project access only see org-level workflows.
         projects = self.get_projects(request, organization, include_all_accessible=True)
-        all_projects_detector_workflows = DetectorWorkflow.objects.filter(
-            workflow_id=OuterRef("id"),
-            detector__project__isnull=True,
-            detector__type=IssueStreamGroupType.slug,
-            detector__config__organization_id=organization.id,
-        )
-        queryset = queryset.annotate(
-            has_all_projects_detector=Exists(all_projects_detector_workflows)
+        all_projects_detectors = Detector.objects.all_projects_for_organization(organization.id)
+        all_projects_workflows = Q(
+            detectorworkflow__detector_id__in=all_projects_detectors.values("id")
         )
         accessible_workflows = Q(detectorworkflow__detector__project__in=projects) | Q(
             detectorworkflow__isnull=True
         )
         if should_include_all_projects_detector_workflows(request, organization):
-            accessible_workflows |= Q(has_all_projects_detector=True)
+            accessible_workflows |= all_projects_workflows
         else:
-            queryset = queryset.filter(has_all_projects_detector=False)
+            queryset = queryset.exclude(all_projects_workflows)
         queryset = queryset.filter(accessible_workflows).distinct()
 
         return queryset

@@ -68,7 +68,6 @@ from sentry.workflow_engine.endpoints.validators.utils import (
 )
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
-from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 detector_search_config = SearchConfig.create_from(
     default_config,
@@ -159,13 +158,6 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
 
     permission_classes = (OrganizationDetectorPermission,)
 
-    def _all_projects_detector_q(self, organization: Organization) -> Q:
-        return Q(
-            project__isnull=True,
-            type=IssueStreamGroupType.slug,
-            config__organization_id=organization.id,
-        )
-
     def filter_detectors(self, request: Request, organization: Any) -> QuerySet[Detector]:
         """
         Filter detectors based on the request parameters.
@@ -184,13 +176,15 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             )
             project_q = Q(project_id__in=projects)
             if should_include_all_projects_detector(organization=organization, request=request):
-                project_q |= self._all_projects_detector_q(organization)
+                project_q |= Q(
+                    id__in=Detector.objects.all_projects_for_organization(organization.id)
+                )
             return Detector.objects.with_type_filters().filter(project_q, id__in=ids)
 
         projects = self.get_projects(request, organization)
         project_q = Q(project_id__in=projects)
         if should_include_all_projects_detector(organization=organization, request=request):
-            project_q |= self._all_projects_detector_q(organization)
+            project_q |= Q(id__in=Detector.objects.all_projects_for_organization(organization.id))
 
         queryset: QuerySet[Detector] = Detector.objects.with_type_filters().filter(project_q)
 

@@ -138,26 +138,28 @@ def can_edit_detector_workflow_connections(detector: Detector, request: Request)
 
 def validate_detectors_exist_and_have_permissions(
     detector_ids: list[DetectorId], organization: Organization, request: Request
-) -> QuerySet[Detector]:
-    detectors = Detector.objects.by_organization(organization.id).filter(
-        id__in=detector_ids,
+) -> list[Detector]:
+    detectors = list(
+        Detector.objects.by_organization(organization.id)
+        .filter(id__in=detector_ids)
+        .select_related("project")
     )
-    found_detector_ids = set(detectors.values_list("id", flat=True))
+    found_detector_ids = {detector.id for detector in detectors}
     missing_detector_ids = set(detector_ids) - found_detector_ids
 
     if missing_detector_ids:
         raise serializers.ValidationError(f"Some detectors do not exist: {missing_detector_ids}")
 
-    unavailable_detector_ids = {
-        detector.id
-        for detector in detectors
-        if is_all_projects_detector(detector, organization)
-        and not features.has("organizations:workflow-engine-all-projects-detector", organization)
-    }
-    if unavailable_detector_ids:
-        raise serializers.ValidationError(
-            f"Some detectors do not exist: {unavailable_detector_ids}"
-        )
+    if not features.has("organizations:workflow-engine-all-projects-detector", organization):
+        unavailable_detector_ids = {
+            detector.id
+            for detector in detectors
+            if is_all_projects_detector(detector, organization)
+        }
+        if unavailable_detector_ids:
+            raise serializers.ValidationError(
+                f"Some detectors do not exist: {unavailable_detector_ids}"
+            )
 
     if not all(can_edit_detector_workflow_connections(detector, request) for detector in detectors):
         raise PermissionDenied

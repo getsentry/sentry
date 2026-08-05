@@ -65,42 +65,16 @@ class DetectorQuerySet(BaseQuerySet["Detector"]):
         Project-scoped detectors are matched via project__organization.
         Null-project (all-projects) detectors are matched via config__organization_id.
         """
+        return self.filter(
+            Q(project__organization_id=organization_id)
+            | Q(id__in=self.all_projects_for_organization(organization_id))
+        )
+
+    def all_projects_for_organization(self, organization_id: int) -> Self:
         from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
         return self.filter(
             Q(project__organization_id=organization_id)
-            | Q(
-                project__isnull=True,
-                type=IssueStreamGroupType.slug,
-                config__organization_id=organization_id,
-            )
-        )
-
-
-class DetectorManager(BaseManager["Detector"]):
-    def get_queryset(self) -> DetectorQuerySet:
-        return DetectorQuerySet(self.model, using=self._db).exclude(
-            status__in=(ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS)
-        )
-
-    def with_type_filters(self) -> DetectorQuerySet:
-        return self.get_queryset().with_type_filters()
-
-    def by_organization(self, organization_id: int) -> DetectorQuerySet:
-        return self.get_queryset().by_organization(organization_id)
-
-    def by_organization(self, organization_id: int) -> Self:
-        """
-        Returns a queryset of detectors scoped to the given organization.
-        Project-scoped detectors are matched via project__organization.
-        Null-project (all-projects) detectors are matched via config__organization_id.
-        """
-        from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
-
-        return self.filter(
-            Q(project__organization_id=organization_id)
-            # Currently, the only Detector expected to have no project is the All Projects detector.
-            # Therefore, we filter by its GroupType and the config location we know has the organization ID.
             | Q(
                 project__isnull=True,
                 type=IssueStreamGroupType.slug,
