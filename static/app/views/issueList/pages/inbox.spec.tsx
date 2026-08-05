@@ -672,6 +672,7 @@ describe('InboxPage', () => {
         name: 'Fix proposed issue',
       })
     ).toBeInTheDocument();
+    expect(within(preview).queryByText('Fix Proposed')).not.toBeInTheDocument();
 
     await userEvent.click(await screen.findByRole('button', {name: 'Back to inbox'}));
     expect(router.location.query.preview).toBeUndefined();
