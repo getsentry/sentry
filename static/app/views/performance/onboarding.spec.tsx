@@ -8,10 +8,13 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {withPerformanceOnboarding} from 'sentry/data/platformCategories';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
 
 import {LegacyOnboarding, Onboarding} from './onboarding';
+
+jest.mock('sentry/utils/analytics');
 
 describe('Performance Onboarding View > Unsupported Banner', () => {
   const organization = OrganizationFixture();
@@ -70,8 +73,20 @@ describe('Testing new onboarding ui', () => {
     });
 
     render(<Onboarding organization={organization} project={projectMock} />);
-    expect(await screen.findByText('Query for Traces, Get Answers')).toBeInTheDocument();
-    expect(await screen.findByText('Preview a Sentry Trace')).toBeInTheDocument();
+    expect(await screen.findByText('Tracing in Sentry')).toBeInTheDocument();
+    expect(await screen.findByText('AI-Assisted Setup')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher('First, run this command to install the Sentry plugin:')
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Sentry plugin'})).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/ai/agent-plugin/'
+    );
+    expect(
+      screen.getByText('Then paste this in your agent of choice:')
+    ).toBeInTheDocument();
 
     expect(
       await screen.findByText(
@@ -104,6 +119,48 @@ describe('Testing new onboarding ui', () => {
     expect(
       await screen.findByText("Waiting for this project's first trace")
     ).toBeInTheDocument();
+  });
+
+  it('tracks the AI setup snippets as copied for traces', async () => {
+    const projectMock = ProjectFixture({
+      platform: 'javascript-react',
+      access: ['project:read', 'event:write'],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      method: 'GET',
+      body: projectMock,
+    });
+
+    Object.assign(navigator, {
+      clipboard: {writeText: jest.fn().mockResolvedValue(undefined)},
+    });
+
+    render(<Onboarding organization={organization} project={projectMock} />);
+    expect(await screen.findByText('AI-Assisted Setup')).toBeInTheDocument();
+
+    // The AI-assisted column leads the panel, so its install command and prompt
+    // are the first two snippets in the DOM.
+    const [installCommand, prompt] = screen.getAllByRole('button', {
+      name: 'Copy snippet',
+    });
+
+    await userEvent.click(installCommand!);
+    expect(trackAnalytics).toHaveBeenCalledWith('onboarding.ai_prompt_copied', {
+      organization,
+      platform: 'javascript-react',
+      product: 'traces',
+      source: 'install_command',
+    });
+
+    await userEvent.click(prompt!);
+    expect(trackAnalytics).toHaveBeenCalledWith('onboarding.ai_prompt_copied', {
+      organization,
+      platform: 'javascript-react',
+      product: 'traces',
+      source: 'prompt',
+    });
   });
 
   it('links to Trace Explorer docs when the tracing checklist is unavailable', async () => {

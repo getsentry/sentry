@@ -27,7 +27,7 @@ const pythonPlatform: OnboardingSelectedSDK = {
 };
 
 describe('getSubmitTooltipText', () => {
-  const none_missing = {
+  const noMissingFields = {
     platform: false,
     projectName: false,
     team: false,
@@ -35,35 +35,35 @@ describe('getSubmitTooltipText', () => {
   };
 
   it('returns undefined when nothing is missing', () => {
-    expect(getSubmitTooltipText(none_missing)).toBeUndefined();
+    expect(getSubmitTooltipText(noMissingFields)).toBeUndefined();
   });
 
   it('returns a summary when multiple fields are missing', () => {
     expect(
-      getSubmitTooltipText({...none_missing, platform: true, projectName: true})
+      getSubmitTooltipText({...noMissingFields, platform: true, projectName: true})
     ).toBe('Please fill out all the required fields');
   });
 
   it('names the platform when it is the only missing field', () => {
-    expect(getSubmitTooltipText({...none_missing, platform: true})).toBe(
+    expect(getSubmitTooltipText({...noMissingFields, platform: true})).toBe(
       'Please select a platform'
     );
   });
 
   it('names the project name when it is the only missing field', () => {
-    expect(getSubmitTooltipText({...none_missing, projectName: true})).toBe(
+    expect(getSubmitTooltipText({...noMissingFields, projectName: true})).toBe(
       'Please provide a project name'
     );
   });
 
   it('names the team when it is the only missing field', () => {
-    expect(getSubmitTooltipText({...none_missing, team: true})).toBe(
+    expect(getSubmitTooltipText({...noMissingFields, team: true})).toBe(
       'Please select a team'
     );
   });
 
   it('names the notification channel when it is the only missing field', () => {
-    expect(getSubmitTooltipText({...none_missing, notificationChannel: true})).toBe(
+    expect(getSubmitTooltipText({...noMissingFields, notificationChannel: true})).toBe(
       'Please provide an integration channel for alert notifications'
     );
   });
@@ -79,8 +79,6 @@ describe('useScmProjectDetails', () => {
     return renderHookWithProviders(
       () =>
         useScmProjectDetails({
-          analyticsFlow: 'project-creation',
-          allowMemberWithoutTeam: true,
           selectedPlatform: pythonPlatform,
           selectedRepository: undefined,
           projectDetailsForm: {projectName: 'my-project'},
@@ -107,30 +105,17 @@ describe('useScmProjectDetails', () => {
     jest.restoreAllMocks();
   });
 
-  it.each([
-    ['project-creation', true],
-    ['onboarding', false],
-  ] as const)(
-    'tracks threshold edits only in the project-creation flow (%s)',
-    (analyticsFlow, shouldTrack) => {
-      const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-      const {result} = renderDetails({analyticsFlow});
+  it('tracks threshold edits for SCM project creation', () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    const {result} = renderDetails();
 
-      act(() => result.current.onAlertChange('threshold', '10'));
+    act(() => result.current.onAlertChange('threshold', '10'));
 
-      if (shouldTrack) {
-        expect(trackAnalyticsSpy).toHaveBeenCalledWith(
-          'project_creation.alert_threshold_edited',
-          expect.objectContaining({field: 'threshold', variant: 'scm'})
-        );
-      } else {
-        expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
-          'project_creation.alert_threshold_edited',
-          expect.anything()
-        );
-      }
-    }
-  );
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'project_creation.alert_threshold_edited',
+      expect.objectContaining({field: 'threshold', variant: 'scm'})
+    );
+  });
 
   it('requires an integration channel when notifying via integration', () => {
     TeamStore.loadInitialData([adminTeam]);
@@ -170,17 +155,6 @@ describe('useScmProjectDetails', () => {
     expect(result.current.missingFields.team).toBe(false);
     // Submission is still blocked until teams finish loading.
     expect(result.current.canSubmit).toBe(false);
-  });
-
-  it('reports the team as missing once teams have loaded and none is available', () => {
-    // Teams have loaded but the viewer has no team to default to, so the team
-    // genuinely needs to be selected (onboarding-style: no member fallback).
-    TeamStore.loadInitialData([]);
-    ProjectsStore.loadInitialData([]);
-
-    const {result} = renderDetails({allowMemberWithoutTeam: false});
-
-    expect(result.current.missingFields.team).toBe(true);
   });
 
   it('resolves the team from the first admin team once teams have loaded', () => {

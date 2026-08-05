@@ -134,6 +134,7 @@ class CodingAgentResult(BaseModel):
     description: str
     repo_provider: str
     repo_full_name: str
+    pr_number: int | None = None
     pr_url: str | None = None
     branch_name: str | None = None
 

@@ -6,10 +6,7 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
-import {
-  OurLogKnownFieldKey,
-  type OurLogsResponseItem,
-} from 'sentry/views/explore/logs/types';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {
   getTraceMetaLogsCount,
   getTraceMetaMetricsCount,
@@ -17,8 +14,10 @@ import {
   type TraceMetaQueryResults,
 } from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {TraceHeaderComponents} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
+import type {TraceOverviewData} from 'sentry/views/performance/newTraceDetails/useTraceOverviewData';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
 type MetaDataProps = {
@@ -53,11 +52,10 @@ const SectionBody = styled('div')<{alignment?: boolean}>`
 `;
 
 interface MetaProps {
-  logs: OurLogsResponseItem[] | undefined;
   logsEnabled: boolean;
   meta: TraceMetaQueryResults['data'];
-  metrics: {count: number} | undefined;
   metricsEnabled: boolean;
+  overview: TraceOverviewData;
   representativeEvent: TraceTree.RepresentativeTraceEvent | null;
   tree: TraceTree;
 }
@@ -104,10 +102,14 @@ export function Meta(props: MetaProps) {
 
   const hasDifferentSpansCount = loadedSpansCount !== 0 && totalSpansCount !== 0;
   const hasSpans = spansCount > 0 || loadedSpansCount > 0 || totalSpansCount > 0;
-  const logsCount = getTraceMetaLogsCount(props.meta) ?? props.logs?.length ?? 0;
+  const logsCount = getTraceMetaLogsCount(props.meta) ?? props.overview.logs.count ?? 0;
   const hasLogs = props.logsEnabled && logsCount > 0;
-  const metricsCount = getTraceMetaMetricsCount(props.meta) ?? props.metrics?.count ?? 0;
+  const logsLoading = props.logsEnabled && props.overview.logs.availability === 'loading';
+  const metricsCount =
+    getTraceMetaMetricsCount(props.meta) ?? props.overview.metrics.count ?? 0;
   const hasMetrics = props.metricsEnabled && metricsCount > 0;
+  const metricsLoading =
+    props.metricsEnabled && props.overview.metrics.availability === 'loading';
 
   const repEvent = props.representativeEvent?.event;
 
@@ -152,14 +154,22 @@ export function Meta(props: MetaProps) {
             : '\u2014'}
         </MetaSection>
       ) : null}
-      {hasLogs ? (
+      {hasLogs || logsLoading ? (
         <MetaSection rightAlignBody headingText={t('Logs')}>
-          {logsCount}
+          {hasLogs ? (
+            logsCount
+          ) : (
+            <TraceHeaderComponents.StyledPlaceholder _width={32} _height={20} />
+          )}
         </MetaSection>
       ) : null}
-      {hasMetrics ? (
+      {hasMetrics || metricsLoading ? (
         <MetaSection rightAlignBody headingText={t('Metrics')}>
-          {metricsCount}
+          {hasMetrics ? (
+            metricsCount
+          ) : (
+            <TraceHeaderComponents.StyledPlaceholder _width={32} _height={20} />
+          )}
         </MetaSection>
       ) : null}
     </MetaWrapper>

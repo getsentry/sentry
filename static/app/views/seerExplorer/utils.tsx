@@ -1164,10 +1164,6 @@ export function getRelativeExplorerUrl(
   return url.pathname + url.search;
 }
 
-export function getLangfuseUrl(runId: number | string): string {
-  return `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/sessions/${runId}`;
-}
-
 export function getExplorerFeedbackOptions(
   runId: SeerExplorerRunId | null
 ): UseFeedbackOptions {
@@ -1179,7 +1175,6 @@ export function getExplorerFeedbackOptions(
       ['feedback.owner']: 'ml-ai',
       ...(runId === null ? {} : {['seer.run_id']: runId.toString()}),
       ...(runId === null ? {} : {['explorer_url']: getExplorerUrl(runId)}),
-      ...(runId === null ? {} : {['langfuse_url']: getLangfuseUrl(runId)}),
       ...(runId === null
         ? {}
         : {['conversations_url']: getConversationsUrlForExternalUse('sentry', runId)}),

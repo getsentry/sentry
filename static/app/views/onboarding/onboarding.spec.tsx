@@ -497,10 +497,7 @@ describe('Onboarding', () => {
 
   describe('SCM onboarding flow', () => {
     const scmOrganization = OrganizationFixture({
-      features: [
-        'onboarding-scm-experiment',
-        'onboarding-scm-project-details-experiment',
-      ],
+      features: ['onboarding-scm-experiment'],
     });
 
     const githubProvider = GitHubIntegrationProviderFixture({
@@ -683,33 +680,7 @@ describe('Onboarding', () => {
       expect(buttons).toHaveLength(1);
     });
 
-    it('renders scm-platform-features step and advances to scm-project-details', async () => {
-      const {router} = renderOnboarding('scm-platform-features', {
-        initialContext: {
-          selectedPlatform: {
-            key: 'javascript',
-            name: 'JavaScript',
-            language: 'javascript',
-            link: 'https://docs.sentry.io/platforms/javascript/',
-            type: 'language',
-            category: 'popular',
-          },
-          selectedFeatures: [ProductSolution.ERROR_MONITORING],
-        },
-      });
-
-      expect(screen.getByText('Create your first project')).toBeInTheDocument();
-
-      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
-
-      await waitFor(() => {
-        expect(router.location.pathname).toBe(
-          `/onboarding/${scmOrganization.slug}/scm-project-details/`
-        );
-      });
-    });
-
-    it('skips scm-project-details and auto-creates the project when experiment is off', async () => {
+    it('auto-creates the project on Continue and advances to setup-docs', async () => {
       ProjectsStore.loadInitialData([]);
       const controlOrganization = OrganizationFixture({
         features: ['onboarding-scm-experiment'],
@@ -803,32 +774,6 @@ describe('Onboarding', () => {
           `/onboarding/${controlOrganization.slug}/setup-docs/`
         );
       });
-    });
-
-    it('renders scm-project-details step with project details form', () => {
-      render(
-        <OnboardingContextProvider initialValue={{selectedPlatform: nextJsPlatform}}>
-          <OnboardingWithoutContext />
-        </OnboardingContextProvider>,
-        {
-          organization: scmOrganization,
-          initialRouterConfig: {
-            location: {
-              pathname: `/onboarding/${scmOrganization.slug}/scm-project-details/`,
-            },
-            route: '/onboarding/:orgId/:step/',
-          },
-        }
-      );
-
-      expect(screen.getByText('Project details')).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Create project'})).toBeInTheDocument();
-    });
-
-    it('create project button is disabled without a platform selected', () => {
-      renderOnboarding('scm-project-details');
-
-      expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
     });
 
     it('preserves SCM context when going back from setup-docs', async () => {
@@ -1030,7 +975,7 @@ describe('Onboarding', () => {
       });
     });
 
-    it('redirects invalid step to welcome', () => {
+    it('redirects the retired Project Details route to welcome', () => {
       const {router} = render(
         <OnboardingContextProvider>
           <OnboardingWithoutContext />
@@ -1039,14 +984,14 @@ describe('Onboarding', () => {
           organization: scmOrganization,
           initialRouterConfig: {
             location: {
-              pathname: `/onboarding/${scmOrganization.slug}/select-platform/`,
+              pathname: `/onboarding/${scmOrganization.slug}/scm-project-details/`,
             },
             route: '/onboarding/:orgId/:step/',
           },
         }
       );
 
-      // select-platform doesn't exist in SCM flow, should redirect to welcome
+      // The retired step must not render or strand a stale direct navigation.
       expect(router.location.pathname).toBe(
         `/onboarding/${scmOrganization.slug}/welcome/`
       );

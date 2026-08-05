@@ -21,7 +21,6 @@ export const textStyles = () => css`
     [data-panel-body-text-styles='ignore']
   ),
   ol:not([role='listbox'], [role='grid'], [role='menu']),
-  table,
   dl,
   blockquote,
   form,

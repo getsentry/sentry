@@ -7,6 +7,7 @@ import {GridEditableEmptyData} from 'sentry/components/tables/gridEditable/GridE
 import {GridEditableError} from 'sentry/components/tables/gridEditable/GridEditableError';
 import {GridEditableLoading} from 'sentry/components/tables/gridEditable/GridEditableLoading';
 import {getAriaSort} from 'sentry/components/tables/sortableHeaderCell';
+import {useColumnResize} from 'sentry/components/tables/useColumnResize';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 
 import {
@@ -24,12 +25,7 @@ import {
   HeaderButtonContainer,
   HeaderTitle,
 } from './styles';
-import type {
-  ColResizeMetadata,
-  GridColumnOrder,
-  GridColumnSortBy,
-  GridData,
-} from './types';
+import type {GridColumnOrder, GridColumnSortBy, GridData} from './types';
 
 export type * from './types';
 
@@ -126,121 +122,10 @@ export function GridEditable<
     title,
   } = props;
 
-  const clearWindowLifecycleEvents = useCallback(() => {
-    Object.keys(resizeWindowLifecycleEvents.current).forEach(e => {
-      resizeWindowLifecycleEvents.current[e]!.forEach(c =>
-        window.removeEventListener(e, c)
-      );
-      resizeWindowLifecycleEvents.current[e] = [];
-    });
-  }, []);
-
   const refGrid = useRef<HTMLTableElement>(null);
-  const resizeWindowLifecycleEvents = useRef<Record<string, any[]>>({
-    mousemove: [],
-    mouseup: [],
-  });
 
-  const refResizeMetadata = useRef<ColResizeMetadata>(null);
-
-  const onResetColumnSize = (e: React.MouseEvent, i: number) => {
-    e.stopPropagation();
-
-    const nextColumnOrder = [...props.columnOrder];
-    nextColumnOrder[i] = {
-      ...nextColumnOrder[i]!,
-      width: COL_WIDTH_UNDEFINED,
-    };
-    setGridTemplateColumns(nextColumnOrder);
-
-    const onResizeColumn = props.grid.onResizeColumn;
-    if (onResizeColumn) {
-      onResizeColumn(i, {
-        ...nextColumnOrder[i],
-        width: COL_WIDTH_UNDEFINED,
-      });
-    }
-  };
-
-  const onResizeMouseDown = (e: React.MouseEvent, i = -1) => {
-    e.stopPropagation();
-
-    // Block right-click and other funky stuff
-    if (i === -1 || e.type === 'contextmenu') {
-      return;
-    }
-
-    // <GridResizer> is nested 1 level down from <GridHeadCell>
-    const cell = e.currentTarget.parentElement;
-    if (!cell) {
-      return;
-    }
-
-    refResizeMetadata.current = {
-      columnIndex: i,
-      columnWidth: cell.offsetWidth,
-      cursorX: e.clientX,
-    };
-
-    window.addEventListener('mousemove', onResizeMouseMove);
-    resizeWindowLifecycleEvents.current.mousemove!.push(onResizeMouseMove);
-
-    window.addEventListener('mouseup', onResizeMouseUp);
-    resizeWindowLifecycleEvents.current.mouseup!.push(onResizeMouseUp);
-  };
-
-  const onResizeMouseUp = (e: MouseEvent) => {
-    const metadata = refResizeMetadata.current;
-    const onResizeColumn = props.grid.onResizeColumn;
-
-    if (metadata && onResizeColumn) {
-      const {columnOrder} = props;
-      const widthChange = e.clientX - metadata.cursorX;
-
-      onResizeColumn(metadata.columnIndex, {
-        ...columnOrder[metadata.columnIndex]!,
-        width: metadata.columnWidth + widthChange,
-      });
-    }
-
-    refResizeMetadata.current = null;
-    clearWindowLifecycleEvents();
-  };
-
-  const onResizeMouseMove = (e: MouseEvent) => {
-    const {current} = refResizeMetadata;
-    if (!current) {
-      return;
-    }
-
-    window.requestAnimationFrame(() => resizeGridColumn(e, current));
-  };
-
-  const resizeGridColumn = (e: MouseEvent, metadata: ColResizeMetadata) => {
-    if (!refGrid.current) {
-      return;
-    }
-
-    const widthChange = e.clientX - metadata.cursorX;
-
-    const nextColumnOrder = [...props.columnOrder];
-    nextColumnOrder[metadata.columnIndex] = {
-      ...nextColumnOrder[metadata.columnIndex]!,
-      width: Math.max(metadata.columnWidth + widthChange, 0),
-    };
-
-    setGridTemplateColumns(nextColumnOrder);
-  };
-
-  /**
-   * Recalculate the dimensions of Grid and Columns and redraws them
-   */
-  const setGridTemplateColumns = useCallback(
+  const buildGridTemplateColumns = useCallback(
     (columnOrder: Order[]) => {
-      if (!refGrid.current) {
-        return;
-      }
-
       const prependColumns = props.grid.prependColumnWidths || [];
       const prepend = prependColumns.join(' ');
       const widths = columnOrder.map((item, index) => {
@@ -261,22 +146,49 @@ export function GridEditable<
 
       // The last column has no resizer and should always be a flexible column
       // to prevent underflows.
-
-      refGrid.current.style.gridTemplateColumns = `${prepend} ${widths.join(' ')}`;
-
-      // Setting the rendered grid height as a CSS variable so `GridResizer` can
-      // reliably span the full visible height even when rows grow (e.g. wrapped text).
-      refGrid.current.style.setProperty(
-        '--grid-editable-resizer-height',
-        `${refGrid.current.offsetHeight}px`
-      );
+      return `${prepend} ${widths.join(' ')}`;
     },
     [minimumColWidth, props.grid.prependColumnWidths]
   );
 
+  const {onResizeMouseDown, applyTemplate} = useColumnResize({
+    gridRef: refGrid,
+    getResizeTemplate: (columnIndex, newWidth) => {
+      const nextColumnOrder = [...props.columnOrder];
+      nextColumnOrder[columnIndex] = {
+        ...nextColumnOrder[columnIndex]!,
+        width: Math.max(newWidth, 0),
+      };
+      return buildGridTemplateColumns(nextColumnOrder);
+    },
+    onColumnResizeEnd: (columnIndex, newWidth) => {
+      props.grid.onResizeColumn?.(columnIndex, {
+        ...props.columnOrder[columnIndex]!,
+        width: newWidth,
+      });
+    },
+    writeResizerHeightVar: true,
+  });
+
+  const onResetColumnSize = (e: React.MouseEvent, i: number) => {
+    e.stopPropagation();
+
+    const nextColumnOrder = [...props.columnOrder];
+    nextColumnOrder[i] = {
+      ...nextColumnOrder[i]!,
+      width: COL_WIDTH_UNDEFINED,
+    };
+    applyTemplate(buildGridTemplateColumns(nextColumnOrder));
+
+    props.grid.onResizeColumn?.(i, {
+      ...nextColumnOrder[i],
+      width: COL_WIDTH_UNDEFINED,
+    });
+  };
+
   const redrawGridColumn = useCallback(() => {
-    setGridTemplateColumns(props.columnOrder);
-  }, [props.columnOrder, setGridTemplateColumns]);
+    applyTemplate(buildGridTemplateColumns(props.columnOrder));
+  }, [applyTemplate, buildGridTemplateColumns, props.columnOrder]);
 
   function renderGridHead() {
     // Ensure that the last column cannot be removed
@@ -384,10 +296,9 @@ export function GridEditable<
     window.addEventListener('resize', redrawGridColumn);
 
     return () => {
-      clearWindowLifecycleEvents();
       window.removeEventListener('resize', redrawGridColumn);
     };
-  }, [clearWindowLifecycleEvents, redrawGridColumn]);
+  }, [redrawGridColumn]);
 
   const showHeader = title || headerButtons;
   return (

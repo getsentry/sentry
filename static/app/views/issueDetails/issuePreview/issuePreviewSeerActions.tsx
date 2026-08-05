@@ -2,19 +2,21 @@ import {useState} from 'react';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 
+import {getAutofixNextStep} from 'sentry/components/events/autofix/getAutofixNextStep';
 import {
-  getCodingAgentName,
-  getResultButtonLabel,
-} from 'sentry/components/events/autofix/types';
+  findCodingAgentResultLink,
+  getRepoPullRequestLink,
+} from 'sentry/components/events/autofix/pullRequests';
+import {getCodingAgentName} from 'sentry/components/events/autofix/types';
 import {
   getOrderedAutofixSections,
-  type ExplorerAutofixState,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconOpen, IconRefresh, IconSeer} from 'sentry/icons';
+import {IconGithub, IconOpen, IconRefresh, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import {defined} from 'sentry/utils/defined';
 
 type ExplorerAutofix = ReturnType<typeof useExplorerAutofix>;
 
@@ -32,6 +34,7 @@ interface SeerAction {
   kind: SeerActionKind;
   label: string;
   href?: string;
+  isPullRequest?: boolean;
   repoName?: string;
   tooltip?: string | null;
 }
@@ -39,7 +42,7 @@ interface SeerAction {
 interface IssuePreviewSeerActionsProps {
   autofix: ExplorerAutofix;
   group: Group;
-  onOpenAutofix: () => void;
+  onContinueInSeer: () => void;
   disabled?: boolean;
 }
 
@@ -66,15 +69,11 @@ const AUTOFIX_ANALYTICS = {
   },
 } as const;
 
-function getAutofixPrimaryAction(
-  runState: ExplorerAutofixState | null
-): SeerAction | null {
+function getAutofixPrimaryAction(autofix: ExplorerAutofix): SeerAction | null {
+  const {runState} = autofix;
   const sections = getOrderedAutofixSections(runState);
-  const lastCompletedSection = sections.findLast(
-    section => section.status === 'completed'
-  );
 
-  if (!runState || !lastCompletedSection) {
+  if (!runState || sections.length === 0) {
     return {
       ...AUTOFIX_ANALYTICS.root_cause,
       kind: 'root_cause',
@@ -82,8 +81,7 @@ function getAutofixPrimaryAction(
     };
   }
 
-  // The run is paused waiting on the user
-  // For now open the autofix tab, but in the future open an explorer side panel
+  // The run is paused waiting on the user, so continue in the full Seer drawer.
   if (runState.status === 'awaiting_user_input') {
     return {
       ...AUTOFIX_ANALYTICS.view,
@@ -96,29 +94,20 @@ function getAutofixPrimaryAction(
   }
 
   const pullRequests = Object.values(runState.repo_pr_states ?? {});
-  const completedPullRequest = pullRequests.find(
-    pullRequest =>
-      pullRequest.pr_creation_status === 'completed' &&
-      pullRequest.pr_url &&
-      pullRequest.pr_number &&
-      pullRequest.repo_name
-  );
+  const completedPullRequestLink = pullRequests.map(getRepoPullRequestLink).find(defined);
   const failedPullRequest = pullRequests.find(
     pullRequest => pullRequest.pr_creation_status === 'error'
   );
 
   // A pull request was created and completed
   // Show the view pull request button
-  if (completedPullRequest?.pr_url && completedPullRequest.pr_number) {
+  if (completedPullRequestLink) {
     return {
       ...AUTOFIX_ANALYTICS.view,
       kind: 'link',
-      label: t(
-        'View %s#%s',
-        completedPullRequest.repo_name,
-        completedPullRequest.pr_number
-      ),
-      href: completedPullRequest.pr_url,
+      label: completedPullRequestLink.label,
+      href: completedPullRequestLink.url,
+      isPullRequest: true,
     };
   }
 
@@ -134,77 +123,49 @@ function getAutofixPrimaryAction(
     };
   }
 
-  switch (lastCompletedSection.step) {
-    case 'pull_request': {
-      const pullRequest = pullRequests[0];
-      if (!pullRequest) {
-        return null;
-      }
+  const codingAgents = Object.values(runState.coding_agents ?? {});
+  const resultLink = findCodingAgentResultLink(codingAgents);
 
-      return {
-        ...AUTOFIX_ANALYTICS.create_pr,
-        kind: 'create_pr',
-        label: t('Retry PR in %s', pullRequest.repo_name),
-        repoName: pullRequest.repo_name,
-        tooltip: pullRequest.pr_creation_error,
-      };
-    }
+  if (resultLink) {
+    return {
+      ...AUTOFIX_ANALYTICS.view,
+      kind: 'link',
+      label: resultLink.label,
+      href: resultLink.url,
+    };
+  }
 
-    case 'coding_agents': {
-      const codingAgents = Object.values(runState.coding_agents ?? {});
-      const result = codingAgents
-        .flatMap(codingAgent => codingAgent.results ?? [])
-        .find(item => item.pr_url);
+  const codingAgent = codingAgents.find(agent => agent.agent_url);
+  if (codingAgent?.agent_url) {
+    return {
+      ...AUTOFIX_ANALYTICS.view,
+      kind: 'link',
+      label: t('Open in %s', getCodingAgentName(codingAgent.provider)),
+      href: codingAgent.agent_url,
+    };
+  }
 
-      if (result?.pr_url) {
-        return {
-          ...AUTOFIX_ANALYTICS.view,
-          kind: 'link',
-          label: getResultButtonLabel(result.pr_url),
-          href: result.pr_url,
-        };
-      }
+  const nextStep = getAutofixNextStep({sections});
 
-      const codingAgent = codingAgents.find(agent => agent.agent_url);
-      if (codingAgent?.agent_url) {
-        return {
-          ...AUTOFIX_ANALYTICS.view,
-          kind: 'link',
-          label: t('Open in %s', getCodingAgentName(codingAgent.provider)),
-          href: codingAgent.agent_url,
-        };
-      }
-
-      return null;
-    }
-
+  switch (nextStep?.action) {
+    case 'create_pr':
+      return {...AUTOFIX_ANALYTICS.create_pr, kind: 'create_pr', label: t('Draft a PR')};
     case 'code_changes':
-      return {
-        ...AUTOFIX_ANALYTICS.create_pr,
-        kind: 'create_pr',
-        label: t('Draft a PR'),
-      };
-
-    case 'solution':
       return {
         ...AUTOFIX_ANALYTICS.code_changes,
         kind: 'code_changes',
         label: t('Write a Code Fix'),
       };
-
-    case 'root_cause':
+    case 'solution':
+      return {...AUTOFIX_ANALYTICS.solution, kind: 'solution', label: t('Make a Plan')};
+    case 'pr_iteration':
       return {
-        ...AUTOFIX_ANALYTICS.solution,
-        kind: 'solution',
-        label: t('Make a Plan'),
+        ...AUTOFIX_ANALYTICS.view,
+        kind: 'view_autofix',
+        label: t('Continue in Seer'),
       };
-
     default:
-      return {
-        ...AUTOFIX_ANALYTICS.root_cause,
-        kind: 'root_cause',
-        label: t('Find Root Cause'),
-      };
+      return null;
   }
 }
 
@@ -212,7 +173,7 @@ export function IssuePreviewSeerActions({
   autofix,
   disabled,
   group,
-  onOpenAutofix,
+  onContinueInSeer,
 }: IssuePreviewSeerActionsProps) {
   if (autofix.isLoading) {
     return <Placeholder width="120px" height="32px" />;
@@ -223,7 +184,7 @@ export function IssuePreviewSeerActions({
       autofix={autofix}
       disabled={disabled}
       group={group}
-      onOpenAutofix={onOpenAutofix}
+      onContinueInSeer={onContinueInSeer}
     />
   );
 }
@@ -232,10 +193,10 @@ function IssuePreviewSeerButton({
   autofix,
   disabled,
   group,
-  onOpenAutofix,
+  onContinueInSeer,
 }: IssuePreviewSeerActionsProps) {
   const [isStartingAction, setIsStartingAction] = useState(false);
-  const action = getAutofixPrimaryAction(autofix.runState);
+  const action = getAutofixPrimaryAction(autofix);
   const runId = autofix.runState?.run_id;
   const busy = autofix.isPolling || isStartingAction;
 
@@ -249,9 +210,8 @@ function IssuePreviewSeerButton({
   };
 
   const handleClick = async () => {
-    onOpenAutofix();
-
     if (action.kind === 'view_autofix') {
+      onContinueInSeer();
       return;
     }
 
@@ -279,7 +239,13 @@ function IssuePreviewSeerButton({
         external
         variant="primary"
         size="sm"
-        icon={<IconOpen />}
+        icon={
+          action.isPullRequest ? (
+            <IconGithub data-test-id="pull-request-github" />
+          ) : (
+            <IconOpen />
+          )
+        }
         href={action.href}
         disabled={disabled}
         tooltipProps={action.tooltip ? {title: action.tooltip} : undefined}

@@ -23,7 +23,6 @@ from sentry.issues.grouptype import (
 )
 from sentry.models.group import DEFAULT_TYPE_ID, Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory
-from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -672,19 +671,8 @@ def fetch_past_resolved_issue_links(ctx: OrganizationReportContext) -> None:
 
     resolution_labels: dict[int, str] = {}
 
-    groups_with_pr = set(
-        GroupLink.objects.filter(
-            group_id__in=all_group_ids,
-            linked_type=GroupLink.LinkedType.pull_request,
-            relationship=GroupLink.Relationship.resolves,
-        ).values_list("group_id", flat=True)
-    )
-    for gid in groups_with_pr:
-        resolution_labels[gid] = "Resolved in PR"
-
+    # GroupResolution.group is unique, so there is at most one row per group
     for gr in GroupResolution.objects.filter(group_id__in=all_group_ids):
-        if gr.group_id in resolution_labels:
-            continue
         if gr.current_release_version or gr.type in (
             None,
             GroupResolution.Type.in_next_release,

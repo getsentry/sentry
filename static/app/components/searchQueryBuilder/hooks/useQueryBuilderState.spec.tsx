@@ -1,9 +1,31 @@
 import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
-import {Token, WildcardOperators} from 'sentry/components/searchSyntax/parser';
-import {FieldKind, type FieldDefinition} from 'sentry/utils/fields';
+import {
+  TermOperator,
+  Token,
+  WildcardOperators,
+} from 'sentry/components/searchSyntax/parser';
+import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
 
-import {multiSelectTokenValue, replaceFreeTextTokens} from './useQueryBuilderState';
+import {
+  modifyFilterOperatorQuery,
+  modifyFilterValue,
+  multiSelectTokenValue,
+  replaceFreeTextTokens,
+} from './useQueryBuilderState';
+
+function getFirstFilterToken(
+  query: string,
+  getFieldDefinition: Parameters<typeof parseQueryBuilderValue>[1] = () => null,
+  options?: Parameters<typeof parseQueryBuilderValue>[2]
+) {
+  const parsed = parseQueryBuilderValue(query, getFieldDefinition, options);
+  const token = parsed?.find(t => t.type === Token.FILTER);
+  if (!token) {
+    throw new Error(`No filter token found in query: ${query}`);
+  }
+  return token;
+}
 
 describe('replaceFreeTextTokens', () => {
   describe('when there are free text tokens', () => {
@@ -263,11 +285,7 @@ describe('multiSelectTokenValue', () => {
   };
 
   function runToggle(query: string, value: string) {
-    const parsed = parseQueryBuilderValue(query, () => null, {filterKeys});
-    const token = parsed?.find(t => t.type === Token.FILTER);
-    if (!token) {
-      throw new Error(`No filter token found in query: ${query}`);
-    }
+    const token = getFirstFilterToken(query, () => null, {filterKeys});
 
     const state = {
       query,
@@ -330,5 +348,106 @@ describe('multiSelectTokenValue', () => {
 
     const thirdToggle = runToggle(secondToggle.query, '"1.0.0+build 1"');
     expect(thirdToggle.query).toBe('release:[2.0.0,"1.0.0+build 1"]');
+  });
+});
+
+describe('typed filter keys containing colons', () => {
+  const filterKey = 'imaginary.attribute:made_up_key';
+  const fieldDefinition: FieldDefinition = {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  };
+  const filterKeys = {
+    [filterKey]: {
+      key: filterKey,
+      name: filterKey,
+      kind: FieldKind.TAG,
+    },
+  };
+
+  it('preserves quoted key syntax when updating a value', () => {
+    const query = `"${filterKey}":foo`;
+
+    expect(
+      modifyFilterValue(
+        query,
+        getFirstFilterToken(query, () => fieldDefinition, {filterKeys}),
+        'bar'
+      )
+    ).toBe(`"${filterKey}":bar`);
+  });
+
+  it('preserves quoted key syntax when updating an operator', () => {
+    const query = `"${filterKey}":foo`;
+
+    expect(
+      modifyFilterOperatorQuery(
+        query,
+        getFirstFilterToken(query, () => fieldDefinition, {filterKeys}),
+        TermOperator.NOT_EQUAL
+      )
+    ).toBe(`!"${filterKey}":foo`);
+  });
+
+  it('preserves quoted key syntax when toggling a multi-select value', () => {
+    const query = `"${filterKey}":foo`;
+    const state = {
+      query,
+      committedQuery: query,
+      focusOverride: null,
+      clearAskSeerFeedback: false,
+    };
+
+    expect(
+      multiSelectTokenValue(state, {
+        type: 'TOGGLE_FILTER_VALUE',
+        token: getFirstFilterToken(query, () => fieldDefinition, {filterKeys}),
+        value: 'bar',
+      }).query
+    ).toBe(`"${filterKey}":[foo,bar]`);
+  });
+});
+
+describe('syntax-bearing filter keys', () => {
+  it('preserves an aggregate key when updating its value', () => {
+    const query = 'count():>100';
+
+    expect(modifyFilterValue(query, getFirstFilterToken(query), '200')).toBe(
+      'count():>200'
+    );
+  });
+
+  it('preserves an aggregate key and arguments when updating its operator', () => {
+    const query = 'count_if(imaginary_field,equals,fictional_value):>100';
+
+    expect(
+      modifyFilterOperatorQuery(query, getFirstFilterToken(query), TermOperator.LESS_THAN)
+    ).toBe('count_if(imaginary_field,equals,fictional_value):<100');
+  });
+
+  it('preserves untyped explicit tag syntax when updating a value', () => {
+    const query = 'tags[imaginary_tag]:fictional_value';
+
+    expect(
+      modifyFilterValue(query, getFirstFilterToken(query), 'alternate_fictional_value')
+    ).toBe('tags[imaginary_tag]:alternate_fictional_value');
+  });
+
+  it('preserves untyped explicit tag syntax when toggling a multi-select value', () => {
+    const query = 'tags[imaginary_tag]:fictional_value';
+    const state = {
+      query,
+      committedQuery: query,
+      focusOverride: null,
+      clearAskSeerFeedback: false,
+    };
+
+    expect(
+      multiSelectTokenValue(state, {
+        type: 'TOGGLE_FILTER_VALUE',
+        token: getFirstFilterToken(query),
+        value: 'alternate_fictional_value',
+      }).query
+    ).toBe('tags[imaginary_tag]:[fictional_value,alternate_fictional_value]');
   });
 });

@@ -3,12 +3,37 @@
 import {
   asyncSanitizedMarked,
   markdownRendersVisibleContent,
+  markdownToPlainText,
   sanitizedMarked,
   singleLineRenderer,
 } from 'sentry/utils/marked/marked';
 import {loadPrismLanguage} from 'sentry/utils/prism';
 
 jest.unmock('prismjs');
+
+describe('markdownToPlainText', () => {
+  it('flattens headings without leaving markdown syntax', () => {
+    expect(markdownToPlainText('# Summarize revenue')).toBe('Summarize revenue');
+  });
+
+  it('keeps the visible text of inline markdown', () => {
+    expect(markdownToPlainText('**bold** and [a link](https://example.com)')).toBe(
+      'bold and a link'
+    );
+  });
+
+  it('strips HTML/XML tags but keeps their text', () => {
+    expect(markdownToPlainText('<thinking>plan</thinking> answer')).toBe('plan answer');
+  });
+
+  it('returns the code text for a fenced code block', () => {
+    expect(markdownToPlainText('```\nconst x = 1;\n```')).toBe('const x = 1;');
+  });
+
+  it('returns an empty string for an empty code fence', () => {
+    expect(markdownToPlainText('```\n```')).toBe('');
+  });
+});
 
 describe('markdownRendersVisibleContent', () => {
   it.each([

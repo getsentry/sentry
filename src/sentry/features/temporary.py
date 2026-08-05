@@ -2,7 +2,6 @@ from .base import (
     FeatureHandlerStrategy,
     OrganizationFeature,
     ProjectFeature,
-    ProjectPluginFeature,
     SystemFeature,
 )
 from .manager import FeatureManager
@@ -54,6 +53,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:anomaly-detection-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable array fields in trace item details endpoint
     manager.add("organizations:trace-item-details-array-fields", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable array query support for trace items (array attributes in querying/autocomplete)
+    manager.add("organizations:trace-item-array-query-support", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Auto-link repos to projects by matching repo name suffix to project slug
     manager.add("organizations:auto-link-repos-by-name", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Expose the per-project toggle for auto-creating releases from ingested telemetry
@@ -130,7 +131,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:increased-issue-owners-rate-limit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Starfish: extract metrics from the spans
     manager.add("organizations:indexed-spans-extraction", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
-    manager.add("organizations:integrations-github-multi-platform-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-gcp", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-slack-staging", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-vercel-upsert-env-var", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
@@ -160,6 +160,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:more-slow-alerts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable higher limit for workflows
     manager.add("organizations:more-workflows", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Extract variables from native crash debug info (DWARF/PDB)
+    manager.add("organizations:native-variable-extraction", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:mcp-issue-view-attribution", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Extract on demand metrics
     manager.add("organizations:on-demand-metrics-extraction", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -172,8 +174,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:on-demand-metrics-ui-widgets", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Only enabled in sentry.io to enable onboarding flows.
     manager.add("organizations:onboarding", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
-    # Enable copy setup instructions button on onboarding surfaces
-    manager.add("organizations:onboarding-copy-setup-instructions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable copy setup instructions button on project creation getting-started page
     manager.add("organizations:onboarding-copy-setup-instructions-project-creation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable new onboarding welcome and SDK setup UI
@@ -182,10 +182,10 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:onboarding-scm", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Experiment: SCM onboarding A/B test measuring conversion impact
     manager.add("organizations:onboarding-scm-experiment", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Experiment: SCM onboarding messaging step A/B test (treatment adds a messaging/alerting step before SDK setup)
+    manager.add("organizations:onboarding-scm-messaging-experiment", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable SCM-first project creation flow
     manager.add("organizations:onboarding-scm-project-creation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Experiment: SCM onboarding project details A/B test
-    manager.add("organizations:onboarding-scm-project-details-experiment", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Experiment: SCM-first project creation wizard A/B test (project creation flow, not new-org onboarding)
     manager.add("organizations:onboarding-scm-project-creation-experiment", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Double-write newly created debug files to Objectstore.
@@ -251,8 +251,12 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:replay-details-eap-query", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable using the events replays dataset
     manager.add("organizations:events-use-replays-dataset", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Verify a recommended event's replay exists in the replays dataset before it is surfaced on issue details
+    manager.add("organizations:issue-details-verify-recommended-replay", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable using the events api with a sql interface
     manager.add("organizations:events-sql-grammar-api", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Block transactions/discover dataset usage of the events endpoints for external API requests
+    manager.add("organizations:events-endpoint-transactions-discover-blocked", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable detecting SDK crashes during event processing
     manager.add("organizations:sdk-crash-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Seer Agent panel for AI-powered data exploration
@@ -310,11 +314,17 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-autofix-introspection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the PR iteration feedback flow in the explorer autofix drawer
     manager.add("organizations:autofix-pr-iteration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable human-triggered PR iteration: the drawer feedback form, `@sentry` PR
+    # comments, and PR reviews. Automated CI iteration stays on
+    # `organizations:autofix-pr-iteration`.
+    manager.add("organizations:autofix-pr-iteration-manual", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # On green CI: mark ready for review and request review from the triggering user.
     # Also opens Autofix PRs as draft until CI is green.
     manager.add("organizations:autofix-pr-iteration-review-request", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Assign the triggering user and post a status comment once a Seer PR exhausts its CI-fix iteration cap
     manager.add("organizations:autofix-pr-iteration-cap-assign", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable the pr content verification prior to opening a PR
+    manager.add("organizations:autofix-verify-pr-content", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Expose one-shot question answers on the Seer runs list (?expand=questions)
     manager.add("organizations:seer-run-questions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable showing seer in a persistent sidebar
@@ -352,6 +362,12 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:hard-delete-derived-data-invalidation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable double-reading from EAP for issue feed search queries
     manager.add("organizations:issue-feed.eap-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Fetch CI check status from the provider for pull requests linked to an issue
+    manager.add("organizations:issue-pr-checks-status", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Merge issue platform category searches into a single Snuba query
+    manager.add("organizations:issue-search-merged-generic-query", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Batch latest-event attachment lookups in the issue stream
+    manager.add("organizations:issue-stream-batched-latest-event-attachments", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Remove trace and breadcrumbs from issue summary input
     manager.add("organizations:issue-summary-experimental", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable new issue stream progress views
@@ -410,6 +426,9 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:visibility-explore-view", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable high date range options on new explore page
     manager.add("organizations:visibility-explore-range-high", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+
+    # Enable per-series `_if` filters on Explore / compare / dashboard visualize aggregates
+    manager.add("organizations:explore-conditional-aggregates", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
     # Show combined resolved "past issues" section instead of separate key errors / performance issues
     manager.add("organizations:weekly-report-past-issues", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
@@ -503,10 +522,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Starfish: extract metrics from the spans
     manager.add("projects:span-metrics-extraction", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     manager.add("projects:span-metrics-extraction-addons", ProjectFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
-    # Project plugin features
-    manager.add("projects:plugins", ProjectPluginFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
-    # Enables experimental span v2 processing in Relay.
-    manager.add("projects:span-v2-experimental-processing", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables experimental span attachment processing in Relay.
     manager.add("projects:span-v2-attachment-processing", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables experimental trace attachment processing in Relay.

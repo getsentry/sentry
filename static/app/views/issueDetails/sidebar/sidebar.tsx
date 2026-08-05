@@ -101,11 +101,9 @@ export function IssueDetailsSidebar({group, event, project}: Props) {
               <AutofixSection group={group} project={project} />
             </ErrorBoundary>
           )}
-          {event && (
-            <ErrorBoundary mini>
-              <ExternalIssueSidebarList group={group} event={event} />
-            </ErrorBoundary>
-          )}
+          <ErrorBoundary mini>
+            <ExternalIssueSidebarList group={group} event={event} />
+          </ErrorBoundary>
           <ErrorBoundary mini>
             <ActivitySection group={group} />
           </ErrorBoundary>

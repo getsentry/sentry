@@ -30,6 +30,7 @@ export interface AskSeerComboBoxProps<T extends QueryTokensProps> extends Omit<
   applySeerSearchQuery: (item: T) => void;
   askSeerMutationOptions: MutationOptions<AskSeerMutationResult<T>, Error, string>;
   initialQuery: string;
+  className?: string;
 }
 
 export function AskSeerComboBox<T extends QueryTokensProps>({

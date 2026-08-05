@@ -9,7 +9,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
 import type {Block, SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
-import {getExplorerUrl, getLangfuseUrl} from 'sentry/views/seerExplorer/utils';
+import {getExplorerUrl} from 'sentry/views/seerExplorer/utils';
 
 import type {AssistantBlockProps} from './shared';
 import {BLOCK_WRAPPER_SELECTOR, MessagePlaceholder, hasValidContent} from './shared';
@@ -77,7 +77,6 @@ function useBlockFeedback(
         run_id: runId,
         block_index: blockIndex,
         block_message: block.message.content?.slice(0, 100) ?? '',
-        langfuse_url: getLangfuseUrl(runId),
         explorer_url: getExplorerUrl(runId),
         conversations_url: getConversationsUrlForExternalUse('sentry', runId),
       });

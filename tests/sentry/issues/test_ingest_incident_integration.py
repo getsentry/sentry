@@ -58,7 +58,7 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
                 event_types=[SnubaQueryEventType.EventType.ERROR],
             )
             self.query_subscription = create_snuba_subscription(
-                project=self.detector.project,
+                project=self.detector.linked_project,
                 subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
                 snuba_query=self.snuba_query,
             )

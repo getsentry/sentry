@@ -13,6 +13,7 @@ GithubPrCommentFeedbackType = Literal["github-pr-comment", "github-pr-review-com
 
 
 class GithubPrCommentUser(BaseModel):
+    id: str | int | None = None
     login: str | None = None
 
     class Config:

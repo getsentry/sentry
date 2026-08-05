@@ -34,7 +34,6 @@ import {
 } from 'sentry/components/modals/widgetViewerModal/utils';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
-import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -42,7 +41,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
-import {EventView} from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -79,7 +77,7 @@ import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getD
 import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {generatePerformanceEventView} from 'sentry/views/performance/data';
+import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 import {PrebuiltDashboardOnboardingGate} from './components/prebuiltDashboardOnboardingGate';
@@ -87,7 +85,7 @@ import {Controls} from './controls';
 import {validateDashboardAndRecordMetrics} from './createFromSeerUtils';
 import {Dashboard} from './dashboard';
 import {DashboardEditSeerChat} from './dashboardEditSeerChat';
-import {DEFAULT_STATS_PERIOD} from './data';
+import {DashboardPageFilters} from './dashboardPageFilters';
 import {FiltersBar} from './filtersBar';
 import {
   assignDefaultLayout,
@@ -135,6 +133,7 @@ type RouteParams = {
 type Props = {
   api: Client;
   dashboard: DashboardDetails;
+  hasNewBreadcrumbs: boolean;
   initialState: DashboardState;
   location: Location;
   navigate: ReactRouter3Navigate;
@@ -1083,17 +1082,7 @@ class DashboardDetail extends Component<Props, State> {
     const {pageAlerts, organization, dashboard, location} = this.props;
     const {modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
     return (
-      <PageFiltersContainer
-        disablePersistence
-        defaultSelection={{
-          datetime: {
-            start: null,
-            end: null,
-            utc: false,
-            period: DEFAULT_STATS_PERIOD,
-          },
-        }}
-      >
+      <DashboardPageFilters>
         <Stack flex={1} padding="2xl 3xl">
           <OnDemandControlProvider location={location}>
             <MetricsResultsMetaProvider>
@@ -1138,12 +1127,7 @@ class DashboardDetail extends Component<Props, State> {
                   organization={organization}
                   location={location}
                 >
-                  <MetricsDataSwitcher
-                    organization={organization}
-                    eventView={EventView.fromLocation(location)}
-                    location={location}
-                    hideLoadingIndicator
-                  >
+                  <MetricsDataSwitcher location={location}>
                     {metricsDataSide => (
                       <MEPSettingProvider
                         location={location}
@@ -1172,7 +1156,7 @@ class DashboardDetail extends Component<Props, State> {
             </MetricsResultsMetaProvider>
           </OnDemandControlProvider>
         </Stack>
-      </PageFiltersContainer>
+      </DashboardPageFilters>
     );
   }
 
@@ -1182,10 +1166,10 @@ class DashboardDetail extends Component<Props, State> {
       navigate,
       organization,
       dashboard,
+      hasNewBreadcrumbs,
       location,
       onDashboardUpdate,
       pageAlerts,
-      projects,
       queryClient,
     } = this.props;
     const {
@@ -1199,9 +1183,6 @@ class DashboardDetail extends Component<Props, State> {
     const hasUnsavedFilters =
       dashboardState !== DashboardState.CREATE &&
       hasUnsavedFilterChanges(dashboard, location);
-
-    const eventView = generatePerformanceEventView(location, projects, {});
-    const hasNewBreadcrumbs = organization.features.includes('ui-migration-breadcrumbs');
 
     const pageContent = (
       <Stack flex={1}>
@@ -1287,12 +1268,7 @@ class DashboardDetail extends Component<Props, State> {
                     organization={organization}
                     location={location}
                   >
-                    <MetricsDataSwitcher
-                      organization={organization}
-                      eventView={eventView}
-                      location={location}
-                      hideLoadingIndicator
-                    >
+                    <MetricsDataSwitcher location={location}>
                       {metricsDataSide => (
                         <MEPSettingProvider
                           location={location}
@@ -1444,15 +1420,12 @@ class DashboardDetail extends Component<Props, State> {
                               dashboard={modifiedDashboard ?? dashboard}
                               onSave={this.handleSaveWidget}
                             />
-                            {dashboardState === DashboardState.EDIT &&
-                              organization.features.includes(
-                                'dashboards-ai-generate-edit'
-                              ) && (
-                                <DashboardEditSeerChat
-                                  dashboard={modifiedDashboard ?? dashboard}
-                                  onDashboardUpdate={this.handleSeerDashboardUpdate}
-                                />
-                              )}
+                            {dashboardState === DashboardState.EDIT && (
+                              <DashboardEditSeerChat
+                                dashboard={modifiedDashboard ?? dashboard}
+                                onDashboardUpdate={this.handleSeerDashboardUpdate}
+                              />
+                            )}
                           </Fragment>
                         </MEPSettingProvider>
                       )}
@@ -1506,20 +1479,7 @@ class DashboardDetail extends Component<Props, State> {
         {this.isEmbedded ? (
           pageContent
         ) : (
-          <PageFiltersContainer
-            disablePersistence
-            skipLoadLastUsed
-            defaultSelection={{
-              datetime: {
-                start: null,
-                end: null,
-                utc: false,
-                period: DEFAULT_STATS_PERIOD,
-              },
-            }}
-          >
-            {pageContent}
-          </PageFiltersContainer>
+          <DashboardPageFilters skipLoadLastUsed>{pageContent}</DashboardPageFilters>
         )}
       </SentryDocumentTitle>
     );
@@ -1560,6 +1520,7 @@ interface DashboardDetailWithInjectedPropsProps extends Omit<
   | 'location'
   | 'params'
   | 'queryClient'
+  | 'hasNewBreadcrumbs'
 > {}
 
 export function DashboardDetailWithInjectedProps(
@@ -1574,6 +1535,7 @@ export function DashboardDetailWithInjectedProps(
   const params = useParams<RouteParams>();
   const [chartInterval] = useDashboardChartInterval();
   const queryClient = useQueryClient();
+  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
   // Always use the validated chart interval so the UI dropdown and widget
   // requests stay in sync. chartInterval is validated against the current page
   // filter period (e.g. won't return 1m for a 30d range) and always has a value.
@@ -1591,6 +1553,7 @@ export function DashboardDetailWithInjectedProps(
       params={params}
       widgetInterval={widgetInterval}
       queryClient={queryClient}
+      hasNewBreadcrumbs={hasNewBreadcrumbs}
     />
   );
 }
