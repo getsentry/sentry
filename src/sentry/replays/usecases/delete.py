@@ -132,20 +132,12 @@ def fetch_rows_matching_pattern(
     if environment:
         where.append(Condition(Column("environment"), Op.IN, environment))
 
-    # Page by `cityHash64(replay_id)`, the third component of the table's sort key
-    # `(project_id, toStartOfDay(timestamp), cityHash64(replay_id), event_hash)`. Seeking on it lets
-    # ClickHouse prune granules: measured against one project-day, a mid-range cursor halved rows
-    # read (39.3M -> 19.7M). The raw `replay_id` is not in the sort key at all, so a `replay_id >`
-    # cursor read every row in the window and filtered afterwards, and `OFFSET` paging re-aggregated
-    # the whole window on every page. `OFFSET` was also ordered by `min(timestamp)` at hourly
-    # granularity, where ties are dense enough that page boundaries were non-deterministic and rows
-    # could be skipped between pages.
-    replay_id_hash = Function(
+    # Fetch `cityHash64(replay_id)`. This, unlike `replay_id` is part of the
+    # _sharding key_, which allows ClickHouse to skip granules while scanning.
+    replay_id_hash_column = Function(
         "cityHash64", parameters=[Column("replay_id")], alias="replay_id_hash"
     )
     if after_replay_id_hash is not None:
-        # Unaliased twin: the alias belongs to the SELECT, and this is the form already proven
-        # against this entity elsewhere (see `organization_replay_selector_index`).
         where.append(
             Condition(
                 Function("cityHash64", parameters=[Column("replay_id")]),
@@ -160,7 +152,7 @@ def fetch_rows_matching_pattern(
             Function("any", parameters=[Column("retention_days")], alias="retention_days"),
             Column("replay_id"),
             Function("max", parameters=[Column("segment_id")], alias="max_segment_id"),
-            replay_id_hash,
+            replay_id_hash_column,
         ],
         where=[
             Condition(Column("project_id"), Op.EQ, project_id),
@@ -173,8 +165,11 @@ def fetch_rows_matching_pattern(
         having=having,
         # The hash is a function of `replay_id`, so grouping by both leaves cardinality unchanged
         # while keeping every selected and ordered expression a group key.
-        groupby=[Column("replay_id"), replay_id_hash],
-        orderby=[OrderBy(replay_id_hash, Direction.ASC)],
+        # Group by both the `replay_id` and `cityHash64(replay_id)` so we able
+        # to keep track of the cursor _and_ still get the Replay IDs out. Since
+        # the hash is a function of the ID, this doesn't change the row contents.
+        groupby=[Column("replay_id"), replay_id_hash_column],
+        orderby=[OrderBy(replay_id_hash_column, Direction.ASC)],
         granularity=Granularity(3600),
         limit=Limit(limit),
     )
@@ -198,7 +193,6 @@ def fetch_rows_matching_pattern(
     rows = response.get("data", [])
     has_more = len(rows) == limit
 
-    # Rows are ordered by the hash, so the last row is where the next page seeks from.
     next_cursor = rows[-1]["replay_id_hash"] if rows else None
 
     return {

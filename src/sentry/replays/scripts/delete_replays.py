@@ -181,12 +181,9 @@ def _get_rows_matching_deletion_pattern(
     if environment:
         where.append(Condition(Column("environment"), Op.IN, environment))
 
-    # Page by `cityHash64(replay_id)`, the third component of the table's sort key
-    # `(project_id, toStartOfDay(timestamp), cityHash64(replay_id), event_hash)`. Seeking on it lets
-    # ClickHouse prune granules: measured against one project-day, a mid-range cursor halved rows
-    # read (39.3M -> 19.7M). A cursor on the raw `replay_id` prunes nothing, because the raw value
-    # is not in the sort key -- every page read the whole window and filtered afterwards.
-    replay_id_hash = Function(
+    # Fetch `cityHash64(replay_id)`. This, unlike `replay_id` is part of the
+    # _sharding key_, which allows ClickHouse to skip granules while scanning.
+    replay_id_hash_column = Function(
         "cityHash64", parameters=[Column("replay_id")], alias="replay_id_hash"
     )
     if after_replay_id_hash is not None:
@@ -204,7 +201,7 @@ def _get_rows_matching_deletion_pattern(
             Function("any", parameters=[Column("retention_days")], alias="retention_days"),
             Column("replay_id"),
             Function("max", parameters=[Column("segment_id")], alias="max_segment_id"),
-            replay_id_hash,
+            replay_id_hash_column,
         ],
         where=[
             Condition(Column("project_id"), Op.EQ, project_id),
@@ -215,8 +212,8 @@ def _get_rows_matching_deletion_pattern(
         ],
         # The hash is a function of `replay_id`, so grouping by both leaves cardinality unchanged
         # while keeping every selected and ordered expression a group key.
-        groupby=[Column("replay_id"), replay_id_hash],
-        orderby=[OrderBy(replay_id_hash, Direction.ASC)],
+        groupby=[Column("replay_id"), replay_id_hash_column],
+        orderby=[OrderBy(replay_id_hash_column, Direction.ASC)],
         granularity=Granularity(3600),
         limit=Limit(limit),
     )
