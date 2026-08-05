@@ -29,6 +29,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
+import {DEFAULT_EVENT_VIEW_MAP} from 'sentry/views/discover/results/data';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 
@@ -78,6 +79,18 @@ function Homepage() {
       ((hasFetchedSavedQuery && !hasValidEventViewInURL) || sidebarClicked)
     ) {
       if (shouldHideThisTransactionsQuery) {
+        // use default error view instead of homepage
+        const defaultEventView = EventView.fromNewQueryWithLocation(
+          DEFAULT_EVENT_VIEW_MAP[SavedQueryDatasets.ERRORS],
+          location
+        );
+        navigate(
+          {
+            ...location,
+            query: defaultEventView.generateQueryStringObject(),
+          },
+          {replace: true}
+        );
         return;
       }
 

@@ -520,9 +520,14 @@ describe('Discover > Homepage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows default homepage when discover deprecation is enabled with transaction dataset homepage query', () => {
+  it('shows default homepage when discover deprecation is enabled with transaction dataset homepage query', async () => {
     organization = OrganizationFixture({
-      features: ['discover-basic', 'discover-query'],
+      features: [
+        'discover-basic',
+        'discover-query',
+        'discover-saved-queries-deprecation',
+        'deprecate-discover',
+      ],
     });
 
     MockApiClient.addMockResponse({
@@ -572,6 +577,7 @@ describe('Discover > Homepage', () => {
       organization,
     });
 
+    expect(await screen.findByText('New Query')).toBeInTheDocument();
     expect(screen.queryByText('homepage query')).not.toBeInTheDocument();
     expect(screen.queryByText('environment')).not.toBeInTheDocument();
   });
