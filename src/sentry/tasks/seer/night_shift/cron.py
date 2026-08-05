@@ -110,21 +110,6 @@ class SeerNightShiftRunOptionsPartial(TypedDict, total=False):
     extra_triage_instructions: str
 
 
-def _night_shift_cron_expr() -> str:
-    schedule = settings.TASKWORKER_SCHEDULES["seer-night-shift"]["schedule"]
-    if not isinstance(schedule, crontab):
-        raise TypeError(
-            "The seer-night-shift schedule must use taskbroker_client.scheduler.config.crontab"
-        )
-    return str(schedule)
-
-
-def _current_schedule_id(now: datetime, cron_expr: str) -> str:
-    """Return the most recent scheduled fire time at or before ``now``."""
-    base = now.replace(second=0, microsecond=0) + timedelta(minutes=1)
-    return next(CronSim(cron_expr, base, reverse=True)).strftime("%Y-%m-%dT%H:%M")
-
-
 @instrumented_task(
     name="sentry.tasks.seer.night_shift.schedule_night_shift",
     namespace=seer_tasks,
@@ -289,19 +274,19 @@ def run_night_shift_for_org(
             defaults={"extras": extras},
         )
 
-    if not created and run.date_completed is not None:
-        logger.info(
-            "night_shift.duplicate_run_skipped",
-            extra={
-                "organization_id": organization.id,
-                "schedule_id": schedule_id,
-                "night_shift_run_id": run.id,
-            },
-        )
-        sentry_sdk.metrics.count("night_shift.duplicate_run_skipped", 1)
-        return run.id
-
     if not created:
+        if run.date_completed is not None:
+            logger.info(
+                "night_shift.duplicate_run_skipped",
+                extra={
+                    "organization_id": organization.id,
+                    "schedule_id": schedule_id,
+                    "night_shift_run_id": run.id,
+                },
+            )
+            sentry_sdk.metrics.count("night_shift.duplicate_run_skipped", 1)
+            return run.id
+
         logger.info(
             "night_shift.incomplete_run_resumed",
             extra={
@@ -403,6 +388,21 @@ def run_night_shift_execution(
         run, organization, eligible, resolved_options, log_extra, start_time
     ):
         _complete_run(run)
+
+
+def _night_shift_cron_expr() -> str:
+    schedule = settings.TASKWORKER_SCHEDULES["seer-night-shift"]["schedule"]
+    if not isinstance(schedule, crontab):
+        raise TypeError(
+            "The seer-night-shift schedule must use taskbroker_client.scheduler.config.crontab"
+        )
+    return str(schedule)
+
+
+def _current_schedule_id(now: datetime, cron_expr: str) -> str:
+    """Return the most recent scheduled fire time at or before ``now``."""
+    base = now.replace(second=0, microsecond=0) + timedelta(minutes=1)
+    return next(CronSim(cron_expr, base, reverse=True)).strftime("%Y-%m-%dT%H:%M")
 
 
 def _run_option_defaults(data: Mapping[str, Any]) -> SeerNightShiftRunOptions:
