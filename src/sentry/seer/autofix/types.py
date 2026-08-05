@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal, NotRequired, TypedDict, Union
+from typing import Annotated, Any, Literal, TypedDict, Union
 
 from pydantic import BaseModel, Field
 
@@ -38,9 +38,17 @@ class AutofixHandoffResponse(TypedDict):
     failures: list[dict[str, Any]]
 
 
-class AutofixStateResponse(TypedDict):
+class _AutofixStateResponseOptional(TypedDict, total=False):
+    # present only when ``?llmFormat`` is requested and the formatter feature is on.
+    # total=False rather than NotRequired: this module uses `from __future__ import annotations`,
+    # so NotRequired arrives as a string, TypedDict marks the key required, and the openapi
+    # schema then fails the api-docs example validator.
+    formatted: FormattedResponse
+
+
+class AutofixStateResponse(_AutofixStateResponseOptional):
     """Response type for the GET endpoint"""
 
+    # can't fold into one `total=False` class the way GroupEventDetailsFormattedResponse does:
+    # `autofix` is declared here, so it would go optional too
     autofix: dict[str, Any] | None
-    # present only when ``?llmFormat`` is requested and the formatter feature is on
-    formatted: NotRequired[FormattedResponse]
