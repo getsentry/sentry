@@ -20,10 +20,11 @@ import {AttributesTreeValue} from './attributesTreeValue';
 const MAX_TREE_DEPTH = 4;
 const INVALID_BRANCH_REGEX = /\.{2,}/;
 
-interface Attribute {
+export interface Attribute {
   attribute_key: string;
   attribute_value: string | number | null;
   original_attribute_key: string;
+  type: TraceItemResponseAttribute['type'];
 }
 
 type AttributesTree = Record<string, AttributesTreeContent>;
@@ -142,10 +143,11 @@ function addToAttributeTree(
     tree[trunk] = {value: '', subtree: {}};
   }
   // Recurse with a pseudo attribute, e.g. 'model', to create nesting structure
-  const pseudoAttribute = {
+  const pseudoAttribute: Attribute = {
     attribute_key: branch,
     attribute_value: attribute.attribute_value,
     original_attribute_key: attribute.original_attribute_key,
+    type: attribute.type,
   };
   tree[trunk].subtree = addToAttributeTree(
     tree[trunk].subtree,
@@ -463,6 +465,7 @@ function getAttribute(
     original_attribute_key: getAdjustedAttributeKey
       ? getAdjustedAttributeKey(attribute)
       : attribute.name,
+    type: attribute.type,
   };
 }
 
