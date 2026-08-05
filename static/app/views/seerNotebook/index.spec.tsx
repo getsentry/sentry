@@ -68,8 +68,8 @@ describe('SeerNotebookLauncher', () => {
     ).toBeInTheDocument();
   });
 
-  it('filters investigations in the browser and shows the dashboard-style empty state', async () => {
-    MockApiClient.addMockResponse({
+  it('searches investigations through the collection API', async () => {
+    const listRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/investigations/`,
       body: [
         InvestigationListItemFixture({
@@ -87,16 +87,14 @@ describe('SeerNotebookLauncher', () => {
     const search = await screen.findByPlaceholderText('Search Investigations');
     await userEvent.type(search, 'payments');
 
-    expect(await screen.findByText('Payments latency')).toBeInTheDocument();
     await waitFor(() =>
-      expect(screen.queryByText('Checkout regression')).not.toBeInTheDocument()
+      expect(listRequest).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({query: 'payments'}),
+        })
+      )
     );
-
-    await userEvent.clear(search);
-    await userEvent.type(search, 'nothing');
-    expect(
-      await screen.findByText('Sorry, no Investigations match your filters.')
-    ).toBeInTheDocument();
   });
 
   it('stars an investigation optimistically', async () => {
