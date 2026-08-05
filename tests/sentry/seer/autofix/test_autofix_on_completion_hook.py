@@ -11,6 +11,7 @@ from sentry.seer.agent.client_models import (
     SeerRunState,
 )
 from sentry.seer.autofix.autofix_agent import AutofixStep
+from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.on_completion_hook import (
     PIPELINE_ORDER,
@@ -352,7 +353,7 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
         """An iteration's push is attributed to the author stored on its opening block."""
         block = pr_iteration_memory_block()
         state = run_state(blocks=[block], metadata={"group_id": self.group.id})
-        author = {"name": "Mona", "email": "1+octocat@users.noreply.github.com"}
+        author = SeerCommitAuthor(name="Mona", email="1+octocat@users.noreply.github.com")
 
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
         assert mock_push_changes.call_args.kwargs["author"] is None

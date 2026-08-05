@@ -27,6 +27,7 @@ from sentry.seer.autofix.autofix_agent import (
     trigger_coding_agent_handoff,
     trigger_push_changes,
 )
+from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.models import SeerPermissionError
 from sentry.sentry_apps.utils.webhooks import SeerActionType
@@ -812,7 +813,7 @@ class TestTriggerAutofixAgent(TestCase):
     def test_commit_author_serialized_into_iteration_metadata(
         self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
     ):
-        author = {"name": "Mona", "email": "1+octocat@users.noreply.github.com"}
+        author = SeerCommitAuthor(name="Mona", email="1+octocat@users.noreply.github.com")
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = _state_with_blocks(
@@ -1537,7 +1538,7 @@ class TestTriggerPushChanges(TestCase):
 
     @patch("sentry.seer.agent.client.make_agent_update_request")
     def test_passes_pr_description_suffix_ready_state_and_author(self, mock_post):
-        author = {"name": "Mona", "email": "1+octocat@users.noreply.github.com"}
+        author = SeerCommitAuthor(name="Mona", email="1+octocat@users.noreply.github.com")
 
         payload = self._push(mock_post, author=author)
 
