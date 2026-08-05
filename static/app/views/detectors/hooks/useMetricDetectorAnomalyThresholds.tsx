@@ -29,7 +29,6 @@ interface UseMetricDetectorAnomalyThresholdsProps {
   detectorId: string;
   detectionType?: string;
   endTimestamp?: number;
-  isLegacyAlert?: boolean; // for Alerts, remove this once every AlertRule has a migrated Detector
   series?: Series[];
   startTimestamp?: number;
 }
@@ -49,7 +48,6 @@ export function useMetricDetectorAnomalyThresholds({
   startTimestamp,
   endTimestamp,
   series = [],
-  isLegacyAlert = false,
 }: UseMetricDetectorAnomalyThresholdsProps): UseMetricDetectorAnomalyThresholdsResult {
   const organization = useOrganization();
   const theme = useTheme();
@@ -72,7 +70,6 @@ export function useMetricDetectorAnomalyThresholds({
         query: {
           start: startTimestamp,
           end: endTimestamp,
-          ...(isLegacyAlert && {legacy_alert: 'true'}),
         },
       },
     ],
