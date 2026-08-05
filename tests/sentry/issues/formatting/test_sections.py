@@ -459,8 +459,9 @@ def test_unadaptable_payload_renders_nothing() -> None:
 def test_event_sections_order() -> None:
     names = [s.__name__ for s in EVENT_SECTIONS]
     assert names[0] == "title_section"
-    assert names[-1] == "contexts_section"
+    assert names[-1] == "tags_section"  # user and contexts are opt-in, so they aren't here
     assert "exceptions_section" in names
+    assert [s.__name__ for s in EVENT_SECTIONS_WITH_USER][-1] == "contexts_section"
 
 
 def test_user_identifiers_are_opt_in() -> None:
@@ -470,12 +471,31 @@ def test_user_identifiers_are_opt_in() -> None:
     assert user_section in EVENT_SECTIONS_WITH_USER
     # opting in changes nothing else about the render order
     assert [s.__name__ for s in EVENT_SECTIONS] == [
-        s.__name__ for s in EVENT_SECTIONS_WITH_USER if s is not user_section
+        s.__name__ for s in EVENT_SECTIONS_WITH_USER if s not in (user_section, contexts_section)
     ]
 
     data = {"title": "t", "user": {"email": "someone@example.com", "ipAddress": "203.0.113.7"}}
     assert "someone@example.com" not in format_issue(data)
     assert "someone@example.com" in format_issue(data, sections=EVENT_SECTIONS_WITH_USER)
+
+
+def test_context_identifiers_are_opt_in() -> None:
+    # contexts is an open-ended mapping that carries device and session ids, so it follows the
+    # same rule as user_section rather than riding along in the default list
+    assert contexts_section not in EVENT_SECTIONS
+    assert contexts_section in EVENT_SECTIONS_WITH_USER
+
+    data = {
+        "title": "t",
+        "contexts": {
+            "device": {"name": "Phone", "device_unique_identifier": "F1D3-9C2A"},
+            "replay": {"replay_id": "abc123"},
+        },
+    }
+    out = format_issue(data)
+    assert "F1D3-9C2A" not in out
+    assert "abc123" not in out
+    assert "F1D3-9C2A" in format_issue(data, sections=EVENT_SECTIONS_WITH_USER)
 
 
 def test_bare_stacktrace_entry_renders() -> None:

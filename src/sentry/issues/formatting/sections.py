@@ -339,9 +339,17 @@ EVENT_SECTIONS_WITH_USER: list[SectionFn] = [
     contexts_section,
 ]
 
-# the default: no email, IP, username or ID. Rendered output is bound for an LLM, so user
-# identifiers are opt-in -- a caller that doesn't think about it can't leak them into a prompt.
-EVENT_SECTIONS: list[SectionFn] = [s for s in EVENT_SECTIONS_WITH_USER if s is not user_section]
+# sections that render a user identifier: ``user_section``'s email/IP/username/ID, and the device
+# and session ids that ride along in contexts (device_unique_identifier, replay.replay_id, and
+# whatever a custom context defines -- there is no safe key list for an open-ended mapping).
+_USER_IDENTIFYING_SECTIONS = frozenset({user_section, contexts_section})
+
+# the default. Rendered output is bound for an LLM, so user identifiers are opt-in -- a caller
+# that doesn't think about it can't leak them into a prompt. Dropping contexts also puts the
+# default back in line with Seer, whose format_event has no contexts section at all.
+EVENT_SECTIONS: list[SectionFn] = [
+    s for s in EVENT_SECTIONS_WITH_USER if s not in _USER_IDENTIFYING_SECTIONS
+]
 
 
 def format_issue(
