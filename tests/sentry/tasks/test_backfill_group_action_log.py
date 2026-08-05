@@ -475,12 +475,47 @@ class BackfillGroupActionLogForProjectTest(TestCase):
 
         mock_reset.assert_not_called()
 
-    @patch("sentry.issues.derived.tasks.process_project_derived_data.delay")
+    @patch("sentry.issues.derived.tasks.generate_project_derived_data.delay")
     def test_triggers_derived_data_on_completion(self, mock_derived: Any) -> None:
         with self._options():
             backfill_group_action_log_for_project(self.project.id)
 
-        mock_derived.assert_called_once_with(project_id=self.project.id)
+        mock_derived.assert_called_once_with(project_id=self.project.id, stale_only=True)
+
+    def test_nulls_pipeline_hash_on_backfilled_groups(self) -> None:
+        from sentry.issues.models.groupderiveddata import GroupDerivedData
+
+        self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
+
+        self.create_group_derived_data(
+            group=self.group,
+            pipeline_hash="old_hash",
+            data={},
+        )
+
+        with self._options(), patch.object(backfill_group_action_log_for_project, "apply_async"):
+            backfill_group_action_log_for_project(self.project.id)
+
+        derived = GroupDerivedData.objects.get(group=self.group)
+        assert derived.pipeline_hash is None
+
+    def test_does_not_null_pipeline_hash_for_untouched_groups(self) -> None:
+        from sentry.issues.models.groupderiveddata import GroupDerivedData
+
+        other_group = self.create_group(project=self.project)
+        self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
+
+        self.create_group_derived_data(
+            group=other_group,
+            pipeline_hash="keep_me",
+            data={},
+        )
+
+        with self._options(), patch.object(backfill_group_action_log_for_project, "apply_async"):
+            backfill_group_action_log_for_project(self.project.id)
+
+        derived = GroupDerivedData.objects.get(group=other_group)
+        assert derived.pipeline_hash == "keep_me"
 
     def test_chains_pr_lifecycle_instead_of_derived_data_on_completion(self) -> None:
         with (
@@ -489,7 +524,9 @@ class BackfillGroupActionLogForProjectTest(TestCase):
                 "sentry.tasks.backfill_pr_lifecycle_action_log."
                 "backfill_pr_lifecycle_action_log_for_project.delay"
             ) as mock_pr_lifecycle,
-            patch("sentry.issues.derived.tasks.process_project_derived_data.delay") as mock_derived,
+            patch(
+                "sentry.issues.derived.tasks.generate_project_derived_data.delay"
+            ) as mock_derived,
         ):
             backfill_group_action_log_for_project(
                 self.project.id,
@@ -508,7 +545,9 @@ class BackfillGroupActionLogForProjectTest(TestCase):
                 "sentry.tasks.backfill_pr_lifecycle_action_log."
                 "backfill_pr_lifecycle_action_log_for_project.delay"
             ) as mock_pr_lifecycle,
-            patch("sentry.issues.derived.tasks.process_project_derived_data.delay") as mock_derived,
+            patch(
+                "sentry.issues.derived.tasks.generate_project_derived_data.delay"
+            ) as mock_derived,
         ):
             backfill_group_action_log_for_project(
                 self.project.id,

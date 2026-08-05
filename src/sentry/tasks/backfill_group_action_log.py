@@ -10,6 +10,7 @@ from sentry.issues.action_log.backfill import (
     bulk_insert_action_log_entries,
 )
 from sentry.issues.action_log.types import SYSTEM_ACTOR, GroupActionActor
+from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.project import Project
@@ -243,6 +244,7 @@ def _backfill_project(
     skipped_count = 0
     error_count = 0
     num_entries = 0
+    backfilled_group_ids: set[int] = set()
 
     for activity in activities:
         try:
@@ -263,6 +265,7 @@ def _backfill_project(
         else:
             actor = SYSTEM_ACTOR
 
+        backfilled_group_ids.add(activity.group_id)
         params.extend(
             [
                 activity.group_id,
@@ -280,6 +283,11 @@ def _backfill_project(
         num_entries += 1
 
     converted_count = bulk_insert_action_log_entries(params, num_entries)
+
+    if backfilled_group_ids:
+        GroupDerivedData.objects.filter(group_id__in=backfilled_group_ids).update(
+            pipeline_hash=None
+        )
 
     metrics.incr(
         "issues.backfill_group_action_log.activities_converted",
@@ -339,6 +347,6 @@ def _complete_project_backfill(project: Project, chain_pr_lifecycle: bool) -> No
 
         backfill_pr_lifecycle_action_log_for_project.delay(project_id=project.id)
     else:
-        from sentry.issues.derived.tasks import process_project_derived_data
+        from sentry.issues.derived.tasks import generate_project_derived_data
 
-        process_project_derived_data.delay(project_id=project.id)
+        generate_project_derived_data.delay(project_id=project.id, stale_only=True)
