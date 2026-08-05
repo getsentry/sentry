@@ -276,9 +276,8 @@ export const issueAndEventToMarkdown = ({
     if (group.project?.slug) {
       llmMarkdown += `**Project:** ${group.project.slug}\n`;
     }
-    if (typeof event?.dateCreated === 'string') {
-      llmMarkdown += `**Date:** ${new Date(event.dateCreated).toLocaleString()}\n`;
-    }
+    // no date here: the server-rendered body already opens with a `Date` field in UTC, and a
+    // second one formatted in the viewer's timezone would just disagree with it
     llmMarkdown += `\n${formatted}`;
     if (autofixFormatted) {
       llmMarkdown += `\n\n${autofixFormatted}`;
