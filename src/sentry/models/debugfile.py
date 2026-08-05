@@ -555,6 +555,19 @@ def find_existing_dif(project: Project, meta: DifMeta, checksum: str) -> Project
     )
 
 
+def _get_fileobj_checksum_and_size(fileobj: IO[bytes]) -> tuple[str, int]:
+    file_size = 0
+    hasher = hashlib.sha1()
+    while True:
+        chunk = fileobj.read(16384)
+        if not chunk:
+            break
+        hasher.update(chunk)
+        file_size += len(chunk)
+    fileobj.seek(0)
+    return hasher.hexdigest(), file_size
+
+
 def create_dif_from_file(
     project: Project,
     meta: DifMeta,
@@ -657,16 +670,7 @@ def create_dif_from_fileobj(
     callers must only use it when exclusive Objectstore writes are enabled. Objectstore upload
     failures are fatal.
     """
-    file_size = 0
-    h = hashlib.sha1()
-    while True:
-        chunk = fileobj.read(16384)
-        if not chunk:
-            break
-        h.update(chunk)
-        file_size += len(chunk)
-    checksum = h.hexdigest()
-    fileobj.seek(0, 0)
+    checksum, file_size = _get_fileobj_checksum_and_size(fileobj)
 
     dif = find_existing_dif(project, meta, checksum)
 
@@ -1040,6 +1044,9 @@ def create_debug_file_from_dif(
             if exclusive_objectstore_write:
                 dif, created = create_dif_from_fileobj(project, meta, f)
             else:
+                checksum, _ = _get_fileobj_checksum_and_size(f)
+                if find_existing_dif(project, meta, checksum) is not None:
+                    continue
                 file = File.objects.create(name=meta.debug_id)
                 file.putfile(f)
                 dif, created = create_dif_from_file(project, meta, file)

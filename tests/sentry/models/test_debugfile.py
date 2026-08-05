@@ -19,6 +19,7 @@ from sentry.models.debugfile import (
     ProjectDebugFile,
     create_dif_from_file,
     create_dif_from_fileobj,
+    create_files_from_dif_zip,
     detect_dif_from_path,
     detect_single_dif_from_path,
     get_debug_id_from_dif_request,
@@ -451,6 +452,22 @@ class CreateDebugFileTest(APITestCase):
 
         assert not ProjectDebugFile.objects.filter(project_id=self.project.id).exists()
         assert not File.objects.filter(type="project.dif").exists()
+
+    def test_legacy_zip_reupload_skips_file_creation(self) -> None:
+        archive = BytesIO()
+        with zipfile.ZipFile(archive, "w") as zip_file:
+            zip_file.writestr(f"proguard/{PROGUARD_UUID}.txt", PROGUARD_SOURCE)
+
+        first_upload = create_files_from_dif_zip(BytesIO(archive.getvalue()), self.project)
+        file_count = File.objects.count()
+
+        with patch("sentry.models.debugfile.File.putfile") as putfile:
+            second_upload = create_files_from_dif_zip(BytesIO(archive.getvalue()), self.project)
+
+        assert len(first_upload) == 1
+        assert second_upload == []
+        putfile.assert_not_called()
+        assert File.objects.count() == file_count
 
     @requires_objectstore
     def test_objectstore_write_failure_preserves_legacy_dif(self) -> None:
