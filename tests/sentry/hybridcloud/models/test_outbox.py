@@ -318,6 +318,46 @@ class CellOutboxTest(TestCase):
         )
         mock_drain_shard.assert_called_once_with()
 
+    def test_next_object_identifiers(self) -> None:
+        with self.assertNumQueries(1):
+            identifiers = CellOutbox.next_object_identifiers(3)
+
+        assert len(identifiers) == 3
+        assert len(set(identifiers)) == 3
+
+    def test_next_object_identifiers_empty(self) -> None:
+        with self.assertNumQueries(0):
+            assert CellOutbox.next_object_identifiers(0) == []
+
+    def test_next_object_identifiers_rejects_negative_count(self) -> None:
+        with (
+            self.assertNumQueries(0),
+            pytest.raises(ValueError, match="count must be non-negative"),
+        ):
+            CellOutbox.next_object_identifiers(-1)
+
+    def test_next_object_identifier_delegates_to_batch_allocator(self) -> None:
+        with patch.object(CellOutbox, "next_object_identifiers", return_value=[42]) as allocate:
+            assert CellOutbox.next_object_identifier() == 42
+
+        allocate.assert_called_once_with(1)
+
+    def test_schedule_drain_on_commit(self) -> None:
+        outbox = Organization(id=10).outbox_for_update()
+        using = router.db_for_write(CellOutbox)
+
+        with (
+            patch("sentry.hybridcloud.models.outbox.transaction.on_commit") as on_commit,
+            patch.object(outbox, "_drain_shard_with_metrics") as drain_shard,
+            outbox_context(transaction.atomic(using=using)),
+        ):
+            outbox.schedule_drain_on_commit()
+
+        on_commit.assert_called_once()
+        callback = on_commit.call_args.args[0]
+        callback()
+        drain_shard.assert_called_once_with()
+
     def test_creating_org_outboxes(self) -> None:
         with outbox_context(flush=False):
             Organization(id=10).outbox_for_update().save()
