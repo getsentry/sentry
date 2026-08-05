@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.investigations.agent import (
+    _maybe_start_title_generation,
     sanitize_state,
     start_execution_run,
     synchronize_execution,
@@ -132,6 +133,14 @@ class InvestigationAgentTest(TestCase):
         prompt = client.start_run.call_args.args[0]
         options = client.start_run.call_args.kwargs
         assert "write or save the result" in prompt
+        assert "project_slugs as a literal list of string values" in prompt
+        assert "Never build that argument from a variable" in prompt
+        assert "Do not import sentry, sentry_sdk, or tool input types" in prompt
+        assert 'x_axis="time", y_axis_unit="number"' in prompt
+        assert "offset-bearing ISO 8601 timestamps" in prompt
+        assert "first character must be { and the last character must be }" in prompt
+        assert "Do not wrap the object in a Markdown code fence" in prompt
+        assert "exactly these five keys and no others" in prompt
         assert "artifact_key" not in options
         assert "artifact_schema" not in options
 
@@ -260,6 +269,33 @@ class InvestigationAgentTest(TestCase):
         assert off_policy is True
         assert blocks[0]["toolResults"][0]["content"].startswith("[Result hidden")
 
+    def test_query_mode_allows_sentry_api_search_for_tool_discovery(self) -> None:
+        run_state = state(
+            status="processing",
+            blocks=[
+                MemoryBlock(
+                    id="search",
+                    timestamp="2026-08-03T00:00:00Z",
+                    message=Message(
+                        role="tool_use",
+                        tool_calls=[
+                            ToolCall(
+                                id="call",
+                                function="sentry_api_search",
+                                args='{"code":"[skill for skill in skills if skill[0] == '
+                                "'errors-search']\"}",
+                            )
+                        ],
+                    ),
+                )
+            ],
+        )
+
+        blocks, _, off_policy = sanitize_state(run_state)
+
+        assert off_policy is False
+        assert "policyError" not in blocks[0]
+
     def test_result_writer_is_not_an_allowed_sentry_api(self) -> None:
         run_state = state(
             status="processing",
@@ -344,6 +380,44 @@ class InvestigationAgentTest(TestCase):
             "The __import__ function is not allowed in an investigation query."
         )
 
+    def test_nonexecuted_lint_failure_does_not_trigger_policy(self) -> None:
+        run_state = state(
+            status="processing",
+            blocks=[
+                MemoryBlock(
+                    id="lint-failure",
+                    timestamp="2026-08-03T00:00:00Z",
+                    message=Message(
+                        role="tool_use",
+                        tool_calls=[
+                            ToolCall(
+                                id="call",
+                                function="sentry_api_execute",
+                                args='{"code":"from sentry_sdk import ChartSeries"}',
+                            )
+                        ],
+                    ),
+                    tool_results=[
+                        ToolResult(
+                            tool_call_id="call",
+                            tool_call_function="sentry_api_execute",
+                            content=(
+                                "Error executing code:\n"
+                                "Lint errors (code not executed):\n"
+                                "  Line 1: Cannot import 'sentry_sdk'."
+                            ),
+                        )
+                    ],
+                )
+            ],
+        )
+
+        blocks, _, off_policy = sanitize_state(run_state)
+
+        assert off_policy is False
+        assert "policyError" not in blocks[0]
+        assert "Lint errors (code not executed)" in blocks[0]["toolResults"][0]["content"]
+
     def test_telemetry_call_cannot_escape_the_project_scope(self) -> None:
         run_state = state(
             status="processing",
@@ -398,3 +472,21 @@ class InvestigationAgentTest(TestCase):
         self.investigation.refresh_from_db()
         assert self.investigation.title == "Daily error volume by project"
         assert self.investigation.title_generation_status == "completed"
+
+    @patch("sentry.investigations.agent.SeerAgentClient")
+    def test_title_prompt_uses_specific_incident_source_context(self, mock_client) -> None:
+        self.investigation.title = "Untitled investigation"
+        self.investigation.source_ref = {
+            "groupTitle": "Checkout errors breached 100 events",
+            "project": {"slug": "checkout-api"},
+            "monitor": {"name": "Checkout errors", "direction": "above"},
+        }
+        self.investigation.save(update_fields=["title", "source_ref"])
+
+        _maybe_start_title_generation(self.investigation, None)
+
+        prompt = mock_client.return_value.start_run.call_args.args[0]
+        assert "specific incident" in prompt
+        assert "Checkout errors breached 100 events" in prompt
+        assert "checkout-api" in prompt
+        assert "Avoid generic titles" in prompt

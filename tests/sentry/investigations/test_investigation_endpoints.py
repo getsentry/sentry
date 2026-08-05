@@ -17,6 +17,7 @@ from sentry.investigations.models import (
     InvestigationCellExecutor,
     InvestigationFavoriteUser,
     InvestigationSourceType,
+    InvestigationStatus,
 )
 from sentry.investigations.services.auto_run import schedule_eligible_auto_run_cells
 from sentry.investigations.templates.types import InvestigationTemplateSpec, TemplateCellSpec
@@ -283,15 +284,17 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
         assert response.data["template"] == {"key": "breached_metric", "version": 1}
         assert response.data["projectIds"] == [self.project.id]
         assert [cell["kind"] for cell in response.data["cells"]] == [
-            "text",
             "query",
+            "text",
             "text",
             "query",
         ]
         cells = response.data["cells"]
         assert cells[0]["dependencies"] == []
         assert cells[1]["dependencies"] == []
-        assert set(cells[2]["dependencies"]) == {cells[1]["id"], cells[3]["id"]}
+        assert cells[0]["title"] == "Breached metric"
+        assert cells[0]["display"]["defaultView"] == "chart"
+        assert set(cells[2]["dependencies"]) == {cells[0]["id"], cells[3]["id"]}
         assert cells[3]["dependencies"] == []
         assert response.data["title"] == "Untitled investigation"
         assert response.data["parameters"] == []
@@ -334,14 +337,39 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
 
         investigation.status = "archived"
         investigation.save(update_fields=["status", "date_updated"])
+        failed_execution_ids = set(
+            investigation.cells.filter(current_execution__isnull=False).values_list(
+                "current_execution_id", flat=True
+            )
+        )
+        InvestigationCellExecution.objects.filter(id__in=failed_execution_ids).update(
+            status=InvestigationCellExecutionStatus.FAILED
+        )
         availability = self.client.post(
             status_url, data={"groupIds": [str(group.id)]}, format="json"
         )
         assert availability.data["items"][str(group.id)] == {
-            "status": "view",
-            "investigationId": response.data["id"],
+            "status": "investigate",
             "openPeriodId": str(open_period.id),
         }
+
+        relaunched = self.client.post(
+            launch_url,
+            data={"groupId": str(group.id), "openPeriodId": str(open_period.id)},
+            format="json",
+        )
+        assert relaunched.status_code == 200
+        assert relaunched.data["id"] == response.data["id"]
+        investigation.refresh_from_db()
+        assert investigation.status == InvestigationStatus.ACTIVE
+        assert Investigation.objects.count() == 1
+        retried_cells = investigation.cells.filter(
+            current_execution__status=InvestigationCellExecutionStatus.PENDING
+        )
+        assert retried_cells.count() == 3
+        assert not set(retried_cells.values_list("current_execution_id", flat=True)).intersection(
+            failed_execution_ids
+        )
 
     @with_feature(QUERY_EXECUTION_FEATURE)
     def test_launch_rejects_a_stale_open_period(self) -> None:

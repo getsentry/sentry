@@ -25,7 +25,9 @@ def _dependency_is_ready(cell: InvestigationCell) -> bool:
     )
 
 
-def schedule_eligible_auto_run_cells(*, investigation_id: int, user_id: int) -> None:
+def schedule_eligible_auto_run_cells(
+    *, investigation_id: int, user_id: int, retry_failed: bool = False
+) -> None:
     investigation = Investigation.objects.get(id=investigation_id)
     projects = list(investigation.projects.order_by("id"))
     project_ids = [project.id for project in projects]
@@ -46,7 +48,11 @@ def schedule_eligible_auto_run_cells(*, investigation_id: int, user_id: int) -> 
         if not cell.config.get("autoRun"):
             continue
         if cell.current_execution is not None and cell.stale_at is None:
-            continue
+            if not retry_failed or cell.current_execution.status not in {
+                InvestigationCellExecutionStatus.FAILED,
+                InvestigationCellExecutionStatus.CANCELLED,
+            }:
+                continue
         dependencies = [link.depends_on for link in cell.dependency_links.all()]
         if not all(_dependency_is_ready(dependency) for dependency in dependencies):
             continue

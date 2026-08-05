@@ -253,6 +253,7 @@ export class CellStore {
       executionStatusKind: computed,
       executionStatusLabel: computed,
       hasExecutionFooter: computed,
+      isWaitingForDependencies: computed,
       canRun: computed,
       runButtonVariant: computed,
       queryResult: computed,
@@ -377,11 +378,28 @@ export class CellStore {
   }
 
   get hasExecutionFooter(): boolean {
-    return (
-      this.currentExecution !== null ||
-      this.isRunRequested ||
-      this.outputStatus !== 'notRun'
-    );
+    return this.isExecutionRunning;
+  }
+
+  get isWaitingForDependencies(): boolean {
+    if (
+      this.config.autoRun !== true ||
+      this.dependencies.length === 0 ||
+      this.isExecutionRunning ||
+      (this.currentExecution !== null && this.staleAt === null)
+    ) {
+      return false;
+    }
+    return this.dependencies.some(dependencyId => {
+      const dependency = this.notebook.cellsInOrder.find(
+        cell => cell.serverId === dependencyId || cell.clientKey === dependencyId
+      );
+      return (
+        dependency === undefined ||
+        dependency.currentExecution?.status !== 'completed' ||
+        dependency.staleAt !== null
+      );
+    });
   }
 
   get canRun(): boolean {
@@ -452,6 +470,7 @@ export class CellStore {
     }
     return {
       ...chart,
+      frameless: true,
       ...(this.display.title ? {title: this.display.title} : {}),
       ...(this.display.subtitle ? {subtitle: this.display.subtitle} : {}),
       ...(this.display.type && !['table', 'markdown'].includes(this.display.type)
@@ -941,6 +960,9 @@ export class CellStore {
   }
 
   setActivityExpanded(value: boolean) {
+    if (value && this.activityEntries.length === 0) {
+      return;
+    }
     this.activityExpanded = value;
     if (value) {
       this.clearRecentActivity();

@@ -83,7 +83,11 @@ import {
 import {QueryClientInvestigationTransport} from 'sentry/views/seerNotebook/stores/transport';
 
 import {CellComments} from './comments';
-import {PersistedCellOutput, TextCellExecutionOutput} from './output';
+import {
+  ChartSettingsControl,
+  PersistedCellOutput,
+  TextCellExecutionOutput,
+} from './output';
 import {InvestigationParameters} from './parameters';
 import {InvestigationSettings} from './settings';
 import type {
@@ -669,8 +673,7 @@ const CellExecutionControl = observer(function CellExecutionControl({
       {isWorking ? (
         <ExecutionButtonLabels>
           <WorkingButtonLabel>
-            <LoadingDot aria-hidden="true" />
-            {isStopping ? t('Stopping…') : t('Working')}
+            <LoadingDot aria-hidden="true" data-test-id="cell-run-spinner" />
           </WorkingButtonLabel>
           <StopButtonLabel>
             <IconPause size="xs" />
@@ -679,8 +682,6 @@ const CellExecutionControl = observer(function CellExecutionControl({
         </ExecutionButtonLabels>
       ) : mode === 'retry' ? (
         t('Retry')
-      ) : isTextCell ? (
-        t('Generate')
       ) : (
         t('Run')
       )}
@@ -743,6 +744,8 @@ function SortableCellContent({
   const suggestionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const previousOutputStatusRef = useRef(cell.outputStatus);
   const queryIntent = cell.queryIntent;
+  const promptCollapsed = draft.display.promptCollapsed !== false;
+  const queryCollapsed = draft.display.queryCollapsed !== false;
 
   useEffect(() => {
     const previousStatus = previousOutputStatusRef.current;
@@ -982,25 +985,30 @@ function SortableCellContent({
         {cell.kind === 'text' ? (
           <Fragment>
             <QueryPromptDisclosure
+              $expanded={!promptCollapsed}
               size="sm"
-              expanded={!draft.display.promptCollapsed}
+              expanded={!promptCollapsed}
               onExpandedChange={expanded =>
                 cell.setPromptSectionCollapsed('prompt', !expanded)
               }
             >
               <Disclosure.Title
                 trailingItems={
-                  <CellExecutionControl
-                    cell={cell}
-                    hidden={isDragActive}
-                    disabled={
-                      disabled || !draft.generationPrompt.trim() || !queryExecutionEnabled
-                    }
-                  />
+                  <HeaderActions>
+                    <CellExecutionControl
+                      cell={cell}
+                      hidden={isDragActive}
+                      disabled={
+                        disabled ||
+                        !draft.generationPrompt.trim() ||
+                        !queryExecutionEnabled
+                      }
+                    />
+                  </HeaderActions>
                 }
               >
                 <QuerySummary size="sm">
-                  {draft.display.promptCollapsed
+                  {promptCollapsed
                     ? draft.generationPrompt || t('Text generation prompt')
                     : t('Text generation prompt')}
                 </QuerySummary>
@@ -1136,23 +1144,27 @@ function SortableCellContent({
         ) : (
           <Fragment>
             <QueryPromptDisclosure
+              $expanded={!queryCollapsed}
               size="sm"
-              expanded={!draft.display.queryCollapsed}
+              expanded={!queryCollapsed}
               onExpandedChange={expanded =>
                 cell.setPromptSectionCollapsed('query', !expanded)
               }
             >
               <Disclosure.Title
                 trailingItems={
-                  <CellExecutionControl
-                    cell={cell}
-                    hidden={isDragActive}
-                    disabled={disabled || !queryIntent.trim() || !queryExecutionEnabled}
-                  />
+                  <HeaderActions>
+                    <ChartSettingsControl cell={cell} disabled={disabled} />
+                    <CellExecutionControl
+                      cell={cell}
+                      hidden={isDragActive}
+                      disabled={disabled || !queryIntent.trim() || !queryExecutionEnabled}
+                    />
+                  </HeaderActions>
                 }
               >
                 <QuerySummary size="sm">
-                  {draft.display.queryCollapsed
+                  {queryCollapsed
                     ? queryIntent || t('Natural language query')
                     : t('Natural language query')}
                 </QuerySummary>
@@ -1646,6 +1658,12 @@ const QueryRunButton = styled(Button)<{
   $hidden: boolean;
   $stoppable?: boolean;
 }>`
+  width: 54px;
+  min-width: 54px;
+  height: 24px;
+  min-height: 24px;
+  flex-shrink: 0;
+  padding: 4px 7px;
   opacity: ${p => (p.$hidden ? 0 : 1)};
 
   ${p =>
@@ -1660,28 +1678,52 @@ const QueryRunButton = styled(Button)<{
     `}
 `;
 
-const QueryPromptDisclosure = styled(Disclosure)`
+const QueryPromptDisclosure = styled(Disclosure)<{$expanded: boolean}>`
   padding: 0;
 
   > div:first-of-type {
-    padding-right: ${p => p.theme.space.sm};
+    min-height: 32px;
+    padding: 4px;
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
     border-radius: 0;
+    background: ${p =>
+      p.$expanded ? p.theme.tokens.background.secondary : 'transparent'};
+
+    &:hover {
+      background: ${p => p.theme.tokens.background.secondary};
+    }
   }
 
   > div:first-of-type > button:first-of-type {
+    min-width: 0;
+    min-height: 24px;
+    height: 24px;
+    padding-top: 4px;
+    padding-bottom: 4px;
     border-radius: 0;
   }
 `;
 
 const QueryPromptContent = styled(Disclosure.Content)`
   padding: 0;
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  background: ${p => p.theme.tokens.background.secondary};
 `;
 
 const QuerySummary = styled(Text)`
+  display: block;
+  width: 100%;
+  max-width: 56ch;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+`;
+
+const HeaderActions = styled(Flex)`
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
 `;
 
 const QueryEditorWrap = styled('div')`

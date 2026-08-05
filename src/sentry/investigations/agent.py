@@ -43,20 +43,34 @@ QUERY_INSTRUCTIONS = """You are answering a query cell inside a Sentry investiga
 Use Code Mode only for telemetry analysis. You may call sentry.telemetry_live_search and
 sentry.render_chart, combine multiple telemetry results, and perform local read-only data
 transformations. Do not call any other Sentry API and never mutate data. Restrict every
-telemetry call to the supplied project slugs. If the question cannot be answered with
-telemetry, ask the user an inline clarification. Finish by returning exactly one JSON object
-in your final response. Do not call any function
-to write or save the result. tableMarkdown must be a complete Markdown table (or an empty table). When
+telemetry call to the supplied project slugs. Every sentry.telemetry_live_search call must
+pass project_slugs as a literal list of string values in the call itself, for example
+project_slugs=["project-one", "project-two"]. Never build that argument from a variable,
+loop variable, comprehension, or other expression; write separate calls when different literal
+project lists are needed. Do not import sentry, sentry_sdk, or tool input types; use the provided
+sentry object directly. For a time-series chart, call sentry.render_chart with series shaped like
+[{"label": "Errors", "data": [{"x": "2026-08-04T00:00:00+00:00", "y": 1}]}],
+x_axis="time", y_axis_unit="number", and a supported visualization such as "line". Time-axis
+x values must be offset-bearing ISO 8601 timestamps. If the question cannot be answered with telemetry, ask the user an
+inline clarification. Finish by returning exactly one raw JSON object in your final response.
+The first character must be { and the last character must be }.
+Do not wrap the object in a Markdown code fence or include prose before or after it. Do not call any function to
+write or save the result. tableMarkdown must be a complete Markdown table (or an empty table). When
 render_chart returns a chart embed, put its chart body JSON object directly in the chart field
 and rename each series label to name. Keep every telemetry_live_search return object reachable
-in the Code Mode call's returned value so Sentry can retain its exact query link. The final object must contain tableMarkdown, chart,
-preferredView, isEmpty, and chartUnavailableReason. preferredView must be exactly
+in the Code Mode call's returned value so Sentry can retain its exact query link. Do not copy
+telemetry links or any other metadata into the final response. The final object must contain
+exactly these five keys and no others: tableMarkdown, chart, preferredView, isEmpty, and
+chartUnavailableReason. preferredView must be exactly
 table or chart. Do not put explanatory prose in tableMarkdown.
 """
 
 TEXT_INSTRUCTIONS = """Rewrite the current investigation text cell as useful Markdown using
-only the supplied notebook context. Do not use tools or embeds. Return the complete replacement
-Markdown directly in your final response. Do not call any function to write or save it.
+only the supplied notebook context. Be brief by default: aim for two or three short paragraphs,
+using a compact list or small table only when it materially improves clarity. Do not produce a
+long report unless the request explicitly requires one. Do not use tools or embeds. Return the
+complete replacement Markdown directly in your final response. Do not call any function to write
+or save it.
 """
 
 
@@ -125,6 +139,10 @@ def _block_policy_error(
     allowed_project_slugs: set[str] | None = None,
 ) -> str | None:
     for call in block.message.tool_calls or []:
+        if call.function == "sentry_api_search":
+            if allow_query_tools:
+                continue
+            return "Tools are not allowed for this cell."
         if call.function != "sentry_api_execute":
             return f"Unsupported tool call: {call.function}."
         if not allow_query_tools:
@@ -138,9 +156,24 @@ def _block_policy_error(
             allow_query_tools=allow_query_tools,
             allowed_project_slugs=allowed_project_slugs,
         )
-        if policy_error is not None:
+        if policy_error is not None and not _code_mode_lint_prevented_execution(block, call.id):
             return policy_error
     return None
+
+
+def _code_mode_lint_prevented_execution(block: MemoryBlock, tool_call_id: str | None) -> bool:
+    """A Code Mode lint failure is proof that the submitted code never ran."""
+    if tool_call_id is None:
+        return False
+    for result in block.tool_results or []:
+        if (
+            result is not None
+            and result.tool_call_id == tool_call_id
+            and result.tool_call_function == "sentry_api_execute"
+            and "Lint errors (code not executed):" in (result.content or "")
+        ):
+            return True
+    return False
 
 
 def _telemetry_project_slugs(call: ast.Call) -> list[str] | None:
@@ -657,13 +690,19 @@ def _maybe_start_title_generation(investigation: Investigation, user_id: int | N
         enable_streaming=True,
         max_iterations=3,
     )
-    context = "\n".join(
+    cell_context = "\n".join(
         f"- {cell.title}: {(cell.prompt or cell.content)[:1000]}"
         for cell in investigation.cells.filter(deleted_at__isnull=True).order_by("position")
     )
     prompt = (
-        "Write a concise single-line title for this investigation. Do not use tools. "
-        "Return only the title text. Do not call any function to write or save it.\n" + context
+        "Write a concise, single-line title that identifies the specific incident being "
+        "investigated. Prefer concrete incident details such as the monitor or issue name, "
+        "affected project, breached threshold or direction, and relevant time window. Avoid "
+        "generic titles such as 'Metric Monitor Breach Investigation' or 'Incident Analysis'. "
+        "Do not use tools. Return only the title text. Do not call any function to write or save "
+        "it.\n<source_context>\n"
+        f"{json.dumps(investigation.source_ref)}\n</source_context>\n"
+        f"<cell_context>\n{cell_context}\n</cell_context>"
     )
 
     def link_title_run(run: Any) -> None:

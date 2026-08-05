@@ -23,10 +23,11 @@ export const BreachedMetricInvestigationAction = observer(function Action({
   }
   return (
     <Button
-      size="xs"
+      size="sm"
       variant={action.kind === 'investigate' ? 'primary' : 'secondary'}
       busy={action.busy}
       disabled={action.busy}
+      style={{width: '100%'}}
       onClick={event => {
         event.stopPropagation();
         void store.launch(groupId);

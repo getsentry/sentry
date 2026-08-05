@@ -137,7 +137,7 @@ describe('SeerInvestigation', () => {
         data: expect.objectContaining({title: 'Checkout follow-up'}),
       })
     );
-    expect(screen.queryByRole('button', {name: 'Run'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Run'})).toBeDisabled();
   });
 
   it('creates a persisted query cell', async () => {
@@ -147,7 +147,7 @@ describe('SeerInvestigation', () => {
       kind: 'query',
       title: '',
       content: '',
-      display: {type: 'table'},
+      display: {type: 'table', queryCollapsed: false},
     });
     const createRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/investigations/${detail.id}/cells/`,
@@ -164,7 +164,7 @@ describe('SeerInvestigation', () => {
       name: 'Query cell 2',
     });
     expect(queryEditor).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Run'})).toBeDisabled();
+    expect(screen.getAllByRole('button', {name: 'Run'}).at(-1)).toBeDisabled();
 
     const suggestion =
       'Compare error volume over time across the selected projects. Show daily error counts for the last 30 days, grouped by project.';
@@ -181,6 +181,7 @@ describe('SeerInvestigation', () => {
       kind: 'query',
       content: 'Show unresolved errors',
       generationPrompt: '',
+      display: {type: 'table', queryCollapsed: false},
     });
     const withLegacyQuery = InvestigationDetailFixture({cells: [queryCell]});
     const updateRequest = MockApiClient.addMockResponse({
@@ -278,8 +279,10 @@ describe('SeerInvestigation', () => {
       name: 'Stop query',
     });
     expect(runningButton).toBeEnabled();
-    expect(runningButton).toHaveTextContent('Working');
+    expect(runningButton).not.toHaveTextContent('Working');
+    expect(screen.getByTestId('cell-run-spinner')).toBeInTheDocument();
     expect(await screen.findByText('Thinking')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Thinking'})).toBeDisabled();
     expect(executeRequest).not.toHaveBeenCalled();
   });
 
@@ -311,9 +314,7 @@ describe('SeerInvestigation', () => {
 
     renderInvestigation(withFailedQuery);
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Stopped because of an error'
-    );
+    expect(await screen.findByRole('alert')).toHaveTextContent('agent_run_errored');
     await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
 
     await waitFor(() => expect(executeRequest).toHaveBeenCalled());
@@ -349,7 +350,7 @@ describe('SeerInvestigation', () => {
       id: 'query-cell',
       kind: 'query',
       generationPrompt: 'Show error volume',
-      display: {type: 'table'},
+      display: {type: 'table', queryCollapsed: false},
     });
     const withQuery = InvestigationDetailFixture({cells: [queryCell]});
     const updateRequest = MockApiClient.addMockResponse({
@@ -385,13 +386,75 @@ describe('SeerInvestigation', () => {
     );
   });
 
+  it('collapses prompt sections by default while keeping their actions visible', async () => {
+    const queryCell = InvestigationCellFixture({
+      id: 'query-cell',
+      kind: 'query',
+      generationPrompt: 'Show error volume grouped by project and environment',
+      display: {type: 'table'},
+    });
+    const textCell = InvestigationCellFixture({
+      id: 'text-cell',
+      position: 1,
+      generationPrompt: 'Summarize the most important changes in the result',
+      display: {type: 'markdown'},
+    });
+
+    renderInvestigation(InvestigationDetailFixture({cells: [queryCell, textCell]}));
+
+    expect(
+      await screen.findByRole('button', {
+        name: 'Show error volume grouped by project and environment',
+      })
+    ).toHaveAttribute('aria-expanded', 'false');
+    expect(
+      screen.getByRole('button', {
+        name: 'Summarize the most important changes in the result',
+      })
+    ).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('textbox', {name: 'Query cell 1'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('textbox', {name: 'Text generation prompt 2'})
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', {name: 'Run'})).toHaveLength(2);
+    expect(screen.queryByRole('button', {name: 'Generate'})).not.toBeInTheDocument();
+  });
+
+  it('shows dependent auto-run cells as waiting for earlier cells', async () => {
+    const parent = InvestigationCellFixture({
+      id: 'parent-cell',
+      kind: 'query',
+      generationPrompt: 'Count checkout errors',
+      config: {autoRun: true},
+      display: {type: 'table'},
+    });
+    const dependent = InvestigationCellFixture({
+      id: 'dependent-cell',
+      position: 1,
+      generationPrompt: 'Summarize the result briefly',
+      config: {autoRun: true},
+      dependencies: [parent.id],
+      display: {type: 'markdown'},
+    });
+
+    renderInvestigation(InvestigationDetailFixture({cells: [parent, dependent]}));
+
+    expect(await screen.findByText('Waiting for earlier cells')).toBeInTheDocument();
+    expect(screen.queryByText('Completed')).not.toBeInTheDocument();
+  });
+
   it('switches a typed persisted result from table to chart without rerunning', async () => {
     const queryCell = InvestigationCellFixture({
       id: 'query-cell',
       kind: 'query',
       generationPrompt: 'Show error volume',
       outputStatus: 'available',
-      display: {version: 1, type: 'table', defaultView: 'table'},
+      display: {
+        version: 1,
+        type: 'table',
+        defaultView: 'table',
+        queryCollapsed: false,
+      },
       output: {
         schemaVersion: 1,
         tableMarkdown: '| Errors |\n| ---: |\n| 12 |',
@@ -461,6 +524,8 @@ describe('SeerInvestigation', () => {
     ).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: '1 underlying queries'}));
     expect(screen.getByText(/is:unresolved/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Result settings'}));
+    expect(screen.getByRole('dialog', {name: 'Result settings'})).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Chart'}));
 
     expect(await screen.findByTestId('seer-chart-embed')).toBeInTheDocument();
@@ -478,6 +543,7 @@ describe('SeerInvestigation', () => {
       })
     );
     expect(executeRequest).not.toHaveBeenCalled();
+    expect(screen.queryByText('Completed')).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Table'}));
     expect(screen.getByText('Errors')).toBeInTheDocument();
@@ -516,6 +582,7 @@ describe('SeerInvestigation', () => {
 
     expect(await screen.findByText('Result')).toBeInTheDocument();
     expect(screen.getByText('No data returned for this query.')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Result settings'}));
     expect(screen.getByRole('button', {name: 'Chart'})).toBeDisabled();
   });
 
@@ -654,6 +721,7 @@ describe('SeerInvestigation', () => {
       generationPrompt: 'Summarize the most important change as Markdown.',
       dependencies: ['query-cell'],
       outputStatus: 'notRun',
+      display: {type: 'markdown', promptCollapsed: false},
       version: 3,
     });
     const withTextPrompt = InvestigationDetailFixture({
@@ -671,7 +739,7 @@ describe('SeerInvestigation', () => {
       await screen.findByRole('textbox', {name: 'Text generation prompt 1'})
     ).toHaveValue('Summarize the most important change as Markdown.');
     expect(screen.getByText('Uses 1 linked cell(s) as context.')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Generate'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Run'}));
 
     await waitFor(() => expect(executeRequest).toHaveBeenCalled());
     expect(executeRequest).toHaveBeenCalledWith(

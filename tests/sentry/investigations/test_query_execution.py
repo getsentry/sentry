@@ -320,3 +320,4 @@ class InvestigationTextExecutionEndpointTest(APITestCase):
         call = mock_client.return_value.start_run.call_args
         assert call.kwargs["record_in_history"] is False
         assert "is:unresolved" in call.args[0]
+        assert "two or three short paragraphs" in call.args[0]

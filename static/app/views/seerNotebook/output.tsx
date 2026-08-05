@@ -1,5 +1,6 @@
-import type {ComponentProps} from 'react';
-import {keyframes} from '@emotion/react';
+import {Fragment, type ComponentProps} from 'react';
+import {createPortal} from 'react-dom';
+import {keyframes, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {observer} from 'mobx-react-lite';
 
@@ -9,9 +10,12 @@ import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {Chart} from 'sentry/components/seer/markdown/embeds/components/chart';
+import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useOverlay} from 'sentry/utils/useOverlay';
 import type {CellStore} from 'sentry/views/seerNotebook/stores/cellStore';
 import {isQueryResult} from 'sentry/views/seerNotebook/stores/visualization';
 
@@ -28,7 +32,13 @@ export const PersistedCellOutput = observer(function PersistedCellOutput({
 }: PersistedCellOutputProps) {
   const queryOutput = isQueryResult(cell.output) ? cell.output : null;
   const hasResult = queryOutput !== null;
-  if (!cell.hasExecutionFooter && !hasResult) {
+  const hasError = cell.executionStatusKind === 'error';
+  if (
+    !cell.hasExecutionFooter &&
+    !hasResult &&
+    !cell.isWaitingForDependencies &&
+    !hasError
+  ) {
     return null;
   }
   if (cell.outputStatus === 'restricted') {
@@ -45,6 +55,8 @@ export const PersistedCellOutput = observer(function PersistedCellOutput({
         <Text variant="muted">{t('Refreshing saved result…')}</Text>
       ) : null}
       {queryOutput ? <QueryOutput cell={cell} output={queryOutput} /> : null}
+      {cell.isWaitingForDependencies ? <DependencyWaitingStatus /> : null}
+      {hasError ? <ExecutionError cell={cell} /> : null}
       {cell.hasExecutionFooter ? <ExecutionFooter cell={cell} /> : null}
     </Stack>
   );
@@ -55,7 +67,13 @@ export const TextCellExecutionOutput = observer(function TextCellExecutionOutput
 }: {
   cell: CellStore;
 }) {
-  if (!cell.hasExecutionFooter && !cell.partialMarkdown) {
+  const hasError = cell.executionStatusKind === 'error';
+  if (
+    !cell.hasExecutionFooter &&
+    !cell.partialMarkdown &&
+    !cell.isWaitingForDependencies &&
+    !hasError
+  ) {
     return null;
   }
 
@@ -66,6 +84,8 @@ export const TextCellExecutionOutput = observer(function TextCellExecutionOutput
           <SeerMarkdown raw={cell.partialMarkdown} variant="streaming" />
         </StreamPreview>
       ) : null}
+      {cell.isWaitingForDependencies ? <DependencyWaitingStatus /> : null}
+      {hasError ? <ExecutionError cell={cell} /> : null}
       {cell.hasExecutionFooter ? <ExecutionFooter cell={cell} /> : null}
     </Stack>
   );
@@ -75,6 +95,7 @@ const ExecutionFooter = observer(function ExecutionFooter({cell}: {cell: CellSto
   return (
     <ActivityDisclosure
       size="sm"
+      disabled={cell.activityEntries.length === 0}
       expanded={cell.activityExpanded}
       onExpandedChange={expanded => cell.setActivityExpanded(expanded)}
     >
@@ -177,6 +198,28 @@ const ExecutionFooter = observer(function ExecutionFooter({cell}: {cell: CellSto
   );
 });
 
+function DependencyWaitingStatus() {
+  return (
+    <WaitingStatus role="status">
+      <WaitingSpinner aria-hidden="true" />
+      <Text size="sm" variant="muted">
+        {t('Waiting for earlier cells')}
+      </Text>
+    </WaitingStatus>
+  );
+}
+
+function ExecutionError({cell}: {cell: CellStore}) {
+  return (
+    <ErrorMessage role="alert" size="sm" variant="danger">
+      {cell.currentExecution?.error?.message ??
+        (cell.kind === 'text'
+          ? t('The generation did not finish.')
+          : t('The query did not finish.'))}
+    </ErrorMessage>
+  );
+}
+
 const QueryOutput = observer(function QueryOutput({
   cell,
   output,
@@ -184,7 +227,6 @@ const QueryOutput = observer(function QueryOutput({
   cell: CellStore;
   output: InvestigationQueryResult;
 }) {
-  const chartAvailable = cell.chartAvailable;
   const activeView = cell.effectiveView;
   const chartData = cell.chartEmbedData;
   return (
@@ -215,25 +257,8 @@ const QueryOutput = observer(function QueryOutput({
           ) : null}
         </Stack>
       )}
-      <Flex align="center" justify="between" gap="sm" wrap="wrap">
-        <Flex gap="xs">
-          <Button
-            size="xs"
-            variant={activeView === 'table' ? 'primary' : 'secondary'}
-            onClick={() => cell.setResultView('table')}
-          >
-            {t('Table')}
-          </Button>
-          <Button
-            size="xs"
-            variant={activeView === 'chart' ? 'primary' : 'secondary'}
-            disabled={!chartAvailable}
-            onClick={() => cell.setResultView('chart')}
-          >
-            {t('Chart')}
-          </Button>
-        </Flex>
-        {output.queryLinks.length ? (
+      {output.queryLinks.length ? (
+        <UnderlyingQueries>
           <Disclosure size="sm">
             <Disclosure.Title>
               {t('%s underlying queries', output.queryLinks.length)}
@@ -242,99 +267,175 @@ const QueryOutput = observer(function QueryOutput({
               <pre>{JSON.stringify(output.queryLinks, null, 2)}</pre>
             </Disclosure.Content>
           </Disclosure>
-        ) : null}
-      </Flex>
-      {activeView === 'chart' && chartAvailable ? (
-        <ChartPresentation cell={cell} />
+        </UnderlyingQueries>
       ) : null}
     </OutputWrap>
   );
 });
 
-const ChartPresentation = observer(function ChartPresentation({cell}: {cell: CellStore}) {
+export const ChartSettingsControl = observer(function ChartSettingsControl({
+  cell,
+  disabled,
+}: {
+  cell: CellStore;
+  disabled: boolean;
+}) {
+  const theme = useTheme();
+  const {isOpen, triggerProps, overlayProps, arrowProps} = useOverlay({
+    offset: 6,
+    position: 'bottom-end',
+    shouldApplyMinWidth: false,
+    strategy: 'fixed',
+  });
+  if (!cell.queryResult) {
+    return null;
+  }
+
   return (
-    <Disclosure size="sm">
-      <Disclosure.Title>{t('Chart presentation')}</Disclosure.Title>
-      <Disclosure.Content>
-        <PresentationGrid>
-          <label>
-            <Text size="xs">{t('Chart type')}</Text>
-            <PresentationSelect
-              value={cell.chartPresentationType}
-              onChange={event =>
-                cell.applyVisualizationChange({
-                  type: event.target.value as 'line' | 'bar' | 'area',
-                })
-              }
-            >
-              {cell.compatibleChartTypes.map(type => (
-                <option value={type} key={type}>
-                  {type}
-                </option>
-              ))}
-            </PresentationSelect>
-          </label>
-          <PresentationField
-            label={t('Title')}
-            value={cell.display.title ?? ''}
-            onChange={title => cell.applyVisualizationChange({title})}
-          />
-          <PresentationField
-            label={t('Subtitle')}
-            value={cell.display.subtitle ?? ''}
-            onChange={subtitle => cell.applyVisualizationChange({subtitle})}
-          />
-          <PresentationField
-            label={t('Axis label')}
-            value={cell.display.axisLabel ?? ''}
-            onChange={axisLabel => cell.applyVisualizationChange({axisLabel})}
-          />
-          <label>
-            <Text size="xs">{t('Unit')}</Text>
-            <PresentationSelect
-              value={cell.display.unit ?? 'number'}
-              onChange={event =>
-                cell.applyVisualizationChange({
-                  unit: event.target.value as
-                    | 'number'
-                    | 'percentage'
-                    | 'duration'
-                    | 'bytes',
-                })
-              }
-            >
-              {(['number', 'percentage', 'duration', 'bytes'] as const).map(unit => (
-                <option value={unit} key={unit}>
-                  {unit}
-                </option>
-              ))}
-            </PresentationSelect>
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={cell.display.showLegend ?? true}
-              onChange={event =>
-                cell.applyVisualizationChange({
-                  showLegend: event.target.checked,
-                })
-              }
-            />{' '}
-            {t('Show legend')}
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={cell.display.stacked ?? false}
-              onChange={event =>
-                cell.applyVisualizationChange({stacked: event.target.checked})
-              }
-            />{' '}
-            {t('Stack series')}
-          </label>
-        </PresentationGrid>
-      </Disclosure.Content>
-    </Disclosure>
+    <Fragment>
+      <SettingsButton
+        {...triggerProps}
+        size="xs"
+        variant="transparent"
+        icon={<IconSettings />}
+        aria-label={t('Result settings')}
+      />
+      {isOpen
+        ? createPortal(
+            <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayProps}>
+              <Overlay arrowProps={arrowProps}>
+                <SettingsPanel role="dialog" aria-label={t('Result settings')}>
+                  <Text size="sm" bold>
+                    {t('Result display')}
+                  </Text>
+                  <ViewSwitcher>
+                    <Button
+                      size="xs"
+                      variant={cell.effectiveView === 'table' ? 'primary' : 'secondary'}
+                      disabled={disabled}
+                      onClick={() => cell.setResultView('table')}
+                    >
+                      {t('Table')}
+                    </Button>
+                    <Button
+                      size="xs"
+                      variant={cell.effectiveView === 'chart' ? 'primary' : 'secondary'}
+                      disabled={disabled || !cell.chartAvailable}
+                      onClick={() => cell.setResultView('chart')}
+                    >
+                      {t('Chart')}
+                    </Button>
+                  </ViewSwitcher>
+                  {cell.chartAvailable ? (
+                    <ChartPresentation cell={cell} disabled={disabled} />
+                  ) : null}
+                </SettingsPanel>
+              </Overlay>
+            </PositionWrapper>,
+            document.body
+          )
+        : null}
+    </Fragment>
+  );
+});
+
+const ChartPresentation = observer(function ChartPresentation({
+  cell,
+  disabled,
+}: {
+  cell: CellStore;
+  disabled: boolean;
+}) {
+  return (
+    <Stack gap="sm">
+      <Text size="sm" bold>
+        {t('Chart presentation')}
+      </Text>
+      <PresentationGrid>
+        <label>
+          <Text size="xs">{t('Chart type')}</Text>
+          <PresentationSelect
+            disabled={disabled}
+            value={cell.chartPresentationType}
+            onChange={event =>
+              cell.applyVisualizationChange({
+                type: event.target.value as 'line' | 'bar' | 'area',
+              })
+            }
+          >
+            {cell.compatibleChartTypes.map(type => (
+              <option value={type} key={type}>
+                {type}
+              </option>
+            ))}
+          </PresentationSelect>
+        </label>
+        <PresentationField
+          disabled={disabled}
+          label={t('Title')}
+          value={cell.display.title ?? ''}
+          onChange={title => cell.applyVisualizationChange({title})}
+        />
+        <PresentationField
+          disabled={disabled}
+          label={t('Subtitle')}
+          value={cell.display.subtitle ?? ''}
+          onChange={subtitle => cell.applyVisualizationChange({subtitle})}
+        />
+        <PresentationField
+          disabled={disabled}
+          label={t('Axis label')}
+          value={cell.display.axisLabel ?? ''}
+          onChange={axisLabel => cell.applyVisualizationChange({axisLabel})}
+        />
+        <label>
+          <Text size="xs">{t('Unit')}</Text>
+          <PresentationSelect
+            disabled={disabled}
+            value={cell.display.unit ?? 'number'}
+            onChange={event =>
+              cell.applyVisualizationChange({
+                unit: event.target.value as
+                  | 'number'
+                  | 'percentage'
+                  | 'duration'
+                  | 'bytes',
+              })
+            }
+          >
+            {(['number', 'percentage', 'duration', 'bytes'] as const).map(unit => (
+              <option value={unit} key={unit}>
+                {unit}
+              </option>
+            ))}
+          </PresentationSelect>
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            disabled={disabled}
+            checked={cell.display.showLegend ?? true}
+            onChange={event =>
+              cell.applyVisualizationChange({
+                showLegend: event.target.checked,
+              })
+            }
+          />{' '}
+          {t('Show legend')}
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            disabled={disabled}
+            checked={cell.display.stacked ?? false}
+            onChange={event =>
+              cell.applyVisualizationChange({stacked: event.target.checked})
+            }
+          />{' '}
+          {t('Stack series')}
+        </label>
+      </PresentationGrid>
+    </Stack>
   );
 });
 
@@ -342,7 +443,9 @@ function PresentationField({
   label,
   onChange,
   value,
+  disabled,
 }: {
+  disabled: boolean;
   label: string;
   onChange: (value: string) => void;
   value: string;
@@ -351,6 +454,7 @@ function PresentationField({
     <label>
       <Text size="xs">{label}</Text>
       <ClarificationInput
+        disabled={disabled}
         value={value}
         onChange={event => onChange(event.target.value)}
       />
@@ -361,9 +465,57 @@ function PresentationField({
 const OutputWrap = styled('section')`
   display: grid;
   gap: ${p => p.theme.space.md};
+
+  > [data-test-id='seer-chart-embed'] {
+    border: 0;
+    border-radius: 0;
+  }
+`;
+const UnderlyingQueries = styled('div')`
+  width: 100%;
+
+  [data-disclosure] {
+    width: 100%;
+  }
+`;
+const SettingsButton = styled(Button)`
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  min-height: 24px;
+  padding: 4px;
+`;
+const SettingsPanel = styled(Stack)`
+  width: min(420px, calc(100vw - 32px));
+  max-height: min(620px, calc(100vh - 48px));
+  overflow-y: auto;
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.lg};
+`;
+const ViewSwitcher = styled(Flex)`
+  gap: ${p => p.theme.space.xs};
 `;
 const OutputMessage = styled(Text)`
   padding: ${p => p.theme.space.md};
+`;
+const ErrorMessage = styled(Text)`
+  display: block;
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+`;
+const WaitingStatus = styled(Flex)`
+  align-items: center;
+  gap: ${p => p.theme.space.sm};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+`;
+const WaitingSpinner = styled('span')`
+  width: 12px;
+  height: 12px;
+  border: 2px solid ${p => p.theme.tokens.border.secondary};
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: ${keyframes`to { transform: rotate(360deg); }`} 700ms linear infinite;
 `;
 const ActivityDisclosure = styled(Disclosure)`
   border: 0;

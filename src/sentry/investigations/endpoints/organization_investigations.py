@@ -303,6 +303,7 @@ class OrganizationBreachedMetricInvestigationStatusEndpoint(OrganizationEndpoint
                 organization=organization,
                 source_type="breached_metric",
                 source_key__in=[source.source_key for source in sources.values()],
+                status=InvestigationStatus.ACTIVE,
             )
         }
         can_create = request.user.is_authenticated and not request.user.is_sentry_app
@@ -362,11 +363,15 @@ class OrganizationBreachedMetricInvestigationLaunchEndpoint(OrganizationEndpoint
         database = router.db_for_write(Investigation)
         try:
             with transaction.atomic(using=database):
-                investigation = Investigation.objects.filter(
-                    organization=organization,
-                    source_type="breached_metric",
-                    source_key=source.source_key,
-                ).first()
+                investigation = (
+                    Investigation.objects.select_for_update()
+                    .filter(
+                        organization=organization,
+                        source_type="breached_metric",
+                        source_key=source.source_key,
+                    )
+                    .first()
+                )
                 if investigation is None:
                     investigation = create_template_investigation(
                         organization=organization,
@@ -384,6 +389,15 @@ class OrganizationBreachedMetricInvestigationLaunchEndpoint(OrganizationEndpoint
                     schedule_eligible_auto_run_cells(
                         investigation_id=investigation.id,
                         user_id=user_id,
+                    )
+                elif investigation.status == InvestigationStatus.ARCHIVED:
+                    investigation.status = InvestigationStatus.ACTIVE
+                    investigation.version += 1
+                    investigation.save(update_fields=["status", "version", "date_updated"])
+                    schedule_eligible_auto_run_cells(
+                        investigation_id=investigation.id,
+                        user_id=user_id,
+                        retry_failed=True,
                     )
         except IntegrityError:
             investigation = Investigation.objects.get(

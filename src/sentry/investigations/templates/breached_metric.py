@@ -8,6 +8,20 @@ BREACHED_METRIC_TEMPLATE = InvestigationTemplateSpec(
     parameters=(),
     cells=(
         TemplateCellSpec(
+            key="metric_chart",
+            kind=InvestigationCellKind.QUERY,
+            title="Breached metric",
+            generation_prompt=(
+                "Query the exact supplied monitor definition over the supplied analysis window. "
+                "Make the breach immediately visible in a time-series chart spanning the equal "
+                "pre-breach baseline and open-period portions. Plot the observed metric and the "
+                "supplied threshold or comparison as separate series so the crossing is clear. "
+                "Use the monitor time window for the chart interval when supported."
+            ),
+            config={"autoRun": True, "preferChart": True},
+            display={"version": 1, "type": "table", "defaultView": "chart"},
+        ),
+        TemplateCellSpec(
             key="overview",
             kind=InvestigationCellKind.TEXT,
             title="Overview",
@@ -15,23 +29,10 @@ BREACHED_METRIC_TEMPLATE = InvestigationTemplateSpec(
                 "Give the reader a useful overview of this breached metric using the supplied "
                 "monitor, open-period, project, threshold, direction, and analysis-window facts. "
                 "Accurately describe whether this is an upward or downward breach. Do not claim a "
-                "cause before examining the telemetry."
+                "cause before examining the telemetry. Keep the overview to two short paragraphs."
             ),
             config={"autoRun": True},
             display={"type": "markdown"},
-        ),
-        TemplateCellSpec(
-            key="metric_chart",
-            kind=InvestigationCellKind.QUERY,
-            title="Breached metric",
-            generation_prompt=(
-                "Query the exact supplied monitor definition over the supplied analysis window. "
-                "Compare the open-period portion with the equal pre-breach baseline and include "
-                "the supplied threshold or comparison in the chart when meaningful. Produce the "
-                "most useful chart for understanding the breach."
-            ),
-            config={"autoRun": True, "preferChart": True},
-            display={"version": 1, "type": "table", "defaultView": "chart"},
         ),
         TemplateCellSpec(
             key="synthesis",
@@ -40,7 +41,8 @@ BREACHED_METRIC_TEMPLATE = InvestigationTemplateSpec(
             generation_prompt=(
                 "Explain what the breached-metric result above and contributor result below show "
                 "together. Focus on evidence, distinguish correlation from causation, and state "
-                "uncertainty when the telemetry does not establish a convincing explanation."
+                "uncertainty when the telemetry does not establish a convincing explanation. Keep "
+                "the answer to two or three short paragraphs unless a tiny table is essential."
             ),
             config={"autoRun": True},
             display={"type": "markdown"},
