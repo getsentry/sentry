@@ -487,6 +487,38 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
         response = self.client.get(self.collection_url)
         assert [item["id"] for item in response.data] == [str(third.id)]
 
+    def test_archive_rejects_an_active_block_run(self) -> None:
+        created = self.client.post(
+            self.collection_url, data={"title": "Running investigation"}, format="json"
+        ).data
+        investigation = Investigation.objects.get(id=created["id"])
+        block = self.create_investigation_block(investigation=investigation, kind="text")
+        self.create_investigation_block_execution(
+            block=block,
+            executor="text_generation",
+            status=InvestigationBlockExecutionStatus.RUNNING,
+            block_version=block.version,
+            input_snapshot={},
+        )
+        detail_url = reverse(
+            "sentry-api-0-organization-investigation-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": investigation.id,
+            },
+        )
+
+        response = self.client.delete(
+            detail_url,
+            data={"investigationVersion": investigation.version},
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert response.data == {
+            "detail": "Stop active block runs before archiving this investigation."
+        }
+
     def test_non_creator_cannot_archive_even_when_everyone_can_edit(self) -> None:
         created = self.client.post(
             self.collection_url, data={"title": "Shared"}, format="json"

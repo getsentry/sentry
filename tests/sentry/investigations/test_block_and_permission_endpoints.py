@@ -3,7 +3,10 @@ from __future__ import annotations
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry.investigations.models import InvestigationBlock
+from sentry.investigations.models import (
+    InvestigationBlock,
+    InvestigationBlockExecutionStatus,
+)
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 
@@ -103,6 +106,30 @@ class InvestigationBlockEndpointTest(APITestCase):
         assert response.status_code == 409
         block.refresh_from_db()
         assert block.content == ""
+
+    def test_delete_rejects_an_active_block_run(self) -> None:
+        block = self.create_investigation_block(
+            investigation=self.investigation, position=0, kind="text"
+        )
+        self.create_investigation_block_execution(
+            block=block,
+            executor="text_generation",
+            status=InvestigationBlockExecutionStatus.AWAITING_INPUT,
+            block_version=block.version,
+            input_snapshot={},
+        )
+
+        response = self.client.delete(
+            self.block_url(block),
+            data={
+                "investigationVersion": self.investigation.version,
+                "version": block.version,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert response.data == {"detail": "Stop the active run before deleting this block."}
 
     def test_block_update_rejects_server_owned_and_immutable_fields(self) -> None:
         block = self.create_investigation_block(
