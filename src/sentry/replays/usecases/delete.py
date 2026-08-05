@@ -68,8 +68,9 @@ def day_aligned_windows(
     Consecutive windows meet exactly, so the range is covered with no gaps and no overlap. All
     datetimes are UTC.
 
-    Never crossing midnight is what lets `datetime_as_start_of_day_conditions` assert a window's
-    day. A day also holds a window's replay count well under the storage's `max_rows_to_group_by`,
+    Never crossing midnight is what lets `datetime_as_start_of_day_conditions` narrow the sort key
+    to a single day. A day also holds a window's replay count under the storage's
+    `max_rows_to_group_by`,
     which is paired with `group_by_overflow_mode = break`: past a million replays the finders' GROUP
     BY is truncated rather than rejected, and the replays past the cut go quietly undeleted.
     """
@@ -93,20 +94,21 @@ def _start_of_day(value: datetime) -> datetime:
 
 
 def datetime_as_start_of_day_conditions(start: datetime, end: datetime) -> list[Condition]:
-    """Restate a window that falls within one day as an equality on `toStartOfDay(timestamp)`.
+    """Restate `[start, end)` as bounds on `toStartOfDay(timestamp)`.
 
     Where a table is sorted by `toStartOfDay(timestamp)` rather than by `timestamp`, a bound on the
-    raw column only bounds the day it lands in, so the primary index also scans the day the window
-    ends on. Naming the day directly removes that.
+    raw column only bounds the day it lands in, so the primary index also scans the day the range
+    ends on. Naming the first and last day the range touches removes that. A range inside one day
+    bounds that day from both sides, which the index reads as an equality.
 
-    Returns nothing for a window that crosses midnight, where the equality would exclude rows the
-    caller asked for.
+    `end` is exclusive, so a range ending exactly at midnight does not reach that day.
     """
-    day = _start_of_day(start)
-    if end > day + timedelta(days=1):
-        return []
+    day = Function("toStartOfDay", parameters=[Column("timestamp")])
 
-    return [Condition(Function("toStartOfDay", parameters=[Column("timestamp")]), Op.EQ, day)]
+    return [
+        Condition(day, Op.GTE, _start_of_day(start)),
+        Condition(day, Op.LTE, _start_of_day(end - timedelta(microseconds=1))),
+    ]
 
 
 def delete_matched_rows(project_id: int, rows: list[MatchedRow]) -> int | None:

@@ -660,29 +660,36 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
             for earlier, later in zip(windows, windows[1:]):
                 assert earlier[1] == later[0]
 
-    def test_datetime_as_start_of_day_conditions_only_fire_inside_one_day(self) -> None:
-        """Test the day assertion is added only when the window cannot escape a single UTC day.
-
-        `timestamp < midnight` degrades to a non-strict bound on `toStartOfDay(timestamp)`, so the
-        index also selects the following day. Asserting the day collapses that, but asserting it for
-        a window that spans a boundary would drop rows.
-        """
+    def test_datetime_as_start_of_day_conditions_bound_the_days_a_range_touches(self) -> None:
+        """Test a range is restated as its first and last UTC day, whatever its width."""
         day = datetime.datetime(2025, 6, 2, tzinfo=datetime.UTC)
+        next_day = day + datetime.timedelta(days=1)
+        start_of_day = Function("toStartOfDay", parameters=[Column("timestamp")])
 
-        assert datetime_as_start_of_day_conditions(day, day + datetime.timedelta(days=1)) == [
-            Condition(Function("toStartOfDay", parameters=[Column("timestamp")]), Op.EQ, day)
+        # A whole day bounds that day from both sides, which the index reads as an equality.
+        assert datetime_as_start_of_day_conditions(day, next_day) == [
+            Condition(start_of_day, Op.GTE, day),
+            Condition(start_of_day, Op.LTE, day),
         ]
+        # So does any range inside it.
         assert datetime_as_start_of_day_conditions(
             day + datetime.timedelta(hours=3), day + datetime.timedelta(hours=20)
-        )
-        # Mid-day to mid-day, and anything wider than a day, span a boundary.
-        assert (
-            datetime_as_start_of_day_conditions(
-                day + datetime.timedelta(hours=3), day + datetime.timedelta(days=1, hours=3)
-            )
-            == []
-        )
-        assert datetime_as_start_of_day_conditions(day, day + datetime.timedelta(days=2)) == []
+        ) == [
+            Condition(start_of_day, Op.GTE, day),
+            Condition(start_of_day, Op.LTE, day),
+        ]
+        # A range crossing midnight bounds both days rather than giving up on the sort key.
+        assert datetime_as_start_of_day_conditions(
+            day + datetime.timedelta(hours=3), next_day + datetime.timedelta(hours=3)
+        ) == [
+            Condition(start_of_day, Op.GTE, day),
+            Condition(start_of_day, Op.LTE, next_day),
+        ]
+        # `end` is exclusive, so ending exactly at midnight must not reach that day.
+        assert datetime_as_start_of_day_conditions(day, day + datetime.timedelta(days=2)) == [
+            Condition(start_of_day, Op.GTE, day),
+            Condition(start_of_day, Op.LTE, next_day),
+        ]
 
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     @patch("sentry.replays.tasks.delete_matched_rows")
