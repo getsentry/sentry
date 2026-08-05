@@ -53,7 +53,7 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
         <Flex gap="2xs" align="center">
           <InfoIcon>
             {props.appInfo.platform ? (
-              <PlatformIcon platform={props.appInfo.platform} />
+              <PlatformIcon platform={props.appInfo.platform} alt="" />
             ) : null}
           </InfoIcon>
           <Text>

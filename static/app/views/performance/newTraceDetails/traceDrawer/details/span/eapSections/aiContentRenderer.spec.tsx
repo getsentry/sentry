@@ -23,6 +23,46 @@ describe('AIContentRenderer', () => {
     expect(screen.getByText('name')).toBeInTheDocument();
   });
 
+  it('renders a json code block as an interactive tree', () => {
+    render(<AIContentRenderer text={'```json\n{"alpha": 1, "beta": 2}\n```'} inline />);
+    expect(screen.getByText(/alpha/)).toBeInTheDocument();
+    expect(screen.getByText(/beta/)).toBeInTheDocument();
+  });
+
+  it('falls back to a code block for an invalid json fence', () => {
+    render(<AIContentRenderer text={'```json\nnot valid {json\n```'} inline />);
+    expect(screen.getByText(/not valid/)).toBeInTheDocument();
+  });
+
+  it('renders a python-dict json block as a tree', () => {
+    const text = "```json\n{'name': 'test', 'ok': True}\n```";
+    render(<AIContentRenderer text={text} inline />);
+    expect(screen.getByText(/name/)).toBeInTheDocument();
+  });
+
+  it('detects and renders an unescaped JSON blob as a tree', () => {
+    const text = `<note>
+{"alpha": 1, "beta": 2}
+</note>`;
+    render(<AIContentRenderer text={text} inline />);
+    expect(screen.getByText(/alpha/)).toBeInTheDocument();
+    expect(screen.getByText(/beta/)).toBeInTheDocument();
+  });
+
+  it('fences raw HTML and JSON wrapped in a custom tag', () => {
+    const text = `<note>
+{"alpha": 1}
+<div>markup</div>
+</note>`;
+    render(<AIContentRenderer text={text} inline />);
+    // Custom tag collapses...
+    expect(screen.getByText('<note>')).toBeInTheDocument();
+    // ...its JSON content renders as a tree...
+    expect(screen.getByText(/alpha/)).toBeInTheDocument();
+    // ...and its HTML is fenced as code, not collapsed as a tag.
+    expect(screen.queryByText('<div>')).not.toBeInTheDocument();
+  });
+
   it('renders inline XML tags as italic text within the flow', () => {
     render(<AIContentRenderer text="Before <thinking>inner thought</thinking> After" />);
     expect(screen.getByText(/thinking: inner thought/)).toBeInTheDocument();
@@ -30,7 +70,12 @@ describe('AIContentRenderer', () => {
 
   it('renders block XML tags with styled wrappers', () => {
     render(<AIContentRenderer text={'Text\n<thinking>inner thought</thinking>'} />);
-    expect(screen.getByText('thinking')).toBeInTheDocument();
+    expect(screen.getByText('<thinking>')).toBeInTheDocument();
+  });
+
+  it('does not collapse known HTML tags into a tag label', () => {
+    render(<AIContentRenderer text={'Text\n<div>markup</div>'} inline />);
+    expect(screen.queryByText('<div>')).not.toBeInTheDocument();
   });
 
   it('renders inline XML tags as italic text when inline', () => {
@@ -44,9 +89,9 @@ describe('AIContentRenderer', () => {
     const text =
       '<bug_report>\n<location>file.ts</location>\n<description>a bug</description>\n</bug_report>';
     render(<AIContentRenderer text={text} />);
-    expect(screen.getByText('bug_report')).toBeInTheDocument();
-    expect(screen.getByText('location')).toBeInTheDocument();
-    expect(screen.getByText('description')).toBeInTheDocument();
+    expect(screen.getByText('<bug_report>')).toBeInTheDocument();
+    expect(screen.getByText('<location>')).toBeInTheDocument();
+    expect(screen.getByText('<description>')).toBeInTheDocument();
     expect(screen.getByText('file.ts')).toBeInTheDocument();
     expect(screen.getByText('a bug')).toBeInTheDocument();
   });
@@ -60,15 +105,15 @@ describe('AIContentRenderer', () => {
     const text = '<thinking>\nsome thought\n</thinking>';
     render(<AIContentRenderer text={text} inline collapsibleXmlTags />);
 
-    expect(screen.getByText('thinking')).toBeInTheDocument();
+    expect(screen.getByText('<thinking>')).toBeInTheDocument();
   });
 
   it('renders nested collapsible XML with hierarchy', () => {
     const text = '<outer>\n<inner>nested content</inner>\n</outer>';
     render(<AIContentRenderer text={text} inline collapsibleXmlTags />);
 
-    expect(screen.getByText('outer')).toBeInTheDocument();
-    expect(screen.getByText('inner')).toBeInTheDocument();
+    expect(screen.getByText('<outer>')).toBeInTheDocument();
+    expect(screen.getByText('<inner>')).toBeInTheDocument();
     expect(screen.getByText('nested content')).toBeInTheDocument();
   });
 

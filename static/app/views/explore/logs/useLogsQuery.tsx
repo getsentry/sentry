@@ -788,6 +788,7 @@ function useAutoFetchWindow({
 }: AutoFetchWindowOptions) {
   const [windowStartMs, setWindowStartMs] = useState<number | undefined>();
   const [resumeCount, setResumeCount] = useState(0);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const timesFetched = useRef(0);
   const deadlineMs = getAutoFetchWindowDeadlineMs(resumeCount, windowStartMs);
 
@@ -807,12 +808,15 @@ function useAutoFetchWindow({
       return;
     }
 
+    const currentNowMs = Date.now();
+    setNowMs(currentNowMs);
+
     if (!windowStartMs) {
-      setWindowStartMs(Date.now());
+      setWindowStartMs(currentNowMs);
       return;
     }
 
-    if (deadlineMs && Date.now() >= deadlineMs) {
+    if (deadlineMs && currentNowMs >= deadlineMs) {
       Sentry.metrics.distribution(
         'explore.logs.flex_time_pages_before_data',
         timesFetched.current,
@@ -845,7 +849,7 @@ function useAutoFetchWindow({
   }, [resumeCount]);
 
   const shouldAutoFetchNextPage =
-    canAutoFetchNextPage && (!deadlineMs || Date.now() < deadlineMs);
+    canAutoFetchNextPage && (!deadlineMs || nowMs < deadlineMs);
 
   return {shouldAutoFetchNextPage, resumeAutoFetch};
 }

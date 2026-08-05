@@ -32,17 +32,14 @@ export function ConditionsPanel({triggers, actionFilters}: ConditionsPanelProps)
       <ConditionGroupWrapper>
         <ConditionGroupHeader>
           {triggers?.conditions && triggers.conditions.length > 0
-            ? tct(
-                '[when:When] an issue event is captured and [logicType] of the following occur',
-                {
-                  when: <ConditionBadge />,
-                  logicType:
-                    TRIGGER_MATCH_OPTIONS.find(
-                      choice => choice.value === triggers?.logicType
-                    )?.label || t('any'),
-                }
-              )
-            : tct('[when:When] an issue event is captured', {
+            ? tct('[when:When] [logicType] of the following occur', {
+                when: <ConditionBadge />,
+                logicType:
+                  TRIGGER_MATCH_OPTIONS.find(
+                    choice => choice.value === triggers?.logicType
+                  )?.label || t('any'),
+              })
+            : tct('[when:When] an event is captured', {
                 when: <ConditionBadge />,
               })}
         </ConditionGroupHeader>

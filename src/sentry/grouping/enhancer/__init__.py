@@ -5,7 +5,7 @@ import logging
 import os
 import re
 import zlib
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from functools import cached_property
 from typing import Any, Literal, overload
@@ -129,10 +129,15 @@ def _make_rust_exception_data(
     exception_data: dict[str, Any] | None,
 ) -> RustExceptionData:
     exception_data = exception_data or {}
+    mechanism = exception_data.get("mechanism")
     rust_data = {
         "type": exception_data.get("type"),
         "value": exception_data.get("value"),
-        "mechanism": get_path(exception_data, "mechanism", "type"),
+        "mechanism": (
+            mechanism.get("type")
+            if isinstance(mechanism, Mapping)
+            else getattr(mechanism, "type", None)
+        ),
     }
 
     # Convert string values to bytes

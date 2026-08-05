@@ -29,7 +29,7 @@ function GridList({onDelete, ...props}: GridListProps) {
 
   return (
     <div {...gridProps} ref={ref}>
-      {[...state.collection].map(item => {
+      {Array.from(state.collection, item => {
         return item.value ? (
           <DeletableToken
             key={item.value.key}
