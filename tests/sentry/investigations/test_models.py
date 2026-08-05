@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from unittest import mock
 
 import pytest
 from django.db import IntegrityError, router, transaction
@@ -25,6 +26,7 @@ from sentry.investigations.models import (
     InvestigationProject,
     InvestigationSourceType,
 )
+from sentry.investigations.services.investigations import create_template_investigation
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
 
@@ -236,6 +238,26 @@ def test_query_result_contract_accepts_the_versioned_wire_shape() -> None:
 
     assert result["schemaVersion"] == 1
     assert result["preferredView"] == "chart"
+
+
+def test_template_creation_retries_revision_uniqueness_collisions() -> None:
+    created = mock.sentinel.investigation
+    with mock.patch(
+        "sentry.investigations.services.investigations._create_template_investigation",
+        side_effect=[IntegrityError(), created],
+    ) as create:
+        result = create_template_investigation(
+            organization=mock.sentinel.organization,
+            user_id=1,
+            template_key="breached_metric",
+            template_version=1,
+            source_ref={},
+            supplied_parameters={},
+            accessible_project_ids=set(),
+        )
+
+    assert result is created
+    assert create.call_count == 2
 
 
 def test_query_result_contract_rejects_unknown_versions() -> None:
