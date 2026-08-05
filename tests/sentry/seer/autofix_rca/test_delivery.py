@@ -1,6 +1,9 @@
 from unittest.mock import MagicMock, patch
 from uuid import UUID
 
+from django.db import connections, router
+from django.test.utils import CaptureQueriesContext
+
 from sentry.analytics.events.autofix_events import (
     AiAutofixIntrospectionEvent,
     AiAutofixRootCauseCompletedEvent,
@@ -10,6 +13,7 @@ from sentry.seer.autofix.autofix_agent import AutofixStep
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.autofix_rca.delivery import deliver_autofix_rca_result
+from sentry.seer.models.run import SeerAgentRun
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -224,6 +228,22 @@ class TestDeliverAutofixRCAResult(TestCase):
             )
 
         assert mock_fetch.call_count == 1
+
+    @patch("sentry.seer.autofix_rca.delivery.AutofixOnCompletionHook.execute")
+    def test_delivery_claim_uses_row_lock(self, mock_execute: MagicMock) -> None:
+        using = router.db_for_write(SeerAgentRun)
+
+        with CaptureQueriesContext(connections[using]) as queries:
+            deliver_autofix_rca_result(
+                organization_id=self.organization.id,
+                run_uuid=self.agent_run.run.uuid,
+                status="completed",
+                result=VALID_RESULT,
+                error=None,
+            )
+
+        assert any("FOR UPDATE" in query["sql"] for query in queries)
+        mock_execute.assert_called_once()
 
     @patch("sentry.seer.autofix.on_completion_hook.fetch_run_status")
     def test_completed_status_is_not_overwritten_by_late_error(self, mock_fetch: MagicMock) -> None:
