@@ -50,7 +50,7 @@ export function BreadCrumbs({event}: {event: EventTransaction}) {
 
   const displayCrumbs = useMemo(() => {
     const sortedCrumbs =
-      sort === BreadcrumbSort.OLDEST ? enhancedCrumbs : [...enhancedCrumbs].reverse();
+      sort === BreadcrumbSort.OLDEST ? enhancedCrumbs : enhancedCrumbs.toReversed();
     const filteredCrumbs = applyFilters(sortedCrumbs, filters);
     const searchedCrumbs = applyBreadcrumbSearch(filteredCrumbs, search);
     return searchedCrumbs;

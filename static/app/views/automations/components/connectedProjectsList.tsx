@@ -84,7 +84,11 @@ export function ConnectedProjectsList({automationId}: Props) {
             ))}
           </Fragment>
         )}
-        {isError && <LoadingError />}
+        {isError && (
+          <SimpleTable.Empty>
+            <LoadingError />
+          </SimpleTable.Empty>
+        )}
         {isSuccess && detectors.length === 0 && (
           <SimpleTable.Empty>{t('No projects connected')}</SimpleTable.Empty>
         )}

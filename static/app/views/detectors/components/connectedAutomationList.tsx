@@ -128,7 +128,11 @@ export function ConnectedAutomationsList({
             }
           />
         )}
-        {isError && <LoadingError />}
+        {isError && (
+          <SimpleTable.Empty>
+            <LoadingError />
+          </SimpleTable.Empty>
+        )}
         {((isSuccess && automations?.length === 0) ||
           (automationIds !== null && automationIds.length === 0)) && (
           <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
