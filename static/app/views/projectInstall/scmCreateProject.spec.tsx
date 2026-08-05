@@ -19,7 +19,6 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformKey} from 'sentry/types/platform';
-import {useReplayForCriticalFlow} from 'sentry/utils/replays/useReplayForCriticalFlow';
 import {DEFAULT_ISSUE_ALERT_OPTIONS_VALUES} from 'sentry/views/projectInstall/issueAlertOptions';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 
@@ -38,10 +37,6 @@ jest.mock('@tanstack/react-virtual', () => ({
     getTotalSize: () => count * 36,
     measureElement: jest.fn(),
   })),
-}));
-
-jest.mock('sentry/utils/replays/useReplayForCriticalFlow', () => ({
-  useReplayForCriticalFlow: jest.fn(),
 }));
 
 jest.mock('sentry/data/platforms', () => {
@@ -274,18 +269,6 @@ describe('ScmCreateProject', () => {
     expect(routeAnalytics.setRouteAnalyticsParams).toHaveBeenCalledWith({
       variant: 'scm',
       origin: 'existing_org',
-    });
-  });
-
-  it('records a sampled session replay tagged for the SCM project-creation flow', async () => {
-    render(<ScmCreateProject />, {organization});
-
-    await screen.findByRole('button', {name: 'Create project'});
-    // Own flow tag (not onboarding's) so the two SCM funnels stay separable,
-    // at onboarding's sample rate.
-    expect(useReplayForCriticalFlow).toHaveBeenCalledWith({
-      flowName: 'scm_project_creation',
-      sampleRate: 0.5,
     });
   });
 

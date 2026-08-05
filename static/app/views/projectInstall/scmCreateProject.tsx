@@ -79,11 +79,8 @@ export function ScmCreateProject() {
   // must not reclassify an org-activation visit as existing_org.
   useRouteAnalyticsParams({variant: 'scm', origin: useProjectCreationPageOrigin()});
 
-  // Own flow tag rather than onboarding's `scm_onboarding`, so the two SCM
-  // funnels stay separately filterable in Replays. Sampling matches
-  // onboarding. Lives here, above the keyed wizard, so the per-mount sampling
-  // decision survives the restore remount below. Reaching this component
-  // already implies the SCM flag (see newProject), so no `enabled` gate.
+  // Above the keyed wizard so the per-mount sampling decision survives the
+  // restore remount below.
   useReplayForCriticalFlow({
     flowName: 'scm_project_creation',
     sampleRate: 0.5,
