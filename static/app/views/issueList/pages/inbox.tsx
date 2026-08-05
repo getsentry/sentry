@@ -1,4 +1,4 @@
-import {useEffect, useEffectEvent, useRef} from 'react';
+import {useEffectEvent, useLayoutEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useInfiniteQuery} from '@tanstack/react-query';
@@ -169,7 +169,7 @@ function InboxContent() {
     onResizeEnd: setStoredSize,
   });
 
-  // Collect fresh child-query results so one-time selection follows section order,
+  // Collect available child-query results so one-time selection follows section order,
   // rather than whichever request finishes first.
   const initialSectionResults = useRef(new Map<string, string | null>());
   const hasFinishedInitialSelection = useRef(selectedIssueId !== null);
@@ -354,17 +354,12 @@ function InboxSection({
     onInitialResult(section.key, groups[0]?.id ?? null);
   });
 
-  useEffect(() => {
-    if (
-      queryResult.isSuccess &&
-      queryResult.isFetchedAfterMount &&
-      !queryResult.isFetching &&
-      !hasReportedInitialResult.current
-    ) {
+  useLayoutEffect(() => {
+    if (queryResult.isSuccess && !hasReportedInitialResult.current) {
       hasReportedInitialResult.current = true;
       reportInitialResult();
     }
-  }, [queryResult.isFetchedAfterMount, queryResult.isFetching, queryResult.isSuccess]);
+  }, [queryResult.isSuccess]);
 
   return (
     <Disclosure
