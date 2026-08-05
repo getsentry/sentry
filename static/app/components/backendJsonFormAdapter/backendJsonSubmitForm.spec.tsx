@@ -1019,6 +1019,30 @@ describe('BackendJsonSubmitForm', () => {
         );
       });
     });
+
+    // This form submits the whole config at once and never threads `savedKeys`,
+    // so a removed row is always expressed by dropping its key — never a `null`
+    // tombstone, even for a field that advertises explicit removals.
+    it('removing a row drops the key instead of tombstoning it', async () => {
+      render(
+        <BackendJsonSubmitForm
+          fields={[{...choiceMapperField, supportsExplicitRemovals: true}]}
+          initialValues={{status_mapping: {repo1: {on_resolve: 'closed'}}}}
+          onSubmit={onSubmit}
+          submitLabel="Save"
+        />,
+        {organization: org}
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Delete'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({status_mapping: {}})
+        );
+      });
+    });
   });
 
   describe('project_mapper adapter', () => {

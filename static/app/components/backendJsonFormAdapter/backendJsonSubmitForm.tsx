@@ -24,7 +24,7 @@ import {unreachable} from 'sentry/utils/unreachable';
 import {ChoiceMapperDropdown, ChoiceMapperTable} from './choiceMapperAdapter';
 import {ProjectMapperAddRow, ProjectMapperTable} from './projectMapperAdapter';
 import {TableBody, TableHeaderRow} from './tableAdapter';
-import type {JsonFormAdapterFieldConfig} from './types';
+import type {ChoiceMapperValue, JsonFormAdapterFieldConfig} from './types';
 import {
   getDefaultForField,
   getDisabledProp,
@@ -584,10 +584,9 @@ export function BackendJsonSubmitForm({
                       );
                     }
                     case 'choice_mapper': {
-                      const choiceValue = fieldApi.state.value as Record<
-                        string,
-                        Record<string, unknown>
-                      >;
+                      // No `savedKeys` is threaded through here, so removing a
+                      // row drops the key rather than tombstoning it.
+                      const choiceValue = fieldApi.state.value as ChoiceMapperValue;
                       const fieldLabels = choiceMapperLabels[field.name] ?? {};
                       return (
                         <Stack flexGrow={1} gap="xl">
