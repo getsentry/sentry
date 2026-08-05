@@ -237,10 +237,15 @@ def run_bulk_replay_delete_job(
     if job.status != DeletionJobStatus.IN_PROGRESS:
         return None
 
-    # Derive the current window boundaries from the immutable job range and the cursor.
-    # Chunking into 7-day windows avoids full table scans in ClickHouse.
-    window_start = job.range_start + timedelta(days=window_offset_days)
-    window_end = min(window_start + timedelta(days=chunk_size_days), job.range_end)
+    # Derive the current window boundaries from the immutable job range and the cursor. Windows
+    # are laid out from the start of `range_start`'s UTC day rather than from `range_start` itself,
+    # so that a one-day window lands inside a single day and can assert it. See
+    # `day_pin_conditions`. Both ends are clamped to the job's range.
+    range_day_start = job.range_start.replace(hour=0, minute=0, second=0, microsecond=0)
+    window_start = max(range_day_start + timedelta(days=window_offset_days), job.range_start)
+    window_end = min(
+        range_day_start + timedelta(days=window_offset_days + chunk_size_days), job.range_end
+    )
 
     try:
         # Delete the replays within a limited range. If more replays exist a cursor to seek the next

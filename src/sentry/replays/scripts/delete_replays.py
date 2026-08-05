@@ -24,7 +24,11 @@ from sentry.api.event_search import QueryToken, parse_search_query
 from sentry.models.organization import Organization
 from sentry.replays.query import replay_url_parser_config
 from sentry.replays.tasks import archive_replay, delete_replays_script_async
-from sentry.replays.usecases.delete import SNUBA_RETRY_EXCEPTIONS, delete_seer_replay_data
+from sentry.replays.usecases.delete import (
+    SNUBA_RETRY_EXCEPTIONS,
+    day_pin_conditions,
+    delete_seer_replay_data,
+)
 from sentry.replays.usecases.query import execute_query, handle_search_filters
 from sentry.replays.usecases.query.configs.scalar import scalar_search_config
 from sentry.snuba.referrer import Referrer
@@ -57,12 +61,18 @@ def delete_replays(
     # Chunk the range into fixed-size windows
     chunk_size_days = options.get("replay.bulk_delete_job.chunk_size_days") or 7
 
+    # Windows are laid out from the start of `start_utc`'s UTC day rather than from `start_utc`,
+    # so a one-day window lands inside a single day and can assert it. See `day_pin_conditions`.
+    range_day_start = start_utc.replace(hour=0, minute=0, second=0, microsecond=0)
+
     window_offset_days = 0
     while True:
-        window_start = start_utc + timedelta(days=window_offset_days)
+        window_start = max(range_day_start + timedelta(days=window_offset_days), start_utc)
         if window_start >= end_utc:
             break
-        window_end = min(window_start + timedelta(days=chunk_size_days), end_utc)
+        window_end = min(
+            range_day_start + timedelta(days=window_offset_days + chunk_size_days), end_utc
+        )
 
         # Reset per window because the cursor space is scoped to the window's result set
         cursor = None
@@ -208,6 +218,7 @@ def _get_rows_matching_deletion_pattern(
             Condition(Column("timestamp"), Op.LT, end),
             Condition(Column("timestamp"), Op.GTE, start),
             Condition(Column("segment_id"), Op.IS_NOT_NULL),
+            *day_pin_conditions(start, end),
             *where,
         ],
         # Group by both the `replay_id` and `cityHash64(replay_id)` so we are able

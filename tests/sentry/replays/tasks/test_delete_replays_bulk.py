@@ -6,6 +6,7 @@ from collections.abc import Generator
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+from snuba_sdk import Column, Condition, Function, Op
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, StorageBlob
@@ -14,6 +15,7 @@ from sentry.replays.tasks import run_bulk_replay_delete_job
 from sentry.replays.testutils import mock_replay
 from sentry.replays.usecases.delete import (
     MatchedRows,
+    day_pin_conditions,
     delete_matched_rows,
     fetch_rows_matching_pattern,
 )
@@ -608,10 +610,14 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
     def test_run_bulk_replay_delete_job_time_window_chunking(
         self, mock_delete_matched_rows: MagicMock, mock_fetch_rows: MagicMock
     ) -> None:
-        """Test that wide date ranges are chunked into 7-day windows."""
-        # Create a job spanning 20 days so it requires 3 windows (7 + 7 + 6).
-        range_start = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=20)
-        range_end = datetime.datetime.now(tz=datetime.UTC)
+        """Test a range is chunked into windows aligned to UTC midnight.
+
+        `range_start` is deliberately mid-day: windows are laid out from the start of its day rather
+        than from `range_start`, so every window lands inside a single UTC day and can assert it.
+        The first and last are clamped to the job's range.
+        """
+        range_start = datetime.datetime(2025, 6, 1, 14, 30, tzinfo=datetime.UTC)
+        range_end = datetime.datetime(2025, 6, 4, tzinfo=datetime.UTC)
         job = ReplayDeletionJobModel.objects.create(
             organization_id=self.project.organization.id,
             project_id=self.project.id,
@@ -624,24 +630,12 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
 
         # Each window returns rows with has_more=False so the task advances to the next window.
         def row_generator() -> Generator[MatchedRows]:
-            # Window 1: range_start to range_start + 7 days
-            yield {
-                "rows": [{"retention_days": 90, "replay_id": "a", "max_segment_id": 1}],
-                "has_more": False,
-                "next_cursor": 1234,
-            }
-            # Window 2: range_start + 7 days to range_start + 14 days
-            yield {
-                "rows": [{"retention_days": 90, "replay_id": "b", "max_segment_id": 1}],
-                "has_more": False,
-                "next_cursor": 1234,
-            }
-            # Window 3: range_start + 14 days to range_end
-            yield {
-                "rows": [{"retention_days": 90, "replay_id": "c", "max_segment_id": 1}],
-                "has_more": False,
-                "next_cursor": 1234,
-            }
+            for replay_id in ("a", "b", "c"):
+                yield {
+                    "rows": [{"retention_days": 90, "replay_id": replay_id, "max_segment_id": 1}],
+                    "has_more": False,
+                    "next_cursor": 1234,
+                }
 
         mock_fetch_rows.side_effect = row_generator()
 
@@ -657,20 +651,47 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         # range_start must never be mutated — the API always returns the original value.
         assert job.range_start == range_start
 
-        # Verify each call used the correct window boundaries.
-        calls = mock_fetch_rows.call_args_list
-        # Window 1
-        assert calls[0].kwargs["start"] == range_start
-        assert calls[0].kwargs["end"] == range_start + datetime.timedelta(days=7)
-        assert calls[0].kwargs["after_replay_id_hash"] is None
-        # Window 2
-        assert calls[1].kwargs["start"] == range_start + datetime.timedelta(days=7)
-        assert calls[1].kwargs["end"] == range_start + datetime.timedelta(days=14)
-        assert calls[1].kwargs["after_replay_id_hash"] is None
-        # Window 3
-        assert calls[2].kwargs["start"] == range_start + datetime.timedelta(days=14)
-        assert calls[2].kwargs["end"] == range_end
-        assert calls[2].kwargs["after_replay_id_hash"] is None
+        midnight_2 = datetime.datetime(2025, 6, 2, tzinfo=datetime.UTC)
+        midnight_3 = datetime.datetime(2025, 6, 3, tzinfo=datetime.UTC)
+        windows = [
+            (call.kwargs["start"], call.kwargs["end"]) for call in mock_fetch_rows.call_args_list
+        ]
+        assert windows == [
+            # Clamped to range_start rather than starting at midnight.
+            (range_start, midnight_2),
+            (midnight_2, midnight_3),
+            (midnight_3, range_end),
+        ]
+        # Every window resets the cursor, because it is a position within a window's result set.
+        assert [call.kwargs["after_replay_id_hash"] for call in mock_fetch_rows.call_args_list] == [
+            None,
+            None,
+            None,
+        ]
+
+    def test_day_pin_conditions_only_fire_inside_one_day(self) -> None:
+        """Test the day assertion is added only when the window cannot escape a single UTC day.
+
+        `timestamp < midnight` degrades to a non-strict bound on `toStartOfDay(timestamp)`, so the
+        index also selects the following day. Asserting the day collapses that, but asserting it for
+        a window that spans a boundary would drop rows.
+        """
+        day = datetime.datetime(2025, 6, 2, tzinfo=datetime.UTC)
+
+        assert day_pin_conditions(day, day + datetime.timedelta(days=1)) == [
+            Condition(Function("toStartOfDay", parameters=[Column("timestamp")]), Op.EQ, day)
+        ]
+        assert day_pin_conditions(
+            day + datetime.timedelta(hours=3), day + datetime.timedelta(hours=20)
+        )
+        # Mid-day to mid-day, and anything wider than a day, span a boundary.
+        assert (
+            day_pin_conditions(
+                day + datetime.timedelta(hours=3), day + datetime.timedelta(days=1, hours=3)
+            )
+            == []
+        )
+        assert day_pin_conditions(day, day + datetime.timedelta(days=2)) == []
 
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     @patch("sentry.replays.tasks.delete_matched_rows")
@@ -678,8 +699,8 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         self, mock_delete_matched_rows: MagicMock, mock_fetch_rows: MagicMock
     ) -> None:
         """Test pagination within a time window followed by advancing to the next window."""
-        range_start = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=10)
-        range_end = datetime.datetime.now(tz=datetime.UTC)
+        range_start = datetime.datetime(2025, 6, 1, tzinfo=datetime.UTC)
+        range_end = datetime.datetime(2025, 6, 3, tzinfo=datetime.UTC)
         job = ReplayDeletionJobModel.objects.create(
             organization_id=self.project.organization.id,
             project_id=self.project.id,
@@ -724,16 +745,17 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         assert job.range_start == range_start
 
         calls = mock_fetch_rows.call_args_list
+        midnight_2 = datetime.datetime(2025, 6, 2, tzinfo=datetime.UTC)
         # Window 1, page 1 — no cursor yet
         assert calls[0].kwargs["start"] == range_start
-        assert calls[0].kwargs["end"] == range_start + datetime.timedelta(days=7)
+        assert calls[0].kwargs["end"] == midnight_2
         assert calls[0].kwargs["after_replay_id_hash"] is None
         # Window 1, page 2 — seeks from the cursor page 1 returned
         assert calls[1].kwargs["start"] == range_start
-        assert calls[1].kwargs["end"] == range_start + datetime.timedelta(days=7)
+        assert calls[1].kwargs["end"] == midnight_2
         assert calls[1].kwargs["after_replay_id_hash"] == 1234
         # Window 2 — cursor reset, because it is a position within a window's result set
-        assert calls[2].kwargs["start"] == range_start + datetime.timedelta(days=7)
+        assert calls[2].kwargs["start"] == midnight_2
         assert calls[2].kwargs["end"] == range_end
         assert calls[2].kwargs["after_replay_id_hash"] is None
 

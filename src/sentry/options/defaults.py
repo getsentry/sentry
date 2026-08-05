@@ -511,10 +511,12 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Chunk size for bulk delete job
+# Window size the bulk delete job pages within. One day is the useful value: `timestamp` is in the
+# replays sort key only at day granularity, so a window cannot be narrowed below a day, and a window
+# wider than a day cannot assert its day and reads roughly twice the granules.
 register(
     "replay.bulk_delete_job.chunk_size_days",
-    default=7,
+    default=1,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
