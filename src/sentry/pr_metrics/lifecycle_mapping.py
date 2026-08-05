@@ -29,8 +29,11 @@ def is_stale_pull_request_snapshot(
     Neither rule subsumes the other. Timestamps are absent on rows predating the column
     and coarse at GitHub's one-second resolution, which terminal-``merged`` covers; and
     ``closed`` -> ``open`` is a real transition (a reopen) that only provider time
-    separates from a replay. Equal timestamps are not stale — within one provider-side
-    second there is no order to recover.
+    separates from a replay. The event action can't stand in there: it says what
+    triggered this event, not whether the ``reopened`` before it was delivered, so
+    requiring that action would permanently reject every later payload on a PR whose
+    reopen we missed. Equal timestamps are not stale — within one provider-side second
+    there is no order to recover.
     """
     if (
         stored.state == PullRequestLifecycleState.MERGED
