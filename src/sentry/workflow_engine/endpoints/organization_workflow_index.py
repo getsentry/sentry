@@ -58,14 +58,15 @@ from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
     WorkflowSerializer,
     WorkflowSerializerResponse,
 )
+from sentry.workflow_engine.endpoints.utils.all_projects import (
+    is_workflow_connected_to_all_projects_detector,
+    should_include_all_projects_detector_workflows,
+)
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
     DetectorWorkflowMutationValidator,
-)
-from sentry.workflow_engine.endpoints.validators.utils import (
-    should_include_all_projects_detector_workflows,
 )
 from sentry.workflow_engine.models import DetectorWorkflow, Workflow
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
@@ -123,6 +124,12 @@ class OrganizationWorkflowEndpoint(OrganizationEndpoint):
         # Workflows with no detector connections are org-level and accessible
         # to anyone with org-level workflow permissions.
         workflow = kwargs["workflow"]
+        organization = kwargs["organization"]
+        if is_workflow_connected_to_all_projects_detector(workflow):
+            if not should_include_all_projects_detector_workflows(request, organization):
+                raise PermissionDenied
+            return args, kwargs
+
         connected_projects = Project.objects.filter(
             detector__detectorworkflow__workflow=workflow
         ).distinct()
@@ -214,15 +221,22 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         # not just those explicitly requested. This filter is ALWAYS applied to ensure
         # users with no project access only see org-level workflows.
         projects = self.get_projects(request, organization, include_all_accessible=True)
+        all_projects_detector_workflows = DetectorWorkflow.objects.filter(
+            workflow_id=OuterRef("id"),
+            detector__project__isnull=True,
+            detector__type=IssueStreamGroupType.slug,
+            detector__config__organization_id=organization.id,
+        )
+        queryset = queryset.annotate(
+            has_all_projects_detector=Exists(all_projects_detector_workflows)
+        )
         accessible_workflows = Q(detectorworkflow__detector__project__in=projects) | Q(
             detectorworkflow__isnull=True
         )
         if should_include_all_projects_detector_workflows(request, organization):
-            accessible_workflows |= Q(
-                detectorworkflow__detector__project__isnull=True,
-                detectorworkflow__detector__type=IssueStreamGroupType.slug,
-                detectorworkflow__detector__config__organization_id=organization.id,
-            )
+            accessible_workflows |= Q(has_all_projects_detector=True)
+        else:
+            queryset = queryset.filter(has_all_projects_detector=False)
         queryset = queryset.filter(accessible_workflows).distinct()
 
         return queryset

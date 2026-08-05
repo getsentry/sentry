@@ -20,6 +20,10 @@ from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
+from sentry.workflow_engine.endpoints.utils.all_projects import (
+    can_edit_all_project_detector_workflow_connections,
+    is_all_projects_detector,
+)
 from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
 from sentry.workflow_engine.types import DetectorId, WorkflowId
 
@@ -118,14 +122,6 @@ def can_delete_detector(detector: Detector, request: Request) -> bool:
     return can_edit_user_created_detectors(request, detector.linked_project)
 
 
-def can_edit_all_project_detector_workflow_connections(request: Request) -> bool:
-    """
-    Exclude alerts:write scope from creating all-project workflow connections.
-    Since projects
-    """
-    return any(request.access.has_scope(scope) for scope in SYSTEM_CREATED_DETECTOR_REQUIRED_SCOPES)
-
-
 def can_edit_detector_workflow_connections(detector: Detector, request: Request) -> bool:
     """
     Anyone with alert write access to the project can connect/disconnect detectors of any type,
@@ -151,6 +147,17 @@ def validate_detectors_exist_and_have_permissions(
 
     if missing_detector_ids:
         raise serializers.ValidationError(f"Some detectors do not exist: {missing_detector_ids}")
+
+    unavailable_detector_ids = {
+        detector.id
+        for detector in detectors
+        if is_all_projects_detector(detector, organization)
+        and not features.has("organizations:workflow-engine-all-projects-detector", organization)
+    }
+    if unavailable_detector_ids:
+        raise serializers.ValidationError(
+            f"Some detectors do not exist: {unavailable_detector_ids}"
+        )
 
     if not all(can_edit_detector_workflow_connections(detector, request) for detector in detectors):
         raise PermissionDenied
@@ -195,7 +202,7 @@ def connect_workflows_to_detectors(
                 DetectorWorkflow.objects.filter(
                     workflow_id=workflow_id,
                     workflow__organization=organization,
-                )
+                ).select_related("detector", "detector__project")
             )
             new_detector_ids = set(detector_ids) - {
                 dw.detector_id for dw in existing_detector_workflows
@@ -205,6 +212,11 @@ def connect_workflows_to_detectors(
             detector_workflows_to_remove = [
                 dw for dw in existing_detector_workflows if dw.detector_id not in detector_ids
             ]
+            if not all(
+                can_edit_detector_workflow_connections(detector_workflow.detector, request)
+                for detector_workflow in detector_workflows_to_remove
+            ):
+                raise PermissionDenied
         else:
             detector_workflows_to_add = get_detector_workflows_to_add(
                 workflow_id, set(detector_ids)
@@ -387,23 +399,3 @@ def get_unknown_detector_type_error(bad_value: str, organization: Organization) 
         return f"Unknown detector type '{bad_value}'. Must be one of: {available_str}"
     else:
         return f"Unknown detector type '{bad_value}'. No detector types are available."
-
-
-def should_include_all_projects_detector(request: Request, organization: Organization) -> bool:
-    return (
-        features.has("organizations:workflow-engine-all-projects-detector", organization)
-        and request.method == "GET"
-    )
-
-
-def should_include_all_projects_detector_workflows(
-    request: Request, organization: Organization
-) -> bool:
-    """
-    The flag is always required to show these workflows, but if it isn't a GET request, also check
-    that the caller has org:write. alerts:write is not sufficient to connect an all projects detector.
-    """
-    return features.has("organizations:workflow-engine-all-projects-detector", organization) and (
-        request.method == "GET"
-        or can_edit_all_project_detector_workflow_connections(request=request)
-    )

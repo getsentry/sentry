@@ -39,12 +39,12 @@ from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
     DetectorSerializer,
     DetectorSerializerResponse,
 )
+from sentry.workflow_engine.endpoints.utils.all_projects import should_include_all_projects_detector
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.utils import (
     can_delete_detector,
     can_edit_detector,
     get_unknown_detector_type_error,
-    should_include_all_projects_detector,
 )
 from sentry.workflow_engine.models import DataSource, Detector
 

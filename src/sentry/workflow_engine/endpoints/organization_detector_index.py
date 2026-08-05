@@ -52,6 +52,7 @@ from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
     DetectorSerializerResponse,
 )
+from sentry.workflow_engine.endpoints.utils.all_projects import should_include_all_projects_detector
 from sentry.workflow_engine.endpoints.utils.filters import (
     apply_filter,
     exclude_disallowed_metric_detectors,
@@ -64,7 +65,6 @@ from sentry.workflow_engine.endpoints.validators.utils import (
     can_delete_detectors,
     can_edit_detectors,
     get_unknown_detector_type_error,
-    should_include_all_projects_detector,
 )
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
