@@ -67,17 +67,13 @@ class Frame(BaseModel):
             return vars
 
         code = "\n".join(line or "" for _, line in values.get("context") or [])
-        kept: dict[str, Any] = {}
-        for key, value in vars.items():
-            if code and key not in code:
-                continue
-            if isinstance(value, dict | list):
-                cleaned = _drop_filtered(value)
-                if cleaned is not None:  # a container left empty by scrubbing carries nothing
-                    kept[key] = cleaned
-            elif "[Filtered]" not in str(value):
-                kept[key] = value  # a scalar None or 0 is worth keeping; often it's the cause
-        return kept
+        # ``_clean_entry`` already draws the container/scalar distinction this needs: a container
+        # emptied by scrubbing carries nothing, while a scalar None or 0 is worth keeping
+        return {
+            key: cleaned
+            for key, value in vars.items()
+            if not (code and key not in code) and (cleaned := _clean_entry(value)) is not _DROP
+        }
 
 
 class Stacktrace(BaseModel):
