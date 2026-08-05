@@ -8,7 +8,7 @@ from typing import Any, Literal, TypedDict
 
 import sentry_sdk
 
-from sentry import features, killswitches, options, quotas, utils
+from sentry import features, options, quotas, utils
 from sentry.constants import (
     HEALTH_CHECK_GLOBS,
     INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
@@ -38,10 +38,6 @@ from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.quotas.base import RETENTIONS_CONFIG_MAPPING
 from sentry.relay.config.experimental import TimeChecker, add_experimental_config
-from sentry.relay.config.metric_extraction import (
-    get_metric_conditional_tagging_rules,
-    get_metric_extraction_config,
-)
 from sentry.relay.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.relay.types.generic_filters import GenericFilter
 from sentry.relay.utils import to_camel_case_name
@@ -883,20 +879,6 @@ def _get_project_config(
 
     config["breakdownsV2"] = project.get_option("sentry:breakdowns")
 
-    if _should_extract_transaction_metrics(project):
-        # This config key is technically not specific to _transaction_ metrics,
-        # is however currently both only applied to transaction metrics in
-        # Relay, and only used to tag transaction metrics in Sentry.
-        add_experimental_config(
-            config,
-            "metricConditionalTagging",
-            get_metric_conditional_tagging_rules,
-            project,
-        )
-
-        if metric_extraction := get_metric_extraction_config(project):
-            config["metricExtraction"] = metric_extraction
-
     config["sessionMetrics"] = {
         "version": (
             EXTRACT_ABNORMAL_MECHANISM_VERSION
@@ -1114,13 +1096,3 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
         else:
             ret_val = {"patterns": [], "isEnabled": False}
     return ret_val
-
-
-def _should_extract_transaction_metrics(project: Project) -> bool:
-    return (
-        features.has("organizations:transaction-metrics-extraction", project.organization)
-        and not options.get("relay.drop-transaction-metrics2")
-        and not killswitches.killswitch_matches_context(
-            "relay.drop-transaction-metrics", {"project_id": project.id}
-        )
-    )
