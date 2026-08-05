@@ -8,5 +8,4 @@ export type CommonDetectorFieldProps = {
   name: DetectorFieldName;
   projectSlug: string;
   help?: string;
-  visible?: boolean;
 };

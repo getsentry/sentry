@@ -16,13 +16,8 @@ export function DetectorBooleanField({
   label,
   name,
   projectSlug,
-  visible,
 }: DetectorBooleanFieldProps) {
   const mutationOptions = useDetectorFieldMutationOptions(projectSlug);
-
-  if (visible === false) {
-    return null;
-  }
 
   return (
     <AutoSaveForm

@@ -40,7 +40,6 @@ export const projectDetectorSettingsId = 'detector-threshold-settings';
 type DetectorDefinition = {
   disabled?: boolean;
   disabledReason?: string | null;
-  visible?: boolean;
 };
 
 export type DetectorFieldGroup = {
@@ -171,14 +170,7 @@ function StringField({
  * Admin-only toggles that turn an entire detector on or off. Keyed by issue
  * title so they can be prepended to the matching customer threshold group.
  */
-function getDetectorAdminFields({
-  hasAIIssueDetection,
-  hasWebVitalsSeerSuggestions,
-  organization,
-}: Pick<
-  DetectorSettingsOptions,
-  'hasAIIssueDetection' | 'hasWebVitalsSeerSuggestions' | 'organization'
->): Record<string, DetectorBooleanDefinition> {
+function getDetectorAdminFields(): Record<string, DetectorBooleanDefinition> {
   return {
     [IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: {
       name: DetectorConfigAdmin.N_PLUS_DB_ENABLED,
@@ -239,22 +231,17 @@ function getDetectorAdminFields({
       name: DetectorConfigAdmin.DB_QUERY_INJECTION_ENABLED,
       label: t('Potential Database Query Injection Vulnerability Detection'),
       defaultValue: true,
-      visible: organization.features.includes(
-        'issue-query-injection-vulnerability-visible'
-      ),
     },
     [IssueTitle.WEB_VITALS]: {
       name: DetectorConfigAdmin.WEB_VITALS_ENABLED,
       label: t('Web Vitals Detection'),
       defaultValue: true,
-      visible: hasWebVitalsSeerSuggestions,
     },
     [aiDetectedGroupTitle]: {
       name: DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED,
       label: t('AI Issue Detection'),
       help: t('Controls whether or not Sentry runs AI issue detection on your traces.'),
       defaultValue: true,
-      visible: hasAIIssueDetection,
     },
   };
 }
@@ -450,7 +437,6 @@ export function getProjectDetectorSettings({
               performanceIssueSettings[DetectorConfigAdmin.LARGE_HTTP_PAYLOAD_ENABLED]
             ),
             disabledReason,
-            visible: true,
           }}
         />,
       ],
@@ -640,159 +626,156 @@ export function getProjectDetectorSettings({
     },
     {
       title: IssueTitle.QUERY_INJECTION_VULNERABILITY,
-      fields: [
-        <RangeField
-          key={DetectorConfigCustomer.SQL_INJECTION_QUERY_VALUE_LENGTH}
-          {...fieldSettings}
-          definition={{
-            name: DetectorConfigCustomer.SQL_INJECTION_QUERY_VALUE_LENGTH,
-            label: t('SQL Injection Query Value Length'),
-            defaultValue: 3,
-            help: t(
-              'Setting the value to 3, means that the query values with length 3 or more will be assessed when creating a DB Query Injection Vulnerability issue.'
-            ),
-            tickValues: [0, 7],
-            showTickLabels: true,
-            allowedValues: [3, 4, 5, 6, 7, 8, 9, 10],
-            disabled: !(
-              hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.DB_QUERY_INJECTION_ENABLED]
-            ),
-            formatLabel: value => value && value.toString(),
-            disabledReason,
-            visible: organization.features.includes(
-              'issue-query-injection-vulnerability-visible'
-            ),
-          }}
-        />,
-      ],
+      fields: organization.features.includes(
+        'issue-query-injection-vulnerability-visible'
+      )
+        ? [
+            <RangeField
+              key={DetectorConfigCustomer.SQL_INJECTION_QUERY_VALUE_LENGTH}
+              {...fieldSettings}
+              definition={{
+                name: DetectorConfigCustomer.SQL_INJECTION_QUERY_VALUE_LENGTH,
+                label: t('SQL Injection Query Value Length'),
+                defaultValue: 3,
+                help: t(
+                  'Setting the value to 3, means that the query values with length 3 or more will be assessed when creating a DB Query Injection Vulnerability issue.'
+                ),
+                tickValues: [0, 7],
+                showTickLabels: true,
+                allowedValues: [3, 4, 5, 6, 7, 8, 9, 10],
+                disabled: !(
+                  hasAccess &&
+                  performanceIssueSettings[DetectorConfigAdmin.DB_QUERY_INJECTION_ENABLED]
+                ),
+                formatLabel: value => value && value.toString(),
+                disabledReason,
+              }}
+            />,
+          ]
+        : [],
       initiallyCollapsed: issueType !== IssueType.QUERY_INJECTION_VULNERABILITY,
     },
     {
       title: IssueTitle.WEB_VITALS,
-      fields: [
-        <RangeField
-          key={DetectorConfigCustomer.WEB_VITALS_COUNT}
-          {...fieldSettings}
-          definition={{
-            name: DetectorConfigCustomer.WEB_VITALS_COUNT,
-            label: t('Minimum Sample Count'),
-            defaultValue: 10,
-            help: t(
-              'Setting the value to 10, means that web vital issues will only be created if there are at least 10 samples of the web vital type.'
-            ),
-            tickValues: [0, allowedCountValues.length - 1],
-            allowedValues: allowedCountValues,
-            showTickLabels: true,
-            formatLabel: formatCount,
-            disabled: !(
-              hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.WEB_VITALS_ENABLED]
-            ),
-            disabledReason,
-            visible: hasWebVitalsSeerSuggestions,
-          }}
-        />,
-      ],
+      fields: hasWebVitalsSeerSuggestions
+        ? [
+            <RangeField
+              key={DetectorConfigCustomer.WEB_VITALS_COUNT}
+              {...fieldSettings}
+              definition={{
+                name: DetectorConfigCustomer.WEB_VITALS_COUNT,
+                label: t('Minimum Sample Count'),
+                defaultValue: 10,
+                help: t(
+                  'Setting the value to 10, means that web vital issues will only be created if there are at least 10 samples of the web vital type.'
+                ),
+                tickValues: [0, allowedCountValues.length - 1],
+                allowedValues: allowedCountValues,
+                showTickLabels: true,
+                formatLabel: formatCount,
+                disabled: !(
+                  hasAccess &&
+                  performanceIssueSettings[DetectorConfigAdmin.WEB_VITALS_ENABLED]
+                ),
+                disabledReason,
+              }}
+            />,
+          ]
+        : [],
       initiallyCollapsed: issueType !== IssueType.WEB_VITALS,
     },
     {
       title: aiDetectedGroupTitle,
-      fields: [
-        <BooleanField
-          key={DetectorConfigAdmin.AI_DETECTED_HTTP_ENABLED}
-          {...fieldSettings}
-          definition={{
-            name: DetectorConfigAdmin.AI_DETECTED_HTTP_ENABLED,
-            label: t('HTTP Issues'),
-            help: t('Allow HTTP issues to be created'),
-            defaultValue: true,
-            disabled: !(
-              hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
-            ),
-            disabledReason,
-            visible: hasAIIssueDetection,
-          }}
-        />,
-        <BooleanField
-          key={DetectorConfigAdmin.AI_DETECTED_DB_ENABLED}
-          {...fieldSettings}
-          definition={{
-            name: DetectorConfigAdmin.AI_DETECTED_DB_ENABLED,
-            label: t('Database Issues'),
-            help: t('Allow database issues to be created'),
-            defaultValue: true,
-            disabled: !(
-              hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
-            ),
-            disabledReason,
-            visible: hasAIIssueDetection,
-          }}
-        />,
-        <BooleanField
-          key={DetectorConfigAdmin.AI_DETECTED_RUNTIME_PERFORMANCE_ENABLED}
-          {...fieldSettings}
-          definition={{
-            name: DetectorConfigAdmin.AI_DETECTED_RUNTIME_PERFORMANCE_ENABLED,
-            label: t('Runtime Performance Issues'),
-            help: t('Allow runtime performance issues to be created'),
-            defaultValue: true,
-            disabled: !(
-              hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
-            ),
-            disabledReason,
-            visible: hasAIIssueDetection,
-          }}
-        />,
-        <BooleanField
-          key={DetectorConfigAdmin.AI_DETECTED_SECURITY_ENABLED}
-          {...fieldSettings}
-          definition={{
-            name: DetectorConfigAdmin.AI_DETECTED_SECURITY_ENABLED,
-            label: t('Security Issues'),
-            help: t('Allow security issues to be created'),
-            defaultValue: true,
-            disabled: !(
-              hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
-            ),
-            disabledReason,
-            visible: hasAIIssueDetection,
-          }}
-        />,
-        <BooleanField
-          key={DetectorConfigAdmin.AI_DETECTED_CODE_HEALTH_ENABLED}
-          {...fieldSettings}
-          definition={{
-            name: DetectorConfigAdmin.AI_DETECTED_CODE_HEALTH_ENABLED,
-            label: t('Code Health Issues'),
-            help: t('Allow code health issues to be created'),
-            defaultValue: true,
-            disabled: !(
-              hasAccess &&
-              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
-            ),
-            disabledReason,
-            visible: hasAIIssueDetection,
-          }}
-        />,
-      ],
+      fields: hasAIIssueDetection
+        ? [
+            <BooleanField
+              key={DetectorConfigAdmin.AI_DETECTED_HTTP_ENABLED}
+              {...fieldSettings}
+              definition={{
+                name: DetectorConfigAdmin.AI_DETECTED_HTTP_ENABLED,
+                label: t('HTTP Issues'),
+                help: t('Allow HTTP issues to be created'),
+                defaultValue: true,
+                disabled: !(
+                  hasAccess &&
+                  performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
+                ),
+                disabledReason,
+              }}
+            />,
+            <BooleanField
+              key={DetectorConfigAdmin.AI_DETECTED_DB_ENABLED}
+              {...fieldSettings}
+              definition={{
+                name: DetectorConfigAdmin.AI_DETECTED_DB_ENABLED,
+                label: t('Database Issues'),
+                help: t('Allow database issues to be created'),
+                defaultValue: true,
+                disabled: !(
+                  hasAccess &&
+                  performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
+                ),
+                disabledReason,
+              }}
+            />,
+            <BooleanField
+              key={DetectorConfigAdmin.AI_DETECTED_RUNTIME_PERFORMANCE_ENABLED}
+              {...fieldSettings}
+              definition={{
+                name: DetectorConfigAdmin.AI_DETECTED_RUNTIME_PERFORMANCE_ENABLED,
+                label: t('Runtime Performance Issues'),
+                help: t('Allow runtime performance issues to be created'),
+                defaultValue: true,
+                disabled: !(
+                  hasAccess &&
+                  performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
+                ),
+                disabledReason,
+              }}
+            />,
+            <BooleanField
+              key={DetectorConfigAdmin.AI_DETECTED_SECURITY_ENABLED}
+              {...fieldSettings}
+              definition={{
+                name: DetectorConfigAdmin.AI_DETECTED_SECURITY_ENABLED,
+                label: t('Security Issues'),
+                help: t('Allow security issues to be created'),
+                defaultValue: true,
+                disabled: !(
+                  hasAccess &&
+                  performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
+                ),
+                disabledReason,
+              }}
+            />,
+            <BooleanField
+              key={DetectorConfigAdmin.AI_DETECTED_CODE_HEALTH_ENABLED}
+              {...fieldSettings}
+              definition={{
+                name: DetectorConfigAdmin.AI_DETECTED_CODE_HEALTH_ENABLED,
+                label: t('Code Health Issues'),
+                help: t('Allow code health issues to be created'),
+                defaultValue: true,
+                disabled: !(
+                  hasAccess &&
+                  performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
+                ),
+                disabledReason,
+              }}
+            />,
+          ]
+        : [],
       initiallyCollapsed: !AI_DETECTED_ISSUE_TYPES.has(issueType as IssueType),
     },
   ];
 
   // If the organization can manage detectors, add the admin field to the existing settings
-  const adminFields = getDetectorAdminFields({
-    hasAIIssueDetection,
-    hasWebVitalsSeerSuggestions,
-    organization,
-  });
+  const adminFields = getDetectorAdminFields();
 
   return baseDetectorFields.map(fieldGroup => {
-    const manageField = adminFields[fieldGroup.title];
+    const manageField = fieldGroup.fields.length
+      ? adminFields[fieldGroup.title]
+      : undefined;
 
     return manageField
       ? {
