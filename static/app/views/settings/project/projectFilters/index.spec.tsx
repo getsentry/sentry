@@ -759,6 +759,45 @@ describe('ProjectFilters', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('explains which fields a condition matches', async () => {
+    MockApiClient.addMockResponse({
+      url: CUSTOM_INBOUND_FILTERS_URL,
+      body: [],
+    });
+    render(<ProjectFilters />, {
+      organization: OrganizationFixture({
+        ...organization,
+        features: ['inbound-filters-v2', 'ourlogs-ingestion'],
+      }),
+      outletContext: {project},
+      initialRouterConfig: inboundFiltersRouterConfig,
+    });
+    renderGlobalModal();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Add Rule'}));
+
+    await userEvent.hover(screen.getByRole('img', {name: 'More information'}));
+    expect(
+      await screen.findByText(/Matches the exception type, the exception value/)
+    ).toBeInTheDocument();
+
+    // Release lives on a different field per data type, so the explanation
+    // follows the selected data type.
+    await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Release'}));
+    await userEvent.hover(screen.getByRole('img', {name: 'More information'}));
+    expect(
+      await screen.findByText('Matches the release of the error.')
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('textbox', {name: 'Data Type'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Logs'}));
+    await userEvent.hover(screen.getByRole('img', {name: 'More information'}));
+    expect(
+      await screen.findByText('Matches the release attribute of the log.')
+    ).toBeInTheDocument();
+  });
+
   it('remaps condition properties when the data type changes', async () => {
     MockApiClient.addMockResponse({
       url: CUSTOM_INBOUND_FILTERS_URL,

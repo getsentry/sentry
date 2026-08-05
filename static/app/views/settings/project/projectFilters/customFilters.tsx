@@ -7,6 +7,7 @@ import {z} from 'zod';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {InfoTip} from '@sentry/scraps/info';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
@@ -187,6 +188,34 @@ function getPropertyLabel(value: string) {
   return value in PROPERTY_LABELS ? PROPERTY_LABELS[value as ConditionType] : value;
 }
 
+// Release lives on a different field per data type, so its description depends
+// on the filter's data type. See `_CUSTOM_FILTER_RELEASE_FIELDS` on the backend.
+const RELEASE_MATCH_DESCRIPTIONS: Record<FilterDataType, string> = {
+  error: t('Matches the release of the error.'),
+  log: t('Matches the release attribute of the log.'),
+  metric: t('Matches the release attribute of the metric.'),
+};
+
+// Names the fields a condition globs against. Error messages are the surprising
+// case: the backend globs the exception type, the exception value and the log
+// entry message separately, so a combined "type: value" pattern never matches.
+function getMatchDescription(property: ConditionType, dataType: FilterDataType): string {
+  switch (property) {
+    case 'error_message':
+      return t(
+        'Matches the exception type, the exception value, or the message of an error. Sentry tests each of the three on its own, so a combined pattern like "TypeError: *" never matches.'
+      );
+    case 'log_message':
+      return t('Matches the body of the log.');
+    case 'metric_name':
+      return t('Matches the name of the metric.');
+    case 'release':
+      return RELEASE_MATCH_DESCRIPTIONS[dataType];
+    default:
+      return '';
+  }
+}
+
 function getValuePlaceholder(property: ConditionType) {
   switch (property) {
     case 'error_message':
@@ -277,9 +306,16 @@ function CustomFilterModal({
   return (
     <form.AppForm form={form}>
       <Header closeButton>
-        <Heading as="h4">
-          {filter ? t('Edit Custom Filter') : t('Create Custom Filter')}
-        </Heading>
+        <Stack gap="xs">
+          <Heading as="h4">
+            {filter ? t('Edit Custom Filter') : t('Create Custom Filter')}
+          </Heading>
+          <Text variant="muted" size="sm">
+            {t(
+              'Sentry only filters data that matches every condition below. Each value is a glob pattern, so * matches any text.'
+            )}
+          </Text>
+        </Stack>
       </Header>
       <Body>
         <Stack gap="xl">
@@ -330,65 +366,63 @@ function CustomFilterModal({
                 {conditionsField => {
                   const conditions = conditionsField.state.value;
                   return (
-                    <Stack gap="md">
-                      <Text variant="muted" size="sm">
-                        {t(
-                          'Events must match all conditions (combined with AND) to be filtered. Each condition is a glob pattern matched against the selected field.'
-                        )}
-                      </Text>
-                      <Stack gap="sm">
-                        {conditions.map((condition, index) => (
-                          <Grid
-                            key={index}
-                            columns="160px max-content 1fr max-content"
-                            gap="md"
-                            align="center"
-                          >
-                            <form.AppField name={`conditions[${index}].property`}>
-                              {propertyField => (
-                                <propertyField.Select
-                                  aria-label={t('Condition property')}
-                                  clearable={false}
-                                  options={getPropertyOptions(dataType)}
-                                  value={propertyField.state.value}
-                                  onChange={value => propertyField.handleChange(value)}
-                                />
-                              )}
-                            </form.AppField>
-                            <Text variant="muted">{t('matches')}</Text>
-                            <form.AppField name={`conditions[${index}].value`}>
-                              {valueField => (
-                                <valueField.Input
-                                  aria-label={t('Condition value')}
-                                  placeholder={getValuePlaceholder(condition.property)}
-                                  value={valueField.state.value}
-                                  onChange={valueField.handleChange}
-                                />
-                              )}
-                            </form.AppField>
-                            <Button
-                              size="sm"
-                              variant="transparent"
-                              icon={<IconDelete />}
-                              aria-label={t('Remove condition')}
-                              disabled={conditions.length === 1}
-                              onClick={() => conditionsField.removeValue(index)}
-                            />
-                          </Grid>
-                        ))}
-                      </Stack>
-                      <AddConditionButton
-                        variant="transparent"
-                        size="xs"
-                        icon={<IconAdd />}
-                        onClick={() =>
-                          conditionsField.pushValue(
-                            emptyCondition(PRIMARY_PROPERTY_BY_DATA_TYPE[dataType])
-                          )
-                        }
-                      >
-                        {t('Add Condition')}
-                      </AddConditionButton>
+                    <Stack gap="sm">
+                      {conditions.map((condition, index) => (
+                        <Grid
+                          key={index}
+                          columns="160px max-content 1fr max-content max-content"
+                          gap="md"
+                          align="center"
+                        >
+                          <form.AppField name={`conditions[${index}].property`}>
+                            {propertyField => (
+                              <propertyField.Select
+                                aria-label={t('Condition property')}
+                                clearable={false}
+                                options={getPropertyOptions(dataType)}
+                                value={propertyField.state.value}
+                                onChange={value => propertyField.handleChange(value)}
+                              />
+                            )}
+                          </form.AppField>
+                          <Text variant="muted">{t('matches')}</Text>
+                          <form.AppField name={`conditions[${index}].value`}>
+                            {valueField => (
+                              <valueField.Input
+                                aria-label={t('Condition value')}
+                                placeholder={getValuePlaceholder(condition.property)}
+                                value={valueField.state.value}
+                                onChange={valueField.handleChange}
+                              />
+                            )}
+                          </form.AppField>
+                          <InfoTip
+                            title={getMatchDescription(condition.property, dataType)}
+                          />
+                          <Button
+                            size="sm"
+                            variant="transparent"
+                            icon={<IconDelete />}
+                            aria-label={t('Remove condition')}
+                            disabled={conditions.length === 1}
+                            onClick={() => conditionsField.removeValue(index)}
+                          />
+                        </Grid>
+                      ))}
+                      <Flex>
+                        <AddConditionButton
+                          variant="transparent"
+                          size="xs"
+                          icon={<IconAdd />}
+                          onClick={() =>
+                            conditionsField.pushValue(
+                              emptyCondition(PRIMARY_PROPERTY_BY_DATA_TYPE[dataType])
+                            )
+                          }
+                        >
+                          {t('Add Condition')}
+                        </AddConditionButton>
+                      </Flex>
                     </Stack>
                   );
                 }}
