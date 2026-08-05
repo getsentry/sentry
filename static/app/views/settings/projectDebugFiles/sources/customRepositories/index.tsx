@@ -43,7 +43,7 @@ export function CustomRepositories({
   );
 
   const persistData = useCallback(
-    ({
+    async ({
       updatedItems,
       updatedItem,
       index,
@@ -59,7 +59,7 @@ export function CustomRepositories({
         items.splice(index, 1, updatedItem);
       }
 
-      return updateCustomRepositories({repositories: items}).then(() => {});
+      await updateCustomRepositories({repositories: items});
     },
     [repositories, updateCustomRepositories]
   );
