@@ -409,6 +409,82 @@ class IntegrationEventLifecycleMetricTest(TestCase):
         mock_logger.warning.assert_not_called()
         mock_random.random.assert_called_once()
 
+    # ------------------------------------------------------------------
+    # IntegrationEventLifecycle.__exit__ network-error halt tests
+    # ------------------------------------------------------------------
+
+    @mock.patch("sentry.integrations.utils.metrics.sentry_sdk")
+    @mock.patch("sentry.integrations.utils.metrics.logger")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_timeout_error_direct_causes_halt(
+        self, mock_metrics: mock.MagicMock, mock_logger: mock.MagicMock, mock_sentry_sdk: mock.MagicMock
+    ) -> None:
+        """A TimeoutError raised directly inside the lifecycle context records halt, not failure."""
+        metric_obj = self.TestLifecycleMetric()
+
+        with pytest.raises(TimeoutError):
+            with metric_obj.capture():
+                raise TimeoutError("timed out")
+
+        self._check_metrics_call_args(mock_metrics, "halted")
+        mock_sentry_sdk.capture_exception.assert_not_called()
+
+    @mock.patch("sentry.integrations.utils.metrics.sentry_sdk")
+    @mock.patch("sentry.integrations.utils.metrics.logger")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_connection_error_direct_causes_halt(
+        self, mock_metrics: mock.MagicMock, mock_logger: mock.MagicMock, mock_sentry_sdk: mock.MagicMock
+    ) -> None:
+        """A ConnectionError raised directly inside the lifecycle context records halt, not failure."""
+        metric_obj = self.TestLifecycleMetric()
+
+        with pytest.raises(ConnectionError):
+            with metric_obj.capture():
+                raise ConnectionError("connection refused")
+
+        self._check_metrics_call_args(mock_metrics, "halted")
+        mock_sentry_sdk.capture_exception.assert_not_called()
+
+    @mock.patch("sentry.integrations.utils.metrics.sentry_sdk")
+    @mock.patch("sentry.integrations.utils.metrics.logger")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_timeout_error_chained_via_cause_causes_halt(
+        self, mock_metrics: mock.MagicMock, mock_logger: mock.MagicMock, mock_sentry_sdk: mock.MagicMock
+    ) -> None:
+        """A TimeoutError buried in the __cause__ chain causes halt — mirrors the
+        Perforce pattern where TimeoutError → P4Exception → ApiError."""
+        metric_obj = self.TestLifecycleMetric()
+
+        timeout = TimeoutError("timed out")
+        intermediate = RuntimeError("connect to server failed")
+        intermediate.__cause__ = timeout
+        outer = ExampleException("Failed to connect: ...")
+        outer.__cause__ = intermediate
+
+        with pytest.raises(ExampleException):
+            with metric_obj.capture():
+                raise outer
+
+        self._check_metrics_call_args(mock_metrics, "halted")
+        mock_sentry_sdk.capture_exception.assert_not_called()
+
+    @mock.patch("sentry.integrations.utils.metrics.sentry_sdk")
+    @mock.patch("sentry.integrations.utils.metrics.logger")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_unrelated_exception_still_causes_failure(
+        self, mock_metrics: mock.MagicMock, mock_logger: mock.MagicMock, mock_sentry_sdk: mock.MagicMock
+    ) -> None:
+        """An exception with no network error in its cause chain still records failure."""
+        mock_sentry_sdk.capture_exception.return_value = "test-event-id"
+        metric_obj = self.TestLifecycleMetric()
+
+        with pytest.raises(ExampleException):
+            with metric_obj.capture():
+                raise ExampleException("something else went wrong")
+
+        self._check_metrics_call_args(mock_metrics, "failure")
+        mock_sentry_sdk.capture_exception.assert_called_once()
+
     @mock.patch("sentry.integrations.utils.metrics.random")
     @mock.patch("sentry.integrations.utils.metrics.logger")
     @mock.patch("sentry.integrations.utils.metrics.metrics")
