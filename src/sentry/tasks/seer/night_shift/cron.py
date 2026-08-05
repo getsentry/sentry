@@ -392,7 +392,7 @@ def run_night_shift_execution(
 
     sentry_sdk.metrics.distribution("night_shift.eligible_projects", len(eligible))
     # Stamped so zero-shard runs are distinguishable: no eligible projects vs. no candidates.
-    run.update(extras={**(run.extras or {}), "num_eligible_projects": len(eligible)})
+    _update_run_extras(run, {"num_eligible_projects": len(eligible)})
 
     if not eligible:
         logger.info("night_shift.no_eligible_projects", extra=log_extra)
@@ -512,6 +512,15 @@ def _get_eligible_orgs_from_batch(
     return eligible
 
 
+def _update_run_extras(run: SeerNightShiftRun, updates: Mapping[str, object]) -> None:
+    using = router.db_for_write(SeerNightShiftRun)
+    with transaction.atomic(using=using):
+        locked_run = SeerNightShiftRun.objects.select_for_update().get(id=run.id)
+        if locked_run.date_completed is not None:
+            return
+        locked_run.update(extras={**(locked_run.extras or {}), **updates})
+
+
 def _complete_run(run: SeerNightShiftRun) -> None:
     using = router.db_for_write(SeerNightShiftRun)
     with transaction.atomic(using=using):
@@ -525,12 +534,7 @@ def _complete_run(run: SeerNightShiftRun) -> None:
 
 
 def _record_run_error(run: SeerNightShiftRun, message: str) -> None:
-    using = router.db_for_write(SeerNightShiftRun)
-    with transaction.atomic(using=using):
-        locked_run = SeerNightShiftRun.objects.select_for_update().get(id=run.id)
-        if locked_run.date_completed is not None:
-            return
-        locked_run.update(extras={**(locked_run.extras or {}), "error_message": message})
+    _update_run_extras(run, {"error_message": message})
 
 
 def _fail_run(
@@ -696,7 +700,7 @@ def _plan_and_dispatch_shards(
         fixability_score_strategy_per_project if per_project_quotas else fixability_score_strategy
     )
     scored = score_strategy(eligible_projects, resolved_options["max_candidates"])
-    run.update(extras={**(run.extras or {}), "num_candidates": len(scored)})
+    _update_run_extras(run, {"num_candidates": len(scored)})
     if not scored:
         logger.info("night_shift.no_candidates", extra=log_extra)
         return True

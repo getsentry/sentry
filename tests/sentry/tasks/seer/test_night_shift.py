@@ -24,9 +24,12 @@ from sentry.seer.models.night_shift import (
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.models.workflow import SeerWorkflowStrategy
 from sentry.tasks.seer.night_shift.cron import (
+    _complete_run,
     _current_schedule_id,
     _get_eligible_projects,
     _night_shift_cron_expr,
+    _record_run_error,
+    _update_run_extras,
     build_run_options,
     run_night_shift_for_org,
     schedule_night_shift,
@@ -638,6 +641,22 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
             },
         )
         mock_count.assert_called_once_with("night_shift.incomplete_run_resumed", 1)
+
+    def test_completed_run_ignores_stale_extras_update(self) -> None:
+        org = self.create_organization()
+
+        with patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution"):
+            run_id = run_night_shift_for_org(org.id, schedule_id="2024-07-22T22:00")
+
+        assert run_id is not None
+        run = SeerNightShiftRun.objects.get(id=run_id)
+        _record_run_error(run, "transient failure")
+        _complete_run(run)
+        _update_run_extras(run, {"num_candidates": 1})
+
+        run.refresh_from_db()
+        assert run.extras.get("error_message") is None
+        assert "num_candidates" not in run.extras
 
     def test_different_schedule_ids_create_separate_runs(self) -> None:
         org = self.create_organization()
