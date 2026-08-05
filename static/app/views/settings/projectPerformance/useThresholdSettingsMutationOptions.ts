@@ -40,8 +40,11 @@ export function useThresholdSettingsMutationOptions(threshold: ProjectThreshold)
   const organization = useOrganization();
   const {projectId: projectSlug} = useParams<{projectId: string}>();
   const queryClient = useQueryClient();
-  const mutationKey = getThresholdSettingsMutationKey(organization.slug, projectSlug);
-  const mutationScope = {id: mutationKey.join(':')};
+  const mutationKeyPrefix = getThresholdSettingsMutationKey(
+    organization.slug,
+    projectSlug
+  );
+  const mutationScope = {id: mutationKeyPrefix.join(':')};
 
   const cacheThreshold = (data: ProjectThreshold) => {
     queryClient.setQueryData(
@@ -52,7 +55,7 @@ export function useThresholdSettingsMutationOptions(threshold: ProjectThreshold)
 
   return {
     metricMutationOptions: {
-      mutationKey,
+      mutationKey: [...mutationKeyPrefix, 'metric'],
       scope: mutationScope,
       mutationFn: (data: {metric: ThresholdMetric}) =>
         updateThresholdSettings(organization.slug, projectSlug, data),
@@ -67,7 +70,7 @@ export function useThresholdSettingsMutationOptions(threshold: ProjectThreshold)
       },
     },
     thresholdMutationOptions: {
-      mutationKey,
+      mutationKey: [...mutationKeyPrefix, 'threshold'],
       scope: mutationScope,
       mutationFn: (data: {threshold: string}) =>
         updateThresholdSettings(organization.slug, projectSlug, data),

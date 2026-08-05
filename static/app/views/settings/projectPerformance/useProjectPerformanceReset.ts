@@ -41,7 +41,6 @@ export function useProjectPerformanceReset(): ProjectPerformanceReset {
   const isSavingThresholdSettings =
     useIsMutating({
       mutationKey: getThresholdSettingsMutationKey(organization.slug, projectSlug),
-      exact: true,
     }) > 0;
   const isSavingDetectorSettings =
     useIsMutating({
