@@ -32,6 +32,27 @@ describe('copyToClipboard', () => {
     expect(document.querySelector('textarea')).not.toBeInTheDocument();
   });
 
+  it('falls back when the Clipboard API rejects the write', async () => {
+    const writeText = jest
+      .fn()
+      .mockRejectedValueOnce(
+        new DOMException('Write permission denied', 'NotAllowedError')
+      );
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {writeText},
+    });
+    const mockExecCommand = jest.fn().mockReturnValue(true);
+    Object.defineProperty(document, 'execCommand', {
+      configurable: true,
+      value: mockExecCommand,
+    });
+
+    await expect(copyToClipboard('Scraps', null)).resolves.toBe('Scraps');
+
+    expect(mockExecCommand).toHaveBeenCalledWith('copy');
+  });
+
   it('rejects when the fallback cannot copy', async () => {
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,

@@ -130,7 +130,7 @@ export function CodeBlock({
   const [tooltipState, setTooltipState] = useState<'copy' | 'copied' | 'error'>('copy');
 
   const handleCopy = () => {
-    copyToClipboard(ref.current?.textContent ?? '', null)
+    copyToClipboard(children, null)
       .then(() => {
         setTooltipState('copied');
       })

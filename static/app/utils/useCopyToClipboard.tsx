@@ -46,11 +46,13 @@ export function copyToClipboard(
 
 function writeTextToClipboard(text: string): Promise<void> {
   if (navigator.clipboard) {
-    return navigator.clipboard.writeText(text);
+    return navigator.clipboard.writeText(text).catch(() => copyUsingExecCommand(text));
   }
 
-  // The Clipboard API is unavailable on non-secure origins, including the
-  // local HTTP origin used by Scraps.
+  return copyUsingExecCommand(text);
+}
+
+function copyUsingExecCommand(text: string): Promise<void> {
   const textArea = document.createElement('textarea');
   textArea.value = text;
   textArea.style.position = 'fixed';
