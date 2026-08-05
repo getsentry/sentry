@@ -434,7 +434,7 @@ importers:
         version: 0.6.2
       nuqs:
         specifier: 2.7.1
-        version: 2.7.1(react-router-dom@6.30.3(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-router@6.30.3(react@19.2.3))(react@19.2.3)
+        version: 2.7.1(react-router-dom@7.18.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-router@7.18.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
       papaparse:
         specifier: ^5.3.2
         version: 5.3.2
@@ -478,8 +478,8 @@ importers:
         specifier: ^2.3.0
         version: 2.3.0(@popperjs/core@2.11.5)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       react-router-dom:
-        specifier: 6.30.3
-        version: 6.30.3(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        specifier: 7.18.2
+        version: 7.18.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       react-select:
         specifier: 4.3.1
         version: 4.3.1(@types/react@19.2.1)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -4851,6 +4851,10 @@ packages:
     resolution: {integrity: sha512-yki5XnKuf750l50uGTllt6kKILY4nQ1eNIQatoXEByZ5dWgnKqbnqmTrBE5B4N7lrMJKQ2ytWMiTO2o0v6Ew/w==}
     engines: {node: '>= 0.6'}
 
+  cookie@1.1.1:
+    resolution: {integrity: sha512-ei8Aos7ja0weRpFzJnEA9UHJ/7XQmqglbRwnf2ATjcB9Wq874VKH9kfjjirM6UhU2/E5fFYadylyhFldcqSidQ==}
+    engines: {node: '>=18'}
+
   cookiejar@2.1.4:
     resolution: {integrity: sha512-LDx6oHrK+PhzLKJU9j5S7/Y3jM/mUHvD/DeI1WQmJn652iPC5Y4TBzC9l+5OMOXlyTTA+SmVUPm0HQUwpD5Jqw==}
 
@@ -7907,18 +7911,22 @@ packages:
       react: '>= 16.3'
       react-dom: '>= 16.3'
 
-  react-router-dom@6.30.3:
-    resolution: {integrity: sha512-pxPcv1AczD4vso7G4Z3TKcvlxK7g7TNt3/FNGMhfqyntocvYKj+GCatfigGDjbLozC4baguJ0ReCigoDJXb0ag==}
-    engines: {node: '>=14.0.0'}
+  react-router-dom@7.18.2:
+    resolution: {integrity: sha512-AIKJ/jgGlFb3EbfCXk5Gzshiwt+l3mqbCrNjmEWMMjqQxNJ3svBa6bgzFyCC2Sw3RA0VWF1kg3uQf2OFhxb8hw==}
+    engines: {node: '>=20.0.0'}
     peerDependencies:
-      react: '>=16.8'
-      react-dom: '>=16.8'
+      react: '>=18'
+      react-dom: '>=18'
 
-  react-router@6.30.3:
-    resolution: {integrity: sha512-XRnlbKMTmktBkjCLE8/XcZFlnHvr2Ltdr1eJX4idL55/9BbORzyZEaIkBFDhFGCEWBBItsVrDxwx3gnisMitdw==}
-    engines: {node: '>=14.0.0'}
+  react-router@7.18.2:
+    resolution: {integrity: sha512-aUVMjFm3GAPTTZL7oYr5E7ETiqfQCHRLH+B+5afnICvf0r7kkK4eR6SMuwbSTJw/7t+12khT/Kahij49fqOCIg==}
+    engines: {node: '>=20.0.0'}
     peerDependencies:
-      react: '>=16.8'
+      react: '>=18'
+      react-dom: '>=18'
+    peerDependenciesMeta:
+      react-dom:
+        optional: true
 
   react-select@4.3.1:
     resolution: {integrity: sha512-HBBd0dYwkF5aZk1zP81Wx5UsLIIT2lSvAY2JiJo199LjoLHoivjn9//KsmvQMEFGNhe58xyuOITjfxKCcGc62Q==}
@@ -8253,6 +8261,9 @@ packages:
   seroval@1.5.6:
     resolution: {integrity: sha512-rVQVWjjSvlINzaQPZH5JFqsqEsIWdTxY3iJZCnTL/5gQbXIRooVZKI60tVCkOVfzcRPejboxO2t0P89dg5mQaA==}
     engines: {node: '>=10'}
+
+  set-cookie-parser@2.7.2:
+    resolution: {integrity: sha512-oeM1lpU/UvhTxw+g3cIfxXHyJRc/uidd3yK1P242gzHds0udQBYzs3y8j4gCCW+ZJ7ad0yctld8RYO+bdurlvw==}
 
   set-function-length@1.2.2:
     resolution: {integrity: sha512-pgRc4hJ4/sNjWCSS9AmnS40x3bNMDTknHgL5UaMBTMyJnU90EgWh1Rz+MC9eFu4BuN/UwZjKQuY/1v3rM7HMfg==}
@@ -13434,6 +13445,8 @@ snapshots:
 
   cookie@0.7.2: {}
 
+  cookie@1.1.1: {}
+
   cookiejar@2.1.4: {}
 
   copy-anything@2.0.3:
@@ -16815,13 +16828,13 @@ snapshots:
     dependencies:
       boolbase: 1.0.0
 
-  nuqs@2.7.1(react-router-dom@6.30.3(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-router@6.30.3(react@19.2.3))(react@19.2.3):
+  nuqs@2.7.1(react-router-dom@7.18.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-router@7.18.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3):
     dependencies:
       '@standard-schema/spec': 1.0.0
       react: 19.2.3
     optionalDependencies:
-      react-router: 6.30.3(react@19.2.3)
-      react-router-dom: 6.30.3(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      react-router: 7.18.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      react-router-dom: 7.18.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
 
   nwsapi@2.2.20: {}
 
@@ -17462,17 +17475,19 @@ snapshots:
       react-dom: 19.2.3(react@19.2.3)
       react-draggable: 4.5.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
 
-  react-router-dom@6.30.3(react-dom@19.2.3(react@19.2.3))(react@19.2.3):
+  react-router-dom@7.18.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3):
     dependencies:
-      '@remix-run/router': 1.23.2
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
-      react-router: 6.30.3(react@19.2.3)
+      react-router: 7.18.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
 
-  react-router@6.30.3(react@19.2.3):
+  react-router@7.18.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3):
     dependencies:
-      '@remix-run/router': 1.23.2
+      cookie: 1.1.1
       react: 19.2.3
+      set-cookie-parser: 2.7.2
+    optionalDependencies:
+      react-dom: 19.2.3(react@19.2.3)
 
   react-select@4.3.1(@types/react@19.2.1)(react-dom@19.2.3(react@19.2.3))(react@19.2.3):
     dependencies:
@@ -17907,6 +17922,8 @@ snapshots:
       seroval: 1.5.6
 
   seroval@1.5.6: {}
+
+  set-cookie-parser@2.7.2: {}
 
   set-function-length@1.2.2:
     dependencies:
