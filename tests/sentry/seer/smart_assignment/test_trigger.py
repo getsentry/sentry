@@ -3,14 +3,23 @@ from unittest.mock import MagicMock, patch
 from django.utils import timezone
 
 from sentry.models.activity import Activity, ActivityIntegration
+from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunType
-from sentry.seer.smart_assignment.models import SEER_FEATURE_ID
+from sentry.seer.smart_assignment.models import SEER_FEATURE_ID, SmartAssignmentScore
+from sentry.seer.smart_assignment.scoring import record_prediction
 from sentry.seer.smart_assignment.trigger import trigger_smart_assignment
 from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
 
 CLIENT_PATH = "sentry.seer.smart_assignment.trigger.SeerAgentClient"
+SCORING_METRICS_PATH = "sentry.seer.smart_assignment.scoring.metrics"
+
+SEER_START_ACTIVITY_TYPES = (
+    ActivityType.SEER_RCA_STARTED,
+    ActivityType.SEER_SOLUTION_STARTED,
+    ActivityType.SEER_CODING_STARTED,
+)
 
 
 class TriggerSmartAssignmentTest(TestCase):
@@ -24,6 +33,8 @@ class TriggerSmartAssignmentTest(TestCase):
         SeerRun -- so dedup and scoring see a realistic run."""
 
         def fake_start(**kwargs: object) -> SeerRun:
+            payload = kwargs.get("payload") or {}
+            assert isinstance(payload, dict)
             run = SeerRun.objects.create(
                 organization=self.organization,
                 type=SeerRunType.FEATURE_RUN,
@@ -33,7 +44,7 @@ class TriggerSmartAssignmentTest(TestCase):
                 run=run,
                 title=str(kwargs.get("title") or ""),
                 source=str(kwargs["feature_id"]),
-                group=self.group,
+                group=Group.objects.get(id=payload["group_id"]),
                 extras=kwargs.get("extras") or {},
             )
             return run
@@ -50,8 +61,10 @@ class TriggerSmartAssignmentTest(TestCase):
             run=run, source=SEER_FEATURE_ID, group=self.group, extras=extras
         )
 
-    def _mirrors(self) -> list[SeerAgentRun]:
-        return list(SeerAgentRun.objects.filter(group_id=self.group.id, source=SEER_FEATURE_ID))
+    def _mirrors(self, group: Group | None = None) -> list[SeerAgentRun]:
+        return list(
+            SeerAgentRun.objects.filter(group_id=(group or self.group).id, source=SEER_FEATURE_ID)
+        )
 
     def _activity(self, activity_type: ActivityType, user_id: int | None = None) -> Activity:
         return self.create_group_activity(
@@ -66,12 +79,13 @@ class TriggerSmartAssignmentTest(TestCase):
         assignee_id: int,
         assignee_type: str = "user",
         integration: str | None = None,
+        group: Group | None = None,
     ) -> Activity:
         data = {"assignee": str(assignee_id), "assigneeType": assignee_type}
         if integration is not None:
             data["integration"] = integration
         return self.create_group_activity(
-            group=self.group, type=ActivityType.ASSIGNED.value, data=data
+            group=group or self.group, type=ActivityType.ASSIGNED.value, data=data
         )
 
     @patch(CLIENT_PATH)
@@ -330,6 +344,108 @@ class TriggerSmartAssignmentTest(TestCase):
         mirrors = self._mirrors()
         assert len(mirrors) == 1
         assert mirrors[0].extras["actual_assignee_user_id"] == human.id
+
+    @patch(CLIENT_PATH)
+    def test_every_seer_start_snapshots_an_existing_user_assignee(
+        self, mock_client_cls: MagicMock
+    ) -> None:
+        # Without this the run has a prediction and no label, and nothing later is
+        # guaranteed to supply one.
+        self._wire_client(mock_client_cls)
+        for activity_type in SEER_START_ACTIVITY_TYPES:
+            group = self.create_group()
+            assignee = self.create_user()
+            GroupAssignee.objects.create(group=group, project=group.project, user_id=assignee.id)
+            self._assigned_activity(assignee.id, group=group)
+            with self.feature("organizations:seer-smart-assignment-run"):
+                trigger_smart_assignment(
+                    group,
+                    activity_type,
+                    self.create_group_activity(group=group, type=activity_type.value),
+                )
+
+            extras = self._mirrors(group)[0].extras
+            assert extras["trigger"] == activity_type.name
+            assert extras["actual_assignee_user_id"] == assignee.id
+            assert extras["ground_truth_source"] == ActivityType.ASSIGNED.name
+
+    @patch(CLIENT_PATH)
+    def test_seer_start_snapshots_an_existing_team_assignee(
+        self, mock_client_cls: MagicMock
+    ) -> None:
+        self._wire_client(mock_client_cls)
+        team = self.create_team(organization=self.organization)
+        GroupAssignee.objects.create(group=self.group, project=self.group.project, team=team)
+        self._assigned_activity(team.id, "team")
+        with self.feature("organizations:seer-smart-assignment-run"):
+            trigger_smart_assignment(
+                self.group, ActivityType.SEER_RCA_STARTED, self._seer_started()
+            )
+
+        extras = self._mirrors()[0].extras
+        assert extras["actual_assignee_team_id"] == team.id
+        assert extras["actual_assignee_user_id"] is None
+
+    @patch(SCORING_METRICS_PATH)
+    @patch(CLIENT_PATH)
+    def test_repeated_seer_start_does_not_rewrite_truth(
+        self, mock_client_cls: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        self._wire_client(mock_client_cls)
+        assignee = self.create_user()
+        GroupAssignee.objects.create(
+            group=self.group, project=self.group.project, user_id=assignee.id
+        )
+        self._assigned_activity(assignee.id)
+        with self.feature("organizations:seer-smart-assignment-run"):
+            for activity_type in (
+                ActivityType.SEER_RCA_STARTED,
+                ActivityType.SEER_SOLUTION_STARTED,
+            ):
+                trigger_smart_assignment(
+                    self.group,
+                    activity_type,
+                    self.create_group_activity(group=self.group, type=activity_type.value),
+                )
+
+        # The second start sees identical truth, so it neither rewrites nor recounts it.
+        recorded = [
+            call
+            for call in mock_metrics.incr.call_args_list
+            if call.args and call.args[0] == "smart_assignment.ground_truth.recorded"
+        ]
+        assert len(recorded) == 1
+        assert self._mirrors()[0].extras["actual_assignee_user_id"] == assignee.id
+
+    @patch(SCORING_METRICS_PATH)
+    @patch(CLIENT_PATH)
+    def test_snapshotted_assignee_scores_when_the_prediction_lands(
+        self, mock_client_cls: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        # The whole point of the snapshot: no assignment or resolution ever follows, and
+        # the run still scores when Seer delivers.
+        self._wire_client(mock_client_cls)
+        assignee = self.create_user()
+        GroupAssignee.objects.create(
+            group=self.group, project=self.group.project, user_id=assignee.id
+        )
+        self._assigned_activity(assignee.id)
+        with self.feature("organizations:seer-smart-assignment-run"):
+            trigger_smart_assignment(
+                self.group, ActivityType.SEER_RCA_STARTED, self._seer_started()
+            )
+
+        record_prediction(self._mirrors()[0], [assignee.id])
+
+        mock_metrics.incr.assert_any_call(
+            "smart_assignment.scored",
+            tags={
+                "result": SmartAssignmentScore.EXACT,
+                "hit_rank": 1,
+                "trigger": ActivityType.SEER_RCA_STARTED.name,
+            },
+            sample_rate=1.0,
+        )
 
     @patch(CLIENT_PATH)
     def test_automatic_resolution_is_skipped(self, mock_client_cls: MagicMock) -> None:
