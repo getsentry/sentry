@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from sentry import quotas
 from sentry.constants import DataCategory
@@ -12,6 +12,7 @@ from sentry.utils import metrics
 if TYPE_CHECKING:
     from sentry.models.group import Group
     from sentry.seer.autofix.constants import AutofixReferrer
+    from sentry.seer.autofix.utils import AutofixStoppingPoint
     from sentry.seer.models.run import SeerRun
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,7 @@ def trigger_autofix_rca_feature(
     *,
     referrer: AutofixReferrer,
     user_context: str | None = None,
+    stopping_point: AutofixStoppingPoint | None = None,
     intelligence_level: Literal["low", "medium", "high"] = "medium",
     reasoning_effort: Literal["low", "medium", "high"] | None = "medium",
 ) -> SeerRun:
@@ -37,15 +39,17 @@ def trigger_autofix_rca_feature(
         ),
     )
 
-    # No category_key/value: for feature runs the authoritative category is set
-    # on the Seer side (the autofix_rca feature tags its explorer run as
-    # category_key="autofix" so Sentry's autofix drawer finds it). The client-side
-    # category is unused by start_feature_run.
+    # category_key is set by Seer; unused client-side for feature runs.
     client = SeerAgentClient(
         organization=group.organization,
         project=group.project,
         group=group,
     )
+
+    # Store the stopping point here for delivery to use when advancing steps.
+    extras: dict[str, Any] = {"group_id": group.id, "referrer": referrer.value}
+    if stopping_point is not None:
+        extras["stopping_point"] = stopping_point.value
 
     run = client.start_feature_run(
         feature_id=FEATURE_ID,
@@ -53,7 +57,7 @@ def trigger_autofix_rca_feature(
         title=f"Autofix RCA — {payload.short_id}",
         # flush=True: dispatch inline so seer_run_state_id is populated before we return
         flush=True,
-        extras={"group_id": group.id, "referrer": referrer.value},
+        extras=extras,
     )
 
     # Match trigger_autofix_agent: a new run consumes Seer autofix budget.

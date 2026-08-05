@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 from django.db import router, transaction
 from django.utils import timezone
+from pydantic import ValidationError
 from scm.manager import SourceCodeManager
 
 from sentry import analytics, features
@@ -51,6 +52,7 @@ from sentry.seer.autofix.utils import (
 )
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.models import (
+    SeerAgentRun,
     SeerAutomationHandoffConfiguration,
     SeerRun,
 )
@@ -90,6 +92,17 @@ def _record_completion_reaction(outcome: str) -> None:
     metrics.incr(
         "autofix.on_completion_hook.completion_reaction",
         tags={"outcome": outcome},
+    )
+
+
+def _stopping_point_from_run(organization: Organization, run_id: int) -> str | None:
+    return (
+        SeerAgentRun.objects.filter(
+            run__organization_id=organization.id,
+            run__seer_run_state_id=run_id,
+        )
+        .values_list("extras__stopping_point", flat=True)
+        .first()
     )
 
 
@@ -657,14 +670,17 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             )
             return
 
-        # Get pipeline metadata from state
-        metadata = state.metadata
-        if not metadata or "stopping_point" not in metadata:
+        # Get pipeline metadata from state, falling back to the Sentry-side run
+        # mirror for runs Seer started without it (the autofix_rca feature).
+        raw_stopping_point = (state.metadata or {}).get(
+            "stopping_point"
+        ) or _stopping_point_from_run(organization, run_id)
+        if raw_stopping_point is None:
             stopping_point = None
             reached_stopping_point = True
         else:
             # Check if we've reached the stopping point
-            stopping_point = AutofixStoppingPoint(metadata["stopping_point"])
+            stopping_point = AutofixStoppingPoint(raw_stopping_point)
             stopping_step = STOPPING_POINT_TO_STEP.get(stopping_point)
             reached_stopping_point = current_step == stopping_step
 
@@ -787,13 +803,17 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         if artifact is None:
             return None
 
-        root_cause_artifact = RootCauseArtifact.model_validate(artifact.data)
+        try:
+            root_cause_artifact = RootCauseArtifact.parse_obj(artifact.data)
+        except ValidationError:
+            # The agent may produce artifacts that don't follow the schema.
+            return None
 
         return record_fixability(
             organization=organization,
             group=group,
             run_id=run_id,
-            artifact_data=root_cause_artifact,
+            artifact=root_cause_artifact,
             step=step,
             referrer=referrer,
             reached_stopping_point=reached_stopping_point,

@@ -16,6 +16,7 @@ from sentry.seer.autofix.on_completion_hook import (
     PIPELINE_ORDER,
     STOPPING_POINT_TO_STEP,
     AutofixOnCompletionHook,
+    _stopping_point_from_run,
 )
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
@@ -244,6 +245,61 @@ class TestAutofixOnCompletionHookHelpers(TestCase):
         )
 
         assert result is None
+
+
+class TestStoppingPointFromRun(TestCase):
+    """The stopping point falls back to the Sentry-side run mirror for runs Seer
+    started without pipeline metadata (the autofix_rca feature)."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group(project=self.project)
+
+    def _create_run(self, seer_run_state_id: int, extras: dict | None = None):
+        run = self.create_seer_run(
+            organization=self.organization,
+            type="feature_run",
+            seer_run_state_id=seer_run_state_id,
+        )
+        self.create_seer_agent_run(
+            run=run, source="autofix_rca", group=self.group, extras=extras or {}
+        )
+        return run
+
+    def test_returns_none_when_no_run_exists(self) -> None:
+        assert _stopping_point_from_run(self.organization, 999) is None
+
+    def test_returns_none_when_run_has_no_stopping_point(self) -> None:
+        self._create_run(123, extras={"group_id": self.group.id})
+        assert _stopping_point_from_run(self.organization, 123) is None
+
+    def test_returns_recorded_stopping_point(self) -> None:
+        self._create_run(123, extras={"stopping_point": AutofixStoppingPoint.CODE_CHANGES.value})
+        assert (
+            _stopping_point_from_run(self.organization, 123)
+            == AutofixStoppingPoint.CODE_CHANGES.value
+        )
+
+    def test_is_scoped_to_the_organization(self) -> None:
+        self._create_run(123, extras={"stopping_point": AutofixStoppingPoint.CODE_CHANGES.value})
+        assert _stopping_point_from_run(self.create_organization(), 123) is None
+
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
+    def test_state_metadata_takes_precedence_over_the_run_mirror(self, mock_trigger) -> None:
+        """A legacy run carries its own stopping point; the mirror must not override
+        it. Here state says stop at root cause while the mirror says continue."""
+        self._create_run(123, extras={"stopping_point": AutofixStoppingPoint.CODE_CHANGES.value})
+        state = run_state(
+            blocks=[root_cause_memory_block()],
+            metadata={
+                "group_id": self.group.id,
+                "stopping_point": AutofixStoppingPoint.ROOT_CAUSE.value,
+            },
+        )
+
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+
+        mock_trigger.assert_not_called()
 
 
 class TestAutofixOnCompletionHookPipeline(TestCase):

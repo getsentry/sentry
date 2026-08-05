@@ -1,34 +1,18 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
 from typing import Any
 from uuid import UUID
 
 import sentry_sdk
-from django.db import router, transaction
-from django.utils import timezone
 
 from sentry.models.group import Group
 from sentry.seer.agent.types import FeatureRunStatus
-from sentry.seer.autofix.artifact_schemas import RootCauseArtifact
-from sentry.seer.autofix.autofix_agent import AutofixStep, handle_step_completed_events
-from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.on_completion_hook import record_fixability
+from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 from sentry.seer.autofix_rca.models import FEATURE_ID
-from sentry.seer.models.run import SeerAgentRun, SeerRun
+from sentry.seer.models.run import SeerAgentRun
 
 logger = logging.getLogger(__name__)
-
-
-def _resolve_referrer(extras: Mapping[str, Any] | None) -> AutofixReferrer:
-    raw = (extras or {}).get("referrer")
-    if not isinstance(raw, str):
-        return AutofixReferrer.UNKNOWN
-    try:
-        return AutofixReferrer(raw)
-    except ValueError:
-        return AutofixReferrer.UNKNOWN
 
 
 def deliver_autofix_rca_result(
@@ -78,16 +62,17 @@ def deliver_autofix_rca_result(
         logger.warning("autofix_rca.delivery.no_result", extra={**log_extra, "status": status})
         return
 
-    root_cause_artifact = RootCauseArtifact.model_validate(result)
+    # A redelivery (Seer's push is not idempotent per run) would otherwise run the
+    # completion hook twice and continue the pipeline twice.
+    if (agent_run.extras or {}).get("status") == "completed":
+        sentry_sdk.metrics.count(
+            "autofix_rca.delivery_error", 1, attributes={"error_type": "duplicate"}
+        )
+        logger.warning("autofix_rca.delivery.already_delivered", extra=log_extra)
+        return
 
-    # Persist the full result for offline evaluation of Seer RCA quality.
-    agent_run.update(
-        extras={
-            **(agent_run.extras or {}),
-            "status": "completed",
-            "result": root_cause_artifact.model_dump(),
-        }
-    )
+    # Persist the result for offline evaluation of Seer RCA quality.
+    agent_run.update(extras={**(agent_run.extras or {}), "status": "completed", "result": result})
 
     if agent_run.group_id is None or run_state_id is None:
         logger.warning("autofix_rca.delivery.cannot_surface", extra=log_extra)
@@ -102,46 +87,9 @@ def deliver_autofix_rca_result(
         logger.warning("autofix_rca.delivery.group_not_found", extra=log_extra)
         return
 
-    # Hook back into the existing flow: mark the group triggered and emit the
-    # completed webhook/analytics the on-completion hook would for a root cause.
-    now = timezone.now()
-    with transaction.atomic(using=router.db_for_write(Group)):
-        group.update(seer_explorer_autofix_last_triggered=now)
-        SeerRun.objects.filter(
-            organization_id=organization_id, seer_run_state_id=run_state_id
-        ).update(last_triggered_at=now)
+    # Hand off to the autofix on-completion hook.
+    # In the future, we can put post-RCA specific logic here.
+    AutofixOnCompletionHook.execute(group.organization, run_state_id)
 
-    referrer = _resolve_referrer(agent_run.extras)
-
-    handle_step_completed_events(
-        group,
-        AutofixStep.ROOT_CAUSE,
-        run_state_id,
-        str(agent_run.run.uuid),
-        referrer,
-        artifact_data=root_cause_artifact,
-    )
-
-    fixability = record_fixability(
-        organization=group.organization,
-        group=group,
-        run_id=run_state_id,
-        artifact_data=root_cause_artifact,
-        step=AutofixStep.ROOT_CAUSE,
-        referrer=referrer,
-        reached_stopping_point=True,
-    )
-
-    sentry_sdk.metrics.count(
-        "autofix_rca.delivery_completed",
-        1,
-        attributes={"fixability": fixability.assessment if fixability else "none"},
-    )
-    logger.info(
-        "autofix_rca.delivery.completed",
-        extra={
-            **log_extra,
-            "fixability": fixability.assessment if fixability else None,
-            "has_artifact": result is not None,
-        },
-    )
+    sentry_sdk.metrics.count("autofix_rca.delivery_completed", 1)
+    logger.info("autofix_rca.delivery.completed", extra=log_extra)
