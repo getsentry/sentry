@@ -24,6 +24,7 @@ PROGRESS = Feature[IssueProgressState | None](
     "progress",
     default=IssueProgressState.IDENTIFIED,
     codec=OptionalCodec(EnumCodec(IssueProgressState)),
+    version=1,
 )
 
 # The last time the progress was advanced.

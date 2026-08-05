@@ -34,7 +34,6 @@ import {
 } from 'sentry/components/modals/widgetViewerModal/utils';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
-import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -86,7 +85,7 @@ import {Controls} from './controls';
 import {validateDashboardAndRecordMetrics} from './createFromSeerUtils';
 import {Dashboard} from './dashboard';
 import {DashboardEditSeerChat} from './dashboardEditSeerChat';
-import {DEFAULT_STATS_PERIOD} from './data';
+import {DashboardPageFilters} from './dashboardPageFilters';
 import {FiltersBar} from './filtersBar';
 import {
   assignDefaultLayout,
@@ -1083,17 +1082,7 @@ class DashboardDetail extends Component<Props, State> {
     const {pageAlerts, organization, dashboard, location} = this.props;
     const {modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
     return (
-      <PageFiltersContainer
-        disablePersistence
-        defaultSelection={{
-          datetime: {
-            start: null,
-            end: null,
-            utc: false,
-            period: DEFAULT_STATS_PERIOD,
-          },
-        }}
-      >
+      <DashboardPageFilters>
         <Stack flex={1} padding="2xl 3xl">
           <OnDemandControlProvider location={location}>
             <MetricsResultsMetaProvider>
@@ -1167,7 +1156,7 @@ class DashboardDetail extends Component<Props, State> {
             </MetricsResultsMetaProvider>
           </OnDemandControlProvider>
         </Stack>
-      </PageFiltersContainer>
+      </DashboardPageFilters>
     );
   }
 
@@ -1490,20 +1479,7 @@ class DashboardDetail extends Component<Props, State> {
         {this.isEmbedded ? (
           pageContent
         ) : (
-          <PageFiltersContainer
-            disablePersistence
-            skipLoadLastUsed
-            defaultSelection={{
-              datetime: {
-                start: null,
-                end: null,
-                utc: false,
-                period: DEFAULT_STATS_PERIOD,
-              },
-            }}
-          >
-            {pageContent}
-          </PageFiltersContainer>
+          <DashboardPageFilters skipLoadLastUsed>{pageContent}</DashboardPageFilters>
         )}
       </SentryDocumentTitle>
     );

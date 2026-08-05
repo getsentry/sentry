@@ -419,6 +419,7 @@ function TriggeredConditionDetails({
         actions={
           <Flex gap="xs">
             <FeedbackButton
+              variant="secondary"
               aria-label={t('Give feedback on metric issues')}
               size="xs"
               feedbackOptions={{

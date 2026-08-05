@@ -486,23 +486,23 @@ export function StreamGroup({
     return group.filtered ? group.stats?.[statsPeriod]! : [];
   }, [group, statsPeriod]);
 
+  const parsedSearch = useMemo(() => parseSearch(query ?? ''), [query]);
+
   const getDiscoverUrl = (isFiltered?: boolean): LocationDescriptor => {
-    // when there is no discover feature open events page
+    // When there is no Discover feature, open the events page.
     const hasDiscoverQuery = organization.features.includes('discover-basic');
 
-    const parsedResult = parseSearch(
-      isFiltered && typeof query === 'string' ? query : ''
-    );
-    const filteredTerms = parsedResult?.filter(
-      p => !(p.type === Token.FILTER && DISCOVER_EXCLUSION_FIELDS.includes(p.key.text))
-    );
+    const filteredTerms = isFiltered
+      ? parsedSearch?.filter(
+          p =>
+            !(p.type === Token.FILTER && DISCOVER_EXCLUSION_FIELDS.includes(p.key.text))
+        )
+      : [];
     const filteredQuery = joinQuery(filteredTerms, true);
-
     const commonQuery = {projects: [Number(group.project.id)]};
 
     if (hasDiscoverQuery) {
       const stats = customStatsPeriod ?? (selection.datetime || {});
-
       const discoverQuery: NewQuery = {
         ...commonQuery,
         id: undefined,
@@ -623,44 +623,42 @@ export function StreamGroup({
   );
 
   const groupCount = (
-    <GuideAnchor target="dynamic_counts" disabled={!hasGuideAnchor}>
-      <Tooltip
-        disabled={!useFilteredStats}
-        isHoverable
-        title={
-          <CountTooltipContent>
-            <h4>{issueTypeConfig.customCopy.eventUnits}</h4>
-            {group.filtered && (
-              <Fragment>
-                <div>{queryFilterDescription ?? t('Matching filters')}</div>
-                <Link to={getDiscoverUrl(true)}>
-                  <Count value={group.filtered?.count} />
-                </Link>
-              </Fragment>
-            )}
+    <Tooltip
+      disabled={!useFilteredStats}
+      isHoverable
+      title={
+        <CountTooltipContent>
+          <h4>{issueTypeConfig.customCopy.eventUnits}</h4>
+          {group.filtered && (
             <Fragment>
-              <div>{t('Total in %s', summary)}</div>
-              <Link to={getDiscoverUrl()}>
-                <Count value={group.count} />
+              <div>{queryFilterDescription ?? t('Matching filters')}</div>
+              <Link to={getDiscoverUrl(true)}>
+                <Count value={group.filtered?.count} />
               </Link>
             </Fragment>
-            {group.lifetime && (
-              <Fragment>
-                <div>{t('Since issue began')}</div>
-                <Count value={group.lifetime.count} />
-              </Fragment>
-            )}
-          </CountTooltipContent>
-        }
-      >
-        <Stack position="relative">
-          <PrimaryCount value={primaryCount} />
-          {secondaryCount !== undefined && useFilteredStats && (
-            <SecondaryCount value={secondaryCount} />
           )}
-        </Stack>
-      </Tooltip>
-    </GuideAnchor>
+          <Fragment>
+            <div>{t('Total in %s', summary)}</div>
+            <Link to={getDiscoverUrl()}>
+              <Count value={group.count} />
+            </Link>
+          </Fragment>
+          {group.lifetime && (
+            <Fragment>
+              <div>{t('Since issue began')}</div>
+              <Count value={group.lifetime.count} />
+            </Fragment>
+          )}
+        </CountTooltipContent>
+      }
+    >
+      <Stack position="relative">
+        <PrimaryCount value={primaryCount} />
+        {secondaryCount !== undefined && useFilteredStats && (
+          <SecondaryCount value={secondaryCount} />
+        )}
+      </Stack>
+    </Tooltip>
   );
 
   const groupUsersCount = (

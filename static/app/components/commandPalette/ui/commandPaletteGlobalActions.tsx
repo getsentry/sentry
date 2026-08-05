@@ -324,7 +324,6 @@ export function GlobalCommandPaletteActions() {
   const hasInsightsRollout = organization.features.includes(
     'insights-to-dashboards-ui-rollout'
   );
-  const hasWorkflowEngineUI = organization.features.includes('workflow-engine-ui');
   const hasPrebuiltDashboards = organization.features.includes(
     'dashboards-prebuilt-insights-dashboards'
   );
@@ -494,110 +493,88 @@ export function GlobalCommandPaletteActions() {
           </CMDKAction>
         </CMDKAction>
 
-        {/* Hide the entire Insights section only when both migrations are active.
-            During partial rollout, individual items are gated: domain links
-            (Frontend, Backend, etc.) by insights-to-dashboards-ui-rollout,
-            and Crons/Uptime by workflow-engine-ui. */}
-        {organization.features.includes('performance-view') &&
-          !(hasInsightsRollout && hasWorkflowEngineUI) && (
-            <CMDKAction
-              display={{
-                label: t('Insights'),
-                icon: <IconGraph type="area" />,
-              }}
-              limit={4}
-            >
-              {!hasInsightsRollout && (
-                <CMDKAction
-                  display={{label: t('Frontend')}}
-                  keywords={[t('apdex'), t('web vitals'), t('performance score')]}
-                  to={`${prefix}/insights/${FRONTEND_LANDING_SUB_PATH}/`}
-                />
-              )}
-              {!hasInsightsRollout && (
-                <CMDKAction
-                  display={{label: t('Backend')}}
-                  to={`${prefix}/insights/${BACKEND_LANDING_SUB_PATH}/`}
-                />
-              )}
-              {!hasInsightsRollout && (
-                <CMDKAction
-                  display={{label: t('Mobile')}}
-                  to={`${prefix}/insights/${MOBILE_LANDING_SUB_PATH}/`}
-                />
-              )}
-              {!hasInsightsRollout && (
-                <CMDKAction
-                  display={{label: t('Agents')}}
-                  to={`${prefix}/insights/${AGENTS_LANDING_SUB_PATH}/`}
-                />
-              )}
-              {!hasInsightsRollout && (
-                <CMDKAction
-                  display={{label: t('MCP')}}
-                  to={`${prefix}/insights/${MCP_LANDING_SUB_PATH}/`}
-                />
-              )}
-              {!hasWorkflowEngineUI && (
-                <CMDKAction
-                  display={{label: t('Crons')}}
-                  keywords={[t('jobs'), t('cron jobs')]}
-                  to={`${prefix}/insights/crons/`}
-                />
-              )}
-              {organization.features.includes('uptime') && !hasWorkflowEngineUI && (
-                <CMDKAction
-                  display={{label: t('Uptime')}}
-                  keywords={[t('uptime monitors')]}
-                  to={`${prefix}/insights/uptime/`}
-                />
-              )}
-              {!hasInsightsRollout && (
-                <CMDKAction
-                  display={{label: t('Projects')}}
-                  to={`${prefix}/insights/projects/`}
-                />
-              )}
-            </CMDKAction>
-          )}
-
-        {hasWorkflowEngineUI && (
-          <CMDKAction display={{label: t('Monitors'), icon: <IconSiren />}} limit={4}>
-            <CMDKAction display={{label: t('All Monitors')}} to={`${prefix}/monitors/`} />
-            <CMDKAction
-              display={{label: t('My Monitors')}}
-              to={`${prefix}/monitors/my-monitors/`}
-            />
-            <CMDKAction display={{label: t('Error')}} to={`${prefix}/monitors/errors/`} />
-            <CMDKAction
-              display={{label: t('Metric')}}
-              to={`${prefix}/monitors/metrics/`}
-            />
-            <CMDKAction
-              display={{label: t('Cron')}}
-              keywords={[t('jobs'), t('cron jobs')]}
-              to={`${prefix}/monitors/crons/`}
-            />
-            {organization.features.includes('uptime') && (
+        {/* Hide the Insights section once the insights-to-dashboards migration
+            is active; Crons and Uptime now live under the Monitors section. */}
+        {organization.features.includes('performance-view') && !hasInsightsRollout && (
+          <CMDKAction
+            display={{
+              label: t('Insights'),
+              icon: <IconGraph type="area" />,
+            }}
+            limit={4}
+          >
+            {!hasInsightsRollout && (
               <CMDKAction
-                display={{label: t('Uptime')}}
-                keywords={[t('uptime monitors'), t('monitors')]}
-                to={`${prefix}/monitors/uptime/`}
+                display={{label: t('Frontend')}}
+                keywords={[t('apdex'), t('web vitals'), t('performance score')]}
+                to={`${prefix}/insights/${FRONTEND_LANDING_SUB_PATH}/`}
               />
             )}
-            {organization.features.includes('preprod-size-monitors-frontend') && (
+            {!hasInsightsRollout && (
               <CMDKAction
-                display={{label: t('Mobile Build')}}
-                to={`${prefix}/monitors/mobile-builds/`}
+                display={{label: t('Backend')}}
+                to={`${prefix}/insights/${BACKEND_LANDING_SUB_PATH}/`}
               />
             )}
-            <CMDKAction
-              display={{label: t('Alerts')}}
-              keywords={[t('alert rules'), t('issue alert')]}
-              to={`${prefix}/monitors/alerts/`}
-            />
+            {!hasInsightsRollout && (
+              <CMDKAction
+                display={{label: t('Mobile')}}
+                to={`${prefix}/insights/${MOBILE_LANDING_SUB_PATH}/`}
+              />
+            )}
+            {!hasInsightsRollout && (
+              <CMDKAction
+                display={{label: t('Agents')}}
+                to={`${prefix}/insights/${AGENTS_LANDING_SUB_PATH}/`}
+              />
+            )}
+            {!hasInsightsRollout && (
+              <CMDKAction
+                display={{label: t('MCP')}}
+                to={`${prefix}/insights/${MCP_LANDING_SUB_PATH}/`}
+              />
+            )}
+            {!hasInsightsRollout && (
+              <CMDKAction
+                display={{label: t('Projects')}}
+                to={`${prefix}/insights/projects/`}
+              />
+            )}
           </CMDKAction>
         )}
+
+        <CMDKAction display={{label: t('Monitors'), icon: <IconSiren />}} limit={4}>
+          <CMDKAction display={{label: t('All Monitors')}} to={`${prefix}/monitors/`} />
+          <CMDKAction
+            display={{label: t('My Monitors')}}
+            to={`${prefix}/monitors/my-monitors/`}
+          />
+          <CMDKAction display={{label: t('Error')}} to={`${prefix}/monitors/errors/`} />
+          <CMDKAction display={{label: t('Metric')}} to={`${prefix}/monitors/metrics/`} />
+          <CMDKAction
+            display={{label: t('Cron')}}
+            keywords={[t('jobs'), t('cron jobs')]}
+            to={`${prefix}/monitors/crons/`}
+          />
+          {organization.features.includes('uptime') && (
+            <CMDKAction
+              display={{label: t('Uptime')}}
+              keywords={[t('uptime monitors'), t('monitors')]}
+              to={`${prefix}/monitors/uptime/`}
+            />
+          )}
+          {organization.features.includes('preprod-size-monitors-frontend') && (
+            <CMDKAction
+              display={{label: t('Mobile Build')}}
+              to={`${prefix}/monitors/mobile-builds/`}
+            />
+          )}
+          <CMDKAction
+            display={{label: t('Alerts')}}
+            keywords={[t('alert rules'), t('issue alert')]}
+            to={`${prefix}/monitors/alerts/`}
+          />
+        </CMDKAction>
 
         <CMDKAction display={{label: t('Settings'), icon: <IconSettings />}} limit={4}>
           {visibleOrgSettingsNavItems.map(item => (
@@ -981,7 +958,7 @@ export function GlobalCommandPaletteActions() {
           // TanStack serializes the entire key for cache lookups, and
           // including the full projects array would be too costly —
           // some orgs have thousands of projects.
-
+          // eslint-disable-next-line @tanstack/query/exhaustive-deps
           cmdkQueryOptions({
             queryKey: [
               'cmdk-project-nav',
@@ -989,8 +966,8 @@ export function GlobalCommandPaletteActions() {
               projects.map(p => p.slug).join(','),
             ],
             queryFn: () =>
-              [...projects]
-                .sort((a, b) => a.slug.localeCompare(b.slug))
+              projects
+                .toSorted((a, b) => a.slug.localeCompare(b.slug))
                 .map(project => ({
                   display: {
                     label: project.slug,

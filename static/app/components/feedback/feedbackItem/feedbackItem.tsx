@@ -168,22 +168,28 @@ function FeedbackItemContexts({
       return [name, value];
     }) ?? []
   );
-  eventData.contexts = eventData.contexts ?? {};
-  eventData.contexts.feedback = eventData.contexts.feedback ?? {};
-  eventData.contexts.feedback['auto_spam.detection_enabled'] =
-    evidenceObject.spam_detection_enabled;
-  if (evidenceObject.spam_detection_enabled) {
-    eventData.contexts.feedback['auto_spam.is_spam'] = evidenceObject.is_spam;
-  }
+  const eventDataWithSpamContext: Event = {
+    ...eventData,
+    contexts: {
+      ...eventData.contexts,
+      feedback: {
+        ...eventData.contexts?.feedback,
+        ['auto_spam.detection_enabled']: evidenceObject.spam_detection_enabled,
+        ...(evidenceObject.spam_detection_enabled
+          ? {['auto_spam.is_spam']: evidenceObject.is_spam}
+          : {}),
+      },
+    },
+  };
 
-  const cards = getOrderedContextItems(eventData).map(
+  const cards = getOrderedContextItems(eventDataWithSpamContext).map(
     ({alias, type, value: contextValue}) => (
       <ContextCard
         key={alias}
         type={type}
         alias={alias}
         value={contextValue}
-        event={eventData}
+        event={eventDataWithSpamContext}
         project={project}
       />
     )
