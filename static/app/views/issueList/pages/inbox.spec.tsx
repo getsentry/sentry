@@ -1,5 +1,6 @@
 import {
   AutofixRepoPRStateFixture,
+  ExplorerAutofixBlockFixture,
   ExplorerAutofixResponseFixture,
   ExplorerAutofixStateFixture,
 } from 'sentry-fixture/autofix';
@@ -769,6 +770,39 @@ describe('InboxPage', () => {
         })
       )
     );
+  });
+
+  it('offers to create a PR when code changes are complete', async () => {
+    mockSuccessfulSections();
+    mockIssuePreview();
+    mockAutofixResponse(
+      ExplorerAutofixResponseFixture({
+        autofix: ExplorerAutofixStateFixture({
+          blocks: [
+            ExplorerAutofixBlockFixture({
+              message: {
+                content: 'Code changes complete',
+                metadata: {step: 'code_changes'},
+                role: 'assistant',
+              },
+            }),
+          ],
+        }),
+      })
+    );
+
+    render(<InboxPage />, {
+      organization: seerOrganization,
+      initialRouterConfig,
+    });
+
+    const preview = await openFixProposedPreview();
+    expect(
+      await within(preview).findByRole('button', {name: 'Create PR'})
+    ).toBeInTheDocument();
+    expect(
+      within(preview).queryByRole('button', {name: 'Draft a PR'})
+    ).not.toBeInTheDocument();
   });
 
   it('links to a completed Autofix pull request while polling', async () => {
