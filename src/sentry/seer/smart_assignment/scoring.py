@@ -5,7 +5,7 @@ from typing import TypedDict
 
 from django.db import router, transaction
 
-from sentry.models.activity import Activity, ActivityIntegration
+from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -14,6 +14,7 @@ from sentry.seer.smart_assignment.models import (
     RESOLUTION_ACTIVITIES,
     SEER_FEATURE_ID,
     SmartAssignmentScore,
+    is_unscorable_assignment,
 )
 from sentry.seer.utils import latest_run_for_group
 from sentry.types.activity import ActivityType
@@ -24,19 +25,6 @@ logger = logging.getLogger(__name__)
 
 # Right now the agent only returns 3 ranked candidates; this is the limit we score against.
 HIT_RANK_LIMIT = 3
-
-# We invalidate scoring against "ground truth" assignments from these sources, because they're
-# basically non-human actions: our own auto-assignment, project ownership, CODEOWNERS,
-# and the suspect commit feature. The agent is likely to make similar choices, so scoring
-# against these would inflate our success rate.
-UNSCORABLE_ASSIGNMENT_ORIGINS = frozenset(
-    {
-        ActivityIntegration.SEER_SUGGESTED.value,
-        ActivityIntegration.PROJECT_OWNERSHIP.value,
-        ActivityIntegration.CODEOWNERS.value,
-        ActivityIntegration.SUSPECT_COMMITTER.value,
-    }
-)
 
 
 class RunUpdates(TypedDict, total=False):
@@ -144,7 +132,7 @@ def _assignment_updates(group: Group) -> RunUpdates | None:
     assignee = GroupAssignee.objects.filter(group=group).first()
     if assignee is None:
         return None
-    if _is_unscorable_assignment(group):
+    if _has_unscorable_assignment(group):
         return None
     return {
         "actual_assignee_user_id": assignee.user_id,
@@ -153,20 +141,17 @@ def _assignment_updates(group: Group) -> RunUpdates | None:
     }
 
 
-def _is_unscorable_assignment(group: Group) -> bool:
+def _has_unscorable_assignment(group: Group) -> bool:
     """Whether the group's current assignment came from a source we can't grade a
     prediction against. The latest ASSIGNED activity always represents the current assignment,
     and its ``integration`` indicates if it came from a human or not.
     """
-    latest_assignment = (
+    return is_unscorable_assignment(
         Activity.objects.filter(group=group, type=ActivityType.ASSIGNED.value)
         # ``id`` breaks ties so same-timestamp activities resolve to the one written last.
         .order_by("-datetime", "-id")
         .first()
     )
-    if latest_assignment is None:
-        return False
-    return (latest_assignment.data or {}).get("integration") in UNSCORABLE_ASSIGNMENT_ORIGINS
 
 
 def _apply(run_id: int, updates: RunUpdates) -> bool:

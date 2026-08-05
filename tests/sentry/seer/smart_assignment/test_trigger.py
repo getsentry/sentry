@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
-from sentry.models.activity import Activity
+from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.groupassignee import GroupAssignee
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunType
 from sentry.seer.smart_assignment.models import SEER_FEATURE_ID
@@ -61,11 +61,17 @@ class TriggerSmartAssignmentTest(TestCase):
     def _seer_started(self) -> Activity:
         return self._activity(ActivityType.SEER_RCA_STARTED)
 
-    def _assigned_activity(self, assignee_id: int, assignee_type: str = "user") -> Activity:
+    def _assigned_activity(
+        self,
+        assignee_id: int,
+        assignee_type: str = "user",
+        integration: str | None = None,
+    ) -> Activity:
+        data = {"assignee": str(assignee_id), "assigneeType": assignee_type}
+        if integration is not None:
+            data["integration"] = integration
         return self.create_group_activity(
-            group=self.group,
-            type=ActivityType.ASSIGNED.value,
-            data={"assignee": str(assignee_id), "assigneeType": assignee_type},
+            group=self.group, type=ActivityType.ASSIGNED.value, data=data
         )
 
     @patch(CLIENT_PATH)
@@ -218,6 +224,92 @@ class TriggerSmartAssignmentTest(TestCase):
         assert extras["actual_assignee_user_id"] == assignee.id
         assert extras["ground_truth_source"] == ActivityType.ASSIGNED.name
         mock_client_cls.return_value.start_feature_run.assert_not_called()
+
+    @patch(CLIENT_PATH)
+    def test_automated_user_assignment_does_not_dispatch(self, mock_client_cls: MagicMock) -> None:
+        self._wire_client(mock_client_cls)
+        assignee = self.create_user()
+        GroupAssignee.objects.create(
+            group=self.group, project=self.group.project, user_id=assignee.id
+        )
+        with self.feature("organizations:seer-smart-assignment-run"):
+            trigger_smart_assignment(
+                self.group,
+                ActivityType.ASSIGNED,
+                self._assigned_activity(
+                    assignee.id, integration=ActivityIntegration.PROJECT_OWNERSHIP.value
+                ),
+            )
+
+        assert self._mirrors() == []
+        mock_client_cls.return_value.start_feature_run.assert_not_called()
+
+    @patch(CLIENT_PATH)
+    def test_automated_team_assignment_does_not_dispatch(self, mock_client_cls: MagicMock) -> None:
+        self._wire_client(mock_client_cls)
+        team = self.create_team(organization=self.organization)
+        GroupAssignee.objects.create(group=self.group, project=self.group.project, team=team)
+        with self.feature("organizations:seer-smart-assignment-run"):
+            trigger_smart_assignment(
+                self.group,
+                ActivityType.ASSIGNED,
+                self._assigned_activity(
+                    team.id, "team", integration=ActivityIntegration.CODEOWNERS.value
+                ),
+            )
+
+        assert self._mirrors() == []
+        mock_client_cls.return_value.start_feature_run.assert_not_called()
+
+    @patch(CLIENT_PATH)
+    def test_seer_start_dispatches_on_an_automatically_assigned_issue(
+        self, mock_client_cls: MagicMock
+    ) -> None:
+        # A Seer workflow still needs a person to notify, so the automated assignment
+        # only blocks its own trigger.
+        self._wire_client(mock_client_cls)
+        team = self.create_team(organization=self.organization)
+        GroupAssignee.objects.create(group=self.group, project=self.group.project, team=team)
+        self._assigned_activity(team.id, "team", integration=ActivityIntegration.CODEOWNERS.value)
+        with self.feature("organizations:seer-smart-assignment-run"):
+            trigger_smart_assignment(
+                self.group, ActivityType.SEER_RCA_STARTED, self._seer_started()
+            )
+
+        mirrors = self._mirrors()
+        assert len(mirrors) == 1
+        # The automated assignment still can't be graded against.
+        assert "actual_assignee_team_id" not in mirrors[0].extras
+
+    @patch(CLIENT_PATH)
+    def test_human_assignment_after_an_automated_one_dispatches(
+        self, mock_client_cls: MagicMock
+    ) -> None:
+        # The automated event must not spend the one prediction this issue gets.
+        self._wire_client(mock_client_cls)
+        team = self.create_team(organization=self.organization)
+        assignee = GroupAssignee.objects.create(
+            group=self.group, project=self.group.project, team=team
+        )
+        human = self.create_user()
+        with self.feature("organizations:seer-smart-assignment-run"):
+            trigger_smart_assignment(
+                self.group,
+                ActivityType.ASSIGNED,
+                self._assigned_activity(
+                    team.id, "team", integration=ActivityIntegration.PROJECT_OWNERSHIP.value
+                ),
+            )
+            assert self._mirrors() == []
+
+            assignee.update(team=None, user_id=human.id)
+            trigger_smart_assignment(
+                self.group, ActivityType.ASSIGNED, self._assigned_activity(human.id)
+            )
+
+        mirrors = self._mirrors()
+        assert len(mirrors) == 1
+        assert mirrors[0].extras["actual_assignee_user_id"] == human.id
 
     @patch(CLIENT_PATH)
     def test_automatic_resolution_is_skipped(self, mock_client_cls: MagicMock) -> None:

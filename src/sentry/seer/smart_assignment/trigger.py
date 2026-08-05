@@ -14,6 +14,7 @@ from sentry.seer.smart_assignment.models import (
     RESOLUTION_ACTIVITIES,
     SEER_FEATURE_ID,
     SmartAssignmentPayload,
+    is_unscorable_assignment,
 )
 from sentry.seer.smart_assignment.scoring import record_ground_truth, resolver_user_id
 from sentry.seer.utils import runs_for_group
@@ -64,11 +65,18 @@ def trigger_smart_assignment(
         )
         return
 
+    if is_unscorable_assignment(activity):
+        # We only want to run Smart Assignment on issues that are manually assigned.
+        metrics.incr(
+            "smart_assignment.trigger.skipped",
+            tags={"reason": "automated_assignment"},
+            sample_rate=1.0,
+        )
     # Policy gate: today we predict at most once per issue, ever. This lives in app
     # code (not a DB constraint) so re-runs are cheap to enable later -- e.g. gate on
     # a cooldown or a new-signal check against the latest run instead. The run mirror
     # is our durable record that a run was dispatched.
-    if not _already_predicted(group) and not _dispatch_rate_limited(organization):
+    elif not _already_predicted(group) and not _dispatch_rate_limited(organization):
         _dispatch(group, activity_type, activity)
 
     record_ground_truth(group, activity_type, activity)
