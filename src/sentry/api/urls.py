@@ -293,6 +293,11 @@ from sentry.integrations.api.endpoints.organization_repository_platforms import 
 from sentry.integrations.api.endpoints.organization_repository_settings import (
     OrganizationRepositorySettingsEndpoint,
 )
+from sentry.investigations.endpoints.organization_investigations import (
+    OrganizationInvestigationBlockDetailsEndpoint,
+    OrganizationInvestigationBlockOrderEndpoint,
+    OrganizationInvestigationBlocksEndpoint,
+)
 from sentry.investigations.endpoints.organization_investigations_details import (
     OrganizationInvestigationsDetailsEndpoint,
 )
@@ -2377,6 +2382,21 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/$",
         OrganizationInvestigationsDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/blocks/$",
+        OrganizationInvestigationBlocksEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-blocks",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/blocks/order/$",
+        OrganizationInvestigationBlockOrderEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-block-order",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/blocks/(?P<block_id>[^/]+)/$",
+        OrganizationInvestigationBlockDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-block-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/trace-explorer-ai/setup/$",
