@@ -6,6 +6,7 @@ from sentry.seer.agent.client_models import (
     FilePatch,
     MemoryBlock,
     Message,
+    RepoPRState,
     SeerRunState,
 )
 from sentry.seer.milestones import (
@@ -21,6 +22,7 @@ from sentry.testutils.cases import TestCase
 def _state(
     blocks: list[MemoryBlock] | None = None,
     coding_agents: dict[str, CodingAgentState] | None = None,
+    repo_pr_states: dict[str, RepoPRState] | None = None,
 ) -> SeerRunState:
     return SeerRunState(
         run_id=1,
@@ -28,6 +30,7 @@ def _state(
         status="completed",
         updated_at="2026-02-10T00:00:00Z",
         coding_agents=coding_agents or {},
+        repo_pr_states=repo_pr_states or {},
     )
 
 
@@ -126,6 +129,12 @@ class MilestonesFromStateTest(TestCase):
         state = _state(coding_agents={"agent-1": _coding_agent(pr_number=None, pr_url="branch")})
         assert SeerRunMilestoneType.HAS_PULL_REQUEST not in milestones_from_state(state)
 
+    def test_repo_pr_states_is_not_a_pr_source(self) -> None:
+        # repo_pr_states persists across a re-run, so it must not drive the milestone;
+        # only a pr_commit_shas block or a coding-agent pr_number does.
+        state = _state(repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo")})
+        assert SeerRunMilestoneType.HAS_PULL_REQUEST not in milestones_from_state(state)
+
 
 class ReconcileMilestonesTest(TestCase):
     def setUp(self) -> None:
@@ -174,19 +183,12 @@ class RecordHasPullRequestTest(TestCase):
             )
         )
 
-    def test_records_has_pull_request(self) -> None:
-        record_has_pull_request(self.seer_run)
-        assert self._recorded() == {SeerRunMilestoneType.HAS_PULL_REQUEST}
-
-    def test_is_idempotent(self) -> None:
-        record_has_pull_request(self.seer_run)
-        record_has_pull_request(self.seer_run)
-        assert self._recorded() == {SeerRunMilestoneType.HAS_PULL_REQUEST}
-
-    def test_preserves_other_milestones(self) -> None:
+    def test_records_pr_idempotently_beside_other_milestones(self) -> None:
         reconcile_milestones(self.seer_run, _state_reaching({SeerRunMilestoneType.ROOT_CAUSE}))
+        record_has_pull_request(self.seer_run)
         record_has_pull_request(self.seer_run)
         assert self._recorded() == {
             SeerRunMilestoneType.ROOT_CAUSE,
             SeerRunMilestoneType.HAS_PULL_REQUEST,
         }
+        assert SeerRunMilestone.objects.filter(seer_run=self.seer_run).count() == 2
