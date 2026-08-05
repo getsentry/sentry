@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 from sentry.analytics.events.autofix_events import (
@@ -15,7 +15,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
 
 # Seer delivers the root cause artifact itself as the result.
-VALID_RESULT = {
+VALID_RESULT: dict[str, object] = {
     "one_line_description": "null deref in handler",
     "five_whys": ["a", "b", "c"],
     "reproduction_steps": ["do x"],
@@ -89,7 +89,9 @@ class TestDeliverAutofixRCAResult(TestCase):
 
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.on_completion_hook.fetch_run_status")
-    def test_completed_result_hooks_back_into_flow(self, mock_fetch, mock_broadcast) -> None:
+    def test_completed_result_hooks_back_into_flow(
+        self, mock_fetch: MagicMock, mock_broadcast: MagicMock
+    ) -> None:
         agent_run = self.agent_run
         mock_fetch.return_value = self._run_state()
 
@@ -142,11 +144,11 @@ class TestDeliverAutofixRCAResult(TestCase):
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.on_completion_hook.fetch_run_status")
     def test_artifact_off_schema_still_delivers_without_fixability(
-        self, mock_fetch, mock_broadcast, mock_record
+        self, mock_fetch: MagicMock, mock_broadcast: MagicMock, mock_record: MagicMock
     ) -> None:
         """An off-schema fixability value must not block the completed webhook."""
         agent_run = self.agent_run
-        off_schema = {
+        off_schema: dict[str, object] = {
             **VALID_RESULT,
             "fixability": {"fixability": "fixable", "reason": "wrong key"},
         }
@@ -173,7 +175,7 @@ class TestDeliverAutofixRCAResult(TestCase):
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.on_completion_hook.fetch_run_status")
     def test_fixability_records_introspection_event(
-        self, mock_fetch, mock_broadcast, mock_record
+        self, mock_fetch: MagicMock, mock_broadcast: MagicMock, mock_record: MagicMock
     ) -> None:
         agent_run = self.agent_run
         mock_fetch.return_value = self._run_state()
@@ -206,7 +208,7 @@ class TestDeliverAutofixRCAResult(TestCase):
         assert completed_events[0].referrer == AutofixReferrer.WEB.value
 
     @patch("sentry.seer.autofix.on_completion_hook.fetch_run_status")
-    def test_redelivery_does_not_run_the_hook_twice(self, mock_fetch) -> None:
+    def test_redelivery_does_not_run_the_hook_twice(self, mock_fetch: MagicMock) -> None:
         """Seer's result push is not idempotent per run, so a redelivery must not
         re-fire the webhook or continue the pipeline a second time."""
         agent_run = self.agent_run
@@ -224,7 +226,7 @@ class TestDeliverAutofixRCAResult(TestCase):
         assert mock_fetch.call_count == 1
 
     @patch("sentry.seer.autofix.on_completion_hook.fetch_run_status")
-    def test_completed_status_is_not_overwritten_by_late_error(self, mock_fetch) -> None:
+    def test_completed_status_is_not_overwritten_by_late_error(self, mock_fetch: MagicMock) -> None:
         agent_run = self.agent_run
         mock_fetch.return_value = self._run_state()
 
@@ -249,7 +251,7 @@ class TestDeliverAutofixRCAResult(TestCase):
         assert mock_fetch.call_count == 1
 
     @patch("sentry.seer.autofix.on_completion_hook.fetch_run_status")
-    def test_success_after_error_clears_error_message(self, mock_fetch) -> None:
+    def test_success_after_error_clears_error_message(self, mock_fetch: MagicMock) -> None:
         agent_run = self.agent_run
         mock_fetch.return_value = self._run_state()
 
@@ -278,7 +280,7 @@ class TestDeliverAutofixRCAResult(TestCase):
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.on_completion_hook.fetch_run_status")
     def test_stops_when_stopping_point_is_root_cause(
-        self, mock_fetch, mock_broadcast, mock_trigger
+        self, mock_fetch: MagicMock, mock_broadcast: MagicMock, mock_trigger: MagicMock
     ) -> None:
         seer_run = self.create_seer_run(
             organization=self.organization,
@@ -311,7 +313,7 @@ class TestDeliverAutofixRCAResult(TestCase):
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.on_completion_hook.fetch_run_status")
     def test_continues_to_solution_when_stopping_point_is_later(
-        self, mock_fetch, mock_broadcast, mock_trigger
+        self, mock_fetch: MagicMock, mock_broadcast: MagicMock, mock_trigger: MagicMock
     ) -> None:
         """A feature run started with a later stopping point continues the pipeline,
         matching a run the autofix pipeline started itself. The stopping point is
@@ -352,7 +354,7 @@ class TestDeliverAutofixRCAResult(TestCase):
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.on_completion_hook.fetch_run_status")
     def test_no_stopping_point_recorded_does_not_continue(
-        self, mock_fetch, mock_broadcast, mock_trigger
+        self, mock_fetch: MagicMock, mock_broadcast: MagicMock, mock_trigger: MagicMock
     ) -> None:
         agent_run = self.agent_run
         mock_fetch.return_value = self._run_state()
@@ -369,7 +371,9 @@ class TestDeliverAutofixRCAResult(TestCase):
 
     @patch("sentry.seer.autofix.on_completion_hook.logger")
     @patch("sentry.seer.autofix.on_completion_hook.fetch_run_status")
-    def test_stale_group_stops_without_raising(self, mock_fetch, mock_logger) -> None:
+    def test_stale_group_stops_without_raising(
+        self, mock_fetch: MagicMock, mock_logger: MagicMock
+    ) -> None:
         agent_run = self.agent_run
         agent_run.group_id = 999_999_999
         agent_run.save(update_fields=["group_id"])
