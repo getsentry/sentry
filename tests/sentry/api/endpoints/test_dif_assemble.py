@@ -505,7 +505,7 @@ class DifAssembleProguardCloneBackendTransitionTest(APITestCase):
         source_fileobj = MagicMock(spec=["read", "close"])
         source_fileobj.read.side_effect = [file_contents, b""]
 
-        def upload_clone(_session, fileobj, *_args):
+        def upload_clone(_session, fileobj, *_args, **_kwargs):
             assert fileobj.seekable()
             assert fileobj.read() == file_contents
             return "cloned-storage-path"
