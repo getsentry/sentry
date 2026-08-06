@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
 from typing import Any
 
-import sentry_sdk
 from django.utils import timezone
 from taskbroker_client.constants import CompressionType
 from taskbroker_client.retry import Retry
@@ -255,19 +253,6 @@ def run_bulk_replay_delete_job(
 
     window_start, window_end = windows[window_offset_days]
 
-    # Name the job and the window on everything this activation reports, so an error from any layer
-    # is attributable. Without it a Snuba, blob-store or Seer failure is a stack trace with no way
-    # back to a job or a date range: both live only in the activation's arguments.
-    _set_error_context(
-        job,
-        window_start=window_start,
-        window_end=window_end,
-        window_offset_days=window_offset_days,
-        after_replay_id_hash=after_replay_id_hash,
-        limit=limit,
-        total_deleted=total_deleted,
-    )
-
     try:
         # Delete the replays within a limited range. If more replays exist a cursor to seek the next
         # page from is returned.
@@ -305,20 +290,12 @@ def run_bulk_replay_delete_job(
     except ProcessingDeadlineExceeded:
         # A BaseException, so it escapes the handler below.
         _fail_if_retries_exhausted(
-            job.id,
-            "Bulk delete replays exhausted its processing deadline retries.",
-            _logging_context(job, window_start, window_end),
+            job.id, "Bulk delete replays exhausted its processing deadline retries."
         )
         raise
     except Exception:
-        logger.exception(
-            "Bulk delete replays failed.", extra=_logging_context(job, window_start, window_end)
-        )
-        _fail_if_retries_exhausted(
-            job.id,
-            "Bulk delete replays exhausted its retries.",
-            _logging_context(job, window_start, window_end),
-        )
+        logger.exception("Bulk delete replays failed.")
+        _fail_if_retries_exhausted(job.id, "Bulk delete replays exhausted its retries.")
         raise
 
     # `new_total` is the running count of all replays deleted across all windows.
@@ -330,7 +307,7 @@ def run_bulk_replay_delete_job(
     next_cursor = results["next_cursor"]
 
     # This page's deletes are done, so checkpoint before deciding what comes next.
-    _checkpoint(job.id, new_total)
+    _advance_offset(job.id, new_total)
 
     if results["has_more"] and next_cursor is not None:
         # More pages in this window.
@@ -366,7 +343,7 @@ def _complete_job(job_id: int) -> None:
     metrics.incr("replays.bulk_delete_job", tags={"status": "completed"}, sample_rate=1.0)
 
 
-def _fail_if_retries_exhausted(job_id: int, message: str, extra: dict[str, Any]) -> None:
+def _fail_if_retries_exhausted(job_id: int, message: str) -> None:
     """Mark the job failed only once the broker will stop redelivering the activation.
 
     Failing on the first exception made every transient error terminal: the status guard at the top
@@ -377,71 +354,16 @@ def _fail_if_retries_exhausted(job_id: int, message: str, extra: dict[str, Any])
     if task is not None and task.retries_remaining:
         return
 
-    logger.warning(message, extra=extra)
+    logger.warning(message)
     metrics.incr("replays.bulk_delete_job", tags={"status": "failed"}, sample_rate=1.0)
     _transition_status(job_id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.FAILED)
 
 
-def _checkpoint(job_id: int, deleted: int) -> None:
-    """Record progress, and liveness separately from it.
-
-    Two statements because they answer different questions and need different guards. `offset` is
-    filtered so a lagging duplicate chain cannot rewind the count. `date_updated` is not filtered,
-    because it is the only signal separating a job still walking replay-free days from one whose
-    activation chain has died -- and a window that deletes nothing is still progress. Updating both
-    under the `offset__lt` guard made those two states indistinguishable, so a stalled job could not
-    be told apart from a quiet one.
-    """
-    ReplayDeletionJobModel.objects.filter(id=job_id, offset__lt=deleted).update(offset=deleted)
-    ReplayDeletionJobModel.objects.filter(id=job_id).update(date_updated=timezone.now())
-
-
-def _set_error_context(
-    job: ReplayDeletionJobModel,
-    window_start: datetime,
-    window_end: datetime,
-    window_offset_days: int,
-    after_replay_id_hash: int | None,
-    limit: int,
-    total_deleted: int,
-) -> None:
-    """Attach the job's identity and position to whatever this activation reports.
-
-    Tags are the few low-cardinality keys worth searching and grouping by in Sentry. The context
-    carries the rest, including the job's whole range, so a single event answers "which range do I
-    have to run again" without cross-referencing the database.
-    """
-    sentry_sdk.set_tags(
-        {
-            "replay_delete.job": job.id,
-            "replay_delete.project": job.project_id,
-            "replay_delete.window": window_start.date().isoformat(),
-        }
+def _advance_offset(job_id: int, offset: int) -> None:
+    """Checkpoint progress, filtered so a lagging duplicate chain cannot rewind the counter."""
+    ReplayDeletionJobModel.objects.filter(id=job_id, offset__lt=offset).update(
+        offset=offset, date_updated=timezone.now()
     )
-    sentry_sdk.set_context("replay_delete_job", _logging_context(job, window_start, window_end))
-    sentry_sdk.set_context(
-        "replay_delete_position",
-        {
-            "window_offset_days": window_offset_days,
-            "after_replay_id_hash": after_replay_id_hash,
-            "limit": limit,
-            "deleted_before_this_page": total_deleted,
-        },
-    )
-
-
-def _logging_context(
-    job: ReplayDeletionJobModel, window_start: datetime, window_end: datetime
-) -> dict[str, Any]:
-    return {
-        "job_id": job.id,
-        "organization_id": job.organization_id,
-        "project_id": job.project_id,
-        "range_start": job.range_start.isoformat(),
-        "range_end": job.range_end.isoformat(),
-        "window_start": window_start.isoformat(),
-        "window_end": window_end.isoformat(),
-    }
 
 
 def _transition_status(job_id: int, expected: DeletionJobStatus, new: DeletionJobStatus) -> None:

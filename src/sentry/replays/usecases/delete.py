@@ -124,15 +124,7 @@ def delete_matched_rows(project_id: int, rows: list[MatchedRow]) -> int | None:
     if not rows:
         return None
 
-    filenames = list(_make_recording_filenames(project_id, rows))
-
-    # Blobs per batch, alongside the existing count of replays per batch. Segments-per-replay sets
-    # how many blob-store requests a deletion actually costs, and it was only recoverable by dividing
-    # a delete counter by a task counter over the same window -- which disagrees with itself whenever
-    # activations are dropped before they run.
-    metrics.distribution("replays.delete.blobs_per_batch", value=len(filenames))
-
-    delete_filenames_concurrently(filenames)
+    delete_filenames_concurrently(list(_make_recording_filenames(project_id, rows)))
     delete_replays(project_id, [row["replay_id"] for row in rows])
     return None
 
