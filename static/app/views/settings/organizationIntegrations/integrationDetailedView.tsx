@@ -307,7 +307,6 @@ export default function IntegrationDetailedView() {
     },
     onError: (_error, _integration, context) => {
       if (context?.previousConfigurations) {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
         setApiQueryData<Integration[]>(
           queryClient,
           makeIntegrationQueryKey({orgSlug: organization.slug, integrationSlug}),
