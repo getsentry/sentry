@@ -8,7 +8,6 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
 import {
   AssistantMessageBlock,
   UserMessageBlock,
@@ -19,6 +18,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {CollapsedTranscriptRow} from 'sentry/views/explore/conversations/components/collapsedTranscriptRow';
 import {MessageToolCalls} from 'sentry/views/explore/conversations/components/messageToolCalls';
 import {
   TURN_META_WIDTH,
@@ -283,8 +283,7 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
   const organization = useOrganization();
 
   return (
-    <CollapsibleContent
-      interactive
+    <CollapsedTranscriptRow
       title={
         <Text size="sm" variant="muted" monospace>
           {t('Thinking...')}
@@ -307,7 +306,7 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
           <AIContentRenderer text={reasoning} inline autoCollapseLimit={10} />
         </MessageText>
       </Container>
-    </CollapsibleContent>
+    </CollapsedTranscriptRow>
   );
 }
 

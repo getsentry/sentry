@@ -1,6 +1,5 @@
 import type {ReactNode} from 'react';
 import {useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -13,16 +12,10 @@ interface CollapsibleContentProps {
   children: ReactNode;
   /** Summary label next to the caret (caller-styled). */
   title: ReactNode;
+  /** Forwarded to the root `<details>`, so callers can style it with `styled()`. */
+  className?: string;
   /** Start expanded. Defaults to collapsed. */
   defaultOpen?: boolean;
-  /**
-   * Give the summary the default hover background and match the surrounding
-   * tool-call rows' padding/radius, so the whole header reads as one hoverable
-   * row. Defaults to false, leaving nested in-content blocks unstyled.
-   */
-  interactive?: boolean;
-  /** Cap on the section width, e.g. to match a message bubble. */
-  maxWidth?: string;
   /** Fires on expand/collapse with the new open state. */
   onToggle?: (open: boolean) => void;
   /** Single-line preview shown inline after the title while collapsed. */
@@ -38,19 +31,17 @@ interface CollapsibleContentProps {
 export function CollapsibleContent({
   children,
   title,
+  className,
   defaultOpen = false,
   onToggle,
-  maxWidth,
   preview,
-  interactive = false,
 }: CollapsibleContentProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
     <Details
       open={isOpen}
-      $interactive={interactive}
-      style={maxWidth ? {maxWidth} : undefined}
+      className={className}
       onToggle={e => {
         const open = e.currentTarget.open;
         setIsOpen(open);
@@ -83,23 +74,12 @@ export function CollapsibleContent({
   );
 }
 
-const Details = styled('details')<{$interactive?: boolean}>`
+const Details = styled('details')`
   width: 100%;
   min-width: 0;
 
   summary {
     list-style: none;
-    ${p =>
-      p.$interactive &&
-      css`
-        margin: 0 -${p.theme.space.sm};
-        padding: ${p.theme.space.sm};
-        border-radius: ${p.theme.radius.sm};
-
-        &:hover {
-          background: ${p.theme.tokens.interactive.transparent.neutral.background.hover};
-        }
-      `}
   }
   summary::-webkit-details-marker {
     display: none;

@@ -4,12 +4,12 @@ import {css, useTheme} from '@emotion/react';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
 import {t, tn} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {CollapsedTranscriptRow} from 'sentry/views/explore/conversations/components/collapsedTranscriptRow';
 import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
 import {TurnMeta} from 'sentry/views/explore/conversations/components/turnMeta';
 import type {ToolCall} from 'sentry/views/explore/conversations/utils/conversationMessages';
@@ -87,10 +87,7 @@ export function MessageToolCalls({
   }, 0);
 
   return (
-    <CollapsibleContent
-      // Give the summary the shared hover background and row padding so it reads
-      // as one hoverable row with the tool calls below it.
-      interactive
+    <CollapsedTranscriptRow
       // Keep the group open when one of its calls is the current selection so a
       // deep-linked/timeline-selected row stays visible instead of hidden.
       defaultOpen={selectedToolCallId !== null}
@@ -130,7 +127,7 @@ export function MessageToolCalls({
       }
     >
       <Container paddingTop="xs">{rows}</Container>
-    </CollapsibleContent>
+    </CollapsedTranscriptRow>
   );
 }
 
