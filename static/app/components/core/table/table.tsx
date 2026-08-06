@@ -26,7 +26,6 @@ import {
 } from 'sentry/components/tables/sortableHeaderCell';
 import {useColumnResize} from 'sentry/components/tables/useColumnResize';
 import {useObservedColumnSize} from 'sentry/components/tables/useObservedColumnSize';
-import {defined} from 'sentry/utils/defined';
 
 import {
   TableBody,
@@ -39,10 +38,10 @@ import {
   TableStatusCell,
 } from './styles';
 
+// Auto layout width.
 export const COL_WIDTH_UNDEFINED = -1;
 
-// Set to 90 as the edit/trash icons need this much space.
-const COL_WIDTH_MINIMUM = 90;
+export const COL_WIDTH_MINIMUM = 90;
 
 export interface TableColumnConfig {
   key: string;
@@ -60,7 +59,7 @@ function getDefaultColumnTrack(
     return width;
   }
 
-  if (!defined(width) || width === COL_WIDTH_UNDEFINED) {
+  if (width === undefined || width === COL_WIDTH_UNDEFINED) {
     return `minmax(${minimumColumnWidth}px, auto)`;
   }
 
@@ -117,7 +116,7 @@ export function Table({
   const gridRef = ref ?? internalRef;
 
   const [internalWidths, setInternalWidths] = useState<Record<string, number>>({});
-  const isControlled = defined(onColumnResize);
+  const isControlled = !!onColumnResize;
 
   const resolveWidth = useCallback(
     (column: TableColumnConfig): ResolvedWidth =>
@@ -190,8 +189,6 @@ export function Table({
   const template = buildTemplate();
 
   const redraw = useCallback(() => {
-    // An empty template means the shell has no opinion about tracks, so writing
-    // it would clobber whatever the consumer set via CSS or an inline style.
     if (template) {
       applyTemplate(template);
     }
@@ -254,6 +251,10 @@ function Cell(props: ComponentProps<typeof TableCell>) {
 
 interface HeadCellProps extends ThHTMLAttributes<HTMLTableCellElement> {
   column?: string;
+  /**
+   * Identifies the column by position, for callers that render their head cells
+   * from an ordered list rather than from a keyed column config.
+   */
   columnIndex?: number;
   onSort?: () => void;
   overlays?: ReactNode;
@@ -271,23 +272,21 @@ function HeadCell({
 }: HeadCellProps) {
   const context = useTableContext();
   const index =
-    columnIndex ?? (defined(column) ? context?.columnIndexByKey.get(column) : undefined);
+    columnIndex ??
+    (column === undefined ? undefined : context?.columnIndexByKey.get(column));
 
   const showResizer =
-    defined(context) &&
-    defined(index) &&
+    context !== null &&
+    index !== undefined &&
     index !== context.lastColumnIndex &&
     context.resizableByIndex[index] === true;
 
-  const sortable = defined(onSort) || defined(sort) || defined(overlays);
+  const sortable = !!onSort || !!sort || !!overlays;
 
   const cellRef = useRef<HTMLTableCellElement>(null);
-  const minimumColumnWidth = context?.minimumColumnWidth ?? COL_WIDTH_MINIMUM;
   const {max, width} = useObservedColumnSize(cellRef);
 
   return (
-    // aria-sort precedes the spread so a caller that announces sorting itself, as
-    // GridEditable does for its own sort links, still wins.
     <TableHeadCell
       aria-sort={getAriaSort(sort)}
       {...props}
@@ -306,10 +305,10 @@ function HeadCell({
           <DragHandle
             appearance="hover"
             isSizedFirst
-            max={Math.max(max, minimumColumnWidth)}
-            min={minimumColumnWidth}
+            max={Math.max(max, context.minimumColumnWidth)}
+            min={context.minimumColumnWidth}
             orientation="horizontal"
-            value={Math.max(width, minimumColumnWidth)}
+            value={Math.max(width, context.minimumColumnWidth)}
             onDoubleClick={event => context.onResetColumnSize(event, index)}
             onMove={context.onResizeMove}
             onMoveEnd={context.onResizeEnd}

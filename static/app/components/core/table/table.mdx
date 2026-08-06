@@ -21,6 +21,7 @@ Higher level components like `SimpleTable` and `GridEditable` add those on top o
 
 To create a table, pass a `columns` array and compose the contents with `Table.Head`, `Table.Body`, `Table.Row`, `Table.HeadCell`, and `Table.Cell`.
 Columns are passed as data rather than children because a resize needs a stable identity for each column.
+Identify each head cell with `column`, or with `columnIndex` when the cells come from an ordered list rather than a keyed config.
 
 <Storybook.Demo>
   <OverviewDemo />

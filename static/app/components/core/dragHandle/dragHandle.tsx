@@ -7,8 +7,8 @@ import {useDragMove} from './useDragMove';
 
 export type Orientation = 'horizontal' | 'vertical';
 
-// The handle renders as a 1px border; account for it when a consumer derives
-// layout sizes (e.g. the max size of a panel next to it).
+export type DragHandleAppearance = 'always' | 'hover';
+
 export const DRAG_HANDLE_SIZE = 1;
 
 // At a limit the handle can only travel one way, so point the cursor that way;
@@ -45,22 +45,18 @@ export type DragHandleProps = {
   onMove: (delta: number) => void;
   orientation: Orientation;
   value: number;
-  appearance?: 'always' | 'hover';
-  largeStep?: number;
+  appearance?: DragHandleAppearance;
   onKeyDown?: React.KeyboardEventHandler<HTMLElement>;
   onMoveEnd?: () => void;
   onMoveStart?: () => void;
-  step?: number;
 };
 
 export function DragHandle({
   appearance = 'always',
   isSizedFirst,
-  largeStep,
   max,
   min,
   orientation,
-  step,
   value,
   onDoubleClick,
   onKeyDown,
@@ -69,12 +65,10 @@ export function DragHandle({
   onMoveStart,
 }: DragHandleProps) {
   const {isHeld, moveProps} = useDragMove({
-    largeStep,
     onMove,
     onMoveEnd,
     onMoveStart,
     orientation,
-    step,
   });
 
   const cursor = getDragHandleCursor(

@@ -12,19 +12,15 @@ const KEYBOARD_STEP_LARGE = 50;
 interface UseDragMoveOptions {
   onMove: (delta: number) => void;
   orientation: Orientation;
-  largeStep?: number;
   onMoveEnd?: () => void;
   onMoveStart?: () => void;
-  step?: number;
 }
 
 export function useDragMove({
-  largeStep = KEYBOARD_STEP_LARGE,
   onMove,
   onMoveEnd,
   onMoveStart,
   orientation,
-  step = KEYBOARD_STEP,
 }: UseDragMoveOptions) {
   const [isHeld, setIsHeld] = useState(false);
   const isPointerDragRef = useRef(false);
@@ -58,7 +54,7 @@ export function useDragMove({
 
       onMove(
         event.pointerType === 'keyboard'
-          ? Math.sign(delta) * (event.shiftKey ? largeStep : step)
+          ? Math.sign(delta) * (event.shiftKey ? KEYBOARD_STEP_LARGE : KEYBOARD_STEP)
           : delta
       );
     },

@@ -3,11 +3,11 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {TABLE_HEAD_ROW_HEIGHT} from '@sentry/scraps/table';
 
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 
-const GRID_HEAD_ROW_HEIGHT = 45;
 export const GRID_BODY_ROW_HEIGHT = 42;
 const GRID_STATUS_MESSAGE_HEIGHT = GRID_BODY_ROW_HEIGHT * 4;
 
@@ -107,20 +107,20 @@ export const Grid = styled('table')<{
           min-height: 0;
 
           &:has(> thead + tbody) {
-            grid-template-rows: ${GRID_HEAD_ROW_HEIGHT}px 1fr;
+            grid-template-rows: ${TABLE_HEAD_ROW_HEIGHT}px 1fr;
           }
 
           &:has(> thead + tbody + tbody) {
-            grid-template-rows: ${GRID_HEAD_ROW_HEIGHT}px fit-content(100%) 1fr;
+            grid-template-rows: ${TABLE_HEAD_ROW_HEIGHT}px fit-content(100%) 1fr;
           }
         `
       : css`
           &:has(> thead + tbody) {
-            grid-template-rows: ${GRID_HEAD_ROW_HEIGHT}px auto;
+            grid-template-rows: ${TABLE_HEAD_ROW_HEIGHT}px auto;
           }
 
           &:has(> thead + tbody + tbody) {
-            grid-template-rows: ${GRID_HEAD_ROW_HEIGHT}px fit-content(100%) auto;
+            grid-template-rows: ${TABLE_HEAD_ROW_HEIGHT}px fit-content(100%) auto;
           }
         `}
 
@@ -163,7 +163,7 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
   /* By default, a grid item cannot be smaller than the size of its content.
      We override this by setting min-width to be 0. */
   position: relative; /* Used by GridResizer */
-  height: ${GRID_HEAD_ROW_HEIGHT}px;
+  height: ${TABLE_HEAD_ROW_HEIGHT}px;
   display: flex;
   align-items: center;
   min-width: 24px;
@@ -202,7 +202,7 @@ export const GridHeadCell = styled('th')<{isFirst: boolean}>`
  * without interactive aspects.
  */
 export const GridHeadCellStatic = styled('th')`
-  height: ${GRID_HEAD_ROW_HEIGHT}px;
+  height: ${TABLE_HEAD_ROW_HEIGHT}px;
   display: flex;
   align-items: center;
   padding: 0 ${p => p.theme.space.xl};
@@ -311,7 +311,7 @@ export const GridResizer = styled('div')`
   top: 0px;
   right: -6px;
   width: 11px;
-  height: var(--column-resizer-height, ${GRID_HEAD_ROW_HEIGHT}px);
+  height: var(--column-resizer-height, ${TABLE_HEAD_ROW_HEIGHT}px);
 
   padding-left: 5px;
   padding-right: 5px;
@@ -353,7 +353,7 @@ export const GridResizer = styled('div')`
     content: ' ';
     display: block;
     width: 7px;
-    height: ${GRID_HEAD_ROW_HEIGHT}px;
+    height: ${TABLE_HEAD_ROW_HEIGHT}px;
     background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
     opacity: 0.4;
   }
