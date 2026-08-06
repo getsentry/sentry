@@ -531,6 +531,10 @@ class PullRequestActivityLog(DefaultFieldsModel):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_pullrequest_activity_log"
+        # Both retention paths age documents by last write: the cleanup command's
+        # entry for this model and ``sweep_unattributed_pr_activity``. Neither can
+        # afford a sequential scan of a table that carries a row per PR.
+        indexes = (models.Index(fields=["date_updated"]),)
 
     __repr__ = sane_repr("pull_request_id")
 

@@ -339,6 +339,6 @@ def _complete_project_backfill(project: Project, chain_pr_lifecycle: bool) -> No
 
         backfill_pr_lifecycle_action_log_for_project.delay(project_id=project.id)
     else:
-        from sentry.issues.derived.tasks import process_project_derived_data
+        from sentry.issues.derived.tasks import generate_project_derived_data
 
-        process_project_derived_data.delay(project_id=project.id)
+        generate_project_derived_data.delay(project_id=project.id)
