@@ -167,7 +167,6 @@ export function GridEditable<
         width: newWidth,
       });
     },
-    writeResizerHeightVar: true,
   });
 
   const onResetColumnSize = (e: React.MouseEvent, i: number) => {
@@ -220,7 +219,6 @@ export function GridEditable<
             {i !== numColumn - 1 && resizable && (
               <ColumnResizer
                 columnIndex={i}
-                dataRows={!error && !isLoading && data ? data.length : 0}
                 minimumColumnWidth={minimumColWidth}
                 onResetColumnSize={onResetColumnSize}
                 onResizeEnd={onResizeEnd}

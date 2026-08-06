@@ -25,6 +25,7 @@ import {
   type SortDirection,
 } from 'sentry/components/tables/sortableHeaderCell';
 import {useColumnResize} from 'sentry/components/tables/useColumnResize';
+import {useObservedColumnSize} from 'sentry/components/tables/useObservedColumnSize';
 import {defined} from 'sentry/utils/defined';
 
 import {
@@ -205,20 +206,6 @@ export function Table({
     return () => window.removeEventListener('resize', redraw);
   }, [redraw]);
 
-  useEffect(() => {
-    const grid = gridRef.current;
-    if (!grid) {
-      return () => {};
-    }
-
-    const observer = new ResizeObserver(() => {
-      grid.style.setProperty('--table-resizer-height', `${grid.offsetHeight}px`);
-    });
-    observer.observe(grid);
-
-    return () => observer.disconnect();
-  }, [gridRef]);
-
   const contextValue = useMemo<TableContextValue>(
     () => ({
       columnIndexByKey: new Map(columns.map((column, index) => [column.key, index])),
@@ -296,29 +283,7 @@ function HeadCell({
 
   const cellRef = useRef<HTMLTableCellElement>(null);
   const minimumColumnWidth = context?.minimumColumnWidth ?? COL_WIDTH_MINIMUM;
-  const [{max, width}, setMeasurements] = useState({
-    max: minimumColumnWidth,
-    width: minimumColumnWidth,
-  });
-
-  useEffect(() => {
-    const cell = cellRef.current;
-    const table = cell?.closest('table');
-    if (!showResizer || !cell || !table) {
-      return () => {};
-    }
-
-    const observer = new ResizeObserver(() =>
-      setMeasurements({
-        max: Math.max(table.clientWidth, cell.offsetWidth),
-        width: cell.offsetWidth,
-      })
-    );
-    observer.observe(cell);
-    observer.observe(table);
-
-    return () => observer.disconnect();
-  }, [showResizer]);
+  const {max, width} = useObservedColumnSize(cellRef);
 
   return (
     // aria-sort precedes the spread so a caller that announces sorting itself, as
@@ -341,10 +306,10 @@ function HeadCell({
           <DragHandle
             appearance="hover"
             isSizedFirst
-            max={max}
+            max={Math.max(max, minimumColumnWidth)}
             min={minimumColumnWidth}
             orientation="horizontal"
-            value={width}
+            value={Math.max(width, minimumColumnWidth)}
             onDoubleClick={event => context.onResetColumnSize(event, index)}
             onMove={context.onResizeMove}
             onMoveEnd={context.onResizeEnd}

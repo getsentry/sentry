@@ -802,7 +802,7 @@ function LogsTableHeader({
   const sortBys = useQueryParamsSortBys();
   const setSortBys = useSetQueryParamsSortBys();
 
-  const {data, meta, isError, isPending} = useLogsPageDataQueryResult();
+  const {meta, isPending} = useLogsPageDataQueryResult();
   const resolvedMeta = useMemo(
     () => addValidatedFieldTypesToLogsMeta({meta, validatedFieldTypes}),
     [meta, validatedFieldTypes]
@@ -865,7 +865,6 @@ function LogsTableHeader({
               {index !== fields.length - 1 && (
                 <ColumnResizer
                   columnIndex={index}
-                  dataRows={!isError && !isPending && data ? data.length : 0}
                   onResizeEnd={onResizeEnd}
                   onResizeMove={onResizeMove}
                   onResizeStart={onResizeStart}

@@ -301,25 +301,17 @@ export function GridBodyCellStatus(props: any) {
 }
 
 /**
- * We have a fat GridResizer and we use the ::after pseudo-element to draw
+ * We have a thick GridResizer and we use the ::after pseudo-element to draw
  * a thin 1px border.
  *
  * The right most cell does not have a resizer as resizing from that side does strange things.
  */
-export const GridResizer = styled('div')<{dataRows: number}>`
+export const GridResizer = styled('div')`
   position: absolute;
   top: 0px;
   right: -6px;
   width: 11px;
-
-  height: ${p => {
-    const numOfRows = p.dataRows;
-    // 1px for the border
-    const fixedBodyHeight = numOfRows * (GRID_BODY_ROW_HEIGHT + 1);
-    const fallbackTotalHeight = GRID_HEAD_ROW_HEIGHT + fixedBodyHeight;
-
-    return `var(--grid-editable-resizer-height, ${fallbackTotalHeight}px)`;
-  }};
+  height: var(--column-resizer-height, ${GRID_HEAD_ROW_HEIGHT}px);
 
   padding-left: 5px;
   padding-right: 5px;
@@ -328,7 +320,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
   z-index: ${Z_INDEX_GRID_RESIZER};
 
   /**
-   * This element allows us to have a fat GridResizer that is easy to hover and
+   * This element allows us to have a thick GridResizer that is easy to hover and
    * drag, but still draws an appealing thin line for the border
    */
   &::after {

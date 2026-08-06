@@ -124,11 +124,6 @@ export function SpansTable({
                   {i !== visibleFields.length - 1 && (
                     <ColumnResizer
                       columnIndex={i}
-                      dataRows={
-                        !result.isError && !result.isPending && result.data
-                          ? result.data.length
-                          : 0
-                      }
                       onResizeEnd={onResizeEnd}
                       onResizeMove={onResizeMove}
                       onResizeStart={onResizeStart}

@@ -1,13 +1,13 @@
-import {useEffect, useRef, useState} from 'react';
+import {useRef} from 'react';
 import {mergeProps} from '@react-aria/utils';
 
 import {useDragMove} from '@sentry/scraps/dragHandle';
 
 import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
+import {useObservedColumnSize} from 'sentry/components/tables/useObservedColumnSize';
 
 interface ColumnResizerProps {
   columnIndex: number;
-  dataRows: number;
   onResizeEnd: () => void;
   onResizeMove: (delta: number) => void;
   onResizeStart: (columnIndex: number, cell: HTMLElement | null) => void;
@@ -22,7 +22,6 @@ interface ColumnResizerProps {
  */
 export function ColumnResizer({
   columnIndex,
-  dataRows,
   minimumColumnWidth,
   onResetColumnSize,
   onResizeEnd,
@@ -30,7 +29,7 @@ export function ColumnResizer({
   onResizeStart,
 }: ColumnResizerProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const [{max, width}, setMeasurements] = useState({max: 0, width: 0});
+  const {max, width} = useObservedColumnSize(ref);
 
   const {moveProps} = useDragMove({
     onMove: onResizeMove,
@@ -38,25 +37,6 @@ export function ColumnResizer({
     onMoveStart: () => onResizeStart(columnIndex, ref.current?.closest('th') ?? null),
     orientation: 'horizontal',
   });
-
-  useEffect(() => {
-    const cell = ref.current?.closest('th');
-    const table = cell?.closest('table');
-    if (!cell || !table) {
-      return () => {};
-    }
-
-    const observer = new ResizeObserver(() =>
-      setMeasurements({
-        max: Math.max(table.clientWidth, cell.offsetWidth),
-        width: cell.offsetWidth,
-      })
-    );
-    observer.observe(cell);
-    observer.observe(table);
-
-    return () => observer.disconnect();
-  }, []);
 
   return (
     <GridResizer
@@ -69,7 +49,6 @@ export function ColumnResizer({
       aria-valuemax={max || undefined}
       aria-valuemin={minimumColumnWidth}
       aria-valuenow={width || undefined}
-      dataRows={dataRows}
       ref={ref}
       role="separator"
       tabIndex={0}
