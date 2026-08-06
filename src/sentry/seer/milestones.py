@@ -4,13 +4,14 @@ from typing import TYPE_CHECKING
 
 from django.db import router, transaction
 
+from sentry.models.pullrequest import PullRequestLifecycleState
 from sentry.seer.models.run import SeerRun, SeerRunMilestone, SeerRunMilestoneType
 
 if TYPE_CHECKING:
     from sentry.seer.agent.client_models import SeerRunState
 
 # The milestone subset derived from and reconciled against Seer run state.
-# PULL_REQUESTS_MERGED is excluded: it is owned by the PR-merge webhook.
+# PULL_REQUESTS_MERGED is reconciled separately from linked PR lifecycle state.
 SEER_STATE_MILESTONES = frozenset(
     {
         SeerRunMilestoneType.ROOT_CAUSE,
@@ -80,3 +81,37 @@ def record_has_pull_request(seer_run: SeerRun) -> None:
     SeerRunMilestone.objects.get_or_create(
         seer_run=seer_run, milestone=SeerRunMilestoneType.HAS_PULL_REQUEST
     )
+
+
+def reconcile_pull_requests_merged_milestone(seer_run: SeerRun) -> bool:
+    """Make PULL_REQUESTS_MERGED match the current state of every linked PR.
+
+    Reconciliations for one run are serialized so concurrent link and merge events
+    cannot apply their decisions out of order.
+    """
+    database = router.db_for_write(SeerRunMilestone)
+    with transaction.atomic(using=database):
+        SeerRun.objects.select_for_update().values_list("id", flat=True).get(id=seer_run.id)
+        states = list(seer_run.pull_requests.values_list("state", flat=True))
+        milestone = SeerRunMilestone.objects.filter(
+            seer_run=seer_run,
+            milestone=SeerRunMilestoneType.PULL_REQUESTS_MERGED,
+        )
+
+        all_prs_merged = bool(states) and all(
+            state == PullRequestLifecycleState.MERGED for state in states
+        )
+        if not all_prs_merged:
+            milestone.delete()
+            return False
+
+        SeerRunMilestone.objects.bulk_create(
+            [
+                SeerRunMilestone(
+                    seer_run=seer_run,
+                    milestone=SeerRunMilestoneType.PULL_REQUESTS_MERGED,
+                )
+            ],
+            ignore_conflicts=True,
+        )
+        return True
