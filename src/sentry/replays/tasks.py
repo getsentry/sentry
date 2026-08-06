@@ -35,7 +35,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import replays_long_tasks, replays_raw_tasks, replays_tasks
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
-from sentry.utils.sdk import sdk_logger
+from sentry.utils.sdk import merge_context_into_scope, sdk_logger
 
 logger = logging.getLogger()
 
@@ -201,7 +201,6 @@ def archive_replay(project_id: int, replay_id: str) -> None:
     # any activations that were enqueued before this deploy (with
     # namespace="replays") continue to resolve and execute.
     alias_namespace=replays_tasks,
-    # Only the deadline is redelivered; everything transient retries in place.
     retry=Retry(times=5, on=(ProcessingDeadlineExceeded,)),
     processing_deadline_duration=600,
     silo_mode=SiloMode.CELL,
@@ -251,7 +250,6 @@ def run_bulk_replay_delete_job(
 
     window_start, window_end = windows[window_offset_days]
 
-    sentry_sdk.set_tags({"replay_delete.job": job.id, "replay_delete.project": job.project_id})
     sentry_sdk.set_context(
         "ReplayDeletionJobModel",
         {
@@ -290,6 +288,13 @@ def run_bulk_replay_delete_job(
         # Delete the matched rows if any rows were returned.
         if len(results["rows"]) > 0:
             replay_ids = [row["replay_id"] for row in results["rows"]]
+            # Merged rather than set: `set_context` replaces, which would drop the window fields.
+            merge_context_into_scope(
+                "replay_delete_window",
+                {"replay_ids": replay_ids},
+                sentry_sdk.get_isolation_scope(),
+            )
+
             delete_matched_rows(job.project_id, results["rows"])
             # Track job progress with a state transition metric
             metrics.incr("replays.bulk_delete_job", tags={"status": "in_progress"}, sample_rate=1.0)
@@ -315,10 +320,9 @@ def run_bulk_replay_delete_job(
                 },
             )
     except ProcessingDeadlineExceeded:
-        # A BaseException, so it escapes the handler below, and the only thing the broker redelivers.
-        # Failing the job on the first one would be permanent, because the status guard at the top
-        # turns every redelivery into a no-op -- so wait until the redeliveries are actually gone.
-        # `retries_remaining` is a plain counter, so this reasoning only holds for the deadline.
+        # Re-raised below, so the broker still sees the deadline and still redelivers. This only
+        # decides when to mark the job failed: doing it on the first deadline would be permanent,
+        # because the status guard at the top turns every redelivery into a no-op.
         task = current_task()
         if task is None or not task.retries_remaining:
             logger.warning("Bulk delete replays exhausted its processing deadline retries.")

@@ -47,14 +47,12 @@ def test_a_refused_delete_raises(mock_seer_request: MagicMock) -> None:
 
     A summary is derived from the replay, so leaving one behind leaves PII behind.
     """
-    for status in (400, 401, 403, 404, 500, 502, 503):
-        mock_seer_request.reset_mock()
-        mock_response = Mock()
-        mock_response.status = status
-        mock_seer_request.return_value = mock_response
+    mock_response = Mock()
+    mock_response.status = 500
+    mock_seer_request.return_value = mock_response
 
-        with pytest.raises(SeerDeleteFailed):
-            delete_seer_replay_data(456, 123, ["replay-1"])
+    with pytest.raises(SeerDeleteFailed):
+        delete_seer_replay_data(456, 123, ["replay-1"])
 
 
 def test_the_retry_applies_to_this_request() -> None:

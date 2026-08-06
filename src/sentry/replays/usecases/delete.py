@@ -153,16 +153,11 @@ def delete_filenames_concurrently(filenames: list[str]) -> None:
         # retrieved a worker exception, which is why a failed blob delete has never been visible.
         futures = [pool.submit(_delete_if_exists, filename) for filename in filenames]
 
-    # A blob we failed to delete is PII we would otherwise report as deleted. Raising here happens
-    # before the archive event is published, so the replay stays unarchived and the next pass over
-    # the range picks it up again.
     failed = sum(1 for future in futures if future.exception() is not None)
     if failed:
         raise BlobDeleteFailed(f"{failed} of {len(filenames)} recording blobs were not deleted")
 
 
-# urllib3 and google-cloud-storage both decline to retry these deletes, because an unconditional
-# delete is not idempotent in general. This one is: nothing rewrites a segment we are deleting.
 _BLOB_DELETE_ATTEMPTS = 2
 _blob_delete_retry = ConditionalRetryPolicy(
     test_function=lambda attempt, error: attempt < _BLOB_DELETE_ATTEMPTS
@@ -174,7 +169,7 @@ _blob_delete_retry = ConditionalRetryPolicy(
 def _delete_if_exists(filename: str) -> None:
     """Delete the blob if it exists or silence the 404."""
     try:
-        _blob_delete_retry(functools.partial(storage_kv.delete, filename))
+        _blob_delete_retry(lambda: storage_kv.delete(filename))
     except NotFound:
         pass
 
@@ -317,7 +312,6 @@ SEER_DELETE_RETRY = Retry(
     status_forcelist=[429, 500, 502, 503, 504],
 )
 
-# The 5 seconds this used to allow was routinely too short, which is what the recorded timeouts were.
 SEER_DELETE_TIMEOUT = 30
 
 

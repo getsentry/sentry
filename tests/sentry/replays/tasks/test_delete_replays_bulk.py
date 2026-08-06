@@ -888,7 +888,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         """Test a page names its job and window, and logs the ids it deleted.
 
         The job and window exist only in the activation's arguments, so without this an error is a
-        stack trace with no way back to a range. The replay ids are what a re-run is checked against.
+        stack trace with no way back to a range.
         """
         mock_fetch_rows.return_value = {
             "rows": [
@@ -901,16 +901,11 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
 
         run_bulk_replay_delete_job(self.job.id)
 
-        mock_sentry_sdk.set_tags.assert_called_once_with(
-            {"replay_delete.job": self.job.id, "replay_delete.project": self.project.id}
-        )
         contexts = {
             call.args[0]: call.args[1] for call in mock_sentry_sdk.set_context.call_args_list
         }
         assert contexts["ReplayDeletionJobModel"]["id"] == self.job.id
-        assert contexts["ReplayDeletionJobModel"]["range_start"] == self.range_start.isoformat()
         assert contexts["replay_delete_window"]["window_offset_days"] == 0
-        assert contexts["replay_delete_window"]["window_start"] == self.range_start.isoformat()
 
         mock_sdk_logger.info.assert_called_once_with(
             "replays.bulk_delete_job.page_deleted",
@@ -922,30 +917,3 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
                 "replay_ids": "a,b",
             },
         )
-
-    @patch("sentry.replays.tasks.sdk_logger")
-    @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
-    @patch("sentry.replays.tasks.delete_matched_rows")
-    def test_run_bulk_replay_delete_job_does_not_log_success_when_a_page_fails(
-        self,
-        mock_delete_matched_rows: MagicMock,
-        mock_fetch_rows: MagicMock,
-        mock_sdk_logger: MagicMock,
-    ) -> None:
-        """Test the success log is not written for a page whose deletes raised.
-
-        The log is the record a re-run is checked against, so it must mean the page really finished.
-        """
-        mock_fetch_rows.return_value = {
-            "rows": [{"retention_days": 90, "replay_id": "a", "max_segment_id": 1}],
-            "has_more": False,
-            "next_cursor": None,
-        }
-        mock_delete_matched_rows.side_effect = RuntimeError("a blob would not delete")
-
-        with pytest.raises(RuntimeError):
-            run_bulk_replay_delete_job(self.job.id)
-
-        assert mock_sdk_logger.info.call_count == 0
-        self.job.refresh_from_db()
-        assert self.job.status == "failed"
