@@ -353,7 +353,10 @@ def run_night_shift_execution(
         return None
 
     organization = run.organization
-    resolved_options = _run_option_defaults(options or {})
+    stored_options = (run.extras or {}).get("options")
+    resolved_options = _run_option_defaults(
+        stored_options if isinstance(stored_options, Mapping) else options or {}
+    )
 
     log_extra: dict[str, object] = {
         "organization_id": organization.id,
