@@ -9,6 +9,7 @@ import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useConversations} from 'sentry/views/explore/conversations/hooks/useConversations';
 import {AI_INSTRUMENTATION_DOCS_LINKS} from 'sentry/views/insights/pages/agents/utils/docsLinks';
 
 const CAPTURE_MESSAGES_PROMPT = `
@@ -49,6 +50,18 @@ function CopyCaptureMessagesPromptButton() {
 }
 
 export function ConversationMissingMessagesAlert() {
+  const {data, isFetching, error} = useConversations();
+
+  const showAlert =
+    !isFetching &&
+    !error &&
+    data.length > 0 &&
+    data.every(conversation => !conversation.firstInput && !conversation.lastOutput);
+
+  if (!showAlert) {
+    return null;
+  }
+
   return (
     <Alert.Container>
       <Alert variant="info">

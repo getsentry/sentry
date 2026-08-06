@@ -24,6 +24,7 @@ import {
   ExploreBodySearch,
 } from 'sentry/views/explore/components/styles';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
 import {ConversationsChart} from 'sentry/views/explore/conversations/components/conversationsChart';
 import {ConversationsTable} from 'sentry/views/explore/conversations/components/conversationsTable';
 import {SaveConversationQueryButton} from 'sentry/views/explore/conversations/components/saveConversationQueryButton';
@@ -162,6 +163,7 @@ function ConversationsOverviewPage() {
             <ConversationOnboarding onDismiss={refetchOnboarding} />
           ) : (
             <Fragment>
+              <ConversationMissingMessagesAlert />
               <ConversationsChart />
               <ConversationsTable />
             </Fragment>
