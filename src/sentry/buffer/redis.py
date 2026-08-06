@@ -269,7 +269,7 @@ class RedisBuffer(Buffer):
     @classmethod
     def _dump_value(
         cls,
-        value: str | datetime | date | int | float | dict[str, Any] | None,
+        value: str | datetime | date | int | float | dict[str, Any] | list[Any] | None,
         depth: int = 0,
     ) -> tuple[str, str]:
         if depth > 3:
@@ -294,6 +294,9 @@ class RedisBuffer(Buffer):
         elif isinstance(value, dict):
             type_ = "di"
             value = json.dumps({k: cls._dump_value(v, depth + 1) for k, v in value.items()})
+        elif isinstance(value, list):
+            type_ = "l"
+            value = json.dumps([cls._dump_value(item, depth + 1) for item in value])
         else:
             raise TypeError(type(value))
         return type_, str(value)
@@ -310,7 +313,7 @@ class RedisBuffer(Buffer):
     @classmethod
     def _load_value(
         cls, payload: tuple[str, Any]
-    ) -> dict[str, Any] | str | datetime | date | int | float | None:
+    ) -> dict[str, Any] | list[Any] | str | datetime | date | int | float | None:
         (type_, value) = payload
         if type_ == "n":
             return None
@@ -329,6 +332,8 @@ class RedisBuffer(Buffer):
         elif type_ == "di":
             value = json.loads(value)
             return {k: cls._load_value(v) for k, v in value.items()}
+        elif type_ == "l":
+            return [cls._load_value(item) for item in json.loads(value)]
         else:
             raise TypeError(f"invalid type: {type_}")
 
