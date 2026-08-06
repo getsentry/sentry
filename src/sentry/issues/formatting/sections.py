@@ -250,14 +250,16 @@ def threads_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
         st = thread.stacktrace
         if not (st and st.frames):
             continue
+        # checked before appending, not after: testing at the bottom lets a zero cap through
+        # with one thread already rendered
+        if len(blocks) >= limits.max_threads:  # bound total output by thread count (matches Seer)
+            break
         label = thread.name or (str(thread.id) if thread.id is not None else "Thread")
         parts = [label]
         if thread.crashed:
             parts.append(fmt.field("Crashed", "Yes"))
         parts.append(fmt.code_block(_render_stacktrace(st, limits)))
         blocks.append("\n".join(parts))
-        if len(blocks) >= limits.max_threads:  # bound total output by thread count (matches Seer)
-            break
 
     if not blocks:
         return ""

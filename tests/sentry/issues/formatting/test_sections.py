@@ -204,6 +204,19 @@ def test_breadcrumbs_last_n_and_skip_filtered() -> None:
     assert len(body_lines) == 9  # last 10 minus the one filtered crumb
 
 
+def test_threads_zero_cap_renders_nothing() -> None:
+    # same trap as the breadcrumb cap: testing the count after appending lets one thread through
+    stacktrace = Stacktrace(frames=[Frame(function="f", filename="a.py")])
+    event = EventObject(
+        title="t",
+        threads=[ThreadDetails(name=f"T{i}", stacktrace=stacktrace) for i in range(5)],
+    )
+    assert threads_section(event, MD, dataclasses.replace(LIMITS_DEFAULT, max_threads=0)) == ""
+    # and the cap is still filled exactly when it is non-zero
+    out = threads_section(event, MD, dataclasses.replace(LIMITS_DEFAULT, max_threads=2))
+    assert [f"T{i}" in out for i in range(5)] == [True, True, False, False, False]
+
+
 def test_breadcrumbs_zero_cap_renders_nothing() -> None:
     # the window is a negative slice, so a zero cap becomes [0:] and would render every
     # breadcrumb -- the exact opposite of what the cap asks for
