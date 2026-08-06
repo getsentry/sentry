@@ -212,41 +212,38 @@ class SweepUnattributedPrActivityTaskTest(TestCase):
 
         assert not self._has_activity(pr)
 
+    def _capped_stores(self, mock_metrics: Any) -> set[str]:
+        return {
+            call.kwargs["tags"]["store"]
+            for call in mock_metrics.incr.call_args_list
+            if call.args[0] == "pr_metrics.activity_sweep.capped"
+        }
+
+    @patch("sentry.pr_metrics.tasks._SWEEP_MAX_BATCHES", 1)
+    @patch("sentry.pr_metrics.tasks._SWEEP_BATCH_SIZE", 1)
     def test_stops_at_the_batch_budget_and_leaves_the_rest(self) -> None:
         prs = [self._make_pr(str(i), when=self.quiet) for i in range(3)]
 
-        with self.options(
-            {
-                "pr_metrics.activity_sweep.batch_size": 1,
-                "pr_metrics.activity_sweep.max_batches": 1,
-            }
-        ):
-            sweep_unattributed_pr_activity_task()
+        sweep_unattributed_pr_activity_task()
 
         # One row per store per run, oldest first; the rest wait for the next run.
         assert PullRequestActivity.objects.filter(pull_request__in=prs).count() == 2
         assert PullRequestActivityLog.objects.filter(pull_request__in=prs).count() == 2
 
+    @patch("sentry.pr_metrics.tasks._SWEEP_MAX_BATCHES", 1)
+    @patch("sentry.pr_metrics.tasks._SWEEP_BATCH_SIZE", 1)
     @patch("sentry.pr_metrics.tasks.metrics")
     def test_reports_when_the_budget_ran_out(self, mock_metrics: Any) -> None:
         # The signal that the sweep is not keeping pace and max_batches needs raising.
         self._make_pr("1", when=self.quiet)
         self._make_pr("2", when=self.quiet)
 
-        with self.options(
-            {
-                "pr_metrics.activity_sweep.batch_size": 1,
-                "pr_metrics.activity_sweep.max_batches": 1,
-            }
-        ):
-            sweep_unattributed_pr_activity_task()
+        sweep_unattributed_pr_activity_task()
 
-        capped_stores = {
-            call.kwargs["tags"]["store"]
-            for call in mock_metrics.incr.call_args_list
-            if call.args[0] == "pr_metrics.activity_sweep.capped"
+        assert self._capped_stores(mock_metrics) == {
+            "PullRequestActivity",
+            "PullRequestActivityLog",
         }
-        assert capped_stores == {"PullRequestActivity", "PullRequestActivityLog"}
 
     @patch("sentry.pr_metrics.tasks.metrics")
     def test_reports_nothing_capped_when_work_runs_out(self, mock_metrics: Any) -> None:
@@ -254,11 +251,20 @@ class SweepUnattributedPrActivityTaskTest(TestCase):
 
         sweep_unattributed_pr_activity_task()
 
-        assert not [
-            call
-            for call in mock_metrics.incr.call_args_list
-            if call.args[0] == "pr_metrics.activity_sweep.capped"
-        ]
+        assert self._capped_stores(mock_metrics) == set()
+
+    @patch("sentry.pr_metrics.tasks._SWEEP_MAX_BATCHES", 1)
+    @patch("sentry.pr_metrics.tasks._SWEEP_BATCH_SIZE", 2)
+    @patch("sentry.pr_metrics.tasks.metrics")
+    def test_partial_final_batch_is_not_reported_as_capped(self, mock_metrics: Any) -> None:
+        # A short batch drains the queue, so a run that ends on one is finished
+        # rather than behind — reporting it would fire the counter in normal
+        # operation, where a run almost always ends mid-batch.
+        self._make_pr("1", when=self.quiet)
+
+        sweep_unattributed_pr_activity_task()
+
+        assert self._capped_stores(mock_metrics) == set()
 
 
 @cell_silo_test

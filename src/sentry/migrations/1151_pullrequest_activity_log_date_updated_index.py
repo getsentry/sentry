@@ -18,11 +18,14 @@ class Migration(CheckedMigration):
     #   is a schema change, it's completely safe to run the operation after the code has deployed.
     # Once deployed, run these manually via: https://develop.sentry.dev/database-migrations/#migration-deployment
 
-    # CONCURRENTLY already keeps this off the table's write path, so the flag is
-    # about duration rather than safety: the table takes a row per PR routed to the
-    # document store since it went live in July, and a deploy shouldn't sit and wait
-    # out a build that size.
-    is_post_deployment = True
+    # Applied inline despite being an index add on a sizeable table. The build is
+    # safe to run against live traffic — CONCURRENTLY takes SHARE UPDATE EXCLUSIVE,
+    # not ACCESS EXCLUSIVE, and the statement timeout is disabled for it — so the
+    # only cost of keeping it here is a slower deploy. That is worth paying to keep
+    # the index and the code that depends on it landing together: the cleanup
+    # command and ``sweep_unattributed_pr_activity`` both age documents by
+    # ``date_updated`` and would sequentially scan this table without it.
+    is_post_deployment = False
 
     dependencies = [
         ("sentry", "1150_pullrequest_provider_updated_at"),

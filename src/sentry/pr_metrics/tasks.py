@@ -13,7 +13,7 @@ from django.utils import timezone as dj_timezone
 from taskbroker_client.retry import Retry
 from urllib3.exceptions import HTTPError
 
-from sentry import features, options
+from sentry import features
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
     PullRequest,
@@ -46,10 +46,18 @@ DELAY_BETWEEN_RETRIES = 60  # seconds
 # hang off a PR and carry a date to age them by.
 _ActivityStore = TypeVar("_ActivityStore", PullRequestActivity, PullRequestActivityLog)
 
+# Per-run bounds on sweep_unattributed_pr_activity_task. Their product is the
+# drain rate: 50k rows per store per hourly run, comfortably ahead of inbound PR
+# volume while leaving headroom to work down the backlog the sweep meets on its
+# first deploy. Watch pr_metrics.activity_sweep.capped — sustained firing means
+# the sweep is falling behind and these want raising.
+_SWEEP_BATCH_SIZE = 1000
+_SWEEP_MAX_BATCHES = 50
+
 # sweep_unattributed_pr_activity_task loops over batches of deletes, so it needs
 # far more than the taskbroker client's 10s default. Sized well above the budget
-# that the batch options can spend, so the task ends by running out of work rather
-# than by being declared dead mid-delete.
+# the bounds above can spend, so the task ends by running out of work rather than
+# by being declared dead mid-delete.
 SWEEP_PROCESSING_DEADLINE = 600
 
 # forward_pr_to_seer_task's Seer call blocks for up to settings.SEER_DEFAULT_TIMEOUT.
@@ -197,8 +205,6 @@ def _sweep_activity_store(model: type[_ActivityStore], date_field: str, cutoff: 
     Running out of budget with work still queued is the signal that the sweep is
     not keeping pace with inbound webhooks, so it gets its own counter.
     """
-    batch_size = options.get("pr_metrics.activity_sweep.batch_size")
-    max_batches = options.get("pr_metrics.activity_sweep.max_batches")
     attributed = PullRequestAttribution.objects.filter(
         pull_request_id=OuterRef("pull_request_id"), is_valid=True
     )
@@ -206,18 +212,24 @@ def _sweep_activity_store(model: type[_ActivityStore], date_field: str, cutoff: 
     store = model.__name__
     deleted_total = 0
     capped = True
-    for _ in range(max_batches):
+    for _ in range(_SWEEP_MAX_BATCHES):
         ids = list(
             model.objects.filter(**{f"{date_field}__lt": cutoff})
             .exclude(Exists(attributed))
             .order_by(date_field)
-            .values_list("id", flat=True)[:batch_size]
+            .values_list("id", flat=True)[:_SWEEP_BATCH_SIZE]
         )
         if not ids:
             capped = False
             break
         deleted, _ = model.objects.filter(id__in=ids).delete()
         deleted_total += deleted
+        if len(ids) < _SWEEP_BATCH_SIZE:
+            # A short batch means the queue is drained; stop rather than spend the
+            # remaining budget re-querying, and don't report a cap that isn't real
+            # when the work happens to end on the last iteration.
+            capped = False
+            break
 
     metrics.incr("pr_metrics.activity_sweep.deleted", amount=deleted_total, tags={"store": store})
     if capped:
