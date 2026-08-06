@@ -10,6 +10,7 @@ import {Button} from '@sentry/scraps/button';
 import {ListBox} from '@sentry/scraps/compactSelect';
 import type {SelectKey, SelectOptionOrSectionWithKey} from '@sentry/scraps/compactSelect';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Flex} from '@sentry/scraps/layout';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {Overlay} from 'sentry/components/overlay';
@@ -90,7 +91,13 @@ function FeedbackFooter({
   const {enableAISearch} = useSearchQueryBuilderAI();
 
   return (
-    <SectionedOverlayFooter>
+    <Flex
+      area="footer"
+      align="center"
+      justify={enableAISearch ? 'between' : 'end'}
+      padding={enableAISearch ? 'sm' : 'md'}
+      borderTop="muted"
+    >
       {enableAISearch ? (
         <OpenAskSeerButton ref={askSeerButtonRef} onTabForward={onAskSeerTabForward} />
       ) : null}
@@ -106,7 +113,7 @@ function FeedbackFooter({
           },
         }}
       />
-    </SectionedOverlayFooter>
+    </Flex>
   );
 }
 
@@ -507,15 +514,6 @@ const SectionedOverlay = styled(Overlay, {
   height: 400px;
   width: ${p => (p.fullWidth ? '100%' : `${p.width}px`)};
   ${p => p.fullWidth && `border-radius: 0 0 ${p.theme.radius.md} ${p.theme.radius.md}`};
-`;
-
-const SectionedOverlayFooter = styled('div')`
-  grid-area: footer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: ${p => p.theme.space.sm};
-  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const RecentFiltersPane = styled('ul')`
