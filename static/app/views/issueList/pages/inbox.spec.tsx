@@ -490,6 +490,7 @@ describe('InboxPage', () => {
       mockSection('issue.progress:identified is:unresolved', []),
       mockSection('issue.progress:fix_applied is:unresolved', []),
     ];
+    const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
     const {router} = render(<InboxPage />, {
       organization: seerOrganization,
@@ -508,6 +509,13 @@ describe('InboxPage', () => {
 
     expect(meFilter).toBeChecked();
     expect(router.location.query.assignment).toBe('me');
+    expect(analyticsSpy).toHaveBeenLastCalledWith(
+      'issue_inbox.assignment_filter_changed',
+      {
+        organization: seerOrganization,
+        assignment_filter: 'me',
+      }
+    );
     for (const request of meRequests) {
       await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
     }
@@ -516,6 +524,13 @@ describe('InboxPage', () => {
 
     expect(allFilter).toBeChecked();
     expect(router.location.query.assignment).toBe('all');
+    expect(analyticsSpy).toHaveBeenLastCalledWith(
+      'issue_inbox.assignment_filter_changed',
+      {
+        organization: seerOrganization,
+        assignment_filter: 'all',
+      }
+    );
     for (const request of allRequests) {
       await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
     }
@@ -556,6 +571,7 @@ describe('InboxPage', () => {
 
     expect(analyticsSpy).toHaveBeenCalledWith('issue_inbox.item_clicked', {
       organization,
+      assignment_filter: 'my_teams',
       group_id: fixProposedGroup.id,
       progress: ProgressState.FIX_PROPOSED,
       last_progressed_at: '2026-07-20T12:00:00Z',

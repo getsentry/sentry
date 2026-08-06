@@ -229,6 +229,14 @@ function InboxContent() {
     sections,
   });
 
+  const handleAssignmentFilterChange = (filter: AssignmentFilter) => {
+    trackAnalytics('issue_inbox.assignment_filter_changed', {
+      organization,
+      assignment_filter: filter,
+    });
+    setAssignmentFilter(filter);
+  };
+
   return (
     <Stack flex={1} minHeight={0} contain="size" overflow="hidden">
       <Layout.Title>{TITLE}</Layout.Title>
@@ -265,7 +273,7 @@ function InboxContent() {
               aria-label={t('Issue assignee')}
               size="xs"
               value={assignmentFilter}
-              onChange={setAssignmentFilter}
+              onChange={handleAssignmentFilterChange}
             >
               <SegmentedControl.Item key="me">{t('Me')}</SegmentedControl.Item>
               <SegmentedControl.Item key="my_teams">
@@ -444,6 +452,7 @@ function InboxSection({
             {groups.map(group => (
               <Container key={group.id} padding="0 xs">
                 <InboxIssueCard
+                  assignmentFilter={assignmentFilter}
                   group={group}
                   progressLabel={section.label}
                   selected={selectedIssueId === group.id}
@@ -478,11 +487,13 @@ function InboxSection({
 }
 
 function InboxIssueCard({
+  assignmentFilter,
   assignedUser,
   group,
   progressLabel,
   selected,
 }: {
+  assignmentFilter: AssignmentFilter;
   group: Group;
   progressLabel: string;
   selected: boolean;
@@ -506,6 +517,7 @@ function InboxIssueCard({
       onClick={() =>
         trackAnalytics('issue_inbox.item_clicked', {
           organization,
+          assignment_filter: assignmentFilter,
           group_id: group.id,
           progress: group.derivedData?.progress,
           last_progressed_at: group.derivedData?.lastProgressedAt ?? null,
