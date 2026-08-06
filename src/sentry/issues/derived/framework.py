@@ -460,6 +460,14 @@ def _validate_and_sort[E: HasType](
                     f"Aggregator {agg.name!r} depends on {dep.name!r}, "
                     f"which is not output by any aggregator in the pipeline"
                 )
+            producer = output_owners[dep.name]
+            if agg.scope is not None and (
+                producer.scope is None or not set(agg.scope).issuperset(producer.scope)
+            ):
+                raise ValueError(
+                    f"Aggregator {agg.name!r} has a scope that does not cover "
+                    f"dependency {dep.name!r} produced by {producer.name!r}"
+                )
 
     agg_by_name: dict[str, Aggregator[E]] = {a.name: a for a in aggregators}
     predecessors: dict[str, set[str]] = {a.name: set() for a in aggregators}

@@ -157,7 +157,6 @@ def track_root_cause(state: StateView, entry: GroupActionLogEntry) -> Aggregator
 
 @aggregator(
     (HAS_OPEN_FIX_PR,),
-    deps=(STATUS,),
     scope=(
         ResolvedInPullRequestAction,
         PullRequestClosedAction,

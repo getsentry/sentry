@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from enum import IntEnum
 
 import pytest
 
@@ -16,6 +17,11 @@ from sentry.issues.derived.framework import (
     aggregator,
 )
 from sentry.issues.progress_state import IssueProgressState
+
+
+class EntryType(IntEnum):
+    FIRST = 1
+    SECOND = 2
 
 
 def test_mutation_checking_catches_in_place_mutation() -> None:
@@ -47,6 +53,68 @@ def test_state_updated_tracks_merged_features() -> None:
     assert state.updated == frozenset({A})
     assert state[A] == 1
     assert state[B] == 0
+
+
+def test_dependency_scope_must_cover_producer_scope() -> None:
+    A = Feature[int]("a", default=0)
+    B = Feature[int]("b", default=0)
+
+    @aggregator((A,), scope=(EntryType.FIRST, EntryType.SECOND))
+    def produce_a(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    @aggregator((B,), deps=(A,), scope=(EntryType.FIRST,))
+    def use_a(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    with pytest.raises(ValueError, match="scope that does not cover dependency 'a'"):
+        Pipeline([produce_a, use_a])
+
+
+def test_scoped_aggregator_cannot_depend_on_unscoped_aggregator() -> None:
+    A = Feature[int]("a", default=0)
+    B = Feature[int]("b", default=0)
+
+    @aggregator((A,))
+    def produce_a(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    @aggregator((B,), deps=(A,), scope=(EntryType.FIRST,))
+    def use_a(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    with pytest.raises(ValueError, match="scope that does not cover dependency 'a'"):
+        Pipeline([produce_a, use_a])
+
+
+def test_dependency_scope_can_be_a_superset_of_producer_scope() -> None:
+    A = Feature[int]("a", default=0)
+    B = Feature[int]("b", default=0)
+
+    @aggregator((A,), scope=(EntryType.FIRST,))
+    def produce_a(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    @aggregator((B,), deps=(A,), scope=(EntryType.FIRST, EntryType.SECOND))
+    def use_a(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    assert Pipeline([produce_a, use_a]).aggregators == (produce_a, use_a)
+
+
+def test_unscoped_aggregator_covers_scoped_dependency() -> None:
+    A = Feature[int]("a", default=0)
+    B = Feature[int]("b", default=0)
+
+    @aggregator((A,), scope=(EntryType.FIRST,))
+    def produce_a(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    @aggregator((B,), deps=(A,))
+    def use_a(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    assert Pipeline([produce_a, use_a]).aggregators == (produce_a, use_a)
 
 
 class TestDateTimeCodec:
