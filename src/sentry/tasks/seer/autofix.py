@@ -18,6 +18,14 @@ from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
     SeerAutomationSource,
 )
+from sentry.seer.autofix.issue_summary import (
+    get_and_update_group_fixability_score,
+    get_issue_summary,
+    get_issue_summary_cache_key,
+    get_issue_summary_lock_key,
+    run_automation,
+)
+from sentry.seer.autofix.trigger import get_default_seer_automation_skip_reason
 from sentry.seer.autofix.utils import (
     SEAT_BASED_STOPPING_POINTS,
     AutofixStoppingPoint,
@@ -26,6 +34,7 @@ from sentry.seer.autofix.utils import (
     bulk_read_preferences_from_sentry_db,
     get_org_default_seer_automation_handoff,
     get_seer_seat_based_tier_cache_key,
+    is_seer_seat_based_tier_enabled,
     update_seer_project_settings,
 )
 from sentry.tasks.base import instrumented_task
@@ -52,14 +61,6 @@ def _get_group_or_log(group_id: int, task_name: str) -> Group | None:
     retry=Retry(times=1),
 )
 def generate_summary_and_run_automation(group_id: int, **kwargs) -> None:
-    from sentry.seer.autofix.issue_summary import (
-        get_issue_summary,
-        get_issue_summary_cache_key,
-        get_issue_summary_lock_key,
-    )
-    from sentry.seer.autofix.trigger import get_default_seer_automation_skip_reason
-    from sentry.seer.autofix.utils import is_seer_seat_based_tier_enabled
-
     trigger_path = kwargs.get("trigger_path", "unknown")
     sentry_sdk.set_tag("trigger_path", trigger_path)
     sentry_sdk.set_attribute("trigger_path", trigger_path)
@@ -120,11 +121,6 @@ def generate_issue_summary_only(group_id: int) -> None:
     Generate issue summary WITHOUT triggering automation.
     Used for triage signals flow when event count < AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD or when summary doesn't exist yet.
     """
-    from sentry.seer.autofix.issue_summary import (
-        get_and_update_group_fixability_score,
-        get_issue_summary,
-    )
-
     group = _get_group_or_log(group_id, "generate_issue_summary_only")
     if group is None:
         return
@@ -164,8 +160,6 @@ def run_automation_only_task(group_id: int) -> None:
     Used for triage signals flow when event count >= AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD and summary exists.
     """
     from django.contrib.auth.models import AnonymousUser
-
-    from sentry.seer.autofix.issue_summary import run_automation
 
     group = _get_group_or_log(group_id, "run_automation_only_task")
     if group is None:
