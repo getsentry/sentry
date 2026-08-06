@@ -1,4 +1,3 @@
-import {useRef, useState} from 'react';
 import {AnimatePresence, motion} from 'framer-motion';
 
 interface ScmCollapsibleRevealProps {
@@ -17,34 +16,35 @@ interface ScmCollapsibleRevealProps {
  * initial={false} renders the open state without animating on mount.
  */
 export function ScmCollapsibleReveal({open, id, children}: ScmCollapsibleRevealProps) {
-  // overflow:hidden is needed while the height tween runs so the content clips
-  // cleanly, but kept on it would also clip anything that extends past the
-  // settled bounds, e.g. a focus ring at the edge or an open select menu below.
-  // Switch to visible once open and settled, back to hidden whenever animating.
-  const [overflow, setOverflow] = useState<'hidden' | 'visible'>(
-    open ? 'visible' : 'hidden'
-  );
-  // On collapse, AnimatePresence keeps a frozen snapshot of the last open
-  // render, so a closure over `open` reads a stale `true` and never resets
-  // overflow. Read the live value through a ref so completion settles correctly.
-  const openRef = useRef(open);
-  openRef.current = open;
-
   return (
     <AnimatePresence initial={false}>
       {open && (
         <motion.div
           key="content"
           id={id}
-          initial={{height: 0, opacity: 0}}
-          animate={{height: 'auto', opacity: 1}}
-          exit={{height: 0, opacity: 0}}
-          transition={{duration: 0.2, ease: 'easeOut'}}
-          onAnimationStart={() => setOverflow('hidden')}
-          onAnimationComplete={() => {
-            setOverflow(openRef.current ? 'visible' : 'hidden');
+          // overflow has to clip while the height tween runs so the content
+          // stays inside the shrinking box, but keeping it on once settled
+          // would also clip anything extending past those bounds, e.g. a focus
+          // ring at the edge or an open select menu below. So it is hidden
+          // while animating and released on the way out via `transitionEnd`.
+          //
+          // It rides the animation targets rather than a state-driven `style`
+          // prop because AnimatePresence renders an exiting child from a frozen
+          // snapshot of its last present props: a re-render during the exit
+          // produces a new element that is never used, so the collapse would
+          // run with the stale `visible` and spill over the content below.
+          // Targets go through the value pipeline straight to the DOM, and
+          // framer-motion applies non-animatable values like this immediately
+          // rather than tweening them.
+          initial={{height: 0, opacity: 0, overflow: 'hidden'}}
+          animate={{
+            height: 'auto',
+            opacity: 1,
+            transitionEnd: {overflow: 'visible'},
           }}
-          style={{overflow, width: '100%'}}
+          exit={{height: 0, opacity: 0, overflow: 'hidden'}}
+          transition={{duration: 0.2, ease: 'easeOut'}}
+          style={{width: '100%'}}
         >
           {children}
         </motion.div>
