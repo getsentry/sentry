@@ -13,7 +13,7 @@ from django.utils import timezone as dj_timezone
 from taskbroker_client.retry import Retry
 from urllib3.exceptions import HTTPError
 
-from sentry import features
+from sentry import features, options
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
     PullRequest,
@@ -204,6 +204,11 @@ def _sweep_activity_store(model: type[_ActivityStore], date_field: str, cutoff: 
 
     Running out of budget with work still queued is the signal that the sweep is
     not keeping pace with inbound webhooks, so it gets its own counter.
+
+    ``cleanup.abort_execution`` stops the sweep — the same switch the cleanup
+    command honours, so one lever covers everything deleting trailing data on a
+    region. These are bulk deletes with nothing throttling them, so it has to be
+    able to halt a run already going, not just prevent the next one.
     """
     attributed = PullRequestAttribution.objects.filter(
         pull_request_id=OuterRef("pull_request_id"), is_valid=True
@@ -212,7 +217,14 @@ def _sweep_activity_store(model: type[_ActivityStore], date_field: str, cutoff: 
     store = model.__name__
     deleted_total = 0
     capped = True
+    aborted = False
     for _ in range(_SWEEP_MAX_BATCHES):
+        if options.get("cleanup.abort_execution"):
+            # Re-read every batch, not just on entry, so the switch can stop a run
+            # already in flight rather than only the next one.
+            aborted = True
+            capped = False
+            break
         ids = list(
             model.objects.filter(**{f"{date_field}__lt": cutoff})
             .exclude(Exists(attributed))
@@ -232,11 +244,15 @@ def _sweep_activity_store(model: type[_ActivityStore], date_field: str, cutoff: 
             break
 
     metrics.incr("pr_metrics.activity_sweep.deleted", amount=deleted_total, tags={"store": store})
-    if capped:
+    if aborted:
+        # Kept distinct from capped: one says the sweep was switched off, the other
+        # says it is falling behind, and they call for opposite responses.
+        metrics.incr("pr_metrics.activity_sweep.aborted", tags={"store": store})
+    elif capped:
         metrics.incr("pr_metrics.activity_sweep.capped", tags={"store": store})
     logger.info(
         "pr_metrics.activity_sweep",
-        extra={"store": store, "deleted": deleted_total, "capped": capped},
+        extra={"store": store, "deleted": deleted_total, "capped": capped, "aborted": aborted},
     )
 
 

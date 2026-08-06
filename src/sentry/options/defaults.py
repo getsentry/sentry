@@ -363,6 +363,11 @@ register(
 )
 
 
+# Halts bulk deletion of trailing data part-way through, not just before it starts.
+# Honoured by the `sentry cleanup` command and by
+# `sentry.pr_metrics.tasks.sweep_unattributed_pr_activity`, which both re-read it
+# between chunks — one lever, so stopping deletion pressure on a region doesn't
+# depend on knowing every deleter by name.
 register(
     "cleanup.abort_execution",
     default=False,

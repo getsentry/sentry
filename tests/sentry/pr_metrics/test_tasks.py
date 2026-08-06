@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
+from sentry import options
 from sentry.models.pullrequest import (
     PullRequest,
     PullRequestActivity,
@@ -251,6 +252,53 @@ class SweepUnattributedPrActivityTaskTest(TestCase):
 
         sweep_unattributed_pr_activity_task()
 
+        assert self._capped_stores(mock_metrics) == set()
+
+    def test_abort_switch_deletes_nothing(self) -> None:
+        pr = self._make_pr("1", when=self.quiet)
+
+        with self.options({"cleanup.abort_execution": True}):
+            sweep_unattributed_pr_activity_task()
+
+        assert PullRequestActivity.objects.filter(pull_request=pr).exists()
+        assert PullRequestActivityLog.objects.filter(pull_request=pr).exists()
+
+    @patch("sentry.pr_metrics.tasks._SWEEP_BATCH_SIZE", 1)
+    def test_abort_switch_stops_a_run_already_in_flight(self) -> None:
+        # The switch is re-read per batch, so flipping it mid-run stops the sweep
+        # rather than only preventing the next one.
+        prs = [self._make_pr(str(i), when=self.quiet) for i in range(3)]
+        real_get = options.get
+        reads = {"n": 0}
+
+        def abort_after_first_batch(key: str, *args: Any, **kwargs: Any) -> Any:
+            if key != "cleanup.abort_execution":
+                return real_get(key, *args, **kwargs)
+            # False on entry, True from the second batch onwards.
+            reads["n"] += 1
+            return reads["n"] > 1
+
+        with patch("sentry.pr_metrics.tasks.options.get", side_effect=abort_after_first_batch):
+            sweep_unattributed_pr_activity_task()
+
+        # One batch landed before the switch was seen; the remaining two survive.
+        assert PullRequestActivity.objects.filter(pull_request__in=prs).count() == 2
+
+    @patch("sentry.pr_metrics.tasks.metrics")
+    def test_abort_is_reported_separately_from_capped(self, mock_metrics: Any) -> None:
+        # Switched off and falling behind call for opposite responses, so the two
+        # signals must not be conflated.
+        self._make_pr("1", when=self.quiet)
+
+        with self.options({"cleanup.abort_execution": True}):
+            sweep_unattributed_pr_activity_task()
+
+        aborted = {
+            call.kwargs["tags"]["store"]
+            for call in mock_metrics.incr.call_args_list
+            if call.args[0] == "pr_metrics.activity_sweep.aborted"
+        }
+        assert aborted == {"PullRequestActivity", "PullRequestActivityLog"}
         assert self._capped_stores(mock_metrics) == set()
 
     @patch("sentry.pr_metrics.tasks._SWEEP_MAX_BATCHES", 1)
