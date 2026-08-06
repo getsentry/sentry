@@ -457,6 +457,7 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
             order=0,
             title="error widget",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=None,
             interval="1d",
             detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
         )
