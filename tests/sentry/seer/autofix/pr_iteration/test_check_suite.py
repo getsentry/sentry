@@ -421,8 +421,21 @@ class TriggerQueuedFeedbackOnGreenCheckSuiteTest(TestCase):
         }
         event = CheckSuiteEvent(
             action="completed",
-            check_suite={"conclusion": "success"},
-            subscription_event={"event": orjson.dumps(raw).decode()},
+            check_suite={
+                "id": "1",
+                "status": "completed",
+                "conclusion": "success",
+                "html_url": "",
+                "pull_request_ids": [],
+            },
+            subscription_event={
+                "event": orjson.dumps(raw).decode(),
+                "event_type_hint": "check_suite",
+                "extra": {},
+                "received_at": 0,
+                "sentry_meta": None,
+                "type": "github",
+            },
         )
 
         _trigger_queued_feedback_if_ci_complete(event)
@@ -469,8 +482,21 @@ class TriggerQueuedFeedbackOnGreenCheckSuiteTest(TestCase):
         }
         event = CheckSuiteEvent(
             action="completed",
-            check_suite={"conclusion": "success"},
-            subscription_event={"event": orjson.dumps(raw).decode()},
+            check_suite={
+                "id": "1",
+                "status": "completed",
+                "conclusion": "success",
+                "html_url": "",
+                "pull_request_ids": [],
+            },
+            subscription_event={
+                "event": orjson.dumps(raw).decode(),
+                "event_type_hint": "check_suite",
+                "extra": {},
+                "received_at": 0,
+                "sentry_meta": None,
+                "type": "github",
+            },
         )
 
         _trigger_queued_feedback_if_ci_complete(event)
