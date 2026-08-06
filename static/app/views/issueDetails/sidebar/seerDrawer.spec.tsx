@@ -338,7 +338,7 @@ describe('SeerDrawer', () => {
       });
     }
 
-    it('does not poll the autofix endpoint when autofix-pr-iteration is disabled', async () => {
+    it('does not poll the autofix endpoint when both PR iteration features are disabled', async () => {
       const getMock = mockAutofixWithPr();
 
       render(<SeerDrawer group={mockGroup} project={mockProject} />, {organization});
@@ -353,28 +353,31 @@ describe('SeerDrawer', () => {
       expect(getMock.mock.calls).toHaveLength(callsAfterLoad);
     });
 
-    it('polls the autofix endpoint when autofix-pr-iteration is enabled and a PR exists', async () => {
-      const getMock = mockAutofixWithPr();
+    it.each([['autofix-pr-iteration'], ['autofix-pr-iteration-manual']])(
+      'polls the autofix endpoint when %s is enabled and a PR exists',
+      async feature => {
+        const getMock = mockAutofixWithPr();
 
-      render(<SeerDrawer group={mockGroup} project={mockProject} />, {
-        organization: OrganizationFixture({
-          hideAiFeatures: false,
-          features: ['gen-ai-features', 'autofix-pr-iteration'],
-        }),
-      });
+        render(<SeerDrawer group={mockGroup} project={mockProject} />, {
+          organization: OrganizationFixture({
+            hideAiFeatures: false,
+            features: ['gen-ai-features', feature],
+          }),
+        });
 
-      await waitForElementToBeRemoved(() =>
-        screen.queryByTestId('ai-setup-loading-indicator')
-      );
+        await waitForElementToBeRemoved(() =>
+          screen.queryByTestId('ai-setup-loading-indicator')
+        );
 
-      const callsAfterLoad = getMock.mock.calls.length;
+        const callsAfterLoad = getMock.mock.calls.length;
 
-      await waitFor(
-        () => {
-          expect(getMock.mock.calls.length).toBeGreaterThan(callsAfterLoad);
-        },
-        {timeout: 5000}
-      );
-    });
+        await waitFor(
+          () => {
+            expect(getMock.mock.calls.length).toBeGreaterThan(callsAfterLoad);
+          },
+          {timeout: 5000}
+        );
+      }
+    );
   });
 });

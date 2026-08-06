@@ -201,7 +201,7 @@ function TransactionWrapper({
   );
 }
 
-const TraceListItem = memo(function TraceListItem({
+const TraceListItem = memo(function TraceListItemImpl({
   node,
   onClick,
   isSelected,

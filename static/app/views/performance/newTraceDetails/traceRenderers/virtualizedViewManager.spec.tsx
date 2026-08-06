@@ -430,11 +430,11 @@ describe('VirtualizedViewManger', () => {
       );
 
       manager.view.setTraceSpace([0, 0, 1000, 1]);
-      manager.view.setTracePhysicalSpace([0, 0, 20, 1], [0, 0, 20, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 100, 1], [0, 0, 100, 1]);
       manager.time_compression = TraceTimeCompression.FromVisibleItems({
         enabled: true,
         traceSpace: [0, 1000],
-        physicalWidth: 20,
+        physicalWidth: 100,
         nodes: [
           {type: 'span', space: [100, 0]},
           {type: 'span', space: [900, 0]},

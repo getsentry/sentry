@@ -162,6 +162,7 @@ export function MetricDetailsSidebar({
 
   const feedbackButton = (
     <FeedbackButton
+      variant="secondary"
       feedbackOptions={{
         formTitle: t('Anomaly Detection Feedback'),
         messagePlaceholder: t(

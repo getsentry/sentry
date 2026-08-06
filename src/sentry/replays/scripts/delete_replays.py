@@ -4,7 +4,7 @@ import functools
 import logging
 import uuid
 from collections.abc import Sequence
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from snuba_sdk import (
     Column,
@@ -19,12 +19,17 @@ from snuba_sdk import (
     Query,
 )
 
-from sentry import features, options
+from sentry import features
 from sentry.api.event_search import QueryToken, parse_search_query
 from sentry.models.organization import Organization
 from sentry.replays.query import replay_url_parser_config
 from sentry.replays.tasks import archive_replay, delete_replays_script_async
-from sentry.replays.usecases.delete import SNUBA_RETRY_EXCEPTIONS, delete_seer_replay_data
+from sentry.replays.usecases.delete import (
+    SNUBA_RETRY_EXCEPTIONS,
+    datetime_as_start_of_day_conditions,
+    day_aligned_windows,
+    delete_seer_replay_data,
+)
 from sentry.replays.usecases.query import execute_query, handle_search_filters
 from sentry.replays.usecases.query.configs.scalar import scalar_search_config
 from sentry.snuba.referrer import Referrer
@@ -54,28 +59,19 @@ def delete_replays(
     # Running tally of replays to be deleted, accumulated across windows and pages
     total_replays = 0
 
-    # Chunk the range into fixed-size windows
-    chunk_size_days = options.get("replay.bulk_delete_job.chunk_size_days") or 7
-
-    window_offset_days = 0
-    while True:
-        window_start = start_utc + timedelta(days=window_offset_days)
-        if window_start >= end_utc:
-            break
-        window_end = min(window_start + timedelta(days=chunk_size_days), end_utc)
-
+    for window_start, window_end in day_aligned_windows(start_utc, end_utc):
         # Reset per window because the cursor space is scoped to the window's result set
-        last_replay_id = None
+        cursor = None
 
         has_more = True
         while has_more:
-            replays, has_more, last_replay_id = _get_rows_matching_deletion_pattern(
+            replays, has_more, cursor = _get_rows_matching_deletion_pattern(
                 project_id=project_id,
                 organization_id=organization.id,
                 start=window_start,
                 end=window_end,
                 limit=batch_size,
-                after_replay_id=last_replay_id,
+                after_replay_id_hash=cursor,
                 search_filters=search_filters,
                 environment=environment,
             )
@@ -106,8 +102,6 @@ def delete_replays(
                         has_seer_data=has_seer_data,
                         total_replays=total_replays,
                     )
-
-        window_offset_days += chunk_size_days
 
 
 def translate_cli_tags_param_to_snuba_tag_param(tags: list[str]) -> Sequence[QueryToken]:
@@ -170,20 +164,30 @@ def _get_rows_matching_deletion_pattern(
     project_id: int,
     organization_id: int,
     limit: int,
-    after_replay_id: str | None,
+    after_replay_id_hash: int | None,
     end: datetime,
     start: datetime,
     search_filters: Sequence[QueryToken],
     environment: list[str],
-) -> tuple[list[tuple[int, str, int]], bool, str | None]:
+) -> tuple[list[tuple[int, str, int]], bool, int | None]:
     where = handle_search_filters(scalar_search_config, search_filters)
 
     if environment:
         where.append(Condition(Column("environment"), Op.IN, environment))
 
-    # Keyset cursor in order to walk result set in fixed-cost pages. Need the ORDER BY to keep it deterministic
-    if after_replay_id is not None:
-        where.append(Condition(Column("replay_id"), Op.GT, after_replay_id))
+    # Fetch `cityHash64(replay_id)`. Unlike raw `replay_id` it is part of the table's
+    # _sort key_, so ClickHouse can use it to skip granules while scanning.
+    replay_id_hash_column = Function(
+        "cityHash64", parameters=[Column("replay_id")], alias="replay_id_hash"
+    )
+    if after_replay_id_hash is not None:
+        where.append(
+            Condition(
+                Function("cityHash64", parameters=[Column("replay_id")]),
+                Op.GT,
+                after_replay_id_hash,
+            )
+        )
 
     query = Query(
         match=Entity("replays"),
@@ -191,16 +195,21 @@ def _get_rows_matching_deletion_pattern(
             Function("any", parameters=[Column("retention_days")], alias="retention_days"),
             Column("replay_id"),
             Function("max", parameters=[Column("segment_id")], alias="max_segment_id"),
+            replay_id_hash_column,
         ],
         where=[
             Condition(Column("project_id"), Op.EQ, project_id),
             Condition(Column("timestamp"), Op.LT, end),
             Condition(Column("timestamp"), Op.GTE, start),
             Condition(Column("segment_id"), Op.IS_NOT_NULL),
+            *datetime_as_start_of_day_conditions(start, end),
             *where,
         ],
-        groupby=[Column("replay_id")],
-        orderby=[OrderBy(Column("replay_id"), Direction.ASC)],
+        # Group by both the `replay_id` and `cityHash64(replay_id)` so we are able
+        # to keep track of the cursor _and_ still get the Replay IDs out. Since
+        # the hash is a function of the ID, this doesn't change the row contents.
+        groupby=[Column("replay_id"), replay_id_hash_column],
+        orderby=[OrderBy(replay_id_hash_column, Direction.ASC)],
         granularity=Granularity(3600),
         limit=Limit(limit),
     )
@@ -221,8 +230,7 @@ def _get_rows_matching_deletion_pattern(
     data = response.get("data", [])
     has_more = len(data) == limit
 
-    # The next page seeks past the last raw replay_id in this page
-    next_cursor = data[-1]["replay_id"] if data else None
+    next_cursor = data[-1]["replay_id_hash"] if data else None
 
     return (
         [
