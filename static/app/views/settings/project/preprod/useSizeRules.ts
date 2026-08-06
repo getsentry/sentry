@@ -96,14 +96,17 @@ export function useSizeRules(project: DetailedProject, config: SizeRulesConfig) 
   const setEnabled = useCallback(
     (value: boolean) => {
       addLoadingMessage(t('Saving...'));
-      updateProject.mutate({[config.enabledField]: value} as Partial<DetailedProject>, {
-        onSuccess: () => {
-          addSuccessMessage(value ? config.toasts.enabled : config.toasts.disabled);
-        },
-        onError: () => {
-          addErrorMessage(t('Failed to save changes. Please try again.'));
-        },
-      });
+      updateProject.mutate(
+        {[config.enabledField]: value},
+        {
+          onSuccess: () => {
+            addSuccessMessage(value ? config.toasts.enabled : config.toasts.disabled);
+          },
+          onError: () => {
+            addErrorMessage(t('Failed to save changes. Please try again.'));
+          },
+        }
+      );
     },
     [updateProject, config.enabledField, config.toasts]
   );
@@ -112,7 +115,7 @@ export function useSizeRules(project: DetailedProject, config: SizeRulesConfig) 
     (newRules: StatusCheckRule[], successMessage?: string) => {
       addLoadingMessage(t('Saving...'));
       updateProject.mutate(
-        {[config.rulesField]: newRules as unknown[]} as Partial<DetailedProject>,
+        {[config.rulesField]: newRules as unknown[]},
         {
           onSuccess: () => {
             if (successMessage) {

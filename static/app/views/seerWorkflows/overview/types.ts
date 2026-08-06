@@ -50,7 +50,7 @@ export type OverviewView = 'cards' | 'table';
 // Live run status, mirrored straight from ExplorerAutofixState.status. Drives
 // the transient card overlays (Running / Retry / Add context), never the
 // section-driven primary action.
-export type RunStatus = 'processing' | 'completed' | 'error' | 'awaiting_user_input';
+type RunStatus = 'processing' | 'completed' | 'error' | 'awaiting_user_input';
 
 // The primary action a card offers, derived from its section. review_pr carries
 // the linked PR so it can offer the external review button.
