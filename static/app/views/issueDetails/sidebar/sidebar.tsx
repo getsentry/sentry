@@ -23,6 +23,7 @@ import {
   IssueDetailsTourContext,
 } from 'sentry/views/issueDetails/issueDetailsTour';
 import {AutofixSection} from 'sentry/views/issueDetails/sidebar/autofixSection';
+import {BreachedMetricInvestigationSection} from 'sentry/views/issueDetails/sidebar/breachedMetricInvestigationSection';
 import {DetectorSection} from 'sentry/views/issueDetails/sidebar/detectorSection';
 import {ExternalIssueSidebarList} from 'sentry/views/issueDetails/sidebar/externalIssueSidebarList';
 import {FirstLastSeenSection} from 'sentry/views/issueDetails/sidebar/firstLastSeenSection';
@@ -114,6 +115,9 @@ export function IssueDetailsSidebar({group, event, project}: Props) {
               viewers={viewers}
             />
           )}
+          <ErrorBoundary mini>
+            <BreachedMetricInvestigationSection group={group} />
+          </ErrorBoundary>
           {issueTypeConfig.similarIssues.enabled && (
             <Fragment>
               <SimilarIssuesSidebarSection />
