@@ -134,6 +134,51 @@ class SchedulePerOrgCalculationsTest(TestCase):
         assert org_without_projects.id not in org_ids
         assert org_with_inactive_project.id not in org_ids
 
+    def _dispatched_org_ids(self) -> set[int]:
+        """Run the real validate_item callback over every org in the queryset."""
+        with patch("sentry.dynamic_sampling.per_org.scheduler.CursoredScheduler") as MockScheduler:
+            mock_instance = MockScheduler.return_value
+            mock_instance.tick.return_value = False
+            schedule_per_org_calculations()
+
+            kwargs = MockScheduler.call_args.kwargs
+            validate_item = kwargs["validate_item"]
+            org_ids = kwargs["queryset"].values_list("id", flat=True)
+            return {org_id for org_id in org_ids if validate_item(org_id)}
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_skips_orgs_without_dynamic_sampling(self) -> None:
+        with_dynamic_sampling = self.create_organization()
+        self.create_project(organization=with_dynamic_sampling)
+        without_dynamic_sampling = self.create_organization()
+        self.create_project(organization=without_dynamic_sampling)
+
+        with self.feature(
+            {
+                "organizations:dynamic-sampling": [with_dynamic_sampling.slug],
+            }
+        ):
+            org_ids = self._dispatched_org_ids()
+
+        assert with_dynamic_sampling.id in org_ids
+        assert without_dynamic_sampling.id not in org_ids
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_skips_org_deleted_after_the_cycle_snapshot(self) -> None:
+        org = self.create_organization()
+        self.create_project(organization=org)
+
+        with (
+            self.feature("organizations:dynamic-sampling"),
+            patch(f"{SCHEDULER}.CursoredScheduler") as MockScheduler,
+        ):
+            MockScheduler.return_value.tick.return_value = False
+            schedule_per_org_calculations()
+            validate_item = MockScheduler.call_args.kwargs["validate_item"]
+
+            assert validate_item(org.id) is True
+            assert validate_item(99999999) is False
+
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_org_in_rollout_is_dispatched(self) -> None:
         org = self.create_organization()
