@@ -587,9 +587,18 @@ def invalidate_group_derived_data(
         if soft and not row_exists:
             # Race-safe: if a concurrent writer inserted a live row first,
             # get_or_create is a no-op and we fall through to pure-append.
-            _, created = GroupDerivedData.objects.get_or_create(
-                group_id=group_id, defaults={"pipeline_hash": None}
-            )
+            # If the group itself was deleted since the existence check, the
+            # insert fails — treat as a no-op.
+            try:
+                _, created = GroupDerivedData.objects.get_or_create(
+                    group_id=group_id, defaults={"pipeline_hash": None}
+                )
+            except IntegrityError:
+                logger.info(
+                    "issues.derived.invalidate.group_missing",
+                    extra={"group_id": group_id},
+                )
+                return
             if created:
                 logger.info(
                     "issues.derived.invalidated",

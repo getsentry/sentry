@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 import pytest
-from django.db import router, transaction
+from django.db import connection, router, transaction
 from django.utils import timezone as django_timezone
 
 from sentry.hybridcloud.models.outbox import CellOutbox
@@ -482,6 +482,26 @@ class ProcessGroupLogTest(TestCase):
         mock_generate.assert_not_called()
         mock_process.assert_called_once_with(group.id)
 
+    def test_invalidate_soft_missing_group_is_noop(self) -> None:
+        # Force FK constraints to IMMEDIATE so the violation fires at INSERT time (matching
+        # production autocommit behaviour) rather than at test teardown.
+        with connection.cursor() as cursor:
+            cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
+
+        nonexistent_group_id = 9_999_999_999
+        with (
+            patch(
+                "sentry.issues.derived.processing.generate_group_derived_data.delay"
+            ) as mock_generate,
+            patch("sentry.issues.derived.processing.process_group_log_task.delay") as mock_process,
+        ):
+            # Should not raise IntegrityError — the invalidator swallows it.
+            invalidate_group_derived_data(nonexistent_group_id)
+
+        assert not GroupDerivedData.objects.filter(group_id=nonexistent_group_id).exists()
+        mock_generate.assert_not_called()
+        mock_process.assert_not_called()
+
     def test_invalidate_soft_bumps_generated_at(self) -> None:
         # ``generated_at`` is bumped alongside the pipeline_hash null so any
         # in-flight generation started before this call loses its CAS.
@@ -725,6 +745,12 @@ class ProcessGroupLogTest(TestCase):
         derived = process_group_log(group.id)
         first_cursor = derived.cursor_id
 
+        # Direct-create bypasses the outbox and takes ``date_added`` from
+        # ``db_default=Now()`` — Postgres ``NOW()`` returns the enclosing
+        # transaction's start time, which in a test transaction can predate
+        # the outbox-delivered entry above (whose ``date_added`` was stamped
+        # by wall-clock ``timezone.now()``). Set it explicitly so the cursor
+        # predicate sees new_entry as strictly newer.
         new_entry = GroupActionLogEntry.objects.create(
             group_id=group.id,
             project_id=group.project_id,
@@ -733,6 +759,7 @@ class ProcessGroupLogTest(TestCase):
             actor_id=0,
             source=SOURCE,
             data={},
+            date_added=derived.cursor_date + timedelta(seconds=1),
         )
 
         # Officially mark the row stale by resetting pipeline_hash to NULL.
