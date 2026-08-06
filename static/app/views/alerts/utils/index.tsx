@@ -22,13 +22,6 @@ export function hasMetricAlerts(organization: Organization): boolean {
 
 // Maps a datasource to the relevant dataset and event_types for the backend to use
 
-/**
- * Attempt to guess the data source of a discover query
- *
- * @returns An object containing the datasource and new query without the datasource.
- * Returns null on no datasource.
- */
-
 export function isSessionAggregate(aggregate: string) {
   return Object.values(SessionsAggregate).includes(aggregate as SessionsAggregate);
 }
