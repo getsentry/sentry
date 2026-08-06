@@ -480,6 +480,7 @@ def drain_mailbox(
     on every delivery, released on exit. Claim-mode dispatchers never send it.
     """
     payload_source = WebhookPayload.objects.using_replica()
+    reading_primary = False
 
     payload: WebhookPayload | None
     try:
@@ -493,7 +494,11 @@ def drain_mailbox(
             try:
                 payload = WebhookPayload.objects.get(id=payload_id)
                 payload_source = WebhookPayload.objects.all()
-                metrics.incr("hybridcloud.deliver_webhooks.drain.primary_fallback")
+                reading_primary = True
+                metrics.incr(
+                    "hybridcloud.deliver_webhooks.drain.primary_fallback",
+                    tags={"reason": "head"},
+                )
             except WebhookPayload.DoesNotExist:
                 pass
 
@@ -569,6 +574,18 @@ def drain_mailbox(
 
             # No more messages to deliver
             if batch_count < 1:
+                if remaining is not None and remaining > 0 and not reading_primary:
+                    # The replica ran dry before the claim bound: recently written
+                    # claimed rows may not have replicated yet. Concluding
+                    # "complete" would strand them — claimed but undelivered —
+                    # until the claim horizon passes, so re-read the primary.
+                    payload_source = WebhookPayload.objects.all()
+                    reading_primary = True
+                    metrics.incr(
+                        "hybridcloud.deliver_webhooks.drain.primary_fallback",
+                        tags={"reason": "tail"},
+                    )
+                    continue
                 if failed > 0:
                     logger.info(
                         "deliver_webhook.delivery_complete_with_failures",
