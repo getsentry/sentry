@@ -433,6 +433,7 @@ function EventTagsTreeValue({
   return isValidUrl(content.value) ? (
     <TagLinkText>
       <ExternalLink
+        href={content.value}
         onClick={e => {
           e.preventDefault();
           openNavigateToExternalLinkModal({linkText: content.value});
