@@ -440,6 +440,7 @@ def drain_mailbox(payload_id: int, mailbox_name: str | None = None) -> None:
     """
     payload_source = WebhookPayload.objects.using_replica()
 
+    payload: WebhookPayload | None
     try:
         payload = payload_source.get(id=payload_id)
     except WebhookPayload.DoesNotExist:
@@ -454,14 +455,15 @@ def drain_mailbox(payload_id: int, mailbox_name: str | None = None) -> None:
                 metrics.incr("hybridcloud.deliver_webhooks.drain.primary_fallback")
             except WebhookPayload.DoesNotExist:
                 pass
-        if payload is None:
-            # We could have hit a race condition. Since we've lost already return
-            # and let the other process continue, or a future process.
-            metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "race"})
-            logger.info("deliver_webhook.potential_race", extra={"id": payload_id})
-            if mailbox_name and options.get("hybridcloud.webhookpayload.push_drain_trigger"):
-                _release_drain_lock(mailbox_name)
-            return
+
+    if payload is None:
+        # We could have hit a race condition. Since we've lost already return
+        # and let the other process continue, or a future process.
+        metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "race"})
+        logger.info("deliver_webhook.potential_race", extra={"id": payload_id})
+        if mailbox_name and options.get("hybridcloud.webhookpayload.push_drain_trigger"):
+            _release_drain_lock(mailbox_name)
+        return
 
     _set_webhook_delivery_sentry_context(payload)
 
