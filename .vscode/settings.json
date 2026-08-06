@@ -107,4 +107,5 @@
     "--config-file=${workspaceFolder}/pyproject.toml"
   ],
   "mypy-type-checker.cwd": "${workspaceFolder}",
+  "makefile.configureOnOpen": false,
 }
