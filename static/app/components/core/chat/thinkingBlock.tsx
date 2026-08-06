@@ -1,6 +1,8 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
+import {Global} from '@emotion/react';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
+import {streamingAnimationStyles, useTextDecodeAnimation} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
 import {IconSeer} from 'sentry/icons';
@@ -29,6 +31,39 @@ function useElapsedTime(
   return (endTime ?? now).getTime() - startTime.getTime();
 }
 
+/**
+ * A 1.5ch-wide, layout-stable ellipsis that cycles ".", "..", "..." to signal
+ * ongoing work. Width is fixed; the dots are absolutely positioned across it
+ * in even thirds so they fit the reserved space and never shift layout as the
+ * count changes. Decorative — hidden from AT.
+ */
+function AnimatedEllipsis({intervalMs = 400}: {intervalMs?: number}) {
+  const [count, setCount] = useState(1);
+
+  useEffect(() => {
+    const id = setInterval(() => setCount(c => (c % 3) + 1), intervalMs);
+    return () => clearInterval(id);
+  }, [intervalMs]);
+
+  return (
+    <span
+      aria-hidden
+      style={{
+        position: 'relative',
+        display: 'inline-block',
+        width: '1.5ch',
+        height: '1em',
+      }}
+    >
+      {Array.from({length: count}, (_, i) => (
+        <span key={i} style={{position: 'absolute', left: `${(i * 100) / 3}%`, top: 0}}>
+          .
+        </span>
+      ))}
+    </span>
+  );
+}
+
 interface ThinkingBlockProps {
   startTime: Date;
   title: string;
@@ -41,6 +76,12 @@ export function ThinkingBlock({title, startTime, endTime, children}: ThinkingBlo
   const isActive = !endTime;
   const [userExpanded, setUserExpanded] = useState(false);
 
+  const titleRef = useRef<HTMLSpanElement>(null);
+  // Strip trailing punctuation/whitespace so the animated ellipsis isn't
+  // doubled up when the title already ends in "." or "…".
+  const baseTitle = title.replace(/[.…\s]+$/u, '');
+  useTextDecodeAnimation(titleRef, baseTitle);
+
   const isExpanded = isActive || userExpanded;
 
   return (
@@ -51,6 +92,7 @@ export function ThinkingBlock({title, startTime, endTime, children}: ThinkingBlo
       variant="outline"
       flex={1}
     >
+      <Global styles={streamingAnimationStyles} />
       <Disclosure.Title
         leadingItems={<IconSeer size="xs" animation={isActive ? 'waiting' : undefined} />}
         trailingItems={
@@ -60,7 +102,10 @@ export function ThinkingBlock({title, startTime, endTime, children}: ThinkingBlo
         }
       >
         <Text size="sm" monospace variant="muted">
-          {title}
+          <span key={baseTitle} ref={titleRef}>
+            {baseTitle}
+          </span>
+          {isActive ? <AnimatedEllipsis /> : null}
         </Text>
       </Disclosure.Title>
       {children ? <Disclosure.Content>{children}</Disclosure.Content> : null}
