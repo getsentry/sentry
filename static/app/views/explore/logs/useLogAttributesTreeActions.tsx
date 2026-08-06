@@ -1,13 +1,11 @@
 import {useCallback} from 'react';
 
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
-import {isNumericAttribute} from 'sentry/views/explore/components/traceItemAttributes/utils';
+import {useAttributeTreeSearchActions} from 'sentry/views/explore/components/traceItemAttributes/useAttributeTreeSearchActions';
 import {useLogsSidebar} from 'sentry/views/explore/logs/logsSidebarContext';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {
-  useAddSearchFilter,
   useQueryParamsFields,
   useQueryParamsGroupBys,
   useSetQueryParamsFields,
@@ -16,7 +14,7 @@ import {
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 
 export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
-  const addSearchFilter = useAddSearchFilter();
+  const getSearchActions = useAttributeTreeSearchActions();
   const fields = useQueryParamsFields();
   const setLogFields = useSetQueryParamsFields();
   const groupBys = useQueryParamsGroupBys();
@@ -64,40 +62,7 @@ export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
     }
 
     const key = content.originalAttribute.original_attribute_key;
-    const value = content.value;
-    const isNumeric = isNumericAttribute({
-      value,
-      type: content.originalAttribute.type,
-      key,
-    });
-
-    const items: MenuItemProps[] = [
-      {
-        key: 'search-for-value',
-        label: t('Add to filter'),
-        onAction: () => addSearchFilter({key, value: String(value)}),
-      },
-      {
-        key: 'search-for-negated-value',
-        label: t('Exclude this value'),
-        onAction: () => addSearchFilter({key, value: String(value), negated: true}),
-      },
-    ];
-
-    if (isNumeric && value !== null) {
-      items.push(
-        {
-          key: 'search-for-greater-than',
-          label: t('Show values greater than'),
-          onAction: () => addSearchFilter({key, value, op: '>'}),
-        },
-        {
-          key: 'search-for-less-than',
-          label: t('Show values less than'),
-          onAction: () => addSearchFilter({key, value, op: '<'}),
-        }
-      );
-    }
+    const items = getSearchActions(content);
 
     items.push(
       {
