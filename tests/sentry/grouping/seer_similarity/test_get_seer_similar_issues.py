@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, call, patch
 from sentry import options
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
-from sentry.grouping.ingest.exception_types import MismatchReason
+from sentry.grouping.ingest.exception_types import REJECTING_REASONS, MismatchReason
 from sentry.grouping.ingest.grouphash_metadata import create_or_update_grouphash_metadata_if_needed
 from sentry.grouping.ingest.seer import get_seer_similar_issues
 from sentry.grouping.variants import BaseVariant
@@ -698,10 +698,14 @@ class ExceptionTypeMismatchTest(TestCase):
         """Run a single Seer match against a parent with `parent_type` and assert the outcome.
 
         `expected_match` controls whether the match is used (vs rejected), and
-        `expect_mismatch_metric` whether the exception-type mismatch metric is recorded (with
-        `expected_reason` as its reason tag). `reject_enabled` sets the option controlling whether
-        rejecting reasons actually reject. The incoming event is built by `create_new_event` with
-        `new_type`, unless a fully-built `new_event` is passed instead.
+        `expect_mismatch_metric` whether the exception-type mismatch metric and detection log are
+        recorded (with `expected_reason` as the reason). `reject_enabled` sets the option controlling
+        whether rejecting reasons actually reject. The incoming event is built by `create_new_event`
+        with `new_type`, unless a fully-built `new_event` is passed instead.
+
+        Also asserts the two logs stay distinct: the detection log carries a `would_reject` verdict
+        independent of the option, while the rejection log is emitted only when the match is really
+        rejected.
         """
         existing_event = self._create_existing_event(
             error_type=parent_type, synthetic=parent_synthetic
@@ -732,6 +736,7 @@ class ExceptionTypeMismatchTest(TestCase):
 
         with (
             patch("sentry.grouping.ingest.seer.metrics.incr") as mock_incr,
+            patch("sentry.grouping.ingest.seer.logger.info") as mock_logger_info,
             patch(
                 "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
                 return_value=(seer_result_data, "v1"),
@@ -746,6 +751,8 @@ class ExceptionTypeMismatchTest(TestCase):
             (0.01, existing_grouphash, "v1") if expected_match else (None, None, "v1")
         )
 
+        logged_events = [call.args[0] for call in mock_logger_info.mock_calls]
+
         if expect_mismatch_metric:
             assert expected_reason is not None
             mock_incr.assert_any_call(
@@ -757,9 +764,22 @@ class ExceptionTypeMismatchTest(TestCase):
                     "rejected": not expected_match,
                 },
             )
+            # The detection log records the verdict, which doesn't depend on the option.
+            assert "seer.exception_type_mismatch" in logged_events
+            detection_extra = next(
+                call.kwargs["extra"]
+                for call in mock_logger_info.mock_calls
+                if call.args[0] == "seer.exception_type_mismatch"
+            )
+            assert detection_extra["mismatch_reason"] == expected_reason.value
+            assert detection_extra["would_reject"] == (expected_reason in REJECTING_REASONS)
         else:
             recorded = {call.args[0] for call in mock_incr.mock_calls}
             assert "grouping.similarity.exception_type_mismatch" not in recorded
+            assert "seer.exception_type_mismatch" not in logged_events
+
+        # The rejection log is emitted if and only if we really rejected.
+        assert ("seer.exception_type_mismatch_rejected" in logged_events) == (not expected_match)
 
     def test_rejects_match_with_different_exception_type(self) -> None:
         # create_new_event uses "FailedToFetchError"; both it and "TypeError" are distinct, stable,
