@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field, replace
 from typing import Any
@@ -14,7 +15,7 @@ def _find_error(
 
 
 @dataclass(frozen=True, kw_only=True)
-class BaseWorkflowEngineEvaluation[R, D]:
+class BaseWorkflowEngineEvaluation[R, D](ABC):
     """
     This is a shared base class for all Evaluation classes.
 
@@ -30,6 +31,9 @@ class BaseWorkflowEngineEvaluation[R, D]:
     The static `any`/`all`/`none` and `choose_tainted` helpers implement taint-aware boolean
     algebra over evaluations: when an input had an error that could affect the result, the returned
     `(triggered, error)` carries a representative error so the taint propagates.
+
+    Concrete evaluations implement `to_artifact` to select safe, useful fields from their
+    result and data without generically serializing models or event payloads.
     """
 
     result: R
@@ -44,6 +48,18 @@ class BaseWorkflowEngineEvaluation[R, D]:
         evaluation.
         """
         return self.error is not None
+
+    def to_artifact(self) -> dict[str, Any]:
+        return {
+            "triggered": self.triggered,
+            "error": self.error.msg if self.error else None,
+            **self._artifact_data(),
+        }
+
+    @abstractmethod
+    def _artifact_data(self) -> dict[str, Any]:
+        """Return the evaluation-specific fields for the artifact."""
+        raise NotImplementedError
 
     def with_error(self, error: ConditionError) -> "BaseWorkflowEngineEvaluation[R, D]":
         """

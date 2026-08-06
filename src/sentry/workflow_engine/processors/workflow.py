@@ -28,11 +28,12 @@ from sentry.workflow_engine.processors.data_condition_group import (
 from sentry.workflow_engine.processors.detector import get_detectors_for_event_data
 from sentry.workflow_engine.processors.evaluations import DataConditionGroupEvaluation
 from sentry.workflow_engine.processors.evaluations.workflow import (
-    GroupedWorkflowEvaluationResult,
+    DeferredWorkflowEvaluationData,
     WorkflowEvaluation,
 )
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.types import (
+    WORKFLOW_EVALUATION_DEFERRED,
     WorkflowEvaluationResult,
     WorkflowEventData,
     WorkflowId,
@@ -437,10 +438,11 @@ def _get_associated_workflows(
 
 def _build_workflow_evaluations(
     *,
+    detector: Detector,
     event_data: WorkflowEventData,
     trigger_evals: dict[Workflow, DataConditionGroupEvaluation],
     filter_evals: dict[Workflow, list[DataConditionGroupEvaluation]],
-    deferred_workflow_ids: set[WorkflowId],
+    delayed_items: dict[Workflow, DelayedWorkflowItem],
     actions: Iterable[Action],
     action_to_workflow_id: dict[int, WorkflowId],
 ) -> dict[WorkflowId, WorkflowEvaluation]:
@@ -451,8 +453,7 @@ def _build_workflow_evaluations(
     `result` is the "deferred" sentinel for workflows enqueued for slow evaluation, otherwise
     the actions that fired for that workflow (empty when the workflow triggered but no actions
     fired). `action_to_workflow_id` attributes each action to a single workflow, so an action
-    shared across workflows is counted once here; the batch-level triggered_actions holds the
-    complete set.
+    shared across workflows is counted once here.
     """
     actions_by_workflow_id: dict[WorkflowId, list[Action]] = defaultdict(list)
     for action in actions:
@@ -461,12 +462,22 @@ def _build_workflow_evaluations(
 
     workflow_evaluations: dict[WorkflowId, WorkflowEvaluation] = {}
     for workflow, trigger_eval in trigger_evals.items():
-        result: WorkflowEvaluationResult = (
-            "deferred"
-            if workflow.id in deferred_workflow_ids
-            else actions_by_workflow_id.get(workflow.id, [])
-        )
+        delayed_item = delayed_items.get(workflow)
+        if delayed_item:
+            result: WorkflowEvaluationResult = WORKFLOW_EVALUATION_DEFERRED
+            deferred: DeferredWorkflowEvaluationData | None = {
+                "delayed_when_group_id": delayed_item.delayed_when_group_id,
+                "delayed_if_group_ids": sorted(delayed_item.delayed_if_group_ids),
+                "passing_if_group_ids": sorted(delayed_item.passing_if_group_ids),
+            }
+        else:
+            result = actions_by_workflow_id.get(workflow.id, [])
+            deferred = None
+
         workflow_evaluations[workflow.id] = WorkflowEvaluation(
+            workflow_id=workflow.id,
+            detector_id=detector.id,
+            detector_type=detector.type,
             result=result,
             triggered=trigger_eval.triggered,
             error=trigger_eval.error,
@@ -474,6 +485,7 @@ def _build_workflow_evaluations(
                 "trigger_group_eval": trigger_eval,
                 "filter_group_evals": filter_evals.get(workflow, []),
                 "event": event_data,
+                "deferred": deferred,
             },
         )
     return workflow_evaluations
@@ -485,7 +497,7 @@ def process_workflows(
     event_data: WorkflowEventData,
     event_start_time: datetime,
     detector: Detector | None = None,
-) -> GroupedWorkflowEvaluationResult:
+) -> dict[WorkflowId, WorkflowEvaluation]:
     """
     This method will get the detector based on the event, and then gather the associated workflows.
     Next, it will evaluate the "when" (or trigger) conditions for each workflow, if the conditions are met,
@@ -518,14 +530,7 @@ def process_workflows(
             )
         )
     except Detector.DoesNotExist:
-        return GroupedWorkflowEvaluationResult(
-            result={},
-            tainted=True,
-            organization=organization,
-            event=event_data.event,
-            group=event_data.group,
-            msg="No Detectors associated with the issue were found",
-        )
+        return {}
 
     associated_detector = event_detectors.preferred_detector
 
@@ -541,15 +546,7 @@ def process_workflows(
             )
         )
     except Environment.DoesNotExist:
-        return GroupedWorkflowEvaluationResult(
-            result={},
-            tainted=True,
-            organization=organization,
-            event=event_data.event,
-            group=event_data.group,
-            msg="Environment for event not found",
-            associated_detector=associated_detector,
-        )
+        return {}
 
     if features.has("organizations:workflow-engine-process-workflows-logs", organization):
         log_context.set_verbose(True)
@@ -570,58 +567,42 @@ def process_workflows(
         if options.get("workflow_engine.filter_cross_org_workflows"):
             workflows = workflows - wrong_org_workflows
 
-    if workflows:
-        metrics_incr("process_workflows", len(workflows))
-
-        event_id = (
-            event_data.event.event_id
-            if isinstance(event_data.event, GroupEvent)
-            else event_data.event.id
-        )
-        logger.debug(
-            "workflow_engine.process_workflows",
-            extra={
-                "payload": event_data,
-                "group_id": event_data.group.id,
-                "event_id": event_id,
-                "event_data": asdict(event_data),
-                "event_environment_id": environment.id if environment else None,
-                "workflows": [workflow.id for workflow in workflows],
-                "detector_types": [d.type for d in event_detectors.detectors],
-            },
-        )
-
     if not workflows:
-        return GroupedWorkflowEvaluationResult(
-            result={},
-            tainted=True,
-            organization=organization,
-            event=event_data.event,
-            group=event_data.group,
-            msg="No workflows are associated with the detector in the event",
-            associated_detector=associated_detector,
-            workflows=workflows,
-        )
+        return {}
+
+    metrics_incr("process_workflows", len(workflows))
+    event_id = (
+        event_data.event.event_id
+        if isinstance(event_data.event, GroupEvent)
+        else event_data.event.id
+    )
+    logger.debug(
+        "workflow_engine.process_workflows",
+        extra={
+            "payload": event_data,
+            "group_id": event_data.group.id,
+            "event_id": event_id,
+            "event_data": asdict(event_data),
+            "event_environment_id": environment.id if environment else None,
+            "workflows": [workflow.id for workflow in workflows],
+            "detector_types": [d.type for d in event_detectors.detectors],
+        },
+    )
 
     triggered_workflows, queue_items_by_workflow_id, trigger_stats, trigger_evals = (
         evaluate_workflow_triggers(workflows, event_data, event_start_time)
     )
 
-    triggered_workflow_set = set(triggered_workflows.keys())
-
     if not triggered_workflows and not queue_items_by_workflow_id:
         trigger_stats.report_metrics("process_workflows.workflows_evaluated")
-        # TODO - re-think tainted once the actions are removed from process_workflows.
-        return GroupedWorkflowEvaluationResult(
-            result={},
-            tainted=True,
-            organization=organization,
-            event=event_data.event,
-            group=event_data.group,
-            msg="No items were triggered or queued for slow evaluation",
-            associated_detector=associated_detector,
-            workflows=workflows,
-            triggered_workflows=triggered_workflow_set,
+        return _build_workflow_evaluations(
+            detector=associated_detector,
+            event_data=event_data,
+            trigger_evals=trigger_evals,
+            filter_evals={},
+            delayed_items={},
+            actions=[],
+            action_to_workflow_id={},
         )
 
     # TODO - we should probably return here and have the rest from here be
@@ -640,65 +621,39 @@ def process_workflows(
     )
 
     workflow_evaluations = _build_workflow_evaluations(
+        detector=associated_detector,
         event_data=event_data,
         trigger_evals=trigger_evals,
         filter_evals=filter_evals,
-        deferred_workflow_ids={wf.id for wf in queue_items_by_workflow_id},
+        delayed_items=queue_items_by_workflow_id,
         actions=actions,
         action_to_workflow_id=action_to_workflow_id,
     )
 
-    triggered_actions = set(actions)
-    sentry_sdk.set_tag("workflow_engine.triggered_actions", len(triggered_actions))
-    sentry_sdk.set_attribute("workflow_engine.triggered_actions", len(triggered_actions))
+    triggered_action_count = len(set(actions))
+    sentry_sdk.set_tag("workflow_engine.triggered_actions", triggered_action_count)
+    sentry_sdk.set_attribute("workflow_engine.triggered_actions", triggered_action_count)
 
-    if not actions:
-        return GroupedWorkflowEvaluationResult(
-            result=workflow_evaluations,
-            tainted=True,
-            organization=organization,
-            event=event_data.event,
-            group=event_data.group,
-            msg="No actions to evaluate; filtered or not triggered",
-            associated_detector=associated_detector,
-            workflows=workflows,
-            triggered_workflows=triggered_workflow_set,
-            action_groups=actions_to_trigger,
-            triggered_actions=triggered_actions,
-            delayed_conditions=queue_items_by_workflow_id,
+    if triggered_action_count:
+        fire_histories = create_workflow_fire_histories(
+            actions,
+            event_data,
+            is_delayed=False,
+            start_timestamp=event_start_time,
         )
 
-    fire_histories = create_workflow_fire_histories(
-        actions,
-        event_data,
-        is_delayed=False,
-        start_timestamp=event_start_time,
-    )
+        # Create mapping: workflow_id -> notification_uuid for propagation
+        workflow_uuid_map: dict[WorkflowId, str] = {}
+        if fire_histories:
+            workflow_uuid_map = {
+                history.workflow_id: str(history.notification_uuid) for history in fire_histories
+            }
 
-    # Create mapping: workflow_id -> notification_uuid for propagation
-    workflow_uuid_map: dict[WorkflowId, str] = {}
-    if fire_histories:
-        workflow_uuid_map = {
-            history.workflow_id: str(history.notification_uuid) for history in fire_histories
-        }
+        fire_actions(
+            actions,
+            event_data,
+            workflow_uuid_map=workflow_uuid_map,
+            action_to_workflow_id=action_to_workflow_id,
+        )
 
-    fire_actions(
-        actions,
-        event_data,
-        workflow_uuid_map=workflow_uuid_map,
-        action_to_workflow_id=action_to_workflow_id,
-    )
-
-    return GroupedWorkflowEvaluationResult(
-        result=workflow_evaluations,
-        tainted=False,
-        organization=organization,
-        event=event_data.event,
-        group=event_data.group,
-        associated_detector=associated_detector,
-        workflows=workflows,
-        triggered_workflows=triggered_workflow_set,
-        action_groups=actions_to_trigger,
-        triggered_actions=triggered_actions,
-        delayed_conditions=queue_items_by_workflow_id,
-    )
+    return workflow_evaluations
