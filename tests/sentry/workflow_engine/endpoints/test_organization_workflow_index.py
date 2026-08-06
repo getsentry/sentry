@@ -1131,6 +1131,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         ]
         assert len(detector_workflow_audit_calls) == 1
 
+    @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_create_workflow_with_all_projects_detector(self) -> None:
         all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
         workflow_data = {**self.valid_workflow, "detectorIds": [all_projects_detector.id]}
@@ -1150,6 +1151,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         assert created_detector_workflows.count() == 1
         assert created_detector_workflows.get().detector_id == all_projects_detector.id
 
+    @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_create_workflow_with_all_projects_detector_requires_org_write(self) -> None:
         all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
         workflow_data = {**self.valid_workflow, "detectorIds": [all_projects_detector.id]}
