@@ -71,6 +71,13 @@ actions that have been made to the relevant resources.
 
 # Define priorities for different webhook providers
 # Lower number means higher priority
+#
+# Deliberately unbacked by an index. A matching expression index was tried and went
+# unused: the discovery query below must aggregate every mailbox to find the heads
+# regardless, and sorting that small result beats scanning the table in priority
+# order by orders of magnitude. Such an index also silently stops matching the
+# moment this dict gains an entry, since the two expressions must be textually
+# identical for Postgres to use it.
 PROVIDER_PRIORITY = {
     "stripe": 1,
 }

@@ -149,7 +149,7 @@ export function MessagesPanel({
 
 // User turns carry no selection state, so their props never change on a
 // selection change — memoized, they render once and always bail out after.
-const UserTurn = memo(function UserTurn({
+const UserTurn = memo(function UserTurnImpl({
   content,
   hasXmlTags,
 }: {
@@ -182,7 +182,7 @@ interface AssistantTurnProps {
 // Memoized so a selection change only re-renders the turns that gain or lose
 // selection. This relies on every prop being referentially stable per turn,
 // which is why the click handler is built here rather than passed in.
-const AssistantTurn = memo(function AssistantTurn({
+const AssistantTurn = memo(function AssistantTurnImpl({
   message,
   hasXmlTags,
   isSelected,

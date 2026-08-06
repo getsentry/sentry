@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
+from typing import TypeVar
 
 from django.conf import settings
 from django.db import Error as DjangoDBError
@@ -12,13 +13,14 @@ from django.utils import timezone as dj_timezone
 from taskbroker_client.retry import Retry
 from urllib3.exceptions import HTTPError
 
-from sentry import features
+from sentry import features, options
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
     PullRequest,
     PullRequestActivity,
     PullRequestActivityLog,
     PullRequestActivityType,
+    PullRequestAttribution,
     PullRequestMetrics,
     PullRequestVerdict,
 )
@@ -29,6 +31,7 @@ from sentry.pr_metrics.activity_doc import (
 )
 from sentry.pr_metrics.emit import NO_REVIEWER_ENGAGEMENT, emit_pr_metrics_row
 from sentry.pr_metrics.judge import forward_pr_to_seer_judge, reap_stuck_judge_verdicts
+from sentry.pr_metrics.utils import unattributed_activity_cutoff
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_code_review_tasks
@@ -38,6 +41,24 @@ logger = logging.getLogger(__name__)
 
 MAX_RETRIES = 5
 DELAY_BETWEEN_RETRIES = 60  # seconds
+
+# The two activity stores are structurally identical for sweeping purposes: both
+# hang off a PR and carry a date to age them by.
+_ActivityStore = TypeVar("_ActivityStore", PullRequestActivity, PullRequestActivityLog)
+
+# Per-run bounds on sweep_unattributed_pr_activity_task. Their product is the
+# drain rate: 50k rows per store per hourly run, comfortably ahead of inbound PR
+# volume while leaving headroom to work down the backlog the sweep meets on its
+# first deploy. Watch pr_metrics.activity_sweep.capped — sustained firing means
+# the sweep is falling behind and these want raising.
+_SWEEP_BATCH_SIZE = 1000
+_SWEEP_MAX_BATCHES = 50
+
+# sweep_unattributed_pr_activity_task loops over batches of deletes, so it needs
+# far more than the taskbroker client's 10s default. Sized well above the budget
+# the bounds above can spend, so the task ends by running out of work rather than
+# by being declared dead mid-delete.
+SWEEP_PROCESSING_DEADLINE = 600
 
 # forward_pr_to_seer_task's Seer call blocks for up to settings.SEER_DEFAULT_TIMEOUT.
 # Give the task headroom past that instead of the taskbroker client's 10s default —
@@ -171,6 +192,106 @@ def cleanup_pr_activity_task(*, pull_request_id: int) -> None:
     metrics.incr("pr_metrics.cleanup_activity.deleted", amount=deleted)
     doc_deleted, _ = PullRequestActivityLog.objects.filter(pull_request_id=pull_request_id).delete()
     metrics.incr("pr_metrics.cleanup_activity.doc_deleted", amount=doc_deleted)
+
+
+def _sweep_activity_store(model: type[_ActivityStore], date_field: str, cutoff: datetime) -> None:
+    """Delete one store's rows for unattributed PRs, oldest first, within the run budget.
+
+    Attributed PRs are excluded in the query rather than filtered out afterwards so
+    they can't occupy batch slots. They cluster at the head of the date ordering:
+    the emit path sweeps them promptly once they emit, so the ones still sitting
+    there are those whose verdict never settled.
+
+    Running out of budget with work still queued is the signal that the sweep is
+    not keeping pace with inbound webhooks, so it gets its own counter.
+
+    ``cleanup.abort_execution`` stops the sweep — the same switch the cleanup
+    command honours, so one lever covers everything deleting trailing data on a
+    region. These are bulk deletes with nothing throttling them, so it has to be
+    able to halt a run already going, not just prevent the next one.
+    """
+    attributed = PullRequestAttribution.objects.filter(
+        pull_request_id=OuterRef("pull_request_id"), is_valid=True
+    )
+
+    store = model.__name__
+    deleted_total = 0
+    capped = True
+    aborted = False
+    for _ in range(_SWEEP_MAX_BATCHES):
+        if options.get("cleanup.abort_execution"):
+            # Re-read every batch, not just on entry, so the switch can stop a run
+            # already in flight rather than only the next one.
+            aborted = True
+            capped = False
+            break
+        ids = list(
+            model.objects.filter(**{f"{date_field}__lt": cutoff})
+            .exclude(Exists(attributed))
+            .order_by(date_field)
+            .values_list("id", flat=True)[:_SWEEP_BATCH_SIZE]
+        )
+        if not ids:
+            capped = False
+            break
+        deleted, _ = model.objects.filter(id__in=ids).delete()
+        deleted_total += deleted
+        if len(ids) < _SWEEP_BATCH_SIZE:
+            # A short batch means the queue is drained; stop rather than spend the
+            # remaining budget re-querying, and don't report a cap that isn't real
+            # when the work happens to end on the last iteration.
+            capped = False
+            break
+
+    metrics.incr("pr_metrics.activity_sweep.deleted", amount=deleted_total, tags={"store": store})
+    if aborted:
+        # Kept distinct from capped: one says the sweep was switched off, the other
+        # says it is falling behind, and they call for opposite responses.
+        metrics.incr("pr_metrics.activity_sweep.aborted", tags={"store": store})
+    elif capped:
+        metrics.incr("pr_metrics.activity_sweep.capped", tags={"store": store})
+    logger.info(
+        "pr_metrics.activity_sweep",
+        extra={"store": store, "deleted": deleted_total, "capped": capped, "aborted": aborted},
+    )
+
+
+@instrumented_task(
+    name="sentry.pr_metrics.tasks.sweep_unattributed_pr_activity",
+    namespace=seer_code_review_tasks,
+    processing_deadline_duration=SWEEP_PROCESSING_DEADLINE,
+    silo_mode=SiloMode.CELL,
+)
+def sweep_unattributed_pr_activity_task() -> None:
+    """Delete activity belonging to PRs that never earned attribution.
+
+    Emission is gated on a valid ``PullRequestAttribution``, so an unattributed PR
+    can never emit and no reader ever consumes its activity: the judge only runs
+    off emission, and ``find_stale_pull_requests`` filters to attributed PRs.
+    ``is_activity_tracking_enabled`` nonetheless collects for *every* PR inside the
+    attribution buffer, and untracked PRs are the overwhelming majority of the
+    webhook firehose — so absent this sweep they are the overwhelming majority of
+    both stores, held until the cleanup command reaps them as children of a PR row
+    that itself has to go 90 days cold first.
+
+    Only activity that has been quiet for a full attribution buffer is swept. That
+    window is what makes "unattributed" durable rather than merely current:
+    attribution had a complete chance to arrive and didn't, and the tracking gate
+    has since stopped writing, so the set can neither grow nor become readable. A
+    PR that beats that — attribution landing after the sweep, then a redelivered
+    close — would emit off an empty store, which reads as a hollow row rather than
+    no row (``load_activity_document`` treats a missing document as "fall back to
+    the legacy rows"). Requiring the quiet window is what keeps that off the table.
+
+    Deliberately not driven off the terminal-event webhook: doing it there would
+    cost one task per untracked closed PR, and would still miss PRs that never
+    close and orgs running activity collection without emission.
+    """
+    cutoff = unattributed_activity_cutoff()
+    # Each store ages by its own clock: a legacy row is one immutable event, while
+    # the document is rewritten in place, so only its last write dates it.
+    _sweep_activity_store(PullRequestActivity, "date_added", cutoff)
+    _sweep_activity_store(PullRequestActivityLog, "date_updated", cutoff)
 
 
 @instrumented_task(
