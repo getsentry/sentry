@@ -26,9 +26,11 @@ import {IconArrow, IconChevron} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {ProgressState, type Group} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useMembers} from 'sentry/utils/members/useMembers';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -64,6 +66,7 @@ interface InboxSectionContext {
 }
 
 interface InboxSectionConfig {
+  analyticsKey: 'num_fix_proposed' | 'num_diagnosed' | 'num_assigned';
   defaultExpanded: boolean;
   emptyMessage: string;
   key: string;
@@ -75,6 +78,7 @@ interface InboxSectionConfig {
 
 const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
   {
+    analyticsKey: 'num_fix_proposed',
     key: 'fix-proposed',
     label: t('Fix Proposed'),
     query: 'issue.progress:fix_proposed is:unresolved',
@@ -83,6 +87,7 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     defaultExpanded: true,
   },
   {
+    analyticsKey: 'num_diagnosed',
     key: 'diagnosed',
     label: t('Diagnosed'),
     query: 'issue.progress:diagnosed is:unresolved',
@@ -92,6 +97,7 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     hidden: ({hasSeer}) => !hasSeer,
   },
   {
+    analyticsKey: 'num_assigned',
     key: 'assigned',
     label: t('Assigned'),
     query: 'issue.progress:assigned is:unresolved',
@@ -363,6 +369,7 @@ function InboxSection({
   const groups = queryResult.data?.pages.flatMap(page => page.json) ?? [];
   const count = queryResult.data?.pages[0]?.headers['X-Hits'] ?? groups.length;
   const maxCount = queryResult.data?.pages[0]?.headers['X-Max-Hits'];
+  useRouteAnalyticsParams({[section.analyticsKey]: count});
   const {data: members = []} = useMembers();
   const membersById = new Map(members.map(member => [member.id, member]));
   const hasReportedInitialResult = useRef(false);
@@ -455,6 +462,9 @@ function InboxSection({
                   busy={queryResult.isFetchingNextPage}
                   onClick={() => void queryResult.fetchNextPage()}
                   icon={<IconChevron direction="down" />}
+                  analyticsEventKey="issue_inbox.show_more_clicked"
+                  analyticsEventName="Issue Inbox: Show More Clicked"
+                  analyticsParams={{progress: section.progress}}
                 >
                   {tn('Show %s more', 'Show %s more', ISSUE_LIMIT)}
                 </Button>
@@ -479,6 +489,7 @@ function InboxIssueCard({
   assignedUser?: User;
 }) {
   const location = useLocation();
+  const organization = useOrganization();
   const {title} = getTitle(group);
   const message = getMessage(group);
   const prefetchHoverProps = useInboxPreviewPrefetch(group.id);
@@ -492,6 +503,14 @@ function InboxIssueCard({
         pathname: location.pathname,
         query: {...location.query, [SELECTED_ISSUE_QUERY_PARAM]: group.id},
       }}
+      onClick={() =>
+        trackAnalytics('issue_inbox.item_clicked', {
+          organization,
+          group_id: group.id,
+          progress: group.derivedData?.progress,
+          last_progressed_at: group.derivedData?.lastProgressedAt ?? null,
+        })
+      }
     >
       <InteractionStateLayer />
       <Grid columns="8px minmax(0, 1fr) max-content" gap="md" align="stretch">

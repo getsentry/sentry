@@ -20,11 +20,14 @@ import {
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {ProgressState} from 'sentry/types/group';
+import * as analytics from 'sentry/utils/analytics';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useMedia} from 'sentry/utils/useMedia';
 import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/queries/inbox';
 
 import InboxPage from './inbox';
 
+jest.mock('sentry/utils/routeAnalytics/useRouteAnalyticsParams');
 jest.mock('sentry/utils/useMedia');
 
 describe('InboxPage', () => {
@@ -352,6 +355,9 @@ describe('InboxPage', () => {
     const progressStatus = await screen.findByText('Fix Proposed', {selector: 'strong'});
     expect(progressStatus.parentElement).toHaveTextContent('Changed to Fix Proposed');
     expect(screen.queryByRole('button', {name: '7D'})).not.toBeInTheDocument();
+    expect(useRouteAnalyticsParams).toHaveBeenCalledWith({num_fix_proposed: 2});
+    expect(useRouteAnalyticsParams).toHaveBeenCalledWith({num_diagnosed: 2});
+    expect(useRouteAnalyticsParams).toHaveBeenCalledWith({num_assigned: 12});
   });
 
   it('restores the persisted Inbox pane width', () => {
@@ -537,6 +543,23 @@ describe('InboxPage', () => {
       expect(within(fixSection).queryByLabelText('Unread issue')).not.toBeInTheDocument()
     );
     expect(sectionRequests[0]).toHaveBeenCalledTimes(1);
+  });
+
+  it('tracks issue item clicks with progress metadata', async () => {
+    mockSuccessfulSections();
+    mockIssuePreview();
+    const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+
+    render(<InboxPage />, {organization, initialRouterConfig});
+
+    await openFixProposedPreview();
+
+    expect(analyticsSpy).toHaveBeenCalledWith('issue_inbox.item_clicked', {
+      organization,
+      group_id: fixProposedGroup.id,
+      progress: ProgressState.FIX_PROPOSED,
+      last_progressed_at: '2026-07-20T12:00:00Z',
+    });
   });
 
   it('keeps an issue unread when marking it seen fails', async () => {
