@@ -14,7 +14,7 @@ import uuid
 import zipfile
 from collections.abc import Container, Iterable, Mapping
 from datetime import datetime
-from typing import IO, TYPE_CHECKING, Any, BinaryIO, ClassVar
+from typing import IO, TYPE_CHECKING, Any, BinaryIO, ClassVar, Literal
 
 from django.db import models
 from django.db.models import ProtectedError, Q
@@ -442,11 +442,10 @@ def upload_dif_to_objectstore(
     session: Session,
     fileobj: IO[bytes],
     content_type: str,
-    file_size: int,
     filename: str,
     *,
     key: str | None = None,
-    compression: str = "none",
+    compression: Literal["none", "zstd"] = "none",
 ) -> str:
     """Uploads a debug file to Objectstore, returning the key under which the file was uploaded."""
     return session.put(
@@ -587,7 +586,6 @@ def create_dif_from_id(
                     session,
                     source,
                     content_type,
-                    file_size,
                     get_dif_download_filename(meta),
                     compression=(
                         "zstd"
