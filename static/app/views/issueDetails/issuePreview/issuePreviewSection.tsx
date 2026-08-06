@@ -7,20 +7,13 @@ import {Heading} from '@sentry/scraps/text';
 function IssuePreviewSectionComponent({
   children,
   defaultExpanded,
-  title,
 }: {
   children: NonNullable<React.ReactNode>;
-  title: string;
   defaultExpanded?: boolean;
 }) {
   return (
     <Container>
-      <Disclosure
-        as="section"
-        aria-label={title}
-        size="md"
-        defaultExpanded={defaultExpanded}
-      >
+      <Disclosure as="section" size="md" defaultExpanded={defaultExpanded}>
         {children}
       </Disclosure>
     </Container>

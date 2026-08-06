@@ -28,16 +28,13 @@ export function IssuePreviewAutofixPlanSection({
 
   return (
     <RetryableAutofixSection autofix={autofix} section={section} step="solution">
-      <IssuePreviewSection
-        title={t('Implementation Plan')}
-        defaultExpanded={defaultExpanded}
-      >
+      <IssuePreviewSection defaultExpanded={defaultExpanded}>
         <IssuePreviewSection.Title trailingItems={<RetryableAutofixSection.Button />}>
           {t('Implementation Plan')}
         </IssuePreviewSection.Title>
         <IssuePreviewSection.Summary>
           <RetryableAutofixSection.Prompt
-            placeholder={t('Give seer additional context to improve this plan.')}
+            placeholder={t('Give Seer additional context to improve this plan.')}
             prompt={t('How can this plan be improved?')}
           />
           {section.status === 'processing' ? (

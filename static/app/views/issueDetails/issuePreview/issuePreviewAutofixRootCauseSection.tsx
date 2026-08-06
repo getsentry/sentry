@@ -33,13 +33,13 @@ export function IssuePreviewAutofixRootCauseSection({
 
   return (
     <RetryableAutofixSection autofix={autofix} section={section} step="root_cause">
-      <IssuePreviewSection title={t('Root Cause')} defaultExpanded={defaultExpanded}>
+      <IssuePreviewSection defaultExpanded={defaultExpanded}>
         <IssuePreviewSection.Title trailingItems={<RetryableAutofixSection.Button />}>
           {t('Root Cause')}
         </IssuePreviewSection.Title>
         <IssuePreviewSection.Summary>
           <RetryableAutofixSection.Prompt
-            placeholder={t('Give seer additional context to improve this root cause.')}
+            placeholder={t('Give Seer additional context to improve this root cause.')}
             prompt={t('How can this root cause be improved?')}
           />
           {section.status === 'processing' ? (
