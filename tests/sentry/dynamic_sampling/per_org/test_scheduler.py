@@ -144,6 +144,59 @@ class SchedulePerOrgCalculationsTest(TestCase):
         org = self.create_organization()
         assert is_org_in_rollout(org.id) is False
 
+    def _get_validator(self):
+        with patch(f"{SCHEDULER}.CursoredScheduler") as MockScheduler:
+            MockScheduler.return_value.tick.return_value = False
+            schedule_per_org_calculations()
+            return MockScheduler.call_args.kwargs["validate_batch"]
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_validator_dispatches_only_orgs_with_the_feature(self) -> None:
+        with_feature = self.create_organization()
+        without_feature = self.create_organization()
+        validate = self._get_validator()
+
+        with patch(
+            "sentry.features.batch_has_for_organizations",
+            return_value={
+                f"organization:{with_feature.id}": True,
+                f"organization:{without_feature.id}": False,
+            },
+        ):
+            assert validate([with_feature, without_feature]) == [with_feature.id]
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_validator_receives_organizations_not_ids(self) -> None:
+        """
+        The scheduler hands over the queryset's rows, so the feature check runs on the
+        organizations it already has rather than fetching them back by id.
+        """
+        org = self.create_organization()
+        validate = self._get_validator()
+
+        with patch(
+            "sentry.features.batch_has_for_organizations",
+            return_value={f"organization:{org.id}": True},
+        ) as batch_has:
+            validate([org])
+
+        assert list(batch_has.call_args.args[1]) == [org]
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_validator_skips_the_feature_check_outside_the_rollout(self) -> None:
+        """
+        The feature check calls the feature backend, so a page the rollout already
+        emptied must not reach it.
+        """
+        org = self.create_organization()
+        validate = self._get_validator()
+
+        with patch(f"{SCHEDULER}.is_org_in_rollout", return_value=False):
+            with patch("sentry.features.batch_has_for_organizations") as batch_has:
+                assert validate([org]) == []
+
+        assert batch_has.call_count == 0
+
 
 class RunCalculationsPerOrgTest(TestCase):
     @override_options(

@@ -34,6 +34,7 @@ class DynamicSamplingStatus(StrEnum):
     FAILED = "failed"
     KILLSWITCHED = "killswitched"
     NO_SUBSCRIPTION = "no_subscription"
+    NO_FEATURE = "no_feature"
     NO_ORG_VOLUME = "no_org_volume"
     NO_PROJECT_VOLUMES = "no_project_volumes"
     NO_TRANSACTION_VOLUMES = "no_transaction_volumes"

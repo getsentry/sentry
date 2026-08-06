@@ -39,7 +39,7 @@ Usage:
 The task will be called with the PK as a positional argument:
     process_item.delay(item_pk)
 
-Optional validate_item callback:
+Optional validate_item callback, for a single per-item check:
 
     def is_eligible(pk: int) -> bool:
         org = Organization.objects.get_from_cache(id=pk)
@@ -50,8 +50,27 @@ Optional validate_item callback:
         validate_item=is_eligible,
     )
 
-When provided, validate_item is called for each PK before dispatching.
-Items that fail validation are skipped without dispatching the task.
+Optional validate_batch callback, for batched checks. It receives the queryset's
+rows and returns the PKs to keep:
+
+    def has_my_feature(orgs: Sequence[Organization]) -> Collection[int]:
+        results = features.batch_has_for_organizations("organizations:my-feature", orgs)
+        return [org.id for org in orgs if results[f"organization:{org.id}"]]
+
+    scheduler = CursoredScheduler(
+        ...
+        validate_batch=has_my_feature,
+    )
+
+Getting the rows rather than their PKs means a check that needs more than the PK —
+a feature flag, an option — does not have to fetch them back. Setting it makes the
+cycle-start query load full rows instead of the PK column alone.
+
+Validators run once per cycle, when the PK list is snapshotted — not on every
+tick. Only the items they keep are written to Redis, so a slow check costs one
+cycle-start rather than time on every tick, and a tick does nothing but dispatch.
+The tradeoff is staleness: an item that stops qualifying mid-cycle is still
+dispatched until the next snapshot.
 """
 
 from __future__ import annotations
@@ -60,7 +79,7 @@ import logging
 import math
 import random
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Collection, Sequence
 from datetime import timedelta
 
 from django.conf import settings
@@ -137,6 +156,7 @@ class CursoredScheduler[M: Model]:
         cycle_duration: timedelta,
         lock_duration: int = DEFAULT_LOCK_DURATION_SECONDS,
         validate_item: Callable[[int], bool] | None = None,
+        validate_batch: Callable[[Sequence[M]], Collection[int]] | None = None,
         shuffle: bool = False,
     ):
         self.name = name
@@ -153,6 +173,7 @@ class CursoredScheduler[M: Model]:
         self.cache_ttl = int(cycle_duration.total_seconds() * 2)
         self.lock_duration = lock_duration
         self.validate_item = validate_item
+        self.validate_batch = validate_batch
         self.shuffle = shuffle
         self._metric_tags = {"scheduler": name}
 
@@ -210,14 +231,12 @@ class CursoredScheduler[M: Model]:
             )
             return False
 
-        dispatched = 0
+        # Every PK in the snapshot already passed validation at cycle start, so a tick
+        # only dispatches.
         for pk in items:
-            if self.validate_item is not None and not self.validate_item(pk):
-                continue
             self.task.delay(pk)
-            dispatched += 1
 
-        metrics.gauge("cursored_scheduler.batch_size", dispatched, tags=self._metric_tags)
+        metrics.gauge("cursored_scheduler.batch_size", len(items), tags=self._metric_tags)
 
         self._set_cursor(cursor + len(items))
 
@@ -231,10 +250,30 @@ class CursoredScheduler[M: Model]:
 
         return True
 
+    def _validated_pks(self) -> list[int]:
+        """
+        The PKs to schedule for this cycle.
+
+        Without ``validate_batch`` only the PK column is read. With it, the rows are
+        loaded and handed over whole, so a check needing more than the PK — a feature
+        flag, an option — works from the objects it already has rather than fetching
+        them again. ``validate_item`` runs after, on the survivors.
+        """
+        queryset = self.queryset.order_by("pk")
+
+        if self.validate_batch is None:
+            pks = list(queryset.values_list("pk", flat=True))
+        else:
+            pks = list(self.validate_batch(list(queryset)))
+
+        if self.validate_item is not None:
+            pks = [pk for pk in pks if self.validate_item(pk)]
+        return pks
+
     def _initialize_cycle(self) -> int:
         init_start = time.time()
 
-        all_pks = list(self.queryset.order_by("pk").values_list("pk", flat=True))
+        all_pks = self._validated_pks()
 
         if self.shuffle:
             random.shuffle(all_pks)
