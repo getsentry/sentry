@@ -604,6 +604,62 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
 
     @patch("sentry.seer.autofix.on_completion_hook.analytics.record")
     @patch("sentry.seer.autofix.on_completion_hook.process_autofix_updates.apply_async")
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_send_step_webhook_pr_creation_failure(
+        self, mock_broadcast, mock_process_autofix_updates, mock_analytics
+    ):
+        state = run_state(blocks=[code_changes_memory_block()])
+        state.repo_pr_states = {
+            "test-repo": RepoPRState(
+                repo_name="test-repo",
+                pr_creation_status="error",
+                pr_creation_error="Resource not accessible by integration",
+            )
+        }
+
+        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
+
+        mock_broadcast.assert_called_once()
+        assert mock_broadcast.call_args.kwargs["event_name"] == SeerActionType.PR_FAILED.value
+        assert mock_broadcast.call_args.kwargs["payload"] == {
+            "sentry_run_id": str(seer_run.uuid),
+            "reason": "access_denied",
+        }
+        mock_process_autofix_updates.assert_not_called()
+        mock_analytics.assert_not_called()
+
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_send_step_webhook_failure_precedes_success(self, mock_broadcast):
+        state = run_state(blocks=[code_changes_memory_block()])
+        state.repo_pr_states = {
+            "successful-repo": RepoPRState(
+                repo_name="successful-repo",
+                provider="github",
+                pr_id=1,
+                pr_number=2,
+                pr_url="https://example.com/pull/2",
+                pr_creation_status="completed",
+            ),
+            "failed-repo": RepoPRState(
+                repo_name="failed-repo",
+                pr_creation_status="error",
+                pr_creation_error="Resource not accessible by integration",
+            ),
+        }
+        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+
+        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
+
+        mock_broadcast.assert_called_once()
+        assert mock_broadcast.call_args.kwargs["event_name"] == SeerActionType.PR_FAILED.value
+        assert mock_broadcast.call_args.kwargs["payload"] == {
+            "sentry_run_id": str(seer_run.uuid),
+            "reason": "access_denied",
+        }
+
+    @patch("sentry.seer.autofix.on_completion_hook.analytics.record")
+    @patch("sentry.seer.autofix.on_completion_hook.process_autofix_updates.apply_async")
     @patch("sentry.seer.autofix.on_completion_hook.SeerAutofixOperator.has_access")
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
     def test_send_step_webhook_pr_iteration(
@@ -649,6 +705,36 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         assert (
             mock_analytics.call_args.args[0].referrer
             == AutofixReferrer.GROUP_AUTOFIX_ENDPOINT.value
+        )
+
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_send_step_webhook_pr_iteration_keeps_existing_pr_after_push_error(
+        self, mock_broadcast
+    ):
+        state = run_state(
+            blocks=[
+                code_changes_memory_block(),
+                pr_iteration_memory_block(commit_sha="synced-sha"),
+            ]
+        )
+        state.repo_pr_states = {
+            "test-repo": RepoPRState(
+                repo_name="test-repo",
+                pr_id=77,
+                pr_number=7,
+                pr_url="https://example.com/pull/7",
+                pr_creation_status="error",
+                commit_sha="synced-sha",
+            )
+        }
+
+        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
+
+        assert (
+            mock_broadcast.call_args.kwargs["payload"]["pull_requests"][0]["pull_request"][
+                "pr_number"
+            ]
+            == 7
         )
 
     @patch("sentry.seer.autofix.on_completion_hook.analytics.record")
