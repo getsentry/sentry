@@ -659,6 +659,20 @@ register(
     default=3600,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Per-run bounds on sweep_unattributed_pr_activity. Options rather than constants
+# because the rate the sweep has to sustain is set by inbound PR-webhook volume,
+# which we can only size against production; watch
+# pr_metrics.activity_sweep.capped and raise max_batches while it keeps firing.
+register(
+    "pr_metrics.activity_sweep.batch_size",
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "pr_metrics.activity_sweep.max_batches",
+    default=50,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)

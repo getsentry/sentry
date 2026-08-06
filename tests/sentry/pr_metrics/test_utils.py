@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from django.utils import timezone
 
@@ -17,9 +17,9 @@ from sentry.models.pullrequest import (
     PullRequestVerdict,
 )
 from sentry.pr_metrics.utils import (
-    attribution_buffer_remaining,
     is_activity_tracking_enabled,
     org_has_coding_agent_for_provider,
+    unattributed_activity_cutoff,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -189,50 +189,27 @@ class IsActivityTrackingEnabledTest(TestCase):
             )
 
 
-class AttributionBufferRemainingTest(TestCase):
+class UnattributedActivityCutoffTest(TestCase):
     def setUp(self) -> None:
         self.repo = self.create_repo(
             self.project, name="getsentry/sentry", provider="integrations:github"
         )
 
-    def _make_pr_at(self, when: "datetime") -> "PullRequest":
-        with freeze_time(when):
-            return self.create_pull_request(
-                organization_id=self.organization.id,
-                repository_id=self.repo.id,
-            )
-
-    def test_full_buffer_remains_for_a_just_opened_pr(self) -> None:
+    def test_is_one_attribution_buffer_back(self) -> None:
         now = timezone.now()
-        pr = self._make_pr_at(now)
         with freeze_time(now):
-            assert attribution_buffer_remaining(pr) == int(timedelta(hours=30).total_seconds())
-
-    def test_partial_buffer_remains_mid_window(self) -> None:
-        now = timezone.now()
-        pr = self._make_pr_at(now - timedelta(hours=10))
-        with freeze_time(now):
-            assert attribution_buffer_remaining(pr) == int(timedelta(hours=20).total_seconds())
-
-    def test_zero_once_the_window_has_closed(self) -> None:
-        now = timezone.now()
-        pr = self._make_pr_at(now - timedelta(hours=31))
-        with freeze_time(now):
-            assert attribution_buffer_remaining(pr) == 0
-
-    def test_never_negative_for_a_long_lived_pr(self) -> None:
-        now = timezone.now()
-        pr = self._make_pr_at(now - timedelta(days=120))
-        with freeze_time(now):
-            assert attribution_buffer_remaining(pr) == 0
+            assert unattributed_activity_cutoff() == now - timedelta(hours=30)
 
     def test_boundary_matches_the_tracking_gate(self) -> None:
-        # The countdown reaching 0 is exactly when is_activity_tracking_enabled stops
-        # collecting for an unattributed PR; the two must not drift apart.
+        # The cutoff is only sound because the gate has stopped writing by the time a
+        # PR's activity reaches it; the two must not drift apart.
         now = timezone.now()
-        pr = self._make_pr_at(now - timedelta(hours=30, seconds=1))
+        with freeze_time(now - timedelta(hours=31)):
+            pr = self.create_pull_request(
+                organization_id=self.organization.id, repository_id=self.repo.id
+            )
         with freeze_time(now):
-            assert attribution_buffer_remaining(pr) == 0
+            assert pr.date_added < unattributed_activity_cutoff()
             with self.feature("organizations:pr-metrics-activity"):
                 assert not is_activity_tracking_enabled(self.organization, pr=pr)
 
