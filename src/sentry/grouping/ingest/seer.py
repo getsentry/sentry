@@ -539,10 +539,8 @@ def _should_use_seer_match_for_grouping(
     Checks applied in order:
     - Exception type mismatch: rejects when event and parent have exception types whose difference
       we're confident is meaningful (see `sentry.grouping.ingest.exception_types`), and the
-      `seer.similarity.ingest.reject_exception_type_mismatches` option is on. Every mismatch is
-      logged as `seer.exception_type_mismatch` with a `would_reject` verdict regardless of the
-      option; actual rejections additionally log `seer.exception_type_mismatch_rejected`. Skipped
-      for synthetic exceptions (matching regular grouping behavior).
+      `seer.similarity.ingest.reject_exception_type_mismatches` option is on. Skipped for synthetic
+      exceptions (matching regular grouping behavior).
     - Hybrid fingerprint compatibility: rejects when fingerprint types or values don't match.
     """
     parent_group = parent_grouphash.group
@@ -559,13 +557,8 @@ def _should_use_seer_match_for_grouping(
         mismatch_reason = classify_exception_type_mismatch(
             event_exception_type, parent_exception_type, event.platform
         )
-        # Two separate questions, deliberately kept apart. `would_reject` is the categorization's
-        # verdict: is this type difference by itself proof that Seer got it wrong? `reject` is
-        # whether we act on that verdict, which the option gates. Splitting them means the verdict
-        # is visible in the logs while the option is still off, so it can be validated before it
-        # starts splitting groups. Reasons other than the confident ones fall through and are
-        # accepted either way, keeping the (frequently useful) Seer matches that cross type
-        # boundaries while we narrow down further categories.
+        # The verdict and the action are kept separate so the verdict is visible in the logs while
+        # the option is still off.
         would_reject = mismatch_reason in REJECTING_REASONS
         reject = would_reject and options.get(
             "seer.similarity.ingest.reject_exception_type_mismatches"
@@ -597,13 +590,11 @@ def _should_use_seer_match_for_grouping(
             "would_reject": would_reject,
         }
 
-        # Emitted for every mismatch, whatever we do about it. `would_reject` is the verdict, so
-        # this is the log to query when assessing what turning the option on would separate.
+        # Emitted for every mismatch; query `would_reject` to see what enabling the option would
+        # separate.
         logger.info("seer.exception_type_mismatch", extra=mismatch_log_context)
 
         if reject:
-            # Emitted only when the match is actually rejected — i.e. a new group is about to be
-            # created that today's behavior would have merged.
             logger.info("seer.exception_type_mismatch_rejected", extra=mismatch_log_context)
 
             # Not hybrid-fingerprint-related, so this rejection shouldn't count towards the hybrid

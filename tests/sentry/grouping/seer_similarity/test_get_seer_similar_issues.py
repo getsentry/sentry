@@ -764,7 +764,7 @@ class ExceptionTypeMismatchTest(TestCase):
                     "rejected": not expected_match,
                 },
             )
-            # The detection log records the verdict, which doesn't depend on the option.
+            # The verdict is logged regardless of the option.
             assert "seer.exception_type_mismatch" in logged_events
             detection_extra = next(
                 call.kwargs["extra"]
@@ -782,8 +782,6 @@ class ExceptionTypeMismatchTest(TestCase):
         assert ("seer.exception_type_mismatch_rejected" in logged_events) == (not expected_match)
 
     def test_rejects_match_with_different_exception_type(self) -> None:
-        # create_new_event uses "FailedToFetchError"; both it and "TypeError" are distinct, stable,
-        # single-token names on a stable platform, so the mismatch is proof Seer got it wrong.
         self._assert_match_result(
             parent_type="TypeError",
             expected_match=False,
@@ -793,14 +791,11 @@ class ExceptionTypeMismatchTest(TestCase):
         )
 
     def test_accepts_match_with_same_exception_type(self) -> None:
-        # create_new_event uses exception type "FailedToFetchError", matching the parent.
         self._assert_match_result(
             parent_type="FailedToFetchError", expected_match=True, expect_mismatch_metric=False
         )
 
     def test_logs_mismatch_but_still_accepts_when_option_is_off(self) -> None:
-        # Same mismatch as `test_rejects_match_with_different_exception_type`, but with the option
-        # off (the default) it stays log-only.
         self._assert_match_result(
             parent_type="TypeError",
             expected_match=True,
@@ -810,8 +805,7 @@ class ExceptionTypeMismatchTest(TestCase):
         )
 
     def test_logs_mismatch_but_still_accepts_uncertain_category(self) -> None:
-        # "Failed To Fetch Error" contains whitespace, so we can't tell whether the difference from
-        # "FailedToFetchError" is meaningful. Accepted even with rejecting enabled.
+        # Whitespace makes the difference unjudgeable, so it's accepted even with rejecting on.
         self._assert_match_result(
             parent_type="Failed To Fetch Error",
             expected_match=True,
@@ -830,7 +824,6 @@ class ExceptionTypeMismatchTest(TestCase):
         )
 
     def test_skips_check_when_parent_has_no_type(self) -> None:
-        # The parent has no stored exception type (synthetic), so there's nothing to compare.
         self._assert_match_result(
             parent_type="Error",
             parent_synthetic=True,
@@ -839,8 +832,6 @@ class ExceptionTypeMismatchTest(TestCase):
         )
 
     def test_rejects_app_hang_of_differing_fatality(self) -> None:
-        # A fatal hang (app killed) and a non-fatal one (app recovered) are different events for the
-        # user even with identical stacktraces.
         self._assert_match_result(
             parent_type="App Hang Fully Blocked",
             new_type="Fatal App Hang Fully Blocked",
@@ -851,8 +842,7 @@ class ExceptionTypeMismatchTest(TestCase):
         )
 
     def test_accepts_app_hang_differing_only_in_blocked_dimension(self) -> None:
-        # The blocked/non-fully-blocked dimension isn't confirmed yet, so it doesn't reject even with
-        # rejecting enabled.
+        # Only fatality rejects; the blocked dimension isn't confirmed yet.
         self._assert_match_result(
             parent_type="Fatal App Hang Non Fully Blocked",
             new_type="Fatal App Hang Fully Blocked",

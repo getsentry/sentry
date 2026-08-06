@@ -10,12 +10,10 @@ from sentry.grouping.ingest.exception_types import (
 @pytest.mark.parametrize(
     "event_type,parent_type",
     [
-        # Fatal vs non-fatal, both spellings of the blocked dimension
         ("Fatal App Hang Fully Blocked", "App Hang Fully Blocked"),
         ("App Hang Non Fully Blocked", "Fatal App Hang Non Fully Blocked"),
-        # Fatality still decides even when the blocked dimension also differs
+        # Fatality still decides when the blocked dimension or the spelling also differs
         ("Fatal App Hang Fully Blocked", "App Hang Non Fully Blocked"),
-        # ...and across the older "Hanging" spelling
         ("Fatal App Hanging", "App Hang Fully Blocked"),
     ],
     ids=str,
@@ -30,10 +28,10 @@ def test_rejects_app_hangs_of_differing_fatality(event_type: str, parent_type: s
 @pytest.mark.parametrize(
     "event_type,parent_type",
     [
-        # Blocked dimension alone — unconfirmed, so accepted for now
+        # Blocked dimension alone
         ("Fatal App Hang Fully Blocked", "Fatal App Hang Non Fully Blocked"),
         ("App Hang Fully Blocked", "App Hang Non Fully Blocked"),
-        # "Hang" vs "Hanging" from differing SDK versions
+        # "Hang" vs "Hanging", from differing SDK versions
         ("App Hanging", "App Hang Fully Blocked"),
         ("Fatal App Hanging", "Fatal App Hang Fully Blocked"),
     ],
@@ -57,8 +55,7 @@ def test_app_hang_check_is_case_insensitive() -> None:
 
 
 def test_app_hang_check_ignores_platform() -> None:
-    # Fatality is meaningful regardless of platform, unlike the type-name comparison. (Hangs come
-    # from Cocoa today, but nothing here depends on that.)
+    # Unlike the type-name comparison, fatality is meaningful on any platform.
     reason = classify_exception_type_mismatch(
         "Fatal App Hang Fully Blocked", "App Hang Fully Blocked", "javascript"
     )
@@ -67,7 +64,6 @@ def test_app_hang_check_ignores_platform() -> None:
 
 
 def test_type_merely_starting_with_app_hang_words_is_not_a_hang() -> None:
-    # The word boundary keeps us from treating an ordinary identifier as a hang type.
     reason = classify_exception_type_mismatch("AppHangaroo", "AppHangaloo", "python")
 
     assert reason == MismatchReason.DISTINCT_TYPE_NAMES
@@ -78,12 +74,9 @@ def test_type_merely_starting_with_app_hang_words_is_not_a_hang() -> None:
     [
         ("ValueError", "TypeError"),
         ("OSError", "IOError"),
-        # Fully-qualified names
         ("java.lang.NullPointerException", "java.lang.IllegalStateException"),
-        # `Namespace::Type` — no separate rule needed, `::` neither contains whitespace nor
-        # parameterizes
         ("RestClient::BadRequest", "RestClient::NotFound"),
-        # Digits that don't parameterize because they're mid-token
+        # Digits that don't parameterize, because they're mid-token
         ("Error1234", "Error5678"),
         ("HTTP404", "HTTP500"),
         ("Timeout30s", "Timeout60s"),
@@ -124,11 +117,11 @@ def test_accepts_types_differing_only_in_variable_data(event_type: str, parent_t
 @pytest.mark.parametrize(
     "event_type,parent_type",
     [
-        # A message stuffed into the `type` field, differing by a severity prefix...
+        # Messages stuffed into the `type` field, differing by a severity prefix or an appended
+        # value
         ("Fatal error in worker", "Error in worker"),
-        # ...or by an appended value
         ("Error: Get Order Delivery", "Error: Get Order Refund"),
-        # Only one side needs whitespace to make the pair unsafe to judge
+        # Only one side needs whitespace
         ("SomeError: it broke", "SomeError"),
     ],
     ids=str,
@@ -142,7 +135,6 @@ def test_accepts_types_containing_whitespace(event_type: str, parent_type: str) 
 
 @pytest.mark.parametrize("platform", ["javascript", "node", "cocoa", "android", None, "other"])
 def test_accepts_distinct_type_names_on_unstable_platforms(platform: str | None) -> None:
-    # Minifiers rename classes per build, so two different short names may be the same type.
     reason = classify_exception_type_mismatch("V", "bm", platform)
 
     assert reason == MismatchReason.UNSTABLE_PLATFORM
@@ -160,8 +152,7 @@ def test_accepts_distinct_type_names_on_unstable_platforms(platform: str | None)
 def test_accepts_when_either_type_is_the_generic_placeholder(
     event_type: str, parent_type: str
 ) -> None:
-    # `ErrorEvent.extract_metadata` defaults a missing type to "Error", so this means the type is
-    # absent rather than different.
+    # "Error" is what a *missing* type gets defaulted to, so it isn't a real difference.
     reason = classify_exception_type_mismatch(event_type, parent_type, "python")
 
     assert reason == MismatchReason.GENERIC_PLACEHOLDER
