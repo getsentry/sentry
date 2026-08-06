@@ -65,6 +65,13 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
             data.get("http.decoded_response_content_length", None)
             or data.get("Decoded Body Size", None)
         )
+        try:
+            transfer_size = int(transfer_size) if transfer_size is not None else None
+            encoded_body_size = int(encoded_body_size) if encoded_body_size is not None else None
+            decoded_body_size = int(decoded_body_size) if decoded_body_size is not None else None
+        except (ValueError, TypeError):
+            return
+
         if not (encoded_body_size and decoded_body_size and transfer_size):
             return
 
