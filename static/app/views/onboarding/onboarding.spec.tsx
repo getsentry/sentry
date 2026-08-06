@@ -635,6 +635,19 @@ describe('Onboarding', () => {
       });
     });
 
+    it('redirects treatment off the messaging step when no platform is staged', async () => {
+      // The messaging step reads a platform it cannot render without. Bounce
+      // back one step rather than to the start of the flow, so a refresh with
+      // an empty session does not discard the repository connection.
+      const {router} = renderTreatmentOnboarding('scm-messaging');
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          `/onboarding/${messagingOrganization.slug}/scm-platform-features/`
+        );
+      });
+    });
+
     it('navigates from welcome to scm-connect', async () => {
       const {router} = renderOnboarding('welcome');
 
