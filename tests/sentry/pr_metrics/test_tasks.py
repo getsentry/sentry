@@ -1,6 +1,12 @@
+from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import patch
 
+from sentry.models.pullrequest import (
+    PullRequestAttribution,
+    PullRequestAttributionSignalType,
+    PullRequestAttributionSource,
+)
 from sentry.pr_metrics.tasks import forward_pr_to_seer_task, reap_stuck_judge_verdicts_task
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
@@ -107,6 +113,95 @@ class CleanupPrActivityTaskTest(TestCase):
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pull_request).exists()
         assert PullRequestActivity.objects.filter(pull_request=other_pr).exists()
+
+    def test_require_untracked_deletes_both_stores(self) -> None:
+        from sentry.models.pullrequest import PullRequestActivity, PullRequestActivityLog
+        from sentry.pr_metrics.tasks import cleanup_pr_activity_task
+
+        self.pull_request.update(closed_at=datetime.now(timezone.utc))
+        self._create_activity("delivery-1")
+        PullRequestActivityLog.objects.create(pull_request=self.pull_request, data={"version": 1})
+
+        cleanup_pr_activity_task(pull_request_id=self.pull_request.id, require_untracked=True)
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pull_request).exists()
+        assert not PullRequestActivityLog.objects.filter(pull_request=self.pull_request).exists()
+
+    def test_require_untracked_keeps_activity_once_attribution_lands(self) -> None:
+        # Attribution arrived while the sweep was waiting out the buffer. The PR can
+        # now emit on a redelivered close, and must read real activity when it does.
+        from sentry.models.pullrequest import PullRequestActivity
+        from sentry.pr_metrics.tasks import cleanup_pr_activity_task
+
+        self.pull_request.update(closed_at=datetime.now(timezone.utc))
+        self._create_activity("delivery-1")
+        PullRequestAttribution.objects.create(
+            pull_request=self.pull_request,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+            source=PullRequestAttributionSource.SEER_DATA,
+            is_valid=True,
+        )
+
+        cleanup_pr_activity_task(pull_request_id=self.pull_request.id, require_untracked=True)
+
+        assert PullRequestActivity.objects.filter(pull_request=self.pull_request).exists()
+
+    def test_require_untracked_ignores_invalid_attribution(self) -> None:
+        # Only valid attribution makes a PR emittable, so an invalidated row must
+        # not hold its activity open.
+        from sentry.models.pullrequest import PullRequestActivity
+        from sentry.pr_metrics.tasks import cleanup_pr_activity_task
+
+        self.pull_request.update(closed_at=datetime.now(timezone.utc))
+        self._create_activity("delivery-1")
+        PullRequestAttribution.objects.create(
+            pull_request=self.pull_request,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+            source=PullRequestAttributionSource.SEER_DATA,
+            is_valid=False,
+        )
+
+        cleanup_pr_activity_task(pull_request_id=self.pull_request.id, require_untracked=True)
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pull_request).exists()
+
+    def test_require_untracked_keeps_activity_when_reopened(self) -> None:
+        # Reopened while the sweep waited: no longer terminal, so it can accumulate
+        # activity again. A later re-close reschedules the sweep.
+        from sentry.models.pullrequest import PullRequestActivity
+        from sentry.pr_metrics.tasks import cleanup_pr_activity_task
+
+        self.pull_request.update(closed_at=None)
+        self._create_activity("delivery-1")
+
+        cleanup_pr_activity_task(pull_request_id=self.pull_request.id, require_untracked=True)
+
+        assert PullRequestActivity.objects.filter(pull_request=self.pull_request).exists()
+
+    def test_require_untracked_tolerates_missing_pull_request(self) -> None:
+        from sentry.pr_metrics.tasks import cleanup_pr_activity_task
+
+        cleanup_pr_activity_task(
+            pull_request_id=self.pull_request.id + 1000, require_untracked=True
+        )
+
+    def test_emit_path_deletes_tracked_pr_activity(self) -> None:
+        # Without require_untracked the delete is unconditional: the emit path only
+        # calls it after the row has been emitted and the activity consumed.
+        from sentry.models.pullrequest import PullRequestActivity
+        from sentry.pr_metrics.tasks import cleanup_pr_activity_task
+
+        self._create_activity("delivery-1")
+        PullRequestAttribution.objects.create(
+            pull_request=self.pull_request,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+            source=PullRequestAttributionSource.SEER_DATA,
+            is_valid=True,
+        )
+
+        cleanup_pr_activity_task(pull_request_id=self.pull_request.id)
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pull_request).exists()
 
 
 @cell_silo_test

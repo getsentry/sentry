@@ -27,7 +27,7 @@ from sentry.pr_metrics.activity_doc import (
     REVIEWER_ENGAGEMENT_ACTIVITY_TYPES,
     has_reviewer_engagement,
 )
-from sentry.pr_metrics.emit import NO_REVIEWER_ENGAGEMENT, emit_pr_metrics_row
+from sentry.pr_metrics.emit import NO_REVIEWER_ENGAGEMENT, emit_pr_metrics_row, is_pr_tracked
 from sentry.pr_metrics.judge import forward_pr_to_seer_judge, reap_stuck_judge_verdicts
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -150,22 +150,60 @@ def emit_pr_metrics_cooldown_task(
     run_deferred_emission(pull_request, organization)
 
 
+def _untracked_sweep_still_warranted(pull_request_id: int) -> bool:
+    """Whether a deferred untracked-PR sweep should still delete.
+
+    Re-checked because ``handle_emission`` schedules the sweep while the
+    attribution buffer may still be open, so its "untracked" reading can go stale.
+    Two states retract it:
+
+    - The PR gained attribution. A redelivered close would now emit, and it must
+      read real activity.
+    - The PR reopened. It is no longer terminal and can accumulate activity again;
+      a later re-close reschedules the sweep.
+
+    A PR row that vanished needs no special case: both stores are FK-constrained
+    to it, so their rows went with it and the delete below is a no-op.
+    """
+    pull_request = PullRequest.objects.filter(id=pull_request_id).first()
+    if pull_request is None:
+        return True
+    if pull_request.closed_at is None:
+        metrics.incr("pr_metrics.cleanup_activity.skipped", tags={"reason": "reopened"})
+        return False
+    if is_pr_tracked(pull_request):
+        metrics.incr("pr_metrics.cleanup_activity.skipped", tags={"reason": "attributed"})
+        return False
+    return True
+
+
 @instrumented_task(
     name="sentry.pr_metrics.tasks.cleanup_pr_activity",
     namespace=seer_code_review_tasks,
     silo_mode=SiloMode.CELL,
 )
-def cleanup_pr_activity_task(*, pull_request_id: int) -> None:
-    """Delete a PR's activity after its scm.pr.closed event has been emitted.
+def cleanup_pr_activity_task(*, pull_request_id: int, require_untracked: bool = False) -> None:
+    """Delete a PR's activity once no reader can ever consume it again.
 
-    Enqueued by ``emit_pr_metrics_row`` once emission succeeds, and sweeps both
-    stores: the legacy ``PullRequestActivity`` rows and the reduced
+    Sweeps both stores: the legacy ``PullRequestActivity`` rows and the reduced
     ``PullRequestActivityLog`` document (only one exists for a given PR, per the
-    per-PR routing). The data is no longer needed — the judge path has consumed
-    it and neither store is reread after a terminal event. A failure here is safe
-    to drop: the age-based cleanup command sweeps any survivors (the document
-    keyed on ``date_updated``).
+    per-PR routing). A failure here is safe to drop: the age-based cleanup command
+    sweeps any survivors (the document keyed on ``date_updated``).
+
+    Two callers, split by ``require_untracked``:
+
+    - ``emit_pr_metrics_row`` (default) enqueues this once emission succeeds. The
+      judge path has consumed the activity and neither store is reread after a
+      terminal event, so the delete is unconditional.
+    - ``handle_emission`` enqueues it with ``require_untracked`` for a PR that
+      closed with no valid attribution — that PR can never emit, so its activity
+      is already unreachable. Because that reading can go stale, the delete is
+      deferred past the attribution buffer and re-checked here rather than run
+      inline; see ``_untracked_sweep_still_warranted``.
     """
+    if require_untracked and not _untracked_sweep_still_warranted(pull_request_id):
+        return
+
     logger.info("pr_metrics.cleanup_activity", extra={"pull_request_id": pull_request_id})
     deleted, _ = PullRequestActivity.objects.filter(pull_request_id=pull_request_id).delete()
     metrics.incr("pr_metrics.cleanup_activity.deleted", amount=deleted)

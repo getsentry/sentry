@@ -709,12 +709,53 @@ class HandleWebhookForPrMetricsCooldownTest(TestCase):
         # The second delivery finds the row already claimed and no-ops.
         assert mock_apply_async.call_count == 1
 
+    @patch(f"{MODULE}.cleanup_pr_activity_task.apply_async")
     @patch(f"{MODULE}.emit_pr_metrics_cooldown_task.apply_async")
-    def test_untracked_pr_does_not_schedule(self, mock_apply_async: MagicMock) -> None:
+    def test_untracked_pr_does_not_schedule(
+        self, mock_apply_async: MagicMock, mock_cleanup: MagicMock
+    ) -> None:
         PullRequestAttribution.objects.filter(pull_request=self.pull_request).delete()
         self._handle()
         assert mock_apply_async.call_count == 0
         assert self._verdict() is None
+
+    @patch(f"{MODULE}.cleanup_pr_activity_task.apply_async")
+    def test_untracked_pr_schedules_activity_cleanup(self, mock_cleanup: MagicMock) -> None:
+        # A PR that closed without attribution can never emit, so its activity is
+        # already unreachable and is swept once the attribution buffer has closed.
+        PullRequestAttribution.objects.filter(pull_request=self.pull_request).delete()
+        self.pull_request.update(date_added=datetime.now(timezone.utc) - timedelta(hours=40))
+
+        self._handle()
+
+        mock_cleanup.assert_called_once_with(
+            kwargs={"pull_request_id": self.pull_request.id, "require_untracked": True},
+            countdown=0,
+        )
+
+    @patch(f"{MODULE}.cleanup_pr_activity_task.apply_async")
+    def test_untracked_pr_cleanup_waits_out_attribution_buffer(
+        self, mock_cleanup: MagicMock
+    ) -> None:
+        # Closed while the buffer is still open: attribution can yet arrive, so the
+        # sweep is deferred rather than run against a PR that may become tracked.
+        PullRequestAttribution.objects.filter(pull_request=self.pull_request).delete()
+        self.pull_request.update(date_added=datetime.now(timezone.utc) - timedelta(hours=1))
+
+        self._handle()
+
+        countdown = mock_cleanup.call_args.kwargs["countdown"]
+        assert 0 < countdown <= int(timedelta(hours=29).total_seconds())
+
+    @patch(f"{MODULE}.cleanup_pr_activity_task.apply_async")
+    @patch(f"{MODULE}.emit_pr_metrics_cooldown_task.apply_async")
+    def test_tracked_pr_does_not_schedule_activity_cleanup(
+        self, mock_apply_async: MagicMock, mock_cleanup: MagicMock
+    ) -> None:
+        # The tracked path sweeps activity from emit_pr_metrics_row instead, once
+        # the row has actually been emitted.
+        self._handle()
+        assert mock_cleanup.call_count == 0
 
     @patch(f"{MODULE}.emit_pr_metrics_cooldown_task.apply_async")
     def test_enqueue_failure_releases_cooldown(self, mock_apply_async: MagicMock) -> None:

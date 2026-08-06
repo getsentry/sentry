@@ -103,6 +103,18 @@ def is_activity_tracking_enabled(
     return True
 
 
+def attribution_buffer_remaining(pr: PullRequest) -> int:
+    """Seconds until an untracked ``pr``'s activity set is final, or 0 if it already is.
+
+    While the buffer in ``is_activity_tracking_enabled`` is open, a PR that reads
+    as untracked can still both gain attribution and accumulate activity, so
+    "untracked" is not yet a durable answer. Once it closes, an untracked PR
+    accepts no further activity and its emptiness is settled.
+    """
+    remaining = pr.date_added + _PR_ACTIVITY_ATTRIBUTION_BUFFER - timezone.now()
+    return max(int(remaining.total_seconds()), 0)
+
+
 def iso_or_none(value: datetime | None) -> str | None:
     """Serialize a persisted datetime to an ISO-8601 string, or None.
 

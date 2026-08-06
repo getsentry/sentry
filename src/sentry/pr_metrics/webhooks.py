@@ -88,10 +88,15 @@ from sentry.pr_metrics.emit import (
     select_verdict,
 )
 from sentry.pr_metrics.lifecycle_mapping import is_stale_github_pull_request_payload
-from sentry.pr_metrics.tasks import emit_pr_metrics_cooldown_task, forward_pr_to_seer_task
+from sentry.pr_metrics.tasks import (
+    cleanup_pr_activity_task,
+    emit_pr_metrics_cooldown_task,
+    forward_pr_to_seer_task,
+)
 from sentry.pr_metrics.utils import (
     DELEGATED_AGENT_AUTHOR_LOGINS,
     DELEGATED_AGENT_BRANCH_PREFIXES,
+    attribution_buffer_remaining,
     is_activity_tracking_enabled,
     org_has_coding_agent_for_provider,
     resolved_group_ids,
@@ -407,7 +412,9 @@ def handle_emission(
     Untracked PRs (no valid attribution) are dropped first, before the cooldown is
     claimed: claiming would burn the redelivery guard, so a PR that gained
     attribution only later could never emit. The cooldown claim is the redelivery
-    guard — only the first delivery schedules a task; redeliveries no-op.
+    guard — only the first delivery schedules a task; redeliveries no-op. Being
+    unable to emit also makes their activity unreadable, so they get swept instead
+    (see ``_schedule_untracked_activity_cleanup``).
     """
     if event.get("action") != "closed":
         return
@@ -427,6 +434,7 @@ def handle_emission(
 
     if not is_pr_tracked(pr):
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "untracked"})
+        _schedule_untracked_activity_cleanup(pr)
         return
 
     if not _claim_cooldown(pr):
@@ -459,6 +467,29 @@ def handle_emission(
         return
 
     metrics.incr("pr_metrics.cooldown.scheduled")
+
+
+def _schedule_untracked_activity_cleanup(pr: PullRequest) -> None:
+    """Sweep the activity of a PR that reached a terminal event without attribution.
+
+    Such a PR is dropped by the tracking gate above and can never emit, so nothing
+    will ever read its activity — yet it accumulated some anyway, because
+    ``is_activity_tracking_enabled`` collects for *every* PR inside the attribution
+    buffer. Untracked PRs are the overwhelming majority of the webhook firehose, so
+    without this sweep they are also the overwhelming majority of both activity
+    stores, held until the age-based cleanup command reaps them as children of the
+    PR row long after anything could have used them.
+
+    Scheduled rather than deleted inline: while the buffer is open the PR can still
+    gain attribution (Seer's PR-created notification is out of band and can land
+    after a fast auto-merge), and deleting first would leave a redelivered close
+    emitting a hollow row off an empty store. The task re-checks before deleting.
+    """
+    cleanup_pr_activity_task.apply_async(
+        kwargs={"pull_request_id": pr.id, "require_untracked": True},
+        countdown=attribution_buffer_remaining(pr),
+    )
+    metrics.incr("pr_metrics.cleanup_activity.scheduled")
 
 
 def run_deferred_emission(pull_request: PullRequest, organization: Organization) -> None:
