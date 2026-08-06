@@ -950,8 +950,11 @@ describe('Onboarding', () => {
         body: ProjectFixture(),
       });
 
+      // Render the provider bare, like production does, so it hydrates from
+      // sessionStorage. Seeding `initialValue` instead makes a session clear
+      // restore that value rather than empty the context.
       render(
-        <OnboardingContextProvider initialValue={initialContext}>
+        <OnboardingContextProvider>
           <OnboardingWithoutContext />
         </OnboardingContextProvider>,
         {
@@ -969,6 +972,133 @@ describe('Onboarding', () => {
 
       expect(createRequest).not.toHaveBeenCalled();
       expect(sessionStorage.getItem('onboarding')).toBeNull();
+    });
+
+    describe('global Skip exit destination', () => {
+      // The skip button renders in the treatment header on every step, so each
+      // one has to leave the flow the same way: land on the issues stream and
+      // leave no session behind for the next /onboarding visit to resume from.
+      //
+      // Note on the failure mode these lock in: under jsdom, reverting to
+      // resetOnboarding fails the `setup-docs` and `scm-messaging` cases on the
+      // destination assertion, because clearing state re-renders the step, flips
+      // its validity guard and mounts a <Redirect> that beats the outbound
+      // navigation. That sequence does not occur in a real browser, where the
+      // click's state update and the router navigation land in one commit and
+      // the step unmounts without re-rendering. The bug that is real there is
+      // the session leak — see the unmount-in-same-commit test in
+      // onboardingContext.spec.tsx, which reproduces it directly.
+      it.each(['welcome', 'scm-connect', 'scm-platform-features'])(
+        'skip from %s lands on the issues stream',
+        async step => {
+          sessionStorage.setItem(
+            'onboarding',
+            JSON.stringify({
+              selectedPlatform: nextJsPlatform,
+              selectedFeatures: [ProductSolution.ERROR_MONITORING],
+              selectedRepository: RepositoryFixture(),
+            })
+          );
+
+          const {router} = renderOnboarding(step);
+
+          await userEvent.click(screen.getByRole('button', {name: 'Skip setup'}));
+
+          await waitFor(() => {
+            expect(router.location.pathname).toBe(
+              `/organizations/${scmOrganization.slug}/issues/`
+            );
+          });
+          expect(sessionStorage.getItem('onboarding')).toBeNull();
+        }
+      );
+
+      it('skip from scm-messaging lands on the issues stream', async () => {
+        const messagingOrganization = OrganizationFixture({
+          features: ['onboarding-scm-experiment', 'onboarding-scm-messaging-experiment'],
+        });
+        MockApiClient.addMockResponse({
+          url: `/organizations/${messagingOrganization.slug}/integrations/`,
+          body: [],
+        });
+        sessionStorage.setItem(
+          'onboarding',
+          JSON.stringify({selectedPlatform: nextJsPlatform})
+        );
+
+        const {router} = render(
+          <OnboardingContextProvider>
+            <OnboardingWithoutContext />
+          </OnboardingContextProvider>,
+          {
+            organization: messagingOrganization,
+            initialRouterConfig: {
+              location: {
+                pathname: `/onboarding/${messagingOrganization.slug}/scm-messaging/`,
+              },
+              route: '/onboarding/:orgId/:step/',
+            },
+          }
+        );
+
+        await userEvent.click(screen.getByRole('button', {name: 'Skip setup'}));
+
+        await waitFor(() => {
+          expect(router.location.pathname).toBe(
+            `/organizations/${messagingOrganization.slug}/issues/`
+          );
+        });
+        expect(sessionStorage.getItem('onboarding')).toBeNull();
+      });
+
+      it('skip from setup-docs lands on the issues stream', async () => {
+        const nextJsProject = ProjectFixture({
+          platform: 'javascript-nextjs',
+          id: '2',
+          slug: 'javascript-nextjs',
+        });
+
+        jest
+          .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
+          .mockImplementation(() => ({
+            project: nextJsProject,
+            isProjectActive: true,
+          }));
+
+        MockApiClient.addMockResponse({
+          url: `/organizations/${scmOrganization.slug}/sdks/`,
+          body: {},
+        });
+        MockApiClient.addMockResponse({
+          url: `/projects/${scmOrganization.slug}/${nextJsProject.slug}/keys/`,
+          body: [ProjectKeysFixture()[0]],
+        });
+        MockApiClient.addMockResponse({
+          url: `/projects/${scmOrganization.slug}/${nextJsProject.slug}/issues/`,
+          body: [],
+        });
+
+        sessionStorage.setItem(
+          'onboarding',
+          JSON.stringify({
+            selectedPlatform: nextJsPlatform,
+            selectedFeatures: [ProductSolution.ERROR_MONITORING],
+            createdProjectSlug: nextJsProject.slug,
+          })
+        );
+
+        const {router} = renderOnboarding('setup-docs');
+
+        await userEvent.click(screen.getByRole('button', {name: 'Skip setup'}));
+
+        await waitFor(() => {
+          expect(router.location.pathname).toBe(
+            `/organizations/${scmOrganization.slug}/issues/`
+          );
+        });
+        expect(router.location.query.referrer).toBe('onboarding-first-event-footer-skip');
+        expect(sessionStorage.getItem('onboarding')).toBeNull();
+      });
     });
 
     it('preserves SCM context when going back from setup-docs', async () => {
