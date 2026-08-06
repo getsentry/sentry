@@ -1,6 +1,5 @@
 import type {
   ComponentProps,
-  CSSProperties,
   HTMLAttributes,
   ReactNode,
   RefObject,
@@ -17,6 +16,8 @@ import {
   useRef,
   useState,
 } from 'react';
+
+import {DragHandle} from '@sentry/scraps/dragHandle';
 
 import {
   getAriaSort,
@@ -72,10 +73,12 @@ function getDefaultColumnTrack(
 interface TableContextValue {
   columnIndexByKey: Map<string, number>;
   lastColumnIndex: number;
+  minimumColumnWidth: number;
   onResetColumnSize: (event: React.MouseEvent, index: number) => void;
-  onResizeMouseDown: (event: React.MouseEvent, index: number) => void;
+  onResizeEnd: () => void;
+  onResizeMove: (delta: number) => void;
+  onResizeStart: (index: number, cell: HTMLElement | null) => void;
   resizableByIndex: boolean[];
-  tableRef: RefObject<HTMLTableElement | null>;
 }
 
 const TableContext = createContext<TableContextValue | null>(null);
@@ -92,29 +95,21 @@ export interface TableProps extends Omit<
 > {
   children: ReactNode;
   columns?: TableColumnConfig[];
-  definiteHeadRow?: boolean;
-  fit?: 'max-content';
   flexibleLastColumn?: boolean;
-  height?: CSSProperties['height'];
   minimumColumnWidth?: number;
   onColumnResize?: (index: number, width: number) => void;
   prependColumnWidths?: string[];
   ref?: RefObject<HTMLTableElement | null>;
-  scrollable?: boolean;
 }
 
 export function Table({
   children,
   columns = EMPTY_COLUMNS,
-  definiteHeadRow,
-  fit,
   flexibleLastColumn = true,
-  height,
   minimumColumnWidth = COL_WIDTH_MINIMUM,
   onColumnResize,
   prependColumnWidths,
   ref,
-  scrollable,
   ...props
 }: TableProps) {
   const internalRef = useRef<HTMLTableElement>(null);
@@ -175,7 +170,7 @@ export function Table({
     [commitWidth, minimumColumnWidth]
   );
 
-  const {onResizeMouseDown, applyTemplate} = useColumnResize({
+  const {applyTemplate, onResizeEnd, onResizeMove, onResizeStart} = useColumnResize({
     gridRef,
     getResizeTemplate,
     onColumnResizeEnd,
@@ -228,25 +223,26 @@ export function Table({
     () => ({
       columnIndexByKey: new Map(columns.map((column, index) => [column.key, index])),
       lastColumnIndex: columns.length - 1,
+      minimumColumnWidth,
       onResetColumnSize,
-      onResizeMouseDown,
+      onResizeEnd,
+      onResizeMove,
+      onResizeStart,
       resizableByIndex: columns.map(column => column.resizable !== false),
-      tableRef: gridRef,
     }),
-    [columns, gridRef, onResetColumnSize, onResizeMouseDown]
+    [
+      columns,
+      minimumColumnWidth,
+      onResetColumnSize,
+      onResizeEnd,
+      onResizeMove,
+      onResizeStart,
+    ]
   );
 
   return (
     <TableContext value={contextValue}>
-      <TableGrid
-        {...props}
-        definiteHeadRow={definiteHeadRow}
-        fit={fit}
-        height={height}
-        ref={gridRef}
-        role="table"
-        scrollable={scrollable}
-      >
+      <TableGrid {...props} ref={gridRef} role="table">
         {children}
       </TableGrid>
     </TableContext>
@@ -298,10 +294,41 @@ function HeadCell({
 
   const sortable = defined(onSort) || defined(sort) || defined(overlays);
 
+  const cellRef = useRef<HTMLTableCellElement>(null);
+  const minimumColumnWidth = context?.minimumColumnWidth ?? COL_WIDTH_MINIMUM;
+  const [{max, width}, setMeasurements] = useState({
+    max: minimumColumnWidth,
+    width: minimumColumnWidth,
+  });
+
+  useEffect(() => {
+    const cell = cellRef.current;
+    const table = cell?.closest('table');
+    if (!showResizer || !cell || !table) {
+      return () => {};
+    }
+
+    const observer = new ResizeObserver(() =>
+      setMeasurements({
+        max: Math.max(table.clientWidth, cell.offsetWidth),
+        width: cell.offsetWidth,
+      })
+    );
+    observer.observe(cell);
+    observer.observe(table);
+
+    return () => observer.disconnect();
+  }, [showResizer]);
+
   return (
     // aria-sort precedes the spread so a caller that announces sorting itself, as
     // GridEditable does for its own sort links, still wins.
-    <TableHeadCell aria-sort={getAriaSort(sort)} {...props} role="columnheader">
+    <TableHeadCell
+      aria-sort={getAriaSort(sort)}
+      {...props}
+      ref={cellRef}
+      role="columnheader"
+    >
       {sortable ? (
         <SortableHeaderCell direction={sort} onSort={onSort} overlays={overlays}>
           {children}
@@ -310,12 +337,20 @@ function HeadCell({
         children
       )}
       {showResizer && (
-        <TableResizer
-          data-test-id="table-column-resizer"
-          onContextMenu={event => context.onResizeMouseDown(event, index)}
-          onDoubleClick={event => context.onResetColumnSize(event, index)}
-          onMouseDown={event => context.onResizeMouseDown(event, index)}
-        />
+        <TableResizer onContextMenu={event => event.preventDefault()}>
+          <DragHandle
+            appearance="hover"
+            isSizedFirst
+            max={max}
+            min={minimumColumnWidth}
+            orientation="horizontal"
+            value={width}
+            onDoubleClick={event => context.onResetColumnSize(event, index)}
+            onMove={context.onResizeMove}
+            onMoveEnd={context.onResizeEnd}
+            onMoveStart={() => context.onResizeStart(index, cellRef.current)}
+          />
+        </TableResizer>
       )}
     </TableHeadCell>
   );

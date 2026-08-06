@@ -1,3 +1,4 @@
+import {dragHandle} from 'sentry-test/dragMove';
 import {
   render,
   screen,
@@ -40,18 +41,9 @@ function TestTable({
   );
 }
 
-// jsdom reports offsetWidth as 0, so a dragged width equals the drag distance. The
-// whole gesture runs in one pointer() call so the held-button state stays coherent.
-function drag(resizer: HTMLElement, from: number, to: number) {
-  return userEvent.pointer([
-    {keys: '[MouseLeft>]', target: resizer, coords: {clientX: from}},
-    {coords: {clientX: to}},
-    {keys: '[/MouseLeft]', coords: {clientX: to}},
-  ]);
-}
-
+// jsdom reports offsetWidth as 0, so a dragged width equals the drag distance.
 const gridTemplate = () => screen.getByRole('table').style.gridTemplateColumns;
-const resizers = () => screen.getAllByTestId('table-column-resizer');
+const resizers = () => screen.getAllByRole('separator');
 
 describe('Table', () => {
   it('exposes table semantics when rendered', () => {
@@ -131,7 +123,7 @@ describe('Table', () => {
   it('writes the dragged width into the grid template while resizing', async () => {
     render(<TestTable />);
 
-    await drag(resizers()[0]!, 100, 400);
+    dragHandle(resizers()[0]!, {from: 100, to: 400});
 
     await waitFor(() => expect(gridTemplate()).toBe('300px 150px minmax(90px, auto)'));
   });
@@ -139,7 +131,7 @@ describe('Table', () => {
   it('clamps a drag below the minimum width up to the minimum', async () => {
     render(<TestTable />);
 
-    await drag(resizers()[0]!, 100, 110);
+    dragHandle(resizers()[0]!, {from: 100, to: 110});
 
     await waitFor(() => expect(gridTemplate()).toBe('90px 150px minmax(90px, auto)'));
   });
@@ -148,7 +140,7 @@ describe('Table', () => {
     const onColumnResize = jest.fn();
     render(<TestTable onColumnResize={onColumnResize} />);
 
-    await drag(resizers()[1]!, 100, 350);
+    dragHandle(resizers()[1]!, {from: 100, to: 350});
 
     expect(onColumnResize).toHaveBeenCalledWith(1, 250);
   });
@@ -156,7 +148,7 @@ describe('Table', () => {
   it('retains the resized width when no onColumnResize is provided', async () => {
     render(<TestTable />);
 
-    await drag(resizers()[0]!, 100, 400);
+    dragHandle(resizers()[0]!, {from: 100, to: 400});
     await waitFor(() => expect(gridTemplate()).toBe('300px 150px minmax(90px, auto)'));
     await userEvent.click(screen.getByRole('table'));
 
@@ -180,6 +172,39 @@ describe('Table', () => {
     await userEvent.dblClick(resizers()[0]!);
 
     expect(onColumnResize).toHaveBeenCalledWith(0, COL_WIDTH_UNDEFINED);
+  });
+
+  it('places a resize handle in the tab order', async () => {
+    render(<TestTable />);
+
+    await userEvent.tab();
+
+    expect(resizers()[0]).toHaveFocus();
+  });
+
+  it('exposes a resize handle as a vertical separator', () => {
+    render(<TestTable />);
+
+    expect(resizers()[0]).toHaveAttribute('aria-orientation', 'vertical');
+  });
+
+  it('commits a resize when a focused handle is arrowed', async () => {
+    const onColumnResize = jest.fn();
+    render(<TestTable onColumnResize={onColumnResize} />);
+
+    await userEvent.tab();
+    await userEvent.keyboard('{ArrowRight}');
+
+    expect(onColumnResize).toHaveBeenCalledWith(0, 90);
+  });
+
+  it('does not commit a resize when a handle is right-clicked', async () => {
+    const onColumnResize = jest.fn();
+    render(<TestTable onColumnResize={onColumnResize} />);
+
+    dragHandle(resizers()[0]!, {button: 2, from: 100, to: 400});
+
+    expect(onColumnResize).not.toHaveBeenCalled();
   });
 
   it('leaves consumer-provided tracks alone when no columns are described', () => {
