@@ -15,11 +15,31 @@ env:
   NODE_OPTIONS: '--max-old-space-size=4096'
   SNAPSHOT_OUTPUT_DIR: .artifacts/snapshots
 jobs:
+  files-changed:
+    name: detect frontend changes
+    runs-on: ubuntu-24.04
+    outputs:
+      frontend_all: ${{ steps.changes.outputs.frontend_all }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Check for frontend file changes
+        uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
+        id: changes
+        with:
+          token: ''
+          filters: .github/file-filters.yml
+
   snapshots:
     name: snapshot tests
-    # Skip 'edited' events that aren't a base branch change (e.g. title/body edits).
-    # When the base branch changes, the diff target changes so we need a fresh run.
-    if: github.event.action != 'edited' || github.event.changes.base != ''
+    needs: files-changed
+    # Always run for pushes to the base branch. For pull requests, run only when
+    # frontend files changed and skip edits that aren't a base branch change.
+    if: >-
+      always() &&
+      (github.event_name == 'push' ||
+        (needs.files-changed.outputs.frontend_all == 'true' &&
+          (github.event.action != 'edited' || github.event.changes.base != '')))
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
