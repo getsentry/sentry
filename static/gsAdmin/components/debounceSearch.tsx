@@ -1,179 +1,164 @@
-import type {ReactElement} from 'react';
-import {useCallback, useEffect, useRef, useState} from 'react';
-import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
+import type {ReactNode} from 'react';
+import {useId, useState} from 'react';
+import {useTheme} from '@emotion/react';
+import type {QueryKey, UseQueryOptions} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 
-import {Container} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Select, type SelectValue} from '@sentry/scraps/select';
+import {Text} from '@sentry/scraps/text';
 
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {SearchBar} from 'sentry/components/searchBar';
-import {useApi} from 'sentry/utils/useApi';
-import {useKeyPress} from 'sentry/utils/useKeyPress';
+import {fzf} from 'sentry/utils/search/fzf';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
-type Props = {
-  onSelectResult: (value: string) => void;
-  path: string;
-  placeholder: string;
-  suggestionContent: (suggestion: any) => ReactElement;
-  createSuggestionPath?: (suggestion: any) => string;
-  host?: string;
-  onSearch?: (value: string) => void;
-  queryParam?: string;
-};
+const SEARCH_DEBOUNCE_MS = 300;
 
-export function DebounceSearch({
-  createSuggestionPath,
-  onSearch,
-  onSelectResult,
-  host,
-  path,
-  placeholder,
-  queryParam = '',
-  suggestionContent,
-}: Props) {
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [query, setQuery] = useState('');
-  const [queryResults, setQueryResults] = useState([]);
-  const [showResults, setShowResults] = useState(false);
-  const [node, setNode] = useState<HTMLDivElement | null>();
-  const setKeyHandlers = useCallback((nodeRef: HTMLDivElement | null) => {
-    setNode(nodeRef);
-  }, []);
-  const downPress = useKeyPress('ArrowDown', node);
-  const upPress = useKeyPress('ArrowUp', node);
-  const enterPress = useKeyPress('Enter', node);
-  const escapePress = useKeyPress('Escape', node);
+type SearchOption<TResult> = SelectValue<string> &
+  ({kind: 'query'; query: string} | {kind: 'result'; result: TResult});
 
-  const [cursor, setCursor] = useState(0);
+function getBestMatchScore(searchTerms: readonly string[], query: string) {
+  const normalizedQuery = query.toLowerCase();
+  let bestScore = Number.NEGATIVE_INFINITY;
 
-  const api = useApi();
-
-  const debouncedSearch = useRef(
-    debounce(async (searchHost, searchPath, value) => {
-      // Avoid slow-fetch race conditions
-      api.clear();
-      setError('');
-      setQueryResults([]);
-
-      if (value) {
-        try {
-          const queryParams = {
-            query: [queryParam, value].filter(Boolean).join(':'),
-            per_page: 10,
-          };
-          const results = await api.requestPromise(searchPath, {
-            method: 'GET',
-            host: searchHost,
-            data: queryParams,
-          });
-          setQueryResults(results);
-        } catch (err) {
-          setError((err as Error).message);
-        }
-      }
-      setLoading(false);
-      value ? setShowResults(true) : setShowResults(false);
-    }, 300)
-  ).current;
-
-  const onChange = useCallback(
-    (value: string) => {
-      value ? setLoading(true) : setLoading(false);
-      value ? setShowResults(true) : setShowResults(false);
-      setQuery(value);
-      debouncedSearch(host, path, value);
-    },
-    [host, path, debouncedSearch]
-  );
-
-  useEffect(() => {
-    if (queryResults.length && downPress) {
-      setCursor(prevState =>
-        prevState < queryResults.length ? prevState + 1 : prevState
-      );
+  for (const searchTerm of searchTerms) {
+    const match = fzf(searchTerm, normalizedQuery, false);
+    if (match.end !== -1) {
+      bestScore = Math.max(bestScore, match.score);
     }
-  }, [downPress, queryResults.length]);
+  }
 
-  useEffect(() => {
-    if (queryResults.length && upPress) {
-      setCursor(prevState => (prevState > 0 ? prevState - 1 : prevState));
-    }
-  }, [upPress, queryResults.length]);
-
-  useEffect(() => {
-    if (enterPress && cursor === 0) {
-      if (onSearch) {
-        onSearch(query);
-      } else {
-        onChange(query);
-      }
-    } else if (enterPress && cursor <= queryResults.length) {
-      const item = queryResults[cursor - 1]!;
-      onSelectResult(item);
-    }
-  }, [cursor, enterPress, onChange, onSearch, onSelectResult, query, queryResults]);
-
-  useEffect(() => {
-    api.clear();
-    setCursor(0);
-    setError('');
-    setLoading(false);
-    setQueryResults([]);
-    setShowResults(false);
-  }, [escapePress, debouncedSearch, api, host, path]);
-
-  const renderSuggestion = (item: any, idx: number) => {
-    return (
-      <a
-        target="_blank"
-        href={createSuggestionPath?.(item)}
-        rel="noreferrer"
-        key={item.id}
-      >
-        <SuggestionCard highlight={cursor === idx + 1}>
-          {suggestionContent(item)}
-        </SuggestionCard>
-      </a>
-    );
-  };
-
-  return (
-    <div>
-      <div ref={setKeyHandlers}>
-        <SearchBar
-          placeholder={placeholder}
-          onChange={onChange}
-          style={error ? {border: '1px solid red'} : {}}
-        />
-      </div>
-      <Container marginBottom="xl">
-        {loading && <LoadingIndicator />}
-        {!loading && showResults && queryResults.map(renderSuggestion)}
-        {!loading && showResults && !queryResults.length && <Card>No results found</Card>}
-      </Container>
-      {error && <Error>{error}</Error>}
-    </div>
-  );
+  return bestScore;
 }
 
-const Card = styled('div')<{highlight?: boolean}>`
-  background: ${p =>
-    p.highlight ? p.theme.colors.gray100 : p.theme.tokens.background.primary};
-  color: ${p =>
-    p.highlight
-      ? p.theme.tokens.interactive.link.accent.active
-      : p.theme.tokens.content.primary};
-  box-shadow: ${p => p.theme.shadow.medium};
-  padding: ${p => p.theme.space.xl};
-`;
-const Error = styled('div')`
-  color: red;
-`;
-const SuggestionCard = styled(Card)`
-  &:hover {
-    color: ${p => p.theme.tokens.interactive.link.accent.active};
-    background: ${p => p.theme.colors.gray100};
-    cursor: pointer;
-  }
-`;
+type Props<TQueryData, TResult, TQueryKey extends QueryKey> = {
+  getResultKey: (result: TResult) => string;
+  getResultSearchTerms: (result: TResult) => readonly string[];
+  label: string;
+  onSelectResult: (result: TResult) => void;
+  queryOptions: (
+    query: string
+  ) => UseQueryOptions<TQueryData, Error, readonly TResult[], TQueryKey>;
+  renderResult: (result: TResult) => ReactNode;
+  isExactMatch?: (result: TResult, query: string) => boolean;
+  onSearch?: (query: string) => void;
+  placeholder?: string;
+};
+
+export function DebounceSearch<TQueryData, TResult, TQueryKey extends QueryKey>({
+  getResultKey,
+  getResultSearchTerms,
+  isExactMatch,
+  label,
+  onSearch,
+  onSelectResult,
+  placeholder = label,
+  queryOptions,
+  renderResult,
+}: Props<TQueryData, TResult, TQueryKey>) {
+  const inputId = useId();
+  const theme = useTheme();
+  const [inputValue, setInputValue] = useState('');
+  const normalizedInput = inputValue.trim();
+  const debouncedQuery = useDebouncedValue(normalizedInput, SEARCH_DEBOUNCE_MS);
+
+  const options = queryOptions(debouncedQuery);
+  const query = useQuery({
+    ...options,
+    enabled:
+      normalizedInput.length > 0 &&
+      debouncedQuery.length > 0 &&
+      options.enabled !== false,
+  });
+
+  const hasSettledInput = normalizedInput === debouncedQuery;
+  const resultOptions: Array<SearchOption<TResult>> = hasSettledInput
+    ? (query.data ?? [])
+        .map(result => {
+          const searchTerms = getResultSearchTerms(result);
+          return {
+            isExactMatch: isExactMatch?.(result, debouncedQuery) ?? false,
+            result,
+            score: getBestMatchScore(searchTerms, debouncedQuery),
+            searchTerms,
+          };
+        })
+        .toSorted(
+          (a, b) => Number(b.isExactMatch) - Number(a.isExactMatch) || b.score - a.score
+        )
+        .map(({result, searchTerms}) => ({
+          kind: 'result',
+          result,
+          value: `result:${getResultKey(result)}`,
+          label: renderResult(result),
+          textValue: searchTerms.join(' '),
+        }))
+    : [];
+  const selectOptions = onSearch
+    ? [
+        {
+          kind: 'query',
+          query: normalizedInput,
+          value: `query:${normalizedInput}`,
+          label: `Search ${label.toLowerCase()} for "${normalizedInput}"`,
+        } satisfies SearchOption<TResult>,
+        ...resultOptions,
+      ]
+    : resultOptions;
+  const isLoading = normalizedInput.length > 0 && (!hasSettledInput || query.isFetching);
+
+  return (
+    <Stack gap="sm">
+      <Text as="label" htmlFor={inputId} bold>
+        {label}
+      </Text>
+      <Select<SearchOption<TResult>>
+        inputId={inputId}
+        inputValue={inputValue}
+        isLoading={isLoading}
+        isSearchable
+        openMenuOnClick={false}
+        options={selectOptions}
+        placeholder={placeholder}
+        styles={{
+          control: provided => ({
+            ...provided,
+            backgroundColor: theme.tokens.background.primary,
+          }),
+        }}
+        value={null}
+        components={{
+          DropdownIndicator: null,
+          LoadingMessage: () => (
+            <Flex align="center" justify="center" padding="md">
+              <Text size="md" variant="muted">
+                Loading results…
+              </Text>
+            </Flex>
+          ),
+        }}
+        filterOption={null}
+        noOptionsMessage={() =>
+          query.isError ? 'Unable to load results' : 'No results found'
+        }
+        onInputChange={(value, action) => {
+          if (action.action !== 'input-change') {
+            return;
+          }
+          setInputValue(value);
+        }}
+        onChange={option => {
+          if (option.kind === 'query') {
+            onSearch?.(option.query);
+          } else {
+            onSelectResult(option.result);
+          }
+        }}
+      />
+      {hasSettledInput && query.error && (
+        <Text as="div" role="alert" size="sm" variant="danger">
+          {query.error.message}
+        </Text>
+      )}
+    </Stack>
+  );
+}
