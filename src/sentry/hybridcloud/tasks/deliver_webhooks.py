@@ -35,7 +35,6 @@ from sentry.taskworker.namespaces import hybridcloud_control_tasks
 from sentry.types.cell import Cell, get_cell_by_name
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
-from sentry.utils.tracing import set_span_tag, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -602,40 +601,20 @@ def drain_mailbox(
             _release_drain_lock(mailbox_name)
 
 
-def _discard_stale_mailbox_payloads(payload: WebhookPayload) -> int:
+def _discard_if_stale(payload: WebhookPayload) -> bool:
     """
-    Remove payloads in this mailbox that are older than MAX_DELIVERY_AGE.
-    Once payloads are this old they are low value, and we're better off prioritizing new work.
-
-    Returns the number of rows discarded. The sweep deletes by age and ignores
-    claims, so claim-bounded callers must reconcile their walk budget with it.
+    Discard the payload when it is older than MAX_DELIVERY_AGE; returns whether
+    it was discarded. Runs per record inside the drain walk, so stale rows
+    consume claim budget like any other processed row instead of being deleted
+    out-of-band from under a claim.
     """
-    with start_span(
-        op="hybridcloud.deliver_webhooks.discard_stale_mailbox_payloads",
-        name="hybridcloud.deliver_webhooks.discard_stale_mailbox_payloads",
-    ) as span:
-        set_span_tag(span, "mailbox_name", payload.mailbox_name)
-        max_age = timezone.now() - MAX_DELIVERY_AGE
-        if payload.date_added >= max_age:
-            return 0
-        stale_query = WebhookPayload.objects.filter(
-            id__gte=payload.id,
-            mailbox_name=payload.mailbox_name,
-            date_added__lte=timezone.now() - MAX_DELIVERY_AGE,
-        ).values("id")[:10000]
-        deleted, _ = WebhookPayload.objects.filter(id__in=stale_query).delete()
-        if deleted:
-            logger.info(
-                "deliver_webhook_parallel.max_age_discard",
-                extra={
-                    **payload.as_dict(),
-                    "deleted": deleted,
-                },
-            )
-            metrics.incr(
-                "hybridcloud.deliver_webhooks.delivery", amount=deleted, tags={"outcome": "max_age"}
-            )
-        return deleted
+    if payload.date_added > timezone.now() - MAX_DELIVERY_AGE:
+        return False
+    payload_data = payload.as_dict()
+    payload.delete()
+    metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "max_age"})
+    logger.debug("deliver_webhook.max_age_discard", extra={**payload_data})
+    return True
 
 
 def _get_github_delivery_time_tags(payload: WebhookPayload) -> dict[str, str]:
@@ -737,24 +716,32 @@ def _run_parallel_delivery_batch(
     if not records:
         return (0, 0, False, None)
 
-    # Capture before delivery — successful deletes clear pk on the in-memory instance.
+    # Capture before delivery/discard — deletes clear pk on the in-memory instance.
     next_start_id = records[-1].id + 1
+    attempted = len(records)
 
-    with ContextPropagatingThreadPoolExecutor(max_workers=batch_size) as threadpool:
-        futures = {threadpool.submit(deliver_message_parallel, record) for record in records}
-        delivered = 0
-        request_failed = False
-        for future in as_completed(futures):
-            payload_record, err = future.result()
-            batch_request_failed, should_reraise = _handle_parallel_delivery_result(
-                payload_record, err
-            )
-            request_failed = request_failed or batch_request_failed
-            if should_reraise and err is not None:
-                raise err
-            if err is None:
-                delivered += 1
-    return (len(records), delivered, request_failed, next_start_id)
+    # Stale rows are discarded in place of delivery, consuming claim budget
+    # like any delivered row rather than being swept out from under the claim.
+    fresh_records = [record for record in records if not _discard_if_stale(record)]
+
+    delivered = 0
+    request_failed = False
+    if fresh_records:
+        with ContextPropagatingThreadPoolExecutor(max_workers=batch_size) as threadpool:
+            futures = {
+                threadpool.submit(deliver_message_parallel, record) for record in fresh_records
+            }
+            for future in as_completed(futures):
+                payload_record, err = future.result()
+                batch_request_failed, should_reraise = _handle_parallel_delivery_result(
+                    payload_record, err
+                )
+                request_failed = request_failed or batch_request_failed
+                if should_reraise and err is not None:
+                    raise err
+                if err is None:
+                    delivered += 1
+    return (attempted, delivered, request_failed, next_start_id)
 
 
 @instrumented_task(
@@ -800,7 +787,6 @@ def drain_mailbox_parallel(
         return
 
     _set_webhook_delivery_sentry_context(payload)
-    discarded = _discard_stale_mailbox_payloads(payload)
 
     skip_on_failure_providers = frozenset(
         options.get("hybridcloud.webhookpayload.skip_on_failure_providers") or ()
@@ -811,23 +797,9 @@ def drain_mailbox_parallel(
     deadline = timezone.now() + BATCH_SCHEDULE_OFFSET
     delivered = 0
     remaining = claimed_count
-    if remaining is not None and discarded:
-        # The stale sweep deletes claimed rows without walking them, so shrink
-        # the budget by what it removed — otherwise the leftover budget gets
-        # spent on unclaimed due rows, racing whichever dispatcher claims them.
-        # Discards past the claim boundary over-subtract, which only stops this
-        # drain early; the next dispatch continues under a fresh claim.
-        remaining = max(0, remaining - discarded)
     current_id = payload.id
     extra = {**payload.as_dict(), "delivered": delivered}
     try:
-        if remaining == 0:
-            # The sweep consumed the whole claim.
-            logger.debug("deliver_webhook_parallel.claim_exhausted", extra=extra)
-            metrics.incr(
-                "hybridcloud.deliver_webhooks.delivery", tags={"outcome": "claim_exhausted"}
-            )
-            return
         while True:
             if mailbox_name and options.get("hybridcloud.webhookpayload.push_drain_trigger"):
                 _refresh_drain_lock(payload.mailbox_name)
@@ -887,13 +859,16 @@ def deliver_message_parallel(payload: WebhookPayload) -> tuple[WebhookPayload, E
 
 
 def deliver_message(payload: WebhookPayload) -> None:
-    """Deliver a message if it still has delivery attempts remaining"""
+    """Deliver a message if it has delivery attempts remaining and is not stale."""
     payload_data = payload.as_dict()
     if payload.attempts >= MAX_ATTEMPTS:
         payload.delete()
 
         metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "attempts_exceed"})
         logger.info("deliver_webhook.discard", extra={**payload_data})
+        return
+
+    if _discard_if_stale(payload):
         return
 
     payload.schedule_next_attempt()
