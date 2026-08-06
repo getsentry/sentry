@@ -51,14 +51,14 @@ export function DetectorListRow({detector, selected, onSelect}: DetectorListRowP
       <SimpleTable.RowCell data-column-name="assignee">
         <DetectorAssigneeCell assignee={detector.owner} />
       </SimpleTable.RowCell>
-      {detector.projectId && (
-        <SimpleTable.RowCell data-column-name="connected-automations">
+      <SimpleTable.RowCell data-column-name="connected-automations">
+        {detector.projectId && (
           <DetectorListConnectedAutomations
             automationIds={detector.workflowIds}
             projectId={detector.projectId}
           />
-        </SimpleTable.RowCell>
-      )}
+        )}
+      </SimpleTable.RowCell>
       {additionalColumns.map(col => (
         <Fragment key={col.id}>{col.renderCell(detector)}</Fragment>
       ))}

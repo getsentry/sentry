@@ -128,7 +128,7 @@ interface UptimeDetectorConfig {
 }
 
 interface IssueStreamDetectorConfig {
-  organization_id: number;
+  organizationId: number;
 }
 
 type BaseDetector = Readonly<{

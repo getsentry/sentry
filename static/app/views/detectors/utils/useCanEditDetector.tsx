@@ -9,10 +9,14 @@ import {detectorTypeIsUserCreateable} from 'sentry/views/detectors/utils/detecto
 export function useCanEditDetectorWorkflowConnections({
   projectId,
 }: {
-  projectId: string | null;
+  projectId: Detector['projectId'];
 }) {
   const organization = useOrganization();
   const project = useProjectFromId({project_id: projectId});
+  if (!projectId) {
+    // Workflows connected to all project detector do not allow alerts:write updates.
+    return hasEveryAccess(['org:write'], {organization});
+  }
 
   return (
     hasEveryAccess(['org:write'], {organization, project}) ||
@@ -25,7 +29,7 @@ export function useCanEditDetector({
   detectorType,
 }: {
   detectorType: DetectorType;
-  projectId: string | null;
+  projectId: Detector['projectId'];
 }) {
   const organization = useOrganization();
   const project = useProjectFromId({project_id: projectId});
