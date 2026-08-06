@@ -78,6 +78,15 @@ The older a webhook gets the less valuable it is as there are likely other
 actions that have been made to the relevant resources.
 """
 
+
+DELETE_BATCH_SIZE = 100
+"""
+How many finished rows a batching drain accumulates before removing them.
+Sized to the sequential drain's read slice so a flush lands roughly per slice,
+and small enough that a crash strands at most this many rows until the claim
+horizon passes.
+"""
+
 # Define priorities for different webhook providers
 # Lower number means higher priority
 #
@@ -523,15 +532,7 @@ def drain_mailbox(
     )
     skip_on_failure = payload.provider in skip_on_failure_providers
 
-    # Claim-backed drains (every dispatch except lease-mode push triggers, which
-    # send mailbox_name) own their batch for the drain's whole run, so delivered
-    # rows can be deleted in bulk at slice boundaries instead of one DELETE per
-    # row. Lease drains keep per-row deletes: their lock outlives a crash by only
-    # DRAIN_LOCK_TTL, after which unflushed rows would be handed to another drain.
-    defer_deletes = mailbox_name is None and options.get(
-        "hybridcloud.webhookpayload.drain_batch_deletes"
-    )
-    pending_deletes: list[int] = []
+    deleter = _deleter_for(mailbox_name)
 
     delivered = 0
     failed = 0
@@ -573,8 +574,7 @@ def drain_mailbox(
                 if mailbox_name and options.get("hybridcloud.webhookpayload.push_drain_trigger"):
                     _refresh_drain_lock(payload.mailbox_name)
                 try:
-                    if deliver_message(record, defer_delete=defer_deletes) and defer_deletes:
-                        pending_deletes.append(record.id)
+                    deliver_message(record, deleter)
                     delivered += 1
                 except DeliveryFailed:
                     failed += 1
@@ -587,8 +587,6 @@ def drain_mailbox(
                     # For allowlisted providers: skip the failed message and
                     # continue. It has already been rescheduled by deliver_message.
                     continue
-
-            _flush_delivered_payloads(pending_deletes)
 
             # No more messages to deliver
             if batch_count < 1:
@@ -642,23 +640,72 @@ def drain_mailbox(
                     )
                     return
     finally:
-        _flush_delivered_payloads(pending_deletes)
+        deleter.flush()
         # Only lease-mode push drains own a lock to release here; claim-mode
         # dispatchers release their guard themselves.
         if mailbox_name and options.get("hybridcloud.webhookpayload.push_drain_trigger"):
             _release_drain_lock(mailbox_name)
 
 
-def _flush_delivered_payloads(payload_ids: list[int]) -> None:
-    """Bulk-delete the rows of delivered webhooks; clears the list in place."""
-    if not payload_ids:
-        return
-    metrics.distribution("hybridcloud.deliver_webhooks.drain.delete_batch", len(payload_ids))
-    WebhookPayload.objects.filter(id__in=payload_ids).delete()
-    payload_ids.clear()
+class _PayloadDeleter:
+    """
+    Removes the rows a drain is finished with, whether they were delivered,
+    discarded for exhausted attempts, or discarded as stale.
+
+    Batching drains accumulate ids and remove them DELETE_BATCH_SIZE at a time
+    rather than issuing one statement per row, which is most of the write
+    traffic a drain generates on this delete-heavy table. Only the drain thread
+    ever calls a deleter: parallel workers perform requests and hand their
+    results back to the drain loop, so no locking is needed.
+    """
+
+    def __init__(self, *, batched: bool) -> None:
+        self._batched = batched
+        self._pending: list[int] = []
+
+    def delete(self, payload: WebhookPayload) -> None:
+        """Remove the payload's row, either now or at the next flush."""
+        if not self._batched:
+            payload.delete()
+            return
+        self._pending.append(payload.id)
+        if len(self._pending) >= DELETE_BATCH_SIZE:
+            self.flush()
+
+    def flush(self) -> None:
+        """Remove every row accumulated since the last flush."""
+        if not self._pending:
+            return
+        metrics.distribution("hybridcloud.deliver_webhooks.drain.delete_batch", len(self._pending))
+        WebhookPayload.objects.filter(id__in=self._pending).delete()
+        self._pending.clear()
 
 
-def _discard_if_stale(payload: WebhookPayload) -> bool:
+_DELETE_IMMEDIATELY = _PayloadDeleter(batched=False)
+"""Shared deleter for callers outside a batching drain; holds no state."""
+
+
+def _deleter_for(mailbox_name: str | None) -> _PayloadDeleter:
+    """
+    Build the deleter for a drain.
+
+    Claim-backed drains — every dispatch except lease-mode push triggers, which
+    are the ones that pass a mailbox_name — own their batch for the drain's whole
+    run, so nothing else can touch a row between finishing with it and deleting
+    it. A worker that dies before flushing redelivers at most one batch once the
+    claim horizon passes, the same window a claim-then-crash already has.
+
+    Lease drains keep per-row deletes: their lock outlives a crash by only
+    DRAIN_LOCK_TTL, after which unflushed rows would be handed to a concurrent
+    drain.
+    """
+    batched = mailbox_name is None and options.get("hybridcloud.webhookpayload.drain_batch_deletes")
+    return _PayloadDeleter(batched=batched)
+
+
+def _discard_if_stale(
+    payload: WebhookPayload, deleter: _PayloadDeleter = _DELETE_IMMEDIATELY
+) -> bool:
     """
     Discard the payload when it is older than MAX_DELIVERY_AGE; returns whether
     it was discarded. Runs per record inside the drain walk, so stale rows
@@ -668,7 +715,7 @@ def _discard_if_stale(payload: WebhookPayload) -> bool:
     if payload.date_added > timezone.now() - MAX_DELIVERY_AGE:
         return False
     payload_data = payload.as_dict()
-    payload.delete()
+    deleter.delete(payload)
     metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "max_age"})
     logger.debug("deliver_webhook.max_age_discard", extra={**payload_data})
     return True
@@ -721,19 +768,18 @@ def _record_delivery_time_metrics(payload: WebhookPayload) -> None:
 
 
 def _handle_parallel_delivery_result(
-    payload_record: WebhookPayload, err: Exception | None, *, defer_delete: bool = False
+    payload_record: WebhookPayload,
+    err: Exception | None,
+    deleter: _PayloadDeleter = _DELETE_IMMEDIATELY,
 ) -> tuple[bool, bool]:
     """
     Process one result from the parallel delivery threadpool.
     Returns (request_failed, should_reraise).
-
-    With `defer_delete`, a delivered payload's row is left in place and the
-    caller owns deleting it; discard-on-max-attempts still deletes immediately.
     """
     payload_data = payload_record.as_dict()
     if err:
         if payload_record.attempts >= MAX_ATTEMPTS:
-            payload_record.delete()
+            deleter.delete(payload_record)
             metrics.incr(
                 "hybridcloud.deliver_webhooks.delivery",
                 tags={"outcome": "attempts_exceed"},
@@ -749,8 +795,7 @@ def _handle_parallel_delivery_result(
             request_failed = True
         return (request_failed, not isinstance(err, DeliveryFailed))
     date_added = payload_record.date_added
-    if not defer_delete:
-        payload_record.delete()
+    deleter.delete(payload_record)
     _record_delivery_time_metrics(payload_record)
     metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "ok"})
     if timezone.now() - date_added >= SLOW_DELIVERY_THRESHOLD:
@@ -759,7 +804,10 @@ def _handle_parallel_delivery_result(
 
 
 def _run_parallel_delivery_batch(
-    mailbox_name: str, start_id: int, batch_size: int, *, defer_deletes: bool = False
+    mailbox_name: str,
+    start_id: int,
+    batch_size: int,
+    deleter: _PayloadDeleter = _DELETE_IMMEDIATELY,
 ) -> tuple[int, int, bool, int | None]:
     """
     Run one batch of up to `batch_size` parallel deliveries for the mailbox.
@@ -783,7 +831,7 @@ def _run_parallel_delivery_batch(
 
     # Stale rows are discarded in place of delivery, consuming claim budget
     # like any delivered row rather than being swept out from under the claim.
-    fresh_records = [record for record in records if not _discard_if_stale(record)]
+    fresh_records = [record for record in records if not _discard_if_stale(record, deleter)]
 
     delivered = 0
     request_failed = False
@@ -792,24 +840,16 @@ def _run_parallel_delivery_batch(
             futures = {
                 threadpool.submit(deliver_message_parallel, record) for record in fresh_records
             }
-            delivered_ids: list[int] = []
-            try:
-                for future in as_completed(futures):
-                    payload_record, err = future.result()
-                    batch_request_failed, should_reraise = _handle_parallel_delivery_result(
-                        payload_record, err, defer_delete=defer_deletes
-                    )
-                    request_failed = request_failed or batch_request_failed
-                    if should_reraise and err is not None:
-                        raise err
-                    if err is None:
-                        delivered += 1
-                        if defer_deletes:
-                            delivered_ids.append(payload_record.id)
-            finally:
-                # Delivered rows must not be redelivered later even when a result
-                # raises mid-batch, so flush before propagating.
-                _flush_delivered_payloads(delivered_ids)
+            for future in as_completed(futures):
+                payload_record, err = future.result()
+                batch_request_failed, should_reraise = _handle_parallel_delivery_result(
+                    payload_record, err, deleter
+                )
+                request_failed = request_failed or batch_request_failed
+                if should_reraise and err is not None:
+                    raise err
+                if err is None:
+                    delivered += 1
     return (attempted, delivered, request_failed, next_start_id)
 
 
@@ -863,11 +903,7 @@ def drain_mailbox_parallel(
     skip_on_failure = payload.provider in skip_on_failure_providers
 
     worker_threads = options.get("hybridcloud.webhookpayload.worker_threads")
-    # See drain_mailbox: only claim-backed drains (mailbox_name is None) may
-    # defer deletes past the individual delivery.
-    defer_deletes = mailbox_name is None and options.get(
-        "hybridcloud.webhookpayload.drain_batch_deletes"
-    )
+    deleter = _deleter_for(mailbox_name)
     deadline = timezone.now() + BATCH_SCHEDULE_OFFSET
     delivered = 0
     remaining = claimed_count
@@ -886,7 +922,7 @@ def drain_mailbox_parallel(
 
             batch_size = worker_threads if remaining is None else min(worker_threads, remaining)
             attempted, delivered_batch, request_failed, next_id = _run_parallel_delivery_batch(
-                payload.mailbox_name, current_id, batch_size, defer_deletes=defer_deletes
+                payload.mailbox_name, current_id, batch_size, deleter
             )
             delivered += delivered_batch
             extra["delivered"] = delivered
@@ -918,6 +954,7 @@ def drain_mailbox_parallel(
                 logger.info("deliver_webhook_parallel.delivery_request_failed", extra=extra)
                 return
     finally:
+        deleter.flush()
         # Only lease-mode push drains own a lock to release here; claim-mode
         # dispatchers release their guard themselves.
         if mailbox_name and options.get("hybridcloud.webhookpayload.push_drain_trigger"):
@@ -932,34 +969,29 @@ def deliver_message_parallel(payload: WebhookPayload) -> tuple[WebhookPayload, E
         return (payload, err)
 
 
-def deliver_message(payload: WebhookPayload, *, defer_delete: bool = False) -> bool:
-    """Deliver a message if it has delivery attempts remaining and is not stale.
-
-    Returns whether the message was delivered. With `defer_delete`, a delivered
-    payload's row is left in place and the caller owns deleting it; discarded
-    payloads (attempts exceeded or stale) are always deleted immediately.
-    """
+def deliver_message(
+    payload: WebhookPayload, deleter: _PayloadDeleter = _DELETE_IMMEDIATELY
+) -> None:
+    """Deliver a message if it has delivery attempts remaining and is not stale."""
     payload_data = payload.as_dict()
     if payload.attempts >= MAX_ATTEMPTS:
-        payload.delete()
+        deleter.delete(payload)
 
         metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "attempts_exceed"})
         logger.info("deliver_webhook.discard", extra={**payload_data})
-        return False
+        return
 
-    if _discard_if_stale(payload):
-        return False
+    if _discard_if_stale(payload, deleter):
+        return
 
     payload.schedule_next_attempt()
     perform_request(payload)
     date_added = payload.date_added
-    if not defer_delete:
-        payload.delete()
+    deleter.delete(payload)
     _record_delivery_time_metrics(payload)
     if timezone.now() - date_added >= SLOW_DELIVERY_THRESHOLD:
         logger.warning("deliver_webhook.slow_delivery", extra=payload_data)
     metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "ok"})
-    return True
 
 
 def perform_request(payload: WebhookPayload) -> None:

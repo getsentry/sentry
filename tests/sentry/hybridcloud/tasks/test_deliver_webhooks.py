@@ -593,6 +593,61 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_cells(cell_config)
+    @override_options({"hybridcloud.webhookpayload.drain_batch_deletes": True})
+    def test_drain_batch_deletes_discarded_rows(self) -> None:
+        # Discards are the other half of a drain's delete traffic, and on a
+        # backlogged mailbox the larger half: they must share the batch rather
+        # than issue a DELETE per row alongside it.
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        stale = Factories.create_webhook_payload(
+            mailbox_name="github:123",
+            cell_name="us",
+            provider="github",
+            request_path="/extensions/github/webhook/",
+            date_added=timezone.now() - timedelta(days=4),
+        )
+        exhausted = Factories.create_webhook_payload(
+            mailbox_name="github:123",
+            cell_name="us",
+            provider="github",
+            request_path="/extensions/github/webhook/",
+            attempts=MAX_ATTEMPTS,
+        )
+        create_payloads(2, "github:123", provider="github")
+
+        with CaptureQueriesContext(connections["control"]) as ctx:
+            drain_mailbox(stale.id)
+
+        # Only the two fresh rows are delivered; the stale and attempts-exhausted
+        # rows are discarded without a request.
+        assert len(responses.calls) == 2
+        assert not WebhookPayload.objects.filter(id__in=[stale.id, exhausted.id]).exists()
+        assert WebhookPayload.objects.count() == 0
+        delete_queries = [q["sql"] for q in ctx.captured_queries if q["sql"].startswith("DELETE")]
+        assert len(delete_queries) == 1
+
+    @responses.activate
+    @override_cells(cell_config)
+    @override_options({"hybridcloud.webhookpayload.drain_batch_deletes": True})
+    @patch.object(deliver_webhooks, "DELETE_BATCH_SIZE", 2)
+    def test_drain_batch_deletes_are_bounded(self) -> None:
+        # A crash strands whatever has not been flushed, so batches must stay
+        # bounded rather than growing for the drain's whole run.
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        records = create_payloads(5, "github:123", provider="github")
+
+        with CaptureQueriesContext(connections["control"]) as ctx:
+            drain_mailbox(records[0].id)
+
+        assert WebhookPayload.objects.count() == 0
+        # Two full batches during the walk plus the remainder at the end.
+        delete_queries = [q["sql"] for q in ctx.captured_queries if q["sql"].startswith("DELETE")]
+        assert len(delete_queries) == 3
+
+    @responses.activate
+    @override_cells(cell_config)
     @override_options(
         {
             "hybridcloud.webhookpayload.drain_batch_deletes": True,
@@ -979,20 +1034,72 @@ class DrainMailboxParallelTest(TestCase):
     @responses.activate
     @override_cells(cell_config)
     @override_options({"hybridcloud.webhookpayload.drain_batch_deletes": True})
-    def test_drain_batch_deletes_delivered_rows(self) -> None:
+    def test_drain_batch_deletes_span_threadpool_batches(self) -> None:
+        # The batch belongs to the drain, not to one threadpool batch: a
+        # threadpool only runs worker_threads (4) rows at a time, so accumulating
+        # per threadpool batch would cap every DELETE at that width.
         url = "http://us.testserver/extensions/github/webhook/"
         responses.add(responses.POST, url, status=200, body="")
-        # One threadpool batch (worker_threads defaults to 4) so the whole
-        # delivery flushes as a single DELETE.
-        records = create_payloads(4, "github:123", provider="github")
+        records = create_payloads(8, "github:123", provider="github")
 
         with CaptureQueriesContext(connections["control"]) as ctx:
             drain_mailbox_parallel(records[0].id)
 
-        assert len(responses.calls) == 4
+        assert len(responses.calls) == 8
         assert WebhookPayload.objects.count() == 0
         delete_queries = [q["sql"] for q in ctx.captured_queries if q["sql"].startswith("DELETE")]
         assert len(delete_queries) == 1
+
+    @responses.activate
+    @override_cells(cell_config)
+    @override_options({"hybridcloud.webhookpayload.drain_batch_deletes": True})
+    def test_drain_batch_deletes_discarded_rows(self) -> None:
+        # Stale rows are discarded before the threadpool runs, so they would
+        # otherwise be the one delete path the batch never covers.
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        stale = [
+            Factories.create_webhook_payload(
+                mailbox_name="github:123",
+                cell_name="us",
+                provider="github",
+                request_path="/extensions/github/webhook/",
+                date_added=timezone.now() - timedelta(days=4),
+            )
+            for _ in range(2)
+        ]
+        create_payloads(2, "github:123", provider="github")
+
+        with CaptureQueriesContext(connections["control"]) as ctx:
+            drain_mailbox_parallel(stale[0].id)
+
+        assert len(responses.calls) == 2
+        assert WebhookPayload.objects.count() == 0
+        delete_queries = [q["sql"] for q in ctx.captured_queries if q["sql"].startswith("DELETE")]
+        assert len(delete_queries) == 1
+
+    @responses.activate
+    @override_cells(cell_config)
+    @override_options(
+        {
+            "hybridcloud.webhookpayload.drain_batch_deletes": True,
+            "hybridcloud.webhookpayload.push_drain_trigger": True,
+        }
+    )
+    def test_drain_lease_mode_keeps_per_row_deletes(self) -> None:
+        # Mirrors DrainMailboxTest: a lease drain's lock outlives a crash by only
+        # DRAIN_LOCK_TTL, so it must not defer deletes even with the option on.
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        records = create_payloads(3, "github:123", provider="github")
+
+        with CaptureQueriesContext(connections["control"]) as ctx:
+            drain_mailbox_parallel(records[0].id, mailbox_name="github:123")
+
+        assert len(responses.calls) == 3
+        assert WebhookPayload.objects.count() == 0
+        delete_queries = [q["sql"] for q in ctx.captured_queries if q["sql"].startswith("DELETE")]
+        assert len(delete_queries) == 3
 
     @responses.activate
     @override_cells(cell_config)
