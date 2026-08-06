@@ -590,8 +590,6 @@ def _should_use_seer_match_for_grouping(
             "would_reject": would_reject,
         }
 
-        # Emitted for every mismatch; query `would_reject` to see what enabling the option would
-        # separate.
         logger.info("seer.exception_type_mismatch", extra=mismatch_log_context)
 
         if reject:
