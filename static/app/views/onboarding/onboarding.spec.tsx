@@ -617,14 +617,6 @@ describe('Onboarding', () => {
       return renderFlow(messagingOrganization, step, options);
     }
 
-    it('reports four total steps for the control flow', () => {
-      renderOnboarding('welcome');
-
-      expect(
-        screen.getByRole('progressbar', {name: 'Onboarding progress'})
-      ).toHaveAttribute('aria-valuemax', '4');
-    });
-
     it('redirects an inactive messaging route to welcome without skipping SCM steps', async () => {
       const {router} = renderOnboarding('scm-messaging');
 
@@ -896,16 +888,6 @@ describe('Onboarding', () => {
           `/onboarding/${controlOrganization.slug}/setup-docs/`
         );
       });
-    });
-
-    it('reports five total steps for the treatment flow', () => {
-      renderTreatmentOnboarding('scm-messaging', {
-        initialContext: {selectedPlatform: nextJsPlatform},
-      });
-
-      expect(
-        screen.getByRole('progressbar', {name: 'Onboarding progress'})
-      ).toHaveAttribute('aria-valuemax', '5');
     });
 
     it('adds the messaging route for treatment without creating a project', async () => {

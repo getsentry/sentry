@@ -499,11 +499,6 @@ export function OnboardingWithoutContext() {
             }}
           >
             <Stepper
-              aria-label={t('Onboarding progress')}
-              aria-valuemax={onboardingSteps.length}
-              aria-valuemin={1}
-              aria-valuenow={stepIndex + 1}
-              role="progressbar"
               numSteps={onboardingSteps.length}
               currentStepIndex={stepIndex}
               onClick={i => {
