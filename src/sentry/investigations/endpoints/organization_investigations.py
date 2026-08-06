@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.db import IntegrityError, router, transaction
 from django.db.models import Count, Exists, OuterRef, Q, QuerySet
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
@@ -86,6 +87,8 @@ from sentry.investigations.services import (
     update_permissions,
     validate_mentions,
 )
+from sentry.investigations.services.auto_run import schedule_eligible_auto_run_blocks
+from sentry.investigations.services.breached_metrics import resolve_breached_metric_sources
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
@@ -325,6 +328,142 @@ class OrganizationInvestigationCommentBase(OrganizationInvestigationBase):
         except (InvestigationBlockComment.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
         return args, kwargs
+
+
+@extend_schema(tags=["Investigations"])
+@cell_silo_endpoint
+class OrganizationBreachedMetricInvestigationStatusEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ML_AI
+    permission_classes = (InvestigationPermission,)
+    publish_status = {"POST": ApiPublishStatus.PRIVATE}
+
+    def post(self, request: Request, organization: Organization) -> Response:
+        _require_breached_metric_feature(request, organization)
+        group_ids = _parse_group_ids(request.data.get("groupIds"))
+        if group_ids is None:
+            return Response(
+                {"detail": "groupIds must contain between 1 and 100 issue IDs."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        sources = resolve_breached_metric_sources(
+            organization=organization,
+            group_ids=group_ids,
+            accessible_project_ids=_accessible_project_ids(self, request, organization),
+        )
+        existing = {
+            investigation.source_key: investigation
+            for investigation in Investigation.objects.filter(
+                organization=organization,
+                source_type="breached_metric",
+                source_key__in=[source.source_key for source in sources.values()],
+                status=InvestigationStatus.ACTIVE,
+            ).order_by("source_key", "source_revision")
+        }
+        can_create = request.user.is_authenticated and not request.user.is_sentry_app
+        items: dict[str, dict[str, str]] = {}
+        for group_id in group_ids:
+            source = sources.get(group_id)
+            if source is None:
+                items[str(group_id)] = {"status": "unavailable"}
+                continue
+            investigation = existing.get(source.source_key)
+            if investigation is not None:
+                items[str(group_id)] = {
+                    "status": "view",
+                    "investigationId": str(investigation.id),
+                    "openPeriodId": str(source.open_period.id),
+                }
+                continue
+            if not can_create:
+                items[str(group_id)] = {"status": "unavailable"}
+                continue
+            items[str(group_id)] = {
+                "status": "investigate",
+                "openPeriodId": str(source.open_period.id),
+            }
+        return Response({"items": items})
+
+
+@extend_schema(tags=["Investigations"])
+@cell_silo_endpoint
+class OrganizationBreachedMetricInvestigationLaunchEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ML_AI
+    permission_classes = (InvestigationPermission,)
+    publish_status = {"POST": ApiPublishStatus.PRIVATE}
+
+    def post(self, request: Request, organization: Organization) -> Response:
+        user_id = _require_authenticated_user(request)
+        _require_breached_metric_feature(request, organization)
+        group_ids = _parse_group_ids([request.data.get("groupId")])
+        open_period_ids = _parse_group_ids([request.data.get("openPeriodId")])
+        if group_ids is None or open_period_ids is None:
+            return Response(
+                {"detail": "groupId and openPeriodId must be issue IDs."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        group_id = group_ids[0]
+        open_period_id = open_period_ids[0]
+        accessible_project_ids = _accessible_project_ids(self, request, organization)
+        source = resolve_breached_metric_sources(
+            organization=organization,
+            group_ids=[group_id],
+            accessible_project_ids=accessible_project_ids,
+        ).get(group_id)
+        if source is None or source.open_period.id != open_period_id:
+            raise ResourceDoesNotExist
+
+        created = False
+        database = router.db_for_write(Investigation)
+        try:
+            with transaction.atomic(using=database):
+                investigation = (
+                    Investigation.objects.select_for_update()
+                    .filter(
+                        organization=organization,
+                        source_type="breached_metric",
+                        source_key=source.source_key,
+                        status=InvestigationStatus.ACTIVE,
+                    )
+                    .first()
+                )
+                if investigation is None:
+                    investigation = create_template_investigation(
+                        organization=organization,
+                        user_id=user_id,
+                        template_key="breached_metric",
+                        template_version=1,
+                        source_ref={
+                            "groupId": str(group_id),
+                            "openPeriodId": str(open_period_id),
+                        },
+                        supplied_parameters={},
+                        accessible_project_ids=accessible_project_ids,
+                    )
+                    created = True
+                    schedule_eligible_auto_run_blocks(
+                        investigation_id=investigation.id,
+                        user_id=user_id,
+                    )
+        except IntegrityError:
+            investigation = Investigation.objects.get(
+                organization=organization,
+                source_type="breached_metric",
+                source_key=source.source_key,
+                status=InvestigationStatus.ACTIVE,
+            )
+            created = False
+        if created:
+            investigation.refresh_from_db()
+        return Response(
+            _serialize_investigation(
+                investigation,
+                request,
+                organization,
+                detailed=True,
+                accessible_project_ids=accessible_project_ids,
+            ),
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
 
 
 @extend_schema(tags=["Investigations"])
