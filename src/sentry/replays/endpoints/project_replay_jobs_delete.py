@@ -183,9 +183,7 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
         # We don't check Seer features because an org may have previously had them on, then turned them off.
         has_seer_data = features.has("organizations:replay-ai-summaries", project.organization)
 
-        # We always start with an offset of 0 (obviously) but future work doesn't need to obey
-        # this. You're free to start from wherever you want.
-        run_bulk_replay_delete_job.delay(job.id, offset=0, has_seer_data=has_seer_data)
+        run_bulk_replay_delete_job.delay(job.id, has_seer_data=has_seer_data)
 
         self.create_audit_entry(
             request,

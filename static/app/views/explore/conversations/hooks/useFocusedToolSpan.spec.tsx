@@ -32,6 +32,7 @@ describe('useFocusedToolSpan', () => {
           onSpanFound,
         }),
       {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
         initialProps: {focusedTool: 'first-tool' as string | null},
       }
     );

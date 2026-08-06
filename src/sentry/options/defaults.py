@@ -1446,6 +1446,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "post_process.disable-pipeline-steps",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "api.organization.disable-last-deploys",
     type=Sequence,
     default=[],
@@ -4063,7 +4069,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Issues derived data — process_project_derived_data task
+# Issues derived data — generate_project_derived_data task
 # Number of groups per batch task when fanning out project-wide processing.
 register(
     "issues.derived.project-batch-size",
