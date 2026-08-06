@@ -1,6 +1,7 @@
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -35,11 +36,38 @@ export function UpdateSlackAlert({num_configurations}: UpdateSlackAlertProps) {
     (num_configurations === 1 ? '&showInstallModal=1' : '');
 
   return (
-    <Container padding="lg">
+    <Container padding="lg" containerType="inline-size">
       <Alert
         variant="muted"
         trailingItems={
-          <Flex gap="sm" alignSelf="center">
+          <Button
+            icon={<IconClose />}
+            variant="transparent"
+            size="xs"
+            aria-label={t('Dismiss')}
+            onClick={() => setIsDismissed(true)}
+          />
+        }
+      >
+        <Grid
+          columns={{zero: 'minmax(0, 1fr)', xs: 'minmax(0, 1fr) auto'}}
+          rows={{zero: 'auto auto', xs: 'auto'}}
+          align="start"
+          gap="lg"
+        >
+          <Container column="1" row="1" minWidth="0">
+            <Text>
+              {t(
+                'Chat, ask questions, and debug with Sentry in the new Slack app. Please reinstall the Slack app to get started.'
+              )}
+            </Text>
+          </Container>
+          <Flex
+            column={{zero: '1', xs: '2'}}
+            row={{zero: '2', xs: '1'}}
+            width="max-content"
+            align="center"
+          >
             <LinkButton
               to={to}
               variant="primary"
@@ -54,19 +82,8 @@ export function UpdateSlackAlert({num_configurations}: UpdateSlackAlertProps) {
             >
               {t('Update Now')}
             </LinkButton>
-            <Button
-              icon={<IconClose />}
-              variant="transparent"
-              size="xs"
-              aria-label={t('Dismiss')}
-              onClick={() => setIsDismissed(true)}
-            />
           </Flex>
-        }
-      >
-        {t(
-          'Chat, ask questions, and debug with Sentry in the new Slack app. Please reinstall the Slack app to get started.'
-        )}
+        </Grid>
       </Alert>
     </Container>
   );

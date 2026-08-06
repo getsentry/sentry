@@ -33,7 +33,7 @@ function imageSizerProps(image: SnapshotImage) {
   };
 }
 
-export const SplitPairBody = memo(function SplitPairBody({
+export const SplitPairBody = memo(function SplitPairBodyImpl({
   baseUrl,
   headUrl,
   baseImage,
@@ -122,7 +122,7 @@ export const SplitPairBody = memo(function SplitPairBody({
   );
 });
 
-export const ImageColumn = memo(function ImageColumn({
+export const ImageColumn = memo(function ImageColumnImpl({
   src,
   alt,
   image,
@@ -169,7 +169,7 @@ export const ImageColumn = memo(function ImageColumn({
 
 const WIPE_MIN_HEIGHT = 160;
 
-export const WipeCardBody = memo(function WipeCardBody({
+export const WipeCardBody = memo(function WipeCardBodyImpl({
   baseUrl,
   headUrl,
   baseImage,
@@ -217,7 +217,7 @@ export const WipeCardBody = memo(function WipeCardBody({
   );
 });
 
-export const OnionCardBody = memo(function OnionCardBody({
+export const OnionCardBody = memo(function OnionCardBodyImpl({
   baseUrl,
   headUrl,
   baseImage,
