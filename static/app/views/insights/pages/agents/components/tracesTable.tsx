@@ -356,7 +356,7 @@ export function TracesTable({
   );
 }
 
-const BodyCell = memo(function BodyCell({
+const BodyCell = memo(function BodyCellImpl({
   column,
   dataRow,
   query,
