@@ -25,7 +25,7 @@ import DetectorNewSettings from 'sentry/views/detectors/detectorNewSettings';
 
 describe('DetectorEdit', () => {
   const organization = OrganizationFixture({
-    features: ['workflow-engine-ui', 'visibility-explore-view', 'performance-view'],
+    features: ['visibility-explore-view', 'performance-view'],
   });
   const project = ProjectFixture({organization, environments: ['production']});
   const initialRouterConfig = {
@@ -594,11 +594,7 @@ describe('DetectorEdit', () => {
 
     it('hides transactions dataset when deprecateTransactionAlerts feature flag is enabled for new detectors', async () => {
       const organizationWithDeprecation = OrganizationFixture({
-        features: [
-          'workflow-engine-ui',
-          'visibility-explore-view',
-          'discover-saved-queries-deprecation',
-        ],
+        features: ['visibility-explore-view', 'discover-saved-queries-deprecation'],
       });
 
       render(<DetectorNewSettings />, {
@@ -783,12 +779,7 @@ describe('DetectorEdit', () => {
   describe('Metric Detector with Metrics dataset', () => {
     it('shows metrics dataset option', async () => {
       const metricsOrganization = OrganizationFixture({
-        features: [
-          'workflow-engine-ui',
-          'visibility-explore-view',
-          'performance-view',
-          'tracemetrics-enabled',
-        ],
+        features: ['visibility-explore-view', 'performance-view', 'tracemetrics-enabled'],
       });
 
       render(<DetectorNewSettings />, {
@@ -818,12 +809,7 @@ describe('DetectorEdit', () => {
 
     it('can submit a new metric detector with metrics dataset from URL params', async () => {
       const metricsOrganization = OrganizationFixture({
-        features: [
-          'workflow-engine-ui',
-          'visibility-explore-view',
-          'performance-view',
-          'tracemetrics-enabled',
-        ],
+        features: ['visibility-explore-view', 'performance-view', 'tracemetrics-enabled'],
       });
 
       MockApiClient.addMockResponse({

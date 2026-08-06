@@ -33,8 +33,7 @@ def _in_process_replay_recording_task() -> bool:
     That task hands its delivery guarantee to the TaskProducer: the worker only
     acks an activation once all of its producer futures succeed, otherwise the
     task is retried. We scope this to the one task by name so we don't change
-    delivery behavior for anyone else sharing these producers (the arroyo
-    consumer, or any other task that happens to publish).
+    delivery behavior for any other task or caller sharing these producers.
     """
     task = current_task()
     return task is not None and task.taskname == PROCESS_REPLAY_RECORDING_TASK_NAME

@@ -864,8 +864,15 @@ def _clone_proguard_debug_file_for_reupload(
                         objectstore_session,
                         temporary_file,
                         content_type,
-                        file_size,
                         get_dif_download_filename(meta),
+                        compression=(
+                            "zstd"
+                            if features.has(
+                                "organizations:objectstore-debugfiles-compression",
+                                project.organization,
+                            )
+                            else "none"
+                        ),
                     )
 
             objectstore_metadata = {

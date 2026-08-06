@@ -13,6 +13,7 @@ from django.db import router, transaction
 from django.db.models import ProtectedError
 from objectstore_client import GetResponse, Session
 
+from sentry import features
 from sentry.constants import KNOWN_DIF_FORMATS
 from sentry.models.debugfile import (
     ProjectDebugFile,
@@ -171,9 +172,15 @@ def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | N
             session,
             tmp,
             content_type,
-            expected_size,
             filename,
             key=f"legacy.{debug_file.id}",
+            compression=(
+                "zstd"
+                if features.has(
+                    "organizations:objectstore-debugfiles-compression", project.organization
+                )
+                else "none"
+            ),
         )
     finally:
         tmp.close()

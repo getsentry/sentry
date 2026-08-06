@@ -7,7 +7,7 @@ from django.db.models import Q
 from django.db.utils import IntegrityError
 from django.utils import timezone
 
-from sentry import options
+from sentry import features, options
 from sentry.demo_mode.utils import get_demo_org, is_demo_mode_enabled
 from sentry.models.artifactbundle import (
     ArtifactBundle,
@@ -250,7 +250,13 @@ def _sync_project_debug_file(
                         target_org.id, target_project.id
                     ).put(
                         source_fileobj,
-                        compression="none",
+                        compression=(
+                            "zstd"
+                            if features.has(
+                                "organizations:objectstore-debugfiles-compression", target_org
+                            )
+                            else "none"
+                        ),
                         content_type=source_project_debug_file.get_content_type(),
                     )
                 finally:

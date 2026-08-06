@@ -162,7 +162,7 @@ return Response({"message": "Invalid input"}, status=400)
 
 ### Feature Flags
 
-See **Feature Flags (FlagPole)** in `/AGENTS.md` for registration, the `features.has(...)` check, and test usage.
+See the **feature-flags** skill (`.agents/skills/feature-flags/`) for registration, the `features.has(...)` check, and test usage.
 
 ### Permissions
 

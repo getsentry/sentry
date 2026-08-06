@@ -158,8 +158,6 @@ export type Plan = {
    */
   categories: DataCategory[];
   dashboardLimit: number;
-  features: string[];
-
   hasOnDemandModes: boolean;
   id: string;
   /**
