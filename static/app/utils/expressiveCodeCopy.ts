@@ -1,6 +1,11 @@
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
-export function handleExpressiveCodeCopy(event: React.MouseEvent<HTMLElement>) {
+/**
+ * Expressive Code emits an inline script to wire its generated copy buttons,
+ * but scripts rendered through React do not execute. Delegate those clicks
+ * from the Stories container so they use Sentry's existing clipboard behavior.
+ */
+export function handleExpressiveCodeCopyClick(event: React.MouseEvent<HTMLElement>) {
   if (!(event.target instanceof Element)) {
     return;
   }
