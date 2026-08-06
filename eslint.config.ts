@@ -1226,18 +1226,6 @@ export default typescript.config([
       'boundaries/dependency-nodes': ['import', 'dynamic-import'],
       // order matters here because of nested directories
       'boundaries/elements': [
-        // --- figma code connect ---
-        {
-          type: 'figma-code-connect',
-          pattern: '**/*.figma.{tsx,jsx}',
-          mode: 'full',
-        },
-        // --- stories ---
-        {
-          type: 'story-files',
-          pattern: ['static/**/*.stories.{ts,tsx}', 'static/**/*.mdx'],
-          mode: 'full',
-        },
         {
           type: 'story-book',
           pattern: ['static/app/stories', '**/__stories__'],
@@ -1246,31 +1234,6 @@ export default typescript.config([
         {
           type: 'debug-tools',
           pattern: 'static/app/debug',
-        },
-        // --- tests ---
-        {
-          type: 'test-sentry',
-          pattern: [
-            'static/app/**/*.spec.{ts,js,tsx,jsx}',
-            'static/app/**/*.snapshots.tsx',
-            'tests/js/sentry-test/**/*.*',
-            'static/app/**/*{t,T}estUtils*.{js,mjs,ts,tsx}',
-          ],
-          mode: 'full',
-        },
-        {
-          type: 'test-getsentry',
-          pattern: [
-            'static/gsApp/**/*.spec.{ts,js,tsx,jsx}',
-            'static/gsApp/**/*.snapshots.tsx',
-            'tests/js/getsentry-test/**/*.*',
-          ],
-          mode: 'full',
-        },
-        {
-          type: 'test-gsAdmin',
-          pattern: ['static/gsAdmin/**/*.spec.{ts,js,tsx,jsx}'],
-          mode: 'full',
         },
         {
           type: 'test',
@@ -1285,11 +1248,6 @@ export default typescript.config([
         {
           type: 'sentry-images',
           pattern: 'static/images',
-        },
-        {
-          type: 'sentry-locale',
-          pattern: '(static/app/locale.tsx|src/sentry/locale/**/*.*)',
-          mode: 'full',
         },
         {
           type: 'sentry-logos',
@@ -1317,12 +1275,6 @@ export default typescript.config([
           type: 'gsAdmin',
           pattern: 'static/gsAdmin',
         },
-        // --- configs ---
-        {
-          type: 'configs',
-          pattern: '(package.json|config/**/*.*|*.config.{mjs,js,ts})',
-          mode: 'full',
-        },
         {
           type: 'build-utils',
           pattern: 'build-utils',
@@ -1337,15 +1289,59 @@ export default typescript.config([
           pattern: 'static/eslint',
         },
       ],
+      // File categories replace the old file-level element descriptors.
+      // Unlike elements, file descriptors match the complete file path and
+      // can therefore preserve the file-level classifications used below.
+      'boundaries/files': [
+        // --- figma code connect ---
+        {
+          category: 'figma-code-connect',
+          pattern: '**/*.figma.{tsx,jsx}',
+        },
+        // --- stories ---
+        {
+          category: 'story-files',
+          pattern: ['static/**/*.stories.{ts,tsx}', 'static/**/*.mdx'],
+        },
+        // --- tests ---
+        {
+          category: 'test-sentry',
+          pattern: [
+            'static/app/**/*.spec.{ts,js,tsx,jsx}',
+            'static/app/**/*.snapshots.tsx',
+            'tests/js/sentry-test/**/*.*',
+            'static/app/**/*{t,T}estUtils*.{js,mjs,ts,tsx}',
+          ],
+        },
+        {
+          category: 'test-getsentry',
+          pattern: [
+            'static/gsApp/**/*.spec.{ts,js,tsx,jsx}',
+            'static/gsApp/**/*.snapshots.tsx',
+            'tests/js/getsentry-test/**/*.*',
+          ],
+        },
+        {
+          category: 'test-gsAdmin',
+          pattern: ['static/gsAdmin/**/*.spec.{ts,js,tsx,jsx}'],
+        },
+        // --- sentry ---
+        {
+          category: 'sentry-locale',
+          pattern: ['static/app/locale.tsx', 'src/sentry/locale/**/*.*'],
+        },
+        // --- configs ---
+        {
+          category: 'configs',
+          pattern: ['package.json', 'config/**/*.*', '*.config.{mjs,js,ts}'],
+        },
+      ],
     },
     rules: {
       ...boundaries.configs.strict.rules,
-      'boundaries/no-ignored': 'off',
+      'boundaries/no-ignored-dependencies': 'off',
       'boundaries/no-private': 'off',
-      'boundaries/no-unknown': 'off',
-      // Deprecated in v6 in favor of boundaries/dependencies. The strict preset
-      // still enables it, so we turn it off to avoid running both rules.
-      'boundaries/element-types': 'off',
+      'boundaries/no-unknown-dependencies': 'off',
       'boundaries/dependencies': [
         'error',
         {
@@ -1354,108 +1350,111 @@ export default typescript.config([
           policies: [
             // --- figma code connect ---
             {
-              from: [{element: {type: 'figma-code-connect'}}],
-              allow: [{to: {element: {type: 'core*'}}}],
+              from: [{file: {categories: 'figma-code-connect'}}],
+              allow: [{to: {element: {type: 'core*'}, file: {categories: null}}}],
             },
             {
-              from: [{element: {type: 'sentry*'}}],
+              from: [{element: {type: 'sentry*'}, file: {categories: null}}],
               allow: [
-                {to: {element: {type: 'core*'}}},
-                {to: {element: {type: 'sentry*'}}},
+                {to: {element: {type: 'core*'}, file: {categories: null}}},
+                {to: {element: {type: 'sentry*'}, file: {categories: null}}},
               ],
             },
             {
-              from: [{element: {type: 'getsentry*'}}],
+              from: [{element: {type: 'getsentry*'}, file: {categories: null}}],
               allow: [
-                {to: {element: {type: 'core*'}}},
-                {to: {element: {type: 'getsentry*'}}},
-                {to: {element: {type: 'sentry*'}}},
+                {to: {element: {type: 'core*'}, file: {categories: null}}},
+                {to: {element: {type: 'getsentry*'}, file: {categories: null}}},
+                {to: {element: {type: 'sentry*'}, file: {categories: null}}},
               ],
             },
             {
-              from: [{element: {type: 'gsAdmin*'}}],
-              disallow: [{to: {element: {type: 'sentry-locale'}}}],
+              from: [{element: {type: 'gsAdmin*'}, file: {categories: null}}],
+              disallow: [{to: {file: {categories: 'sentry-locale'}}}],
               allow: [
-                {to: {element: {type: 'core*'}}},
-                {to: {element: {type: 'gsAdmin*'}}},
-                {to: {element: {type: 'sentry*'}}},
-                {to: {element: {type: 'getsentry*'}}},
+                {to: {element: {type: 'core*'}, file: {categories: null}}},
+                {to: {element: {type: 'gsAdmin*'}, file: {categories: null}}},
+                {to: {element: {type: 'sentry*'}, file: {categories: null}}},
+                {to: {element: {type: 'getsentry*'}, file: {categories: null}}},
               ],
             },
             {
-              from: [{element: {type: 'test-sentry'}}],
+              from: [{file: {categories: 'test-sentry'}}],
               allow: [
-                {to: {element: {type: 'test-sentry'}}},
-                {to: {element: {type: 'test'}}},
-                {to: {element: {type: 'core*'}}},
-                {to: {element: {type: 'sentry*'}}},
+                {to: {file: {categories: 'test-sentry'}}},
+                {to: {element: {type: 'test'}, file: {categories: null}}},
+                {to: {element: {type: 'core*'}, file: {categories: null}}},
+                {to: {element: {type: 'sentry*'}, file: {categories: null}}},
               ],
             },
             {
               // todo does test-gesentry need test-sentry?
-              from: [{element: {type: 'test-getsentry'}}],
+              from: [{file: {categories: 'test-getsentry'}}],
               allow: [
-                {to: {element: {type: 'test-getsentry'}}},
-                {to: {element: {type: 'test-sentry'}}},
-                {to: {element: {type: 'test'}}},
-                {to: {element: {type: 'core*'}}},
-                {to: {element: {type: 'getsentry*'}}},
-                {to: {element: {type: 'sentry*'}}},
+                {to: {file: {categories: 'test-getsentry'}}},
+                {to: {file: {categories: 'test-sentry'}}},
+                {to: {element: {type: 'test'}, file: {categories: null}}},
+                {to: {element: {type: 'core*'}, file: {categories: null}}},
+                {to: {element: {type: 'getsentry*'}, file: {categories: null}}},
+                {to: {element: {type: 'sentry*'}, file: {categories: null}}},
               ],
             },
             {
-              from: [{element: {type: 'test-gsAdmin'}}],
+              from: [{file: {categories: 'test-gsAdmin'}}],
               allow: [
-                {to: {element: {type: 'test-gsAdmin'}}},
-                {to: {element: {type: 'test-getsentry'}}},
-                {to: {element: {type: 'test-sentry'}}},
-                {to: {element: {type: 'test'}}},
-                {to: {element: {type: 'core*'}}},
-                {to: {element: {type: 'gsAdmin*'}}},
-                {to: {element: {type: 'sentry*'}}},
-                {to: {element: {type: 'getsentry*'}}},
+                {to: {file: {categories: 'test-gsAdmin'}}},
+                {to: {file: {categories: 'test-getsentry'}}},
+                {to: {file: {categories: 'test-sentry'}}},
+                {to: {element: {type: 'test'}, file: {categories: null}}},
+                {to: {element: {type: 'core*'}, file: {categories: null}}},
+                {to: {element: {type: 'gsAdmin*'}, file: {categories: null}}},
+                {to: {element: {type: 'sentry*'}, file: {categories: null}}},
+                {to: {element: {type: 'getsentry*'}, file: {categories: null}}},
               ],
             },
             {
-              from: [{element: {type: 'test'}}],
+              from: [{element: {type: 'test'}, file: {categories: null}}],
               allow: [
-                {to: {element: {type: 'test'}}},
-                {to: {element: {type: 'test-sentry'}}},
-                {to: {element: {type: 'sentry*'}}},
+                {to: {element: {type: 'test'}, file: {categories: null}}},
+                {to: {file: {categories: 'test-sentry'}}},
+                {to: {element: {type: 'sentry*'}, file: {categories: null}}},
               ],
             },
             {
-              from: [{element: {type: 'configs'}}],
+              from: [{file: {categories: 'configs'}}],
               allow: [
-                {to: {element: {type: 'configs'}}},
-                {to: {element: {type: 'build-utils'}}},
+                {to: {file: {categories: 'configs'}}},
+                {to: {element: {type: 'build-utils'}, file: {categories: null}}},
               ],
             },
             // --- stories ---
             {
-              from: [{element: {type: 'story-files'}}, {element: {type: 'story-book'}}],
+              from: [
+                {file: {categories: 'story-files'}},
+                {element: {type: 'story-book'}, file: {categories: null}},
+              ],
               allow: [
-                {to: {element: {type: 'core*'}}},
-                {to: {element: {type: 'sentry*'}}},
-                {to: {element: {type: 'story-book'}}},
+                {to: {element: {type: 'core*'}, file: {categories: null}}},
+                {to: {element: {type: 'sentry*'}, file: {categories: null}}},
+                {to: {element: {type: 'story-book'}, file: {categories: null}}},
               ],
             },
             // --- debug tools (e.g. notifications) ---
             {
-              from: [{element: {type: 'debug-tools'}}],
+              from: [{element: {type: 'debug-tools'}, file: {categories: null}}],
               allow: [
-                {to: {element: {type: 'core*'}}},
-                {to: {element: {type: 'sentry*'}}},
-                {to: {element: {type: 'debug-tools'}}},
+                {to: {element: {type: 'core*'}, file: {categories: null}}},
+                {to: {element: {type: 'sentry*'}, file: {categories: null}}},
+                {to: {element: {type: 'debug-tools'}, file: {categories: null}}},
               ],
             },
             // --- core ---
             // todo: sentry* shouldn't be allowed
             {
-              from: [{element: {type: 'core'}}],
+              from: [{element: {type: 'core'}, file: {categories: null}}],
               allow: [
-                {to: {element: {type: 'core*'}}},
-                {to: {element: {type: 'sentry*'}}},
+                {to: {element: {type: 'core*'}, file: {categories: null}}},
+                {to: {element: {type: 'sentry*'}, file: {categories: null}}},
               ],
             },
             // --- core entry points (enforce isolation) ---
@@ -1466,6 +1465,7 @@ export default typescript.config([
                   fileInternalPath:
                     '!(*.{ts,tsx}|*/index.{ts,tsx}|**/*.png|**/__stories__/*.{ts,tsx})',
                 },
+                file: {categories: null},
               },
               disallow: {
                 from: {element: {type: '*'}},
