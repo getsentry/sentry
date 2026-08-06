@@ -1667,7 +1667,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'homepage/',
-      redirectTo: '..',
+      component: make(() => import('sentry/views/discover/homepage')),
     },
     traceView,
     {
