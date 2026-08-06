@@ -35,6 +35,16 @@ export function ActivityLineMarker({
   );
 }
 
+export function ActivityLineDotMarker() {
+  return (
+    <LeadingCells>
+      <MarkerCell>
+        <ActivityLineDot />
+      </MarkerCell>
+    </LeadingCells>
+  );
+}
+
 function ActivityLineDot() {
   return <NeutralLineDot aria-label={t('Activity update')} role="img" />;
 }

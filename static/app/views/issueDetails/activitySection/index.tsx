@@ -9,21 +9,18 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {
-  GroupActivityType,
-  SEER_ACTIVITY_TYPES,
-  type Group,
-  type GroupActivity,
-} from 'sentry/types/group';
+import type {Group, GroupActivity} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniqueId} from 'sentry/utils/guid';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
 import {
-  collapseSeerActivityPairs,
-  type ActivityFeedItem,
+  buildActivityFeedItems,
+  countActivityFeedEvents,
+  type DisplayedActivityFeedItem,
 } from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
+import {CollapsedStatusActivityRow} from 'sentry/views/issueDetails/activitySection/activityLineItem/collapsedStatusActivityRow';
 import {ActivityLineList} from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
 import {
   ActivityLineNote,
@@ -41,7 +38,7 @@ interface ActivityFeedRowProps {
   group: Group;
   handleDelete: (item: GroupActivity) => Promise<void>;
   inputVariant: 'compact' | 'full';
-  item: ActivityFeedItem;
+  item: DisplayedActivityFeedItem;
   onCommentEdited?: (activity: GroupActivity[]) => void;
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }
@@ -54,6 +51,24 @@ function ActivityFeedRow({
   inputVariant,
   timestampUnitStyle,
 }: ActivityFeedRowProps) {
+  if (item.type === 'collapsed_status_activities') {
+    return (
+      <CollapsedStatusActivityRow eventCount={item.activities.length}>
+        {item.activities.map(activity => (
+          <ActivityFeedRow
+            item={activity}
+            handleDelete={handleDelete}
+            onCommentEdited={onCommentEdited}
+            group={group}
+            key={activity.activity.id}
+            inputVariant={inputVariant}
+            timestampUnitStyle={timestampUnitStyle}
+          />
+        ))}
+      </CollapsedStatusActivityRow>
+    );
+  }
+
   const {activity} = item;
 
   if (!isActivityNote(activity)) {
@@ -91,70 +106,6 @@ interface ActivitySectionProps {
    */
   placeholder?: string;
   variant?: 'sidebar' | 'standalone';
-}
-
-function isDuplicatePullRequestActivity(
-  activity: GroupActivity,
-  adjacentActivity: GroupActivity | undefined
-): boolean {
-  switch (activity.type) {
-    // REFERENCED_IN_COMMIT should be hidden if there is an adjacent PULL_REQUEST_MERGED activity with the same pull request
-    case GroupActivityType.REFERENCED_IN_COMMIT: {
-      if (adjacentActivity?.type !== GroupActivityType.PULL_REQUEST_MERGED) {
-        return false;
-      }
-
-      const pullRequest = activity.data.commit?.pullRequest;
-      const adjacentPullRequest = adjacentActivity.data.pullRequest;
-      if (!pullRequest || !adjacentPullRequest) {
-        return false;
-      }
-
-      return (
-        pullRequest.id === adjacentPullRequest.id &&
-        pullRequest.repository.id === adjacentPullRequest.repository.id
-      );
-    }
-    case GroupActivityType.SEER_PR_CREATED: {
-      if (adjacentActivity?.type !== GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST) {
-        return false;
-      }
-
-      const adjacentPullRequest = adjacentActivity.data.pullRequest;
-      if (!adjacentPullRequest) {
-        return false;
-      }
-
-      return Boolean(
-        activity.data.pull_requests?.some(
-          pullRequest =>
-            pullRequest.pull_request.pr_url === adjacentPullRequest.externalUrl
-        )
-      );
-    }
-    default:
-      return false;
-  }
-}
-
-function removeAdjacentDuplicatePullRequestActivities(activities: GroupActivity[]): {
-  activities: GroupActivity[];
-  actorActivityById: Map<string, GroupActivity>;
-} {
-  const actorActivityById = new Map<string, GroupActivity>();
-  const filteredActivities = activities.filter((activity, index) => {
-    const duplicateActivity = [activities[index - 1], activities[index + 1]].find(
-      adjacentActivity => isDuplicatePullRequestActivity(activity, adjacentActivity)
-    );
-
-    if (activity.type === GroupActivityType.SEER_PR_CREATED && duplicateActivity) {
-      actorActivityById.set(duplicateActivity.id, activity);
-    }
-
-    return !duplicateActivity;
-  });
-
-  return {activities: filteredActivities, actorActivityById};
 }
 
 export function ActivitySection({
@@ -198,34 +149,21 @@ export function ActivitySection({
     [group.activity, mutators, onCommentDeleted, organization]
   );
 
-  const activityLink = {
-    pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
-    query: {
-      ...location.query,
-      cursor: undefined,
-    },
-  };
-
-  const showSeerActivities = organization.features.includes(
-    'display-seer-actions-as-issue-activities'
-  );
-  const visibleActivities = showSeerActivities
-    ? group.activity
-    : group.activity.filter(item => !SEER_ACTIVITY_TYPES.has(item.type));
-
-  const {activities: deduplicatedActivities, actorActivityById} =
-    removeAdjacentDuplicatePullRequestActivities(visibleActivities);
-  const filteredActivities = deduplicatedActivities.filter(
-    item => !filterComments || item.type === GroupActivityType.NOTE
-  );
-  const displayedActivities = collapseSeerActivityPairs(filteredActivities).map(item => {
-    const actorActivity = actorActivityById.get(item.activity.id);
-    return item.type === 'activity' && actorActivity ? {...item, actorActivity} : item;
+  const isStandalone = variant === 'standalone';
+  const displayedActivities = buildActivityFeedItems({
+    activities: group.activity,
+    filterComments,
+    showSeerActivities: organization.features.includes(
+      'display-seer-actions-as-issue-activities'
+    ),
+    showStatusFlappingRollups: organization.features.includes(
+      'issue-activity-status-flapping-rollup'
+    ),
   });
-  const inputVariant = variant === 'sidebar' ? 'compact' : 'full';
-  const timestampUnitStyle = variant === 'sidebar' ? 'short' : undefined;
+  const inputVariant = isStandalone ? 'full' : 'compact';
+  const timestampUnitStyle = isStandalone ? undefined : 'short';
 
-  const renderActivityItem = (item: ActivityFeedItem) => (
+  const renderActivityItem = (item: DisplayedActivityFeedItem) => (
     <ActivityFeedRow
       item={item}
       handleDelete={handleDelete}
@@ -255,10 +193,14 @@ export function ActivitySection({
       {displayedActivities.map(renderActivityItem)}
     </ActivityLineList>
   );
-  const hiddenActivityCount =
-    displayedActivities.length >= 5 ? displayedActivities.length - 3 : 0;
+  const totalActivityCount = countActivityFeedEvents(displayedActivities);
   const sidebarVisibleActivities =
-    hiddenActivityCount > 0 ? displayedActivities.slice(0, 3) : displayedActivities;
+    totalActivityCount >= 5 ? displayedActivities.slice(0, 3) : displayedActivities;
+  // A status rollup is visible as one row, but its underlying events remain hidden.
+  const visibleActivityCount = sidebarVisibleActivities.filter(
+    item => item.type !== 'collapsed_status_activities'
+  ).length;
+  const hiddenActivityCount = totalActivityCount - visibleActivityCount;
   const sidebarActivityItems = (
     <Fragment>
       {sidebarVisibleActivities.map(renderActivityItem)}
@@ -269,7 +211,13 @@ export function ActivitySection({
         <Container marginTop="xs">
           <LinkButton
             aria-label={t('View all activity')}
-            to={activityLink}
+            to={{
+              pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
+              query: {
+                ...location.query,
+                cursor: undefined,
+              },
+            }}
             size="xs"
             replace
             preventScrollReset
@@ -288,7 +236,7 @@ export function ActivitySection({
     </Fragment>
   );
 
-  if (variant === 'standalone') {
+  if (isStandalone) {
     return (
       <Grid gap="xl">
         {noteInput}

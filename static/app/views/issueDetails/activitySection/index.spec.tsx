@@ -634,6 +634,88 @@ describe('ActivitySection', () => {
     expect(screen.getByText(/after 2 days of inactivity/)).toBeInTheDocument();
   });
 
+  const statusFlappingRollupFeature = 'issue-activity-status-flapping-rollup';
+
+  function makeFlappingGroup(id: string) {
+    return GroupFixture({
+      id,
+      activity: [
+        {
+          type: GroupActivityType.SET_REGRESSION,
+          id: `${id}-regressed-2`,
+          dateCreated: '2020-01-01T06:00:00Z',
+          data: {},
+        },
+        {
+          type: GroupActivityType.SET_RESOLVED,
+          id: `${id}-resolved-2`,
+          dateCreated: '2020-01-01T05:00:00Z',
+          data: {},
+        },
+        {
+          type: GroupActivityType.SET_REGRESSION,
+          id: `${id}-regressed-1`,
+          dateCreated: '2020-01-01T04:00:00Z',
+          data: {},
+        },
+        {
+          type: GroupActivityType.SET_RESOLVED,
+          id: `${id}-resolved-1`,
+          dateCreated: '2020-01-01T03:00:00Z',
+          data: {},
+        },
+      ],
+      project,
+    });
+  }
+
+  it('expands and collapses a status-flapping rollup when enabled', async () => {
+    const flappingGroup = makeFlappingGroup('1348');
+
+    render(
+      <GroupDataContextProvider group={flappingGroup} project={flappingGroup.project}>
+        <ActivitySection group={flappingGroup} variant="standalone" />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({features: [statusFlappingRollupFeature]}),
+      }
+    );
+
+    expect(screen.getAllByText('Regressed')).toHaveLength(1);
+    expect(screen.getAllByText('Resolved')).toHaveLength(1);
+    expect(screen.getAllByRole('img', {name: 'Activity update'})).toHaveLength(3);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Show 2 more'}));
+
+    expect(screen.queryByRole('button', {name: 'Show 2 more'})).not.toBeInTheDocument();
+    expect(screen.getAllByText('Regressed')).toHaveLength(2);
+    expect(screen.getAllByText('Resolved')).toHaveLength(2);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Hide 2 events'}));
+
+    expect(screen.getByRole('button', {name: 'Show 2 more'})).toBeInTheDocument();
+    expect(screen.getAllByText('Regressed')).toHaveLength(1);
+    expect(screen.getAllByText('Resolved')).toHaveLength(1);
+  });
+
+  it('rolls up status flapping and counts its events in the sidebar', () => {
+    const flappingGroup = makeFlappingGroup('1350');
+
+    render(
+      <GroupDataContextProvider group={flappingGroup} project={flappingGroup.project}>
+        <ActivitySection group={flappingGroup} />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({features: [statusFlappingRollupFeature]}),
+      }
+    );
+
+    expect(screen.getByRole('button', {name: 'Show 2 more'})).toBeInTheDocument();
+    expect(screen.getByText('View 2 more')).toBeInTheDocument();
+    expect(screen.getAllByText('Regressed')).toHaveLength(1);
+    expect(screen.getAllByText('Resolved')).toHaveLength(1);
+  });
+
   it('renders note and allows for edit', async () => {
     jest.spyOn(indicators, 'addSuccessMessage');
 
