@@ -71,7 +71,7 @@ class SentryMetricsBackend(MetricsBackend):
 _OBJECTSTORE_CLIENT: Client | None = None
 _ATTACHMENTS_USECASE: Usecase | None = None
 _DEBUG_FILES_USECASE = Usecase(
-    "debug_files", compression="zstd", expiration_policy=TimeToIdle(timedelta(days=90))
+    "debug_files", compression="none", expiration_policy=TimeToIdle(timedelta(days=90))
 )
 _PROFILE_ATTACHMENTS_USECASE: Usecase | None = None
 _PREPROD_USECASE = Usecase("preprod", expiration_policy=TimeToIdle(timedelta(days=30)))

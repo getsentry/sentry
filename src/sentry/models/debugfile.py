@@ -528,7 +528,18 @@ def create_dif_from_id(
         )
         try:
             with file.getfile() as source:
-                storage_path = session.put(source, content_type=content_type, filename=filename)
+                storage_path = session.put(
+                    source,
+                    compression=(
+                        "zstd"
+                        if features.has(
+                            "organizations:objectstore-debugfiles-compression", project.organization
+                        )
+                        else "none"
+                    ),
+                    content_type=content_type,
+                    filename=filename,
+                )
         except Exception:
             logger.exception("Failed to dual-write debug file to Objectstore")
         else:
