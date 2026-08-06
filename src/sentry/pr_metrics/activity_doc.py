@@ -97,14 +97,10 @@ class ActivityDoc(TypedDict):
     # in arrival order, NOT an object keyed by after_sha: Postgres jsonb does not
     # preserve object key order, and eviction at the cap must drop the OLDEST link,
     # which needs insertion order. jsonb preserves array order, so a list keeps
-    # eviction correct. The two sender slots are appended (not a separate structure)
-    # so the ordered head log survives the events cap exactly as the chain walk does;
-    # entries written before they existed have length 2 and read as an unknown pusher.
+    # eviction correct. The two sender slots are appended so attribution survives
+    # the events cap; entries written before they existed have length 2 and read as
+    # an unknown pusher.
     sync_chain: list[list[str | None]]
-    # ``[head_sha, sender_login, sender_type]`` for the PR's opening head — the one
-    # head that is not an ``after_sha`` in ``sync_chain``. Single-valued, so unlike
-    # the chain it needs no cap or ordering guarantee.
-    open_head: list[str | None]
 
 
 def is_failing_conclusion(conclusion: str | None) -> bool:
@@ -154,7 +150,6 @@ def new_document() -> ActivityDoc:
         "counts": {},
         "events_dropped": 0,
         "sync_chain": [],
-        "open_head": [],
     }
 
 
@@ -260,8 +255,6 @@ def _apply_entry(
 
     if event_type == PullRequestActivityType.SYNCHRONIZED:
         _fold_sync_chain(doc, payload)
-    elif event_type == PullRequestActivityType.OPENED:
-        _fold_open_head(doc, payload)
 
     doc["counts"][event_type] = doc["counts"].get(event_type, 0) + 1
     _fold_participant(doc, payload)
@@ -330,24 +323,6 @@ def _fold_sync_chain(doc: ActivityDoc, payload: Mapping[str, Any]) -> None:
             payload.get("sender_type") or None,
         ]
     )
-
-
-def _fold_open_head(doc: ActivityDoc, payload: Mapping[str, Any]) -> None:
-    """Record the opening head and who opened it in ``open_head``.
-
-    Same motivation as the sender slots on ``sync_chain``: the opening head anchors
-    the ordered head log, and reading it out of ``events`` loses it once the cap
-    evicts the open entry. ``setdefault`` for documents written before the field.
-    """
-    head = payload.get("head_sha") or ""
-    if not head:
-        return
-    doc.setdefault("open_head", [])
-    doc["open_head"] = [
-        head,
-        payload.get("sender_login") or None,
-        payload.get("sender_type") or None,
-    ]
 
 
 def _apply_check_suite(
@@ -763,11 +738,10 @@ def ci_head_outcomes_from_doc(doc: ActivityDoc) -> dict[str, str]:
 def head_sha_pushers_from_doc(doc: ActivityDoc) -> dict[str, tuple[str, str]]:
     """Map head SHA → ``(sender_login, sender_type)`` for every head we can attribute.
 
-    Reads only the cap-resilient sources: ``open_head`` and the sender slots on
-    ``sync_chain``. A SHA neither covers stays unmapped (callers treat it as
-    ``unknown``), which is the whole story for a document written before those
-    slots existed — its heads all read as ``unknown`` rather than being
-    reconstructed from ``events``.
+    Reads only the sender slots on ``sync_chain``. A SHA the chain does not cover
+    stays unmapped (callers treat it as ``unknown``), which is the whole story for
+    a document written before those slots existed — its heads all read as
+    ``unknown`` rather than being reconstructed from ``events``.
 
     ``events`` is deliberately *not* consulted, even though it carries the same
     senders. The two disagree under cap pressure and in opposite directions:
@@ -777,13 +751,6 @@ def head_sha_pushers_from_doc(doc: ActivityDoc) -> dict[str, tuple[str, str]]:
     documents isn't worth that risk — they age out as their PRs close.
     """
     pushers: dict[str, tuple[str, str]] = {}
-
-    open_head = doc.get("open_head") or []
-    if open_head and open_head[0]:
-        pushers[open_head[0]] = (
-            (open_head[1] or "") if len(open_head) > 1 else "",
-            (open_head[2] or "") if len(open_head) > 2 else "",
-        )
 
     for pair in doc.get("sync_chain", []):
         after = pair[0]

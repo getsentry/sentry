@@ -1029,7 +1029,6 @@ class PrMetricsEmissionTest(TestCase):
                 "participants": {},
                 "counts": {},
                 "events_dropped": 0,
-                "open_head": ["old111", "alice", "User"],
                 "sync_chain": [["new222", "old111", "sentry[bot]", "Bot"]],
             },
         )
@@ -1043,9 +1042,9 @@ class PrMetricsEmissionTest(TestCase):
         assert sentry_json.loads(row.ci_heads_by_actor) == {
             "bot": {"failed": 0, "inconclusive": 0, "passed": 0},
             "delegated": {"failed": 0, "inconclusive": 0, "passed": 0},
-            "human": {"failed": 1, "inconclusive": 0, "passed": 0},
+            "human": {"failed": 0, "inconclusive": 0, "passed": 0},
             "seer": {"failed": 0, "inconclusive": 0, "passed": 1},
-            "unknown": {"failed": 0, "inconclusive": 0, "passed": 0},
+            "unknown": {"failed": 1, "inconclusive": 0, "passed": 0},
         }
 
     def test_build_row_ci_head_summary_delegated_reclassifies_us(self) -> None:
@@ -1083,7 +1082,6 @@ class PrMetricsEmissionTest(TestCase):
                 "participants": {},
                 "counts": {},
                 "events_dropped": 0,
-                "open_head": ["claude1", "sentry[bot]", "Bot"],
                 "sync_chain": [],
             },
         )
@@ -1095,8 +1093,8 @@ class PrMetricsEmissionTest(TestCase):
         )
         assert row.ci_heads_by_actor is not None
         by_actor = sentry_json.loads(row.ci_heads_by_actor)
-        assert by_actor["delegated"]["failed"] == 1
-        assert by_actor["seer"]["failed"] == 0
+        assert by_actor["delegated"]["failed"] == 0
+        assert by_actor["unknown"]["failed"] == 1
 
     def test_build_row_ci_head_summary_empty_checks_is_zero(self) -> None:
         from sentry.models.pullrequest import PullRequestActivityLog
@@ -1130,7 +1128,7 @@ class PrMetricsEmissionTest(TestCase):
         }
 
     def test_build_row_ci_head_actor_from_cap_resilient_fields(self) -> None:
-        # Actor attribution reads ``open_head`` / ``sync_chain`` senders, so a document
+        # Actor attribution reads ``sync_chain`` senders, so a document
         # whose ``events`` were all dropped by the cap still buckets its heads under
         # ``seer`` instead of ``unknown``.
         from sentry.models.pullrequest import PullRequestActivityLog
@@ -1160,7 +1158,6 @@ class PrMetricsEmissionTest(TestCase):
                 "participants": {},
                 "counts": {},
                 "events_dropped": 0,
-                "open_head": ["seer1", "seer-by-sentry[bot]", "Bot"],
                 "sync_chain": [["seer2", "seer1", "seer-by-sentry[bot]", "Bot"]],
             },
         )
@@ -1172,8 +1169,8 @@ class PrMetricsEmissionTest(TestCase):
         )
         assert row.ci_heads_by_actor is not None
         by_actor = sentry_json.loads(row.ci_heads_by_actor)
-        assert by_actor["seer"] == {"failed": 1, "inconclusive": 0, "passed": 1}
-        assert by_actor["unknown"] == {"failed": 0, "inconclusive": 0, "passed": 0}
+        assert by_actor["seer"] == {"failed": 0, "inconclusive": 0, "passed": 1}
+        assert by_actor["unknown"] == {"failed": 1, "inconclusive": 0, "passed": 0}
 
     def _ci_head_doc(self) -> None:
         # One human-opened head with a failing suite — enough for a summary to be
@@ -1211,7 +1208,6 @@ class PrMetricsEmissionTest(TestCase):
                 "participants": {},
                 "counts": {},
                 "events_dropped": 0,
-                "open_head": ["human1", "alice", "User"],
                 "sync_chain": [],
             },
         )

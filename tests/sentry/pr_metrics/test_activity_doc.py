@@ -141,7 +141,6 @@ def test_new_document_shape() -> None:
         "counts": {},
         "events_dropped": 0,
         "sync_chain": [],
-        "open_head": [],
     }
 
 
@@ -1179,16 +1178,8 @@ def test_ci_head_outcomes_derives_failure_from_runs_without_suite() -> None:
     assert ci_head_outcomes_from_doc(doc) == {"sha1": "failed"}
 
 
-def test_head_sha_pushers_from_open_and_sync() -> None:
+def test_head_sha_pushers_from_sync_chain() -> None:
     doc = new_document()
-    _entry(
-        doc,
-        event_type=PullRequestActivityType.OPENED,
-        webhook_id="o1",
-        head_sha="open1",
-        sender_login="octocat",
-        sender_type="User",
-    )
     _entry(
         doc,
         event_type=PullRequestActivityType.SYNCHRONIZED,
@@ -1199,13 +1190,12 @@ def test_head_sha_pushers_from_open_and_sync() -> None:
         sender_type="Bot",
     )
     assert head_sha_pushers_from_doc(doc) == {
-        "open1": ("octocat", "User"),
         "sync1": ("dependabot[bot]", "Bot"),
     }
 
 
 def test_head_sha_pushers_ignores_events_without_resilient_slots() -> None:
-    # A document written before ``open_head`` / the ``sync_chain`` sender slots
+    # A document written before the ``sync_chain`` sender slots
     # existed: the senders sit in ``events``, which is deliberately not read, so
     # every head is unattributed rather than reconstructed from the staler source.
     doc = new_document()
@@ -1223,7 +1213,6 @@ def test_head_sha_pushers_ignores_events_without_resilient_slots() -> None:
         },
     ]
     doc["sync_chain"] = [["sync1", "open1"]]
-    doc["open_head"] = []
 
     assert head_sha_pushers_from_doc(doc) == {}
 
@@ -1288,9 +1277,9 @@ def test_ci_head_summary_by_pusher() -> None:
     assert ci_head_actor_counts_from_doc(doc) == {
         "seer": {"failed": 0, "passed": 1, "inconclusive": 0},
         "delegated": {"failed": 0, "passed": 0, "inconclusive": 0},
-        "human": {"failed": 1, "passed": 0, "inconclusive": 0},
+        "human": {"failed": 0, "passed": 0, "inconclusive": 0},
         "bot": {"failed": 0, "passed": 0, "inconclusive": 1},
-        "unknown": {"failed": 1, "passed": 0, "inconclusive": 0},
+        "unknown": {"failed": 2, "passed": 0, "inconclusive": 0},
     }
 
 
@@ -1307,8 +1296,8 @@ def test_ci_head_summary_claude_as_delegated() -> None:
     _suite(doc, head_sha="claude1", conclusion="failure")
 
     by_actor = ci_head_actor_counts_from_doc(doc, has_delegated_attribution=True)
-    assert by_actor["delegated"]["failed"] == 1
-    assert by_actor["seer"]["failed"] == 0
+    assert by_actor["delegated"]["failed"] == 0
+    assert by_actor["unknown"]["failed"] == 1
 
 
 # --- ci head actor attribution across the events cap ----------------------
@@ -1365,7 +1354,7 @@ def _seer_pr_with_heads(*, outcomes: list[tuple[str, str]]) -> ActivityDoc:
 def test_ci_head_actor_attribution_survives_events_cap() -> None:
     # The pusher used to be readable only from ``events``, so a cap-pressured PR lost
     # actor attribution and bucketed its own heads as ``unknown``. The sender now
-    # rides on ``sync_chain`` / ``open_head``, which the events cap doesn't touch.
+    # rides on ``sync_chain``, which the events cap doesn't touch.
     doc = _seer_pr_with_heads(outcomes=[("c1", "failure"), ("c2", "success")])
     with patch(f"{MODULE}.metrics"), patch(f"{MODULE}.logger"):
         for i in range(MAX_EVENTS):
@@ -1382,5 +1371,5 @@ def test_ci_head_actor_attribution_survives_events_cap() -> None:
     assert not any(e.get("webhook_id") == "s-capped" for e in doc["events"])
 
     by_actor = ci_head_actor_counts_from_doc(doc)
-    assert by_actor["seer"] == {"failed": 2, "passed": 1, "inconclusive": 0}
-    assert by_actor["unknown"] == {"failed": 0, "passed": 0, "inconclusive": 0}
+    assert by_actor["seer"] == {"failed": 1, "passed": 1, "inconclusive": 0}
+    assert by_actor["unknown"] == {"failed": 1, "passed": 0, "inconclusive": 0}
