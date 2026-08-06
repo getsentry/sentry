@@ -26,6 +26,7 @@
  */
 import e18e from '@e18e/eslint-plugin';
 import * as emotion from '@emotion/eslint-plugin';
+import {fixupPluginRules} from '@eslint/compat';
 import eslint from '@eslint/js';
 // eslint-disable-next-line boundaries/dependencies
 import * as sentryScrapsPlugin from '@sentry-internal/eslint-plugin-scraps';
@@ -543,7 +544,9 @@ export default typescript.config([
   {
     name: 'plugin/no-relative-import-paths',
     // https://github.com/MelvinVermeer/eslint-plugin-no-relative-import-paths?tab=readme-ov-file#rule-options
-    plugins: {'no-relative-import-paths': noRelativeImportPaths},
+    // Wrapped in fixupPluginRules: the plugin still calls the context methods
+    // (getCwd/getFilename) that ESLint 10 removed. https://github.com/MelvinVermeer/eslint-plugin-no-relative-import-paths/pull/47
+    plugins: {'no-relative-import-paths': fixupPluginRules(noRelativeImportPaths)},
     rules: {
       'no-relative-import-paths/no-relative-import-paths': [
         'error',
@@ -800,7 +803,9 @@ export default typescript.config([
   {
     name: 'plugin/typescript-sort-keys',
     // https://github.com/infctr/eslint-plugin-typescript-sort-keys
-    plugins: {'typescript-sort-keys': typescriptSortKeys},
+    // Wrapped in fixupPluginRules: the plugin still calls context.getSourceCode(),
+    // which ESLint 10 removed. Upstream is unmaintained (last release 3.3.0, Oct 2024).
+    plugins: {'typescript-sort-keys': fixupPluginRules(typescriptSortKeys)},
     rules: {
       'typescript-sort-keys/interface': [
         'error',
