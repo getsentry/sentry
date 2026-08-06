@@ -190,13 +190,28 @@ describe('DataConditionNodeList', () => {
   it('deletes existing condition', async () => {
     render(
       <AutomationBuilderTestProvider>
+        <DataConditionNodeList
+          {...defaultProps}
+          conditions={[DataConditionFixture(), DataConditionFixture({id: '2'})]}
+        />
+      </AutomationBuilderTestProvider>,
+      {organization}
+    );
+
+    const [deleteButton] = screen.getAllByRole('button', {name: 'Delete row'});
+    await userEvent.click(deleteButton!);
+    expect(mockOnDeleteRow).toHaveBeenCalledWith('1');
+  });
+
+  it('hides delete button for the last remaining condition', () => {
+    render(
+      <AutomationBuilderTestProvider>
         <DataConditionNodeList {...defaultProps} conditions={[DataConditionFixture()]} />
       </AutomationBuilderTestProvider>,
       {organization}
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Delete row'}));
-    expect(mockOnDeleteRow).toHaveBeenCalledWith('1');
+    expect(screen.queryByRole('button', {name: 'Delete row'})).not.toBeInTheDocument();
   });
 
   it('shows conflicting condition warning for action filters', () => {
