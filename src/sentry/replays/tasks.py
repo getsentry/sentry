@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
+import sentry_sdk
 from django.utils import timezone
 from taskbroker_client.constants import CompressionType
 from taskbroker_client.retry import Retry
@@ -242,6 +243,19 @@ def run_bulk_replay_delete_job(
     window_start = job.range_start + timedelta(days=window_offset_days)
     window_end = min(window_start + timedelta(days=chunk_size_days), job.range_end)
 
+    # Name the job and the window on everything this activation reports, so an error from any layer
+    # is attributable. Without it a Snuba, blob-store or Seer failure is a stack trace with no way
+    # back to a job or a date range: both live only in the activation's arguments.
+    _set_error_context(
+        job,
+        window_start=window_start,
+        window_end=window_end,
+        window_offset_days=window_offset_days,
+        after_replay_id_hash=after_replay_id_hash,
+        limit=limit,
+        total_deleted=total_deleted,
+    )
+
     try:
         # Delete the replays within a limited range. If more replays exist a cursor to seek the next
         # page from is returned.
@@ -253,6 +267,14 @@ def run_bulk_replay_delete_job(
             environment=job.environments,
             limit=limit,
             after_replay_id_hash=after_replay_id_hash,
+        )
+
+        # One per Snuba query, so pages can be compared against activations created, and empty pages
+        # -- work spent finding nothing -- are visible rather than inferred.
+        metrics.incr(
+            "replays.bulk_delete_job.page",
+            tags={"outcome": "rows" if results["rows"] else "empty"},
+            sample_rate=1.0,
         )
 
         # Delete the matched rows if any rows were returned.
@@ -267,10 +289,20 @@ def run_bulk_replay_delete_job(
                 sample_rate=1.0,
             )
             if has_seer_data:
-                delete_seer_replay_data(
+                seer_deleted = delete_seer_replay_data(
                     job.organization_id,
                     job.project_id,
                     [row["replay_id"] for row in results["rows"]],
+                )
+                # `delete_seer_replay_data` swallows its own failures and returns False, and the
+                # return value was dropped -- so a Seer outage was invisible and the job still
+                # reported success. Staying non-fatal is right, because the replays and their blobs
+                # are already gone and raising would re-run the whole window, but a failure leaves AI
+                # summaries behind. That is undeleted PII, so it has to be countable.
+                metrics.incr(
+                    "replays.bulk_delete_job.seer_delete",
+                    tags={"outcome": "success" if seer_deleted else "failure"},
+                    sample_rate=1.0,
                 )
     except ProcessingDeadlineExceeded:
         # A BaseException, so it escapes the handler below. Once retries run out the broker
@@ -278,12 +310,17 @@ def run_bulk_replay_delete_job(
         # nothing left to advance it.
         task = current_task()
         if task is not None and not task.retries_remaining:
-            logger.warning("Bulk delete replays exhausted its processing deadline retries.")
+            logger.warning(
+                "Bulk delete replays exhausted its processing deadline retries.",
+                extra=_logging_context(job, window_start, window_end),
+            )
             metrics.incr("replays.bulk_delete_job", tags={"status": "failed"}, sample_rate=1.0)
             _transition_status(job.id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.FAILED)
         raise
     except Exception:
-        logger.exception("Bulk delete replays failed.")
+        logger.exception(
+            "Bulk delete replays failed.", extra=_logging_context(job, window_start, window_end)
+        )
 
         metrics.incr("replays.bulk_delete_job", tags={"status": "failed"}, sample_rate=1.0)
         _transition_status(job.id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.FAILED)
@@ -299,7 +336,7 @@ def run_bulk_replay_delete_job(
 
     if results["has_more"] and next_cursor is not None:
         # Checkpoint before continuing within the same window.
-        _advance_offset(job.id, new_total)
+        _checkpoint(job.id, new_total)
         run_bulk_replay_delete_job.delay(
             job.id,
             limit=limit,
@@ -310,12 +347,16 @@ def run_bulk_replay_delete_job(
         )
         return None
 
-    # Current window exhausted. Check if more time windows remain.
+    # Current window exhausted. Counted here rather than in the branches below so the total equals
+    # windows finished, which is the only progress signal for a job that is deleting nothing.
+    metrics.incr("replays.bulk_delete_job.window_completed", sample_rate=1.0)
+
+    # Check if more time windows remain.
     if window_end < job.range_end:
         # Advance to the next window by incrementing the day offset in the task args, and reset the
         # cursor: it is a position within a window's result set, not a global one.
         # job.range_start is never mutated so the API always returns the original range.
-        _advance_offset(job.id, new_total)
+        _checkpoint(job.id, new_total)
         run_bulk_replay_delete_job.delay(
             job.id,
             limit=limit,
@@ -327,17 +368,72 @@ def run_bulk_replay_delete_job(
         return None
 
     # All windows processed. Mark the job as completed.
-    _advance_offset(job.id, new_total)
+    _checkpoint(job.id, new_total)
     _transition_status(job.id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.COMPLETED)
     metrics.incr("replays.bulk_delete_job", tags={"status": "completed"}, sample_rate=1.0)
     return None
 
 
-def _advance_offset(job_id: int, offset: int) -> None:
-    """Checkpoint progress, filtered so a lagging duplicate chain cannot rewind the counter."""
-    ReplayDeletionJobModel.objects.filter(id=job_id, offset__lt=offset).update(
-        offset=offset, date_updated=timezone.now()
+def _checkpoint(job_id: int, deleted: int) -> None:
+    """Record progress, and liveness separately from it.
+
+    Two statements because they answer different questions and need different guards. `offset` is
+    filtered so a lagging duplicate chain cannot rewind the count. `date_updated` is not filtered,
+    because it is the only signal separating a job still walking replay-free days from one whose
+    activation chain has died -- and a window that deletes nothing is still progress. Updating both
+    under the `offset__lt` guard made those two states indistinguishable, so a stalled job could not
+    be told apart from a quiet one.
+    """
+    ReplayDeletionJobModel.objects.filter(id=job_id, offset__lt=deleted).update(offset=deleted)
+    ReplayDeletionJobModel.objects.filter(id=job_id).update(date_updated=timezone.now())
+
+
+def _set_error_context(
+    job: ReplayDeletionJobModel,
+    window_start: datetime,
+    window_end: datetime,
+    window_offset_days: int,
+    after_replay_id_hash: int | None,
+    limit: int,
+    total_deleted: int,
+) -> None:
+    """Attach the job's identity and position to whatever this activation reports.
+
+    Tags are the few low-cardinality keys worth searching and grouping by in Sentry. The context
+    carries the rest, including the job's whole range, so a single event answers "which range do I
+    have to run again" without cross-referencing the database.
+    """
+    sentry_sdk.set_tags(
+        {
+            "replay_delete.job": job.id,
+            "replay_delete.project": job.project_id,
+            "replay_delete.window": window_start.date().isoformat(),
+        }
     )
+    sentry_sdk.set_context("replay_delete_job", _logging_context(job, window_start, window_end))
+    sentry_sdk.set_context(
+        "replay_delete_position",
+        {
+            "window_offset_days": window_offset_days,
+            "after_replay_id_hash": after_replay_id_hash,
+            "limit": limit,
+            "deleted_before_this_page": total_deleted,
+        },
+    )
+
+
+def _logging_context(
+    job: ReplayDeletionJobModel, window_start: datetime, window_end: datetime
+) -> dict[str, Any]:
+    return {
+        "job_id": job.id,
+        "organization_id": job.organization_id,
+        "project_id": job.project_id,
+        "range_start": job.range_start.isoformat(),
+        "range_end": job.range_end.isoformat(),
+        "window_start": window_start.isoformat(),
+        "window_end": window_end.isoformat(),
+    }
 
 
 def _transition_status(job_id: int, expected: DeletionJobStatus, new: DeletionJobStatus) -> None:

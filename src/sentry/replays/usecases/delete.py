@@ -36,6 +36,7 @@ from sentry.replays.usecases.query import execute_query, handle_search_filters
 from sentry.replays.usecases.query.configs.aggregate import search_config as agg_search_config
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.snuba.referrer import Referrer
+from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import (
@@ -61,7 +62,15 @@ def delete_matched_rows(project_id: int, rows: list[MatchedRow]) -> int | None:
     if not rows:
         return None
 
-    delete_filenames_concurrently(list(_make_recording_filenames(project_id, rows)))
+    filenames = list(_make_recording_filenames(project_id, rows))
+
+    # Blobs per batch, alongside the existing count of replays per batch. Segments-per-replay sets
+    # how many blob-store requests a deletion actually costs, and it was only recoverable by dividing
+    # a delete counter by a task counter over the same window -- which disagrees with itself whenever
+    # activations are dropped before they run.
+    metrics.distribution("replays.delete.blobs_per_batch", value=len(filenames))
+
+    delete_filenames_concurrently(filenames)
     delete_replays(project_id, [row["replay_id"] for row in rows])
     return None
 
