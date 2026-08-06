@@ -268,12 +268,14 @@ describe('usePinnedLogsQuery', () => {
 
   it('is pending while fetching missing rows', async () => {
     let resolveRequest!: () => void;
+    const promise = new Promise<void>(resolve => {
+      resolveRequest = resolve;
+    });
+
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      asyncDelay: new Promise<void>(resolve => {
-        resolveRequest = resolve;
-      }),
+      asyncDelay: promise,
       body: {data: [], meta: {fields: {}, units: {}}},
     });
 
