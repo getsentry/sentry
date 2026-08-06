@@ -57,6 +57,12 @@ const solutionArtifact = AutofixSolutionArtifactFixture({
 });
 
 describe('IssuePreviewAutofixSummary', () => {
+  beforeEach(() => {
+    Object.assign(navigator, {
+      clipboard: {writeText: jest.fn().mockResolvedValue(undefined)},
+    });
+  });
+
   it('renders summaries in the requested order with the first section expanded', async () => {
     const runState = ExplorerAutofixStateFixture({
       blocks: [
@@ -330,4 +336,22 @@ describe('IssuePreviewAutofixSummary', () => {
     });
   });
 
+  it('copies a completed section as markdown', async () => {
+    render(
+      <IssuePreviewAutofixSummary
+        autofix={ExplorerAutofixFixture({
+          runState: ExplorerAutofixStateFixture({
+            blocks: [ExplorerAutofixBlockFixture({artifacts: [rootCauseArtifact]})],
+          }),
+        })}
+        groupId="preview-group"
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Copy as Markdown'}));
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      '# Root Cause\n\nAn unexpected null value reached the user handler.\n\n## Why did this happen?\n\n- The handler accessed the user without checking for null.\n- The upstream lookup can return no user.\n\n## Reproduction Steps\n\n1. Request a user ID that does not exist.'
+    );
+  });
 });

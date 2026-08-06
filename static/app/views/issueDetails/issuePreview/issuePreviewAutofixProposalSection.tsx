@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
@@ -14,6 +14,7 @@ import {
 import {t, tn} from 'sentry/locale';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
 
+import {CopySectionMarkdown} from './copySectionMarkdown';
 import {IssuePreviewSection} from './issuePreviewSection';
 import {RetryableAutofixSection} from './retryableAutofixSection';
 import {WorkingIndicator} from './workingIndicator';
@@ -45,7 +46,14 @@ export function IssuePreviewAutofixProposalSection({
   return (
     <RetryableAutofixSection autofix={autofix} section={section} step="code_changes">
       <IssuePreviewSection aria-label={t('Proposal')} defaultExpanded={defaultExpanded}>
-        <IssuePreviewSection.Title trailingItems={<RetryableAutofixSection.Button />}>
+        <IssuePreviewSection.Title
+          trailingItems={
+            <Fragment>
+              <RetryableAutofixSection.Button />
+              <CopySectionMarkdown section={section} />
+            </Fragment>
+          }
+        >
           {t('Proposal')}
         </IssuePreviewSection.Title>
         <IssuePreviewSection.Summary>
