@@ -256,6 +256,8 @@ def send_and_save_webhook_request(
         org_id = app_platform_event.install.organization_id
         slug = sentry_app.slug_for_metrics
         url = url or sentry_app.webhook_url
+        if not url:
+            return Response()
         lifecycle.add_extras(
             {
                 "org_id": org_id,
@@ -266,7 +268,6 @@ def send_and_save_webhook_request(
             }
         )
 
-        assert url is not None
         try:
             owner_context = organization_service.get_organization_by_id(
                 id=sentry_app.owner_id,
