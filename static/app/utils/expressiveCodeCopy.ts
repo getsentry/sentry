@@ -11,7 +11,7 @@ export function handleExpressiveCodeCopyClick(event: React.MouseEvent<HTMLElemen
   }
 
   const copyButton = event.target.closest<HTMLButtonElement>(
-    '.expressive-code .copy button[data-code]'
+    '.expressive-code button[data-code]'
   );
   if (!copyButton || !event.currentTarget.contains(copyButton)) {
     return;

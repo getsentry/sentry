@@ -7,14 +7,9 @@ function StoryCodeBlock() {
   return (
     <main onClick={handleExpressiveCodeCopyClick}>
       <div className="expressive-code">
-        <div className="copy">
-          <button
-            type="button"
-            data-code={'<Container>\u007F  Content\u007F</Container>'}
-          >
-            Copy
-          </button>
-        </div>
+        <button type="button" data-code={'<Container>\u007F  Content\u007F</Container>'}>
+          Copy
+        </button>
       </div>
     </main>
   );
