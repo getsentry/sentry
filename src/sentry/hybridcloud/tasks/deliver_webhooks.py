@@ -6,7 +6,8 @@ from concurrent.futures import as_completed
 import orjson
 import sentry_sdk
 from django.core.cache import cache
-from django.db.models import Case, CharField, Min, Subquery, Value, When
+from django.db.models import Case, CharField, Subquery, Value, When
+from django.db.models.expressions import RawSQL
 from django.utils import timezone
 from requests import Response
 from requests.models import HTTPError
@@ -324,6 +325,39 @@ def maybe_trigger_drain(mailbox_name: str) -> None:
         _maybe_trigger_drain_lease(mailbox_name)
 
 
+MAILBOX_HEADS_SQL = """\
+WITH RECURSIVE mailbox_heads AS (
+    (
+        SELECT mailbox_name, id
+        FROM hybridcloud_webhookpayload
+        ORDER BY mailbox_name, id
+        LIMIT 1
+    )
+    UNION ALL
+    SELECT next_head.mailbox_name, next_head.id
+    FROM mailbox_heads
+    CROSS JOIN LATERAL (
+        SELECT mailbox_name, id
+        FROM hybridcloud_webhookpayload
+        WHERE mailbox_name > mailbox_heads.mailbox_name
+        ORDER BY mailbox_name, id
+        LIMIT 1
+    ) next_head
+)
+SELECT id FROM mailbox_heads
+"""
+"""
+Loose index scan emulation for `SELECT MIN(id) ... GROUP BY mailbox_name`.
+
+Postgres (through at least 16) cannot skip between distinct values in an index,
+so the plain aggregate walks every entry of the (mailbox_name, id) index —
+including the dead tuples this delete-heavy table accumulates. The recursive
+CTE instead probes the index once per distinct mailbox: the base case grabs the
+first (mailbox_name, id) entry, and each step jumps past the current mailbox to
+the next one's lowest id. See https://wiki.postgresql.org/wiki/Loose_indexscan
+"""
+
+
 @instrumented_task(
     name="sentry.hybridcloud.tasks.deliver_webhooks.schedule_webhook_delivery",
     namespace=hybridcloud_control_tasks,
@@ -342,21 +376,14 @@ def schedule_webhook_delivery() -> None:
     # Se use the replica for any read queries to webhook payload
     WebhookPayloadReplica = WebhookPayload.objects.using_replica()
 
-    # The double call to .values() ensures that the group by includes mailbox_name
-    # but only id_min is selected
-    head_of_line = (
-        WebhookPayloadReplica.all()
-        .values("mailbox_name")
-        .annotate(id_min=Min("id"))
-        .values("id_min")
-    )
+    head_of_line = RawSQL(MAILBOX_HEADS_SQL, [])
 
     # Get any heads that are scheduled to run
     # Use provider field directly, with default priority for null values
     scheduled_mailboxes = (
         WebhookPayloadReplica.filter(
             schedule_for__lte=timezone.now(),
-            id__in=Subquery(head_of_line),
+            id__in=head_of_line,
         )
         # Set priority value based on provider field
         .annotate(
@@ -376,11 +403,12 @@ def schedule_webhook_delivery() -> None:
         .values("id", "mailbox_name")
     )
 
-    metrics.distribution(
-        "hybridcloud.schedule_webhook_delivery.mailbox_count", scheduled_mailboxes.count()
-    )
+    # Capped at BATCH_SIZE: an exact count() would rerun the entire head-of-line
+    # discovery query just for this metric.
+    records = list(scheduled_mailboxes[:BATCH_SIZE])
+    metrics.distribution("hybridcloud.schedule_webhook_delivery.mailbox_count", len(records))
 
-    for record in scheduled_mailboxes[:BATCH_SIZE]:
+    for record in records:
         mailbox_name = record["mailbox_name"]
         if not _use_claim_dispatch(mailbox_name):
             # Lease-mode mailbox (the legacy path): skip anything a push-triggered
