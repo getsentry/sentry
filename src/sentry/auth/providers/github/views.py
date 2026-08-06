@@ -79,31 +79,31 @@ class FetchUser(AuthView):
                 user["email"] = verified_email
                 user["email_verified"] = True
 
-            if not user.get("email"):
-                # No public email and no verified primary. When verified emails are
-                # required there's nothing left to accept; otherwise fall back to
-                # the account's (possibly unverified) primary.
+                if not user.get("email"):
+                    # No public email and no verified primary. When verified emails are
+                    # required there's nothing left to accept; otherwise fall back to
+                    # the account's (possibly unverified) primary.
                 #
                 # NOTE: unclear whether REQUIRE_VERIFIED_EMAIL is meant to gate
                 # returning users' logins at all, vs. only new-account creation.
                 # Leaving this unchanged until we decide.
-                if REQUIRE_VERIFIED_EMAIL:
-                    return pipeline.error(ERR_NO_VERIFIED_PRIMARY_EMAIL)
-                primary = [
-                    e["email"]
-                    for e in emails
-                    if isinstance(e, dict) and e.get("email") and e.get("primary")
-                ]
-                if len(primary) == 0:
-                    return pipeline.error(ERR_NO_PRIMARY_EMAIL)
-                elif len(primary) > 1:
-                    return pipeline.error(ERR_NO_SINGLE_PRIMARY_EMAIL)
-                user["email"] = primary[0]
+                    if REQUIRE_VERIFIED_EMAIL:
+                        return pipeline.error(ERR_NO_VERIFIED_PRIMARY_EMAIL)
+                    primary = [
+                        e["email"]
+                        for e in emails
+                        if isinstance(e, dict) and e.get("email") and e.get("primary")
+                    ]
+                    if len(primary) == 0:
+                        return pipeline.error(ERR_NO_PRIMARY_EMAIL)
+                    elif len(primary) > 1:
+                        return pipeline.error(ERR_NO_SINGLE_PRIMARY_EMAIL)
+                    user["email"] = primary[0]
 
-            # A user hasn't set their name in their Github profile so it isn't
-            # populated in the response
-            if not user.get("name"):
-                user["name"] = _get_name_from_email(user["email"])
+                # A user hasn't set their name in their Github profile so it isn't
+                # populated in the response
+                if not user.get("name"):
+                    user["name"] = _get_name_from_email(user["email"])
 
             pipeline.bind_state("user", user)
 
