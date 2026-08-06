@@ -17,6 +17,8 @@ from sentry.seer.autofix.on_completion_hook import (
     PIPELINE_ORDER,
     STOPPING_POINT_TO_STEP,
     AutofixOnCompletionHook,
+    _group_and_referrer_from_run,
+    _stopping_point_from_run,
 )
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
@@ -27,6 +29,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import AutofixHandoffPoint, SeerAutomationHandoffConfiguration
+from sentry.seer.models.run import SeerRunMilestone, SeerRunMilestoneType
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -246,6 +249,87 @@ class TestAutofixOnCompletionHookHelpers(TestCase):
         )
 
         assert result is None
+
+
+class TestStoppingPointFromRun(TestCase):
+    """The stopping point falls back to the Sentry-side run mirror for runs Seer
+    started without pipeline metadata (the autofix_rca feature)."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group(project=self.project)
+
+    def _create_run(
+        self,
+        seer_run_state_id: int,
+        extras: dict | None = None,
+        source: str = "autofix_rca",
+    ):
+        run = self.create_seer_run(
+            organization=self.organization,
+            type="feature_run",
+            seer_run_state_id=seer_run_state_id,
+        )
+        self.create_seer_agent_run(run=run, source=source, group=self.group, extras=extras or {})
+        return run
+
+    def test_returns_none_when_no_run_exists(self) -> None:
+        assert _stopping_point_from_run(self.organization, 999) is None
+
+    def test_returns_none_when_run_has_no_stopping_point(self) -> None:
+        self._create_run(123)
+        assert _stopping_point_from_run(self.organization, 123) is None
+
+    def test_returns_recorded_stopping_point(self) -> None:
+        self._create_run(123, extras={"stopping_point": AutofixStoppingPoint.CODE_CHANGES.value})
+        assert (
+            _stopping_point_from_run(self.organization, 123)
+            == AutofixStoppingPoint.CODE_CHANGES.value
+        )
+
+    def test_is_scoped_to_the_organization(self) -> None:
+        self._create_run(123, extras={"stopping_point": AutofixStoppingPoint.CODE_CHANGES.value})
+        assert _stopping_point_from_run(self.create_organization(), 123) is None
+
+    def test_stopping_point_ignores_other_feature_runs(self) -> None:
+        self._create_run(
+            123,
+            extras={"stopping_point": AutofixStoppingPoint.CODE_CHANGES.value},
+            source="night_shift",
+        )
+        assert _stopping_point_from_run(self.organization, 123) is None
+
+    def test_group_and_referrer_returns_autofix_rca_context(self) -> None:
+        self._create_run(123, extras={"referrer": AutofixReferrer.WEB.value})
+        assert _group_and_referrer_from_run(self.organization, 123) == (
+            self.group.id,
+            AutofixReferrer.WEB,
+        )
+
+    def test_group_and_referrer_ignores_other_feature_runs(self) -> None:
+        self._create_run(
+            123,
+            extras={"referrer": AutofixReferrer.NIGHT_SHIFT.value},
+            source="night_shift",
+        )
+        assert _group_and_referrer_from_run(self.organization, 123) == (None, None)
+
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
+    def test_state_metadata_takes_precedence_over_the_run_mirror(self, mock_trigger) -> None:
+        """A legacy run carries its own stopping point; the mirror must not override
+        it. Here state says stop at root cause while the mirror says continue."""
+        self._create_run(123, extras={"stopping_point": AutofixStoppingPoint.CODE_CHANGES.value})
+        state = run_state(
+            blocks=[root_cause_memory_block()],
+            metadata={
+                "group_id": self.group.id,
+                "stopping_point": AutofixStoppingPoint.ROOT_CAUSE.value,
+            },
+        )
+
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+
+        mock_trigger.assert_not_called()
 
 
 class TestAutofixOnCompletionHookPipeline(TestCase):
@@ -817,10 +901,11 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
 class AutofixOnCompletionHookTest(TestCase):
     """Test the AutofixOnCompletionHook behavior."""
 
+    @patch("sentry.seer.autofix.on_completion_hook._group_and_referrer_from_run")
     @patch("sentry.seer.autofix.on_completion_hook.fetch_run_status")
     @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
     def test_next_step_not_triggered_when_coding_disabled(
-        self, mock_trigger_autofix, mock_fetch_run_status
+        self, mock_trigger_autofix, mock_fetch_run_status, mock_run_context
     ):
         """Test that next step is not triggered if next step is CODE_CHANGES and sentry:enable_seer_coding is disabled."""
         self.organization.update_option("sentry:enable_seer_coding", False)
@@ -838,6 +923,8 @@ class AutofixOnCompletionHookTest(TestCase):
 
         # Execute the hook
         AutofixOnCompletionHook.execute(self.organization, 123)
+
+        mock_run_context.assert_not_called()
 
         # Verify: trigger_autofix_agent was NOT called (next step blocked)
         mock_trigger_autofix.assert_not_called()
@@ -1179,3 +1266,60 @@ class TestMaybeReactToCompletedIteration(TestCase):
         # :tada: is still added, but the eyes-delete is skipped entirely.
         assert mock_react.call_args.kwargs["reaction"] == "hooray"
         mock_delete_eyes.assert_not_called()
+
+
+class TestAutofixOnCompletionHookMilestones(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+        self.group = self.create_group(project=self.project)
+        self.run_id = 123
+        self.seer_run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=self.run_id
+        )
+
+    def _recorded_milestones(self) -> set[str]:
+        return set(
+            SeerRunMilestone.objects.filter(seer_run=self.seer_run).values_list(
+                "milestone", flat=True
+            )
+        )
+
+    def _run_hook(self, state) -> None:
+        AutofixOnCompletionHook._send_step_webhook(
+            self.organization, self.run_id, state, self.group
+        )
+
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_reconciles_milestones_from_state(self, mock_broadcast):
+        # The hook wires state through to reconcile_milestones; firing twice on the
+        # same state is idempotent, matching webhook redelivery.
+        state = run_state(
+            blocks=[
+                root_cause_memory_block(),
+                solution_memory_block(),
+                code_changes_memory_block(),
+            ]
+        )
+        self._run_hook(state)
+        self._run_hook(state)
+        assert self._recorded_milestones() == {
+            SeerRunMilestoneType.ROOT_CAUSE,
+            SeerRunMilestoneType.SOLUTION,
+            SeerRunMilestoneType.CODE_CHANGES,
+        }
+        assert SeerRunMilestone.objects.filter(seer_run=self.seer_run).count() == 3
+
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_skips_reconcile_when_no_step_completed(self, mock_broadcast):
+        # A block with a reached artifact but no step metadata would derive
+        # ROOT_CAUSE, but the hook returns before reconcile when no step matches.
+        block = MemoryBlock(
+            id="b",
+            message=Message(role="assistant", content="c"),
+            timestamp="2026-02-10T00:00:00Z",
+            artifacts=[Artifact(key="root_cause", data={}, reason="explorer")],
+        )
+        self._run_hook(run_state(blocks=[block]))
+        assert self._recorded_milestones() == set()

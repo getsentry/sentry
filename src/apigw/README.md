@@ -24,10 +24,9 @@ request still pays for the full Django request cycle on control (middleware
 stack, URL resolution) before the proxying even starts, and each in-flight
 proxy holds a worker for its whole duration. A gateway's job is moving bytes
 between sockets — it's I/O bound, with potentially thousands of concurrent
-long-lived requests (file uploads, event payloads, streamed responses). The
-async middleware variant (`src/sentry/hybridcloud/apigateway_async/`) was
-not sufficient either, as it remains bound to Django's request lifecycle and
-to the monolith's runtime.
+long-lived requests (file uploads, event payloads, streamed responses).
+Making that middleware async is not sufficient either: it remains bound to
+Django's request lifecycle and to the monolith's runtime.
 
 `apigw` is instead a thin async service built on
 [emmett55](https://github.com/emmett-framework/emmett55):

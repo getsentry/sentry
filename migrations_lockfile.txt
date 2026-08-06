@@ -9,13 +9,13 @@ ai_monitoring: 0001_create_ai_conversation_metadata
 
 discover: 0001_squashed_0003_discover_json_field
 
-explore: 0010_remove_last_received_from_attribute_context
+explore: 0011_delete_last_received_from_attribute_context
 
 feedback: 0007_cleanup_failed_safe_deletes
 
 flags: 0001_squashed_0004_add_flag_audit_log_provider_column
 
-hybridcloud: 0033_drop_webhookpayload_schedule_for_index
+hybridcloud: 0034_drop_webhookpayload_priority_index
 
 insights: 0001_squashed_0002_backfill_team_starred
 
@@ -33,7 +33,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0030_seer_run_milestone
 
-sentry: 1150_pullrequest_provider_updated_at
+sentry: 1151_pullrequest_activity_log_date_updated_index
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 

@@ -380,13 +380,7 @@ USE_TZ = True
 # so that responses aren't modified after Content-Length is set, or have the
 # response modifying middleware reset the Content-Length header.
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
-APIGW_ASYNC = os.environ.get("SENTRY_APIGW_ASYNC", "").lower() in ("1", "true", "y", "yes")
 APIGW_WARN_REQS = os.environ.get("SENTRY_APIGW_WARN_REQS", "").lower() in ("1", "true", "y", "yes")
-APIGW_MIDDLEWARE = (
-    "sentry.hybridcloud.apigateway_async.middleware.ApiGatewayMiddleware"
-    if APIGW_ASYNC
-    else "sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware"
-)
 MIDDLEWARE: tuple[str, ...] = (
     "csp.middleware.CSPMiddleware",
     "sentry.middleware.health.HealthCheck",
@@ -405,7 +399,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.viewer_context.ViewerContextMiddleware",
     "sentry.middleware.ai_agent.AIAgentMiddleware",
     "sentry.middleware.integrations.IntegrationControlMiddleware",
-    APIGW_MIDDLEWARE,
+    "sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware",
     "sentry.middleware.demo_mode_guard.DemoModeGuardMiddleware",
     "sentry.middleware.customer_domain.CustomerDomainMiddleware",
     "sentry.middleware.sudo.SudoMiddleware",
@@ -1217,6 +1211,12 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "seer.code_review:sentry.pr_metrics.tasks.detect_stale_pull_requests",
         "schedule": crontab("0", "2", "*", "*", "*"),
     },
+    "pr-metrics-sweep-unattributed-activity": {
+        "task": "seer.code_review:sentry.pr_metrics.tasks.sweep_unattributed_pr_activity",
+        # Hourly rather than daily: the sweep has to keep pace with inbound PR
+        # webhooks, and small frequent batches are gentler than one daily surge.
+        "schedule": crontab("20", "*", "*", "*", "*"),
+    },
     "relocation-find-transfer-region": {
         "task": "relocation:sentry.relocation.transfer.find_relocation_transfer_region",
         "schedule": crontab("*/5", "*", "*", "*", "*"),
@@ -1556,7 +1556,7 @@ SENTRY_POST_PROCESS_GROUP_APM_SAMPLING = 1 if DEBUG else 0
 # sample rate for all reprocessing tasks (except for the per-event ones)
 SENTRY_REPROCESSING_APM_SAMPLING = 1 if DEBUG else 0
 
-# sample rate for the ingest-replay-recordings processing (consumer and task)
+# sample rate for the ingest-replay-recordings task
 SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING = 0
 
 # ----

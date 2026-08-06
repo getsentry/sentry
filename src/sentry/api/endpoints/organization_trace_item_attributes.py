@@ -44,9 +44,14 @@ from sentry.api.event_search import translate_escape_sequences
 from sentry.api.paginator import ChainPaginator, GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import MAX_STATS_PERIOD, default_start_end_dates, handle_query_errors
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
 from sentry.apidocs.examples.trace_item_attribute_examples import TraceItemAttributeExamples
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
@@ -94,7 +99,7 @@ from sentry.search.events.constants import (
 from sentry.search.events.filter import _flip_field_sort
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
-from sentry.tagstore.types import TagValue
+from sentry.tagstore.types import TagValue, TagValueSerializerResponse
 from sentry.utils import snuba_rpc
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.cursors import Cursor, CursorResult
@@ -193,6 +198,14 @@ SEARCH_QUERY_PARAM = OpenApiParameter(
     required=False,
     type=str,
     description="Sentry [search syntax](https://docs.sentry.io/concepts/search/) to filter trace items before computing attributes.",
+)
+
+VALUE_SUBSTRING_MATCH_QUERY_PARAM = OpenApiParameter(
+    name="substringMatch",
+    location="query",
+    required=False,
+    type=str,
+    description="Restrict results to attribute values containing this substring.",
 )
 
 EXPAND_QUERY_PARAM = OpenApiParameter(
@@ -1003,15 +1016,53 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         return attributes
 
 
+@extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttributesEndpointBase):
-    def get(self, request: Request, organization: Organization, key: str) -> Response:
+    @extend_schema(
+        operation_id="listOrganizationTraceItemAttributeValues",
+        summary="List Trace Item Attribute Values",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            OpenApiParameter(
+                name="key",
+                location="path",
+                required=True,
+                type=str,
+                description="The attribute key to list values for.",
+            ),
+            DATASET_QUERY_PARAM,
+            ITEM_TYPE_QUERY_PARAM,
+            VALUE_SUBSTRING_MATCH_QUERY_PARAM,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListTraceItemAttributeValuesResponse", list[TagValueSerializerResponse]
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization, key: str
+    ) -> Response[list[TagValueSerializerResponse]] | Response[ValidationErrorResponse]:
+        """
+        List the values seen for a given attribute key on a trace item dataset (spans,
+        logs, trace metrics, etc.), most frequent first.
+        """
         if not self.has_feature(organization, request):
             return Response(status=404)
 
         serializer = OrganizationTraceItemAttributesEndpointSerializer(data=request.GET)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         try:
             snuba_params = self.get_snuba_params(request, organization)

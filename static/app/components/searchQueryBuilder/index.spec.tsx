@@ -42,6 +42,8 @@ import {
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {getHasTag} from 'sentry/utils/tag';
 
+jest.unmock('@tanstack/react-pacer');
+
 const FILTER_KEYS: TagCollection = {
   [FieldKey.AGE]: {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD},
   [FieldKey.ASSIGNED]: {
@@ -1009,6 +1011,10 @@ describe('SearchQueryBuilder', () => {
         });
       });
 
+      afterEach(() => {
+        jest.useRealTimers();
+      });
+
       it('displays recent search queries when query is empty', async () => {
         render(
           <SearchQueryBuilder
@@ -1075,7 +1081,16 @@ describe('SearchQueryBuilder', () => {
 
         await userEvent.click(getLastInput());
 
-        await userEvent.click(await screen.findByRole('option', {name: 'assigned:me'}));
+        const recentSearchOption = await screen.findByRole('option', {
+          name: 'assigned:me',
+        });
+        jest.useFakeTimers();
+        await userEvent.click(recentSearchOption, {delay: null});
+
+        expect(mockCreateRecentSearch).not.toHaveBeenCalled();
+
+        await act(() => jest.advanceTimersByTimeAsync(3000));
+        jest.useRealTimers();
         await waitFor(() => {
           expect(mockOnSearch).toHaveBeenCalledWith('assigned:me', expect.anything());
         });
@@ -1092,6 +1107,40 @@ describe('SearchQueryBuilder', () => {
             data: {query: 'assigned:me', type: SavedSearchType.ISSUE},
           })
         );
+        expect(mockCreateRecentSearch).toHaveBeenCalledTimes(1);
+      });
+
+      it('saves a selected recent search when unmounted during the debounce', async () => {
+        const mockCreateRecentSearch = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/recent-searches/',
+          method: 'POST',
+        });
+        const {unmount} = render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            recentSearches={SavedSearchType.ISSUE}
+            initialQuery=""
+          />
+        );
+
+        await userEvent.click(getLastInput());
+        const recentSearchOption = await screen.findByRole('option', {
+          name: 'assigned:me',
+        });
+        jest.useFakeTimers();
+        await userEvent.click(recentSearchOption, {delay: null});
+
+        expect(mockCreateRecentSearch).not.toHaveBeenCalled();
+
+        act(() => unmount());
+
+        expect(mockCreateRecentSearch).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: {query: 'assigned:me', type: SavedSearchType.ISSUE},
+          })
+        );
+        expect(mockCreateRecentSearch).toHaveBeenCalledTimes(1);
       });
     });
 
@@ -7449,24 +7498,54 @@ describe('SearchQueryBuilder', () => {
         );
 
         await userEvent.click(getLastInput());
-        await userEvent.type(getLastInput(), 'find slow spans{enter}');
+        await userEvent.type(getLastInput(), 'slow spans{enter}');
 
         expect(
           await screen.findByRole('combobox', {
             name: 'Ask Seer with Natural Language',
           })
-        ).toHaveValue('find slow spans ');
+        ).toHaveValue('slow spans ');
         await waitFor(() => {
-          expect(mockAskSeer).toHaveBeenCalledWith('find slow spans', expect.anything());
+          expect(mockAskSeer).toHaveBeenCalledWith('slow spans', expect.anything());
         });
         expect(mockOnSearch).not.toHaveBeenCalled();
 
         await userEvent.click(screen.getByRole('button', {name: 'Close Seer Search'}));
 
-        expect(
-          screen.queryByRole('row', {name: 'find slow spans'})
-        ).not.toBeInTheDocument();
-        expect(screen.queryByDisplayValue('find slow spans')).not.toBeInTheDocument();
+        expect(screen.queryByRole('row', {name: 'slow spans'})).not.toBeInTheDocument();
+        expect(screen.queryByDisplayValue('slow spans')).not.toBeInTheDocument();
+      });
+
+      it('submits a single word as a regular search when defaulting to ask seer', async () => {
+        const mockOnSearch = jest.fn();
+        const mockAskSeer = makeMockAskSeer();
+        const props = {
+          ...defaultProps,
+          defaultToAskSeerOnFreeTextSearch: true,
+          enableAISearch: true,
+          onSearch: mockOnSearch,
+        };
+
+        render(
+          <SearchQueryBuilderProvider {...props}>
+            <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
+              <SearchQueryBuilder {...props} />
+            </AskSeerAutoSubmitTestComponent>
+          </SearchQueryBuilderProvider>,
+          {
+            organization: {
+              features: ['gen-ai-features', 'gen-ai-default-to-ask-seer'],
+            },
+          }
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.type(getLastInput(), 'error{enter}');
+
+        await waitFor(() => {
+          expect(mockOnSearch).toHaveBeenCalledWith('error', expect.anything());
+        });
+        expect(mockAskSeer).not.toHaveBeenCalled();
       });
 
       it('does not duplicate committed free text when defaulting to ask seer', async () => {

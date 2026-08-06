@@ -1,4 +1,3 @@
-import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {waitFor} from 'sentry-test/reactTestingLibrary';
@@ -76,7 +75,7 @@ describe('incremental trace fetch', () => {
       filters: {},
       organization,
       rerender: () => {},
-      urlParams: {} as Location['query'],
+      urlParams: {},
       type: 'non-eap',
       meta: null,
     });
@@ -150,7 +149,7 @@ describe('incremental trace fetch', () => {
       filters: {},
       organization,
       rerender: () => {},
-      urlParams: {} as Location['query'],
+      urlParams: {},
       type: 'non-eap',
       meta: null,
     });
@@ -237,7 +236,7 @@ describe('incremental trace fetch', () => {
       filters: {},
       organization,
       rerender: () => {},
-      urlParams: {} as Location['query'],
+      urlParams: {},
       type: 'eap',
       meta: null,
     });
@@ -317,7 +316,7 @@ describe('incremental trace fetch', () => {
       filters: {},
       organization,
       rerender: () => {},
-      urlParams: {} as Location['query'],
+      urlParams: {},
       type: 'eap',
       meta: null,
     });
