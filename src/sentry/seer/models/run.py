@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import Any, TypedDict
 from uuid import uuid4
 
 from django.db import models
@@ -134,6 +134,11 @@ class SeerRunPullRequest(DefaultFieldsModel):
     __repr__ = sane_repr("seer_run_id", "pull_request_id")
 
 
+class SeerRunMilestoneExtras(TypedDict, total=False):
+    root_cause_artifact: dict[str, Any]
+    solution_artifact: dict[str, Any]
+
+
 @cell_silo_model
 class SeerRunMilestone(DefaultFieldsModel):
     """Records the progress milestones a run reached.
@@ -151,6 +156,7 @@ class SeerRunMilestone(DefaultFieldsModel):
         "seer.SeerRun", on_delete=models.CASCADE, related_name="milestones"
     )
     milestone = models.CharField(max_length=256, choices=SeerRunMilestoneType.choices)
+    extras = models.JSONField(db_default={}, default=dict)
 
     class Meta:
         app_label = "seer"

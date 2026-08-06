@@ -137,6 +137,65 @@ class MilestonesFromStateTest(TestCase):
         state = _state(repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo")})
         assert SeerRunMilestoneType.HAS_PULL_REQUEST not in milestones_from_state(state)
 
+    def test_root_cause_extras_hold_raw_artifact_data(self) -> None:
+        block = MemoryBlock(
+            id="b",
+            message=Message(role="assistant", content="c"),
+            timestamp="2026-02-10T00:00:00Z",
+            artifacts=[
+                Artifact(key="root_cause", data={"one_line_description": "boom"}, reason="r")
+            ],
+        )
+        result = milestones_from_state(_state(blocks=[block]))
+        assert result[SeerRunMilestoneType.ROOT_CAUSE] == {
+            "root_cause_artifact": {"one_line_description": "boom"}
+        }
+
+    def test_solution_extras_hold_raw_artifact_data(self) -> None:
+        block = MemoryBlock(
+            id="b",
+            message=Message(role="assistant", content="c"),
+            timestamp="2026-02-10T00:00:00Z",
+            artifacts=[Artifact(key="solution", data={"one_line_summary": "fix it"}, reason="r")],
+        )
+        result = milestones_from_state(_state(blocks=[block]))
+        assert result[SeerRunMilestoneType.SOLUTION] == {
+            "solution_artifact": {"one_line_summary": "fix it"}
+        }
+
+    def test_artifact_with_none_data_yields_empty_extras(self) -> None:
+        block = MemoryBlock(
+            id="b",
+            message=Message(role="assistant", content="c"),
+            timestamp="2026-02-10T00:00:00Z",
+            artifacts=[Artifact(key="root_cause", data=None, reason="r")],
+        )
+        result = milestones_from_state(_state(blocks=[block]))
+        assert result[SeerRunMilestoneType.ROOT_CAUSE] == {}
+
+    def test_non_artifact_milestones_have_empty_extras(self) -> None:
+        state = _state(coding_agents={"agent-1": _coding_agent(pr_number=7, pr_url="url")})
+        result = milestones_from_state(state)
+        assert result[SeerRunMilestoneType.HAS_PULL_REQUEST] == {}
+
+    def test_extra_unexpected_artifact_field_stored_verbatim(self) -> None:
+        block = MemoryBlock(
+            id="b",
+            message=Message(role="assistant", content="c"),
+            timestamp="2026-02-10T00:00:00Z",
+            artifacts=[
+                Artifact(
+                    key="root_cause",
+                    data={"one_line_description": "x", "new_field": 1},
+                    reason="r",
+                )
+            ],
+        )
+        result = milestones_from_state(_state(blocks=[block]))
+        assert result[SeerRunMilestoneType.ROOT_CAUSE] == {
+            "root_cause_artifact": {"one_line_description": "x", "new_field": 1}
+        }
+
 
 class ReconcileMilestonesTest(TestCase):
     def setUp(self) -> None:
@@ -149,6 +208,30 @@ class ReconcileMilestonesTest(TestCase):
                 "milestone", flat=True
             )
         )
+
+    def _root_cause_state(self, description: str) -> SeerRunState:
+        block = MemoryBlock(
+            id="b",
+            message=Message(role="assistant", content="c"),
+            timestamp="2026-02-10T00:00:00Z",
+            artifacts=[
+                Artifact(key="root_cause", data={"one_line_description": description}, reason="r")
+            ],
+        )
+        return _state(blocks=[block])
+
+    def _extras(self, milestone: str) -> dict:
+        return SeerRunMilestone.objects.get(seer_run=self.seer_run, milestone=milestone).extras
+
+    def test_reconcile_writes_then_refreshes_extras_on_rerun(self) -> None:
+        reconcile_milestones(self.seer_run, self._root_cause_state("first"))
+        assert self._extras(SeerRunMilestoneType.ROOT_CAUSE) == {
+            "root_cause_artifact": {"one_line_description": "first"}
+        }
+        reconcile_milestones(self.seer_run, self._root_cause_state("second"))
+        assert self._extras(SeerRunMilestoneType.ROOT_CAUSE) == {
+            "root_cause_artifact": {"one_line_description": "second"}
+        }
 
     def test_reconciles_managed_set_to_state(self) -> None:
         reconcile_milestones(self.seer_run, _state_reaching(set(SEER_STATE_MILESTONES)))
