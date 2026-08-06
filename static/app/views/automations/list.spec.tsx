@@ -4,7 +4,7 @@ import {
   AutomationFixture,
 } from 'sentry-fixture/automations';
 import {
-  IssueStreamDetectorFixture,
+  AllProjectsDetectorFixture,
   MetricDetectorFixture,
 } from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -146,11 +146,7 @@ describe('AutomationsList', () => {
   });
 
   it('shows all projects for an all-projects detector', async () => {
-    const allProjectsDetector = IssueStreamDetectorFixture({
-      id: '10',
-      projectId: null,
-      config: {organization_id: 1},
-    });
+    const allProjectsDetector = AllProjectsDetectorFixture({id: '10'});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
       body: [AutomationFixture({id: '100', detectorIds: [allProjectsDetector.id]})],

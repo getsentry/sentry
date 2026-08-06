@@ -12,7 +12,7 @@ export function useCanEditDetectorWorkflowConnections({
   projectId: Detector['projectId'];
 }) {
   const organization = useOrganization();
-  const project = useProjectFromId({project_id: projectId});
+  const project = useProjectFromId({project_id: projectId ?? undefined});
   if (!projectId) {
     // Workflows connected to all project detector do not allow alerts:write updates.
     return hasEveryAccess(['org:write'], {organization});
@@ -32,7 +32,7 @@ export function useCanEditDetector({
   projectId: Detector['projectId'];
 }) {
   const organization = useOrganization();
-  const project = useProjectFromId({project_id: projectId});
+  const project = useProjectFromId({project_id: projectId ?? undefined});
 
   if (!project) {
     return false;

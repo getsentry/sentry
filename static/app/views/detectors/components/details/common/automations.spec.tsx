@@ -1,5 +1,6 @@
 import {AutomationFixture} from 'sentry-fixture/automations';
 import {
+  AllProjectsDetectorFixture,
   IssueStreamDetectorFixture,
   UptimeDetectorFixture,
 } from 'sentry-fixture/detectors';
@@ -429,7 +430,7 @@ describe('DetectorDetailsAutomations', () => {
 
   describe('permissions', () => {
     it('allows org:write users to edit connections for a detector without a project', async () => {
-      const detector = IssueStreamDetectorFixture({projectId: null, workflowIds: []});
+      const detector = AllProjectsDetectorFixture({workflowIds: []});
 
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/workflows/',

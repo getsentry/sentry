@@ -127,7 +127,7 @@ interface UptimeDetectorConfig {
   recoveryThreshold: number;
 }
 
-interface IssueStreamDetectorConfig {
+interface AllProjectsDetectorConfig {
   organizationId: number;
 }
 
@@ -170,10 +170,14 @@ export interface ErrorDetector extends BaseDetector {
   // TODO: Add error detector type fields
   readonly type: 'error';
 }
+export interface IssueStreamDetector extends BaseDetector {
+  // TODO: Add issue stream detector type fields
+  readonly type: 'issue_stream';
+}
 
-export interface IssueStreamDetector extends Omit<BaseDetector, 'projectId'> {
-  config: IssueStreamDetectorConfig | null;
-  projectId: string | null;
+export interface AllProjectsDetector extends Omit<BaseDetector, 'projectId'> {
+  config: AllProjectsDetectorConfig;
+  projectId: null;
   readonly type: 'issue_stream';
 }
 
@@ -198,6 +202,7 @@ export type Detector =
   | CronDetector
   | ErrorDetector
   | IssueStreamDetector
+  | AllProjectsDetector
   | PreprodDetector;
 
 interface UpdateConditionGroupPayload {
@@ -230,7 +235,7 @@ interface UpdateUptimeDataSourcePayload {
 export interface BaseDetectorUpdatePayload {
   name: string;
   owner: string | null;
-  projectId: string;
+  projectId: Detector['projectId'];
   type: Detector['type'];
   workflowIds: string[];
   description?: string | null;

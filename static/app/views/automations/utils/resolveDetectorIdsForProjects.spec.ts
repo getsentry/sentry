@@ -1,4 +1,7 @@
-import {IssueStreamDetectorFixture} from 'sentry-fixture/detectors';
+import {
+  AllProjectsDetectorFixture,
+  IssueStreamDetectorFixture,
+} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
@@ -13,10 +16,9 @@ describe('resolveDetectorIdsForProjects', () => {
 
   it('resolves the all-projects detector', async () => {
     const organization = OrganizationFixture();
-    const allProjectsDetector = IssueStreamDetectorFixture({
+    const allProjectsDetector = AllProjectsDetectorFixture({
       id: '10',
-      projectId: null,
-      config: {organization_id: Number(organization.id)},
+      config: {organizationId: Number(organization.id)},
     });
     const formData: AutomationFormData = {
       allProjects: true,

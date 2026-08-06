@@ -1,4 +1,5 @@
 import {
+  AllProjectsDetectorFixture,
   IssueStreamDetectorFixture,
   MetricDetectorFixture,
 } from 'sentry-fixture/detectors';
@@ -67,6 +68,28 @@ describe('EditConnectedMonitors', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('radio', {name: 'Alert on specific monitors'})
+    ).toBeInTheDocument();
+  });
+
+  it('disables the all projects option with a message when the user cannot edit', async () => {
+    render(<EditConnectedMonitors connectedIds={[]} setConnectedIds={jest.fn()} />, {
+      organization: OrganizationFixture({
+        features: ['workflow-engine-all-projects-detector'],
+        access: [],
+      }),
+    });
+
+    const allProjectsRadio = await screen.findByRole('radio', {
+      name: 'Alert on all issues in all projects',
+    });
+
+    expect(allProjectsRadio).toBeDisabled();
+
+    await userEvent.hover(allProjectsRadio);
+    expect(
+      await screen.findByText(
+        'Only organization owners and managers can create global issue monitors.'
+      )
     ).toBeInTheDocument();
   });
 
@@ -223,11 +246,7 @@ describe('EditConnectedMonitors', () => {
   });
 
   it('shows all projects mode when connected to the all-projects detector', async () => {
-    const allProjectsDetector = IssueStreamDetectorFixture({
-      id: '101',
-      projectId: null,
-      config: {organization_id: 1},
-    });
+    const allProjectsDetector = AllProjectsDetectorFixture({id: '101'});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/',
       method: 'GET',

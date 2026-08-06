@@ -30,6 +30,7 @@ import {useConnectedDetectors} from 'sentry/views/automations/hooks/useConnected
 import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
 import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
+import {useCanEditDetectorWorkflowConnections} from 'sentry/views/detectors/utils/useCanEditDetector';
 
 const PROJECT_GROUPS = [
   {key: 'member', label: t('My Projects')},
@@ -335,12 +336,23 @@ function EditConnectedMonitorsContent({
     [setConnectedIds, errorContext]
   );
 
+  const canEditAllProjects = useCanEditDetectorWorkflowConnections({projectId: null});
+
   const monitorModeChoices: Array<RadioOption<MonitorMode>> = [
     ['project', t('Alert on all issues in selected projects')],
     ['specific', t('Alert on specific monitors')],
   ];
+
+  const disabledChoices: Array<[MonitorMode, React.ReactNode?]> = [];
   if (organization.features.includes('workflow-engine-all-projects-detector')) {
     monitorModeChoices.push(['allProjects', t('Alert on all issues in all projects')]);
+
+    if (!canEditAllProjects) {
+      disabledChoices.push([
+        'allProjects',
+        t('Only organization owners and managers can create global issue monitors.'),
+      ]);
+    }
   }
 
   return (
@@ -356,6 +368,7 @@ function EditConnectedMonitorsContent({
             label={t('Connected monitors mode')}
             value={monitorMode}
             choices={monitorModeChoices}
+            disabledChoices={disabledChoices}
             onChange={handleModeChange}
           />
           {monitorMode === 'project' ? (
