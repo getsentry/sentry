@@ -40,11 +40,16 @@ PLATFORMS_WITH_STABLE_TYPE_NAMES = frozenset(
 # tells us the type is absent — not that it differs from the other side.
 GENERIC_TYPE_PLACEHOLDER = "Error"
 
-# Cocoa app-hang types are built by the SDK from two independent dimensions:
+# The app-hang types the Cocoa SDK can produce (see `SentryAppHangTypeMapper`):
 #
-#   ("Fatal " | "") + "App Hang" + (" Fully Blocked" | " Non Fully Blocked")
+#   Fatal App Hang Fully Blocked
+#   Fatal App Hang Non Fully Blocked
+#   App Hang Fully Blocked
+#   App Hang Non Fully Blocked
+#   App Hanging          (older SDKs, which can't tell the two blocked kinds apart)
 #
-# Older SDK versions also emit "App Hanging".
+# Note that non-fatal is spelled as the absence of the `Fatal ` prefix; the `Non ` in the list above
+# belongs to the trailing blocked dimension, not to fatality.
 _APP_HANG_RE = re.compile(r"^(?P<fatal>fatal\s+)?app\s+hang(ing)?\b", re.IGNORECASE)
 
 
