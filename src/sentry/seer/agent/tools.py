@@ -2,7 +2,7 @@ import logging
 import time
 import uuid
 from datetime import UTC, datetime, timedelta, timezone
-from typing import Any, Literal, TypedDict, cast, get_args
+from typing import Any, Literal, TypedDict, cast
 
 from django.core.exceptions import BadRequest
 from django.db import models
@@ -26,7 +26,7 @@ from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.issues.formatting.formatter import Format
 from sentry.issues.formatting.limits import LIMITS_DEFAULT, LIMITS_LOW
-from sentry.issues.formatting.mixin import FORMATTER_FEATURE
+from sentry.issues.formatting.mixin import FORMATTER_FEATURE, VALID_FORMATS
 from sentry.issues.formatting.sections import (
     EVENT_SECTIONS,
     breadcrumbs_section,
@@ -2021,7 +2021,7 @@ def get_event_details(
 
     # `format` arrives as an unvalidated RPC argument. Reject unknown values alongside the other
     # argument checks, so a bad request is a 400 whatever the lookup finds or the rollout says.
-    if format is not None and format not in get_args(Format):
+    if format is not None and format not in VALID_FORMATS:
         raise ParseError(f"Unsupported format: {format!r}")
 
     organization = Organization.objects.get(id=organization_id)
