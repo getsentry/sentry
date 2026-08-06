@@ -487,11 +487,10 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
         raw_pattern=r"""
             # Like \b, but with underscores counting as wordbreak characters
             (?<![a-zA-Z0-9])
-            # Lookaheads guaranteeing at least one letter and one number. Bounded to match max
-            # first-part length.
+            # Lookaheads guaranteeing at least one letter and one number in the overall match
             (
-                (?= [a-zA-Z0-9\-]{0,125} [a-zA-Z])
-                (?= [a-zA-Z0-9\-]{0,125} \d)
+                (?= [a-zA-Z0-9\-]* [a-zA-Z])
+                (?= [a-zA-Z0-9\-]* \d)
             )
             # First part, containing some combination of letters and numbers. The length is capped
             # based on the fact that the no-dash pattern only matches strings up to 128 characters.
