@@ -370,7 +370,7 @@ class CreateDebugFileTest(APITestCase):
         )
 
         with (
-            patch("sentry.models.debugfile._find_existing_dif", return_value=None),
+            patch("sentry.models.debugfile.find_existing_dif", return_value=None),
             pytest.raises(TypeError, match="unknown dif type 'unknown'"),
         ):
             create_dif_from_id(MagicMock(), meta, fileobj=BytesIO(b"debug symbols"))

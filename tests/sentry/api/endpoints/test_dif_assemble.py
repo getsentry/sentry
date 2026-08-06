@@ -485,10 +485,7 @@ class DifAssembleProguardCloneBackendTransitionTest(APITestCase):
         assert second_dif.storage_path != first_dif.storage_path
         assert second_dif.get_file().read() == file_contents
 
-    @patch("sentry.api.endpoints.debug_files.upload_dif_to_objectstore")
-    def test_clone_objectstore_source_cleans_up_after_database_error(
-        self, upload: MagicMock
-    ) -> None:
+    def test_clone_objectstore_source_cleans_up_after_database_error(self) -> None:
         file_contents = b"proguard mapping"
         checksum = sha1(file_contents).hexdigest()
         blob = FileBlob.from_file_with_organization(ContentFile(file_contents), self.organization)
@@ -501,9 +498,8 @@ class DifAssembleProguardCloneBackendTransitionTest(APITestCase):
             debug_id="00000000-0000-0000-0000-000000000000",
         )
         source_fileobj = MagicMock(spec=["read", "close"])
-        source_fileobj.read.side_effect = [file_contents, b""]
         objectstore_session = MagicMock()
-        upload.return_value = "cloned-storage-path"
+        objectstore_session.put.return_value = "cloned-storage-path"
 
         with (
             patch.object(source_dif, "get_file", return_value=source_fileobj),
@@ -521,4 +517,10 @@ class DifAssembleProguardCloneBackendTransitionTest(APITestCase):
                 True,
             )
 
+        objectstore_session.put.assert_called_once_with(
+            source_fileobj,
+            content_type=source_dif.get_content_type(),
+            filename="11111111-1111-1111-1111-111111111111.txt",
+            compression="none",
+        )
         objectstore_session.delete.assert_called_once_with("cloned-storage-path")
