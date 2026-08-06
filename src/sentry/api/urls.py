@@ -294,6 +294,8 @@ from sentry.integrations.api.endpoints.organization_repository_settings import (
     OrganizationRepositorySettingsEndpoint,
 )
 from sentry.investigations.endpoints.organization_investigations import (
+    OrganizationBreachedMetricInvestigationLaunchEndpoint,
+    OrganizationBreachedMetricInvestigationStatusEndpoint,
     OrganizationInvestigationBlockDetailsEndpoint,
     OrganizationInvestigationBlockExecuteEndpoint,
     OrganizationInvestigationBlockExecutionEndpoint,
@@ -2386,6 +2388,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-investigations",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/breached-metric/status/$",
+        OrganizationBreachedMetricInvestigationStatusEndpoint.as_view(),
+        name="sentry-api-0-organization-breached-metric-investigation-status",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/breached-metric/launch/$",
+        OrganizationBreachedMetricInvestigationLaunchEndpoint.as_view(),
+        name="sentry-api-0-organization-breached-metric-investigation-launch",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/$",
         OrganizationInvestigationDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-details",
@@ -3737,14 +3749,14 @@ INTERNAL_URLS = [
     ),
     # Cell routing endpoints
     re_path(
-        r"^org-block-mappings/$",
+        r"^org-cell-mappings/$",
         OrgCellMappingsEndpoint.as_view(),
-        name="sentry-api-0-org-block-mappings",
+        name="sentry-api-0-org-cell-mappings",
     ),
     re_path(
-        r"^projectkey-block-mappings/$",
+        r"^projectkey-cell-mappings/$",
         ProjectKeyCellMappingsEndpoint.as_view(),
-        name="sentry-api-0-projectkey-block-mappings",
+        name="sentry-api-0-projectkey-cell-mappings",
     ),
     *preprod_urls.preprod_internal_urlpatterns,
     *notification_platform_urls.internal_urlpatterns,
