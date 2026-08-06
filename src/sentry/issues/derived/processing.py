@@ -545,6 +545,13 @@ def invalidate_group_derived_data(
     bulk regeneration; ``soft=False`` deletes the row so readers cannot
     observe pre-mutation state.
 
+    Under ``soft=True``, if no row exists for the group at all, one is
+    inserted with ``pipeline_hash=None``. That row's other fields are just
+    defaults — no more accurate than the implicit defaults readers would use
+    for an absent row — but the null hash is an explicit "known stale" marker
+    that lets bookkeeping and healing code treat "null or stale pipeline_hash"
+    uniformly as "needs regen".
+
     If *trigger_regenerate* is True (default), schedules a background task
     to bring the row up to date. Pass False in bulk contexts that will
     drive regeneration themselves.
@@ -567,8 +574,37 @@ def invalidate_group_derived_data(
         affected, _ = qs.delete()
 
     if not affected:
-        # Pure append (or nothing to invalidate): a normal drain will pick
-        # up any new entries.
+        # Either nothing exists yet, or a row exists but its cursor is already
+        # past the affected point (a pure append relative to that row).
+        # Distinguish the two: for a soft invalidation with no existing row,
+        # insert one with pipeline_hash=None so "null or stale pipeline_hash"
+        # is a reliable "needs regen" signal for bulk regeneration/healing.
+        row_exists = GroupDerivedData.objects.filter(group_id=group_id).exists()
+        if soft and not row_exists:
+            # Race-safe: if a concurrent writer just inserted a fully-generated
+            # row, the unique group_id constraint makes this a no-op and we
+            # fall through to the pure-append branch.
+            _, created = GroupDerivedData.objects.get_or_create(
+                group_id=group_id, defaults={"pipeline_hash": None}
+            )
+            if created:
+                logger.info(
+                    "issues.derived.invalidated",
+                    extra={
+                        "group_id": group_id,
+                        "cursor_date": str(cursor[0]) if cursor else None,
+                        "cursor_id": cursor[1] if cursor else None,
+                        "soft": True,
+                        "trigger_regenerate": trigger_regenerate,
+                        "inserted": True,
+                    },
+                )
+                if trigger_regenerate:
+                    generate_group_derived_data.delay(group_id)
+                return
+
+        # Pure append (or nothing to invalidate under soft=False): a normal
+        # drain will pick up any new entries.
         if trigger_regenerate:
             process_group_log_task.delay(group_id)
         return
