@@ -1351,113 +1351,124 @@ export default typescript.config([
         {
           default: 'disallow',
           message: '{{from.type}} is not allowed to import {{to.type}}',
-          rules: [
+          policies: [
             // --- figma code connect ---
             {
-              from: [{type: 'figma-code-connect'}],
-              allow: [{to: {type: 'core*'}}],
+              from: [{element: {type: 'figma-code-connect'}}],
+              allow: [{to: {element: {type: 'core*'}}}],
             },
             {
-              from: [{type: 'sentry*'}],
-              allow: [{to: {type: 'core*'}}, {to: {type: 'sentry*'}}],
-            },
-            {
-              from: [{type: 'getsentry*'}],
+              from: [{element: {type: 'sentry*'}}],
               allow: [
-                {to: {type: 'core*'}},
-                {to: {type: 'getsentry*'}},
-                {to: {type: 'sentry*'}},
+                {to: {element: {type: 'core*'}}},
+                {to: {element: {type: 'sentry*'}}},
               ],
             },
             {
-              from: [{type: 'gsAdmin*'}],
-              disallow: [{to: {type: 'sentry-locale'}}],
+              from: [{element: {type: 'getsentry*'}}],
               allow: [
-                {to: {type: 'core*'}},
-                {to: {type: 'gsAdmin*'}},
-                {to: {type: 'sentry*'}},
-                {to: {type: 'getsentry*'}},
+                {to: {element: {type: 'core*'}}},
+                {to: {element: {type: 'getsentry*'}}},
+                {to: {element: {type: 'sentry*'}}},
               ],
             },
             {
-              from: [{type: 'test-sentry'}],
+              from: [{element: {type: 'gsAdmin*'}}],
+              disallow: [{to: {element: {type: 'sentry-locale'}}}],
               allow: [
-                {to: {type: 'test-sentry'}},
-                {to: {type: 'test'}},
-                {to: {type: 'core*'}},
-                {to: {type: 'sentry*'}},
+                {to: {element: {type: 'core*'}}},
+                {to: {element: {type: 'gsAdmin*'}}},
+                {to: {element: {type: 'sentry*'}}},
+                {to: {element: {type: 'getsentry*'}}},
+              ],
+            },
+            {
+              from: [{element: {type: 'test-sentry'}}],
+              allow: [
+                {to: {element: {type: 'test-sentry'}}},
+                {to: {element: {type: 'test'}}},
+                {to: {element: {type: 'core*'}}},
+                {to: {element: {type: 'sentry*'}}},
               ],
             },
             {
               // todo does test-gesentry need test-sentry?
-              from: [{type: 'test-getsentry'}],
+              from: [{element: {type: 'test-getsentry'}}],
               allow: [
-                {to: {type: 'test-getsentry'}},
-                {to: {type: 'test-sentry'}},
-                {to: {type: 'test'}},
-                {to: {type: 'core*'}},
-                {to: {type: 'getsentry*'}},
-                {to: {type: 'sentry*'}},
+                {to: {element: {type: 'test-getsentry'}}},
+                {to: {element: {type: 'test-sentry'}}},
+                {to: {element: {type: 'test'}}},
+                {to: {element: {type: 'core*'}}},
+                {to: {element: {type: 'getsentry*'}}},
+                {to: {element: {type: 'sentry*'}}},
               ],
             },
             {
-              from: [{type: 'test-gsAdmin'}],
+              from: [{element: {type: 'test-gsAdmin'}}],
               allow: [
-                {to: {type: 'test-gsAdmin'}},
-                {to: {type: 'test-getsentry'}},
-                {to: {type: 'test-sentry'}},
-                {to: {type: 'test'}},
-                {to: {type: 'core*'}},
-                {to: {type: 'gsAdmin*'}},
-                {to: {type: 'sentry*'}},
-                {to: {type: 'getsentry*'}},
+                {to: {element: {type: 'test-gsAdmin'}}},
+                {to: {element: {type: 'test-getsentry'}}},
+                {to: {element: {type: 'test-sentry'}}},
+                {to: {element: {type: 'test'}}},
+                {to: {element: {type: 'core*'}}},
+                {to: {element: {type: 'gsAdmin*'}}},
+                {to: {element: {type: 'sentry*'}}},
+                {to: {element: {type: 'getsentry*'}}},
               ],
             },
             {
-              from: [{type: 'test'}],
+              from: [{element: {type: 'test'}}],
               allow: [
-                {to: {type: 'test'}},
-                {to: {type: 'test-sentry'}},
-                {to: {type: 'sentry*'}},
+                {to: {element: {type: 'test'}}},
+                {to: {element: {type: 'test-sentry'}}},
+                {to: {element: {type: 'sentry*'}}},
               ],
             },
             {
-              from: [{type: 'configs'}],
-              allow: [{to: {type: 'configs'}}, {to: {type: 'build-utils'}}],
+              from: [{element: {type: 'configs'}}],
+              allow: [
+                {to: {element: {type: 'configs'}}},
+                {to: {element: {type: 'build-utils'}}},
+              ],
             },
             // --- stories ---
             {
-              from: [{type: 'story-files'}, {type: 'story-book'}],
+              from: [{element: {type: 'story-files'}}, {element: {type: 'story-book'}}],
               allow: [
-                {to: {type: 'core*'}},
-                {to: {type: 'sentry*'}},
-                {to: {type: 'story-book'}},
+                {to: {element: {type: 'core*'}}},
+                {to: {element: {type: 'sentry*'}}},
+                {to: {element: {type: 'story-book'}}},
               ],
             },
             // --- debug tools (e.g. notifications) ---
             {
-              from: [{type: 'debug-tools'}],
+              from: [{element: {type: 'debug-tools'}}],
               allow: [
-                {to: {type: 'core*'}},
-                {to: {type: 'sentry*'}},
-                {to: {type: 'debug-tools'}},
+                {to: {element: {type: 'core*'}}},
+                {to: {element: {type: 'sentry*'}}},
+                {to: {element: {type: 'debug-tools'}}},
               ],
             },
             // --- core ---
             // todo: sentry* shouldn't be allowed
             {
-              from: [{type: 'core'}],
-              allow: [{to: {type: 'core*'}}, {to: {type: 'sentry*'}}],
+              from: [{element: {type: 'core'}}],
+              allow: [
+                {to: {element: {type: 'core*'}}},
+                {to: {element: {type: 'sentry*'}}},
+              ],
             },
             // --- core entry points (enforce isolation) ---
             {
               to: {
-                type: 'core',
-                internalPath:
-                  '!(*.{ts,tsx}|*/index.{ts,tsx}|**/*.png|**/__stories__/*.{ts,tsx})',
+                element: {
+                  type: 'core',
+                  fileInternalPath:
+                    '!(*.{ts,tsx}|*/index.{ts,tsx}|**/*.png|**/__stories__/*.{ts,tsx})',
+                },
               },
               disallow: {
-                from: {type: '*'},
+                from: {element: {type: '*'}},
               },
             },
           ],
