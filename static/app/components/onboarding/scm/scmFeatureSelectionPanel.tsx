@@ -1,8 +1,8 @@
-import {Fragment, type ReactNode, useCallback, useMemo} from 'react';
+import {type ReactNode, useCallback, useMemo} from 'react';
 import {motion} from 'framer-motion';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -19,6 +19,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {type ScmAnalyticsFlow, scmFlowVariantParams} from './scmAnalyticsFlow';
+import {ScmCollapsibleReveal} from './scmCollapsibleReveal';
 import {ScmFeatureInfoCards} from './scmFeatureInfoCards';
 import {ScmFeatureSelectionCards} from './scmFeatureSelectionCards';
 import {
@@ -40,9 +41,10 @@ interface ScmFeatureSelectionPanelProps {
   selectedFeatures: ProductSolution[] | undefined;
   selectedPlatform: OnboardingSelectedSDK | undefined;
   selectedRepository: Repository | undefined;
-  // Optional element rendered as a sibling after the panel content (e.g. a
-  // divider from the host). Dropped together with the panel when there is
-  // nothing to show, so the host never strands an orphaned divider.
+  // Optional element rendered after the panel content (e.g. a divider from the
+  // host). Lives inside the panel's reveal, so it is dropped — and tweens away
+  // — together with the panel when there is nothing to show, and the host never
+  // strands an orphaned divider.
   trailing?: ReactNode;
 }
 
@@ -168,81 +170,98 @@ export function ScmFeatureSelectionPanel({
     ]
   );
 
-  // Hide the whole section when a resolved platform has no configurable
+  const hasFeatureCards = featureMode !== 'none';
+
+  // Show the whole section unless a resolved platform has no configurable
   // products. Before a platform is chosen (no resolved key), keep it visible in
   // project creation for the select-a-platform prompt; onboarding hides both.
-  if (featureMode === 'none' && (isOnboarding || !!currentPlatformKey)) {
-    return null;
-  }
+  // Expressed as a flag rather than an early `return null` so the reveal below
+  // stays mounted and can tween the section in and out. AnimatePresence's
+  // `initial={false}` still renders the settled state on first mount, so a page
+  // load with a platform already resolved does not animate.
+  const showSection = hasFeatureCards || (!isOnboarding && !currentPlatformKey);
 
   return (
-    <Fragment>
-      <MotionStack layout="position" width="100%">
-        <Stack
-          gap={isOnboarding ? '2xl' : 'lg'}
-          paddingTop={isOnboarding ? 'xs' : undefined}
-        >
-          {isOnboarding ? (
-            <Flex
-              padding="lg"
-              background="secondary"
-              border="secondary"
-              radius="md"
-              gap="lg"
-            >
-              <IconBusiness size="lg" variant="accent" />
-              <Text size="md" density="comfortable">
-                {tct(
-                  'You’ve got [bold:unlimited volume for 14 days] to try out everything. After that, free plan volumes apply ⋅ No credit card required',
-                  {
-                    bold: (
-                      <Text as="span" bold variant="accent">
-                        {null}
-                      </Text>
-                    ),
-                  }
+    <ScmCollapsibleReveal open={showSection}>
+      {/* The panel and the host's trailing divider are a single reveal child
+          now, so the gap the host's section Stack used to put between them
+          lives here. Only project creation passes `trailing`. */}
+      <Stack gap="2xl" width="100%">
+        <MotionStack layout="position" width="100%">
+          {/* gap="0" because the spacing above the cards has to tween with
+              them: a flex gap would snap in at full size while the revealed
+              height is still 0, jumping the layout by that much. The cards own
+              it as padding inside the reveal instead. */}
+          <Stack gap="0" paddingTop={isOnboarding ? 'xs' : undefined}>
+            {isOnboarding ? (
+              <Flex
+                padding="lg"
+                background="secondary"
+                border="secondary"
+                radius="md"
+                gap="lg"
+              >
+                <IconBusiness size="lg" variant="accent" />
+                <Text size="md" density="comfortable">
+                  {tct(
+                    'You’ve got [bold:unlimited volume for 14 days] to try out everything. After that, free plan volumes apply ⋅ No credit card required',
+                    {
+                      bold: (
+                        <Text as="span" bold variant="accent">
+                          {null}
+                        </Text>
+                      ),
+                    }
+                  )}
+                </Text>
+              </Flex>
+            ) : null}
+
+            {isOnboarding ? null : (
+              <Flex justify="between" align="center" gap="md">
+                <Heading as="h4">{t('Products')}</Heading>
+                {currentPlatformKey ? null : (
+                  <Tag variant="muted" icon={<IconInfo />} style={{minWidth: 0}}>
+                    <Text ellipsis variant="inherit">
+                      {t('Select a platform to configure products')}
+                    </Text>
+                  </Tag>
                 )}
-              </Text>
-            </Flex>
-          ) : null}
+              </Flex>
+            )}
 
-          {isOnboarding ? null : (
-            <Flex justify="between" align="center" gap="md">
-              <Heading as="h4">{t('Products')}</Heading>
-              {currentPlatformKey ? null : (
-                <Tag variant="muted" icon={<IconInfo />} style={{minWidth: 0}}>
-                  <Text ellipsis variant="inherit">
-                    {t('Select a platform to configure products')}
-                  </Text>
-                </Tag>
-              )}
-            </Flex>
-          )}
-
-          {featureMode === 'toggleable' ? (
-            <ScmFeatureSelectionCards
-              availableFeatures={availableFeatures}
-              selectedFeatures={currentFeatures}
-              disabledProducts={disabledProducts}
-              onToggleFeature={handleToggleFeature}
-              featureMeta={featureMeta}
-              isVolumeLoading={isFeatureMetaLoading}
-              isOnboarding={isOnboarding}
-            />
-          ) : featureMode === 'informational' ? (
-            <ScmFeatureInfoCards
-              availableFeatures={availableFeatures}
-              disabledProducts={disabledProducts}
-              featureMeta={featureMeta}
-              platformName={currentPlatformName}
-              isVolumeLoading={isFeatureMetaLoading}
-              isOnboarding={isOnboarding}
-            />
-          ) : null}
-        </Stack>
-      </MotionStack>
-      {trailing}
-    </Fragment>
+            {/* The cards mount at their full height, so without a clipped
+                height tween they paint over the sections below while
+                framer-motion is still animating those into place. */}
+            <ScmCollapsibleReveal open={hasFeatureCards}>
+              <Container paddingTop={isOnboarding ? '2xl' : 'lg'}>
+                {featureMode === 'toggleable' ? (
+                  <ScmFeatureSelectionCards
+                    availableFeatures={availableFeatures}
+                    selectedFeatures={currentFeatures}
+                    disabledProducts={disabledProducts}
+                    onToggleFeature={handleToggleFeature}
+                    featureMeta={featureMeta}
+                    isVolumeLoading={isFeatureMetaLoading}
+                    isOnboarding={isOnboarding}
+                  />
+                ) : featureMode === 'informational' ? (
+                  <ScmFeatureInfoCards
+                    availableFeatures={availableFeatures}
+                    disabledProducts={disabledProducts}
+                    featureMeta={featureMeta}
+                    platformName={currentPlatformName}
+                    isVolumeLoading={isFeatureMetaLoading}
+                    isOnboarding={isOnboarding}
+                  />
+                ) : null}
+              </Container>
+            </ScmCollapsibleReveal>
+          </Stack>
+        </MotionStack>
+        {trailing}
+      </Stack>
+    </ScmCollapsibleReveal>
   );
 }
 
