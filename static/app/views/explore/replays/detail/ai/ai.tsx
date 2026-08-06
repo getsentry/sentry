@@ -264,6 +264,7 @@ function ThumbsUpDownButton({
 }) {
   return (
     <FeedbackButton
+      variant="secondary"
       aria-label={t('Give feedback on the replay summary section')}
       icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
       tooltipProps={{

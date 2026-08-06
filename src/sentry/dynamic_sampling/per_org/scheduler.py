@@ -67,6 +67,9 @@ CYCLE_DURATION = timedelta(minutes=10)
     name="sentry.dynamic_sampling.per_org.run_calculations_per_org",
     namespace=telemetry_experience_tasks,
     processing_deadline_duration=2 * 60,  # 2 minute timeout per org
+    # A task still queued a cycle after dispatch would compute sample rates from a stale
+    # window, and the next cycle's task for the same org supersedes it. Drop it instead.
+    expires=CYCLE_DURATION,
     silo_mode=SiloMode.CELL,
 )
 def run_calculations_per_org_task_entry(org_id: OrganizationId) -> None:

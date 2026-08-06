@@ -2,9 +2,12 @@ import pytest
 from django.test import override_settings
 
 from sentry.attachments.base import CachedAttachment
+from sentry.issues.action_log import GroupActionActor
+from sentry.issues.action_log.types import DeletedAttachmentAction
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
 from sentry.testutils.cases import APITestCase, PermissionTestCase, TestCase
+from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
@@ -202,6 +205,21 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert delete_activity.group_id == group_id
         assert delete_activity.group is not None
         assert delete_activity.group.id == group_id
+
+    @with_feature("organizations:event-attachments")
+    def test_delete_activity_attributes_to_request_user(self) -> None:
+        self.login_as(user=self.user)
+
+        group_id = self.create_group().id
+        self.create_attachment(group_id=group_id)
+        path = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{self.attachment.id}/"
+        with capture_action_log() as log:
+            response = self.client.delete(path)
+        assert response.status_code == 204
+
+        log.assert_logged(
+            DeletedAttachmentAction, group_id=group_id, actor=GroupActionActor.user(self.user.id)
+        )
 
 
 class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentMixin):

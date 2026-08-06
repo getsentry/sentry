@@ -1,16 +1,13 @@
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 from sentry.issues.action_log.publish import publish_action
 from sentry.issues.action_log.types import ActionSource, GroupActionActor, ViewAction
-from sentry.issues.derived import processing
-from sentry.issues.derived.processing import PIPELINE, GroupLogTimeout, process_group_log
+from sentry.issues.derived.processing import process_group_log
 from sentry.issues.derived.tasks import (
-    BATCH_RETRIGGER_TIMEOUT,
     generate_project_derived_data,
     generate_project_derived_data_batch,
     heal_stale_derived_data,
-    process_project_derived_data,
-    process_project_derived_data_batch,
 )
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.group import Group
@@ -37,270 +34,6 @@ class DerivedDataTaskTestBase(TestCase):
             GroupDerivedData.objects.filter(group_id=group.id).delete()
             groups.append(group)
         return groups
-
-
-@with_feature("projects:issue-action-log-write-to-db")
-class ProcessProjectDerivedDataTest(DerivedDataTaskTestBase):
-    def test_fans_out_batches(self) -> None:
-        groups = self.create_unprocessed_groups(3)
-
-        with patch.object(process_project_derived_data_batch, "delay") as mock_delay:
-            process_project_derived_data(project_id=self.project.id)
-
-        group_ids = sorted(g.id for g in groups)
-        mock_delay.assert_called_once_with(
-            project_id=self.project.id,
-            group_id_start=group_ids[0],
-            group_id_end=group_ids[-1] + 1,
-            use_pipeline_hash=False,
-        )
-
-    def test_skips_already_processed_groups(self) -> None:
-        groups = self.create_unprocessed_groups(3)
-        group_ids = sorted(g.id for g in groups)
-
-        # Pre-process first group
-        process_group_log(group_ids[0])
-
-        with patch.object(process_project_derived_data_batch, "delay") as mock_delay:
-            process_project_derived_data(project_id=self.project.id)
-
-        # First group should be excluded from the range
-        mock_delay.assert_called_once()
-        assert mock_delay.call_args[1]["group_id_start"] == group_ids[1]
-
-    def test_batching(self) -> None:
-        self.create_unprocessed_groups(5)
-
-        with (
-            override_options({"issues.derived.project-batch-size": 2}),
-            patch.object(process_project_derived_data_batch, "delay") as mock_delay,
-        ):
-            process_project_derived_data(project_id=self.project.id)
-
-        assert mock_delay.call_count == 3
-
-    def test_exceeds_max_tasks(self) -> None:
-        self.create_unprocessed_groups(3)
-
-        with (
-            override_options(
-                {
-                    "issues.derived.project-batch-size": 1,
-                    "issues.derived.project-max-tasks": 2,
-                }
-            ),
-            patch.object(process_project_derived_data_batch, "delay") as mock_delay,
-        ):
-            process_project_derived_data(project_id=self.project.id)
-
-        mock_delay.assert_not_called()
-
-
-@with_feature("projects:issue-action-log-write-to-db")
-class ProcessProjectDerivedDataBatchTest(DerivedDataTaskTestBase):
-    def test_processes_range(self) -> None:
-        groups = self.create_unprocessed_groups(3)
-        group_ids = sorted(g.id for g in groups)
-
-        process_project_derived_data_batch(
-            project_id=self.project.id,
-            group_id_start=group_ids[0],
-            group_id_end=group_ids[-1] + 1,
-        )
-
-        for group in groups:
-            assert GroupDerivedData.objects.filter(group_id=group.id).exists()
-
-    def test_skips_deleted_groups(self) -> None:
-        groups = self.create_unprocessed_groups(3)
-        group_ids = sorted(g.id for g in groups)
-        deleted_id = groups[1].id
-        groups[1].delete()
-
-        process_project_derived_data_batch(
-            project_id=self.project.id,
-            group_id_start=group_ids[0],
-            group_id_end=group_ids[-1] + 1,
-        )
-
-        assert not GroupDerivedData.objects.filter(group_id=deleted_id).exists()
-
-    def test_reschedules_on_timeout(self) -> None:
-        groups = self.create_unprocessed_groups(3)
-        group_ids = sorted(g.id for g in groups)
-
-        # First call succeeds; monotonic then jumps past the timeout
-        with (
-            patch("sentry.issues.derived.tasks.time") as mock_time,
-            patch.object(processing, "process_group_log") as mock_process,
-            patch.object(process_project_derived_data_batch, "delay") as mock_delay,
-        ):
-            expired = BATCH_RETRIGGER_TIMEOUT.total_seconds() + 1
-            mock_time.monotonic.side_effect = [0.0, 0.0, expired, expired]
-
-            process_project_derived_data_batch(
-                project_id=self.project.id,
-                group_id_start=group_ids[0],
-                group_id_end=group_ids[-1] + 1,
-            )
-
-        mock_process.assert_called_once()
-        mock_delay.assert_called_once_with(
-            project_id=self.project.id,
-            group_id_start=group_ids[1],
-            group_id_end=group_ids[-1] + 1,
-            use_pipeline_hash=False,
-        )
-
-    def test_reschedules_on_group_log_timeout(self) -> None:
-        groups = self.create_unprocessed_groups(3)
-        group_ids = sorted(g.id for g in groups)
-
-        with (
-            patch.object(
-                processing,
-                "process_group_log",
-                side_effect=GroupLogTimeout(0),
-            ),
-            patch.object(process_project_derived_data_batch, "delay") as mock_delay,
-        ):
-            process_project_derived_data_batch(
-                project_id=self.project.id,
-                group_id_start=group_ids[0],
-                group_id_end=group_ids[-1] + 1,
-            )
-        # On GroupLogTimeout, reschedule starts from the SAME group
-        mock_delay.assert_called_once_with(
-            project_id=self.project.id,
-            group_id_start=group_ids[0],
-            group_id_end=group_ids[-1] + 1,
-            use_pipeline_hash=False,
-        )
-
-
-@with_feature("projects:issue-action-log-write-to-db")
-class ProcessProjectDerivedDataWithPipelineHashTest(DerivedDataTaskTestBase):
-    def test_includes_stale_hash_groups(self) -> None:
-        groups = self.create_unprocessed_groups(3)
-        group_ids = sorted(g.id for g in groups)
-
-        # Process all groups so they have GDD rows
-        for gid in group_ids:
-            process_group_log(gid)
-
-        # Stamp one with a stale hash
-        GroupDerivedData.objects.filter(group_id=group_ids[0]).update(pipeline_hash="stale")
-
-        with patch.object(process_project_derived_data_batch, "delay") as mock_delay:
-            process_project_derived_data(project_id=self.project.id, use_pipeline_hash=True)
-
-        # Only the stale group should be included
-        mock_delay.assert_called_once()
-        assert mock_delay.call_args[1]["group_id_start"] == group_ids[0]
-        assert mock_delay.call_args[1]["use_pipeline_hash"] is True
-
-    def test_includes_both_missing_and_stale(self) -> None:
-        groups = self.create_unprocessed_groups(3)
-        group_ids = sorted(g.id for g in groups)
-
-        # Process only the first two
-        process_group_log(group_ids[0])
-        process_group_log(group_ids[1])
-
-        # Stamp first with stale hash
-        GroupDerivedData.objects.filter(group_id=group_ids[0]).update(pipeline_hash="stale")
-
-        with patch.object(process_project_derived_data_batch, "delay") as mock_delay:
-            process_project_derived_data(project_id=self.project.id, use_pipeline_hash=True)
-
-        # Should include group_ids[0] (stale) and group_ids[2] (missing)
-        mock_delay.assert_called_once()
-        call_kwargs = mock_delay.call_args[1]
-        assert call_kwargs["group_id_start"] == group_ids[0]
-        assert call_kwargs["group_id_end"] == group_ids[2] + 1
-
-    def test_includes_null_hash_groups(self) -> None:
-        groups = self.create_unprocessed_groups(2)
-        group_ids = sorted(g.id for g in groups)
-
-        for gid in group_ids:
-            process_group_log(gid)
-
-        GroupDerivedData.objects.filter(group_id=group_ids[0]).update(pipeline_hash=None)
-
-        with patch.object(process_project_derived_data_batch, "delay") as mock_delay:
-            process_project_derived_data(project_id=self.project.id, use_pipeline_hash=True)
-
-        mock_delay.assert_called_once()
-        assert mock_delay.call_args[1]["group_id_start"] == group_ids[0]
-
-
-@with_feature("projects:issue-action-log-write-to-db")
-class ProcessProjectDerivedDataBatchWithPipelineHashTest(DerivedDataTaskTestBase):
-    def test_deletes_stale_gdd_before_processing(self) -> None:
-        groups = self.create_unprocessed_groups(2)
-        group_ids = sorted(g.id for g in groups)
-
-        # Process groups so they have GDD rows
-        for gid in group_ids:
-            process_group_log(gid)
-
-        # Stamp with stale hash
-        GroupDerivedData.objects.filter(group_id__in=group_ids).update(pipeline_hash="stale")
-
-        process_project_derived_data_batch(
-            project_id=self.project.id,
-            group_id_start=group_ids[0],
-            group_id_end=group_ids[-1] + 1,
-            use_pipeline_hash=True,
-        )
-
-        # All groups should now have GDD with the current pipeline hash
-        for gid in group_ids:
-            gdd = GroupDerivedData.objects.get(group_id=gid)
-            assert gdd.pipeline_hash == PIPELINE.pipeline_hash
-
-    def test_deletes_null_hash_gdd_before_processing(self) -> None:
-        groups = self.create_unprocessed_groups(1)
-        group_id = groups[0].id
-
-        process_group_log(group_id)
-        GroupDerivedData.objects.filter(group_id=group_id).update(pipeline_hash=None)
-
-        process_project_derived_data_batch(
-            project_id=self.project.id,
-            group_id_start=group_id,
-            group_id_end=group_id + 1,
-            use_pipeline_hash=True,
-        )
-
-        gdd = GroupDerivedData.objects.get(group_id=group_id)
-        assert gdd.pipeline_hash == PIPELINE.pipeline_hash
-
-    def test_leaves_current_hash_gdd_alone(self) -> None:
-        groups = self.create_unprocessed_groups(2)
-        group_ids = sorted(g.id for g in groups)
-
-        # Process groups — they'll get the current hash
-        for gid in group_ids:
-            process_group_log(gid)
-
-        original_gdds = {
-            gid: GroupDerivedData.objects.get(group_id=gid).generated_at for gid in group_ids
-        }
-
-        process_project_derived_data_batch(
-            project_id=self.project.id,
-            group_id_start=group_ids[0],
-            group_id_end=group_ids[-1] + 1,
-            use_pipeline_hash=True,
-        )
-
-        # GDDs should be untouched since hash is current
-        for gid in group_ids:
-            gdd = GroupDerivedData.objects.get(group_id=gid)
-            assert gdd.generated_at == original_gdds[gid]
 
 
 @with_feature("projects:issue-action-log-write-to-db")
@@ -368,6 +101,128 @@ class GenerateProjectDerivedDataStaleOnlyTest(DerivedDataTaskTestBase):
         mock_delay.assert_called_once()
         assert mock_delay.call_args[1]["group_id_start"] == group_ids[0]
         assert mock_delay.call_args[1]["group_id_end"] == group_ids[0] + 1
+
+
+@with_feature("projects:issue-action-log-write-to-db")
+class GenerateProjectDerivedDataBatchResumeTest(DerivedDataTaskTestBase):
+    def test_resume_generation_id_not_applied_when_start_group_filtered_out(self) -> None:
+        # A resume ``GenerationId`` identifies a specific group. If that
+        # group is no longer in the batch queryset (e.g. under stale_only
+        # it was already rebuilt to the current hash), the resume must
+        # be dropped — it must NOT get applied to whichever group happens
+        # to be first, because the cached partial progress belongs to a
+        # different group.
+        groups = self.create_unprocessed_groups(2)
+        group_ids = sorted(g.id for g in groups)
+        group_a, group_b = group_ids
+
+        for gid in group_ids:
+            process_group_log(gid)
+
+        # A is at the current hash (not stale); B is stale.
+        GroupDerivedData.objects.filter(group_id=group_b).update(pipeline_hash="stale")
+
+        resume_generated_at = datetime(2024, 1, 1, tzinfo=timezone.utc).isoformat()
+        resume_pipeline_hash = "prevhash"
+
+        with patch("sentry.issues.derived.processing.build_and_promote_derived_data") as mock_build:
+            generate_project_derived_data_batch(
+                project_id=self.project.id,
+                group_id_start=group_a,
+                group_id_end=group_b + 1,
+                resume_generated_at=resume_generated_at,
+                resume_pipeline_hash=resume_pipeline_hash,
+                stale_only=True,
+            )
+
+        # Only B is processed (A is filtered by stale_only).
+        mock_build.assert_called_once()
+        call_kwargs = mock_build.call_args.kwargs
+        assert mock_build.call_args.args[0] == group_b
+        # And critically, B does NOT inherit the resume generation_id
+        # that was built for A.
+        assert call_kwargs["generation_id"] is None
+
+
+@with_feature("projects:issue-action-log-write-to-db")
+class GenerateProjectDerivedDataPaginationTest(DerivedDataTaskTestBase):
+    def test_limits_page_to_max_tasks(self) -> None:
+        groups = self.create_unprocessed_groups(3)
+        group_ids = sorted(group.id for group in groups)
+
+        with (
+            override_options(
+                {
+                    "issues.derived.project-batch-size": 2,
+                    "issues.derived.project-max-tasks": 1,
+                }
+            ),
+            patch.object(generate_project_derived_data_batch, "delay") as mock_batch_delay,
+            patch.object(generate_project_derived_data, "apply_async") as mock_project_delay,
+        ):
+            generate_project_derived_data(project_id=self.project.id)
+
+        mock_batch_delay.assert_called_once_with(
+            project_id=self.project.id,
+            group_id_start=group_ids[0],
+            group_id_end=group_ids[1] + 1,
+            stale_only=False,
+        )
+        mock_project_delay.assert_called_once_with(
+            kwargs={
+                "project_id": self.project.id,
+                "cursor_group_id": group_ids[1],
+                "stale_only": False,
+            },
+            headers={"sentry-propagate-traces": False},
+        )
+
+    def test_schedules_the_next_page(self) -> None:
+        groups = self.create_unprocessed_groups(3)
+        group_ids = sorted(group.id for group in groups)
+
+        with (
+            patch("sentry.issues.derived.tasks._MAX_PROJECT_GROUPS", 2),
+            patch.object(generate_project_derived_data_batch, "delay") as mock_batch_delay,
+            patch.object(generate_project_derived_data, "apply_async") as mock_project_delay,
+        ):
+            generate_project_derived_data(project_id=self.project.id)
+
+        mock_batch_delay.assert_called_once_with(
+            project_id=self.project.id,
+            group_id_start=group_ids[0],
+            group_id_end=group_ids[1] + 1,
+            stale_only=False,
+        )
+        mock_project_delay.assert_called_once_with(
+            kwargs={
+                "project_id": self.project.id,
+                "cursor_group_id": group_ids[1],
+                "stale_only": False,
+            },
+            headers={"sentry-propagate-traces": False},
+        )
+
+    def test_resumes_after_the_cursor(self) -> None:
+        groups = self.create_unprocessed_groups(3)
+        group_ids = sorted(group.id for group in groups)
+
+        with (
+            patch.object(generate_project_derived_data_batch, "delay") as mock_batch_delay,
+            patch.object(generate_project_derived_data, "apply_async") as mock_project_delay,
+        ):
+            generate_project_derived_data(
+                project_id=self.project.id,
+                cursor_group_id=group_ids[1],
+            )
+
+        mock_batch_delay.assert_called_once_with(
+            project_id=self.project.id,
+            group_id_start=group_ids[2],
+            group_id_end=group_ids[2] + 1,
+            stale_only=False,
+        )
+        mock_project_delay.assert_not_called()
 
 
 @with_feature("projects:issue-action-log-write-to-db")

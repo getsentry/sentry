@@ -261,6 +261,7 @@ def track_outcome(
     if now - timestamp.replace(tzinfo=now.tzinfo) > LATE_OUTCOME_THRESHOLD:
         metrics.incr(
             "events.outcomes.late",
+            amount=quantity,
             skip_internal=True,
             tags={
                 "outcome": outcome.name.lower(),
@@ -272,6 +273,7 @@ def track_outcome(
 
     metrics.incr(
         "events.outcomes",
+        amount=quantity,
         skip_internal=True,
         tags={
             "outcome": outcome.name.lower(),

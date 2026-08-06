@@ -114,12 +114,14 @@ class OpsgenieIntegration(IntegrationInstallation):
 
         return fields
 
-    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+    def update_organization_config(
+        self, data: MutableMapping[str, Any]
+    ) -> Mapping[str, Any] | None:
         from sentry.integrations.services.integration import integration_service
 
         # add the integration ID to a newly added row
         if not self.org_integration:
-            return
+            return None
 
         teams = data["team_table"]
         unsaved_teams = [team for team in teams if team["id"] == ""]
