@@ -18,7 +18,7 @@ from sentry.utils.cache import cache
 
 class TestGenerateIssueSummaryOnly(SentryTestCase):
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
-    @patch("sentry.seer.autofix.issue_summary.get_issue_summary")
+    @patch("sentry.tasks.seer.autofix.get_issue_summary")
     def test_generates_fixability_score_after_summary(
         self, mock_get_issue_summary: MagicMock, mock_generate_fixability: MagicMock
     ) -> None:
