@@ -852,21 +852,9 @@ describe('ActivitySection', () => {
       url: '/organizations/org-slug/issues/1338/',
       body: updatedActivityGroup,
     });
-    MockApiClient.addMockResponse({
+    const commentsMock = MockApiClient.addMockResponse({
       url: commentsUrl,
-      body: activities.slice(0, 3),
-      headers: {
-        Link: `<${commentsUrl}?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"`,
-      },
-      match: [MockApiClient.matchQuery({cursor: undefined})],
-    });
-    MockApiClient.addMockResponse({
-      url: commentsUrl,
-      body: activities.slice(3),
-      headers: {
-        Link: `<${commentsUrl}?cursor=0:200:0>; rel="next"; results="false"; cursor="0:200:0"`,
-      },
-      match: [MockApiClient.matchQuery({cursor: '0:100:0'})],
+      body: activities,
     });
 
     render(
@@ -892,6 +880,7 @@ describe('ActivitySection', () => {
     expect(screen.queryByText('View 4 more')).not.toBeInTheDocument();
     expect(screen.getAllByText('10 minutes ago')).toHaveLength(7);
     expect(screen.queryByText('10m ago')).not.toBeInTheDocument();
+    expect(commentsMock).toHaveBeenCalledTimes(1);
   });
 
   it('filters comments correctly', async () => {

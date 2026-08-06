@@ -10,7 +10,7 @@ export function issueCommentsQueryOptions({
   groupId,
   organizationSlug,
 }: IssueCommentsQueryOptionsParameters) {
-  return apiOptions.asInfinite<GroupActivity[]>()(
+  return apiOptions.as<GroupActivity[]>()(
     '/organizations/$organizationIdOrSlug/issues/$issueId/comments/',
     {
       path: {organizationIdOrSlug: organizationSlug, issueId: groupId},

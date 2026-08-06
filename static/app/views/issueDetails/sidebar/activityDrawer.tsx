@@ -1,5 +1,5 @@
 import {useSearchParams} from 'react-router-dom';
-import {useInfiniteQuery} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';
@@ -21,7 +21,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
 import {isActivityNote} from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
@@ -48,21 +47,20 @@ export function ActivityDrawer({project}: ActivityDrawerProps) {
     filter === 'comments' &&
     group !== undefined &&
     activityComments.length < group.numComments;
-  const commentsQuery = useInfiniteQuery({
+  const commentsQuery = useQuery({
     ...issueCommentsQueryOptions({
       organizationSlug: organization.slug,
       groupId,
     }),
     enabled: shouldFetchComments,
   });
-  useFetchAllPages({result: commentsQuery, enabled: shouldFetchComments});
 
   if (!group) {
     return <LoadingIndicator />;
   }
 
   const comments = shouldFetchComments
-    ? (commentsQuery.data?.pages.flatMap(page => page.json) ?? activityComments)
+    ? (commentsQuery.data ?? activityComments)
     : activityComments;
 
   return (
@@ -124,7 +122,7 @@ export function ActivityDrawer({project}: ActivityDrawerProps) {
       </EventNavigator>
       <EventDrawerBody>
         {shouldFetchComments && commentsQuery.isError ? (
-          <Text variant="muted">{t('Unable to load all comments.')}</Text>
+          <Text variant="muted">{t('Unable to load comments.')}</Text>
         ) : null}
         {shouldFetchComments && commentsQuery.isPending ? (
           <LoadingIndicator />
@@ -138,7 +136,6 @@ export function ActivityDrawer({project}: ActivityDrawerProps) {
             placeholder={t('Add a comment. Tag users with @, or teams with #')}
           />
         )}
-        {commentsQuery.isFetchingNextPage ? <LoadingIndicator size={24} /> : null}
       </EventDrawerBody>
     </EventDrawerContainer>
   );
