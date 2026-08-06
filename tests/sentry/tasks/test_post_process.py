@@ -2935,7 +2935,6 @@ class PipelineKillswitchTestMixin(BasePostProcessGroupMixin):
 
 
 class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
-    @pytest.mark.xfail(reason="Seer automation was removed from the post-process pipeline")
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
     def test_kick_off_seer_automation_with_features(self, mock_generate_summary_and_run_automation):
@@ -3020,7 +3019,6 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
 
         mock_generate_summary_and_run_automation.assert_not_called()
 
-    @pytest.mark.xfail(reason="Seer automation was removed from the post-process pipeline")
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
     def test_kick_off_seer_automation_runs_with_missing_fixability_score(
@@ -3078,7 +3076,6 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
 
         mock_generate_summary_and_run_automation.assert_not_called()
 
-    @pytest.mark.xfail(reason="Seer automation was removed from the post-process pipeline")
     @patch("sentry.seer.autofix.utils.is_seer_scanner_rate_limited")
     @patch("sentry.quotas.backend.check_seer_quota")
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
@@ -3152,7 +3149,6 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         mock_is_rate_limited.assert_not_called()
         mock_generate_summary_and_run_automation.assert_not_called()
 
-    @pytest.mark.xfail(reason="Seer automation was removed from the post-process pipeline")
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
     def test_kick_off_seer_automation_skips_when_lock_held(
@@ -3409,7 +3405,6 @@ class PostProcessGroupErrorTest(
     PipelineKillswitchTestMixin,
     CheckIfFlagsSentTestMixin,
 ):
-    @pytest.mark.xfail(reason="Seer automation was removed from the post-process pipeline")
     @patch("sentry.seer.autofix.utils.is_seer_seat_based_tier_enabled", return_value=True)
     @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
     @with_feature({"organizations:gen-ai-features": True})
