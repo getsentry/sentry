@@ -692,8 +692,9 @@ def _deleter_for(mailbox_name: str | None) -> _PayloadDeleter:
     Claim-backed drains — every dispatch except lease-mode push triggers, which
     are the ones that pass a mailbox_name — own their batch for the drain's whole
     run, so nothing else can touch a row between finishing with it and deleting
-    it. A worker that dies before flushing redelivers at most one batch once the
-    claim horizon passes, the same window a claim-then-crash already has.
+    it. A worker that dies before flushing reprocesses at most one batch once the
+    claim horizon passes — redelivering its delivered rows and re-discarding the
+    rest — the same window a claim-then-crash already has.
 
     Lease drains keep per-row deletes: their lock outlives a crash by only
     DRAIN_LOCK_TTL, after which unflushed rows would be handed to a concurrent
@@ -825,7 +826,8 @@ def _run_parallel_delivery_batch(
     if not records:
         return (0, 0, False, None)
 
-    # Capture before delivery/discard — deletes clear pk on the in-memory instance.
+    # Capture before delivery/discard — an immediate delete clears pk on the
+    # in-memory instance.
     next_start_id = records[-1].id + 1
     attempted = len(records)
 
