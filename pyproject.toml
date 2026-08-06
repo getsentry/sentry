@@ -2207,7 +2207,6 @@ module = [
     "tests.sentry.utils.sentry_apps.*",
     "tests.sentry.utils.test_arroyo",
     "tests.sentry.utils.test_arroyo_producer",
-    "tests.sentry.utils.test_assets",
     "tests.sentry.utils.test_audit",
     "tests.sentry.utils.test_auth",
     "tests.sentry.utils.test_avatar",
