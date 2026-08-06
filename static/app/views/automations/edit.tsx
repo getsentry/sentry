@@ -279,7 +279,10 @@ function getInitialTriggers(triggers: DataConditionGroup | null): DataConditionG
   }
 
   if (triggers.conditions.length === 0) {
-    triggers.conditions.push(createCondition(DataConditionType.EVERY_EVENT));
+    return {
+      ...triggers,
+      conditions: [createCondition(DataConditionType.EVERY_EVENT)],
+    };
   }
 
   return triggers;
