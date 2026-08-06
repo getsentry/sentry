@@ -10,9 +10,9 @@ import {t} from 'sentry/locale';
 
 interface RowProps {
   children: React.ReactNode;
-  onDelete: () => void;
   errorMessage?: string;
   hasError?: boolean;
+  onDelete?: () => void;
   warningMessages?: string[];
 }
 
@@ -26,15 +26,19 @@ export function AutomationBuilderRow({
   return (
     <Stack gap="xs">
       <RowContainer incompatible={hasError}>
-        <RowLine>{children}</RowLine>
-        <DeleteButton
-          aria-label={t('Delete row')}
-          size="sm"
-          icon={<IconDelete />}
-          variant="transparent"
-          onClick={onDelete}
-          className="delete-row"
-        />
+        <RowLine>
+          {children}
+          {onDelete && (
+            <DeleteButton
+              aria-label={t('Delete row')}
+              size="sm"
+              icon={<IconDelete />}
+              variant="transparent"
+              onClick={onDelete}
+              className="delete-row"
+            />
+          )}
+        </RowLine>
       </RowContainer>
       {hasError && errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
       {warningMessages.length > 0 && (
