@@ -114,7 +114,7 @@ export function useTableStyles(
     [buildGridTemplateColumns]
   );
 
-  const {onResizeMouseDown} = useColumnResize({
+  const {onResizeEnd, onResizeMove, onResizeStart} = useColumnResize({
     gridRef: tableRef,
     getResizeTemplate: (index, newWidth) => {
       columnWidthsRef.current[index] = Math.max(minimumColumnWidth, newWidth);
@@ -122,7 +122,7 @@ export function useTableStyles(
     },
   });
 
-  return {initialTableStyles, onResizeMouseDown};
+  return {initialTableStyles, onResizeEnd, onResizeMove, onResizeStart};
 }
 
 export const TableBody = GridBody;

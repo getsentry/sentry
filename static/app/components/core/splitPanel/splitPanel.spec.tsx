@@ -1,5 +1,6 @@
 import {createRef} from 'react';
 
+import {dragHandle} from 'sentry-test/dragMove';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {SplitPanel, type SplitPanelHandle} from '@sentry/scraps/splitPanel';
@@ -338,16 +339,9 @@ describe('SplitPanel', () => {
       );
 
       const separator = screen.getByRole('separator');
-      await userEvent.pointer([
-        {keys: '[MouseLeft>]', target: separator, coords: {x: 200, y: 0}},
-        {target: separator, coords: {x: 150, y: 0}},
-      ]);
+      dragHandle(separator, {from: 200, to: 150});
+
       await waitFor(() => expect(separator).toHaveAttribute('aria-valuenow', '150'));
-
-      act(() => {
-        document.dispatchEvent(new MouseEvent('pointerup', {bubbles: true}));
-      });
-
       await waitFor(() =>
         expect(onResizeEnd).toHaveBeenCalledWith({
           startSize: 200,
