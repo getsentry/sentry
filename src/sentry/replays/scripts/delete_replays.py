@@ -141,8 +141,13 @@ def delete_replay_ids(
         # The finder strips dashes from `replay_id`; Seer keys on the dashed UUID
         replay_ids = [str(uuid.UUID(replay_id)) for _, replay_id, _ in rows]
         # Chunked because `make_replay_delete_request` uses a 5 second timeout with a single retry.
-        # A whole page's worth of ids in one request reliably exceeded it, and the failure is only
-        # logged, so Seer data was being left behind silently.
+        # A whole page's worth of ids in one request reliably exceeded it.
+        #
+        # Each call's return value is deliberately ignored, as in the bulk delete task. A failure
+        # leaves AI summaries behind, which is undeleted PII, but the replays and their blobs are
+        # already gone by this point and aborting would strand the rest of the range.
+        # `delete_seer_replay_data` logs both of its failure paths at error level, with the replay
+        # ids, so a failed batch is reported even though the loop carries on.
         for i in range(0, len(replay_ids), _SEER_DELETE_BATCH_SIZE):
             delete_seer_replay_data(
                 organization_id, project_id, replay_ids[i : i + _SEER_DELETE_BATCH_SIZE]
