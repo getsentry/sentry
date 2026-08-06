@@ -400,10 +400,10 @@ def delete_seer_replay_data_or_raise(
 ) -> None:
     """Ask Seer to delete these replays, raising `SeerDeleteFailed` if it will not.
 
-    A Seer summary is derived from the replay's contents, so a summary left behind is PII left behind
-    exactly as an undeleted blob is: the caller should fail rather than report a deletion it did not
-    finish. Retrying happens inside the request (see `SEER_DELETE_RETRY`), so reaching the raise means
-    the attempts are already spent.
+    A Seer summary is derived from the replay's contents, so a summary left behind is PII left
+    behind exactly as an undeleted blob is: the caller should fail rather than report a deletion
+    it did not finish. Retrying happens inside the request (see `SEER_DELETE_RETRY`), so reaching
+    the raise means the attempts are already spent.
     """
     if delete_seer_replay_data(organization_id, project_id, replay_ids):
         return

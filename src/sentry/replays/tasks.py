@@ -207,8 +207,8 @@ def archive_replay(project_id: int, replay_id: str) -> None:
     # wider allow-list would repeat work that has already given up, and would delay the `failed`
     # status by five attempts.
     #
-    # `current_task().retries_remaining` is a plain attempt counter and does not consult this list, so
-    # the handler below must not defer to it for an exception that is not the deadline.
+    # `current_task().retries_remaining` is a plain attempt counter and does not consult this
+    # list, so the handler below must not defer to it for anything but the deadline.
     retry=Retry(times=5, delay=5, on=(ProcessingDeadlineExceeded,)),
     processing_deadline_duration=600,
     silo_mode=SiloMode.CELL,
@@ -344,9 +344,9 @@ def run_bulk_replay_delete_job(
         )
         raise
     except Exception:
-        # This attempt is the only one: the broker redelivers the deadline and nothing else. Fail the
-        # job now rather than waiting for a retry that is not coming, so it shows as failed in the UI
-        # and its range can be re-run. Anything transient was already retried where it happened.
+        # This attempt is the only one: the broker redelivers the deadline and nothing else. Fail
+        # the job now rather than waiting for a retry that is not coming, so it shows as failed in
+        # the UI and its range can be re-run. Anything transient was already retried in place.
         logger.exception("Bulk delete replays failed.")
         metrics.incr("replays.bulk_delete_job", tags={"status": "failed"}, sample_rate=1.0)
         _transition_status(job.id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.FAILED)
