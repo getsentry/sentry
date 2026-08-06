@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from django.db import router, transaction
 from django.utils import timezone
@@ -50,7 +50,11 @@ from sentry.seer.autofix.utils import (
     clear_preference_automation_handoff,
     get_automation_handoff,
 )
-from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
+from sentry.seer.entrypoints.operator import (
+    SEER_EVENT_TO_ACTIVITY_TYPE,
+    SeerAutofixOperator,
+    process_autofix_updates,
+)
 from sentry.seer.models import (
     SeerAutomationHandoffConfiguration,
     SeerRun,
@@ -392,7 +396,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             .first()
         )
 
-        webhook_payload = {
+        webhook_payload: dict[str, Any] = {
             "run_id": run_id,
             "sentry_run_id": str(sentry_run_id) if sentry_run_id is not None else None,
             "group_id": group.id,
@@ -401,8 +405,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         # Iterate through blocks in reverse order (most recent first)
         # to find which step just completed
         webhook_action_type: SeerActionType | None = None
-
-        is_pr_created = False
+        has_pr_result = False
 
         if current_step is not None:
             artifact = cls.find_latest_artifact_for_step(state, current_step)
@@ -414,39 +417,39 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         elif current_step == AutofixStep.SOLUTION:
             webhook_action_type = SeerActionType.SOLUTION_COMPLETED
         elif current_step == AutofixStep.CODE_CHANGES:
-            if state.repo_pr_states:
-                # When the current step is code changes and there are pr states,
-                # then we are actually in the PR created step.
-                #
-                # One caveat here is that re-running code changes step isn't
-                # handled but the expectation is that we only create PRs once
-                # per seer run.
-                webhook_action_type = SeerActionType.PR_CREATED
-                webhook_payload["pull_requests"] = cls._format_pull_requests_payload(state)
-                is_pr_created = True
-                analytics.record(
-                    AiAutofixPrCreatedCompletedEvent(
-                        organization_id=organization.id,
-                        project_id=group.project_id,
-                        group_id=group.id,
-                        referrer=None if current_referrer is None else current_referrer.value,
-                        run_id=run_id,
-                    )
-                )
+            failure_reason = cls._get_pr_failure_reason(state)
+            if failure_reason is not None:
+                webhook_action_type = SeerActionType.PR_FAILED
+                webhook_payload["reason"] = failure_reason
+                has_pr_result = True
             else:
-                webhook_action_type = SeerActionType.CODING_COMPLETED
-                webhook_payload["code_changes"] = cls._format_code_changes_payload(state)
+                pull_requests = cls._format_completed_pull_requests_payload(state)
+                if pull_requests:
+                    webhook_action_type = SeerActionType.PR_CREATED
+                    webhook_payload["pull_requests"] = pull_requests
+                    has_pr_result = True
+                    analytics.record(
+                        AiAutofixPrCreatedCompletedEvent(
+                            organization_id=organization.id,
+                            project_id=group.project_id,
+                            group_id=group.id,
+                            referrer=None if current_referrer is None else current_referrer.value,
+                            run_id=run_id,
+                        )
+                    )
+                else:
+                    webhook_action_type = SeerActionType.CODING_COMPLETED
+                    webhook_payload["code_changes"] = cls._format_code_changes_payload(state)
         elif current_step == AutofixStep.PR_ITERATION:
             assert state.repo_pr_states, "PR iteration must have repo pr states"
-
-            # we only want to emit this webhook after the iteration changes are pushed
+            # Emit only after changes are pushed or terminally failed.
             _, is_synced = state.has_code_changes()
             if not is_synced and not cls._iteration_terminal_errored_repos(state):
                 return
 
             webhook_action_type = SeerActionType.ITERATION_COMPLETED
             iteration_index = get_latest_iteration_index(state)
-            webhook_payload["pull_requests"] = cls._format_pull_requests_payload(state)
+            webhook_payload["pull_requests"] = cls._format_existing_pull_requests_payload(state)
             webhook_payload["code_changes"] = cls._format_code_changes_payload(state)
             webhook_payload["iteration_index"] = iteration_index
 
@@ -454,11 +457,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             return
 
         event_name = webhook_action_type.value
-
         event_type = f"seer.{event_name}"
         try:
             sentry_app_event_type = SentryAppEventType(event_type)
-            if SeerAutofixOperator.has_access(organization=organization):
+            if (
+                sentry_app_event_type in SEER_EVENT_TO_ACTIVITY_TYPE
+                and SeerAutofixOperator.has_access(organization=organization)
+            ):
                 metrics.incr(
                     "autofix.on_completion_hook.process_autofix_updates",
                     tags={"event_type": str(event_type)},
@@ -477,12 +482,20 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 extra={"event_type": event_type},
             )
 
+        broadcast_payload = (
+            {
+                "sentry_run_id": webhook_payload["sentry_run_id"],
+                "reason": webhook_payload["reason"],
+            }
+            if webhook_action_type == SeerActionType.PR_FAILED
+            else webhook_payload
+        )
         try:
             broadcast_webhooks_for_organization.delay(
                 resource_name="seer",
                 event_name=event_name,
                 organization_id=organization.id,
-                payload=webhook_payload,
+                payload=broadcast_payload,
             )
         except Exception:
             logger.exception(
@@ -494,7 +507,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 },
             )
 
-        if current_step is not None and not is_pr_created:
+        if current_step is not None and not has_pr_result:
             referrer = current_referrer.value if current_referrer is not None else None
             iteration_index = get_latest_iteration_index(state)
             metrics.incr(
@@ -536,7 +549,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         }
 
     @classmethod
-    def _format_pull_requests_payload(
+    def _format_completed_pull_requests_payload(
         cls,
         state: SeerRunState,
     ) -> list[dict]:
@@ -551,7 +564,47 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 },
             }
             for pull_request in state.repo_pr_states.values()
+            if pull_request.pr_creation_status == "completed"
+            and pull_request.pr_id is not None
+            and pull_request.pr_number is not None
+            and pull_request.pr_url is not None
         ]
+
+    @classmethod
+    def _format_existing_pull_requests_payload(cls, state: SeerRunState) -> list[dict]:
+        return [
+            {
+                "provider": pull_request.provider or "unknown",
+                "repo_name": pull_request.repo_name,
+                "pull_request": {
+                    "pr_id": pull_request.pr_id,
+                    "pr_number": pull_request.pr_number,
+                    "pr_url": pull_request.pr_url,
+                },
+            }
+            for pull_request in state.repo_pr_states.values()
+        ]
+
+    @classmethod
+    def _get_pr_failure_reason(cls, state: SeerRunState) -> str | None:
+        failure_reasons = [
+            cls._classify_pr_creation_failure(pull_request.pr_creation_error)
+            for pull_request in state.repo_pr_states.values()
+            if pull_request.pr_creation_status == "error"
+        ]
+        if not failure_reasons:
+            return None
+        return "access_denied" if "access_denied" in failure_reasons else "unknown"
+
+    @staticmethod
+    def _classify_pr_creation_failure(error: str | None) -> str:
+        normalized_error = (error or "").lower()
+        if any(
+            marker in normalized_error
+            for marker in ("403", "no write access", "resource not accessible", "forbidden")
+        ):
+            return "access_denied"
+        return "unknown"
 
     @classmethod
     def _get_current_step(
