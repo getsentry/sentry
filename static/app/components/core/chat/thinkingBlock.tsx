@@ -38,19 +38,15 @@ interface ThinkingBlockProps {
 
 export function ThinkingBlock({title, startTime, endTime, children}: ThinkingBlockProps) {
   const elapsed = useElapsedTime(startTime, endTime);
-  const [isExpanded, setIsExpanded] = useState(!endTime);
   const isActive = !endTime;
+  const [userExpanded, setUserExpanded] = useState(false);
 
-  useEffect(() => {
-    if (!isActive) {
-      setIsExpanded(false);
-    }
-  }, [isActive]);
+  const isExpanded = isActive || userExpanded;
 
   return (
     <Disclosure
       expanded={isExpanded}
-      onExpandedChange={setIsExpanded}
+      onExpandedChange={setUserExpanded}
       size="sm"
       variant="outline"
       flex={1}

@@ -155,16 +155,14 @@ function Title({children, leadingItems, trailingItems, ...rest}: DisclosureTitle
   );
 }
 
-// The row owns the hover/press background so it spans the full title — behind
-// the leading and trailing items — rather than only the toggle button between
-// them.
+// The row owns the hover background so it spans the full title — behind the
+// leading and trailing items — rather than only the toggle button between them.
+// The press (:active) state deliberately stays on the button (below), so that
+// pressing a leading or trailing item does not bubble an active background onto
+// the whole row.
 const TitleRow = styled(Flex)`
   &:hover {
     background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
-  }
-
-  &:active {
-    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;
 
@@ -173,11 +171,16 @@ const StretchedButton = styled(Button)`
   justify-content: flex-start;
   padding-left: ${p => p.theme.space.xs};
 
-  /* The TitleRow provides the hover/press background; suppress the button's own
-   * so the two don't stack into a darker patch behind the label. */
-  &&:hover,
-  &&:active {
+  /* The TitleRow provides the full-width hover background; suppress the button's
+   * own hover so the two don't stack into a darker patch behind the label. Keep
+   * the press state on the button so it reflects the toggle specifically. */
+  &&:hover {
     background-color: transparent;
+  }
+
+  &&:active {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;
 
