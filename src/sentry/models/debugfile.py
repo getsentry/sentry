@@ -4,15 +4,11 @@ import enum
 import errno
 import hashlib
 import logging
-import math
 import os
 import os.path
-import random
 import re
 import shutil
 import tempfile
-import threading
-import time
 import uuid
 import zipfile
 from collections.abc import Container, Iterable, Mapping
@@ -23,6 +19,7 @@ from typing import (
     Any,
     BinaryIO,
     ClassVar,
+    Literal,
 )
 
 from django.db import models
@@ -30,11 +27,8 @@ from django.db.models import ProtectedError, Q
 from django.db.models.functions import Now
 from django.http import HttpRequest
 from django.utils import timezone
-from objectstore_client import RequestError
-from objectstore_client.multipart import CompletePart, MultipartUpload
 from symbolic.debuginfo import Archive, BcSymbolMap, Object, UuidMapping, normalize_debug_id
 from symbolic.exceptions import ObjectErrorUnsupportedObject, SymbolicError
-from urllib3.exceptions import HTTPError
 
 from sentry import features, options
 from sentry.backup.scopes import RelocationScope
@@ -53,7 +47,6 @@ from sentry.models.files.utils import clear_cached_files
 from sentry.objectstore import get_debug_files_session, get_download_redirect_url
 from sentry.objectstore.metrics import measure_storage_operation
 from sentry.utils import json, metrics
-from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.zip import safe_extract_zip
 
 if TYPE_CHECKING:
@@ -66,9 +59,6 @@ logger = logging.getLogger(__name__)
 DIF_MIMETYPES = {v: k for k, v in KNOWN_DIF_FORMATS.items()}
 
 _proguard_file_re = re.compile(r"/proguard/(?:mapping-)?(.*?)\.txt$")
-
-OBJECTSTORE_MULTIPART_UPLOAD_THRESHOLD = 128 * 1024 * 1024  # 128 MiB
-OBJECTSTORE_MULTIPART_UPLOAD_PART_SIZE = 32 * 1024 * 1024  # 32 MiB
 
 
 def _dif_file_extension(file_format: str, file_type: str | None) -> str:
@@ -446,75 +436,19 @@ def upload_dif_to_objectstore(
     session: Session,
     fileobj: IO[bytes],
     content_type: str,
-    file_size: int,
     filename: str,
     *,
     key: str | None = None,
+    compression: Literal["none", "zstd"] = "none",
 ) -> str:
     """Uploads a debug file to Objectstore, returning the key under which the file was uploaded."""
-    if file_size <= OBJECTSTORE_MULTIPART_UPLOAD_THRESHOLD:
-        return session.put(fileobj, key=key, content_type=content_type, filename=filename)
-
-    return _upload_dif_to_objectstore_multipart(
-        session, fileobj, content_type, file_size, filename, key=key
+    return session.put(
+        fileobj,
+        key=key,
+        compression=compression,
+        content_type=content_type,
+        filename=filename,
     )
-
-
-def _upload_dif_to_objectstore_multipart(
-    session: Session,
-    fileobj: IO[bytes],
-    content_type: str,
-    file_size: int,
-    filename: str,
-    *,
-    key: str | None = None,
-) -> str:
-    """Uploads a debug file to Objectstore via parallel multipart upload."""
-    upload = session.initiate_multipart_upload(
-        key=key, content_type=content_type, filename=filename
-    )
-
-    lock = threading.Lock()
-    num_parts = max(1, math.ceil(file_size / OBJECTSTORE_MULTIPART_UPLOAD_PART_SIZE))
-
-    def put_part_with_retry(
-        upload: MultipartUpload, chunk: bytes, part_number: int
-    ) -> CompletePart:
-        for attempt in range(3):
-            try:
-                return upload.put_part(chunk, part_number=part_number, content_length=len(chunk))
-            except (RequestError, HTTPError):
-                if attempt == 2:
-                    raise
-                delay = 2 ** (attempt + 1)
-                time.sleep(random.uniform(delay, delay * 2))
-        raise AssertionError("unreachable")
-
-    def read_and_put_part(part_number: int) -> CompletePart | None:
-        offset = (part_number - 1) * OBJECTSTORE_MULTIPART_UPLOAD_PART_SIZE
-        with lock:
-            fileobj.seek(offset)
-            chunk = fileobj.read(OBJECTSTORE_MULTIPART_UPLOAD_PART_SIZE)
-        if not chunk:
-            return None
-        return put_part_with_retry(upload, chunk, part_number)
-
-    try:
-        with ContextPropagatingThreadPoolExecutor(
-            max_workers=4,
-        ) as executor:
-            futures = [executor.submit(read_and_put_part, i + 1) for i in range(num_parts)]
-            parts = [part for f in futures if (part := f.result()) is not None]
-
-        storage_path = upload.complete(parts)
-        return storage_path
-    except Exception:
-        logger.exception("Failed to upload debug file to Objectstore")
-        try:
-            upload.abort()
-        except Exception:
-            pass
-        raise
 
 
 def _get_dif_object_name(meta: DifMeta) -> str:
@@ -609,8 +543,14 @@ def create_dif_from_file(
                     session,
                     source,
                     content_type,
-                    file_size,
                     get_dif_download_filename(meta),
+                    compression=(
+                        "zstd"
+                        if features.has(
+                            "organizations:objectstore-debugfiles-compression", project.organization
+                        )
+                        else "none"
+                    ),
                 )
         except Exception:
             logger.exception("Failed to dual-write debug file to Objectstore")

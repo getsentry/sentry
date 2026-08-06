@@ -88,6 +88,47 @@ describe('Onboarding', () => {
       );
     });
 
+    it('fires the welcome event once when a stale platform is cleaned up', async () => {
+      // The cleanup below writes onboarding state, which changes the context
+      // value identity and re-runs the effect. The analytics event must not
+      // ride along with that second pass.
+      sessionStorage.setItem(
+        'onboarding',
+        JSON.stringify({
+          selectedPlatform: {
+            key: 'javascript-nextjs',
+            type: 'framework',
+            language: 'javascript',
+            category: 'browser',
+          },
+        })
+      );
+
+      render(
+        <OnboardingContextProvider>
+          <OnboardingWithoutContext />
+        </OnboardingContextProvider>,
+        {
+          initialRouterConfig: {
+            location: {
+              pathname: '/onboarding/org-slug/welcome/',
+            },
+            route: '/onboarding/:orgId/:step/',
+          },
+        }
+      );
+
+      await waitFor(() => {
+        expect(sessionStorage.getItem('onboarding')).toBeNull();
+      });
+
+      expect(
+        jest
+          .mocked(trackAnalytics)
+          .mock.calls.filter(call => call[0] === 'growth.onboarding_start_onboarding')
+      ).toHaveLength(1);
+    });
+
     it('calls trackAnalytics and onComplete on next button click', async () => {
       const {router} = render(
         <OnboardingContextProvider>

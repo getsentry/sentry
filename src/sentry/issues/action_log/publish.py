@@ -116,12 +116,15 @@ def publish_action(
         callback(action, source, group_id, project, actor)
 
     action_name = action.get_type().name.lower()
+    write_to_db = features.has("projects:issue-action-log-write-to-db", project)
+
     metrics.incr(
         "issues.action_log",
         tags={
             "action": action_name,
             "source": source,
             "actor_type": actor.actor_type.name.lower(),
+            "persisted": write_to_db,
         },
     )
     logger.info(
@@ -140,7 +143,7 @@ def publish_action(
         },
     )
 
-    if not features.has("projects:issue-action-log-write-to-db", project):
+    if not write_to_db:
         return
 
     payload: GroupActionLogPayload = {

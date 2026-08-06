@@ -5,6 +5,7 @@ from django.utils import timezone
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
+from sentry.models.team import Team
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunType
 from sentry.seer.smart_assignment.models import SEER_FEATURE_ID, SmartAssignmentScore
 from sentry.seer.smart_assignment.scoring import (
@@ -19,6 +20,9 @@ METRICS_PATH = "sentry.seer.smart_assignment.scoring.metrics"
 # A representative dispatch trigger (a Seer AI-step start): its ActivityType name is
 # what gets seeded on the run mirror's `extras["trigger"]`.
 STARTED = ActivityType.SEER_RCA_STARTED
+
+# The `extra` an ownership rule stamps onto the ASSIGNED activity it writes.
+RULE_ORIGIN = {"integration": ActivityIntegration.CODEOWNERS.value}
 
 
 class ScoringTestBase(TestCase):
@@ -182,6 +186,17 @@ class RecordGroundTruthTest(ScoringTestBase):
             group=self.group, type=ActivityType.ASSIGNED.value, data=data
         )
 
+    def _assign_team(self, integration: str | None = None) -> tuple[Team, Activity]:
+        team = self.create_team(organization=self.organization)
+        GroupAssignee.objects.create(group=self.group, project=self.group.project, team=team)
+        data = {"assignee": str(team.id), "assigneeType": "team"}
+        if integration is not None:
+            data["integration"] = integration
+        activity = self.create_group_activity(
+            group=self.group, type=ActivityType.ASSIGNED.value, data=data
+        )
+        return team, activity
+
     def test_noop_without_run(self) -> None:
         record_ground_truth(
             self.group,
@@ -266,6 +281,91 @@ class RecordGroundTruthTest(ScoringTestBase):
         assert "actual_assignee_user_id" not in run.extras
         assert "ground_truth_source" not in run.extras
 
+    def test_ownership_rule_team_assignment_is_not_recorded(self) -> None:
+        # The agent reaches this team itself (get_issue_ownership -> get_team_members),
+        # so grading against it would score the routing config, not a prediction.
+        run = self._run()
+        _, activity = self._assign_team(integration=ActivityIntegration.PROJECT_OWNERSHIP.value)
+        record_ground_truth(self.group, ActivityType.ASSIGNED, activity)
+
+        run.refresh_from_db()
+        assert "actual_assignee_team_id" not in run.extras
+        assert "ground_truth_source" not in run.extras
+
+    def test_codeowners_team_assignment_is_not_recorded(self) -> None:
+        run = self._run()
+        _, activity = self._assign_team(integration=ActivityIntegration.CODEOWNERS.value)
+        record_ground_truth(self.group, ActivityType.ASSIGNED, activity)
+
+        run.refresh_from_db()
+        assert "actual_assignee_team_id" not in run.extras
+
+    def test_predicted_team_member_scores_no_hit_on_rule_assigned_team(self) -> None:
+        # The cheat this guards: a rule assigns the owning team, the agent expands that
+        # team and names one of its members, and the shared team reads as partial credit.
+        alice = self.create_user()
+        run = self._run(predicted_assignee_user_ids=[alice.id])
+        team, activity = self._assign_team(integration=ActivityIntegration.CODEOWNERS.value)
+        self.create_member(user=alice, organization=self.organization, teams=[team])
+        record_ground_truth(self.group, ActivityType.ASSIGNED, activity)
+
+        run.refresh_from_db()
+        assert "result" not in run.extras
+        assert "actual_assignee_team_id" not in run.extras
+
+    def test_manually_assigned_team_is_recorded(self) -> None:
+        run = self._run()
+        team, activity = self._assign_team()
+        record_ground_truth(self.group, ActivityType.ASSIGNED, activity)
+
+        run.refresh_from_db()
+        assert run.extras["actual_assignee_team_id"] == team.id
+        assert run.extras["ground_truth_source"] == ActivityType.ASSIGNED.name
+
+    def test_suspect_commit_assignment_is_not_recorded(self) -> None:
+        # The same author get_issue_committers hands the agent.
+        run = self._run()
+        assignee = self.create_user()
+        GroupAssignee.objects.create(
+            group=self.group, project=self.group.project, user_id=assignee.id
+        )
+        activity = self._assigned_activity(
+            assignee.id, integration=ActivityIntegration.SUSPECT_COMMITTER.value
+        )
+        record_ground_truth(self.group, ActivityType.ASSIGNED, activity)
+
+        run.refresh_from_db()
+        assert "actual_assignee_user_id" not in run.extras
+
+    def test_human_reassignment_over_rule_assignment_is_recorded(self) -> None:
+        run = self._run()
+        self._assign_team(integration=ActivityIntegration.PROJECT_OWNERSHIP.value)
+        human_assignee = self.create_user()
+        GroupAssignee.objects.filter(group=self.group).update(
+            team_id=None, user_id=human_assignee.id
+        )
+        record_ground_truth(
+            self.group, ActivityType.ASSIGNED, self._assigned_activity(human_assignee.id)
+        )
+
+        run.refresh_from_db()
+        assert run.extras["actual_assignee_user_id"] == human_assignee.id
+
+    def test_resolution_ignores_rule_assignment(self) -> None:
+        run = self._run()
+        self._assign_team(integration=ActivityIntegration.CODEOWNERS.value)
+        resolver = self.create_user()
+        record_ground_truth(
+            self.group,
+            ActivityType.SET_RESOLVED,
+            self._activity(ActivityType.SET_RESOLVED, resolver.id),
+        )
+
+        run.refresh_from_db()
+        assert "actual_assignee_team_id" not in run.extras
+        assert run.extras["actual_assignee_user_id"] == resolver.id
+        assert run.extras["ground_truth_source"] == ActivityType.SET_RESOLVED.name
+
     def _seer_auto_assign(self, assignee_id: int) -> Activity:
         GroupAssignee.objects.create(
             group=self.group, project=self.group.project, user_id=assignee_id
@@ -345,3 +445,75 @@ class RecordGroundTruthTest(ScoringTestBase):
         run.refresh_from_db()
         assert run.extras["actual_assignee_user_id"] == assignee.id
         assert run.extras["ground_truth_source"] == ActivityType.ASSIGNED.name
+
+
+class AssignmentOriginTest(ScoringTestBase):
+    """Which assignment the origin classifier reads when an issue changes hands.
+
+    These drive ``GroupAssignee.objects.assign()`` instead of writing rows directly,
+    because it is the activity that call writes that the classifier reads.
+    """
+
+    def _truth(self, run: SeerAgentRun) -> tuple[int | None, int | None]:
+        latest_assignment = (
+            Activity.objects.filter(group=self.group, type=ActivityType.ASSIGNED.value)
+            .order_by("-datetime", "-id")
+            .first()
+        )
+        assert latest_assignment is not None
+        record_ground_truth(self.group, ActivityType.ASSIGNED, latest_assignment)
+        run.refresh_from_db()
+        return (
+            run.extras.get("actual_assignee_user_id"),
+            run.extras.get("actual_assignee_team_id"),
+        )
+
+    def test_rule_team_handed_off_to_human_user_is_scoreable(self) -> None:
+        run = self._run()
+        team = self.create_team(organization=self.organization)
+        human = self.create_user()
+        self.create_member(user=human, organization=self.organization, teams=[team])
+        GroupAssignee.objects.assign(self.group, team, extra=RULE_ORIGIN)
+        GroupAssignee.objects.assign(self.group, human)
+
+        assert self._truth(run) == (human.id, None)
+
+    def test_human_user_reclaimed_by_rule_team_is_not_scoreable(self) -> None:
+        # The reverse hand-off. Whoever assigned last is who we would grade against, so
+        # a rule taking the issue back leaves nothing scoreable, even though a human
+        # held it first.
+        run = self._run()
+        team = self.create_team(organization=self.organization)
+        human = self.create_user()
+        self.create_member(user=human, organization=self.organization, teams=[team])
+        GroupAssignee.objects.assign(self.group, human)
+        GroupAssignee.objects.assign(self.group, team, extra=RULE_ORIGIN)
+
+        assert self._truth(run) == (None, None)
+
+    def test_human_reassignment_after_unassign_is_scoreable(self) -> None:
+        # Unassigning leaves the rule's ASSIGNED activity behind; the human's later one
+        # still has to win.
+        run = self._run()
+        team = self.create_team(organization=self.organization)
+        human = self.create_user()
+        GroupAssignee.objects.assign(self.group, team, extra=RULE_ORIGIN)
+        GroupAssignee.objects.deassign(self.group)
+        GroupAssignee.objects.assign(self.group, human)
+
+        assert self._truth(run) == (human.id, None)
+
+    def test_same_timestamp_assignments_resolve_to_the_last_written(self) -> None:
+        run = self._run()
+        human = self.create_user()
+        GroupAssignee.objects.create(group=self.group, project=self.group.project, user_id=human.id)
+        stamped_at = timezone.now()
+        for extra in (RULE_ORIGIN, {}):
+            self.create_group_activity(
+                group=self.group,
+                type=ActivityType.ASSIGNED.value,
+                data={"assignee": str(human.id), "assigneeType": "user", **extra},
+                datetime=stamped_at,
+            )
+
+        assert self._truth(run) == (human.id, None)

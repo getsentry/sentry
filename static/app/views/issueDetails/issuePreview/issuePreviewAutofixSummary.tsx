@@ -16,17 +16,24 @@ import {
   isRootCauseSection,
   isSolutionArtifact,
   isSolutionSection,
+  type AutofixSection,
   type ExplorerAutofixState,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {AutofixEvidence} from 'sentry/components/events/autofix/v3/autofixEvidence';
+import {useAutofixSectionEvidence} from 'sentry/components/events/autofix/v3/useAutofixSectionEvidence';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tn} from 'sentry/locale';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
 
 interface IssuePreviewAutofixSummaryProps {
+  groupId: string;
   runState: ExplorerAutofixState | null;
 }
 
-export function IssuePreviewAutofixSummary({runState}: IssuePreviewAutofixSummaryProps) {
+export function IssuePreviewAutofixSummary({
+  groupId,
+  runState,
+}: IssuePreviewAutofixSummaryProps) {
   const sections = useMemo(() => getOrderedAutofixSections(runState), [runState]);
 
   const proposalSection = sections.findLast(isCodeChangesSection);
@@ -225,12 +232,47 @@ export function IssuePreviewAutofixSummary({runState}: IssuePreviewAutofixSummar
                     </Stack>
                   </Stack>
                 ) : null}
+                {rootCauseArtifact && rootCauseSection ? (
+                  <IssuePreviewRootCauseEvidence
+                    groupId={groupId}
+                    section={rootCauseSection}
+                  />
+                ) : null}
               </Stack>
             </Disclosure.Content>
           </Disclosure>
         </Container>
       ) : null}
     </Dividers>
+  );
+}
+
+function IssuePreviewRootCauseEvidence({
+  groupId,
+  section,
+}: {
+  groupId: string;
+  section: AutofixSection;
+}) {
+  const evidence = useAutofixSectionEvidence({section});
+  if (evidence.length === 0) {
+    return null;
+  }
+
+  return (
+    <Stack gap="md">
+      <Text bold>{t('Evidence')}</Text>
+      <Flex gap="md" wrap="wrap">
+        {evidence.map(item => (
+          <AutofixEvidence
+            key={item.toolCall.id}
+            evidenceButtonProps={item.evidenceButtonProps}
+            groupId={groupId}
+            toolCall={item.toolCall}
+          />
+        ))}
+      </Flex>
+    </Stack>
   );
 }
 

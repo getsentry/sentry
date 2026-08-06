@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {IconClose, IconCommit, IconFocus, IconLock, IconTelescope} from 'sentry/icons';
@@ -23,10 +23,18 @@ interface BuildButtonProps {
   icon: React.ReactNode;
   label: string;
   slot: 'head' | 'base';
+  className?: string;
   onRemove?: () => void;
 }
 
-function BuildButton({buildDetails, icon, label, onRemove, slot}: BuildButtonProps) {
+function BuildButton({
+  buildDetails,
+  icon,
+  label,
+  onRemove,
+  slot,
+  className,
+}: BuildButtonProps) {
   const organization = useOrganization();
   const sha = buildDetails.vcs_info?.head_sha?.substring(0, 7);
   const branchName = buildDetails.vcs_info?.head_ref;
@@ -67,6 +75,7 @@ function BuildButton({buildDetails, icon, label, onRemove, slot}: BuildButtonPro
 
   return (
     <StyledLinkButton
+      className={className}
       to={buildUrl}
       onClick={() =>
         trackAnalytics('preprod.builds.compare.go_to_build_details', {
@@ -163,23 +172,6 @@ const CloseButtonWrapper = styled('div')`
   border-radius: ${p => p.theme.radius.xs};
 `;
 
-const ComparisonContainer = styled(Flex)`
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: ${p => p.theme.space.lg};
-  width: 100%;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    flex-direction: column;
-
-    > * {
-      min-width: 0;
-      max-width: 100%;
-    }
-  }
-`;
-
 interface SizeCompareSelectedBuildsProps {
   headBuildDetails: BuildDetailsApiResponse;
   isComparing: boolean;
@@ -201,24 +193,44 @@ export function SizeCompareSelectedBuilds({
   const project = ProjectsStore.getById(projectId);
 
   return (
-    <ComparisonContainer>
-      <BuildButton
-        buildDetails={headBuildDetails}
-        icon={<IconLock size="xs" locked />}
-        label={t('Head')}
-        slot="head"
-      />
+    <Flex
+      direction={{zero: 'column', xl: 'row'}}
+      wrap="wrap"
+      align={{zero: 'stretch', xl: 'center'}}
+      justify="center"
+      gap="lg"
+      width="100%"
+    >
+      <Container minWidth={{zero: '0', xl: 'auto'}} maxWidth={{zero: '100%', xl: 'none'}}>
+        {({className}) => (
+          <BuildButton
+            className={className}
+            buildDetails={headBuildDetails}
+            icon={<IconLock size="xs" locked />}
+            label={t('Head')}
+            slot="head"
+          />
+        )}
+      </Container>
 
-      <Text>{t('vs')}</Text>
+      <Text align="center">{t('vs')}</Text>
 
       {baseBuildDetails ? (
-        <BuildButton
-          buildDetails={baseBuildDetails}
-          icon={<IconFocus size="xs" variant="accent" />}
-          label={t('Base')}
-          onRemove={onClearBaseBuild}
-          slot="base"
-        />
+        <Container
+          minWidth={{zero: '0', xl: 'auto'}}
+          maxWidth={{zero: '100%', xl: 'none'}}
+        >
+          {({className}) => (
+            <BuildButton
+              className={className}
+              buildDetails={baseBuildDetails}
+              icon={<IconFocus size="xs" variant="accent" />}
+              label={t('Base')}
+              onRemove={onClearBaseBuild}
+              slot="base"
+            />
+          )}
+        </Container>
       ) : (
         <SelectBuild>
           <Text size="sm">{t('Select a build')}</Text>
@@ -246,7 +258,7 @@ export function SizeCompareSelectedBuilds({
           {isComparing ? t('Comparing...') : t('Compare builds')}
         </Button>
       )}
-    </ComparisonContainer>
+    </Flex>
   );
 }
 

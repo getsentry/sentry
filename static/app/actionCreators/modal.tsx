@@ -389,16 +389,6 @@ export async function openConsoleModal(
   });
 }
 
-export async function openBulkEditMonitorsModal({onClose, ...options}: ModalOptions) {
-  const {BulkEditMonitorsModal, modalCss} =
-    await import('sentry/components/modals/bulkEditMonitorsModal');
-
-  openModal(deps => <BulkEditMonitorsModal {...deps} {...options} />, {
-    modalCss,
-    onClose,
-  });
-}
-
 export async function openInsightChartModal(options: InsightChartModalOptions) {
   const {
     default: Modal,
