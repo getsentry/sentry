@@ -37,8 +37,8 @@ class GroupDerivedData(DefaultFieldsModel):
     and set ``pipeline_hash`` to null and ``generated_at`` to now to say
     "this is invalid as of now".
 
-    Outside of those, we're just a log summary, so concurrent updates
-    are safe: whoever has seen more of the log wins, and
+    Outside of those, we're just a deterministic log summary, so concurrent
+    updates are safe: whoever has seen more of the log wins, and
     ``(cursor_date, cursor_id)`` tracks that progress.
 
     Update safety
