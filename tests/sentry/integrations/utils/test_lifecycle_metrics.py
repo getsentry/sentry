@@ -1,6 +1,7 @@
 from unittest import TestCase, mock
 
 import pytest
+from requests.exceptions import ChunkedEncodingError
 
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.types import EventLifecycleOutcome
@@ -493,3 +494,25 @@ class IntegrationEventLifecycleMetricTest(TestCase):
 
         # Should log since default is 1.0
         mock_logger.warning.assert_called_once()
+
+    @mock.patch("sentry.integrations.utils.metrics.sentry_sdk")
+    @mock.patch("sentry.integrations.utils.metrics.logger")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_chunked_encoding_error_is_halted_not_failed(
+        self,
+        mock_metrics: mock.MagicMock,
+        mock_logger: mock.MagicMock,
+        mock_sentry_sdk: mock.MagicMock,
+    ) -> None:
+        """
+        ChunkedEncodingError is a transient network error and should be recorded
+        as a halt (not a failure), with no Sentry issue created.
+        """
+        metric_obj = self.TestLifecycleMetric()
+
+        with pytest.raises(ChunkedEncodingError):
+            with metric_obj.capture():
+                raise ChunkedEncodingError("Connection broken: IncompleteRead")
+
+        self._check_metrics_call_args(mock_metrics, "halted")
+        mock_sentry_sdk.capture_exception.assert_not_called()
