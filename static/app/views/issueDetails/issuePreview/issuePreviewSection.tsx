@@ -5,15 +5,22 @@ import {Container} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 function IssuePreviewSectionComponent({
+  'aria-label': ariaLabel,
   children,
   defaultExpanded,
 }: {
+  'aria-label': string;
   children: NonNullable<React.ReactNode>;
   defaultExpanded?: boolean;
 }) {
   return (
     <Container>
-      <Disclosure as="section" size="md" defaultExpanded={defaultExpanded}>
+      <Disclosure
+        as="section"
+        aria-label={ariaLabel}
+        size="md"
+        defaultExpanded={defaultExpanded}
+      >
         {children}
       </Disclosure>
     </Container>

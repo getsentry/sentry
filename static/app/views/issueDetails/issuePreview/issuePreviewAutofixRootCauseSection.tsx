@@ -33,7 +33,7 @@ export function IssuePreviewAutofixRootCauseSection({
 
   return (
     <RetryableAutofixSection autofix={autofix} section={section} step="root_cause">
-      <IssuePreviewSection defaultExpanded={defaultExpanded}>
+      <IssuePreviewSection aria-label={t('Root Cause')} defaultExpanded={defaultExpanded}>
         <IssuePreviewSection.Title trailingItems={<RetryableAutofixSection.Button />}>
           {t('Root Cause')}
         </IssuePreviewSection.Title>
