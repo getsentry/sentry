@@ -626,8 +626,14 @@ def create_dif_from_fileobj(
             session,
             fileobj,
             content_type,
-            file_size,
             get_dif_download_filename(meta),
+            compression=(
+                "zstd"
+                if features.has(
+                    "organizations:objectstore-debugfiles-compression", project.organization
+                )
+                else "none"
+            ),
         )
     except Exception:
         logger.exception("Failed to write debug file to Objectstore")
