@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -37,6 +38,39 @@ function StateConsumer() {
       <button onClick={() => setSelectedPlatform(undefined)}>Clear platform</button>
       <button onClick={() => resetOnboarding()}>Reset onboarding</button>
     </div>
+  );
+}
+
+function ExitConsumer({onExit}: {onExit: () => void}) {
+  const {discardOnboardingSession} = useOnboardingContext();
+  return (
+    <button
+      onClick={() => {
+        discardOnboardingSession();
+        onExit();
+      }}
+    >
+      Leave flow
+    </button>
+  );
+}
+
+/**
+ * Mirrors leaving the onboarding flow: one click both clears the session and
+ * unmounts the provider, giving React no render in which to process a pending
+ * state update.
+ */
+function ExitFlowHarness() {
+  const [inFlow, setInFlow] = useState(true);
+
+  if (!inFlow) {
+    return <div>left the flow</div>;
+  }
+
+  return (
+    <OnboardingContextProvider>
+      <ExitConsumer onExit={() => setInFlow(false)} />
+    </OnboardingContextProvider>
   );
 }
 
@@ -190,6 +224,31 @@ describe('OnboardingContextProvider session semantics', () => {
 
     expect(screen.getByText('no-platform')).toBeInTheDocument();
     expect(screen.getByText('no-repo')).toBeInTheDocument();
+    expect(sessionStorage.getItem('onboarding')).toBeNull();
+  });
+
+  it('clears persisted session state when the provider unmounts in the same commit', async () => {
+    // Leaving the flow clears the session and navigates away in one click, so
+    // the provider unmounts in that same commit. resetOnboarding cannot be used
+    // for this: useSessionStorage's removeItem performs the storage removal
+    // inside a setState updater, and React drops the update — and the removal
+    // with it — when the owning subtree unmounts before the queue is processed.
+    // Verified in a browser: skipping from scm-platform-features and
+    // scm-messaging left the session behind, so the next /onboarding visit
+    // silently resumed from it.
+    sessionStorage.setItem(
+      'onboarding',
+      JSON.stringify({
+        selectedRepository: RepositoryFixture({id: '42'}),
+        selectedPlatform: platform,
+      })
+    );
+
+    render(<ExitFlowHarness />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Leave flow'}));
+
+    expect(screen.getByText('left the flow')).toBeInTheDocument();
     expect(sessionStorage.getItem('onboarding')).toBeNull();
   });
 });

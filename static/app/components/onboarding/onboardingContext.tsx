@@ -7,10 +7,11 @@ import {
 } from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import type {Integration, Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
-import {useSessionStorage} from 'sentry/utils/useSessionStorage';
+import {removeStorageValue, useSessionStorage} from 'sentry/utils/useSessionStorage';
 
 type OnboardingContextProps = {
   clearDerivedState: () => void;
+  discardOnboardingSession: () => void;
   messagingSetup: ScmMessagingSetup;
   resetOnboarding: () => void;
   setCreatedProjectSlug: (slug?: string) => void;
@@ -25,6 +26,8 @@ type OnboardingContextProps = {
   selectedPlatform?: OnboardingSelectedSDK;
   selectedRepository?: Repository;
 };
+
+const ONBOARDING_SESSION_KEY = 'onboarding';
 
 type OnboardingSessionState = {
   createdProjectSlug?: string;
@@ -53,6 +56,7 @@ const OnboardingContext = createContext<OnboardingContextProps>({
   setMessagingSetup: () => {},
   clearDerivedState: () => {},
   resetOnboarding: () => {},
+  discardOnboardingSession: () => {},
 });
 
 type ProviderProps = {
@@ -66,7 +70,7 @@ type ProviderProps = {
 
 export function OnboardingContextProvider({children, initialValue}: ProviderProps) {
   const [onboarding, setOnboarding, removeOnboarding] = useSessionStorage(
-    'onboarding',
+    ONBOARDING_SESSION_KEY,
     initialValue
   );
 
@@ -133,6 +137,19 @@ export function OnboardingContextProvider({children, initialValue}: ProviderProp
       // a selected-platform reset for this: messaging setup is organization-
       // scoped and must survive local repository/platform changes.
       resetOnboarding: removeOnboarding,
+      // Drop the persisted session on the way out of the flow. Do not use
+      // resetOnboarding here: it goes through useSessionStorage's removeItem,
+      // which performs the removeStorageValue call inside a setState updater.
+      // React only runs an updater when it processes the queue during a render,
+      // so when leaving the flow — where the same click both clears state and
+      // navigates away — the provider unmounts first and the update, along with
+      // its storage write, is discarded. The session then survives and the next
+      // /onboarding visit silently resumes from it. Clearing storage directly
+      // does not depend on a render happening. The in-memory state needs no
+      // reset because the context unmounts with the flow.
+      discardOnboardingSession: () => {
+        removeStorageValue(ONBOARDING_SESSION_KEY);
+      },
     }),
     [onboarding, setOnboarding, removeOnboarding]
   );

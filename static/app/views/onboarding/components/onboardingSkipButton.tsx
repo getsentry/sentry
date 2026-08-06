@@ -45,7 +45,7 @@ interface OnboardingSkipButtonProps {
 
 export function OnboardingSkipButton({stepId}: OnboardingSkipButtonProps) {
   const organization = useOrganization();
-  const {resetOnboarding} = useOnboardingContext();
+  const {discardOnboardingSession} = useOnboardingContext();
   const {activateSidebar} = useOnboardingSidebar();
 
   const config = SKIP_CONFIG_BY_STEP[stepId];
@@ -56,7 +56,7 @@ export function OnboardingSkipButton({stepId}: OnboardingSkipButtonProps) {
   const handleClick = () => {
     // Skipping exits the treatment and must not leave a half-staged session for
     // the next /onboarding visit to silently resume from.
-    resetOnboarding();
+    discardOnboardingSession();
     trackAnalytics('onboarding.scm_header_skip_clicked', {
       organization,
       step: stepId,
