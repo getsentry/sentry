@@ -1,3 +1,4 @@
+from sentry.models.pullrequest import PullRequestLifecycleState
 from sentry.seer.agent.client_models import (
     AgentFilePatch,
     Artifact,
@@ -14,6 +15,7 @@ from sentry.seer.milestones import (
     milestones_from_state,
     reconcile_milestones,
     record_has_pull_request,
+    record_pull_requests_merged,
 )
 from sentry.seer.models.run import SeerRunMilestone, SeerRunMilestoneType
 from sentry.testutils.cases import TestCase
@@ -192,3 +194,70 @@ class RecordHasPullRequestTest(TestCase):
             SeerRunMilestoneType.HAS_PULL_REQUEST,
         }
         assert SeerRunMilestone.objects.filter(seer_run=self.seer_run).count() == 2
+
+
+class RecordPullRequestsMergedTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.seer_run = self.create_seer_run(organization=self.organization)
+        self.repo = self.create_repo(self.project, name="getsentry/sentry")
+
+    def _recorded(self) -> set[str]:
+        return set(
+            SeerRunMilestone.objects.filter(seer_run=self.seer_run).values_list(
+                "milestone", flat=True
+            )
+        )
+
+    def _linked_pull_request(self, key: str, state: str) -> None:
+        pull_request = self.create_pull_request(
+            repository_id=self.repo.id, organization_id=self.organization.id, key=key
+        )
+        pull_request.update(state=state)
+        self.create_seer_run_pull_request(run=self.seer_run, pull_request=pull_request)
+
+    def test_records_when_all_linked_pull_requests_merged(self) -> None:
+        self._linked_pull_request("1", PullRequestLifecycleState.MERGED)
+        self._linked_pull_request("2", PullRequestLifecycleState.MERGED)
+
+        assert record_pull_requests_merged(self.seer_run) is True
+        assert self._recorded() == {SeerRunMilestoneType.PULL_REQUESTS_MERGED}
+
+    def test_not_recorded_when_a_linked_pull_request_is_open(self) -> None:
+        self._linked_pull_request("1", PullRequestLifecycleState.MERGED)
+        self._linked_pull_request("2", PullRequestLifecycleState.OPEN)
+
+        assert record_pull_requests_merged(self.seer_run) is False
+        assert self._recorded() == set()
+
+    def test_not_recorded_when_a_linked_pull_request_is_closed_unmerged(self) -> None:
+        self._linked_pull_request("1", PullRequestLifecycleState.CLOSED)
+
+        assert record_pull_requests_merged(self.seer_run) is False
+        assert self._recorded() == set()
+
+    def test_not_recorded_without_linked_pull_requests(self) -> None:
+        assert record_pull_requests_merged(self.seer_run) is False
+        assert self._recorded() == set()
+
+    def test_idempotent(self) -> None:
+        self._linked_pull_request("1", PullRequestLifecycleState.MERGED)
+
+        assert record_pull_requests_merged(self.seer_run) is True
+        assert record_pull_requests_merged(self.seer_run) is True
+        assert (
+            SeerRunMilestone.objects.filter(
+                seer_run=self.seer_run, milestone=SeerRunMilestoneType.PULL_REQUESTS_MERGED
+            ).count()
+            == 1
+        )
+
+    def test_leaves_state_derived_milestones_untouched(self) -> None:
+        reconcile_milestones(self.seer_run, _state_reaching(set(SEER_STATE_MILESTONES)))
+        self._linked_pull_request("1", PullRequestLifecycleState.MERGED)
+
+        record_pull_requests_merged(self.seer_run)
+
+        assert self._recorded() == set(SEER_STATE_MILESTONES) | {
+            SeerRunMilestoneType.PULL_REQUESTS_MERGED
+        }

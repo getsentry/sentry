@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from django.db import router, transaction
 
+from sentry.models.pullrequest import PullRequestLifecycleState
 from sentry.seer.models.run import SeerRun, SeerRunMilestone, SeerRunMilestoneType
 
 if TYPE_CHECKING:
@@ -80,3 +81,22 @@ def record_has_pull_request(seer_run: SeerRun) -> None:
     SeerRunMilestone.objects.get_or_create(
         seer_run=seer_run, milestone=SeerRunMilestoneType.HAS_PULL_REQUEST
     )
+
+
+def record_pull_requests_merged(seer_run: SeerRun) -> bool:
+    """Record PULL_REQUESTS_MERGED once every PR the run opened is merged. Owned by
+    the PR-merge webhook, so it sits outside the set ``reconcile_milestones`` manages.
+    """
+    # Known limitation: this milestone is never cleared, so it goes stale if PRs are
+    # linked after an earlier one merges (staggered handoffs / killswitch) or on re-run.
+    states = list(seer_run.pull_requests.values_list("state", flat=True))
+    if not states:
+        return False
+    if any(state != PullRequestLifecycleState.MERGED for state in states):
+        return False
+
+    SeerRunMilestone.objects.bulk_create(
+        [SeerRunMilestone(seer_run=seer_run, milestone=SeerRunMilestoneType.PULL_REQUESTS_MERGED)],
+        ignore_conflicts=True,
+    )
+    return True
