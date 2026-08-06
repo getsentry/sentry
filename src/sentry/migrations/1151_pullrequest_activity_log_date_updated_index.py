@@ -18,8 +18,10 @@ class Migration(CheckedMigration):
     #   is a schema change, it's completely safe to run the operation after the code has deployed.
     # Once deployed, run these manually via: https://develop.sentry.dev/database-migrations/#migration-deployment
 
-    # The table carries a row per PR seen since June, so building this index takes
-    # long enough that it should not sit inside a deploy.
+    # CONCURRENTLY already keeps this off the table's write path, so the flag is
+    # about duration rather than safety: the table takes a row per PR routed to the
+    # document store since it went live in July, and a deploy shouldn't sit and wait
+    # out a build that size.
     is_post_deployment = True
 
     dependencies = [
