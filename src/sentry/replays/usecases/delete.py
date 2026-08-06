@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import functools
 import logging
-import time
 from collections.abc import Iterator
 from concurrent.futures import Future
 from datetime import datetime, timedelta
@@ -380,33 +379,34 @@ class SeerDeleteFailed(Exception):
     """Seer would not delete a set of replay summaries, and retrying did not help."""
 
 
-# Seer is called with a 5 second timeout and there are 551 recorded timeouts, so the failure being
-# retried is Seer being slow. The point is to out-wait it, which is why the delay grows.
-SEER_DELETE_ATTEMPTS = 3
+# Retries have to opt POST in explicitly. urllib3's default `allowed_methods` excludes it, so a
+# `Retry` that says nothing else retries nothing here -- and a read timeout on a POST, which is the
+# failure we actually see, was re-raised on the first attempt. Passing `retries` at all was
+# misleading.
+#
+# Replaying this POST is safe, which is the thing urllib3 cannot know: asking Seer to delete
+# summaries that are already gone is a no-op. Statuses are listed too, since a 503 is a response
+# rather than an error and would otherwise go unretried. 4xx stays unretried -- it will not improve.
+SEER_DELETE_RETRY = Retry(
+    total=2,  # three attempts
+    backoff_factor=1,  # 0s, then 2s
+    allowed_methods=None,  # falsy disables the method allow-list
+    status_forcelist=[429, 500, 502, 503, 504],
+)
 
 
-def delete_seer_replay_data_with_retries(
+def delete_seer_replay_data_or_raise(
     organization_id: int, project_id: int, replay_ids: list[str]
 ) -> None:
-    """Ask Seer to delete these replays, retrying while it reports failure.
+    """Ask Seer to delete these replays, raising `SeerDeleteFailed` if it will not.
 
-    Raises `SeerDeleteFailed` once the attempts are gone. A Seer summary is derived from the replay's
-    contents, so a summary left behind is PII left behind exactly as an undeleted blob is: the caller
-    should fail rather than report a deletion it did not finish.
-
-    `delete_seer_replay_data` reports rather than raises, so the retry is on the returned False. It
-    logs at error level on every attempt, so a call that recovers still leaves a record of the
-    attempts that did not -- the cost of retrying around something that reports its own failures.
-
-    `make_replay_delete_request` also retries once itself, so this is at most
-    `SEER_DELETE_ATTEMPTS * 2` requests.
+    A Seer summary is derived from the replay's contents, so a summary left behind is PII left behind
+    exactly as an undeleted blob is: the caller should fail rather than report a deletion it did not
+    finish. Retrying happens inside the request (see `SEER_DELETE_RETRY`), so reaching the raise means
+    the attempts are already spent.
     """
-    for attempt in range(1, SEER_DELETE_ATTEMPTS + 1):
-        if delete_seer_replay_data(organization_id, project_id, replay_ids):
-            return
-
-        if attempt < SEER_DELETE_ATTEMPTS:
-            time.sleep(2.0 ** (attempt - 1))
+    if delete_seer_replay_data(organization_id, project_id, replay_ids):
+        return
 
     # The ids are the whole diagnosis here: these replays still have summaries in Seer.
     sentry_sdk.set_context(
@@ -447,7 +447,7 @@ def delete_seer_replay_data(organization_id: int, project_id: int, replay_ids: l
         response = make_replay_delete_request(
             seer_request,
             timeout=5,
-            retries=Retry(total=1, backoff_factor=3),  # 1 retry after a 3 second delay.
+            retries=SEER_DELETE_RETRY,
             viewer_context=viewer_context,
         )
     except Exception:

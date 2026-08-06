@@ -846,7 +846,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
 
         assert mock_post.call_count == 0
 
-    @patch("sentry.replays.tasks.delete_seer_replay_data_with_retries")
+    @patch("sentry.replays.tasks.delete_seer_replay_data_or_raise")
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     @patch("sentry.replays.tasks.delete_matched_rows")
     def test_run_bulk_replay_delete_job_seer_failure_fails_the_job(

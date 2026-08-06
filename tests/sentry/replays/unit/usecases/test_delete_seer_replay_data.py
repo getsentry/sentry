@@ -1,12 +1,13 @@
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+from urllib3.exceptions import ReadTimeoutError
 
 from sentry.replays.usecases.delete import (
-    SEER_DELETE_ATTEMPTS,
+    SEER_DELETE_RETRY,
     SeerDeleteFailed,
     delete_seer_replay_data,
-    delete_seer_replay_data_with_retries,
+    delete_seer_replay_data_or_raise,
 )
 
 
@@ -32,7 +33,9 @@ def test_delete_seer_replay_data_network_exception(mock_seer_request: MagicMock)
     """Test handling of network/timeout exceptions during Seer API call."""
     mock_seer_request.side_effect = Exception("Network timeout")
     assert delete_seer_replay_data(456, 123, ["replay-1", "replay-2"]) is False
-    # Should be called once (retries happen at urllib3 level, invisible to application layer)
+    # Called once: the retrying lives in the `Retry` handed to `make_replay_delete_request`, which
+    # this mock replaces wholesale. See `test_seer_delete_retry_actually_applies_to_this_request`
+    # for the part that has to be asserted separately.
     assert mock_seer_request.call_count == 1
 
 
@@ -50,27 +53,30 @@ def test_delete_seer_replay_data_non_200_status(mock_seer_request: MagicMock) ->
         mock_seer_request.assert_called_once()
 
 
-@patch("sentry.replays.usecases.delete.time.sleep")
-@patch("sentry.replays.usecases.delete.delete_seer_replay_data")
-def test_a_batch_is_retried_until_it_succeeds(
-    mock_delete: MagicMock, mock_sleep: MagicMock
-) -> None:
-    """Test a batch that fails and then succeeds is not reported as a failure.
+def test_seer_delete_retry_actually_applies_to_this_request() -> None:
+    """Test the retry passed to Seer covers the failures Seer actually produces.
 
-    Seer failures here are timeouts, so the point of retrying is to out-wait a slow service.
+    urllib3's default `allowed_methods` excludes POST, so a `Retry` that does not say otherwise
+    retries nothing here -- and the failure we see is a read timeout on a POST. Statuses have to be
+    listed too, because a 503 is a response rather than an error.
     """
-    mock_delete.side_effect = [False, False, True]
+    # A read timeout is retried rather than re-raised, and one attempt is consumed.
+    assert (
+        SEER_DELETE_RETRY.increment(
+            method="POST", url="/delete", error=ReadTimeoutError(None, "/delete", "timed out")
+        ).total
+        == SEER_DELETE_RETRY.total - 1
+    )
 
-    delete_seer_replay_data_with_retries(456, 123, ["replay-1"])
-    assert mock_delete.call_count == 3
+    assert SEER_DELETE_RETRY.is_retry("POST", 429)
+    assert SEER_DELETE_RETRY.is_retry("POST", 503)
+    # A bad request will not improve; retrying it only burns the timeout budget.
+    assert not SEER_DELETE_RETRY.is_retry("POST", 400)
 
 
-@patch("sentry.replays.usecases.delete.time.sleep")
 @patch("sentry.replays.usecases.delete.delete_seer_replay_data")
-def test_a_batch_that_never_succeeds_is_reported(
-    mock_delete: MagicMock, mock_sleep: MagicMock
-) -> None:
-    """Test attempts are bounded and exhaustion raises rather than reporting success.
+def test_a_refused_delete_raises_rather_than_reporting_success(mock_delete: MagicMock) -> None:
+    """Test exhaustion raises instead of quietly reporting a deletion that did not happen.
 
     A Seer summary is derived from the replay, so leaving one behind is leaving PII behind. The
     caller has to fail over it the same way it fails over an undeleted blob.
@@ -78,6 +84,14 @@ def test_a_batch_that_never_succeeds_is_reported(
     mock_delete.return_value = False
 
     with pytest.raises(SeerDeleteFailed):
-        delete_seer_replay_data_with_retries(456, 123, ["replay-1"])
+        delete_seer_replay_data_or_raise(456, 123, ["replay-1"])
 
-    assert mock_delete.call_count == SEER_DELETE_ATTEMPTS
+    # One call: the retrying happens inside the request, not around it.
+    assert mock_delete.call_count == 1
+
+
+@patch("sentry.replays.usecases.delete.delete_seer_replay_data")
+def test_a_successful_delete_is_silent(mock_delete: MagicMock) -> None:
+    mock_delete.return_value = True
+
+    delete_seer_replay_data_or_raise(456, 123, ["replay-1"])

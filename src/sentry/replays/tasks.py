@@ -25,7 +25,7 @@ from sentry.replays.usecases.delete import (
     delete_filenames_concurrently,
     delete_matched_rows,
     delete_seer_replay_data,
-    delete_seer_replay_data_with_retries,
+    delete_seer_replay_data_or_raise,
     fetch_rows_matching_pattern,
 )
 from sentry.replays.usecases.events import archive_event
@@ -315,12 +315,10 @@ def run_bulk_replay_delete_job(
             )
             if has_seer_data:
                 # A Seer summary is derived from the replay, so one left behind is PII left behind,
-                # exactly as an undeleted blob is. Treated the same way: this raises once its retries
-                # are gone, which fails the job and stops the chain, so the range can be re-run after
-                # Seer is healthy rather than walking the rest of it leaving summaries everywhere.
-                delete_seer_replay_data_with_retries(
-                    job.organization_id, job.project_id, replay_ids
-                )
+                # exactly as an undeleted blob is. Treated the same way: this raises once the
+                # request's retries are spent, which fails the job and stops the chain, so the range
+                # can be re-run after Seer is healthy rather than walking on leaving summaries.
+                delete_seer_replay_data_or_raise(job.organization_id, job.project_id, replay_ids)
 
             # Everything for this page is gone: blobs, archive events and any Seer summaries. Logged
             # rather than counted so a re-run can be watched replay by replay, which is the only way
