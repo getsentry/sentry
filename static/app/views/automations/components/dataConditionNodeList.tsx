@@ -144,8 +144,15 @@ export function DataConditionNodeList({
     ];
   }, [dataConditionHandlers, handlerGroup, state.triggers.conditions]);
 
+  const everyEventLabel = dataConditionNodesMap.get(DataConditionType.EVERY_EVENT)?.label;
+
   return (
     <Fragment>
+      {/* Display a UI-only row to communicate an empty conditions list is equivalent to selecting the every_event condition */}
+      {conditions.length === 0 && (
+        <AutomationBuilderRow>{everyEventLabel}</AutomationBuilderRow>
+      )}
+
       {conditions.map(condition => {
         const error = errors?.[condition.id];
 
