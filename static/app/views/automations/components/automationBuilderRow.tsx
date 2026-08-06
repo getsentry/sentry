@@ -26,19 +26,17 @@ export function AutomationBuilderRow({
   return (
     <Stack gap="xs">
       <RowContainer incompatible={hasError}>
-        <RowLine>
-          {children}
-          {onDelete && (
-            <DeleteButton
-              aria-label={t('Delete row')}
-              size="sm"
-              icon={<IconDelete />}
-              variant="transparent"
-              onClick={onDelete}
-              className="delete-row"
-            />
-          )}
-        </RowLine>
+        <RowLine>{children}</RowLine>
+        {onDelete && (
+          <DeleteButton
+            aria-label={t('Delete row')}
+            size="sm"
+            icon={<IconDelete />}
+            variant="transparent"
+            onClick={onDelete}
+            className="delete-row"
+          />
+        )}
       </RowContainer>
       {hasError && errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
       {warningMessages.length > 0 && (
