@@ -39,12 +39,12 @@ from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
     DetectorSerializer,
     DetectorSerializerResponse,
 )
-from sentry.workflow_engine.endpoints.utils.all_projects import should_include_all_projects_detector
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.utils import (
     can_delete_detector,
     can_edit_detector,
     get_unknown_detector_type_error,
+    should_include_all_projects_detector,
 )
 from sentry.workflow_engine.models import DataSource, Detector
 
@@ -149,15 +149,13 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         except Detector.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if detector.project is None and not should_include_all_projects_detector(
-            organization=organization, request=request
-        ):
-            raise PermissionDenied
-
-        # Verify user has access to the detector's project (respects Open Membership setting).
-        # Null-project (all-projects) detectors are org-level and bypass the project check.
-        if detector.project is not None and not request.access.has_project_access(detector.project):
-            raise PermissionDenied
+        if detector.project is None:
+            if not should_include_all_projects_detector(organization=organization, request=request):
+                raise PermissionDenied
+        else:
+            # Verify user has access to the detector's project (respects Open Membership setting)
+            if not request.access.has_project_access(detector.project):
+                raise PermissionDenied
 
         return args, kwargs
 

@@ -58,18 +58,19 @@ from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
     WorkflowSerializer,
     WorkflowSerializerResponse,
 )
-from sentry.workflow_engine.endpoints.utils.all_projects import (
-    is_workflow_connected_to_all_projects_detector,
-    should_include_all_projects_detector_workflows,
-)
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
     DetectorWorkflowMutationValidator,
 )
-from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
+from sentry.workflow_engine.endpoints.validators.utils import (
+    is_workflow_connected_to_all_projects_detector,
+    should_include_all_projects_detector_workflows,
+)
+from sentry.workflow_engine.models import DetectorWorkflow, Workflow
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
+from sentry.workflow_engine.processors.detector import get_all_projects_detector
 from sentry.workflow_engine.types import DetectorId
 
 # Maps API field name to database field name, with synthetic aggregate fields keeping
@@ -220,17 +221,16 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         # not just those explicitly requested. This filter is ALWAYS applied to ensure
         # users with no project access only see org-level workflows.
         projects = self.get_projects(request, organization, include_all_accessible=True)
-        all_projects_detectors = Detector.objects.all_projects_for_organization(organization.id)
-        all_projects_workflows = Q(
-            detectorworkflow__detector_id__in=all_projects_detectors.values("id")
-        )
         accessible_workflows = Q(detectorworkflow__detector__project__in=projects) | Q(
             detectorworkflow__isnull=True
         )
-        if should_include_all_projects_detector_workflows(request, organization):
-            accessible_workflows |= all_projects_workflows
-        else:
-            queryset = queryset.exclude(all_projects_workflows)
+        all_projects_detector = get_all_projects_detector(organization.id)
+        if all_projects_detector:
+            all_projects_workflows_q = Q(detectorworkflow__detector_id=all_projects_detector.id)
+            if should_include_all_projects_detector_workflows(request, organization):
+                accessible_workflows |= all_projects_workflows_q
+            else:
+                queryset = queryset.exclude(all_projects_workflows_q)
         queryset = queryset.filter(accessible_workflows).distinct()
 
         return queryset

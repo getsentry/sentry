@@ -1131,9 +1131,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         ]
         assert len(detector_workflow_audit_calls) == 1
 
-    @mock.patch("sentry.workflow_engine.endpoints.validators.utils.create_audit_entry")
-    @with_feature("organizations:workflow-engine-all-projects-detector")
-    def test_create_workflow_with_all_projects_detector(self, mock_audit: mock.MagicMock) -> None:
+    def test_create_workflow_with_all_projects_detector(self) -> None:
         all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
         workflow_data = {**self.valid_workflow, "detectorIds": [all_projects_detector.id]}
 
@@ -1152,14 +1150,6 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         assert created_detector_workflows.count() == 1
         assert created_detector_workflows.get().detector_id == all_projects_detector.id
 
-        detector_workflow_audit_calls = [
-            call
-            for call in mock_audit.call_args_list
-            if call.kwargs.get("event") == audit_log.get_event_id("DETECTOR_WORKFLOW_ADD")
-        ]
-        assert len(detector_workflow_audit_calls) == 1
-
-    @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_create_workflow_with_all_projects_detector_requires_org_write(self) -> None:
         all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
         workflow_data = {**self.valid_workflow, "detectorIds": [all_projects_detector.id]}
@@ -1172,12 +1162,6 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
             raw_data=workflow_data,
             status_code=403,
         )
-
-    def test_create_workflow_with_all_projects_detector_requires_feature(self) -> None:
-        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
-        workflow_data = {**self.valid_workflow, "detectorIds": [all_projects_detector.id]}
-        self.get_error_response(self.organization.slug, raw_data=workflow_data, status_code=400)
-        assert not DetectorWorkflow.objects.filter(detector=all_projects_detector).exists()
 
     def test_create_workflow_with_invalid_detector_ids(self) -> None:
         workflow_data = {
@@ -1433,23 +1417,6 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
         # Verify third workflow is unaffected
         self.workflow_three.refresh_from_db()
         assert self.workflow_three.enabled is False
-
-    def test_mixed_all_projects_workflow_requires_feature(self) -> None:
-        project_detector = self.create_detector(project=self.project)
-        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
-        self.create_detector_workflow(workflow=self.workflow, detector=project_detector)
-        self.create_detector_workflow(workflow=self.workflow, detector=all_projects_detector)
-
-        response = self.get_success_response(
-            self.organization.slug,
-            qs_params={"id": str(self.workflow.id)},
-            raw_data={"enabled": True},
-            status_code=200,
-        )
-
-        assert "No workflows found" in response.data["detail"]
-        self.workflow.refresh_from_db()
-        assert self.workflow.enabled is False
 
     def test_bulk_disable_workflows_by_ids_success(self) -> None:
         self.workflow.update(enabled=True)
@@ -1942,7 +1909,6 @@ class OrganizationWorkflowPutProjectAccessTest(
         self.user_workflow.refresh_from_db()
         assert self.user_workflow.enabled is True
 
-    @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_put_cannot_modify_mixed_all_projects_workflow_without_org_write(self) -> None:
         all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
         self.create_detector_workflow(workflow=self.user_workflow, detector=all_projects_detector)
@@ -2021,7 +1987,6 @@ class OrganizationWorkflowDeleteProjectAccessTest(
             object_id=self.user_workflow.id,
         ).exists()
 
-    @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_delete_cannot_delete_mixed_all_projects_workflow_without_org_write(self) -> None:
         all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
         self.create_detector_workflow(workflow=self.user_workflow, detector=all_projects_detector)

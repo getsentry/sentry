@@ -118,7 +118,6 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert response.status_code == 200
         assert updated_workflow.name == "Updated Workflow"
 
-    @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_all_projects_workflow_requires_org_write(self) -> None:
         detector = ensure_default_all_projects_detector(self.organization.id)
         self.create_detector_workflow(workflow=self.workflow, detector=detector)
@@ -977,7 +976,6 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         self.workflow.refresh_from_db()
         assert self.workflow.status == ObjectStatus.PENDING_DELETION
 
-    @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_all_projects_workflow_requires_org_write(self) -> None:
         detector = ensure_default_all_projects_detector(self.organization.id)
         self.create_detector_workflow(workflow=self.workflow, detector=detector)
