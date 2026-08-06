@@ -41,10 +41,14 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
             status="pending",
         )
 
+    @patch("sentry.replays.tasks.metrics")
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     @patch("sentry.replays.tasks.delete_matched_rows")
     def test_run_bulk_replay_delete_job_first_run(
-        self, mock_delete_matched_rows: MagicMock, mock_fetch_rows: MagicMock
+        self,
+        mock_delete_matched_rows: MagicMock,
+        mock_fetch_rows: MagicMock,
+        mock_metrics: MagicMock,
     ) -> None:
         """Test the first run of the bulk deletion job"""
         # Mock the fetch_rows_matching_pattern to return some rows
@@ -62,10 +66,11 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
                 },
             ],
             "has_more": True,
+            "next_cursor": 5678,
         }
 
         # Run the job
-        run_bulk_replay_delete_job(self.job.id, offset=0)
+        run_bulk_replay_delete_job(self.job.id)
 
         # Verify the job status was updated
         self.job.refresh_from_db()
@@ -85,13 +90,29 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
             query=self.query,
             environment=self.environments,
             limit=100,
-            offset=0,
+            after_replay_id_hash=None,
         )
 
+        # Verify metrics were recorded
+        assert mock_metrics.incr.call_count == 3
+        mock_metrics.incr.assert_any_call(
+            "replays.bulk_delete_job", tags={"status": "started"}, sample_rate=1.0
+        )
+        mock_metrics.incr.assert_any_call(
+            "replays.bulk_delete_job", tags={"status": "in_progress"}, sample_rate=1.0
+        )
+        mock_metrics.incr.assert_any_call(
+            "replays.bulk_delete_job.rows_deleted", amount=2, sample_rate=1.0
+        )
+
+    @patch("sentry.replays.tasks.metrics")
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     @patch("sentry.replays.tasks.delete_matched_rows")
     def test_run_bulk_replay_delete_job_completion(
-        self, mock_delete_matched_rows: MagicMock, mock_fetch_rows: MagicMock
+        self,
+        mock_delete_matched_rows: MagicMock,
+        mock_fetch_rows: MagicMock,
+        mock_metrics: MagicMock,
     ) -> None:
         """Test the completion of the bulk deletion job"""
         # Mock the fetch_rows_matching_pattern to return no more rows
@@ -109,10 +130,11 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
                 },
             ],
             "has_more": False,
+            "next_cursor": 5678,
         }
 
         # Run the job
-        run_bulk_replay_delete_job(self.job.id, offset=100)
+        run_bulk_replay_delete_job(self.job.id, after_replay_id_hash=100)
 
         # Verify the job status was updated to completed
         self.job.refresh_from_db()
@@ -131,7 +153,22 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
             query=self.query,
             environment=self.environments,
             limit=100,
-            offset=100,
+            after_replay_id_hash=100,
+        )
+
+        # Verify metrics were recorded
+        assert mock_metrics.incr.call_count == 4
+        mock_metrics.incr.assert_any_call(
+            "replays.bulk_delete_job", tags={"status": "started"}, sample_rate=1.0
+        )
+        mock_metrics.incr.assert_any_call(
+            "replays.bulk_delete_job", tags={"status": "in_progress"}, sample_rate=1.0
+        )
+        mock_metrics.incr.assert_any_call(
+            "replays.bulk_delete_job.rows_deleted", amount=2, sample_rate=1.0
+        )
+        mock_metrics.incr.assert_any_call(
+            "replays.bulk_delete_job", tags={"status": "completed"}, sample_rate=1.0
         )
 
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
@@ -144,10 +181,11 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         mock_fetch_rows.return_value = {
             "rows": [],
             "has_more": False,
+            "next_cursor": None,
         }
 
         # Run the job
-        run_bulk_replay_delete_job(self.job.id, offset=0)
+        run_bulk_replay_delete_job(self.job.id)
 
         # Verify the job status was updated to completed
         self.job.refresh_from_db()
@@ -164,7 +202,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
             query=self.query,
             environment=self.environments,
             limit=100,
-            offset=0,
+            after_replay_id_hash=None,
         )
 
     def test_run_bulk_replay_delete_job_chained_runs(self) -> None:
@@ -189,7 +227,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         )
 
         with TaskRunner():
-            run_bulk_replay_delete_job.delay(self.job.id, offset=0, limit=1)
+            run_bulk_replay_delete_job.delay(self.job.id, limit=1)
 
         # Runs were chained.
         self.job.refresh_from_db()
@@ -207,7 +245,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         self.job.save()
 
         with TaskRunner():
-            run_bulk_replay_delete_job.delay(self.job.id, offset=0, limit=0)
+            run_bulk_replay_delete_job.delay(self.job.id, limit=0)
 
         # Runs were chained.
         self.job.refresh_from_db()
@@ -216,7 +254,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
 
     def test_run_bulk_replay_delete_job_no_matches(self) -> None:
         with TaskRunner():
-            run_bulk_replay_delete_job.delay(self.job.id, offset=0)
+            run_bulk_replay_delete_job.delay(self.job.id)
 
         self.job.refresh_from_db()
         assert self.job.status == "completed"
@@ -231,6 +269,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         mock_fetch_rows.return_value = {
             "rows": [{"retention_days": 90, "replay_id": "a", "max_segment_id": 1}],
             "has_more": True,
+            "next_cursor": 1234,
         }
 
         self.job.status = DeletionJobStatus.IN_PROGRESS
@@ -238,7 +277,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         self.job.save()
 
         with patch.object(run_bulk_replay_delete_job, "delay"):
-            run_bulk_replay_delete_job(self.job.id, offset=100)
+            run_bulk_replay_delete_job(self.job.id, after_replay_id_hash=100)
 
         self.job.refresh_from_db()
         assert self.job.status == "in-progress"
@@ -253,13 +292,14 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         mock_fetch_rows.return_value = {
             "rows": [{"retention_days": 90, "replay_id": "a", "max_segment_id": 1}],
             "has_more": False,
+            "next_cursor": 1234,
         }
 
         self.job.status = DeletionJobStatus.IN_PROGRESS
         self.job.offset = 100
         self.job.save()
 
-        run_bulk_replay_delete_job(self.job.id, offset=0)
+        run_bulk_replay_delete_job(self.job.id)
 
         self.job.refresh_from_db()
         assert self.job.status == "completed"
@@ -274,6 +314,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         mock_fetch_rows.return_value = {
             "rows": [{"retention_days": 90, "replay_id": "a", "max_segment_id": 1}],
             "has_more": True,
+            "next_cursor": 1234,
         }
 
         self.job.status = DeletionJobStatus.IN_PROGRESS
@@ -284,7 +325,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
 
         mock_delete_matched_rows.side_effect = advance_checkpoint
 
-        run_bulk_replay_delete_job(self.job.id, offset=0)
+        run_bulk_replay_delete_job(self.job.id)
 
         self.job.refresh_from_db()
         assert self.job.offset == 500
@@ -308,14 +349,15 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
 
         with patch("sentry.replays.tasks.current_task", return_value=Mock(retries_remaining=2)):
             with pytest.raises(ProcessingDeadlineExceeded):
-                run_bulk_replay_delete_job(self.job.id, offset=0)
+                run_bulk_replay_delete_job(self.job.id)
 
         self.job.refresh_from_db()
         assert self.job.status == "in-progress"
 
+    @patch("sentry.replays.tasks.metrics")
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     def test_run_bulk_replay_delete_job_deadline_exceeded_without_retries(
-        self, mock_fetch_rows: MagicMock
+        self, mock_fetch_rows: MagicMock, mock_metrics: MagicMock
     ) -> None:
         """Test the job is failed rather than stalled when deadline retries run out"""
         mock_fetch_rows.side_effect = ProcessingDeadlineExceeded()
@@ -325,14 +367,20 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
 
         with patch("sentry.replays.tasks.current_task", return_value=Mock(retries_remaining=0)):
             with pytest.raises(ProcessingDeadlineExceeded):
-                run_bulk_replay_delete_job(self.job.id, offset=0)
+                run_bulk_replay_delete_job(self.job.id)
 
         self.job.refresh_from_db()
         assert self.job.status == "failed"
 
+        # Verify failed metric was recorded
+        mock_metrics.incr.assert_called_once_with(
+            "replays.bulk_delete_job", tags={"status": "failed"}, sample_rate=1.0
+        )
+
+    @patch("sentry.replays.tasks.metrics")
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     def test_run_bulk_replay_delete_job_failure_preserves_offset(
-        self, mock_fetch_rows: MagicMock
+        self, mock_fetch_rows: MagicMock, mock_metrics: MagicMock
     ) -> None:
         """Test a failure records the status without reverting the checkpoint"""
         mock_fetch_rows.side_effect = ValueError("snuba is unhappy")
@@ -342,11 +390,16 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         self.job.save()
 
         with pytest.raises(ValueError):
-            run_bulk_replay_delete_job(self.job.id, offset=200)
+            run_bulk_replay_delete_job(self.job.id, after_replay_id_hash=200)
 
         self.job.refresh_from_db()
         assert self.job.status == "failed"
         assert self.job.offset == 200
+
+        # Verify failed metric was recorded
+        mock_metrics.incr.assert_called_once_with(
+            "replays.bulk_delete_job", tags={"status": "failed"}, sample_rate=1.0
+        )
 
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     @patch("sentry.replays.tasks.delete_matched_rows")
@@ -357,6 +410,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         mock_fetch_rows.return_value = {
             "rows": [{"retention_days": 90, "replay_id": "a", "max_segment_id": 1}],
             "has_more": True,
+            "next_cursor": 1234,
         }
 
         self.job.status = DeletionJobStatus.IN_PROGRESS
@@ -370,7 +424,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         mock_delete_matched_rows.side_effect = complete_job
 
         with patch.object(run_bulk_replay_delete_job, "delay"):
-            run_bulk_replay_delete_job(self.job.id, offset=0)
+            run_bulk_replay_delete_job(self.job.id)
 
         self.job.refresh_from_db()
         assert self.job.status == "completed"
@@ -392,10 +446,44 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
             query="count_errors:<100",
             environment=["prod"],
             limit=50,
-            offset=0,
+            after_replay_id_hash=None,
         )
         assert len(result["rows"]) == 1
         assert result["rows"][0]["replay_id"] == str(uuid.UUID(replay_id))
+
+    def test_fetch_rows_matching_pattern_keyset_pagination(self) -> None:
+        """Test paging by `cityHash64(replay_id)` returns every replay exactly once.
+
+        Every replay shares one timestamp here, which is the case the previous pagination got wrong:
+        it ordered by `min(timestamp)` at hourly granularity and paged with a growing `OFFSET`, so
+        ties made page boundaries non-deterministic and rows could be skipped or repeated.
+        """
+        timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
+        replay_ids = {uuid.uuid4().hex for _ in range(5)}
+        for replay_id in replay_ids:
+            self.store_replays(
+                mock_replay(timestamp, self.project.id, replay_id, segment_id=0, environment="prod")
+            )
+
+        seen: list[str] = []
+        cursor: int | None = None
+        has_more = True
+        while has_more:
+            result = fetch_rows_matching_pattern(
+                self.project.id,
+                timestamp - datetime.timedelta(seconds=10),
+                timestamp + datetime.timedelta(seconds=10),
+                query="",
+                environment=["prod"],
+                limit=2,
+                after_replay_id_hash=cursor,
+            )
+            seen.extend(row["replay_id"] for row in result["rows"])
+            cursor = result["next_cursor"]
+            has_more = result["has_more"]
+
+        assert len(seen) == len(set(seen)), "a replay was returned on more than one page"
+        assert {uuid.UUID(replay_id).hex for replay_id in seen} == replay_ids
 
     def test_delete_matched_rows_deletes_blob(self) -> None:
         """End-to-end: a real blob stored under the stripped key is deleted.
@@ -469,6 +557,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
                     },
                 ],
                 "has_more": True,
+                "next_cursor": 1234,
             }
             yield {
                 "rows": [
@@ -479,6 +568,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
                     },
                 ],
                 "has_more": False,
+                "next_cursor": 1234,
             }
 
         mock_fetch_rows.side_effect = row_generator()
@@ -488,7 +578,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         mock_make_seer_api_request.return_value = mock_response
 
         with TaskRunner():
-            run_bulk_replay_delete_job.delay(self.job.id, offset=0, limit=2, has_seer_data=True)
+            run_bulk_replay_delete_job.delay(self.job.id, limit=2, has_seer_data=True)
 
         # Runs were chained.
         self.job.refresh_from_db()
@@ -538,22 +628,25 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
             yield {
                 "rows": [{"retention_days": 90, "replay_id": "a", "max_segment_id": 1}],
                 "has_more": False,
+                "next_cursor": 1234,
             }
             # Window 2: range_start + 7 days to range_start + 14 days
             yield {
                 "rows": [{"retention_days": 90, "replay_id": "b", "max_segment_id": 1}],
                 "has_more": False,
+                "next_cursor": 1234,
             }
             # Window 3: range_start + 14 days to range_end
             yield {
                 "rows": [{"retention_days": 90, "replay_id": "c", "max_segment_id": 1}],
                 "has_more": False,
+                "next_cursor": 1234,
             }
 
         mock_fetch_rows.side_effect = row_generator()
 
         with TaskRunner():
-            run_bulk_replay_delete_job.delay(job.id, offset=0, limit=100)
+            run_bulk_replay_delete_job.delay(job.id, limit=100)
 
         job.refresh_from_db()
         assert job.status == "completed"
@@ -569,15 +662,15 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         # Window 1
         assert calls[0].kwargs["start"] == range_start
         assert calls[0].kwargs["end"] == range_start + datetime.timedelta(days=7)
-        assert calls[0].kwargs["offset"] == 0
+        assert calls[0].kwargs["after_replay_id_hash"] is None
         # Window 2
         assert calls[1].kwargs["start"] == range_start + datetime.timedelta(days=7)
         assert calls[1].kwargs["end"] == range_start + datetime.timedelta(days=14)
-        assert calls[1].kwargs["offset"] == 0
+        assert calls[1].kwargs["after_replay_id_hash"] is None
         # Window 3
         assert calls[2].kwargs["start"] == range_start + datetime.timedelta(days=14)
         assert calls[2].kwargs["end"] == range_end
-        assert calls[2].kwargs["offset"] == 0
+        assert calls[2].kwargs["after_replay_id_hash"] is None
 
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     @patch("sentry.replays.tasks.delete_matched_rows")
@@ -602,22 +695,25 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
             yield {
                 "rows": [{"retention_days": 90, "replay_id": "a", "max_segment_id": 1}],
                 "has_more": True,
+                "next_cursor": 1234,
             }
             # Window 1, page 2: no more rows, advance to next window
             yield {
                 "rows": [{"retention_days": 90, "replay_id": "b", "max_segment_id": 1}],
                 "has_more": False,
+                "next_cursor": 1234,
             }
             # Window 2: final window
             yield {
                 "rows": [],
                 "has_more": False,
+                "next_cursor": 1234,
             }
 
         mock_fetch_rows.side_effect = row_generator()
 
         with TaskRunner():
-            run_bulk_replay_delete_job.delay(job.id, offset=0, limit=1)
+            run_bulk_replay_delete_job.delay(job.id, limit=1)
 
         job.refresh_from_db()
         assert job.status == "completed"
@@ -628,18 +724,18 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         assert job.range_start == range_start
 
         calls = mock_fetch_rows.call_args_list
-        # Window 1, page 1 — offset 0
+        # Window 1, page 1 — no cursor yet
         assert calls[0].kwargs["start"] == range_start
         assert calls[0].kwargs["end"] == range_start + datetime.timedelta(days=7)
-        assert calls[0].kwargs["offset"] == 0
-        # Window 1, page 2 — offset 1
+        assert calls[0].kwargs["after_replay_id_hash"] is None
+        # Window 1, page 2 — seeks from the cursor page 1 returned
         assert calls[1].kwargs["start"] == range_start
         assert calls[1].kwargs["end"] == range_start + datetime.timedelta(days=7)
-        assert calls[1].kwargs["offset"] == 1
-        # Window 2 — offset reset to 0
+        assert calls[1].kwargs["after_replay_id_hash"] == 1234
+        # Window 2 — cursor reset, because it is a position within a window's result set
         assert calls[2].kwargs["start"] == range_start + datetime.timedelta(days=7)
         assert calls[2].kwargs["end"] == range_end
-        assert calls[2].kwargs["offset"] == 0
+        assert calls[2].kwargs["after_replay_id_hash"] is None
 
     @patch("requests.post")
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
@@ -662,6 +758,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
                     },
                 ],
                 "has_more": True,
+                "next_cursor": 1234,
             }
             yield {
                 "rows": [
@@ -672,12 +769,13 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
                     },
                 ],
                 "has_more": False,
+                "next_cursor": 1234,
             }
 
         mock_fetch_rows.side_effect = row_generator()
 
         with TaskRunner():
-            run_bulk_replay_delete_job.delay(self.job.id, offset=0, limit=2, has_seer_data=False)
+            run_bulk_replay_delete_job.delay(self.job.id, limit=2, has_seer_data=False)
 
         # Runs were chained.
         self.job.refresh_from_db()

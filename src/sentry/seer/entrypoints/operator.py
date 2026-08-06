@@ -664,6 +664,7 @@ def process_autofix_updates(
     organization_id: int,
     activity_attribution: SeerActivityAttribution | None = None,
     activity_datetime: str | None = None,
+    activity_already_recorded: bool = False,
 ) -> None:
     """
     Use the registry to iterate over all entrypoints and check if this payload's run_id or group_id
@@ -703,45 +704,48 @@ def process_autofix_updates(
             lifecycle.record_halt(halt_reason="no_operator_access")
             return
 
-        iteration_attribution: SeerActivityAttribution | None = None
-        if event_type == SentryAppEventType.SEER_ITERATION_STARTED and activity_attribution:
-            try:
-                activity_attribution["referrer"] = AutofixReferrer(activity_attribution["referrer"])
-            except ValueError:
-                pass
-            else:
-                iteration_attribution = activity_attribution
+        if not activity_already_recorded:
+            iteration_attribution: SeerActivityAttribution | None = None
+            if event_type == SentryAppEventType.SEER_ITERATION_STARTED and activity_attribution:
+                try:
+                    activity_attribution["referrer"] = AutofixReferrer(
+                        activity_attribution["referrer"]
+                    )
+                except ValueError:
+                    pass
+                else:
+                    iteration_attribution = activity_attribution
 
-        action_source = ActionSource.SEER_EXPLORER
-        action_actor = SYSTEM_ACTOR
-        if iteration_attribution is not None:
-            action_source = ITERATION_REFERRER_TO_ACTION_SOURCE.get(
-                iteration_attribution["referrer"], ActionSource.SEER_EXPLORER
-            )
-            actor_user_id = iteration_attribution.get("actor_user_id")
-            if actor_user_id is not None:
-                action_actor = GroupActionActor.user(actor_user_id)
-
-        try:
-            with action_context_scope(action_source, action_actor):
-                _create_seer_activity(
-                    group,
-                    event_type,
-                    event_payload,
-                    activity_attribution=iteration_attribution,
-                    activity_datetime=(
-                        datetime.fromisoformat(activity_datetime) if activity_datetime else None
-                    ),
+            action_source = ActionSource.SEER_EXPLORER
+            action_actor = SYSTEM_ACTOR
+            if iteration_attribution is not None:
+                action_source = ITERATION_REFERRER_TO_ACTION_SOURCE.get(
+                    iteration_attribution["referrer"], ActionSource.SEER_EXPLORER
                 )
-        except Exception:
-            logger.exception(
-                "seer.activity_creation_failed",
-                extra={
-                    "group_id": group_id,
-                    "run_id": run_id,
-                    "event_type": str(event_type),
-                },
-            )
+                actor_user_id = iteration_attribution.get("actor_user_id")
+                if actor_user_id is not None:
+                    action_actor = GroupActionActor.user(actor_user_id)
+
+            try:
+                with action_context_scope(action_source, action_actor):
+                    _create_seer_activity(
+                        group,
+                        event_type,
+                        event_payload,
+                        activity_attribution=iteration_attribution,
+                        activity_datetime=(
+                            datetime.fromisoformat(activity_datetime) if activity_datetime else None
+                        ),
+                    )
+            except Exception:
+                logger.exception(
+                    "seer.activity_creation_failed",
+                    extra={
+                        "group_id": group_id,
+                        "run_id": run_id,
+                        "event_type": str(event_type),
+                    },
+                )
 
         for entrypoint_key, entrypoint_cls in autofix_entrypoint_registry.registrations.items():
             logging_ctx = {

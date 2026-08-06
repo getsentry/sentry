@@ -413,6 +413,87 @@ class GenerateProjectDerivedDataBatchResumeTest(DerivedDataTaskTestBase):
 
 
 @with_feature("projects:issue-action-log-write-to-db")
+class GenerateProjectDerivedDataPaginationTest(DerivedDataTaskTestBase):
+    def test_limits_page_to_max_tasks(self) -> None:
+        groups = self.create_unprocessed_groups(3)
+        group_ids = sorted(group.id for group in groups)
+
+        with (
+            override_options(
+                {
+                    "issues.derived.project-batch-size": 2,
+                    "issues.derived.project-max-tasks": 1,
+                }
+            ),
+            patch.object(generate_project_derived_data_batch, "delay") as mock_batch_delay,
+            patch.object(generate_project_derived_data, "apply_async") as mock_project_delay,
+        ):
+            generate_project_derived_data(project_id=self.project.id)
+
+        mock_batch_delay.assert_called_once_with(
+            project_id=self.project.id,
+            group_id_start=group_ids[0],
+            group_id_end=group_ids[1] + 1,
+            stale_only=False,
+        )
+        mock_project_delay.assert_called_once_with(
+            kwargs={
+                "project_id": self.project.id,
+                "cursor_group_id": group_ids[1],
+                "stale_only": False,
+            },
+            headers={"sentry-propagate-traces": False},
+        )
+
+    def test_schedules_the_next_page(self) -> None:
+        groups = self.create_unprocessed_groups(3)
+        group_ids = sorted(group.id for group in groups)
+
+        with (
+            patch("sentry.issues.derived.tasks._MAX_PROJECT_GROUPS", 2),
+            patch.object(generate_project_derived_data_batch, "delay") as mock_batch_delay,
+            patch.object(generate_project_derived_data, "apply_async") as mock_project_delay,
+        ):
+            generate_project_derived_data(project_id=self.project.id)
+
+        mock_batch_delay.assert_called_once_with(
+            project_id=self.project.id,
+            group_id_start=group_ids[0],
+            group_id_end=group_ids[1] + 1,
+            stale_only=False,
+        )
+        mock_project_delay.assert_called_once_with(
+            kwargs={
+                "project_id": self.project.id,
+                "cursor_group_id": group_ids[1],
+                "stale_only": False,
+            },
+            headers={"sentry-propagate-traces": False},
+        )
+
+    def test_resumes_after_the_cursor(self) -> None:
+        groups = self.create_unprocessed_groups(3)
+        group_ids = sorted(group.id for group in groups)
+
+        with (
+            patch.object(generate_project_derived_data_batch, "delay") as mock_batch_delay,
+            patch.object(generate_project_derived_data, "apply_async") as mock_project_delay,
+        ):
+            generate_project_derived_data(
+                project_id=self.project.id,
+                cursor_group_id=group_ids[1],
+            )
+
+        mock_batch_delay.assert_called_once_with(
+            project_id=self.project.id,
+            group_id_start=group_ids[2],
+            group_id_end=group_ids[2] + 1,
+            stale_only=False,
+        )
+        mock_project_delay.assert_not_called()
+
+
+@with_feature("projects:issue-action-log-write-to-db")
 class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
     def test_finds_stale_projects_and_schedules(self) -> None:
         groups = self.create_unprocessed_groups(2)
