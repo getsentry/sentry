@@ -198,17 +198,17 @@ const TimelineRow = memo(function TimelineRowImpl({
                   </EllipsisTag>
                 </Flex>
               ) : (
-                <TitleContainer maxWidth="50%" minWidth="0">
+                <Container maxWidth="50%" minWidth="0">
                   <InfoText
                     title={title}
                     mode="overflowOnly"
                     size="sm"
-                    variant="inherit"
+                    variant="primary"
                     bold
                   >
                     {title}
                   </InfoText>
-                </TitleContainer>
+                </Container>
               )}
               <Flex flex="1" minWidth="0">
                 {secondary && (
@@ -370,13 +370,6 @@ function getSpanPresentation(
       };
   }
 }
-
-// Applies the header color to the row title. Text/InfoText can't express the
-// headings token through its `variant` prop, so the token is set here and the
-// title inherits it via `variant="inherit"`.
-const TitleContainer = styled(Container)`
-  color: ${p => p.theme.tokens.content.headings};
-`;
 
 // Tag's inner text already truncates, but text-overflow is ignored on its flex
 // container, so flip it to block. Width is bounded by the Flex wrapper.
