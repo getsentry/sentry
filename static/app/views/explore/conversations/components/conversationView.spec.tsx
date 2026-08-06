@@ -3,18 +3,26 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import type {
+  ConversationApiResponse,
+  ConversationApiSpan,
+} from 'sentry/views/explore/conversations/hooks/useConversation';
 
 import {ConversationViewContent} from './conversationView';
 
 const CONVERSATION_ID = 'conv-1';
 
-function spanFixture(overrides: Record<string, unknown>) {
+function spanFixture(overrides: Partial<ConversationApiSpan> = {}): ConversationApiSpan {
   return {
     'gen_ai.conversation.id': CONVERSATION_ID,
     parent_span: 'parent-1',
+    'precise.finish_ts': 1000.5,
+    'precise.start_ts': 1000,
     project: 'test-project',
     'project.id': 1,
+    'span.name': 'gen_ai.generate',
     'span.status': 'ok',
+    span_id: 'span-id',
     trace: 'trace-1',
     'gen_ai.operation.type': 'ai_client',
     ...overrides,
@@ -44,7 +52,11 @@ const CONVERSATION_BODY = [
 function mockConversation() {
   MockApiClient.addMockResponse({
     url: `/organizations/org-slug/ai-conversations/${CONVERSATION_ID}/`,
-    body: {conversationId: CONVERSATION_ID, title: null, spans: CONVERSATION_BODY},
+    body: {
+      conversationId: CONVERSATION_ID,
+      title: null,
+      spans: CONVERSATION_BODY,
+    } satisfies ConversationApiResponse,
   });
   // The detail pane fetches full attributes per span; keep it empty.
   MockApiClient.addMockResponse({

@@ -25,7 +25,7 @@ export interface UseConversationsOptions {
 /**
  * Raw span data returned from the AI conversation details endpoint
  */
-interface ConversationApiSpan {
+export interface ConversationApiSpan {
   'gen_ai.conversation.id': string;
   parent_span: string;
   'precise.finish_ts': number;
@@ -62,7 +62,7 @@ interface ConversationApiSpan {
   'user.username'?: string;
 }
 
-interface ConversationApiResponse {
+export interface ConversationApiResponse {
   conversationId: string;
   spans: ConversationApiSpan[];
   title: string | null;

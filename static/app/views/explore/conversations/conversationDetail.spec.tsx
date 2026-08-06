@@ -12,17 +12,22 @@ import {
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
+import type {ConversationApiResponse, ConversationApiSpan} from './hooks/useConversation';
 import ConversationDetailPage from './conversationDetail';
 
 const CONVERSATION_ID = 'conv-1';
 
-function spanFixture(overrides: Record<string, unknown>) {
+function spanFixture(overrides: Partial<ConversationApiSpan> = {}): ConversationApiSpan {
   return {
     'gen_ai.conversation.id': CONVERSATION_ID,
     parent_span: 'parent-1',
+    'precise.finish_ts': 1000.5,
+    'precise.start_ts': 1000,
     project: 'test-project',
     'project.id': 1,
+    'span.name': 'gen_ai.generate',
     'span.status': 'ok',
+    span_id: 'span-id',
     trace: 'trace-1',
     'gen_ai.operation.type': 'ai_client',
     ...overrides,
@@ -50,11 +55,15 @@ const CONVERSATION_BODY = [
 
 function mockApis(
   title: string | null = null,
-  spans: Array<Record<string, unknown>> = CONVERSATION_BODY
+  spans: ConversationApiSpan[] = CONVERSATION_BODY
 ) {
   MockApiClient.addMockResponse({
     url: `/organizations/org-slug/ai-conversations/${CONVERSATION_ID}/`,
-    body: {conversationId: CONVERSATION_ID, title, spans},
+    body: {
+      conversationId: CONVERSATION_ID,
+      title,
+      spans,
+    } satisfies ConversationApiResponse,
   });
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/trace-items/attributes/',
