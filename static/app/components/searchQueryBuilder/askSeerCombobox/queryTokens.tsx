@@ -45,7 +45,7 @@ function NewQueryTokens({
   expandedProjectIds,
   crossEvents,
 }: QueryTokensProps) {
-  const tokens = [];
+  const tokens: React.ReactNode[] = [];
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
   const {projects} = useProjects();
   // Project is applied to the page-level project selector, so surface it as the
