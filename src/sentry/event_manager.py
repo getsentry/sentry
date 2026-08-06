@@ -89,6 +89,7 @@ from sentry.insights import modules as insights_modules
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issue_detection.performance_detection import detect_performance_problems
 from sentry.issue_detection.performance_problem import PerformanceProblem
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
@@ -1920,7 +1921,8 @@ def _process_existing_aggregate(
     if group.first_seen > event.datetime:
         updated_group_values["first_seen"] = event.datetime
 
-    is_regression = _handle_regression(group, event, release, incoming_group_values)
+    with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+        is_regression = _handle_regression(group, event, release, incoming_group_values)
 
     existing_data = group.data
     existing_metadata = group.data.get("metadata", {})

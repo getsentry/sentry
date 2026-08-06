@@ -469,7 +469,7 @@ export default function SnapshotsPage() {
       ? tagFilteredItems.filter(item => activeStatuses.has(item.type as DiffStatus))
       : tagFilteredItems;
 
-    return [...base].sort((a, b) => {
+    return base.toSorted((a, b) => {
       const typeOrder = (DIFF_TYPE_ORDER[a.type] ?? 99) - (DIFF_TYPE_ORDER[b.type] ?? 99);
       if (typeOrder !== 0) {
         return typeOrder;

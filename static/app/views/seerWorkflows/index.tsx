@@ -151,7 +151,7 @@ function SeerWorkflows() {
   const sortedRows = useMemo(() => {
     const cmp = (a: WorkflowRow, b: WorkflowRow) =>
       Date.parse(a.dateAdded) - Date.parse(b.dateAdded);
-    const next = [...filteredRows].sort(cmp);
+    const next = filteredRows.toSorted(cmp);
     return sortDirection === 'desc' ? next.reverse() : next;
   }, [filteredRows, sortDirection]);
 

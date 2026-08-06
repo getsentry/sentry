@@ -63,58 +63,6 @@ const AM2_AVAILABLE_RESERVED_BUDGET_TYPES = {
   [ReservedBudgetCategoryType.SEER]: SeerReservedBudgetCategoryFixture({}),
 };
 
-const AM2_FREE_FEATURES = [
-  'advanced-search',
-  'integrations-stacktrace-link',
-  'dynamic-sampling',
-  'performance-view',
-  'profiling-view',
-  'session-replay',
-  'monitor-seat-billing',
-  'event-attachments',
-];
-
-const AM2_TEAM_FEATURES = [
-  ...AM2_FREE_FEATURES,
-  'crash-rate-alerts',
-  'discover-basic',
-  'incidents',
-  'integrations-issue-basic',
-  'integrations-issue-sync',
-  'integrations-alert-rule',
-  'integrations-chat-unfurl',
-  'integrations-incident-management',
-  'sso-basic',
-  'on-demand-metrics-prefill',
-  'seer-billing',
-];
-
-const AM2_BUSINESS_FEATURES = [
-  ...AM2_TEAM_FEATURES,
-  'anomaly-detection-alerts',
-  'baa',
-  'change-alerts',
-  'custom-inbound-filters',
-  'custom-symbol-sources',
-  'data-forwarding',
-  'discard-groups',
-  'discover-query',
-  'integrations-codeowners',
-  'integrations-enterprise-alert-rule',
-  'integrations-enterprise-incident-management',
-  'integrations-event-hooks',
-  'integrations-ticket-rules',
-  'rate-limits',
-  'relay',
-  'sso-saml2',
-  'team-insights',
-  'team-roles',
-];
-
-const AM2_TRIAL_FEATURES = AM2_BUSINESS_FEATURES.filter(
-  feature => feature !== 'sso-saml2' && feature !== 'baa'
-);
-
 const BUDGET_TERM = 'on-demand';
 // TODO(isabella): This probably isn't all the common fields
 const commonFields = {
@@ -140,7 +88,6 @@ export const AM2_PLANS = {
     maxMembers: null,
     retentionDays: 90,
     userSelectable: true,
-    features: AM2_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
@@ -872,7 +819,6 @@ export const AM2_PLANS = {
     maxMembers: 1,
     retentionDays: 30,
     userSelectable: true,
-    features: AM2_FREE_FEATURES,
     billingInterval: MONTHLY,
     allowOnDemand: false,
     planCategories: {
@@ -972,7 +918,6 @@ export const AM2_PLANS = {
     maxMembers: null,
     retentionDays: 90,
     userSelectable: true,
-    features: AM2_TEAM_FEATURES,
     billingInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
@@ -1704,7 +1649,6 @@ export const AM2_PLANS = {
     maxMembers: 20,
     retentionDays: 90,
     userSelectable: false,
-    features: AM2_TRIAL_FEATURES,
     billingInterval: MONTHLY,
     allowOnDemand: false,
     planCategories: {
@@ -1804,7 +1748,6 @@ export const AM2_PLANS = {
     maxMembers: null,
     retentionDays: 90,
     userSelectable: true,
-    features: AM2_TEAM_FEATURES,
     billingInterval: ANNUAL,
     allowOnDemand: true,
     planCategories: {
@@ -2499,7 +2442,6 @@ export const AM2_PLANS = {
     maxMembers: null,
     retentionDays: 90,
     userSelectable: true,
-    features: AM2_BUSINESS_FEATURES,
     billingInterval: ANNUAL,
     allowOnDemand: true,
     planCategories: {
@@ -3195,7 +3137,6 @@ export const AM2_PLANS = {
     maxMembers: null,
     retentionDays: 90,
     userSelectable: false,
-    features: AM2_TEAM_FEATURES,
     billingInterval: 'monthly',
     allowOnDemand: true,
     planCategories: {
@@ -3227,7 +3168,6 @@ export const AM2_PLANS = {
     maxMembers: null,
     retentionDays: 90,
     userSelectable: false,
-    features: AM2_TEAM_FEATURES,
     billingInterval: 'annual',
     allowOnDemand: true,
     planCategories: {
@@ -3259,7 +3199,6 @@ export const AM2_PLANS = {
     maxMembers: null,
     retentionDays: 90,
     userSelectable: false,
-    features: AM2_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
@@ -3764,7 +3703,6 @@ export const AM2_PLANS = {
     maxMembers: null,
     retentionDays: 90,
     userSelectable: false,
-    features: AM2_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
@@ -4319,7 +4257,6 @@ export const AM2_PLANS = {
     maxMembers: null,
     retentionDays: 90,
     userSelectable: false,
-    features: AM2_TEAM_FEATURES,
     billingInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
@@ -4889,7 +4826,6 @@ export const AM2_PLANS = {
     maxMembers: null,
     retentionDays: 90,
     userSelectable: false,
-    features: AM2_BUSINESS_FEATURES,
     billingInterval: ANNUAL,
     allowOnDemand: true,
     planCategories: {
@@ -4988,7 +4924,6 @@ export const AM2_PLANS = {
     maxMembers: null,
     retentionDays: 90,
     userSelectable: false,
-    features: AM2_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
