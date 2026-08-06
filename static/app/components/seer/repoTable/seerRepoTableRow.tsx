@@ -134,7 +134,6 @@ export function SeerRepoTableRow({
               },
               {
                 onError: () => {
-                  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
                   setApiQueryData<RepositoryWithSettings>(
                     queryClient,
                     queryKey,
