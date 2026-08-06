@@ -88,21 +88,16 @@ export function MessageToolCalls({
 
   return (
     <CollapsibleContent
+      // Give the summary the shared hover background and row padding so it reads
+      // as one hoverable row with the tool calls below it.
+      interactive
       // Keep the group open when one of its calls is the current selection so a
       // deep-linked/timeline-selected row stays visible instead of hidden.
       defaultOpen={selectedToolCallId !== null}
       title={
-        // Match the rows' vertical padding so the toggle shares their line
-        // height, and mirror their layout: label on the left, the same fixed
-        // meta column on the right so the totals line up over the per-row values.
-        <Flex
-          flex="1"
-          align="center"
-          justify="between"
-          gap="md"
-          minWidth={0}
-          padding="sm 0"
-        >
+        // Mirror the rows' layout: label on the left, the same fixed meta column
+        // on the right so the totals line up over the per-row values.
+        <Flex flex="1" align="center" justify="between" gap="md" minWidth={0}>
           <Flex align="center" gap="sm" minWidth={0}>
             <Text size="sm" variant="muted">
               {tn('%s tool call', '%s tool calls', toolCalls.length)}

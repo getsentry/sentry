@@ -284,6 +284,7 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
 
   return (
     <CollapsibleContent
+      interactive
       title={
         <Text size="sm" variant="muted" monospace>
           {t('Thinking...')}
