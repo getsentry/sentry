@@ -138,6 +138,34 @@ describe('LinkedPullRequests', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('can omit checks and review expansion', async () => {
+    const pullRequestsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {
+        pullRequests: [
+          {
+            ...PullRequestFixture({id: '123', repository}),
+            attribution: null,
+            dateLinked: '2026-06-08T23:11:32.000000Z',
+            status: 'open',
+          },
+        ],
+      },
+    });
+
+    render(<LinkedPullRequests group={group} showChecksAndReview={false} />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByRole('link', {name: /Pull request #123/})
+    ).toBeInTheDocument();
+    expect(pullRequestsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.not.objectContaining({query: {expand: 'checksAndReview'}})
+    );
+  });
+
   it('deduplicates pull request ids from group activity', () => {
     const activityGroup = GroupFixture({
       activity: [
