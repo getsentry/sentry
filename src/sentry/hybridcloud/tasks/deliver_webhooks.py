@@ -532,7 +532,7 @@ def drain_mailbox(
     )
     skip_on_failure = payload.provider in skip_on_failure_providers
 
-    deleter = _deleter_for(mailbox_name)
+    deleter = _deleter_for(mailbox_name, claimed_count)
 
     delivered = 0
     failed = 0
@@ -685,22 +685,33 @@ _DELETE_IMMEDIATELY = _PayloadDeleter(batched=False)
 """Shared deleter for callers outside a batching drain; holds no state."""
 
 
-def _deleter_for(mailbox_name: str | None) -> _PayloadDeleter:
+def _deleter_for(mailbox_name: str | None, claimed_count: int | None) -> _PayloadDeleter:
     """
     Build the deleter for a drain.
 
-    Claim-backed drains — every dispatch except lease-mode push triggers, which
-    are the ones that pass a mailbox_name — own their batch for the drain's whole
-    run, so nothing else can touch a row between finishing with it and deleting
-    it. A worker that dies before flushing reprocesses at most one batch once the
-    claim horizon passes — redelivering its delivered rows and re-discarding the
-    rest — the same window a claim-then-crash already has.
+    Batching is only safe while a drain stays inside a claim it owns, so it takes
+    both a claim bound and no lease:
 
-    Lease drains keep per-row deletes: their lock outlives a crash by only
-    DRAIN_LOCK_TTL, after which unflushed rows would be handed to a concurrent
-    drain.
+    - `claimed_count` bounds the walk to claimed records. An unbounded drain
+      (the lease-mode scheduler path) runs on past its claim into rows that are
+      still due, and a finished-but-unflushed row there keeps the mailbox head
+      due — letting another dispatcher rediscover it and redeliver what this
+      drain already sent.
+    - `mailbox_name` means a lease drain, whose lock outlives a crash by only
+      DRAIN_LOCK_TTL, after which unflushed rows would be handed to a concurrent
+      drain.
+
+    Inside a bound claim nothing else can touch a row between the drain
+    finishing with it and deleting it. A worker that dies before flushing
+    reprocesses at most one batch once the claim horizon passes — redelivering
+    its delivered rows and re-discarding the rest — the same window a
+    claim-then-crash already has.
     """
-    batched = mailbox_name is None and options.get("hybridcloud.webhookpayload.drain_batch_deletes")
+    batched = (
+        mailbox_name is None
+        and claimed_count is not None
+        and options.get("hybridcloud.webhookpayload.drain_batch_deletes")
+    )
     return _PayloadDeleter(batched=batched)
 
 
@@ -905,7 +916,7 @@ def drain_mailbox_parallel(
     skip_on_failure = payload.provider in skip_on_failure_providers
 
     worker_threads = options.get("hybridcloud.webhookpayload.worker_threads")
-    deleter = _deleter_for(mailbox_name)
+    deleter = _deleter_for(mailbox_name, claimed_count)
     deadline = timezone.now() + BATCH_SCHEDULE_OFFSET
     delivered = 0
     remaining = claimed_count

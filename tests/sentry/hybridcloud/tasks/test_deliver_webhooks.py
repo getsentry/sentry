@@ -564,7 +564,7 @@ class DrainMailboxTest(TestCase):
         records = create_payloads(4, "github:123", provider="github")
 
         with CaptureQueriesContext(connections["control"]) as ctx:
-            drain_mailbox(records[0].id)
+            drain_mailbox(records[0].id, claimed_count=4)
 
         assert len(responses.calls) == 4
         assert WebhookPayload.objects.count() == 0
@@ -583,7 +583,7 @@ class DrainMailboxTest(TestCase):
         responses.add(responses.POST, url, status=500, body="")
         records = create_payloads(5, "jira:123", provider="jira")
 
-        drain_mailbox(records[0].id)
+        drain_mailbox(records[0].id, claimed_count=5)
 
         # jira requires strict ordering: the drain stops at the failure, but the
         # two messages delivered before it must still have their rows removed.
@@ -617,7 +617,7 @@ class DrainMailboxTest(TestCase):
         create_payloads(2, "github:123", provider="github")
 
         with CaptureQueriesContext(connections["control"]) as ctx:
-            drain_mailbox(stale.id)
+            drain_mailbox(stale.id, claimed_count=4)
 
         # Only the two fresh rows are delivered; the stale and attempts-exhausted
         # rows are discarded without a request.
@@ -639,10 +639,30 @@ class DrainMailboxTest(TestCase):
         records = create_payloads(5, "github:123", provider="github")
 
         with CaptureQueriesContext(connections["control"]) as ctx:
-            drain_mailbox(records[0].id)
+            drain_mailbox(records[0].id, claimed_count=5)
 
         assert WebhookPayload.objects.count() == 0
         # Two full batches during the walk plus the remainder at the end.
+        delete_queries = [q["sql"] for q in ctx.captured_queries if q["sql"].startswith("DELETE")]
+        assert len(delete_queries) == 3
+
+    @responses.activate
+    @override_cells(cell_config)
+    @override_options({"hybridcloud.webhookpayload.drain_batch_deletes": True})
+    def test_drain_unbounded_keeps_per_row_deletes(self) -> None:
+        # The lease-mode scheduler dispatches without a claimed_count, so the
+        # drain runs on past its claim into rows that are still due. Holding a
+        # delivered row unflushed there keeps the mailbox head due, letting the
+        # next scheduler cycle rediscover it and redeliver what was already sent.
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        records = create_payloads(3, "github:123", provider="github")
+
+        with CaptureQueriesContext(connections["control"]) as ctx:
+            drain_mailbox(records[0].id)
+
+        assert len(responses.calls) == 3
+        assert WebhookPayload.objects.count() == 0
         delete_queries = [q["sql"] for q in ctx.captured_queries if q["sql"].startswith("DELETE")]
         assert len(delete_queries) == 3
 
@@ -1043,7 +1063,7 @@ class DrainMailboxParallelTest(TestCase):
         records = create_payloads(8, "github:123", provider="github")
 
         with CaptureQueriesContext(connections["control"]) as ctx:
-            drain_mailbox_parallel(records[0].id)
+            drain_mailbox_parallel(records[0].id, claimed_count=8)
 
         assert len(responses.calls) == 8
         assert WebhookPayload.objects.count() == 0
@@ -1071,12 +1091,31 @@ class DrainMailboxParallelTest(TestCase):
         create_payloads(2, "github:123", provider="github")
 
         with CaptureQueriesContext(connections["control"]) as ctx:
-            drain_mailbox_parallel(stale[0].id)
+            drain_mailbox_parallel(stale[0].id, claimed_count=4)
 
         assert len(responses.calls) == 2
         assert WebhookPayload.objects.count() == 0
         delete_queries = [q["sql"] for q in ctx.captured_queries if q["sql"].startswith("DELETE")]
         assert len(delete_queries) == 1
+
+    @responses.activate
+    @override_cells(cell_config)
+    @override_options({"hybridcloud.webhookpayload.drain_batch_deletes": True})
+    def test_drain_unbounded_keeps_per_row_deletes(self) -> None:
+        # Mirrors DrainMailboxTest: without a claimed_count the drain walks past
+        # its claim, and parallel delivery never bumps schedule_for, so an
+        # unflushed delivered row stays due and rediscoverable.
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        records = create_payloads(3, "github:123", provider="github")
+
+        with CaptureQueriesContext(connections["control"]) as ctx:
+            drain_mailbox_parallel(records[0].id)
+
+        assert len(responses.calls) == 3
+        assert WebhookPayload.objects.count() == 0
+        delete_queries = [q["sql"] for q in ctx.captured_queries if q["sql"].startswith("DELETE")]
+        assert len(delete_queries) == 3
 
     @responses.activate
     @override_cells(cell_config)
