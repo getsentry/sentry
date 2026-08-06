@@ -17,7 +17,11 @@ from sentry.seer.milestones import (
     record_has_pull_request,
     record_pull_requests_merged,
 )
-from sentry.seer.models.run import SeerRunMilestone, SeerRunMilestoneType
+from sentry.seer.models.run import (
+    SeerRunMilestone,
+    SeerRunMilestoneExtras,
+    SeerRunMilestoneType,
+)
 from sentry.testutils.cases import TestCase
 
 
@@ -220,7 +224,7 @@ class ReconcileMilestonesTest(TestCase):
         )
         return _state(blocks=[block])
 
-    def _extras(self, milestone: str) -> dict:
+    def _extras(self, milestone: str) -> SeerRunMilestoneExtras:
         return SeerRunMilestone.objects.get(seer_run=self.seer_run, milestone=milestone).extras
 
     def test_reconcile_writes_then_refreshes_extras_on_rerun(self) -> None:
