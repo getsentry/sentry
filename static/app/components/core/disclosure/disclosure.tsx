@@ -103,34 +103,6 @@ function Title({children, leadingItems, trailingItems, ...rest}: DisclosureTitle
 
   // With a leading slot the chevron trails the title, so the leading content is
   // the visual anchor and the toggle still reads label-then-affordance.
-  if (leadingItems) {
-    return (
-      <TitleRow
-        justify="start"
-        gap={context.size}
-        align="center"
-        width="100%"
-        paddingRight="xs"
-        radius="md"
-      >
-        {leadingItems}
-        <StretchedButton
-          disabled={isDisabled}
-          size={context.size}
-          variant="transparent"
-          {...pressProps}
-          {...rest}
-        >
-          <Flex align="center" gap="xs">
-            {children}
-            {chevron}
-          </Flex>
-        </StretchedButton>
-        {trailingItems ?? null}
-      </TitleRow>
-    );
-  }
-
   return (
     <TitleRow
       justify="start"
@@ -140,17 +112,25 @@ function Title({children, leadingItems, trailingItems, ...rest}: DisclosureTitle
       paddingRight="xs"
       radius="md"
     >
+      {leadingItems}
       <StretchedButton
-        icon={chevron}
+        icon={leadingItems ? undefined : chevron}
         disabled={isDisabled}
         size={context.size}
         variant="transparent"
         {...pressProps}
         {...rest}
       >
-        {children}
+        {leadingItems ? (
+          <Flex align="center" gap="xs">
+            {children}
+            {chevron}
+          </Flex>
+        ) : (
+          children
+        )}
       </StretchedButton>
-      {trailingItems ?? null}
+      {trailingItems}
     </TitleRow>
   );
 }
