@@ -20,12 +20,9 @@ from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
-from sentry.workflow_engine.endpoints.utils.all_projects import (
-    can_edit_all_project_detector_workflow_connections,
-    is_all_projects_detector,
-)
 from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
 from sentry.workflow_engine.types import DetectorId, WorkflowId
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +36,6 @@ def is_system_created_detector(detector: Detector) -> bool:
     # which imports from this module.
     from sentry.grouping.grouptype import ErrorGroupType
     from sentry.issue_detection.performance_detection import PERFORMANCE_WFE_DETECTOR_TYPES
-    from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
     return (
         detector.type in (ErrorGroupType.slug, IssueStreamGroupType.slug)
@@ -48,8 +44,6 @@ def is_system_created_detector(detector: Detector) -> bool:
 
 
 def can_edit_system_created_detectors(request: Request, detector: Detector) -> bool:
-    from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
-
     if detector.type == IssueStreamGroupType.slug:
         return False
 
@@ -147,19 +141,11 @@ def validate_detectors_exist_and_have_permissions(
     found_detector_ids = {detector.id for detector in detectors}
     missing_detector_ids = set(detector_ids) - found_detector_ids
 
+    if not features.has("organizations:workflow-engine-all-projects-detector", organization):
+        missing_detector_ids |= {detector.id for detector in detectors if detector.project is None}
+
     if missing_detector_ids:
         raise serializers.ValidationError(f"Some detectors do not exist: {missing_detector_ids}")
-
-    if not features.has("organizations:workflow-engine-all-projects-detector", organization):
-        unavailable_detector_ids = {
-            detector.id
-            for detector in detectors
-            if is_all_projects_detector(detector, organization)
-        }
-        if unavailable_detector_ids:
-            raise serializers.ValidationError(
-                f"Some detectors do not exist: {unavailable_detector_ids}"
-            )
 
     if not all(can_edit_detector_workflow_connections(detector, request) for detector in detectors):
         raise PermissionDenied
@@ -401,3 +387,38 @@ def get_unknown_detector_type_error(bad_value: str, organization: Organization) 
         return f"Unknown detector type '{bad_value}'. Must be one of: {available_str}"
     else:
         return f"Unknown detector type '{bad_value}'. No detector types are available."
+
+
+def is_workflow_connected_to_all_projects_detector(workflow: Workflow) -> bool:
+    from sentry.workflow_engine.processors.detector import get_all_projects_detector
+
+    all_projects_detector = get_all_projects_detector(workflow.organization_id)
+    if not all_projects_detector:
+        return False
+    return DetectorWorkflow.objects.filter(
+        detector_id=all_projects_detector.id, workflow_id=workflow.id
+    ).exists()
+
+
+def can_edit_all_project_detector_workflow_connections(request: Request) -> bool:
+    return request.access.has_scope("org:write")
+
+
+def should_include_all_projects_detector(request: Request, organization: Organization) -> bool:
+    return (
+        features.has("organizations:workflow-engine-all-projects-detector", organization)
+        and request.method == "GET"
+    )
+
+
+def should_include_all_projects_detector_workflows(
+    request: Request, organization: Organization
+) -> bool:
+    """
+    The flag is always required to show these workflows, but if it isn't a GET request, also check
+    that the caller has org:write. alerts:write is not sufficient to connect an all projects detector.
+    """
+    return features.has("organizations:workflow-engine-all-projects-detector", organization) and (
+        request.method == "GET"
+        or can_edit_all_project_detector_workflow_connections(request=request)
+    )

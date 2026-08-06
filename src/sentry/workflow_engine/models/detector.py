@@ -65,12 +65,6 @@ class DetectorQuerySet(BaseQuerySet["Detector"]):
         Project-scoped detectors are matched via project__organization.
         Null-project (all-projects) detectors are matched via config__organization_id.
         """
-        return self.filter(
-            Q(project__organization_id=organization_id)
-            | Q(id__in=self.all_projects_for_organization(organization_id))
-        )
-
-    def all_projects_for_organization(self, organization_id: int) -> Self:
         from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
         return self.filter(
