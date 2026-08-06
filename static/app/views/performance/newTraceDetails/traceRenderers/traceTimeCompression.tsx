@@ -1,5 +1,6 @@
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
+import {isZeroDurationNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/utils';
 
 const COLLAPSE_THRESHOLD_RATIO = 0.05;
 export const COLLAPSED_GAP_WIDTH_PX = 28;
@@ -182,7 +183,7 @@ function collectVisibleIntervals(options: TraceTimeCompressionOptions): Interval
     options.physicalWidth > 0
       ? (traceDuration / options.physicalWidth) * DURATION_LABEL_BUFFER_PX
       : 0;
-  const zeroDurationErrorBuffer =
+  const zeroDurationBuffer =
     options.physicalWidth > 0
       ? (traceDuration / options.physicalWidth) * COLLAPSED_GAP_WIDTH_PX
       : 0;
@@ -202,11 +203,10 @@ function collectVisibleIntervals(options: TraceTimeCompressionOptions): Interval
         clampTimestamp(end + durationLabelBuffer, traceStart, traceEnd),
       ]);
     } else {
-      const zeroDurationNodeBuffer =
-        node.type === 'error' ? zeroDurationErrorBuffer : markerPadding;
+      const nodeBuffer = isZeroDurationNode(node) ? zeroDurationBuffer : markerPadding;
       intervals.push([
-        clampTimestamp(start - zeroDurationNodeBuffer, traceStart, traceEnd),
-        clampTimestamp(start + zeroDurationNodeBuffer, traceStart, traceEnd),
+        clampTimestamp(start - nodeBuffer, traceStart, traceEnd),
+        clampTimestamp(start + nodeBuffer, traceStart, traceEnd),
       ]);
     }
   }
