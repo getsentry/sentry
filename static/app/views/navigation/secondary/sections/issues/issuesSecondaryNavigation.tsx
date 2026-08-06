@@ -8,6 +8,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t, tct} from 'sentry/locale';
+import {orgHasSeerAccess} from 'sentry/utils/seer/orgHasSeerAccess';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAutomationBasePathname} from 'sentry/views/automations/pathnames';
 import {useInboxIssueCount} from 'sentry/views/issueList/queries/useInboxIssueCount';
@@ -31,12 +32,7 @@ export function IssuesSecondaryNavigation() {
   const organization = useOrganization();
   const baseUrl = `/organizations/${organization.slug}/issues`;
   const hasProgressUi = organization.features.includes('issue-stream-progress-ui');
-  const hasSeer =
-    !organization.hideAiFeatures &&
-    organization.features.includes('gen-ai-features') &&
-    (organization.features.includes('seat-based-seer-enabled') ||
-      organization.features.includes('seer-added'));
-  const hasInbox = hasProgressUi && hasSeer;
+  const hasInbox = hasProgressUi && orgHasSeerAccess(organization);
   return (
     <Fragment>
       <SecondaryNavigation.Header>{t('Issues')}</SecondaryNavigation.Header>

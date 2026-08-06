@@ -28,6 +28,7 @@ import type {User} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useMembers} from 'sentry/utils/members/useMembers';
+import {orgHasSeerAccess} from 'sentry/utils/seer/orgHasSeerAccess';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useResizable} from 'sentry/utils/useResizable';
@@ -120,13 +121,8 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
 export default function InboxPage() {
   const organization = useOrganization();
   const hasProgressUi = organization.features.includes('issue-stream-progress-ui');
-  const hasSeer =
-    !organization.hideAiFeatures &&
-    organization.features.includes('gen-ai-features') &&
-    (organization.features.includes('seat-based-seer-enabled') ||
-      organization.features.includes('seer-added'));
 
-  if (!hasProgressUi || !hasSeer) {
+  if (!hasProgressUi || !orgHasSeerAccess(organization)) {
     return <NotFound />;
   }
 
@@ -142,10 +138,7 @@ function InboxContent() {
   const isMobile = layout === 'mobile';
   const resizableContainerRef = useRef<HTMLDivElement>(null);
   const organization = useOrganization();
-  const hasSeer =
-    !organization.hideAiFeatures &&
-    (organization.features.includes('seat-based-seer-enabled') ||
-      organization.features.includes('seer-added'));
+  const hasSeer = orgHasSeerAccess(organization);
   const [assignmentFilter, setAssignmentFilter] = useQueryState(
     ASSIGNMENT_QUERY_PARAM,
     parseAsStringLiteral(ASSIGNMENT_FILTERS)
