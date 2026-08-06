@@ -28,7 +28,7 @@ from sentry.replays.usecases.delete import (
     SNUBA_RETRY_EXCEPTIONS,
     datetime_as_start_of_day_conditions,
     day_aligned_windows,
-    delete_seer_replay_data_in_batches,
+    delete_seer_replay_data_with_retries,
 )
 from sentry.replays.usecases.query import execute_query, handle_search_filters
 from sentry.replays.usecases.query.configs.scalar import scalar_search_config
@@ -140,11 +140,11 @@ def delete_replay_ids(
     if has_seer_data:
         # The finder strips dashes from `replay_id`; Seer keys on the dashed UUID
         replay_ids = [str(uuid.UUID(replay_id)) for _, replay_id, _ in rows]
-        # Return value deliberately ignored: a failure leaves AI summaries behind, which is undeleted
-        # PII, but the replays and their blobs are already gone by this point and aborting would
-        # strand the rest of the range. Failed batches are logged at error level with their replay
-        # ids, so they are reported even though the run carries on.
-        delete_seer_replay_data_in_batches(organization_id, project_id, replay_ids)
+        # Return value deliberately ignored: a failure leaves AI summaries behind, which is
+        # undeleted PII, but the replays and their blobs are already gone by this point and
+        # aborting would strand the rest of the range. Failures are logged at error level with
+        # the replay ids, so they are reported even though the run carries on.
+        delete_seer_replay_data_with_retries(organization_id, project_id, replay_ids)
 
     logger.info("Scheduling %d replays for deletion.", len(rows), extra=logging_context)
 

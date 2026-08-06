@@ -1,10 +1,9 @@
-import threading
 from unittest.mock import MagicMock, Mock, patch
 
 from sentry.replays.usecases.delete import (
     SEER_DELETE_ATTEMPTS,
     delete_seer_replay_data,
-    delete_seer_replay_data_in_batches,
+    delete_seer_replay_data_with_retries,
 )
 
 
@@ -48,26 +47,6 @@ def test_delete_seer_replay_data_non_200_status(mock_seer_request: MagicMock) ->
         mock_seer_request.assert_called_once()
 
 
-@patch("sentry.replays.usecases.delete.delete_seer_replay_data")
-def test_batches_are_split_at_the_batch_size(mock_delete: MagicMock) -> None:
-    """Test ids are split into batches small enough to answer inside Seer's 5 second timeout."""
-    mock_delete.return_value = True
-    replay_ids = [f"replay-{i}" for i in range(250)]
-
-    assert delete_seer_replay_data_in_batches(456, 123, replay_ids) is True
-
-    sent = [call.args[2] for call in mock_delete.call_args_list]
-    assert [len(batch) for batch in sorted(sent, key=len, reverse=True)] == [100, 100, 50]
-    # Every id is sent exactly once.
-    assert sorted(id for batch in sent for id in batch) == sorted(replay_ids)
-
-
-@patch("sentry.replays.usecases.delete.delete_seer_replay_data")
-def test_no_ids_is_a_no_op(mock_delete: MagicMock) -> None:
-    assert delete_seer_replay_data_in_batches(456, 123, []) is True
-    assert mock_delete.call_count == 0
-
-
 @patch("sentry.replays.usecases.delete.time.sleep")
 @patch("sentry.replays.usecases.delete.delete_seer_replay_data")
 def test_a_batch_is_retried_until_it_succeeds(
@@ -79,7 +58,7 @@ def test_a_batch_is_retried_until_it_succeeds(
     """
     mock_delete.side_effect = [False, False, True]
 
-    assert delete_seer_replay_data_in_batches(456, 123, ["replay-1"]) is True
+    assert delete_seer_replay_data_with_retries(456, 123, ["replay-1"]) is True
     assert mock_delete.call_count == 3
 
 
@@ -91,46 +70,5 @@ def test_a_batch_that_never_succeeds_is_reported(
     """Test attempts are bounded and the caller is told the batch failed."""
     mock_delete.return_value = False
 
-    assert delete_seer_replay_data_in_batches(456, 123, ["replay-1"]) is False
+    assert delete_seer_replay_data_with_retries(456, 123, ["replay-1"]) is False
     assert mock_delete.call_count == SEER_DELETE_ATTEMPTS
-
-
-@patch("sentry.replays.usecases.delete.time.sleep")
-@patch("sentry.replays.usecases.delete.delete_seer_replay_data")
-def test_one_failed_batch_does_not_hide_behind_the_others(
-    mock_delete: MagicMock, mock_sleep: MagicMock
-) -> None:
-    """Test the result is False when any batch failed, and every batch is still attempted.
-
-    `all()` over a generator would stop at the first failure and leave later batches unsent.
-    """
-
-    # The first batch fails every attempt; the rest succeed first time.
-    def delete(organization_id: int, project_id: int, replay_ids: list[str]) -> bool:
-        return "replay-0" not in replay_ids
-
-    mock_delete.side_effect = delete
-    replay_ids = [f"replay-{i}" for i in range(250)]
-
-    assert delete_seer_replay_data_in_batches(456, 123, replay_ids) is False
-    # 3 batches, and the failing one is attempted SEER_DELETE_ATTEMPTS times.
-    assert mock_delete.call_count == 2 + SEER_DELETE_ATTEMPTS
-
-
-@patch("sentry.replays.usecases.delete.delete_seer_replay_data")
-def test_batches_are_sent_concurrently(mock_delete: MagicMock) -> None:
-    """Test batches really do overlap rather than being sent one after another.
-
-    The barrier only releases if all three batches are in flight at the same time, so a serial
-    implementation fails here by timing out instead of passing quietly.
-    """
-    barrier = threading.Barrier(3, timeout=10)
-
-    def delete(organization_id: int, project_id: int, replay_ids: list[str]) -> bool:
-        barrier.wait()
-        return True
-
-    mock_delete.side_effect = delete
-
-    assert delete_seer_replay_data_in_batches(456, 123, [f"replay-{i}" for i in range(250)]) is True
-    assert mock_delete.call_count == 3
