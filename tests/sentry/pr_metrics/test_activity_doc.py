@@ -312,7 +312,7 @@ def test_synchronize_entry_populates_sync_chain() -> None:
     assert doc["sync_chain"] == [["head1", "base1", None, None]]
 
 
-def test_opened_entry_starts_sync_chain() -> None:
+def test_non_synchronize_entry_does_not_touch_sync_chain() -> None:
     doc = new_document()
     _entry(
         doc,
@@ -322,7 +322,7 @@ def test_opened_entry_starts_sync_chain() -> None:
         sender_login="octocat",
         sender_type="User",
     )
-    assert doc["sync_chain"] == [["head1", None, "octocat", "User"]]
+    assert doc["sync_chain"] == []
 
 
 def test_sync_chain_dedupes_redelivery_and_reapplied_after_sha() -> None:
@@ -960,24 +960,6 @@ def test_commit_shas_from_doc_normal_chain() -> None:
     assert commit_shas_from_doc(doc, "A2") == {"A1", "A2"}
 
 
-def test_commit_shas_from_doc_includes_opening_head() -> None:
-    doc = new_document()
-    _entry(
-        doc,
-        event_type=PullRequestActivityType.OPENED,
-        webhook_id="o1",
-        head_sha="O",
-    )
-    _sync(doc, before="O", after="A1", webhook_id="s1")
-    assert commit_shas_from_doc(doc, "A1") == {"O", "A1"}
-
-
-def test_commit_shas_from_doc_single_push() -> None:
-    doc = new_document()
-    _sync(doc, before="B0", after="A1", webhook_id="s1")
-    assert commit_shas_from_doc(doc, "A1") == {"A1"}
-
-
 def test_commit_shas_from_doc_force_push_excludes_abandoned() -> None:
     doc = new_document()
     _sync(doc, before="B0", after="A1", webhook_id="s1")
@@ -1208,9 +1190,7 @@ def test_head_sha_pushers_from_open_and_sync() -> None:
         sender_login="dependabot[bot]",
         sender_type="Bot",
     )
-    assert doc["sync_chain"][0] == ["open1", None, "octocat", "User"]
     assert head_sha_pushers_from_doc(doc) == {
-        "open1": ("octocat", "User"),
         "sync1": ("dependabot[bot]", "Bot"),
     }
 
@@ -1282,9 +1262,9 @@ def test_ci_head_summary_by_pusher() -> None:
 
     assert ci_head_actor_counts_from_doc(doc) == {
         "seer": {"failed": 0, "passed": 1, "inconclusive": 0},
-        "human": {"failed": 1, "passed": 0, "inconclusive": 0},
+        "human": {"failed": 0, "passed": 0, "inconclusive": 0},
         "bot": {"failed": 0, "passed": 0, "inconclusive": 1},
-        "unknown": {"failed": 1, "passed": 0, "inconclusive": 0},
+        "unknown": {"failed": 2, "passed": 0, "inconclusive": 0},
     }
 
 
@@ -1359,5 +1339,5 @@ def test_ci_head_actor_attribution_survives_events_cap() -> None:
     assert not any(e.get("webhook_id") == "s-capped" for e in doc["events"])
 
     by_actor = ci_head_actor_counts_from_doc(doc)
-    assert by_actor["seer"] == {"failed": 2, "passed": 1, "inconclusive": 0}
-    assert by_actor["unknown"] == {"failed": 0, "passed": 0, "inconclusive": 0}
+    assert by_actor["seer"] == {"failed": 1, "passed": 1, "inconclusive": 0}
+    assert by_actor["unknown"] == {"failed": 1, "passed": 0, "inconclusive": 0}

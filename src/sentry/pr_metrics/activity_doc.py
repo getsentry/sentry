@@ -97,9 +97,8 @@ class ActivityDoc(TypedDict):
     # in arrival order, NOT an object keyed by after_sha: Postgres jsonb does not
     # preserve object key order, and eviction at the cap must drop the OLDEST link,
     # which needs insertion order. jsonb preserves array order, so a list keeps
-    # eviction correct. The opening head is the first entry with a null ``before_sha``;
-    # later entries are synchronize links. Entries written before the sender slots
-    # existed have length 2 and read as an unknown pusher.
+    # eviction correct. Entries written before the sender slots existed have
+    # length 2 and read as an unknown pusher.
     sync_chain: list[list[str | None]]
 
 
@@ -255,8 +254,6 @@ def _apply_entry(
 
     if event_type == PullRequestActivityType.SYNCHRONIZED:
         _fold_sync_chain(doc, payload)
-    elif event_type == PullRequestActivityType.OPENED:
-        _fold_open_head(doc, payload)
 
     doc["counts"][event_type] = doc["counts"].get(event_type, 0) + 1
     _fold_participant(doc, payload)
@@ -324,37 +321,6 @@ def _fold_sync_chain(doc: ActivityDoc, payload: Mapping[str, Any]) -> None:
             payload.get("sender_login") or None,
             payload.get("sender_type") or None,
         ]
-    )
-
-
-def _fold_open_head(doc: ActivityDoc, payload: Mapping[str, Any]) -> None:
-    """Record the opening head as the root of ``sync_chain``.
-
-    The null ``before_sha`` makes the opening commit part of the same chain consumed
-    by commit and CI-head readers. Insert at the front so an out-of-order opening
-    delivery still establishes the root. The normal chain cap policy remains: later
-    synchronize events may eventually evict this oldest entry.
-    """
-    head = payload.get("head_sha") or ""
-    if not head:
-        return
-
-    chain = doc.setdefault("sync_chain", [])
-    if any(pair[0] == head for pair in chain):
-        return
-    if len(chain) >= MAX_SYNC_CHAIN:
-        chain.pop(0)
-        logger.warning("pr_metrics.activity_doc.sync_chain_capped", extra={"after_sha": head})
-        metrics.incr("pr_metrics.activity_doc.sync_chain_capped")
-
-    chain.insert(
-        0,
-        [
-            head,
-            None,
-            payload.get("sender_login") or None,
-            payload.get("sender_type") or None,
-        ],
     )
 
 
