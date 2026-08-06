@@ -1,5 +1,6 @@
 import {
   AutofixRepoPRStateFixture,
+  ExplorerAutofixBlockFixture,
   ExplorerAutofixResponseFixture,
   ExplorerAutofixStateFixture,
 } from 'sentry-fixture/autofix';
@@ -19,6 +20,7 @@ import {
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {ProgressState} from 'sentry/types/group';
+import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/queries/inbox';
 
 import InboxPage from './inbox';
 
@@ -65,6 +67,8 @@ describe('InboxPage', () => {
     hasSeen: false,
     lastSeen: '2026-07-19T12:00:00Z',
     level: 'error',
+    count: '2600',
+    userCount: 11,
     assignedTo: {id: '10', name: 'Jane Doe', type: 'user'},
     metadata: {
       type: 'TypeError',
@@ -145,7 +149,9 @@ describe('InboxPage', () => {
   ) {
     return MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
-      match: [MockApiClient.matchQuery({query})],
+      match: [
+        MockApiClient.matchQuery({query: `${query}${INBOX_AUTOFIX_CATEGORY_FILTER}`}),
+      ],
       body,
       headers: {'X-Hits': String(total)},
       statusCode,
@@ -289,7 +295,7 @@ describe('InboxPage', () => {
             method: 'GET',
             query: {
               project: [-1],
-              query,
+              query: `${query}${INBOX_AUTOFIX_CATEGORY_FILTER}`,
               sort: 'progress',
               limit: 10,
               collapse: ['stats', 'unhandled'],
@@ -401,7 +407,7 @@ describe('InboxPage', () => {
       url: '/organizations/org-slug/issues/',
       match: [
         MockApiClient.matchQuery({
-          query: 'issue.progress:fix_proposed is:unresolved assigned:[me,my_teams]',
+          query: `issue.progress:fix_proposed is:unresolved assigned:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`,
         }),
       ],
       body: [fixProposedGroup],
@@ -568,7 +574,7 @@ describe('InboxPage', () => {
       url: '/organizations/org-slug/issues/',
       match: [
         MockApiClient.matchQuery({
-          query: 'issue.progress:fix_proposed is:unresolved assigned:[me,my_teams]',
+          query: `issue.progress:fix_proposed is:unresolved assigned:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`,
         }),
       ],
       body: [fixProposedGroup],
@@ -581,7 +587,7 @@ describe('InboxPage', () => {
       url: '/organizations/org-slug/issues/',
       match: [
         MockApiClient.matchQuery({
-          query: 'issue.progress:fix_proposed is:unresolved assigned:[me,my_teams]',
+          query: `issue.progress:fix_proposed is:unresolved assigned:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`,
           cursor: '0:10:0',
         }),
       ],
@@ -672,6 +678,12 @@ describe('InboxPage', () => {
         name: 'Fix proposed issue',
       })
     ).toBeInTheDocument();
+    expect(within(preview).getByLabelText('11 affected users')).toHaveTextContent(
+      '11Users'
+    );
+    expect(within(preview).getByLabelText('2,600 events')).toHaveTextContent(
+      '2.6KEvents'
+    );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Back to inbox'}));
     expect(router.location.query.preview).toBeUndefined();
@@ -769,6 +781,36 @@ describe('InboxPage', () => {
         })
       )
     );
+  });
+
+  it('offers to create a PR when code changes are complete', async () => {
+    mockSuccessfulSections();
+    mockIssuePreview();
+    mockAutofixResponse(
+      ExplorerAutofixResponseFixture({
+        autofix: ExplorerAutofixStateFixture({
+          blocks: [
+            ExplorerAutofixBlockFixture({
+              message: {
+                content: 'Code changes complete',
+                metadata: {step: 'code_changes'},
+                role: 'assistant',
+              },
+            }),
+          ],
+        }),
+      })
+    );
+
+    render(<InboxPage />, {
+      organization: seerOrganization,
+      initialRouterConfig,
+    });
+
+    const preview = await openFixProposedPreview();
+    expect(
+      await within(preview).findByRole('button', {name: 'Create PR'})
+    ).toBeInTheDocument();
   });
 
   it('links to a completed Autofix pull request while polling', async () => {

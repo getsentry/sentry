@@ -2405,13 +2405,13 @@ requires-dist = [
     { name = "requests-oauthlib", specifier = ">=1.2.0" },
     { name = "rfc3339-validator", specifier = ">=0.1.2" },
     { name = "rfc3986-validator", specifier = ">=0.1.1" },
-    { name = "sentry-arroyo", specifier = ">=2.42.1" },
+    { name = "sentry-arroyo", specifier = ">=2.42.2" },
     { name = "sentry-conventions", specifier = ">=0.17.0" },
     { name = "sentry-forked-email-reply-parser", specifier = ">=0.5.12.post1" },
     { name = "sentry-kafka-schemas", specifier = ">=2.2.0" },
     { name = "sentry-ophio", specifier = ">=1.1.3" },
     { name = "sentry-options", specifier = ">=1.2.2" },
-    { name = "sentry-protos", specifier = ">=0.58.1" },
+    { name = "sentry-protos", specifier = ">=0.59.1" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.9.27" },
     { name = "sentry-scm", specifier = ">=1.3.0" },
@@ -2498,13 +2498,13 @@ dev = [
 
 [[package]]
 name = "sentry-arroyo"
-version = "2.42.1"
+version = "2.42.2"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "confluent-kafka", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_arroyo-2.42.1-py3-none-any.whl", hash = "sha256:42189ac02c8e4b6979352b1e19c6aa826053a7b622d4a3d78934bd8f22d95ad5" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_arroyo-2.42.2-py3-none-any.whl", hash = "sha256:ff6c3b52e372cab05e964c6e9b3d4a892b16a41a4cdfaa4c1735798214532e07" },
 ]
 
 [[package]]
@@ -2595,7 +2595,7 @@ wheels = [
 
 [[package]]
 name = "sentry-protos"
-version = "0.58.1"
+version = "0.59.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "grpc-stubs", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2603,7 +2603,7 @@ dependencies = [
     { name = "protobuf", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.58.1-py3-none-any.whl", hash = "sha256:5f9a209965bfc3ca94879510f7094efcfd9b6e20c65e4bf1d8e3041ef701e853" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.59.1-py3-none-any.whl", hash = "sha256:3bbe5e7faa90dff280e6b7ab379c94332d81d71b7968285c30d203cef744e907" },
 ]
 
 [[package]]

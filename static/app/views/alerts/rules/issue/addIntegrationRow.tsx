@@ -13,9 +13,11 @@ import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations
 
 type Props = {
   onClick: () => void;
+  onCancel?: () => void;
+  onError?: (error: string) => void;
 };
 
-export function AddIntegrationRow({onClick}: Props) {
+export function AddIntegrationRow({onClick, onCancel, onError}: Props) {
   const organization = useOrganization();
   const {isSelfHosted} = ConfigStore.getState();
   const integration = useContext(IntegrationContext);
@@ -57,6 +59,8 @@ export function AddIntegrationRow({onClick}: Props) {
               onExternalClick={onClick}
               externalInstallText={`Add ${provider.metadata.noun}`}
               buttonProps={buttonProps}
+              onCancel={onCancel}
+              onError={onError}
             />
           );
         }}

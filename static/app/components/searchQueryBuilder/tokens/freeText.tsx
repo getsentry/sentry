@@ -744,7 +744,11 @@ function SearchQueryBuilderInputInternal({
           resetInputValue();
         }}
         onCustomValueCommitted={value => {
-          if (defaultToAskSeerOnFreeTextSearch && value.trim() && !hasFilter) {
+          if (
+            defaultToAskSeerOnFreeTextSearch &&
+            value.trim().split(/\s+/).length >= 2 &&
+            !hasFilter
+          ) {
             setAutoSubmitFromCurrentQuery(true);
             setAutoSubmitSeer(true);
             setDisplayAskSeer(true);

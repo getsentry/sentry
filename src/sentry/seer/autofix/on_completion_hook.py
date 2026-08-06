@@ -50,8 +50,10 @@ from sentry.seer.autofix.utils import (
     clear_preference_automation_handoff,
     get_automation_handoff,
 )
+from sentry.seer.autofix_rca.models import FEATURE_ID as AUTOFIX_RCA_FEATURE_ID
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.models import (
+    SeerAgentRun,
     SeerAutomationHandoffConfiguration,
     SeerRun,
 )
@@ -94,6 +96,41 @@ def _record_completion_reaction(outcome: str) -> None:
     )
 
 
+def _stopping_point_from_run(organization: Organization, run_id: int) -> str | None:
+    return (
+        SeerAgentRun.objects.filter(
+            run__organization_id=organization.id,
+            run__seer_run_state_id=run_id,
+            source=AUTOFIX_RCA_FEATURE_ID,
+        )
+        .values_list("extras__stopping_point", flat=True)
+        .first()
+    )
+
+
+def _group_and_referrer_from_run(
+    organization: Organization, run_id: int
+) -> tuple[int | None, AutofixReferrer | None]:
+    run_context = (
+        SeerAgentRun.objects.filter(
+            run__organization_id=organization.id,
+            run__seer_run_state_id=run_id,
+            source=AUTOFIX_RCA_FEATURE_ID,
+        )
+        .values("group_id", "extras")
+        .first()
+    )
+    if run_context is None:
+        return None, None
+
+    raw_referrer = (run_context["extras"] or {}).get("referrer")
+    try:
+        referrer = AutofixReferrer(raw_referrer) if isinstance(raw_referrer, str) else None
+    except ValueError:
+        referrer = None
+    return run_context["group_id"], referrer
+
+
 class AutofixOnCompletionHook(AgentOnCompletionHook):
     """
     Hook called when an agent-based autofix run completes.
@@ -121,11 +158,29 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             )
             return
 
-        group_id = state.metadata.get("group_id") if state.metadata else None
+        metadata = state.metadata or {}
+        group_id = metadata.get("group_id")
+        run_referrer = None
         if group_id is None:
+            group_id, run_referrer = _group_and_referrer_from_run(organization, run_id)
+        if group_id is None:
+            logger.warning(
+                "autofix.on_completion_hook.missing_group_id",
+                extra={"run_id": run_id, "organization_id": organization.id},
+            )
             return
 
-        group = Group.objects.get(id=group_id, project__organization_id=organization.id)
+        group = Group.objects.filter(id=group_id, project__organization_id=organization.id).first()
+        if group is None:
+            logger.warning(
+                "autofix.on_completion_hook.group_not_found",
+                extra={
+                    "run_id": run_id,
+                    "organization_id": organization.id,
+                    "group_id": group_id,
+                },
+            )
+            return
         now = timezone.now()
         with transaction.atomic(using=router.db_for_write(Group)):
             group.update(seer_explorer_autofix_last_triggered=now)
@@ -135,7 +190,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             ).update(last_triggered_at=now)
 
         # Send webhook for the completed step
-        cls._send_step_webhook(organization, run_id, state, group)
+        cls._send_step_webhook(organization, run_id, state, group, fallback_referrer=run_referrer)
 
         # When a tool failed because the GitHub App installation is missing
         # permissions the user needs to re-accept, comment on the affected PRs
@@ -146,7 +201,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         cls._maybe_react_to_completed_iteration(organization, run_id, state)
 
         # Continue the automated pipeline if stopping_point hasn't been reached
-        cls._maybe_continue_pipeline(organization, run_id, state, group)
+        cls._maybe_continue_pipeline(
+            organization, run_id, state, group, fallback_referrer=run_referrer
+        )
 
     @classmethod
     def _maybe_comment_on_missing_permissions(
@@ -375,13 +432,15 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         run_id: int,
         state: SeerRunState,
         group: Group,
-    ):
+        fallback_referrer: AutofixReferrer | None = None,
+    ) -> None:
         """
         Send webhook for the completed step.
 
         Determines which step just completed and sends the appropriate webhook event.
         """
         current_step, current_referrer = cls._get_current_step(state)
+        current_referrer = current_referrer or fallback_referrer
 
         sentry_run_id = (
             SeerRun.objects.filter(
@@ -600,6 +659,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         run_id: int,
         state: SeerRunState,
         group: Group,
+        fallback_referrer: AutofixReferrer | None = None,
     ) -> None:
         """
         Continue to the next step if stopping_point hasn't been reached.
@@ -610,7 +670,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             state: The current run state
         """
         current_step, referrer = cls._get_current_step(state)
-        referrer = referrer or AutofixReferrer.ON_COMPLETION_HOOK
+        referrer = referrer or fallback_referrer or AutofixReferrer.ON_COMPLETION_HOOK
 
         if current_step is None:
             logger.warning(
@@ -619,14 +679,17 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             )
             return
 
-        # Get pipeline metadata from state
-        metadata = state.metadata
-        if not metadata or "stopping_point" not in metadata:
+        # Get pipeline metadata from state, falling back to the Sentry-side run
+        # mirror for runs Seer started without it (the autofix_rca feature).
+        raw_stopping_point = (state.metadata or {}).get(
+            "stopping_point"
+        ) or _stopping_point_from_run(organization, run_id)
+        if raw_stopping_point is None:
             stopping_point = None
             reached_stopping_point = True
         else:
             # Check if we've reached the stopping point
-            stopping_point = AutofixStoppingPoint(metadata["stopping_point"])
+            stopping_point = AutofixStoppingPoint(raw_stopping_point)
             stopping_step = STOPPING_POINT_TO_STEP.get(stopping_point)
             reached_stopping_point = current_step == stopping_step
 

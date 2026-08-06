@@ -126,9 +126,6 @@ export type IssueEventParameters = {
     group_id: string;
     project_id: string;
   };
-  'issue_details.related_trace_issue.trace_issue_clicked': {
-    group_id: number;
-  };
   'issue_details.section_fold': {
     open: boolean;
     org_streamline_only: boolean | undefined;
@@ -275,11 +272,6 @@ export type IssueEventParameters = {
     area: string;
     priority: PriorityLevel;
   };
-  'one_other_related_trace_issue.clicked': {
-    area: string;
-    // Equivalent to 'issue_details.related_trace_issue.trace_issue_clicked', but `area` is dynamic.
-    group_id: number;
-  };
   'project_modal.created': {
     issue_alert: 'Default' | 'Custom' | 'No Rule';
     project_id: string;
@@ -348,8 +340,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.view_hierarchy.select_from_wireframe':
     'View Hierarchy: Selection from wireframe',
   'issue_details.issue_status_docs_clicked': 'Issue Details: Issue Status Docs Clicked',
-  'issue_details.related_trace_issue.trace_issue_clicked':
-    'Related Issue: Trace Issue Clicked',
   'issue_error_banner.proguard_misconfigured.displayed':
     'Proguard Potentially Misconfigured Issue Error Banner Displayed',
   'issue_error_banner.proguard_missing_mapping.displayed':
@@ -389,7 +379,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_group_details.tab.clicked': 'Issue Group Details: Header Tab Clicked',
   'issue_group_details.tags.bar.clicked': 'Issue Group Details: Tags value bar clicked',
   'integrations.integration_reinstall_clicked': 'Integration Reinstall Button Clicked',
-  'one_other_related_trace_issue.clicked': 'One Other Related Trace Issue Clicked',
   'issue_details.view_full_trace_waterfall_clicked':
     ' Issue Details: View Full Trace Waterfall Clicked',
 

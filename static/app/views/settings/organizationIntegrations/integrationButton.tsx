@@ -23,6 +23,8 @@ type Props = {
   onExternalClick: () => void;
   userHasAccess: boolean;
   externalInstallText?: string;
+  onCancel?: () => void;
+  onError?: (error: string) => void;
 };
 
 export function IntegrationButton({
@@ -31,6 +33,8 @@ export function IntegrationButton({
   onExternalClick,
   externalInstallText,
   buttonProps,
+  onCancel,
+  onError,
 }: Props) {
   const organization = useOrganization();
   const {provider, type, installStatus, analyticsParams, suppressSuccessMessage} =
@@ -62,6 +66,8 @@ export function IntegrationButton({
         installStatus={installStatus}
         analyticsParams={analyticsParams}
         suppressSuccessMessage={suppressSuccessMessage}
+        onCancel={onCancel}
+        onError={onError}
         {...buttonProps}
         organization={organization}
       />
