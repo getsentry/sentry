@@ -174,9 +174,7 @@ function EventTagsTreeRowDropdown({
       label: t('Tag breakdown'),
       hidden: !isIssueDetailsRoute,
       to: {
-        pathname: `/organizations/${organization.slug}/issues/${
-          event.groupID
-        }/${TabPaths[Tab.DISTRIBUTIONS]}${encodeURIComponent(originalTag.key)}/`,
+        pathname: `/organizations/${organization.slug}/issues/${event.groupID}/${TabPaths[Tab.DISTRIBUTIONS]}${encodeURIComponent(originalTag.key)}/`,
         query: location.query,
       },
     },
@@ -233,9 +231,7 @@ function EventTagsTreeRowDropdown({
       key: 'copy-value',
       label: t('Copy tag value to clipboard'),
       onAction: () =>
-        copy(content.value, {
-          successMessage: t('Tag value copied to clipboard.'),
-        }),
+        copy(content.value, {successMessage: t('Tag value copied to clipboard.')}),
     },
     {
       key: 'add-to-highlights',
@@ -381,9 +377,7 @@ function EventTagsTreeValue({
         transaction: content.value,
         referrer,
       });
-      const transactionDestination = `${getTransactionSummaryBaseUrl(
-        organization
-      )}/?${transactionQuery}`;
+      const transactionDestination = `${getTransactionSummaryBaseUrl(organization)}/?${transactionQuery}`;
       tagValue = (
         <TagLinkText>
           <Link to={transactionDestination}>{content.value}</Link>
