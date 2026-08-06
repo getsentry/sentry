@@ -1598,7 +1598,6 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE: dict[
         process_commits,
         handle_owner_assignment,
         handle_auto_assignment,
-        kick_off_seer_automation,
         kick_off_lightweight_rca_cluster,
         process_workflow_engine,
         process_resource_change_bounds,
@@ -1627,7 +1626,6 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE: dict[
 GENERIC_POST_PROCESS_PIPELINE: list[Callable[[PostProcessJob], None]] = [
     process_snoozes,
     process_inbox_adds,
-    kick_off_seer_automation,
     process_workflow_engine,
     process_resource_change_bounds,
     process_data_forwarding,
