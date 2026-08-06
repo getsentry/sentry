@@ -210,7 +210,7 @@ describe('EditAutomation', () => {
       frequency_minutes: 1440,
       environment: 'production',
       detectors_count: 1,
-      trigger_conditions_count: 0,
+      trigger_conditions_count: 1,
       actions_count: 1,
       success: true,
     });
