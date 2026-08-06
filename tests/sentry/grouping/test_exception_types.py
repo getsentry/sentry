@@ -74,7 +74,6 @@ def test_type_merely_starting_with_app_hang_words_is_not_a_hang() -> None:
     [
         ("ValueError", "TypeError"),
         ("OSError", "IOError"),
-        ("java.lang.NullPointerException", "java.lang.IllegalStateException"),
         ("RestClient::BadRequest", "RestClient::NotFound"),
         # Digits that don't parameterize, because they're mid-token
         ("Error1234", "Error5678"),
@@ -136,6 +135,26 @@ def test_accepts_types_containing_whitespace(event_type: str, parent_type: str) 
 @pytest.mark.parametrize("platform", ["javascript", "node", "cocoa", "android", None, "other"])
 def test_accepts_distinct_type_names_on_unstable_platforms(platform: str | None) -> None:
     reason = classify_exception_type_mismatch("V", "bm", platform)
+
+    assert reason == MismatchReason.UNSTABLE_PLATFORM
+    assert reason not in REJECTING_REASONS
+
+
+@pytest.mark.parametrize(
+    "event_type,parent_type",
+    [
+        # Obfuscated class names, which can differ build to build without the underlying class
+        # changing
+        ("g$a", "bm$c"),
+        # Even fully-qualified names are only meaningful with a mapping applied
+        ("java.lang.NullPointerException", "java.lang.IllegalStateException"),
+    ],
+    ids=str,
+)
+def test_accepts_distinct_type_names_on_java(event_type: str, parent_type: str) -> None:
+    # Android events come through as `java`, and their types stay obfuscated when no ProGuard/R8
+    # mapping has been applied.
+    reason = classify_exception_type_mismatch(event_type, parent_type, "java")
 
     assert reason == MismatchReason.UNSTABLE_PLATFORM
     assert reason not in REJECTING_REASONS

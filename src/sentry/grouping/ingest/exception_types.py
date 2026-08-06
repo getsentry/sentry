@@ -23,12 +23,14 @@ from sentry.grouping.parameterization import parameterizer
 # Platforms whose exception types are stable, human-authored identifiers. Elsewhere, minifiers and
 # obfuscators rename classes per build, so `V` in one release and `bm` in the next may well be the
 # very same class.
+#
+# `java` is deliberately absent: Android events arrive with that platform (it's the only JVM value
+# Relay normalizes to), and without an applied ProGuard/R8 mapping their types stay obfuscated.
 PLATFORMS_WITH_STABLE_TYPE_NAMES = frozenset(
     [
         "python",
         "ruby",
         "php",
-        "java",
         "go",
         "csharp",
         "elixir",
