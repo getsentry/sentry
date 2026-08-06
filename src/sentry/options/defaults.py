@@ -2462,6 +2462,15 @@ register(
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Bulk-delete delivered webhooks at slice boundaries in claim-backed drains
+# instead of issuing one DELETE per delivered row. Claim-backed batches stay
+# reserved for the drain's whole run, so deferring deletes cannot hand rows to
+# a concurrent drain; a crashed worker redelivers at most one unflushed slice.
+register(
+    "hybridcloud.webhookpayload.drain_batch_deletes",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "hybridcloud.webhookpayload.skip_on_failure_providers",
     type=Sequence,
