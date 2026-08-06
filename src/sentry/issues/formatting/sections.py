@@ -180,7 +180,9 @@ def troubleshooting_hint_section(model: EventObject, fmt: Formatter, limits: Lim
 
 
 def breadcrumbs_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
-    if not model.breadcrumbs:
+    # a zero cap has to bail here: the slice below is ``[-0:]`` at that point, which is ``[0:]``
+    # and would render every breadcrumb instead of none
+    if not model.breadcrumbs or not limits.max_breadcrumbs:
         return ""
 
     lines: list[str] = []

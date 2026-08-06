@@ -204,6 +204,14 @@ def test_breadcrumbs_last_n_and_skip_filtered() -> None:
     assert len(body_lines) == 9  # last 10 minus the one filtered crumb
 
 
+def test_breadcrumbs_zero_cap_renders_nothing() -> None:
+    # the window is a negative slice, so a zero cap becomes [0:] and would render every
+    # breadcrumb -- the exact opposite of what the cap asks for
+    event = EventObject(title="t", breadcrumbs=[Breadcrumb(message=f"c{i}") for i in range(5)])
+    out = breadcrumbs_section(event, MD, dataclasses.replace(LIMITS_DEFAULT, max_breadcrumbs=0))
+    assert out == ""
+
+
 def test_breadcrumbs_all_filtered_renders_nothing() -> None:
     event = EventObject(title="t", breadcrumbs=[Breadcrumb(message="[Filtered]")])
     assert breadcrumbs_section(event, MD, LIMITS_DEFAULT) == ""
