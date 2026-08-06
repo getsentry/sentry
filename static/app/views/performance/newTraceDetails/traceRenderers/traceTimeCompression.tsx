@@ -182,6 +182,10 @@ function collectVisibleIntervals(options: TraceTimeCompressionOptions): Interval
     options.physicalWidth > 0
       ? (traceDuration / options.physicalWidth) * DURATION_LABEL_BUFFER_PX
       : 0;
+  const zeroDurationErrorBuffer =
+    options.physicalWidth > 0
+      ? (traceDuration / options.physicalWidth) * COLLAPSED_GAP_WIDTH_PX
+      : 0;
   const intervals: Interval[] = [];
 
   for (const node of options.nodes) {
@@ -198,9 +202,11 @@ function collectVisibleIntervals(options: TraceTimeCompressionOptions): Interval
         clampTimestamp(end + durationLabelBuffer, traceStart, traceEnd),
       ]);
     } else {
+      const zeroDurationNodeBuffer =
+        node.type === 'error' ? zeroDurationErrorBuffer : markerPadding;
       intervals.push([
-        clampTimestamp(start - markerPadding, traceStart, traceEnd),
-        clampTimestamp(start + markerPadding, traceStart, traceEnd),
+        clampTimestamp(start - zeroDurationNodeBuffer, traceStart, traceEnd),
+        clampTimestamp(start + zeroDurationNodeBuffer, traceStart, traceEnd),
       ]);
     }
   }
