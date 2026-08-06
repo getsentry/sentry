@@ -399,6 +399,27 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_cells(cell_config)
+    @override_options({"hybridcloud.webhookpayload.claim_dispatch_rollout": 1.0})
+    def test_drain_reads_primary_when_replica_lags_mid_batch(self) -> None:
+        # The head replicated but later claimed rows have not: the replica walk
+        # runs dry before the claim bound. Concluding "complete" would strand
+        # the claimed rows — undeliverable until the claim horizon passes — so
+        # the drain must re-read the primary before giving up.
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        records = create_payloads(3, "github:123", provider="github")
+
+        lagging_replica = MagicMock()
+        lagging_replica.get.side_effect = lambda **kwargs: WebhookPayload.objects.get(**kwargs)
+        lagging_replica.filter.return_value = WebhookPayload.objects.none()
+        with patch.object(WebhookPayload.objects, "using_replica", return_value=lagging_replica):
+            drain_mailbox(records[0].id, claimed_count=3)
+
+        assert len(responses.calls) == 3
+        assert WebhookPayload.objects.count() == 0
+
+    @responses.activate
+    @override_cells(cell_config)
     def test_drain_gives_up_on_replica_lag_while_rollout_inactive(self) -> None:
         # claim_dispatch_rollout defaults to 0.0: deploying must not change drain
         # behavior, so the primary fallback stays dormant and replica lag keeps
