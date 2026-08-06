@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useState} from 'react';
 
 import {useTimezone} from 'sentry/components/timezoneProvider';
 import type {PageFilters} from 'sentry/types/core';
@@ -20,9 +20,9 @@ export function useRelativeDateTime({
 
   const anchorTime = anchor * 1000;
 
-  // Make sure to memo this. Otherwise, each re-render will have
+  // Make sure to capture this once. Otherwise, each re-render will have
   // a different min/max date time, causing the query to refetch.
-  const maxDateTime = useMemo(() => Date.now(), []);
+  const [maxDateTime] = useState(Date.now);
   const minDateTime = maxDateTime - (retentionDays ?? 90) * DAY;
 
   const beforeTime = anchorTime - relativeDays * DAY;

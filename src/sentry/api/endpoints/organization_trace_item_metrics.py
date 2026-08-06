@@ -1,5 +1,6 @@
 from typing import Never, NotRequired, TypedDict
 
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,6 +16,15 @@ from sentry.api.endpoints.organization_trace_item_attributes import (
 )
 from sentry.api.paginator import ChainPaginator, GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.explore.models import (
     TraceItemAttributeValueContext,
     TraceItemTypes,
@@ -27,6 +37,7 @@ from sentry.search.eap.constants import (
     METRIC_UNIT_ALIAS,
 )
 from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
+from sentry.search.eap.trace_metrics.types import TraceMetricType
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.trace_metrics import TraceMetrics
@@ -61,9 +72,11 @@ class TraceMetricContext(TypedDict):
 
 class TraceMetricItem(TypedDict):
     name: str
-    type: str
+    type: TraceMetricType
     unit: str | None
-    count: int
+    # The EAP aggregate declares an integer search type but the value arrives as
+    # a float, so declare what is actually emitted.
+    count: float
     lastSeen: float | None
     # Only present when `expand=context` is requested and the
     # data-browsing-attribute-context feature is enabled.
@@ -93,6 +106,56 @@ class OrganizationTraceItemMetricsSerializer(serializers.Serializer[Never]):
         return value
 
 
+QUERY_QUERY_PARAM = OpenApiParameter(
+    name="query",
+    location="query",
+    required=False,
+    type=str,
+    description="Search query to filter metrics, using the same syntax as the metrics dataset.",
+)
+
+SORT_QUERY_PARAM = OpenApiParameter(
+    name="sort",
+    location="query",
+    required=False,
+    type=str,
+    enum=sorted(_SORT_FIELDS) + [f"-{field}" for field in sorted(_SORT_FIELDS)],
+    description=(
+        "Response field to sort by, prefixed with `-` for descending. "
+        "Defaults to metric name ascending."
+    ),
+)
+
+EXPAND_QUERY_PARAM = OpenApiParameter(
+    name="expand",
+    location="query",
+    required=False,
+    many=True,
+    type=str,
+    enum=["context"],
+    description=(
+        "Optional fields to expand. Pass `context` to include each metric's authored "
+        "context (brief and details), which describes what the metric measures. "
+        "Requires the `data-browsing-attribute-context` feature; without it the "
+        "`context` field is omitted."
+    ),
+)
+
+CONTEXT_ONLY_QUERY_PARAM = OpenApiParameter(
+    name="contextOnly",
+    location="query",
+    required=False,
+    type=bool,
+    description=(
+        "Return only metrics that have authored context, and include that context in the "
+        "response. Use this to discover the metrics that are described well enough to query "
+        "confidently. Requires the `data-browsing-attribute-context` feature; without it this "
+        "is a no-op."
+    ),
+)
+
+
+@extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpointBase):
     publish_status = {
@@ -100,14 +163,41 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
     }
     owner = ApiOwner.DATA_BROWSING
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="listOrganizationTraceMetrics",
+        summary="List an Organization's Trace Metrics",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            QUERY_QUERY_PARAM,
+            SORT_QUERY_PARAM,
+            EXPAND_QUERY_PARAM,
+            CONTEXT_ONLY_QUERY_PARAM,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListOrganizationTraceMetricsResponse", list[TraceMetricItem]
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[TraceMetricItem]] | Response[ValidationErrorResponse]:
         """List trace metrics (name, type, unit, count, last seen) with optional context."""
         if not self.has_feature(organization, request):
             return Response(status=404)
 
         serializer = OrganizationTraceItemMetricsSerializer(data=request.GET)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
         serialized = serializer.validated_data
 
         try:

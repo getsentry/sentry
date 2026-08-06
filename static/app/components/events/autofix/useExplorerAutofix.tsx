@@ -47,6 +47,7 @@ import {
   type RepoPRState,
   type SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
+import {collectArtifacts} from 'sentry/views/seerExplorer/utils';
 
 /**
  * Available autofix steps that can be triggered via the Explorer.
@@ -360,7 +361,9 @@ function buildSection(
   blocks: Block[],
   runState: ExplorerAutofixState | null
 ): AutofixSection {
-  const artifacts: AutofixArtifact[] = blocks.flatMap(block => block.artifacts ?? []);
+  // Both channels: the classic block field and Code Mode's structuredContent
+  // (codemode-structured-content-only).
+  const artifacts: AutofixArtifact[] = collectArtifacts(blocks);
 
   const section: AutofixSection = {
     index,

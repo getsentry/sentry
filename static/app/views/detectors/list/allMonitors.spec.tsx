@@ -25,7 +25,6 @@ import AllMonitors from 'sentry/views/detectors/list/allMonitors';
 
 describe('DetectorsList', () => {
   const organization = OrganizationFixture({
-    features: ['workflow-engine-ui'],
     access: ['org:write'],
   });
 
@@ -577,7 +576,6 @@ describe('DetectorsList', () => {
 
     it('disables action buttons when user does not have permissions', async () => {
       const noPermsOrganization = OrganizationFixture({
-        features: ['workflow-engine-ui'],
         access: [],
       });
       render(<AllMonitors />, {organization: noPermsOrganization});

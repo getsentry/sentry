@@ -80,11 +80,19 @@ export interface ToolResult {
   content: string;
   tool_call_function: string;
   tool_call_id: string;
-  // MCP-style structured payload carried from seer (code-mode-effects-registry).
-  // The links bus: a tool result's own deep-links as a {kind, params} list — one result can
-  // carry many, so there's no index alignment. Optional — absent on old seer responses, in
-  // which case the frontend falls back to the positional block.tool_links.
-  structuredContent?: {links?: ToolLink[]} | null;
+  // MCP-style structured payload carried from seer (codemode-structured-content-only). Code Mode
+  // returns every surface it produces here rather than on a bespoke block field, so a renderer
+  // resolves a surface from this *and* the legacy field. Keys are optional and additive — absent on
+  // old seer responses, in which case only the legacy field is read.
+  //
+  // `links` is a tool result's own deep-links as a {kind, params} list — one result can carry many,
+  // so there's no index alignment. `todos` is the latest checklist snapshot. `artifacts` are the run
+  // artifacts produced by that call.
+  structuredContent?: {
+    artifacts?: Artifact[];
+    links?: ToolLink[];
+    todos?: TodoItem[];
+  } | null;
 }
 
 export interface ToolCall {

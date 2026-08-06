@@ -38,6 +38,7 @@ import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import type {
+  Artifact,
   Block,
   SeerExplorerRunId,
   SeerExplorerSidebarPosition,
@@ -1245,4 +1246,23 @@ export function useSeerExplorerSidebarOrientation(
     return isWideScreen || isShortLandscape ? 'right' : 'bottom';
   }
   return sidebarPosition;
+}
+
+/**
+ * Every artifact in the conversation, from whichever channel carried it.
+ *
+ * A classic artifact tool appends to `block.artifacts`; Code Mode returns them on a tool result's
+ * `structuredContent.artifacts`. Neither is converted into the other, so both are walked in run
+ * order — blocks in sequence, and within a block its tool results in sequence
+ * (codemode-structured-content-only).
+ */
+export function collectArtifacts(blocks: Block[]): Artifact[] {
+  const artifacts: Artifact[] = [];
+  for (const block of blocks) {
+    artifacts.push(...(block.artifacts ?? []));
+    for (const result of block.tool_results ?? []) {
+      artifacts.push(...(result?.structuredContent?.artifacts ?? []));
+    }
+  }
+  return artifacts;
 }

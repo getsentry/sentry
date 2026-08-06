@@ -2,21 +2,19 @@ import os
 from dataclasses import asdict
 from unittest.mock import MagicMock, patch
 
-import httpx
 import pytest
 import requests
 import zstandard
 from django.db import connections
-from django.http import HttpResponse, StreamingHttpResponse
 from django.urls import reverse
 from objectstore_client import Client, Session, Usecase
 from pytest_django.live_server_helper import LiveServer
 
-from sentry.hybridcloud.apigateway_async import proxy as proxy_mod
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.testutils.asserts import assert_status_code
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.cell import override_cells
+from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.silo import cell_silo_test, create_test_cells
 from sentry.testutils.skips import requires_objectstore
 from sentry.types.cell import Cell
@@ -174,51 +172,6 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
     def setUp(self) -> None:
         super().setUp()
 
-        #: some shenanigans to work around async/sync hell:
-        #  - use a "one shot" httpx client, so that we're not bound previous
-        #    no-more existing event loops
-        #  - patch the middleware to consume original streamed response body
-        #    before the loop gets closed/destroyed
-        class HTTPXOneShotClient:
-            def __init__(self):
-                self.inner = None
-
-            def __getattr__(self, name):
-                return getattr(self.inner, name)
-
-            def build_request(self, *args, **kwargs):
-                self.inner = httpx.AsyncClient()
-                return self.inner.build_request(*args, **kwargs)
-
-        from sentry.hybridcloud.apigateway_async.middleware import ApiGatewayMiddleware
-
-        _original_mw = ApiGatewayMiddleware.process_view
-
-        async def _eager_process_view(mw_self, request, view_func, view_args, view_kwargs):
-            resp = await _original_mw(mw_self, request, view_func, view_args, view_kwargs)
-            if isinstance(resp, StreamingHttpResponse) and resp.is_async:
-                body = b""
-                async for chunk in resp:
-                    body += chunk
-                await proxy_mod.proxy_client.aclose()
-                sync_resp = HttpResponse(
-                    content=body,
-                    status=resp.status_code,
-                    content_type=resp.get("Content-Type"),
-                )
-                for header, value in resp.items():
-                    if header.lower() != "content-type":
-                        sync_resp[header] = value
-                return sync_resp
-            return resp
-
-        self._apigateway_patch = patch.object(proxy_mod, "proxy_client", HTTPXOneShotClient())
-        self._middleware_patch = patch.object(
-            ApiGatewayMiddleware, "process_view", _eager_process_view
-        )
-        self._apigateway_patch.start()
-        self._middleware_patch.start()
-
         self.login_as(user=self.user)
         self.organization = self.create_organization(owner=self.user)
         self.api_key = self.create_api_key(
@@ -227,8 +180,6 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
         )
 
     def tearDown(self) -> None:
-        self._middleware_patch.stop()
-        self._apigateway_patch.stop()
         for conn in connections.all():
             conn.close()
         super().tearDown()
@@ -253,6 +204,7 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     follow=True,
                 )
                 assert response.status_code == 200
+                close_streaming_response(response)
 
     def test_full_cycle(self) -> None:
         config = asdict(test_region)
@@ -271,7 +223,7 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     follow=True,
                 )
                 assert_status_code(response, 201)
-                object_key = json.loads(response.content)["key"]
+                object_key = json.loads(close_streaming_response(response))["key"]
                 assert object_key is not None
 
                 response = self.client.get(
@@ -280,7 +232,7 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     follow=True,
                 )
                 assert_status_code(response, 200)
-                assert response.content == b"test data"
+                assert close_streaming_response(response) == b"test data"
 
                 response = self.client.put(
                     f"{base_url}{object_key}",
@@ -290,7 +242,7 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     follow=True,
                 )
                 assert_status_code(response, 200)
-                new_key = json.loads(response.content)["key"]
+                new_key = json.loads(close_streaming_response(response))["key"]
                 assert new_key == object_key
 
                 response = self.client.get(
@@ -299,7 +251,7 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     follow=True,
                 )
                 assert_status_code(response, 200)
-                assert response.content == b"new data"
+                assert close_streaming_response(response) == b"new data"
 
                 response = self.client.delete(
                     f"{base_url}{object_key}",
@@ -307,6 +259,7 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     follow=True,
                 )
                 assert_status_code(response, 204)
+                close_streaming_response(response)
 
                 response = self.client.get(
                     f"{base_url}{object_key}",
@@ -314,6 +267,7 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     follow=True,
                 )
                 assert_status_code(response, 404)
+                close_streaming_response(response)
 
     def test_roundtrip_compressed(self) -> None:
         config = asdict(test_region)
@@ -337,7 +291,7 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     follow=True,
                 )
                 assert_status_code(response, 201)
-                object_key = json.loads(response.content)["key"]
+                object_key = json.loads(close_streaming_response(response))["key"]
                 assert object_key is not None
 
                 response = self.client.get(
@@ -346,7 +300,7 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     follow=True,
                 )
                 assert_status_code(response, 200)
-                assert response.content == data
+                assert close_streaming_response(response) == data
 
 
 class ObjectstoreProxyQueryForwardingTest(TransactionTestCase):

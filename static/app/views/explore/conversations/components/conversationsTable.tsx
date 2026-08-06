@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -32,7 +32,6 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
-import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
 import {useConversationDirectHitRedirect} from 'sentry/views/explore/conversations/hooks/useConversationDirectHitRedirect';
 import {
   useConversations,
@@ -179,12 +178,6 @@ export function ConversationsTable() {
     [columnOrder, hasNoTools]
   );
 
-  const showMissingMessagesAlert =
-    !isFetching &&
-    !error &&
-    data.length > 0 &&
-    data.every(conversation => !conversation.firstInput && !conversation.lastOutput);
-
   const handlePaginate: typeof setCursor = (cursor, path, query, pageDelta) => {
     trackAnalytics('conversations.table.paginate', {
       organization,
@@ -225,37 +218,34 @@ export function ConversationsTable() {
   );
 
   return (
-    <Fragment>
-      {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
-      <Stack gap="lg">
-        <FixedRowHeightGrid>
-          <GridEditable
-            isLoading={isFetching}
-            error={error}
-            data={data}
-            columnOrder={displayedColumns}
-            columnSortBy={[]}
-            stickyHeader
-            // GridEditable's Panel body has a default bottom margin; drop it so
-            // the Stack's `lg` gap is the only spacing before the pagination.
-            bodyStyle={{marginBottom: 0}}
-            grid={{
-              renderHeadCell,
-              renderBodyCell,
-              onResizeColumn: handleResizeColumn,
-            }}
-            onRowClick={handleRowClick}
-            isRowClickable={() => true}
-            onRowMouseOver={(_dataRow, key) => setHighlightedRowKey(key)}
-            onRowMouseOut={() => setHighlightedRowKey(undefined)}
-            highlightedRowKey={highlightedRowKey}
-          />
-        </FixedRowHeightGrid>
-        {/* Zero Pagination's built-in top margin so the Stack's `lg` gap is the
-            only spacing between the table and the controls. */}
-        <TablePagination pageLinks={pageLinks} onCursor={handlePaginate} />
-      </Stack>
-    </Fragment>
+    <Stack gap="lg">
+      <FixedRowHeightGrid>
+        <GridEditable
+          isLoading={isFetching}
+          error={error}
+          data={data}
+          columnOrder={displayedColumns}
+          columnSortBy={[]}
+          stickyHeader
+          // GridEditable's Panel body has a default bottom margin; drop it so
+          // the Stack's `lg` gap is the only spacing before the pagination.
+          bodyStyle={{marginBottom: 0}}
+          grid={{
+            renderHeadCell,
+            renderBodyCell,
+            onResizeColumn: handleResizeColumn,
+          }}
+          onRowClick={handleRowClick}
+          isRowClickable={() => true}
+          onRowMouseOver={(_dataRow, key) => setHighlightedRowKey(key)}
+          onRowMouseOut={() => setHighlightedRowKey(undefined)}
+          highlightedRowKey={highlightedRowKey}
+        />
+      </FixedRowHeightGrid>
+      {/* Zero Pagination's built-in top margin so the Stack's `lg` gap is the
+          only spacing between the table and the controls. */}
+      <TablePagination pageLinks={pageLinks} onCursor={handlePaginate} />
+    </Stack>
   );
 }
 
