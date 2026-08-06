@@ -5,6 +5,12 @@ review-request path (CI green -> ask a human to review) consume the same
 events and need the same repository/run resolution, head matching, and
 check-run sweeping. This module keeps that logic independent of the feedback
 machinery in ``feedback_sources/check_suite.py``.
+
+This is the leaf of the check-suite package: it holds the shared helpers and the
+``ResolvedCheckSuite`` base, but knows nothing about the concrete handlers. The
+green/red subclasses live in ``green_check_suite``/``red_check_suite`` and
+``resolve`` picks between them, so the dependency runs one way — helpers <-
+handlers <- resolve.
 """
 
 from __future__ import annotations
@@ -22,20 +28,15 @@ from pydantic import BaseModel, Field, ValidationError
 from scm import actions as scm_actions
 from scm.helpers import iter_all_pages
 from scm.manager import SourceCodeManager
-from scm.types import ActionResult, GetPullRequestProtocol, ListCheckRunsForRefProtocol, PullRequest
+from scm.types import ListCheckRunsForRefProtocol
 
-from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
-from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
-from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRun
 from sentry.utils import metrics
@@ -43,13 +44,8 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 SEER_GITHUB_PROVIDER = "integrations:github"
-# Which stage bailed out, for the ``_skip`` metric/log key.
+# Which stage bailed out, for the ``record_check_suite_skip`` metric/log key.
 SkipScope = Literal["resolve", "green"]
-# SeerRun.extras keys for the green check-suite side effects (undraft +
-# review-request). Owned here so bootstrap can short-circuit on DB markers
-# without importing those modules (they import GreenCheckSuiteContext from us).
-READY_FOR_REVIEW_EXTRA = "ready_for_review"
-REVIEW_REQUESTS_EXTRA = "review_requests"
 
 
 class CheckSuiteConclusionType(Enum):
@@ -358,299 +354,14 @@ class ResolvedCheckSuite(ABC):
         """Run the side effects. Called on the longer-deadline task."""
 
 
-@dataclass(frozen=True)
-class GreenCheckSuite(ResolvedCheckSuite):
-    """CI passed: undraft the PR and request a human review."""
-
-    def _markers(self) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
-        """The two sticky side-effect markers for this run+repo."""
-        return (
-            get_run_marker(self.seer_run, READY_FOR_REVIEW_EXTRA, self.repo_name),
-            get_run_marker(self.seer_run, REVIEW_REQUESTS_EXTRA, self.repo_name),
-        )
-
-    def is_relevant(self) -> bool:
-        if not features.has(REVIEW_REQUEST_FLAG, self.organization):
-            return False
-
-        ready_for_review_marker, review_request_marker = self._markers()
-        return ready_for_review_marker is None or review_request_marker is None
-
-    def confirm_green(self) -> GreenCheckSuiteContext | None:
-        """SCM live-head match + check-run sweep. Call only when a side effect is needed."""
-        # Lazy: scm.factory pulls in the integration handlers, which cycle back
-        # through notifications.platform.templates.seer (ImportError on a
-        # partially initialized module if hoisted).
-        from sentry.scm.factory import new as make_scm
-
-        try:
-            scm = make_scm(self.organization.id, self.autofix_run.repository.id, referrer="seer")
-        except Exception:
-            _failed("scm_init_failed", self.log_extra)
-            return None
-
-        if not isinstance(scm, GetPullRequestProtocol):
-            _skip("green", "unsupported_provider", self.log_extra)
-            return None
-
-        try:
-            pull_request = scm_actions.get_pull_request(scm, str(self.pr_number))
-        except Exception:
-            _failed("get_pull_request_failed", {**self.log_extra, "pr_number": self.pr_number})
-            return None
-
-        head_match = check_suite_matches_pr_head(
-            self.event, pr_head_sha=pull_request["data"]["head"].get("sha")
-        )
-        if not head_match.matched or not head_match.head_sha:
-            _skip("green", "stale_head", {**self.log_extra, "head_sha": head_match.head_sha})
-            return None
-
-        sweep = sweep_check_runs(scm, head_match.head_sha, log_extra=self.log_extra)
-        if sweep is None:
-            _skip("green", "sweep_failed", self.log_extra)
-            return None
-        if not sweep.is_green:
-            _skip(
-                "green",
-                "not_green",
-                {
-                    **self.log_extra,
-                    "incomplete_count": sweep.incomplete,
-                    "failed_count": sweep.failed,
-                },
-            )
-            return None
-
-        metrics.incr("autofix.pr_iteration.green_check_suite.confirmed")
-        return GreenCheckSuiteContext(
-            resolved=self,
-            scm=scm,
-            pull_request=pull_request,
-            head_sha=head_match.head_sha,
-        )
-
-    def handle(self) -> None:
-        # Read markers once → skip SCM if both done → confirm green → run only
-        # the missing side effects. Undraft before review-request: GitHub may
-        # CODEOWNERS-request after undraft; see TODO on
-        # ``request_review_from_context``.
-        #
-        # Lazy: both modules import GreenCheckSuiteContext from this one.
-        from sentry.seer.autofix.pr_iteration.ready_for_review import mark_ready_for_review
-        from sentry.seer.autofix.pr_iteration.review_request import request_review_from_context
-
-        if not self.is_relevant():
-            return None
-
-        ready_for_review_marker, review_request_marker = self._markers()
-
-        ctx = self.confirm_green()
-        if ctx is None:
-            return None
-
-        if ready_for_review_marker is None:
-            mark_ready_for_review(ctx)
-
-        if review_request_marker is None:
-            request_review_from_context(ctx)
-
-        return None
-
-
-@dataclass(frozen=True)
-class GreenCheckSuiteContext:
-    """Confirmed-green tip after SCM live-head match + check-run sweep."""
-
-    resolved: GreenCheckSuite
-    scm: SourceCodeManager
-    pull_request: ActionResult[PullRequest]
-    head_sha: str
-
-
-@dataclass(frozen=True)
-class RedCheckSuite(ResolvedCheckSuite):
-    """CI failed: feed the failure back to Autofix so it iterates on the PR."""
-
-    def is_relevant(self) -> bool:
-        # Resolving to a red suite on an Autofix PR is itself the relevance
-        # signal; whether to iterate is decided downstream by `should_trigger`.
-        return True
-
-    def handle(self) -> None:
-        # Lazy: every one of these reaches back to this module (cap_exhausted and
-        # feedback_sources.check_suite directly, feedback/queue/tasks through
-        # them). tasks.seer.pr_iteration additionally goes scm.factory → github →
-        # jira client, which calls absolute_uri() at import time (needs the
-        # options cache); stream.py is loaded in AppConfig.ready before options
-        # init.
-        from sentry.seer.autofix.pr_iteration.cap_exhausted import assign_user_for_exhausted_cap
-        from sentry.seer.autofix.pr_iteration.feedback import Feedback
-        from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
-            CheckSuiteFeedbackSource,
-        )
-        from sentry.seer.autofix.pr_iteration.queue import try_enqueue_autofix_feedback
-        from sentry.tasks.seer.pr_iteration import trigger_consume_pr_iteration_feedback
-
-        autofix_run = self.autofix_run
-        # Reuse the resolve result so we don't hit Seer again for the same PR.
-        source = CheckSuiteFeedbackSource(event=self.event)
-        source._autofix_run = autofix_run
-
-        repo = autofix_run.repository
-        organization_id = repo.organization_id
-        agent_state = autofix_run.run_state
-        feedback = Feedback(source=source)
-
-        enqueued = try_enqueue_autofix_feedback(
-            run_id=agent_state.run_id,
-            organization_id=organization_id,
-            group_id=autofix_run.group_id,
-            feedback=feedback,
-            referrer=AutofixReferrer.GITHUB_CHECK_SUITE,
-            run_state=agent_state,
-        )
-        if not enqueued:
-            # Feedback is rejected for a stale head or for the iteration hard cap.
-            # In the cap case the run would otherwise just go quiet, so hand the PR
-            # to a human instead (the handler re-checks which case applies).
-            assign_user_for_exhausted_cap(source.event, autofix_run)
-            return None
-
-        # Defer Now/Later/skip to `should_trigger` (incomplete check runs schedule
-        # a delayed consume rather than dropping the scheduled task entirely).
-        logger.info(
-            "autofix.pr_iteration.check_suite.trigger_consume",
-            extra={
-                "organization_id": organization_id,
-                "repo_id": repo.id,
-                "pr_id": autofix_run.pr_id,
-                "run_id": agent_state.run_id,
-            },
-        )
-        trigger_consume_pr_iteration_feedback(
-            run_id=agent_state.run_id,
-            organization_id=organization_id,
-            feedback=feedback,
-            run_state=agent_state,
-        )
-        return None
-
-
-def resolve_check_suite(
-    check_suite_event: CheckSuiteEvent,
-) -> GreenCheckSuite | RedCheckSuite | None:
-    """Parse a completed green/red webhook and resolve the Autofix run (no SCM).
-
-    Returns the green or red subclass based on the suite conclusion; each owns its
-    own relevance gate and side effects. Shared by both check-suite stages — the
-    raw event is what crosses the task boundary, so each stage resolves once.
-    """
-    if check_suite_event.action != "completed":
-        return None
-
-    conclusion = check_suite_event.check_suite["conclusion"]
-    conclusion_type = (
-        CHECK_SUITE_CONCLUSION_TYPES.get(conclusion) if conclusion is not None else None
-    )
-    if conclusion_type is None:
-        return None
-
-    resolved_cls: type[GreenCheckSuite] | type[RedCheckSuite] = (
-        GreenCheckSuite if conclusion_type is CheckSuiteConclusionType.GREEN else RedCheckSuite
-    )
-
-    event = parse_github_check_suite_event(check_suite_event)
-    if event is None:
-        _skip("resolve", "unparseable_event", {})
-        return None
-
-    organizations: dict[int, Organization] = {}
-    candidate_repos = []
-    for repo in resolve_check_suite_repositories(event):
-        organization = organizations.get(repo.organization_id)
-        if organization is None:
-            try:
-                organization = Organization.objects.get_from_cache(id=repo.organization_id)
-            except Organization.DoesNotExist:
-                continue
-            organizations[repo.organization_id] = organization
-        candidate_repos.append(repo)
-    if not candidate_repos:
-        _skip("resolve", "no_candidate_repos", {"repo_name": event.repository.full_name})
-        return None
-
-    autofix_run = resolve_check_suite_autofix_run(event, candidate_repos)
-    metrics.incr(
-        "autofix.pr_iteration.check_suite.run_resolved",
-        tags={"found": str(autofix_run is not None).lower()},
-    )
-    if autofix_run is None:
-        _skip(
-            "resolve",
-            "no_autofix_run",
-            {
-                "repo_name": event.repository.full_name,
-                "organization_ids": [repo.organization_id for repo in candidate_repos],
-            },
-        )
-        return None
-    organization = organizations[autofix_run.repository.organization_id]
-
-    log_extra: dict[str, Any] = {
-        "organization_id": autofix_run.repository.organization_id,
-        "repo_id": autofix_run.repository.id,
-        "run_id": autofix_run.run_state.run_id,
-        "pr_id": autofix_run.pr_id,
-    }
-
-    repo_name = event.repository.full_name
-    if not repo_name:
-        _skip("resolve", "missing_repo_name", log_extra)
-        return None
-    pr_state = autofix_run.run_state.repo_pr_states.get(repo_name)
-    pr_number = pr_state.pr_number if pr_state else None
-    if pr_number is None:
-        _skip(
-            "resolve",
-            "missing_pr_number",
-            {**log_extra, "repo_name": repo_name, "has_pr_state": pr_state is not None},
-        )
-        return None
-
-    seer_run = SeerRun.objects.filter(
-        seer_run_state_id=autofix_run.run_state.run_id, organization=organization
-    ).first()
-    if seer_run is None:
-        _skip("resolve", "missing_seer_run", {**log_extra, "repo_name": repo_name})
-        return None
-
-    return resolved_cls(
-        event=event,
-        organization=organization,
-        autofix_run=autofix_run,
-        seer_run=seer_run,
-        repo_name=repo_name,
-        pr_number=pr_number,
-        log_extra=log_extra,
-    )
-
-
-def _skip(scope: SkipScope, reason: str, log_extra: dict[str, Any]) -> None:
+def record_check_suite_skip(
+    scope: SkipScope, reason: str, log_extra: dict[str, Any]
+) -> None:
     """Record a bail-out. ``resolve`` serves both the green and red paths; ``green``
     only the green side effects."""
     key = f"autofix.pr_iteration.{scope}_check_suite.skipped"
     metrics.incr(key, tags={"reason": reason})
     logger.info(key, extra={**log_extra, "reason": reason})
-
-
-def _failed(reason: str, log_extra: dict[str, Any]) -> None:
-    metrics.incr("autofix.pr_iteration.green_check_suite.failed", tags={"reason": reason})
-    logger.warning(
-        "autofix.pr_iteration.green_check_suite.failed",
-        extra={**log_extra, "reason": reason},
-        exc_info=True,
-    )
 
 
 @dataclass(frozen=True)
