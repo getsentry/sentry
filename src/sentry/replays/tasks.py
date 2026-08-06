@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import sentry_sdk
 from django.utils import timezone
 from taskbroker_client.constants import CompressionType
 from taskbroker_client.retry import Retry
@@ -35,6 +36,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import replays_long_tasks, replays_raw_tasks, replays_tasks
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
+from sentry.utils.sdk import sdk_logger
 
 logger = logging.getLogger()
 
@@ -256,6 +258,33 @@ def run_bulk_replay_delete_job(
 
     window_start, window_end = windows[window_offset_days]
 
+    # Name the job, project and window on everything this activation reports, before anything that
+    # can fail. A Snuba failure cannot say which replays went undeleted -- the query that would have
+    # named them is the thing that failed -- so the window and cursor stand in for them: together
+    # they define exactly what this page would have covered.
+    sentry_sdk.set_tags(
+        {
+            "replay_delete.job": job.id,
+            "replay_delete.organization": job.organization_id,
+            "replay_delete.project": job.project_id,
+            "replay_delete.window": window_start.date().isoformat(),
+        }
+    )
+    sentry_sdk.set_context(
+        "replay_delete_page",
+        {
+            "job_id": job.id,
+            "organization_id": job.organization_id,
+            "project_id": job.project_id,
+            "range_start": job.range_start.isoformat(),
+            "range_end": job.range_end.isoformat(),
+            "window_start": window_start.isoformat(),
+            "window_end": window_end.isoformat(),
+            "after_replay_id_hash": after_replay_id_hash,
+            "limit": limit,
+        },
+    )
+
     try:
         # Delete the replays within a limited range. If more replays exist a cursor to seek the next
         # page from is returned.
@@ -271,6 +300,10 @@ def run_bulk_replay_delete_job(
 
         # Delete the matched rows if any rows were returned.
         if len(results["rows"]) > 0:
+            replay_ids = [row["replay_id"] for row in results["rows"]]
+            # Now that the page is known, any failure below can name the replays it covered.
+            sentry_sdk.set_context("replay_delete_page", {"replay_ids": replay_ids})
+
             delete_matched_rows(job.project_id, results["rows"])
             # Track job progress with a state transition metric
             metrics.incr("replays.bulk_delete_job", tags={"status": "in_progress"}, sample_rate=1.0)
@@ -286,10 +319,25 @@ def run_bulk_replay_delete_job(
                 # are gone, which fails the job and stops the chain, so the range can be re-run after
                 # Seer is healthy rather than walking the rest of it leaving summaries everywhere.
                 delete_seer_replay_data_with_retries(
-                    job.organization_id,
-                    job.project_id,
-                    [row["replay_id"] for row in results["rows"]],
+                    job.organization_id, job.project_id, replay_ids
                 )
+
+            # Everything for this page is gone: blobs, archive events and any Seer summaries. Logged
+            # rather than counted so a re-run can be watched replay by replay, which is the only way
+            # to confirm that a range which failed before now goes through.
+            sdk_logger.info(
+                "replays.bulk_delete_job.page_deleted",
+                attributes={
+                    "job_id": job.id,
+                    "organization_id": job.organization_id,
+                    "project_id": job.project_id,
+                    "window_start": window_start.isoformat(),
+                    "replay_count": len(replay_ids),
+                    # Joined, because the wrapper flattens a list into one attribute per element and
+                    # a page is a hundred of them.
+                    "replay_ids": ",".join(replay_ids),
+                },
+            )
     except ProcessingDeadlineExceeded:
         # A BaseException, so it escapes the handler below, and the one thing the broker will
         # redeliver -- so defer failing the job until the attempts are actually gone.

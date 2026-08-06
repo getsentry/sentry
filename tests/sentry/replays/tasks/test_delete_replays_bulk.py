@@ -873,3 +873,82 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
 
         self.job.refresh_from_db()
         assert self.job.status == "failed"
+
+    @patch("sentry.replays.tasks.sdk_logger")
+    @patch("sentry.replays.tasks.sentry_sdk")
+    @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
+    @patch("sentry.replays.tasks.delete_matched_rows")
+    def test_run_bulk_replay_delete_job_reports_the_page_it_is_working_on(
+        self,
+        mock_delete_matched_rows: MagicMock,
+        mock_fetch_rows: MagicMock,
+        mock_sentry_sdk: MagicMock,
+        mock_sdk_logger: MagicMock,
+    ) -> None:
+        """Test a page names its job, window and replays, and logs the ids it deleted.
+
+        The job and window exist only in the activation's arguments, so without this an error is a
+        stack trace with no way back to a range. The replay ids are what a re-run is checked against.
+        """
+        mock_fetch_rows.return_value = {
+            "rows": [
+                {"retention_days": 90, "replay_id": "a", "max_segment_id": 1},
+                {"retention_days": 90, "replay_id": "b", "max_segment_id": 0},
+            ],
+            "has_more": False,
+            "next_cursor": None,
+        }
+
+        run_bulk_replay_delete_job(self.job.id)
+
+        mock_sentry_sdk.set_tags.assert_called_once_with(
+            {
+                "replay_delete.job": self.job.id,
+                "replay_delete.organization": self.job.organization_id,
+                "replay_delete.project": self.project.id,
+                "replay_delete.window": self.range_start.date().isoformat(),
+            }
+        )
+        contexts = {
+            call.args[0]: call.args[1] for call in mock_sentry_sdk.set_context.call_args_list
+        }
+        assert contexts["replay_delete_page"]["replay_ids"] == ["a", "b"]
+
+        mock_sdk_logger.info.assert_called_once_with(
+            "replays.bulk_delete_job.page_deleted",
+            attributes={
+                "job_id": self.job.id,
+                "organization_id": self.job.organization_id,
+                "project_id": self.project.id,
+                "window_start": self.range_start.isoformat(),
+                "replay_count": 2,
+                "replay_ids": "a,b",
+            },
+        )
+
+    @patch("sentry.replays.tasks.sdk_logger")
+    @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
+    @patch("sentry.replays.tasks.delete_matched_rows")
+    def test_run_bulk_replay_delete_job_does_not_log_success_when_a_page_fails(
+        self,
+        mock_delete_matched_rows: MagicMock,
+        mock_fetch_rows: MagicMock,
+        mock_sdk_logger: MagicMock,
+    ) -> None:
+        """Test the success log is not written for a page whose deletes raised.
+
+        The log is the record a re-run is checked against, so it must mean the page really finished.
+        """
+        mock_fetch_rows.return_value = {
+            "rows": [{"retention_days": 90, "replay_id": "a", "max_segment_id": 1}],
+            "has_more": False,
+            "next_cursor": None,
+        }
+        mock_delete_matched_rows.side_effect = RuntimeError("a blob would not delete")
+
+        with pytest.raises(RuntimeError):
+            run_bulk_replay_delete_job(self.job.id)
+
+        assert mock_sdk_logger.info.call_count == 0
+        self.job.refresh_from_db()
+        assert self.job.status == "failed"

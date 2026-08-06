@@ -42,6 +42,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
+from sentry.utils.sdk import sdk_logger
 from sentry.utils.snuba import (
     QueryExecutionError,
     QueryTooManySimultaneous,
@@ -129,19 +130,19 @@ def delete_matched_rows(project_id: int, rows: list[MatchedRow]) -> int | None:
     return None
 
 
-# A batch is on the order of a thousand blobs, and a context that size is truncated to uselessness,
-# so the attached filenames are capped. The counts stay exact.
-_REPORTED_FILENAMES_LIMIT = 50
+# A page is ~100 replays and tens of thousands of blobs, so a capped list of *filenames* can name a
+# single replay and hide the rest. The context reports the distinct replays instead, which is what has
+# to be re-run, and the full set goes to a Sentry log when it does not fit.
+_REPORTED_REPLAYS_LIMIT = 50
 
 
 def _raise_for_failed_blob_deletes(futures: dict[str, Future[None]], attempted: int) -> None:
-    """Raise if any blob could not be deleted, naming the ones that failed.
+    """Raise if any blob could not be deleted, naming the replays that still hold data.
 
     A blob we failed to delete is PII we would otherwise report as deleted. Raising happens before
     the archive event is published, so a failure leaves the replay unarchived, and the finder does
     not exclude unarchived replays -- the next pass over the range picks it up again rather than
-    hiding PII behind an archive marker. The task retries, so a transient failure costs a retry
-    rather than the job.
+    hiding PII behind an archive marker.
     """
     errors = {
         filename: error
@@ -150,6 +151,9 @@ def _raise_for_failed_blob_deletes(futures: dict[str, Future[None]], attempted: 
     }
     if not errors:
         return
+
+    # `{retention_days}/{project_id}/{replay_id}/{segment_id}`.
+    replay_ids = sorted({filename.split("/")[2] for filename in errors})
 
     metrics.incr(
         "replays.delete_recording_blobs",
@@ -160,13 +164,23 @@ def _raise_for_failed_blob_deletes(futures: dict[str, Future[None]], attempted: 
     sentry_sdk.set_context(
         "replay_recording_blobs",
         {
-            "attempted": attempted,
-            "failed": len(errors),
-            # Each filename is `{retention_days}/{project_id}/{replay_id}/{segment_id}`, so these
-            # name the replays that still need deleting.
-            "failed_filenames": sorted(errors)[:_REPORTED_FILENAMES_LIMIT],
+            "blobs_attempted": attempted,
+            "blobs_failed": len(errors),
+            "replays_affected": len(replay_ids),
+            "replay_ids": replay_ids[:_REPORTED_REPLAYS_LIMIT],
+            "replay_ids_truncated": len(replay_ids) > _REPORTED_REPLAYS_LIMIT,
         },
     )
+    if len(replay_ids) > _REPORTED_REPLAYS_LIMIT:
+        # The context would drop the tail, and the tail is the part you would not know to re-run.
+        sdk_logger.error(
+            "replays.bulk_delete_job.blob_deletes_failed",
+            attributes={
+                "replays_affected": len(replay_ids),
+                "replay_ids": ",".join(replay_ids),
+            },
+        )
+
     raise next(iter(errors.values()))
 
 
@@ -393,6 +407,24 @@ def delete_seer_replay_data_with_retries(
 
         if attempt < SEER_DELETE_ATTEMPTS:
             time.sleep(2.0 ** (attempt - 1))
+
+    # The ids are the whole diagnosis here: these replays still have summaries in Seer.
+    sentry_sdk.set_context(
+        "replay_seer_delete",
+        {
+            "replays_affected": len(replay_ids),
+            "replay_ids": replay_ids[:_REPORTED_REPLAYS_LIMIT],
+            "replay_ids_truncated": len(replay_ids) > _REPORTED_REPLAYS_LIMIT,
+        },
+    )
+    if len(replay_ids) > _REPORTED_REPLAYS_LIMIT:
+        sdk_logger.error(
+            "replays.bulk_delete_job.seer_delete_failed",
+            attributes={
+                "replays_affected": len(replay_ids),
+                "replay_ids": ",".join(replay_ids),
+            },
+        )
 
     raise SeerDeleteFailed(f"Seer did not delete {len(replay_ids)} replay summaries")
 
