@@ -362,6 +362,10 @@ def fetch_rows_matching_pattern(
     }
 
 
+class SeerDeleteFailed(Exception):
+    """Seer would not delete a set of replay summaries, and retrying did not help."""
+
+
 # Seer is called with a 5 second timeout and there are 551 recorded timeouts, so the failure being
 # retried is Seer being slow. The point is to out-wait it, which is why the delay grows.
 SEER_DELETE_ATTEMPTS = 3
@@ -369,25 +373,28 @@ SEER_DELETE_ATTEMPTS = 3
 
 def delete_seer_replay_data_with_retries(
     organization_id: int, project_id: int, replay_ids: list[str]
-) -> bool:
+) -> None:
     """Ask Seer to delete these replays, retrying while it reports failure.
 
-    `delete_seer_replay_data` reports rather than raises, so this retries on the returned False
-    instead of on an exception. It logs at error level on every attempt, so a call that recovers
-    still leaves a record of the attempts that did not -- the cost of retrying around something that
-    reports its own failures.
+    Raises `SeerDeleteFailed` once the attempts are gone. A Seer summary is derived from the replay's
+    contents, so a summary left behind is PII left behind exactly as an undeleted blob is: the caller
+    should fail rather than report a deletion it did not finish.
+
+    `delete_seer_replay_data` reports rather than raises, so the retry is on the returned False. It
+    logs at error level on every attempt, so a call that recovers still leaves a record of the
+    attempts that did not -- the cost of retrying around something that reports its own failures.
 
     `make_replay_delete_request` also retries once itself, so this is at most
     `SEER_DELETE_ATTEMPTS * 2` requests.
     """
     for attempt in range(1, SEER_DELETE_ATTEMPTS + 1):
         if delete_seer_replay_data(organization_id, project_id, replay_ids):
-            return True
+            return
 
         if attempt < SEER_DELETE_ATTEMPTS:
             time.sleep(2.0 ** (attempt - 1))
 
-    return False
+    raise SeerDeleteFailed(f"Seer did not delete {len(replay_ids)} replay summaries")
 
 
 def delete_seer_replay_data(organization_id: int, project_id: int, replay_ids: list[str]) -> bool:

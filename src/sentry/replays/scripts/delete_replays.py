@@ -140,10 +140,9 @@ def delete_replay_ids(
     if has_seer_data:
         # The finder strips dashes from `replay_id`; Seer keys on the dashed UUID
         replay_ids = [str(uuid.UUID(replay_id)) for _, replay_id, _ in rows]
-        # Return value deliberately ignored: a failure leaves AI summaries behind, which is
-        # undeleted PII, but the replays and their blobs are already gone by this point and
-        # aborting would strand the rest of the range. Failures are logged at error level with
-        # the replay ids, so they are reported even though the run carries on.
+        # Raises once its retries are gone, which aborts the run. A summary left behind is PII left
+        # behind, and re-running never skips work already done, so stopping to fix Seer costs less
+        # than walking the rest of the range and re-running all of it anyway.
         delete_seer_replay_data_with_retries(organization_id, project_id, replay_ids)
 
     logger.info("Scheduling %d replays for deletion.", len(rows), extra=logging_context)

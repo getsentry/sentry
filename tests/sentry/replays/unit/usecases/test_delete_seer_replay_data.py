@@ -1,7 +1,10 @@
 from unittest.mock import MagicMock, Mock, patch
 
+import pytest
+
 from sentry.replays.usecases.delete import (
     SEER_DELETE_ATTEMPTS,
+    SeerDeleteFailed,
     delete_seer_replay_data,
     delete_seer_replay_data_with_retries,
 )
@@ -58,7 +61,7 @@ def test_a_batch_is_retried_until_it_succeeds(
     """
     mock_delete.side_effect = [False, False, True]
 
-    assert delete_seer_replay_data_with_retries(456, 123, ["replay-1"]) is True
+    delete_seer_replay_data_with_retries(456, 123, ["replay-1"])
     assert mock_delete.call_count == 3
 
 
@@ -67,8 +70,14 @@ def test_a_batch_is_retried_until_it_succeeds(
 def test_a_batch_that_never_succeeds_is_reported(
     mock_delete: MagicMock, mock_sleep: MagicMock
 ) -> None:
-    """Test attempts are bounded and the caller is told the batch failed."""
+    """Test attempts are bounded and exhaustion raises rather than reporting success.
+
+    A Seer summary is derived from the replay, so leaving one behind is leaving PII behind. The
+    caller has to fail over it the same way it fails over an undeleted blob.
+    """
     mock_delete.return_value = False
 
-    assert delete_seer_replay_data_with_retries(456, 123, ["replay-1"]) is False
+    with pytest.raises(SeerDeleteFailed):
+        delete_seer_replay_data_with_retries(456, 123, ["replay-1"])
+
     assert mock_delete.call_count == SEER_DELETE_ATTEMPTS

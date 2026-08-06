@@ -281,10 +281,10 @@ def run_bulk_replay_delete_job(
                 sample_rate=1.0,
             )
             if has_seer_data:
-                # Retried, and the return value is deliberately ignored. A failure leaves AI
-                # summaries behind, which is undeleted PII, but raising would re-run a window
-                # whose replays and blobs are already gone. Failures log at error level, so they
-                # reach Sentry either way.
+                # A Seer summary is derived from the replay, so one left behind is PII left behind,
+                # exactly as an undeleted blob is. Treated the same way: this raises once its retries
+                # are gone, which fails the job and stops the chain, so the range can be re-run after
+                # Seer is healthy rather than walking the rest of it leaving summaries everywhere.
                 delete_seer_replay_data_with_retries(
                     job.organization_id,
                     job.project_id,
