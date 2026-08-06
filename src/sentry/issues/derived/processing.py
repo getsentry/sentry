@@ -537,53 +537,56 @@ def invalidate_group_derived_data(
     """Mark a group's derived data as out-of-date with respect to its action log.
 
     *cursor* is ``(date_added, id)`` of the earliest affected entry. If the
-    row's own cursor is behind that point, the mutation is a pure append and
-    the row is left alone (an incremental drain will catch it up).
+    row's cursor is behind that point the mutation is a pure append and the
+    row is left alone — an incremental drain will catch it up.
 
-    Otherwise the row is invalidated: ``soft=True`` (default) nulls
-    ``pipeline_hash`` so the row stays readable but is flagged stale for
-    bulk regeneration; ``soft=False`` deletes the row so readers cannot
-    observe pre-mutation state.
+    Otherwise: ``soft=True`` (default) nulls ``pipeline_hash`` and bumps
+    ``generated_at`` — the row stays readable but flagged stale, and any
+    in-flight generation started before this call loses its promotion CAS.
+    ``soft=False`` deletes the row so readers cannot observe pre-mutation
+    state.
 
-    Under ``soft=True``, if no row exists for the group at all, one is
-    inserted with ``pipeline_hash=None``. That row's other fields are just
-    defaults — no more accurate than the implicit defaults readers would use
-    for an absent row — but the null hash is an explicit "known stale" marker
-    that lets bookkeeping and healing code treat "null or stale pipeline_hash"
-    uniformly as "needs regen".
+    Under ``soft=True`` with no existing row, one is inserted with
+    ``pipeline_hash=None`` as an explicit "needs regen" marker for bulk
+    healing (uniform with already-stale rows).
 
-    If *trigger_regenerate* is True (default), schedules a background task
-    to bring the row up to date. Pass False in bulk contexts that will
-    drive regeneration themselves.
+    If *trigger_regenerate* is True (default), schedules a follow-up task.
+    Bulk callers driving their own regeneration should pass False.
     """
     if cursor is None:
         invalid_predicate = Q(group_id=group_id)
     else:
         cursor_date, cursor_id = cursor
+        # Null-hash rows are matched unconditionally: they're already stale
+        # so there's no up-to-date state to protect, and refreshing their
+        # ``generated_at`` forces any in-flight generation started before
+        # this call to lose its promotion CAS (see below).
         invalid_predicate = Q(group_id=group_id) & (
-            Q(cursor_date__gt=cursor_date) | Q(cursor_date=cursor_date, cursor_id__gte=cursor_id)
+            Q(pipeline_hash__isnull=True)
+            | Q(cursor_date__gt=cursor_date)
+            | Q(cursor_date=cursor_date, cursor_id__gte=cursor_id)
         )
 
-    # Reuse the invalidation predicate so a concurrent writer that already
-    # promoted past our cursor is not clobbered. Combining the check with the
-    # write avoids a second query.
+    # Combine the guard with the write so a concurrent promotion past our
+    # cursor isn't clobbered.
     qs = GroupDerivedData.objects.filter(invalid_predicate)
     if soft:
-        affected = qs.update(pipeline_hash=None)
+        # Bumping ``generated_at`` reuses ``promote_to_live``'s SUPERSEDED
+        # CAS path — pre-invalidation snapshots can't win over the null-hash
+        # row.
+        affected = qs.update(pipeline_hash=None, generated_at=timezone.now())
     else:
         affected, _ = qs.delete()
 
     if not affected:
-        # Either nothing exists yet, or a row exists but its cursor is already
-        # past the affected point (a pure append relative to that row).
-        # Distinguish the two: for a soft invalidation with no existing row,
-        # insert one with pipeline_hash=None so "null or stale pipeline_hash"
-        # is a reliable "needs regen" signal for bulk regeneration/healing.
+        # Either no row exists yet, or an existing row's cursor is already
+        # past the affected point (pure append). Under soft=True with no
+        # row, insert a null-hash placeholder so bulk healing sees a
+        # uniform "needs regen" signal.
         row_exists = GroupDerivedData.objects.filter(group_id=group_id).exists()
         if soft and not row_exists:
-            # Race-safe: if a concurrent writer just inserted a fully-generated
-            # row, the unique group_id constraint makes this a no-op and we
-            # fall through to the pure-append branch.
+            # Race-safe: if a concurrent writer inserted a live row first,
+            # get_or_create is a no-op and we fall through to pure-append.
             _, created = GroupDerivedData.objects.get_or_create(
                 group_id=group_id, defaults={"pipeline_hash": None}
             )
@@ -603,8 +606,7 @@ def invalidate_group_derived_data(
                     generate_group_derived_data.delay(group_id)
                 return
 
-        # Pure append (or nothing to invalidate under soft=False): a normal
-        # drain will pick up any new entries.
+        # Pure append (or nothing to delete): a normal drain suffices.
         if trigger_regenerate:
             process_group_log_task.delay(group_id)
         return

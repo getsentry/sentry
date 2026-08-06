@@ -482,6 +482,79 @@ class ProcessGroupLogTest(TestCase):
         mock_generate.assert_not_called()
         mock_process.assert_called_once_with(group.id)
 
+    def test_invalidate_soft_bumps_generated_at(self) -> None:
+        # ``generated_at`` is bumped alongside the pipeline_hash null so any
+        # in-flight generation started before this call loses its CAS.
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        derived = process_group_log(group.id)
+        before = derived.generated_at
+
+        with patch("sentry.issues.derived.processing.generate_group_derived_data.delay"):
+            invalidate_group_derived_data(group.id)
+
+        derived.refresh_from_db()
+        assert derived.pipeline_hash is None
+        assert derived.generated_at > before
+
+    def test_invalidate_matches_null_hash_row_regardless_of_cursor(self) -> None:
+        # A null-hash row is already stale — a subsequent invalidation whose
+        # cursor is past the row's cursor must still refresh the CAS rather
+        # than fall into the pure-append branch.
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        derived = process_group_log(group.id)
+
+        # Null the hash directly to simulate a prior invalidation (placeholder
+        # left behind by the missing-row insert path or an in-flight null).
+        GroupDerivedData.objects.filter(group_id=group.id).update(pipeline_hash=None)
+        derived.refresh_from_db()
+        before_gen = derived.generated_at
+
+        # Cursor is well past the row's cursor — under the old predicate this
+        # would look like a pure append.
+        future = derived.cursor_date.replace(year=derived.cursor_date.year + 1)
+        with (
+            patch(
+                "sentry.issues.derived.processing.generate_group_derived_data.delay"
+            ) as mock_generate,
+            patch("sentry.issues.derived.processing.process_group_log_task.delay") as mock_process,
+        ):
+            invalidate_group_derived_data(group.id, cursor=(future, derived.cursor_id + 1000))
+
+        derived.refresh_from_db()
+        assert derived.pipeline_hash is None
+        assert derived.generated_at > before_gen
+        mock_generate.assert_called_once_with(group.id)
+        mock_process.assert_not_called()
+
+    def test_invalidate_supersedes_in_flight_generation(self) -> None:
+        # A generation task that started before invalidation must not
+        # promote its (pre-invalidation) snapshot over the null-hash row.
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+
+        # Snapshot a candidate as if a generation started here.
+        candidate = GroupDerivedData(
+            group_id=group.id,
+            generated_at=django_timezone.now(),
+            cursor_date=EPOCH,
+            cursor_id=0,
+            data={},
+            pipeline_hash=PIPELINE.pipeline_hash,
+        )
+        processing._drain_log(candidate, PIPELINE, time_limit=timedelta(minutes=5), persist=False)
+
+        # Invalidation happens between the drain and the promote — either
+        # against an existing row or (as here) inserting the placeholder.
+        with patch("sentry.issues.derived.processing.generate_group_derived_data.delay"):
+            invalidate_group_derived_data(group.id)
+
+        # Promotion of the pre-invalidation snapshot must lose.
+        assert promote_to_live(candidate) is PromotionResult.SUPERSEDED
+        row = GroupDerivedData.objects.get(group_id=group.id)
+        assert row.pipeline_hash is None
+
     def test_invalidate_then_reprocess(self) -> None:
         group = self.create_group()
         user = self.user
