@@ -47,6 +47,7 @@ class DebugFileObjectstoreMigrationUtilsTest(TestCase):
 
     def test_integrity_failure_does_not_cut_over(self) -> None:
         session = MagicMock()
+        session.put.return_value = "uploaded-key"
         session.get.side_effect = lambda *args, **kwargs: MagicMock(
             payload=BytesIO(b"not-the-original-contents")
         )
@@ -55,10 +56,6 @@ class DebugFileObjectstoreMigrationUtilsTest(TestCase):
             patch(
                 "sentry.debug_files.objectstore_migration.utils.get_debug_files_session",
                 return_value=session,
-            ),
-            patch(
-                "sentry.debug_files.objectstore_migration.utils._upload_dif_to_objectstore",
-                return_value="uploaded-key",
             ),
             patch("sentry.utils.retries.time.sleep"),
             pytest.raises(MigrationIntegrityError),
@@ -110,16 +107,13 @@ class DebugFileObjectstoreMigrationUtilsTest(TestCase):
         response = MagicMock()
         response.payload = BytesIO(b"debug-file-contents")
         session = MagicMock()
+        session.put.return_value = "os-key"
         session.get.return_value = response
 
         with (
             patch(
                 "sentry.debug_files.objectstore_migration.utils.get_debug_files_session",
                 return_value=session,
-            ),
-            patch(
-                "sentry.debug_files.objectstore_migration.utils._upload_dif_to_objectstore",
-                return_value="os-key",
             ),
             self.captureOnCommitCallbacks(execute=True),
         ):

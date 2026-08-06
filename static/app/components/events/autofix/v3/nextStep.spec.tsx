@@ -660,7 +660,7 @@ describe('SeerDrawerNextStep', () => {
 
   describe('PullRequestNextStep', () => {
     const prIterationOrganization = OrganizationFixture({
-      features: ['autofix-pr-iteration'],
+      features: ['autofix-pr-iteration-manual'],
     });
 
     function makePrIterationAutofix(

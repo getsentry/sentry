@@ -30,7 +30,7 @@ import DetectorDetails from 'sentry/views/detectors/detail';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 describe('DetectorDetails', () => {
-  const organization = OrganizationFixture({features: ['workflow-engine-ui']});
+  const organization = OrganizationFixture();
   const project = ProjectFixture();
   const defaultDataSource = SnubaQueryDataSourceFixture();
   const ownerTeam = TeamFixture();

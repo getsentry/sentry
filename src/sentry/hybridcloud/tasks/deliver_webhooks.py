@@ -81,6 +81,13 @@ actions that have been made to the relevant resources.
 
 # Define priorities for different webhook providers
 # Lower number means higher priority
+#
+# Deliberately unbacked by an index. A matching expression index was tried and went
+# unused: the discovery query below must aggregate every mailbox to find the heads
+# regardless, and sorting that small result beats scanning the table in priority
+# order by orders of magnitude. Such an index also silently stops matching the
+# moment this dict gains an entry, since the two expressions must be textually
+# identical for Postgres to use it.
 PROVIDER_PRIORITY = {
     "stripe": 1,
 }
@@ -461,6 +468,7 @@ def drain_mailbox(payload_id: int, mailbox_name: str | None = None) -> None:
     """
     payload_source = WebhookPayload.objects.using_replica()
 
+    payload: WebhookPayload | None
     try:
         payload = payload_source.get(id=payload_id)
     except WebhookPayload.DoesNotExist:
@@ -475,14 +483,15 @@ def drain_mailbox(payload_id: int, mailbox_name: str | None = None) -> None:
                 metrics.incr("hybridcloud.deliver_webhooks.drain.primary_fallback")
             except WebhookPayload.DoesNotExist:
                 pass
-        if payload is None:
-            # We could have hit a race condition. Since we've lost already return
-            # and let the other process continue, or a future process.
-            metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "race"})
-            logger.info("deliver_webhook.potential_race", extra={"id": payload_id})
-            if mailbox_name and options.get("hybridcloud.webhookpayload.push_drain_trigger"):
-                _release_drain_lock(mailbox_name)
-            return
+
+    if payload is None:
+        # We could have hit a race condition. Since we've lost already return
+        # and let the other process continue, or a future process.
+        metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "race"})
+        logger.info("deliver_webhook.potential_race", extra={"id": payload_id})
+        if mailbox_name and options.get("hybridcloud.webhookpayload.push_drain_trigger"):
+            _release_drain_lock(mailbox_name)
+        return
 
     _set_webhook_delivery_sentry_context(payload)
 

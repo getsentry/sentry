@@ -226,7 +226,7 @@ function isInsideButton(element: Element | null): boolean {
   return false;
 }
 
-export const LogRowContent = memo(function LogRowContent({
+export const LogRowContent = memo(function LogRowContentImpl({
   dataRow,
   embedded = false,
   embeddedOptions,
@@ -382,6 +382,7 @@ export const LogRowContent = memo(function LogRowContent({
   const rendererExtra: RendererExtra = {
     highlightTerms,
     caseSensitiveHighlighting: !caseInsensitivity,
+    datetime: selection.datetime,
     logColors,
     useFullSeverityText: false,
     location,
@@ -713,6 +714,7 @@ function LogRowDetails({
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
+  const {selection} = usePageFilters();
   const project = useProjectFromId({
     project_id: '' + dataRow[OurLogKnownFieldKey.PROJECT_ID],
   });
@@ -798,6 +800,7 @@ function LogRowDetails({
                       location,
                       navigate,
                       organization,
+                      datetime: selection.datetime,
                       caseSensitiveHighlighting: !caseInsensitivity,
                       projectSlug,
                       attributes,
@@ -829,6 +832,7 @@ function LogRowDetails({
                   renderers={LogAttributesRendererMap}
                   rendererExtra={{
                     caseSensitiveHighlighting: !caseInsensitivity,
+                    datetime: selection.datetime,
                     highlightTerms,
                     logColors,
                     location,

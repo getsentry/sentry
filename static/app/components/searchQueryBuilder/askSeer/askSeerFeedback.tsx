@@ -39,7 +39,7 @@ export function AskSeerFeedback() {
       align="center"
       justify={hasAskSeerUxRework ? undefined : 'between'}
       gap="md"
-      flex="1"
+      flex={hasAskSeerUxRework ? undefined : '1'}
     >
       <AskSeerLabel fontWeight="normal">
         {hasAskSeerUxRework ? null : <IconSeer />}

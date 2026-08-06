@@ -1,53 +1,17 @@
-"""Test Arroyo recording-consumer integration."""
+"""Test replay-recording task integration."""
 
 import zlib
-from datetime import datetime
-from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock
 
 import msgpack
-import pytest
-from arroyo.backends.kafka import KafkaPayload
-from arroyo.processing.strategies.abstract import ProcessingStrategy
-from arroyo.types import BrokerValue, Message, Partition, Topic
 
-from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
+from sentry.replays.tasks import process_replay_recording
 from sentry.utils import json
 
 
-@pytest.fixture
 @mock.patch("sentry.options.get")
-def consumer(options_get: MagicMock) -> ProcessingStrategy[KafkaPayload]:
-    options_get.return_value = True
-    return ProcessReplayRecordingStrategyFactory(
-        input_block_size=1,
-        max_batch_size=1,
-        max_batch_time=1,
-        num_processes=1,
-        num_threads=1,
-        output_block_size=1,
-    ).create_with_partitions(lambda x, force=False: None, {})
-
-
-def submit(consumer: ProcessingStrategy[KafkaPayload], message: dict[str, Any]) -> None:
-    consumer.submit(
-        Message(
-            BrokerValue(
-                payload=KafkaPayload(b"key", msgpack.packb(message), [("should_drop", b"1")]),
-                partition=Partition(Topic("topic"), 1),
-                offset=0,
-                timestamp=datetime.now(),
-            )
-        )
-    )
-    consumer.poll()
-    consumer.join(1)
-    consumer.terminate()
-
-
-@mock.patch("sentry.options.get")
-def test_recording_consumer(options_get, consumer: ProcessingStrategy[KafkaPayload]) -> None:  # type: ignore[no-untyped-def]
+def test_recording_task(options_get: MagicMock) -> None:
     options_get.return_value = True
 
     headers = json.dumps({"segment_id": 42}).encode()
@@ -67,7 +31,7 @@ def test_recording_consumer(options_get, consumer: ProcessingStrategy[KafkaPaylo
         "version": 0,
     }
     with mock.patch("sentry.replays.consumers.recording.commit_recording_message") as commit:
-        submit(consumer, message)
+        process_replay_recording(msgpack.packb(message))
 
         # Message was successfully processed and the result was committed.
         assert commit.called
@@ -96,9 +60,9 @@ def test_recording_consumer(options_get, consumer: ProcessingStrategy[KafkaPaylo
         # assert actions.options_events == ...
 
 
-def test_recording_consumer_invalid_message(consumer: ProcessingStrategy[KafkaPayload]) -> None:
+def test_recording_task_invalid_message() -> None:
     with mock.patch("sentry.replays.consumers.recording.commit_recording_message") as commit:
-        submit(consumer, {})
+        process_replay_recording(msgpack.packb({}))
 
         # Message was not successfully processed and the result was dropped.
         assert not commit.called

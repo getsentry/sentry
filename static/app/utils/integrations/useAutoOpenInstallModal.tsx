@@ -6,12 +6,17 @@ import type {IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {AddIntegrationParams} from 'sentry/utils/integrations/useAddIntegration';
-import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 
 interface Props {
   onInstall: AddIntegrationParams['onInstall'];
   organization: Organization;
   provider: IntegrationProvider;
+  /**
+   * The caller's `startFlow` from `useAddIntegration`. Accepting it here rather
+   * than creating a second hook instance means the auto-open and button-click
+   * paths share one hook, keeping install state observable in one place.
+   */
+  startFlow: (params: AddIntegrationParams) => void;
   analyticsParams?: AddIntegrationParams['analyticsParams'];
   suppressSuccessMessage?: boolean;
 }
@@ -36,11 +41,11 @@ export function useAutoOpenInstallModal({
   provider,
   organization,
   onInstall,
+  startFlow,
   analyticsParams,
   suppressSuccessMessage,
 }: Props) {
   const [showInstallModal, setShowInstallModal] = useQueryState('showInstallModal');
-  const {startFlow} = useAddIntegration();
   const autoOpenedForRef = useRef<string | null>(null);
 
   useEffect(() => {

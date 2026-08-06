@@ -185,7 +185,7 @@ export interface SnapshotListViewHandle {
   scrollToGroup: (itemKey: string) => void;
 }
 
-export const SnapshotListView = memo(function SnapshotListView({
+export const SnapshotListView = memo(function SnapshotListViewImpl({
   items,
   imageBaseUrl,
   headBranch,
@@ -629,7 +629,7 @@ export const SnapshotListView = memo(function SnapshotListView({
   );
 });
 
-const GroupContainer = memo(function GroupContainer({
+const GroupContainer = memo(function GroupContainerImpl({
   group,
   imageBaseUrl,
   headBranch,

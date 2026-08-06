@@ -4,7 +4,7 @@ import datetime
 from typing import Any, Self
 
 from django.db import models
-from django.db.models import Case, ExpressionWrapper, F, IntegerField, Q, TextChoices, Value, When
+from django.db.models import Q, TextChoices
 from django.http import HttpRequest
 from django.utils import timezone
 
@@ -43,6 +43,11 @@ class WebhookPayload(Model):
     date_added = models.DateTimeField(default=timezone.now, null=False)
 
     # Scheduling attributes
+    # Deliberately unindexed: this column is rewritten before every delivery attempt
+    # and on every batch claim, and an index on it defeats HOT updates for all those
+    # writes. The scheduler's discovery query filters it per-row after primary-key
+    # lookups, so an index here goes unused — verify the query plan and
+    # pg_stat_user_indexes would show real usage before ever adding one back.
     schedule_for = models.DateTimeField(default=THE_PAST, null=False)
     attempts = models.IntegerField(default=0, null=False)
 
@@ -58,23 +63,10 @@ class WebhookPayload(Model):
 
         indexes = (
             models.Index(fields=["mailbox_name"]),
-            models.Index(fields=["schedule_for"]),
             models.Index(fields=["provider"], name="webhookpayload_provider_idx"),
             models.Index(
                 fields=["mailbox_name", "id"],
                 name="webhookpayload_mailbox_id_idx",
-            ),
-            models.Index(
-                ExpressionWrapper(
-                    Case(
-                        When(provider="stripe", then=Value(1)),
-                        default=Value(10),
-                        output_field=IntegerField(),
-                    ),
-                    output_field=IntegerField(),
-                ),
-                F("id"),
-                name="webhookpayload_priority_idx",
             ),
         )
 

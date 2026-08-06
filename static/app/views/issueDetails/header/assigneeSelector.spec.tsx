@@ -9,22 +9,16 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {GroupActivityType} from 'sentry/types/group';
-import type {Committer} from 'sentry/types/integrations';
 import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assigneeSelector';
 import type {EventOwners} from 'sentry/views/issueDetails/header/getOwnerList';
 
 describe('GroupHeaderAssigneeSelector', () => {
   const organization = OrganizationFixture();
-  const group = GroupFixture();
   const project = ProjectFixture();
   const event = EventFixture();
 
   it('should render suggested assignees', async () => {
     const commitUser = UserFixture({id: '91', email: 'frodo@sentry.io', name: 'Frodo'});
-    const committer: Committer = {
-      author: commitUser,
-      commits: [],
-    };
     const ownerActor = ActorFixture({id: '101', email: 'sam@sentry.io', name: 'Sam'});
     const eventOwners: EventOwners = {
       owners: [ownerActor],
@@ -36,17 +30,23 @@ describe('GroupHeaderAssigneeSelector', () => {
       body: eventOwners,
     });
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
-      body: {committers: [committer]},
-    });
-    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/users/`,
       body: [
         MemberFixture({user: commitUser}),
         MemberFixture({user: UserFixture({...ownerActor})}),
       ],
     });
-    render(<GroupHeaderAssigneeSelector group={group} project={project} event={event} />);
+    render(
+      <GroupHeaderAssigneeSelector
+        group={GroupFixture({
+          owners: [
+            {type: 'suspectCommit', owner: `user:${commitUser.id}`, date_added: ''},
+          ],
+        })}
+        project={project}
+        event={event}
+      />
+    );
 
     await userEvent.click(await screen.findByLabelText('Modify issue assignee'));
     expect(await screen.findByText(commitUser.name)).toBeInTheDocument();
@@ -55,6 +55,67 @@ describe('GroupHeaderAssigneeSelector', () => {
     expect(screen.getByText(ownerActor.name)).toBeInTheDocument();
     expect(screen.getByText('Codeowners:/issues')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Ownership'})).toBeInTheDocument();
+  });
+
+  it('shows Seer suggestions alongside suspect commit authors', async () => {
+    const commitUser = UserFixture({id: '91', email: 'frodo@sentry.io', name: 'Frodo'});
+    const seerUser = UserFixture({id: '92', email: 'sam@sentry.io', name: 'Sam'});
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/owners/`,
+      body: {owners: [], rule: null, rules: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [MemberFixture({user: commitUser}), MemberFixture({user: seerUser})],
+    });
+
+    render(
+      <GroupHeaderAssigneeSelector
+        group={GroupFixture({
+          owners: [
+            {type: 'suspectCommit', owner: `user:${commitUser.id}`, date_added: ''},
+            {type: 'seerSuggested', owner: `user:${seerUser.id}`, date_added: ''},
+          ],
+        })}
+        project={project}
+        event={event}
+      />
+    );
+
+    await userEvent.click(await screen.findByLabelText('Modify issue assignee'));
+    expect(await screen.findByText(commitUser.name)).toBeInTheDocument();
+    expect(screen.getByText('Suspect commit author')).toBeInTheDocument();
+    expect(screen.getByText(seerUser.name)).toBeInTheDocument();
+    expect(screen.getByText('Seer Suggestion')).toBeInTheDocument();
+  });
+
+  it('ignores ownership rule group owners in favor of current event owners', async () => {
+    const staleUser = UserFixture({id: '91', email: 'frodo@sentry.io', name: 'Frodo'});
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/owners/`,
+      body: {owners: [], rule: null, rules: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [MemberFixture({user: staleUser})],
+    });
+
+    render(
+      <GroupHeaderAssigneeSelector
+        group={GroupFixture({
+          owners: [
+            {type: 'ownershipRule', owner: `user:${staleUser.id}`, date_added: ''},
+          ],
+        })}
+        project={project}
+        event={event}
+      />
+    );
+
+    await userEvent.click(await screen.findByLabelText('Modify issue assignee'));
+    expect(await screen.findByText(staleUser.name)).toBeInTheDocument();
+    expect(screen.queryByText('Ownership Rule')).not.toBeInTheDocument();
+    expect(screen.queryByText('Suggested')).not.toBeInTheDocument();
   });
 
   it('uses assignment activity for self-assignment tooltip details', async () => {
@@ -88,17 +149,6 @@ describe('GroupHeaderAssigneeSelector', () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/owners/`,
       body: {owners: [], rule: ['path', ''], rules: []},
-    });
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
-      body: {
-        committers: [
-          {
-            author: assignedUser,
-            commits: [],
-          },
-        ],
-      },
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/users/`,
@@ -148,10 +198,6 @@ describe('GroupHeaderAssigneeSelector', () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/owners/`,
       body: {owners: [], rule: ['path', ''], rules: []},
-    });
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
-      body: {committers: []},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/users/`,
