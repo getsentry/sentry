@@ -196,8 +196,8 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             \b
             # All segments but the final one, each followed by a dot
             (
-                # Lookahead guaranteeing at least one letter
-                (?= [a-zA-Z0-9\-]* [a-zA-Z])
+                # Lookahead guaranteeing at least one letter. Bounded to match max segment length.
+                (?= [a-zA-Z0-9\-]{0,62} [a-zA-Z])
                 # Segment body - either all letters/numbers (no dashes), or with interior-only dashes
                 (
                     [a-zA-Z0-9]{1,63}
@@ -487,10 +487,11 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
         raw_pattern=r"""
             # Like \b, but with underscores counting as wordbreak characters
             (?<![a-zA-Z0-9])
-            # Lookaheads guaranteeing at least one letter and one number in the overall match
+            # Lookaheads guaranteeing at least one letter and one number. Bounded to match max
+            # first-part length.
             (
-                (?= [a-zA-Z0-9\-]* [a-zA-Z])
-                (?= [a-zA-Z0-9\-]* \d)
+                (?= [a-zA-Z0-9\-]{0,125} [a-zA-Z])
+                (?= [a-zA-Z0-9\-]{0,125} \d)
             )
             # First part, containing some combination of letters and numbers. The length is capped
             # based on the fact that the no-dash pattern only matches strings up to 128 characters.
