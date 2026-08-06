@@ -6,7 +6,7 @@ import time
 import zipfile
 from io import BytesIO
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.core.files.base import ContentFile
@@ -400,10 +400,12 @@ class CreateDebugFileTest(APITestCase):
     @requires_objectstore
     def test_objectstore_write_failure_preserves_legacy_dif(self) -> None:
         content = b"objectstore-dif-content"
+        session = MagicMock()
+        session.put.side_effect = RuntimeError
 
         with (
             self.feature("organizations:objectstore-debugfiles-write"),
-            patch("sentry.models.debugfile._upload_dif_to_objectstore", side_effect=RuntimeError),
+            patch("sentry.models.debugfile.get_debug_files_session", return_value=session),
         ):
             dif, created = self.create_dif(fileobj=BytesIO(content))
 
