@@ -41,7 +41,6 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
-from sentry.utils.sdk import sdk_logger
 from sentry.utils.snuba import (
     QueryExecutionError,
     QueryTooManySimultaneous,
@@ -129,19 +128,12 @@ def delete_matched_rows(project_id: int, rows: list[MatchedRow]) -> int | None:
     return None
 
 
-# A page is ~100 replays and tens of thousands of blobs, so a capped list of *filenames* can name a
-# single replay and hide the rest. The context reports the distinct replays instead, which is what has
-# to be re-run, and the full set goes to a Sentry log when it does not fit.
-_REPORTED_REPLAYS_LIMIT = 50
-
-
 def _raise_for_failed_blob_deletes(futures: dict[str, Future[None]], attempted: int) -> None:
     """Raise if any blob could not be deleted, naming the replays that still hold data.
 
     A blob we failed to delete is PII we would otherwise report as deleted. Raising happens before
-    the archive event is published, so a failure leaves the replay unarchived, and the finder does
-    not exclude unarchived replays -- the next pass over the range picks it up again rather than
-    hiding PII behind an archive marker.
+    the archive event is published, so the replay stays unarchived and the next pass over the range
+    picks it up again rather than hiding PII behind an archive marker.
     """
     errors = {
         filename: error
@@ -150,9 +142,6 @@ def _raise_for_failed_blob_deletes(futures: dict[str, Future[None]], attempted: 
     }
     if not errors:
         return
-
-    # `{retention_days}/{project_id}/{replay_id}/{segment_id}`.
-    replay_ids = sorted({filename.split("/")[2] for filename in errors})
 
     metrics.incr(
         "replays.delete_recording_blobs",
@@ -165,21 +154,10 @@ def _raise_for_failed_blob_deletes(futures: dict[str, Future[None]], attempted: 
         {
             "blobs_attempted": attempted,
             "blobs_failed": len(errors),
-            "replays_affected": len(replay_ids),
-            "replay_ids": replay_ids[:_REPORTED_REPLAYS_LIMIT],
-            "replay_ids_truncated": len(replay_ids) > _REPORTED_REPLAYS_LIMIT,
+            # `{retention_days}/{project_id}/{replay_id}/{segment_id}`
+            "replay_ids": sorted({filename.split("/")[2] for filename in errors}),
         },
     )
-    if len(replay_ids) > _REPORTED_REPLAYS_LIMIT:
-        # The context would drop the tail, and the tail is the part you would not know to re-run.
-        sdk_logger.error(
-            "replays.bulk_delete_job.blob_deletes_failed",
-            attributes={
-                "replays_affected": len(replay_ids),
-                "replay_ids": ",".join(replay_ids),
-            },
-        )
-
     raise next(iter(errors.values()))
 
 
@@ -210,20 +188,9 @@ def delete_filenames_concurrently(filenames: list[str]) -> None:
     _raise_for_failed_blob_deletes(futures, attempted=len(filenames))
 
 
-# Retried per blob, not just per page. `Blob.delete` defaults to
-# `DEFAULT_RETRY_IF_GENERATION_SPECIFIED`, and we pass no generation precondition, so the client
-# applies no retry to these deletes at all -- an unconditional delete is not idempotent from GCS's
-# point of view, since it could remove a version written after the request was formed.
-#
-# That has to be handled here rather than left to the task retry, because the units are thousands
-# apart: a page is thousands of blobs, so a page-level retry re-runs all of them to fix one, and the
-# chance a page contains at least one failure grows with its size. Retrying the blob keeps the blast
-# radius at one request.
-#
-# Any exception is retried rather than a curated transient list. A permanent error then costs three
-# attempts and ~1.5s before it propagates, which is cheap next to maintaining an exception taxonomy
-# across google-cloud-storage, django-storages and urllib3.
-_BLOB_DELETE_ATTEMPTS = 3
+# urllib3 and google-cloud-storage both decline to retry these deletes, because an unconditional
+# delete is not idempotent in general. This one is: nothing rewrites a segment we are deleting.
+_BLOB_DELETE_ATTEMPTS = 2
 _blob_delete_retry = ConditionalRetryPolicy(
     test_function=lambda attempt, _: attempt < _BLOB_DELETE_ATTEMPTS,
     delay_function=exponential_delay(0.5),
@@ -319,13 +286,6 @@ def fetch_rows_matching_pattern(
             Condition(Column("timestamp"), Op.LT, end),
             Condition(Column("timestamp"), Op.GTE, start),
             # We only match segment rows because those contain the PII we want to delete.
-            #
-            # Note for anyone adding an "already archived, skip it" filter here to make re-runs
-            # converge: archive rows carry `segment_id = NULL`, so this condition discards them
-            # before grouping and any `HAVING max(is_archived) = 0` will therefore always be true.
-            # Such a filter has to move this check into the HAVING clause (for example
-            # `count(segment_id) > 0`) and widen the query window, because archive rows are stamped
-            # at deletion time rather than the replay's own timestamp.
             Condition(Column("segment_id"), Op.IS_NOT_NULL),
             *datetime_as_start_of_day_conditions(start, end),
             *where,
@@ -376,101 +336,39 @@ def fetch_rows_matching_pattern(
 
 
 class SeerDeleteFailed(Exception):
-    """Seer would not delete a set of replay summaries, and retrying did not help."""
+    """Seer refused to delete a set of replay summaries."""
 
 
-# Retries have to opt POST in explicitly. urllib3's default `allowed_methods` excludes it, so a
-# `Retry` that says nothing else retries nothing here -- and a read timeout on a POST, which is the
-# failure we actually see, was re-raised on the first attempt. Passing `retries` at all was
-# misleading.
-#
-# Replaying this POST is safe, which is the thing urllib3 cannot know: asking Seer to delete
-# summaries that are already gone is a no-op. Statuses are listed too, since a 503 is a response
-# rather than an error and would otherwise go unretried. 4xx stays unretried -- it will not improve.
+# POST is not in urllib3's default `allowed_methods`, so a `Retry` that does not say otherwise
+# retries nothing. Replaying this POST is safe: deleting an already-deleted summary is a no-op.
 SEER_DELETE_RETRY = Retry(
-    total=2,  # three attempts
-    backoff_factor=1,  # 0s, then 2s
-    allowed_methods=None,  # falsy disables the method allow-list
+    total=1,
+    backoff_factor=1,
+    allowed_methods=None,
     status_forcelist=[429, 500, 502, 503, 504],
 )
 
+# The 5 seconds this used to allow was routinely too short, which is what the recorded timeouts were.
+SEER_DELETE_TIMEOUT = 30
 
-def delete_seer_replay_data_or_raise(
-    organization_id: int, project_id: int, replay_ids: list[str]
-) -> None:
-    """Ask Seer to delete these replays, raising `SeerDeleteFailed` if it will not.
 
-    A Seer summary is derived from the replay's contents, so a summary left behind is PII left
-    behind exactly as an undeleted blob is: the caller should fail rather than report a deletion
-    it did not finish. Retrying happens inside the request (see `SEER_DELETE_RETRY`), so reaching
-    the raise means the attempts are already spent.
+def delete_seer_replay_data(organization_id: int, project_id: int, replay_ids: list[str]) -> None:
+    """Delete these replays' summaries from Seer, raising if it will not.
+
+    A summary is derived from the replay's contents, so one left behind is PII left behind. Failures
+    propagate rather than being reported, so a caller cannot accidentally treat a refused deletion as
+    a completed one. The replay ids are already on the caller's Sentry scope.
     """
-    if delete_seer_replay_data(organization_id, project_id, replay_ids):
-        return
-
-    # The ids are the whole diagnosis here: these replays still have summaries in Seer.
-    sentry_sdk.set_context(
-        "replay_seer_delete",
-        {
-            "replays_affected": len(replay_ids),
-            "replay_ids": replay_ids[:_REPORTED_REPLAYS_LIMIT],
-            "replay_ids_truncated": len(replay_ids) > _REPORTED_REPLAYS_LIMIT,
-        },
-    )
-    if len(replay_ids) > _REPORTED_REPLAYS_LIMIT:
-        sdk_logger.error(
-            "replays.bulk_delete_job.seer_delete_failed",
-            attributes={
-                "replays_affected": len(replay_ids),
-                "replay_ids": ",".join(replay_ids),
-            },
-        )
-
-    raise SeerDeleteFailed(f"Seer did not delete {len(replay_ids)} replay summaries")
-
-
-def delete_seer_replay_data(organization_id: int, project_id: int, replay_ids: list[str]) -> bool:
-    """
-    Delete replay data from Seer.
-
-    Returns True if the request was successful, False otherwise.
-    """
-    seer_request = ReplayDeleteSeerDataRequest(
-        replay_ids=replay_ids,
-        organization_id=organization_id,
-        project_id=project_id,
+    response = make_replay_delete_request(
+        ReplayDeleteSeerDataRequest(
+            replay_ids=replay_ids,
+            organization_id=organization_id,
+            project_id=project_id,
+        ),
+        timeout=SEER_DELETE_TIMEOUT,
+        retries=SEER_DELETE_RETRY,
+        viewer_context=SeerViewerContext(organization_id=organization_id),
     )
 
-    viewer_context = SeerViewerContext(organization_id=organization_id)
-
-    try:
-        response = make_replay_delete_request(
-            seer_request,
-            timeout=5,
-            retries=SEER_DELETE_RETRY,
-            viewer_context=viewer_context,
-        )
-    except Exception:
-        logger.exception(
-            "Failed to delete replay data from Seer",
-            extra={
-                "organization_id": organization_id,
-                "project_id": project_id,
-                "replay_ids": replay_ids,
-            },
-        )
-        return False
-
-    response_status_ok = response.status >= 200 and response.status < 300
-    if not response_status_ok:
-        logger.error(
-            "Failed to delete replay data from Seer",
-            extra={
-                "organization_id": organization_id,
-                "project_id": project_id,
-                "replay_ids": replay_ids,
-                "status_code": response.status,
-                "response": response.data,
-            },
-        )
-    return response_status_ok
+    if not 200 <= response.status < 300:
+        raise SeerDeleteFailed(f"Seer returned {response.status} for {len(replay_ids)} replays")

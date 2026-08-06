@@ -25,7 +25,6 @@ from sentry.replays.usecases.delete import (
     delete_filenames_concurrently,
     delete_matched_rows,
     delete_seer_replay_data,
-    delete_seer_replay_data_or_raise,
     fetch_rows_matching_pattern,
 )
 from sentry.replays.usecases.events import archive_event
@@ -202,14 +201,8 @@ def archive_replay(project_id: int, replay_id: str) -> None:
     # any activations that were enqueued before this deploy (with
     # namespace="replays") continue to resolve and execute.
     alias_namespace=replays_tasks,
-    # Only the processing deadline is redelivered. Everything transient is retried in place, next to
-    # the call that failed -- Snuba queries, blob deletes and Seer calls each have their own -- so a
-    # wider allow-list would repeat work that has already given up, and would delay the `failed`
-    # status by five attempts.
-    #
-    # `current_task().retries_remaining` is a plain attempt counter and does not consult this
-    # list, so the handler below must not defer to it for anything but the deadline.
-    retry=Retry(times=5, delay=5, on=(ProcessingDeadlineExceeded,)),
+    # Only the deadline is redelivered; everything transient retries in place.
+    retry=Retry(times=5, on=(ProcessingDeadlineExceeded,)),
     processing_deadline_duration=600,
     silo_mode=SiloMode.CELL,
 )
@@ -258,26 +251,24 @@ def run_bulk_replay_delete_job(
 
     window_start, window_end = windows[window_offset_days]
 
-    # Name the job, project and window on everything this activation reports, before anything that
-    # can fail. A Snuba failure cannot say which replays went undeleted -- the query that would have
-    # named them is the thing that failed -- so the window and cursor stand in for them: together
-    # they define exactly what this page would have covered.
-    sentry_sdk.set_tags(
-        {
-            "replay_delete.job": job.id,
-            "replay_delete.organization": job.organization_id,
-            "replay_delete.project": job.project_id,
-            "replay_delete.window": window_start.date().isoformat(),
-        }
-    )
+    # Tags are what you can search and group by; the contexts carry the detail. A Snuba failure
+    # cannot name replays -- the query that would have named them is what failed -- so the window and
+    # cursor stand in: together they define what this page would have covered.
+    sentry_sdk.set_tags({"replay_delete.job": job.id, "replay_delete.project": job.project_id})
     sentry_sdk.set_context(
-        "replay_delete_page",
+        "ReplayDeletionJobModel",
         {
-            "job_id": job.id,
+            "id": job.id,
             "organization_id": job.organization_id,
             "project_id": job.project_id,
             "range_start": job.range_start.isoformat(),
             "range_end": job.range_end.isoformat(),
+            "status": job.status,
+        },
+    )
+    sentry_sdk.set_context(
+        "replay_delete_window",
+        {
             "window_start": window_start.isoformat(),
             "window_end": window_end.isoformat(),
             "after_replay_id_hash": after_replay_id_hash,
@@ -302,7 +293,7 @@ def run_bulk_replay_delete_job(
         if len(results["rows"]) > 0:
             replay_ids = [row["replay_id"] for row in results["rows"]]
             # Now that the page is known, any failure below can name the replays it covered.
-            sentry_sdk.set_context("replay_delete_page", {"replay_ids": replay_ids})
+            sentry_sdk.set_context("replay_delete_window", {"replay_ids": replay_ids})
 
             delete_matched_rows(job.project_id, results["rows"])
             # Track job progress with a state transition metric
@@ -318,7 +309,7 @@ def run_bulk_replay_delete_job(
                 # exactly as an undeleted blob is. Treated the same way: this raises once the
                 # request's retries are spent, which fails the job and stops the chain, so the range
                 # can be re-run after Seer is healthy rather than walking on leaving summaries.
-                delete_seer_replay_data_or_raise(job.organization_id, job.project_id, replay_ids)
+                delete_seer_replay_data(job.organization_id, job.project_id, replay_ids)
 
             # Everything for this page is gone: blobs, archive events and any Seer summaries. Logged
             # rather than counted so a re-run can be watched replay by replay, which is the only way
@@ -329,7 +320,6 @@ def run_bulk_replay_delete_job(
                     "job_id": job.id,
                     "organization_id": job.organization_id,
                     "project_id": job.project_id,
-                    "window_start": window_start.isoformat(),
                     "replay_count": len(replay_ids),
                     # Joined, because the wrapper flattens a list into one attribute per element and
                     # a page is a hundred of them.
@@ -344,9 +334,6 @@ def run_bulk_replay_delete_job(
         )
         raise
     except Exception:
-        # This attempt is the only one: the broker redelivers the deadline and nothing else. Fail
-        # the job now rather than waiting for a retry that is not coming, so it shows as failed in
-        # the UI and its range can be re-run. Anything transient was already retried in place.
         logger.exception("Bulk delete replays failed.")
         metrics.incr("replays.bulk_delete_job", tags={"status": "failed"}, sample_rate=1.0)
         _transition_status(job.id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.FAILED)
@@ -403,6 +390,10 @@ def _fail_if_retries_exhausted(job_id: int, message: str) -> None:
     Failing on the first exception made every transient error terminal: the status guard at the top
     of the task makes each subsequent attempt return immediately, and there is no API to resume a
     failed job. When there is no task context (direct calls, tests) treat it as the final attempt.
+
+    Only for exceptions the broker actually redelivers. `retries_remaining` is a plain attempt
+    counter that does not consult the retry allow-list, so deferring to it for anything else would
+    leave the job in-progress with no later attempt to mark it.
     """
     task = current_task()
     if task is not None and task.retries_remaining:

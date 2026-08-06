@@ -28,7 +28,7 @@ from sentry.replays.usecases.delete import (
     SNUBA_RETRY_EXCEPTIONS,
     datetime_as_start_of_day_conditions,
     day_aligned_windows,
-    delete_seer_replay_data_or_raise,
+    delete_seer_replay_data,
 )
 from sentry.replays.usecases.query import execute_query, handle_search_filters
 from sentry.replays.usecases.query.configs.scalar import scalar_search_config
@@ -143,7 +143,7 @@ def delete_replay_ids(
         # Raises once the request's retries are spent, which aborts the run. A summary left
         # behind is PII left behind, and re-running never skips work already done, so stopping
         # to fix Seer costs less than walking the rest of the range and re-running it all.
-        delete_seer_replay_data_or_raise(organization_id, project_id, replay_ids)
+        delete_seer_replay_data(organization_id, project_id, replay_ids)
 
     logger.info("Scheduling %d replays for deletion.", len(rows), extra=logging_context)
 
