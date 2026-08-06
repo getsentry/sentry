@@ -312,18 +312,17 @@ def test_synchronize_entry_populates_sync_chain() -> None:
     assert doc["sync_chain"] == [["head1", "base1", None, None]]
 
 
-def test_non_synchronize_entry_does_not_touch_sync_chain() -> None:
-    # before/after shas on a non-synchronize payload are ignored: only the
-    # synchronize family folds the commit link.
+def test_opened_entry_starts_sync_chain() -> None:
     doc = new_document()
     _entry(
         doc,
         event_type=PullRequestActivityType.OPENED,
         webhook_id="d1",
-        after_sha="head1",
-        before_sha="base1",
+        head_sha="head1",
+        sender_login="octocat",
+        sender_type="User",
     )
-    assert doc["sync_chain"] == []
+    assert doc["sync_chain"] == [["head1", None, "octocat", "User"]]
 
 
 def test_sync_chain_dedupes_redelivery_and_reapplied_after_sha() -> None:
@@ -961,6 +960,18 @@ def test_commit_shas_from_doc_normal_chain() -> None:
     assert commit_shas_from_doc(doc, "A2") == {"A1", "A2"}
 
 
+def test_commit_shas_from_doc_includes_opening_head() -> None:
+    doc = new_document()
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.OPENED,
+        webhook_id="o1",
+        head_sha="O",
+    )
+    _sync(doc, before="O", after="A1", webhook_id="s1")
+    assert commit_shas_from_doc(doc, "A1") == {"O", "A1"}
+
+
 def test_commit_shas_from_doc_single_push() -> None:
     doc = new_document()
     _sync(doc, before="B0", after="A1", webhook_id="s1")
@@ -1178,8 +1189,16 @@ def test_ci_head_outcomes_derives_failure_from_runs_without_suite() -> None:
     assert ci_head_outcomes_from_doc(doc) == {"sha1": "failed"}
 
 
-def test_head_sha_pushers_from_sync_chain() -> None:
+def test_head_sha_pushers_from_open_and_sync() -> None:
     doc = new_document()
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.OPENED,
+        webhook_id="o1",
+        head_sha="open1",
+        sender_login="octocat",
+        sender_type="User",
+    )
     _entry(
         doc,
         event_type=PullRequestActivityType.SYNCHRONIZED,
@@ -1189,7 +1208,9 @@ def test_head_sha_pushers_from_sync_chain() -> None:
         sender_login="dependabot[bot]",
         sender_type="Bot",
     )
+    assert doc["sync_chain"][0] == ["open1", None, "octocat", "User"]
     assert head_sha_pushers_from_doc(doc) == {
+        "open1": ("octocat", "User"),
         "sync1": ("dependabot[bot]", "Bot"),
     }
 
@@ -1218,26 +1239,11 @@ def test_head_sha_pushers_ignores_events_without_resilient_slots() -> None:
 
 
 def test_classify_ci_head_actor_buckets() -> None:
-    assert classify_ci_head_actor("alice", "User", has_delegated_attribution=False) == "human"
-    assert classify_ci_head_actor("sentry[bot]", "Bot", has_delegated_attribution=False) == "seer"
-    assert (
-        classify_ci_head_actor("seer-by-sentry[bot]", "Bot", has_delegated_attribution=False)
-        == "seer"
-    )
-    assert (
-        classify_ci_head_actor("copilot-swe-agent[bot]", "Bot", has_delegated_attribution=False)
-        == "delegated"
-    )
-    assert classify_ci_head_actor("cursor[bot]", "Bot", has_delegated_attribution=False) == (
-        "delegated"
-    )
-    assert (
-        classify_ci_head_actor("dependabot[bot]", "Bot", has_delegated_attribution=False) == "bot"
-    )
-    # Claude opens as our app — delegated attribution reclassifies us → delegated.
-    assert (
-        classify_ci_head_actor("sentry[bot]", "Bot", has_delegated_attribution=True) == "delegated"
-    )
+    assert classify_ci_head_actor("alice", "User") == "human"
+    assert classify_ci_head_actor("", "") == "unknown"
+    assert classify_ci_head_actor("sentry[bot]", "Bot") == "seer"
+    assert classify_ci_head_actor("seer-by-sentry[bot]", "Bot") == "seer"
+    assert classify_ci_head_actor("dependabot[bot]", "Bot") == "bot"
 
 
 def test_ci_head_summary_by_pusher() -> None:
@@ -1276,28 +1282,10 @@ def test_ci_head_summary_by_pusher() -> None:
 
     assert ci_head_actor_counts_from_doc(doc) == {
         "seer": {"failed": 0, "passed": 1, "inconclusive": 0},
-        "delegated": {"failed": 0, "passed": 0, "inconclusive": 0},
-        "human": {"failed": 0, "passed": 0, "inconclusive": 0},
+        "human": {"failed": 1, "passed": 0, "inconclusive": 0},
         "bot": {"failed": 0, "passed": 0, "inconclusive": 1},
-        "unknown": {"failed": 2, "passed": 0, "inconclusive": 0},
+        "unknown": {"failed": 1, "passed": 0, "inconclusive": 0},
     }
-
-
-def test_ci_head_summary_claude_as_delegated() -> None:
-    doc = new_document()
-    _entry(
-        doc,
-        event_type=PullRequestActivityType.OPENED,
-        webhook_id="o1",
-        head_sha="claude1",
-        sender_login="sentry[bot]",
-        sender_type="Bot",
-    )
-    _suite(doc, head_sha="claude1", conclusion="failure")
-
-    by_actor = ci_head_actor_counts_from_doc(doc, has_delegated_attribution=True)
-    assert by_actor["delegated"]["failed"] == 0
-    assert by_actor["unknown"]["failed"] == 1
 
 
 # --- ci head actor attribution across the events cap ----------------------
@@ -1371,5 +1359,5 @@ def test_ci_head_actor_attribution_survives_events_cap() -> None:
     assert not any(e.get("webhook_id") == "s-capped" for e in doc["events"])
 
     by_actor = ci_head_actor_counts_from_doc(doc)
-    assert by_actor["seer"] == {"failed": 1, "passed": 1, "inconclusive": 0}
-    assert by_actor["unknown"] == {"failed": 1, "passed": 0, "inconclusive": 0}
+    assert by_actor["seer"] == {"failed": 2, "passed": 1, "inconclusive": 0}
+    assert by_actor["unknown"] == {"failed": 0, "passed": 0, "inconclusive": 0}

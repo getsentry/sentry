@@ -124,9 +124,9 @@ class PrCloseMetricsEvent(analytics.Event):
 
     # Per-head CI summary from the activity-document checks rollup (one outcome
     # per distinct ``head_sha`` that had check activity), as JSON
-    # ``CiHeadsByActor``: each of ``seer`` / ``delegated`` / ``human`` / ``bot`` /
-    # ``unknown`` maps to ``{failed, passed, inconclusive}``. Grain is check head
-    # SHAs, not ``commits_count`` (commits without recorded CI aren't counted).
+    # ``CiHeadsByActor``: each of ``seer`` / ``human`` / ``bot`` / ``unknown``
+    # maps to ``{failed, passed, inconclusive}``. Grain is check head SHAs, not
+    # ``commits_count`` (commits without recorded CI aren't counted).
     #
     # Every head lands in exactly one actor bucket, so aggregate totals are a sum
     # over the buckets rather than their own columns — the consumer rolls up

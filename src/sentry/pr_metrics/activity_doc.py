@@ -97,9 +97,9 @@ class ActivityDoc(TypedDict):
     # in arrival order, NOT an object keyed by after_sha: Postgres jsonb does not
     # preserve object key order, and eviction at the cap must drop the OLDEST link,
     # which needs insertion order. jsonb preserves array order, so a list keeps
-    # eviction correct. The two sender slots are appended so attribution survives
-    # the events cap; entries written before they existed have length 2 and read as
-    # an unknown pusher.
+    # eviction correct. The opening head is the first entry with a null ``before_sha``;
+    # later entries are synchronize links. Entries written before the sender slots
+    # existed have length 2 and read as an unknown pusher.
     sync_chain: list[list[str | None]]
 
 
@@ -255,6 +255,8 @@ def _apply_entry(
 
     if event_type == PullRequestActivityType.SYNCHRONIZED:
         _fold_sync_chain(doc, payload)
+    elif event_type == PullRequestActivityType.OPENED:
+        _fold_open_head(doc, payload)
 
     doc["counts"][event_type] = doc["counts"].get(event_type, 0) + 1
     _fold_participant(doc, payload)
@@ -322,6 +324,37 @@ def _fold_sync_chain(doc: ActivityDoc, payload: Mapping[str, Any]) -> None:
             payload.get("sender_login") or None,
             payload.get("sender_type") or None,
         ]
+    )
+
+
+def _fold_open_head(doc: ActivityDoc, payload: Mapping[str, Any]) -> None:
+    """Record the opening head as the root of ``sync_chain``.
+
+    The null ``before_sha`` makes the opening commit part of the same chain consumed
+    by commit and CI-head readers. Insert at the front so an out-of-order opening
+    delivery still establishes the root. The normal chain cap policy remains: later
+    synchronize events may eventually evict this oldest entry.
+    """
+    head = payload.get("head_sha") or ""
+    if not head:
+        return
+
+    chain = doc.setdefault("sync_chain", [])
+    if any(pair[0] == head for pair in chain):
+        return
+    if len(chain) >= MAX_SYNC_CHAIN:
+        chain.pop(0)
+        logger.warning("pr_metrics.activity_doc.sync_chain_capped", extra={"after_sha": head})
+        metrics.incr("pr_metrics.activity_doc.sync_chain_capped")
+
+    chain.insert(
+        0,
+        [
+            head,
+            None,
+            payload.get("sender_login") or None,
+            payload.get("sender_type") or None,
+        ],
     )
 
 
@@ -657,30 +690,9 @@ def _synthesized_suite_conclusion(group: CheckGroup) -> str:
     return "success"
 
 
-# Per-head CI outcome for analytics. ``failed`` / ``passed`` are latest-verdict
-# (a green rerun at the same SHA overwrites a prior failure); ``inconclusive`` is
-# aborted/empty only — no pass/fail verdict from any app on that SHA.
-CI_HEAD_FAILED = "failed"
-CI_HEAD_PASSED = "passed"
-CI_HEAD_INCONCLUSIVE = "inconclusive"
-CI_HEAD_OUTCOMES = (CI_HEAD_FAILED, CI_HEAD_PASSED, CI_HEAD_INCONCLUSIVE)
-
-# Who pushed the head that CI ran against. Derived from open/sync ``sender_*``
-# (not git author). ``unknown`` = check SHA with no matching open/sync in
-# ``events`` (capped/missed delivery).
-CiHeadActor = Literal["seer", "delegated", "human", "bot", "unknown"]
-CI_HEAD_ACTOR_SEER: CiHeadActor = "seer"
-CI_HEAD_ACTOR_DELEGATED: CiHeadActor = "delegated"
-CI_HEAD_ACTOR_HUMAN: CiHeadActor = "human"
-CI_HEAD_ACTOR_BOT: CiHeadActor = "bot"
-CI_HEAD_ACTOR_UNKNOWN: CiHeadActor = "unknown"
-CI_HEAD_ACTORS: tuple[CiHeadActor, ...] = (
-    CI_HEAD_ACTOR_SEER,
-    CI_HEAD_ACTOR_DELEGATED,
-    CI_HEAD_ACTOR_HUMAN,
-    CI_HEAD_ACTOR_BOT,
-    CI_HEAD_ACTOR_UNKNOWN,
-)
+# Per-head CI outcomes are latest-verdict: a green rerun at the same SHA
+# overwrites a prior failure. ``inconclusive`` means no app produced a pass/fail
+# verdict for that head.
 
 # Normalized (lowercase, ``[bot]`` stripped) GitHub logins for our apps. Login is
 # all the activity doc stores — user-id matching from attribution isn't available
@@ -691,16 +703,6 @@ _OUR_GITHUB_BOT_LOGINS = frozenset(
         "seer-by-sentry",
         "seer-dev-testing",
         "seer",
-    }
-)
-
-# Normalized logins for delegated coding agents that open/push as themselves.
-# Claude opens as the Sentry app (no distinct login) — handled via
-# ``has_delegated_attribution`` when the pusher is one of ours.
-_DELEGATED_GITHUB_BOT_LOGINS = frozenset(
-    {
-        "copilot-swe-agent",
-        "cursor",
     }
 )
 
@@ -727,11 +729,11 @@ def ci_head_outcomes_from_doc(doc: ActivityDoc) -> dict[str, str]:
     for sha, groups in groups_by_sha.items():
         conclusions = [_synthesized_suite_conclusion(group) for group in groups]
         if any(is_failing_conclusion(c) for c in conclusions):
-            outcomes[sha] = CI_HEAD_FAILED
+            outcomes[sha] = "failed"
         elif any(has_verdict(c) for c in conclusions):
-            outcomes[sha] = CI_HEAD_PASSED
+            outcomes[sha] = "passed"
         else:
-            outcomes[sha] = CI_HEAD_INCONCLUSIVE
+            outcomes[sha] = "inconclusive"
     return outcomes
 
 
@@ -763,28 +765,16 @@ def head_sha_pushers_from_doc(doc: ActivityDoc) -> dict[str, tuple[str, str]]:
 
 
 def classify_ci_head_actor(
-    sender_login: str,
-    sender_type: str,
-    *,
-    has_delegated_attribution: bool,
-) -> CiHeadActor:
-    """Bucket a head's webhook sender into seer / delegated / human / bot.
-
-    Claude-delegated PRs open as the Sentry app, so a Seer/Sentry-bot pusher on
-    a PR with delegated attribution counts as ``delegated`` rather than ``seer``.
-    """
+    sender_login: str, sender_type: str
+) -> Literal["seer", "human", "bot", "unknown"]:
+    """Bucket a head's webhook sender into seer / human / bot / unknown."""
+    if not sender_type:
+        return "unknown"
     if sender_type != "Bot":
-        return CI_HEAD_ACTOR_HUMAN
-
-    normalized = _normalize_github_login(sender_login)
-    if normalized in _DELEGATED_GITHUB_BOT_LOGINS:
-        return CI_HEAD_ACTOR_DELEGATED
-
-    if normalized in _OUR_GITHUB_BOT_LOGINS:
-        if has_delegated_attribution:
-            return CI_HEAD_ACTOR_DELEGATED
-        return CI_HEAD_ACTOR_SEER
-    return CI_HEAD_ACTOR_BOT
+        return "human"
+    if _normalize_github_login(sender_login) in _OUR_GITHUB_BOT_LOGINS:
+        return "seer"
+    return "bot"
 
 
 class CiHeadOutcomeCounts(TypedDict):
@@ -795,7 +785,6 @@ class CiHeadOutcomeCounts(TypedDict):
 
 class CiHeadsByActor(TypedDict):
     seer: CiHeadOutcomeCounts
-    delegated: CiHeadOutcomeCounts
     human: CiHeadOutcomeCounts
     bot: CiHeadOutcomeCounts
     unknown: CiHeadOutcomeCounts
@@ -808,18 +797,13 @@ def _empty_outcome_counts() -> CiHeadOutcomeCounts:
 def _empty_by_actor() -> CiHeadsByActor:
     return {
         "seer": _empty_outcome_counts(),
-        "delegated": _empty_outcome_counts(),
         "human": _empty_outcome_counts(),
         "bot": _empty_outcome_counts(),
         "unknown": _empty_outcome_counts(),
     }
 
 
-def ci_head_actor_counts_from_doc(
-    doc: ActivityDoc,
-    *,
-    has_delegated_attribution: bool = False,
-) -> CiHeadsByActor:
+def ci_head_actor_counts_from_doc(doc: ActivityDoc) -> CiHeadsByActor:
     """Per-actor CI head outcome counts from the checks rollup.
 
     Actor buckets join each check head to the open/sync sender that introduced
@@ -833,17 +817,13 @@ def ci_head_actor_counts_from_doc(
     for sha, outcome in ci_head_outcomes_from_doc(doc).items():
         pusher = pushers.get(sha)
         if pusher is None:
-            actor: CiHeadActor = CI_HEAD_ACTOR_UNKNOWN
+            actor: Literal["seer", "human", "bot", "unknown"] = "unknown"
         else:
-            actor = classify_ci_head_actor(
-                pusher[0],
-                pusher[1],
-                has_delegated_attribution=has_delegated_attribution,
-            )
+            actor = classify_ci_head_actor(pusher[0], pusher[1])
         actor_counts = by_actor[actor]
-        if outcome == CI_HEAD_FAILED:
+        if outcome == "failed":
             actor_counts["failed"] += 1
-        elif outcome == CI_HEAD_PASSED:
+        elif outcome == "passed":
             actor_counts["passed"] += 1
         else:
             actor_counts["inconclusive"] += 1

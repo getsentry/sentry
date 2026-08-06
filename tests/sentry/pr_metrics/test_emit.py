@@ -1029,7 +1029,10 @@ class PrMetricsEmissionTest(TestCase):
                 "participants": {},
                 "counts": {},
                 "events_dropped": 0,
-                "sync_chain": [["new222", "old111", "sentry[bot]", "Bot"]],
+                "sync_chain": [
+                    ["old111", None, "alice", "User"],
+                    ["new222", "old111", "sentry[bot]", "Bot"],
+                ],
             },
         )
         row = build_pr_metrics_row(
@@ -1041,60 +1044,10 @@ class PrMetricsEmissionTest(TestCase):
         assert row.ci_heads_by_actor is not None
         assert sentry_json.loads(row.ci_heads_by_actor) == {
             "bot": {"failed": 0, "inconclusive": 0, "passed": 0},
-            "delegated": {"failed": 0, "inconclusive": 0, "passed": 0},
-            "human": {"failed": 0, "inconclusive": 0, "passed": 0},
+            "human": {"failed": 1, "inconclusive": 0, "passed": 0},
             "seer": {"failed": 0, "inconclusive": 0, "passed": 1},
-            "unknown": {"failed": 1, "inconclusive": 0, "passed": 0},
+            "unknown": {"failed": 0, "inconclusive": 0, "passed": 0},
         }
-
-    def test_build_row_ci_head_summary_delegated_reclassifies_us(self) -> None:
-        from sentry.models.pullrequest import PullRequestActivityLog
-        from sentry.utils import json as sentry_json
-
-        PullRequestActivityLog.objects.create(
-            pull_request=self.pull_request,
-            data={
-                "version": 1,
-                "events": [
-                    {
-                        "event_type": "opened",
-                        "payload": {
-                            "head_sha": "claude1",
-                            "sender_login": "sentry[bot]",
-                            "sender_type": "Bot",
-                        },
-                        "ts": "2026-07-10T12:00:00Z",
-                        "webhook_id": "o1",
-                    },
-                ],
-                "checks": {
-                    "claude1|github-actions": {
-                        "head_sha": "claude1",
-                        "app_slug": "github-actions",
-                        "suite_conclusion": "failure",
-                        "suite_updated_at": None,
-                        "check_runs_count": 1,
-                        "runs": {},
-                        "first_failure_at": None,
-                        "last_event_at": None,
-                    },
-                },
-                "participants": {},
-                "counts": {},
-                "events_dropped": 0,
-                "sync_chain": [],
-            },
-        )
-        row = build_pr_metrics_row(
-            pull_request=self.pull_request,
-            close_action="merged",
-            attributions=[{"signal_type": "seer_delegated:claude_code", "source": "seer_data"}],
-            group_ids=[],
-        )
-        assert row.ci_heads_by_actor is not None
-        by_actor = sentry_json.loads(row.ci_heads_by_actor)
-        assert by_actor["delegated"]["failed"] == 0
-        assert by_actor["unknown"]["failed"] == 1
 
     def test_build_row_ci_head_summary_empty_checks_is_zero(self) -> None:
         from sentry.models.pullrequest import PullRequestActivityLog
@@ -1121,7 +1074,6 @@ class PrMetricsEmissionTest(TestCase):
         assert row.ci_heads_by_actor is not None
         assert sentry_json.loads(row.ci_heads_by_actor) == {
             "bot": {"failed": 0, "inconclusive": 0, "passed": 0},
-            "delegated": {"failed": 0, "inconclusive": 0, "passed": 0},
             "human": {"failed": 0, "inconclusive": 0, "passed": 0},
             "seer": {"failed": 0, "inconclusive": 0, "passed": 0},
             "unknown": {"failed": 0, "inconclusive": 0, "passed": 0},
@@ -1158,7 +1110,10 @@ class PrMetricsEmissionTest(TestCase):
                 "participants": {},
                 "counts": {},
                 "events_dropped": 0,
-                "sync_chain": [["seer2", "seer1", "seer-by-sentry[bot]", "Bot"]],
+                "sync_chain": [
+                    ["seer1", None, "seer-by-sentry[bot]", "Bot"],
+                    ["seer2", "seer1", "seer-by-sentry[bot]", "Bot"],
+                ],
             },
         )
         row = build_pr_metrics_row(
@@ -1169,8 +1124,8 @@ class PrMetricsEmissionTest(TestCase):
         )
         assert row.ci_heads_by_actor is not None
         by_actor = sentry_json.loads(row.ci_heads_by_actor)
-        assert by_actor["seer"] == {"failed": 0, "inconclusive": 0, "passed": 1}
-        assert by_actor["unknown"] == {"failed": 1, "inconclusive": 0, "passed": 0}
+        assert by_actor["seer"] == {"failed": 1, "inconclusive": 0, "passed": 1}
+        assert by_actor["unknown"] == {"failed": 0, "inconclusive": 0, "passed": 0}
 
     def _ci_head_doc(self) -> None:
         # One human-opened head with a failing suite — enough for a summary to be
@@ -1208,7 +1163,7 @@ class PrMetricsEmissionTest(TestCase):
                 "participants": {},
                 "counts": {},
                 "events_dropped": 0,
-                "sync_chain": [],
+                "sync_chain": [["human1", None, "alice", "User"]],
             },
         )
 

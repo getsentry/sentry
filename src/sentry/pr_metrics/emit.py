@@ -31,7 +31,7 @@ from sentry.models.pullrequest import (
 )
 from sentry.models.repository import Repository
 from sentry.pr_metrics import activity_doc
-from sentry.pr_metrics.attribution import DELEGATED_SIGNAL_TYPES, JUDGE_ELIGIBLE_SIGNAL_TYPES
+from sentry.pr_metrics.attribution import JUDGE_ELIGIBLE_SIGNAL_TYPES
 from sentry.pr_metrics.contracts import (
     CLOSE_ACTION_ABANDONED,
     CLOSE_ACTION_CLOSED,
@@ -235,12 +235,6 @@ def _null_ci_head_summary_fields() -> dict[str, Any]:
     return {"ci_heads_by_actor": None}
 
 
-def _has_delegated_attribution(attributions: list[dict[str, Any]]) -> bool:
-    """Whether any attribution marks this PR as Seer-delegated (Cursor/Copilot/Claude)."""
-    delegated = {signal.value for signal in DELEGATED_SIGNAL_TYPES}
-    return any((row.get("signal_type") or "") in delegated for row in attributions)
-
-
 def _has_authoring_attribution(attributions: list[dict[str, Any]]) -> bool:
     """Whether any attribution means we actually wrote code on this PR.
 
@@ -276,8 +270,7 @@ def _ci_head_summary_fields(
     the authoring signal makes the heads meaningful.
 
     Actor buckets join each check head to the open/sync sender that introduced
-    that SHA. ``has_delegated_attribution`` reclassifies Seer/Sentry-app
-    pushers as ``delegated`` on Claude-style PRs (opened as the Sentry app).
+    that SHA.
     """
     if not _has_authoring_attribution(attributions):
         return _null_ci_head_summary_fields()
@@ -286,10 +279,7 @@ def _ci_head_summary_fields(
     if doc is None:
         return _null_ci_head_summary_fields()
 
-    by_actor = activity_doc.ci_head_actor_counts_from_doc(
-        doc,
-        has_delegated_attribution=_has_delegated_attribution(attributions),
-    )
+    by_actor = activity_doc.ci_head_actor_counts_from_doc(doc)
 
     return {"ci_heads_by_actor": json.dumps(by_actor, sort_keys=True)}
 
