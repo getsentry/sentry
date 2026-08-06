@@ -280,14 +280,6 @@ def run_bulk_replay_delete_job(
             after_replay_id_hash=after_replay_id_hash,
         )
 
-        # One per Snuba query, so pages can be compared against activations created, and empty pages
-        # -- work spent finding nothing -- are visible rather than inferred.
-        metrics.incr(
-            "replays.bulk_delete_job.page",
-            tags={"outcome": "rows" if results["rows"] else "empty"},
-            sample_rate=1.0,
-        )
-
         # Delete the matched rows if any rows were returned.
         if len(results["rows"]) > 0:
             delete_matched_rows(job.project_id, results["rows"])
@@ -300,20 +292,14 @@ def run_bulk_replay_delete_job(
                 sample_rate=1.0,
             )
             if has_seer_data:
-                seer_deleted = delete_seer_replay_data(
+                # The return value is deliberately ignored. A failure leaves AI summaries behind,
+                # which is undeleted PII, but raising would re-run a window whose replays and blobs
+                # are already gone. `delete_seer_replay_data` logs both of its failure paths at error
+                # level, so the failure reaches Sentry either way -- now carrying this job's tags.
+                delete_seer_replay_data(
                     job.organization_id,
                     job.project_id,
                     [row["replay_id"] for row in results["rows"]],
-                )
-                # `delete_seer_replay_data` swallows its own failures and returns False, and the
-                # return value was dropped -- so a Seer outage was invisible and the job still
-                # reported success. Staying non-fatal is right, because the replays and their blobs
-                # are already gone and raising would re-run the whole window, but a failure leaves AI
-                # summaries behind. That is undeleted PII, so it has to be countable.
-                metrics.incr(
-                    "replays.bulk_delete_job.seer_delete",
-                    tags={"outcome": "success" if seer_deleted else "failure"},
-                    sample_rate=1.0,
                 )
     except ProcessingDeadlineExceeded:
         # A BaseException, so it escapes the handler below.
@@ -356,10 +342,6 @@ def run_bulk_replay_delete_job(
             after_replay_id_hash=next_cursor,
         )
         return None
-
-    # Window finished. Counted before the branch below so the total equals windows completed,
-    # whichever way the job continues -- the only progress signal for a job that deletes nothing.
-    metrics.incr("replays.bulk_delete_job.window_completed", sample_rate=1.0)
 
     # Window exhausted and there is no next one to schedule, so the job is done.
     if window_offset_days + 1 >= len(windows):

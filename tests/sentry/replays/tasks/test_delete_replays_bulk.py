@@ -864,41 +864,6 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         assert self.job.offset == 0
         assert self.job.date_updated > stale
 
-    @patch("sentry.replays.tasks.metrics")
-    @patch("sentry.replays.tasks.delete_seer_replay_data")
-    @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
-    @patch("sentry.replays.tasks.delete_matched_rows")
-    def test_run_bulk_replay_delete_job_counts_a_failed_seer_delete(
-        self,
-        mock_delete_matched_rows: MagicMock,
-        mock_fetch_rows: MagicMock,
-        mock_delete_seer: MagicMock,
-        mock_metrics: MagicMock,
-    ) -> None:
-        """Test a failed Seer deletion is counted instead of being dropped.
-
-        `delete_seer_replay_data` swallows its own failures and returns False, and the return value
-        was discarded, so a Seer outage was invisible and the job still reported success. It stays
-        non-fatal -- the replays and blobs are already gone -- but a failure leaves AI summaries
-        behind, which is undeleted PII.
-        """
-        mock_fetch_rows.return_value = {
-            "rows": [{"retention_days": 90, "replay_id": "a", "max_segment_id": 1}],
-            "has_more": False,
-            "next_cursor": None,
-        }
-        mock_delete_seer.return_value = False
-
-        run_bulk_replay_delete_job(self.job.id, has_seer_data=True)
-
-        mock_metrics.incr.assert_any_call(
-            "replays.bulk_delete_job.seer_delete",
-            tags={"outcome": "failure"},
-            sample_rate=1.0,
-        )
-        self.job.refresh_from_db()
-        assert self.job.status == "completed"
-
     @patch("sentry.replays.tasks.sentry_sdk")
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     def test_run_bulk_replay_delete_job_names_the_job_and_window_for_errors(
