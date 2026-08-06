@@ -41,7 +41,6 @@ function TestTable({
   );
 }
 
-// jsdom reports offsetWidth as 0, so a dragged width equals the drag distance.
 const gridTemplate = () => screen.getByRole('table').style.gridTemplateColumns;
 const resizers = () => screen.getAllByRole('separator');
 

@@ -69,7 +69,7 @@ Set `appearance="hover"` to draw it only while the handle is hovered, focused, o
 
 The handle is a `separator` with `tabIndex={0}`, and reports `aria-valuenow`, `aria-valuemin`, and `aria-valuemax` from the `value`, `min`, and `max` props.
 
-The arrow keys along the handle's axis move it by `step`, or by `largeStep` while shift is held, defaulting to 10px and 50px.
+The arrow keys along the handle's axis move it by 10px, or by 50px while shift is held.
 Pass `onKeyDown` to handle keys the handle does not claim, such as `Home` and `End`.
 
 Give `max` a real number wherever you can. ARIA defaults a focusable separator's `aria-valuemax` to 100, so an infinite `max` is omitted from the DOM and assistive technology then announces the value clamped to that default.

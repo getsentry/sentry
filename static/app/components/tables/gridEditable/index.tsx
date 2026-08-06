@@ -2,6 +2,7 @@ import type {CSSProperties, ReactNode} from 'react';
 import {Fragment, useCallback, useEffect, useRef} from 'react';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {COL_WIDTH_MINIMUM, COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 import {ColumnResizer} from 'sentry/components/tables/columnResizer';
 import {GridEditableEmptyData} from 'sentry/components/tables/gridEditable/GridEditableEmptyData';
@@ -29,11 +30,7 @@ import type {GridColumnOrder, GridColumnSortBy, GridData} from './types';
 
 export type * from './types';
 
-// Auto layout width.
-export const COL_WIDTH_UNDEFINED = -1;
-
-// Set to 90 as the edit/trash icons need this much space.
-export const COL_WIDTH_MINIMUM = 90;
+export {COL_WIDTH_MINIMUM, COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 type GridEditableProps<
   DataRow,

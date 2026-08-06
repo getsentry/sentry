@@ -1,6 +1,6 @@
 import {useState} from 'react';
 
-import {DragHandle} from '@sentry/scraps/dragHandle';
+import {DragHandle, type DragHandleAppearance} from '@sentry/scraps/dragHandle';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -10,11 +10,7 @@ const DEFAULT_SIZE = 200;
 
 const clamp = (size: number) => Math.max(MIN_SIZE, Math.min(MAX_SIZE, size));
 
-export function DragHandleDemo({
-  appearance,
-}: {
-  appearance?: React.ComponentProps<typeof DragHandle>['appearance'];
-}) {
+export function DragHandleDemo({appearance}: {appearance?: DragHandleAppearance}) {
   const [size, setSize] = useState(DEFAULT_SIZE);
 
   return (

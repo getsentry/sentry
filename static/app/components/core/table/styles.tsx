@@ -2,7 +2,7 @@ import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-const TABLE_HEAD_ROW_HEIGHT = 45;
+export const TABLE_HEAD_ROW_HEIGHT = 45;
 
 const Z_INDEX_RESIZER = 1;
 
