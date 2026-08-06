@@ -183,10 +183,11 @@ export function ScmFeatureSelectionPanel({
 
   return (
     <ScmCollapsibleReveal open={showSection}>
-      {/* The panel and the host's trailing divider are a single reveal child
-          now, so the gap the host's section Stack used to put between them
-          lives here. Only project creation passes `trailing`. */}
-      <Stack gap="2xl" width="100%">
+      {/* No gap: the section claims no spacing of its own, so everything that
+          tweens away on collapse is inside this box. Hosts own the rhythm —
+          the section above supplies the space before it, and `trailing`
+          carries the space around itself. */}
+      <Stack gap="0" width="100%">
         <MotionStack layout="position" width="100%">
           {/* gap="0" because the spacing above the cards has to tween with
               them: a flex gap would snap in at full size while the revealed
