@@ -8,6 +8,7 @@ import {useModal} from '@sentry/scraps/modal';
 
 import {AutofixGithubAppPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
 import {getReferrerFromBlocks} from 'sentry/components/events/autofix/autofixReferrer';
+import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {
   getAutofixArtifactFromSection,
   getOrderedAutofixSections,
@@ -89,6 +90,7 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
         />
         <AutofixWarnings warnings={aiAutofix.warnings} groupId={group.id} />
         <WorkflowFileWarning runState={aiAutofix.runState} />
+        <MultiRepoPrIterationWarning runState={aiAutofix.runState} groupId={group.id} />
         <SeerDrawerBody ref={containerRef} onScroll={onScrollHandler}>
           {aiConfig.isAutofixSetupLoading ? (
             <Stack data-test-id="ai-setup-loading-indicator" gap="xl">
@@ -197,6 +199,57 @@ function ConfigurationPermissionsButton() {
     <LinkButton to={configurationUrl} variant="primary" size="xs">
       {t('Update Permissions')}
     </LinkButton>
+  );
+}
+
+export function MultiRepoPrIterationWarning({
+  runState,
+  groupId,
+}: {
+  groupId: string;
+  runState: ExplorerAutofixState | null | undefined;
+}) {
+  const organization = useOrganization();
+  const {dismiss, isDismissed} = useDismissAlert({
+    key: `${organization.id}:${groupId}:autofix-multi-repo-pr-iteration-warning`,
+    expirationDays: 7,
+  });
+
+  // Derived here rather than sent from the backend: the run state the drawer
+  // already has is enough, so no new field has to cross the API boundary.
+  const repoNames = Object.keys(runState?.repo_pr_states ?? {});
+
+  if (repoNames.length <= 1 || isDismissed) {
+    return null;
+  }
+
+  const repoNamesNode = repoNames.map((repoName, index) => (
+    <Fragment key={repoName}>
+      {index > 0 && ', '}
+      <code>{repoName}</code>
+    </Fragment>
+  ));
+
+  return (
+    <Stack gap="md" padding="md 2xl 0">
+      <Alert
+        variant="warning"
+        trailingItems={
+          <Button
+            icon={<IconClose />}
+            variant="transparent"
+            size="xs"
+            aria-label={t('Dismiss')}
+            onClick={dismiss}
+          />
+        }
+      >
+        {tct(
+          "This fix opened pull requests in [repoNames]. Seer can't iterate on pull requests from a run that spans multiple repositories, so feedback on them won't be picked up.",
+          {repoNames: repoNamesNode}
+        )}
+      </Alert>
+    </Stack>
   );
 }
 
