@@ -140,9 +140,7 @@ def delete_replay_ids(
     if has_seer_data:
         # The finder strips dashes from `replay_id`; Seer keys on the dashed UUID
         replay_ids = [str(uuid.UUID(replay_id)) for _, replay_id, _ in rows]
-        # Raises once the request's retries are spent, which aborts the run. A summary left
-        # behind is PII left behind, and re-running never skips work already done, so stopping
-        # to fix Seer costs less than walking the rest of the range and re-running it all.
+        # Raises once the request's retries are spent, which aborts the run!
         delete_seer_replay_data(organization_id, project_id, replay_ids)
 
     logger.info("Scheduling %d replays for deletion.", len(rows), extra=logging_context)

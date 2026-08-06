@@ -35,7 +35,6 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import replays_long_tasks, replays_raw_tasks, replays_tasks
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
-from sentry.utils.sdk import merge_context_into_scope, sdk_logger
 
 logger = logging.getLogger()
 
@@ -288,12 +287,6 @@ def run_bulk_replay_delete_job(
         # Delete the matched rows if any rows were returned.
         if len(results["rows"]) > 0:
             replay_ids = [row["replay_id"] for row in results["rows"]]
-            # Merged rather than set: `set_context` replaces, which would drop the window fields.
-            merge_context_into_scope(
-                "replay_delete_window",
-                {"replay_ids": replay_ids},
-                sentry_sdk.get_isolation_scope(),
-            )
 
             delete_matched_rows(job.project_id, results["rows"])
             # Track job progress with a state transition metric
@@ -301,28 +294,15 @@ def run_bulk_replay_delete_job(
             # Track the count of deleted rows separately
             metrics.incr(
                 "replays.bulk_delete_job.rows_deleted",
-                amount=len(results["rows"]),
+                amount=len(replay_ids),
                 sample_rate=1.0,
             )
             if has_seer_data:
                 delete_seer_replay_data(job.organization_id, job.project_id, replay_ids)
 
-            sdk_logger.info(
-                "replays.bulk_delete_job.page_deleted",
-                attributes={
-                    "job_id": job.id,
-                    "organization_id": job.organization_id,
-                    "project_id": job.project_id,
-                    "replay_count": len(replay_ids),
-                    # Joined, because the wrapper flattens a list into one attribute per element and
-                    # a page is a hundred of them.
-                    "replay_ids": ",".join(replay_ids),
-                },
-            )
     except ProcessingDeadlineExceeded:
-        # Re-raised below, so the broker still sees the deadline and still redelivers. This only
-        # decides when to mark the job failed: doing it on the first deadline would be permanent,
-        # because the status guard at the top turns every redelivery into a no-op.
+        # Catch `ProcessingDeadlineExceeded` so we can mark the job correctly in the database,
+        # then re-raise so the re-try fires.
         task = current_task()
         if task is None or not task.retries_remaining:
             logger.warning("Bulk delete replays exhausted its processing deadline retries.")
@@ -331,6 +311,7 @@ def run_bulk_replay_delete_job(
         raise
     except Exception:
         logger.exception("Bulk delete replays failed.")
+
         metrics.incr("replays.bulk_delete_job", tags={"status": "failed"}, sample_rate=1.0)
         _transition_status(job.id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.FAILED)
         raise

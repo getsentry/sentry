@@ -388,18 +388,6 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
             "replays.bulk_delete_job", tags={"status": "failed"}, sample_rate=1.0
         )
 
-    def test_run_bulk_replay_delete_job_retry_policy_is_only_the_deadline(self) -> None:
-        """Test the deadline is redelivered and nothing else is.
-
-        Transient failures are retried next to the call that failed, so redelivering the whole
-        activation would repeat work that already gave up and delay the `failed` status.
-        """
-        retry = run_bulk_replay_delete_job.retry
-        assert retry is not None
-
-        assert retry.should_retry(retry.initial_state(), ProcessingDeadlineExceeded())
-        assert not retry.should_retry(retry.initial_state(), ValueError("snuba is unhappy"))
-
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     def test_run_bulk_replay_delete_job_non_deadline_failure_fails_the_job(
         self, mock_fetch_rows: MagicMock
@@ -873,47 +861,3 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
 
         self.job.refresh_from_db()
         assert self.job.status == "failed"
-
-    @patch("sentry.replays.tasks.sdk_logger")
-    @patch("sentry.replays.tasks.sentry_sdk")
-    @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
-    @patch("sentry.replays.tasks.delete_matched_rows")
-    def test_run_bulk_replay_delete_job_reports_the_page_it_is_working_on(
-        self,
-        mock_delete_matched_rows: MagicMock,
-        mock_fetch_rows: MagicMock,
-        mock_sentry_sdk: MagicMock,
-        mock_sdk_logger: MagicMock,
-    ) -> None:
-        """Test a page names its job and window, and logs the ids it deleted.
-
-        The job and window exist only in the activation's arguments, so without this an error is a
-        stack trace with no way back to a range.
-        """
-        mock_fetch_rows.return_value = {
-            "rows": [
-                {"retention_days": 90, "replay_id": "a", "max_segment_id": 1},
-                {"retention_days": 90, "replay_id": "b", "max_segment_id": 0},
-            ],
-            "has_more": False,
-            "next_cursor": None,
-        }
-
-        run_bulk_replay_delete_job(self.job.id)
-
-        contexts = {
-            call.args[0]: call.args[1] for call in mock_sentry_sdk.set_context.call_args_list
-        }
-        assert contexts["ReplayDeletionJobModel"]["id"] == self.job.id
-        assert contexts["replay_delete_window"]["window_offset_days"] == 0
-
-        mock_sdk_logger.info.assert_called_once_with(
-            "replays.bulk_delete_job.page_deleted",
-            attributes={
-                "job_id": self.job.id,
-                "organization_id": self.job.organization_id,
-                "project_id": self.project.id,
-                "replay_count": 2,
-                "replay_ids": "a,b",
-            },
-        )

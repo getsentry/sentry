@@ -125,10 +125,6 @@ def delete_matched_rows(project_id: int, rows: list[MatchedRow]) -> int | None:
     return None
 
 
-class BlobDeleteFailed(Exception):
-    """A recording blob could not be deleted."""
-
-
 def delete_replays(project_id: int, replay_ids: list[str]) -> None:
     """Set the archived bit flag to true on each replay."""
     for replay_id in replay_ids:
@@ -137,6 +133,10 @@ def delete_replays(project_id: int, replay_ids: list[str]) -> None:
 
 #  Keeping this small bounds threads-per-task so `worker_concurrency x N` stays under pod memory limit
 DELETE_THREAD_POOL_SIZE = 32
+
+
+class BlobDeleteFailed(Exception):
+    """A recording blob could not be deleted."""
 
 
 def delete_filenames_concurrently(filenames: list[str]) -> None:
@@ -159,7 +159,7 @@ def delete_filenames_concurrently(filenames: list[str]) -> None:
 
 
 _BLOB_DELETE_ATTEMPTS = 2
-_blob_delete_retry = ConditionalRetryPolicy(
+_BLOB_DELETE_RETRY = ConditionalRetryPolicy(
     test_function=lambda attempt, error: attempt < _BLOB_DELETE_ATTEMPTS
     and not isinstance(error, NotFound),
     delay_function=exponential_delay(0.5),
@@ -169,7 +169,7 @@ _blob_delete_retry = ConditionalRetryPolicy(
 def _delete_if_exists(filename: str) -> None:
     """Delete the blob if it exists or silence the 404."""
     try:
-        _blob_delete_retry(lambda: storage_kv.delete(filename))
+        _BLOB_DELETE_RETRY(lambda: storage_kv.delete(filename))
     except NotFound:
         pass
 
@@ -299,20 +299,18 @@ def fetch_rows_matching_pattern(
     }
 
 
-class SeerDeleteFailed(Exception):
-    """Seer refused to delete a set of replay summaries."""
-
-
-# POST is not in urllib3's default `allowed_methods`, so a `Retry` that does not say otherwise
-# retries nothing. Replaying this POST is safe: deleting an already-deleted summary is a no-op.
 SEER_DELETE_RETRY = Retry(
     total=1,
     backoff_factor=1,
-    allowed_methods=None,
+    allowed_methods=None,  # Allow retry on POST, since deletion is idempotent
     status_forcelist=[429, 500, 502, 503, 504],
 )
 
 SEER_DELETE_TIMEOUT = 30
+
+
+class SeerDeleteFailed(Exception):
+    """Seer refused to delete a set of replay summaries."""
 
 
 def delete_seer_replay_data(organization_id: int, project_id: int, replay_ids: list[str]) -> None:

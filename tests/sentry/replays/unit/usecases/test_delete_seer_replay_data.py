@@ -56,12 +56,7 @@ def test_a_refused_delete_raises(mock_seer_request: MagicMock) -> None:
 
 
 def test_the_retry_applies_to_this_request() -> None:
-    """Test the retry covers the failures Seer actually produces.
-
-    urllib3's default `allowed_methods` excludes POST, so a `Retry` that does not say otherwise
-    retries nothing here -- and the failure we see is a read timeout on a POST. Statuses have to be
-    listed too, because a 503 is a response rather than an error.
-    """
+    """Test the retry covers the failures Seer actually produces."""
     assert (
         SEER_DELETE_RETRY.increment(
             method="POST", url="/delete", error=ReadTimeoutError(None, "/delete", "timed out")
