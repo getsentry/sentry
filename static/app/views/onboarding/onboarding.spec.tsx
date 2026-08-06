@@ -663,20 +663,27 @@ describe('Onboarding', () => {
       );
     });
 
-    it('preserves messaging setup when returning to the welcome step', async () => {
-      renderOnboarding('welcome', {
-        initialContext: {
+    it('clears the whole session when returning to the welcome step', async () => {
+      // Returning to welcome restarts the flow, so nothing is carried over —
+      // including messagingSetup, which only has to survive local repository
+      // and platform changes.
+      sessionStorage.setItem(
+        'onboarding',
+        JSON.stringify({
           selectedPlatform: nextJsPlatform,
           selectedFeatures: [ProductSolution.ERROR_MONITORING],
+          createdProjectSlug: 'javascript-nextjs',
           messagingSetup: selectedMessagingSetup,
-        },
-      });
+        })
+      );
+
+      // Render the provider bare, like production does, so it hydrates from
+      // sessionStorage. Seeding `initialContext` instead makes a session clear
+      // restore that value rather than empty the context.
+      renderOnboarding('welcome');
 
       await waitFor(() => {
-        const stored = JSON.parse(sessionStorage.getItem('onboarding') ?? '{}');
-        expect(stored.selectedPlatform).toBeUndefined();
-        expect(stored.selectedFeatures).toBeUndefined();
-        expect(stored.messagingSetup).toEqual(selectedMessagingSetup);
+        expect(sessionStorage.getItem('onboarding')).toBeNull();
       });
     });
 
