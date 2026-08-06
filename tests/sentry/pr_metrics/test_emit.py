@@ -970,11 +970,7 @@ class PrMetricsEmissionTest(TestCase):
         assert row.conversation_comments_bot is None
         assert row.diagnosis_labels is None
         assert row.conversation_metadata is None
-        # No activity document → per-head CI summary unavailable (null, not zero).
-        assert row.ci_heads_total is None
-        assert row.ci_heads_failed is None
-        assert row.ci_heads_passed is None
-        assert row.ci_heads_inconclusive is None
+        # No activity document → per-head CI summary unavailable (null, not zeros).
         assert row.ci_heads_by_actor is None
 
     def test_build_row_ci_head_summary_from_activity_doc(self) -> None:
@@ -1033,19 +1029,16 @@ class PrMetricsEmissionTest(TestCase):
                 "participants": {},
                 "counts": {},
                 "events_dropped": 0,
-                "sync_chain": [["new222", "old111"]],
+                "open_head": ["old111", "alice", "User"],
+                "sync_chain": [["new222", "old111", "sentry[bot]", "Bot"]],
             },
         )
         row = build_pr_metrics_row(
             pull_request=self.pull_request,
             close_action="merged",
-            attributions=[],
+            attributions=[{"signal_type": "sentry_app", "source": "seer_data"}],
             group_ids=[],
         )
-        assert row.ci_heads_total == 2
-        assert row.ci_heads_failed == 1
-        assert row.ci_heads_passed == 1
-        assert row.ci_heads_inconclusive == 0
         assert row.ci_heads_by_actor is not None
         assert sentry_json.loads(row.ci_heads_by_actor) == {
             "bot": {"failed": 0, "inconclusive": 0, "passed": 0},
@@ -1090,6 +1083,7 @@ class PrMetricsEmissionTest(TestCase):
                 "participants": {},
                 "counts": {},
                 "events_dropped": 0,
+                "open_head": ["claude1", "sentry[bot]", "Bot"],
                 "sync_chain": [],
             },
         )
@@ -1123,13 +1117,9 @@ class PrMetricsEmissionTest(TestCase):
         row = build_pr_metrics_row(
             pull_request=self.pull_request,
             close_action="merged",
-            attributions=[],
+            attributions=[{"signal_type": "sentry_app", "source": "seer_data"}],
             group_ids=[],
         )
-        assert row.ci_heads_total == 0
-        assert row.ci_heads_failed == 0
-        assert row.ci_heads_passed == 0
-        assert row.ci_heads_inconclusive == 0
         assert row.ci_heads_by_actor is not None
         assert sentry_json.loads(row.ci_heads_by_actor) == {
             "bot": {"failed": 0, "inconclusive": 0, "passed": 0},
@@ -1177,13 +1167,86 @@ class PrMetricsEmissionTest(TestCase):
         row = build_pr_metrics_row(
             pull_request=self.pull_request,
             close_action="merged",
-            attributions=[],
+            attributions=[{"signal_type": "sentry_app", "source": "seer_data"}],
             group_ids=[],
         )
         assert row.ci_heads_by_actor is not None
         by_actor = sentry_json.loads(row.ci_heads_by_actor)
         assert by_actor["seer"] == {"failed": 1, "inconclusive": 0, "passed": 1}
         assert by_actor["unknown"] == {"failed": 0, "inconclusive": 0, "passed": 0}
+
+    def _ci_head_doc(self) -> None:
+        # One human-opened head with a failing suite — enough for a summary to be
+        # computable, so a null result can only come from the attribution gate.
+        from sentry.models.pullrequest import PullRequestActivityLog
+
+        PullRequestActivityLog.objects.create(
+            pull_request=self.pull_request,
+            data={
+                "version": 1,
+                "events": [
+                    {
+                        "event_type": "opened",
+                        "payload": {
+                            "head_sha": "human1",
+                            "sender_login": "alice",
+                            "sender_type": "User",
+                        },
+                        "ts": "2026-07-10T12:00:00Z",
+                        "webhook_id": "o1",
+                    },
+                ],
+                "checks": {
+                    "human1|github-actions": {
+                        "head_sha": "human1",
+                        "app_slug": "github-actions",
+                        "suite_conclusion": "failure",
+                        "suite_updated_at": None,
+                        "check_runs_count": 1,
+                        "runs": {},
+                        "first_failure_at": None,
+                        "last_event_at": None,
+                    },
+                },
+                "participants": {},
+                "counts": {},
+                "events_dropped": 0,
+                "open_head": ["human1", "alice", "User"],
+                "sync_chain": [],
+            },
+        )
+
+    def test_build_row_ci_head_summary_null_for_mcp_only_pr(self) -> None:
+        # MCP correlates a PR to an issue viewed through us; none of its commits are
+        # ours, so the per-head summary is unavailable rather than a tally of someone
+        # else's CI.
+        self._ci_head_doc()
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[{"signal_type": "mcp", "source": "webhook_data"}],
+            group_ids=[],
+        )
+        assert row.ci_heads_by_actor is None
+
+    def test_build_row_ci_head_summary_emits_when_mcp_accompanies_authoring_signal(self) -> None:
+        # A weak signal alongside an authoring one still emits: the authoring signal
+        # means we pushed here, so the heads are meaningful.
+        from sentry.utils import json as sentry_json
+
+        self._ci_head_doc()
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[
+                {"signal_type": "mcp", "source": "webhook_data"},
+                {"signal_type": "sentry_app", "source": "seer_data"},
+            ],
+            group_ids=[],
+        )
+        assert row.ci_heads_by_actor is not None
+        by_actor = sentry_json.loads(row.ci_heads_by_actor)
+        assert by_actor["human"] == {"failed": 1, "inconclusive": 0, "passed": 0}
 
     def test_build_row_conversation_metadata_null_when_absent(self) -> None:
         # An analysis without a metadata bundle emits a null conversation_metadata (not

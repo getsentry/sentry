@@ -31,7 +31,7 @@ from sentry.models.pullrequest import (
 )
 from sentry.models.repository import Repository
 from sentry.pr_metrics import activity_doc
-from sentry.pr_metrics.attribution import DELEGATED_SIGNAL_TYPES
+from sentry.pr_metrics.attribution import DELEGATED_SIGNAL_TYPES, JUDGE_ELIGIBLE_SIGNAL_TYPES
 from sentry.pr_metrics.contracts import (
     CLOSE_ACTION_ABANDONED,
     CLOSE_ACTION_CLOSED,
@@ -232,13 +232,7 @@ _FAILING_CHECK_CONCLUSIONS = frozenset({"failure", "timed_out", "startup_failure
 
 
 def _null_ci_head_summary_fields() -> dict[str, Any]:
-    return {
-        "ci_heads_total": None,
-        "ci_heads_failed": None,
-        "ci_heads_passed": None,
-        "ci_heads_inconclusive": None,
-        "ci_heads_by_actor": None,
-    }
+    return {"ci_heads_by_actor": None}
 
 
 def _has_delegated_attribution(attributions: list[dict[str, Any]]) -> bool:
@@ -247,37 +241,57 @@ def _has_delegated_attribution(attributions: list[dict[str, Any]]) -> bool:
     return any((row.get("signal_type") or "") in delegated for row in attributions)
 
 
+def _has_authoring_attribution(attributions: list[dict[str, Any]]) -> bool:
+    """Whether any attribution means we actually wrote code on this PR.
+
+    ``JUDGE_ELIGIBLE_SIGNAL_TYPES`` (delegated ∪ ``SENTRY_APP``) is exactly the
+    direct-agent-authorship set; the weaker signals it excludes — MCP issue
+    views, bare issue references — correlate a PR to an issue someone looked at
+    through us without any of our commits landing on it.
+    """
+    authoring = {signal.value for signal in JUDGE_ELIGIBLE_SIGNAL_TYPES}
+    return any((row.get("signal_type") or "") in authoring for row in attributions)
+
+
 def _ci_head_summary_fields(
     pull_request: PullRequest,
     attributions: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    """Analytics fields for per-head CI outcome counts, or nulls on the legacy path.
+    """The per-head CI actor×outcome breakdown, or a null when it's unavailable.
+
+    Only the actor matrix is emitted: every head lands in exactly one bucket, so
+    aggregate totals are a sum over the buckets and the consumer derives whichever
+    slice it wants rather than reading a fixed set of pre-rolled columns.
 
     Doc store only: the checks rollup is keyed by ``(head_sha, app_slug)``, which
-    the legacy ``CHECK_SUITE_COMPLETED`` rows don't carry. Nulls (not zeros)
-    mark "summary unavailable" so warehouse queries don't conflate legacy PRs
-    with doc-path PRs that genuinely had no CI.
+    the legacy ``CHECK_SUITE_COMPLETED`` rows don't carry. A null (rather than a
+    zeroed matrix) marks "summary unavailable" so warehouse queries don't conflate
+    legacy PRs with doc-path PRs that genuinely had no CI.
 
-    ``ci_heads_by_actor`` is JSON of ``CiHeadsByActor`` (see activity_doc).
+    Also nulled when no attribution says we authored anything here (i.e. every
+    valid signal is weak, such as an MCP-only PR): no check head is ours, so an
+    actor breakdown would describe someone else's CI rather than our iteration.
+    That is "unavailable" in the same sense as the legacy path, not a genuine
+    zero. A PR carrying a weak signal *alongside* an authoring one still emits —
+    the authoring signal makes the heads meaningful.
+
     Actor buckets join each check head to the open/sync sender that introduced
     that SHA. ``has_delegated_attribution`` reclassifies Seer/Sentry-app
     pushers as ``delegated`` on Claude-style PRs (opened as the Sentry app).
     """
+    if not _has_authoring_attribution(attributions):
+        return _null_ci_head_summary_fields()
+
     doc = load_activity_document(pull_request)
     if doc is None:
         return _null_ci_head_summary_fields()
 
-    summary = activity_doc.ci_head_summary_from_doc(
+    by_actor = activity_doc.ci_head_actor_counts_from_doc(
         doc,
         has_delegated_attribution=_has_delegated_attribution(attributions),
     )
-    return {
-        "ci_heads_total": summary["total"],
-        "ci_heads_failed": summary["failed"],
-        "ci_heads_passed": summary["passed"],
-        "ci_heads_inconclusive": summary["inconclusive"],
-        "ci_heads_by_actor": json.dumps(summary["by_actor"], sort_keys=True),
-    }
+
+    return {"ci_heads_by_actor": json.dumps(by_actor, sort_keys=True)}
 
 
 def _any_group_failing(groups: Iterable[activity_doc.CheckGroup]) -> bool:

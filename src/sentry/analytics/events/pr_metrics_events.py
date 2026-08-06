@@ -123,22 +123,24 @@ class PrCloseMetricsEvent(analytics.Event):
     diagnosis_labels: list[str] | None = None
 
     # Per-head CI summary from the activity-document checks rollup (one outcome
-    # per distinct ``head_sha`` that had check activity). Null when the PR has no
-    # activity document (legacy row path) — not the same as zero heads. Counts
-    # sum to ``ci_heads_total``. Grain is check head SHAs, not ``commits_count``
-    # (commits without recorded CI aren't in these totals).
+    # per distinct ``head_sha`` that had check activity), as JSON
+    # ``CiHeadsByActor``: each of ``seer`` / ``delegated`` / ``human`` / ``bot`` /
+    # ``unknown`` maps to ``{failed, passed, inconclusive}``. Grain is check head
+    # SHAs, not ``commits_count`` (commits without recorded CI aren't counted).
     #
-    # ``ci_heads_by_actor`` is JSON ``CiHeadsByActor``: each of
-    # ``seer`` / ``delegated`` / ``human`` / ``bot`` / ``unknown`` maps to
-    # ``{failed, passed, inconclusive}``. Actor attribution is the open/sync
-    # webhook sender for that SHA; ``unknown`` = no matching open/sync in the
-    # (capped) events list. Actor buckets sum to ``ci_heads_total``. Null with
-    # the counts when there's no activity document; ``"{...zeros...}"`` when the
-    # doc exists but recorded no checks.
-    ci_heads_total: int | None = None
-    ci_heads_failed: int | None = None
-    ci_heads_passed: int | None = None
-    ci_heads_inconclusive: int | None = None
+    # Every head lands in exactly one actor bucket, so aggregate totals are a sum
+    # over the buckets rather than their own columns — the consumer rolls up
+    # whichever slice it wants (all heads, one actor, one outcome) from this one
+    # field.
+    #
+    # Actor attribution is the open/sync webhook sender for that SHA;
+    # ``unknown`` = no attributable sender, which is every head on a document
+    # written before the sender slots existed.
+    #
+    # Null when the summary is unavailable — no activity document (legacy row
+    # path), or no attribution says we authored anything here (e.g. an MCP-only
+    # PR, where no head is ours). Distinct from ``"{...zeros...}"``, which is a
+    # document that genuinely recorded no checks.
     ci_heads_by_actor: str | None = None
 
     # --- Conversation judge (set only on a judged close/merge row) ---

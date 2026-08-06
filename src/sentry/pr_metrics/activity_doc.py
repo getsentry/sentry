@@ -308,9 +308,12 @@ def _fold_sync_chain(doc: ActivityDoc, payload: Mapping[str, Any]) -> None:
     after = payload.get("after_sha") or ""
     if not after:
         return
+
     chain = doc.setdefault("sync_chain", [])
+    # already processed this
     if any(pair[0] == after for pair in chain):
         return
+
     if len(chain) >= MAX_SYNC_CHAIN:
         chain.pop(0)
         logger.warning(
@@ -318,6 +321,7 @@ def _fold_sync_chain(doc: ActivityDoc, payload: Mapping[str, Any]) -> None:
             extra={"after_sha": after},
         )
         metrics.incr("pr_metrics.activity_doc.sync_chain_capped")
+
     chain.append(
         [
             after,
@@ -670,9 +674,11 @@ def _synthesized_suite_conclusion(group: CheckGroup) -> str:
     conclusion = group.get("suite_conclusion")
     if conclusion:
         return conclusion
+
     runs = group.get("runs", {})
     if any(is_failing_conclusion(run.get("conclusion")) for run in runs.values()):
         return "failure"
+
     return "success"
 
 
@@ -757,10 +763,18 @@ def ci_head_outcomes_from_doc(doc: ActivityDoc) -> dict[str, str]:
 def head_sha_pushers_from_doc(doc: ActivityDoc) -> dict[str, tuple[str, str]]:
     """Map head SHA → ``(sender_login, sender_type)`` for every head we can attribute.
 
-    Reads the cap-resilient sources first (``open_head`` and the sender slots on
-    ``sync_chain``), then overlays ``events``, which is the only source for
-    documents written before those slots existed. A SHA no source covers stays
-    unmapped (callers treat it as ``unknown``).
+    Reads only the cap-resilient sources: ``open_head`` and the sender slots on
+    ``sync_chain``. A SHA neither covers stays unmapped (callers treat it as
+    ``unknown``), which is the whole story for a document written before those
+    slots existed — its heads all read as ``unknown`` rather than being
+    reconstructed from ``events``.
+
+    ``events`` is deliberately *not* consulted, even though it carries the same
+    senders. The two disagree under cap pressure and in opposite directions:
+    ``events`` drops the newest entries while these fields drop the oldest, so on
+    a push-heavy PR ``events`` is the staler view and overlaying it would
+    overwrite a correct sender with a superseded one. Backfilling the pre-slot
+    documents isn't worth that risk — they age out as their PRs close.
     """
     pushers: dict[str, tuple[str, str]] = {}
 
@@ -775,29 +789,9 @@ def head_sha_pushers_from_doc(doc: ActivityDoc) -> dict[str, tuple[str, str]]:
         after = pair[0]
         if not after or len(pair) < 4:
             continue
+
         pushers[after] = (pair[2] or "", pair[3] or "")
 
-    pushers.update(_head_sha_pushers_from_events(doc))
-    return pushers
-
-
-def _head_sha_pushers_from_events(doc: ActivityDoc) -> dict[str, tuple[str, str]]:
-    pushers: dict[str, tuple[str, str]] = {}
-    for event in doc.get("events", []):
-        event_type = event.get("event_type")
-        payload = event.get("payload") or {}
-        if event_type == PullRequestActivityType.OPENED:
-            sha = payload.get("head_sha") or ""
-        elif event_type == PullRequestActivityType.SYNCHRONIZED:
-            sha = payload.get("after_sha") or ""
-        else:
-            continue
-        if not sha:
-            continue
-        pushers[sha] = (
-            payload.get("sender_login") or "",
-            payload.get("sender_type") or "",
-        )
     return pushers
 
 
@@ -818,6 +812,7 @@ def classify_ci_head_actor(
     normalized = _normalize_github_login(sender_login)
     if normalized in _DELEGATED_GITHUB_BOT_LOGINS:
         return CI_HEAD_ACTOR_DELEGATED
+
     if normalized in _OUR_GITHUB_BOT_LOGINS:
         if has_delegated_attribution:
             return CI_HEAD_ACTOR_DELEGATED
@@ -839,16 +834,6 @@ class CiHeadsByActor(TypedDict):
     unknown: CiHeadOutcomeCounts
 
 
-class CiHeadSummary(TypedDict):
-    """Aggregate per-head CI counts plus the actor×outcome matrix."""
-
-    total: int
-    failed: int
-    passed: int
-    inconclusive: int
-    by_actor: CiHeadsByActor
-
-
 def _empty_outcome_counts() -> CiHeadOutcomeCounts:
     return {"failed": 0, "passed": 0, "inconclusive": 0}
 
@@ -863,19 +848,19 @@ def _empty_by_actor() -> CiHeadsByActor:
     }
 
 
-def ci_head_summary_from_doc(
+def ci_head_actor_counts_from_doc(
     doc: ActivityDoc,
     *,
     has_delegated_attribution: bool = False,
-) -> CiHeadSummary:
-    """Aggregate + per-actor CI head counts from the checks rollup.
+) -> CiHeadsByActor:
+    """Per-actor CI head outcome counts from the checks rollup.
 
     Actor buckets join each check head to the open/sync sender that introduced
-    that SHA. Every actor/outcome key is always present (zeros when empty);
-    actor buckets sum to ``total``.
+    that SHA. Every actor/outcome key is always present (zeros when empty), and
+    each head is counted exactly once, so any aggregate — all heads, one actor,
+    one outcome — is a sum over this matrix and isn't reported separately.
     """
     by_actor = _empty_by_actor()
-    total = failed = passed = inconclusive = 0
 
     pushers = head_sha_pushers_from_doc(doc)
     for sha, outcome in ci_head_outcomes_from_doc(doc).items():
@@ -891,22 +876,12 @@ def ci_head_summary_from_doc(
         actor_counts = by_actor[actor]
         if outcome == CI_HEAD_FAILED:
             actor_counts["failed"] += 1
-            failed += 1
         elif outcome == CI_HEAD_PASSED:
             actor_counts["passed"] += 1
-            passed += 1
         else:
             actor_counts["inconclusive"] += 1
-            inconclusive += 1
-        total += 1
 
-    return {
-        "total": total,
-        "failed": failed,
-        "passed": passed,
-        "inconclusive": inconclusive,
-        "by_actor": by_actor,
-    }
+    return by_actor
 
 
 def _synthesized_check_suite_payload(group: CheckGroup) -> dict[str, Any]:

@@ -21,8 +21,8 @@ from sentry.pr_metrics.activity_doc import (
     ActivityDoc,
     _fold_sync_chain,
     apply_activity,
+    ci_head_actor_counts_from_doc,
     ci_head_outcomes_from_doc,
-    ci_head_summary_from_doc,
     classify_ci_head_actor,
     commit_shas_from_doc,
     derived_metrics_from_doc,
@@ -1204,6 +1204,30 @@ def test_head_sha_pushers_from_open_and_sync() -> None:
     }
 
 
+def test_head_sha_pushers_ignores_events_without_resilient_slots() -> None:
+    # A document written before ``open_head`` / the ``sync_chain`` sender slots
+    # existed: the senders sit in ``events``, which is deliberately not read, so
+    # every head is unattributed rather than reconstructed from the staler source.
+    doc = new_document()
+    doc["events"] = [
+        {
+            "event_type": PullRequestActivityType.OPENED,
+            "ts": "2026-07-10T12:00:00Z",
+            "event_at": None,
+            "webhook_id": "o1",
+            "payload": {
+                "head_sha": "open1",
+                "sender_login": "octocat",
+                "sender_type": "User",
+            },
+        },
+    ]
+    doc["sync_chain"] = [["sync1", "open1"]]
+    doc["open_head"] = []
+
+    assert head_sha_pushers_from_doc(doc) == {}
+
+
 def test_classify_ci_head_actor_buckets() -> None:
     assert classify_ci_head_actor("alice", "User", has_delegated_attribution=False) == "human"
     assert classify_ci_head_actor("sentry[bot]", "Bot", has_delegated_attribution=False) == "seer"
@@ -1261,12 +1285,7 @@ def test_ci_head_summary_by_pusher() -> None:
     # Check SHA with no open/sync → unknown.
     _suite(doc, head_sha="orphan", conclusion="failure", app_slug="orphan-app")
 
-    summary = ci_head_summary_from_doc(doc)
-    assert summary["total"] == 4
-    assert summary["failed"] == 2
-    assert summary["passed"] == 1
-    assert summary["inconclusive"] == 1
-    assert summary["by_actor"] == {
+    assert ci_head_actor_counts_from_doc(doc) == {
         "seer": {"failed": 0, "passed": 1, "inconclusive": 0},
         "delegated": {"failed": 0, "passed": 0, "inconclusive": 0},
         "human": {"failed": 1, "passed": 0, "inconclusive": 0},
@@ -1287,9 +1306,9 @@ def test_ci_head_summary_claude_as_delegated() -> None:
     )
     _suite(doc, head_sha="claude1", conclusion="failure")
 
-    summary = ci_head_summary_from_doc(doc, has_delegated_attribution=True)
-    assert summary["by_actor"]["delegated"]["failed"] == 1
-    assert summary["by_actor"]["seer"]["failed"] == 0
+    by_actor = ci_head_actor_counts_from_doc(doc, has_delegated_attribution=True)
+    assert by_actor["delegated"]["failed"] == 1
+    assert by_actor["seer"]["failed"] == 0
 
 
 # --- ci head actor attribution across the events cap ----------------------
@@ -1362,6 +1381,6 @@ def test_ci_head_actor_attribution_survives_events_cap() -> None:
     _suite(doc, head_sha="c3", conclusion="failure")
     assert not any(e.get("webhook_id") == "s-capped" for e in doc["events"])
 
-    by_actor = ci_head_summary_from_doc(doc)["by_actor"]
+    by_actor = ci_head_actor_counts_from_doc(doc)
     assert by_actor["seer"] == {"failed": 2, "passed": 1, "inconclusive": 0}
     assert by_actor["unknown"] == {"failed": 0, "passed": 0, "inconclusive": 0}
