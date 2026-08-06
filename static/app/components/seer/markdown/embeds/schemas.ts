@@ -256,7 +256,7 @@ export function seerEmbedsToJsonSchemas(): Array<{
       name,
       description: def.description,
       level: [...def.level],
-      body: z.toJSONSchema(def.schema) as Record<string, unknown>,
+      body: z.toJSONSchema(def.schema),
       ...(def.examples && {
         examples: def.examples.map(e => ({label: e.label, data: e.data})),
       }),

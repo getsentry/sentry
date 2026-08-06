@@ -8,7 +8,13 @@ from sentry.seer.autofix.coding_agent_handoffs import (
 )
 from sentry.seer.autofix.constants import CodingAgentStatus
 from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentResult, CodingAgentState
-from sentry.seer.models.run import SeerRunCodingAgentHandoff, SeerRunPullRequest, SeerRunType
+from sentry.seer.models.run import (
+    SeerRunCodingAgentHandoff,
+    SeerRunMilestone,
+    SeerRunMilestoneType,
+    SeerRunPullRequest,
+    SeerRunType,
+)
 from sentry.testutils.cases import TestCase
 
 REPO_NAME = "getsentry/sentry"
@@ -163,6 +169,31 @@ class SyncCodingAgentStatusTest(TestCase):
         link = SeerRunPullRequest.objects.get(pull_request=pull_request)
         assert link.seer_run_id == self.seer_run.id
         assert link.coding_agent_handoff_id == self.handoff.id
+
+        assert SeerRunMilestone.objects.filter(
+            seer_run=self.seer_run, milestone=SeerRunMilestoneType.HAS_PULL_REQUEST
+        ).exists()
+
+    @patch(MOCK_UPDATE_STATE_PATH)
+    def test_no_pull_request_milestone_for_branch_without_pr(self, mock_update_state: Mock) -> None:
+        mock_update_state.return_value = True
+        result = CodingAgentResult(
+            description="Pushed a branch",
+            repo_provider="github",
+            repo_full_name=REPO_NAME,
+            pr_url="https://github.com/getsentry/sentry/tree/some-branch",
+        )
+
+        sync_coding_agent_status(
+            agent_id="agent-1",
+            organization_id=self.organization.id,
+            status=CodingAgentStatus.COMPLETED,
+            result=result,
+        )
+
+        assert not SeerRunMilestone.objects.filter(
+            seer_run=self.seer_run, milestone=SeerRunMilestoneType.HAS_PULL_REQUEST
+        ).exists()
 
     @patch(MOCK_UPDATE_STATE_PATH)
     def test_links_multiple_pull_requests_on_same_handoff(self, mock_update_state: Mock) -> None:

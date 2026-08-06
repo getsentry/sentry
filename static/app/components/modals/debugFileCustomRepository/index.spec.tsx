@@ -8,7 +8,7 @@ import {GcsRepository, S3Repository} from './objectStorage';
 
 const stubEl = ({children}: {children?: React.ReactNode}) => <div>{children}</div>;
 const modalProps = {
-  Header: stubEl as ModalRenderProps['Header'],
+  Header: stubEl,
   Body: stubEl as ModalRenderProps['Body'],
   Footer: stubEl as ModalRenderProps['Footer'],
 };

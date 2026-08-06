@@ -373,7 +373,7 @@ it('does not pass unmatched object values to react-select callbacks like getOpti
   function GetOptionValueForm() {
     const form = useScrapsForm({
       ...defaultFormOptions,
-      defaultValues: {fruit: {id: '99', name: 'Mango'} as {id: string; name: string}},
+      defaultValues: {fruit: {id: '99', name: 'Mango'}},
     });
 
     return (

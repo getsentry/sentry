@@ -19,7 +19,6 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import type {ObjectStatus} from 'sentry/types/core';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -297,7 +296,7 @@ export default function IntegrationDetailedView() {
           config.id === integration.id
             ? {
                 ...config,
-                organizationIntegrationStatus: 'pending_deletion' as ObjectStatus,
+                organizationIntegrationStatus: 'pending_deletion',
               }
             : config
         )
@@ -307,7 +306,6 @@ export default function IntegrationDetailedView() {
     },
     onError: (_error, _integration, context) => {
       if (context?.previousConfigurations) {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
         setApiQueryData<Integration[]>(
           queryClient,
           makeIntegrationQueryKey({orgSlug: organization.slug, integrationSlug}),
