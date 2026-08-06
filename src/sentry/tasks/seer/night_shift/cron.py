@@ -848,8 +848,8 @@ def _dispatch_pending_shards(
         "night_shift.feature_dispatched",
         extra={
             **log_extra,
-            "num_eligible_projects": run.extras.get("num_eligible_projects"),
-            "num_candidates": run.extras.get("num_candidates"),
+            "num_eligible_projects": (run.extras or {}).get("num_eligible_projects"),
+            "num_candidates": (run.extras or {}).get("num_candidates"),
             "num_shards": len(planned_shards),
             "num_shards_dispatched": dispatched,
         },
