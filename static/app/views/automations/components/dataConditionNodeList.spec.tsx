@@ -190,23 +190,23 @@ describe('DataConditionNodeList', () => {
   it('deletes existing condition', async () => {
     render(
       <AutomationBuilderTestProvider>
-        <DataConditionNodeList
-          {...defaultProps}
-          conditions={[DataConditionFixture(), DataConditionFixture({id: '2'})]}
-        />
+        <DataConditionNodeList {...defaultProps} conditions={[DataConditionFixture()]} />
       </AutomationBuilderTestProvider>,
       {organization}
     );
 
-    const [deleteButton] = screen.getAllByRole('button', {name: 'Delete row'});
-    await userEvent.click(deleteButton!);
+    await userEvent.click(screen.getByRole('button', {name: 'Delete row'}));
     expect(mockOnDeleteRow).toHaveBeenCalledWith('1');
   });
 
-  it('hides delete button for the last remaining condition', () => {
+  it('hides delete button for the last remaining workflow trigger condition', () => {
     render(
       <AutomationBuilderTestProvider>
-        <DataConditionNodeList {...defaultProps} conditions={[DataConditionFixture()]} />
+        <DataConditionNodeList
+          {...defaultProps}
+          handlerGroup={DataConditionHandlerGroupType.WORKFLOW_TRIGGER}
+          conditions={[DataConditionFixture()]}
+        />
       </AutomationBuilderTestProvider>,
       {organization}
     );

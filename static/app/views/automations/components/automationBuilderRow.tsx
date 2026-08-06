@@ -10,26 +10,26 @@ import {t} from 'sentry/locale';
 
 interface RowProps {
   children: React.ReactNode;
-  isLastRow: boolean;
   onDelete: () => void;
   errorMessage?: string;
   hasError?: boolean;
+  hideDeleteButton?: boolean;
   warningMessages?: string[];
 }
 
 export function AutomationBuilderRow({
-  isLastRow,
   onDelete,
   children,
   hasError,
   errorMessage,
+  hideDeleteButton,
   warningMessages = [],
 }: RowProps) {
   return (
     <Stack gap="xs">
       <RowContainer incompatible={hasError}>
         <RowLine>{children}</RowLine>
-        {!isLastRow && (
+        {!hideDeleteButton && (
           <DeleteButton
             aria-label={t('Delete row')}
             size="sm"
