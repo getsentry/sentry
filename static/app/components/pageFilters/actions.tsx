@@ -19,7 +19,10 @@ import {
   setPageFiltersStorage,
 } from 'sentry/components/pageFilters/persistence';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
+import {
+  parseStatsPeriod,
+  STATS_PERIOD_REGEX,
+} from 'sentry/components/timeRangeSelector/utils';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {DateString, PageFilters, PinnedPageFilter} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -317,6 +320,12 @@ export function initializeUrlState({
 
   if (maxPickableDays && pageFilters.datetime) {
     let {start, end} = pageFilters.datetime;
+
+    if (pageFilters.datetime.period && !STATS_PERIOD_REGEX.test(pageFilters.datetime.period)) {
+      // Invalid period from localStorage or URL — fall back to the default period
+      // rather than letting parseStatsPeriod throw and crash the page.
+      pageFilters.datetime.period = defaultDatetime.period;
+    }
 
     if (pageFilters.datetime.period) {
       const parsedPeriod = parseStatsPeriod(pageFilters.datetime.period);
