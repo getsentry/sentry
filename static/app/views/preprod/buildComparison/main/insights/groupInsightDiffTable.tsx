@@ -53,7 +53,7 @@ export function GroupInsightItemDiffTable({
   const [currentPage, setCurrentPage] = useState(0);
 
   // Sort just the parent items as before
-  const sortedDiffItems = [...groupDiffItems].sort((a: DiffItem, b: DiffItem) => {
+  const sortedDiffItems = groupDiffItems.toSorted((a: DiffItem, b: DiffItem) => {
     const {field, kind} = sort;
 
     let aValue: number | string = '';

@@ -19,7 +19,7 @@ import {
 import {AutomationBuilderDrawerForm} from 'sentry/views/automations/components/automationBuilderDrawerForm';
 
 describe('AutomationBuilderDrawerForm', () => {
-  const organization = OrganizationFixture({features: ['workflow-engine-ui']});
+  const organization = OrganizationFixture();
   const mockMember = MemberFixture({
     user: UserFixture({id: '1', name: 'Test User', email: 'test@sentry.io'}),
   });

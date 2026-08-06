@@ -53,7 +53,7 @@ const actionHandlers: ActionHandler[] = [
 ];
 
 describe('ActionNodeList', () => {
-  const organization = OrganizationFixture({features: ['workflow-engine-ui']});
+  const organization = OrganizationFixture();
 
   const mockOnAddRow = jest.fn();
   const mockOnDeleteRow = jest.fn();

@@ -201,7 +201,11 @@ export function AutomationListTable({
           </StyledFlex>
         </SimpleTable.Empty>
       )}
-      {isError && <LoadingError message={t('Error loading alerts')} />}
+      {isError && (
+        <SimpleTable.Empty>
+          <LoadingError message={t('Error loading alerts')} />
+        </SimpleTable.Empty>
+      )}
       {isPending && <LoadingSkeletons />}
       {isSuccess &&
         automations.map(automation => (

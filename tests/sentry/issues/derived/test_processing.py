@@ -284,17 +284,114 @@ class ProcessGroupLogTest(TestCase):
         process_group_log(group.id)
         assert GroupDerivedData.objects.filter(group_id=group.id).exists()
 
-        invalidate_group_derived_data(group.id)
+        with patch(
+            "sentry.issues.derived.processing.generate_group_derived_data.delay"
+        ) as mock_generate:
+            invalidate_group_derived_data(group.id, soft=False)
         assert not GroupDerivedData.objects.filter(group_id=group.id).exists()
+        mock_generate.assert_called_once_with(group.id)
+
+    def test_invalidate_soft_keeps_row_and_schedules_generate(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        process_group_log(group.id)
+        assert GroupDerivedData.objects.filter(group_id=group.id).exists()
+
+        with patch(
+            "sentry.issues.derived.processing.generate_group_derived_data.delay"
+        ) as mock_generate:
+            invalidate_group_derived_data(group.id)
+        row = GroupDerivedData.objects.get(group_id=group.id)
+        # Soft invalidation nulls pipeline_hash but keeps the row readable.
+        assert row.pipeline_hash is None
+        mock_generate.assert_called_once_with(group.id)
+
+    def test_invalidate_soft_no_trigger_skips_task(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        process_group_log(group.id)
+        assert (
+            GroupDerivedData.objects.get(group_id=group.id).pipeline_hash == PIPELINE.pipeline_hash
+        )
+
+        with (
+            patch(
+                "sentry.issues.derived.processing.generate_group_derived_data.delay"
+            ) as mock_generate,
+            patch("sentry.issues.derived.processing.process_group_log_task.delay") as mock_process,
+        ):
+            invalidate_group_derived_data(group.id, trigger_regenerate=False)
+        # Row is still invalidated (hash nulled) even without triggering regen.
+        assert GroupDerivedData.objects.get(group_id=group.id).pipeline_hash is None
+        mock_generate.assert_not_called()
+        mock_process.assert_not_called()
+
+    def test_invalidate_hard_no_trigger_deletes_without_task(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        process_group_log(group.id)
+        assert GroupDerivedData.objects.filter(group_id=group.id).exists()
+
+        with (
+            patch(
+                "sentry.issues.derived.processing.generate_group_derived_data.delay"
+            ) as mock_generate,
+            patch("sentry.issues.derived.processing.process_group_log_task.delay") as mock_process,
+        ):
+            invalidate_group_derived_data(group.id, soft=False, trigger_regenerate=False)
+        assert not GroupDerivedData.objects.filter(group_id=group.id).exists()
+        mock_generate.assert_not_called()
+        mock_process.assert_not_called()
+
+    def test_invalidate_pure_append_no_trigger_skips_process_task(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        derived = process_group_log(group.id)
+        old_cursor = derived.cursor_id
+
+        future = derived.cursor_date.replace(year=derived.cursor_date.year + 1)
+        with patch("sentry.issues.derived.processing.process_group_log_task.delay") as mock_delay:
+            invalidate_group_derived_data(
+                group.id,
+                cursor=(future, old_cursor + 1000),
+                trigger_regenerate=False,
+            )
+        mock_delay.assert_not_called()
+
+    def test_invalidate_soft_rebuilds_via_generate(self) -> None:
+        group = self.create_group()
+        user = self.user
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
+        derived = process_group_log(group.id)
+        assert derived.view_count == 2
+
+        with self.tasks():
+            invalidate_group_derived_data(group.id)
+        derived.refresh_from_db()
+        assert derived.view_count == 2
 
     def test_invalidate_with_cursor_deletes_if_past(self) -> None:
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         derived = process_group_log(group.id)
 
-        # Cursor at the processed entry — row should be deleted.
-        invalidate_group_derived_data(group.id, cursor=(derived.cursor_date, derived.cursor_id))
+        invalidate_group_derived_data(
+            group.id, cursor=(derived.cursor_date, derived.cursor_id), soft=False
+        )
         assert not GroupDerivedData.objects.filter(group_id=group.id).exists()
+
+    def test_invalidate_with_cursor_soft_schedules_generate_if_past(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        derived = process_group_log(group.id)
+
+        with patch(
+            "sentry.issues.derived.processing.generate_group_derived_data.delay"
+        ) as mock_generate:
+            invalidate_group_derived_data(group.id, cursor=(derived.cursor_date, derived.cursor_id))
+        assert GroupDerivedData.objects.filter(group_id=group.id).exists()
+        mock_generate.assert_called_once_with(group.id)
 
     def test_invalidate_with_cursor_noop_if_not_reached(self) -> None:
         group = self.create_group()
@@ -302,11 +399,14 @@ class ProcessGroupLogTest(TestCase):
         derived = process_group_log(group.id)
         old_cursor = derived.cursor_id
 
-        # Cursor beyond what we've processed — row should be untouched.
+        # Cursor is past the processed entry — a pure append, so the row
+        # is untouched and processing is scheduled to drain it.
         future = derived.cursor_date.replace(year=derived.cursor_date.year + 1)
-        invalidate_group_derived_data(group.id, cursor=(future, old_cursor + 1000))
+        with patch("sentry.issues.derived.processing.process_group_log_task.delay") as mock_delay:
+            invalidate_group_derived_data(group.id, cursor=(future, old_cursor + 1000))
         derived.refresh_from_db()
         assert derived.cursor_id == old_cursor
+        mock_delay.assert_called_once_with(group.id)
 
     def test_invalidate_then_reprocess(self) -> None:
         group = self.create_group()
@@ -316,7 +416,7 @@ class ProcessGroupLogTest(TestCase):
         derived = process_group_log(group.id)
         assert derived.view_count == 2
 
-        invalidate_group_derived_data(group.id)
+        invalidate_group_derived_data(group.id, soft=False)
         derived = process_group_log(group.id)
         assert derived.view_count == 2  # rebuilt from scratch
 
@@ -392,7 +492,7 @@ class ProcessGroupLogTest(TestCase):
         first_progress = first.progress
         first_last_progressed_at = first.last_progressed_at
 
-        invalidate_group_derived_data(group.id)
+        invalidate_group_derived_data(group.id, soft=False)
         second = process_group_log(group.id)
         assert second is not None
         assert second.data == first_data
@@ -424,7 +524,7 @@ class ProcessGroupLogTest(TestCase):
         first_data = first.data.copy()
         assert first.data["blocker"] == IssueBlocker.APPROVE_CODE_CHANGES.value
 
-        invalidate_group_derived_data(group.id)
+        invalidate_group_derived_data(group.id, soft=False)
         second = process_group_log(group.id)
         state = GroupDerivedDataStore.load(PIPELINE, second)
 
@@ -468,6 +568,38 @@ class ProcessGroupLogTest(TestCase):
         assert derived.cursor_id == first_cursor
         assert derived.pipeline_hash == "reset"
 
+    def test_pipeline_hash_null_stale_still_incrementally_updates(self) -> None:
+        # NULL ``pipeline_hash`` officially marks a row as stale — known to
+        # be out of date and awaiting replacement. Incremental writes should
+        # still advance a stale row rather than be frozen out.
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+
+        derived = process_group_log(group.id)
+        first_cursor = derived.cursor_id
+
+        new_entry = GroupActionLogEntry.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            type=GroupActionType.VIEW,
+            actor_type=GroupActorType.SYSTEM,
+            actor_id=0,
+            source=SOURCE,
+            data={},
+        )
+
+        # Officially mark the row stale by resetting pipeline_hash to NULL.
+        GroupDerivedData.objects.filter(group_id=group.id).update(pipeline_hash=None)
+
+        processing._process_batch(processing.PIPELINE, derived, 1)
+
+        derived.refresh_from_db()
+        assert derived.cursor_id == new_entry.id
+        assert derived.cursor_id != first_cursor
+        # The row remains stale (NULL) — it's up to a subsequent full
+        # generation to restamp the current pipeline_hash.
+        assert derived.pipeline_hash is None
+
     def test_generated_at_change_skips_incremental_write(self) -> None:
         from django.utils import timezone
 
@@ -501,7 +633,7 @@ class ProcessGroupLogTest(TestCase):
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         process_group_log(group.id)
 
-        invalidate_group_derived_data(group.id)
+        invalidate_group_derived_data(group.id, soft=False)
         derived = process_group_log(group.id)
         assert derived.pipeline_hash == PIPELINE.pipeline_hash
 
@@ -985,7 +1117,7 @@ class GroupDerivedDataStoreTest(TestCase):
         first_progress = first.progress
         first_last_progressed_at = first.last_progressed_at
 
-        invalidate_group_derived_data(group.id)
+        invalidate_group_derived_data(group.id, soft=False)
         second = process_group_log(group.id)
         assert second is not None
 

@@ -7,6 +7,7 @@ import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
 type OnboardingContextProps = {
   clearDerivedState: () => void;
+  resetOnboarding: () => void;
   setCreatedProjectSlug: (slug?: string) => void;
   setSelectedFeatures: (features?: ProductSolution[]) => void;
   setSelectedIntegration: (integration?: Integration) => void;
@@ -42,6 +43,7 @@ const OnboardingContext = createContext<OnboardingContextProps>({
   createdProjectSlug: undefined,
   setCreatedProjectSlug: () => {},
   clearDerivedState: () => {},
+  resetOnboarding: () => {},
 });
 
 type ProviderProps = {
@@ -85,11 +87,7 @@ export function OnboardingContextProvider({children, initialValue}: ProviderProp
     () => ({
       selectedPlatform: onboarding?.selectedPlatform,
       setSelectedPlatform: (selectedPlatform?: OnboardingSelectedSDK) => {
-        if (selectedPlatform === undefined) {
-          removeOnboarding();
-        } else {
-          setOnboarding(prev => ({...prev, selectedPlatform}));
-        }
+        setOnboarding(prev => ({...prev, selectedPlatform}));
       },
       selectedIntegration: onboarding?.selectedIntegration,
       setSelectedIntegration: (selectedIntegration?: Integration) => {
@@ -118,6 +116,11 @@ export function OnboardingContextProvider({children, initialValue}: ProviderProp
           createdProjectSlug: undefined,
         }));
       },
+      // Full-flow exits should clear every staged choice explicitly. Do not
+      // reach for a selected-platform reset to do this: clearing one field must
+      // stay local to that field so organization-scoped state added later
+      // survives local repository and platform changes.
+      resetOnboarding: removeOnboarding,
     }),
     [onboarding, setOnboarding, removeOnboarding]
   );
