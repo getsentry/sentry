@@ -64,6 +64,34 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function withJiraStatusMappingRemovals(
+  data: Record<string, unknown>,
+  previousMappings: unknown
+): Record<string, unknown> {
+  if (!Object.hasOwn(data, 'sync_status_forward')) {
+    return data;
+  }
+
+  const submittedMappings = data.sync_status_forward;
+  if (!isRecord(submittedMappings) || !isRecord(previousMappings)) {
+    return data;
+  }
+
+  const removedMappings = Object.fromEntries(
+    Object.keys(previousMappings)
+      .filter(key => !Object.hasOwn(submittedMappings, key))
+      .map(key => [key, null])
+  );
+
+  return {
+    ...data,
+    sync_status_forward: {
+      ...submittedMappings,
+      ...removedMappings,
+    },
+  };
+}
+
 function ConfigureIntegration() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -268,26 +296,11 @@ function ConfigureIntegration() {
     const integrationMutationOptions = mutationOptions({
       mutationFn: (data: Record<string, unknown>) => {
         let requestData = data;
-
-        if (usesExplicitMappingRemovals && Object.hasOwn(data, 'sync_status_forward')) {
-          const submittedMappings = data.sync_status_forward;
-          const previousMappings = integration.configData?.sync_status_forward;
-
-          if (isRecord(submittedMappings) && isRecord(previousMappings)) {
-            const removedMappings = Object.fromEntries(
-              Object.keys(previousMappings)
-                .filter(key => !Object.hasOwn(submittedMappings, key))
-                .map(key => [key, null])
-            );
-
-            requestData = {
-              ...data,
-              sync_status_forward: {
-                ...submittedMappings,
-                ...removedMappings,
-              },
-            };
-          }
+        if (usesExplicitMappingRemovals) {
+          requestData = withJiraStatusMappingRemovals(
+            data,
+            integration.configData?.sync_status_forward
+          );
         }
 
         return fetchMutation({
