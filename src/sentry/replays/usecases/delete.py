@@ -3,7 +3,7 @@ from __future__ import annotations
 import functools
 import logging
 from collections.abc import Iterator
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import TypedDict
 
 from google.cloud.exceptions import NotFound
@@ -55,6 +55,65 @@ SNUBA_RETRY_EXCEPTIONS = (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def day_aligned_windows(
+    range_start: datetime, range_end: datetime
+) -> list[tuple[datetime, datetime]]:
+    """Split `[range_start, range_end)` into one window per UTC day it touches.
+
+    Every window but the last runs from where the previous one ended to the next UTC midnight; the
+    last closes at `range_end`. The caller's own bounds therefore survive -- the first window opens
+    at `range_start`, not at midnight -- and only the first and last are ever shorter than a day.
+    Consecutive windows meet exactly, so the range is covered with no gaps and no overlap. All
+    datetimes are UTC.
+    """
+    if range_start >= range_end:
+        return []
+
+    windows = []
+
+    start = range_start
+    while (next_midnight := _start_of_day(start) + timedelta(days=1)) < range_end:
+        windows.append((start, next_midnight))
+        start = next_midnight
+
+    windows.append((start, range_end))
+
+    return windows
+
+
+def _start_of_day(value: datetime) -> datetime:
+    return value.replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+def datetime_as_start_of_day_conditions(start: datetime, end: datetime) -> list[Condition]:
+    """Restate `[start, end)` as bounds on `toStartOfDay(timestamp)`.
+
+    A table sorted by `toStartOfDay(timestamp)` keeps its rows grouped by day, and its index knows
+    only which day each block of rows belongs to. Conditions written in those same terms line up
+    with how the rows are ordered, so whole days can be skipped without being read at all. That is
+    what makes filtering by day cheap on such a table, and why it is worth asking for the day
+    directly.
+
+    A condition on the raw `timestamp` has to be translated into days first, and the translation is
+    deliberately careful at the top end: it includes the day the upper bound falls in, because a
+    bound at, say, noon really does leave matching rows in that day. A bound at midnight leaves
+    none, but the day gets read regardless. Naming the last day the range actually reaches drops
+    it -- one day of blocks at any range width, which on a table with the real sort key took a
+    one-day range from 25 blocks to 13.
+
+    The bottom end translates exactly, so the `>=` neither costs nor saves anything measurable. It
+    is here so the pair reads as the span of days it is.
+
+    `end` is exclusive, so a range ending exactly at midnight does not reach that day.
+    """
+    day = Function("toStartOfDay", parameters=[Column("timestamp")])
+
+    return [
+        Condition(day, Op.GTE, _start_of_day(start)),
+        Condition(day, Op.LTE, _start_of_day(end - timedelta(microseconds=1))),
+    ]
 
 
 def delete_matched_rows(project_id: int, rows: list[MatchedRow]) -> int | None:
@@ -174,6 +233,7 @@ def fetch_rows_matching_pattern(
             Condition(Column("timestamp"), Op.GTE, start),
             # We only match segment rows because those contain the PII we want to delete.
             Condition(Column("segment_id"), Op.IS_NOT_NULL),
+            *datetime_as_start_of_day_conditions(start, end),
             *where,
         ],
         having=having,
