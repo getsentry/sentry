@@ -230,7 +230,7 @@ class ScheduleWebhooksTest(TestCase):
             outcome = _claim_and_dispatch(webhook.id, webhook.mailbox_name)
 
         assert outcome == "sequential"
-        mock_drain.delay.assert_called_once_with(webhook.id)
+        mock_drain.delay.assert_called_once_with(webhook.id, claimed_count=1)
         queries = [
             q["sql"]
             for q in ctx.captured_queries
@@ -471,6 +471,22 @@ class DrainMailboxTest(TestCase):
         assert first
         assert first.attempts == 1
         assert first.schedule_for > timezone.now()
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_stops_at_claimed_count(self) -> None:
+        # A claim-mode drain holds no lock while running: delivering past its
+        # claimed records would race a drain another dispatcher may have started
+        # for the (due-again) mailbox head. It must stop at the claim boundary.
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        records = create_payloads(8, "github:123", provider="github")
+
+        drain_mailbox(records[0].id, claimed_count=5)
+
+        assert len(responses.calls) == 5
+        remaining = set(WebhookPayload.objects.values_list("id", flat=True))
+        assert remaining == {records[5].id, records[6].id, records[7].id}
 
     @responses.activate
     @override_cells(cell_config)
@@ -754,6 +770,21 @@ class DrainMailboxParallelTest(TestCase):
         with pytest.raises(CellResolutionError):
             drain_mailbox_parallel(webhook_one.id)
         assert len(responses.calls) == 0
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_stops_at_claimed_count(self) -> None:
+        # Mirrors DrainMailboxTest.test_drain_stops_at_claimed_count: a
+        # claim-mode parallel drain must not deliver past its claimed records.
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        records = create_payloads(8, "github:123", provider="github")
+
+        drain_mailbox_parallel(records[0].id, claimed_count=5)
+
+        assert len(responses.calls) == 5
+        remaining = set(WebhookPayload.objects.values_list("id", flat=True))
+        assert remaining == {records[5].id, records[6].id, records[7].id}
 
     @responses.activate
     @override_cells(cell_config)
@@ -1217,7 +1248,7 @@ class PushTriggerTest(TestCase):
     def test_push_trigger_enqueues_drain_for_idle_mailbox(self, mock_drain: MagicMock) -> None:
         webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
         maybe_trigger_drain(webhook.mailbox_name)
-        mock_drain.delay.assert_called_once_with(webhook.id)
+        mock_drain.delay.assert_called_once_with(webhook.id, claimed_count=1)
         # The batch is claimed before dispatch; the claim is what keeps other
         # dispatchers off the mailbox while the drain runs.
         webhook.refresh_from_db()
@@ -1257,7 +1288,7 @@ class PushTriggerTest(TestCase):
         # Trigger with the newer webhook's ID, as get_response_from_webhookpayload does
         maybe_trigger_drain(newer_webhook.mailbox_name)
         # Must drain from the head of the mailbox so the older payload is not skipped
-        mock_drain.delay.assert_called_once_with(older_webhook.id)
+        mock_drain.delay.assert_called_once_with(older_webhook.id, claimed_count=2)
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
     @override_options(CLAIM_MODE_OPTIONS)
@@ -1390,7 +1421,7 @@ class PushTriggerTest(TestCase):
         # trigger a fresh drain right away.
         webhook_two = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
         maybe_trigger_drain(webhook_two.mailbox_name)
-        mock_drain.delay.assert_called_once_with(webhook_two.id)
+        mock_drain.delay.assert_called_once_with(webhook_two.id, claimed_count=1)
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
     @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
@@ -1450,7 +1481,9 @@ class PushTriggerTest(TestCase):
 
         # A mailbox this deep is behind; the sequential drain would work it off at
         # one in-flight request for its whole run.
-        mock_drain_parallel.delay.assert_called_once_with(records[0].id)
+        mock_drain_parallel.delay.assert_called_once_with(
+            records[0].id, claimed_count=PARALLEL_DRAIN_THRESHOLD
+        )
         mock_drain.delay.assert_not_called()
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox_parallel")
@@ -1464,7 +1497,9 @@ class PushTriggerTest(TestCase):
         maybe_trigger_drain("github:123")
 
         # One record short of the threshold keeps strict ordering.
-        mock_drain.delay.assert_called_once_with(records[0].id)
+        mock_drain.delay.assert_called_once_with(
+            records[0].id, claimed_count=PARALLEL_DRAIN_THRESHOLD - 1
+        )
         mock_drain_parallel.delay.assert_not_called()
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox_parallel")
