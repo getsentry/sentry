@@ -6,6 +6,8 @@ import orjson
 import pytest
 import responses
 from django.core.cache import cache
+from django.db import connections
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from requests.exceptions import ConnectionError, ReadTimeout
 
@@ -210,6 +212,35 @@ class ScheduleWebhooksTest(TestCase):
         webhook.refresh_from_db()
         # The existing claim must not be extended either.
         assert webhook.schedule_for == claimed_for
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox_parallel")
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_claim_and_dispatch_claims_in_a_single_query(
+        self, mock_drain: MagicMock, mock_drain_parallel: MagicMock
+    ) -> None:
+        # The due-gate rides in the claim UPDATE's WHERE clause. A separate
+        # primary read before the claim would double the per-mailbox dispatch
+        # round trips, so lock in the single-statement shape.
+        webhook = self.create_webhook_payload(
+            mailbox_name="github:123",
+            cell_name="us",
+        )
+
+        with CaptureQueriesContext(connections["control"]) as ctx:
+            outcome = _claim_and_dispatch(webhook.id, webhook.mailbox_name)
+
+        assert outcome == "sequential"
+        mock_drain.delay.assert_called_once_with(webhook.id)
+        queries = [
+            q["sql"]
+            for q in ctx.captured_queries
+            if not q["sql"].startswith(("SAVEPOINT", "RELEASE SAVEPOINT"))
+        ]
+        assert len(queries) == 1, queries
+        assert "UPDATE" in queries[0]
+        assert "EXISTS" in queries[0]
+        webhook.refresh_from_db()
+        assert webhook.schedule_for > timezone.now()
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
     @patch(
