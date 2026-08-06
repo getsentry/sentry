@@ -50,7 +50,6 @@ from sentry.dynamic_sampling.per_org.telemetry import (
     track_dynamic_sampling,
 )
 from sentry.dynamic_sampling.rules.utils import OrganizationId
-from sentry.dynamic_sampling.utils import has_dynamic_sampling
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
@@ -231,21 +230,11 @@ def log_sample_rates_summary(
 def schedule_per_org_calculations() -> None:
     dispatched = 0
     skipped = 0
-    without_dynamic_sampling = 0
 
     def validate_and_track(org_id: int) -> bool:
-        nonlocal dispatched, skipped, without_dynamic_sampling
+        nonlocal dispatched, skipped
         if not is_org_in_rollout(org_id):
             skipped += 1
-            return False
-        # The PK snapshot is taken once per cycle, so an org can be deleted before its
-        # turn to be dispatched comes up.
-        try:
-            organization = Organization.objects.get_from_cache(id=org_id)
-        except Organization.DoesNotExist:
-            organization = None
-        if not has_dynamic_sampling(organization):
-            without_dynamic_sampling += 1
             return False
         dispatched += 1
         return True
@@ -277,9 +266,4 @@ def schedule_per_org_calculations() -> None:
         SCHEDULER_BUCKET_ORG_STATUS_METRIC,
         DynamicSamplingStatus.ROLLOUT_EXCLUDED,
         amount=skipped,
-    )
-    emit_status(
-        SCHEDULER_BUCKET_ORG_STATUS_METRIC,
-        DynamicSamplingStatus.ORG_HAS_NO_DYNAMIC_SAMPLING,
-        amount=without_dynamic_sampling,
     )
