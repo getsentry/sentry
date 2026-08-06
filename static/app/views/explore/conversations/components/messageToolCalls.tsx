@@ -157,7 +157,7 @@ function ToolCallRow({tool, node, isSelected, onSelectNode}: ToolCallRowProps) {
     width: calc(100% + ${theme.space.sm} * 2);
     margin: 0 -${theme.space.sm};
     &:hover {
-      opacity: 0.85;
+      background: ${theme.tokens.interactive.transparent.neutral.background.hover};
     }
   `;
 
