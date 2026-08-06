@@ -39,6 +39,7 @@ from sentry.utils import json
 from sentry.utils.signing import sign
 
 pytestmark = [requires_snuba]
+EXPLICIT_MAPPING_REMOVALS_FEATURE = "organizations:jira-explicit-mapping-removals"
 
 
 def get_client():
@@ -1207,44 +1208,14 @@ class JiraIntegrationTest(APITestCase):
             == 1
         )
 
-        # An empty payload no longer disables forward sync -- it asks for nothing, so the
-        # existing mapping survives and the derived bool stays on.
+        # Without explicit removals enabled, the payload is a complete replacement. An empty
+        # payload removes every mapping and disables forward sync.
         data = {
             "sync_comments": True,
             "sync_forward_assignment": True,
             "sync_reverse_assignment": True,
             "sync_status_reverse": True,
             "sync_status_forward": {},
-        }
-
-        installation.update_organization_config(data)
-
-        org_integration = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration_id=integration.id
-        )
-
-        assert org_integration.config == {
-            "sync_comments": True,
-            "sync_forward_assignment": True,
-            "sync_reverse_assignment": True,
-            "sync_status_reverse": True,
-            "sync_status_forward": True,
-        }
-
-        assert (
-            IntegrationExternalProject.objects.filter(
-                organization_integration_id=org_integration.id
-            ).count()
-            == 1
-        )
-
-        # test disable forward -- an explicit removal for every mapping
-        data = {
-            "sync_comments": True,
-            "sync_forward_assignment": True,
-            "sync_reverse_assignment": True,
-            "sync_status_reverse": True,
-            "sync_status_forward": {10100: None},
         }
 
         installation.update_organization_config(data)
@@ -1449,6 +1420,42 @@ class JiraIntegrationTest(APITestCase):
         )
         return integration.get_installation(self.organization.id), org_integration
 
+    def test_update_organization_config_replaces_omitted_mappings_without_feature(self) -> None:
+        installation, org_integration = self._jira_installation_with_mappings("1", "2")
+
+        with patch("sentry.integrations.jira.integration.logger") as mock_logger:
+            audit_data = installation.update_organization_config(
+                {
+                    "sync_status_forward": {
+                        "1": {"on_resolve": "done", "on_unresolve": "in_progress"}
+                    }
+                }
+            )
+
+        assert self._mappings(org_integration.id) == {"1": ("done", "in_progress")}
+        mock_logger.info.assert_not_called()
+        assert audit_data == {
+            "sync_status_forward": {
+                "added_count": 0,
+                "updated_count": 0,
+                "removed_count": 1,
+                "added_project_mappings": [],
+                "updated_project_mappings": [],
+                "removed_project_mappings": [
+                    {"external_id": "2", "on_resolve": "done", "on_unresolve": "in_progress"}
+                ],
+            }
+        }
+
+    def test_update_organization_config_rejects_explicit_removal_without_feature(self) -> None:
+        installation, org_integration = self._jira_installation_with_mappings("1")
+
+        with pytest.raises(IntegrationError):
+            installation.update_organization_config({"sync_status_forward": {"1": None}})
+
+        assert self._mappings(org_integration.id) == {"1": ("done", "in_progress")}
+
+    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
     def test_update_organization_config_only_touches_changed_mappings(self) -> None:
         """
         A mapping the payload doesn't mention is left alone -- absence is not a delete.
@@ -1524,6 +1531,7 @@ class JiraIntegrationTest(APITestCase):
             {"external_id": "3", "on_resolve": "done", "on_unresolve": "in_progress"}
         ]
 
+    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
     def test_update_organization_config_removes_only_explicit_removals(self) -> None:
         """One explicit removal removes exactly one mapping and records its prior statuses."""
         installation, org_integration = self._jira_installation_with_mappings("1", "2", "3")
@@ -1549,6 +1557,7 @@ class JiraIntegrationTest(APITestCase):
         assert installation.org_integration is not None
         assert installation.org_integration.config["sync_status_forward"] is True
 
+    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
     def test_update_organization_config_empty_payload_leaves_mappings_alone(self) -> None:
         """
         The payload that caused the original incident -- a subset of the stored mappings, in
@@ -1567,6 +1576,7 @@ class JiraIntegrationTest(APITestCase):
         assert installation.org_integration is not None
         assert installation.org_integration.config["sync_status_forward"] is True
 
+    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
     def test_update_organization_config_empty_payload_with_no_mappings(self) -> None:
         """With nothing stored, an empty payload leaves the derived bool off."""
         installation, org_integration = self._jira_installation_with_mappings()
@@ -1576,6 +1586,7 @@ class JiraIntegrationTest(APITestCase):
         assert installation.org_integration is not None
         assert installation.org_integration.config["sync_status_forward"] is False
 
+    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
     def test_update_organization_config_upsert_only_payload_keeps_sync_enabled(self) -> None:
         """
         The config bool is derived from the surviving rows, not from the payload.
@@ -1593,6 +1604,7 @@ class JiraIntegrationTest(APITestCase):
         assert installation.org_integration is not None
         assert installation.org_integration.config["sync_status_forward"] is True
 
+    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
     def test_update_organization_config_ignores_removal_for_unknown_mapping(self) -> None:
         """
         The settings form produces a stale removal by deleting a row twice before the
@@ -1614,6 +1626,7 @@ class JiraIntegrationTest(APITestCase):
 
         assert self._mappings(org_integration.id) == {"1": ("done", "in_progress")}
 
+    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
     def test_update_organization_config_logs_omitted_mappings(self) -> None:
         """
         A payload that omits stored mappings leaves no audit entry, so the log is the only
@@ -1637,6 +1650,7 @@ class JiraIntegrationTest(APITestCase):
             },
         )
 
+    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
     def test_update_organization_config_does_not_log_a_complete_payload(self) -> None:
         installation, _ = self._jira_installation_with_mappings("1")
 
@@ -1768,6 +1782,7 @@ class JiraIntegrationTest(APITestCase):
 
         assert self._mappings(org_integration.id) == {"1": ("done", "in_progress")}
 
+    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
     def test_update_organization_config_mapping_write_is_atomic(self) -> None:
         """A failure part-way through must not leave the mappings half-written."""
         installation, org_integration = self._jira_installation_with_mappings("1", "2")
