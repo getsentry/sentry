@@ -77,10 +77,15 @@ def _tags(data: Mapping[str, Any]) -> tuple[list[tuple[str, str | None]], str | 
 _REPORTER_IDENTIFIER_KEYS = frozenset({"contact_email", "name"})
 
 
-def _contexts(data: Mapping[str, Any]) -> dict[str, Any]:
+def _contexts(data: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
+    # a context key can hold a null or a scalar; those carry nothing to render and would fail
+    # EventObject's dict[str, dict] validation, which takes the whole render down, not just
+    # this section -- the adapter runs before any section does
+    contexts = {
+        key: value for key, value in (data.get("contexts") or {}).items() if isinstance(value, dict)
+    }
     # scoped to the feedback context on purpose: `name` is a legitimate key on browser, os
     # and runtime contexts, so a blanket filter would drop real data
-    contexts = dict(data.get("contexts") or {})
     if "feedback" in contexts:
         contexts["feedback"] = {
             key: value

@@ -1,7 +1,10 @@
 from datetime import datetime, timezone
 from typing import Any
 
+import pytest
+
 from sentry.issues.formatting.adapter import event_response_to_model
+from sentry.issues.formatting.sections import EVENT_SECTIONS_WITH_USER, format_issue
 
 
 def _serialized_event() -> dict[str, Any]:
@@ -322,3 +325,18 @@ def test_feedback_context_drops_reporter_identifiers() -> None:
         "associated_event_id": "abc123",
     }
     assert m.contexts["browser"] == {"name": "Firefox", "version": "121.0"}
+
+
+@pytest.mark.parametrize("value", [None, "oops", 5, []])
+def test_non_mapping_context_is_dropped_without_sinking_the_render(value: Any) -> None:
+    # a context key holding anything but a mapping has nothing to render, and letting it reach
+    # EventObject would fail dict[str, dict] validation inside the adapter -- which format_issue
+    # absorbs by returning "", losing the whole event, not just this one context
+    data = {
+        "title": "t",
+        "message": "boom",
+        "contexts": {"feedback": value, "browser": {"name": "Firefox"}},
+    }
+    m = event_response_to_model(data)
+    assert m.contexts == {"browser": {"name": "Firefox"}}
+    assert "boom" in format_issue(data, sections=EVENT_SECTIONS_WITH_USER)
