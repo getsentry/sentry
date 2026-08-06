@@ -1446,6 +1446,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "post_process.disable-pipeline-steps",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "api.organization.disable-last-deploys",
     type=Sequence,
     default=[],
