@@ -35,12 +35,12 @@ logger = logging.getLogger(__name__)
 _DETECTOR_SENTINEL = object()
 
 
-def get_all_projects_detector_cache_key(organization_id: int) -> str:
+def _get_all_projects_detector_cache_key(organization_id: int) -> str:
     return f"detector:all_projects:{organization_id}"
 
 
-def get_all_projects_detector_for_org(organization_id: int) -> Detector | None:
-    cache_key = get_all_projects_detector_cache_key(organization_id)
+def get_all_projects_detector(organization_id: int) -> Detector | None:
+    cache_key = _get_all_projects_detector_cache_key(organization_id)
     cached = cache.get(cache_key, default=_DETECTOR_SENTINEL)
     if cached is not _DETECTOR_SENTINEL:
         return cached
@@ -57,7 +57,7 @@ def invalidate_all_projects_detector_cache(instance: Detector) -> None:
     if instance.project_id is None:
         organization_id = instance.config.get("organization_id")
         if organization_id is not None:
-            cache_key = get_all_projects_detector_cache_key(organization_id)
+            cache_key = _get_all_projects_detector_cache_key(organization_id)
             cache.delete(cache_key)
 
 
@@ -154,7 +154,7 @@ def get_detectors_for_event_data(
 
     if options.get("workflow_engine.all_projects_detectors_enabled"):
         organization_id = event_data.event.project.organization_id
-        all_projects_detector = get_all_projects_detector_for_org(organization_id)
+        all_projects_detector = get_all_projects_detector(organization_id)
         if all_projects_detector:
             issue_stream_detectors.append(all_projects_detector)
 

@@ -32,6 +32,7 @@ from sentry.workflow_engine.processors.detector import (
     EventDetectors,
     associate_new_group_with_detector,
     ensure_association_with_detector,
+    get_all_projects_detector,
     get_detectors_for_event_data,
     get_preferred_detector,
     process_detectors,
@@ -1036,6 +1037,21 @@ class TestEventDetectorsAllProject(TestCase):
         ed = EventDetectors(issue_stream_detectors=[self.all_projects_detector])
         assert ed.has_detectors is True
         assert ed.detectors == {self.all_projects_detector}
+
+    def test_cached_miss_is_invalidated_when_detector_is_created(self) -> None:
+        self.all_projects_detector.delete()
+        cache.clear()
+        assert get_all_projects_detector(self.organization.id) is None
+
+        with self.captureOnCommitCallbacks(execute=True):
+            detector = Detector.objects.create(
+                project=None,
+                type=IssueStreamGroupType.slug,
+                config={"organization_id": self.organization.id},
+                name="All Projects Detector",
+            )
+
+        assert get_all_projects_detector(self.organization.id) == detector
 
 
 class TestGetDetectorsForEventAllProject(TestCase):

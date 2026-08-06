@@ -33,7 +33,7 @@ def enforce_config_schema_signal(sender: type[Detector], instance: Detector, **k
 @receiver(post_save, sender=Detector)
 @receiver(pre_delete, sender=Detector)
 def invalidate_detector_cache(sender: type[Detector], instance: Detector, **kwargs: Any) -> None:
-    if kwargs.get("created") or not instance.id:
+    if not instance.id:
         return
 
     data_sources = list(instance.data_sources.values_list("source_id", "type"))
