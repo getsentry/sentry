@@ -1,6 +1,6 @@
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
-export function handleStoryCodeCopy(event: React.MouseEvent<HTMLElement>) {
+export function handleExpressiveCodeCopy(event: React.MouseEvent<HTMLElement>) {
   if (!(event.target instanceof Element)) {
     return;
   }

@@ -1,11 +1,11 @@
 import {fireEvent, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
-import {handleStoryCodeCopy} from 'sentry/utils/handleStoryCodeCopy';
+import {handleExpressiveCodeCopy} from 'sentry/utils/expressiveCodeCopy';
 
 function StoryCodeBlock() {
   return (
-    <main onClick={handleStoryCodeCopy}>
+    <main onClick={handleExpressiveCodeCopy}>
       <div className="expressive-code">
         <div className="copy">
           <button
@@ -20,7 +20,7 @@ function StoryCodeBlock() {
   );
 }
 
-describe('handleStoryCodeCopy', () => {
+describe('handleExpressiveCodeCopy', () => {
   it('copies fenced MDX code blocks', async () => {
     const writeText = jest.fn().mockResolvedValue(undefined);
     const addSuccessMessage = jest.spyOn(indicators, 'addSuccessMessage');
