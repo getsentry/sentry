@@ -149,7 +149,8 @@ describe('InboxPage', () => {
     query: string,
     body: unknown,
     statusCode = 200,
-    total = Array.isArray(body) ? body.length : 0
+    total = Array.isArray(body) ? body.length : 0,
+    asyncDelay?: number
   ) {
     return MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
@@ -159,6 +160,7 @@ describe('InboxPage', () => {
       body,
       headers: {'X-Hits': String(total)},
       statusCode,
+      asyncDelay,
     });
   }
 
@@ -187,19 +189,21 @@ describe('InboxPage', () => {
   }
 
   function mockIssuePreview({
+    group = fixProposedGroup,
     markSeenResponse = {...fixProposedGroup, hasSeen: true},
     markSeenStatusCode = 200,
   }: {
+    group?: typeof fixProposedGroup;
     markSeenResponse?: typeof fixProposedGroup;
     markSeenStatusCode?: number;
   } = {}) {
-    let previewHasSeen = fixProposedGroup.hasSeen;
+    let previewHasSeen = group.hasSeen;
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/`,
-      body: () => ({...fixProposedGroup, hasSeen: previewHasSeen}),
+      url: `/organizations/org-slug/issues/${group.id}/`,
+      body: () => ({...group, hasSeen: previewHasSeen}),
     });
     const markSeenRequest = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/`,
+      url: `/organizations/org-slug/issues/${group.id}/`,
       method: 'PUT',
       body: () => {
         if (markSeenStatusCode < 400) {
@@ -210,7 +214,7 @@ describe('InboxPage', () => {
       statusCode: markSeenStatusCode,
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/autofix/setup/`,
+      url: `/organizations/org-slug/issues/${group.id}/autofix/setup/`,
       body: {
         integration: {ok: false, reason: null},
         billing: {hasAutofixQuota: false},
@@ -218,23 +222,27 @@ describe('InboxPage', () => {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/attachments/`,
+      url: `/organizations/org-slug/issues/${group.id}/autofix/`,
+      body: ExplorerAutofixResponseFixture({autofix: null}),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/attachments/`,
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/tags/`,
+      url: `/organizations/org-slug/issues/${group.id}/tags/`,
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/external-issues/`,
+      url: `/organizations/org-slug/issues/${group.id}/external-issues/`,
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/integrations/`,
+      url: `/organizations/org-slug/issues/${group.id}/integrations/`,
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/pull-requests/`,
+      url: `/organizations/org-slug/issues/${group.id}/pull-requests/`,
       body: {pullRequests: []},
     });
     MockApiClient.addMockResponse({
@@ -1057,6 +1065,36 @@ describe('InboxPage', () => {
         })
       ).toHaveAttribute('aria-current', 'true');
       unmount();
+    });
+
+    it('follows section order even when a later section resolves first', async () => {
+      // Diagnosed resolves immediately, Fix Proposed only after a delay. Both
+      // have issues, so taking whichever result arrives first would select the
+      // Diagnosed issue; section priority must win instead.
+      mockSection(
+        'issue.progress:fix_proposed is:unresolved assigned:[me,my_teams]',
+        [fixProposedGroup],
+        200,
+        1,
+        100
+      );
+      mockSection('issue.progress:diagnosed is:unresolved assigned:[me,my_teams]', [
+        diagnosedGroup,
+      ]);
+      mockSection('issue.progress:assigned is:unresolved assigned:[me,my_teams]', [
+        assignedGroup,
+      ]);
+      mockSection('issue.progress:fix_applied is:unresolved assigned:[me,my_teams]', []);
+      mockIssuePreview();
+
+      const {router} = render(<InboxPage />, {
+        organization: seerOrganization,
+        initialRouterConfig,
+      });
+
+      await waitFor(() => {
+        expect(router.location.query.preview).toBe(fixProposedGroup.id);
+      });
     });
   });
 });
