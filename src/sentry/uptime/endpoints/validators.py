@@ -416,15 +416,13 @@ class UptimeMonitorValidator(UptimeValidatorBase):
             else instance.config["downtime_threshold"]
         )
 
-        if "environment" in data:
+        env_name = data.get("environment", instance.config.get("environment"))
+        if env_name is None:
+            environment = None
+        else:
             environment = Environment.get_or_create(
                 project=self.context["project"],
-                name=data["environment"],
-            )
-        else:
-            environment = Environment.objects.get(
-                projects=self.context["project"],
-                name=instance.config["environment"],
+                name=env_name,
             )
 
         if "mode" in data:
