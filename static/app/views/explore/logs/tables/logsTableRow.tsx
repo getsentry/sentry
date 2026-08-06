@@ -393,7 +393,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
       ...(observedTimestamp && {
         [OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE]: String(observedTimestamp.value),
       }),
-    } as OurLogsResponseItem,
+    },
     attributeTypes: meta?.fields ?? {},
     theme,
     projectSlug,

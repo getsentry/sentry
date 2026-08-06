@@ -203,8 +203,8 @@ const TimelineRow = memo(function TimelineRowImpl({
                     title={title}
                     mode="overflowOnly"
                     size="sm"
-                    variant={isSelected ? 'primary' : 'muted'}
-                    monospace
+                    variant="primary"
+                    bold
                   >
                     {title}
                   </InfoText>

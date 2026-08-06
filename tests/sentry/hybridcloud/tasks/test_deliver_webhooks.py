@@ -757,6 +757,34 @@ class DrainMailboxParallelTest(TestCase):
 
     @responses.activate
     @override_cells(cell_config)
+    def test_drain_claim_bound_shrinks_with_stale_discards(self) -> None:
+        # The stale sweep deletes claimed rows before delivery starts. The walk
+        # budget must shrink by the discard count, or the drain spends it on
+        # unclaimed due rows — the overlap claimed_count exists to prevent.
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        stale = [
+            Factories.create_webhook_payload(
+                mailbox_name="github:123",
+                cell_name="us",
+                provider="github",
+                date_added=timezone.now() - timedelta(days=4),
+            )
+            for _ in range(3)
+        ]
+        fresh = create_payloads(5, "github:123", provider="github")
+
+        # The claim covered the 3 stale rows plus 2 fresh ones.
+        drain_mailbox_parallel(stale[0].id, claimed_count=5)
+
+        # The sweep discards the 3 stale rows and the budget shrinks with them:
+        # only the 2 claimed fresh rows are delivered.
+        assert len(responses.calls) == 2
+        remaining_ids = set(WebhookPayload.objects.values_list("id", flat=True))
+        assert remaining_ids == {fresh[2].id, fresh[3].id, fresh[4].id}
+
+    @responses.activate
+    @override_cells(cell_config)
     def test_drain_success_partial(self) -> None:
         responses.add(
             responses.POST,

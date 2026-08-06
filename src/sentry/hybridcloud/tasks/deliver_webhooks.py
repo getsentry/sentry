@@ -613,10 +613,13 @@ def drain_mailbox(
             _release_drain_lock(mailbox_name)
 
 
-def _discard_stale_mailbox_payloads(payload: WebhookPayload) -> None:
+def _discard_stale_mailbox_payloads(payload: WebhookPayload) -> int:
     """
     Remove payloads in this mailbox that are older than MAX_DELIVERY_AGE.
     Once payloads are this old they are low value, and we're better off prioritizing new work.
+
+    Returns the number of rows discarded. The sweep deletes by age and ignores
+    claims, so claim-bounded callers must reconcile their walk budget with it.
     """
     with start_span(
         op="hybridcloud.deliver_webhooks.discard_stale_mailbox_payloads",
@@ -625,7 +628,7 @@ def _discard_stale_mailbox_payloads(payload: WebhookPayload) -> None:
         set_span_tag(span, "mailbox_name", payload.mailbox_name)
         max_age = timezone.now() - MAX_DELIVERY_AGE
         if payload.date_added >= max_age:
-            return
+            return 0
         stale_query = WebhookPayload.objects.filter(
             id__gte=payload.id,
             mailbox_name=payload.mailbox_name,
@@ -643,6 +646,7 @@ def _discard_stale_mailbox_payloads(payload: WebhookPayload) -> None:
             metrics.incr(
                 "hybridcloud.deliver_webhooks.delivery", amount=deleted, tags={"outcome": "max_age"}
             )
+        return deleted
 
 
 def _get_github_delivery_time_tags(payload: WebhookPayload) -> dict[str, str]:
@@ -807,7 +811,7 @@ def drain_mailbox_parallel(
         return
 
     _set_webhook_delivery_sentry_context(payload)
-    _discard_stale_mailbox_payloads(payload)
+    discarded = _discard_stale_mailbox_payloads(payload)
 
     skip_on_failure_providers = frozenset(
         options.get("hybridcloud.webhookpayload.skip_on_failure_providers") or ()
@@ -818,9 +822,23 @@ def drain_mailbox_parallel(
     deadline = timezone.now() + BATCH_SCHEDULE_OFFSET
     delivered = 0
     remaining = claimed_count
+    if remaining is not None and discarded:
+        # The stale sweep deletes claimed rows without walking them, so shrink
+        # the budget by what it removed — otherwise the leftover budget gets
+        # spent on unclaimed due rows, racing whichever dispatcher claims them.
+        # Discards past the claim boundary over-subtract, which only stops this
+        # drain early; the next dispatch continues under a fresh claim.
+        remaining = max(0, remaining - discarded)
     current_id = payload.id
     extra = {**payload.as_dict(), "delivered": delivered}
     try:
+        if remaining == 0:
+            # The sweep consumed the whole claim.
+            logger.debug("deliver_webhook_parallel.claim_exhausted", extra=extra)
+            metrics.incr(
+                "hybridcloud.deliver_webhooks.delivery", tags={"outcome": "claim_exhausted"}
+            )
+            return
         while True:
             if mailbox_name and options.get("hybridcloud.webhookpayload.push_drain_trigger"):
                 _refresh_drain_lock(payload.mailbox_name)

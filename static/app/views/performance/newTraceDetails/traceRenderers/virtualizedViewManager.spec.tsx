@@ -134,7 +134,7 @@ describe('VirtualizedViewManger', () => {
       width: 520,
       height: 238,
       toJSON: () => ({}),
-    } as DOMRect);
+    });
 
     let dispatchedContainerPhysicalSpace: [number, number, number, number] | null = null;
     scheduler.on('set container physical space', containerPhysicalSpace => {
@@ -1389,7 +1389,7 @@ describe('VirtualizedViewManger', () => {
           }
           return compressedOffset + removedDuration;
         },
-      } as TraceTimeCompression;
+      };
       manager.recomputeSpanToPXMatrix();
 
       const markerRef = document.createElement('div');
