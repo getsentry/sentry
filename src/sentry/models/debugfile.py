@@ -521,8 +521,8 @@ def create_dif_from_id(
     if dif is not None:
         return dif, False
 
-    content_type = DIF_MIMETYPES[meta.file_format]
     object_name = _get_dif_object_name(meta)
+    content_type = DIF_MIMETYPES[meta.file_format]
     exclusive_objectstore_write = features.has(
         "organizations:objectstore-debugfiles-exclusive-write", project.organization
     )
