@@ -1,7 +1,8 @@
 import {useRef} from 'react';
 
 import {dragHandle} from 'sentry-test/dragMove';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {triggerResizeObservers} from 'sentry-test/resizeObserver';
 
 import {ColumnResizer} from 'sentry/components/tables/columnResizer';
 import {useColumnResize} from 'sentry/components/tables/useColumnResize';
@@ -9,20 +10,17 @@ import {useColumnResize} from 'sentry/components/tables/useColumnResize';
 interface TestTableProps {
   getResizeTemplate?: (columnIndex: number, newWidth: number) => string;
   onColumnResizeEnd?: (columnIndex: number, newWidth: number) => void;
-  writeResizerHeightVar?: boolean;
 }
 
 function TestTable({
   getResizeTemplate = (_index, newWidth) => `${Math.round(newWidth)}px`,
   onColumnResizeEnd,
-  writeResizerHeightVar,
 }: TestTableProps) {
   const gridRef = useRef<HTMLTableElement>(null);
   const {onResizeEnd, onResizeMove, onResizeStart} = useColumnResize({
     gridRef,
     getResizeTemplate,
     onColumnResizeEnd,
-    writeResizerHeightVar,
   });
 
   return (
@@ -33,7 +31,6 @@ function TestTable({
             <div>Column</div>
             <ColumnResizer
               columnIndex={0}
-              dataRows={0}
               onResizeEnd={onResizeEnd}
               onResizeMove={onResizeMove}
               onResizeStart={onResizeStart}
@@ -118,29 +115,42 @@ describe('useColumnResize', () => {
     expect(onColumnResizeEnd).not.toHaveBeenCalled();
   });
 
-  it('sets the resizer-height CSS variable when writeResizerHeightVar is enabled', async () => {
-    render(<TestTable writeResizerHeightVar />);
+  // jsdom reports every element as zero-sized, so the geometry the resizer observes
+  // has to be stubbed before the observers are triggered by hand.
+  function stubGeometry({cell, table}: {cell: number; table: number}) {
+    Object.defineProperty(screen.getByRole('columnheader'), 'offsetWidth', {
+      configurable: true,
+      get: () => cell,
+    });
+    const grid = screen.getByTestId('grid');
+    Object.defineProperty(grid, 'clientWidth', {configurable: true, get: () => table});
+    Object.defineProperty(grid, 'offsetHeight', {configurable: true, get: () => 240});
+  }
 
-    dragHandle(resizer(), {from: 100, to: 150});
+  it('publishes the table height to the handle as a CSS variable', () => {
+    render(<TestTable />);
+    stubGeometry({cell: 150, table: 900});
 
-    await waitFor(() =>
-      expect(
-        screen
-          .getByTestId('grid')
-          .style.getPropertyValue('--grid-editable-resizer-height')
-      ).toBe('0px')
-    );
+    act(triggerResizeObservers);
+
+    expect(resizer().style.getPropertyValue('--column-resizer-height')).toBe('240px');
   });
 
-  it('does not set the resizer-height CSS variable by default', async () => {
-    const getResizeTemplate = jest.fn(() => '50px');
-    render(<TestTable getResizeTemplate={getResizeTemplate} />);
+  it('announces the observed column width against the table width', () => {
+    render(<TestTable />);
+    stubGeometry({cell: 150, table: 900});
 
-    dragHandle(resizer(), {from: 100, to: 150});
-    await waitFor(() => expect(getResizeTemplate).toHaveBeenCalled());
+    act(triggerResizeObservers);
 
-    expect(
-      screen.getByTestId('grid').style.getPropertyValue('--grid-editable-resizer-height')
-    ).toBe('');
+    expect(resizer()).toHaveAttribute('aria-valuenow', '150');
+  });
+
+  it('announces the table width as the upper bound', () => {
+    render(<TestTable />);
+    stubGeometry({cell: 150, table: 900});
+
+    act(triggerResizeObservers);
+
+    expect(resizer()).toHaveAttribute('aria-valuemax', '900');
   });
 });

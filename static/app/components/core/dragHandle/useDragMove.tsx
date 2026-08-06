@@ -1,6 +1,8 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {useMove} from '@react-aria/interactions';
 
+import {setDocumentDragging} from 'sentry/utils/setDocumentDragging';
+
 import type {Orientation} from './dragHandle';
 
 const KEYBOARD_STEP = 10;
@@ -14,12 +16,6 @@ interface UseDragMoveOptions {
   onMoveEnd?: () => void;
   onMoveStart?: () => void;
   step?: number;
-}
-
-function setDocumentDragging(isDragging: boolean, cursor: string) {
-  document.body.style.pointerEvents = isDragging ? 'none' : '';
-  document.body.style.userSelect = isDragging ? 'none' : '';
-  document.documentElement.style.cursor = isDragging ? cursor : '';
 }
 
 export function useDragMove({
@@ -36,7 +32,7 @@ export function useDragMove({
   const stopDocumentDragging = useCallback(() => {
     if (isPointerDragRef.current) {
       isPointerDragRef.current = false;
-      setDocumentDragging(false, '');
+      setDocumentDragging(null);
     }
   }, []);
 
@@ -48,10 +44,7 @@ export function useDragMove({
 
       if (event.pointerType !== 'keyboard') {
         isPointerDragRef.current = true;
-        setDocumentDragging(
-          true,
-          orientation === 'horizontal' ? 'ew-resize' : 'ns-resize'
-        );
+        setDocumentDragging(orientation === 'horizontal' ? 'ew-resize' : 'ns-resize');
       }
 
       onMoveStart?.();
