@@ -7,7 +7,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {AutoSelectText} from 'sentry/components/autoSelectText';
 import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration/duration';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -39,7 +38,11 @@ function TimestampTooltipBody({
     : null;
   const timestampToUse = preciseTimestampMs ? new Date(preciseTimestampMs) : timestamp;
 
-  const observedTimeNanos = attributes[OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE];
+  // Trace item details only alias the observed timestamp when it comes back as an int,
+  // so string-stored values arrive under the internal name instead.
+  const observedTimeNanos =
+    attributes[OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE] ??
+    attributes[OurLogKnownFieldKey.OBSERVED_TIMESTAMP_NANOS];
   const observedTime = observedTimeNanos
     ? new Date(Math.floor(Number(observedTimeNanos) / 1_000_000))
     : null;
@@ -94,21 +97,19 @@ function TimestampTooltipBody({
         </Fragment>
       )}
 
-      <Fragment>
-        <HorizontalRule />
-        <dt>{t('Received')}</dt>
-        <dd>
-          {observedTime ? (
+      {observedTime && (
+        <Fragment>
+          <HorizontalRule />
+          <dt>{t('Received')}</dt>
+          <dd>
             <TimestampValues>
               <AutoSelectText>
                 <DateTime date={observedTime} seconds timeZone />
               </AutoSelectText>
             </TimestampValues>
-          ) : (
-            <LoadingIndicator size={16} style={{margin: 0}} />
-          )}
-        </dd>
-      </Fragment>
+          </dd>
+        </Fragment>
+      )}
     </DescriptionList>
   );
 }
