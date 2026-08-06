@@ -167,7 +167,6 @@ const LogsSearchSection = memo(function LogsSearchSection({
   return (
     <SearchQueryBuilderProvider
       enableAISearch={hasTranslateEndpoint}
-      aiSearchBadgeType="beta"
       {...searchQueryBuilderProviderProps}
     >
       <ExploreBodySearch>

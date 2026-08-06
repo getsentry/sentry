@@ -14,8 +14,6 @@ import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {Overlay} from 'sentry/components/overlay';
 import {AskSeer} from 'sentry/components/searchQueryBuilder/askSeer/askSeer';
-import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
-import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {OpenAskSeerButton} from 'sentry/components/searchQueryBuilder/askSeer/openAskSeerButton';
 import {
   useSearchQueryBuilderAI,
@@ -34,7 +32,6 @@ import {
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
 
 interface FilterKeyListBoxProps<T> extends CustomComboboxMenuProps<T> {
@@ -89,21 +86,17 @@ function FeedbackFooter({
   askSeerButtonRef: React.RefObject<HTMLButtonElement | null>;
   onAskSeerTabForward: () => void;
 }) {
-  const organization = useOrganization();
   const {searchSource} = useSearchQueryBuilderConfig();
   const {enableAISearch} = useSearchQueryBuilderAI();
 
-  const hasAskSeerRework =
-    enableAISearch && organization.features.includes('gen-ai-ask-seer-ux-rework');
-
   return (
-    <SectionedOverlayFooter hasAskSeerRework={hasAskSeerRework}>
-      {hasAskSeerRework ? (
+    <SectionedOverlayFooter>
+      {enableAISearch ? (
         <OpenAskSeerButton ref={askSeerButtonRef} onTabForward={onAskSeerTabForward} />
       ) : null}
       <FeedbackButton
         variant="secondary"
-        size={hasAskSeerRework ? 'zero' : 'xs'}
+        size={enableAISearch ? 'zero' : 'xs'}
         feedbackOptions={{
           messagePlaceholder: t('How can we make search better for you?'),
           tags: {
@@ -251,7 +244,7 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
 
   return (
     <Fragment>
-      {enableAISearch ? <AskSeer state={state} /> : null}
+      {enableAISearch ? <AskSeer /> : null}
       {showRecentFilters ? (
         <RecentFiltersPane
           // PanelBody applies legacy textStyles to plain ul elements; opt this layout row out.
@@ -338,23 +331,21 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
     useSearchQueryBuilderLayout();
   const {enableAISearch} = useSearchQueryBuilderAI();
 
-  const hiddenOptionsWithRecentsAndAskSeerAdded = useMemo<Set<SelectKey>>(() => {
-    const baseHidden = [
-      ...hiddenOptions,
-      ...recentFilters.map(filter => createRecentFilterOptionKey(getKeyName(filter.key))),
-    ];
-
-    if (enableAISearch) {
-      baseHidden.push(ASK_SEER_ITEM_KEY, ASK_SEER_CONSENT_ITEM_KEY);
-    }
-
-    return new Set(baseHidden);
-  }, [enableAISearch, hiddenOptions, recentFilters]);
+  const hiddenOptionsWithRecents = useMemo<Set<SelectKey>>(
+    () =>
+      new Set([
+        ...hiddenOptions,
+        ...recentFilters.map(filter =>
+          createRecentFilterOptionKey(getKeyName(filter.key))
+        ),
+      ]),
+    [hiddenOptions, recentFilters]
+  );
 
   useHighlightFirstOptionOnSectionChange({
     state,
     selectedSection,
-    hiddenOptions: hiddenOptionsWithRecentsAndAskSeerAdded,
+    hiddenOptions: hiddenOptionsWithRecents,
     sections,
     isOpen,
   });
@@ -406,7 +397,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
             <FilterKeyMenuContent
               askSeerButtonRef={askSeerButtonRef}
               fullWidth={fullWidth}
-              hiddenOptions={hiddenOptionsWithRecentsAndAskSeerAdded}
+              hiddenOptions={hiddenOptionsWithRecents}
               listBoxProps={listBoxProps}
               listBoxRef={listBoxRef}
               onTabForward={onTabForward}
@@ -438,7 +429,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
           <FilterKeyMenuContent
             askSeerButtonRef={askSeerButtonRef}
             fullWidth={fullWidth}
-            hiddenOptions={hiddenOptionsWithRecentsAndAskSeerAdded}
+            hiddenOptions={hiddenOptionsWithRecents}
             listBoxProps={listBoxProps}
             listBoxRef={listBoxRef}
             onTabForward={onTabForward}
@@ -481,15 +472,17 @@ const SectionedOverlay = styled(Overlay, {
             'tabs tabs'
             'list list'
             'footer footer';
-          ${p.fullWidth &&
-          css`
-            grid-template-areas:
-              'seer seer'
-              'recentFilters recentFilters'
-              'tabs tabs'
-              ${p.showDetailsPane ? "'list details'" : "'list list'"}
-              'footer footer';
-          `}
+          ${
+            p.fullWidth &&
+            css`
+              grid-template-areas:
+                'seer seer'
+                'recentFilters recentFilters'
+                'tabs tabs'
+                ${p.showDetailsPane ? "'list details'" : "'list list'"}
+                'footer footer';
+            `
+          }
         `
       : css`
           grid-template-rows: auto auto 1fr auto;
@@ -499,14 +492,16 @@ const SectionedOverlay = styled(Overlay, {
             'tabs tabs'
             'list list'
             'footer footer';
-          ${p.fullWidth &&
-          css`
-            grid-template-areas:
-              'recentFilters recentFilters'
-              'tabs tabs'
-              ${p.showDetailsPane ? "'list details'" : "'list list'"}
-              'footer footer';
-          `}
+          ${
+            p.fullWidth &&
+            css`
+              grid-template-areas:
+                'recentFilters recentFilters'
+                'tabs tabs'
+                ${p.showDetailsPane ? "'list details'" : "'list list'"}
+                'footer footer';
+            `
+          }
         `}
   overflow: hidden;
   height: 400px;
@@ -514,14 +509,12 @@ const SectionedOverlay = styled(Overlay, {
   ${p => p.fullWidth && `border-radius: 0 0 ${p.theme.radius.md} ${p.theme.radius.md}`};
 `;
 
-const SectionedOverlayFooter = styled('div')<{
-  hasAskSeerRework: boolean;
-}>`
+const SectionedOverlayFooter = styled('div')`
   grid-area: footer;
   display: flex;
   align-items: center;
-  justify-content: ${p => (p.hasAskSeerRework ? 'space-between' : 'flex-end')};
-  padding: ${p => (p.hasAskSeerRework ? p.theme.space.sm : p.theme.space.md)};
+  justify-content: space-between;
+  padding: ${p => p.theme.space.sm};
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
