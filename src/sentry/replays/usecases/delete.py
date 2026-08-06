@@ -145,8 +145,33 @@ def delete_filenames_concurrently(filenames: list[str]) -> None:
     _raise_for_failed_blob_deletes(futures, attempted=len(filenames))
 
 
+# Retried per blob, not just per page. `Blob.delete` defaults to
+# `DEFAULT_RETRY_IF_GENERATION_SPECIFIED`, and we pass no generation precondition, so the client
+# applies no retry to these deletes at all -- an unconditional delete is not idempotent from GCS's
+# point of view, since it could remove a version written after the request was formed.
+#
+# That has to be handled here rather than left to the task retry, because the units are thousands
+# apart: a page is thousands of blobs, so a page-level retry re-runs all of them to fix one, and the
+# chance a page contains at least one failure grows with its size. Retrying the blob keeps the blast
+# radius at one request.
+#
+# Any exception is retried rather than a curated transient list. A permanent error then costs three
+# attempts and ~1.5s before it propagates, which is cheap next to maintaining an exception taxonomy
+# across google-cloud-storage, django-storages and urllib3.
+_BLOB_DELETE_ATTEMPTS = 3
+_blob_delete_retry = ConditionalRetryPolicy(
+    test_function=lambda attempt, _: attempt < _BLOB_DELETE_ATTEMPTS,
+    delay_function=exponential_delay(0.5),
+)
+
+
 def _delete_if_exists(filename: str) -> None:
     """Delete the blob if it exists or silence the 404."""
+    _blob_delete_retry(functools.partial(_delete_once, filename))
+
+
+def _delete_once(filename: str) -> None:
+    # The 404 is swallowed inside the retried callable so a missing blob is never an attempt.
     try:
         storage_kv.delete(filename)
     except NotFound:
