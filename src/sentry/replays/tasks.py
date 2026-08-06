@@ -26,6 +26,7 @@ from sentry.replays.usecases.delete import (
     delete_filenames_concurrently,
     delete_matched_rows,
     delete_seer_replay_data,
+    delete_seer_replay_data_in_batches,
     fetch_rows_matching_pattern,
 )
 from sentry.replays.usecases.events import archive_event
@@ -292,11 +293,11 @@ def run_bulk_replay_delete_job(
                 sample_rate=1.0,
             )
             if has_seer_data:
-                # The return value is deliberately ignored. A failure leaves AI summaries behind,
-                # which is undeleted PII, but raising would re-run a window whose replays and blobs
-                # are already gone. `delete_seer_replay_data` logs both of its failure paths at error
-                # level, so the failure reaches Sentry either way -- now carrying this job's tags.
-                delete_seer_replay_data(
+                # Batched, retried and concurrent, and the return value is deliberately ignored. A
+                # failure leaves AI summaries behind, which is undeleted PII, but raising would
+                # re-run a window whose replays and blobs are already gone. Failed batches log at
+                # error level, so they reach Sentry either way -- carrying this job's tags.
+                delete_seer_replay_data_in_batches(
                     job.organization_id,
                     job.project_id,
                     [row["replay_id"] for row in results["rows"]],

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import logging
+import time
 from collections.abc import Iterator
 from concurrent.futures import Future
 from datetime import datetime, timedelta
@@ -367,6 +368,65 @@ def fetch_rows_matching_pattern(
             for row in rows
         ],
     }
+
+
+# Seer's delete endpoint is called with a 5 second timeout, and a whole page of ids in one request
+# reliably exceeded it -- there are 551 recorded timeouts. Small batches answer inside the timeout,
+# retry independently so one slow batch does not cost the rest, and run concurrently because they are
+# independent requests.
+#
+# The pool is deliberately small. The failure being retried is Seer being slow, so the point is to
+# out-wait it, not to arrive harder.
+SEER_DELETE_BATCH_SIZE = 100
+SEER_DELETE_ATTEMPTS = 3
+_SEER_DELETE_POOL_SIZE = 4
+
+
+def delete_seer_replay_data_in_batches(
+    organization_id: int, project_id: int, replay_ids: list[str]
+) -> bool:
+    """Delete Seer data for `replay_ids` in concurrent, individually retried batches.
+
+    Returns False if any batch was still failing after its last attempt, so the caller can decide.
+    Callers on the deletion path ignore it: the replays and their blobs are already gone by then, and
+    aborting would strand the rest of the range for the sake of data that is only a summary.
+    """
+    batches = [
+        replay_ids[i : i + SEER_DELETE_BATCH_SIZE]
+        for i in range(0, len(replay_ids), SEER_DELETE_BATCH_SIZE)
+    ]
+    if not batches:
+        return True
+
+    max_workers = min(len(batches), _SEER_DELETE_POOL_SIZE)
+    with ContextPropagatingThreadPoolExecutor(max_workers=max_workers) as pool:
+        futures = [
+            pool.submit(_delete_seer_batch, organization_id, project_id, batch) for batch in batches
+        ]
+
+    # Collect every result before reducing. `all()` over a generator would stop at the first False
+    # and leave the remaining futures unread, which is the same mistake `pool.map` made with blobs.
+    return all([future.result() for future in futures])
+
+
+def _delete_seer_batch(organization_id: int, project_id: int, replay_ids: list[str]) -> bool:
+    """Ask Seer to delete one batch, retrying while it reports failure.
+
+    `delete_seer_replay_data` reports rather than raises, so this retries on the returned False
+    instead of on an exception. Note it logs at error level on every attempt, so a batch that
+    recovers still leaves a record of the attempts that did not.
+
+    `make_replay_delete_request` also retries once itself, so a batch is at most
+    `SEER_DELETE_ATTEMPTS * 2` requests.
+    """
+    for attempt in range(1, SEER_DELETE_ATTEMPTS + 1):
+        if delete_seer_replay_data(organization_id, project_id, replay_ids):
+            return True
+
+        if attempt < SEER_DELETE_ATTEMPTS:
+            time.sleep(2.0 ** (attempt - 1))
+
+    return False
 
 
 def delete_seer_replay_data(organization_id: int, project_id: int, replay_ids: list[str]) -> bool:
