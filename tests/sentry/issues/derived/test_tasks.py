@@ -6,6 +6,7 @@ from sentry.issues.action_log.types import ActionSource, GroupActionActor, ViewA
 from sentry.issues.derived.processing import PIPELINE, GroupLogTimeout, process_group_log
 from sentry.issues.derived.tasks import (
     BATCH_RETRIGGER_TIMEOUT,
+    _discover_stale_pipeline_hashes,
     generate_project_derived_data,
     generate_project_derived_data_batch,
     heal_stale_derived_data,
@@ -452,3 +453,72 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
         # Resume from the SAME group on a per-group timeout.
         assert kwargs["group_id_start"] == group_ids[0]
         assert kwargs["stale_pipeline_hashes"] == [stale]
+
+
+@with_feature("projects:issue-action-log-write-to-db")
+class DiscoverStalePipelineHashesTest(DerivedDataTaskTestBase):
+    def _seed_hashes(self, hashes: list[str | None], per_hash: int = 1) -> None:
+        for h in hashes:
+            groups = self.create_unprocessed_groups(per_hash)
+            for group in groups:
+                GroupDerivedData.objects.create(group_id=group.id, pipeline_hash=h)
+
+    def test_returns_empty_when_only_current_hash_present(self) -> None:
+        current = PIPELINE.pipeline_hash
+        self._seed_hashes([current, current, current])
+
+        assert _discover_stale_pipeline_hashes(current, limit=5) == []
+
+    def test_returns_empty_when_table_empty(self) -> None:
+        assert _discover_stale_pipeline_hashes(PIPELINE.pipeline_hash, limit=5) == []
+
+    def test_excludes_null_pipeline_hash(self) -> None:
+        current = PIPELINE.pipeline_hash
+        self._seed_hashes([None, None])
+
+        assert _discover_stale_pipeline_hashes(current, limit=5) == []
+
+    def test_excludes_current_hash(self) -> None:
+        current = PIPELINE.pipeline_hash
+        stale_low = "0" * 16
+        stale_high = "z" * 16
+        self._seed_hashes([stale_low, current, stale_high])
+
+        result = _discover_stale_pipeline_hashes(current, limit=5)
+        assert current not in result
+        assert set(result) == {stale_low, stale_high}
+
+    def test_returns_distinct_hashes_across_many_duplicate_rows(self) -> None:
+        current = PIPELINE.pipeline_hash
+        stale = "0" * 16 if current != "0" * 16 else "1" * 16
+        self._seed_hashes([stale], per_hash=25)
+
+        assert _discover_stale_pipeline_hashes(current, limit=5) == [stale]
+
+    def test_respects_limit(self) -> None:
+        current = PIPELINE.pipeline_hash
+        stale_hashes = [f"stale-{i:02d}" for i in range(5)]
+        assert current not in stale_hashes
+        self._seed_hashes(stale_hashes)
+
+        result = _discover_stale_pipeline_hashes(current, limit=3)
+        assert len(result) == 3
+        assert result == sorted(result)
+        assert set(result).issubset(set(stale_hashes))
+
+    def test_returns_hashes_in_ascending_order(self) -> None:
+        current = PIPELINE.pipeline_hash
+        stale_hashes = ["c-hash", "a-hash", "b-hash"]
+        assert current not in stale_hashes
+        self._seed_hashes(stale_hashes)
+
+        result = _discover_stale_pipeline_hashes(current, limit=10)
+        assert result == ["a-hash", "b-hash", "c-hash"]
+
+    def test_limit_honored_when_current_hash_appears_mid_walk(self) -> None:
+        current = "m-current"
+        stale_hashes = ["a-hash", "b-hash", "y-hash", "z-hash"]
+        self._seed_hashes(stale_hashes + [current])
+
+        result = _discover_stale_pipeline_hashes(current, limit=3)
+        assert result == ["a-hash", "b-hash", "y-hash"]

@@ -491,17 +491,27 @@ def _discover_stale_pipeline_hashes(current_hash: str, limit: int) -> list[str]:
     NULL is always stale, so we don't bother finding it here.
     """
     from sentry.issues.models.groupderiveddata import GroupDerivedData
+    # A simple select distinct works here, but Postgres isn't (yet?) smart enough to
+    # do it without O(stale rows) work. So instead, we just loop through the pipeline
+    # hashes in the table, doing one very fast btree lookup each, and ignore the current
+    # one. len(unique hashes) should always be single-digit in practice, so this should
+    # always be fast. We could also do a recursive query to avoid some roundtrips; this is
+    # just less exotic.
 
-    stale = Q(pipeline_hash__gt=current_hash) | Q(pipeline_hash__lt=current_hash)
-    # Type is `str | None` from the column, but the filter excludes NULL.
-    return [
-        h
-        for h in GroupDerivedData.objects.filter(stale)
-        .order_by("pipeline_hash")
-        .values_list("pipeline_hash", flat=True)
-        .distinct()[:limit]
-        if h is not None
-    ]
+    results: list[str] = []
+    cursor = ""
+    while len(results) < limit:
+        cursor = (
+            GroupDerivedData.objects.filter(pipeline_hash__gt=cursor)
+            .order_by("pipeline_hash")
+            .values_list("pipeline_hash", flat=True)
+            .first()
+        )
+        if cursor is None:
+            break
+        if cursor != current_hash:
+            results.append(cursor)
+    return results
 
 
 def _stale_hash_filter(pipeline_hashes: Sequence[str]) -> Q:
