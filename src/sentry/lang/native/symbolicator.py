@@ -310,7 +310,7 @@ class Symbolicator:
             "scraping": orjson.dumps(scraping_config).decode(),
             "options": orjson.dumps(
                 {"dif_candidates": True, "extract_variables": self._should_extract_variables()}
-            ),
+            ).decode(),
         }
         files = {"apple_crash_report": report.load_data(self.project)}
 
