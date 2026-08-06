@@ -425,6 +425,10 @@ export default typescript.config([
       yoda: 'error',
       'no-cond-assign': ['error', 'always'],
       'no-prototype-builtins': 'error',
+      // turned off for smoother v10 upgrade, but should be re-enabled in the future
+      'preserve-caught-error': 'off',
+      'no-unassigned-vars': 'off',
+      'no-useless-assignment': 'off',
     },
   },
   {
