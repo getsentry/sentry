@@ -155,6 +155,32 @@ Note that `X-Hits` and `X-Max-Hits` are already parsed to `number | undefined` �
 5. ALWAYS colocate tests
 6. Lazy load routes: `React.lazy(() => import('...'))`
 
+## Refs
+
+**NEVER read from or write to a ref (`ref.current`) during render.** This breaks the rules of React — render must be pure, and refs are mutable state that React does not track. Reading a ref during render can return stale values across concurrent renders; writing one is a side effect that makes render impure.
+
+- Read and write `ref.current` **only** inside effects (`useEffect`, `useLayoutEffect`) or event handlers/callbacks — never in the render body.
+- If you need a value during render, derive it as a `const` from props/state, or lift it into `useState`/`useMemo`. Reach for a ref only for values that must persist across renders **without** triggering one (DOM nodes, timers, previous-value tracking read later in an effect).
+
+```tsx
+// ❌ Reading/writing a ref during render
+function Component({value}: Props) {
+  renderCountRef.current += 1; // side effect during render
+  const previous = prevValueRef.current; // stale under concurrent rendering
+  prevValueRef.current = value; // write during render
+  return <div>{previous}</div>;
+}
+
+// ✅ Mutate refs in effects; derive render values
+function Component({value}: Props) {
+  const prevValueRef = useRef(value);
+  useEffect(() => {
+    prevValueRef.current = value; // write in an effect
+  }, [value]);
+  return <div>{value}</div>;
+}
+```
+
 ## UI Patterns
 
 - When implementing advanced copy to clipboard functionality like markdown or JSON, avoid using separate buttons to copy different formats and prefer using sentry/components/copyAsDropdown and provide the different format options.
