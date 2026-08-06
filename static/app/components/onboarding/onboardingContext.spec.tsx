@@ -8,6 +8,7 @@ import {
   OnboardingContextProvider,
   useOnboardingContext,
 } from 'sentry/components/onboarding/onboardingContext';
+import type {ScmMessagingSetup} from 'sentry/components/onboarding/scm/scmMessagingSetup';
 
 const platform = {
   key: 'javascript-nextjs' as const,
@@ -17,6 +18,13 @@ const platform = {
   link: null,
   category: 'browser' as const,
 };
+
+const selectedMessagingSetup = {
+  mode: 'selected',
+  providerKey: 'slack',
+  integrationId: '15',
+  channelId: 'C123',
+} as const satisfies ScmMessagingSetup;
 
 function StateConsumer() {
   const {
@@ -108,12 +116,7 @@ describe('OnboardingContextProvider', () => {
           selectedRepository: RepositoryFixture({id: '42'}),
           selectedPlatform: platform,
           selectedFeatures: [ProductSolution.ERROR_MONITORING],
-          messagingSetup: {
-            mode: 'selected',
-            providerKey: 'slack',
-            integrationId: '15',
-            channelId: 'C123',
-          },
+          messagingSetup: selectedMessagingSetup,
         }}
       >
         <StateConsumer />
@@ -168,12 +171,7 @@ describe('OnboardingContextProvider session semantics', () => {
         initialValue={{
           selectedRepository: RepositoryFixture({id: '42'}),
           selectedPlatform: platform,
-          messagingSetup: {
-            mode: 'selected',
-            providerKey: 'slack',
-            integrationId: '15',
-            channelId: 'C123',
-          },
+          messagingSetup: selectedMessagingSetup,
         }}
       >
         <StateConsumer />
@@ -191,12 +189,7 @@ describe('OnboardingContextProvider session semantics', () => {
     expect(screen.getByText('messaging:selected')).toBeInTheDocument();
     expect(JSON.parse(sessionStorage.getItem('onboarding') ?? '{}')).toMatchObject({
       selectedRepository: {id: '42'},
-      messagingSetup: {
-        mode: 'selected',
-        providerKey: 'slack',
-        integrationId: '15',
-        channelId: 'C123',
-      },
+      messagingSetup: selectedMessagingSetup,
     });
   });
 
