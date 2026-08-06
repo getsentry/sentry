@@ -451,6 +451,9 @@ const TreeRow = styled('div')<{hasErrors: boolean}>`
   border-radius: ${p => p.theme.space.xs};
   padding-left: ${p => p.theme.space.md};
   position: relative;
+  &:focus-within {
+    z-index: 1;
+  }
   display: grid;
   align-items: center;
   grid-column: span 2;
