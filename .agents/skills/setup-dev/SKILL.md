@@ -300,6 +300,16 @@ After pulling new code:
 devenv sync              # update dependencies + migrations (2-5 min)
 ```
 
+### Reset the database
+
+```bash
+make reset-db
+```
+
+### Git worktrees
+
+Each worktree has its own `.venv`. When you create a worktree with `git worktree add`, a post-checkout hook runs `devenv sync` in it to set up the dev environment. Otherwise run `devenv sync` once in the new worktree, then `direnv allow` to validate and activate it.
+
 ## Troubleshooting Decision Tree
 
 | Symptom                                         | Likely Cause                              | Fix                                                  |
