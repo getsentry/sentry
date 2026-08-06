@@ -80,6 +80,20 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
             metadata={"group_id": self.group.id},
         )
 
+    def _multi_repo_state(self) -> SeerRunState:
+        """A run that opened PRs in more than one repo — rejected by PR iteration."""
+        return SeerRunState(
+            run_id=67890,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={
+                "owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc", pr_number=42),
+                "owner/other": RepoPRState(repo_name="owner/other", commit_sha="def", pr_number=43),
+            },
+            metadata={"group_id": self.group.id},
+        )
+
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
     def test_skips_non_completed_action(self, mock_get_state: MagicMock) -> None:
         pr_iteration_from_check_suite_listener(self._event(action="requested"))
@@ -330,6 +344,30 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         assert autofix.repository.id == 2
         assert autofix.run_state is not None
         mock_trigger_consume.assert_called_once()
+        mock_assign.assert_not_called()
+
+    @patch(f"{CHECK_PATH}.assign_user_for_exhausted_cap")
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback")
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_takes_no_action_for_multi_repo_run(
+        self,
+        mock_resolve: MagicMock,
+        mock_get_state: MagicMock,
+        mock_enqueue: MagicMock,
+        mock_trigger_consume: MagicMock,
+        mock_assign: MagicMock,
+    ) -> None:
+        """Single-repository only: no enqueue, no consume, and no cap hand-off."""
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        mock_get_state.return_value = self._multi_repo_state()
+        raw = self._raw(pull_requests=[{"id": 555}])
+
+        pr_iteration_from_check_suite_listener(self._event(raw))
+
+        mock_enqueue.assert_not_called()
+        mock_trigger_consume.assert_not_called()
         mock_assign.assert_not_called()
 
     @patch(f"{CHECK_SUITES_PATH}.sentry_sdk.capture_exception")
