@@ -367,6 +367,17 @@ class CreateDebugFileTest(APITestCase):
         assert "Content-Type" in dif.file.headers
         assert ProjectDebugFile.objects.filter(id=dif.id).exists()
 
+    def test_create_dif_rejects_unknown_format(self) -> None:
+        meta = DifMeta(
+            file_format="unknown",
+            arch="x86_64",
+            debug_id="67e9247c-814e-392b-a027-dbde6748fcbf",
+            path="unknown.dif",
+        )
+
+        with pytest.raises(TypeError, match="unknown dif type 'unknown'"):
+            create_dif_from_file(self.project, meta, self.create_stored_file(b"debug symbols"))
+
     @requires_objectstore
     def test_objectstore_backed_create_dif_from_file(self) -> None:
         with open(self.file_path, "rb") as f:

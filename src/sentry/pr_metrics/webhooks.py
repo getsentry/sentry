@@ -407,7 +407,9 @@ def handle_emission(
     Untracked PRs (no valid attribution) are dropped first, before the cooldown is
     claimed: claiming would burn the redelivery guard, so a PR that gained
     attribution only later could never emit. The cooldown claim is the redelivery
-    guard — only the first delivery schedules a task; redeliveries no-op.
+    guard — only the first delivery schedules a task; redeliveries no-op. Being
+    unable to emit also makes their activity unreadable; it is swept out of band
+    by ``sweep_unattributed_pr_activity``.
     """
     if event.get("action") != "closed":
         return

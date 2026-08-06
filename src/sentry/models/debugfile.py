@@ -525,8 +525,8 @@ def create_dif_from_file(
     if dif is not None:
         return dif, False
 
-    content_type = DIF_MIMETYPES[meta.file_format]
     object_name = _get_dif_object_name(meta)
+    content_type = DIF_MIMETYPES[meta.file_format]
 
     file.type = "project.dif"
     file.headers["Content-Type"] = content_type
@@ -617,8 +617,8 @@ def create_dif_from_fileobj(
     if dif is not None:
         return dif, False
 
-    content_type = DIF_MIMETYPES[meta.file_format]
     object_name = _get_dif_object_name(meta)
+    content_type = DIF_MIMETYPES[meta.file_format]
     session = get_debug_files_session(project.organization_id, project.id)
     storage_path: str | None = None
     try:
