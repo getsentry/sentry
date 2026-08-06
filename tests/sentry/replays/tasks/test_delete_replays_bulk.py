@@ -387,25 +387,27 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
             "replays.bulk_delete_job", tags={"status": "failed"}, sample_rate=1.0
         )
 
-    def test_run_bulk_replay_delete_job_retry_policy_covers_transient_errors(self) -> None:
-        """Test ordinary errors are redelivered, which the retries_remaining guard assumes
+    def test_run_bulk_replay_delete_job_retry_policy_is_only_the_deadline(self) -> None:
+        """Test the deadline is redelivered and nothing else is.
 
-        `on=` is an allow-list. Listing only the deadline meant a Snuba read timeout was never
-        retried, so one blip ended the job.
+        Transient failures are retried next to the call that failed, so redelivering the whole
+        activation would repeat work that already gave up and delay the `failed` status.
         """
         retry = run_bulk_replay_delete_job.retry
         assert retry is not None
 
-        assert retry.should_retry(retry.initial_state(), ValueError("snuba is unhappy"))
+        assert retry.should_retry(retry.initial_state(), ProcessingDeadlineExceeded())
+        assert not retry.should_retry(retry.initial_state(), ValueError("snuba is unhappy"))
 
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
-    def test_run_bulk_replay_delete_job_failure_with_retries_stays_in_progress(
+    def test_run_bulk_replay_delete_job_non_deadline_failure_fails_the_job(
         self, mock_fetch_rows: MagicMock
     ) -> None:
-        """Test a retryable failure leaves the job in-progress so redelivery can finish it
+        """Test a non-deadline failure fails the job even with attempts left on the counter.
 
-        Failing on the first exception was terminal: the status guard at the top of the task returns
-        early on every later attempt, and there is no API to resume a failed job.
+        `retries_remaining` is a plain attempt counter and does not consult the retry allow-list.
+        Deferring to it here would leave the job in-progress forever, because the broker will not
+        redeliver anything but the deadline, so no later attempt would ever mark it.
         """
         mock_fetch_rows.side_effect = ValueError("snuba is unhappy")
 
@@ -414,10 +416,10 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
 
         with patch("sentry.replays.tasks.current_task", return_value=Mock(retries_remaining=2)):
             with pytest.raises(ValueError):
-                run_bulk_replay_delete_job(self.job.id, offset=0)
+                run_bulk_replay_delete_job(self.job.id)
 
         self.job.refresh_from_db()
-        assert self.job.status == "in-progress"
+        assert self.job.status == "failed"
 
     @patch("sentry.replays.tasks.metrics")
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")

@@ -200,11 +200,14 @@ def archive_replay(project_id: int, replay_id: str) -> None:
     # any activations that were enqueued before this deploy (with
     # namespace="replays") continue to resolve and execute.
     alias_namespace=replays_tasks,
-    # `on=` is an allow-list, so listing only `ProcessingDeadlineExceeded` meant a transient Snuba
-    # read timeout or blob-store blip was never redelivered. Paired with the handler below marking
-    # the job `failed` on its first exception, one blip permanently killed a job part-way through
-    # with no API to resume it. Retry everything instead; the work is idempotent.
-    retry=Retry(times=5, delay=5, on=(ProcessingDeadlineExceeded, Exception)),
+    # Only the processing deadline is redelivered. Everything transient is retried in place, next to
+    # the call that failed -- Snuba queries, blob deletes and Seer calls each have their own -- so a
+    # wider allow-list would repeat work that has already given up, and would delay the `failed`
+    # status by five attempts.
+    #
+    # `current_task().retries_remaining` is a plain attempt counter and does not consult this list, so
+    # the handler below must not defer to it for an exception that is not the deadline.
+    retry=Retry(times=5, delay=5, on=(ProcessingDeadlineExceeded,)),
     processing_deadline_duration=600,
     silo_mode=SiloMode.CELL,
 )
@@ -288,14 +291,19 @@ def run_bulk_replay_delete_job(
                     [row["replay_id"] for row in results["rows"]],
                 )
     except ProcessingDeadlineExceeded:
-        # A BaseException, so it escapes the handler below.
+        # A BaseException, so it escapes the handler below, and the one thing the broker will
+        # redeliver -- so defer failing the job until the attempts are actually gone.
         _fail_if_retries_exhausted(
             job.id, "Bulk delete replays exhausted its processing deadline retries."
         )
         raise
     except Exception:
+        # This attempt is the only one: the broker redelivers the deadline and nothing else. Fail the
+        # job now rather than waiting for a retry that is not coming, so it shows as failed in the UI
+        # and its range can be re-run. Anything transient was already retried where it happened.
         logger.exception("Bulk delete replays failed.")
-        _fail_if_retries_exhausted(job.id, "Bulk delete replays exhausted its retries.")
+        metrics.incr("replays.bulk_delete_job", tags={"status": "failed"}, sample_rate=1.0)
+        _transition_status(job.id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.FAILED)
         raise
 
     # `new_total` is the running count of all replays deleted across all windows.
