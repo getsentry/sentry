@@ -1,29 +1,32 @@
-import {useRef} from 'react';
+import {type ComponentProps, useRef} from 'react';
 import styled from '@emotion/styled';
 import {useInfiniteQuery} from '@tanstack/react-query';
 import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 
-import {ActorAvatar, ProjectAvatar, UserAvatar} from '@sentry/scraps/avatar';
+import {ActorAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {NotFound} from 'sentry/components/errors/notFound';
 import {EventMessage} from 'sentry/components/events/eventMessage';
+import {useLinkedPullRequests} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
+import {getPullRequestStatusLabel} from 'sentry/components/group/externalIssuesList/pullRequestStatusBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {QueryCount} from 'sentry/components/queryCount';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconArrow, IconChevron} from 'sentry/icons';
+import {IconArrow, IconChevron, IconPullRequest} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {ProgressState, type Group} from 'sentry/types/group';
+import type {PullRequestStatus} from 'sentry/types/integrations';
 import type {User} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getMessage, getTitle} from 'sentry/utils/events';
@@ -363,6 +366,10 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
                   group={group}
                   progressLabel={section.label}
                   selected={selectedIssueId === group.id}
+                  showPullRequests={
+                    section.progress === ProgressState.FIX_PROPOSED ||
+                    section.progress === ProgressState.FIX_APPLIED
+                  }
                   assignedUser={
                     group.assignedTo?.type === 'user'
                       ? membersById.get(group.assignedTo.id)
@@ -395,10 +402,12 @@ function InboxIssueCard({
   group,
   progressLabel,
   selected,
+  showPullRequests,
 }: {
   group: Group;
   progressLabel: string;
   selected: boolean;
+  showPullRequests: boolean;
   assignedUser?: User;
 }) {
   const location = useLocation();
@@ -407,71 +416,113 @@ function InboxIssueCard({
   const prefetchHoverProps = useInboxPreviewPrefetch(group.id);
 
   return (
-    <IssueCardLink
-      {...prefetchHoverProps}
-      aria-current={selected ? 'true' : undefined}
-      data-selected={selected}
-      to={{
-        pathname: location.pathname,
-        query: {...location.query, [SELECTED_ISSUE_QUERY_PARAM]: group.id},
-      }}
-    >
-      <InteractionStateLayer />
-      <Grid columns="8px minmax(0, 1fr) max-content" gap="md" align="stretch">
-        <Flex align="center">
-          {!group.hasSeen && (
-            <StatusIndicator
-              variant="accent"
-              aria-label={t('Unread issue')}
-              animationIterationCount={0}
-            />
-          )}
-        </Flex>
-        <Stack minWidth={0} gap="xs">
-          <Heading as="h4" size="md" ellipsis>
-            {title}
-          </Heading>
-          <EventMessage level={group.level} message={message} type={group.type} />
-          <Flex align="center" gap="xs">
-            <ProjectAvatar project={group.project} size={18} hasTooltip={false} />
-            <Text size="xs" variant="muted" ellipsis>
-              {group.shortId}
-            </Text>
+    <Container position="relative">
+      <IssueCardLink
+        {...prefetchHoverProps}
+        aria-current={selected ? 'true' : undefined}
+        data-selected={selected}
+        to={{
+          pathname: location.pathname,
+          query: {...location.query, [SELECTED_ISSUE_QUERY_PARAM]: group.id},
+        }}
+      >
+        <InteractionStateLayer />
+        <Grid columns="8px minmax(0, 1fr) max-content" gap="md" align="stretch">
+          <Flex align="center">
+            {!group.hasSeen && (
+              <StatusIndicator
+                variant="accent"
+                aria-label={t('Unread issue')}
+                animationIterationCount={0}
+              />
+            )}
           </Flex>
-        </Stack>
-        <Stack align="end" justify="between">
-          {group.derivedData?.lastProgressedAt ? (
-            <Text size="sm" variant="muted">
-              <TimeSince
-                date={group.derivedData.lastProgressedAt}
-                tooltipPrefix={tct('Changed to [status]', {
-                  status: <strong>{progressLabel}</strong>,
-                })}
-                unitStyle="short"
-              />
-            </Text>
-          ) : (
-            <div />
-          )}
-          {group.assignedTo &&
-            (group.assignedTo.type === 'user' ? (
-              <UserAvatar
-                user={assignedUser ?? group.assignedTo}
-                size={18}
-                hasTooltip={false}
-                title={group.assignedTo.name}
-              />
+          <Stack minWidth={0} gap="xs">
+            <Heading as="h4" size="md" ellipsis>
+              {title}
+            </Heading>
+            <EventMessage level={group.level} message={message} type={group.type} />
+            <Container height="18px" />
+          </Stack>
+          <Stack align="end" justify="between">
+            {group.derivedData?.lastProgressedAt ? (
+              <Text size="sm" variant="muted">
+                <TimeSince
+                  date={group.derivedData.lastProgressedAt}
+                  tooltipPrefix={tct('Changed to [status]', {
+                    status: <strong>{progressLabel}</strong>,
+                  })}
+                  unitStyle="short"
+                />
+              </Text>
             ) : (
-              <ActorAvatar
-                actor={group.assignedTo}
-                size={18}
-                hasTooltip={false}
-                title={group.assignedTo.name}
-              />
-            ))}
-        </Stack>
+              <div />
+            )}
+            {group.assignedTo &&
+              (group.assignedTo.type === 'user' ? (
+                <UserAvatar
+                  user={assignedUser ?? group.assignedTo}
+                  size={18}
+                  hasTooltip={false}
+                  title={group.assignedTo.name}
+                />
+              ) : (
+                <ActorAvatar
+                  actor={group.assignedTo}
+                  size={18}
+                  hasTooltip={false}
+                  title={group.assignedTo.name}
+                />
+              ))}
+          </Stack>
+        </Grid>
+      </IssueCardLink>
+      {showPullRequests && <InboxPullRequestBadges group={group} />}
+    </Container>
+  );
+}
+
+const PULL_REQUEST_BADGE_VARIANTS = {
+  closed: 'danger',
+  draft: 'muted',
+  merged: 'info',
+  open: 'success',
+  unknown: 'muted',
+} satisfies Record<PullRequestStatus, ComponentProps<typeof Badge>['variant']>;
+
+function InboxPullRequestBadges({group}: {group: Group}) {
+  const {data} = useLinkedPullRequests({group, includeChecksAndReview: false});
+
+  if (!data?.pullRequests.length) {
+    return null;
+  }
+
+  return (
+    <PullRequestBadgePositioner>
+      <Grid columns="8px minmax(0, 1fr) max-content" gap="md">
+        <span />
+        <Flex align="center" gap="xs">
+          {data.pullRequests.slice(0, 2).map(pullRequest => (
+            <PullRequestBadgeLink
+              key={`${pullRequest.repository.id}:${pullRequest.id}`}
+              aria-label={t(
+                'Pull request #%s, %s',
+                pullRequest.id,
+                getPullRequestStatusLabel(pullRequest.status)
+              )}
+              href={pullRequest.externalUrl}
+            >
+              <Badge variant={PULL_REQUEST_BADGE_VARIANTS[pullRequest.status]}>
+                <Flex as="span" align="center" gap="2xs">
+                  <IconPullRequest aria-hidden size="xs" />#{pullRequest.id}
+                </Flex>
+              </Badge>
+            </PullRequestBadgeLink>
+          ))}
+        </Flex>
+        <span />
       </Grid>
-    </IssueCardLink>
+    </PullRequestBadgePositioner>
   );
 }
 
@@ -481,6 +532,19 @@ const InboxSectionContent = styled(Disclosure.Content)`
 
 const StickySectionHeader = styled(Container)`
   z-index: 1;
+`;
+
+const PullRequestBadgePositioner = styled('div')`
+  position: absolute;
+  right: ${p => p.theme.space.xl};
+  bottom: ${p => p.theme.space.lg};
+  left: ${p => p.theme.space.xl};
+  pointer-events: none;
+`;
+
+const PullRequestBadgeLink = styled(ExternalLink)`
+  pointer-events: auto;
+  text-decoration: none;
 `;
 
 const ResizeHandle = styled('div')<{atMaxWidth: boolean; atMinWidth: boolean}>`

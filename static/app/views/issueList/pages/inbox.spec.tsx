@@ -8,6 +8,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {PullRequestFixture} from 'sentry-fixture/pullRequest';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
@@ -133,6 +134,10 @@ describe('InboxPage', () => {
       url: '/organizations/org-slug/members/',
       body: [MemberFixture({id: assignedUser.id, user: assignedUser})],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/pull-requests/`,
+      body: {pullRequests: []},
+    });
   });
 
   afterEach(() => {
@@ -230,10 +235,6 @@ describe('InboxPage', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/pull-requests/`,
-      body: {pullRequests: []},
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/replay-count/',
       body: {},
     });
@@ -326,7 +327,7 @@ describe('InboxPage', () => {
     expect(within(diagnosedSection).getByText('2')).toBeInTheDocument();
     expect(within(assignedSection).getByText('12')).toBeInTheDocument();
     expect(within(fixSection).getByText('Fix proposed message')).toBeInTheDocument();
-    expect(within(fixSection).getByText('PROJECT-101')).toBeInTheDocument();
+    expect(within(fixSection).queryByText('PROJECT-101')).not.toBeInTheDocument();
     expect(within(fixSection).getByTitle('Jane Doe')).toBeInTheDocument();
     expect(within(fixSection).getByRole('img', {name: 'Jane Doe'})).toHaveAttribute(
       'src',
@@ -340,6 +341,73 @@ describe('InboxPage', () => {
     const progressStatus = await screen.findByText('Fix Proposed', {selector: 'strong'});
     expect(progressStatus.parentElement).toHaveTextContent('Changed to Fix Proposed');
     expect(screen.queryByRole('button', {name: '7D'})).not.toBeInTheDocument();
+  });
+
+  it('shows up to two pull request badges only in pull request sections', async () => {
+    mockSuccessfulSections();
+    const diagnosedPullRequests = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${diagnosedGroup.id}/pull-requests/`,
+      body: {pullRequests: []},
+    });
+    const assignedPullRequests = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${assignedGroup.id}/pull-requests/`,
+      body: {pullRequests: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/pull-requests/`,
+      body: {
+        pullRequests: [
+          {
+            ...PullRequestFixture({
+              id: '10',
+              externalUrl: 'https://github.com/org/repository/pull/10',
+            }),
+            attribution: null,
+            checksStatus: null,
+            dateLinked: '2026-07-20T12:00:00Z',
+            reviewStatus: null,
+            status: 'open',
+          },
+          {
+            ...PullRequestFixture({
+              id: '11',
+              externalUrl: 'https://github.com/org/repository/pull/11',
+            }),
+            attribution: null,
+            checksStatus: null,
+            dateLinked: '2026-07-20T12:00:00Z',
+            reviewStatus: null,
+            status: 'merged',
+          },
+          {
+            ...PullRequestFixture({
+              id: '12',
+              externalUrl: 'https://github.com/org/repository/pull/12',
+            }),
+            attribution: null,
+            checksStatus: null,
+            dateLinked: '2026-07-20T12:00:00Z',
+            reviewStatus: null,
+            status: 'closed',
+          },
+        ],
+      },
+    });
+
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
+
+    const fixSection = screen.getByRole('region', {name: 'Fix Proposed'});
+    expect(
+      await within(fixSection).findByRole('link', {name: 'Pull request #10, Open'})
+    ).toHaveAttribute('href', 'https://github.com/org/repository/pull/10');
+    expect(
+      within(fixSection).getByRole('link', {name: 'Pull request #11, Merged'})
+    ).toHaveAttribute('href', 'https://github.com/org/repository/pull/11');
+    expect(
+      within(fixSection).queryByRole('link', {name: 'Pull request #12, Closed'})
+    ).not.toBeInTheDocument();
+    expect(diagnosedPullRequests).not.toHaveBeenCalled();
+    expect(assignedPullRequests).not.toHaveBeenCalled();
   });
 
   it('restores the persisted Inbox pane width', () => {
@@ -594,6 +662,10 @@ describe('InboxPage', () => {
       body: [nextFixProposedGroup],
       headers: {'X-Hits': '2'},
       asyncDelay: 100,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${nextFixProposedGroup.id}/pull-requests/`,
+      body: {pullRequests: []},
     });
     mockSection('issue.progress:diagnosed is:unresolved assigned:[me,my_teams]', [
       diagnosedGroup,
