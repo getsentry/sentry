@@ -3,11 +3,9 @@ from __future__ import annotations
 import functools
 import logging
 from collections.abc import Iterator
-from concurrent.futures import Future
 from datetime import datetime, timedelta
 from typing import TypedDict
 
-import sentry_sdk
 from google.cloud.exceptions import NotFound
 from snuba_sdk import (
     Column,
@@ -38,7 +36,6 @@ from sentry.replays.usecases.query import execute_query, handle_search_filters
 from sentry.replays.usecases.query.configs.aggregate import search_config as agg_search_config
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.snuba.referrer import Referrer
-from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import (
@@ -128,37 +125,8 @@ def delete_matched_rows(project_id: int, rows: list[MatchedRow]) -> int | None:
     return None
 
 
-def _raise_for_failed_blob_deletes(futures: dict[str, Future[None]], attempted: int) -> None:
-    """Raise if any blob could not be deleted, naming the replays that still hold data.
-
-    A blob we failed to delete is PII we would otherwise report as deleted. Raising happens before
-    the archive event is published, so the replay stays unarchived and the next pass over the range
-    picks it up again rather than hiding PII behind an archive marker.
-    """
-    errors = {
-        filename: error
-        for filename, error in ((name, future.exception()) for name, future in futures.items())
-        if error is not None
-    }
-    if not errors:
-        return
-
-    metrics.incr(
-        "replays.delete_recording_blobs",
-        amount=len(errors),
-        tags={"status": "failed"},
-        sample_rate=1.0,
-    )
-    sentry_sdk.set_context(
-        "replay_recording_blobs",
-        {
-            "blobs_attempted": attempted,
-            "blobs_failed": len(errors),
-            # `{retention_days}/{project_id}/{replay_id}/{segment_id}`
-            "replay_ids": sorted({filename.split("/")[2] for filename in errors}),
-        },
-    )
-    raise next(iter(errors.values()))
+class BlobDeleteFailed(Exception):
+    """A recording blob could not be deleted."""
 
 
 def delete_replays(project_id: int, replay_ids: list[str]) -> None:
@@ -183,29 +151,30 @@ def delete_filenames_concurrently(filenames: list[str]) -> None:
     with ContextPropagatingThreadPoolExecutor(max_workers=max_workers) as pool:
         # Keep the futures. `pool.map` returns a lazy iterator, so dropping its return value never
         # retrieved a worker exception, which is why a failed blob delete has never been visible.
-        futures = {filename: pool.submit(_delete_if_exists, filename) for filename in filenames}
+        futures = [pool.submit(_delete_if_exists, filename) for filename in filenames]
 
-    _raise_for_failed_blob_deletes(futures, attempted=len(filenames))
+    # A blob we failed to delete is PII we would otherwise report as deleted. Raising here happens
+    # before the archive event is published, so the replay stays unarchived and the next pass over
+    # the range picks it up again.
+    failed = sum(1 for future in futures if future.exception() is not None)
+    if failed:
+        raise BlobDeleteFailed(f"{failed} of {len(filenames)} recording blobs were not deleted")
 
 
 # urllib3 and google-cloud-storage both decline to retry these deletes, because an unconditional
 # delete is not idempotent in general. This one is: nothing rewrites a segment we are deleting.
 _BLOB_DELETE_ATTEMPTS = 2
 _blob_delete_retry = ConditionalRetryPolicy(
-    test_function=lambda attempt, _: attempt < _BLOB_DELETE_ATTEMPTS,
+    test_function=lambda attempt, error: attempt < _BLOB_DELETE_ATTEMPTS
+    and not isinstance(error, NotFound),
     delay_function=exponential_delay(0.5),
 )
 
 
 def _delete_if_exists(filename: str) -> None:
     """Delete the blob if it exists or silence the 404."""
-    _blob_delete_retry(functools.partial(_delete_once, filename))
-
-
-def _delete_once(filename: str) -> None:
-    # The 404 is swallowed inside the retried callable so a missing blob is never an attempt.
     try:
-        storage_kv.delete(filename)
+        _blob_delete_retry(functools.partial(storage_kv.delete, filename))
     except NotFound:
         pass
 

@@ -885,7 +885,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         mock_sentry_sdk: MagicMock,
         mock_sdk_logger: MagicMock,
     ) -> None:
-        """Test a page names its job, window and replays, and logs the ids it deleted.
+        """Test a page names its job and window, and logs the ids it deleted.
 
         The job and window exist only in the activation's arguments, so without this an error is a
         stack trace with no way back to a range. The replay ids are what a re-run is checked against.
@@ -902,17 +902,15 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         run_bulk_replay_delete_job(self.job.id)
 
         mock_sentry_sdk.set_tags.assert_called_once_with(
-            {
-                "replay_delete.job": self.job.id,
-                "replay_delete.organization": self.job.organization_id,
-                "replay_delete.project": self.project.id,
-                "replay_delete.window": self.range_start.date().isoformat(),
-            }
+            {"replay_delete.job": self.job.id, "replay_delete.project": self.project.id}
         )
         contexts = {
             call.args[0]: call.args[1] for call in mock_sentry_sdk.set_context.call_args_list
         }
-        assert contexts["replay_delete_page"]["replay_ids"] == ["a", "b"]
+        assert contexts["ReplayDeletionJobModel"]["id"] == self.job.id
+        assert contexts["ReplayDeletionJobModel"]["range_start"] == self.range_start.isoformat()
+        assert contexts["replay_delete_window"]["window_offset_days"] == 0
+        assert contexts["replay_delete_window"]["window_start"] == self.range_start.isoformat()
 
         mock_sdk_logger.info.assert_called_once_with(
             "replays.bulk_delete_job.page_deleted",
@@ -920,7 +918,6 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
                 "job_id": self.job.id,
                 "organization_id": self.job.organization_id,
                 "project_id": self.project.id,
-                "window_start": self.range_start.isoformat(),
                 "replay_count": 2,
                 "replay_ids": "a,b",
             },
