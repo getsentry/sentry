@@ -246,8 +246,25 @@ function InternalInput({
   const hasNextArgument = argumentIndex < functionToken.attributes.length - 1;
   const hasPrevArgument = argumentIndex > 0;
 
+  const {
+    dispatch,
+    functionArguments: builderFunctionArguments,
+    getFieldDefinition,
+    getSuggestedKey,
+  } = useArithmeticBuilder();
+
+  const parameterDefinition = useMemo(
+    () => getFieldDefinition(functionToken.function)?.parameters?.[argumentIndex],
+    [argumentIndex, getFieldDefinition, functionToken]
+  );
+
+  const initialLabel =
+    parameterDefinition?.kind === 'column' && parameterDefinition.defaultLabel
+      ? parameterDefinition.defaultLabel
+      : argument.label;
+
   const [inputValue, setInputValue] = useState('');
-  const [currentValue, setCurrentValue] = useState(argument.label);
+  const [currentValue, setCurrentValue] = useState(initialLabel);
   const [isCurrentlyEditing, setIsCurrentlyEditing] = useState(false);
   const [_selectionIndex, setSelectionIndex] = useState(0); // TODO
   const [_isOpen, setIsOpen] = useState(false); // TODO
@@ -263,18 +280,6 @@ function InternalInput({
     setInputValue('');
     updateSelectionIndex();
   }, [updateSelectionIndex]);
-
-  const {
-    dispatch,
-    functionArguments: builderFunctionArguments,
-    getFieldDefinition,
-    getSuggestedKey,
-  } = useArithmeticBuilder();
-
-  const parameterDefinition = useMemo(
-    () => getFieldDefinition(functionToken.function)?.parameters?.[argumentIndex],
-    [argumentIndex, getFieldDefinition, functionToken]
-  );
 
   const updateAttrsWith = useCallback(
     (value: string) => {
@@ -400,7 +405,11 @@ function InternalInput({
       value = getSuggestedKey(value) ?? value;
     }
 
-    setCurrentValue(value);
+    const commitLabel =
+      parameterDefinition?.kind === 'column' && parameterDefinition.defaultLabel
+        ? parameterDefinition.defaultLabel
+        : value;
+    setCurrentValue(commitLabel);
     onArgumentsChange(argumentIndex, value);
 
     dispatch({
@@ -540,8 +549,11 @@ function InternalInput({
 
   const onOptionSelected = useCallback(
     (option: SelectOptionWithKey<string>) => {
-      // Check if there's a next argument to focus on
-      setCurrentValue(prettifyTagKey(option.value));
+      const displayLabel =
+        parameterDefinition?.kind === 'column' && parameterDefinition.defaultLabel
+          ? parameterDefinition.defaultLabel
+          : prettifyTagKey(option.value);
+      setCurrentValue(displayLabel);
       if (hasNextArgument) {
         focusTarget(
           argumentsListState,
@@ -566,6 +578,7 @@ function InternalInput({
     },
     [
       hasNextArgument,
+      parameterDefinition,
       resetInputValue,
       argumentsListState,
       argumentItem.key,
@@ -611,14 +624,22 @@ function InternalInput({
 
   return (
     <ArgumentGridRow {...rowProps} tabIndex={isFocused ? 0 : -1} ref={gridCellRef}>
-      <ArgumentGridCell {...gridCellProps}>
+      <ArgumentGridCell
+        {...rowProps}
+        {...gridCellProps}
+        tabIndex={isFocused ? 0 : -1}
+        ref={gridCellRef}
+      >
         <ComboBox
           items={items}
           ref={inputRef}
           placeholder={
-            parameterDefinition?.kind === 'value' && 'placeholder' in parameterDefinition
-              ? (argument.label ?? parameterDefinition.placeholder)
-              : argument.label
+            parameterDefinition?.kind === 'column' && parameterDefinition.defaultLabel
+              ? parameterDefinition.defaultLabel
+              : parameterDefinition?.kind === 'value' &&
+                  'placeholder' in parameterDefinition
+                ? (argument.label ?? parameterDefinition.placeholder)
+                : argument.label
           }
           inputLabel={
             parameterDefinition?.kind === 'column'
