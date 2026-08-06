@@ -2,7 +2,7 @@ import logging
 
 from sentry.scm.private.event_stream import scm_event_stream
 from sentry.scm.types import CheckSuiteEvent
-from sentry.seer.autofix.pr_iteration.check_suites import resolve_check_suite
+from sentry.seer.autofix.pr_iteration.resolve import resolve_check_suite
 
 logger = logging.getLogger(__name__)
 
