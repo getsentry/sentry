@@ -543,6 +543,13 @@ def create_dif_from_id(
             file.headers["Content-Type"] = content_type
             file.save()
 
+        metrics.distribution(
+            "storage.put.size",
+            file_size,
+            tags={"usecase": "debug_files", "compression": "none"},
+            unit="byte",
+        )
+
     objectstore_metadata: dict[str, Any] = {}
     session: Session | None = None
     storage_path: str | None = None
@@ -580,13 +587,6 @@ def create_dif_from_id(
                 "file_size": file_size,
                 "date_created": timezone.now(),
             }
-
-    metrics.distribution(
-        "storage.put.size",
-        file_size,
-        tags={"usecase": "debug_files", "compression": "none"},
-        unit="byte",
-    )
 
     try:
         dif = ProjectDebugFile.objects.create(
