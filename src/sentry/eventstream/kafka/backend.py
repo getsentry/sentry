@@ -225,6 +225,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
                         headers=[(k, v.encode("utf-8")) for k, v in headers.items()],
                     ),
                     callbacks=[self._on_produce_future_done],
+                    asynchronous=asynchronous,
                 )
             else:
                 produce_future = producer.produce(
