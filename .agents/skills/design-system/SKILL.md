@@ -529,7 +529,7 @@ Use the core avatar components (`<UserAvatar/>`, `<TeamAvatar/>`, `<ProjectAvata
 
 ```tsx
 // ✅ Use Avatar component and useUser
-import {UserAvatar} from '@sentry/scraps/avatar/userAvatar';
+import {UserAvatar} from '@sentry/scraps/avatar';
 import {useUser} from 'sentry/utils/useUser';
 
 <UserAvatar user={user}>
