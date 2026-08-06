@@ -14,6 +14,7 @@ import {
   useFlatStoryList,
   type StoryCategory,
 } from 'sentry/stories/view/storyTree';
+import {handleStoryCodeCopy} from 'sentry/utils/handleStoryCodeCopy';
 import {useLocation} from 'sentry/utils/useLocation';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import {RouteAnalyticsContextProvider} from 'sentry/views/routeAnalyticsContextProvider';
@@ -120,7 +121,7 @@ function StoryDetail() {
           </Alert.Container>
         </Container>
       ) : story.isSuccess ? (
-        <StoryMainContainer>
+        <StoryMainContainer onClick={handleStoryCodeCopy}>
           {story.data.map(s => {
             return <StoryExports key={s.filename} story={s} />;
           })}

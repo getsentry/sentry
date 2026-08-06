@@ -11,7 +11,6 @@ import {t} from 'sentry/locale';
 import {getPrismLanguage, loadPrismLanguage} from 'sentry/utils/prism';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme} from 'sentry/utils/theme/theme';
-import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
 interface CodeBlockProps {
   children: string;
@@ -130,7 +129,8 @@ export function CodeBlock({
   const [tooltipState, setTooltipState] = useState<'copy' | 'copied' | 'error'>('copy');
 
   const handleCopy = () => {
-    copyToClipboard(children, null)
+    navigator.clipboard
+      .writeText(ref.current?.textContent ?? '')
       .then(() => {
         setTooltipState('copied');
       })
