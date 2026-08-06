@@ -2,8 +2,12 @@ import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegration
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import type {
+  IntegrationProvider,
+  OrganizationIntegration,
+} from 'sentry/types/integrations';
 import ConfigureIntegration from 'sentry/views/settings/organizationIntegrations/configureIntegration';
 
 describe('ConfigureIntegration settings tab', () => {
@@ -12,11 +16,16 @@ describe('ConfigureIntegration settings tab', () => {
   });
   const integrationId = '1';
 
-  function mockRequests(integration: ReturnType<typeof OrganizationIntegrationsFixture>) {
+  function mockRequests(
+    integration: OrganizationIntegration,
+    provider: IntegrationProvider = GitHubIntegrationProviderFixture({
+      features: ['stacktrace-link'],
+    })
+  ) {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/`,
       body: {
-        providers: [GitHubIntegrationProviderFixture({features: ['stacktrace-link']})],
+        providers: [provider],
       },
     });
     MockApiClient.addMockResponse({
@@ -80,5 +89,210 @@ describe('ConfigureIntegration settings tab', () => {
 
     expect(await screen.findByRole('tab', {name: 'Settings'})).toBeInTheDocument();
     expect(screen.getByRole('tab', {name: 'Code Mappings'})).toBeInTheDocument();
+  });
+});
+
+describe('ConfigureIntegration mapping removals', () => {
+  const integrationId = '1';
+  const mappings = {
+    '10000': {on_resolve: '1', on_unresolve: '2'},
+    '10001': {on_resolve: '3', on_unresolve: '4'},
+  };
+  const choiceMapper = {
+    name: 'sync_status_forward',
+    type: 'choice_mapper' as const,
+    label: 'Status Mapping',
+    addButtonText: 'Add Project',
+    addDropdown: {
+      items: [
+        {value: '10000', label: 'Project A'},
+        {value: '10001', label: 'Project B'},
+      ],
+    },
+    columnLabels: {
+      on_resolve: 'When Resolved',
+      on_unresolve: 'When Unresolved',
+    },
+    mappedColumnLabel: 'Project',
+    mappedSelectors: {
+      on_resolve: {
+        choices: [
+          ['1', 'Open'],
+          ['3', 'To Do'],
+        ] as Array<[string, string]>,
+      },
+      on_unresolve: {
+        choices: [
+          ['2', 'Closed'],
+          ['4', 'Done'],
+        ] as Array<[string, string]>,
+      },
+    },
+  };
+
+  function setup({
+    providerKey = 'jira',
+    features = [],
+    configData = {sync_status_forward: mappings},
+  }: {
+    configData?: Record<string, unknown>;
+    features?: string[];
+    providerKey?: string;
+  } = {}) {
+    const organization = OrganizationFixture({
+      access: ['org:integrations', 'org:write'],
+      features,
+    });
+    const provider = GitHubIntegrationProviderFixture({
+      key: providerKey,
+      slug: providerKey,
+      name: providerKey === 'jira' ? 'Jira' : 'GitHub',
+      features: [],
+    });
+    const integration = OrganizationIntegrationsFixture({
+      id: integrationId,
+      provider: {
+        ...OrganizationIntegrationsFixture().provider,
+        key: providerKey,
+        slug: providerKey,
+        name: provider.name,
+        features: [],
+      },
+      configOrganization: [choiceMapper],
+      configData,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/`,
+      body: {providers: [provider]},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${integrationId}/`,
+      body: integration,
+    });
+    const postRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${integrationId}/`,
+      method: 'POST',
+      body: {},
+    });
+
+    render(<ConfigureIntegration />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${organization.slug}/integrations/${providerKey}/${integrationId}/`,
+          query: {},
+        },
+        route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
+      },
+    });
+
+    return postRequest;
+  }
+
+  async function deleteSecondMapping() {
+    const deleteButtons = await screen.findAllByRole('button', {name: 'Delete'});
+    await userEvent.click(deleteButtons[1]!);
+  }
+
+  it('uses the legacy full replacement payload when the feature is disabled', async () => {
+    const postRequest = setup();
+
+    await deleteSecondMapping();
+
+    await waitFor(() =>
+      expect(postRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {sync_status_forward: {'10000': mappings['10000']}},
+        })
+      )
+    );
+  });
+
+  it('appends a tombstone for a removed Jira mapping when enabled', async () => {
+    const postRequest = setup({features: ['jira-explicit-mapping-removals']});
+
+    await deleteSecondMapping();
+
+    await waitFor(() =>
+      expect(postRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            sync_status_forward: {
+              '10000': mappings['10000'],
+              '10001': null,
+            },
+          },
+        })
+      )
+    );
+  });
+
+  it('does not append tombstones for a non-Jira provider', async () => {
+    const postRequest = setup({
+      providerKey: 'github',
+      features: ['jira-explicit-mapping-removals'],
+    });
+
+    await deleteSecondMapping();
+
+    await waitFor(() =>
+      expect(postRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {sync_status_forward: {'10000': mappings['10000']}},
+        })
+      )
+    );
+  });
+
+  it('sends all current mappings as objects when updating a mapping', async () => {
+    const postRequest = setup({features: ['jira-explicit-mapping-removals']});
+
+    await userEvent.click(await screen.findByText('Open'));
+    await userEvent.click(await screen.findByText('To Do'));
+
+    await waitFor(() =>
+      expect(postRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            sync_status_forward: {
+              '10000': {on_resolve: '3', on_unresolve: '2'},
+              '10001': mappings['10001'],
+            },
+          },
+        })
+      )
+    );
+  });
+
+  it('does not invent removals when previous mapping data is malformed', async () => {
+    const postRequest = setup({
+      features: ['jira-explicit-mapping-removals'],
+      configData: {sync_status_forward: 'malformed'},
+    });
+
+    await userEvent.click(await screen.findByText('Add Project'));
+    await userEvent.click(await screen.findByRole('option', {name: 'Project A'}));
+    await userEvent.click(await screen.findByText('Select...'));
+    await userEvent.click(await screen.findByText('Open'));
+    await userEvent.click(await screen.findByText('Select...'));
+    await userEvent.click(await screen.findByText('Closed'));
+
+    await waitFor(() =>
+      expect(postRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            sync_status_forward: {
+              '10000': {on_resolve: '1', on_unresolve: '2'},
+            },
+          },
+        })
+      )
+    );
   });
 });

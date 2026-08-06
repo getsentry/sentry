@@ -1,25 +1,20 @@
-import {useMemo, useRef, useState, type ReactNode} from 'react';
+import {useMemo, useState, type ReactNode} from 'react';
 import type {UseMutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 
-import {t} from 'sentry/locale';
 import {unreachable} from 'sentry/utils/unreachable';
 
-import {
-  ChoiceMapperDropdown,
-  ChoiceMapperTable,
-  getChoiceMapperRowNames,
-} from './choiceMapperAdapter';
+import {ChoiceMapperDropdown, ChoiceMapperTable} from './choiceMapperAdapter';
 import {
   ProjectMapperAddRow,
   ProjectMapperNextButton,
   ProjectMapperTable,
 } from './projectMapperAdapter';
 import {TableBody, TableHeaderRow} from './tableAdapter';
-import type {ChoiceMapperValue, FieldValue, JsonFormAdapterFieldConfig} from './types';
+import type {FieldValue, JsonFormAdapterFieldConfig} from './types';
 import {getDefaultForField, getDisabledProp, getZodType, transformChoices} from './utils';
 
 interface BackendJsonFormAdapterProps<
@@ -43,12 +38,6 @@ export function BackendJsonAutoSaveForm<
 }: BackendJsonFormAdapterProps<TField, TData, TContext>) {
   const fieldName = field.name;
   const [labels, setLabels] = useState<Record<string, ReactNode>>({});
-  /**
-   * choice_mapper rows tombstoned since the last successful save. A tombstone
-   * lingers in the form value until the refetch lands, so we can't tell an
-   * explicit removal from a leftover by looking at the submitted value alone.
-   */
-  const tombstonedKeysRef = useRef(new Set<string>());
 
   const schema = useMemo(
     () => z.object({[fieldName]: getZodType(field.type)}),
@@ -136,44 +125,12 @@ export function BackendJsonAutoSaveForm<
   }
 
   if (field.type === 'choice_mapper') {
-    const choiceValue = value as ChoiceMapperValue;
-    // What the server currently holds — only these rows need a tombstone to be
-    // deleted, and only their removal is worth confirming.
-    const savedKeys = new Set(
-      Object.keys(choiceValue).filter(key => choiceValue[key] !== null)
-    );
-
-    // A tombstone is only "pending" until the save it belongs to succeeds;
-    // afterwards it may still ride along in the value as a harmless no-op.
-    const onMutationSuccess: typeof mutationOptions.onSuccess = (...args) => {
-      tombstonedKeysRef.current = new Set();
-      return mutationOptions.onSuccess?.(...args);
-    };
-
-    const confirmRemovals = (submittedValue: ChoiceMapperValue) => {
-      const removed = Object.keys(submittedValue).filter(
-        key => submittedValue[key] === null && tombstonedKeysRef.current.has(key)
-      );
-
-      if (removed.length === 0) {
-        // No confirmation — the save carries no explicit removal
-        return;
-      }
-
-      const names = getChoiceMapperRowNames(field, labels, removed).join(', ');
-
-      return removed.length === 1
-        ? t("Remove the saved mapping for %s? This can't be undone.", names)
-        : t("Remove the saved mappings for %s? This can't be undone.", names);
-    };
-
     return (
       <AutoSaveForm
         name={fieldName}
         schema={schema}
         initialValue={value}
-        mutationOptions={{...mutationOptions, onSuccess: onMutationSuccess}}
-        confirm={field.supportsExplicitRemovals ? confirmRemovals : undefined}
+        mutationOptions={mutationOptions}
       >
         {fieldApi => (
           <fieldApi.Base>
@@ -195,8 +152,6 @@ export function BackendJsonAutoSaveForm<
                   config={field}
                   value={fieldApi.state.value}
                   labels={labels}
-                  savedKeys={savedKeys}
-                  onTombstone={key => tombstonedKeysRef.current.add(key)}
                   onUpdate={fieldApi.handleChange}
                   onSave={() => baseProps.onBlur()}
                   disabled={!!getDisabledProp(field) || baseProps.disabled}

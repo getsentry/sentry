@@ -19,15 +19,15 @@ import {t} from 'sentry/locale';
 import {useApi} from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
-import type {ChoiceMapperValue, JsonFormAdapterFieldConfig} from './types';
+import type {JsonFormAdapterFieldConfig} from './types';
 
 type ChoiceMapperConfig = Extract<JsonFormAdapterFieldConfig, {type: 'choice_mapper'}>;
 
 interface ChoiceMapperDropdownProps {
   config: ChoiceMapperConfig;
-  onChange: (value: ChoiceMapperValue) => void;
+  onChange: (value: Record<string, Record<string, unknown>>) => void;
   onLabelAdd: (value: string, label: ReactNode) => void;
-  value: ChoiceMapperValue;
+  value: Record<string, Record<string, unknown>>;
   disabled?: boolean;
   indicator?: React.ReactNode;
 }
@@ -35,58 +35,10 @@ interface ChoiceMapperDropdownProps {
 interface ChoiceMapperTableProps {
   config: ChoiceMapperConfig;
   labels: Record<string, ReactNode>;
-  onSave: (value: ChoiceMapperValue) => void;
-  onUpdate: (value: ChoiceMapperValue) => void;
-  value: ChoiceMapperValue;
+  onSave: (value: Record<string, Record<string, unknown>>) => void;
+  onUpdate: (value: Record<string, Record<string, unknown>>) => void;
+  value: Record<string, Record<string, unknown>>;
   disabled?: boolean;
-  /**
-   * Called with the removed key when a row is tombstoned rather than dropped
-   * locally, so the caller can tell an explicit removal apart from a tombstone
-   * that is only riding along in the value.
-   */
-  onTombstone?: (itemKey: string) => void;
-  /**
-   * Keys the server has actually stored. Removing one of these tombstones it
-   * (when the field supports explicit removals); removing anything else — a row
-   * added but never saved — just drops the key.
-   */
-  savedKeys?: ReadonlySet<string>;
-}
-
-/**
- * Display labels for the mapped items, keyed by item value. `labels` holds the
- * labels of rows added during this session, `addDropdown.items` the ones the
- * backend sent.
- */
-export function getChoiceMapperLabelMap(
-  config: ChoiceMapperConfig,
-  labels: Record<string, ReactNode>
-): Record<string, ReactNode> {
-  return (
-    config.addDropdown?.items?.reduce(
-      (map, item) => {
-        map[item.value] = item.label;
-        return map;
-      },
-      {...labels}
-    ) ?? {...labels}
-  );
-}
-
-/**
- * Human-readable names for the given rows, falling back to the key itself when
- * we only have a non-textual label for it.
- */
-export function getChoiceMapperRowNames(
-  config: ChoiceMapperConfig,
-  labels: Record<string, ReactNode>,
-  itemKeys: string[]
-): string[] {
-  const labelMap = getChoiceMapperLabelMap(config, labels);
-  return itemKeys.map(itemKey => {
-    const label = labelMap[itemKey];
-    return typeof label === 'string' ? label : itemKey;
-  });
 }
 
 /**
@@ -171,11 +123,8 @@ export function ChoiceMapperDropdown({
   const {columnLabels = {}} = config;
 
   const asyncUrl = config.addDropdown?.url;
-  // A tombstoned item is selectable again — re-adding it replaces the tombstone.
   const selectableValues =
-    config.addDropdown?.items?.filter(
-      i => !Object.hasOwn(value, i.value) || value[i.value] === null
-    ) ?? [];
+    config.addDropdown?.items?.filter(i => !Object.hasOwn(value, i.value)) ?? [];
 
   const addRow = (item: SelectOption<string>) => {
     const emptyValue = Object.keys(columnLabels).reduce<Record<string, null>>(
@@ -255,18 +204,14 @@ function useLazyPerItemSelectors({
 }: {
   config: ChoiceMapperConfig;
   fieldKeys: string[];
-  value: ChoiceMapperValue;
+  value: Record<string, Record<string, unknown>>;
 }) {
   const statusUrl = config.perItemMapping ? config.statusUrl : undefined;
   const [apiClient] = useState(() => new Client({baseUrl: ''}));
   const api = useApi({api: apiClient});
 
-  // Tombstoned items are on their way out and no longer rendered, so don't
-  // fetch selector choices for them.
   const itemsToFetch = statusUrl
-    ? Object.keys(value).filter(
-        key => value[key] !== null && !config.mappedSelectors?.[key]
-      )
+    ? Object.keys(value).filter(key => !config.mappedSelectors?.[key])
     : [];
 
   return useQueries({
@@ -318,11 +263,9 @@ export function ChoiceMapperTable({
   value,
   onUpdate,
   onSave,
-  onTombstone,
-  savedKeys,
   disabled,
 }: ChoiceMapperTableProps) {
-  const {columnLabels = {}, mappedColumnLabel} = config;
+  const {addDropdown, columnLabels = {}, mappedColumnLabel} = config;
 
   const mappedKeys = Object.keys(columnLabels);
 
@@ -342,17 +285,21 @@ export function ChoiceMapperTable({
     return config.mappedSelectors?.[fieldKey];
   };
 
-  const labelMap = getChoiceMapperLabelMap(config, labels);
+  const labelMap =
+    addDropdown?.items?.reduce(
+      (map, item) => {
+        map[item.value] = item.label;
+        return map;
+      },
+      {...labels}
+    ) ?? {};
 
-  const allColumnsFilled = (val: ChoiceMapperValue) =>
-    Object.values(val).every(
-      row =>
-        // A tombstone has no columns to fill
-        row === null ||
-        mappedKeys.every(key => row[key] !== null && row[key] !== undefined)
+  const allColumnsFilled = (val: Record<string, Record<string, unknown>>) =>
+    Object.values(val).every(row =>
+      mappedKeys.every(key => row[key] !== null && row[key] !== undefined)
     );
 
-  const updateAndSaveIfComplete = (newValue: ChoiceMapperValue) => {
+  const updateAndSaveIfComplete = (newValue: Record<string, Record<string, unknown>>) => {
     onUpdate(newValue);
     if (allColumnsFilled(newValue)) {
       onSave(newValue);
@@ -360,20 +307,10 @@ export function ChoiceMapperTable({
   };
 
   const removeRow = (itemKey: string) => {
-    // Only a row the server has stored needs a tombstone to be deleted. Dropping
-    // the key is enough for a row that was added but never saved.
-    const shouldTombstone =
-      !!config.supportsExplicitRemovals && !!savedKeys?.has(itemKey);
-
-    if (shouldTombstone) {
-      onTombstone?.(itemKey);
-      updateAndSaveIfComplete({...value, [itemKey]: null});
-      return;
-    }
-
-    updateAndSaveIfComplete(
-      Object.fromEntries(Object.entries(value).filter(([key]) => key !== itemKey))
+    const newValue = Object.fromEntries(
+      Object.entries(value).filter(([key]) => key !== itemKey)
     );
+    updateAndSaveIfComplete(newValue);
   };
 
   const setValue = (
@@ -385,10 +322,9 @@ export function ChoiceMapperTable({
     updateAndSaveIfComplete(newValue);
   };
 
-  // Tombstoned rows are already gone as far as the user is concerned
-  const visibleKeys = Object.keys(value).filter(itemKey => value[itemKey] !== null);
+  const hasValues = Object.keys(value).length > 0;
 
-  if (visibleKeys.length === 0) {
+  if (!hasValues) {
     return null;
   }
 
@@ -408,7 +344,7 @@ export function ChoiceMapperTable({
           </Flex>
         ))}
       </Flex>
-      {visibleKeys.map(itemKey => (
+      {Object.keys(value).map(itemKey => (
         <Flex align="center" gap="md" key={itemKey}>
           <Flex flex="0 0 200px">{labelMap[itemKey]}</Flex>
           {mappedKeys.map((fieldKey, i) => (

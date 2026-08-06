@@ -72,17 +72,6 @@ interface JsonFormAdapterChoiceMapperBase extends JsonFormAdapterBase {
   columnLabels?: Record<string, string>;
   formatMessageValue?: boolean;
   mappedColumnLabel?: string;
-  /**
-   * When true, the backend accepts explicit removals: a key mapped to an object
-   * is upserted, a key mapped to `null` deletes that mapping, and a key that is
-   * absent is left untouched. Removing a row therefore writes a `null`
-   * tombstone instead of dropping the key.
-   *
-   * When absent, removing a row drops the key from the value and the backend
-   * treats the submitted payload as the complete desired state — anything
-   * missing from it is deleted.
-   */
-  supportsExplicitRemovals?: boolean;
 }
 
 interface JsonFormAdapterChoiceMapperFlat extends JsonFormAdapterChoiceMapperBase {
@@ -148,14 +137,6 @@ export type JsonFormAdapterFieldConfig =
   | JsonFormAdapterBlank;
 
 /**
- * Value of a `choice_mapper` field, keyed by the mapped item.
- *
- * A `null` entry is a tombstone: an explicit request to delete that mapping.
- * Only fields with `supportsExplicitRemovals` produce them.
- */
-export type ChoiceMapperValue = Record<string, Record<string, unknown> | null>;
-
-/**
  * Maps a field config type to the shape of its value.
  */
 export type FieldValue<T extends JsonFormAdapterFieldConfig> =
@@ -168,7 +149,7 @@ export type FieldValue<T extends JsonFormAdapterFieldConfig> =
         : T extends JsonFormAdapterSelect
           ? string | null
           : T extends JsonFormAdapterChoiceMapper
-            ? ChoiceMapperValue
+            ? Record<string, Record<string, unknown>>
             : T extends JsonFormAdapterTable
               ? Array<Record<string, unknown>>
               : T extends JsonFormAdapterProjectMapper

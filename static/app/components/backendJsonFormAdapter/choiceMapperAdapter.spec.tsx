@@ -1,48 +1,13 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {
-  render,
-  renderGlobalModal,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {BackendJsonAutoSaveForm} from './backendJsonAutoSaveForm';
-import type {JsonFormAdapterFieldConfig} from './types';
 
 const org = OrganizationFixture();
 const mutationOptions = {
   mutationFn: jest.fn().mockResolvedValue({}),
 };
-
-/**
- * Jira-shaped field: the only provider whose backend supports explicit
- * removals, so removing a saved row tombstones it instead of dropping the key.
- */
-const EXPLICIT_REMOVALS_FIELD = {
-  name: 'status_mapping',
-  type: 'choice_mapper',
-  label: 'Status Mapping',
-  addButtonText: 'Add Jira Project',
-  supportsExplicitRemovals: true,
-  addDropdown: {
-    items: [
-      {value: '10000', label: 'Project A'},
-      {value: '10001', label: 'Project B'},
-    ],
-  },
-  columnLabels: {on_resolve: 'When Resolved'},
-  mappedColumnLabel: 'Jira Project',
-  mappedSelectors: {
-    on_resolve: {
-      choices: [
-        ['1', 'Open'],
-        ['6', 'Closed'],
-      ],
-    },
-  },
-} satisfies JsonFormAdapterFieldConfig;
 
 describe('ChoiceMapperAdapter', () => {
   it('renders choice_mapper with empty value showing only Add button', async () => {
@@ -296,10 +261,7 @@ describe('ChoiceMapperAdapter', () => {
     });
   });
 
-  // Regression guard for github, github_enterprise, gitlab, vsts and jira_server:
-  // without `supportsExplicitRemovals` the payload is the complete desired state,
-  // so a removed row is expressed by dropping its key — never by a `null`.
-  it('choice_mapper remove row drops the key when explicit removals are unsupported', async () => {
+  it('choice_mapper remove row triggers mutation', async () => {
     render(
       <BackendJsonAutoSaveForm
         field={{
@@ -326,7 +288,6 @@ describe('ChoiceMapperAdapter', () => {
       />,
       {organization: org}
     );
-    renderGlobalModal();
 
     await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
 
@@ -338,8 +299,6 @@ describe('ChoiceMapperAdapter', () => {
         expect.anything()
       );
     });
-    // No confirmation either — nothing is being deleted explicitly
-    expect(screen.queryByRole('button', {name: 'Confirm'})).not.toBeInTheDocument();
   });
 
   it('choice_mapper update cell value triggers mutation', async () => {
@@ -666,272 +625,5 @@ describe('ChoiceMapperAdapter', () => {
       expect(screen.getByRole('button', {name: 'Delete'})).toBeEnabled();
     });
     expect(screen.getByRole('button', {name: /Add Repo/i})).toBeEnabled();
-  });
-
-  describe('explicit removals', () => {
-    it('removing a saved row submits a tombstone after confirmation', async () => {
-      render(
-        <BackendJsonAutoSaveForm
-          field={EXPLICIT_REMOVALS_FIELD}
-          initialValue={{'10000': {on_resolve: '1'}}}
-          mutationOptions={mutationOptions}
-        />,
-        {organization: org}
-      );
-      renderGlobalModal();
-
-      await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
-
-      // The modal names the project being removed
-      expect(
-        await screen.findByText(
-          "Remove the saved mapping for Project A? This can't be undone."
-        )
-      ).toBeInTheDocument();
-      expect(mutationOptions.mutationFn).not.toHaveBeenCalled();
-
-      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
-
-      await waitFor(() => {
-        expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
-          {status_mapping: {'10000': null}},
-          expect.anything()
-        );
-      });
-    });
-
-    it('cancelling the confirmation restores the row and sends no request', async () => {
-      render(
-        <BackendJsonAutoSaveForm
-          field={EXPLICIT_REMOVALS_FIELD}
-          initialValue={{'10000': {on_resolve: '1'}}}
-          mutationOptions={mutationOptions}
-        />,
-        {organization: org}
-      );
-      renderGlobalModal();
-
-      await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
-      await userEvent.click(await screen.findByRole('button', {name: 'Cancel'}));
-
-      expect(await screen.findByText('Project A')).toBeInTheDocument();
-      expect(mutationOptions.mutationFn).not.toHaveBeenCalled();
-    });
-
-    it('hides the tombstoned row but keeps its siblings', async () => {
-      render(
-        <BackendJsonAutoSaveForm
-          field={EXPLICIT_REMOVALS_FIELD}
-          initialValue={{
-            '10000': {on_resolve: '1'},
-            '10001': {on_resolve: '6'},
-          }}
-          mutationOptions={mutationOptions}
-        />,
-        {organization: org}
-      );
-      renderGlobalModal();
-
-      await userEvent.click(screen.getAllByRole('button', {name: 'Delete'})[0]!);
-
-      await waitFor(() => {
-        expect(screen.queryByText('Project A')).not.toBeInTheDocument();
-      });
-      expect(screen.getByText('Project B')).toBeInTheDocument();
-      // Headers stay — there's still a row to label
-      expect(screen.getByText('Jira Project')).toBeInTheDocument();
-    });
-
-    it('collapses the table when the only row is tombstoned', async () => {
-      render(
-        <BackendJsonAutoSaveForm
-          field={EXPLICIT_REMOVALS_FIELD}
-          initialValue={{'10000': {on_resolve: '1'}}}
-          mutationOptions={mutationOptions}
-        />,
-        {organization: org}
-      );
-      renderGlobalModal();
-
-      await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
-
-      await waitFor(() => {
-        expect(screen.queryByText('Jira Project')).not.toBeInTheDocument();
-      });
-      expect(screen.queryByText('Project A')).not.toBeInTheDocument();
-    });
-
-    it('keeps a pending tombstone while another row is being filled in', async () => {
-      render(
-        <BackendJsonAutoSaveForm
-          field={EXPLICIT_REMOVALS_FIELD}
-          initialValue={{'10000': {on_resolve: '1'}}}
-          mutationOptions={mutationOptions}
-        />,
-        {organization: org}
-      );
-      renderGlobalModal();
-
-      // An unfilled row holds the save back, so the tombstone stays in the value
-      await userEvent.click(screen.getByRole('button', {name: /Add Jira Project/i}));
-      await userEvent.click(await screen.findByRole('option', {name: 'Project B'}));
-
-      await userEvent.click(screen.getAllByRole('button', {name: 'Delete'})[0]!);
-      expect(mutationOptions.mutationFn).not.toHaveBeenCalled();
-
-      // Filling the new row submits the tombstone alongside the upsert
-      await userEvent.click(screen.getByText('Select...'));
-      await userEvent.click(await screen.findByText('Closed'));
-
-      expect(
-        await screen.findByText(
-          "Remove the saved mapping for Project A? This can't be undone."
-        )
-      ).toBeInTheDocument();
-      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
-
-      await waitFor(() => {
-        expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
-          {status_mapping: {'10000': null, '10001': {on_resolve: '6'}}},
-          expect.anything()
-        );
-      });
-    });
-
-    it('re-adding a tombstoned project brings the row back', async () => {
-      render(
-        <BackendJsonAutoSaveForm
-          field={EXPLICIT_REMOVALS_FIELD}
-          initialValue={{'10000': {on_resolve: '1'}}}
-          mutationOptions={mutationOptions}
-        />,
-        {organization: org}
-      );
-      renderGlobalModal();
-
-      // Park an unfilled row so the delete below doesn't submit
-      await userEvent.click(screen.getByRole('button', {name: /Add Jira Project/i}));
-      await userEvent.click(await screen.findByRole('option', {name: 'Project B'}));
-      await userEvent.click(screen.getAllByRole('button', {name: 'Delete'})[0]!);
-
-      await waitFor(() => {
-        expect(screen.queryByText('Project A')).not.toBeInTheDocument();
-      });
-
-      // The tombstoned project is selectable again
-      await userEvent.click(screen.getByRole('button', {name: /Add Jira Project/i}));
-      await userEvent.click(await screen.findByRole('option', {name: 'Project A'}));
-
-      expect(await screen.findByText('Project A')).toBeInTheDocument();
-      expect(mutationOptions.mutationFn).not.toHaveBeenCalled();
-    });
-
-    it('removing a row that was never saved sends no tombstone', async () => {
-      render(
-        <BackendJsonAutoSaveForm
-          field={EXPLICIT_REMOVALS_FIELD}
-          initialValue={{'10000': {on_resolve: '1'}}}
-          mutationOptions={mutationOptions}
-        />,
-        {organization: org}
-      );
-      renderGlobalModal();
-
-      // Add a row, then remove it again before it is ever saved
-      await userEvent.click(screen.getByRole('button', {name: /Add Jira Project/i}));
-      await userEvent.click(await screen.findByRole('option', {name: 'Project B'}));
-      await userEvent.click(screen.getAllByRole('button', {name: 'Delete'})[1]!);
-
-      await waitFor(() => {
-        expect(screen.queryByText('Project B')).not.toBeInTheDocument();
-      });
-      expect(screen.queryByRole('button', {name: 'Confirm'})).not.toBeInTheDocument();
-
-      // Editing the surviving row proves the removed key is gone, not tombstoned
-      await userEvent.click(screen.getByText('Open'));
-      await userEvent.click(await screen.findByText('Closed'));
-
-      await waitFor(() => {
-        expect(mutationOptions.mutationFn).toHaveBeenCalledWith(
-          {status_mapping: {'10000': {on_resolve: '6'}}},
-          expect.anything()
-        );
-      });
-    });
-
-    it('keeps the row gone once the refetched value arrives', async () => {
-      const {rerender} = render(
-        <BackendJsonAutoSaveForm
-          field={EXPLICIT_REMOVALS_FIELD}
-          initialValue={{
-            '10000': {on_resolve: '1'},
-            '10001': {on_resolve: '6'},
-          }}
-          mutationOptions={mutationOptions}
-        />,
-        {organization: org}
-      );
-      renderGlobalModal();
-
-      await userEvent.click(screen.getAllByRole('button', {name: 'Delete'})[0]!);
-      await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
-
-      await waitFor(() => {
-        expect(mutationOptions.mutationFn).toHaveBeenCalled();
-      });
-
-      rerender(
-        <BackendJsonAutoSaveForm
-          field={EXPLICIT_REMOVALS_FIELD}
-          initialValue={{'10001': {on_resolve: '6'}}}
-          mutationOptions={mutationOptions}
-        />
-      );
-
-      await waitFor(() => {
-        expect(screen.queryByText('Project A')).not.toBeInTheDocument();
-      });
-      expect(screen.getByText('Project B')).toBeInTheDocument();
-    });
-
-    it('stops fetching statuses once a project is tombstoned', async () => {
-      const statusUrl = '/extensions/jira/search/my-org/42/';
-      const statusRequest = MockApiClient.addMockResponse({
-        url: statusUrl,
-        body: [
-          {value: '1', label: 'Open'},
-          {value: '6', label: 'Closed'},
-        ],
-      });
-
-      render(
-        <BackendJsonAutoSaveForm
-          field={{
-            ...EXPLICIT_REMOVALS_FIELD,
-            perItemMapping: true,
-            statusUrl,
-            // Project A's statuses didn't come with the config, so they're fetched
-            mappedSelectors: {},
-          }}
-          initialValue={{'10000': {on_resolve: '1'}}}
-          mutationOptions={mutationOptions}
-        />,
-        {organization: org}
-      );
-      renderGlobalModal();
-
-      await waitFor(() => {
-        expect(statusRequest).toHaveBeenCalledTimes(1);
-      });
-
-      await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
-
-      // The tombstoned row is dropped from the lazy selector queries, so nothing
-      // else is fetched for a project that is on its way out.
-      await waitFor(() => {
-        expect(screen.queryByText('Project A')).not.toBeInTheDocument();
-      });
-      expect(statusRequest).toHaveBeenCalledTimes(1);
-    });
   });
 });
