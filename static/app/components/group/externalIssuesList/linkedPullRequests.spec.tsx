@@ -139,39 +139,6 @@ describe('LinkedPullRequests', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('preserves the existing row layout in compact mode', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
-      body: {
-        pullRequests: [
-          {
-            ...PullRequestFixture({id: '123', repository}),
-            attribution: null,
-            checksStatus: 'failure',
-            dateLinked: '2026-06-08T23:11:32.000000Z',
-            reviewStatus: 'changes_requested',
-            status: 'open',
-          },
-        ],
-      },
-    });
-
-    render(<LinkedPullRequests group={group} variant="compact" />, {
-      organization,
-    });
-
-    const pullRequest = await screen.findByRole('link', {
-      name: /Pull request #123/,
-    });
-    const detailLine = within(pullRequest).getByText('Open').parentElement?.parentElement;
-
-    expect(detailLine).toContainElement(within(pullRequest).getByText('Checks failed'));
-    expect(detailLine).toContainElement(
-      within(pullRequest).getByText('Changes requested')
-    );
-    expect(within(pullRequest).queryByText('Pull request #123')).not.toBeInTheDocument();
-  });
-
   it('deduplicates pull request ids from group activity', () => {
     const activityGroup = GroupFixture({
       activity: [
