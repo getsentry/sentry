@@ -78,11 +78,22 @@ def record_webhook_backlog_metrics() -> None:
             [WebhookPayload._meta.db_table],
         )
         row = cursor.fetchone()
+    if row is None:
+        # No pg_class row for the table on this connection -- we don't have a
+        # trustworthy answer, so skip rather than emit a 0. A 0 here reads as "no
+        # backlog" and, blended into the host-tagged gauge's default aggregate
+        # alongside hosts that got a real answer, silently drags the reported
+        # average down.
+        metrics.incr(
+            "hybridcloud.webhookpayload.backlog.pending_count_query_failed", sample_rate=1.0
+        )
+        logger.error("webhook_backlog_metrics.pending_count_query_failed")
+        return
     # Autovacuum-maintained, so it trails reality on a churning table — measured 0.13%
     # below an exact count mid-backlog. `mailbox.pending_count` carries the exact value.
     metrics.gauge(
         "hybridcloud.webhookpayload.backlog.pending_count_estimate",
-        row[0] if row else 0,
+        row[0],
         sample_rate=1.0,
     )
 

@@ -74,7 +74,7 @@ class WebhookBacklogMetricsTest(TestCase):
 
     def test_estimate_is_read_for_the_webhookpayload_table(self) -> None:
         # The pg_class lookup is raw SQL, so nothing else would catch it drifting off
-        # the model's table — it would just return no row and pin the gauge to zero.
+        # the model's table — it would just return no row and skip the gauge.
         replica = WebhookPayload.objects.using_replica()
 
         with CaptureQueriesContext(connections[replica.db]) as queries:
@@ -113,6 +113,22 @@ class WebhookBacklogMetricsTest(TestCase):
         assert gauge_calls(mock_metrics, BACKLOG_AGE_METRIC) == []
         mock_metrics.incr.assert_called_once_with(
             "hybridcloud.webhookpayload.backlog.age_query_failed", sample_rate=1.0
+        )
+
+    @patch("sentry.hybridcloud.tasks.webhook_backlog_metrics.metrics")
+    def test_missing_pg_class_row_skips_the_estimate(self, mock_metrics: MagicMock) -> None:
+        # Simulates the query finding no catalog row for the table -- e.g. a replica
+        # connection where the relation isn't present under this name. Must not emit
+        # a 0: this gauge is host-tagged, so a 0 from one host blends into every
+        # consumer's default aggregate and silently drags the average down, rather
+        # than reading as "no backlog" for the whole fleet.
+        with patch.object(WebhookPayload._meta, "db_table", "nonexistent_table_xyz"):
+            record_webhook_backlog_metrics()
+
+        assert gauge_calls(mock_metrics, BACKLOG_ESTIMATE_METRIC) == []
+        assert gauge_calls(mock_metrics, BACKLOG_AGE_METRIC) == []
+        mock_metrics.incr.assert_called_once_with(
+            "hybridcloud.webhookpayload.backlog.pending_count_query_failed", sample_rate=1.0
         )
 
     def test_oldest_age_lookup_does_not_scan(self) -> None:
