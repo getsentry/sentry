@@ -1,1 +1,0 @@
-from .investigation import *  # NOQA
