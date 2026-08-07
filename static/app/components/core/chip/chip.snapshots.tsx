@@ -15,13 +15,7 @@ describe('Chip', () => {
       size => (
         <ThemeProvider theme={themes[themeName]}>
           <div style={{padding: 8}}>
-            <Chip
-              variant="query"
-              size={size}
-              property="browser"
-              operator="is"
-              value="Chrome"
-            />
+            <Chip size={size} property="browser" operator="is" value="Chrome" />
           </div>
         </ThemeProvider>
       ),
@@ -33,13 +27,7 @@ describe('Chip', () => {
       size => (
         <ThemeProvider theme={themes[themeName]}>
           <div style={{padding: 8}}>
-            <Chip
-              variant="readonly-query"
-              size={size}
-              property="browser"
-              operator="is"
-              value="Chrome"
-            />
+            <Chip readonly size={size} property="browser" operator="is" value="Chrome" />
           </div>
         </ThemeProvider>
       ),
@@ -51,7 +39,7 @@ describe('Chip', () => {
       size => (
         <ThemeProvider theme={themes[themeName]}>
           <div style={{padding: 8}}>
-            <Chip variant="value" size={size} value="Chrome" />
+            <Chip size={size} value="Chrome" />
           </div>
         </ThemeProvider>
       ),
@@ -75,7 +63,7 @@ describe('Chip', () => {
       () => (
         <ThemeProvider theme={themes[themeName]}>
           <div style={{padding: 8}}>
-            <Chip variant="value" value="Chrome" onDismiss={() => {}} />
+            <Chip value="Chrome" onDismiss={() => {}} />
           </div>
         </ThemeProvider>
       ),
