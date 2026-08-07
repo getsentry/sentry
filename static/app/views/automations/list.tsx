@@ -1,17 +1,19 @@
-import {Fragment, useCallback} from 'react';
+import {useCallback} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import {QueryCount} from 'sentry/components/queryCount';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {AlertsMonitorsShowcaseButton} from 'sentry/components/workflowEngine/alertsMonitorsShowcaseButton';
 import {WorkflowEngineListLayout as ListLayout} from 'sentry/components/workflowEngine/layout/list';
 import {IconAdd} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {parseCursor} from 'sentry/utils/cursor';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -53,18 +55,18 @@ export default function AutomationsList() {
     return links && !links.previous!.results && !links.next!.results;
   }, [pageLinks]);
 
-  const paginationCaption =
-    isLoading || !automations ? undefined : (
-      <Fragment>
-        {getPaginationCaption({
-          cursor,
-          limit: AUTOMATION_LIST_PAGE_LIMIT,
-          pageLength: automations.length,
-          total: hits,
-        })}
-        {hits >= maxHits ? '+' : null}
-      </Fragment>
-    );
+  let paginationCaption: React.ReactNode;
+  if (!isLoading && automations && automations.length > 0) {
+    const offset = parseCursor(cursor)?.offset ?? 0;
+    const start = offset * AUTOMATION_LIST_PAGE_LIMIT + 1;
+    const end = start + automations.length - 1;
+
+    paginationCaption = tct('[start]-[end] of [total]', {
+      start: start.toLocaleString(),
+      end: end.toLocaleString(),
+      total: <QueryCount count={hits} max={maxHits} hideIfEmpty={false} hideParens />,
+    });
+  }
 
   return (
     <SentryDocumentTitle title={t('Alerts')}>

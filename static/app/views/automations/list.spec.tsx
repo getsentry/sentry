@@ -96,7 +96,7 @@ describe('AutomationsList', () => {
 
     render(<AutomationsList />, {organization});
 
-    expect(await screen.findByTestId('pagination')).toHaveTextContent('1-20 of 1,000+');
+    expect(await screen.findByTestId('pagination')).toHaveTextContent('1-20 of 1000+');
   });
 
   it('displays connected detectors and projects via a single batch request', async () => {
