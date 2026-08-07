@@ -235,7 +235,8 @@ interface UpdateUptimeDataSourcePayload {
 export interface BaseDetectorUpdatePayload {
   name: string;
   owner: string | null;
-  projectId: Detector['projectId'];
+  // Note: projectId is null for the AllProjectsDetector, but it cannot be updated.
+  projectId: string;
   type: Detector['type'];
   workflowIds: string[];
   description?: string | null;
