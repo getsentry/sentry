@@ -16,6 +16,7 @@ from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import CodingAgentState, SeerRunState
 from sentry.seer.agent.client_utils import fetch_run_status
 from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
+from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.utils import AutofixStoppingPoint, get_automation_handoff
 from sentry.seer.entrypoints.cache import SeerOperatorAgentCache, SeerOperatorAutofixCache
@@ -257,6 +258,11 @@ class SeerAutofixOperator[CachePayloadT]:
                         group,
                         run_id,
                         referrer=AutofixReferrer.SLACK,
+                        author=commit_author_for_user(
+                            user,
+                            group.organization.id,
+                            referrer="autofix_open_pr_slack",
+                        ),
                     )
                 else:
                     # NOTE: Stopping point here is really just what
