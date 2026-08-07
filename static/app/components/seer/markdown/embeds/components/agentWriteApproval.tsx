@@ -83,7 +83,7 @@ function AgentWriteApprovalContent({
   const canRespond =
     status === 'pending' && isActive && !readOnly && !!respondToUserInput;
   let displayStatus = status;
-  if (status === 'pending' && submittedDecision && !canRespond) {
+  if (status === 'pending' && submittedDecision) {
     displayStatus = submittedDecision === 'approve' ? 'approved' : 'rejected';
   }
 

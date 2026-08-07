@@ -178,7 +178,7 @@ describe('ToolUseBlock', () => {
       },
     });
 
-    const {rerender} = render(
+    render(
       <BlockComponent
         block={createAgentApprovalBlock('pending', requiredScopes)}
         blockIndex={0}
@@ -197,16 +197,8 @@ describe('ToolUseBlock', () => {
       });
     });
 
-    rerender(
-      <BlockComponent
-        block={createAgentApprovalBlock('pending', requiredScopes)}
-        blockIndex={0}
-        pendingInput={null}
-        respondToUserInput={respondToUserInput}
-      />
-    );
     expect(
-      screen.getByText(
+      await screen.findByText(
         'Access not granted for reading and writing Projects, reading and writing Issues & Events'
       )
     ).toBeInTheDocument();
@@ -237,7 +229,7 @@ describe('ToolUseBlock', () => {
       body: promise,
     });
 
-    const {rerender} = render(
+    render(
       <BlockComponent
         block={createAgentApprovalBlock()}
         blockIndex={0}
@@ -272,16 +264,8 @@ describe('ToolUseBlock', () => {
       });
     });
 
-    rerender(
-      <BlockComponent
-        block={createAgentApprovalBlock()}
-        blockIndex={0}
-        pendingInput={null}
-        respondToUserInput={respondToUserInput}
-      />
-    );
     expect(
-      screen.getByText('Access granted for reading and writing Projects')
+      await screen.findByText('Access granted for reading and writing Projects')
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Reject'})).not.toBeInTheDocument();
   });
@@ -293,7 +277,7 @@ describe('ToolUseBlock', () => {
       url: `/organizations/${organization.slug}/agent/approve/`,
       method: 'POST',
     });
-    const {rerender} = render(
+    render(
       <BlockComponent
         block={createAgentApprovalBlock()}
         blockIndex={0}
@@ -307,18 +291,7 @@ describe('ToolUseBlock', () => {
     expect(respondToUserInput).toHaveBeenCalledWith(APPROVAL_ID, {
       decision: 'reject',
     });
-    expect(screen.getByRole('button', {name: 'Reject'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: 'Approve'})).toBeDisabled();
     expect(approveRequest).not.toHaveBeenCalled();
-
-    rerender(
-      <BlockComponent
-        block={createAgentApprovalBlock()}
-        blockIndex={0}
-        pendingInput={null}
-        respondToUserInput={respondToUserInput}
-      />
-    );
     expect(
       screen.getByText('Access not granted for reading and writing Projects')
     ).toBeInTheDocument();
