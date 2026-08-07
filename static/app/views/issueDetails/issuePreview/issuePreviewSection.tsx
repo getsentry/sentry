@@ -60,5 +60,5 @@ export const IssuePreviewSection = Object.assign(IssuePreviewSectionComponent, {
 // Always displayed, even if the disclosure is closed. The left padding matches
 // the indent of Disclosure.Content.
 const SummaryContainer = styled(Container)`
-  padding: 0 ${p => p.theme.space.md} ${p => p.theme.space.md} 26px;
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md} ${p => p.theme.space.md} 26px;
 `;
