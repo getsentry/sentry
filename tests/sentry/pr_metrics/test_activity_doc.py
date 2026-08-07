@@ -1159,15 +1159,15 @@ def test_ci_head_outcomes_empty_doc() -> None:
     assert ci_head_outcomes_from_doc(new_document()) == {}
 
 
-def test_ci_head_outcomes_failed_passed_inconclusive() -> None:
+def test_ci_head_outcomes_failure_success_inconclusive() -> None:
     doc = new_document()
     _suite(doc, head_sha="sha_fail", conclusion="failure")
     _suite(doc, head_sha="sha_pass", conclusion="success", app_slug="pass-app")
     _suite(doc, head_sha="sha_abort", conclusion="cancelled", app_slug="abort-app")
 
     assert ci_head_outcomes_from_doc(doc) == {
-        "sha_fail": "failed",
-        "sha_pass": "passed",
+        "sha_fail": "failure",
+        "sha_pass": "success",
         "sha_abort": "inconclusive",
     }
 
@@ -1181,7 +1181,7 @@ def test_ci_head_outcomes_any_failing_suite_from_same_app_wins() -> None:
         "sha1|github-actions|suite:101",
         "sha1|github-actions|suite:202",
     }
-    assert ci_head_outcomes_from_doc(doc) == {"sha1": "failed"}
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "failure"}
 
 
 def test_ci_suite_rerun_updates_same_suite() -> None:
@@ -1195,7 +1195,7 @@ def test_ci_suite_rerun_updates_same_suite() -> None:
     )
 
     assert len(doc["checks"]) == 1
-    assert ci_head_outcomes_from_doc(doc) == {"sha1": "passed"}
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "success"}
 
 
 def test_check_run_joins_suite_before_out_of_order_suite_event() -> None:
@@ -1228,7 +1228,7 @@ def test_suite_id_does_not_reattribute_legacy_group() -> None:
         "sha1|github-actions",
         "sha1|github-actions|suite:101",
     }
-    assert ci_head_outcomes_from_doc(doc) == {"sha1": "failed"}
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "failure"}
 
 
 def test_legacy_suite_without_id_keeps_legacy_key() -> None:
@@ -1236,7 +1236,7 @@ def test_legacy_suite_without_id_keeps_legacy_key() -> None:
     _suite(doc, conclusion="failure")
 
     assert set(doc["checks"]) == {"sha1|github-actions"}
-    assert ci_head_outcomes_from_doc(doc) == {"sha1": "failed"}
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "failure"}
 
 
 def test_ci_head_outcomes_any_failing_app_wins() -> None:
@@ -1245,14 +1245,14 @@ def test_ci_head_outcomes_any_failing_app_wins() -> None:
     _suite(doc, head_sha="sha1", app_slug="github-actions", conclusion="success")
     _suite(doc, head_sha="sha1", app_slug="codecov", conclusion="failure")
 
-    assert ci_head_outcomes_from_doc(doc) == {"sha1": "failed"}
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "failure"}
 
 
 def test_ci_head_outcomes_derives_failure_from_runs_without_suite() -> None:
     doc = new_document()
     _run(doc, check_name="tests", conclusion="failure", head_sha="sha1")
 
-    assert ci_head_outcomes_from_doc(doc) == {"sha1": "failed"}
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "failure"}
 
 
 def test_opening_head_is_stored_separately_from_sync_chain() -> None:

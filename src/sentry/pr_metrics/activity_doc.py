@@ -751,14 +751,12 @@ def _normalize_github_login(login: str) -> str:
     return login.lower().removesuffix("[bot]")
 
 
-def ci_head_outcomes_from_doc(
-    doc: ActivityDoc,
-) -> dict[str, Literal["failed", "passed", "inconclusive"]]:
+def ci_head_outcomes_from_doc(doc: ActivityDoc) -> dict[str, CiVerdict]:
     """Map each check-rollup ``head_sha`` to a single latest CI outcome.
 
     Multiple ``(head_sha, app_slug)`` groups collapse to one outcome per SHA:
-    any failing app → ``failed``; else any app with a pass/fail verdict →
-    ``passed``; else ``inconclusive``. Empty ``head_sha`` groups are skipped.
+    any failing app → ``failure``; else any app with a pass/fail verdict →
+    ``success``; else ``inconclusive``. Empty ``head_sha`` groups are skipped.
     """
     groups_by_sha: dict[str, list[CheckGroup]] = {}
     for group in doc.get("checks", {}).values():
@@ -767,15 +765,10 @@ def ci_head_outcomes_from_doc(
             continue
         groups_by_sha.setdefault(sha, []).append(group)
 
-    outcomes: dict[str, Literal["failed", "passed", "inconclusive"]] = {}
-    for sha, groups in groups_by_sha.items():
-        verdict = _aggregate_ci_verdicts(_synthesized_suite_conclusion(group) for group in groups)
-        outcomes[sha] = {
-            "failure": "failed",
-            "success": "passed",
-            "inconclusive": "inconclusive",
-        }[verdict]
-    return outcomes
+    return {
+        sha: _aggregate_ci_verdicts(_synthesized_suite_conclusion(group) for group in groups)
+        for sha, groups in groups_by_sha.items()
+    }
 
 
 def head_sha_pushers_from_doc(doc: ActivityDoc) -> dict[str, tuple[str, str]]:
@@ -827,7 +820,7 @@ class CiHeadResult(TypedDict):
     sequence: int | None
     head_sha: str
     before_sha: str | None
-    outcome: Literal["failed", "passed", "inconclusive"]
+    outcome: CiVerdict
     has_ci: bool
     sender_login: str | None
     sender_type: str | None

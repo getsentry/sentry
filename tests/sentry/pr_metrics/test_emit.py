@@ -1079,8 +1079,8 @@ class PrMetricsEmissionTest(TestCase):
         assert row.ci_head_results is not None
         results = json.loads(row.ci_head_results)
         assert [(item["head_sha"], item["outcome"], item["actor"]) for item in results] == [
-            ("old111", "failed", "human"),
-            ("new222", "passed", "seer"),
+            ("old111", "failure", "human"),
+            ("new222", "success", "seer"),
         ]
 
     def test_build_row_ci_head_summary_empty_checks_is_zero(self) -> None:
@@ -1130,8 +1130,8 @@ class PrMetricsEmissionTest(TestCase):
         assert row.ci_head_results is not None
         results = json.loads(row.ci_head_results)
         assert [(item["outcome"], item["actor"]) for item in results] == [
-            ("failed", "seer"),
-            ("passed", "seer"),
+            ("failure", "seer"),
+            ("success", "seer"),
         ]
 
     def _ci_head_doc(self) -> None:
@@ -1171,7 +1171,7 @@ class PrMetricsEmissionTest(TestCase):
         assert row.ci_head_results is not None
         results = json.loads(row.ci_head_results)
         assert [(item["outcome"], item["actor"]) for item in results] == [
-            ("failed", "human"),
+            ("failure", "human"),
         ]
 
     def test_build_row_conversation_metadata_null_when_absent(self) -> None:
