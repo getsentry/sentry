@@ -26,6 +26,7 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
+from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
@@ -42,11 +43,6 @@ def _bounded_action_tag(action: Any, action_filter: ActionFilter) -> str:
     return "unknown"
 
 
-def _as_mapping(value: Any) -> Mapping[str, Any]:
-    """Coerce an unverified payload member to a mapping so a lookup on it can't raise."""
-    return value if isinstance(value, dict) else {}
-
-
 def _references_own_repo_pull_request(event: Mapping[str, Any], container_key: str) -> bool:
     """Whether a check payload references a pull request in the webhook's own repo.
 
@@ -56,17 +52,17 @@ def _references_own_repo_pull_request(event: Mapping[str, Any], container_key: s
     sides of that comparison are in the payload, so control can measure how much of
     the forwarded check volume it could stop storing.
     """
-    repo_id = _as_mapping(event.get("repository")).get("id")
+    repo_id = get_path(event, "repository", "id")
     if repo_id is None:
         return False
 
-    refs = _as_mapping(event.get(container_key)).get("pull_requests")
+    refs = get_path(event, container_key, "pull_requests")
     if not isinstance(refs, list):
         return False
 
     for ref in refs:
-        base_repo = _as_mapping(_as_mapping(_as_mapping(ref).get("base")).get("repo"))
-        if base_repo.get("id") is not None and str(base_repo["id"]) == str(repo_id):
+        base_repo_id = get_path(ref, "base", "repo", "id")
+        if base_repo_id is not None and str(base_repo_id) == str(repo_id):
             return True
     return False
 
