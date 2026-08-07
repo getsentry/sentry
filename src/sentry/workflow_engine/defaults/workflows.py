@@ -115,6 +115,7 @@ def create_pull_request_workflow(organization: Organization) -> Workflow:
         DataCondition.objects.create(
             type=Condition.SEER_ACTIVITY_TRIGGER,
             condition_group=when_condition_group,
+            # TODO(Leander): Update this with PR_READY_FOR_REVIEW when that's done
             comparison=[SeerActivityTriggerStage.PR_CREATED.value],
             condition_result=True,
         )
@@ -151,6 +152,8 @@ def ensure_pull_request_workflow(organization: Organization, detector: Detector)
     A primitive attempt to prevent duplicate workflows by checking if this label/detector combo
     already exists. We don't intend to call `ensure_default_organization_workflows` twice regardless,
     but this will guard if that does happen in quick succession (maybe from an RPC blip somehow).
+
+    Note: If the detector is not connected, a new pull request workflow will be created.
     """
     existing = Workflow.objects.filter(
         organization=organization,
