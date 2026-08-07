@@ -1,34 +1,20 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 import type {Dispatch, SetStateAction} from 'react';
 
-import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Separator} from '@sentry/scraps/separator';
-import {Text} from '@sentry/scraps/text';
 
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {Panel} from 'sentry/components/panels/panel';
 import {DisplayOptions} from 'sentry/components/stackTrace/displayOptions';
-import {
-  RelatedExceptionsTree,
-  ToggleRelatedExceptionsButton,
-  useHiddenExceptions,
-} from 'sentry/components/stackTrace/exceptionGroup';
-import {
-  ExceptionDescription,
-  ExceptionHeader,
-} from 'sentry/components/stackTrace/exceptionHeader';
+import {IssueExceptionStackTrace} from 'sentry/components/stackTrace/issueStackTrace/exceptionStackTrace';
 import {RawStackTraceText} from 'sentry/components/stackTrace/rawStackTrace';
 import {
   StackTraceViewStateProvider,
   useStackTraceViewState,
 } from 'sentry/components/stackTrace/stackTraceContext';
-import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
-import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
-import {t, tn} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {Event, ExceptionValue} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -41,14 +27,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
-import {IssueFrameActions} from './issueFrameActions';
-import {IssueStackTraceFrameContext} from './issueStackTraceFrameContext';
-import {
-  formatExceptionsAsText,
-  getExceptionEntryMeta,
-  getOrderedExceptions,
-  resolveExceptionFields,
-} from './utils';
+import {formatExceptionsAsText, getOrderedExceptions} from './utils';
 
 interface IssueStackTraceBaseProps {
   event: Event;
@@ -175,19 +154,9 @@ function IssueStackTraceContent({
     {enabled: defined(projectSlug)}
   );
   const hasScmSourceContext = !!detailedProject?.scmSourceContextEnabled;
-  const {hiddenExceptions, toggleRelatedExceptions, expandException} =
-    useHiddenExceptions(values);
-
-  const {rawEntryMeta, exceptionValuesMeta} = getExceptionEntryMeta(event, isStandalone);
-
   const exceptions = useMemo(
     () => getOrderedExceptions(values, isNewestFirst, view),
     [values, isNewestFirst, view]
-  );
-
-  const firstVisibleExceptionIndex = exceptions.findIndex(
-    exc =>
-      exc.mechanism?.parent_id === undefined || !hiddenExceptions[exc.mechanism.parent_id]
   );
 
   if (exceptions.length === 0) {
@@ -239,137 +208,15 @@ function IssueStackTraceContent({
     );
   }
 
-  if (exceptions.length === 1) {
-    const exc = exceptions[0]!;
-    const {type, module, value} = resolveExceptionFields(exc, isMinified);
-    const hasExceptionInfo = Boolean(type || value);
-
-    const excMeta = exceptionValuesMeta?.[exc.exceptionIndex];
-
-    return (
-      <FoldSection sectionKey={sectionKey} title="Stack Trace" actions={sectionActions}>
-        <Stack gap="lg">
-          <Stack gap="sm">
-            {hasExceptionInfo && (
-              <Fragment>
-                <div>
-                  <ExceptionHeader type={type} module={module} />
-                </div>
-                <ExceptionDescription
-                  value={value}
-                  mechanism={exc.mechanism}
-                  meta={excMeta}
-                />
-              </Fragment>
-            )}
-          </Stack>
-          <ErrorBoundary customComponent={null}>
-            <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
-          </ErrorBoundary>
-          <StackTraceProvider
-            exceptionIndex={isStandalone ? undefined : exc.exceptionIndex}
-            event={event}
-            hasScmSourceContext={hasScmSourceContext}
-            stacktrace={exc.stacktrace}
-            minifiedStacktrace={exc.rawStacktrace ?? undefined}
-            meta={isStandalone ? rawEntryMeta : excMeta?.stacktrace}
-          >
-            <StackTraceFrames
-              frameContextComponent={IssueStackTraceFrameContext}
-              frameActionsComponent={IssueFrameActions}
-            />
-          </StackTraceProvider>
-          <IssueStackTraceSuspectCommits
-            event={event}
-            group={group}
-            projectSlug={projectSlug}
-          />
-        </Stack>
-      </FoldSection>
-    );
-  }
-
   return (
     <FoldSection sectionKey={sectionKey} title="Stack Trace" actions={sectionActions}>
       <Stack gap="lg">
-        <Text variant="muted">
-          {tn(
-            'There is %s chained exception in this event.',
-            'There are %s chained exceptions in this event.',
-            exceptions.length
-          )}
-        </Text>
-        <Separator orientation="horizontal" border="primary" />
-        {exceptions.map((exc, idx) => {
-          if (
-            exc.mechanism?.parent_id !== undefined &&
-            hiddenExceptions[exc.mechanism.parent_id]
-          ) {
-            return null;
-          }
-
-          const exceptionId = exc.mechanism?.exception_id;
-          const {
-            type: excType,
-            module: excModule,
-            value: excValue,
-          } = resolveExceptionFields(exc, isMinified);
-
-          return (
-            <Disclosure
-              key={exceptionId ?? idx}
-              defaultExpanded={idx === firstVisibleExceptionIndex}
-              id={defined(exceptionId) ? `exception-${exceptionId}` : undefined}
-            >
-              <Disclosure.Title
-                trailingItems={
-                  <ToggleRelatedExceptionsButton
-                    exception={exc}
-                    hiddenExceptions={hiddenExceptions}
-                    toggleRelatedExceptions={toggleRelatedExceptions}
-                    values={values}
-                  />
-                }
-              >
-                <ExceptionHeader type={excType} module={excModule} />
-              </Disclosure.Title>
-              <Disclosure.Content>
-                <Stack gap="sm">
-                  <ExceptionDescription
-                    value={excValue}
-                    mechanism={exc.mechanism}
-                    meta={exceptionValuesMeta?.[exc.exceptionIndex]}
-                    gap="lg"
-                  />
-                  <RelatedExceptionsTree
-                    exception={exc}
-                    allExceptions={values}
-                    newestFirst={isNewestFirst}
-                    onExceptionClick={expandException}
-                  />
-                  {idx === firstVisibleExceptionIndex ? (
-                    <ErrorBoundary customComponent={null}>
-                      <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
-                    </ErrorBoundary>
-                  ) : null}
-                  <StackTraceProvider
-                    exceptionIndex={exc.exceptionIndex}
-                    event={event}
-                    hasScmSourceContext={hasScmSourceContext}
-                    stacktrace={exc.stacktrace}
-                    minifiedStacktrace={exc.rawStacktrace ?? undefined}
-                    meta={exceptionValuesMeta?.[exc.exceptionIndex]?.stacktrace}
-                  >
-                    <StackTraceFrames
-                      frameContextComponent={IssueStackTraceFrameContext}
-                      frameActionsComponent={IssueFrameActions}
-                    />
-                  </StackTraceProvider>
-                </Stack>
-              </Disclosure.Content>
-            </Disclosure>
-          );
-        })}
+        <IssueExceptionStackTrace
+          event={event}
+          hasScmSourceContext={hasScmSourceContext}
+          isStandalone={isStandalone}
+          values={values}
+        />
         <IssueStackTraceSuspectCommits
           event={event}
           group={group}

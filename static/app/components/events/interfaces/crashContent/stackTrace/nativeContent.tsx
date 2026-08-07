@@ -145,18 +145,17 @@ export function NativeContent({
         address: frame.instructionAddr,
       });
 
-      try {
-        const relativeAddress = (
-          parseAddress(frame.instructionAddr) -
-          parseAddress(correspondingImage.image_addr)
-        ).toString(16);
-
-        return maxLengthUntilThisPoint > relativeAddress.length
-          ? maxLengthUntilThisPoint
-          : relativeAddress.length;
-      } catch {
+      if (!frame.instructionAddr || !correspondingImage?.image_addr) {
         return maxLengthUntilThisPoint;
       }
+
+      const relativeAddress = (
+        parseAddress(frame.instructionAddr) - parseAddress(correspondingImage.image_addr)
+      ).toString(16);
+
+      return maxLengthUntilThisPoint > relativeAddress.length
+        ? maxLengthUntilThisPoint
+        : relativeAddress.length;
     },
     0
   );

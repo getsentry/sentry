@@ -1,11 +1,37 @@
 import {EventFixture} from 'sentry-fixture/event';
+import {EventStacktraceFrameFixture} from 'sentry-fixture/eventStacktraceFrame';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {EventError, ExceptionType, ExceptionValue, Frame} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 
-import {StackTracePreview} from './stackTracePreview';
+import {StackTracePreview, StackTracePreviewContent} from './stackTracePreview';
+
+function makeNativePreview() {
+  const stacktrace: StacktraceType = {
+    frames: [
+      EventStacktraceFrameFixture({
+        filename: 'ViewController.m',
+        function: 'ViewController.causeCrash',
+        inApp: true,
+        instructionAddr: '0x100001000',
+        package: '/build/CrashyApp.app/CrashyApp',
+        platform: 'cocoa',
+      }),
+    ],
+    framesOmitted: null,
+    hasSystemFrames: false,
+    registers: null,
+  };
+
+  return {
+    event: EventFixture({platform: 'cocoa'}),
+    stacktrace,
+  };
+}
 
 beforeEach(() => {
   MockApiClient.clearMockResponses();
@@ -105,5 +131,29 @@ describe('StackTracePreview', () => {
     expect(await screen.findByTestId('core-stacktrace-frame-row')).toBeInTheDocument();
     // Hide the platform icon for stack trace previews
     expect(screen.queryAllByRole('img')).toHaveLength(0);
+  });
+
+  it('renders legacy native stack trace previews without the feature flag', () => {
+    const {event, stacktrace} = makeNativePreview();
+
+    render(<StackTracePreviewContent event={event} stacktrace={stacktrace} />);
+
+    expect(screen.getByTestId('stack-trace-frame')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('native-stack-trace-frame-title')
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders new native stack trace previews with the feature flag', () => {
+    const {event, stacktrace} = makeNativePreview();
+
+    render(<StackTracePreviewContent event={event} stacktrace={stacktrace} />, {
+      organization: OrganizationFixture({
+        features: ['issue-details-new-stack-trace'],
+      }),
+    });
+
+    expect(screen.getByTestId('native-stack-trace-frame-title')).toBeInTheDocument();
+    expect(screen.queryByTestId('stack-trace-frame')).not.toBeInTheDocument();
   });
 });
