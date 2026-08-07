@@ -11,9 +11,22 @@ from sentry.analytics.events.issue_viewed import IssueViewedEvent
 from sentry.buffer.redis import RedisBuffer
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.issues.action_log import action_context_scope
-from sentry.issues.action_log.types import ActionSource, GroupActionActor, ReconcileStatusAction
+from sentry.issues.action_log.types import (
+    ActionSource,
+    AssignAction,
+    GroupAction,
+    GroupActionActor,
+    GroupActionType,
+    ReconcileStatusAction,
+    SeerCodingCompletedAction,
+    SeerCodingStartedAction,
+    SeerRCACompletedAction,
+    SeerRCAStartedAction,
+    SeerSolutionStartedAction,
+)
 from sentry.issues.constants import cache_key_for_issue_view
 from sentry.issues.derived.gate import GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
+from sentry.issues.endpoints.group_details import _apply_action_log_edits
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
@@ -159,6 +172,185 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             "rule": None,
         }
         assert entry["dateCreated"] is not None
+
+    @with_feature("projects:issue-action-log-activity")
+    def test_group_action_log_collapses_comment_edits(self) -> None:
+        group = self.create_group()
+        created_at = timezone.now() - timedelta(hours=1)
+        comment = self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.COMMENT,
+            data={"comment_id": 123, "text": "original", "mentions": []},
+            date_added=created_at,
+        )
+        first_edit = self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.COMMENT_EDIT,
+            data={"comment_id": comment.id, "text": "first edit", "mentions": []},
+            date_added=created_at + timedelta(minutes=1),
+        )
+        latest_edit = self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.COMMENT_EDIT,
+            data={
+                "comment_id": comment.id,
+                "text": "latest edit",
+                "mentions": [
+                    {"id": self.user.id, "actor_type": "User", "slug": self.user.username}
+                ],
+            },
+            date_added=created_at + timedelta(minutes=2),
+        )
+        self.login_as(user=self.user)
+
+        response = self.client.get(
+            f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/", format="json"
+        )
+
+        assert response.status_code == 200
+        comment_entries = [entry for entry in response.data["activity"] if entry["type"] == "note"]
+        assert len(comment_entries) == 1
+        assert comment_entries[0]["id"] == str(comment.id)
+        assert comment_entries[0]["data"]["text"] == "latest edit"
+        activity_ids = {entry["id"] for entry in response.data["activity"]}
+        assert str(first_edit.id) not in activity_ids
+        assert str(latest_edit.id) not in activity_ids
+
+        edited_entries = _apply_action_log_edits([latest_edit, first_edit, comment])
+        assert edited_entries == [comment]
+        assert edited_entries[0].data["mentions"] == [
+            {"id": self.user.id, "actor_type": "User", "slug": self.user.username}
+        ]
+        assert comment.data["text"] == "original"
+
+    def test_apply_action_log_edits_removes_redundant_actions(self) -> None:
+        group = self.create_group()
+        raw_actions: list[GroupAction] = [
+            AssignAction(assignee=str(self.user.id)),
+            SeerCodingCompletedAction(run_id=3, changes=[]),
+            SeerRCACompletedAction(run_id=1, summary="root cause found"),
+            SeerCodingStartedAction(run_id=4),
+            SeerSolutionStartedAction(run_id=2),
+            SeerCodingStartedAction(run_id=3),
+            SeerRCAStartedAction(run_id=1),
+        ]
+        action_log = [
+            self.create_group_action_log_entry(
+                group=group,
+                type=action.get_type(),
+                data=action.dict(),
+            )
+            for action in raw_actions
+        ]
+
+        cleaned_actions = [entry.action for entry in _apply_action_log_edits(action_log)]
+
+        assert cleaned_actions == [
+            AssignAction(assignee=str(self.user.id)),
+            SeerCodingCompletedAction(run_id=3, changes=[]),
+            SeerRCACompletedAction(run_id=1, summary="root cause found"),
+            SeerCodingStartedAction(run_id=4),
+            SeerSolutionStartedAction(run_id=2),
+        ]
+
+    @with_feature("projects:issue-action-log-activity")
+    def test_group_action_log_removes_deleted_comment(self) -> None:
+        group = self.create_group()
+        created_at = timezone.now() - timedelta(hours=1)
+        comment = self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.COMMENT,
+            data={"comment_id": 123, "text": "original", "mentions": []},
+            date_added=created_at,
+        )
+        edit = self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.COMMENT_EDIT,
+            data={"comment_id": comment.id, "text": "edited", "mentions": []},
+            date_added=created_at + timedelta(minutes=1),
+        )
+        deletion = self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.COMMENT_DELETE,
+            data={"comment_id": comment.id},
+            date_added=created_at + timedelta(minutes=2),
+        )
+        self.login_as(user=self.user)
+
+        response = self.client.get(
+            f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/", format="json"
+        )
+
+        assert response.status_code == 200
+        activity_ids = {entry["id"] for entry in response.data["activity"]}
+        assert str(comment.id) not in activity_ids
+        assert str(edit.id) not in activity_ids
+        assert str(deletion.id) not in activity_ids
+        assert all(entry["type"] != "note" for entry in response.data["activity"])
+
+    @with_feature("projects:issue-action-log-activity")
+    def test_group_action_log_removes_completed_seer_starts(self) -> None:
+        group = self.create_group()
+        started_at = timezone.now() - timedelta(hours=1)
+        action_pairs = (
+            (GroupActionType.SEER_RCA_STARTED, GroupActionType.SEER_RCA_COMPLETED),
+            (GroupActionType.SEER_SOLUTION_STARTED, GroupActionType.SEER_SOLUTION_COMPLETED),
+            (GroupActionType.SEER_CODING_STARTED, GroupActionType.SEER_CODING_COMPLETED),
+        )
+        started_entries = []
+        completed_entries = []
+        for offset, (started_type, completed_type) in enumerate(action_pairs):
+            started_entries.append(
+                self.create_group_action_log_entry(
+                    group=group,
+                    type=started_type,
+                    data={"run_id": offset},
+                    date_added=started_at + timedelta(minutes=offset * 2),
+                )
+            )
+            completed_entries.append(
+                self.create_group_action_log_entry(
+                    group=group,
+                    type=completed_type,
+                    data={"run_id": offset},
+                    date_added=started_at + timedelta(minutes=offset * 2 + 1),
+                )
+            )
+        self.login_as(user=self.user)
+
+        response = self.client.get(
+            f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/", format="json"
+        )
+
+        assert response.status_code == 200
+        activity_ids = {entry["id"] for entry in response.data["activity"]}
+        assert activity_ids.isdisjoint(str(entry.id) for entry in started_entries)
+        assert activity_ids.issuperset(str(entry.id) for entry in completed_entries)
+
+    @with_feature("projects:issue-action-log-activity")
+    def test_group_action_log_keeps_seer_start_after_completion(self) -> None:
+        group = self.create_group()
+        completed_at = timezone.now() - timedelta(hours=1)
+        self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.SEER_CODING_COMPLETED,
+            data={},
+            date_added=completed_at,
+        )
+        started = self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.SEER_CODING_STARTED,
+            data={},
+            date_added=completed_at + timedelta(minutes=1),
+        )
+        self.login_as(user=self.user)
+
+        response = self.client.get(
+            f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/", format="json"
+        )
+
+        assert response.status_code == 200
+        assert str(started.id) in {entry["id"] for entry in response.data["activity"]}
 
     def test_pending_delete_pending_merge_excluded(self) -> None:
         group1 = self.create_group(status=GroupStatus.PENDING_DELETION)
