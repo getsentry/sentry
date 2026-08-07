@@ -190,6 +190,39 @@ class InvestigationBlockEndpointTest(APITestCase):
             data={
                 "investigationVersion": self.investigation.version,
                 "kind": "query",
+                "display": {"version": 1.0, "type": "table"},
+            },
+            format="json",
+        )
+        assert response.status_code == 400
+
+        response = self.client.post(
+            self.blocks_url(),
+            data={
+                "investigationVersion": self.investigation.version,
+                "kind": "text",
+                "display": {"version": True, "type": "markdown"},
+            },
+            format="json",
+        )
+        assert response.status_code == 400
+
+        response = self.client.post(
+            self.blocks_url(),
+            data={
+                "investigationVersion": self.investigation.version,
+                "kind": "query",
+                "display": {"version": 1, "type": []},
+            },
+            format="json",
+        )
+        assert response.status_code == 400
+
+        response = self.client.post(
+            self.blocks_url(),
+            data={
+                "investigationVersion": self.investigation.version,
+                "kind": "query",
                 "display": {
                     "version": 1,
                     "type": "table",
