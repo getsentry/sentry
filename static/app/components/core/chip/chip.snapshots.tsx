@@ -10,7 +10,7 @@ const SIZES = ['xs', 'sm', 'md'] as const;
 
 describe('Chip', () => {
   describe.each(['light', 'dark'] as const)('theme-%s', themeName => {
-    it.snapshot.each<(typeof SIZES)[number]>(SIZES)(
+    it.snapshot.each<(typeof SIZES)[number]>([...SIZES])(
       'query-size-%s',
       size => (
         <ThemeProvider theme={themes[themeName]}>
@@ -28,7 +28,7 @@ describe('Chip', () => {
       size => ({tags: {size, variant: 'query', area: 'core'}})
     );
 
-    it.snapshot.each<(typeof SIZES)[number]>(SIZES)(
+    it.snapshot.each<(typeof SIZES)[number]>([...SIZES])(
       'readonly-query-size-%s',
       size => (
         <ThemeProvider theme={themes[themeName]}>
@@ -46,7 +46,7 @@ describe('Chip', () => {
       size => ({tags: {size, variant: 'readonly-query', area: 'core'}})
     );
 
-    it.snapshot.each<(typeof SIZES)[number]>(SIZES)(
+    it.snapshot.each<(typeof SIZES)[number]>([...SIZES])(
       'value-size-%s',
       size => (
         <ThemeProvider theme={themes[themeName]}>
