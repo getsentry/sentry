@@ -66,15 +66,24 @@ function getProgressActivities(activities: GroupActivity[]): GroupActivity[] {
   return activities.slice(0, MAX_ITEMS).toReversed();
 }
 
-function ProgressActivityItem({group, item}: {group: Group; item: GroupActivity}) {
+function ProgressActivityItem({
+  group,
+  item,
+  showConnector,
+}: {
+  group: Group;
+  item: GroupActivity;
+  showConnector: boolean;
+}) {
   if (isActivityNote(item)) {
-    return <ProgressActivityNote item={item} />;
+    return <ProgressActivityNote item={item} showConnector={showConnector} />;
   }
 
   return (
     <ActivityLine
       group={group}
       item={{type: 'activity', activity: item}}
+      showConnector={showConnector}
       timestampUnitStyle="extraShort"
     />
   );
@@ -82,14 +91,16 @@ function ProgressActivityItem({group, item}: {group: Group; item: GroupActivity}
 
 function ProgressActivityNote({
   item,
+  showConnector,
 }: {
   item: Extract<GroupActivity, {type: GroupActivityType.NOTE}>;
+  showConnector: boolean;
 }) {
   const organization = useOrganization();
   const showProgress = organization.features.includes('issue-activity-progress');
 
   return (
-    <ActivityLineRow>
+    <ActivityLineRow showConnector={showConnector}>
       <ActivityLineMarker item={item} showProgress={showProgress} />
       <ActivityLineHeadline
         title={getActivityNoteAuthor(item)}
@@ -150,8 +161,13 @@ function ProgressActivityBody({group}: {group: Group}) {
   return (
     <ActivityListContainer>
       <ActivityLineList>
-        {items.map(item => (
-          <ProgressActivityItem key={item.id} group={group} item={item} />
+        {items.map((item, index) => (
+          <ProgressActivityItem
+            key={item.id}
+            group={group}
+            item={item}
+            showConnector={index < items.length - 1}
+          />
         ))}
       </ActivityLineList>
     </ActivityListContainer>

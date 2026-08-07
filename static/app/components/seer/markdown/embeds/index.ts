@@ -1,3 +1,4 @@
+import {AgentWriteApprovalEmbed} from './components/agentWriteApproval';
 import {Autofix} from './components/autofix';
 import {Chart} from './components/chart';
 import {Docs} from './components/docs';
@@ -7,7 +8,17 @@ import {Timestamp} from './components/timestamp';
 import {User} from './components/user';
 import {SeerEmbedRegistry} from './registry';
 
-const embeds = [Autofix, Chart, Docs, Dsn, Issue, Issues, Timestamp, User];
+const embeds = [
+  AgentWriteApprovalEmbed,
+  Autofix,
+  Chart,
+  Docs,
+  Dsn,
+  Issue,
+  Issues,
+  Timestamp,
+  User,
+];
 for (const embed of embeds) {
   SeerEmbedRegistry.register(embed.displayName, embed);
 }

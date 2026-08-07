@@ -4,7 +4,8 @@ import logging
 from datetime import timedelta
 
 import sentry_sdk
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, F, OuterRef
+from django.db.models.functions import Mod
 from taskbroker_client.retry import Retry
 
 from sentry.constants import ObjectStatus
@@ -253,10 +254,13 @@ def schedule_per_org_calculations() -> None:
                 )
             ),
             status=OrganizationStatus.ACTIVE,
-        ),
+        )
+        .annotate(_order_bucket=Mod(F("id"), 10))
+        .order_by("_order_bucket", "id"),
         task=run_calculations_per_org_task_entry,
         cycle_duration=CYCLE_DURATION,
         validate_item=validate_and_track,
+        preserve_queryset_order=True,
     )
     scheduler.tick()
 

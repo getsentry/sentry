@@ -70,6 +70,8 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/access-requests/$requestId/'
   | '/organizations/$organizationIdOrSlug/agent/approve/'
   | '/organizations/$organizationIdOrSlug/agent/token/'
+  | '/organizations/$organizationIdOrSlug/agents/conversations/'
+  | '/organizations/$organizationIdOrSlug/agents/conversations/$conversationId/'
   | '/organizations/$organizationIdOrSlug/ai-conversations/'
   | '/organizations/$organizationIdOrSlug/ai-conversations/$conversationId/'
   | '/organizations/$organizationIdOrSlug/alert-rule-detector/'

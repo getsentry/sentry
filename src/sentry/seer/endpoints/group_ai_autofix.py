@@ -4,7 +4,6 @@ import logging
 import uuid
 from typing import Any
 
-from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
@@ -430,7 +429,6 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                             status=status.HTTP_409_CONFLICT,
                         )
 
-                triggered_at = timezone.now() if is_autofix_kickoff else None
                 try:
                     run = trigger_autofix_agent(
                         group=group,
@@ -470,7 +468,6 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                             ),
                             data={"referrer": referrer.value},
                             send_notification=False,
-                            datetime=triggered_at,
                         )
                     sentry_run_id = str(run.uuid)
                 else:

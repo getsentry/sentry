@@ -1,8 +1,5 @@
 import logging
-from datetime import datetime
 from typing import Any, NotRequired, TypedDict
-
-from django.utils import timezone
 
 from sentry import features, options
 from sentry.constants import DataCategory
@@ -234,7 +231,6 @@ class SeerAutofixOperator[CachePayloadT]:
 
             try:
                 if not run_id:
-                    triggered_at = timezone.now()
                     with action_context_scope(ActionSource.SLACK, GroupActionActor.user(user.id)):
                         run = trigger_autofix_agent(
                             group=group,
@@ -250,7 +246,6 @@ class SeerAutofixOperator[CachePayloadT]:
                             user_id=user.id,
                             data={"referrer": AutofixReferrer.SLACK.value},
                             send_notification=False,
-                            datetime=triggered_at,
                         )
                 elif stopping_point == AutofixStoppingPoint.OPEN_PR:
                     trigger_push_changes(
@@ -599,7 +594,6 @@ def _create_seer_activity(
     event_type: SentryAppEventType,
     event_payload: dict[str, Any],
     activity_attribution: SeerActivityAttribution | None = None,
-    activity_datetime: datetime | None = None,
 ) -> None:
     activity_type = SEER_EVENT_TO_ACTIVITY_TYPE.get(event_type)
     if not activity_type:
@@ -647,8 +641,50 @@ def _create_seer_activity(
         user_id=actor_user_id,
         data=activity_data if activity_data else None,
         send_notification=False,
-        datetime=activity_datetime,
     )
+
+
+def record_seer_activity(
+    *,
+    group: Group,
+    event_type: SentryAppEventType,
+    event_payload: dict[str, Any],
+    activity_attribution: SeerActivityAttribution | None = None,
+) -> None:
+    iteration_attribution: SeerActivityAttribution | None = None
+    if event_type == SentryAppEventType.SEER_ITERATION_STARTED and activity_attribution:
+        try:
+            referrer = AutofixReferrer(activity_attribution["referrer"])
+        except ValueError:
+            pass
+        else:
+            iteration_attribution = {"referrer": referrer}
+            actor_user_id = activity_attribution.get("actor_user_id")
+            if actor_user_id is not None:
+                iteration_attribution["actor_user_id"] = actor_user_id
+
+    action_source = ActionSource.SEER_EXPLORER
+    action_actor = SYSTEM_ACTOR
+    if iteration_attribution is not None:
+        action_source = ITERATION_REFERRER_TO_ACTION_SOURCE.get(
+            iteration_attribution["referrer"], ActionSource.SEER_EXPLORER
+        )
+        actor_user_id = iteration_attribution.get("actor_user_id")
+        if actor_user_id is not None:
+            action_actor = GroupActionActor.user(actor_user_id)
+
+    try:
+        with action_context_scope(action_source, action_actor):
+            _create_seer_activity(group, event_type, event_payload, iteration_attribution)
+    except Exception:
+        logger.exception(
+            "seer.activity_creation_failed",
+            extra={
+                "group_id": group.id,
+                "run_id": event_payload.get("run_id"),
+                "event_type": str(event_type),
+            },
+        )
 
 
 @instrumented_task(
@@ -669,6 +705,9 @@ def process_autofix_updates(
     """
     Use the registry to iterate over all entrypoints and check if this payload's run_id or group_id
     has a cache. If so, call the entrypoint's handler with the payload it had previously cached.
+
+    activity_datetime is accepted for compatibility with already queued tasks and intentionally
+    ignored.
     """
     with SeerOperatorEventLifecycleMetric(
         interaction_type=SeerOperatorInteractionType.OPERATOR_PROCESS_AUTOFIX_UPDATE
@@ -705,47 +744,12 @@ def process_autofix_updates(
             return
 
         if not activity_already_recorded:
-            iteration_attribution: SeerActivityAttribution | None = None
-            if event_type == SentryAppEventType.SEER_ITERATION_STARTED and activity_attribution:
-                try:
-                    activity_attribution["referrer"] = AutofixReferrer(
-                        activity_attribution["referrer"]
-                    )
-                except ValueError:
-                    pass
-                else:
-                    iteration_attribution = activity_attribution
-
-            action_source = ActionSource.SEER_EXPLORER
-            action_actor = SYSTEM_ACTOR
-            if iteration_attribution is not None:
-                action_source = ITERATION_REFERRER_TO_ACTION_SOURCE.get(
-                    iteration_attribution["referrer"], ActionSource.SEER_EXPLORER
-                )
-                actor_user_id = iteration_attribution.get("actor_user_id")
-                if actor_user_id is not None:
-                    action_actor = GroupActionActor.user(actor_user_id)
-
-            try:
-                with action_context_scope(action_source, action_actor):
-                    _create_seer_activity(
-                        group,
-                        event_type,
-                        event_payload,
-                        activity_attribution=iteration_attribution,
-                        activity_datetime=(
-                            datetime.fromisoformat(activity_datetime) if activity_datetime else None
-                        ),
-                    )
-            except Exception:
-                logger.exception(
-                    "seer.activity_creation_failed",
-                    extra={
-                        "group_id": group_id,
-                        "run_id": run_id,
-                        "event_type": str(event_type),
-                    },
-                )
+            record_seer_activity(
+                group=group,
+                event_type=event_type,
+                event_payload=event_payload,
+                activity_attribution=activity_attribution,
+            )
 
         for entrypoint_key, entrypoint_cls in autofix_entrypoint_registry.registrations.items():
             logging_ctx = {

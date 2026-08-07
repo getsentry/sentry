@@ -6,45 +6,13 @@
 
 ### Preventing Indirect Object References (IDOR)
 
-**Indirect Object Reference** vulnerabilities occur when an attacker can access resources they shouldn't by manipulating IDs passed in requests. This is one of the most critical security issues in multi-tenant applications like Sentry.
+Multi-tenant queries MUST be scoped — never trust user-supplied IDs alone.
 
-**Core Principle: Always Scope Queries by Organization/Project**
+- Always filter by `organization_id` and/or `project_id`:
+  `Resource.objects.get(id=..., organization_id=organization.id)`.
+- Never read `request.data["project_id"]` / `request.GET["project_id"]` directly. Use `self.get_projects(request=request, organization=organization, project_ids=...)`, which validates permissions.
 
-When querying resources, ALWAYS include `organization_id` and/or `project_id` in your query filters. Never trust user-supplied IDs alone.
-
-```python
-# WRONG: Vulnerable to IDOR - user can access any resource by guessing IDs
-resource = Resource.objects.get(id=request.data["resource_id"])
-
-# RIGHT: Properly scoped to organization
-resource = Resource.objects.get(
-    id=request.data["resource_id"],
-    organization_id=organization.id
-)
-
-# RIGHT: Properly scoped to project
-resource = Resource.objects.get(
-    id=request.data["resource_id"],
-    project_id=project.id
-)
-```
-
-**Project ID Handling: Use `self.get_projects()`**
-
-When project IDs are passed in the request (query string or body), NEVER directly access or trust `request.data["project_id"]` or `request.GET["project_id"]`. Instead, use the endpoint's `self.get_projects()` method which performs proper permission checks.
-
-```python
-# WRONG: Direct access bypasses permission checks
-project_ids = request.data.get("project_id")
-projects = Project.objects.filter(id__in=project_ids)
-
-# RIGHT: Use self.get_projects() which validates permissions
-projects = self.get_projects(
-    request=request,
-    organization=organization,
-    project_ids=request.data.get("project_id")
-)
-```
+For access-control review or deeper authorization work, use the **`django-access-review`** and **`sentry-security`** skills.
 
 ## Development Services
 
@@ -66,6 +34,7 @@ Local dependencies are managed by `devservices` (config: `devservices/config.yml
    - URL: `src/sentry/api/urls.py`
    - Test: `tests/sentry/api/endpoints/test_{resource}.py`
    - Serializer: `src/sentry/api/serializers/models/{model}.py`
+4. Document with drf-spectacular decorators → use the **`document-api-endpoint`** skill.
 
 ### "User wants to add a Celery task"
 
@@ -76,55 +45,15 @@ Local dependencies are managed by `devservices` (config: `devservices/config.yml
 
 ### Serializers: Avoiding N+1 Queries
 
-**Rule**: NEVER query the database in `serialize()` for bulk requests, always use `get_attrs()`.
-
-The `serialize()` function in `base.py` calls `get_attrs()` once with all objects, then `serialize()` once per object:
-
-```python
-# ❌ WRONG: Query runs once per object (N+1)
-class MySerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kwargs):
-        data = RelatedModel.objects.filter(obj=obj).first()  # NO!
-        return {"id": obj.id, "data": data}
-
-# ✅ CORRECT: Bulk query in get_attrs
-class MySerializer(Serializer):
-    def get_attrs(self, item_list, user, **kwargs):
-        # Query once for all items
-        data_by_id = {
-            d.object_id: d.value
-            for d in RelatedModel.objects.filter(object__in=item_list)
-        }
-        return {item: {"data": data_by_id.get(item.id)} for item in item_list}
-
-    def serialize(self, obj, attrs, user, **kwargs):
-        return {"id": obj.id, "data": attrs.get("data")}
-
-# Extending serializers
-class DetailedSerializer(MySerializer):
-    def get_attrs(self, item_list, user, **kwargs):
-        attrs = super().get_attrs(item_list, user)  # Call parent first
-
-        # Add more bulk queries
-        extra_by_id = {e.id: e for e in Extra.objects.filter(item__in=item_list)}
-        for item in item_list:
-            attrs[item]["extra"] = extra_by_id.get(item.id)
-        return attrs
-```
+NEVER query the database in `serialize()` for bulk requests. `serialize()` runs once per object, so per-object queries are N+1. Do all bulk queries once in `get_attrs()` (call `super().get_attrs()` first when extending), and have `serialize()` read only from `attrs`. For worked examples and other N+1 patterns, use the **`django-perf-review`** skill.
 
 ## API Development
-
-### Adding New Endpoints
-
-1. Create endpoint in `src/sentry/api/endpoints/`
-2. Add URL pattern in `src/sentry/api/urls.py`
-3. Document with drf-spectacular decorators
-4. Add tests in `tests/sentry/api/endpoints/`
 
 ### API Documentation
 
 - OpenAPI spec generation: `make build-api-docs`
 - API ownership tracked in `src/sentry/apidocs/api_ownership_allowlist_dont_modify.py`
+- Documenting/typing an endpoint → use the **`document-api-endpoint`** skill.
 
 ### API Design Rules
 
@@ -134,29 +63,8 @@ class DetailedSerializer(MySerializer):
 4. Return strings for numeric IDs
 5. Implement pagination with `cursor`
 6. Use `GET` for read, `POST` for create, `PUT` for update
-7. **Error responses MUST use `"detail"` key** (Django REST Framework convention)
-
-### Error Response Convention
-
-Following Django REST Framework standards, all error responses must use `"detail"` as the key for error messages.
-
-```python
-from rest_framework.response import Response
-
-# ✅ CORRECT: Use "detail" for error messages
-return Response({"detail": "Internal server error"}, status=500)
-return Response({"detail": "Invalid input"}, status=400)
-
-# ❌ WRONG: Don't use "error" or other keys
-return Response({"error": "Internal server error"}, status=500)
-return Response({"message": "Invalid input"}, status=400)
-```
-
-**Why `detail`?**
-
-- Standard Django REST Framework convention
-- Consistent with existing Sentry codebase
-- Expected by API clients and error handlers
+7. **Error responses MUST use the `"detail"` key** (Django REST Framework convention) — not `"error"` or `"message"`:
+   `return Response({"detail": "Invalid input"}, status=400)`.
 
 ## Common Patterns
 
@@ -176,120 +84,9 @@ class MyPermission(SentryPermission):
     }
 ```
 
-### Options System
+### Logging, Tracing, Metrics, Options
 
-Sentry uses a centralized options system where all options are registered in `src/sentry/options/defaults.py` with required default values.
-
-```python
-# CORRECT: options.get() without default - registered default is used
-from sentry import options
-
-batch_size = options.get("deletions.group-hash-metadata.batch-size")
-
-# WRONG: Redundant default value
-batch_size = options.get("deletions.group-hash-metadata.batch-size", 1000)
-```
-
-**Important**: Never suggest adding a default value to `options.get()` calls. All options are registered via `register()` in `defaults.py` which requires a default value. The options system will always return the registered default if no value is set, making a second default parameter redundant and potentially inconsistent.
-
-### Logging Pattern
-
-```python
-import logging
-from sentry import analytics
-from sentry.analytics.events.feature_used import FeatureUsedEvent  # does not exist, only for demonstration purposes
-
-logger = logging.getLogger(__name__)
-
-# Structured logging
-logger.info(
-    "user.action.complete",
-    extra={
-        "user_id": user.id,
-        "action": "login",
-        "ip_address": request.META.get("REMOTE_ADDR"),
-    }
-)
-
-# IMPORTANT: LOG005 use exception() within an exception handler
-# WRONG: Calling logger.error() when capturing exception
-try:
-    risky_operation()
-except ValidationError as e:
-    logger.error("error.invalid_payload")
-
-# RIGHT: Use logger.exception() with a message when capturing an exception
-try:
-    risky_operation()
-except ValidationError:
-    logger.exception("error.invalid_payload")
-
-# IMPORTANT: Avoid LOG011 - Never pre-format log messages with f-strings or .format()
-# WRONG: Pre-formatting evaluates before logger call, even if logging is disabled
-logger.info(f"User {user.id} completed {action}")
-logger.info("User {} completed {}".format(user.id, action))
-
-# RIGHT: Use logger's %-formatting for lazy evaluation
-logger.info("%s.user.action.complete", PREFIX)
-
-# ALSO RIGHT: Use structured logging with extra parameters only
-logger.info(
-    "user.action.complete", extra={"user_id": user.id}
-)
-
-# Analytics event
-analytics.record(
-    FeatureUsedEvent(
-        user_id=user.id,
-        organization_id=org.id,
-        feature="new-dashboard",
-    )
-)
-```
-
-### Tracing / Spans
-
-Use the wrappers in `sentry.utils.tracing` instead of calling the SDK directly. This is required while we dogfood the streaming trace lifecycle (Span First rollout).
-
-| Instead of                       | Use                                              |
-| -------------------------------- | ------------------------------------------------ |
-| `sentry_sdk.start_span()`        | `start_span(name=..., op=...)`                   |
-| `sentry_sdk.start_transaction()` | `start_span(name=..., op=..., transaction=True)` |
-| `span.set_tag(key, value)`       | `set_span_tag(span, key, value)`                 |
-| `span.set_data(key, value)`      | `set_span_data(span, key, value)`                |
-
-```python
-from sentry.utils.tracing import start_span, set_span_tag, set_span_data
-
-# Child span — no need to capture the span when you don't set tags/data
-with start_span(name="event_manager.save", op="save"):
-    do_work()
-
-# Child span with tags/data — capture via `as span`
-with start_span(name="event_manager.save", op="save") as span:
-    set_span_tag(span, "platform", platform)
-    set_span_data(span, "rows_count", len(rows))
-
-# Transaction root (replaces sentry_sdk.start_transaction)
-with start_span(name="monitors.consumer", op="process", transaction=True):
-    process_batch()
-```
-
-### Metrics Tags
-
-Every distinct tag-value combination is a separate time series, so keep tags **low-cardinality, meaningful, and minimal**:
-
-- Add a tag only if you'll actually filter or group by it. Fewer is better.
-- Tag values must be bounded/enumerable (e.g. `status`, `platform`, `reason`) — never unbounded identifiers (IDs, emails, URLs, free text).
-
-The middleware (`src/sentry/metrics/middleware.py`) enforces this by denylisting tag keys that **end in `_id`** or that are exactly **`event`/`project`/`group`**. Such tags **will not work**: they're silently stripped by default, and raise `BadMetricTags` when `SENTRY_METRICS_DISALLOW_BAD_TAGS` is on (e.g. CI) — so a metric that looks fine locally can fail elsewhere.
-
-```python
-metrics.incr("my.metric", tags={"project_id": project.id})   # WRONG: stripped / raises
-metrics.incr("my.metric", tags={"platform": project.platform})  # RIGHT: bounded values
-```
-
-A few keys are allowlisted despite the rule (see `_NOT_BAD_TAGS`); don't expand it to work around the constraint — pick a low-cardinality tag instead.
+Logging (`logger.info/exception`, `LOG005`/`LOG011`), tracing/spans (`sentry.utils.tracing`), metrics tag cardinality, and the options system (`options.get()`) → use the **`backend-conventions`** skill.
 
 ## Architecture Rules
 
@@ -297,71 +94,14 @@ A few keys are allowlisted despite the rule (see `_NOT_BAD_TAGS`); don't expand 
 
 - **Control Silo**: User auth, billing, organization management
 - **Region Silo**: Project data, events, issues
-- Check model's silo in `src/sentry/models/outbox.py`
-- Use `@cell_silo_endpoint` or `@control_silo_endpoint`
+- Check model's silo in `src/sentry/models/outbox.py`; use `@cell_silo_endpoint` or `@control_silo_endpoint`.
+- Never join across silos; use `outbox` for cross-silo updates. For silo/RPC/outbox work, use the **`hybrid-cloud-rpc`**, **`hybrid-cloud-outboxes`**, and **`cell-architecture`** skills.
 
 ### Database Guidelines
 
-1. NEVER join across silos
-2. Use `outbox` for cross-silo updates
-3. Migrations must be backwards compatible
-4. Add indexes for queries on 1M+ row tables
-5. Use `db_index=True` or `db_index_together`
-
-#### Composite Index Strategy: Match Your Query Patterns
-
-**Critical Rule**: When writing a query that filters on multiple columns simultaneously, you MUST verify that a composite index exists covering those columns in the filter order.
-
-**How to Identify When You Need a Composite Index:**
-
-1. **Look for Multi-Column Filters**: Any query using multiple columns in `.filter()` or `WHERE` clause
-2. **Check Index Coverage**: Verify the model's `Meta.indexes` includes those columns
-3. **Consider Query Order**: Index column order should match the most selective filters first
-
-**Common Patterns Requiring Composite Indexes:**
-
-```python
-# NEEDS COMPOSITE INDEX: Filtering on foreign_key_id AND id
-Model.objects.filter(
-    foreign_key_id__in=ids,  # First column
-    id__gt=last_id           # Second column
-)[:batch_size]
-# Required: Index(fields=["foreign_key", "id"])
-
-# NEEDS COMPOSITE INDEX: Status + timestamp range queries
-Model.objects.filter(
-    status="open",           # First column
-    created_at__gte=start    # Second column
-)
-# Required: Index(fields=["status", "created_at"])
-
-# NEEDS COMPOSITE INDEX: Org + project + type lookups
-Model.objects.filter(
-    organization_id=org_id,  # First column
-    project_id=proj_id,      # Second column
-    type=event_type          # Third column
-)
-# Required: Index(fields=["organization", "project", "type"])
-```
-
-**How to Check if Index Exists:**
-
-1. Read the model file: Check the `Meta` class for `indexes = [...]`
-2. Single foreign key gets auto-index, but **NOT** when combined with other filters
-3. If you filter on FK + another column, you need explicit composite index
-
-**Red Flags to Watch For:**
-
-- Query uses `column1__in=[...]` AND `column2__gt/lt/gte/lte`
-- Query filters on FK relationship PLUS primary key or timestamp
-- Pagination queries combining filters with cursor-based `id__gt`
-- Large IN clauses combined with range filters
-
-**When in Doubt:**
-
-1. Check production query performance in Sentry issues (slow query alerts)
-2. Run `EXPLAIN ANALYZE` on similar queries against production-sized data
-3. Add the composite index if table has 1M+ rows and query runs in loops/batches
+1. Migrations must be backwards compatible → use the **`generate-migration`** skill.
+2. Add indexes for queries on 1M+ row tables (`db_index=True` or `db_index_together`).
+3. **Composite indexes**: any query filtering multiple columns (e.g. `foreign_key_id__in=... AND id__gt=...`, or FK + timestamp range, or cursor pagination combining filters) needs an explicit `Index(fields=[...])` in `Meta.indexes`, ordered most-selective-first. A single FK auto-index does NOT cover multi-column filters. See **`django-perf-review`** for validation.
 
 ## Anti-Patterns (NEVER DO)
 
@@ -406,8 +146,6 @@ def my_function():
 
 ## File Location Map
 
-### Backend
-
 - **Models**: `src/sentry/models/{model}.py`
 - **API Endpoints**: `src/sentry/api/endpoints/{resource}.py`
 - **Serializers**: `src/sentry/api/serializers/models/{model}.py`
@@ -419,31 +157,14 @@ def my_function():
 
 ## Integration Development
 
-### Adding Integration
-
-1. Create dir: `src/sentry/integrations/{name}/`
-2. Required files:
-   - `__init__.py`
-   - `integration.py` (inherit from `Integration`)
-   - `client.py` (API client)
-   - `webhooks/` (if needed)
-3. Register in `src/sentry/integrations/registry.py`
-4. Add feature flag in `temporary.py`
+Add an integration under `src/sentry/integrations/{name}/` with `__init__.py`, `integration.py` (inherit from `Integration`), `client.py` (API client), and `webhooks/` if needed. Register it in `src/sentry/integrations/registry.py` and add a feature flag in `temporary.py`.
 
 ## Python Typing
 
-### Recommended Practices
-
-For function signatures, always use abstract types (e.g. `Sequence` over `list`) for input parameters and use specific return types (e.g. `list` over `Sequence`).
+Use abstract types for input parameters (e.g. `Sequence` over `list`) and specific return types (e.g. `list` over `Sequence`). Import from `collections.abc`, not `typing`, when available (`from collections.abc import Sequence`).
 
 ```python
 # Good: Abstract input types, specific return types
 def process_items(items: Sequence[Item]) -> list[ProcessedItem]:
     return [process(item) for item in items]
-
-# Avoid: Specific input types, abstract return types
-def process_items(items: list[Item]) -> Sequence[ProcessedItem]:
-    return [process(item) for item in items]
 ```
-
-Always import a type from the module `collections.abc` rather than the `typing` module if it is available (e.g. `from collections.abc import Sequence` rather than `from typing import Sequence`).
