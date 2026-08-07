@@ -77,7 +77,7 @@ const getEventTypes = memoize((app: SentryApp) => {
   return events;
 });
 
-export function ResponseCode({code}: {code: number}) {
+function ResponseCode({code}: {code: number}) {
   let variant: TagProps['variant'] = 'danger';
   if (code <= 399 && code >= 300) {
     variant = 'warning';
