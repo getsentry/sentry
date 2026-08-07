@@ -33,9 +33,9 @@ interface ChipProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const SIZES = {
-  xs: {height: '20px', radius: '2xs', pad: 'xs', font: '12px', dismiss: '20px'},
-  sm: {height: '24px', radius: 'xs', pad: 'sm', font: '14px', dismiss: '20px'},
-  md: {height: '28px', radius: 'sm', pad: 'md', font: '14px', dismiss: '24px'},
+  xs: {height: '20px', radius: '2xs', pad: 'xs', font: 'sm', dismiss: '20px'},
+  sm: {height: '24px', radius: 'xs', pad: 'sm', font: 'md', dismiss: '20px'},
+  md: {height: '28px', radius: 'sm', pad: 'md', font: 'md', dismiss: '24px'},
 } as const;
 
 /**
@@ -55,6 +55,7 @@ export function Chip({
   onDismiss,
   ...rest
 }: ChipProps) {
+  const textSize = SIZES[size].font;
   const textVariant: TextProps<'span'>['variant'] = readonly
     ? 'secondary'
     : property === undefined
@@ -65,17 +66,17 @@ export function Chip({
     <ChipRoot chipSize={size} dismissable={Boolean(onDismiss)} {...rest}>
       <Flex align="center" gap="xs" padding="2xs 0">
         {property !== undefined && (
-          <Text variant="primary" wrap="nowrap">
+          <Text size={textSize} variant="primary" wrap="nowrap">
             {property}
           </Text>
         )}
         {operator && (
-          <Text variant="secondary" wrap="nowrap">
+          <Text size={textSize} variant="secondary" wrap="nowrap">
             {operator}
           </Text>
         )}
         {value !== undefined && (
-          <Text variant={textVariant} wrap="nowrap">
+          <Text size={textSize} variant={textVariant} wrap="nowrap">
             {value}
           </Text>
         )}
@@ -111,7 +112,6 @@ const ChipRoot = styled('div')<{chipSize: ChipSize; dismissable: boolean}>`
   border-radius: ${p => p.theme.radius[SIZES[p.chipSize].radius]};
   background: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.background};
   box-shadow: 0 1px 0 0 ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
-  font-size: ${p => SIZES[p.chipSize].font};
   line-height: 16px;
 `;
 
