@@ -476,14 +476,12 @@ function ActivityFeedExamples({items}: {items: ActivityFeedItem[]}) {
             group={group}
             inputVariant="compact"
             onDelete={async () => {}}
-            showConnector={index < items.length - 1}
           />
         ) : (
           <ActivityLine
             key={`${item.activity.id}-${index}`}
             group={group}
             item={item}
-            showConnector={index < items.length - 1}
             timestampUnitStyle="short"
           />
         )
