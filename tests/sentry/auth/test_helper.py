@@ -172,9 +172,9 @@ class UserResolutionTest(AuthIdentityHandlerTest):
 
 @control_silo_test
 class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
-    def test_skip_confirm_emails_suppresses_email(self) -> None:
+    def test_email_verified_suppresses_confirm_email(self) -> None:
         with mock.patch.object(User, "send_confirm_emails") as mock_send:
-            self.handler.handle_new_user(skip_confirm_emails=True)
+            self.handler.handle_new_user(email_verified=True)
         mock_send.assert_not_called()
 
     def test_confirm_emails_sent_by_default(self) -> None:
