@@ -315,7 +315,10 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
         background="primary"
       >
         <Container width="100%" padding="sm" background="secondary" radius="sm">
-          <Disclosure.Title aria-label={section.label}>
+          <Disclosure.Title
+            aria-label={section.label}
+            aria-describedby={`inbox-section-${section.key}-count`}
+          >
             <Flex align="center" justify="between" gap="sm" width="100%">
               <Flex align="center" gap="sm">
                 {getProgressIcon(section.progress)}
@@ -323,7 +326,7 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
                   {section.label}
                 </Heading>
               </Flex>
-              <Badge variant="muted">
+              <Badge id={`inbox-section-${section.key}-count`} variant="muted">
                 <QueryCount count={count} max={maxCount} hideIfEmpty={false} hideParens />
               </Badge>
             </Flex>
