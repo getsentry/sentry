@@ -1,4 +1,4 @@
-import {keepPreviousData, useQuery} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -17,7 +17,7 @@ export function useInboxIssueCount() {
       organization.features.includes('seer-added'));
   const inboxCountQuery = hasSeer ? INBOX_COUNT_QUERY : INBOX_COUNT_QUERY_NO_SEER;
 
-  const {data} = useQuery({
+  return useQuery({
     ...apiOptions.as<Record<string, number>>()(
       '/organizations/$organizationIdOrSlug/issues-count/',
       {
@@ -29,8 +29,6 @@ export function useInboxIssueCount() {
         staleTime: 180_000,
       }
     ),
-    placeholderData: keepPreviousData,
+    select: response => response.json[inboxCountQuery] ?? 0,
   });
-
-  return data?.[inboxCountQuery] ?? null;
 }

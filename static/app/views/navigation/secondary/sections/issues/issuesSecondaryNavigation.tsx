@@ -11,13 +11,9 @@ import {IssueCount} from 'sentry/views/navigation/secondary/sections/issues/issu
 import {IssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViews';
 
 function InboxCountBadge() {
-  const count = useInboxIssueCount();
+  const {data: count} = useInboxIssueCount();
 
-  if (!count) {
-    return null;
-  }
-
-  return <IssueCount count={count} />;
+  return count === undefined ? null : <IssueCount count={count} />;
 }
 
 export function IssuesSecondaryNavigation() {
