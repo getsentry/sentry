@@ -54,8 +54,8 @@ const INBOX_MAX_SIZE = 640;
 type AssignmentFilter = (typeof ASSIGNMENT_FILTERS)[number];
 
 const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
-  me: ' assigned:me',
-  my_teams: ' assigned:[me,my_teams]',
+  me: ' assigned_or_suggested:me',
+  my_teams: ' assigned_or_suggested:[me,my_teams]',
   all: '',
 };
 interface InboxSectionContext {
@@ -194,7 +194,7 @@ function InboxContent() {
   const [assignmentFilter, setAssignmentFilter] = useQueryState(
     ASSIGNMENT_QUERY_PARAM,
     parseAsStringLiteral(ASSIGNMENT_FILTERS)
-      .withDefault('my_teams')
+      .withDefault('me')
       .withOptions({history: 'replace'})
   );
   const [selectedIssueId, setSelectedIssueId] = useQueryState(
