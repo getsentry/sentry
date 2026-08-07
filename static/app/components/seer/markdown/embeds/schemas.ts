@@ -1,8 +1,6 @@
 import {z} from 'zod';
 
-// @ts-expect-error — Node --experimental-transform-types requires .ts extension
-// eslint-disable-next-line no-relative-import-paths/no-relative-import-paths -- loaded directly by codegen
-import {API_ACCESS_SCOPES} from '../../../../constants/apiAccessScopes.ts';
+import {API_ACCESS_SCOPES} from 'sentry/constants/apiAccessScopes';
 
 const isoTimestampSchema = z.iso.datetime({offset: true});
 
