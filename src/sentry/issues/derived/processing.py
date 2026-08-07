@@ -14,7 +14,7 @@ from django.utils import timezone
 from sentry.issues.derived.aggregators import AGGREGATORS
 from sentry.issues.derived.framework import Pipeline, State
 from sentry.issues.derived.store import GroupDerivedDataStore
-from sentry.issues.derived.tasks import process_group_log_task
+from sentry.issues.derived.tasks import generate_group_derived_data, process_group_log_task
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
 from sentry.models.group import Group
@@ -154,6 +154,11 @@ def _process_batch(
     last-writer-wins semantics are safe because all writers compute the
     same deterministic result for overlapping entry ranges.
 
+    Invalidated rows (null pipeline_hash) are treated as compatible with
+    any writer's hash: the row is known to be out of date and awaiting
+    replacement, but there's no reason to freeze incremental progress in
+    the meantime.
+
     When *persist* is False, only the in-memory object is updated — the
     caller is responsible for persisting the result (e.g. via
     ``promote_to_live``). Used for full generations that accumulate
@@ -181,7 +186,7 @@ def _process_batch(
     updated = GroupDerivedData.objects.filter(
         Q(id=derived.id, generated_at=derived.generated_at)
         & (Q(cursor_date__lt=last_date) | Q(cursor_date=last_date, cursor_id__lte=last_id))
-        & Q(pipeline_hash=derived.pipeline_hash)
+        & (Q(pipeline_hash=derived.pipeline_hash) | Q(pipeline_hash__isnull=True))
     ).update(cursor_date=last_date, cursor_id=last_id, **state_update)
 
     if updated:
@@ -526,33 +531,58 @@ def build_and_promote_derived_data(
 def invalidate_group_derived_data(
     group_id: int,
     cursor: tuple[datetime, int] | None = None,
+    soft: bool = True,
+    trigger_regenerate: bool = True,
 ) -> None:
-    """Delete derived state so it is rebuilt from scratch on the next pass,
-    then kicks off an async task to regenerate the derived data.
+    """Mark a group's derived data as out-of-date with respect to its action log.
 
-    If *cursor* is ``(date_added, id)`` of the earliest affected entry, the
-    row is only deleted when its cursor is at or past that point; otherwise
-    the mutation is still ahead of processing and no invalidation is needed.
-    Without a cursor the invalidation is unconditional.
+    *cursor* is ``(date_added, id)`` of the earliest affected entry. If the
+    row's own cursor is behind that point, the mutation is a pure append and
+    the row is left alone (an incremental drain will catch it up).
+
+    Otherwise the row is invalidated: ``soft=True`` (default) nulls
+    ``pipeline_hash`` so the row stays readable but is flagged stale for
+    bulk regeneration; ``soft=False`` deletes the row so readers cannot
+    observe pre-mutation state.
+
+    If *trigger_regenerate* is True (default), schedules a background task
+    to bring the row up to date. Pass False in bulk contexts that will
+    drive regeneration themselves.
     """
     if cursor is None:
-        GroupDerivedData.objects.filter(group_id=group_id).delete()
-        process_group_log_task.delay(group_id)
+        invalid_predicate = Q(group_id=group_id)
+    else:
+        cursor_date, cursor_id = cursor
+        invalid_predicate = Q(group_id=group_id) & (
+            Q(cursor_date__gt=cursor_date) | Q(cursor_date=cursor_date, cursor_id__gte=cursor_id)
+        )
+
+    # Reuse the invalidation predicate so a concurrent writer that already
+    # promoted past our cursor is not clobbered. Combining the check with the
+    # write avoids a second query.
+    qs = GroupDerivedData.objects.filter(invalid_predicate)
+    if soft:
+        affected = qs.update(pipeline_hash=None)
+    else:
+        affected, _ = qs.delete()
+
+    if not affected:
+        # Pure append (or nothing to invalidate): a normal drain will pick
+        # up any new entries.
+        if trigger_regenerate:
+            process_group_log_task.delay(group_id)
         return
 
-    # Only invalidate if the row has already processed past the affected point.
-    cursor_date, cursor_id = cursor
-    deleted, _ = GroupDerivedData.objects.filter(
-        Q(group_id=group_id)
-        & (Q(cursor_date__gt=cursor_date) | Q(cursor_date=cursor_date, cursor_id__gte=cursor_id)),
-    ).delete()
-    if deleted:
-        logger.info(
-            "issues.derived.invalidated",
-            extra={
-                "group_id": group_id,
-                "cursor_date": str(cursor_date),
-                "cursor_id": cursor_id,
-            },
-        )
-        process_group_log_task.delay(group_id)
+    logger.info(
+        "issues.derived.invalidated",
+        extra={
+            "group_id": group_id,
+            "cursor_date": str(cursor[0]) if cursor else None,
+            "cursor_id": cursor[1] if cursor else None,
+            "soft": soft,
+            "trigger_regenerate": trigger_regenerate,
+        },
+    )
+
+    if trigger_regenerate:
+        generate_group_derived_data.delay(group_id)
