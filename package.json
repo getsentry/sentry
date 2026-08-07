@@ -168,7 +168,7 @@
     "esbuild": "0.28.1",
     "focus-trap": "8.2.2",
     "framer-motion": "12.38.0",
-    "fuse.js": "^6.6.2",
+    "fuse.js": "^7.5.0",
     "gettext-parser": "9.1.1",
     "gl-matrix": "3.4.4",
     "html-webpack-plugin": "5.6.3",
