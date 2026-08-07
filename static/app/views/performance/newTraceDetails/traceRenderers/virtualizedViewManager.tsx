@@ -987,9 +987,14 @@ export class VirtualizedViewManager {
     // The pinned attribute column overlays the right edge of the tree, so the
     // tree's visible width is reduced by it. Subtracting it here lets the tree
     // scroll far enough to reveal content hidden behind the pinned column.
-    const columnWidth =
+    // Clamp at 0: on narrow viewports or when the list column is dragged small,
+    // the fixed pinned width can exceed the list width and would otherwise
+    // produce a negative viewport that inflates the scroll range.
+    const columnWidth = Math.max(
+      0,
       this.columns.list.width * this.view.trace_container_physical_space.width -
-      this.pinned_column_width;
+        this.pinned_column_width
+    );
     const max = this.row_measurer.max - columnWidth + this.ROW_PADDING_PX;
 
     if (this.row_measurer.queue.length > 0) {
@@ -2221,7 +2226,7 @@ export class VirtualizedViewManager {
       // The pinned column covers the right edge of the tree, so the scrollbar's
       // viewport (and thus its scroll range) is the tree width minus that column.
       this.horizontal_scrollbar_container.style.width =
-        ((dividerPosition - this.pinned_column_width) /
+        (Math.max(0, dividerPosition - this.pinned_column_width) /
           this.view.trace_container_physical_space.width) *
           100 +
         '%';
