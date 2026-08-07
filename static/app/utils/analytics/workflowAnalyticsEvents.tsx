@@ -67,7 +67,6 @@ type ReleasesTour = BaseTour & {project_id: string};
 
 export type TeamInsightsEventParameters = {
   'alert_details.viewed': {alert_id: number};
-  'alert_rules.viewed': {sort: string};
   'alert_stream.viewed': Record<string, unknown>;
   'edit_alert_rule.viewed': RuleViewed;
   'issue_details.action_clicked': IssueDetailsWithAlert & {
@@ -190,7 +189,6 @@ type TeamInsightsEventKey = keyof TeamInsightsEventParameters;
 
 export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'alert_details.viewed': 'Alert Details: Viewed',
-  'alert_rules.viewed': 'Alert Rules: Viewed',
   'alert_stream.viewed': 'Alert Stream: Viewed',
   'edit_alert_rule.viewed': 'Edit Alert Rule: Viewed',
   'issue_details.action_clicked': 'Issue Details: Action Clicked',

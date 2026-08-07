@@ -40,17 +40,6 @@ export type MetricAlertType = Exclude<
   'issues' | 'uptime_monitor' | 'crons_monitor'
 >;
 
-export const DEPRECATED_TRANSACTION_ALERTS: AlertType[] = [
-  'throughput',
-  'trans_duration',
-  'apdex',
-  'failure_rate',
-  'lcp',
-  'fid',
-  'cls',
-  'custom_transactions',
-];
-
 export const AlertWizardAlertNames: Record<AlertType, string> = {
   issues: t('Issues'),
   num_errors: t('Number of Errors'),
