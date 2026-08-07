@@ -142,6 +142,17 @@ def delete_replay_ids(
     if archive:
         logger.info("Archiving %d Replays.", len(rows), extra=logging_context)
 
+        # Bulk produce archived replay rows to the ingest-replay-events topic before flushing.
+        #
+        # This operation is fast enough that it can be performed synchronously. Archiving
+        # synchronously gives the script runner the feeling that the script executed to completion
+        # and will allow them to immediately spot-check before moving on with their day. In a
+        # purely asynchronous world the script runner will have to continually worry if their tasks
+        # executed.
+        #
+        # This also gives us reasonable assurances that if the script ran to completion the customer
+        # will not be able to access their deleted data even if the actual deletion takes place some
+        # time later
         for _, replay_id, _ in rows:
             archive_replay(project_id, replay_id)
     else:
