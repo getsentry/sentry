@@ -78,13 +78,30 @@ def record_webhook_backlog_metrics() -> None:
             [WebhookPayload._meta.db_table],
         )
         row = cursor.fetchone()
-    # Autovacuum-maintained, so it trails reality on a churning table — measured 0.13%
-    # below an exact count mid-backlog. `mailbox.pending_count` carries the exact value.
-    metrics.gauge(
-        "hybridcloud.webhookpayload.backlog.pending_count_estimate",
-        row[0] if row else 0,
-        sample_rate=1.0,
-    )
+    if row is None:
+        # No pg_class row for the table on this connection -- we don't have a
+        # trustworthy answer, so skip rather than emit a 0. A 0 here reads as "no
+        # backlog" and, blended into the host-tagged gauge's default aggregate
+        # alongside hosts that got a real answer, silently drags the reported
+        # average down. The age lookup below is independent, so it still runs.
+        #
+        # Warning, not error: whatever makes a specific replica connection see no
+        # catalog row for this table is below what this task can diagnose or fix
+        # (replica topology/routing, not application logic), so this is a signal
+        # to watch via the counter rather than one to page on.
+        metrics.incr(
+            "hybridcloud.webhookpayload.backlog.pending_count_query_failed", sample_rate=1.0
+        )
+        logger.warning("webhook_backlog_metrics.pending_count_query_failed")
+    else:
+        # Autovacuum-maintained, so it trails reality on a churning table — measured
+        # 0.13% below an exact count mid-backlog. `mailbox.pending_count` carries the
+        # exact value.
+        metrics.gauge(
+            "hybridcloud.webhookpayload.backlog.pending_count_estimate",
+            row[0],
+            sample_rate=1.0,
+        )
 
     # Ids are monotonic, so the lowest live id is the oldest undelivered payload.
     # Reading it in primary-key order stops at the first live row rather than

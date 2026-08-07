@@ -489,6 +489,30 @@ class CursoredSchedulerTest(TestCase):
 
         assert all_dispatched == sorted_pks
 
+    def test_preserve_queryset_order(self):
+        """When enabled, preserve the queryset's explicit ordering in the PK snapshot."""
+        ois = self._create_org_integrations(30)
+        queryset = OrganizationIntegration.objects.filter(
+            integration__provider="github",
+            status=ObjectStatus.ACTIVE,
+        ).order_by("-pk")
+        scheduler = CursoredScheduler(
+            name="test_scheduler",
+            schedule_key="test-scheduler-beat",
+            queryset=queryset,
+            task=self.mock_task,
+            cycle_duration=timedelta(minutes=3),
+            preserve_queryset_order=True,
+        )
+
+        all_dispatched: list[int] = []
+        while scheduler.tick():
+            all_dispatched.extend(c.args[0] for c in self.mock_task.delay.call_args_list)
+            self.mock_task.reset_mock()
+        all_dispatched.extend(c.args[0] for c in self.mock_task.delay.call_args_list)
+
+        assert all_dispatched == [oi.pk for oi in reversed(ois)]
+
     def test_interval_decrease_halves_batch_size(self):
         """When tick interval is halved, batch size is halved for remaining items."""
         self._create_org_integrations(30)
