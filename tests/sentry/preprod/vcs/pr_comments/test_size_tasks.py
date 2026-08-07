@@ -225,6 +225,93 @@ class CreatePreprodSizePrCommentTaskTest(TestCase):
         artifact.commit_comparison.refresh_from_db()
         assert (artifact.commit_comparison.extras or {}).get("pr_comments") is None
 
+    @patch(_CLIENT_PATH)
+    @patch(_EVAL_PATH)
+    def test_updates_existing_comment_when_no_size_artifacts(
+        self, mock_eval, mock_get_client
+    ) -> None:
+        """The last sibling becoming skipped must still update an existing comment.
+
+        Otherwise the comment keeps rendering whatever it last said, which is the
+        sibling that has since been skipped, shown as processing forever.
+        """
+        mock_client = Mock()
+        mock_get_client.return_value = mock_client
+        mock_eval.return_value = _eval_result(
+            triggered=False,
+            status=StatusCheckStatus.NEUTRAL,
+            subtitle="size analysis skipped",
+            evaluated_artifacts=[],
+        )
+
+        commit_comparison = self.create_commit_comparison(
+            organization=self.organization, provider="github", pr_number=42
+        )
+        commit_comparison.extras = {
+            "pr_comments": {"size": {"success": True, "comment_id": "existing_777"}}
+        }
+        commit_comparison.save(update_fields=["extras"])
+
+        self._enable()
+        self._set_rules()
+        artifact = self._create_artifact(commit_comparison=commit_comparison)
+
+        self._import_task()(artifact.id)
+
+        mock_client.update_comment.assert_called_once_with(
+            repo="owner/repo",
+            issue_id="42",
+            comment_id="existing_777",
+            data={"body": "## Size Analysis\n\nsize analysis skipped\n\nsize summary body"},
+        )
+        mock_client.create_comment.assert_not_called()
+
+    @patch(_CLIENT_PATH)
+    @patch(_EVAL_PATH)
+    def test_no_size_artifacts_leaves_another_commits_comment_alone(
+        self, mock_eval, mock_get_client
+    ) -> None:
+        """An all-skipped commit must not clobber a comment owned by another commit.
+
+        Comments are keyed per PR but the evaluation covers one commit's siblings.
+        Artifacts upload one at a time, so a newer commit whose first artifact is
+        filtered would otherwise flap the PR comment to "skipped" before its real
+        build lands.
+        """
+        mock_client = Mock()
+        mock_get_client.return_value = mock_client
+        mock_eval.return_value = _eval_result(
+            triggered=False,
+            status=StatusCheckStatus.NEUTRAL,
+            subtitle="size analysis skipped",
+            evaluated_artifacts=[],
+        )
+
+        # Earlier commit on the same PR owns the comment.
+        older = self.create_commit_comparison(
+            organization=self.organization, provider="github", pr_number=42
+        )
+        older.extras = {"pr_comments": {"size": {"success": True, "comment_id": "existing_777"}}}
+        older.save(update_fields=["extras"])
+
+        newer = self.create_commit_comparison(
+            organization=self.organization, provider="github", pr_number=42
+        )
+
+        self._enable()
+        self._set_rules()
+        artifact = self._create_artifact(commit_comparison=newer)
+
+        self._import_task()(artifact.id)
+
+        mock_client.update_comment.assert_not_called()
+        mock_client.create_comment.assert_not_called()
+
+        older.refresh_from_db()
+        assert older.extras["pr_comments"]["size"]["comment_id"] == "existing_777"
+        newer.refresh_from_db()
+        assert (newer.extras or {}).get("pr_comments") is None
+
     # --- early-return skips ---------------------------------------------
 
     @patch(_CLIENT_PATH)
@@ -362,6 +449,9 @@ class CreatePreprodSizePrCommentTaskTest(TestCase):
         mock_lock.assert_called_once()
         mock_client.create_comment.assert_not_called()
         mock_client.update_comment.assert_not_called()
+        # Also pins the ordering: the evaluation runs under the lock, so a failure
+        # to acquire it means nothing was evaluated.
+        mock_eval.assert_not_called()
 
     # --- end-to-end (real evaluation, unpatched) ------------------------
 
