@@ -187,13 +187,14 @@ def schedule_webhook_delivery() -> None:
 
     Triggered frequently by task-scheduler.
     """
-    # Se use the replica for any read queries to webhook payload
-    WebhookPayloadReplica = WebhookPayload.objects.using_replica()
-
+    # Read from the primary rather than a replica. These scheduler reads run on a
+    # short interval and can scan the whole table; on a replica they contend with
+    # WAL replay and amplify replication lag, and lag also produces spurious
+    # DoesNotExist races in the drains they enqueue (see INC-2398).
     # The double call to .values() ensures that the group by includes mailbox_name
     # but only id_min is selected
     head_of_line = (
-        WebhookPayloadReplica.all()
+        WebhookPayload.objects.all()
         .values("mailbox_name")
         .annotate(id_min=Min("id"))
         .values("id_min")
@@ -202,7 +203,7 @@ def schedule_webhook_delivery() -> None:
     # Get any heads that are scheduled to run
     # Use provider field directly, with default priority for null values
     scheduled_mailboxes = (
-        WebhookPayloadReplica.filter(
+        WebhookPayload.objects.filter(
             schedule_for__lte=timezone.now(),
             id__in=Subquery(head_of_line),
         )
@@ -238,7 +239,7 @@ def schedule_webhook_delivery() -> None:
         # Reschedule the records that we will attempt to deliver next.
         # We update schedule_for in an attempt to minimize races for potentially in-flight batches.
         mailbox_batch = (
-            WebhookPayloadReplica.filter(id__gte=record["id"], mailbox_name=record["mailbox_name"])
+            WebhookPayload.objects.filter(id__gte=record["id"], mailbox_name=record["mailbox_name"])
             .order_by("id")
             .values("id")[:MAX_MAILBOX_DRAIN]
         )
@@ -266,21 +267,16 @@ def drain_mailbox(payload_id: int, mailbox_name: str | None = None) -> None:
     Once messages have successfully been delivered or discarded, they are deleted.
 
     `mailbox_name` is passed explicitly so we can release the drain lock in the
-    DoesNotExist early-return path (replication lag) without fetching the payload
-    a second time.
+    DoesNotExist early-return path without fetching the payload a second time.
     """
-    WebhookPayloadReplica = WebhookPayload.objects.using_replica()
-
     try:
-        payload = WebhookPayloadReplica.get(id=payload_id)
+        payload = WebhookPayload.objects.get(id=payload_id)
     except WebhookPayload.DoesNotExist:
         # We could have hit a race condition. Since we've lost already return
         # and let the other process continue, or a future process.
         metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "race"})
         logger.info("deliver_webhook.potential_race", extra={"id": payload_id})
-        # Release the drain lock if we know the mailbox name. This can happen when
-        # maybe_trigger_drain queries the primary for head_id then drain_mailbox fetches
-        # from the replica — replication lag causes DoesNotExist, but the lock is still
+        # Release the drain lock if we know the mailbox name. Otherwise the lock is
         # held, blocking both push triggers and the scheduler for the full 15s TTL.
         if mailbox_name and options.get("hybridcloud.webhookpayload.push_drain_trigger"):
             _release_drain_lock(mailbox_name)
@@ -316,7 +312,7 @@ def drain_mailbox(payload_id: int, mailbox_name: str | None = None) -> None:
 
             # Fetch records from the batch in slices of 100. This avoids reading
             # redundant data should we hit an error and should help keep query duration low.
-            query = WebhookPayloadReplica.filter(
+            query = WebhookPayload.objects.filter(
                 id__gte=current_id, mailbox_name=payload.mailbox_name
             ).order_by("id")
 

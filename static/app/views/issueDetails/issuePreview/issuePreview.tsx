@@ -211,8 +211,8 @@ function IssuePreviewContent() {
           {hasAutofix ? (
             <IssuePreviewAutofixSummary
               key={group.id}
+              autofix={autofix}
               groupId={group.id}
-              runState={autofix.runState}
             />
           ) : null}
           <Container>
