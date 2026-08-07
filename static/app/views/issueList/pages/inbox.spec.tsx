@@ -182,6 +182,7 @@ describe('InboxPage', () => {
         200,
         12
       ),
+      mockSection('issue.progress:identified is:unresolved assigned_or_suggested:me', []),
       mockSection(
         'issue.progress:fix_applied is:unresolved assigned_or_suggested:me',
         []
@@ -300,6 +301,7 @@ describe('InboxPage', () => {
       'issue.progress:fix_proposed is:unresolved assigned_or_suggested:me',
       'issue.progress:diagnosed is:unresolved assigned_or_suggested:me',
       'issue.progress:assigned is:unresolved assigned_or_suggested:me',
+      'issue.progress:identified is:unresolved assigned_or_suggested:me',
       'issue.progress:fix_applied is:unresolved assigned_or_suggested:me',
     ].entries()) {
       await waitFor(() =>
@@ -376,13 +378,36 @@ describe('InboxPage', () => {
     expect(screen.getByText('Page Not Found')).toBeInTheDocument();
   });
 
-  it('only shows the Identified section for all assignees', async () => {
+  it('shows the Identified section on all assignee tabs', async () => {
     mockSuccessfulSections();
     mockIssuePreview();
+    mockSection(
+      'issue.progress:fix_proposed is:unresolved assigned_or_suggested:[me,my_teams]',
+      [fixProposedGroup]
+    );
+    mockSection(
+      'issue.progress:diagnosed is:unresolved assigned_or_suggested:[me,my_teams]',
+      [diagnosedGroup]
+    );
+    mockSection(
+      'issue.progress:assigned is:unresolved assigned_or_suggested:[me,my_teams]',
+      [assignedGroup]
+    );
+    const identifiedMyTeamsRequest = mockSection(
+      'issue.progress:identified is:unresolved assigned_or_suggested:[me,my_teams]',
+      []
+    );
+    mockSection(
+      'issue.progress:fix_applied is:unresolved assigned_or_suggested:[me,my_teams]',
+      []
+    );
     mockSection('issue.progress:fix_proposed is:unresolved', [fixProposedGroup]);
     mockSection('issue.progress:diagnosed is:unresolved', [diagnosedGroup]);
     mockSection('issue.progress:assigned is:unresolved', [assignedGroup]);
-    const identifiedRequest = mockSection('issue.progress:identified is:unresolved', []);
+    const identifiedAllRequest = mockSection(
+      'issue.progress:identified is:unresolved',
+      []
+    );
     mockSection('issue.progress:fix_applied is:unresolved', []);
 
     render(<InboxPage />, {
@@ -390,13 +415,18 @@ describe('InboxPage', () => {
       initialRouterConfig,
     });
 
-    expect(screen.queryByRole('region', {name: 'Identified'})).not.toBeInTheDocument();
-    expect(identifiedRequest).not.toHaveBeenCalled();
+    // Identified should be visible on the default "Me" tab
+    expect(screen.getByRole('region', {name: 'Identified'})).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('radio', {name: 'My Teams'}));
+
+    expect(screen.getByRole('region', {name: 'Identified'})).toBeInTheDocument();
+    await waitFor(() => expect(identifiedMyTeamsRequest).toHaveBeenCalledTimes(1));
 
     await userEvent.click(screen.getByRole('radio', {name: 'All'}));
 
     expect(screen.getByRole('region', {name: 'Identified'})).toBeInTheDocument();
-    await waitFor(() => expect(identifiedRequest).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(identifiedAllRequest).toHaveBeenCalledTimes(1));
   });
 
   it('shows a plus sign when a section count reaches the API cap', async () => {
@@ -417,6 +447,7 @@ describe('InboxPage', () => {
     mockSection('issue.progress:assigned is:unresolved assigned_or_suggested:me', [
       assignedGroup,
     ]);
+    mockSection('issue.progress:identified is:unresolved assigned_or_suggested:me', []);
     mockSection('issue.progress:fix_applied is:unresolved assigned_or_suggested:me', []);
 
     render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
@@ -467,6 +498,10 @@ describe('InboxPage', () => {
       mockSection(
         'issue.progress:assigned is:unresolved assigned_or_suggested:[me,my_teams]',
         [assignedGroup]
+      ),
+      mockSection(
+        'issue.progress:identified is:unresolved assigned_or_suggested:[me,my_teams]',
+        []
       ),
       mockSection(
         'issue.progress:fix_applied is:unresolved assigned_or_suggested:[me,my_teams]',
@@ -1057,6 +1092,7 @@ describe('InboxPage', () => {
       mockSection('issue.progress:assigned is:unresolved assigned_or_suggested:me', [
         assignedGroup,
       ]);
+      mockSection('issue.progress:identified is:unresolved assigned_or_suggested:me', []);
       mockSection(
         'issue.progress:fix_applied is:unresolved assigned_or_suggested:me',
         []
