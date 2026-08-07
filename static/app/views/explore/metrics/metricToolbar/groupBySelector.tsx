@@ -68,7 +68,7 @@ export function GroupBySelector({
     isFetching: validationFetching,
     isLoading: validationLoading,
     isPlaceholderData: validationIsPlaceholderData,
-  } = useValidateMetricsTab({enabled: groupBys.some(Boolean)});
+  } = useValidateMetricsTab();
   const pendingValidatedGroupBys = useRef<{
     from: readonly string[];
     to: readonly string[];

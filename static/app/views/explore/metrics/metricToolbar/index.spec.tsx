@@ -124,6 +124,10 @@ describe('MetricToolbar', () => {
       url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/validate/',
+      body: makeValidationBody([]),
+    });
   });
 
   it('renders group by selector for equation visualizations', async () => {
@@ -455,13 +459,19 @@ describe('MetricToolbar', () => {
           name: 'invalid.attribute',
           valid: false,
         },
-        {
-          attrType: 'string',
-          error: null,
-          name: 'environment',
-          valid: true,
-        },
       ]),
+      match: [
+        (_url, options) =>
+          JSON.stringify(options.query?.field).includes('invalid.attribute'),
+      ],
+    });
+    const cleanedValidateMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/validate/',
+      body: makeValidationBody([]),
+      match: [
+        (_url, options) =>
+          !JSON.stringify(options.query?.field).includes('invalid.attribute'),
+      ],
     });
 
     const queryParams = new ReadableQueryParams({
@@ -475,7 +485,6 @@ describe('MetricToolbar', () => {
       aggregateFields: [
         {groupBy: 'invalid.attribute'},
         {groupBy: ''},
-        {groupBy: 'environment'},
         new VisualizeFunction('sum(value,test_metric,distribution,none)'),
       ],
       aggregateSortBys: [
@@ -504,12 +513,14 @@ describe('MetricToolbar', () => {
     );
 
     await waitFor(() => {
-      expect(updatedQueryParams?.groupBys).toEqual(['', 'environment']);
+      expect(updatedQueryParams?.groupBys).toEqual(['']);
     });
     expect(updatedQueryParams?.mode).toBe(Mode.AGGREGATE);
     expect(
       screen.queryByRole('button', {name: /invalid.attribute/})
     ).not.toBeInTheDocument();
+    await waitFor(() => expect(cleanedValidateMock).toHaveBeenCalled());
+    expect(screen.getByRole('button', {name: /Group by/})).toBeEnabled();
   });
 });
 
