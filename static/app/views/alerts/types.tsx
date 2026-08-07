@@ -1,6 +1,6 @@
 import type {User} from 'sentry/types/user';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
+import type {UptimeRule} from 'sentry/views/detectors/components/uptime/types';
 
 type Data = Array<[number, Array<{count: number}>]>;
 

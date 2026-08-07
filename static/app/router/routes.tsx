@@ -1378,7 +1378,7 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: 'uptime/',
-          component: make(() => import('sentry/views/alerts/rules/uptime')),
+          component: make(() => import('sentry/views/detectors/components/uptime')),
           children: [
             {
               path: ':projectId/:detectorId/details/',
