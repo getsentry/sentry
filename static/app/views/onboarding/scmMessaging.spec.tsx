@@ -116,6 +116,42 @@ describe('ScmMessaging', () => {
     expect(screen.queryByText('Destination selected')).not.toBeInTheDocument();
   });
 
+  it('clears the stale channel warning once a refetch resolves the channel', async () => {
+    const queryClient = makeTestQueryClient();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/15/',
+      body: OrganizationIntegrationsFixture({id: '15'}),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/15/channels/',
+      body: {results: [{id: 'C999', name: 'general', display: '#general'}]},
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ScmMessaging
+          messagingSetup={selectedMessagingSetup}
+          onMessagingSetupChange={jest.fn()}
+          selectedPlatform={selectedPlatform}
+        />
+      </QueryClientProvider>
+    );
+
+    const warning = "We couldn't verify the saved channel. Choose a destination again.";
+    expect(await screen.findByText(warning)).toBeInTheDocument();
+
+    // The saved destination itself never changes here, so the reference-change
+    // effect cannot be what clears the warning.
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/15/channels/',
+      body: {results: [{id: 'C123', name: 'alerts', display: '#alerts'}]},
+    });
+    await queryClient.invalidateQueries();
+
+    expect(await screen.findByText('Destination selected')).toBeInTheDocument();
+    expect(screen.queryByText(warning)).not.toBeInTheDocument();
+  });
+
   it('keeps an omitted channel while it cannot verify a complete list', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/15/',

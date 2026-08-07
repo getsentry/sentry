@@ -61,13 +61,10 @@ function resolveSavedIntegration(
     return undefined;
   }
 
-  const matchesProvider =
-    candidate.provider.key === messagingSetup.providerKey ||
-    candidate.provider.slug === messagingSetup.providerKey;
-
+  // `slug` is serialized from the same `provider.key`, so matching one is enough.
   if (
     candidate.id !== messagingSetup.integrationId ||
-    !matchesProvider ||
+    candidate.provider.key !== messagingSetup.providerKey ||
     !isIntegrationActive(candidate)
   ) {
     return undefined;
@@ -138,6 +135,9 @@ function useScmMessagingSetupValidation({
     ? channelsQuery.data?.results.find(item => item.id === messagingSetup.channelId)
     : undefined;
 
+  // A newly chosen destination must not inherit the previous one's warning while
+  // its own queries are still in flight — the effect below cannot clear it until
+  // both settle.
   useEffect(() => {
     if (messagingSetup.mode === 'selected') {
       setStaleReason(undefined);
@@ -173,6 +173,11 @@ function useScmMessagingSetupValidation({
       setStaleReason('channel');
       return;
     }
+
+    // Own the cleared state here rather than leaving it to the reference-change
+    // effect above: a refetch that resolves a previously unverifiable channel
+    // does not change `messagingSetup`, and the warning would outlive it.
+    setStaleReason(undefined);
 
     const channelName = channel.display || channel.name;
     if (channelName !== messagingSetup.channelName) {
