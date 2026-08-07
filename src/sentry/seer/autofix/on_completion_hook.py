@@ -51,7 +51,11 @@ from sentry.seer.autofix.utils import (
     get_automation_handoff,
 )
 from sentry.seer.autofix_rca.models import FEATURE_ID as AUTOFIX_RCA_FEATURE_ID
-from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
+from sentry.seer.entrypoints.operator import (
+    SeerAutofixOperator,
+    process_autofix_updates,
+    record_seer_activity,
+)
 from sentry.seer.milestones import reconcile_milestones
 from sentry.seer.models import (
     SeerAgentRun,
@@ -522,12 +526,17 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     "autofix.on_completion_hook.process_autofix_updates",
                     tags={"event_type": str(event_type)},
                 )
+                record_seer_activity(
+                    group=group,
+                    event_type=sentry_app_event_type,
+                    event_payload=webhook_payload,
+                )
                 process_autofix_updates.apply_async(
                     kwargs={
                         "event_type": sentry_app_event_type,
                         "event_payload": webhook_payload,
                         "organization_id": organization.id,
-                        "activity_datetime": state.updated_at,
+                        "activity_already_recorded": True,
                     }
                 )
         except ValueError:

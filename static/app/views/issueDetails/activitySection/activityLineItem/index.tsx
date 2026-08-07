@@ -12,10 +12,16 @@ import {ActivityLineMarker} from './progressMarker';
 interface ActivityLineProps {
   group: Group;
   item: ActivityFeedItem;
+  showConnector?: boolean;
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }
 
-export function ActivityLine({item, group, timestampUnitStyle}: ActivityLineProps) {
+export function ActivityLine({
+  item,
+  group,
+  showConnector,
+  timestampUnitStyle,
+}: ActivityLineProps) {
   const organization = useOrganization();
   const showProgress = organization.features.includes('issue-activity-progress');
   const {issueCategory, project} = group;
@@ -41,7 +47,7 @@ export function ActivityLine({item, group, timestampUnitStyle}: ActivityLineProp
   }
 
   return (
-    <ActivityLineRow>
+    <ActivityLineRow showConnector={showConnector}>
       <ActivityLineMarker
         actorItem={actorActivity}
         item={activity}
