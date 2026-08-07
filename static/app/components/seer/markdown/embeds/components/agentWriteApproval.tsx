@@ -28,6 +28,11 @@ interface AgentApprovalResponse {
   scopes: ApiAccessScope[];
 }
 
+interface PendingAgentWriteApproval {
+  requiredScopes: ApiAccessScope[];
+  sessionId: string;
+}
+
 type RequestApproval = (
   sessionId: string,
   scopes: ApiAccessScope[]
@@ -67,7 +72,6 @@ export const AgentWriteApprovalEmbed = defineSeerEmbed({
 function AgentWriteApprovalContent({
   inputId,
   requiredScopes,
-  sessionId,
   status,
 }: EmbedOutput<'agentWriteApproval'>) {
   const organization = useOrganization();
@@ -78,8 +82,8 @@ function AgentWriteApprovalContent({
   const [submittedDecision, setSubmittedDecision] = useState<'approve' | 'reject' | null>(
     null
   );
-  const isActive =
-    pendingInput?.input_type === 'agent_write_approval' && pendingInput.id === inputId;
+  const pendingApproval = getPendingAgentWriteApproval(pendingInput, inputId);
+  const isActive = pendingApproval !== null;
   const canRespond =
     status === 'pending' && isActive && !readOnly && !!respondToUserInput;
   let displayStatus = status;
@@ -88,16 +92,24 @@ function AgentWriteApprovalContent({
   }
 
   async function handleApprove() {
+    if (!pendingApproval) {
+      return;
+    }
     setIsSubmitting(true);
     try {
       const response = requestApproval
-        ? await requestApproval(sessionId, requiredScopes)
+        ? await requestApproval(pendingApproval.sessionId, pendingApproval.requiredScopes)
         : await fetchMutation<AgentApprovalResponse>({
             url: `/organizations/${organization.slug}/agent/approve/`,
             method: 'POST',
-            data: {sessionId, scopes: requiredScopes},
+            data: {
+              sessionId: pendingApproval.sessionId,
+              scopes: pendingApproval.requiredScopes,
+            },
           });
-      const decision = requiredScopes.every(scope => response.scopes.includes(scope))
+      const decision = pendingApproval.requiredScopes.every(scope =>
+        response.scopes.includes(scope)
+      )
         ? 'approve'
         : 'reject';
       setSubmittedDecision(decision);
@@ -119,7 +131,8 @@ function AgentWriteApprovalContent({
     respondToUserInput?.(inputId, {decision: 'reject'});
   }
 
-  const grantedScopeAccess = requiredScopes
+  const displayedScopes = pendingApproval?.requiredScopes ?? requiredScopes;
+  const grantedScopeAccess = displayedScopes
     .map(scope => getScopeAccess(scope))
     .join(', ');
 
@@ -164,7 +177,7 @@ function AgentWriteApprovalContent({
           <Text bold size="sm">
             {t('Requested scopes:')}
           </Text>
-          {requiredScopes.map(scope => (
+          {displayedScopes.map(scope => (
             <PendingScope key={scope} scope={scope} />
           ))}
         </Stack>
@@ -233,6 +246,32 @@ function getScopeDetails(scope: string) {
   return isApiAccessScope(scope) ? API_ACCESS_SCOPE_DETAILS[scope] : undefined;
 }
 
-function isApiAccessScope(scope: string): scope is ApiAccessScope {
-  return scope in API_ACCESS_SCOPE_DETAILS;
+function getPendingAgentWriteApproval(
+  pendingInput: PendingUserInput | null,
+  inputId: string
+): PendingAgentWriteApproval | null {
+  if (
+    pendingInput?.input_type !== 'agent_write_approval' ||
+    pendingInput.id !== inputId
+  ) {
+    return null;
+  }
+
+  const requiredScopes: unknown = pendingInput.data.required_scopes;
+  const sessionId: unknown = pendingInput.data.session_id;
+  if (
+    !Array.isArray(requiredScopes) ||
+    requiredScopes.length === 0 ||
+    !requiredScopes.every(isApiAccessScope) ||
+    typeof sessionId !== 'string' ||
+    sessionId.length === 0
+  ) {
+    return null;
+  }
+
+  return {requiredScopes, sessionId};
+}
+
+function isApiAccessScope(scope: unknown): scope is ApiAccessScope {
+  return typeof scope === 'string' && scope in API_ACCESS_SCOPE_DETAILS;
 }

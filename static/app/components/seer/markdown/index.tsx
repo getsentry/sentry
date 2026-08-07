@@ -7,6 +7,7 @@ import {Link} from '@sentry/scraps/link';
 import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Heading} from '@sentry/scraps/text';
 
+import {STRUCTURED_SEER_EMBED_SCHEMAS} from './embeds/schemas';
 import {SeerEmbedRegistry} from './embeds';
 
 const ISSUE_SHORT_ID_PATTERN =
@@ -55,13 +56,13 @@ const SEER_EMBED_COMPONENTS: MarkdownProps['components'] = {
     const structuredContent = useContext(StructuredContentContext);
     const Embed = SeerEmbedRegistry.get(name);
     if (Embed) {
-      const embed = (
-        <Embed
-          name={name}
-          data={data === undefined ? structuredContent?.[name] : data}
-          level={level}
-        />
-      );
+      const embedData =
+        name in STRUCTURED_SEER_EMBED_SCHEMAS
+          ? structuredContent?.[name]
+          : data === undefined
+            ? structuredContent?.[name]
+            : data;
+      const embed = <Embed name={name} data={embedData} level={level} />;
       if (level === 'inline') {
         return embed;
       }
