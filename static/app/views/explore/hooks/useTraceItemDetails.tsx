@@ -214,6 +214,7 @@ function useTraceItemDetailsPrefetch({
   const [traceItemAttributes, setTraceItemAttributes] = useState<
     TraceItemResponseAttribute[] | undefined
   >();
+  const [isPending, setIsPending] = useState(true);
 
   const prefetch = useCallback(() => {
     const currentProject = projectRef.current;
@@ -236,8 +237,9 @@ function useTraceItemDetailsPrefetch({
       response => {
         setTraceItemMeta(response?.json?.meta);
         setTraceItemAttributes(response?.json?.attributes);
+        setIsPending(false);
       },
-      () => {}
+      () => setIsPending(false)
     );
   }, [
     organization.slug,
@@ -250,7 +252,7 @@ function useTraceItemDetailsPrefetch({
     traceItemType,
   ]);
 
-  return {prefetch, project, traceItemMeta, traceItemAttributes};
+  return {prefetch, project, traceItemMeta, traceItemAttributes, isPending};
 }
 
 export function usePrefetchTraceItemDetailsOnHover({
@@ -278,7 +280,7 @@ export function usePrefetchTraceItemDetailsOnHover({
    */
   hoverPrefetchDisabled?: boolean;
 }) {
-  const {prefetch, project, traceItemMeta, traceItemAttributes} =
+  const {prefetch, project, traceItemMeta, traceItemAttributes, isPending} =
     useTraceItemDetailsPrefetch({
       traceItemId,
       projectId,
@@ -328,6 +330,7 @@ export function usePrefetchTraceItemDetailsOnHover({
     isProjectReady: Boolean(project?.slug),
     traceItemMeta,
     traceItemAttributes,
+    isTraceItemDetailsPending: isPending,
   };
 }
 

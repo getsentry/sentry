@@ -7,6 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {AutoSelectText} from 'sentry/components/autoSelectText';
 import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration/duration';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -17,6 +18,7 @@ type Props = {
   attributes: Record<string, string | number | boolean>;
   children: React.ReactNode;
   timestamp: string | number;
+  isTraceItemDetailsPending?: boolean;
   relativeTimeToReplay?: number;
   shouldRender?: boolean;
 };
@@ -24,10 +26,12 @@ type Props = {
 function TimestampTooltipBody({
   timestamp,
   attributes,
+  isTraceItemDetailsPending,
   relativeTime,
 }: {
   attributes: Record<string, string | number | boolean>;
   timestamp: string | number;
+  isTraceItemDetailsPending?: boolean;
   relativeTime?: number;
 }) {
   const currentTimezone = useTimezone();
@@ -38,8 +42,6 @@ function TimestampTooltipBody({
     : null;
   const timestampToUse = preciseTimestampMs ? new Date(preciseTimestampMs) : timestamp;
 
-  // Trace item details only alias the observed timestamp when it comes back as an int,
-  // so string-stored values arrive under the internal name instead.
   const observedTimeNanos =
     attributes[OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE] ??
     attributes[OurLogKnownFieldKey.OBSERVED_TIMESTAMP_NANOS];
@@ -97,16 +99,20 @@ function TimestampTooltipBody({
         </Fragment>
       )}
 
-      {observedTime && (
+      {(observedTime || isTraceItemDetailsPending) && (
         <Fragment>
           <HorizontalRule />
           <dt>{t('Received')}</dt>
           <dd>
-            <TimestampValues>
-              <AutoSelectText>
-                <DateTime date={observedTime} seconds timeZone />
-              </AutoSelectText>
-            </TimestampValues>
+            {observedTime ? (
+              <TimestampValues>
+                <AutoSelectText>
+                  <DateTime date={observedTime} seconds timeZone />
+                </AutoSelectText>
+              </TimestampValues>
+            ) : (
+              <LoadingIndicator size={16} style={{margin: 0}} />
+            )}
           </dd>
         </Fragment>
       )}
@@ -120,6 +126,7 @@ export function LogsTimestampTooltip({
   timestamp,
   attributes,
   children,
+  isTraceItemDetailsPending,
   shouldRender = true,
   relativeTimeToReplay: relativeTime,
 }: Props) {
@@ -138,6 +145,7 @@ export function LogsTimestampTooltip({
           <TimestampTooltipBody
             timestamp={timestamp}
             attributes={attributes}
+            isTraceItemDetailsPending={isTraceItemDetailsPending}
             relativeTime={relativeTime}
           />
         </div>

@@ -357,17 +357,23 @@ export const LogRowContent = memo(function LogRowContentImpl({
   const logTimestampSeconds = isRegularLogResponseItem(dataRow)
     ? getLogRowTimestampMillis(dataRow) / 1000
     : null;
-  const {hoverProps, prefetch, isProjectReady, traceItemMeta, traceItemAttributes} =
-    usePrefetchTraceItemDetailsOnHover({
-      traceItemId: rowId,
-      projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID]),
-      traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID]),
-      traceItemType: TraceItemDataset.LOGS,
-      referrer: 'api.explore.log-item-details',
-      timestamp: logTimestampSeconds,
-      sharedHoverTimeoutRef,
-      timeout: prefetchTimeout,
-    });
+  const {
+    hoverProps,
+    prefetch,
+    isProjectReady,
+    isTraceItemDetailsPending,
+    traceItemMeta,
+    traceItemAttributes,
+  } = usePrefetchTraceItemDetailsOnHover({
+    traceItemId: rowId,
+    projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID]),
+    traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID]),
+    traceItemType: TraceItemDataset.LOGS,
+    referrer: 'api.explore.log-item-details',
+    timestamp: logTimestampSeconds,
+    sharedHoverTimeoutRef,
+    timeout: prefetchTimeout,
+  });
   usePrefetchTraceItemDetailsOnMount({
     prefetch,
     enabled: isHighlighted,
@@ -383,6 +389,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
     highlightTerms,
     caseSensitiveHighlighting: !caseInsensitivity,
     datetime: selection.datetime,
+    isTraceItemDetailsPending,
     logColors,
     useFullSeverityText: false,
     location,
