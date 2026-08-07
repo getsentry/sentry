@@ -116,6 +116,7 @@ describe('ReleasesList', () => {
 
     expect(within(items.at(0)!).getByText('1.0.0')).toBeInTheDocument();
     expect(within(items.at(0)!).getByText('Adoption')).toBeInTheDocument();
+    expect(within(items.at(0)!).getByText('Sessions')).toBeInTheDocument();
     expect(within(items.at(1)!).getByText('1.0.1')).toBeInTheDocument();
 
     expect(await within(items.at(1)!).findByText('0%')).toBeInTheDocument();
@@ -358,6 +359,9 @@ describe('ReleasesList', () => {
     await userEvent.click(crashFreeUsersOption);
 
     expect(router.location.query.display).toBe(ReleasesDisplayOption.USERS);
+    expect(
+      within((await screen.findAllByTestId('release-panel'))[0]!).getByText('Users')
+    ).toBeInTheDocument();
   });
 
   it('displays archived releases', async () => {
