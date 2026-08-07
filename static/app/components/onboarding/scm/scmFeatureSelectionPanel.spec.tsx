@@ -16,6 +16,17 @@ const pythonPlatform: OnboardingSelectedSDK = {
   category: 'popular',
 };
 
+// In neither platformProductAvailability nor PLATFORM_PRODUCT_INFO, so the
+// section has nothing to configure.
+const platformWithoutProducts: OnboardingSelectedSDK = {
+  key: 'other',
+  name: 'Other',
+  language: 'other',
+  type: 'language',
+  link: 'https://docs.sentry.io/platforms/',
+  category: 'popular',
+};
+
 function defaultProps(overrides: Partial<Record<string, unknown>> = {}) {
   return {
     analyticsFlow: 'onboarding' as const,
@@ -60,5 +71,68 @@ describe('ScmFeatureSelectionPanel', () => {
 
     expect(screen.queryByText(/unlimited volume for 14 days/)).not.toBeInTheDocument();
     expect(screen.queryByText('5,000 errors / mo')).not.toBeInTheDocument();
+  });
+
+  it('prompts for a platform without showing cards in project creation', async () => {
+    render(
+      <ScmFeatureSelectionPanel
+        {...defaultProps({
+          analyticsFlow: 'project-creation',
+          selectedPlatform: undefined,
+        })}
+      />,
+      {organization}
+    );
+
+    expect(await screen.findByText('Products')).toBeInTheDocument();
+    expect(
+      screen.getByText('Select a platform to configure products')
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', {name: /Tracing/})).not.toBeInTheDocument();
+  });
+
+  it('reveals the cards once a platform with products is chosen', async () => {
+    const {rerender} = render(
+      <ScmFeatureSelectionPanel
+        {...defaultProps({
+          analyticsFlow: 'project-creation',
+          selectedPlatform: undefined,
+        })}
+      />,
+      {organization}
+    );
+
+    expect(await screen.findByText('Products')).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', {name: /Tracing/})).not.toBeInTheDocument();
+
+    rerender(
+      <ScmFeatureSelectionPanel
+        {...defaultProps({
+          analyticsFlow: 'project-creation',
+          selectedPlatform: pythonPlatform,
+        })}
+      />
+    );
+
+    expect(await screen.findByRole('checkbox', {name: /Tracing/})).toBeInTheDocument();
+    expect(
+      screen.queryByText('Select a platform to configure products')
+    ).not.toBeInTheDocument();
+  });
+
+  it('drops the section and its trailing divider for a platform with no products', () => {
+    render(
+      <ScmFeatureSelectionPanel
+        {...defaultProps({
+          analyticsFlow: 'project-creation',
+          selectedPlatform: platformWithoutProducts,
+          trailing: <div>Trailing divider</div>,
+        })}
+      />,
+      {organization}
+    );
+
+    expect(screen.queryByText('Products')).not.toBeInTheDocument();
+    expect(screen.queryByText('Trailing divider')).not.toBeInTheDocument();
   });
 });

@@ -3,7 +3,7 @@ import {LayoutGroup, motion} from 'framer-motion';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -236,9 +236,15 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
       <Access access={canUserCreateProject ? ['project:read'] : ['project:admin']}>
         <Stack padding="3xl" gap="2xl" align="center">
           <LayoutGroup>
+            {/* Section rhythm is each section's own paddingBottom rather than a
+              flex gap on this Stack. ScmFeatureSelectionPanel collapses to
+              nothing when its platform has no products, and a flex gap sits
+              outside the box it tweens: it would survive the whole collapse and
+              then vanish in one step on unmount. As padding it lives inside the
+              animated box and tweens away with the content. */}
             <MotionStack
               flexGrow={1}
-              gap="2xl"
+              gap="0"
               padding="2xl"
               maxWidth={CREATE_PROJECT_MAX_WIDTH}
               width="100%"
@@ -248,7 +254,7 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
             >
               <Layout.Title>{t('Create a new project')}</Layout.Title>
 
-              <MotionStack gap="md" layout="position">
+              <MotionStack gap="md" paddingBottom="2xl" layout="position">
                 <Heading as="h1">{t('Create a project')}</Heading>
                 <Text variant="secondary" density="comfortable">
                   {tct(
@@ -262,7 +268,7 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                 </Text>
               </MotionStack>
 
-              <MotionStack gap="md" layout="position">
+              <MotionStack gap="md" paddingBottom="2xl" layout="position">
                 <Flex justify="between" align="center">
                   <Stack gap="sm">
                     <Heading as="h4">{t('Repository')}</Heading>
@@ -287,7 +293,7 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                 />
               </MotionStack>
 
-              <motion.div layout="position">
+              <MotionContainer layout="position" paddingBottom="2xl">
                 <ScmPlatformFeaturesCore
                   analyticsFlow="project-creation"
                   selectedRepository={selectedRepository}
@@ -296,12 +302,15 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                   onFeaturesChange={handleFeaturesChange}
                   onClearProjectDetailsForm={handleClearProjectDetailsForm}
                 />
-              </motion.div>
+              </MotionContainer>
 
-              <motion.div layout="position">
+              <MotionContainer layout="position" paddingBottom="2xl">
                 <Separator orientation="horizontal" />
-              </motion.div>
+              </MotionContainer>
 
+              {/* The divider below the section is passed in so it collapses
+                with it. It carries the surrounding rhythm as padding for the
+                same reason the Stack above uses none. */}
               <ScmFeatureSelectionPanel
                 analyticsFlow="project-creation"
                 selectedRepository={selectedRepository}
@@ -309,13 +318,13 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                 selectedFeatures={selectedFeatures}
                 onFeaturesChange={handleFeaturesChange}
                 trailing={
-                  <motion.div layout="position">
+                  <MotionContainer layout="position" paddingTop="2xl" paddingBottom="2xl">
                     <Separator orientation="horizontal" />
-                  </motion.div>
+                  </MotionContainer>
                 }
               />
 
-              <motion.div layout="position">
+              <MotionContainer layout="position" paddingBottom="2xl">
                 <ScmProjectDetailsCore
                   projectName={form.projectName}
                   onProjectNameChange={form.onProjectNameChange}
@@ -324,20 +333,21 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                   onTeamChange={form.onTeamChange}
                   isOrgMemberWithNoAccess={form.isOrgMemberWithNoAccess}
                 />
-              </motion.div>
+              </MotionContainer>
 
-              <motion.div layout="position">
+              <MotionContainer layout="position" paddingBottom="2xl">
                 <Separator orientation="horizontal" />
-              </motion.div>
+              </MotionContainer>
 
-              <motion.div layout="position">
+              {/* Last section, so no trailing padding. */}
+              <MotionContainer layout="position">
                 <ScmAlertFrequencySection
                   analyticsFlow="project-creation"
                   alertRuleConfig={form.alertRuleConfig}
                   notificationProps={form.notificationProps}
                   onAlertChange={form.onAlertChange}
                 />
-              </motion.div>
+              </MotionContainer>
             </MotionStack>
             {/* Page-level CTA: disabled until a platform and project details are
               ready. */}
@@ -370,3 +380,4 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
 }
 
 const MotionStack = motion.create(Stack);
+const MotionContainer = motion.create(Container);
