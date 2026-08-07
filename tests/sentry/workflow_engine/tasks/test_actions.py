@@ -1,6 +1,7 @@
 import uuid
 from unittest.mock import Mock
 
+from sentry.models.activity import Activity
 from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models import Action
@@ -69,3 +70,28 @@ class TestBuildTriggerActionTaskParams(TestCase):
         assert params["action_id"] == 1
         assert params["workflow_id"] == 42
         assert "notification_uuid" not in params
+
+    def test_build_trigger_action_task_params_activity_with_group_action_log_entry(self) -> None:
+        mock_activity = Mock(spec=Activity)
+        mock_activity.id = 100
+        mock_activity.group_id = self.group.id
+
+        action = Action(id=1, type=Action.Type.SLACK)
+
+        # Without a GroupActionLogEntry on the event data, no id is threaded through.
+        event_data = WorkflowEventData(event=mock_activity, group=self.group)
+        params = build_trigger_action_task_params(action, event_data, {}, workflow_id=42)
+
+        assert params["activity_id"] == 100
+        assert params["event_id"] is None
+        assert params["group_action_log_entry_id"] is None
+
+        # When the event data carries a GroupActionLogEntry, its id is included.
+        entry = self.create_group_action_log_entry(group=self.group)
+        event_data = WorkflowEventData(
+            event=mock_activity, group=self.group, group_action_log_entry=entry
+        )
+        params = build_trigger_action_task_params(action, event_data, {}, workflow_id=42)
+
+        assert params["activity_id"] == 100
+        assert params["group_action_log_entry_id"] == entry.id
