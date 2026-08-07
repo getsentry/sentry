@@ -50,7 +50,9 @@ describe('NoteInput', () => {
     });
 
     it('handles errors', async () => {
-      const errorJSON = {detail: {message: 'Note is bad', code: 401, extra: ''}};
+      const errorJSON = {
+        detail: {message: 'Note is bad', code: 401, extra: ''},
+      };
       render(<NoteInput errorJSON={errorJSON} />);
 
       await userEvent.type(screen.getByRole('textbox'), 'something{Control>}{enter}');
@@ -133,6 +135,28 @@ describe('NoteInput', () => {
       expect(onUpdate).toHaveBeenCalledWith({
         text: 'an **existing** [item](https://docs.sentry.io/) new content',
         mentions: [],
+      });
+    });
+
+    it('preserves existing investigation mentions when editing', async () => {
+      const onUpdate = jest.fn();
+      render(
+        <NoteInput
+          noteId="item-id"
+          text="Please ask Alice and #frontend"
+          mentioned={[
+            ['user:1', 'Alice'],
+            ['team:2', '#frontend'],
+          ]}
+          onUpdate={onUpdate}
+        />
+      );
+
+      await userEvent.type(screen.getByRole('textbox'), '{Control>}{Enter}');
+
+      expect(onUpdate).toHaveBeenCalledWith({
+        text: 'Please ask Alice and #frontend',
+        mentions: ['user:1', 'team:2'],
       });
     });
 

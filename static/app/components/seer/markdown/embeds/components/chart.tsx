@@ -55,6 +55,11 @@ export const Chart = defineSeerEmbed({
     visualization,
     x_axis: xAxis,
     y_axis_unit: yAxisUnit,
+    y_axis_label: yAxisLabel,
+    stacked,
+    show_legend: showLegend,
+    show_title: showTitle,
+    frameless,
     series,
   }) {
     const metadata = UNIT_METADATA[yAxisUnit];
@@ -73,8 +78,10 @@ export const Chart = defineSeerEmbed({
             };
             return new CategoricalBars(categoricalSeries, {
               alias: getSeriesLabel(item),
+              stack: stacked ? 'seer-chart' : undefined,
             });
           })}
+          showLegend={showLegend ? 'auto' : 'never'}
         />
       ) : (
         <TimeSeriesWidgetVisualization
@@ -123,34 +130,43 @@ export const Chart = defineSeerEmbed({
                 {
                   alias: getSeriesLabel(item),
                   name: `seer-chart-series-${index}`,
+                  stack: stacked ? 'seer-chart' : `seer-chart-series-${index}`,
                 }
               );
             })
             .filter((plottable): plottable is Plottable => plottable !== null)}
           showReleaseAs="none"
+          showLegend={showLegend ? 'auto' : 'never'}
         />
       );
 
     return (
       <Container
         as="section"
-        background="primary"
-        border="primary"
+        background={frameless ? undefined : 'primary'}
+        border={frameless ? undefined : 'primary'}
         data-test-id="seer-chart-embed"
-        margin="lg 0"
-        padding="lg xl md"
-        radius="md"
+        margin={frameless ? undefined : 'lg 0'}
+        padding={frameless ? undefined : 'lg xl md'}
+        radius={frameless ? undefined : 'md'}
       >
-        <Stack gap="2xs" paddingBottom="sm">
-          <Heading as="h3" size="md">
-            {title}
-          </Heading>
-          {subtitle && (
-            <Text size="sm" variant="muted">
-              {subtitle}
-            </Text>
-          )}
-        </Stack>
+        {showTitle && (
+          <Stack gap="2xs" paddingBottom="sm">
+            <Heading as="h3" size="md">
+              {title}
+            </Heading>
+            {subtitle && (
+              <Text size="sm" variant="muted">
+                {subtitle}
+              </Text>
+            )}
+          </Stack>
+        )}
+        {yAxisLabel && (
+          <Text data-test-id="seer-chart-y-axis-label" size="xs" variant="muted">
+            {yAxisLabel}
+          </Text>
+        )}
         <Container height="220px">{visualizationComponent}</Container>
       </Container>
     );

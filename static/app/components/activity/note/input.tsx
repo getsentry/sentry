@@ -27,6 +27,8 @@ type Props = {
    */
   busy?: boolean;
   errorJSON?: CreateError | null;
+  /** Existing user/team actors when editing an investigation comment. */
+  mentioned?: Mentioned[];
   /**
    * Minimum height for the editor textarea and preview, in pixels.
    *
@@ -66,6 +68,7 @@ export function NoteInput({
   busy = false,
   placeholder = t('Add a comment.\nTag users with @, or teams with #'),
   minHeight = 140,
+  mentioned = [],
 }: Props) {
   const theme = useTheme();
   const prefersReducedMotion = useReducedMotion();
@@ -78,8 +81,12 @@ export function NoteInput({
     display: `#${team.slug}`,
   }));
 
-  const [memberMentions, setMemberMentions] = useState<Mentioned[]>([]);
-  const [teamMentions, setTeamMentions] = useState<Mentioned[]>([]);
+  const [memberMentions, setMemberMentions] = useState<Mentioned[]>(() =>
+    mentioned.filter(([id]) => id.startsWith('user:'))
+  );
+  const [teamMentions, setTeamMentions] = useState<Mentioned[]>(() =>
+    mentioned.filter(([id]) => id.startsWith('team:'))
+  );
   const [editorMode, setEditorMode] = useState<EditorMode>('write');
 
   const existingItem = !!noteId;
