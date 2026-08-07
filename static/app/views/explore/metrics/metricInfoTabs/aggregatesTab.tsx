@@ -310,6 +310,12 @@ const AggregatesStyledHeaderCell = styled(StyledSimpleTableHeaderCell)<{
   padding: ${p => (p.noPadding ? 0 : p.theme.space.lg)};
   padding-top: ${p => (p.noPadding ? 0 : p.theme.space.xs)};
   padding-bottom: ${p => (p.noPadding ? 0 : p.theme.space.xs)};
+
+  ${p =>
+    p.isAggregate &&
+    css`
+      min-width: max-content;
+    `}
 `;
 
 const AggregatesStyledRowCell = styled(StyledSimpleTableRowCell)<{
@@ -320,6 +326,7 @@ const AggregatesStyledRowCell = styled(StyledSimpleTableRowCell)<{
     p.isAggregate &&
     css`
       justify-content: flex-end;
+      min-width: max-content;
     `}
   ${p =>
     p.offset &&
