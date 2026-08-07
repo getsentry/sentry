@@ -10,6 +10,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
+  makeAutomationBasePathname,
   makeAutomationDetailsPathname,
   makeAutomationEditPathname,
 } from 'sentry/views/automations/pathnames';
@@ -24,6 +25,12 @@ export function MonitorsListRedirect() {
   const organization = useOrganization();
 
   return <Redirect to={makeMonitorBasePathname(organization.slug)} />;
+}
+
+export function AutomationsListRedirect() {
+  const organization = useOrganization();
+
+  return <Redirect to={makeAutomationBasePathname(organization.slug)} />;
 }
 
 interface AlertRuleWorkflow {
@@ -317,20 +324,22 @@ const getDetectionType = (type: string | undefined): string | null => {
   }
 };
 
+export function MonitorCreateRedirect() {
+  const organization = useOrganization();
+  const {alertType} = useParams();
+
+  const detectorType = getDetectionType(alertType);
+  const redirectPath = detectorType
+    ? makeMonitorCreatePathname(organization.slug) + `?detectorType=${detectorType}`
+    : makeMonitorCreatePathname(organization.slug);
+
+  return <Redirect to={redirectPath} />;
+}
+
 export function withDetectorCreateRedirect<P extends Record<string, any>>(
   _Component: React.ComponentType<P>
 ) {
-  return function WorkflowEngineRedirectWrapper(_props: P) {
-    const organization = useOrganization();
-    const {alertType} = useParams();
-
-    const detectorType = getDetectionType(alertType);
-    const redirectPath = detectorType
-      ? makeMonitorCreatePathname(organization.slug) + `?detectorType=${detectorType}`
-      : makeMonitorCreatePathname(organization.slug);
-
-    return <Redirect to={redirectPath} />;
-  };
+  return MonitorCreateRedirect;
 }
 
 export function withOpenPeriodRedirect<P extends Record<string, any>>(
