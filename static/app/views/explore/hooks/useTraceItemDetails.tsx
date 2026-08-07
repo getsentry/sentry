@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {useHover} from '@react-aria/interactions';
 import {captureException} from '@sentry/react';
-import {skipToken, useIsFetching, useQuery, useQueryClient} from '@tanstack/react-query';
+import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -207,40 +207,32 @@ function useTraceItemDetailsPrefetch({
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const project = useProjectFromId({project_id: projectId});
-  const queryClient = useQueryClient();
-  const [traceItemMeta, setTraceItemMeta] = useState<TraceItemDetailsMeta | undefined>();
-  const [traceItemAttributes, setTraceItemAttributes] = useState<
-    TraceItemResponseAttribute[] | undefined
-  >();
+  const [shouldFetch, setShouldFetch] = useState(false);
 
-  const options = traceItemDetailsApiOptions({
-    organizationSlug: organization.slug,
-    projectSlug: project?.slug ?? '',
-    traceItemId,
-    traceItemType,
-    referrer,
-    traceId,
-    ...(defined(timestamp)
-      ? {timestamp: normalizeTimestampToSeconds(timestamp)}
-      : normalizeDateTimeParams(selection.datetime)),
+  const {data, isFetching} = useQuery({
+    ...traceItemDetailsApiOptions({
+      organizationSlug: organization.slug,
+      projectSlug: project?.slug ?? '',
+      traceItemId,
+      traceItemType,
+      referrer,
+      traceId,
+      ...(defined(timestamp)
+        ? {timestamp: normalizeTimestampToSeconds(timestamp)}
+        : normalizeDateTimeParams(selection.datetime)),
+    }),
+    enabled: shouldFetch && !!project?.slug,
   });
 
-  const prefetch = useCallback(() => {
-    if (!project?.slug) {
-      return;
-    }
-    queryClient.fetchQuery(options).then(
-      response => {
-        setTraceItemMeta(response?.json?.meta);
-        setTraceItemAttributes(response?.json?.attributes);
-      },
-      () => {}
-    );
-  }, [options, project?.slug, queryClient]);
+  const prefetch = useCallback(() => setShouldFetch(true), []);
 
-  const isPending = useIsFetching({queryKey: options.queryKey, exact: true}) > 0;
-
-  return {prefetch, project, traceItemMeta, traceItemAttributes, isPending};
+  return {
+    prefetch,
+    project,
+    traceItemMeta: data?.meta,
+    traceItemAttributes: data?.attributes,
+    isPending: isFetching,
+  };
 }
 
 export function usePrefetchTraceItemDetailsOnHover({
