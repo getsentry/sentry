@@ -486,7 +486,9 @@ function CallRows({
   onCallLinkClick?: (kind: string) => (e: React.MouseEvent) => void;
 }) {
   return (
-    <Stack as="ul" gap="xs" padding="0" minWidth={0}>
+    // `margin="0"` because a `ul` carries a default block margin, and the enclosing Stack already
+    // spaces this list from its siblings — leaving it adds a gap nothing asked for.
+    <Stack as="ul" gap="xs" padding="0" margin="0" minWidth={0}>
       {callRows.map(({record, label, url}) => {
         const failure = callRecordFailure(record);
         const text = (
