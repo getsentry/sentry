@@ -225,14 +225,9 @@ CI_FAILED_AT_OPEN = "ci_failed_at_open"
 # for this PR
 NO_CI_EVENTS = "no_ci_events"
 
-# Conclusions that unambiguously mean the check errored out, as opposed to
-# cancelled/skipped/stale (never ran to completion, not a failure verdict),
-# neutral (a soft pass), or action_required (blocked on approval, not broken).
-_FAILING_CHECK_CONCLUSIONS = frozenset({"failure", "timed_out", "startup_failure"})
-
 
 def _null_ci_head_summary_fields() -> dict[str, Any]:
-    return {"ci_heads_by_actor": None}
+    return {"ci_head_results": None}
 
 
 def _has_authoring_attribution(attributions: list[dict[str, Any]]) -> bool:
@@ -251,16 +246,18 @@ def _ci_head_summary_fields(
     pull_request: PullRequest,
     attributions: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    """The per-head CI actor×outcome breakdown, or a null when it's unavailable.
+    """Ordered per-head CI results, or null when unavailable.
 
-    Only the actor matrix is emitted: every head lands in exactly one bucket, so
-    aggregate totals are a sum over the buckets and the consumer derives whichever
-    slice it wants rather than reading a fixed set of pre-rolled columns.
+    The JSON list follows ``sync_chain`` insertion order and retains SHA,
+    predecessor, sender identity/type, derived actor, whole-head outcome, and
+    whether CI was observed. Consumers can derive actor groups and iteration
+    sequences without losing ordering at collection time.
 
-    Doc store only: the checks rollup is keyed by ``(head_sha, app_slug)``, which
-    the legacy ``CHECK_SUITE_COMPLETED`` rows don't carry. A null (rather than a
-    zeroed matrix) marks "summary unavailable" so warehouse queries don't conflate
-    legacy PRs with doc-path PRs that genuinely had no CI.
+    Doc store only: the checks rollup is keyed by ``(head_sha, app_slug, suite_id)``,
+    falling back to ``(head_sha, app_slug)`` for groups stored before suite IDs
+    existed, none of which the legacy ``CHECK_SUITE_COMPLETED`` rows carry. A null
+    (rather than a zeroed matrix) marks "summary unavailable" so warehouse queries
+    don't conflate legacy PRs with doc-path PRs that genuinely had no CI.
 
     Also nulled when no attribution says we authored anything here (i.e. every
     valid signal is weak, such as an MCP-only PR): no check head is ours, so an
@@ -269,8 +266,6 @@ def _ci_head_summary_fields(
     zero. A PR carrying a weak signal *alongside* an authoring one still emits —
     the authoring signal makes the heads meaningful.
 
-    Actor buckets join each check head to the open/sync sender that introduced
-    that SHA.
     """
     if not _has_authoring_attribution(attributions):
         return _null_ci_head_summary_fields()
@@ -279,9 +274,9 @@ def _ci_head_summary_fields(
     if doc is None:
         return _null_ci_head_summary_fields()
 
-    by_actor = activity_doc.ci_head_actor_counts_from_doc(doc)
+    results = activity_doc.ci_head_results_from_doc(doc)
 
-    return {"ci_heads_by_actor": json.dumps(by_actor, sort_keys=True)}
+    return {"ci_head_results": json.dumps(results)}
 
 
 def _any_group_failing(groups: Iterable[activity_doc.CheckGroup]) -> bool:
@@ -291,7 +286,9 @@ def _any_group_failing(groups: Iterable[activity_doc.CheckGroup]) -> bool:
     keeps the latest suite conclusion (a rerun with no new push overwrites the
     earlier one), so this is just the narrow-vocabulary failing check.
     """
-    return any(group.get("suite_conclusion") in _FAILING_CHECK_CONCLUSIONS for group in groups)
+    return any(
+        group.get("suite_conclusion") in activity_doc.FAILING_CHECK_CONCLUSIONS for group in groups
+    )
 
 
 def _any_app_failing(rows: Iterable[tuple[str, str]]) -> bool:
@@ -305,7 +302,8 @@ def _any_app_failing(rows: Iterable[tuple[str, str]]) -> bool:
     """
     latest_conclusion_by_app: dict[str, str] = dict(rows)
     return any(
-        conclusion in _FAILING_CHECK_CONCLUSIONS for conclusion in latest_conclusion_by_app.values()
+        conclusion in activity_doc.FAILING_CHECK_CONCLUSIONS
+        for conclusion in latest_conclusion_by_app.values()
     )
 
 

@@ -166,6 +166,8 @@ class CheckSuiteCompletedPayload(BaseActivityPayload):
     # Slug of the GitHub App that owns the suite (e.g. "github-actions") —
     # a bounded identifier for the CI provider, never the check's display name.
     app_slug: str = ""
+    # GitHub's stable numeric check-suite ID. Empty for legacy payloads.
+    suite_id: str = ""
     check_runs_count: int = 0
 
 
@@ -178,6 +180,8 @@ class CheckRunCompletedPayload(BaseActivityPayload):
     # Outcome of this run: same vocabulary as CheckSuiteCompletedPayload.conclusion.
     conclusion: str = ""
     app_slug: str = ""
+    # Copied from check_run.check_suite.id so runs join their owning suite.
+    suite_id: str = ""
 
 
 @dataclass

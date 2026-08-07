@@ -21,14 +21,12 @@ from sentry.pr_metrics.activity_doc import (
     ActivityDoc,
     _fold_sync_chain,
     apply_activity,
-    ci_head_actor_counts_from_doc,
     ci_head_outcomes_from_doc,
-    classify_ci_head_actor,
+    ci_head_results_from_doc,
     commit_shas_from_doc,
     derived_metrics_from_doc,
     extract_event_at,
     has_commits_after_open,
-    head_sha_pushers_from_doc,
     human_participant_count,
     is_failing_conclusion,
     new_document,
@@ -85,6 +83,7 @@ def _suite(
     conclusion: str = "success",
     head_sha: str = "sha1",
     app_slug: str = "github-actions",
+    suite_id: str = "",
     check_runs_count: int = 4,
     updated_at: str = "2026-07-10T12:00:00Z",
 ) -> None:
@@ -94,6 +93,7 @@ def _suite(
         payload={
             "conclusion": conclusion,
             "app_slug": app_slug,
+            "suite_id": suite_id,
             "check_runs_count": check_runs_count,
             "head_sha": head_sha,
         },
@@ -109,6 +109,7 @@ def _run(
     conclusion: str = "failure",
     head_sha: str = "sha1",
     app_slug: str = "github-actions",
+    suite_id: str = "",
     completed_at: str = "2026-07-10T12:00:00Z",
 ) -> None:
     apply_activity(
@@ -118,6 +119,7 @@ def _run(
             "check_name": check_name,
             "conclusion": conclusion,
             "app_slug": app_slug,
+            "suite_id": suite_id,
             "head_sha": head_sha,
         },
         ts="2026-07-10T12:00:00Z",
@@ -140,6 +142,7 @@ def test_new_document_shape() -> None:
         "participants": {},
         "counts": {},
         "events_dropped": 0,
+        "open_head": None,
         "sync_chain": [],
     }
 
@@ -312,7 +315,7 @@ def test_synchronize_entry_populates_sync_chain() -> None:
     assert doc["sync_chain"] == [["head1", "base1", None, None]]
 
 
-def test_non_synchronize_entry_does_not_touch_sync_chain() -> None:
+def test_open_entry_populates_dedicated_open_head() -> None:
     doc = new_document()
     _entry(
         doc,
@@ -322,10 +325,15 @@ def test_non_synchronize_entry_does_not_touch_sync_chain() -> None:
         sender_login="octocat",
         sender_type="User",
     )
+    assert doc["open_head"] == {
+        "head_sha": "head1",
+        "sender_login": "octocat",
+        "sender_type": "User",
+    }
     assert doc["sync_chain"] == []
 
 
-def test_sync_chain_dedupes_redelivery_and_reapplied_after_sha() -> None:
+def test_sync_chain_dedupes_redelivery_but_retains_repeated_sha() -> None:
     doc = new_document()
     _entry(
         doc,
@@ -342,7 +350,7 @@ def test_sync_chain_dedupes_redelivery_and_reapplied_after_sha() -> None:
         after_sha="head1",
         before_sha="base1",
     )
-    # A distinct delivery re-reporting the same after_sha is deduped in the chain.
+    # A distinct delivery re-reporting the same after_sha remains an observation.
     _entry(
         doc,
         event_type=PullRequestActivityType.SYNCHRONIZED,
@@ -350,7 +358,10 @@ def test_sync_chain_dedupes_redelivery_and_reapplied_after_sha() -> None:
         after_sha="head1",
         before_sha="base1",
     )
-    assert doc["sync_chain"] == [["head1", "base1", None, None]]
+    assert doc["sync_chain"] == [
+        ["head1", "base1", None, None],
+        ["head1", "base1", None, None],
+    ]
 
 
 def test_synchronize_past_events_cap_still_folds_sync_chain() -> None:
@@ -387,7 +398,7 @@ def test_sync_chain_evicts_oldest_past_cap() -> None:
         _fold_sync_chain(doc, {"after_sha": "sha-new", "before_sha": "sha-prev"})
     chain = doc["sync_chain"]
     assert len(chain) == MAX_SYNC_CHAIN  # stays at the cap
-    assert ["sha0000", None] not in chain  # oldest link evicted
+    assert ["sha0000", None] not in chain  # oldest synchronize link evicted
     assert chain[-1] == ["sha-new", "sha-prev", None, None]  # newest link retained
     mock_metrics.incr.assert_any_call("pr_metrics.activity_doc.sync_chain_capped")
     assert mock_logger.warning.call_count == 1
@@ -960,6 +971,12 @@ def test_commit_shas_from_doc_normal_chain() -> None:
     assert commit_shas_from_doc(doc, "A2") == {"A1", "A2"}
 
 
+def test_commit_shas_from_doc_single_push() -> None:
+    doc = new_document()
+    _sync(doc, before="B0", after="A1", webhook_id="s1")
+    assert commit_shas_from_doc(doc, "A1") == {"A1"}
+
+
 def test_commit_shas_from_doc_force_push_excludes_abandoned() -> None:
     doc = new_document()
     _sync(doc, before="B0", after="A1", webhook_id="s1")
@@ -1094,7 +1111,7 @@ def test_abort_only_group_still_reads_as_aborted() -> None:
     _suite(doc, conclusion="cancelled", updated_at="2026-07-10T12:00:00Z")
 
     assert _group(doc)["suite_conclusion"] == "cancelled"
-    assert timeline_events_from_doc(doc)[0]["payload"]["conclusion"] == "cancelled"
+    assert timeline_events_from_doc(doc)[0]["payload"]["conclusion"] == "inconclusive"
 
 
 def test_timeline_recovered_run_excluded_from_failing_names() -> None:
@@ -1155,6 +1172,73 @@ def test_ci_head_outcomes_failed_passed_inconclusive() -> None:
     }
 
 
+def test_ci_head_outcomes_any_failing_suite_from_same_app_wins() -> None:
+    doc = new_document()
+    _suite(doc, suite_id="101", conclusion="failure")
+    _suite(doc, suite_id="202", conclusion="success", updated_at="2026-07-10T12:01:00Z")
+
+    assert set(doc["checks"]) == {
+        "sha1|github-actions|suite:101",
+        "sha1|github-actions|suite:202",
+    }
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "failed"}
+
+
+def test_ci_suite_rerun_updates_same_suite() -> None:
+    doc = new_document()
+    _suite(doc, suite_id="101", conclusion="failure")
+    _suite(
+        doc,
+        suite_id="101",
+        conclusion="success",
+        updated_at="2026-07-10T12:01:00Z",
+    )
+
+    assert len(doc["checks"]) == 1
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "passed"}
+
+
+def test_check_run_joins_suite_before_out_of_order_suite_event() -> None:
+    doc = new_document()
+    _run(doc, suite_id="101", check_name="tests", conclusion="failure")
+    _suite(
+        doc,
+        suite_id="101",
+        conclusion="failure",
+        updated_at="2026-07-10T12:01:00Z",
+    )
+
+    assert len(doc["checks"]) == 1
+    assert (
+        doc["checks"]["sha1|github-actions|suite:101"]["runs"]["tests"]["conclusion"] == "failure"
+    )
+
+
+def test_suite_id_does_not_reattribute_legacy_group() -> None:
+    doc = new_document()
+    _suite(doc, conclusion="failure")
+    _suite(
+        doc,
+        suite_id="101",
+        conclusion="success",
+        updated_at="2026-07-10T12:01:00Z",
+    )
+
+    assert set(doc["checks"]) == {
+        "sha1|github-actions",
+        "sha1|github-actions|suite:101",
+    }
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "failed"}
+
+
+def test_legacy_suite_without_id_keeps_legacy_key() -> None:
+    doc = new_document()
+    _suite(doc, conclusion="failure")
+
+    assert set(doc["checks"]) == {"sha1|github-actions"}
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "failed"}
+
+
 def test_ci_head_outcomes_any_failing_app_wins() -> None:
     # Two apps on the same SHA: one green, one red → the head is failed.
     doc = new_document()
@@ -1171,14 +1255,14 @@ def test_ci_head_outcomes_derives_failure_from_runs_without_suite() -> None:
     assert ci_head_outcomes_from_doc(doc) == {"sha1": "failed"}
 
 
-def test_head_sha_pushers_from_open_and_sync() -> None:
+def test_opening_head_is_stored_separately_from_sync_chain() -> None:
     doc = new_document()
     _entry(
         doc,
         event_type=PullRequestActivityType.OPENED,
         webhook_id="o1",
         head_sha="open1",
-        sender_login="octocat",
+        sender_login="alice",
         sender_type="User",
     )
     _entry(
@@ -1187,157 +1271,63 @@ def test_head_sha_pushers_from_open_and_sync() -> None:
         webhook_id="s1",
         after_sha="sync1",
         before_sha="open1",
-        sender_login="dependabot[bot]",
-        sender_type="Bot",
-    )
-    assert head_sha_pushers_from_doc(doc) == {
-        "sync1": ("dependabot[bot]", "Bot"),
-    }
-
-
-def test_head_sha_pushers_ignores_events_without_resilient_slots() -> None:
-    # A document written before the ``sync_chain`` sender slots
-    # existed: the senders sit in ``events``, which is deliberately not read, so
-    # every head is unattributed rather than reconstructed from the staler source.
-    doc = new_document()
-    doc["events"] = [
-        {
-            "event_type": PullRequestActivityType.OPENED,
-            "ts": "2026-07-10T12:00:00Z",
-            "event_at": None,
-            "webhook_id": "o1",
-            "payload": {
-                "head_sha": "open1",
-                "sender_login": "octocat",
-                "sender_type": "User",
-            },
-        },
-    ]
-    doc["sync_chain"] = [["sync1", "open1"]]
-
-    assert head_sha_pushers_from_doc(doc) == {}
-
-
-def test_classify_ci_head_actor_buckets() -> None:
-    assert classify_ci_head_actor("alice", "User") == "human"
-    assert classify_ci_head_actor("", "") == "unknown"
-    assert classify_ci_head_actor("sentry[bot]", "Bot") == "seer"
-    assert classify_ci_head_actor("seer-by-sentry[bot]", "Bot") == "seer"
-    assert classify_ci_head_actor("dependabot[bot]", "Bot") == "bot"
-
-
-def test_ci_head_summary_by_pusher() -> None:
-    doc = new_document()
-    _entry(
-        doc,
-        event_type=PullRequestActivityType.OPENED,
-        webhook_id="o1",
-        head_sha="human1",
-        sender_login="alice",
-        sender_type="User",
-    )
-    _entry(
-        doc,
-        event_type=PullRequestActivityType.SYNCHRONIZED,
-        webhook_id="s1",
-        after_sha="us1",
-        before_sha="human1",
         sender_login="sentry[bot]",
         sender_type="Bot",
     )
-    _entry(
-        doc,
-        event_type=PullRequestActivityType.SYNCHRONIZED,
-        webhook_id="s2",
-        after_sha="otherbot1",
-        before_sha="us1",
-        sender_login="renovate[bot]",
-        sender_type="Bot",
-    )
-    _suite(doc, head_sha="human1", conclusion="failure")
-    _suite(doc, head_sha="us1", conclusion="success", app_slug="us-app")
-    _suite(doc, head_sha="otherbot1", conclusion="cancelled", app_slug="bot-app")
-    # Check SHA with no open/sync → unknown.
-    _suite(doc, head_sha="orphan", conclusion="failure", app_slug="orphan-app")
 
-    assert ci_head_actor_counts_from_doc(doc) == {
-        "seer": {"failed": 0, "passed": 1, "inconclusive": 0},
-        "human": {"failed": 0, "passed": 0, "inconclusive": 0},
-        "bot": {"failed": 0, "passed": 0, "inconclusive": 1},
-        "unknown": {"failed": 2, "passed": 0, "inconclusive": 0},
+    assert doc["open_head"] == {
+        "head_sha": "open1",
+        "sender_login": "alice",
+        "sender_type": "User",
     }
+    assert doc["sync_chain"] == [["sync1", "open1", "sentry[bot]", "Bot"]]
 
 
-# --- ci head actor attribution across the events cap ----------------------
-
-
-def _push(
-    doc: ActivityDoc,
-    *,
-    after: str,
-    before: str,
-    login: str,
-    sender_type: str,
-    webhook_id: str,
-) -> None:
-    _entry(
-        doc,
-        event_type=PullRequestActivityType.SYNCHRONIZED,
-        webhook_id=webhook_id,
-        after_sha=after,
-        before_sha=before,
-        sender_login=login,
-        sender_type=sender_type,
-    )
-
-
-def _seer_pr_with_heads(*, outcomes: list[tuple[str, str]]) -> ActivityDoc:
-    """A Seer-opened PR whose heads are ``(sha, suite_conclusion)`` in push order."""
+def test_ci_head_results_preserve_chain_order_repeats_and_missing_ci() -> None:
     doc = new_document()
-    first_sha = outcomes[0][0]
-    _entry(
-        doc,
-        event_type=PullRequestActivityType.OPENED,
-        webhook_id="o1",
-        head_sha=first_sha,
-        sender_login="seer-by-sentry[bot]",
-        sender_type="Bot",
-    )
-    previous = first_sha
-    for index, (sha, _) in enumerate(outcomes[1:]):
-        _push(
+    for event_type, webhook_id, payload in (
+        (
+            PullRequestActivityType.OPENED,
+            "o1",
+            {"head_sha": "a", "sender_login": "alice", "sender_type": "User"},
+        ),
+        (
+            PullRequestActivityType.SYNCHRONIZED,
+            "s1",
+            {
+                "after_sha": "b",
+                "before_sha": "a",
+                "sender_login": "sentry[bot]",
+                "sender_type": "Bot",
+            },
+        ),
+        (
+            PullRequestActivityType.SYNCHRONIZED,
+            "s2",
+            {"after_sha": "a", "before_sha": "b", "sender_login": "bob", "sender_type": "User"},
+        ),
+    ):
+        apply_activity(
             doc,
-            after=sha,
-            before=previous,
-            login="seer-by-sentry[bot]",
-            sender_type="Bot",
-            webhook_id=f"s{index}",
+            event_type=event_type,
+            payload=payload,
+            ts="2026-07-10T12:00:00Z",
+            webhook_id=webhook_id,
         )
-        previous = sha
-    for sha, conclusion in outcomes:
-        _suite(doc, head_sha=sha, conclusion=conclusion)
-    return doc
+    _suite(doc, head_sha="a", conclusion="failure")
+    _suite(doc, head_sha="orphan", conclusion="success", app_slug="other")
+
+    results = ci_head_results_from_doc(doc)
+    assert [item["head_sha"] for item in results] == ["a", "b", "a", "orphan"]
+    assert [item["sequence"] for item in results] == [0, 1, 2, None]
+    assert results[0]["actor"] == "human"
+    assert results[1]["has_ci"] is False
+    assert results[1]["outcome"] == "inconclusive"
+    assert results[2]["sender_login"] == "bob"
+    assert results[3]["actor"] == "unknown"
 
 
-def test_ci_head_actor_attribution_survives_events_cap() -> None:
-    # The pusher used to be readable only from ``events``, so a cap-pressured PR lost
-    # actor attribution and bucketed its own heads as ``unknown``. The sender now
-    # rides on ``sync_chain``, which the events cap doesn't touch.
-    doc = _seer_pr_with_heads(outcomes=[("c1", "failure"), ("c2", "success")])
-    with patch(f"{MODULE}.metrics"), patch(f"{MODULE}.logger"):
-        for i in range(MAX_EVENTS):
-            _entry(doc, event_type=PullRequestActivityType.LABELED, webhook_id=f"d{i}")
-        _push(
-            doc,
-            after="c3",
-            before="c2",
-            login="seer-by-sentry[bot]",
-            sender_type="Bot",
-            webhook_id="s-capped",
-        )
-    _suite(doc, head_sha="c3", conclusion="failure")
-    assert not any(e.get("webhook_id") == "s-capped" for e in doc["events"])
-
-    by_actor = ci_head_actor_counts_from_doc(doc)
-    assert by_actor["seer"] == {"failed": 1, "passed": 1, "inconclusive": 0}
-    assert by_actor["unknown"] == {"failed": 1, "passed": 0, "inconclusive": 0}
+def test_ci_head_outcomes_aborted_runs_without_suite_are_inconclusive() -> None:
+    doc = new_document()
+    _run(doc, check_name="tests", conclusion="cancelled", head_sha="sha1")
+    assert ci_head_outcomes_from_doc(doc) == {"sha1": "inconclusive"}

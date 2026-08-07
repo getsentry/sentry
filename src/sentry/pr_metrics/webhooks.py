@@ -908,6 +908,7 @@ def handle_check_suite(
         CheckSuiteCompletedPayload(
             conclusion=check_suite.get("conclusion") or "",
             app_slug=app.get("slug", ""),
+            suite_id=str(check_suite.get("id") or ""),
             check_runs_count=check_suite.get("latest_check_runs_count") or 0,
         )
     )
@@ -957,6 +958,7 @@ def handle_check_run(
             check_name=check_run.get("name", ""),
             conclusion=check_run.get("conclusion") or "",
             app_slug=app.get("slug", ""),
+            suite_id=str((check_run.get("check_suite") or {}).get("id") or ""),
         )
     )
 

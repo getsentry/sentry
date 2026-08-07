@@ -122,26 +122,13 @@ class PrCloseMetricsEvent(analytics.Event):
     # derived by the judge. Examples include "superseded", "ci_failing_at_close", etc.
     diagnosis_labels: list[str] | None = None
 
-    # Per-head CI summary from the activity-document checks rollup (one outcome
-    # per distinct ``head_sha`` that had check activity), as JSON
-    # ``CiHeadsByActor``: each of ``seer`` / ``human`` / ``bot`` / ``unknown``
-    # maps to ``{failed, passed, inconclusive}``. Grain is check head SHAs, not
-    # ``commits_count`` (commits without recorded CI aren't counted).
-    #
-    # Every head lands in exactly one actor bucket, so aggregate totals are a sum
-    # over the buckets rather than their own columns — the consumer rolls up
-    # whichever slice it wants (all heads, one actor, one outcome) from this one
-    # field.
-    #
-    # Actor attribution is the open/sync webhook sender for that SHA;
-    # ``unknown`` = no attributable sender, which is every head on a document
-    # written before the sender slots existed.
-    #
-    # Null when the summary is unavailable — no activity document (legacy row
-    # path), or no attribution says we authored anything here (e.g. an MCP-only
-    # PR, where no head is ours). Distinct from ``"{...zeros...}"``, which is a
-    # document that genuinely recorded no checks.
-    ci_heads_by_actor: str | None = None
+    # Ordered JSON list of per-head CI results following ``sync_chain`` insertion
+    # order. Each item retains sequence, head/before SHA, sender login/type, derived
+    # actor, whole-head outcome, and ``has_ci``. Opening and synchronize heads with
+    # no checks are included; check heads missing from the bounded chain are
+    # appended with null sequence/identity. Null means unavailable (legacy storage
+    # or no authoring attribution), while ``[]`` means an available empty document.
+    ci_head_results: str | None = None
 
     # --- Conversation judge (set only on a judged close/merge row) ---
     # One of several judges' outputs. Columns are prefixed ``conversation_`` so a
