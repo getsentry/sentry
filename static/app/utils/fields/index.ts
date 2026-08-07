@@ -1,7 +1,6 @@
 import {ATTRIBUTE_METADATA} from '@sentry/conventions';
 
 import {t, td} from 'sentry/locale';
-import type {TagCollection} from 'sentry/types/group';
 import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from 'sentry/utils/discover/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -97,6 +96,7 @@ export enum FieldKey {
   PLATFORM = 'platform',
   PLATFORM_NAME = 'platform.name',
   PROFILE_ID = 'profile.id',
+  PROFILER_ID = 'profiler.id',
   PROJECT = 'project',
   RELEASE = 'release',
   RELEASE_BUILD = 'release.build',
@@ -164,6 +164,7 @@ type SharedFieldKey =
   | FieldKey.PLATFORM
   | FieldKey.PLATFORM_NAME
   | FieldKey.PROFILE_ID
+  | FieldKey.PROFILER_ID
   | FieldKey.PROJECT
   | FieldKey.REPLAY_ID
   | FieldKey.TIMESTAMP
@@ -1903,6 +1904,12 @@ const SHARED_FIELD_KEY: Record<SharedFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
     allowWildcard: false,
   },
+  [FieldKey.PROFILER_ID]: {
+    desc: t('The ID of an associated continuous profile'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
   [FieldKey.PROJECT]: {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
@@ -2880,6 +2887,7 @@ export const ISSUE_EVENT_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.OS_DISTRIBUTION_NAME,
   FieldKey.OS_DISTRIBUTION_VERSION,
   FieldKey.PLATFORM_NAME,
+  FieldKey.PROFILER_ID,
   FieldKey.RELEASE_BUILD,
   FieldKey.RELEASE_PACKAGE,
   FieldKey.RELEASE_VERSION,
@@ -2954,6 +2962,7 @@ export const ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS = new Set<FieldKey>(
   FieldKey.OS_DISTRIBUTION_NAME,
   FieldKey.OS_DISTRIBUTION_VERSION,
   FieldKey.PLATFORM_NAME,
+  FieldKey.PROFILER_ID,
   FieldKey.RELEASE_BUILD,
   FieldKey.RELEASE_PACKAGE,
   FieldKey.RELEASE_VERSION,
@@ -3075,6 +3084,7 @@ export const DISCOVER_FIELDS = [
   FieldKey.TRACE_CLIENT_SAMPLE_RATE,
 
   FieldKey.PROFILE_ID,
+  FieldKey.PROFILER_ID,
 
   // Meta field that returns total count, usually for equations
   FieldKey.TOTAL_COUNT,
@@ -3097,7 +3107,7 @@ export const DISCOVER_FIELDS = [
   FieldKey.OTA_UPDATES_UPDATE_ID,
 ];
 
-export enum ReplayFieldKey {
+enum ReplayFieldKey {
   ACTIVITY = 'activity',
   BROWSER_NAME = 'browser.name',
   BROWSER_VERSION = 'browser.version',
@@ -3128,7 +3138,7 @@ export enum ReplayFieldKey {
   VIEWED_BY_ME = 'viewed_by_me',
 }
 
-export enum ReplayClickFieldKey {
+enum ReplayClickFieldKey {
   CLICK_ALT = 'click.alt',
   CLICK_CLASS = 'click.class',
   CLICK_ID = 'click.id',
@@ -3738,15 +3748,6 @@ export const getFieldDefinition = (
 ): FieldDefinition | null => {
   return _getFieldFromMappings(type, key, kind) ?? null;
 };
-
-export function makeTagCollection(fieldKeys: FieldKey[]): TagCollection {
-  return Object.fromEntries(
-    fieldKeys.map(fieldKey => [
-      fieldKey,
-      {key: fieldKey, name: fieldKey, kind: getFieldDefinition(fieldKey)?.kind},
-    ])
-  );
-}
 
 export function isDeviceClass(key: any): boolean {
   return key === FieldKey.DEVICE_CLASS;

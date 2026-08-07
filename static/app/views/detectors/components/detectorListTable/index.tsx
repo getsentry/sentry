@@ -137,7 +137,7 @@ export function DetectorListTable({
   );
 
   const uniqueProjectIds = useMemo(
-    () => [...new Set(detectors.map(d => d.projectId))],
+    () => [...new Set(detectors.map(d => d.projectId).filter(defined))],
     [detectors]
   );
 

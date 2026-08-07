@@ -184,6 +184,33 @@ class Fixtures:
     def create_organization(self, *args, **kwargs):
         return Factories.create_organization(*args, **kwargs)
 
+    def create_investigation(self, *args, **kwargs):
+        return Factories.create_investigation(*args, **kwargs)
+
+    def create_investigation_project(self, *args, **kwargs):
+        return Factories.create_investigation_project(*args, **kwargs)
+
+    def create_investigation_favorite(self, *args, **kwargs):
+        return Factories.create_investigation_favorite(*args, **kwargs)
+
+    def create_investigation_cell(self, *args, **kwargs):
+        return Factories.create_investigation_cell(*args, **kwargs)
+
+    def create_investigation_cell_dependency(self, *args, **kwargs):
+        return Factories.create_investigation_cell_dependency(*args, **kwargs)
+
+    def create_investigation_parameter(self, *args, **kwargs):
+        return Factories.create_investigation_parameter(*args, **kwargs)
+
+    def create_investigation_cell_parameter(self, *args, **kwargs):
+        return Factories.create_investigation_cell_parameter(*args, **kwargs)
+
+    def create_investigation_cell_execution(self, *args, **kwargs):
+        return Factories.create_investigation_cell_execution(*args, **kwargs)
+
+    def create_investigation_cell_execution_project(self, *args, **kwargs):
+        return Factories.create_investigation_cell_execution_project(*args, **kwargs)
+
     def create_member(self, *args, **kwargs):
         return Factories.create_member(*args, **kwargs)
 

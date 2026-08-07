@@ -146,6 +146,12 @@ function IssuePreviewContent() {
                   icon={<IconOpen size="xs" variant="muted" />}
                   aria-label={t('Open Issue')}
                   tooltipProps={{title: t('Open Issue')}}
+                  analyticsEventKey="issue_inbox.open_issue_clicked"
+                  analyticsEventName="Issue Inbox: Open Issue Clicked"
+                  analyticsParams={{
+                    group_id: group.id,
+                    progress: group.derivedData?.progress,
+                  }}
                 />
               </Flex>
               <IssueSeenTimes group={group} />
@@ -209,7 +215,11 @@ function IssuePreviewContent() {
         <Dividers>
           <LinkedPullRequests group={group} showEmptyState={false} />
           {hasAutofix ? (
-            <IssuePreviewAutofixSummary key={group.id} runState={autofix.runState} />
+            <IssuePreviewAutofixSummary
+              key={group.id}
+              autofix={autofix}
+              groupId={group.id}
+            />
           ) : null}
           <Container>
             <ErrorBoundary mini>
