@@ -5,6 +5,7 @@ renders any issue type. Trace models omitted for now.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime
 from typing import Any
 
@@ -14,27 +15,30 @@ from pydantic import BaseModel, Field, validator
 _DROP = object()
 
 
-def _clean_entry(value: Any) -> Any:
-    """Clean one entry of a container, returning ``_DROP`` when it shouldn't survive."""
-    if isinstance(value, dict | list):
-        cleaned = _drop_filtered(value)
-        return _DROP if cleaned is None else cleaned
-    return _DROP if "[Filtered]" in str(value) else value
-
-
-def _drop_filtered(value: dict[str, Any] | list[Any]) -> Any:
-    """Strip scrubbed leaves from a dict or list, returning ``None`` once nothing survives, so
-    only call this on containers.
-
-    Mirrors Seer's ``StacktraceFrame._filter_nested_value``: a nested container vanishes when it
-    empties out, but a nested scalar goes only when scrubbed -- so a legitimate ``None`` inside a
-    container survives instead of being mistaken for an empty one.
+def contains_filtered(value: Any) -> bool:
+    """Whether a value is, or contains, a scrubbed leaf. Sentry's datascrubbers replace the value
+    itself with the literal ``[Filtered]``, so the entry is left carrying nothing worth rendering.
     """
-    if isinstance(value, dict):
-        kept_items = {k: c for k, v in value.items() if (c := _clean_entry(v)) is not _DROP}
-        return kept_items or None
-    kept_entries = [c for v in value if (c := _clean_entry(v)) is not _DROP]
-    return kept_entries or None
+    return "[Filtered]" in str(value)
+
+
+def _drop_filtered(value: Any) -> Any:
+    """Strip scrubbed leaves, returning ``_DROP`` when nothing worth keeping survives.
+
+    A legitimate ``None`` or ``0`` survives, and so does a container that arrives empty --
+    ``items = []`` is often the bug itself. Only a scrubbed scalar, and a container that
+    scrubbing empties out, are dropped.
+    """
+    if not isinstance(value, Mapping | list):
+        return _DROP if contains_filtered(value) else value
+    if not value:
+        return value
+
+    if isinstance(value, Mapping):
+        kept_items = {k: c for k, v in value.items() if (c := _drop_filtered(v)) is not _DROP}
+        return kept_items or _DROP
+    kept_entries = [c for v in value if (c := _drop_filtered(v)) is not _DROP]
+    return kept_entries or _DROP
 
 
 class Frame(BaseModel):
@@ -67,12 +71,10 @@ class Frame(BaseModel):
             return vars
 
         code = "\n".join(line or "" for _, line in values.get("context") or [])
-        # ``_clean_entry`` already draws the container/scalar distinction this needs: a container
-        # emptied by scrubbing carries nothing, while a scalar None or 0 is worth keeping
         return {
             key: cleaned
             for key, value in vars.items()
-            if not (code and key not in code) and (cleaned := _clean_entry(value)) is not _DROP
+            if not (code and key not in code) and (cleaned := _drop_filtered(value)) is not _DROP
         }
 
 

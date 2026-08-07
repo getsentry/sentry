@@ -13,7 +13,7 @@ from typing import Any, Literal
 from sentry.issues.formatting.adapter import event_response_to_model
 from sentry.issues.formatting.formatter import Formatter, MarkdownFormatter, SectionFn, XmlFormatter
 from sentry.issues.formatting.limits import LIMITS_DEFAULT, Limits
-from sentry.issues.formatting.models import EventObject, Frame, Stacktrace
+from sentry.issues.formatting.models import EventObject, Frame, Stacktrace, contains_filtered
 
 logger = logging.getLogger(__name__)
 
@@ -53,10 +53,6 @@ def _truncate_items(items: Sequence[str], sep: str, max_chars: int | None) -> st
     return sep.join(kept)
 
 
-def _contains_filtered(value: Any) -> bool:
-    return "[Filtered]" in str(value)
-
-
 def _render_frame(frame: Frame) -> str:
     function = frame.function or "Unknown function"
     if frame.filename:
@@ -92,11 +88,13 @@ def _select_frames(frames: Sequence[Frame], max_frames: int) -> list[Frame]:
     if len(frames) <= max_frames:
         return list(frames)
 
-    app = [f for f in frames if f.in_app]
-    system = [f for f in frames if not f.in_app]
+    # selection happens on positions, not frames, so the survivors can be put back in stack
+    # order at the end without needing frames to be distinguishable from one another
+    app = [i for i, frame in enumerate(frames) if frame.in_app]
+    system = [i for i, frame in enumerate(frames) if not frame.in_app]
     system_allowance = max(max_frames - len(app), 0)
 
-    def head_and_tail(group: list[Frame], allowance: int) -> list[Frame]:
+    def head_and_tail(group: list[int], allowance: int) -> list[int]:
         if len(group) <= allowance:
             return group
         # split the allowance exactly, giving an odd slot to the head; Seer halves it instead,
@@ -108,8 +106,9 @@ def _select_frames(frames: Sequence[Frame], max_frames: int) -> list[Frame]:
     kept = head_and_tail(system, system_allowance) + head_and_tail(
         app, max_frames - system_allowance
     )
-    order = {id(frame): i for i, frame in enumerate(frames)}
-    return sorted(kept, key=lambda frame: order[id(frame)])
+    # app and system frames interleave in the original stack, so concatenating the two groups
+    # leaves them out of order -- sorting the positions restores it
+    return [frames[i] for i in sorted(kept)]
 
 
 def _render_stacktrace(stacktrace: Stacktrace, limits: Limits) -> str:
@@ -187,7 +186,7 @@ def breadcrumbs_section(model: EventObject, fmt: Formatter, limits: Limits) -> s
 
     lines: list[str] = []
     for crumb in model.breadcrumbs[-limits.max_breadcrumbs :]:  # most recent N
-        if _contains_filtered(crumb.message) or _contains_filtered(crumb.data):
+        if contains_filtered(crumb.message) or contains_filtered(crumb.data):
             continue
         level = f"[{crumb.level}] " if crumb.level else ""
         category = f"{crumb.category}: " if crumb.category else ""

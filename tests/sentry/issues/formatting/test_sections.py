@@ -180,6 +180,21 @@ def test_frame_vars_scrubbed_without_context() -> None:
     assert "count=3" in out
 
 
+def test_frame_vars_keep_containers_that_arrived_empty() -> None:
+    # an empty collection is often the bug itself, so it has to survive -- only a container that
+    # scrubbing emptied out carries nothing and should go
+    frame = Frame(
+        function="f",
+        filename="a.py",
+        vars={"items": [], "opts": {}, "scrubbed": {"token": "[Filtered]"}},
+    )
+    event = _event_with_exception(type="E", stacktrace=Stacktrace(frames=[frame]))
+    out = exceptions_section(event, MD, LIMITS_DEFAULT)
+    assert "items=[]" in out
+    assert "opts={}" in out
+    assert "scrubbed" not in out
+
+
 def test_message_deduped_against_title() -> None:
     # message that is a substring of the title renders nothing
     assert (
