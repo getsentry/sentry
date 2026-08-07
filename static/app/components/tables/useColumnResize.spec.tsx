@@ -174,6 +174,7 @@ describe('useColumnResize', () => {
 
     act(triggerResizeObservers);
 
+    // A separator has no value attribute, so the jest-dom rule does not apply.
     // eslint-disable-next-line jest-dom/prefer-to-have-value
     expect(resizer()).toHaveAttribute('aria-valuenow', '150');
   });
