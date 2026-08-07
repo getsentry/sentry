@@ -33,8 +33,8 @@ from sentry.dynamic_sampling.per_org.configuration import (
 )
 from sentry.dynamic_sampling.per_org.gate import (
     is_org_in_recalibration_rollout,
-    is_org_in_rollout,
     is_org_in_sample_rates_summary_log_rollout,
+    org_ids_in_rollout,
     sliding_window_comparison_org_ids,
     transaction_volume_debug_project_ids,
 )
@@ -227,7 +227,8 @@ def log_sample_rates_summary(
 
 
 def _organizations_in_rollout(organizations: Sequence[Organization]) -> list[Organization]:
-    return [organization for organization in organizations if is_org_in_rollout(organization.id)]
+    in_rollout = set(org_ids_in_rollout(organization.id for organization in organizations))
+    return [organization for organization in organizations if organization.id in in_rollout]
 
 
 def _organizations_with_feature(

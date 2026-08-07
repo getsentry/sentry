@@ -472,8 +472,8 @@ class CursoredSchedulerTest(TestCase):
 
     def test_prevalidate_batch_preserves_dispatch_order(self):
         """
-        Dispatch order follows the snapshotted PK list even when prevalidate_batch returns
-        an unordered collection.
+        Dispatch order is the queryset's, whatever order prevalidate_batch returns, so a
+        check that returns a set or reverses its input does not scramble the cycle.
         """
         ois = self._create_org_integrations(30)
         all_pks = sorted(oi.pk for oi in ois)
@@ -488,7 +488,7 @@ class CursoredSchedulerTest(TestCase):
             ),
             task=self.mock_task,
             cycle_duration=timedelta(minutes=3),
-            prevalidate_batch=lambda ois: {oi.pk for oi in ois if oi.pk in keep},
+            prevalidate_batch=lambda ois: [oi.pk for oi in reversed(ois) if oi.pk in keep],
         )
 
         scheduler.tick()

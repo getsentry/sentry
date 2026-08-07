@@ -4,11 +4,12 @@ from unittest.mock import DEFAULT, Mock, patch
 
 from django.core.exceptions import ObjectDoesNotExist
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org import cache as per_org_recalibration_cache
 from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
-from sentry.dynamic_sampling.per_org.gate import is_org_in_rollout
+from sentry.dynamic_sampling.per_org.gate import ROLLOUT_RATE_OPTION, is_org_in_rollout
 from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts
 from sentry.dynamic_sampling.per_org.scheduler import (
     run_calculations_per_org_task,
@@ -185,17 +186,36 @@ class SchedulePerOrgCalculationsTest(TestCase):
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_validator_skips_the_feature_check_outside_the_rollout(self) -> None:
         """
-        The feature check calls the feature backend, so a page the rollout already
+        The feature check calls the feature backend, so a batch the rollout already
         emptied must not reach it.
         """
         org = self.create_organization()
         validate = self._get_validator()
 
-        with patch(f"{SCHEDULER}.is_org_in_rollout", return_value=False):
+        with patch(f"{SCHEDULER}.org_ids_in_rollout", return_value=[]):
             with patch("sentry.features.batch_has_for_organizations") as batch_has:
                 assert validate([org]) == []
 
         assert batch_has.call_count == 0
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_validator_reads_the_rollout_rate_once_for_the_batch(self) -> None:
+        """
+        The rollout check reads an option, which costs far more than the bucketing, so
+        it must not run once per organization.
+        """
+        orgs = [self.create_organization() for _ in range(5)]
+        validate = self._get_validator()
+
+        with patch(
+            "sentry.features.batch_has_for_organizations",
+            return_value={f"organization:{org.id}": True for org in orgs},
+        ):
+            with patch("sentry.options.get", wraps=options.get) as get:
+                validate(orgs)
+
+        rollout_reads = [c for c in get.call_args_list if c.args[0] == ROLLOUT_RATE_OPTION]
+        assert len(rollout_reads) == 1
 
 
 class RunCalculationsPerOrgTest(TestCase):

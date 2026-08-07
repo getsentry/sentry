@@ -256,19 +256,22 @@ class CursoredScheduler[M: Model]:
 
     def _prevalidated_pks(self) -> list[int]:
         """
-        The PKs to snapshot for this cycle.
+        The PKs to snapshot for this cycle, in PK order.
 
         Without ``prevalidate_batch`` only the PK column is read. With it, the rows are
         loaded and handed over whole, so a check needing more than the PK — a feature
         flag, an option — works from the objects it already has rather than fetching
-        them again.
+        them again. The order is the queryset's, whatever order the check returns, so a
+        check that returns a set does not scramble the cycle.
         """
         queryset = self.queryset.order_by("pk")
 
         if self.prevalidate_batch is None:
             return list(queryset.values_list("pk", flat=True))
 
-        return list(self.prevalidate_batch(list(queryset)))
+        rows = list(queryset)
+        kept = set(self.prevalidate_batch(rows))
+        return [row.pk for row in rows if row.pk in kept]
 
     def _initialize_cycle(self) -> int:
         init_start = time.time()

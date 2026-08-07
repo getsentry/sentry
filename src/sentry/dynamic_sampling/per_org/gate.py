@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 from sentry import options
-from sentry.options.rollout import in_rollout_group
+from sentry.options.rollout import in_rollout_group, in_rollout_group_batch
 
 KILLSWITCH_OPTION = "dynamic-sampling.per_org.killswitch"
 ROLLOUT_RATE_OPTION = "dynamic-sampling.per_org.rollout-rate"
@@ -37,6 +39,10 @@ def is_rollout_enabled() -> bool:
 
 def is_org_in_rollout(org_id: int) -> bool:
     return in_rollout_group(ROLLOUT_RATE_OPTION, org_id)
+
+
+def org_ids_in_rollout(org_ids: Iterable[int]) -> list[int]:
+    return in_rollout_group_batch(ROLLOUT_RATE_OPTION, org_ids)
 
 
 def is_org_in_recalibration_rollout(org_id: int) -> bool:
