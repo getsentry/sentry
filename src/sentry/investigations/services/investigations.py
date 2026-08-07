@@ -545,7 +545,7 @@ def update_block(
     user_id: int,
     values: dict[str, Any],
 ) -> InvestigationBlock:
-    with transaction.atomic(using=router.db_for_write(InvestigationBlock)):
+    with transaction.atomic(using=router.db_for_write(Investigation)):
         investigation = lock_investigation(block.investigation, expected_investigation_version)
         try:
             locked = InvestigationBlock.objects.select_for_update().get(id=block.id)
@@ -601,7 +601,7 @@ def mark_downstream_blocks_stale(
 def delete_block(
     *, block: InvestigationBlock, expected_investigation_version: int, expected_block_version: int
 ) -> None:
-    with transaction.atomic(using=router.db_for_write(InvestigationBlock)):
+    with transaction.atomic(using=router.db_for_write(Investigation)):
         investigation = lock_investigation(block.investigation, expected_investigation_version)
         try:
             locked = InvestigationBlock.objects.select_for_update().get(id=block.id)
