@@ -35,7 +35,7 @@ class Migration(CheckedMigration):
     checked = False  # This is an initial migration and can take locks
 
     dependencies = [
-        ("sentry", "1103_backfill_auto_link_repos_by_name"),
+        ("sentry", "0001_squashed_1118_add_group_derived_data"),
     ]
 
     operations = [
