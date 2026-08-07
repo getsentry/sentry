@@ -188,3 +188,46 @@ class InvestigationDetailsSerializerTest(TestCase):
             self.serialize_detail(accessible_project_ids=set())["blocks"][0]["outputStatus"]
             == "restricted"
         )
+
+    def test_query_count_is_constant_for_a_bare_queryset(self) -> None:
+        def build(index: int) -> Investigation:
+            investigation = self.create_investigation(
+                organization=self.organization, title=f"Extra {index}"
+            )
+            self.create_investigation_project(investigation=investigation, project=self.project)
+            parameter = self.create_investigation_parameter(
+                investigation=investigation, key="env", label="Env", type="string", position=0
+            )
+            block = self.create_investigation_block(investigation=investigation, position=0)
+            self.create_investigation_block_parameter(block=block, parameter=parameter)
+            execution = self.create_investigation_block_execution(
+                block=block,
+                executor="manual",
+                block_version=1,
+                input_fingerprint="f" * 64,
+                status=InvestigationBlockExecutionStatus.COMPLETED,
+                result={"schemaVersion": 1},
+            )
+            self.create_investigation_block_execution_project(
+                execution=execution, project=self.project
+            )
+            block.update(
+                current_execution=execution,
+                content_execution=execution,
+                result_execution=execution,
+            )
+            return investigation
+
+        serializer = InvestigationDetailsSerializer(accessible_project_ids={self.project.id})
+        first = [build(0)]
+
+        with CaptureQueriesContext(connection) as one:
+            serialize(first, self.user, serializer)
+
+        many_investigations = first + [build(index) for index in range(1, 5)]
+
+        with CaptureQueriesContext(connection) as many:
+            results = serialize(many_investigations, self.user, serializer)
+
+        assert len(results) == 5
+        assert len(many.captured_queries) == len(one.captured_queries)

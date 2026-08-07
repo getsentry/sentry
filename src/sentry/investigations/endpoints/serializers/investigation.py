@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Any, TypedDict, override
 
 from django.contrib.auth.models import AnonymousUser
-from django.db.models import Count, Prefetch, Q
+from django.db.models import Count, Q
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.investigations.endpoints.serializers.block import (
@@ -20,8 +20,6 @@ from sentry.investigations.endpoints.serializers.parameter import (
 from sentry.investigations.models import (
     Investigation,
     InvestigationBlock,
-    InvestigationBlockDependency,
-    InvestigationBlockParameter,
     InvestigationFavoriteUser,
     InvestigationParameter,
     InvestigationProject,
@@ -136,28 +134,9 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
         self, item_list: Sequence[Investigation], user: User | RpcUser | AnonymousUser
     ) -> MutableMapping[int, list[InvestigationBlockSerializerResponse]]:
         blocks = list(
-            InvestigationBlock.objects.filter(investigation__in=item_list, deleted_at__isnull=True)
-            .select_related("content_execution", "current_execution", "result_execution")
-            .prefetch_related(
-                Prefetch(
-                    "dependency_links",
-                    queryset=InvestigationBlockDependency.objects.select_related(
-                        "depends_on"
-                    ).order_by("id"),
-                    to_attr="serialized_dependency_links",
-                ),
-                Prefetch(
-                    "parameter_links",
-                    queryset=InvestigationBlockParameter.objects.select_related(
-                        "parameter"
-                    ).order_by("parameter__position"),
-                    to_attr="serialized_parameter_links",
-                ),
-                "current_execution__data_projects",
-                "content_execution__data_projects",
-                "result_execution__data_projects",
-            )
-            .order_by("position", "id")
+            InvestigationBlock.objects.filter(
+                investigation__in=item_list, deleted_at__isnull=True
+            ).order_by("position", "id")
         )
         serialized = serialize(
             blocks,
