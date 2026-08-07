@@ -1376,6 +1376,10 @@ export default typescript.config([
               from: {element: {type: 'debug-tools'}},
               allow: [{to: {element: {type: 'debug-tools'}}}],
             },
+            {
+              from: {element: {type: 'eslint'}},
+              allow: [{to: {element: {type: 'eslint'}}}],
+            },
             // --- stories ---
             // Story files inherit their containing app's permissions through
             // the app graph above. Storybook itself can load Storybook files.
