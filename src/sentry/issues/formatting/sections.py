@@ -296,8 +296,8 @@ def spans_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
 def evidence_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
     if not model.evidence:
         return ""
-    # occurrence.evidenceDisplay is an arbitrary-length list of arbitrary-length pairs, unlike
-    # Seer's fixed four-key allowlist, so it needs the same cap the other open-ended sections get.
+    # occurrence.evidenceDisplay is an arbitrary-length list of arbitrary-length pairs, so it
+    # needs the same cap the other open-ended sections get.
     # Cap each value before marking it up -- _truncate_items always keeps the first piece, so a
     # single oversized value would otherwise carry the whole section past the cap.
     rendered = [
@@ -345,8 +345,7 @@ EVENT_SECTIONS_WITH_USER: list[SectionFn] = [
 _USER_IDENTIFYING_SECTIONS = frozenset({user_section, contexts_section})
 
 # the default. Rendered output is bound for an LLM, so user identifiers are opt-in -- a caller
-# that doesn't think about it can't leak them into a prompt. Dropping contexts also puts the
-# default back in line with Seer, whose format_event has no contexts section at all.
+# that doesn't think about it can't leak them into a prompt.
 EVENT_SECTIONS: list[SectionFn] = [
     s for s in EVENT_SECTIONS_WITH_USER if s not in _USER_IDENTIFYING_SECTIONS
 ]
