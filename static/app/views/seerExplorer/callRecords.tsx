@@ -180,7 +180,7 @@ export function callRecordFailure(record: CallRecord): string | null {
  */
 export function callRecordDetail(
   record: CallRecord
-): {params: Array<[string, string]>; request: string; status: string} | null {
+): {params: Array<[string, string]>; request: string; response: string | null} | null {
   if (record.kind !== 'api' || !record.method) {
     return null;
   }
@@ -190,10 +190,16 @@ export function callRecordDetail(
     return null;
   }
 
+  const response = record.response
+    ? record.response_truncated
+      ? `${record.response}\n…`
+      : record.response
+    : null;
+
   return {
     request: `${record.method} ${path}`,
     params: Object.entries(record.query_params ?? {}),
-    status: record.error ?? (record.status ? String(record.status) : t('pending')),
+    response,
   };
 }
 

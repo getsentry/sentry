@@ -500,12 +500,22 @@ function CallRows({
 
         const detail = callRecordDetail(record);
 
+        // The row is the disclosure's own title, so the chevron sits inline with the label rather
+        // than adding a second line beneath it. A row with nothing to show stays plain.
         return (
           <Stack key={record.id} as="li" gap="xs" minWidth={0}>
-            <Flex gap="sm" align="center">
-              {row}
-            </Flex>
-            {detail && <CallDetail detail={detail} />}
+            {detail ? (
+              <Disclosure size="sm">
+                <Disclosure.Title>{row}</Disclosure.Title>
+                <Disclosure.Content>
+                  <CallDetail detail={detail} />
+                </Disclosure.Content>
+              </Disclosure>
+            ) : (
+              <Flex gap="sm" align="center">
+                {row}
+              </Flex>
+            )}
           </Stack>
         );
       })}
@@ -513,35 +523,24 @@ function CallRows({
   );
 }
 
-/** The request behind a row, collapsed by default — the title says what, this says exactly what ran. */
+/** What the row actually ran, and what came back. */
 function CallDetail({
   detail,
 }: {
   detail: NonNullable<ReturnType<typeof callRecordDetail>>;
 }) {
   return (
-    <Disclosure size="sm">
-      <Disclosure.Title>
-        <Text size="xs" variant="muted" monospace>
-          {t('Request')}
+    <Stack gap="xs" minWidth={0}>
+      <Text size="xs" variant="muted" monospace>
+        {detail.request}
+      </Text>
+      {detail.params.map(([key, value]) => (
+        <Text key={key} size="xs" variant="muted" monospace>
+          {key}={value}
         </Text>
-      </Disclosure.Title>
-      <Disclosure.Content>
-        <Stack gap="xs" minWidth={0}>
-          <Text size="xs" variant="muted" monospace>
-            {detail.request}
-          </Text>
-          {detail.params.map(([key, value]) => (
-            <Text key={key} size="xs" variant="muted" monospace>
-              {key}={value}
-            </Text>
-          ))}
-          <Text size="xs" variant="muted" monospace>
-            {t('status: %s', detail.status)}
-          </Text>
-        </Stack>
-      </Disclosure.Content>
-    </Disclosure>
+      ))}
+      {detail.response && <ResponseBox>{detail.response}</ResponseBox>}
+    </Stack>
   );
 }
 
@@ -678,6 +677,22 @@ const ToolCallLinkIcon = styled(IconLink)`
   ${ToolCallLink}:hover & {
     color: ${p => p.theme.tokens.interactive.link.accent.hover};
   }
+`;
+
+// Capped and scrollable rather than unbounded: the preview is already truncated server-side, but
+// even 2KB of JSON would otherwise push the rest of the conversation off screen.
+const ResponseBox = styled('pre')`
+  margin: 0;
+  padding: ${p => p.theme.space.md};
+  max-height: 240px;
+  overflow: auto;
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+  background: ${p => p.theme.tokens.background.secondary};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.xs};
+  white-space: pre-wrap;
+  word-break: break-word;
 `;
 
 const ToolCallPlainRow = styled('span')`

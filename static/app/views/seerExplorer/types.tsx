@@ -107,6 +107,10 @@ export interface CallRecord {
   query_params?: Record<string, string>;
   /** `path` with its params interpolated — the literal path that was requested. */
   resolved_path?: string;
+  /** Bounded slice of the response body — a preview, not the response. */
+  response?: string;
+  /** Whether `response` was cut short of the full body. */
+  response_truncated?: boolean;
   /** HTTP status. Absent when the request never completed. */
   status?: number;
   /** Human name for the operation, from the OpenAPI spec. Absent when it has none. */

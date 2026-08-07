@@ -331,14 +331,22 @@ describe('callRecordDetail', () => {
     ]);
   });
 
-  it('reports a transport failure over a status', () => {
-    expect(callRecordDetail(apiRecord({error: 'ConnectError'}))?.status).toBe(
-      'ConnectError'
-    );
+  it('shows the response body', () => {
+    const detail = callRecordDetail(apiRecord({response: '{\n  "id": "1"\n}'}));
+
+    expect(detail?.response).toContain('"id": "1"');
   });
 
-  it('reports pending while the call is in flight', () => {
-    expect(callRecordDetail(apiRecord({status: undefined}))?.status).toBe('pending');
+  it('marks a truncated response so the box does not look complete', () => {
+    const detail = callRecordDetail(
+      apiRecord({response: '{"a":1', response_truncated: true})
+    );
+
+    expect(detail?.response?.endsWith('…')).toBe(true);
+  });
+
+  it('has no response when the call did not return one', () => {
+    expect(callRecordDetail(apiRecord({response: undefined}))?.response).toBeNull();
   });
 
   it('has no detail for a lib call, which has no route of its own', () => {
