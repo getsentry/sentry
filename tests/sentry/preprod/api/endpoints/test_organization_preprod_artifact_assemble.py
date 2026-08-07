@@ -3,8 +3,10 @@ from unittest.mock import MagicMock, patch
 
 import orjson
 from django.core.files.base import ContentFile
+from django.test import override_settings
 from django.urls import reverse
 
+from sentry.conf.types.sentry_config import SentryMode
 from sentry.constants import ObjectStatus
 from sentry.models.apitoken import ApiToken
 from sentry.models.files.fileblob import FileBlob
@@ -1130,3 +1132,26 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         )
         assert response.status_code == 403, response.content
         assert response.data["detail"] == "Organization does not have quota for preprod features"
+
+    @override_settings(SENTRY_MODE=SentryMode.SINGLE_TENANT)
+    def test_assemble_single_tenant_returns_403(self) -> None:
+        """Test that endpoint returns 403 for single-tenant deployments."""
+        content = b"test single tenant content"
+        total_checksum = sha1(content).hexdigest()
+
+        blob = FileBlob.from_file(ContentFile(content))
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
+
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": total_checksum,
+                "chunks": [blob.checksum],
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+        assert response.status_code == 403, response.content
+        assert (
+            response.data["detail"]
+            == "Size analysis uploads are not enabled for this organization."
+        )

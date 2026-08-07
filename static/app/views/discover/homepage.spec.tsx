@@ -519,4 +519,69 @@ describe('Discover > Homepage', () => {
       screen.queryByRole('menuitemradio', {name: 'Remove Default'})
     ).not.toBeInTheDocument();
   });
+
+  it('shows default homepage when discover deprecation is enabled with transaction dataset homepage query', async () => {
+    organization = OrganizationFixture({
+      features: [
+        'discover-basic',
+        'discover-query',
+        'discover-saved-queries-deprecation',
+        'deprecate-discover',
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        meta: {
+          discoverSplitDecision: 'transaction-like',
+        },
+        data: [],
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/discover/homepage/`,
+      method: 'GET',
+      statusCode: 200,
+      body: {
+        id: '2',
+        name: 'homepage query',
+        projects: [],
+        version: 2,
+        expired: false,
+        dateCreated: '2021-04-08T17:53:25.195782Z',
+        dateUpdated: '2021-04-09T12:13:18.567264Z',
+        createdBy: {
+          id: '2',
+        },
+        environment: [],
+        fields: ['environment'],
+        widths: ['-1'],
+        range: '14d',
+        orderby: '-environment',
+        display: 'previous',
+        query: 'event.type:transaction',
+        topEvents: '5',
+        queryDataset: 'transaction-like',
+      },
+    });
+
+    const {router} = render(<Homepage />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/errors/homepage/`,
+        },
+        route: '/organizations/:orgId/explore/errors/homepage/',
+      },
+      organization,
+    });
+
+    expect(await screen.findByText('Results')).toBeInTheDocument();
+    expect(screen.queryByText('homepage query')).not.toBeInTheDocument();
+    expect(screen.queryByText('environment')).not.toBeInTheDocument();
+
+    expect(router.location.query.dataset).toBe('errors');
+    expect(router.location.query.queryDataset).toBe('error-events');
+  });
 });

@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
-import type {ToolboxComponentOption} from 'echarts';
 
 import {Client} from 'sentry/api';
 import {EventsChart} from 'sentry/components/charts/eventsChart';
@@ -213,7 +212,7 @@ export function ReleaseEventsChart({
 
                 return tooltipFormatter(val, aggregateOutputType(getYAxis()));
               },
-            } as ToolboxComponentOption,
+            },
           }}
           usePageZoom
           height={240}

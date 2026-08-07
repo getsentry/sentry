@@ -14,6 +14,7 @@ from sentry.seer.smart_assignment.models import (
     RESOLUTION_ACTIVITIES,
     SEER_FEATURE_ID,
     SmartAssignmentPayload,
+    is_unscorable_assignment,
 )
 from sentry.seer.smart_assignment.scoring import record_ground_truth, resolver_user_id
 from sentry.seer.utils import runs_for_group
@@ -60,6 +61,15 @@ def trigger_smart_assignment(
         metrics.incr(
             "smart_assignment.trigger.skipped",
             tags={"reason": "automatic_resolution"},
+            sample_rate=1.0,
+        )
+        return
+
+    if is_unscorable_assignment(activity):
+        # We only want to run Smart Assignment on issues that are manually assigned.
+        metrics.incr(
+            "smart_assignment.trigger.skipped",
+            tags={"reason": "automatic_assignment"},
             sample_rate=1.0,
         )
         return
