@@ -569,6 +569,81 @@ class InvestigationBlockEndpointTest(APITestCase):
         )
         assert response.status_code == 400
 
+    def test_permission_get_returns_configured_teams(self) -> None:
+        permissions = self.investigation.permissions
+        first_team = self.create_team(organization=self.organization)
+        second_team = self.create_team(organization=self.organization)
+        InvestigationPermissionsTeam.objects.create(permissions=permissions, team=second_team)
+        InvestigationPermissionsTeam.objects.create(permissions=permissions, team=first_team)
+        url = reverse(
+            "sentry-api-0-organization-investigation-permissions",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": self.investigation.id,
+            },
+        )
+
+        response = self.client.get(url)
+
+        assert response.status_code == 200
+        assert response.data["teamIds"] == sorted([first_team.id, second_team.id])
+
+    def test_sentry_app_cannot_update_parameters_or_permissions(self) -> None:
+        parameter = self.create_investigation_parameter(
+            investigation=self.investigation,
+            key="environment",
+            label="Environment",
+            type="string",
+            position=0,
+        )
+        sentry_app_user = self.create_user(is_sentry_app=True)
+        self.create_member(
+            organization=self.organization,
+            user=sentry_app_user,
+            role="member",
+        )
+        self.login_as(sentry_app_user)
+        parameters_url = reverse(
+            "sentry-api-0-organization-investigation-parameters",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": self.investigation.id,
+            },
+        )
+        permissions_url = reverse(
+            "sentry-api-0-organization-investigation-permissions",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": self.investigation.id,
+            },
+        )
+
+        response = self.client.put(
+            parameters_url,
+            data={
+                "investigationVersion": self.investigation.version,
+                "values": {"environment": "production"},
+            },
+            format="json",
+        )
+        assert response.status_code == 403
+
+        response = self.client.put(
+            permissions_url,
+            data={
+                "investigationVersion": self.investigation.version,
+                "isEditableByEveryone": False,
+                "teamIds": [],
+            },
+            format="json",
+        )
+        assert response.status_code == 403
+
+        parameter.refresh_from_db()
+        self.investigation.permissions.refresh_from_db()
+        assert parameter.saved_value is None
+        assert self.investigation.permissions.is_editable_by_everyone is True
+
     def test_manager_can_override_edit_permissions(self) -> None:
         permissions = self.investigation.permissions
         permissions.is_editable_by_everyone = False
