@@ -168,6 +168,7 @@ def _can_manage(request: Request, organization: Organization, investigation: Inv
 class OrganizationInvestigationBase(OrganizationEndpoint):
     owner = ApiOwner.ML_AI
     permission_classes = (InvestigationPermission,)
+    prefetch_permission_teams = False
 
     def convert_args(
         self,
@@ -182,9 +183,10 @@ class OrganizationInvestigationBase(OrganizationEndpoint):
         if not _feature_enabled(request, organization):
             raise ResourceDoesNotExist
         try:
-            investigation = Investigation.objects.select_related("organization").get(
-                id=investigation_id, organization=organization
-            )
+            queryset = Investigation.objects.select_related("organization", "permissions")
+            if self.prefetch_permission_teams:
+                queryset = queryset.prefetch_related("permissions__teams_with_edit_access")
+            investigation = queryset.get(id=investigation_id, organization=organization)
         except (Investigation.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
         kwargs["investigation"] = investigation
@@ -437,6 +439,7 @@ class OrganizationInvestigationBlockDetailsEndpoint(OrganizationInvestigationBlo
 @extend_schema(tags=["Investigations"])
 @cell_silo_endpoint
 class OrganizationInvestigationBlockOrderEndpoint(OrganizationInvestigationBase):
+    prefetch_permission_teams = True
     publish_status = {"PUT": ApiPublishStatus.PRIVATE}
 
     def put(
@@ -471,11 +474,13 @@ class OrganizationInvestigationBlockOrderEndpoint(OrganizationInvestigationBase)
 @extend_schema(tags=["Investigations"])
 @cell_silo_endpoint
 class OrganizationInvestigationParametersEndpoint(OrganizationInvestigationBase):
+    prefetch_permission_teams = True
     publish_status = {"PUT": ApiPublishStatus.PRIVATE}
 
     def put(
         self, request: Request, organization: Organization, investigation: Investigation
     ) -> Response:
+        _require_authenticated_user(request)
         serializer = ParameterValuesSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -506,6 +511,7 @@ class OrganizationInvestigationParametersEndpoint(OrganizationInvestigationBase)
 @cell_silo_endpoint
 class OrganizationInvestigationPermissionsEndpoint(OrganizationInvestigationBase):
     manager_or_creator_only = True
+    prefetch_permission_teams = True
     publish_status = {"GET": ApiPublishStatus.PRIVATE, "PUT": ApiPublishStatus.PRIVATE}
 
     def get(
@@ -524,6 +530,7 @@ class OrganizationInvestigationPermissionsEndpoint(OrganizationInvestigationBase
     def put(
         self, request: Request, organization: Organization, investigation: Investigation
     ) -> Response:
+        _require_authenticated_user(request)
         serializer = PermissionsUpdateSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -562,6 +569,7 @@ class OrganizationInvestigationPermissionsEndpoint(OrganizationInvestigationBase
 @extend_schema(tags=["Investigations"])
 @cell_silo_endpoint
 class OrganizationInvestigationDetailsEndpoint(OrganizationInvestigationBase):
+    prefetch_permission_teams = True
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
