@@ -2460,6 +2460,15 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Fraction of integrations (bucketed by the provider:integration_id prefix of
+# mailbox_name, so all of an integration's mailboxes switch together) whose
+# drains are dispatched via batch claims instead of the drain-lock lease.
+register(
+    "hybridcloud.webhookpayload.claim_dispatch_rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "hybridcloud.webhookpayload.skip_on_failure_providers",
     type=Sequence,
