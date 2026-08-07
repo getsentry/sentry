@@ -109,7 +109,6 @@ class DeleteInvestigationTest(TransactionTestCase, HybridCloudTestMixin):
 
     def test_delete_project_only_removes_project_links(self) -> None:
         project = self.project
-        project.update(status=OrganizationStatus.PENDING_DELETION)
         self.ScheduledDeletion.schedule(instance=project, days=0)
 
         with self.tasks():
