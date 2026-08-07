@@ -5,34 +5,44 @@ import {t} from 'sentry/locale';
 
 type ChipSize = 'xs' | 'sm' | 'md';
 
-/**
- * - `query`: `property operator value`, value emphasized in accent — an editable
- *   search-filter token.
- * - `readonly-query`: same layout, value in secondary — a non-interactive
- *   summary of a filter.
- * - `value`: just the value, in primary — a standalone token.
- */
-type ChipVariant = 'query' | 'readonly-query' | 'value';
-
-interface ChipProps extends React.HTMLAttributes<HTMLDivElement> {
+interface ChipBaseProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
    * Called when the dismiss affordance is activated. Providing it renders a
    * trailing ✕ button; omit it for a static chip.
    */
   onDismiss?: () => void;
+  size?: ChipSize;
+  value?: string;
+}
+
+/**
+ * A search-filter token rendered as `property operator value`.
+ * - `query`: value emphasized in accent — an editable search-filter token.
+ * - `readonly-query`: value in secondary — a non-interactive summary of a filter.
+ */
+interface QueryChipProps extends ChipBaseProps {
   /**
-   * The comparison operator shown between property and value (e.g. `is`). Only
-   * rendered for the query variants.
+   * The comparison operator shown between property and value (e.g. `is`).
    */
   operator?: string;
   /**
-   * The filter key, shown first. Only rendered for the query variants.
+   * The filter key, shown first.
    */
   property?: string;
-  size?: ChipSize;
-  value?: string;
-  variant?: ChipVariant;
+  variant?: 'query' | 'readonly-query';
 }
+
+/**
+ * A standalone token showing just the `value`, in primary. `property` and
+ * `operator` are not applicable.
+ */
+interface ValueChipProps extends ChipBaseProps {
+  variant: 'value';
+  operator?: never;
+  property?: never;
+}
+
+type ChipProps = QueryChipProps | ValueChipProps;
 
 const SIZES = {
   xs: {height: '20px', radius: '2xs', pad: 'xs', font: '12px', dismiss: '20px'},
