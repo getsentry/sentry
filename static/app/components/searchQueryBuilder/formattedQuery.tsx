@@ -80,7 +80,7 @@ function Filter({token}: {token: TokenResult<Token.FILTER>}) {
 
 function Boolean({token}: {token: TokenResult<Token.LOGIC_BOOLEAN>}) {
   const label = token.text.toUpperCase();
-  return <Chip variant="value" size="sm" value={label} aria-label={label} />;
+  return <Chip size="sm" value={label} />;
 }
 
 function QueryToken({token}: TokenProps) {
