@@ -19,6 +19,7 @@ from sentry.data_export.base import ExportError, ExportQueryType
 from sentry.data_export.models import ExportedData
 from sentry.data_export.processors.discover import DiscoverProcessor
 from sentry.data_export.processors.explore import (
+    FULL_EXPORT_TRACE_ITEM_DATASETS,
     SUPPORTED_TRACE_ITEM_DATASETS,
     ExploreProcessor,
 )
@@ -83,12 +84,17 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
             ExportQueryType.EXPLORE_STR,
             ExportQueryType.TRACE_ITEM_FULL_EXPORT_STR,
         ):
+            supported_datasets = (
+                FULL_EXPORT_TRACE_ITEM_DATASETS
+                if query_type == ExportQueryType.TRACE_ITEM_FULL_EXPORT_STR
+                else SUPPORTED_TRACE_ITEM_DATASETS.keys()
+            )
             if not dataset:
                 raise serializers.ValidationError(
-                    f"Please specify dataset. Supported datasets for this query type are {str(SUPPORTED_TRACE_ITEM_DATASETS.keys())}."
+                    f"Please specify dataset. Supported datasets for this query type are {str(supported_datasets)}."
                 )
 
-            if dataset not in SUPPORTED_TRACE_ITEM_DATASETS:
+            if dataset not in supported_datasets:
                 raise serializers.ValidationError(f"{dataset} is not supported for exports")
         query_info["dataset"] = dataset
         return query_info
