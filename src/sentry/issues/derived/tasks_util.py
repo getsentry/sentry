@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 from django.db.models import Max, Min
 
-from sentry.issues.derived.check import CheckFailure, CheckId, CheckResult
+from sentry.issues.derived.check import CheckFailure, CheckId, CheckInvalidated, CheckResult
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.utils import metrics
 
@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 _MAX_CHECK_GROUPS = 10_000
 
 
-def _record_check_result(result: CheckResult | None) -> None:
-    outcome = "no_result" if result is None else "success"
+def _record_check_result(result: CheckResult) -> None:
+    outcome = "no_result" if isinstance(result, CheckInvalidated) else "success"
     if isinstance(result, CheckFailure):
         outcome = "mismatch"
         logger.warning(

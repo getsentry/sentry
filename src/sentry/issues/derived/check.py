@@ -1,19 +1,25 @@
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from enum import Enum
 from typing import NamedTuple
 from uuid import uuid4
 
-from sentry.issues.derived.processing import DEFAULT_BATCH_SIZE, PIPELINE
+from sentry.issues.derived.framework import Pipeline
+from sentry.issues.derived.processing import DEFAULT_BATCH_SIZE
 from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
 from sentry.workflow_engine.caches.mapping import CacheMapping
 
 
-class CheckSuccess(Enum):
-    OK = "ok"
+@dataclass(frozen=True)
+class CheckPassed:
+    pass
+
+
+@dataclass(frozen=True)
+class CheckInvalidated:
+    pass
 
 
 @dataclass(frozen=True)
@@ -24,7 +30,7 @@ class CheckFailure:
     features: frozenset[str]
 
 
-type CheckResult = CheckSuccess | CheckFailure
+type CheckResult = CheckPassed | CheckFailure | CheckInvalidated
 
 
 class CheckId(NamedTuple):
@@ -75,13 +81,14 @@ def _entries_after_cursor(
 
 def check_derived_data(
     derived: GroupDerivedData,
+    pipeline: Pipeline,
     timeout: timedelta | None = None,
     *,
     check_id: CheckId | None = None,
     batch_size: int = DEFAULT_BATCH_SIZE,
-) -> CheckResult | None:
-    if derived.pipeline_hash != PIPELINE.pipeline_hash:
-        return None
+) -> CheckResult:
+    if derived.pipeline_hash != pipeline.pipeline_hash:
+        return CheckInvalidated()
 
     target_fields = (
         derived.group_id,
@@ -93,7 +100,7 @@ def check_derived_data(
     if check_id is not None:
         if check_id[1:] != target_fields:
             _check_cache.delete(check_id)
-            return None
+            return CheckInvalidated()
         target = check_id
     else:
         target = CheckId(uuid4().hex, *target_fields)
@@ -110,11 +117,11 @@ def check_derived_data(
 
     deadline = time.monotonic() + timeout.total_seconds() if timeout is not None else None
     while entries := _entries_after_cursor(replayed_derived, target, batch_size):
-        replayed = PIPELINE.run(
-            entries, state=GroupDerivedDataStore.load(PIPELINE, replayed_derived)
+        replayed = pipeline.run(
+            entries, state=GroupDerivedDataStore.load(pipeline, replayed_derived)
         )
         GroupDerivedDataStore.apply_to_instance(
-            replayed_derived, GroupDerivedDataStore.build_update(PIPELINE, replayed)
+            replayed_derived, GroupDerivedDataStore.build_update(pipeline, replayed)
         )
         replayed_derived.cursor_date = entries[-1].date_added
         replayed_derived.cursor_id = entries[-1].id
@@ -136,16 +143,16 @@ def check_derived_data(
         target.pipeline_hash,
     ):
         _check_cache.delete(target)
-        return None
+        return CheckInvalidated()
 
-    replayed = GroupDerivedDataStore.load(PIPELINE, replayed_derived)
-    stored = GroupDerivedDataStore.load(PIPELINE, derived)
+    replayed = GroupDerivedDataStore.load(pipeline, replayed_derived)
+    stored = GroupDerivedDataStore.load(pipeline, derived)
     different_features = frozenset(
-        feature.name for feature in PIPELINE.features if replayed[feature] != stored[feature]
+        feature.name for feature in pipeline.features if replayed[feature] != stored[feature]
     )
     _check_cache.delete(target)
     if not different_features:
-        return CheckSuccess.OK
+        return CheckPassed()
 
     return CheckFailure(
         group_id=derived.group_id,

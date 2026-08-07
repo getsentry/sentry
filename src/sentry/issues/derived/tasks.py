@@ -228,7 +228,8 @@ def check_group_derived_data(
 ) -> None:
     from taskbroker_client.state import current_task
 
-    from sentry.issues.derived.check import CheckTimeout, check_derived_data
+    from sentry.issues.derived.check import CheckInvalidated, CheckTimeout, check_derived_data
+    from sentry.issues.derived.processing import PIPELINE
     from sentry.issues.derived.tasks_util import _record_check_result, _resume_check_id
     from sentry.issues.models.groupderiveddata import GroupDerivedData
     from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
@@ -257,12 +258,13 @@ def check_group_derived_data(
 
     derived = GroupDerivedData.objects.filter(group_id=group_id).first()
     if derived is None:
-        _record_check_result(None)
+        _record_check_result(CheckInvalidated())
         return
 
     try:
         result = check_derived_data(
             derived,
+            PIPELINE,
             timeout=BATCH_RETRIGGER_TIMEOUT,
             check_id=check_id,
         )
@@ -704,7 +706,7 @@ def check_fresh_derived_data_batch(
     """Check fresh GroupDerivedData rows in ``[group_id_start, group_id_end)``."""
     from taskbroker_client.state import current_task
 
-    from sentry.issues.derived.check import CheckTimeout, check_derived_data
+    from sentry.issues.derived.check import CheckInvalidated, CheckTimeout, check_derived_data
     from sentry.issues.derived.processing import PIPELINE
     from sentry.issues.derived.tasks_util import _record_check_result, _resume_check_id
     from sentry.issues.models.groupderiveddata import GroupDerivedData
@@ -744,6 +746,7 @@ def check_fresh_derived_data_batch(
         try:
             result = check_derived_data(
                 derived,
+                PIPELINE,
                 timeout=remaining,
                 check_id=(check_id if derived.group_id == group_id_start else None),
             )
@@ -754,7 +757,7 @@ def check_fresh_derived_data_batch(
                     "check_fresh_derived_data_batch.max_runs_exceeded",
                     extra={"group_id": derived.group_id, "check_id": error.check_id},
                 )
-                _record_check_result(None)
+                _record_check_result(CheckInvalidated())
                 check_fresh_derived_data_batch.delay(
                     group_id_start=derived.group_id + 1,
                     group_id_end=group_id_end,

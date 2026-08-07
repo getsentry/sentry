@@ -26,7 +26,13 @@ from sentry.issues.action_log.types import (
 )
 from sentry.issues.derived import processing
 from sentry.issues.derived.aggregators import AGGREGATORS
-from sentry.issues.derived.check import CheckFailure, CheckSuccess, CheckTimeout, check_derived_data
+from sentry.issues.derived.check import (
+    CheckFailure,
+    CheckInvalidated,
+    CheckPassed,
+    CheckTimeout,
+    check_derived_data,
+)
 from sentry.issues.derived.features import (
     BLOCKER,
     HAS_OPEN_FIX_PR,
@@ -139,7 +145,7 @@ class ProcessGroupLogTest(TestCase):
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         derived = process_group_log(group.id)
 
-        assert check_derived_data(derived) is CheckSuccess.OK
+        assert check_derived_data(derived, PIPELINE) == CheckPassed()
 
     def test_check_derived_data_reports_different_features(self) -> None:
         group = self.create_group()
@@ -147,7 +153,7 @@ class ProcessGroupLogTest(TestCase):
         derived = process_group_log(group.id)
         derived.view_count = 0
 
-        assert check_derived_data(derived) == CheckFailure(
+        assert check_derived_data(derived, PIPELINE) == CheckFailure(
             group_id=group.id,
             cursor_date=derived.cursor_date,
             cursor_id=derived.cursor_id,
@@ -159,7 +165,7 @@ class ProcessGroupLogTest(TestCase):
         derived = process_group_log(group.id)
         derived.pipeline_hash = "stale"
 
-        assert check_derived_data(derived) is None
+        assert check_derived_data(derived, PIPELINE) == CheckInvalidated()
 
     def test_check_derived_data_can_resume_after_timeout(self) -> None:
         group = self.create_group()
@@ -168,16 +174,17 @@ class ProcessGroupLogTest(TestCase):
         derived = process_group_log(group.id)
 
         with pytest.raises(CheckTimeout) as exc_info:
-            check_derived_data(derived, timeout=timedelta(0), batch_size=1)
+            check_derived_data(derived, PIPELINE, timeout=timedelta(0), batch_size=1)
 
         assert (
             check_derived_data(
                 derived,
+                PIPELINE,
                 timeout=timedelta(minutes=1),
                 check_id=exc_info.value.check_id,
                 batch_size=1,
             )
-            is CheckSuccess.OK
+            == CheckPassed()
         )
 
     def test_check_derived_data_uses_invocation_scoped_checkpoints(self) -> None:
@@ -187,9 +194,9 @@ class ProcessGroupLogTest(TestCase):
         derived = process_group_log(group.id)
 
         with pytest.raises(CheckTimeout) as first_timeout:
-            check_derived_data(derived, timeout=timedelta(0), batch_size=1)
+            check_derived_data(derived, PIPELINE, timeout=timedelta(0), batch_size=1)
         with pytest.raises(CheckTimeout) as second_timeout:
-            check_derived_data(derived, timeout=timedelta(0), batch_size=1)
+            check_derived_data(derived, PIPELINE, timeout=timedelta(0), batch_size=1)
 
         assert (
             first_timeout.value.check_id.invocation_id
@@ -200,11 +207,12 @@ class ProcessGroupLogTest(TestCase):
             assert (
                 check_derived_data(
                     derived,
+                    PIPELINE,
                     timeout=timedelta(minutes=1),
                     check_id=check_id,
                     batch_size=1,
                 )
-                is CheckSuccess.OK
+                == CheckPassed()
             )
 
     def test_check_derived_data_stops_after_partial_batch(self) -> None:
@@ -216,7 +224,7 @@ class ProcessGroupLogTest(TestCase):
         with patch(
             "sentry.issues.derived.check._entries_after_cursor", side_effect=[entries]
         ) as get:
-            assert check_derived_data(derived, batch_size=2) is CheckSuccess.OK
+            assert check_derived_data(derived, PIPELINE, batch_size=2) == CheckPassed()
 
         get.assert_called_once()
 
@@ -227,7 +235,7 @@ class ProcessGroupLogTest(TestCase):
         derived = process_group_log(group.id)
 
         with pytest.raises(CheckTimeout) as exc_info:
-            check_derived_data(derived, timeout=timedelta(0), batch_size=1)
+            check_derived_data(derived, PIPELINE, timeout=timedelta(0), batch_size=1)
 
         GroupDerivedData.objects.filter(group_id=group.id).update(
             generated_at=derived.generated_at + timedelta(seconds=1)
@@ -237,11 +245,12 @@ class ProcessGroupLogTest(TestCase):
         assert (
             check_derived_data(
                 derived,
+                PIPELINE,
                 timeout=timedelta(minutes=1),
                 check_id=exc_info.value.check_id,
                 batch_size=1,
             )
-            is None
+            == CheckInvalidated()
         )
 
     def test_check_derived_data_skips_row_invalidated_during_replay(self) -> None:
@@ -258,7 +267,7 @@ class ProcessGroupLogTest(TestCase):
             return result
 
         with patch.object(PIPELINE, "run", side_effect=run_and_invalidate):
-            assert check_derived_data(derived) is None
+            assert check_derived_data(derived, PIPELINE) == CheckInvalidated()
 
     def test_process_group_log_only_affects_target(self) -> None:
         group_a = self.create_group()
