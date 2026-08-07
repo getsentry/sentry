@@ -273,7 +273,7 @@ describe('useTracePinnedAttributeData', () => {
           traceSlug: 'trace-id',
         }),
       {
-        initialProps: {pinnedAttribute: 'custom.attribute'},
+        initialProps: {pinnedAttribute: 'custom.attribute' as string | null},
         organization: OrganizationFixture(),
       }
     );
