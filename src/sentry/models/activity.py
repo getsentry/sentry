@@ -134,6 +134,10 @@ class ActivityManager(BaseManager["Activity"]):
         return super().create(**kwargs)
 
     def create(self, **kwargs: Any) -> Activity:
+        # Only forward an explicit datetime to the action log; otherwise let
+        # the outbox receiver use the DB default.
+        explicit_datetime: datetime | None = kwargs.get("datetime")
+
         activity: Activity = super().create(**kwargs)
 
         group_id = kwargs.get("group_id")
@@ -151,7 +155,7 @@ class ActivityManager(BaseManager["Activity"]):
                         group_id=group_id,
                         project=activity.project,
                         idempotency_key=activity_action_idempotency_key(activity),
-                        date_added=activity.datetime,
+                        date_added=explicit_datetime,
                     )
             except Exception:
                 _default_logger.info("Failed to translate activity %d to GALE", activity.id)
