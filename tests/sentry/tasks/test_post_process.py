@@ -2937,6 +2937,7 @@ class PipelineKillswitchTestMixin(BasePostProcessGroupMixin):
 class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
+    @override_options({"seer.post-process-issue-summary.rollout-rate": 1.0})
     def test_kick_off_seer_automation_with_features(self, mock_generate_summary_and_run_automation):
         self.project.update_option("sentry:seer_scanner_automation", True)
         event = self.create_event(
@@ -2956,6 +2957,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         )
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
+    @override_options({"seer.post-process-issue-summary.rollout-rate": 1.0})
     def test_kick_off_seer_automation_without_org_feature(
         self, mock_generate_summary_and_run_automation
     ):
@@ -2975,6 +2977,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
+    @override_options({"seer.post-process-issue-summary.rollout-rate": 1.0})
     def test_kick_off_seer_automation_without_scanner_on(
         self, mock_generate_summary_and_run_automation
     ):
@@ -2996,6 +2999,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
+    @override_options({"seer.post-process-issue-summary.rollout-rate": 1.0})
     def test_kick_off_seer_automation_skips_existing_fixability_score(
         self, mock_generate_summary_and_run_automation
     ):
@@ -3021,6 +3025,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
+    @override_options({"seer.post-process-issue-summary.rollout-rate": 1.0})
     def test_kick_off_seer_automation_runs_with_missing_fixability_score(
         self, mock_generate_summary_and_run_automation
     ):
@@ -3047,6 +3052,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
+    @override_options({"seer.post-process-issue-summary.rollout-rate": 1.0})
     def test_kick_off_seer_automation_skips_with_existing_fixability_score(
         self, mock_generate_summary_and_run_automation
     ):
@@ -3080,6 +3086,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
     @patch("sentry.quotas.backend.check_seer_quota")
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
+    @override_options({"seer.post-process-issue-summary.rollout-rate": 1.0})
     def test_rate_limit_only_checked_after_all_other_checks_pass(
         self,
         mock_generate_summary_and_run_automation,
@@ -3151,6 +3158,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
+    @override_options({"seer.post-process-issue-summary.rollout-rate": 1.0})
     def test_kick_off_seer_automation_skips_when_lock_held(
         self, mock_generate_summary_and_run_automation
     ):
@@ -3200,6 +3208,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
+    @override_options({"seer.post-process-issue-summary.rollout-rate": 1.0})
     def test_kick_off_seer_automation_with_hide_ai_features_enabled(
         self, mock_generate_summary_and_run_automation
     ):
@@ -3288,15 +3297,6 @@ class SeatBasedSeerAutomationTestMixin(BasePostProcessGroupMixin):
 
     @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
     @with_feature({"organizations:gen-ai-features": True})
-    @override_options({"seer.post-process-issue-summary-killswitch.enabled": True})
-    def test_seat_based_org_killswitch_prevents_summary(
-        self, mock_generate_summary_only, mock_seat_based_tier
-    ):
-        self._seat_based_post_process()
-        mock_generate_summary_only.assert_not_called()
-
-    @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
-    @with_feature({"organizations:gen-ai-features": True})
     @override_options({"seer.post-process-issue-summary.rollout-rate": 0.0})
     def test_seat_based_org_rollout_skips_tier_check(
         self, mock_generate_summary_only, mock_seat_based_tier
@@ -3309,6 +3309,7 @@ class SeatBasedSeerAutomationTestMixin(BasePostProcessGroupMixin):
 
     @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
     @with_feature({"organizations:gen-ai-features": True})
+    @override_options({"seer.post-process-issue-summary.rollout-rate": 1.0})
     def test_seat_based_org_skips_old_issues(
         self, mock_generate_summary_only, mock_seat_based_tier
     ):
@@ -3317,6 +3318,7 @@ class SeatBasedSeerAutomationTestMixin(BasePostProcessGroupMixin):
 
     @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
     @with_feature({"organizations:gen-ai-features": True})
+    @override_options({"seer.post-process-issue-summary.rollout-rate": 1.0})
     def test_seat_based_org_skips_when_fixability_exists(
         self, mock_generate_summary_only, mock_seat_based_tier
     ):
@@ -3408,6 +3410,7 @@ class PostProcessGroupErrorTest(
     @patch("sentry.seer.autofix.utils.is_seer_seat_based_tier_enabled", return_value=True)
     @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
     @with_feature({"organizations:gen-ai-features": True})
+    @override_options({"seer.post-process-issue-summary.rollout-rate": 1.0})
     def test_seat_based_org_generates_summary_for_new_issues(
         self, mock_generate_summary_only, mock_seat_based_tier
     ):

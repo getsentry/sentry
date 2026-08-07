@@ -1569,9 +1569,6 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
         return
 
     if is_seer_seat_based_tier_enabled(group.organization):
-        # Guards to prevent thundering herd on issue summary generation.
-        if options.get("seer.post-process-issue-summary-killswitch.enabled"):
-            return
         if group.seer_fixability_score is not None:
             return
         # Issues created in last 5 minutes only. This can be removed once this is live past 1 week.
