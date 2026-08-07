@@ -190,9 +190,7 @@ def process_profile_from_kafka(
 @instrumented_task(
     name="sentry.profiles.task.process_profile_from_kafka_raw",
     namespace=ingest_profiling_raw_tasks,
-    processing_deadline_duration=80,
     retry=Retry(times=2, delay=5),
-    compression_type=CompressionType.ZSTD,
     silo_mode=SiloMode.CELL,
     pass_headers=True,
 )
