@@ -1,6 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
@@ -18,6 +17,7 @@ import {Access} from 'sentry/components/acl/access';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
+import {captureProjectCreationFailure} from 'sentry/components/onboarding/captureProjectCreationFailure';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
@@ -364,35 +364,20 @@ export function CreateProject() {
       } catch (error: any) {
         addErrorMessage(t('Failed to create project %s', projectName));
 
-        // Unfiltered, unlike the Sentry captures: the SCM variant counts every
-        // caught failure, so filtering here would make the two rates disagree.
+        // Unfiltered, unlike captureProjectCreationFailure below: both variants
+        // count every caught failure, so filtering here would skew the rate.
         trackAnalytics('project_creation.project_details_create_failed', {
           organization,
           variant: 'legacy',
         });
 
-        if (error.status === 403) {
-          Sentry.withScope(scope => {
-            scope.setExtra('err', error);
-            scope.setContext('permission_context', {
-              org_slug: organization.slug,
-              team,
-              org_access: organization.access,
-              org_features: organization.features,
-              org_allow_member_project_creation: organization.allowMemberProjectCreation,
-              user_team_access: team
-                ? accessTeams.find(teamItem => teamItem.slug === team)?.access
-                : null,
-              available_teams_count: accessTeams.length,
-            });
-            Sentry.captureMessage('Project creation permission denied');
-          });
-        } else if (error.status !== 409) {
-          Sentry.withScope(scope => {
-            scope.setExtra('err', error);
-            Sentry.captureMessage('Project creation failed');
-          });
-        }
+        captureProjectCreationFailure({
+          error,
+          organization,
+          team,
+          accessTeams,
+          variant: 'legacy',
+        });
       }
     },
     [
