@@ -43,8 +43,7 @@ export default function AutomationsList() {
 
   const automations = data?.json;
   const hits = data?.headers['X-Hits'] ?? 0;
-  // If maxHits is not set, we assume there is no max
-  const maxHits = data?.headers['X-Max-Hits'] ?? Infinity;
+  const maxHits = data?.headers['X-Max-Hits'];
   const pageLinks = data?.headers.Link;
 
   const allResultsVisible = useCallback(() => {
@@ -55,16 +54,23 @@ export default function AutomationsList() {
     return links && !links.previous!.results && !links.next!.results;
   }, [pageLinks]);
 
+  const offset = parseCursor(cursor)?.offset ?? 0;
+  const pageStart = offset * AUTOMATION_LIST_PAGE_LIMIT + 1;
+  // If the page starts past the reported hit count, the total is a lower bound
+  // even when X-Max-Hits is missing from the response.
+  const isCappedTotal =
+    (typeof maxHits === 'number' && hits >= maxHits) || pageStart > hits;
+  const cappedTotal = isCappedTotal ? (maxHits ?? hits) : undefined;
+  const queryCount = isCappedTotal ? `${cappedTotal}+` : `${hits}`;
+
   let paginationCaption: React.ReactNode;
   if (!isLoading && automations && automations.length > 0) {
-    const offset = parseCursor(cursor)?.offset ?? 0;
-    const start = offset * AUTOMATION_LIST_PAGE_LIMIT + 1;
-    const end = start + automations.length - 1;
+    const end = pageStart + automations.length - 1;
 
     paginationCaption = tct('[start]-[end] of [total]', {
-      start: start.toLocaleString(),
+      start: pageStart.toLocaleString(),
       end: end.toLocaleString(),
-      total: <QueryCount count={hits} max={maxHits} hideIfEmpty={false} hideParens />,
+      total: <QueryCount count={hits} max={cappedTotal} hideIfEmpty={false} hideParens />,
     });
   }
 
@@ -91,7 +97,7 @@ export default function AutomationsList() {
               isError={isError}
               isSuccess={isSuccess}
               sort={sort}
-              queryCount={hits >= maxHits ? `${maxHits}+` : `${hits}`}
+              queryCount={queryCount}
               allResultsVisible={allResultsVisible()}
             />
           </VisuallyCompleteWithData>
