@@ -365,6 +365,38 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
         assert list_response.status_code == 200
         assert str(investigation.id) in {item["id"] for item in list_response.data}
 
+    def test_dependencies_are_returned_but_not_writable(self) -> None:
+        response = self.client.post(
+            self.collection_url, data={"title": "Dependencies"}, format="json"
+        )
+        investigation = Investigation.objects.get(id=response.data["id"])
+        first = self.create_investigation_block(
+            investigation=investigation, position=0, kind="text"
+        )
+        second = self.create_investigation_block(
+            investigation=investigation, position=1, kind="query"
+        )
+        self.create_investigation_block_dependency(block=second, depends_on=first)
+        block_url = reverse(
+            "sentry-api-0-organization-investigation-block-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": investigation.id,
+                "block_id": second.id,
+            },
+        )
+        response = self.client.put(
+            block_url,
+            data={
+                "investigationVersion": investigation.version,
+                "version": second.version,
+                "dependencies": [],
+            },
+            format="json",
+        )
+        assert response.status_code == 400
+        assert "dependencies" in response.data
+
     def test_archive_restore_and_list_filters(self) -> None:
         first = self.client.post(
             self.collection_url, data={"title": "Checkout investigation"}, format="json"
