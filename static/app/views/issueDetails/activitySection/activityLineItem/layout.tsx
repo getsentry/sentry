@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -51,9 +50,7 @@ export function ActivityLineHeadline({
   );
 }
 
-export const ActivityLineRow = styled('div', {
-  shouldForwardProp: prop => prop !== 'showConnector',
-})<{showConnector?: boolean}>`
+export const ActivityLineRow = styled('div')`
   position: relative;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -65,18 +62,15 @@ export const ActivityLineRow = styled('div', {
     column-gap: ${p => p.theme.space.sm};
   }
 
-  ${p =>
-    p.showConnector &&
-    css`
-      &::before {
-        content: '';
-        position: absolute;
-        left: 10.5px;
-        top: 11px;
-        bottom: calc(-${p.theme.space.md} - 11px);
-        border-left: 1px solid ${p.theme.tokens.border.transparent.neutral.muted};
-      }
-    `}
+  &:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 10.5px;
+    top: 11px;
+    bottom: calc(-${p => p.theme.space.md} - 11px);
+    border-left: 1px solid
+      ${p => p.theme.tokens.border.transparent.neutral.muted};
+  }
 `;
 
 const ActivityLineSentence = styled('span')`
