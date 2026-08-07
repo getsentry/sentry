@@ -47,6 +47,7 @@ repos:
         language: system
         stages: [pre-push]
         types: [python]
+        exclude: ^bin/
         require_serial: true
       - id: lint-requirements
         name: lint-requirements
