@@ -19,10 +19,7 @@ import {
   setPageFiltersStorage,
 } from 'sentry/components/pageFilters/persistence';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {
-  parseStatsPeriod,
-  STATS_PERIOD_REGEX,
-} from 'sentry/components/timeRangeSelector/utils';
+import {parseStatsPeriod, STATS_PERIOD_REGEX} from 'sentry/components/timeRangeSelector/utils';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {DateString, PageFilters, PinnedPageFilter} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
