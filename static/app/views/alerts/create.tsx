@@ -8,7 +8,6 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {EventView} from 'sentry/utils/discover/eventView';
 import {uniqueId} from 'sentry/utils/guid';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -24,8 +23,6 @@ import {BuilderBreadCrumbs} from 'sentry/views/alerts/builder/builderBreadCrumbs
 import {useAlertBuilderOutlet} from 'sentry/views/alerts/builder/projectProvider';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
-import {MetricRulesCreate} from 'sentry/views/alerts/rules/metric/create';
-import {MetricRuleDuplicate} from 'sentry/views/alerts/rules/metric/duplicate';
 import type {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {UptimeAlertForm} from 'sentry/views/alerts/rules/uptime/uptimeAlertForm';
 import {AlertRuleType} from 'sentry/views/alerts/types';
@@ -53,13 +50,11 @@ export default function Create() {
   const navigate = useNavigate();
   const routes = useRoutes();
   const {project, members} = useAlertBuilderOutlet();
-  const hasMetricAlerts = organization.features.includes('incidents');
 
   const aggregate = decodeScalar(location.query.aggregate);
   const dataset = decodeScalar(location.query.dataset) as Dataset | undefined;
   const createFromDuplicate = decodeScalar(location.query.createFromDuplicate);
   const duplicateRuleId = decodeScalar(location.query.duplicateRuleId);
-  const createFromDiscover = decodeScalar(location.query.createFromDiscover);
   const query = decodeScalar(location.query.query);
   const createFromWizard = decodeScalar(location.query.createFromWizard);
   const eventTypes = decodeScalar(location.query.eventTypes) as EventTypes | undefined;
@@ -142,7 +137,6 @@ export default function Create() {
     eventTypes: eventTypes ?? DEFAULT_WIZARD_TEMPLATE.eventTypes,
     query: query ?? DEFAULT_WIZARD_TEMPLATE.query,
   };
-  const eventView = createFromDiscover ? EventView.fromLocation(location) : undefined;
 
   let wizardAlertType: undefined | WizardAlertType;
   if (createFromWizard && alertType === AlertRuleType.METRIC) {
@@ -200,7 +194,7 @@ export default function Create() {
                 }}
                 submitLabel={t('Create')}
               />
-            ) : !hasMetricAlerts || alertType === AlertRuleType.ISSUE ? (
+            ) : (
               <IssueRuleEditor
                 location={location}
                 params={params}
@@ -212,38 +206,6 @@ export default function Create() {
                 userTeamIds={teams.map(({id}) => id)}
                 members={members}
               />
-            ) : (
-              hasMetricAlerts &&
-              alertType === AlertRuleType.METRIC &&
-              (isDuplicateRule ? (
-                <MetricRuleDuplicate
-                  location={location}
-                  params={params}
-                  router={router}
-                  routes={routes}
-                  route={{}}
-                  routeParams={params}
-                  project={project}
-                  eventView={eventView}
-                  wizardTemplate={wizardTemplate}
-                  sessionId={sessionId.current}
-                />
-              ) : (
-                <MetricRulesCreate
-                  location={location}
-                  params={params}
-                  router={router}
-                  routes={routes}
-                  route={{}}
-                  routeParams={params}
-                  organization={organization}
-                  project={project}
-                  eventView={eventView}
-                  wizardTemplate={wizardTemplate}
-                  sessionId={sessionId.current}
-                  userTeamIds={teams.map(({id}) => id)}
-                />
-              ))
             )}
           </Fragment>
         )}
