@@ -103,14 +103,12 @@ class OutboxBase(Model):
             return []
 
         using = router.db_for_write(cls)
-        # Sequence increments do not roll back, so avoid a savepoint inside an existing transaction.
-        with transaction.atomic(using=using, savepoint=False):
-            with connections[using].cursor() as cursor:
-                cursor.execute(
-                    "SELECT nextval(%s) FROM generate_series(1,%s);",
-                    [f"{cls._meta.db_table}_id_seq", count],
-                )
-                return [identifier for (identifier,) in cursor.fetchall()]
+        with connections[using].cursor() as cursor:
+            cursor.execute(
+                "SELECT nextval(%s) FROM generate_series(1,%s);",
+                [f"{cls._meta.db_table}_id_seq", count],
+            )
+            return [identifier for (identifier,) in cursor.fetchall()]
 
     @classmethod
     def next_object_identifier(cls) -> int:
