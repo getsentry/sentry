@@ -16,7 +16,8 @@ def validate_display(kind: str, display: dict[str, Any]) -> dict[str, Any]:
             return display
         if (
             display_type != "markdown"
-            or display.get("version") != 1
+            or type(display.get("version")) is not int
+            or display["version"] != 1
             or set(display) - {"version", "type", "promptCollapsed"}
             or ("promptCollapsed" in display and not isinstance(display["promptCollapsed"], bool))
         ):
@@ -26,7 +27,7 @@ def validate_display(kind: str, display: dict[str, Any]) -> dict[str, Any]:
     if display_type == "table" and set(display) == {"type"}:
         return display
     if "version" not in display:
-        if display_type not in {"line", "bar", "area"}:
+        if not isinstance(display_type, str) or display_type not in {"line", "bar", "area"}:
             raise serializers.ValidationError("Invalid legacy query-block display.")
         if set(display) != {"type", "xAxis", "yAxes"}:
             raise serializers.ValidationError("Charts require exactly type, xAxis, and yAxes.")
@@ -57,15 +58,12 @@ def validate_display(kind: str, display: dict[str, Any]) -> dict[str, Any]:
         "defaultView",
         "queryCollapsed",
     }
-    if (
-        display.get("version") != 1
-        or isinstance(display.get("version"), bool)
-        or set(display) - allowed
-    ):
+    if type(display.get("version")) is not int or display["version"] != 1 or set(display) - allowed:
         raise serializers.ValidationError("Invalid versioned query-block display.")
-    if display_type not in {"table", "line", "bar", "area"}:
+    if not isinstance(display_type, str) or display_type not in {"table", "line", "bar", "area"}:
         raise serializers.ValidationError("Invalid visualization type.")
-    if display.get("defaultView", "table") not in {"table", "chart"}:
+    default_view = display.get("defaultView", "table")
+    if not isinstance(default_view, str) or default_view not in {"table", "chart"}:
         raise serializers.ValidationError("defaultView must be table or chart.")
     for flag in ("queryCollapsed", "stacked", "showLegend"):
         if flag in display and not isinstance(display[flag], bool):
@@ -73,9 +71,11 @@ def validate_display(kind: str, display: dict[str, Any]) -> dict[str, Any]:
     for field in ("title", "subtitle", "seriesField", "axisLabel"):
         if field in display and display[field] is not None and not isinstance(display[field], str):
             raise serializers.ValidationError(f"{field} must be a string or null.")
-    if display.get("unit", "number") not in {"number", "percentage", "duration", "bytes"}:
+    unit = display.get("unit", "number")
+    if not isinstance(unit, str) or unit not in {"number", "percentage", "duration", "bytes"}:
         raise serializers.ValidationError("Invalid visualization unit.")
-    if display.get("sort", "none") not in {"none", "ascending", "descending"}:
+    sort = display.get("sort", "none")
+    if not isinstance(sort, str) or sort not in {"none", "ascending", "descending"}:
         raise serializers.ValidationError("Invalid visualization sort.")
     if (
         "topN" in display
