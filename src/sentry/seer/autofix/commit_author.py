@@ -13,6 +13,7 @@ from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import FeedbackSourceBase
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
+    GithubPrCommentUser,
     GithubPrReviewBodyFeedbackSource,
     GithubPrReviewCommentFeedbackSource,
 )
@@ -65,7 +66,9 @@ def commit_author_for_github_actor(
     return author
 
 
-def _github_external_id(user_id: int, organization_id: int, login: str) -> str | None:
+def _github_com_external_actor(
+    user_id: int, organization_id: int, login: str
+) -> ExternalActor | None:
     return (
         ExternalActor.objects.filter(
             Q(external_name__iexact=login) | Q(external_name__iexact=f"@{login}"),
@@ -74,9 +77,23 @@ def _github_external_id(user_id: int, organization_id: int, login: str) -> str |
             provider=ExternalProviders.GITHUB.value,
         )
         .order_by("-date_added")
-        .values_list("external_id", flat=True)
         .first()
     )
+
+
+def _is_github_enterprise_only(user_id: int, organization_id: int) -> bool:
+    """True when the user's only GitHub link is Enterprise, which has no github.com identity."""
+    providers = set(
+        ExternalActor.objects.filter(
+            user_id=user_id,
+            organization_id=organization_id,
+            provider__in=[
+                ExternalProviders.GITHUB.value,
+                ExternalProviders.GITHUB_ENTERPRISE.value,
+            ],
+        ).values_list("provider", flat=True)
+    )
+    return bool(providers) and ExternalProviders.GITHUB.value not in providers
 
 
 def commit_author_for_user(
@@ -96,9 +113,16 @@ def commit_author_for_user(
             _record_outcome("no_github_identity")
             return None
 
+        # A GitHub Enterprise login has no github.com account behind it, so the
+        # noreply address would point at a stranger or nobody.
+        if _is_github_enterprise_only(user.id, organization_id):
+            _record_outcome("no_github_identity")
+            return None
+
+        external_actor = _github_com_external_actor(user.id, organization_id, login)
         author = _build_author(
             login=login,
-            external_id=_github_external_id(user.id, organization_id, login),
+            external_id=external_actor.external_id if external_actor else None,
             name=user.get_display_name(),
         )
     except Exception:
@@ -113,21 +137,34 @@ def commit_author_for_user(
     return author
 
 
-def _feedback_actor(source: FeedbackSourceBase) -> tuple[str, str, str | None] | None:
-    """``(kind, identifier, external_id)`` for the human behind one feedback item."""
-    if isinstance(source, UserUIFeedbackSource):
-        return ("user", str(source.user_id), None)
-
+def _github_user(source: FeedbackSourceBase) -> GithubPrCommentUser | None:
     if isinstance(source, (GithubPrCommentFeedbackSource, GithubPrReviewCommentFeedbackSource)):
-        user = source.comment.user
-    elif isinstance(source, GithubPrReviewBodyFeedbackSource):
-        user = source.user
-    else:
-        return None
+        return source.comment.user
+    if isinstance(source, GithubPrReviewBodyFeedbackSource):
+        return source.user
+    return None
 
+
+def _github_external_id_from_items(items: Sequence[Feedback]) -> str | None:
+    """The first GitHub numeric id among the items, if any carries one."""
+    for item in items:
+        user = _github_user(item.source)
+        if user is not None and user.id is not None:
+            return str(user.id)
+    return None
+
+
+def _feedback_actor(source: FeedbackSourceBase) -> tuple[str, str] | None:
+    """``(kind, identifier)`` for the human behind one feedback item."""
+    if isinstance(source, UserUIFeedbackSource):
+        return ("user", str(source.user_id))
+
+    user = _github_user(source)
     if user is None or not user.login:
         return None
-    return ("github", user.login.lstrip("@").lower(), str(user.id) if user.id is not None else None)
+    # Keyed on login alone; the numeric id is resolved separately so items that
+    # carry it and items that don't still count as the same person.
+    return ("github", user.login.lstrip("@").lower())
 
 
 def commit_author_for_feedback(
@@ -149,9 +186,11 @@ def commit_author_for_feedback(
             _record_outcome("no_github_identity")
             return None
 
-        kind, identifier, external_id = actor
+        kind, identifier = actor
         if kind == "github":
-            return commit_author_for_github_actor(login=identifier, external_id=external_id)
+            return commit_author_for_github_actor(
+                login=identifier, external_id=_github_external_id_from_items(items)
+            )
 
         user = user_service.get_user(user_id=int(identifier))
     except Exception:

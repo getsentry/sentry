@@ -110,6 +110,24 @@ class CommitAuthorTest(TestCase):
         # The CommitAuthor email fallback yields a login with no ExternalActor row.
         assert self._for_user(self.actor) == {"name": "Mona Lisa", "email": LOGIN_ONLY_EMAIL}
 
+    def test_github_enterprise_only_user_has_no_author(self) -> None:
+        # A GHE login has no github.com account, so the noreply form would misattribute.
+        self.create_external_user(
+            user=self.actor,
+            organization=self.organization,
+            provider=ExternalProviders.GITHUB_ENTERPRISE.value,
+            external_name="@octocat",
+            external_id="583231",
+            integration=self.create_integration(
+                organization=self.organization, provider="github_enterprise", external_id="ghe:1"
+            ),
+        )
+        assert self._for_user(self.actor) is None
+
+        # A github.com link alongside the enterprise one still resolves.
+        self._link_github()
+        assert self._for_user(self.actor) == {"name": "Mona Lisa", "email": OCTOCAT_EMAIL}
+
     def test_user_without_github_identity(self) -> None:
         assert self._for_user(self.actor) is None
         assert self._for_user(None) is None
@@ -140,6 +158,17 @@ class CommitAuthorTest(TestCase):
         assert commit_author_for_feedback(
             [comment_feedback("octocat", 583231), review_body], self.organization.id
         ) == {"name": "octocat", "email": OCTOCAT_EMAIL}
+
+    def test_feedback_same_commenter_with_and_without_id(self) -> None:
+        # One item carries the numeric id and the other doesn't; still one person.
+        items = [
+            comment_feedback("octocat", 583231),
+            comment_feedback("octocat", None, comment_id=11),
+        ]
+        assert commit_author_for_feedback(items, self.organization.id) == {
+            "name": "octocat",
+            "email": OCTOCAT_EMAIL,
+        }
 
     def test_feedback_from_github_and_ui_same_person(self) -> None:
         # Different identifier kinds never merge, so this degrades to no author.
