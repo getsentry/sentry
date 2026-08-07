@@ -60,51 +60,50 @@ class FetchUser(AuthView):
             user = client.get_user()
             assert isinstance(user, dict)
 
-            # A matched AuthIdentity with an active user is routed straight to
-            # handle_existing_identity by _finish_login_pipeline, which logs in
-            # auth_identity.user by id and never reads or writes email or name.
-            # (An inactive user's identity instead falls through to handle_unknown_identity,
-            # which resolves by email).
-            # Skip email/name entirely for that case; everyone else needs a resolvable email.
             is_returning_active_user = AuthIdentity.objects.filter(
                 auth_provider=pipeline.provider_model, ident=user["id"], user__is_active=True
             ).exists()
 
-            if not is_returning_active_user:
-                emails: list[dict[str, Any]] = []
+            emails: list[dict[str, Any]] = []
+            if not is_returning_active_user or not user.get("email"):
+                # only do the 2nd api call to get_user_emails if the user is new
+                # or if they don't have a public default email
                 try:
                     emails = client.get_user_emails()
                 except (GitHubApiError, ValueError):
-                    # Best-effort: an error just means we can't confirm a verified
-                    # primary. Don't block login over it.
+                    # Best-effort, let the logic below handle missing emails
                     logger.warning("auth.github.user_emails_fetch_failed", exc_info=True)
 
-                verified_email = get_verified_primary_email(emails)
-                if verified_email:
-                    user["email"] = verified_email
-                    user["email_verified"] = True
+            verified_email = get_verified_primary_email(emails)
+            if verified_email:
+                user["email"] = verified_email
+                user["email_verified"] = True
 
-                if not user.get("email"):
-                    # No public email and no verified primary. When verified emails are
-                    # required there's nothing left to accept; otherwise fall back to
-                    # the account's (possibly unverified) primary.
-                    if REQUIRE_VERIFIED_EMAIL:
-                        return pipeline.error(ERR_NO_VERIFIED_PRIMARY_EMAIL)
-                    primary = [
-                        e["email"]
-                        for e in emails
-                        if isinstance(e, dict) and e.get("email") and e.get("primary")
-                    ]
-                    if len(primary) == 0:
-                        return pipeline.error(ERR_NO_PRIMARY_EMAIL)
-                    elif len(primary) > 1:
-                        return pipeline.error(ERR_NO_SINGLE_PRIMARY_EMAIL)
-                    user["email"] = primary[0]
+            if not user.get("email"):
+                # No public email and no verified primary. When verified emails are
+                # required there's nothing left to accept; otherwise fall back to
+                # the account's (possibly unverified) primary.
+                #
+                # NOTE: unclear whether REQUIRE_VERIFIED_EMAIL is meant to gate
+                # returning users' logins at all, vs. only new-account creation.
+                # Leaving this unchanged until we decide.
+                if REQUIRE_VERIFIED_EMAIL:
+                    return pipeline.error(ERR_NO_VERIFIED_PRIMARY_EMAIL)
+                primary = [
+                    e["email"]
+                    for e in emails
+                    if isinstance(e, dict) and e.get("email") and e.get("primary")
+                ]
+                if len(primary) == 0:
+                    return pipeline.error(ERR_NO_PRIMARY_EMAIL)
+                elif len(primary) > 1:
+                    return pipeline.error(ERR_NO_SINGLE_PRIMARY_EMAIL)
+                user["email"] = primary[0]
 
-                # A user hasn't set their name in their Github profile so it isn't
-                # populated in the response
-                if not user.get("name"):
-                    user["name"] = _get_name_from_email(user["email"])
+            # A user hasn't set their name in their Github profile so it isn't
+            # populated in the response
+            if not user.get("name"):
+                user["name"] = _get_name_from_email(user["email"])
 
             pipeline.bind_state("user", user)
 

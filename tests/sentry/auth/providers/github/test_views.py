@@ -119,17 +119,25 @@ class FetchUserTest(TestCase):
 
         pipeline.error.assert_called_once()  # graceful ERR_NO_PRIMARY_EMAIL, not KeyError
 
-    def test_returning_active_user_skips_email_entirely(self) -> None:
-        # handle_existing_identity logs the user in by id and never reads or writes
-        # identity["email"], so an active returning user needs no email at all -
-        # not even the "give us *some* primary" fallback.
+    def test_returning_active_user_without_public_email_still_falls_back(self) -> None:
+        # SSO IdPs guarantee email/name on every login regardless of new-vs-returning
         bound_user = self._run(
             user={"id": 1, "name": "n"},  # no public email
+            emails=[{"email": "hidden@example.com", "verified": False, "primary": True}],
             returning_user=True,
         )
-        assert "email" not in bound_user
+        assert bound_user["email"] == "hidden@example.com"
         assert "email_verified" not in bound_user
-        self.github_client.get_user_emails.assert_not_called()
+        self.github_client.get_user_emails.assert_called_once()
+
+    def test_returning_active_user_without_public_email_prefers_verified_primary(self) -> None:
+        bound_user = self._run(
+            user={"id": 1, "name": "n"},  # no public email
+            emails=[{"email": "verified@example.com", "verified": True, "primary": True}],
+            returning_user=True,
+        )
+        assert bound_user["email"] == "verified@example.com"
+        assert bound_user["email_verified"] is True
 
     def test_returning_active_user_with_public_email_skips_email_fetch(self) -> None:
         bound_user = self._run(
@@ -139,6 +147,13 @@ class FetchUserTest(TestCase):
         assert bound_user["email"] == "profile@example.com"
         assert "email_verified" not in bound_user
         self.github_client.get_user_emails.assert_not_called()
+
+    def test_returning_active_user_without_name_still_derives_one(self) -> None:
+        bound_user = self._run(
+            user={"id": 1, "email": "profile@example.com"},  # no name
+            returning_user=True,
+        )
+        assert bound_user["name"] == "Profile"
 
     def test_returning_inactive_user_still_requires_email(self) -> None:
         # An inactive matched identity falls through to handle_unknown_identity,
