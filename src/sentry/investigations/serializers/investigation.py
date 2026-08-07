@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+from collections import Counter
 from typing import Any
 
-from django.db.models import Prefetch
+from django.db.models import Count, Prefetch, Q, QuerySet
 from rest_framework import serializers
 from rest_framework.fields import empty
 from rest_framework.utils.serializer_helpers import ReturnDict
 
+from sentry.api.fields.actor import ActorField
 from sentry.api.serializers.rest_framework.base import (
     camel_to_snake_case,
     convert_dict_key_case,
@@ -16,13 +18,19 @@ from sentry.investigations.contracts import VisualizationSerializer, validate_qu
 from sentry.investigations.models import (
     Investigation,
     InvestigationBlock,
+    InvestigationBlockComment,
     InvestigationBlockDependency,
     InvestigationBlockExecutionStatus,
     InvestigationBlockKind,
     InvestigationBlockParameter,
+    InvestigationBlockReaction,
+    InvestigationCommentReaction,
+    InvestigationCommentTeamMention,
+    InvestigationCommentUserMention,
     InvestigationFavoriteUser,
     InvestigationParameter,
     InvestigationPermissions,
+    InvestigationReaction,
     InvestigationStatus,
 )
 
@@ -296,6 +304,31 @@ class FavoriteUpdateSerializer(StrictCamelSnakeSerializer):
     should_favorite = serializers.BooleanField()
 
 
+class CommentSerializer(StrictCamelSnakeSerializer):
+    body = serializers.CharField(max_length=10_000, trim_whitespace=False)
+    mentions = serializers.ListField(child=ActorField(), required=False)
+
+    def validate_body(self, value: str) -> str:
+        if not value.strip():
+            raise serializers.ValidationError("Comment body cannot be empty.")
+        return value
+
+
+def serialize_reactions(reactions: Any, user_id: int) -> list[dict[str, Any]]:
+    values = (
+        [(reaction.reaction, reaction.user_id) for reaction in reactions]
+        if isinstance(reactions, list)
+        else list(reactions.values_list("reaction", "user_id"))
+    )
+    counts = Counter(reaction for reaction, _ in values)
+    mine = {reaction for reaction, reaction_user_id in values if reaction_user_id == user_id}
+    return [
+        {"reaction": reaction, "count": counts[reaction], "reactedByMe": reaction in mine}
+        for reaction in InvestigationReaction.values
+        if reaction in counts
+    ]
+
+
 def serialize_parameter(parameter: InvestigationParameter) -> dict[str, Any]:
     return {
         "id": str(parameter.id),
@@ -333,6 +366,10 @@ def serialize_permissions(
 def serialize_block(
     block: InvestigationBlock, *, user_id: int, accessible_project_ids: set[int]
 ) -> dict[str, Any]:
+    comment_count = getattr(block, "active_comment_count", None)
+    if comment_count is None:
+        comment_count = block.comments.filter(deleted_at__isnull=True).count()
+
     execution = block.current_execution
     result_execution = block.result_execution
     content_execution = block.content_execution
@@ -422,6 +459,10 @@ def serialize_block(
         "lastEditedBy": (
             str(block.last_edited_by_id) if block.last_edited_by_id is not None else None
         ),
+        "reactions": serialize_reactions(
+            getattr(block, "serialized_reactions", block.reactions), user_id
+        ),
+        "commentCount": comment_count,
     }
     return data
 
@@ -479,6 +520,11 @@ def serialize_investigation_detail(
     blocks = (
         InvestigationBlock.objects.filter(investigation=investigation, deleted_at__isnull=True)
         .select_related("content_execution", "current_execution", "result_execution")
+        .annotate(
+            active_comment_count=Count(
+                "comments", filter=Q(comments__deleted_at__isnull=True), distinct=True
+            )
+        )
         .prefetch_related(
             Prefetch(
                 "dependency_links",
@@ -493,6 +539,11 @@ def serialize_investigation_detail(
                     "parameter__position"
                 ),
                 to_attr="serialized_parameter_links",
+            ),
+            Prefetch(
+                "reactions",
+                queryset=InvestigationBlockReaction.objects.order_by("id"),
+                to_attr="serialized_reactions",
             ),
             "current_execution__data_projects",
             "content_execution__data_projects",
@@ -535,3 +586,55 @@ def serialize_investigation_detail(
         ],
         "titleGeneration": {"status": investigation.title_generation_status},
     }
+
+
+def serialize_comment(comment: InvestigationBlockComment, *, user_id: int) -> dict[str, Any]:
+    mentions = [
+        {"type": "user", "id": str(mention.user_id)}
+        for mention in getattr(
+            comment,
+            "serialized_user_mentions",
+            comment.user_mentions.order_by("user_id"),
+        )
+    ] + [
+        {"type": "team", "id": str(mention.team_id)}
+        for mention in getattr(
+            comment,
+            "serialized_team_mentions",
+            comment.team_mentions.order_by("team_id"),
+        )
+    ]
+    return {
+        "id": str(comment.id),
+        "body": None if comment.deleted_at is not None else comment.body,
+        "author": str(comment.author_id) if comment.author_id is not None else None,
+        "dateCreated": comment.date_added,
+        "dateUpdated": comment.date_updated,
+        "deletedAt": comment.deleted_at,
+        "mentions": [] if comment.deleted_at is not None else mentions,
+        "reactions": serialize_reactions(
+            getattr(comment, "serialized_reactions", comment.reactions), user_id
+        ),
+    }
+
+
+def comments_with_serialization_data(
+    queryset: QuerySet[InvestigationBlockComment],
+) -> QuerySet[InvestigationBlockComment]:
+    return queryset.prefetch_related(
+        Prefetch(
+            "user_mentions",
+            queryset=InvestigationCommentUserMention.objects.order_by("user_id"),
+            to_attr="serialized_user_mentions",
+        ),
+        Prefetch(
+            "team_mentions",
+            queryset=InvestigationCommentTeamMention.objects.order_by("team_id"),
+            to_attr="serialized_team_mentions",
+        ),
+        Prefetch(
+            "reactions",
+            queryset=InvestigationCommentReaction.objects.order_by("id"),
+            to_attr="serialized_reactions",
+        ),
+    )
