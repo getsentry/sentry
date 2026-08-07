@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from typing import Any
+
 from sentry.analytics.event import EventEnvelope
+from sentry.analytics.mcp_attribution import get_mcp_attribution
 
 __all__ = ("PubSubAnalytics",)
 
@@ -39,5 +42,17 @@ class PubSubAnalytics(Analytics):
             self.topic = self.publisher.topic_path(project, topic)
 
     def record_event_envelope(self, event: EventEnvelope) -> None:
-        if self.publisher is not None:
-            self.publisher.publish(self.topic, data=dumps(event.serialize()).encode("utf-8"))
+        if self.publisher is None:
+            return
+
+        payload = event.serialize()
+        data: dict[str, Any] = payload["data"]
+        attribution = get_mcp_attribution()
+        if attribution.mcp:
+            data.setdefault("mcp", True)
+        if attribution.client is not None:
+            data.setdefault("mcp_client", attribution.client)
+        if attribution.utm_source is not None:
+            data.setdefault("mcp_utm_source", attribution.utm_source)
+
+        self.publisher.publish(self.topic, data=dumps(payload).encode("utf-8"))
