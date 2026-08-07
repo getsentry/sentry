@@ -33,7 +33,7 @@ describe('ExistingOrCreate', () => {
     );
   });
 
-  it('redirects to the list when multiple eixst', async () => {
+  it('redirects to the monitors list when multiple eixst', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/combined-rules/',
       body: [UptimeRuleFixture({id: '1'}), UptimeRuleFixture({id: '2'})],
@@ -41,10 +41,7 @@ describe('ExistingOrCreate', () => {
 
     const {router} = render(<ExistingOrCreate />);
     await waitFor(() =>
-      expect(router.location.pathname).toBe(
-        '/organizations/org-slug/issues/alerts/rules/'
-      )
+      expect(router.location.pathname).toBe('/organizations/org-slug/monitors/')
     );
-    expect(router.location.query).toEqual({alertType: 'uptime'});
   });
 });

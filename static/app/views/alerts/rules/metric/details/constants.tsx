@@ -1,5 +1,3 @@
-export const ALERT_DEFAULT_CHART_PERIOD = '7d';
-
 export type TimePeriodType = {
   display: React.ReactNode;
   end: string;
