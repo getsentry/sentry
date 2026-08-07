@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -79,9 +80,21 @@ export function Chip({
   return (
     <ChipRoot chipSize={size} dismissable={Boolean(onDismiss)} {...rest}>
       <Flex align="center" gap="xs" padding="2xs 0">
-        {isQuery && property !== undefined && <Label tone="primary">{property}</Label>}
-        {isQuery && operator && <Label tone="secondary">{operator}</Label>}
-        {value !== undefined && <Label tone={valueTone}>{value}</Label>}
+        {isQuery && property !== undefined && (
+          <Label tone="primary" variant="inherit" wrap="nowrap">
+            {property}
+          </Label>
+        )}
+        {isQuery && operator && (
+          <Label tone="secondary" variant="inherit" wrap="nowrap">
+            {operator}
+          </Label>
+        )}
+        {value !== undefined && (
+          <Label tone={valueTone} variant="inherit" wrap="nowrap">
+            {value}
+          </Label>
+        )}
       </Flex>
       {onDismiss ? (
         <DismissButton
@@ -113,9 +126,8 @@ const ChipRoot = styled('div')<{chipSize: ChipSize; dismissable: boolean}>`
   line-height: 16px;
 `;
 
-const Label = styled('span')<{tone: 'primary' | 'secondary' | 'accent'}>`
+const Label = styled(Text)<{tone: 'primary' | 'secondary' | 'accent'}>`
   color: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.content[p.tone]};
-  white-space: nowrap;
 `;
 
 const DismissButton = styled('button')<{chipSize: ChipSize}>`
