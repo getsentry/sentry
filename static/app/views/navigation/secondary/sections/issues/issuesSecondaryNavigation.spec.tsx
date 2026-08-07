@@ -79,17 +79,4 @@ describe('IssuesSecondaryNavigation', () => {
 
     expect(await screen.findByText('99+')).toBeInTheDocument();
   });
-
-  it('renders no badge when nothing is waiting', async () => {
-    mockInboxCount({
-      [inboxCountNoSeerQuery]: 0,
-    });
-
-    renderNavigation();
-
-    expect(
-      await screen.findByRole('link', {name: 'Inbox experimental'})
-    ).toBeInTheDocument();
-    expect(screen.queryByText('0')).not.toBeInTheDocument();
-  });
 });

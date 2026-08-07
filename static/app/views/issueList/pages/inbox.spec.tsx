@@ -1085,19 +1085,22 @@ describe('InboxPage', () => {
       // have issues, so taking whichever result arrives first would select the
       // Diagnosed issue; section priority must win instead.
       mockSection(
-        'issue.progress:fix_proposed is:unresolved assigned:[me,my_teams]',
+        'issue.progress:fix_proposed is:unresolved assigned_or_suggested:me',
         [fixProposedGroup],
         200,
         1,
         100
       );
-      mockSection('issue.progress:diagnosed is:unresolved assigned:[me,my_teams]', [
+      mockSection('issue.progress:diagnosed is:unresolved assigned_or_suggested:me', [
         diagnosedGroup,
       ]);
-      mockSection('issue.progress:assigned is:unresolved assigned:[me,my_teams]', [
+      mockSection('issue.progress:assigned is:unresolved assigned_or_suggested:me', [
         assignedGroup,
       ]);
-      mockSection('issue.progress:fix_applied is:unresolved assigned:[me,my_teams]', []);
+      mockSection(
+        'issue.progress:fix_applied is:unresolved assigned_or_suggested:me',
+        []
+      );
       mockIssuePreview();
 
       const {router} = render(<InboxPage />, {
