@@ -1,11 +1,13 @@
 import datetime
 import logging
+from collections import defaultdict
+from collections.abc import Mapping
 from concurrent.futures import as_completed
 
 import orjson
 import sentry_sdk
 from django.core.cache import cache
-from django.db.models import Case, CharField, Min, Subquery, Value, When
+from django.db.models import Case, CharField, Count, Min, Subquery, Value, When
 from django.utils import timezone
 from requests import Response
 from requests.models import HTTPError
@@ -250,6 +252,117 @@ def schedule_webhook_delivery() -> None:
             drain_mailbox_parallel.delay(record["id"])
         else:
             drain_mailbox.delay(record["id"])
+
+
+def _mailbox_provider(mailbox_name: str) -> str:
+    """
+    Provider a mailbox belongs to, derived from its name.
+
+    `WebhookPayload.create_from_request` builds every mailbox name as
+    `f"{provider}:{identifier}"`, so the prefix is the provider and its values stay
+    bounded by the request parser registry. Reading the `provider` column instead
+    would cost a heap fetch per row in the aggregate below.
+    """
+    provider, separator, _ = mailbox_name.partition(":")
+    return provider if separator else "unknown"
+
+
+def _oldest_pending_ages(head_ids: Mapping[str, int]) -> dict[str, float]:
+    """
+    Age in seconds of each provider's oldest undelivered payload.
+
+    Ids are monotonic, so the lowest id a provider still holds is its oldest payload.
+    Fetching `date_added` for those few rows by primary key avoids a `Min` over the
+    whole table on a column that has no index.
+    """
+    date_added_by_id = dict(
+        WebhookPayload.objects.using_replica()
+        .filter(id__in=head_ids.values())
+        .values_list("id", "date_added")
+    )
+    now = timezone.now()
+    ages = {}
+    for provider, head_id in head_ids.items():
+        date_added = date_added_by_id.get(head_id)
+        # The head can be delivered between the two queries, leaving nothing to age.
+        if date_added is not None:
+            ages[provider] = (now - date_added).total_seconds()
+    return ages
+
+
+@instrumented_task(
+    name="sentry.hybridcloud.tasks.deliver_webhooks.record_mailbox_backlog_metrics",
+    namespace=hybridcloud_control_tasks,
+    processing_deadline_duration=60,
+    silo_mode=SiloMode.CONTROL,
+)
+def record_mailbox_backlog_metrics() -> None:
+    """
+    Emit depth and age gauges for the undelivered webhook backlog.
+
+    Every row in the table is a webhook we still owe a cell, so the backlog is the
+    whole table. This runs on its own schedule rather than inside
+    `schedule_webhook_delivery` so that aggregating a deep backlog can never delay
+    the delivery it is measuring.
+    """
+    WebhookPayloadReplica = WebhookPayload.objects.using_replica()
+
+    # Grouping by mailbox_name and aggregating only id keeps this an index-only scan
+    # of webhookpayload_mailbox_id_idx. Selecting any other column would add a heap
+    # fetch per row, which is unaffordable on the deep backlogs this exists to catch.
+    mailboxes = (
+        WebhookPayloadReplica.all()
+        .values("mailbox_name")
+        .annotate(depth=Count("id"), head_id=Min("id"))
+    )
+
+    total_pending = 0
+    pending: dict[str, int] = defaultdict(int)
+    mailbox_count: dict[str, int] = defaultdict(int)
+    max_depth: dict[str, int] = defaultdict(int)
+    head_ids: dict[str, int] = {}
+    for row in mailboxes:
+        provider = _mailbox_provider(row["mailbox_name"])
+        depth, head_id = row["depth"], row["head_id"]
+        total_pending += depth
+        pending[provider] += depth
+        mailbox_count[provider] += 1
+        max_depth[provider] = max(max_depth[provider], depth)
+        head_ids[provider] = min(head_ids.get(provider, head_id), head_id)
+
+    # Emitted even when empty so a drained backlog is distinguishable from a task that
+    # has stopped reporting.
+    metrics.gauge("hybridcloud.webhookpayload.total_pending_count", total_pending, sample_rate=1.0)
+    if not total_pending:
+        return
+
+    oldest_ages = _oldest_pending_ages(head_ids)
+    for provider, pending_count in pending.items():
+        tags = {"provider": provider}
+        metrics.gauge(
+            "hybridcloud.webhookpayload.pending_count", pending_count, tags=tags, sample_rate=1.0
+        )
+        metrics.gauge(
+            "hybridcloud.webhookpayload.mailbox_count",
+            mailbox_count[provider],
+            tags=tags,
+            sample_rate=1.0,
+        )
+        metrics.gauge(
+            "hybridcloud.webhookpayload.max_mailbox_depth",
+            max_depth[provider],
+            tags=tags,
+            sample_rate=1.0,
+        )
+        oldest_age = oldest_ages.get(provider)
+        if oldest_age is not None:
+            metrics.gauge(
+                "hybridcloud.webhookpayload.oldest_pending_age_seconds",
+                oldest_age,
+                tags=tags,
+                sample_rate=1.0,
+                unit="second",
+            )
 
 
 @instrumented_task(

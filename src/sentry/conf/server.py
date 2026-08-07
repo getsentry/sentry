@@ -1272,6 +1272,10 @@ TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {
         "task": "hybridcloud.control:sentry.hybridcloud.tasks.deliver_webhooks.schedule_webhook_delivery",
         "schedule": timedelta(seconds=10),
     },
+    "webhook-mailbox-backlog-metrics-control": {
+        "task": "hybridcloud.control:sentry.hybridcloud.tasks.deliver_webhooks.record_mailbox_backlog_metrics",
+        "schedule": timedelta(seconds=60),
+    },
     "relocation-find-transfer-control": {
         "task": "relocation.control:sentry.relocation.transfer.find_relocation_transfer_control",
         "schedule": crontab("*/5", "*", "*", "*", "*"),

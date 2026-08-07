@@ -17,6 +17,7 @@ from sentry.hybridcloud.tasks.deliver_webhooks import (
     drain_mailbox,
     drain_mailbox_parallel,
     maybe_trigger_drain,
+    record_mailbox_backlog_metrics,
     schedule_webhook_delivery,
 )
 from sentry.testutils.cases import TestCase
@@ -1244,3 +1245,109 @@ class PushTriggerTest(TestCase):
 
         # Lock must be released so new webhooks and the scheduler can reach this mailbox
         assert cache.get(f"wh:drain_active:{mailbox}") is None
+
+
+def gauge_calls(mock_metrics: MagicMock, key: str) -> list[tuple[float, dict[str, str]]]:
+    """(value, tags) for every metrics.gauge call recorded under `key`."""
+    return [
+        (call[0][1], call[1].get("tags", {}))
+        for call in mock_metrics.gauge.call_args_list
+        if call[0][0] == key
+    ]
+
+
+@control_silo_test
+class MailboxBacklogMetricsTest(TestCase):
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_empty_backlog_reports_zero(self, mock_metrics: MagicMock) -> None:
+        record_mailbox_backlog_metrics()
+
+        assert gauge_calls(mock_metrics, "hybridcloud.webhookpayload.total_pending_count") == [
+            (0, {})
+        ]
+        assert gauge_calls(mock_metrics, "hybridcloud.webhookpayload.pending_count") == []
+        assert (
+            gauge_calls(mock_metrics, "hybridcloud.webhookpayload.oldest_pending_age_seconds") == []
+        )
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_depth_is_grouped_by_provider(self, mock_metrics: MagicMock) -> None:
+        create_payloads(3, "github:123", provider="github")
+        create_payloads(1, "github:456", provider="github")
+        create_payloads(2, "gitlab:789", provider="gitlab")
+
+        record_mailbox_backlog_metrics()
+
+        assert gauge_calls(mock_metrics, "hybridcloud.webhookpayload.total_pending_count") == [
+            (6, {})
+        ]
+        assert sorted(gauge_calls(mock_metrics, "hybridcloud.webhookpayload.pending_count")) == [
+            (2, {"provider": "gitlab"}),
+            (4, {"provider": "github"}),
+        ]
+        assert sorted(gauge_calls(mock_metrics, "hybridcloud.webhookpayload.mailbox_count")) == [
+            (1, {"provider": "gitlab"}),
+            (2, {"provider": "github"}),
+        ]
+        assert sorted(
+            gauge_calls(mock_metrics, "hybridcloud.webhookpayload.max_mailbox_depth")
+        ) == [
+            (2, {"provider": "gitlab"}),
+            (3, {"provider": "github"}),
+        ]
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_oldest_pending_age_uses_oldest_payload(self, mock_metrics: MagicMock) -> None:
+        self.create_webhook_payload(
+            mailbox_name="github:123",
+            cell_name="us",
+            provider="github",
+            date_added=timezone.now() - timedelta(hours=2),
+        )
+        self.create_webhook_payload(
+            mailbox_name="github:456",
+            cell_name="us",
+            provider="github",
+            date_added=timezone.now() - timedelta(minutes=1),
+        )
+        self.create_webhook_payload(
+            mailbox_name="gitlab:789",
+            cell_name="us",
+            provider="gitlab",
+            date_added=timezone.now() - timedelta(minutes=5),
+        )
+
+        record_mailbox_backlog_metrics()
+
+        ages = {
+            tags["provider"]: value
+            for value, tags in gauge_calls(
+                mock_metrics, "hybridcloud.webhookpayload.oldest_pending_age_seconds"
+            )
+        }
+        assert ages["github"] == pytest.approx(timedelta(hours=2).total_seconds(), abs=60)
+        assert ages["gitlab"] == pytest.approx(timedelta(minutes=5).total_seconds(), abs=60)
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_mailbox_without_provider_prefix_is_unknown(self, mock_metrics: MagicMock) -> None:
+        create_payloads(1, "mailbox-with-no-separator")
+
+        record_mailbox_backlog_metrics()
+
+        assert gauge_calls(mock_metrics, "hybridcloud.webhookpayload.pending_count") == [
+            (1, {"provider": "unknown"})
+        ]
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_bucketed_mailboxes_roll_up_to_one_provider(self, mock_metrics: MagicMock) -> None:
+        create_payloads(2, "github:123:7:pull_request", provider="github")
+        create_payloads(1, "github:123:8:push", provider="github")
+
+        record_mailbox_backlog_metrics()
+
+        assert gauge_calls(mock_metrics, "hybridcloud.webhookpayload.pending_count") == [
+            (3, {"provider": "github"})
+        ]
+        assert gauge_calls(mock_metrics, "hybridcloud.webhookpayload.mailbox_count") == [
+            (2, {"provider": "github"})
+        ]
