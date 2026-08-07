@@ -29,6 +29,7 @@ from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.base import Pipeline
+from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.projects.services.project.model import RpcProject
 from sentry.projects.services.project_key import project_key_service
@@ -461,6 +462,32 @@ class VercelIntegration(IntegrationInstallation):
                 raise
 
 
+class VercelAccount(TypedDict):
+    name: str
+    external_id: str
+    installation_type: str
+
+
+def resolve_vercel_account(oauth_data: Mapping[str, Any]) -> VercelAccount:
+    """Look up the Vercel team or user that an exchanged access token belongs to."""
+    team_id = oauth_data.get("team_id")
+    client = VercelClient(oauth_data["access_token"], team_id)
+
+    if team_id:
+        return {
+            "name": client.get_team()["name"],
+            "external_id": team_id,
+            "installation_type": "team",
+        }
+
+    user = client.get_user()
+    return {
+        "name": user.get("name") or user["username"],
+        "external_id": oauth_data["user_id"],
+        "installation_type": "user",
+    }
+
+
 class VercelInitialDataSerializer(CamelSnakeSerializer):
     """Initial pipeline data for marketplace-originated Vercel installs.
 
@@ -477,14 +504,15 @@ class VercelAdvanceSerializer(CamelSnakeSerializer):
 
 
 class VercelOAuthApiStep(OAuth2ApiStep):
-    """API-mode install step for Vercel.
+    """API-mode token exchange step for Vercel.
 
     Vercel installs are always initiated from the Vercel marketplace, which
     performs the OAuth grant and forwards the authorization `code` as initialData
     (bound to pipeline state). There is no authorize popup: the step signals the
     frontend to auto-advance and reads the code back out of pipeline state to
     exchange it, rather than opening an authorize URL and reading it from the
-    callback POST.
+    callback POST. Exchanging the code creates nothing on the Sentry side; the
+    install is only committed after VercelConfirmInstallStep.
     """
 
     def get_step_data(self, pipeline: Pipeline[Any, Any], request: HttpRequest) -> dict[str, str]:
@@ -495,6 +523,55 @@ class VercelOAuthApiStep(OAuth2ApiStep):
 
     def extract_code(self, validated_data: dict[str, str], pipeline: Pipeline[Any, Any]) -> str:
         return cast(str, pipeline.fetch_state("code"))
+
+
+class VercelConfirmStepData(TypedDict):
+    account: str
+    accountType: str
+    organization: str
+    state: str
+
+
+class VercelConfirmSerializer(CamelSnakeSerializer):
+    state = CharField(required=True)
+
+
+class VercelConfirmInstallStep:
+    """Confirmation step for Vercel marketplace installs.
+
+    Vercel initiates the OAuth grant, so there is no `state` we can bind to the
+    Sentry session that started the flow. A copied install link could otherwise
+    connect an attacker's Vercel account to a victim's organization, so we
+    resolve the account the exchanged token belongs to and surface it alongside
+    the Sentry organization for the user to verify before committing.
+    """
+
+    step_name = "vercel_confirm_install"
+
+    def get_step_data(
+        self, pipeline: IntegrationPipeline, request: HttpRequest
+    ) -> VercelConfirmStepData:
+        account = resolve_vercel_account(pipeline.fetch_state("oauth_data") or {})
+        pipeline.bind_state("vercel_account", account)
+        return {
+            "account": account["name"],
+            "accountType": account["installation_type"],
+            "organization": pipeline.organization.name if pipeline.organization else "",
+            "state": pipeline.signature,
+        }
+
+    def get_serializer_cls(self) -> type:
+        return VercelConfirmSerializer
+
+    def handle_post(
+        self,
+        validated_data: dict[str, str],
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        if validated_data["state"] != pipeline.signature:
+            return PipelineStepResult.error("An error occurred while validating your request.")
+        return PipelineStepResult.advance()
 
 
 class VercelIntegrationProvider(IntegrationProvider):
@@ -524,6 +601,7 @@ class VercelIntegrationProvider(IntegrationProvider):
                 redirect_url="/extensions/vercel/configure/",
                 bind_key="oauth_data",
             ),
+            VercelConfirmInstallStep(),
         ]
 
     def get_initial_data_serializer_cls(self) -> type[VercelInitialDataSerializer]:
@@ -531,28 +609,17 @@ class VercelIntegrationProvider(IntegrationProvider):
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         data = state["oauth_data"]
-        access_token = data["access_token"]
-        team_id = data.get("team_id")
-        client = VercelClient(access_token, team_id)
-
-        if team_id:
-            external_id = team_id
-            installation_type = "team"
-            team = client.get_team()
-            name = team["name"]
-        else:
-            external_id = data["user_id"]
-            installation_type = "user"
-            user = client.get_user()
-            name = user.get("name") or user["username"]
+        # Resolved and bound by the confirmation step, so the user commits to the
+        # same account we showed them.
+        account = state.get("vercel_account") or resolve_vercel_account(data)
 
         return {
-            "name": name,
-            "external_id": external_id,
+            "name": account["name"],
+            "external_id": account["external_id"],
             "metadata": {
-                "access_token": access_token,
+                "access_token": data["access_token"],
                 "installation_id": data["installation_id"],
-                "installation_type": installation_type,
+                "installation_type": account["installation_type"],
             },
             "post_install_data": {"user_id": state["user_id"]},
         }
