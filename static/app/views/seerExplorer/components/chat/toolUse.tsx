@@ -18,6 +18,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {
+  callRecordDetail,
   callRecordFailure,
   callRecordLabel,
   callRecordUrl,
@@ -452,7 +453,9 @@ function ToolCallRow({
           <ToolCallPlainRow>{toolCallText}</ToolCallPlainRow>
         )}
       </Flex>
-      {navItems.length > 0 && (
+      {/* Call records already name and link what the execute did, so the links bus for the same
+          call is a duplicate — and a coarser one, since it links the tool rather than the call. */}
+      {navItems.length > 0 && !hasCallRows && (
         <NavLinks navItems={navItems} onNavLinkClick={onNavLinkClick} />
       )}
       {todos && <TodoList todos={todos} />}
@@ -484,22 +487,61 @@ function CallRows({
             </ToolCallText>
           </Tooltip>
         );
+        const row = url ? (
+          <ToolCallLink to={url} onClick={onCallLinkClick?.(record.kind)}>
+            {text}
+            <ToolCallLinkIconWrapper>
+              <ToolCallLinkIcon size="xs" />
+            </ToolCallLinkIconWrapper>
+          </ToolCallLink>
+        ) : (
+          <ToolCallPlainRow>{text}</ToolCallPlainRow>
+        );
+
+        const detail = callRecordDetail(record);
+
         return (
-          <Flex key={record.id} as="li" gap="sm" align="center">
-            {url ? (
-              <ToolCallLink to={url} onClick={onCallLinkClick?.(record.kind)}>
-                {text}
-                <ToolCallLinkIconWrapper>
-                  <ToolCallLinkIcon size="xs" />
-                </ToolCallLinkIconWrapper>
-              </ToolCallLink>
-            ) : (
-              <ToolCallPlainRow>{text}</ToolCallPlainRow>
-            )}
-          </Flex>
+          <Stack key={record.id} as="li" gap="xs" minWidth={0}>
+            <Flex gap="sm" align="center">
+              {row}
+            </Flex>
+            {detail && <CallDetail detail={detail} />}
+          </Stack>
         );
       })}
     </Stack>
+  );
+}
+
+/** The request behind a row, collapsed by default — the title says what, this says exactly what ran. */
+function CallDetail({
+  detail,
+}: {
+  detail: NonNullable<ReturnType<typeof callRecordDetail>>;
+}) {
+  return (
+    <Disclosure size="sm">
+      <Disclosure.Title>
+        <Text size="xs" variant="muted" monospace>
+          {t('Request')}
+        </Text>
+      </Disclosure.Title>
+      <Disclosure.Content>
+        <Stack gap="xs" minWidth={0}>
+          <Text size="xs" variant="muted" monospace>
+            {detail.request}
+          </Text>
+          {detail.params.map(([key, value]) => (
+            <Text key={key} size="xs" variant="muted" monospace>
+              {key}={value}
+            </Text>
+          ))}
+          <Text size="xs" variant="muted" monospace>
+            {t('status: %s', detail.status)}
+          </Text>
+        </Stack>
+      </Disclosure.Content>
+    </Disclosure>
   );
 }
 

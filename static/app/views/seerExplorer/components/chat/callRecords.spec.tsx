@@ -2,7 +2,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {callRecordLabel, callRecordUrl} from 'sentry/views/seerExplorer/callRecords';
+import {
+  callRecordDetail,
+  callRecordLabel,
+  callRecordUrl,
+} from 'sentry/views/seerExplorer/callRecords';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import type {Block, CallRecord} from 'sentry/views/seerExplorer/types';
 
@@ -80,14 +84,16 @@ describe('call record rendering', () => {
   });
 
   it('drops a record with no title rather than showing its route', () => {
+    // The surviving row's expansion legitimately shows a route, so assert on the row count:
+    // the titleless record contributes nothing rather than falling back to its path.
     const block = codeModeBlock([
-      apiRecord({title: undefined}),
+      apiRecord({title: undefined, path: '/api/0/dropped/{thing_id}/'}),
       apiRecord({id: 2, title: 'List Your Organizations'}),
     ]);
     render(<BlockComponent block={block} blockIndex={0} />);
 
     expect(screen.getByText('List Your Organizations')).toBeInTheDocument();
-    expect(screen.queryByText(/api\/0/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/dropped/)).not.toBeInTheDocument();
   });
 
   it('links a record that identifies a navigable resource', () => {
@@ -222,6 +228,34 @@ describe('callRecordUrl', () => {
     expect(callRecordUrl(apiRecord({path_params: undefined}), organization)).toBeNull();
   });
 
+  describe('only the route its own subject', () => {
+    // Without this, get_issue_details' three requests all link to the issue page — three rows
+    // pointing at the same place, which reads as arbitrary.
+    const issueRoutes = [
+      ['/api/0/issues/{issue_id}/', true],
+      ['/api/0/issues/{issue_id}/events/latest/', false],
+      ['/api/0/issues/{issue_id}/tags/', false],
+    ] as const;
+
+    it.each(issueRoutes)('%s links: %s', (path, shouldLink) => {
+      const url = callRecordUrl(
+        apiRecord({path, path_params: {issue_id: '54'}}),
+        organization
+      );
+
+      expect(url === null).toBe(!shouldLink);
+    });
+
+    it('gives one link across a lib call and its children', () => {
+      const linked = issueRoutes
+        .map(([path]) =>
+          callRecordUrl(apiRecord({path, path_params: {issue_id: '54'}}), organization)
+        )
+        .filter(Boolean);
+
+      expect(linked).toHaveLength(1);
+    });
+  });
   describe('api-only aliases', () => {
     // The API resolves `latest`/`oldest`/`recommended` server-side, but the UI route needs a
     // concrete id — linking the alias straight through produces a dead page.
@@ -271,6 +305,44 @@ describe('callRecordUrl', () => {
 
       expect(JSON.stringify(url)).toContain('abc123');
     });
+  });
+});
+
+describe('callRecordDetail', () => {
+  it('shows the path actually requested, not the template', () => {
+    const detail = callRecordDetail(
+      apiRecord({
+        path: '/api/0/issues/{issue_id}/tags/',
+        resolved_path: '/api/0/issues/54/tags/',
+      })
+    );
+
+    expect(detail?.request).toBe('GET /api/0/issues/54/tags/');
+  });
+
+  it('lists query params', () => {
+    const detail = callRecordDetail(
+      apiRecord({query_params: {statsPeriod: '14d', environment: 'prod'}})
+    );
+
+    expect(detail?.params).toEqual([
+      ['statsPeriod', '14d'],
+      ['environment', 'prod'],
+    ]);
+  });
+
+  it('reports a transport failure over a status', () => {
+    expect(callRecordDetail(apiRecord({error: 'ConnectError'}))?.status).toBe(
+      'ConnectError'
+    );
+  });
+
+  it('reports pending while the call is in flight', () => {
+    expect(callRecordDetail(apiRecord({status: undefined}))?.status).toBe('pending');
+  });
+
+  it('has no detail for a lib call, which has no route of its own', () => {
+    expect(callRecordDetail({id: 1, kind: 'lib', name: 'get_issue_details'})).toBeNull();
   });
 });
 

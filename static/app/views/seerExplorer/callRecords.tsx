@@ -56,7 +56,7 @@ export function callRecordUrl(
   organization: Organization,
   projects?: Array<{id: string; slug: string}>
 ): LocationDescriptor | null {
-  if (!record.path_params) {
+  if (!record.path_params || !addressesItsOwnResource(record)) {
     return null;
   }
 
@@ -76,6 +76,20 @@ export function callRecordUrl(
     }
   }
   return null;
+}
+
+/**
+ * Whether the route's own subject is the resource we would link to.
+ *
+ * Without this, every route containing `{issue_id}` links to the issue page — so fetching an
+ * issue, its latest event, and its tags produces three rows pointing at the same place, which
+ * tells the reader nothing and makes the links look arbitrary. A route only earns a link when it
+ * *ends* at the thing being linked; `/issues/{issue_id}/tags/` is about tags, and there is no tags
+ * page to send anyone to, so it gets none.
+ */
+function addressesItsOwnResource(record: CallRecord): boolean {
+  const path = record.path?.replace(/\/$/, '');
+  return Boolean(path?.endsWith('}'));
 }
 
 /**
@@ -155,6 +169,32 @@ export function callRecordFailure(record: CallRecord): string | null {
     return t('Returned HTTP %s', record.status);
   }
   return null;
+}
+
+/**
+ * The request a row stands for, for the expanded view: what ran, and with what.
+ *
+ * Reads `resolved_path` rather than reassembling the template, so what is shown is literally what
+ * was requested. Returns null for a lib call, which has no route of its own — its children carry
+ * the requests.
+ */
+export function callRecordDetail(
+  record: CallRecord
+): {params: Array<[string, string]>; request: string; status: string} | null {
+  if (record.kind !== 'api' || !record.method) {
+    return null;
+  }
+
+  const path = record.resolved_path ?? record.path;
+  if (!path) {
+    return null;
+  }
+
+  return {
+    request: `${record.method} ${path}`,
+    params: Object.entries(record.query_params ?? {}),
+    status: record.error ?? (record.status ? String(record.status) : t('pending')),
+  };
 }
 
 /** The calls in a block's tool results, flattened in the order they ran. */
