@@ -91,15 +91,32 @@ describe('MetricsSamplesExportModalButton', () => {
     renderGlobalModal();
   }
 
+  let eventsRequest: jest.Mock;
+
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
     jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
-    MockApiClient.addMockResponse({
+    eventsRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
       body: {data: []},
     });
+  });
+
+  it('counts rows with the export query when the user has narrowed the search', async () => {
+    renderButton();
+
+    await waitFor(() => {
+      expect(eventsRequest).toHaveBeenCalled();
+    });
+    const countQueries = eventsRequest.mock.calls.map(
+      ([, options]) => options.query.query
+    );
+
+    expect(countQueries).toContain(
+      'model:gpt-5 metric.name:llm.token_usage metric.type:distribution'
+    );
   });
 
   it('narrows the server export to the panel metric when exporting more rows than are loaded', async () => {

@@ -12,7 +12,6 @@ import {
   useMetricSamplesQueryString,
 } from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {createTraceMetricEventsFilter} from 'sentry/views/explore/metrics/utils';
 import {useQueryParamsSortBys} from 'sentry/views/explore/queryParams/context';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 
@@ -40,10 +39,14 @@ export function MetricsSamplesExportModalButton({
     sort: sortBys.map(formatExportSort),
   });
 
+  // Counted with the export's own query rather than the metric identity alone, so a
+  // user search narrows the estimate the same way it narrows the export. Counting the
+  // whole metric would offer row counts the result set cannot fill and would push
+  // exports to the server that the browser could have served.
   const rawMetricCounts = useRawCounts({
     dataset: DiscoverDatasets.TRACEMETRICS,
     enabled: Boolean(traceMetric.name),
-    query: createTraceMetricEventsFilter([traceMetric]),
+    query,
   });
 
   // The total count comes from a separate query; while it's loading or after it errors
