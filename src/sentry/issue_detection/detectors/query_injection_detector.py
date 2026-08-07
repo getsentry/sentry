@@ -33,8 +33,9 @@ class QueryInjectionDetector(PerformanceDetector):
         self.extract_request_data(event)
 
     def extract_request_data(self, event: dict[str, Any]) -> None:
-        self.request_data = event.get("request", {}).get("data", {})
-        self.request_url = event.get("request", {}).get("url", "")
+        request = event.get("request") or {}
+        self.request_data = request.get("data", {})
+        self.request_url = request.get("url", "")
         if not isinstance(self.request_data, dict):
             return
 
