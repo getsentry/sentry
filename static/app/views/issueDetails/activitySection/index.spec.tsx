@@ -27,6 +27,8 @@ import {GroupActivityType, PriorityLevel} from 'sentry/types/group';
 import {RepositoryStatus} from 'sentry/types/integrations';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
+import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
+import {ActivityDrawer} from 'sentry/views/issueDetails/sidebar/activityDrawer';
 
 describe('ActivitySection', () => {
   const project = ProjectFixture();
@@ -634,6 +636,89 @@ describe('ActivitySection', () => {
     expect(screen.getByText(/after 2 days of inactivity/)).toBeInTheDocument();
   });
 
+  const statusFlappingRollupFeature = 'issue-activity-status-flapping-rollup';
+
+  function makeFlappingGroup(id: string) {
+    return GroupFixture({
+      id,
+      activity: [
+        {
+          type: GroupActivityType.SET_REGRESSION,
+          id: `${id}-regressed-2`,
+          dateCreated: '2020-01-01T06:00:00Z',
+          data: {},
+        },
+        {
+          type: GroupActivityType.SET_RESOLVED,
+          id: `${id}-resolved-2`,
+          dateCreated: '2020-01-01T05:00:00Z',
+          data: {},
+        },
+        {
+          type: GroupActivityType.SET_REGRESSION,
+          id: `${id}-regressed-1`,
+          dateCreated: '2020-01-01T04:00:00Z',
+          data: {},
+        },
+        {
+          type: GroupActivityType.SET_RESOLVED,
+          id: `${id}-resolved-1`,
+          dateCreated: '2020-01-01T03:00:00Z',
+          data: {},
+        },
+      ],
+      project,
+    });
+  }
+
+  it('expands and collapses a status-flapping rollup when enabled', async () => {
+    const flappingGroup = makeFlappingGroup('1348');
+
+    render(
+      <GroupDataContextProvider group={flappingGroup} project={flappingGroup.project}>
+        <ActivitySection group={flappingGroup} variant="standalone" />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({features: [statusFlappingRollupFeature]}),
+      }
+    );
+
+    expect(screen.getAllByText('Regressed')).toHaveLength(1);
+    expect(screen.getAllByText('Resolved')).toHaveLength(1);
+    expect(screen.getAllByRole('img', {name: 'Activity update'})).toHaveLength(3);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Show 2 more'}));
+
+    expect(screen.queryByRole('button', {name: 'Show 2 more'})).not.toBeInTheDocument();
+    expect(screen.getAllByText('Regressed')).toHaveLength(2);
+    expect(screen.getAllByText('Resolved')).toHaveLength(2);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Hide 2 events'}));
+
+    expect(screen.getByRole('button', {name: 'Show 2 more'})).toBeInTheDocument();
+    expect(screen.getAllByText('Regressed')).toHaveLength(1);
+    expect(screen.getAllByText('Resolved')).toHaveLength(1);
+  });
+
+  it('does not count rolled-up events as hidden sidebar rows', () => {
+    const flappingGroup = makeFlappingGroup('1350');
+
+    render(
+      <GroupDataContextProvider group={flappingGroup} project={flappingGroup.project}>
+        <ActivitySection group={flappingGroup} />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({features: [statusFlappingRollupFeature]}),
+      }
+    );
+
+    expect(screen.getByRole('button', {name: 'Show 2 more'})).toBeInTheDocument();
+    expect(screen.getByText('Expand')).toBeInTheDocument();
+    expect(screen.queryByText('View 2 more')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Regressed')).toHaveLength(1);
+    expect(screen.getAllByText('Resolved')).toHaveLength(1);
+  });
+
   it('renders note and allows for edit', async () => {
     jest.spyOn(indicators, 'addSuccessMessage');
 
@@ -829,7 +914,7 @@ describe('ActivitySection', () => {
     expect(screen.queryByText(/View \d+ more/)).not.toBeInTheDocument();
   });
 
-  it('does not collapse activity when rendered in the drawer', async () => {
+  it('fetches older comments outside the embedded activity window', async () => {
     const activities: GroupActivity[] = Array.from({length: 7}, (_, index) => ({
       type: GroupActivityType.NOTE,
       id: `note-${index + 1}`,
@@ -838,20 +923,43 @@ describe('ActivitySection', () => {
       user: UserFixture({id: '2'}),
       project,
     }));
+    const embeddedActivities: GroupActivity[] = Array.from({length: 100}, (_, index) => ({
+      type: GroupActivityType.SET_RESOLVED,
+      id: `resolved-${index + 1}`,
+      data: {},
+      dateCreated: tenMinutesAgo(),
+      user,
+      project,
+    }));
 
     const updatedActivityGroup = GroupFixture({
       id: '1338',
-      activity: activities,
+      activity: embeddedActivities,
+      numComments: activities.length,
       project,
+    });
+    const commentsUrl = '/organizations/org-slug/issues/1338/comments/';
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1338/',
+      body: updatedActivityGroup,
+    });
+    const commentsMock = MockApiClient.addMockResponse({
+      url: commentsUrl,
+      body: activities,
     });
 
     render(
-      <GroupDataContextProvider
-        group={updatedActivityGroup}
-        project={updatedActivityGroup.project}
-      >
-        <ActivitySection group={updatedActivityGroup} variant="standalone" />
-      </GroupDataContextProvider>
+      <GroupIdProvider groupId={updatedActivityGroup.id}>
+        <ActivityDrawer project={project} />
+      </GroupIdProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/org-slug/issues/${updatedActivityGroup.id}/activity/`,
+            query: {filter: 'comments'},
+          },
+        },
+      }
     );
 
     for (const activity of activities) {
@@ -863,6 +971,7 @@ describe('ActivitySection', () => {
     expect(screen.queryByText('View 4 more')).not.toBeInTheDocument();
     expect(screen.getAllByText('10 minutes ago')).toHaveLength(7);
     expect(screen.queryByText('10m ago')).not.toBeInTheDocument();
+    expect(commentsMock).toHaveBeenCalledTimes(1);
   });
 
   it('filters comments correctly', async () => {
@@ -886,20 +995,30 @@ describe('ActivitySection', () => {
     const updatedActivityGroup = GroupFixture({
       id: '1338',
       activity: activities,
+      numComments: 3,
       project,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1338/',
+      body: updatedActivityGroup,
+    });
+    const commentsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1338/comments/',
+      body: activities.filter(activity => activity.type === GroupActivityType.NOTE),
     });
 
     render(
-      <GroupDataContextProvider
-        group={updatedActivityGroup}
-        project={updatedActivityGroup.project}
-      >
-        <ActivitySection
-          group={updatedActivityGroup}
-          variant="standalone"
-          filterComments
-        />
-      </GroupDataContextProvider>
+      <GroupIdProvider groupId={updatedActivityGroup.id}>
+        <ActivityDrawer project={project} />
+      </GroupIdProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/org-slug/issues/${updatedActivityGroup.id}/activity/`,
+            query: {filter: 'comments'},
+          },
+        },
+      }
     );
 
     for (const activity of activities) {
@@ -911,6 +1030,7 @@ describe('ActivitySection', () => {
         ).toBeInTheDocument();
       }
     }
+    expect(commentsMock).not.toHaveBeenCalled();
   });
 
   it.each<{

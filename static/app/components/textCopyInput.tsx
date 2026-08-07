@@ -15,6 +15,10 @@ interface Props extends Omit<InputProps, 'onCopy'> {
   children: string;
   className?: string;
   disabled?: boolean;
+  /**
+   * Icon displayed before the copied text.
+   */
+  icon?: React.ReactNode;
   onCopy?: (value: string) => void;
   /**
    * Always show the ending of a long overflowing text in input
@@ -26,6 +30,7 @@ interface Props extends Omit<InputProps, 'onCopy'> {
 export function TextCopyInput({
   className,
   disabled,
+  icon,
   style,
   onCopy,
   rtl,
@@ -61,6 +66,9 @@ export function TextCopyInput({
 
   return (
     <InputGroup className={className}>
+      {icon && (
+        <InputGroup.LeadingItems disablePointerEvents>{icon}</InputGroup.LeadingItems>
+      )}
       <StyledInput
         id={textNodeId}
         readOnly

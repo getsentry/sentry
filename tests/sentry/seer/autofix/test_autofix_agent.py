@@ -4,6 +4,7 @@ import pytest
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.constants import DataCategory
+from sentry.models.activity import Activity
 from sentry.seer.agent.client_models import (
     Artifact,
     MemoryBlock,
@@ -32,6 +33,7 @@ from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import SeerPermissionError
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
+from sentry.types.activity import ActivityType
 from sentry.utils import json
 
 
@@ -416,10 +418,18 @@ class TestTriggerAutofixAgent(TestCase):
 
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.SeerAutofixOperator.has_access", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.process_autofix_updates.apply_async")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_trigger_autofix_agent_sends_started_webhook_for_all_steps(
-        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
+        self,
+        mock_client_class,
+        mock_process_autofix_updates,
+        mock_broadcast,
+        mock_has_access,
+        mock_check_quota,
+        mock_record_run,
     ):
         """Sends correct started webhook for all autofix steps."""
         mock_client = MagicMock()
@@ -427,13 +437,31 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=12345)
 
         step_to_action = {
-            AutofixStep.ROOT_CAUSE: SeerActionType.ROOT_CAUSE_STARTED,
-            AutofixStep.SOLUTION: SeerActionType.SOLUTION_STARTED,
-            AutofixStep.CODE_CHANGES: SeerActionType.CODING_STARTED,
+            AutofixStep.ROOT_CAUSE: (
+                SeerActionType.ROOT_CAUSE_STARTED,
+                ActivityType.SEER_RCA_STARTED,
+            ),
+            AutofixStep.SOLUTION: (
+                SeerActionType.SOLUTION_STARTED,
+                ActivityType.SEER_SOLUTION_STARTED,
+            ),
+            AutofixStep.CODE_CHANGES: (
+                SeerActionType.CODING_STARTED,
+                ActivityType.SEER_CODING_STARTED,
+            ),
         }
 
-        for step, expected_action in step_to_action.items():
+        for step, (expected_action, expected_activity_type) in step_to_action.items():
             mock_broadcast.reset_mock()
+            mock_process_autofix_updates.reset_mock()
+
+            def assert_activity_exists(**_kwargs: object) -> None:
+                assert Activity.objects.filter(
+                    group=self.group,
+                    type=expected_activity_type.value,
+                ).exists()
+
+            mock_process_autofix_updates.side_effect = assert_activity_exists
             trigger_autofix_agent(
                 group=self.group,
                 step=step,
@@ -443,6 +471,10 @@ class TestTriggerAutofixAgent(TestCase):
             mock_broadcast.assert_called_once()
             call_kwargs = mock_broadcast.call_args.kwargs
             assert call_kwargs["event_name"] == expected_action.value
+            assert (
+                mock_process_autofix_updates.call_args.kwargs["kwargs"]["activity_already_recorded"]
+                is True
+            )
 
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)

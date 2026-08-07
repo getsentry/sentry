@@ -97,6 +97,7 @@ ingest_profiling_passthrough_tasks = app.taskregistry.create_namespace(
 ingest_profiling_raw_tasks = app.taskregistry.create_namespace(
     "ingest.profiling.raw",
     app_feature="profiles",
+    is_raw_mode=True,
 )
 
 ingest_transactions_tasks = app.taskregistry.create_namespace(
@@ -117,6 +118,7 @@ ingest_attachments_tasks = app.taskregistry.create_namespace(
 ingest_events_raw_tasks = app.taskregistry.create_namespace(
     "ingest.events.raw",
     app_feature="errors",
+    is_raw_mode=True,
 )
 
 ingest_errors_tasks = app.taskregistry.create_namespace(
@@ -132,26 +134,31 @@ ingest_errors_postprocess_tasks = app.taskregistry.create_namespace(
 snuba_events_subscriptions_raw_tasks = app.taskregistry.create_namespace(
     "snuba.subscriptions.events.raw",
     app_feature="errors",
+    is_raw_mode=True,
 )
 
 snuba_transactions_subscriptions_raw_tasks = app.taskregistry.create_namespace(
     "snuba.subscriptions.transactions.raw",
     app_feature="transactions",
+    is_raw_mode=True,
 )
 
 snuba_metrics_subscriptions_raw_tasks = app.taskregistry.create_namespace(
     "snuba.subscriptions.metrics.raw",
     app_feature="sessions",
+    is_raw_mode=True,
 )
 
 snuba_generic_metrics_subscriptions_raw_tasks = app.taskregistry.create_namespace(
     "snuba.subscriptions.generic_metrics.raw",
     app_feature="transactions",
+    is_raw_mode=True,
 )
 
 snuba_eap_subscriptions_raw_tasks = app.taskregistry.create_namespace(
     "snuba.subscriptions.eap.raw",
     app_feature="transactions",
+    is_raw_mode=True,
 )
 
 issues_tasks = app.taskregistry.create_namespace(
@@ -249,6 +256,7 @@ replays_long_tasks = app.taskregistry.create_namespace(
 replays_raw_tasks = app.taskregistry.create_namespace(
     "replays.raw",
     app_feature="replays",
+    is_raw_mode=True,
 )
 
 reports_tasks = app.taskregistry.create_namespace(

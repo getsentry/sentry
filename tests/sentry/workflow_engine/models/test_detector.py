@@ -4,6 +4,7 @@ import pytest
 
 from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector import get_detector_project_type_cache_key
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -26,6 +27,22 @@ class DetectorTest(BaseWorkflowTest):
         self.detector.status = ObjectStatus.DELETION_IN_PROGRESS
         self.detector.save()
         assert not Detector.objects.filter(id=self.detector.id).exists()
+
+    def test_detectors_by_organization(self) -> None:
+        project_detector = self.create_detector(project=self.project)
+        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+        result = list(Detector.objects.by_organization(self.organization.id))
+        assert project_detector in result
+        assert all_projects_detector in result
+
+    def test_excludes_other_organizations(self) -> None:
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        other_project_detector = self.create_detector(project=other_project)
+        other_all_projects_detector = ensure_default_all_projects_detector(other_org.id)
+        result = list(Detector.objects.by_organization(self.organization.id))
+        assert other_project_detector not in result
+        assert other_all_projects_detector not in result
 
     def test_get_conditions__cached(self) -> None:
         self.detector.workflow_condition_group = self.create_data_condition_group()

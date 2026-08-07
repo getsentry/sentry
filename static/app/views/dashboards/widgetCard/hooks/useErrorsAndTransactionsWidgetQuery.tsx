@@ -21,6 +21,7 @@ import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDisc
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {shouldUseOnDemandMetrics} from 'sentry/utils/performance/contexts/onDemandControl';
+import {QUERY_API_CLIENT} from 'sentry/utils/queryClient';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {
   doOnDemandMetricsRequest,
@@ -186,7 +187,7 @@ export function useErrorsAndTransactionsSeriesQuery(
                 const fetchFnRef = {
                   current: () =>
                     doOnDemandMetricsRequest(
-                      context.meta?.api,
+                      QUERY_API_CLIENT,
                       onDemandRequestData,
                       filteredWidget.widgetType
                     )
@@ -198,7 +199,7 @@ export function useErrorsAndTransactionsSeriesQuery(
             }
 
             return doOnDemandMetricsRequest(
-              context.meta?.api,
+              QUERY_API_CLIENT,
               onDemandRequestData,
               filteredWidget.widgetType
             ).then(toApiResponse);
