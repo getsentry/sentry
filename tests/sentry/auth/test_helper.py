@@ -38,6 +38,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.user import User
+from sentry.users.models.useremail import UserEmail
 from sentry.utils import json
 from sentry.utils.redis import clusters
 
@@ -172,10 +173,21 @@ class UserResolutionTest(AuthIdentityHandlerTest):
 
 @control_silo_test
 class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
-    def test_skip_confirm_emails_suppresses_email(self) -> None:
+    def test_email_verified_suppresses_confirm_email(self) -> None:
         with mock.patch.object(User, "send_confirm_emails") as mock_send:
-            self.handler.handle_new_user(skip_confirm_emails=True)
+            self.handler.handle_new_user(email_verified=True)
         mock_send.assert_not_called()
+
+    @mock.patch("sentry.auth.helper.user_service.verify_user_email", return_value=False)
+    def test_email_verified_fallback_sends_confirm_email_on_failure(
+        self, mock_verify: mock.MagicMock
+    ) -> None:
+        with mock.patch.object(User, "send_confirm_emails") as mock_send:
+            auth_identity = self.handler.handle_new_user(email_verified=True)
+        mock_verify.assert_called_once()
+        mock_send.assert_called_once()
+        user = auth_identity.user
+        assert UserEmail.objects.get(user=user, email=self.email).is_verified is False
 
     def test_confirm_emails_sent_by_default(self) -> None:
         with mock.patch.object(User, "send_confirm_emails") as mock_send:

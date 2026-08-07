@@ -25,6 +25,7 @@ from sentry import audit_log, features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.audit_log.services.log import AuditLogEvent, log_service
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
+from sentry.auth.email_verification import hash_email
 from sentry.auth.exceptions import (
     AuthIdentityUserMismatch,
     IdentityNotValid,
@@ -59,6 +60,8 @@ from sentry.pipeline.base import Pipeline
 from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth.auth import email_missing_links_control
 from sentry.users.models.user import User
+from sentry.users.models.useremail import UserEmail
+from sentry.users.services.user.service import user_service
 from sentry.utils import auth, metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cache import cache
@@ -525,6 +528,17 @@ class AuthIdentityHandler:
             context["login_form"] = self._login_form
         return self._respond(f"sentry/{template}.html", context)
 
+    def _has_verified_signup_email(self, state: AuthHelperSessionStore) -> bool:
+        """Check if the pipeline has a verified email from the verification flow.
+
+        Consumes the marker on read so it can only be used once.
+        """
+        verified = getattr(state, "verified_email", None)
+        if not verified:
+            return False
+        state.verified_email = None
+        return verified.lower() == self.identity["email"].lower()
+
     def handle_unknown_identity(
         self,
         state: AuthHelperSessionStore,
@@ -604,6 +618,7 @@ class AuthIdentityHandler:
         elif not self._has_usable_password():
             is_new_account = True
 
+        created_new_user = False
         try:
             if op == "confirm" and (self.request.user.is_authenticated or is_account_verified):
                 auth_identity = self.handle_attach_identity()
@@ -621,6 +636,10 @@ class AuthIdentityHandler:
                 return self._build_confirmation_response(is_new_account)
             elif op == "newuser":
                 auth_identity = self.handle_new_user()
+                created_new_user = True
+            elif self._has_verified_signup_email(state):
+                auth_identity = self.handle_new_user(email_verified=True)
+                created_new_user = True
             elif op == "login" and not self._logged_in_user:
                 # confirm authentication, login
                 if self._login_form.is_valid():
@@ -661,7 +680,7 @@ class AuthIdentityHandler:
             )
             return self._build_confirmation_response(is_new_account)
 
-        return self.complete_and_login(auth_identity, state, is_new_user=(op == "newuser"))
+        return self.complete_and_login(auth_identity, state, is_new_user=created_new_user)
 
     def complete_and_login(
         self,
@@ -711,31 +730,53 @@ class AuthIdentityHandler:
         self.request.session.set_test_cookie()
         return None if is_new_account else self.user, "auth-confirm-identity"
 
-    def handle_new_user(self, skip_confirm_emails: bool = False) -> AuthIdentity:
-        user = User.objects.create(
-            username=uuid4().hex,
-            email=self.identity["email"],
-            name=self.identity.get("name", "")[:200],
-        )
+    def handle_new_user(self, email_verified: bool = False) -> AuthIdentity:
+        with transaction.atomic(router.db_for_write(User)):
+            user = User.objects.create(
+                username=uuid4().hex,
+                email=self.identity["email"],
+                name=self.identity.get("name", "")[:200],
+            )
 
-        if settings.TERMS_URL and settings.PRIVACY_URL:
-            user.update(flags=F("flags").bitor(User.flags.newsletter_consent_prompt))
+            if settings.TERMS_URL and settings.PRIVACY_URL:
+                user.update(flags=F("flags").bitor(User.flags.newsletter_consent_prompt))
 
-        try:
-            with transaction.atomic(router.db_for_write(AuthIdentity)):
+            if email_verified:
+                user_email_updated = user_service.verify_user_email(
+                    email=self.identity["email"], user_id=user.id
+                )
+                if not user_email_updated:
+                    # this is possible but should be very rare
+                    email_verified = False
+                    user_emails = UserEmail.objects.filter(user_id=user.id)
+                    logger.warning(
+                        "auth.handle_new_user.user_service.verify_user_email_failed",
+                        extra={
+                            "user_id": user.id,
+                            "email_hash": hash_email(self.identity["email"]),
+                            "num_user_emails": user_emails.count(),
+                            "num_verified_user_emails": user_emails.filter(
+                                is_verified=True
+                            ).count(),
+                        },
+                    )
+
+            try:
+                auth_identity = AuthIdentity.objects.get(
+                    auth_provider=self.auth_provider,
+                    ident=self.identity["id"],
+                )
+                # Use AuthIdentity's custom .update() to log field changes.
+                auth_identity.update(user=user, data=self.identity.get("data", {}))
+            except AuthIdentity.DoesNotExist:
                 auth_identity = AuthIdentity.objects.create(
                     auth_provider=self.auth_provider,
                     user=user,
                     ident=self.identity["id"],
                     data=self.identity.get("data", {}),
                 )
-        except IntegrityError:
-            auth_identity = AuthIdentity.objects.get(
-                auth_provider_id=self.auth_provider.id, ident=self.identity["id"]
-            )
-            auth_identity.update(user=user, data=self.identity.get("data", {}))
 
-        if not skip_confirm_emails:
+        if not email_verified:
             user.send_confirm_emails(is_new_user=True)
         provider = self.auth_provider.provider if self.auth_provider else None
         user_signup.send_robust(
