@@ -12,7 +12,11 @@ import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import type {EventTransaction} from 'sentry/types/event';
+import {
+  EntryType,
+  type EntryBreadcrumbs,
+  type EventTransaction,
+} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
@@ -132,6 +136,10 @@ export function TransactionNodeDetails({
 
   const project = projects.find(proj => proj.slug === event?.projectSlug);
 
+  const breadcrumbs = event.entries.find(
+    (entry): entry is EntryBreadcrumbs => entry.type === EntryType.BREADCRUMBS
+  )?.data;
+
   return (
     <TraceDrawerComponents.DetailContainer>
       <TransactionNodeDetailHeader
@@ -210,7 +218,7 @@ export function TransactionNodeDetails({
           />
         )}
 
-        <BreadCrumbs event={event} />
+        {breadcrumbs ? <BreadCrumbs breadcrumbs={breadcrumbs} /> : null}
 
         {project ? (
           <EventAttachments event={event} project={project} group={undefined} />
@@ -261,7 +269,9 @@ function TransactionSpecificSections(props: TransactionSpecificSectionsProps) {
           {hasSDKContext(event) || cacheMetrics.length > 0 ? (
             <BuiltIn event={event} cacheMetrics={cacheMetrics} />
           ) : null}
-          {hasAdditionalData(event) ? <AdditionalData event={event} /> : null}
+          {hasAdditionalData(event.context) ? (
+            <AdditionalData extra={event.context} meta={event._meta?.context} />
+          ) : null}
           {hasMeasurements(event) ? (
             <Measurements event={event} location={location} organization={organization} />
           ) : null}

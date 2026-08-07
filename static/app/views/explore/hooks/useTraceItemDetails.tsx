@@ -5,6 +5,8 @@ import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import type {RawCrumb} from 'sentry/types/breadcrumbs';
+import type {EventTransaction} from 'sentry/types/event';
 import type {Meta} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {normalizeTimestampToSeconds} from 'sentry/utils/dates';
@@ -66,6 +68,11 @@ export interface TraceItemDetailsResponse {
   itemId: string;
   meta: TraceItemDetailsMeta;
   timestamp: string;
+  event?: {
+    breadcrumbs?: {values: RawCrumb[]};
+    contexts?: EventTransaction['contexts'];
+    extra?: EventTransaction['context'];
+  };
   links?: TraceItemResponseLink[];
 }
 
