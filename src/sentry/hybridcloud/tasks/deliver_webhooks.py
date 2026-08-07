@@ -51,6 +51,15 @@ slow forwarding yields to other tasks
 """
 
 
+PARALLEL_DRAIN_THRESHOLD = int(MAX_MAILBOX_DRAIN / 5)
+"""
+Mailbox depth at which delivery switches from sequential to parallel.
+
+Past this depth a mailbox is behind, and parallel throughput is worth its loss of
+strict ordering.
+"""
+
+
 BATCH_SCHEDULE_OFFSET = datetime.timedelta(minutes=BACKOFF_INTERVAL)
 """
 The time that batches are scheduled into the future when work starts.
@@ -105,6 +114,18 @@ class DeliveryFailed(Exception):
     pass
 
 
+DRAIN_LOCK_TTL = 90
+"""
+Seconds a mailbox drain lock survives without a refresh.
+
+A drain releases its lock explicitly when it finishes, so this TTL only fires when
+one dies without reaching that release (worker kill, OOM). It must outlast the
+longest a live drain can go between refreshes — a single delivery, which the cell
+client bounds at its 30s connect plus 30s read. A shorter TTL lets the lock expire
+under a running drain, and a second drain then starts on the same mailbox.
+"""
+
+
 def _drain_lock_key(mailbox_name: str) -> str:
     return f"wh:drain_active:{mailbox_name}"
 
@@ -112,7 +133,7 @@ def _drain_lock_key(mailbox_name: str) -> str:
 def _refresh_drain_lock(mailbox_name: str) -> None:
     """Refresh the drain lock TTL to signal the drain task is still active."""
     try:
-        cache.set(_drain_lock_key(mailbox_name), 1, timeout=15)
+        cache.set(_drain_lock_key(mailbox_name), 1, timeout=DRAIN_LOCK_TTL)
     except Exception:
         pass
 
@@ -125,12 +146,35 @@ def _release_drain_lock(mailbox_name: str) -> None:
         pass
 
 
+def _mailbox_needs_parallel_drain(mailbox_name: str) -> bool:
+    """
+    Whether this mailbox is deep enough to be drained in parallel.
+
+    The count is capped at the threshold so it stays an index-only scan of that
+    many (mailbox_name, id) entries; mailboxes can hold millions of records, so an
+    unbounded COUNT(*) is not viable here. Reads the primary because the replica
+    lags during the inbound bursts that make a mailbox deep, and a stale read would
+    under-report depth.
+    """
+    depth = (
+        WebhookPayload.objects.filter(mailbox_name=mailbox_name)
+        .order_by("id")
+        .values("id")[:PARALLEL_DRAIN_THRESHOLD]
+        .count()
+    )
+    return depth >= PARALLEL_DRAIN_THRESHOLD
+
+
 def maybe_trigger_drain(mailbox_name: str) -> None:
     """Trigger an immediate drain if one isn't already in-flight for this mailbox.
 
-    Uses cache.add (atomic SETNX-style) with a 15-second TTL for deduplication.
-    Only the first webhook to an idle mailbox triggers a drain; subsequent webhooks
-    within the TTL window are picked up by the already-enqueued drain task.
+    Uses cache.add (atomic SETNX-style) with DRAIN_LOCK_TTL for deduplication. Only
+    the first webhook to an idle mailbox triggers a drain; subsequent webhooks within
+    the TTL window are picked up by the already-enqueued drain task.
+
+    Deep mailboxes go to the parallel drain: the drain holds the lock for its whole
+    run and the scheduler skips locked mailboxes, so a sequential drain here would
+    pin the mailbox to one in-flight request until it finished.
 
     Falls back gracefully if the cache backend is unavailable — the scheduler handles delivery.
     """
@@ -140,7 +184,7 @@ def maybe_trigger_drain(mailbox_name: str) -> None:
     lock_key = _drain_lock_key(mailbox_name)
     lock_acquired = False
     try:
-        if cache.add(lock_key, 1, timeout=15):
+        if cache.add(lock_key, 1, timeout=DRAIN_LOCK_TTL):
             lock_acquired = True
             # Only drain if the true mailbox head (lowest ID) is ready to deliver.
             # We must check the head specifically — filtering by schedule_for first
@@ -159,8 +203,15 @@ def maybe_trigger_drain(mailbox_name: str) -> None:
                 metrics.incr("hybridcloud.deliver_webhooks.push_trigger.backoff")
                 return
             head_id = head[0]
-            drain_mailbox.delay(head_id, mailbox_name=mailbox_name)
-            metrics.incr("hybridcloud.deliver_webhooks.push_trigger.success")
+            if _mailbox_needs_parallel_drain(mailbox_name):
+                drain_mailbox_parallel.delay(head_id, mailbox_name=mailbox_name)
+                drain_mode = "parallel"
+            else:
+                drain_mailbox.delay(head_id, mailbox_name=mailbox_name)
+                drain_mode = "sequential"
+            metrics.incr(
+                "hybridcloud.deliver_webhooks.push_trigger.success", tags={"drain": drain_mode}
+            )
         else:
             metrics.incr("hybridcloud.deliver_webhooks.push_trigger.skipped")
     except Exception:
@@ -246,7 +297,7 @@ def schedule_webhook_delivery() -> None:
             schedule_for=timezone.now() + BATCH_SCHEDULE_OFFSET
         )
         # If we have 1/5 or more in a mailbox we should process in parallel as we're likely behind.
-        if updated_count >= int(MAX_MAILBOX_DRAIN / 5):
+        if updated_count >= PARALLEL_DRAIN_THRESHOLD:
             drain_mailbox_parallel.delay(record["id"])
         else:
             drain_mailbox.delay(record["id"])
@@ -562,6 +613,10 @@ def drain_mailbox_parallel(payload_id: int, mailbox_name: str | None = None) -> 
         return
 
     _set_webhook_delivery_sentry_context(payload)
+    if mailbox_name and options.get("hybridcloud.webhookpayload.push_drain_trigger"):
+        # The discard sweep deletes up to 10k rows before the loop's first refresh,
+        # and the lock has been unrefreshed since the trigger enqueued this task.
+        _refresh_drain_lock(payload.mailbox_name)
     _discard_stale_mailbox_payloads(payload)
 
     skip_on_failure_providers = frozenset(
