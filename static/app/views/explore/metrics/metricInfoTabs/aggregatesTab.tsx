@@ -254,7 +254,10 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
                 {displayFields.map((field, j) => (
                   <AggregatesStyledRowCell
                     key={j}
-                    isAggregate={Boolean(parseFunction(field))}
+                    isAggregate={
+                      Boolean(parseFunction(field)) ||
+                      (isVisualizeEquation(visualize) && isEquation(field))
+                    }
                     offset={j === 0 ? firstColumnOffset : undefined}
                     source="metricsPage"
                   >
