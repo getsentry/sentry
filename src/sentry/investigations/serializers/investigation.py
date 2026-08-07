@@ -212,7 +212,7 @@ class InvestigationDeleteSerializer(StrictCamelSnakeSerializer):
     investigation_version = serializers.IntegerField(min_value=1)
 
 
-class CellCreateSerializer(StrictCamelSnakeSerializer):
+class BlockCreateSerializer(StrictCamelSnakeSerializer):
     investigation_version = serializers.IntegerField(min_value=1)
     kind = serializers.ChoiceField(choices=InvestigationBlockKind.choices)
     title = serializers.CharField(max_length=255, required=False, allow_blank=True)
@@ -239,7 +239,7 @@ class CellCreateSerializer(StrictCamelSnakeSerializer):
         return attrs
 
 
-class CellUpdateSerializer(StrictCamelSnakeSerializer):
+class BlockUpdateSerializer(StrictCamelSnakeSerializer):
     investigation_version = serializers.IntegerField(min_value=1)
     version = serializers.IntegerField(min_value=1)
     title = serializers.CharField(max_length=255, required=False, allow_blank=True)
@@ -258,12 +258,12 @@ class CellUpdateSerializer(StrictCamelSnakeSerializer):
         return attrs
 
 
-class CellDeleteSerializer(StrictCamelSnakeSerializer):
+class BlockDeleteSerializer(StrictCamelSnakeSerializer):
     investigation_version = serializers.IntegerField(min_value=1)
     version = serializers.IntegerField(min_value=1)
 
 
-class CellExecutionStartSerializer(StrictCamelSnakeSerializer):
+class BlockExecutionStartSerializer(StrictCamelSnakeSerializer):
     investigation_version = serializers.IntegerField(min_value=1)
     version = serializers.IntegerField(min_value=1)
     request_id = serializers.UUIDField(required=False)
@@ -287,7 +287,7 @@ class VisualizationSuggestionSerializer(StrictCamelSnakeSerializer):
         return attrs
 
 
-class CellOrderSerializer(StrictCamelSnakeSerializer):
+class BlockOrderSerializer(StrictCamelSnakeSerializer):
     investigation_version = serializers.IntegerField(min_value=1)
     block_ids = serializers.ListField(child=serializers.IntegerField(min_value=1))
 
