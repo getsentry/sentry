@@ -62,7 +62,8 @@ def validate_display(kind: str, display: dict[str, Any]) -> dict[str, Any]:
             return display
         if (
             display_type != "markdown"
-            or display.get("version") != 1
+            or type(display.get("version")) is not int
+            or display["version"] != 1
             or set(display) - {"version", "type", "promptCollapsed"}
             or ("promptCollapsed" in display and not isinstance(display["promptCollapsed"], bool))
         ):
@@ -72,7 +73,7 @@ def validate_display(kind: str, display: dict[str, Any]) -> dict[str, Any]:
     if display_type == "table" and set(display) == {"type"}:
         return display
     if "version" not in display:
-        if display_type not in {"line", "bar", "area"}:
+        if display_type not in ("line", "bar", "area"):
             raise serializers.ValidationError("Invalid legacy query-block display.")
         if set(display) != {"type", "xAxis", "yAxes"}:
             raise serializers.ValidationError("Charts require exactly type, xAxis, and yAxes.")
@@ -103,21 +104,17 @@ def validate_display(kind: str, display: dict[str, Any]) -> dict[str, Any]:
         "defaultView",
         "queryCollapsed",
     }
-    if (
-        display.get("version") != 1
-        or isinstance(display.get("version"), bool)
-        or set(display) - allowed
-    ):
+    if type(display.get("version")) is not int or display["version"] != 1 or set(display) - allowed:
         raise serializers.ValidationError("Invalid versioned query-block display.")
-    if display_type not in {"table", "line", "bar", "area"}:
+    if display_type not in ("table", "line", "bar", "area"):
         raise serializers.ValidationError("Invalid visualization type.")
-    if display.get("defaultView", "table") not in {"table", "chart"}:
+    if display.get("defaultView", "table") not in ("table", "chart"):
         raise serializers.ValidationError("defaultView must be table or chart.")
     if "queryCollapsed" in display and not isinstance(display["queryCollapsed"], bool):
         raise serializers.ValidationError("queryCollapsed must be a boolean.")
-    if display.get("unit", "number") not in {"number", "percentage", "duration", "bytes"}:
+    if display.get("unit", "number") not in ("number", "percentage", "duration", "bytes"):
         raise serializers.ValidationError("Invalid visualization unit.")
-    if display.get("sort", "none") not in {"none", "ascending", "descending"}:
+    if display.get("sort", "none") not in ("none", "ascending", "descending"):
         raise serializers.ValidationError("Invalid visualization sort.")
     for field in ("stacked", "showLegend"):
         if field in display and not isinstance(display[field], bool):
