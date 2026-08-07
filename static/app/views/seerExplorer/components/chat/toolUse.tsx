@@ -427,7 +427,15 @@ function ToolCallRow({
 
   return (
     <Stack gap="xs">
-      <Flex display="inline-flex" align="start" gap="md" maxWidth="100%">
+      {/* Call rows begin with a chevron button that carries its own left padding, so the row gap
+          that separates the indicator from a bare text label would double up into a visible gulf.
+          Let the button's padding do the spacing in that case. */}
+      <Flex
+        display="inline-flex"
+        align="start"
+        gap={hasCallRows ? '0' : 'md'}
+        maxWidth="100%"
+      >
         <Flex
           display="inline-flex"
           align="center"
