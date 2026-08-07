@@ -536,6 +536,41 @@ class DataExportTest(APITestCase):
         assert query_info["field"] == ["message", "timestamp"]
         assert query_info["dataset"] == "logs"
 
+    def test_explore_valid_dataset_tracemetrics(self) -> None:
+        """
+        Tests that the tracemetrics dataset is valid for explore queries
+        """
+        payload = self.make_payload(
+            "explore",
+            {
+                "field": ["model", "sum(value,llm.token_usage,distribution,-)"],
+                "dataset": "tracemetrics",
+            },
+        )
+        with self.feature("organizations:discover-query"):
+            response = self.get_success_response(self.org.slug, status_code=201, **payload)
+        data_export = ExportedData.objects.get(id=response.data["id"])
+        query_info = data_export.query_info
+        assert query_info["field"] == ["model", "sum(value,llm.token_usage,distribution,-)"]
+        assert query_info["dataset"] == "tracemetrics"
+
+    def test_full_export_invalid_dataset_tracemetrics(self) -> None:
+        """
+        Tests that tracemetrics is rejected for full exports, which only support spans and logs
+        """
+        payload = {
+            "query_type": ExportQueryType.TRACE_ITEM_FULL_EXPORT_STR,
+            "query_info": {
+                "field": [],
+                "query": "",
+                "project": [self.project.id],
+                "dataset": "tracemetrics",
+            },
+        }
+        with self.feature("organizations:discover-query"):
+            response = self.get_error_response(self.org.slug, status_code=400, **payload)
+        assert response.data == {"non_field_errors": ["tracemetrics is not supported for exports"]}
+
     def test_explore_valid_jsonl_format(self) -> None:
         payload = self.make_payload("explore", {"format": "jsonl"})
         with self.feature("organizations:discover-query"):
