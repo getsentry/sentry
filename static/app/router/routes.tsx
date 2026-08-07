@@ -1336,7 +1336,10 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
-          component: make(() => import('sentry/views/alerts/list/rules/alertRulesList')),
+          component: make(
+            () =>
+              import('sentry/views/alerts/workflowEngineRedirectWrappers/alertRulesListRedirect')
+          ),
         },
         {
           path: 'details/:ruleId/',
