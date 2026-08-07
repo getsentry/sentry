@@ -499,7 +499,6 @@ class OrganizationInvestigationBlockDetailsEndpoint(OrganizationInvestigationBlo
 @extend_schema(tags=["Investigations"])
 @cell_silo_endpoint
 class OrganizationInvestigationBlockOrderEndpoint(OrganizationInvestigationBase):
-    prefetch_permission_teams = True
     publish_status = {"PUT": ApiPublishStatus.PRIVATE}
 
     def put(
@@ -534,7 +533,6 @@ class OrganizationInvestigationBlockOrderEndpoint(OrganizationInvestigationBase)
 @extend_schema(tags=["Investigations"])
 @cell_silo_endpoint
 class OrganizationInvestigationParametersEndpoint(OrganizationInvestigationBase):
-    prefetch_permission_teams = True
     publish_status = {"PUT": ApiPublishStatus.PRIVATE}
 
     def put(
