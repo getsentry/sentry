@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {useHover} from '@react-aria/interactions';
 import {captureException} from '@sentry/react';
-import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
+import {skipToken, useIsFetching, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -207,51 +207,38 @@ function useTraceItemDetailsPrefetch({
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const project = useProjectFromId({project_id: projectId});
-  const projectRef = useRef(project);
-  projectRef.current = project;
   const queryClient = useQueryClient();
   const [traceItemMeta, setTraceItemMeta] = useState<TraceItemDetailsMeta | undefined>();
   const [traceItemAttributes, setTraceItemAttributes] = useState<
     TraceItemResponseAttribute[] | undefined
   >();
-  const [isPending, setIsPending] = useState(false);
+
+  const options = traceItemDetailsApiOptions({
+    organizationSlug: organization.slug,
+    projectSlug: project?.slug ?? '',
+    traceItemId,
+    traceItemType,
+    referrer,
+    traceId,
+    ...(defined(timestamp)
+      ? {timestamp: normalizeTimestampToSeconds(timestamp)}
+      : normalizeDateTimeParams(selection.datetime)),
+  });
 
   const prefetch = useCallback(() => {
-    const currentProject = projectRef.current;
-    if (!currentProject?.slug) {
+    if (!project?.slug) {
       return;
     }
-    const timeQueryParams = defined(timestamp)
-      ? {timestamp: normalizeTimestampToSeconds(timestamp)}
-      : normalizeDateTimeParams(selection.datetime);
-    const options = traceItemDetailsApiOptions({
-      organizationSlug: organization.slug,
-      projectSlug: currentProject.slug,
-      traceItemId,
-      traceItemType,
-      referrer,
-      traceId,
-      ...timeQueryParams,
-    });
-    setIsPending(true);
     queryClient.fetchQuery(options).then(
       response => {
         setTraceItemMeta(response?.json?.meta);
         setTraceItemAttributes(response?.json?.attributes);
-        setIsPending(false);
       },
-      () => setIsPending(false)
+      () => {}
     );
-  }, [
-    organization.slug,
-    queryClient,
-    referrer,
-    selection.datetime,
-    timestamp,
-    traceId,
-    traceItemId,
-    traceItemType,
-  ]);
+  }, [options, project?.slug, queryClient]);
+
+  const isPending = useIsFetching({queryKey: options.queryKey, exact: true}) > 0;
 
   return {prefetch, project, traceItemMeta, traceItemAttributes, isPending};
 }
