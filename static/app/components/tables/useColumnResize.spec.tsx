@@ -174,7 +174,7 @@ describe('useColumnResize', () => {
 
     act(triggerResizeObservers);
 
-    expect(resizer()).toHaveAttribute('aria-valuenow', '150');
+    expect(resizer()).toHaveValue('150');
   });
 
   it('announces the table width as the upper bound', () => {
