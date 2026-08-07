@@ -7,10 +7,10 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import UTC
-from typing import Any, Literal
+from typing import Any
 
 from sentry.issues.formatting.adapter import event_response_to_model
-from sentry.issues.formatting.formatter import Formatter, MarkdownFormatter, SectionFn, XmlFormatter
+from sentry.issues.formatting.formatter import Format, Formatter, SectionFn, get_formatter
 from sentry.issues.formatting.limits import LIMITS_DEFAULT, Limits
 from sentry.issues.formatting.models import EventObject, Frame, Stacktrace, contains_filtered
 
@@ -278,13 +278,6 @@ def spans_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
     return fmt.block("Span Evidence", _truncate("\n".join(lines), limits.max_spans_chars))
 
 
-Format = Literal["markdown", "xml"]
-
-_FORMATTERS: dict[Format, type[Formatter]] = {
-    "markdown": MarkdownFormatter,
-    "xml": XmlFormatter,
-}
-
 # every section in render order, including the user identifiers that ``EVENT_SECTIONS`` holds
 # back. Pass this only from a surface that already exposes those fields to its caller.
 EVENT_SECTIONS_WITH_USER: list[SectionFn] = [
@@ -319,14 +312,10 @@ def format_issue(
     Returns "" when the payload can't be adapted, matching how ``Formatter.render`` absorbs
     per-section failures, so a malformed event never takes down the caller.
     """
-    try:
-        formatter_cls = _FORMATTERS[format]
-    except KeyError:
-        raise ValueError(f"unsupported format: {format!r}") from None
-
+    formatter = get_formatter(format)
     try:
         model = event_response_to_model(data)
     except Exception:
         logger.exception("formatter.adapter_failed")
         return ""
-    return formatter_cls().render(model, sections, limits)
+    return formatter.render(model, sections, limits)

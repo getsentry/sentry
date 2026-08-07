@@ -9,6 +9,7 @@ import logging
 import re
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Sequence
+from typing import Literal, TypedDict
 
 from sentry.issues.formatting.limits import Limits
 from sentry.issues.formatting.models import EventObject
@@ -83,3 +84,26 @@ class XmlFormatter(Formatter):
 
     def code_block(self, text: str) -> str:
         return f"<code>{text}</code>"
+
+
+Format = Literal["markdown", "xml"]
+
+
+class FormattedResponse(TypedDict):
+    """The ``formatted`` field the mixin adds to a response when ``?llmFormat`` is requested."""
+
+    format: Format
+    content: str
+
+
+_FORMATTERS: dict[Format, type[Formatter]] = {
+    "markdown": MarkdownFormatter,
+    "xml": XmlFormatter,
+}
+
+
+def get_formatter(format: Format) -> Formatter:
+    try:
+        return _FORMATTERS[format]()
+    except KeyError:
+        raise ValueError(f"unsupported format: {format!r}") from None
