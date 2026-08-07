@@ -14,6 +14,7 @@ import {
   useFlatStoryList,
   type StoryCategory,
 } from 'sentry/stories/view/storyTree';
+import {handleExpressiveCodeCopyClick} from 'sentry/utils/expressiveCodeCopy';
 import {useLocation} from 'sentry/utils/useLocation';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import {RouteAnalyticsContextProvider} from 'sentry/views/routeAnalyticsContextProvider';
@@ -120,7 +121,7 @@ function StoryDetail() {
           </Alert.Container>
         </Container>
       ) : story.isSuccess ? (
-        <StoryMainContainer>
+        <StoryMainContainer onClick={handleExpressiveCodeCopyClick}>
           {story.data.map(s => {
             return <StoryExports key={s.filename} story={s} />;
           })}
@@ -253,9 +254,11 @@ function GlobalStoryStyles() {
   const styles = css`
     /* match body background with header story styles */
     body {
-      background-color: ${isIndex
-        ? darkTheme.tokens.background.secondary
-        : theme.tokens.background.secondary};
+      background-color: ${
+        isIndex
+          ? darkTheme.tokens.background.secondary
+          : theme.tokens.background.secondary
+      };
     }
     /* fixed position color block to match overscroll color to story background */
     body::after {
