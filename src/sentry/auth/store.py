@@ -16,6 +16,7 @@ class AuthHelperSessionStore(PipelineSessionStore):
 
     flow = redis_property("flow")
     referrer = redis_property("referrer")
+    verified_email = redis_property("verified_email")
 
     def mark_session(self) -> None:
         super().mark_session()
