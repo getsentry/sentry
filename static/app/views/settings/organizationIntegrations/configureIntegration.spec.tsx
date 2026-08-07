@@ -2,7 +2,14 @@ import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegration
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
+import {selectEvent} from 'sentry-test/selectEvent';
 
 import type {
   IntegrationProvider,
@@ -120,12 +127,14 @@ describe('ConfigureIntegration mapping removals', () => {
           ['1', 'Open'],
           ['3', 'To Do'],
         ] as Array<[string, string]>,
+        placeholder: 'Select resolved status',
       },
       on_unresolve: {
         choices: [
           ['2', 'Closed'],
           ['4', 'Done'],
         ] as Array<[string, string]>,
+        placeholder: 'Select unresolved status',
       },
     },
   };
@@ -251,8 +260,7 @@ describe('ConfigureIntegration mapping removals', () => {
   it('sends all current mappings as objects when updating a mapping', async () => {
     const postRequest = setup({features: ['jira-explicit-mapping-removals']});
 
-    await userEvent.click(await screen.findByText('Open'));
-    await userEvent.click(await screen.findByRole('option', {name: 'To Do'}));
+    await selectEvent.select(await screen.findByText('Open'), 'To Do');
 
     await waitFor(() =>
       expect(postRequest).toHaveBeenCalledWith(
@@ -269,19 +277,20 @@ describe('ConfigureIntegration mapping removals', () => {
     );
   });
 
-  it('does not invent removals when previous mapping data is malformed', async () => {
+  it('does not add removals when previous mapping data is missing', async () => {
     const postRequest = setup({
       features: ['jira-explicit-mapping-removals'],
-      configData: {sync_status_forward: 'malformed'},
+      configData: {},
     });
 
     await userEvent.click(await screen.findByText('Add Project'));
     await userEvent.click(await screen.findByRole('option', {name: 'Project A'}));
-    const emptySelects = await screen.findAllByText('Select...');
-    await userEvent.click(emptySelects[0]!);
-    await userEvent.click(await screen.findByRole('option', {name: 'Open'}));
-    await userEvent.click(await screen.findByText('Select...'));
-    await userEvent.click(await screen.findByRole('option', {name: 'Closed'}));
+    const form = screen.getByTestId(/sync_status_forward.*auto-save/);
+    await selectEvent.select(within(form).getByText('Select resolved status'), 'Open');
+    await selectEvent.select(
+      within(form).getByText('Select unresolved status'),
+      'Closed'
+    );
 
     await waitFor(() =>
       expect(postRequest).toHaveBeenCalledWith(
