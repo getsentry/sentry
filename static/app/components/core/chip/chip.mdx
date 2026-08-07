@@ -18,24 +18,27 @@ The `Chip` renders a compact filter token — `property operator value` — or a
 standalone value. It's presentation only: it holds no filter state, so the
 caller owns the values and any dismiss behavior.
 
-## Variants
+## Composition
 
-- `query` — the value is emphasized in accent; use for an editable search filter.
-- `readonly-query` — the value reads as secondary; use for a non-interactive summary.
-- `value` — just the value, in primary; use for a standalone token.
+`value` is required. Add `property` and `operator` to render a full filter
+token, or pass `value` alone for a standalone token.
+
+- Default (editable filter) — `property` + `operator` + `value`; the value is emphasized in accent.
+- `readonly` — the value reads as secondary and the dismiss affordance is suppressed; use for a non-interactive summary.
+- `value` only — just the value, in primary; use for a standalone token.
 
 <Storybook.Demo>
   <Flex gap="md" align="center" wrap="wrap">
-    <Chip variant="query" property="browser" operator="is" value="Chrome" />
-    <Chip variant="readonly-query" property="browser" operator="is" value="Chrome" />
-    <Chip variant="value" value="Chrome" />
+    <Chip property="browser" operator="is" value="Chrome" />
+    <Chip readonly property="browser" operator="is" value="Chrome" />
+    <Chip value="Chrome" />
   </Flex>
 </Storybook.Demo>
 
 ```jsx
-<Chip variant="query" property="browser" operator="is" value="Chrome" />
-<Chip variant="readonly-query" property="browser" operator="is" value="Chrome" />
-<Chip variant="value" value="Chrome" />
+<Chip property="browser" operator="is" value="Chrome" />
+<Chip readonly property="browser" operator="is" value="Chrome" />
+<Chip value="Chrome" />
 ```
 
 ## Sizes
@@ -57,7 +60,7 @@ Pass `onDismiss` to render a trailing ✕ button. Omit it for a static chip.
 <Storybook.Demo>
   <Flex gap="md" align="center" wrap="wrap">
     <Chip property="browser" operator="is" value="Chrome" onDismiss={() => {}} />
-    <Chip variant="value" value="Chrome" onDismiss={() => {}} />
+    <Chip value="Chrome" onDismiss={() => {}} />
   </Flex>
 </Storybook.Demo>
 
