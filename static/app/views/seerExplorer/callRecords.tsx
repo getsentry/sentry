@@ -2,6 +2,7 @@ import type {LocationDescriptor} from 'history';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {CallRecord} from 'sentry/views/seerExplorer/types';
 import {buildToolLinkUrl} from 'sentry/views/seerExplorer/utils';
 
@@ -70,11 +71,35 @@ export function callRecordUrl(
     if (params.every(name => pathParams[name])) {
       const url = buildToolLinkUrl({kind, params: pathParams}, organization, projects);
       if (url) {
-        return url;
+        return scopeToOrganization(url, organization);
       }
     }
   }
   return null;
+}
+
+/**
+ * Qualify an org-less path with the organization, then normalize.
+ *
+ * `buildToolLinkUrl` is inconsistent about this: some cases return
+ * `/organizations/{slug}/traces/`, others a bare `/issues/54/`. The bare form only resolves under
+ * a customer domain, so it 404s on a plain dev host. Emitting the qualified path and running it
+ * through `normalizeUrl` is correct in both worlds — normalizeUrl strips the prefix back off when
+ * a customer domain is in play.
+ */
+function scopeToOrganization(
+  url: LocationDescriptor,
+  organization: Organization
+): LocationDescriptor {
+  const prefix = `/organizations/${organization.slug}`;
+
+  if (typeof url === 'string') {
+    return normalizeUrl(url.startsWith('/organizations/') ? url : `${prefix}${url}`);
+  }
+  if (!url.pathname || url.pathname.startsWith('/organizations/')) {
+    return normalizeUrl(url);
+  }
+  return normalizeUrl({...url, pathname: `${prefix}${url.pathname}`});
 }
 
 /**

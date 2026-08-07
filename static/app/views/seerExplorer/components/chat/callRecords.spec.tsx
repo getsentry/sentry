@@ -172,6 +172,29 @@ describe('callRecordUrl', () => {
     expect(url).not.toBeNull();
   });
 
+  it('scopes an org-less path to the organization', () => {
+    // A bare `/issues/42/` only resolves under a customer domain, so it 404s on a plain host.
+    const url = callRecordUrl(apiRecord({path_params: {issue_id: '42'}}), organization);
+
+    expect(url).toEqual(
+      expect.objectContaining({
+        pathname: `/organizations/${organization.slug}/issues/42/`,
+      })
+    );
+  });
+
+  it('does not double-prefix a path that is already org-scoped', () => {
+    const url = callRecordUrl(
+      apiRecord({
+        path: '/api/0/organizations/{organization_id_or_slug}/replays/{replay_id}/',
+        path_params: {organization_id_or_slug: 'acme', replay_id: 'r1'},
+      }),
+      organization
+    );
+
+    expect(JSON.stringify(url)).not.toContain('/organizations/acme/organizations/');
+  });
+
   it('prefers the event URL when a record names both an issue and an event', () => {
     const url = callRecordUrl(
       apiRecord({
@@ -224,7 +247,11 @@ describe('callRecordUrl', () => {
         organization
       );
 
-      expect(url).toEqual(expect.objectContaining({pathname: '/issues/54/'}));
+      expect(url).toEqual(
+        expect.objectContaining({
+          pathname: `/organizations/${organization.slug}/issues/54/`,
+        })
+      );
     });
 
     it.each(['latest', 'oldest', 'recommended'])('rejects %s as an event id', alias => {
