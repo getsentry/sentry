@@ -56,13 +56,10 @@ class DebugFileObjectstoreMigrationUtilsTest(TestCase):
                 "sentry.debug_files.objectstore_migration.utils.get_debug_files_session",
                 return_value=session,
             ),
-            patch(
-                "sentry.debug_files.objectstore_migration.utils.upload_dif_to_objectstore",
-                return_value="uploaded-key",
-            ),
             patch("sentry.utils.retries.time.sleep"),
             pytest.raises(MigrationIntegrityError),
         ):
+            session.put.return_value = "uploaded-key"
             migrate_debug_file(self.debug_file)
 
         self.debug_file.refresh_from_db()
@@ -117,12 +114,9 @@ class DebugFileObjectstoreMigrationUtilsTest(TestCase):
                 "sentry.debug_files.objectstore_migration.utils.get_debug_files_session",
                 return_value=session,
             ),
-            patch(
-                "sentry.debug_files.objectstore_migration.utils.upload_dif_to_objectstore",
-                return_value="os-key",
-            ),
             self.captureOnCommitCallbacks(execute=True),
         ):
+            session.put.return_value = "os-key"
             migrate_debug_file(self.debug_file)
 
         self.debug_file.refresh_from_db()

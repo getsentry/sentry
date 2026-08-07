@@ -432,25 +432,6 @@ def detect_single_dif_from_path(
     return result[0]
 
 
-def upload_dif_to_objectstore(
-    session: Session,
-    fileobj: IO[bytes],
-    content_type: str,
-    filename: str,
-    *,
-    key: str | None = None,
-    compression: Literal["none", "zstd"] = "none",
-) -> str:
-    """Uploads a debug file to Objectstore, returning the key under which the file was uploaded."""
-    return session.put(
-        fileobj,
-        key=key,
-        compression=compression,
-        content_type=content_type,
-        filename=filename,
-    )
-
-
 def _get_dif_object_name(meta: DifMeta) -> str:
     if meta.file_format == "proguard":
         return "proguard-mapping"
@@ -542,8 +523,6 @@ def create_dif_from_file(
                 storage_path = upload_dif_to_objectstore(
                     session,
                     source,
-                    content_type,
-                    get_dif_download_filename(meta),
                     compression=(
                         "zstd"
                         if features.has(
@@ -551,6 +530,8 @@ def create_dif_from_file(
                         )
                         else "none"
                     ),
+                    content_type=content_type,
+                    filename=get_dif_download_filename(meta),
                 )
         except Exception:
             logger.exception("Failed to dual-write debug file to Objectstore")
