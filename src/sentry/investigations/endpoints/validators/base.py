@@ -9,7 +9,6 @@ from rest_framework.utils.serializer_helpers import ReturnDict
 from sentry.api.serializers.rest_framework.base import (
     _record_key_case_metric,
     camel_to_snake_case,
-    convert_dict_key_case,
     snake_to_camel_case,
 )
 
@@ -38,10 +37,16 @@ class StrictCamelSnakeValidator(serializers.Serializer[None]):
 
     @property
     def errors(self) -> ReturnDict[Any, Any]:
-        # Raise ValidationError with snake_case keys; they are converted here.
-        # snake_to_camel_case lowercases its first word, so an already-camelCase
-        # key passed through it comes out flattened ("sourceRef" -> "sourceref").
-        return convert_dict_key_case(super().errors, snake_to_camel_case)
+        # Only top-level keys are converted, mirroring __init__: those are this
+        # serializer's snake_case field names. Nested keys belong to JSON
+        # payloads or nested camelCase contracts and are already correct —
+        # converting them would flatten them, since snake_to_camel_case
+        # lowercases its first word ("schemaVersion" -> "schemaversion").
+        errors = super().errors
+        return ReturnDict(
+            {snake_to_camel_case(key): value for key, value in errors.items()},
+            serializer=self,
+        )
 
     def to_internal_value(self, data: Any) -> dict[str, Any]:
         if isinstance(data, dict):

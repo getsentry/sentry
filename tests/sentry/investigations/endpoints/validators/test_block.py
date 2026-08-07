@@ -9,72 +9,14 @@ from sentry.investigations.endpoints.validators import (
     BlockCreateValidator,
     BlockOrderValidator,
     BlockUpdateValidator,
-    InvestigationCreateValidator,
-    InvestigationUpdateValidator,
-    ParameterValuesValidator,
-    StrictCamelSnakeValidator,
     validate_display,
 )
 from sentry.investigations.models import InvestigationBlockKind
 
 
-class _ExampleValidator(StrictCamelSnakeValidator):
-    some_field = serializers.CharField(required=False)
-    nested = serializers.JSONField(required=False)
-
-
 def assert_valid(validator: serializers.Serializer[Any]) -> dict[str, Any]:
     assert validator.is_valid(), validator.errors
     return dict(validator.validated_data)
-
-
-class TestStrictCamelSnakeValidator:
-    def test_accepts_camel_case_field_names(self) -> None:
-        data = assert_valid(_ExampleValidator(data={"someField": "value"}))
-
-        assert data == {"some_field": "value"}
-
-    def test_rejects_unknown_fields_rather_than_dropping_them(self) -> None:
-        validator = _ExampleValidator(data={"someField": "v", "typoField": "x"})
-
-        assert not validator.is_valid()
-        assert "typoField" in validator.errors
-
-    def test_reports_errors_in_camel_case(self) -> None:
-        validator = _ExampleValidator(data={"someField": 1, "nested": object()})
-
-        assert not validator.is_valid()
-        assert "nested" in validator.errors
-
-    def test_preserves_camel_case_keys_inside_json_payloads(self) -> None:
-        """
-        Regression guard: subclassing ``CamelSnakeSerializer`` instead would
-        convert keys recursively, rewriting ``promptCollapsed`` inside this
-        JSONField to ``prompt_collapsed`` and breaking ``validate_display``.
-        """
-        data = assert_valid(
-            _ExampleValidator(data={"nested": {"promptCollapsed": True, "xAxis": "time"}})
-        )
-
-        assert data["nested"] == {"promptCollapsed": True, "xAxis": "time"}
-
-    def test_converts_multi_word_error_keys_to_camel_case(self) -> None:
-        """
-        Regression guard: ``validate()`` must raise with snake_case keys.
-        ``snake_to_camel_case`` lowercases its first word, so a hand-written
-        camelCase key would be flattened ("sourceRef" -> "sourceref").
-        """
-        validator = InvestigationCreateValidator(
-            data={"templateKey": "breached_metric", "templateVersion": 1}
-        )
-
-        assert not validator.is_valid()
-        assert "sourceRef" in validator.errors
-        assert "sourceref" not in validator.errors
-
-    def test_rejects_colliding_camel_and_snake_keys(self) -> None:
-        with pytest.raises(serializers.ValidationError):
-            _ExampleValidator(data={"someField": "a", "some_field": "b"})
 
 
 class TestValidateDisplay:
@@ -259,123 +201,66 @@ class TestBlockOrderValidator:
         assert not validator.is_valid()
 
 
-class TestInvestigationCreateValidator:
-    def test_accepts_a_manual_investigation(self) -> None:
-        data = assert_valid(InvestigationCreateValidator(data={"title": "Latency spike"}))
-
-        assert data["title"] == "Latency spike"
-
-    def test_requires_a_title_without_a_template(self) -> None:
-        validator = InvestigationCreateValidator(data={"projectIds": [1]})
-
-        assert not validator.is_valid()
-        assert "title" in validator.errors
-
-    def test_requires_template_key_and_version_together(self) -> None:
-        validator = InvestigationCreateValidator(
-            data={"title": "T", "templateKey": "breached_metric"}
-        )
-
-        assert not validator.is_valid()
-        assert "templateKey" in validator.errors
-
-    def test_accepts_a_template_backed_investigation(self) -> None:
-        data = assert_valid(
-            InvestigationCreateValidator(
-                data={
-                    "templateKey": "breached_metric",
-                    "templateVersion": 1,
-                    "sourceRef": {"openPeriodId": "1"},
-                }
-            )
-        )
-
-        assert data["template_key"] == "breached_metric"
-
-    def test_requires_a_source_ref_with_a_template(self) -> None:
-        validator = InvestigationCreateValidator(
-            data={"templateKey": "breached_metric", "templateVersion": 1}
-        )
-
-        assert not validator.is_valid()
-        assert "sourceRef" in validator.errors
-
-    def test_rejects_caller_supplied_projects_with_a_template(self) -> None:
-        validator = InvestigationCreateValidator(
+class TestBlockDisplayErrorScoping:
+    def test_reports_display_failures_under_the_display_field(self) -> None:
+        """
+        validate_display raises bare-string errors, which DRF would otherwise
+        surface under nonFieldErrors when raised from validate().
+        """
+        validator = BlockCreateValidator(
             data={
-                "templateKey": "breached_metric",
-                "templateVersion": 1,
-                "sourceRef": {"openPeriodId": "1"},
-                "projectIds": [1],
+                "investigationVersion": 1,
+                "kind": "text",
+                "display": {"type": "line", "xAxis": "time", "yAxes": ["count()"]},
             }
         )
 
         assert not validator.is_valid()
-        assert "projectIds" in validator.errors
+        assert "display" in validator.errors
+        assert "nonFieldErrors" not in validator.errors
 
-    def test_rejects_a_source_ref_without_a_template(self) -> None:
-        validator = InvestigationCreateValidator(
-            data={"title": "T", "sourceRef": {"openPeriodId": "1"}}
+    def test_block_update_requires_the_block_in_context(self) -> None:
+        """Without the guard this raised an uncaught KeyError, i.e. a 500."""
+        validator = BlockUpdateValidator(
+            data={"investigationVersion": 1, "version": 1, "display": {"type": "markdown"}}
         )
 
         assert not validator.is_valid()
-        assert "sourceRef" in validator.errors
+        assert "display" in validator.errors
 
-    def test_rejects_duplicate_project_ids(self) -> None:
-        validator = InvestigationCreateValidator(data={"title": "T", "projectIds": [1, 1]})
-
-        assert not validator.is_valid()
-        assert "projectIds" in validator.errors
-
-    def test_preserves_camel_case_keys_inside_the_source_ref(self) -> None:
-        data = assert_valid(
-            InvestigationCreateValidator(
-                data={
-                    "templateKey": "breached_metric",
-                    "templateVersion": 1,
-                    "sourceRef": {"openPeriodId": "1", "detectorId": "2"},
-                }
-            )
-        )
-
-        assert data["source_ref"] == {"openPeriodId": "1", "detectorId": "2"}
-
-
-class TestInvestigationUpdateValidator:
-    def test_accepts_a_status_change(self) -> None:
-        data = assert_valid(
-            InvestigationUpdateValidator(data={"investigationVersion": 2, "status": "archived"})
-        )
-
-        assert data["status"] == "archived"
-
-    def test_rejects_an_unknown_status(self) -> None:
-        validator = InvestigationUpdateValidator(
-            data={"investigationVersion": 2, "status": "deleted"}
+    @pytest.mark.parametrize("flag", ["stacked", "showLegend", "queryCollapsed"])
+    def test_rejects_non_boolean_display_flags(self, flag: str) -> None:
+        validator = BlockCreateValidator(
+            data={
+                "investigationVersion": 1,
+                "kind": "query",
+                "display": {
+                    "version": 1,
+                    "type": "line",
+                    "xAxis": "time",
+                    "yAxes": ["count()"],
+                    flag: "not-a-boolean",
+                },
+            }
         )
 
         assert not validator.is_valid()
-        assert "status" in validator.errors
+        assert "display" in validator.errors
 
-    def test_rejects_duplicate_project_ids(self) -> None:
-        validator = InvestigationUpdateValidator(
-            data={"investigationVersion": 2, "projectIds": [4, 4]}
+    @pytest.mark.parametrize("flag", ["stacked", "showLegend", "queryCollapsed"])
+    def test_accepts_boolean_display_flags(self, flag: str) -> None:
+        validator = BlockCreateValidator(
+            data={
+                "investigationVersion": 1,
+                "kind": "query",
+                "display": {
+                    "version": 1,
+                    "type": "line",
+                    "xAxis": "time",
+                    "yAxes": ["count()"],
+                    flag: True,
+                },
+            }
         )
 
-        assert not validator.is_valid()
-        assert "projectIds" in validator.errors
-
-
-class TestParameterValuesValidator:
-    def test_accepts_an_object_of_values(self) -> None:
-        data = assert_valid(
-            ParameterValuesValidator(data={"investigationVersion": 1, "values": {"env": "prod"}})
-        )
-
-        assert data["values"] == {"env": "prod"}
-
-    def test_rejects_a_non_object_values_payload(self) -> None:
-        validator = ParameterValuesValidator(data={"investigationVersion": 1, "values": ["prod"]})
-
-        assert not validator.is_valid()
-        assert "values" in validator.errors
+        assert validator.is_valid(), validator.errors

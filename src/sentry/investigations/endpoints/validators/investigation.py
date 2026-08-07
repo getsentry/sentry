@@ -49,6 +49,11 @@ class InvestigationCreateValidator(StrictCamelSnakeValidator):
             raise serializers.ValidationError({"project_ids": "Project IDs must be unique."})
         return attrs
 
+    def validate_filters(self, value: Any) -> dict[str, Any]:
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("Must be an object.")
+        return value
+
 
 class InvestigationUpdateValidator(StrictCamelSnakeValidator):
     investigation_version = serializers.IntegerField(min_value=1)
@@ -60,6 +65,11 @@ class InvestigationUpdateValidator(StrictCamelSnakeValidator):
     def validate_project_ids(self, value: list[int]) -> list[int]:
         if len(value) != len(set(value)):
             raise serializers.ValidationError("Project IDs must be unique.")
+        return value
+
+    def validate_filters(self, value: Any) -> dict[str, Any]:
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("Must be an object.")
         return value
 
 

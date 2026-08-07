@@ -63,8 +63,9 @@ def validate_display(kind: str, display: dict[str, Any]) -> dict[str, Any]:
         raise serializers.ValidationError("Invalid visualization type.")
     if display.get("defaultView", "table") not in {"table", "chart"}:
         raise serializers.ValidationError("defaultView must be table or chart.")
-    if "queryCollapsed" in display and not isinstance(display["queryCollapsed"], bool):
-        raise serializers.ValidationError("queryCollapsed must be a boolean.")
+    for flag in ("queryCollapsed", "stacked", "showLegend"):
+        if flag in display and not isinstance(display[flag], bool):
+            raise serializers.ValidationError(f"{flag} must be a boolean.")
     if display.get("unit", "number") not in {"number", "percentage", "duration", "bytes"}:
         raise serializers.ValidationError("Invalid visualization unit.")
     if display.get("sort", "none") not in {"none", "ascending", "descending"}:
@@ -84,6 +85,13 @@ def validate_display(kind: str, display: dict[str, Any]) -> dict[str, Any]:
     ):
         raise serializers.ValidationError("yAxes must be a non-empty list of strings.")
     return display
+
+
+def _validate_display_field(kind: str, display: dict[str, Any]) -> dict[str, Any]:
+    try:
+        return validate_display(kind, display)
+    except serializers.ValidationError as error:
+        raise serializers.ValidationError({"display": error.detail})
 
 
 class BlockCreateValidator(StrictCamelSnakeValidator):
@@ -107,7 +115,7 @@ class BlockCreateValidator(StrictCamelSnakeValidator):
         )
         if not isinstance(display, dict):
             raise serializers.ValidationError({"display": "Must be an object."})
-        attrs["display"] = validate_display(kind, display)
+        attrs["display"] = _validate_display_field(kind, display)
         if not isinstance(attrs.get("config", {}), dict):
             raise serializers.ValidationError({"config": "Must be an object."})
         return attrs
@@ -126,7 +134,12 @@ class BlockUpdateValidator(StrictCamelSnakeValidator):
         if "display" in attrs:
             if not isinstance(attrs["display"], dict):
                 raise serializers.ValidationError({"display": "Must be an object."})
-            attrs["display"] = validate_display(self.context["block"].kind, attrs["display"])
+            block = self.context.get("block")
+            if block is None:
+                raise serializers.ValidationError(
+                    {"display": "Validating a display requires the block in serializer context."}
+                )
+            attrs["display"] = _validate_display_field(block.kind, attrs["display"])
         if "config" in attrs and not isinstance(attrs["config"], dict):
             raise serializers.ValidationError({"config": "Must be an object."})
         return attrs
@@ -155,9 +168,14 @@ class VisualizationSuggestionValidator(StrictCamelSnakeValidator):
     current_intent = serializers.CharField(max_length=10_000)
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
-        attrs["current_result"] = validate_query_result(attrs["current_result"])
+        try:
+            attrs["current_result"] = validate_query_result(attrs["current_result"])
+        except serializers.ValidationError as error:
+            raise serializers.ValidationError({"current_result": error.detail})
+
         visualization = VisualizationSerializer(data=attrs["visualization"])
-        visualization.is_valid(raise_exception=True)
+        if not visualization.is_valid():
+            raise serializers.ValidationError({"visualization": visualization.errors})
         attrs["visualization"] = dict(visualization.validated_data)
         if not attrs["requested_change"].strip():
             raise serializers.ValidationError(
