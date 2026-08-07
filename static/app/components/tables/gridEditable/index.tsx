@@ -258,7 +258,7 @@ export function GridEditable<
             fit={fit}
             height={height}
             minimumColumnWidth={minimumColWidth}
-            onColumnResize={onColumnResize}
+            onColumnResize={grid.onResizeColumn ? onColumnResize : undefined}
             prependColumnWidths={grid.prependColumnWidths}
             scrollable={scrollable}
           >
