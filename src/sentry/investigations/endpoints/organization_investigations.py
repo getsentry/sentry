@@ -184,7 +184,7 @@ class OrganizationInvestigationBase(OrganizationEndpoint):
             raise ResourceDoesNotExist
         try:
             queryset = Investigation.objects.select_related("organization", "permissions")
-            if self.prefetch_permission_teams:
+            if self.prefetch_permission_teams and request.method == "GET":
                 queryset = queryset.prefetch_related("permissions__teams_with_edit_access")
             investigation = queryset.get(id=investigation_id, organization=organization)
         except (Investigation.DoesNotExist, ValueError):
