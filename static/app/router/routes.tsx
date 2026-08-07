@@ -511,7 +511,7 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: 'rules/',
-          redirectTo: '/organizations/:orgId/alerts/rules/',
+          redirectTo: '/organizations/:orgId/monitors/',
         },
         {
           path: 'rules/new/',
@@ -1335,13 +1335,6 @@ function buildRoutes(): RouteObject[] {
       path: 'rules/',
       children: [
         {
-          index: true,
-          component: make(
-            () =>
-              import('sentry/views/alerts/workflowEngineRedirectWrappers/alertRulesListRedirect')
-          ),
-        },
-        {
           path: 'details/:ruleId/',
           component: make(
             () =>
@@ -1355,8 +1348,8 @@ function buildRoutes(): RouteObject[] {
             {
               index: true,
               redirectTo: forCustomerDomain
-                ? '/alerts/rules/'
-                : '/organizations/:orgId/alerts/rules/',
+                ? '/monitors/'
+                : '/organizations/:orgId/monitors/',
             },
             {
               path: ':ruleId/',
@@ -1412,8 +1405,8 @@ function buildRoutes(): RouteObject[] {
         {
           index: true,
           redirectTo: forCustomerDomain
-            ? '/alerts/rules/'
-            : '/organizations/:orgId/alerts/rules/',
+            ? '/monitors/'
+            : '/organizations/:orgId/monitors/',
         },
         {
           path: ':projectId/',
@@ -1422,8 +1415,8 @@ function buildRoutes(): RouteObject[] {
             {
               index: true,
               redirectTo: forCustomerDomain
-                ? '/alerts/rules/'
-                : '/organizations/:orgId/alerts/rules/',
+                ? '/monitors/'
+                : '/organizations/:orgId/monitors/',
             },
             {
               path: ':ruleId/',
