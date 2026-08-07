@@ -22,6 +22,7 @@ const streamHandlers: {
     onConnect?: () => void;
     onError?: (e: Error) => void;
     onMessage?: (msg: any) => void;
+    startStreamUrl?: string;
   };
 } = {current: {}};
 
@@ -93,6 +94,21 @@ describe('useSeerExplorerStream', () => {
       render();
 
       await waitFor(() => expect(streamHandlers.current.enabled).toBe(true));
+    });
+
+    it('points conduit-client at the /api/0 credentials URL', async () => {
+      // conduit-client fetches this itself instead of going through
+      // api.requestPromise, so nothing prepends /api/0 for it. Without the prefix
+      // the request falls through to the frontend router and resolves to the SPA's
+      // index.html -- an HTML body, not a 404, so it fails as "invalid response"
+      // with no hint about the cause.
+      render();
+
+      await waitFor(() =>
+        expect(streamHandlers.current.startStreamUrl).toBe(
+          '/api/0/organizations/org-slug/seer/explorer-chat/42/stream-credentials/'
+        )
+      );
     });
 
     it('stays closed without the feature', async () => {

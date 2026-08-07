@@ -203,12 +203,16 @@ export function useSeerExplorerStream({
 
   const streamHeaders = useMemo(() => ({'X-CSRFToken': getCsrfToken()}), []);
 
+  // Prefixed with /api/0 because conduit-client fetches this itself rather than
+  // going through `api.requestPromise`, which is what normally prepends it. Without
+  // the prefix the request falls through to the frontend router and resolves to the
+  // SPA's index.html, which fails as "invalid response" rather than as a 404.
   const startStreamUrl =
     orgSlug && runId !== null
-      ? getApiUrl(
+      ? `/api/0${getApiUrl(
           '/organizations/$organizationIdOrSlug/seer/explorer-chat/$runId/stream-credentials/',
           {path: {organizationIdOrSlug: orgSlug, runId}}
-        )
+        )}`
       : '';
 
   useStream<StreamMessage>({
