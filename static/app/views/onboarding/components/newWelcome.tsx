@@ -63,27 +63,25 @@ const PRODUCT_OPTIONS: ProductOption[] = [
     id: OnboardingWelcomeProductId.ERROR_MONITORING,
     icon: <IconWarning size="md" variant="secondary" />,
     title: t('Error monitoring'),
-    description: t('Automatically capture exceptions and stack traces'),
+    description: t('Automatically capture exceptions and stack traces.'),
   },
   {
     id: OnboardingWelcomeProductId.LOGGING,
     icon: <IconTerminal size="md" variant="secondary" />,
     title: t('Logging'),
-    description: t('See logs in context with errors and performance issues'),
+    description: t('See logs in context with errors and performance issues.'),
   },
   {
     id: OnboardingWelcomeProductId.SESSION_REPLAY,
     icon: <IconTimer size="md" variant="secondary" />,
     title: t('Session replay'),
-    description: t('Watch real user sessions to see what went wrong'),
+    description: t('Watch real user sessions to see what went wrong.'),
   },
   {
     id: OnboardingWelcomeProductId.TRACING,
     icon: <IconSpan size="md" variant="secondary" />,
     title: t('Tracing'),
-    description: t(
-      'Find bottlenecks, broken requests, and understand application flow end-to-end.'
-    ),
+    description: t('Find bottlenecks, broken requests, and understand flows end-to-end.'),
   },
   {
     id: OnboardingWelcomeProductId.METRICS,
