@@ -504,6 +504,12 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
 }
 
 export const LogsSidebarCollapseButton = styled(Button)<{sidebarOpen: boolean}>`
+  display: none;
+
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
+    display: inline-flex;
+  }
+
   ${p =>
     p.sidebarOpen &&
     css`
