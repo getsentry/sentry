@@ -1,5 +1,3 @@
-import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
-
 import type {IssueConfigField} from './integrations';
 
 export const enum IssueAlertActionType {
@@ -44,79 +42,29 @@ export const enum IssueAlertConditionType {
   EXISTING_HIGH_PRIORITY_ISSUE = 'sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition',
 }
 
-interface IssueAlertFormFieldChoice {
-  type: 'choice';
-  choices?: Array<[key: string | number, name: string]>;
-  initial?: string;
-  placeholder?: string;
-  resetsForm?: boolean;
-}
-
-interface IssueAlertFormFieldString {
-  type: 'string';
-  initial?: string;
-  placeholder?: string;
-}
-
-interface IssueAlertFormFieldNumber {
-  type: 'number';
-  initial?: string;
-  placeholder?: number | string;
-}
-
-interface IssueAlertFormFieldMailAction {
-  type: 'mailAction';
-  choices?: Array<[key: string | number, name: string]>;
-}
-
-interface IssueAlertFormFieldAssignee {
-  type: 'assignee';
-  choices?: Array<[key: string | number, name: string]>;
-}
-
-/**
- * The fields that are used to render the form for an action or condition.
- */
-type IssueAlertRuleFormField =
-  | IssueAlertFormFieldChoice
-  | IssueAlertFormFieldString
-  | IssueAlertFormFieldNumber
-  | IssueAlertFormFieldMailAction
-  | IssueAlertFormFieldAssignee;
-
 /**
  * These templates that tell the UI how to render the action or condition
  * and what fields it needs
  */
 interface IssueAlertRuleActionTemplate {
-  enabled: boolean;
   id: string;
-  label: string;
   actionType?: 'ticket' | 'sentryapp';
-  formFields?: Record<string, IssueAlertRuleFormField> | SchemaFormConfig;
   link?: string;
   prompt?: string;
   sentryAppInstallationUuid?: string;
   ticketType?: string;
 }
-type IssueAlertRuleConditionTemplate = IssueAlertRuleActionTemplate;
 
 /**
  * These are the action or condition data that the user is editing or has saved.
  */
-export interface IssueAlertRuleAction extends Omit<
-  IssueAlertRuleActionTemplate,
-  'formFields' | 'enabled' | 'label'
-> {
+export interface IssueAlertRuleAction extends IssueAlertRuleActionTemplate {
   // These are the same values as the keys in `formFields` for a template
   [key: string]: any;
   dynamic_form_fields?: IssueConfigField[];
 }
 
-type IssueAlertRuleCondition = Omit<
-  IssueAlertRuleConditionTemplate,
-  'formFields' | 'enabled' | 'label'
-> & {
+type IssueAlertRuleCondition = IssueAlertRuleActionTemplate & {
   dynamic_form_fields?: IssueConfigField[];
 } & Record<string, number | string>;
 
