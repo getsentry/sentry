@@ -165,7 +165,7 @@ describe('TransactionsList', () => {
         })
       ).toBeInTheDocument();
 
-      expect(screen.getAllByTestId('table-header')).toHaveLength(2);
+      expect(screen.getAllByRole('columnheader')).toHaveLength(2);
       expect(
         screen.getByRole('button', {name: 'Filter Transactions'})
       ).toBeInTheDocument();
@@ -231,7 +231,7 @@ describe('TransactionsList', () => {
         ])
       );
 
-      const tableHeadings = screen.getAllByTestId('table-header');
+      const tableHeadings = screen.getAllByRole('columnheader');
       expect(tableHeadings.map(e => e.textContent)).toEqual([
         'transaction',
         'percentage',
@@ -254,7 +254,7 @@ describe('TransactionsList', () => {
 
       expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
 
-      const tableHeadings = screen.getAllByTestId('table-header');
+      const tableHeadings = screen.getAllByRole('columnheader');
       expect(tableHeadings.map(e => e.textContent)).toEqual(['transaction', 'count()']);
     });
 
@@ -274,7 +274,7 @@ describe('TransactionsList', () => {
 
       expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
 
-      const tableHeadings = screen.getAllByTestId('table-header');
+      const tableHeadings = screen.getAllByRole('columnheader');
       expect(tableHeadings.map(e => e.textContent)).toEqual(['foo', 'bar']);
     });
 

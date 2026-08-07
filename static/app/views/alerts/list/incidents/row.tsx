@@ -9,6 +9,7 @@ import {Link} from '@sentry/scraps/link';
 import {Duration} from 'sentry/components/duration';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {IdBadge} from 'sentry/components/idBadge';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {TeamStore} from 'sentry/stores/teamStore';
@@ -50,38 +51,40 @@ export function AlertListRow({incident, projectsLoaded, projects, organization}:
 
   return (
     <ErrorBoundary>
-      <FlexCenter>
-        <Title data-test-id="alert-title">
-          <Link to={alertLink}>{incident.title}</Link>
-        </Title>
-      </FlexCenter>
+      <SimpleTable.Row>
+        <FlexCenter>
+          <Title data-test-id="alert-title">
+            <Link to={alertLink}>{incident.title}</Link>
+          </Title>
+        </FlexCenter>
 
-      <NoWrapNumeric>
-        <TimeSince date={incident.dateStarted} unitStyle="extraShort" />
-      </NoWrapNumeric>
-      <NoWrapNumeric>
-        {incident.status === IncidentStatus.CLOSED ? (
-          <Duration seconds={duration} />
-        ) : (
-          <Tag variant="warning">{t('Still Active')}</Tag>
-        )}
-      </NoWrapNumeric>
+        <NoWrapNumeric>
+          <TimeSince date={incident.dateStarted} unitStyle="extraShort" />
+        </NoWrapNumeric>
+        <NoWrapNumeric>
+          {incident.status === IncidentStatus.CLOSED ? (
+            <Duration seconds={duration} />
+          ) : (
+            <Tag variant="warning">{t('Still Active')}</Tag>
+          )}
+        </NoWrapNumeric>
 
-      <FlexCenter>
-        <ProjectBadge avatarSize={18} project={projectsLoaded ? project : {slug}} />
-      </FlexCenter>
-      <NoWrapNumeric>#{incident.id}</NoWrapNumeric>
+        <FlexCenter>
+          <ProjectBadge avatarSize={18} project={projectsLoaded ? project : {slug}} />
+        </FlexCenter>
+        <NoWrapNumeric>#{incident.id}</NoWrapNumeric>
 
-      <FlexCenter>
-        {teamActor ? (
-          <Fragment>
-            <StyledActorAvatar actor={teamActor} size={18} hasTooltip={false} />{' '}
-            <TeamWrapper>{teamActor.name}</TeamWrapper>
-          </Fragment>
-        ) : (
-          '-'
-        )}
-      </FlexCenter>
+        <FlexCenter>
+          {teamActor ? (
+            <Fragment>
+              <StyledActorAvatar actor={teamActor} size={18} hasTooltip={false} />{' '}
+              <TeamWrapper>{teamActor.name}</TeamWrapper>
+            </Fragment>
+          ) : (
+            '-'
+          )}
+        </FlexCenter>
+      </SimpleTable.Row>
     </ErrorBoundary>
   );
 }
@@ -99,7 +102,7 @@ const ProjectBadge = styled(IdBadge)`
   flex-shrink: 0;
 `;
 
-const FlexCenter = styled('div')`
+const FlexCenter = styled(SimpleTable.RowCell)`
   width: 100%;
   white-space: nowrap;
   overflow: hidden;

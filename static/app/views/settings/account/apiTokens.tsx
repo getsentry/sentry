@@ -3,6 +3,7 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {
   addErrorMessage,
@@ -11,8 +12,8 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {InternalAppApiToken} from 'sentry/types/user';
@@ -25,6 +26,13 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 
 const PAGE_TITLE = t('Personal Tokens');
 const API_TOKEN_QUERY_KEY = [getApiUrl('/api-tokens/')] as const;
+
+const API_TOKEN_COLUMNS: TableColumnConfig[] = [
+  {key: 'token'},
+  {key: 'created'},
+  {key: 'scopes'},
+  {key: 'actions', width: 'min-content'},
+];
 
 function ApiTokens() {
   const api = useApi();
@@ -129,15 +137,27 @@ function ApiTokens() {
           </Stack>
         }
       />
-      <PanelTable
-        headers={[t('Token'), t('Created On'), t('Scopes'), '']}
-        isEmpty={isEmpty}
-        emptyMessage={t("You haven't created any authentication tokens yet.")}
+      <SimpleTable
+        columns={API_TOKEN_COLUMNS}
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{t('Token')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Created On')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Scopes')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell />
+          </SimpleTable.HeaderRow>
+        }
       >
-        {tokenList?.map(token => (
-          <ApiTokenRow key={token.id} token={token} onRemove={deleteToken} canEdit />
-        ))}
-      </PanelTable>
+        {isEmpty ? (
+          <SimpleTable.Empty>
+            {t("You haven't created any authentication tokens yet.")}
+          </SimpleTable.Empty>
+        ) : (
+          tokenList?.map(token => (
+            <ApiTokenRow key={token.id} token={token} onRemove={deleteToken} canEdit />
+          ))
+        )}
+      </SimpleTable>
     </SentryDocumentTitle>
   );
 }
