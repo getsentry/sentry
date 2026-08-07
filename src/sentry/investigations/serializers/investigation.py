@@ -103,7 +103,11 @@ def validate_display(kind: str, display: dict[str, Any]) -> dict[str, Any]:
         "defaultView",
         "queryCollapsed",
     }
-    if display.get("version") != 1 or set(display) - allowed:
+    if (
+        display.get("version") != 1
+        or isinstance(display.get("version"), bool)
+        or set(display) - allowed
+    ):
         raise serializers.ValidationError("Invalid versioned query-block display.")
     if display_type not in {"table", "line", "bar", "area"}:
         raise serializers.ValidationError("Invalid visualization type.")
@@ -115,8 +119,28 @@ def validate_display(kind: str, display: dict[str, Any]) -> dict[str, Any]:
         raise serializers.ValidationError("Invalid visualization unit.")
     if display.get("sort", "none") not in {"none", "ascending", "descending"}:
         raise serializers.ValidationError("Invalid visualization sort.")
-    if "topN" in display and (
-        not isinstance(display["topN"], int) or not 1 <= display["topN"] <= 20
+    for field in ("stacked", "showLegend"):
+        if field in display and not isinstance(display[field], bool):
+            raise serializers.ValidationError(f"{field} must be a boolean.")
+    for field in ("title", "subtitle", "seriesField", "axisLabel"):
+        if field in display and display[field] is not None and not isinstance(display[field], str):
+            raise serializers.ValidationError(f"{field} must be a string or null.")
+    if "xAxis" in display and (not isinstance(display["xAxis"], str) or not display["xAxis"]):
+        raise serializers.ValidationError("xAxis must be a non-empty string.")
+    if "yAxes" in display and (
+        not isinstance(display["yAxes"], list)
+        or not display["yAxes"]
+        or any(not isinstance(axis, str) or not axis for axis in display["yAxes"])
+    ):
+        raise serializers.ValidationError("yAxes must be a non-empty list of strings.")
+    if (
+        "topN" in display
+        and display["topN"] is not None
+        and (
+            isinstance(display["topN"], bool)
+            or not isinstance(display["topN"], int)
+            or not 1 <= display["topN"] <= 20
+        )
     ):
         raise serializers.ValidationError("topN must be between 1 and 20.")
     if display_type == "table":
@@ -405,7 +429,9 @@ def serialize_block(
             for link in getattr(
                 block,
                 "serialized_dependency_links",
-                block.dependency_links.order_by("id").select_related("depends_on"),
+                block.dependency_links.filter(depends_on__deleted_at__isnull=True)
+                .order_by("id")
+                .select_related("depends_on"),
             )
         ],
         "parameterKeys": [
@@ -482,9 +508,11 @@ def serialize_investigation_detail(
         .prefetch_related(
             Prefetch(
                 "dependency_links",
-                queryset=InvestigationBlockDependency.objects.select_related("depends_on").order_by(
-                    "id"
-                ),
+                queryset=InvestigationBlockDependency.objects.filter(
+                    depends_on__deleted_at__isnull=True
+                )
+                .select_related("depends_on")
+                .order_by("id"),
                 to_attr="serialized_dependency_links",
             ),
             Prefetch(
