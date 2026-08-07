@@ -134,6 +134,19 @@ class SeerRunPullRequest(DefaultFieldsModel):
     __repr__ = sane_repr("seer_run_id", "pull_request_id")
 
 
+class RootCauseArtifactExtras(TypedDict):
+    one_line_description: str
+
+
+class SolutionArtifactExtras(TypedDict):
+    one_line_summary: str
+
+
+class SeerRunMilestoneExtras(TypedDict, total=False):
+    root_cause_artifact: RootCauseArtifactExtras
+    solution_artifact: SolutionArtifactExtras
+
+
 @cell_silo_model
 class SeerRunMilestone(DefaultFieldsModel):
     """Records the progress milestones a run reached.
@@ -151,6 +164,7 @@ class SeerRunMilestone(DefaultFieldsModel):
         "seer.SeerRun", on_delete=models.CASCADE, related_name="milestones"
     )
     milestone = models.CharField(max_length=256, choices=SeerRunMilestoneType.choices)
+    extras = models.JSONField(db_default={}, default=dict)
 
     class Meta:
         app_label = "seer"
