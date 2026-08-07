@@ -1,11 +1,14 @@
 import styled from '@emotion/styled';
+import {mergeProps} from '@react-aria/utils';
 
 import {Container} from '@sentry/scraps/layout';
 
+import {useDragMove} from './useDragMove';
+
 export type Orientation = 'horizontal' | 'vertical';
 
-// The handle renders as a 1px border; account for it when a consumer derives
-// layout sizes (e.g. the max size of a panel next to it).
+export type DragHandleAppearance = 'always' | 'hover';
+
 export const DRAG_HANDLE_SIZE = 1;
 
 // At a limit the handle can only travel one way, so point the cursor that way;
@@ -35,19 +38,21 @@ function getDragHandleCursor(
 }
 
 export type DragHandleProps = {
-  isHeld: boolean;
   isSizedFirst: boolean;
   max: number;
   min: number;
   onDoubleClick: React.MouseEventHandler<HTMLElement>;
-  onKeyDown: React.KeyboardEventHandler<HTMLElement>;
-  onPointerDown: React.PointerEventHandler<HTMLElement>;
+  onMove: (delta: number) => void;
   orientation: Orientation;
   value: number;
+  appearance?: DragHandleAppearance;
+  onKeyDown?: React.KeyboardEventHandler<HTMLElement>;
+  onMoveEnd?: () => void;
+  onMoveStart?: () => void;
 };
 
 export function DragHandle({
-  isHeld,
+  appearance = 'always',
   isSizedFirst,
   max,
   min,
@@ -55,8 +60,17 @@ export function DragHandle({
   value,
   onDoubleClick,
   onKeyDown,
-  onPointerDown,
+  onMove,
+  onMoveEnd,
+  onMoveStart,
 }: DragHandleProps) {
+  const {isHeld, moveProps} = useDragMove({
+    onMove,
+    onMoveEnd,
+    onMoveStart,
+    orientation,
+  });
+
   const cursor = getDragHandleCursor(
     orientation,
     value <= min,
@@ -68,17 +82,15 @@ export function DragHandle({
     <Container position="relative" flexShrink={0}>
       {containerProps => (
         <DragHandleLine
-          {...containerProps}
+          {...mergeProps(moveProps, containerProps, {onDoubleClick, onKeyDown})}
           $cursor={cursor}
           aria-orientation={orientation === 'horizontal' ? 'vertical' : 'horizontal'}
           aria-valuemax={Number.isFinite(max) ? max : undefined}
           aria-valuemin={min}
           aria-valuenow={value}
+          data-appearance={appearance}
           data-is-held={isHeld}
           data-orientation={orientation}
-          onDoubleClick={onDoubleClick}
-          onKeyDown={onKeyDown}
-          onPointerDown={onPointerDown}
           role="separator"
           tabIndex={0}
         />
@@ -144,6 +156,17 @@ const DragHandleLine = styled('div')<{$cursor: React.CSSProperties['cursor']}>`
     &::after {
       inset: -2px 0 auto 0;
       height: 4px;
+    }
+  }
+
+  &[data-appearance='hover'] {
+    border-color: transparent;
+    transition: border-color ${p => p.theme.motion.smooth.slow} 0.1s;
+
+    &:hover,
+    &:focus-visible,
+    &[data-is-held='true'] {
+      border-color: ${p => p.theme.tokens.border.primary};
     }
   }
 
