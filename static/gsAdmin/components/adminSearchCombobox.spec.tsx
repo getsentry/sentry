@@ -1,18 +1,18 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {DebounceSearch} from 'admin/components/debounceSearch';
+import {AdminSearchCombobox} from 'admin/components/adminSearchCombobox';
 
 type Result = {
   id: string;
   name: string;
 };
 
-describe('DebounceSearch', () => {
+describe('AdminSearchCombobox', () => {
   it('queries and selects a result', async () => {
     const result: Result = {id: '1', name: 'Alice'};
     const onSelectResult = jest.fn<void, [Result]>();
     render(
-      <DebounceSearch
+      <AdminSearchCombobox
         label="Users"
         placeholder="Query users"
         getResultKey={item => item.id}

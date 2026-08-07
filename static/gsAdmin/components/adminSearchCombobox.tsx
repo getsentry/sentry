@@ -13,7 +13,7 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 const SEARCH_DEBOUNCE_MS = 300;
 
-type SearchOption<TResult> = SelectValue<string> &
+type AdminSearchComboboxOption<TResult> = SelectValue<string> &
   ({kind: 'query'; query: string} | {kind: 'result'; result: TResult});
 
 function getBestMatchScore(searchTerms: readonly string[], query: string) {
@@ -30,7 +30,7 @@ function getBestMatchScore(searchTerms: readonly string[], query: string) {
   return bestScore;
 }
 
-type Props<TQueryData, TResult, TQueryKey extends QueryKey> = {
+type AdminSearchComboboxProps<TQueryData, TResult, TQueryKey extends QueryKey> = {
   getResultKey: (result: TResult) => string;
   getResultSearchTerms: (result: TResult) => readonly string[];
   label: string;
@@ -44,7 +44,7 @@ type Props<TQueryData, TResult, TQueryKey extends QueryKey> = {
   placeholder?: string;
 };
 
-export function DebounceSearch<TQueryData, TResult, TQueryKey extends QueryKey>({
+export function AdminSearchCombobox<TQueryData, TResult, TQueryKey extends QueryKey>({
   getResultKey,
   getResultSearchTerms,
   isExactMatch,
@@ -54,24 +54,22 @@ export function DebounceSearch<TQueryData, TResult, TQueryKey extends QueryKey>(
   placeholder = label,
   queryOptions,
   renderResult,
-}: Props<TQueryData, TResult, TQueryKey>) {
+}: AdminSearchComboboxProps<TQueryData, TResult, TQueryKey>) {
   const inputId = useId();
   const theme = useTheme();
   const [inputValue, setInputValue] = useState('');
   const normalizedInput = inputValue.trim();
+  const hasInput = normalizedInput.length > 0;
   const debouncedQuery = useDebouncedValue(normalizedInput, SEARCH_DEBOUNCE_MS);
 
   const options = queryOptions(debouncedQuery);
   const query = useQuery({
     ...options,
-    enabled:
-      normalizedInput.length > 0 &&
-      debouncedQuery.length > 0 &&
-      options.enabled !== false,
+    enabled: hasInput && debouncedQuery.length > 0 && options.enabled !== false,
   });
 
   const hasSettledInput = normalizedInput === debouncedQuery;
-  const resultOptions: Array<SearchOption<TResult>> = hasSettledInput
+  const resultOptions: Array<AdminSearchComboboxOption<TResult>> = hasSettledInput
     ? (query.data ?? [])
         .map(result => {
           const searchTerms = getResultSearchTerms(result);
@@ -93,30 +91,32 @@ export function DebounceSearch<TQueryData, TResult, TQueryKey extends QueryKey>(
           textValue: searchTerms.join(' '),
         }))
     : [];
-  const selectOptions = onSearch
-    ? [
-        {
-          kind: 'query',
-          query: normalizedInput,
-          value: `query:${normalizedInput}`,
-          label: `Search ${label.toLowerCase()} for "${normalizedInput}"`,
-        } satisfies SearchOption<TResult>,
-        ...resultOptions,
-      ]
-    : resultOptions;
-  const isLoading = normalizedInput.length > 0 && (!hasSettledInput || query.isFetching);
+  const selectOptions =
+    onSearch && hasInput
+      ? [
+          {
+            kind: 'query',
+            query: normalizedInput,
+            value: `query:${normalizedInput}`,
+            label: `Search ${label.toLowerCase()} for "${normalizedInput}"`,
+          } satisfies AdminSearchComboboxOption<TResult>,
+          ...resultOptions,
+        ]
+      : resultOptions;
+  const isLoading = hasInput && (!hasSettledInput || query.isFetching);
 
   return (
     <Stack gap="sm">
       <Text as="label" htmlFor={inputId} bold>
         {label}
       </Text>
-      <Select<SearchOption<TResult>>
+      <Select<AdminSearchComboboxOption<TResult>>
         inputId={inputId}
         inputValue={inputValue}
         isLoading={isLoading}
         isSearchable
-        openMenuOnClick={false}
+        openMenuOnClick={hasInput}
+        openMenuOnFocus={hasInput}
         options={selectOptions}
         placeholder={placeholder}
         styles={{

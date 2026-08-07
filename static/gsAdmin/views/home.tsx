@@ -17,7 +17,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getCells} from 'sentry/utils/cells';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-import {DebounceSearch} from 'admin/components/debounceSearch';
+import {AdminSearchCombobox} from 'admin/components/adminSearchCombobox';
 import {Overview} from 'admin/views/overview';
 
 type OrganizationSearchResult = Pick<OrganizationSummary, 'id' | 'name' | 'slug'>;
@@ -157,7 +157,7 @@ export function HomePage() {
         </Warning>
       </Flex>
       <Container paddingTop="xl">
-        <DebounceSearch
+        <AdminSearchCombobox
           label="Users"
           placeholder="Query users"
           getResultKey={user => user.id}
@@ -189,7 +189,7 @@ export function HomePage() {
         />
 
         <Container paddingTop="xl">
-          <DebounceSearch
+          <AdminSearchCombobox
             label="Organizations"
             placeholder="Query organizations"
             getResultKey={organization => organization.id}
@@ -215,7 +215,7 @@ export function HomePage() {
         </Container>
 
         <Container paddingTop="xl">
-          <DebounceSearch
+          <AdminSearchCombobox
             label="Projects (by ID)"
             placeholder="Project ID"
             getResultKey={project => project.id}
