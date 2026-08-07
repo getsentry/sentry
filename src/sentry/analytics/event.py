@@ -10,6 +10,8 @@ from uuid import UUID, uuid1
 
 from django.utils import timezone
 
+from sentry.analytics.attributes import MCP_UTM_SOURCE_DATA_KEY
+
 logger = logging.getLogger(__name__)
 
 
@@ -120,6 +122,9 @@ class EventEnvelope:
     event: Event
     uuid: UUID = field(default_factory=lambda: uuid1())
     datetime: dt = field(default_factory=timezone.now)
+    # Request-scoped MCP attribution snapshotted at record time. Merged into
+    # ``data`` on serialize so the existing BigQuery schema keeps working.
+    mcp_utm_source: str | None = None
 
     def serialize(self) -> dict[str, Any]:
         return serialize_event_envelope(self)
@@ -128,9 +133,14 @@ class EventEnvelope:
 def serialize_event_envelope(envelope: EventEnvelope) -> dict[str, Any]:
     # TODO: this is the "old-style" attributes based serializer. Once all events are migrated to the new style,
     # we can remove this.
+    data = envelope.event.serialize()
+    if envelope.mcp_utm_source is not None:
+        # Do not overwrite an explicit event field if a future event type adds one.
+        data.setdefault(MCP_UTM_SOURCE_DATA_KEY, envelope.mcp_utm_source)
+
     return {
         "type": envelope.event.type,
         "uuid": b64encode(envelope.uuid.bytes),
         "timestamp": envelope.datetime.timestamp(),
-        "data": envelope.event.serialize(),
+        "data": data,
     }

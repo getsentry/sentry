@@ -102,3 +102,29 @@ class EventTest(TestCase):
 
         with self.assertNoLogs("sentry.analytics.event"):
             ExampleEventWithoutEventclass(id="1", map={"key": "value"})  # type: ignore[arg-type]
+
+    @patch("sentry.analytics.event.uuid1")
+    def test_serialize_merges_mcp_utm_source(self, mock_uuid1: MagicMock) -> None:
+        mock_uuid1.return_value = self.get_mock_uuid()
+
+        result = EventEnvelope(
+            event=ExampleEvent(
+                id=1,
+                map={"key": "value"},
+                optional=False,
+            ),
+            datetime=datetime(2001, 4, 18, tzinfo=timezone.utc),
+            mcp_utm_source="plugin",
+        )
+
+        assert result.serialize() == {
+            "data": {
+                "id": 1,
+                "map": {"key": "value"},
+                "optional": False,
+                "mcp_utm_source": "plugin",
+            },
+            "type": "example",
+            "timestamp": 987552000,
+            "uuid": b"AAEC",
+        }

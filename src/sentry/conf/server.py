@@ -397,6 +397,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.auth.AuthenticationMiddleware",
     "sentry.middleware.suspended.SuspendedUserMiddleware",
     "sentry.middleware.viewer_context.ViewerContextMiddleware",
+    "sentry.middleware.mcp_utm_source.McpUtmSourceMiddleware",
     "sentry.middleware.ai_agent.AIAgentMiddleware",
     "sentry.middleware.integrations.IntegrationControlMiddleware",
     "sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware",

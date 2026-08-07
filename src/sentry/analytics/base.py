@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 
+from sentry.analytics.attributes import get_mcp_utm_source
 from sentry.analytics.event import Event, EventEnvelope
 from sentry.utils.services import Service
 
@@ -26,7 +27,12 @@ class Analytics(Service, abc.ABC):
         ...     )
         ... )
         """
-        self.record_event_envelope(EventEnvelope(event=event))
+        self.record_event_envelope(
+            EventEnvelope(
+                event=event,
+                mcp_utm_source=get_mcp_utm_source(),
+            )
+        )
 
     def record_event_envelope(self, envelope: EventEnvelope) -> None:
         pass
