@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from datetime import timedelta
 
 import sentry_sdk
 from django.db.models import Exists, OuterRef
 from taskbroker_client.retry import Retry
 
+from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org.calculations import (
@@ -61,6 +63,8 @@ logger = logging.getLogger(__name__)
 
 # How long a full pass through all organizations should take.
 CYCLE_DURATION = timedelta(minutes=10)
+
+DYNAMIC_SAMPLING_FEATURE = "organizations:dynamic-sampling"
 
 
 @instrumented_task(
@@ -222,6 +226,26 @@ def log_sample_rates_summary(
     )
 
 
+def _organizations_in_rollout(organizations: Sequence[Organization]) -> list[Organization]:
+    return [organization for organization in organizations if is_org_in_rollout(organization.id)]
+
+
+def _organizations_with_feature(
+    organizations: Sequence[Organization],
+) -> list[Organization]:
+    if not organizations:
+        return []
+
+    # None means the feature backend could not answer. Scheduling the organizations anyway
+    # would ignore the flag entirely, so skip them and pick them up on the next cycle.
+    results = features.batch_has_for_organizations(DYNAMIC_SAMPLING_FEATURE, organizations) or {}
+    return [
+        organization
+        for organization in organizations
+        if results.get(f"organization:{organization.id}", False)
+    ]
+
+
 @instrumented_task(
     name="sentry.dynamic_sampling.per_org.schedule_per_org_calculations",
     namespace=telemetry_experience_tasks,
@@ -232,15 +256,17 @@ def log_sample_rates_summary(
 @track_dynamic_sampling
 def schedule_per_org_calculations() -> None:
     dispatched = 0
-    skipped = 0
+    not_in_rollout = 0
+    no_feature = 0
 
-    def validate_and_track(org_id: int) -> bool:
-        nonlocal dispatched, skipped
-        if not is_org_in_rollout(org_id):
-            skipped += 1
-            return False
-        dispatched += 1
-        return True
+    def validate_and_track(organizations: Sequence[Organization]) -> list[int]:
+        nonlocal dispatched, not_in_rollout, no_feature
+        in_rollout = _organizations_in_rollout(organizations)
+        eligible = _organizations_with_feature(in_rollout)
+        dispatched += len(eligible)
+        not_in_rollout += len(organizations) - len(in_rollout)
+        no_feature += len(in_rollout) - len(eligible)
+        return [organization.id for organization in eligible]
 
     scheduler = CursoredScheduler(
         name="ds_per_org",
@@ -256,7 +282,7 @@ def schedule_per_org_calculations() -> None:
         ),
         task=run_calculations_per_org_task_entry,
         cycle_duration=CYCLE_DURATION,
-        validate_item=validate_and_track,
+        prevalidate_batch=validate_and_track,
     )
     scheduler.tick()
 
@@ -268,5 +294,10 @@ def schedule_per_org_calculations() -> None:
     emit_status(
         SCHEDULER_BUCKET_ORG_STATUS_METRIC,
         DynamicSamplingStatus.ROLLOUT_EXCLUDED,
-        amount=skipped,
+        amount=not_in_rollout,
+    )
+    emit_status(
+        SCHEDULER_BUCKET_ORG_STATUS_METRIC,
+        DynamicSamplingStatus.NO_FEATURE,
+        amount=no_feature,
     )
