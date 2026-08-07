@@ -3,10 +3,7 @@ from __future__ import annotations
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry.investigations.models import (
-    InvestigationBlock,
-    InvestigationPermissionsTeam,
-)
+from sentry.investigations.models import InvestigationBlock
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 
@@ -484,7 +481,7 @@ class InvestigationBlockEndpointTest(APITestCase):
         assert response.status_code == 403
 
         team = self.create_team(organization=self.organization, members=[other_user])
-        InvestigationPermissionsTeam.objects.create(permissions=permissions, team=team)
+        permissions.teams_with_edit_access.add(team)
         response = self.client.post(
             self.blocks_url(),
             data={"investigationVersion": 1, "kind": "text"},
@@ -537,7 +534,75 @@ class InvestigationBlockEndpointTest(APITestCase):
         assert response.data["isEditableByEveryone"] is False
         assert response.data["canManage"] is True
 
-    def test_permission_update_validates_notebook_version_and_team_organization(self) -> None:
+    def test_permission_update_grants_and_replaces_team_access(self) -> None:
+        editor = self.create_user()
+        self.create_member(organization=self.organization, user=editor, role="member")
+        editor_team = self.create_team(organization=self.organization, members=[editor])
+        other_team = self.create_team(organization=self.organization)
+        url = reverse(
+            "sentry-api-0-organization-investigation-permissions",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": self.investigation.id,
+            },
+        )
+
+        response = self.client.put(
+            url,
+            data={
+                "investigationVersion": self.investigation.version,
+                "isEditableByEveryone": False,
+                "teamIds": [other_team.id, editor_team.id],
+            },
+            format="json",
+        )
+        assert response.status_code == 200
+        assert response.data["teamIds"] == sorted([editor_team.id, other_team.id])
+        permissions = self.investigation.permissions
+        permissions.refresh_from_db()
+        self.investigation.refresh_from_db()
+        assert set(permissions.teams_with_edit_access.values_list("id", flat=True)) == {
+            editor_team.id,
+            other_team.id,
+        }
+        assert self.investigation.version == 2
+
+        self.login_as(editor)
+        response = self.client.post(
+            self.blocks_url(),
+            data={"investigationVersion": self.investigation.version, "kind": "text"},
+            format="json",
+        )
+        assert response.status_code == 201
+
+        self.login_as(self.user)
+        self.investigation.refresh_from_db()
+        response = self.client.put(
+            url,
+            data={
+                "investigationVersion": self.investigation.version,
+                "isEditableByEveryone": False,
+                "teamIds": [other_team.id],
+            },
+            format="json",
+        )
+        assert response.status_code == 200
+        permissions.refresh_from_db()
+        self.investigation.refresh_from_db()
+        assert set(permissions.teams_with_edit_access.values_list("id", flat=True)) == {
+            other_team.id
+        }
+        assert self.investigation.version == 4
+
+        self.login_as(editor)
+        response = self.client.post(
+            self.blocks_url(),
+            data={"investigationVersion": self.investigation.version, "kind": "text"},
+            format="json",
+        )
+        assert response.status_code == 403
+
+    def test_permission_update_validates_investigation_version_and_team_organization(self) -> None:
         url = reverse(
             "sentry-api-0-organization-investigation-permissions",
             kwargs={
@@ -555,7 +620,12 @@ class InvestigationBlockEndpointTest(APITestCase):
             format="json",
         )
         assert response.status_code == 409
-        assert self.investigation.permissions.is_editable_by_everyone is True
+        permissions = self.investigation.permissions
+        permissions.refresh_from_db()
+        self.investigation.refresh_from_db()
+        assert permissions.is_editable_by_everyone is True
+        assert list(permissions.teams_with_edit_access.all()) == []
+        assert self.investigation.version == 1
 
         foreign_team = self.create_team(organization=self.create_organization())
         response = self.client.put(
@@ -568,13 +638,17 @@ class InvestigationBlockEndpointTest(APITestCase):
             format="json",
         )
         assert response.status_code == 400
+        permissions.refresh_from_db()
+        self.investigation.refresh_from_db()
+        assert permissions.is_editable_by_everyone is True
+        assert list(permissions.teams_with_edit_access.all()) == []
+        assert self.investigation.version == 1
 
     def test_permission_get_returns_configured_teams(self) -> None:
         permissions = self.investigation.permissions
         first_team = self.create_team(organization=self.organization)
         second_team = self.create_team(organization=self.organization)
-        InvestigationPermissionsTeam.objects.create(permissions=permissions, team=second_team)
-        InvestigationPermissionsTeam.objects.create(permissions=permissions, team=first_team)
+        permissions.teams_with_edit_access.add(second_team, first_team)
         url = reverse(
             "sentry-api-0-organization-investigation-permissions",
             kwargs={
@@ -682,7 +756,7 @@ class InvestigationBlockEndpointTest(APITestCase):
         team_editor = self.create_user()
         self.create_member(organization=self.organization, user=team_editor, role="member")
         team = self.create_team(organization=self.organization, members=[team_editor])
-        InvestigationPermissionsTeam.objects.create(permissions=permissions, team=team)
+        permissions.teams_with_edit_access.add(team)
         self.login_as(team_editor)
         response = self.client.get(detail_url)
         assert response.data["permissions"]["canEdit"] is True
