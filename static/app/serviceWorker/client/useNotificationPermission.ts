@@ -31,14 +31,15 @@ function ensurePermissionStatus() {
         queryPromise = undefined;
         return;
       }
+      status.addEventListener('change', emitChange);
       permissionStatus = status;
-      permissionStatus.addEventListener('change', emitChange);
       // Sync in case the permission changed while the query was in flight.
       emitChange();
     })
     .catch(() => {
       // Some browsers reject `query` for the 'notifications' name. In that
       // case we silently fall back to reading `Notification.permission`.
+      permissionStatus = undefined;
       queryPromise = undefined;
     });
 }
@@ -50,7 +51,9 @@ function subscribe(onStoreChange: () => void) {
   return () => {
     listeners.delete(onStoreChange);
     if (listeners.size === 0 && permissionStatus) {
-      permissionStatus.removeEventListener('change', emitChange);
+      if (typeof permissionStatus.removeEventListener === 'function') {
+        permissionStatus.removeEventListener('change', emitChange);
+      }
       permissionStatus = undefined;
       queryPromise = undefined;
     }
