@@ -1224,6 +1224,8 @@ export default typescript.config([
       // Analyze both static and dynamic imports for boundary checks
       // https://www.jsboundaries.dev/docs/setup/settings/#boundariesdependency-nodes
       'boundaries/dependency-nodes': ['import', 'dynamic-import'],
+      // All descriptors and selectors use the v7 entity model.
+      'boundaries/legacy-warnings': false,
       // order matters here because of nested directories
       'boundaries/elements': [
         {
@@ -1241,7 +1243,7 @@ export default typescript.config([
         },
         // --- scraps core components ---
         {
-          type: 'core',
+          type: 'scraps',
           pattern: 'static/app/components/core',
         },
         // --- sentry ---
@@ -1256,10 +1258,6 @@ export default typescript.config([
         {
           type: 'sentry-fonts',
           pattern: 'static/fonts',
-        },
-        {
-          type: 'sentry-fixture',
-          pattern: 'tests/js/fixtures',
         },
         {
           type: 'sentry',
@@ -1289,41 +1287,39 @@ export default typescript.config([
           pattern: 'static/eslint',
         },
       ],
-      // File categories replace the old file-level element descriptors.
       // Unlike elements, file descriptors match the complete file path and
       // can therefore preserve the file-level classifications used below.
       'boundaries/files': [
-        // --- figma code connect ---
-        {
-          category: 'figma-code-connect',
-          pattern: '**/*.figma.{tsx,jsx}',
-        },
         // --- stories ---
         {
           category: 'story-files',
-          pattern: ['static/**/*.stories.{ts,tsx}', 'static/**/*.mdx'],
+          pattern: [
+            'static/app/stories/**/*',
+            '**/__stories__/**/*',
+            'static/**/*.stories.{ts,tsx}',
+            'static/**/*.mdx',
+          ],
         },
         // --- tests ---
         {
-          category: 'test-sentry',
+          category: 'test',
           pattern: [
-            'static/app/**/*.spec.{ts,js,tsx,jsx}',
-            'static/app/**/*.snapshots.tsx',
-            'tests/js/sentry-test/**/*.*',
-            'static/app/**/*{t,T}estUtils*.{js,mjs,ts,tsx}',
+            'static/**/*.spec.{js,jsx,ts,tsx}',
+            'static/**/*.test.{js,jsx,ts,tsx}',
+            'static/**/*.snapshots.{js,jsx,ts,tsx}',
+            'tests/js/**/*.spec.{js,jsx,ts,tsx}',
+            'tests/js/**/*.test.{js,jsx,ts,tsx}',
           ],
         },
         {
-          category: 'test-getsentry',
+          category: 'test-support',
           pattern: [
-            'static/gsApp/**/*.spec.{ts,js,tsx,jsx}',
-            'static/gsApp/**/*.snapshots.tsx',
-            'tests/js/getsentry-test/**/*.*',
+            'tests/js/fixtures/**/*',
+            'tests/js/sentry-test/**/*',
+            'tests/js/getsentry-test/**/*',
+            'static/gsApp/__fixtures__/**/*',
+            'static/**/*{t,T}estUtils*.{js,jsx,mjs,ts,tsx}',
           ],
-        },
-        {
-          category: 'test-gsAdmin',
-          pattern: ['static/gsAdmin/**/*.spec.{ts,js,tsx,jsx}'],
         },
         // --- sentry ---
         {
@@ -1346,141 +1342,181 @@ export default typescript.config([
         'error',
         {
           default: 'disallow',
-          message: '{{from.type}} is not allowed to import {{to.type}}',
+          checkInternals: true,
+          message: '{{from.element.type}} is not allowed to import {{to.element.type}}',
           policies: [
-            // --- figma code connect ---
+            // --- app graph ---
+            // Sentry is the shared base application. Getsentry and gsAdmin
+            // inherit it, while their own elements are only available within
+            // their respective applications.
             {
-              from: [{file: {categories: 'figma-code-connect'}}],
-              allow: [{to: {element: {type: 'core*'}, file: {categories: null}}}],
+              from: [
+                {element: {type: 'sentry'}},
+                {element: {type: 'getsentry'}},
+                {element: {type: 'gsAdmin'}},
+                {element: {type: 'test'}},
+                {element: {type: 'story-book'}},
+                {element: {type: 'debug-tools'}},
+              ],
+              allow: [{to: {element: {type: 'sentry*'}}}],
             },
             {
-              from: [{element: {type: 'sentry*'}, file: {categories: null}}],
+              from: {element: {type: 'getsentry'}},
+              allow: [{to: {element: {type: 'getsentry'}}}],
+            },
+            {
+              from: {element: {type: 'gsAdmin'}},
+              disallow: {to: {file: {categories: 'sentry-locale'}}},
               allow: [
-                {to: {element: {type: 'core*'}, file: {categories: null}}},
-                {to: {element: {type: 'sentry*'}, file: {categories: null}}},
+                {to: {element: {type: 'gsAdmin'}}},
+                {to: {element: {type: 'getsentry'}}},
               ],
             },
             {
-              from: [{element: {type: 'getsentry*'}, file: {categories: null}}],
+              from: {element: {type: 'debug-tools'}},
+              allow: [{to: {element: {type: 'debug-tools'}}}],
+            },
+            // --- stories ---
+            // Story files inherit their containing app's permissions through
+            // the app graph above. Storybook itself can load Storybook files.
+            {
+              from: [
+                {element: {type: 'story-book'}},
+                {file: {categories: 'story-files'}},
+              ],
               allow: [
-                {to: {element: {type: 'core*'}, file: {categories: null}}},
-                {to: {element: {type: 'getsentry*'}, file: {categories: null}}},
-                {to: {element: {type: 'sentry*'}, file: {categories: null}}},
+                {to: {element: {type: 'story-book'}}},
+                {to: {file: {categories: 'story-files'}}},
               ],
             },
+            // --- test support ---
+            // GetSentry fixtures contain GetSentry types and need the same
+            // access as tests living under static/gsApp.
             {
-              from: [{element: {type: 'gsAdmin*'}, file: {categories: null}}],
-              disallow: [{to: {file: {categories: 'sentry-locale'}}}],
-              allow: [
-                {to: {element: {type: 'core*'}, file: {categories: null}}},
-                {to: {element: {type: 'gsAdmin*'}, file: {categories: null}}},
-                {to: {element: {type: 'sentry*'}, file: {categories: null}}},
-                {to: {element: {type: 'getsentry*'}, file: {categories: null}}},
-              ],
-            },
-            {
-              from: [{file: {categories: 'test-sentry'}}],
-              allow: [
-                {to: {file: {categories: 'test-sentry'}}},
-                {to: {element: {type: 'test'}, file: {categories: null}}},
-                {to: {element: {type: 'core*'}, file: {categories: null}}},
-                {to: {element: {type: 'sentry*'}, file: {categories: null}}},
-              ],
-            },
-            {
-              // todo does test-gesentry need test-sentry?
-              from: [{file: {categories: 'test-getsentry'}}],
-              allow: [
-                {to: {file: {categories: 'test-getsentry'}}},
-                {to: {file: {categories: 'test-sentry'}}},
-                {to: {element: {type: 'test'}, file: {categories: null}}},
-                {to: {element: {type: 'core*'}, file: {categories: null}}},
-                {to: {element: {type: 'getsentry*'}, file: {categories: null}}},
-                {to: {element: {type: 'sentry*'}, file: {categories: null}}},
-              ],
-            },
-            {
-              from: [{file: {categories: 'test-gsAdmin'}}],
-              allow: [
-                {to: {file: {categories: 'test-gsAdmin'}}},
-                {to: {file: {categories: 'test-getsentry'}}},
-                {to: {file: {categories: 'test-sentry'}}},
-                {to: {element: {type: 'test'}, file: {categories: null}}},
-                {to: {element: {type: 'core*'}, file: {categories: null}}},
-                {to: {element: {type: 'gsAdmin*'}, file: {categories: null}}},
-                {to: {element: {type: 'sentry*'}, file: {categories: null}}},
-                {to: {element: {type: 'getsentry*'}, file: {categories: null}}},
-              ],
-            },
-            {
-              from: [{element: {type: 'test'}, file: {categories: null}}],
-              allow: [
-                {to: {element: {type: 'test'}, file: {categories: null}}},
-                {to: {file: {categories: 'test-sentry'}}},
-                {to: {element: {type: 'sentry*'}, file: {categories: null}}},
-              ],
+              from: {file: {path: 'tests/js/getsentry-test/**/*'}},
+              allow: [{to: {element: {type: 'getsentry'}}}],
             },
             {
               from: [{file: {categories: 'configs'}}],
               allow: [
                 {to: {file: {categories: 'configs'}}},
-                {to: {element: {type: 'build-utils'}, file: {categories: null}}},
+                {to: {element: {type: 'build-utils'}}},
               ],
             },
-            // --- stories ---
+            // Test files and test support may use each other, but production
+            // files must not import either category.
+            {
+              disallow: {
+                from: {
+                  file: [
+                    {isUnknown: true, isIgnored: false},
+                    {
+                      categories: {noneOf: ['test', 'test-support']},
+                      isIgnored: false,
+                    },
+                  ],
+                },
+                to: {
+                  file: {categories: {anyOf: ['test', 'test-support']}},
+                },
+              },
+            },
             {
               from: [
-                {file: {categories: 'story-files'}},
-                {element: {type: 'story-book'}, file: {categories: null}},
+                {element: {type: 'test'}},
+                {file: {categories: {anyOf: ['test', 'test-support']}}},
               ],
               allow: [
-                {to: {element: {type: 'core*'}, file: {categories: null}}},
-                {to: {element: {type: 'sentry*'}, file: {categories: null}}},
-                {to: {element: {type: 'story-book'}, file: {categories: null}}},
+                {to: {element: {type: 'test'}}},
+                {to: {file: {categories: 'test'}}},
+                {to: {file: {categories: 'test-support'}}},
               ],
             },
-            // --- debug tools (e.g. notifications) ---
+            // Production code cannot import stories. Storybook and story
+            // files are reopened below so Storybook can load its own sources.
             {
-              from: [{element: {type: 'debug-tools'}, file: {categories: null}}],
-              allow: [
-                {to: {element: {type: 'core*'}, file: {categories: null}}},
-                {to: {element: {type: 'sentry*'}, file: {categories: null}}},
-                {to: {element: {type: 'debug-tools'}, file: {categories: null}}},
-              ],
-            },
-            // --- core ---
-            // todo: sentry* shouldn't be allowed
-            {
-              from: [{element: {type: 'core'}, file: {categories: null}}],
-              allow: [
-                {to: {element: {type: 'core*'}, file: {categories: null}}},
-                {to: {element: {type: 'sentry*'}, file: {categories: null}}},
-              ],
-            },
-            // --- core entry points (enforce isolation) ---
-            {
-              to: {
-                element: {
-                  type: 'core',
-                  fileInternalPath:
-                    '!(*.{ts,tsx}|*/index.{ts,tsx}|**/*.png|**/__stories__/*.{ts,tsx})',
-                },
-                file: {categories: null},
-              },
               disallow: {
-                from: {element: {type: '*'}},
+                from: {
+                  file: [
+                    {isUnknown: true, isIgnored: false},
+                    {
+                      categories: {noneOf: ['story-files']},
+                      isIgnored: false,
+                    },
+                  ],
+                },
+                to: {file: {categories: 'story-files'}},
               },
+            },
+            {
+              from: [
+                {element: {type: 'story-book'}},
+                {file: {categories: 'story-files'}},
+              ],
+              allow: [
+                {to: {element: {type: 'story-book'}}},
+                {to: {file: {categories: 'story-files'}}},
+              ],
+            },
+            // --- scraps public interface ---
+            // Deny every scraps implementation file first. The public
+            // index-file and scraps-internal policies below selectively reopen
+            // the intended paths. Keeping this block after the story grants
+            // prevents a story-file allowance from reopening private scraps
+            // implementation files.
+            {
+              message:
+                '{{from.element.type}} can import scraps only through public index files; "{{to.element.fileInternalPath}}" is an internal scraps implementation file',
+              disallow: {to: {element: {type: 'scraps'}}},
+            },
+            {
+              allow: [
+                {
+                  to: {
+                    element: {
+                      type: 'scraps',
+                      fileInternalPath: '**/index.{ts,tsx}',
+                    },
+                  },
+                },
+                {
+                  to: {
+                    element: {
+                      type: 'scraps',
+                      fileInternalPath: '!(*.{spec,test,snapshots}).{js,mjs,ts,jsx,tsx}',
+                    },
+                  },
+                },
+              ],
+            },
+            {
+              from: {element: {type: 'scraps'}},
+              allow: [{to: {element: {type: 'scraps'}}}],
+            },
+            // Keep this restriction explicit. The public top-level component
+            // files below are reopened after it.
+            {
+              from: {element: {type: 'scraps'}},
+              disallow: {to: {element: {type: 'sentry*'}}},
+            },
+            // Top-level component files are also part of the public
+            // scraps interface.
+            {
+              from: {element: {type: 'scraps'}},
+              allow: [
+                {
+                  to: {
+                    element: {
+                      type: 'sentry',
+                      fileInternalPath: 'components/*',
+                    },
+                  },
+                },
+              ],
             },
           ],
         },
       ],
-    },
-  },
-  {
-    name: 'files/core-inspector',
-    files: ['static/app/components/core/inspector.tsx'],
-    rules: {
-      'boundaries/dependencies': 'off',
     },
   },
   {
