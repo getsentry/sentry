@@ -167,6 +167,7 @@ def delete_replay_ids(
         # The finder strips dashes from `replay_id`; Seer keys on the dashed UUID
         logger.info("Deleting Seer data for %d Replays.", len(rows), extra=logging_context)
         replay_ids = [str(uuid.UUID(replay_id)) for _, replay_id, _ in rows]
+        # Raises once the request's retries are spent, which aborts the run!
         delete_seer_replay_data(organization_id, project_id, replay_ids)
 
     if delete_blobs:
