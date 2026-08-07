@@ -48,7 +48,7 @@ repos:
         language: system
         stages: [pre-push]
         types: [python]
-        files: \.pyi?$
+        exclude: ^bin/
         require_serial: true
       - id: lint-requirements
         name: lint-requirements
