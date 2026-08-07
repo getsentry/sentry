@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import sys
 import types
 from typing import Any
@@ -27,17 +28,34 @@ def _patch_distutils_version() -> None:
 
     Python 3.12 removed ``distutils``, but the redis-py version currently
     required by Sentry still imports ``distutils.version.StrictVersion`` at
-    module import time.  ``packaging.version.Version`` provides the same
-    comparison behavior needed by redis-py, so install only that narrow
-    compatibility module instead of adding setuptools back as a dependency.
+    module import time.  A small standard-library-only replacement provides
+    the comparisons redis-py needs without adding setuptools or another
+    dependency to the build-time import path.
     """
     try:
         __import__("distutils.version", fromlist=["StrictVersion"])
     except ModuleNotFoundError:
-        from packaging.version import Version
+
+        @functools.total_ordering
+        class StrictVersion:
+            def __init__(self, version: str) -> None:
+                try:
+                    self._version = tuple(int(part) for part in version.split("."))
+                except ValueError:
+                    raise ValueError(f"invalid version number '{version}'") from None
+
+            def __eq__(self, other: object) -> bool:
+                if not isinstance(other, StrictVersion):
+                    return NotImplemented
+                return self._version == other._version
+
+            def __lt__(self, other: object) -> bool:
+                if not isinstance(other, StrictVersion):
+                    return NotImplemented
+                return self._version < other._version
 
         version_module = types.ModuleType("distutils.version")
-        setattr(version_module, "StrictVersion", Version)
+        setattr(version_module, "StrictVersion", StrictVersion)
 
         distutils_module = types.ModuleType("distutils")
         setattr(distutils_module, "__path__", [])

@@ -129,7 +129,7 @@ import sys
 orig = builtins.__import__
 
 def _import(name, globals=None, locals=None, fromlist=(), level=0):
-    if name in {"distutils", "distutils.version", "setuptools"} and name not in sys.modules:
+    if name in {"distutils", "distutils.version", "packaging", "setuptools"} and name not in sys.modules:
         raise ModuleNotFoundError(name)
     return orig(name, globals=globals, locals=locals, fromlist=fromlist, level=level)
 
