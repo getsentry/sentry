@@ -31,8 +31,8 @@ LIMITS_DEFAULT = Limits(
     max_evidence_chars=5_000,
 )
 
-# tighter caps for token-constrained callers; mirrors Seer's EVENT_FORMAT_LIMITS_LOW, plus
-# contexts and evidence caps since Seer has no equivalent sections to mirror
+# tighter caps for token-constrained callers, and the only profile that caps breadcrumbs and the
+# request body at all
 LIMITS_LOW = Limits(
     max_exceptions_chars=50_000,
     max_stacktrace_chars=10_000,
