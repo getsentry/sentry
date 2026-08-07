@@ -30,6 +30,8 @@ import {
   TraceSamplesTableColumns,
 } from 'sentry/views/explore/metrics/constants';
 import {unresolveExpression} from 'sentry/views/explore/metrics/equationBuilder/utils';
+import {MetricsAggregateExportModalButton} from 'sentry/views/explore/metrics/exports/metricsAggregateExportModalButton';
+import {MetricsSamplesExportModalButton} from 'sentry/views/explore/metrics/exports/metricsSamplesExportModalButton';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
 import {useMetricHeatMapData} from 'sentry/views/explore/metrics/hooks/useMetricHeatMapData';
 import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
@@ -57,6 +59,7 @@ import {
   useQueryParamsQuery,
   useQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {
   isVisualizeEquation,
   isVisualizeFunction,
@@ -341,6 +344,25 @@ export function MetricPanel({
                       <MetricInfoTabs
                         traceMetric={traceMetric}
                         isMetricOptionsEmpty={isMetricOptionsEmpty}
+                        additionalActions={
+                          mode === Mode.AGGREGATE ? (
+                            <MetricsAggregateExportModalButton
+                              isError={metricAggregatesTableResult.result.isError}
+                              isLoading={metricAggregatesTableResult.result.isPending}
+                              pageLinks={metricAggregatesTableResult.result.pageLinks}
+                              tableData={metricAggregatesTableResult.result.data ?? []}
+                              traceMetric={traceMetric}
+                            />
+                          ) : (
+                            <MetricsSamplesExportModalButton
+                              fields={fields}
+                              isError={Boolean(metricSamplesTableResult.isError)}
+                              isLoading={Boolean(metricSamplesTableResult.isPending)}
+                              tableData={metricSamplesTableResult.result.data ?? []}
+                              traceMetric={traceMetric}
+                            />
+                          )
+                        }
                       />
                     </Container>
                   </Grid>

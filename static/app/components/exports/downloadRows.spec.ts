@@ -1,12 +1,10 @@
-import {downloadLogs} from 'sentry/views/explore/logs/exports/downloadLogs';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import {downloadRows} from 'sentry/components/exports/downloadRows';
 
-const mockDownloadLogsAsCsv = jest.fn();
+const mockDownloadRowsAsCsv = jest.fn();
 
-jest.mock('sentry/views/explore/logs/exports/downloadLogsAsCsv', () => ({
-  get downloadLogsAsCsv() {
-    return mockDownloadLogsAsCsv;
+jest.mock('sentry/components/exports/downloadRowsAsCsv', () => ({
+  get downloadRowsAsCsv() {
+    return mockDownloadRowsAsCsv;
   },
 }));
 
@@ -18,32 +16,31 @@ jest.mock('sentry/components/exports/downloadAsJsonl', () => ({
   },
 }));
 
-const fields = [OurLogKnownFieldKey.MESSAGE];
+const fields = ['message'];
 const filename = 'logs-export';
 
-const row = (message: string) =>
-  ({[OurLogKnownFieldKey.MESSAGE]: message}) as OurLogsResponseItem;
+const row = (message: string) => ({message});
 
-describe('downloadLogs', () => {
+describe('downloadRows', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('delegates to downloadLogsAsCsv when format is csv', () => {
+  it('delegates to downloadRowsAsCsv when format is csv', () => {
     const rows = [row('a'), row('b'), row('c')];
     const expected = 'csv-result';
 
-    mockDownloadLogsAsCsv.mockReturnValue(expected);
+    mockDownloadRowsAsCsv.mockReturnValue(expected);
 
-    const result = downloadLogs({
+    const result = downloadRows({
       format: 'csv',
       rows,
       fields,
       filename,
     });
 
-    expect(mockDownloadLogsAsCsv).toHaveBeenCalledTimes(1);
-    expect(mockDownloadLogsAsCsv).toHaveBeenCalledWith(rows, fields, filename);
+    expect(mockDownloadRowsAsCsv).toHaveBeenCalledTimes(1);
+    expect(mockDownloadRowsAsCsv).toHaveBeenCalledWith(rows, fields, filename);
     expect(mockDownloadAsJsonl).not.toHaveBeenCalled();
     expect(result).toBe(expected);
   });
@@ -54,7 +51,7 @@ describe('downloadLogs', () => {
 
     mockDownloadAsJsonl.mockReturnValue(expected);
 
-    const result = downloadLogs({
+    const result = downloadRows({
       format: 'jsonl',
       rows,
       fields,
@@ -63,7 +60,7 @@ describe('downloadLogs', () => {
 
     expect(mockDownloadAsJsonl).toHaveBeenCalledTimes(1);
     expect(mockDownloadAsJsonl).toHaveBeenCalledWith(rows, filename);
-    expect(mockDownloadLogsAsCsv).not.toHaveBeenCalled();
+    expect(mockDownloadRowsAsCsv).not.toHaveBeenCalled();
     expect(result).toBe(expected);
   });
 });
