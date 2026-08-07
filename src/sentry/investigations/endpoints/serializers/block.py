@@ -73,7 +73,9 @@ class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerRespon
     ) -> MutableMapping[InvestigationBlock, dict[str, Any]]:
         dependencies: MutableMapping[int, list[str]] = defaultdict(list)
         for link in (
-            InvestigationBlockDependency.objects.filter(block__in=item_list)
+            InvestigationBlockDependency.objects.filter(
+                block__in=item_list, depends_on__deleted_at__isnull=True
+            )
             .values_list("block_id", "depends_on_id")
             .order_by("id")
         ):

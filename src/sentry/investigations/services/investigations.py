@@ -427,6 +427,7 @@ def _create_template_investigation(
 
 
 def lock_investigation(investigation: Investigation, expected_version: int) -> Investigation:
+    """Lock the aggregate root before subordinate rows in an Investigation-routed transaction."""
     try:
         locked = Investigation.objects.select_for_update().get(id=investigation.id)
     except Investigation.DoesNotExist:
@@ -588,6 +589,7 @@ def delete_block(
             raise InvestigationValidationError({"detail": "Archived investigations are read-only."})
         if locked.version != expected_block_version:
             raise InvestigationConflictError("Block has changed.")
+        # Traverse before soft deletion because stale propagation only follows active endpoints.
         mark_downstream_blocks_stale(
             investigation_id=investigation.id, upstream_block_ids={locked.id}
         )
