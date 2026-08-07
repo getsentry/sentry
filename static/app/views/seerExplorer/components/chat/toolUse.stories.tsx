@@ -1,12 +1,19 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
+import {Text} from '@sentry/scraps/text';
+
+import {SeerMarkdown} from 'sentry/components/seer/markdown';
+import {AgentWriteApprovalProvider} from 'sentry/components/seer/markdown/embeds/components/agentWriteApproval';
 import * as Storybook from 'sentry/stories';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
-import type {Block} from 'sentry/views/seerExplorer/types';
+import type {
+  AgentWriteApproval,
+  Block,
+  PendingUserInput,
+} from 'sentry/views/seerExplorer/types';
 
-// Minimal block fixtures for eyeballing the links-bus render (code-mode-effects-registry).
-// View at the dev `/stories` route. No backend/seer needed — BlockComponent is a pure function
-// of the block, so these exercise exactly the render path the links bus lands on.
+// Minimal tool-result fixtures for the dev `/stories` route. No backend or Seer is needed.
 
 function block(overrides: Partial<Block>): Block {
   return {
@@ -77,7 +84,48 @@ const MIXED = block({
   tool_links: [{kind: 'telemetry_live_search', params: {}}, null],
 });
 
-export default Storybook.story('ToolUseBlock (links bus)', story => {
+const APPROVAL_ID = '11111111-1111-4111-8111-111111111111';
+const storyQueryClient = new QueryClient();
+
+function AgentWriteApprovalStory() {
+  const [status, setStatus] = useState<'pending' | 'approved' | 'rejected'>('pending');
+  const approval: AgentWriteApproval = {
+    inputId: APPROVAL_ID,
+    requiredScopes: ['event:write'],
+    sessionId: 'story-session',
+    status,
+  };
+  const pendingInput: PendingUserInput | null =
+    status === 'pending'
+      ? {
+          id: APPROVAL_ID,
+          input_type: 'agent_write_approval',
+          data: {
+            required_scopes: ['event:write'],
+            session_id: 'story-session',
+          },
+        }
+      : null;
+
+  return (
+    <QueryClientProvider client={storyQueryClient}>
+      <AgentWriteApprovalProvider
+        pendingInput={pendingInput}
+        requestApproval={() => Promise.resolve({scopes: approval.requiredScopes})}
+        respondToUserInput={(_inputId, responseData) => {
+          setStatus(responseData?.decision === 'approve' ? 'approved' : 'rejected');
+        }}
+      >
+        <SeerMarkdown
+          raw="{% agentWriteApproval /%}"
+          structuredContent={{agentWriteApproval: approval}}
+        />
+      </AgentWriteApprovalProvider>
+    </QueryClientProvider>
+  );
+}
+
+export default Storybook.story('ToolUseBlock', story => {
   story('Code Mode execute — many links (bus)', () => (
     <Fragment>
       <p>
@@ -114,6 +162,16 @@ export default Storybook.story('ToolUseBlock (links bus)', story => {
         link, the Code Mode execute renders its link from the bus — each row independent.
       </p>
       <BlockComponent block={MIXED} blockIndex={0} blocks={[MIXED]} />
+    </Fragment>
+  ));
+
+  story('Agent write approval — structured content', () => (
+    <Fragment>
+      <Text>
+        The actionable approval card is delivered through structured content and explains
+        the requested access in plain language.
+      </Text>
+      <AgentWriteApprovalStory />
     </Fragment>
   ));
 });

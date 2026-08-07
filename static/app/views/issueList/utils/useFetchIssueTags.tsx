@@ -341,7 +341,7 @@ function builtInIssuesFields({
         value,
         type: ItemType.TAG_VALUE,
         children: [],
-      })) as SearchGroup[],
+      })),
       predefined: true,
     },
     [FieldKey.LAST_SEEN]: {

@@ -182,7 +182,6 @@ export function useSortedFilterKeyItems({
   // Async key fetching with debounce when getTagKeys is provided
   const shouldFetchAsync = !!getTagKeys;
   const debouncedFilterValue = useDebouncedValue(filterValue);
-  // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const {data: asyncKeys, isLoading: isQueryLoading} = useQuery({
     queryKey: [
       'search-query-builder-tag-keys',

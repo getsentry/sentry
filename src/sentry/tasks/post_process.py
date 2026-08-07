@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import logging
 import random
 import uuid
@@ -18,7 +19,12 @@ from sentry import features, options, projectoptions
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.killswitches import killswitch_matches_context
+from sentry.killswitches import (
+    get_killswitch_value,
+    killswitch_matches_context,
+    value_matches,
+)
+from sentry.options.rollout import in_rollout_group
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.lib.kafka import publish_replay_event
 from sentry.signals import event_processed, issue_unignored
@@ -58,6 +64,7 @@ locks = LockManager(
         LockBackend, settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS
     )
 )
+
 
 ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 50
 HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 200
@@ -664,7 +671,36 @@ def run_post_process_job(job: PostProcessJob) -> None:
     else:
         pipeline = GENERIC_POST_PROCESS_PIPELINE
 
+    # Read the killswitch once per job instead of once per step: the error
+    # pipeline has 25 steps, and killswitch_matches_context would redo the
+    # options.get() and normalize_value() on every one of them.
+    disabled_steps = get_killswitch_value("post_process.disable-pipeline-steps")
+    killswitch_context = (
+        {
+            "project_id": group_event.project_id,
+            "organization_id": group_event.project.organization_id,
+            "issue_category": issue_category_metric,
+        }
+        if disabled_steps
+        else None
+    )
+
     for pipeline_step in pipeline:
+        if killswitch_context is not None and value_matches(
+            "post_process.disable-pipeline-steps",
+            disabled_steps,
+            {"pipeline_step": pipeline_step.__name__, **killswitch_context},
+            emit_metrics=False,
+        ):
+            metrics.incr(
+                "sentry.tasks.post_process.post_process_group.killswitched",
+                tags={
+                    "issue_category": issue_category_metric,
+                    "pipeline": pipeline_step.__name__,
+                },
+            )
+            continue
+
         try:
             with (
                 metrics.timer(
@@ -1315,6 +1351,10 @@ def sdk_crash_monitoring(job: PostProcessJob) -> None:
 def feedback_filter_decorator(
     func: Callable[[PostProcessJob], None],
 ) -> Callable[[PostProcessJob], None]:
+    # wraps() keeps the wrapped step's name, which run_post_process_job uses for
+    # metric tags, span names and the post_process.disable-pipeline-steps
+    # killswitch. Without it every feedback step reports as "wrapper".
+    @functools.wraps(func)
     def wrapper(job: PostProcessJob) -> None:
         if not should_postprocess_feedback(job):
             return
@@ -1523,6 +1563,11 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     event = job["event"]
     group = event.group
 
+    if not in_rollout_group(
+        "seer.post-process-issue-summary.rollout-rate", event.project.organization_id
+    ):
+        return
+
     if is_seer_seat_based_tier_enabled(group.organization):
         # Guards to prevent thundering herd on issue summary generation.
         if options.get("seer.post-process-issue-summary-killswitch.enabled"):
@@ -1598,7 +1643,6 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE: dict[
         process_commits,
         handle_owner_assignment,
         handle_auto_assignment,
-        kick_off_seer_automation,
         kick_off_lightweight_rca_cluster,
         process_workflow_engine,
         process_resource_change_bounds,
@@ -1627,7 +1671,6 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE: dict[
 GENERIC_POST_PROCESS_PIPELINE: list[Callable[[PostProcessJob], None]] = [
     process_snoozes,
     process_inbox_adds,
-    kick_off_seer_automation,
     process_workflow_engine,
     process_resource_change_bounds,
     process_data_forwarding,

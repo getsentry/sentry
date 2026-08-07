@@ -173,8 +173,6 @@ export default function SnapshotsPage() {
 
   const pushHistory = {history: 'push' as const};
   const palette = theme.chart.getColorPalette(10);
-  // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
   const [overlayColor, setOverlayColor] = useLocalStorageState<string>(
     'snapshot-overlay-color',
     palette.at(-3) ?? palette[0]
@@ -469,7 +467,7 @@ export default function SnapshotsPage() {
       ? tagFilteredItems.filter(item => activeStatuses.has(item.type as DiffStatus))
       : tagFilteredItems;
 
-    return [...base].sort((a, b) => {
+    return base.toSorted((a, b) => {
       const typeOrder = (DIFF_TYPE_ORDER[a.type] ?? 99) - (DIFF_TYPE_ORDER[b.type] ?? 99);
       if (typeOrder !== 0) {
         return typeOrder;

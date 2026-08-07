@@ -10,7 +10,7 @@ function makeWidget(overrides: Partial<Widget> = {}): Widget {
     queries: [],
     interval: '1h',
     ...overrides,
-  } as Widget;
+  };
 }
 
 function makeDashboard(widgets: Widget[]): DashboardDetails {
@@ -21,7 +21,7 @@ function makeDashboard(widgets: Widget[]): DashboardDetails {
     widgets,
     filters: {},
     projects: [],
-  } as unknown as DashboardDetails;
+  };
 }
 
 describe('diffWidgets', () => {
@@ -73,7 +73,7 @@ describe('diffWidgets', () => {
           columns: [],
           orderby: '',
           name: '',
-        } as any,
+        },
       ],
     });
     const snap = makeWidget({
@@ -85,7 +85,7 @@ describe('diffWidgets', () => {
           columns: [],
           orderby: '',
           name: '',
-        } as any,
+        },
       ],
     });
     const result = diffWidgets(makeDashboard([base]), makeDashboard([snap]));
@@ -360,7 +360,7 @@ describe('diffFilters', () => {
       filters: {},
       projects: [],
       ...overrides,
-    } as unknown as DashboardDetails;
+    };
   }
 
   // Resolver that uses a slug map for known IDs, falls back to the numeric string.

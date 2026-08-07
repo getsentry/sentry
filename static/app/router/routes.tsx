@@ -1426,7 +1426,7 @@ function buildRoutes(): RouteObject[] {
               path: ':ruleId/',
               component: make(
                 () =>
-                  import('sentry/views/alerts/workflowEngineRedirectWrappers/metricAlertRuleEdit')
+                  import('sentry/views/alerts/workflowEngineRedirectWrappers/metricAlertRuleEditRedirect')
               ),
             },
           ],
@@ -2076,33 +2076,23 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: `${FRONTEND_LANDING_SUB_PATH}/uptime/`,
-      redirectTo: '/insights/uptime/',
+      redirectTo: '/organizations/:orgId/monitors/uptime/',
     },
     {
       path: `${BACKEND_LANDING_SUB_PATH}/uptime/`,
-      redirectTo: '/insights/uptime/',
+      redirectTo: '/organizations/:orgId/monitors/uptime/',
     },
     {
       path: `${BACKEND_LANDING_SUB_PATH}/crons/`,
-      redirectTo: '/insights/crons/',
+      redirectTo: '/organizations/:orgId/monitors/crons/',
     },
     {
       path: 'uptime/',
-      children: [
-        {
-          index: true,
-          component: make(() => import('sentry/views/insights/uptime/views/overview')),
-        },
-      ],
+      redirectTo: '/organizations/:orgId/monitors/uptime/',
     },
     {
       path: 'crons/',
-      children: [
-        {
-          index: true,
-          component: make(() => import('sentry/views/insights/crons/views/overview')),
-        },
-      ],
+      redirectTo: '/organizations/:orgId/monitors/crons/',
     },
   ];
 

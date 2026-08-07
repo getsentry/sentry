@@ -1,5 +1,30 @@
 import {z} from 'zod';
 
+import {API_ACCESS_SCOPES} from 'sentry/constants/apiAccessScopes';
+
+const isoTimestampSchema = z.iso.datetime({offset: true});
+
+const chartSeriesDataSchema = z
+  .array(
+    z.object({
+      x: z.union([z.string(), z.number()]),
+      y: z.number(),
+    })
+  )
+  .min(1)
+  .max(200);
+
+const chartSeriesSchema = z.union([
+  z.object({
+    label: z.string().describe('Legend label for the series'),
+    data: chartSeriesDataSchema,
+  }),
+  z.object({
+    name: z.string().describe('Legacy alias for label'),
+    data: chartSeriesDataSchema,
+  }),
+]);
+
 type SeerEmbedLevel = 'inline' | 'block';
 
 export interface SeerEmbedExample {
@@ -108,9 +133,134 @@ export const SEER_EMBED_SCHEMAS = {
       },
     ],
   },
+  chart: {
+    description:
+      'Display numeric data as a compact Sentry-style chart. For line, area, and bar charts, ' +
+      'prefer at least three points. Use x_axis "time" only with offset-bearing ISO 8601 ' +
+      'timestamps. Category axes are supported for bar charts only. ' +
+      'Duration values are milliseconds, percentage values are 0-100, and byte values are raw bytes.',
+    level: ['block'],
+    schema: z
+      .object({
+        title: z.string().min(1),
+        subtitle: z.string().optional(),
+        visualization: z.enum(['line', 'area', 'bar']).default('line'),
+        x_axis: z.enum(['time', 'category']).default('time'),
+        y_axis_unit: z
+          .enum(['number', 'percentage', 'duration', 'bytes'])
+          .default('number'),
+        series: z.array(chartSeriesSchema).min(1).max(5),
+      })
+      .superRefine((chart, context) => {
+        if (chart.x_axis === 'category' && chart.visualization !== 'bar') {
+          context.addIssue({
+            code: 'custom',
+            message: 'Category axes are only supported for bar charts',
+            path: ['x_axis'],
+          });
+        }
+
+        if (chart.x_axis === 'time') {
+          chart.series.forEach((series, seriesIndex) => {
+            series.data.forEach((point, pointIndex) => {
+              if (
+                typeof point.x !== 'string' ||
+                !isoTimestampSchema.safeParse(point.x).success
+              ) {
+                context.addIssue({
+                  code: 'custom',
+                  message: 'Time-axis values must be ISO 8601 timestamps',
+                  path: ['series', seriesIndex, 'data', pointIndex, 'x'],
+                });
+              }
+            });
+          });
+        }
+      }),
+    examples: [
+      {
+        label: 'Error volume',
+        data: {
+          title: 'Error volume',
+          subtitle: 'Last 6 hours',
+          visualization: 'area',
+          x_axis: 'time',
+          y_axis_unit: 'number',
+          series: [
+            {
+              label: 'Errors',
+              data: [
+                {x: '2026-07-30T12:00:00Z', y: 12},
+                {x: '2026-07-30T13:00:00Z', y: 18},
+                {x: '2026-07-30T14:00:00Z', y: 15},
+                {x: '2026-07-30T15:00:00Z', y: 31},
+                {x: '2026-07-30T16:00:00Z', y: 46},
+                {x: '2026-07-30T17:00:00Z', y: 38},
+              ],
+            },
+          ],
+        },
+      },
+    ],
+  },
+  autofix: {
+    featureFlag: 'organizations:seer-agent-autofix',
+    description:
+      'Render one step of a Seer Autofix run (root cause, solution, or code ' +
+      'changes) as a collapsible block linking back to the issue. ' +
+      'Emit this embed whenever the user signals intent to fix, solve, ' +
+      'debug, or resolve a problem — e.g. "fix this issue", "solve the ' +
+      'problem", "find the root cause", "why is this happening", "how do I ' +
+      'resolve this error" — or asks for the status/result of an autofix ' +
+      'run already in progress. `id` and `shortId` are the issue the run ' +
+      'belongs to, exactly as the issue API returns them. `step` is the ' +
+      'autofix step identifier exactly as the autofix API reports it — the ' +
+      'UI renders the human-readable label, so do not send a display ' +
+      'string. `result` is the full markdown write-up for that step. ' +
+      'Prefer this embed over a plaintext explanation whenever an issue ' +
+      'can be autofixed, and emit one embed per step rather than ' +
+      'combining multiple steps into one.',
+    level: ['block'],
+    schema: z.object({
+      step: z.enum(['root_cause', 'solution', 'code_changes', 'pr_iteration']),
+      result: z.string(),
+      id: z.string(),
+      shortId: z.string(),
+    }),
+    examples: [
+      {
+        label: 'Root cause',
+        data: {
+          id: '1234567890',
+          shortId: 'EXMPL-123',
+          result:
+            'The root cause of the issue is that the code is not working correctly.',
+          step: 'root_cause' as const,
+        },
+      },
+    ],
+  },
 } as const satisfies Record<string, SeerEmbedSchema>;
 
-export type SeerEmbedName = keyof typeof SEER_EMBED_SCHEMAS;
+export const STRUCTURED_SEER_EMBED_SCHEMAS = {
+  agentWriteApproval: {
+    description: 'Request browser-session approval for Sentry API write scopes.',
+    level: ['block'],
+    schema: z.object({
+      inputId: z.string().uuid(),
+      requiredScopes: z.array(z.enum(API_ACCESS_SCOPES)).min(1),
+      sessionId: z.string().min(1),
+      status: z.enum(['pending', 'approved', 'rejected']),
+    }),
+  },
+} as const satisfies Record<string, SeerEmbedSchema>;
+
+export const ALL_SEER_EMBED_SCHEMAS = {
+  ...SEER_EMBED_SCHEMAS,
+  ...STRUCTURED_SEER_EMBED_SCHEMAS,
+};
+
+export type SeerEmbedName = keyof typeof ALL_SEER_EMBED_SCHEMAS;
 
 export function seerEmbedsToJsonSchemas(): Array<{
   body: Record<string, unknown>;
@@ -126,7 +276,7 @@ export function seerEmbedsToJsonSchemas(): Array<{
       name,
       description: def.description,
       level: [...def.level],
-      body: z.toJSONSchema(def.schema) as Record<string, unknown>,
+      body: z.toJSONSchema(def.schema),
       ...(def.examples && {
         examples: def.examples.map(e => ({label: e.label, data: e.data})),
       }),

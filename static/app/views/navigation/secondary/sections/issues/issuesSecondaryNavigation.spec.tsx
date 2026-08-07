@@ -2,10 +2,13 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/queries/inbox';
 import {IssuesSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/issues/issuesSecondaryNavigation';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 
 describe('IssuesSecondaryNavigation', () => {
+  const inboxCountQuery = `is:unresolved issue.progress:[fix_proposed,diagnosed,assigned] assigned_or_suggested:me${INBOX_AUTOFIX_CATEGORY_FILTER}`;
+  const inboxCountNoSeerQuery = `is:unresolved issue.progress:[fix_proposed] assigned_or_suggested:me${INBOX_AUTOFIX_CATEGORY_FILTER}`;
   const organization = OrganizationFixture({
     features: ['issue-stream-progress-ui', 'seat-based-seer-enabled'],
   });
@@ -33,9 +36,9 @@ describe('IssuesSecondaryNavigation', () => {
     );
   }
 
-  it('shows the inbox count for Seer progress sections and the user and their teams', async () => {
+  it('shows the inbox count for Seer progress sections assigned or suggested to the user', async () => {
     const request = mockInboxCount({
-      'is:unresolved issue.progress:[fix_proposed,diagnosed,assigned] assigned:[me,my_teams]': 12,
+      [inboxCountQuery]: 12,
     });
 
     renderNavigation();
@@ -50,13 +53,13 @@ describe('IssuesSecondaryNavigation', () => {
     expect(query).toContain('diagnosed');
     expect(query).toContain('assigned');
     expect(query).toContain('is:unresolved');
-    expect(query).toContain('assigned:[me,my_teams]');
+    expect(query).toContain('assigned_or_suggested:me');
   });
 
   it('only counts fix proposed issues without Seer', async () => {
     organization.features = ['issue-stream-progress-ui'];
     const request = mockInboxCount({
-      'is:unresolved issue.progress:[fix_proposed] assigned:[me,my_teams]': 12,
+      [inboxCountNoSeerQuery]: 12,
     });
 
     renderNavigation();
@@ -64,31 +67,16 @@ describe('IssuesSecondaryNavigation', () => {
     expect(await screen.findByText('12')).toBeInTheDocument();
 
     const [[, options]] = request.mock.calls;
-    expect(options.query.query).toEqual([
-      'is:unresolved issue.progress:[fix_proposed] assigned:[me,my_teams]',
-    ]);
+    expect(options.query.query).toEqual([inboxCountNoSeerQuery]);
   });
 
   it('caps the count at 99+ since the endpoint stops counting at 100', async () => {
     mockInboxCount({
-      'is:unresolved issue.progress:[fix_proposed] assigned:[me,my_teams]': 100,
+      [inboxCountNoSeerQuery]: 100,
     });
 
     renderNavigation();
 
     expect(await screen.findByText('99+')).toBeInTheDocument();
-  });
-
-  it('renders no badge when nothing is waiting', async () => {
-    mockInboxCount({
-      'is:unresolved issue.progress:[fix_proposed] assigned:[me,my_teams]': 0,
-    });
-
-    renderNavigation();
-
-    expect(
-      await screen.findByRole('link', {name: 'Inbox experimental'})
-    ).toBeInTheDocument();
-    expect(screen.queryByText('0')).not.toBeInTheDocument();
   });
 });

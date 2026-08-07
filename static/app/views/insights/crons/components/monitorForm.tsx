@@ -46,8 +46,7 @@ const SCHEDULE_OPTIONS: Array<SelectValue<string>> = [
   {value: ScheduleType.INTERVAL, label: t('Interval')},
 ];
 
-export const DEFAULT_MONITOR_TYPE = 'cron_job';
-export const DEFAULT_CRONTAB = '0 0 * * *';
+const DEFAULT_CRONTAB = '0 0 * * *';
 
 // Maps the value from the SentryMemberTeamSelectorField -> the expected alert
 // rule key and vice-versa.
@@ -79,7 +78,7 @@ interface TransformedData extends Partial<Omit<Monitor, 'config' | 'alertRule'>>
 /**
  * Transform sub-fields for what the API expects
  */
-export function transformMonitorFormData(_data: Record<string, any>, model: FormModel) {
+function transformMonitorFormData(_data: Record<string, any>, model: FormModel) {
   const schedType = model.getValue('config.scheduleType');
   // Remove interval fields if the monitor schedule is crontab
   const filteredFields = model.fields
@@ -155,7 +154,7 @@ export function transformMonitorFormData(_data: Record<string, any>, model: Form
 /**
  * Transform config field errors from the error response
  */
-export function mapMonitorFormErrors(responseJson?: any) {
+function mapMonitorFormErrors(responseJson?: any) {
   if (responseJson.config === undefined) {
     return responseJson;
   }

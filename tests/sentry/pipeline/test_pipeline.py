@@ -289,6 +289,68 @@ class PipelineTestCase(TestCase):
 
             assert not new_pipeline.is_valid()
 
+    def test_pipeline_rejects_different_org(self) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            other_org = serialize_rpc_organization(self.create_organization())
+
+        pipeline = DummyPipeline(self.request, "dummy", self.org)
+        pipeline.initialize()
+        assert pipeline.is_valid()
+
+        cross_org_pipeline = DummyPipeline(self.request, "dummy", other_org)
+        assert not cross_org_pipeline.is_valid()
+
+    def test_pipeline_rejects_different_provider_model(self) -> None:
+        idp_a = IdentityProvider.objects.create(type="dummy", external_id="a")
+        idp_b = IdentityProvider.objects.create(type="dummy", external_id="b")
+
+        with patch.object(DummyPipeline, "provider_model_cls", IdentityProvider):
+            pipeline = DummyPipeline(self.request, "dummy", self.org, provider_model=idp_a)
+            pipeline.initialize()
+            assert pipeline.is_valid()
+
+            cross_provider_pipeline = DummyPipeline(
+                self.request, "dummy", self.org, provider_model=idp_b
+            )
+            assert not cross_provider_pipeline.is_valid()
+
+    def test_get_for_request_uses_stored_org_not_url_org(self) -> None:
+        """get_for_request reconstructs from Redis state, so org always matches."""
+        with assume_test_silo_mode(SiloMode.CELL):
+            other_org = serialize_rpc_organization(self.create_organization())
+
+        pipeline = DummyPipeline(self.request, "dummy", self.org)
+        pipeline.initialize()
+
+        restored = DummyPipeline.get_for_request(self.request)
+        assert restored is not None
+        assert restored.is_valid()
+        assert restored.organization is not None
+        assert restored.organization.id == self.org.id
+        assert restored.organization.id != other_org.id
+
+    def test_pipeline_without_org_is_valid(self) -> None:
+        """Pipelines like IdentityPipeline can operate without an org."""
+        pipeline = DummyPipeline(self.request, "dummy", organization=None)
+        pipeline.initialize()
+        assert pipeline.is_valid()
+        assert pipeline.state.org_id is None
+
+    def test_pipeline_rejects_different_org_with_same_signature(self) -> None:
+        """Two orgs with identical provider types produce the same signature
+        but must not share pipeline state."""
+        with assume_test_silo_mode(SiloMode.CELL):
+            org_a = serialize_rpc_organization(self.create_organization())
+            org_b = serialize_rpc_organization(self.create_organization())
+
+        pipeline_a = DummyPipeline(self.request, "dummy", org_a)
+        pipeline_b = DummyPipeline(self.request, "dummy", org_b)
+        assert pipeline_a.signature == pipeline_b.signature
+
+        pipeline_a.initialize()
+        assert pipeline_a.is_valid()
+        assert not pipeline_b.is_valid()
+
     @patch("sentry.pipeline.base.bind_organization_context")
     def test_pipeline_intercept_fails(self, mock_bind_org_context: MagicMock) -> None:
         pipeline = DummyPipeline(self.request, "dummy", self.org, config={"some_config": True})
