@@ -700,7 +700,7 @@ describe('ActivitySection', () => {
     expect(screen.getAllByText('Resolved')).toHaveLength(1);
   });
 
-  it('rolls up status flapping and counts its events in the sidebar', () => {
+  it('does not count rolled-up events as hidden sidebar rows', () => {
     const flappingGroup = makeFlappingGroup('1350');
 
     render(
@@ -713,7 +713,8 @@ describe('ActivitySection', () => {
     );
 
     expect(screen.getByRole('button', {name: 'Show 2 more'})).toBeInTheDocument();
-    expect(screen.getByText('View 2 more')).toBeInTheDocument();
+    expect(screen.getByText('Expand')).toBeInTheDocument();
+    expect(screen.queryByText('View 2 more')).not.toBeInTheDocument();
     expect(screen.getAllByText('Regressed')).toHaveLength(1);
     expect(screen.getAllByText('Resolved')).toHaveLength(1);
   });

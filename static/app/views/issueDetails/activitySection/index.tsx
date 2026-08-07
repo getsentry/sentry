@@ -17,7 +17,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
 import {
   buildActivityFeedItems,
-  countActivityFeedEvents,
   type DisplayedActivityFeedItem,
 } from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
 import {CollapsedStatusActivityRow} from 'sentry/views/issueDetails/activitySection/activityLineItem/collapsedStatusActivityRow';
@@ -226,14 +225,10 @@ export function ActivitySection({
       )}
     </ActivityLineList>
   );
-  const totalActivityCount = countActivityFeedEvents(displayedActivities);
+  const hiddenActivityCount =
+    displayedActivities.length >= 5 ? displayedActivities.length - 3 : 0;
   const sidebarVisibleActivities =
-    totalActivityCount >= 5 ? displayedActivities.slice(0, 3) : displayedActivities;
-  // A status rollup is visible as one row, but its underlying events remain hidden.
-  const visibleActivityCount = sidebarVisibleActivities.filter(
-    item => item.type !== 'collapsed_status_activities'
-  ).length;
-  const hiddenActivityCount = totalActivityCount - visibleActivityCount;
+    hiddenActivityCount > 0 ? displayedActivities.slice(0, 3) : displayedActivities;
   const sidebarActivityItems = (
     <Fragment>
       {sidebarVisibleActivities.map(item => renderActivityItem(item, true))}

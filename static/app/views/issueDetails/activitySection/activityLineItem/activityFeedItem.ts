@@ -34,7 +34,7 @@ export type ActivityFeedItem =
     }
   | CollapsedSeerActivity;
 
-export interface CollapsedStatusActivity {
+interface CollapsedStatusActivity {
   activities: ActivityFeedItem[];
   /** The first rolled-up item provides a stable key for the summary row. */
   activity: GroupActivity;
@@ -42,15 +42,6 @@ export interface CollapsedStatusActivity {
 }
 
 export type DisplayedActivityFeedItem = ActivityFeedItem | CollapsedStatusActivity;
-
-/** Counts each status activity inside a rollup rather than counting the rollup as one row. */
-export function countActivityFeedEvents(items: DisplayedActivityFeedItem[]): number {
-  return items.reduce(
-    (count, item) =>
-      count + (item.type === 'collapsed_status_activities' ? item.activities.length : 1),
-    0
-  );
-}
 
 const RESOLUTION_ACTIVITY_TYPES = new Set<GroupActivityType>([
   GroupActivityType.SET_RESOLVED,

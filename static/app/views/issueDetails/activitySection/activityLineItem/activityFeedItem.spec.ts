@@ -6,7 +6,6 @@ import {GroupActivityType, PriorityLevel} from 'sentry/types/group';
 import {
   type ActivityFeedItem,
   collapseFlappingStatusActivities,
-  countActivityFeedEvents,
   type DisplayedActivityFeedItem,
 } from './activityFeedItem';
 
@@ -72,7 +71,6 @@ describe('collapseFlappingStatusActivities', () => {
     expect(result.slice(0, 2)).toEqual([newestRegression, newestResolution]);
     expect(result).toHaveLength(3);
     expectCollapsedActivities(result[2], olderRun);
-    expect(countActivityFeedEvents(result)).toBe(2 + olderRun.length);
   });
 
   it('keeps the newest pair visible when newer user activity exists', () => {
