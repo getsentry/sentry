@@ -11,6 +11,10 @@ from sentry import ratelimits as ratelimiter
 from sentry.eventtypes.error import ErrorEvent
 from sentry.grouping.fingerprinting.utils import get_fingerprint_type
 from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
+from sentry.grouping.ingest.exception_types import (
+    REJECTING_REASONS,
+    classify_exception_type_mismatch,
+)
 from sentry.grouping.ingest.grouphash_metadata import (
     check_grouphashes_for_positive_fingerprint_match,
 )
@@ -533,13 +537,12 @@ def _should_use_seer_match_for_grouping(
     check is hybrid-fingerprint-related (for metrics accounting).
 
     Checks applied in order:
-    - Exception type mismatch: rejects when event and parent have different exception types.
-      Skipped for synthetic exceptions (matching regular grouping behavior).
+    - Exception type mismatch: rejects when event and parent have exception types whose difference
+      we're confident is meaningful (see `sentry.grouping.ingest.exception_types`), and the
+      `seer.similarity.ingest.reject_exception_type_mismatches` option is on. Skipped for synthetic
+      exceptions (matching regular grouping behavior).
     - Hybrid fingerprint compatibility: rejects when fingerprint types or values don't match.
     """
-    # Exception type check — log mismatches for now so we can assess how often Seer matches
-    # across different exception types before deciding whether to reject them.
-
     parent_group = parent_grouphash.group
     if parent_group is None:
         raise SimilarHashMissingGroupError(
@@ -551,27 +554,50 @@ def _should_use_seer_match_for_grouping(
         and parent_exception_type
         and event_exception_type != parent_exception_type
     ):
+        mismatch_reason = classify_exception_type_mismatch(
+            event_exception_type, parent_exception_type, event.platform
+        )
+        # The verdict and the action are kept separate so the verdict is visible in the logs while
+        # the option is still off.
+        would_reject = mismatch_reason in REJECTING_REASONS
+        reject = would_reject and options.get(
+            "seer.similarity.ingest.reject_exception_type_mismatches"
+        )
+
         metrics.incr(
             "grouping.similarity.exception_type_mismatch",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"platform": event.platform},
-        )
-        logger.info(
-            "seer.exception_type_mismatch",
-            extra={
-                "event_id": event.event_id,
-                "organization_id": event.project.organization_id,
-                "project_id": event.project.id,
+            tags={
                 "platform": event.platform,
-                "sdk": get_path(event.data, "sdk", "name"),
-                "event_exception_type": event_exception_type,
-                "event_exception_value": event_exception_value,
-                "parent_exception_type": parent_exception_type,
-                "parent_exception_value": get_path(parent_group.data, "metadata", "value"),
-                "parent_group_id": parent_group.id,
-                "parent_hash": parent_grouphash.hash,
+                "reason": mismatch_reason.value,
+                "rejected": reject,
             },
         )
+
+        mismatch_log_context = {
+            "event_id": event.event_id,
+            "organization_id": event.project.organization_id,
+            "project_id": event.project.id,
+            "platform": event.platform,
+            "sdk": get_path(event.data, "sdk", "name"),
+            "event_exception_type": event_exception_type,
+            "event_exception_value": event_exception_value,
+            "parent_exception_type": parent_exception_type,
+            "parent_exception_value": get_path(parent_group.data, "metadata", "value"),
+            "parent_group_id": parent_group.id,
+            "parent_hash": parent_grouphash.hash,
+            "mismatch_reason": mismatch_reason.value,
+            "would_reject": would_reject,
+        }
+
+        logger.info("seer.exception_type_mismatch", extra=mismatch_log_context)
+
+        if reject:
+            logger.info("seer.exception_type_mismatch_rejected", extra=mismatch_log_context)
+
+            # Not hybrid-fingerprint-related, so this rejection shouldn't count towards the hybrid
+            # fingerprint metrics.
+            return SeerMatchResult(accepted=False, hybrid_related=False)
 
     parent_has_hybrid_fingerprint = (
         get_fingerprint_type(parent_grouphash.get_associated_fingerprint()) == "hybrid"
