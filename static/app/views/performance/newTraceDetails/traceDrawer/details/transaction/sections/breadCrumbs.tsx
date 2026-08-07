@@ -27,7 +27,13 @@ import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 const MAX_BREADCRUMBS_HEIGHT = 400;
 
-export function BreadCrumbs({breadcrumbs}: {breadcrumbs: {values: RawCrumb[]}}) {
+export function BreadCrumbs({
+  breadcrumbs,
+  meta,
+}: {
+  breadcrumbs: {values: RawCrumb[]};
+  meta?: Record<number, any>;
+}) {
   const theme = useTheme();
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const [search, setSearch] = useState('');
@@ -42,8 +48,9 @@ export function BreadCrumbs({breadcrumbs}: {breadcrumbs: {values: RawCrumb[]}}) 
   );
 
   const enhancedCrumbs = useMemo(
-    () => getEnhancedBreadcrumbsFromValues({breadcrumbs: breadcrumbs.values, theme}),
-    [breadcrumbs, theme]
+    () =>
+      getEnhancedBreadcrumbsFromValues({breadcrumbs: breadcrumbs.values, theme, meta}),
+    [breadcrumbs, meta, theme]
   );
 
   const {filterOptions, applyFilters} = useBreadcrumbFilters(enhancedCrumbs);

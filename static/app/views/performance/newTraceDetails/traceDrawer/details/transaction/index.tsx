@@ -130,15 +130,19 @@ export function TransactionNodeDetails({
     return <LoadingIndicator />;
   }
 
-  if (isError) {
+  if (isError || !event) {
     return <LoadingError message={t('Failed to fetch transaction details')} />;
   }
 
-  const project = projects.find(proj => proj.slug === event?.projectSlug);
+  const project = projects.find(proj => proj.slug === event.projectSlug);
 
-  const breadcrumbs = event.entries.find(
-    (entry): entry is EntryBreadcrumbs => entry.type === EntryType.BREADCRUMBS
+  const breadcrumbEntryIndex = event.entries.findIndex(
+    entry => entry.type === EntryType.BREADCRUMBS
+  );
+  const breadcrumbs = (
+    event.entries[breadcrumbEntryIndex] as EntryBreadcrumbs | undefined
   )?.data;
+  const breadcrumbMeta = event._meta?.entries?.[breadcrumbEntryIndex]?.data?.values;
 
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -218,7 +222,9 @@ export function TransactionNodeDetails({
           />
         )}
 
-        {breadcrumbs ? <BreadCrumbs breadcrumbs={breadcrumbs} /> : null}
+        {breadcrumbs ? (
+          <BreadCrumbs breadcrumbs={breadcrumbs} meta={breadcrumbMeta} />
+        ) : null}
 
         {project ? (
           <EventAttachments event={event} project={project} group={undefined} />
