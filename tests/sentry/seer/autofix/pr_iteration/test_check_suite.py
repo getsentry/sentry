@@ -19,6 +19,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.seer.autofix.pr_iteration.listeners.check_suite import (
+    _trigger_queued_feedback_if_ci_complete,
     pr_iteration_from_check_suite_listener,
 )
 from sentry.testutils.cases import TestCase
@@ -90,6 +91,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         pr_iteration_from_check_suite_listener(self._event(conclusion="cancelled"))
         mock_get_state.assert_not_called()
 
+    @patch(f"{CHECK_PATH}._trigger_queued_feedback_if_ci_complete")
     @patch(f"{CHECK_PATH}.get_run_marker", return_value=None)
     @patch(f"{CHECK_PATH}.request_review_from_context")
     @patch(f"{CHECK_PATH}.mark_ready_for_review")
@@ -104,6 +106,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_mark_ready: MagicMock,
         mock_request_review: MagicMock,
         _mock_marker: MagicMock,
+        mock_trigger_queued: MagicMock,
     ) -> None:
         event = self._event(self._raw(), conclusion="success")
         resolved = MagicMock()
@@ -116,6 +119,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
 
         pr_iteration_from_check_suite_listener(event)
 
+        mock_trigger_queued.assert_called_once_with(event)
         mock_resolve.assert_called_once_with(event)
         mock_confirm.assert_called_once_with(resolved)
         mock_mark_ready.assert_called_once_with(ctx)
@@ -384,6 +388,120 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         _, kwargs = mock_enqueue.call_args
         assert kwargs["organization_id"] == self.organization.id
         mock_trigger_consume.assert_called_once()
+
+
+class TriggerQueuedFeedbackOnGreenCheckSuiteTest(TestCase):
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run")
+    def test_uses_completed_green_suite_to_trigger_queued_feedback(
+        self, mock_resolve: MagicMock, mock_trigger_consume: MagicMock
+    ) -> None:
+        state = SeerRunState(
+            run_id=67890,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")},
+        )
+        repository = MagicMock(organization_id=self.organization.id)
+        mock_resolve.return_value = CheckSuiteAutofixRun(
+            repository=repository, run_state=state, pr_id=1, group_id=1
+        )
+        raw = {
+            "check_suite": {
+                "id": 1,
+                "head_sha": "abc",
+                "check_runs_url": "https://github.com/owner/repo/check-runs",
+                "app": {"name": "CI"},
+            },
+            "repository": {
+                "html_url": "https://github.com/owner/repo",
+                "full_name": "owner/repo",
+            },
+        }
+        event = CheckSuiteEvent(
+            action="completed",
+            check_suite={
+                "id": "1",
+                "status": "completed",
+                "conclusion": "success",
+                "html_url": "",
+                "pull_request_ids": [],
+            },
+            subscription_event={
+                "event": orjson.dumps(raw).decode(),
+                "event_type_hint": "check_suite",
+                "extra": {},
+                "received_at": 0,
+                "sentry_meta": None,
+                "type": "github",
+            },
+        )
+
+        _trigger_queued_feedback_if_ci_complete(event)
+
+        mock_trigger_consume.assert_called_once()
+        assert mock_trigger_consume.call_args.kwargs["run_id"] == state.run_id
+        assert mock_trigger_consume.call_args.kwargs["organization_id"] == self.organization.id
+        assert mock_trigger_consume.call_args.kwargs["run_state"] is state
+        assert isinstance(
+            mock_trigger_consume.call_args.kwargs["feedback"].source, CheckSuiteFeedbackSource
+        )
+
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run")
+    def test_does_not_trigger_for_stale_head(
+        self, mock_resolve: MagicMock, mock_trigger_consume: MagicMock
+    ) -> None:
+        state = SeerRunState(
+            run_id=67890,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={
+                "owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="new-head")
+            },
+        )
+        mock_resolve.return_value = CheckSuiteAutofixRun(
+            repository=MagicMock(organization_id=self.organization.id),
+            run_state=state,
+            pr_id=1,
+            group_id=1,
+        )
+        raw = {
+            "check_suite": {
+                "id": 1,
+                "head_sha": "old-head",
+                "check_runs_url": "https://github.com/owner/repo/check-runs",
+                "app": {"name": "CI"},
+            },
+            "repository": {
+                "html_url": "https://github.com/owner/repo",
+                "full_name": "owner/repo",
+            },
+        }
+        event = CheckSuiteEvent(
+            action="completed",
+            check_suite={
+                "id": "1",
+                "status": "completed",
+                "conclusion": "success",
+                "html_url": "",
+                "pull_request_ids": [],
+            },
+            subscription_event={
+                "event": orjson.dumps(raw).decode(),
+                "event_type_hint": "check_suite",
+                "extra": {},
+                "received_at": 0,
+                "sentry_meta": None,
+                "type": "github",
+            },
+        )
+
+        _trigger_queued_feedback_if_ci_complete(event)
+
+        mock_trigger_consume.assert_not_called()
 
 
 class ResolveCheckSuiteAutofixRunTest(TestCase):

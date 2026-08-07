@@ -13,6 +13,7 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     GREEN_CONCLUSIONS,
     READY_FOR_REVIEW_EXTRA,
     REVIEW_REQUESTS_EXTRA,
+    check_suite_head_match,
     confirm_green_check_suite,
     resolve_green_check_suite,
 )
@@ -29,6 +30,45 @@ from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker
 logger = logging.getLogger(__name__)
 
 
+def _trigger_queued_feedback_if_ci_complete(check_suite_event: CheckSuiteEvent) -> None:
+    """Schedule a queued-feedback consume once a green suite completes CI.
+
+    Failed check suites enqueue feedback while other checks can still be
+    running. ``should_trigger`` sweeps every check run for this head, so using
+    the completing green suite as the trigger schedules a consume only after
+    CI is complete. The green suite itself is not enqueued as feedback.
+    """
+    try:
+        raw = orjson.loads(check_suite_event.subscription_event["event"])
+        source = CheckSuiteFeedbackSource(event=raw)
+        autofix_run = source.autofix_run
+    except MissingCheckSuiteAutofixRun:
+        # Expected for check suites on PRs without an Autofix run.
+        return
+    except (orjson.JSONDecodeError, ValidationError, TypeError, ValueError) as e:
+        # Malformed webhook payload — report and drop; do not fail the listener task.
+        sentry_sdk.capture_exception(e)
+        return
+
+    # Unlike failed suites, this suite was not passed through ``should_queue``,
+    # so reject stale-head webhooks here. Otherwise a completed suite from an
+    # older commit could prematurely drain failure feedback for the current head.
+    if not check_suite_head_match(source.event, autofix_run.run_state).matched:
+        return
+
+    # Lazy: tasks.seer.pr_iteration → scm.factory → github → jira client
+    # which calls absolute_uri() at import time (needs options cache).
+    # stream.py is loaded in AppConfig.ready before options init.
+    from sentry.tasks.seer.pr_iteration import trigger_consume_pr_iteration_feedback
+
+    trigger_consume_pr_iteration_feedback(
+        run_id=autofix_run.run_state.run_id,
+        organization_id=autofix_run.repository.organization_id,
+        feedback=Feedback(source=source),
+        run_state=autofix_run.run_state,
+    )
+
+
 @scm_event_stream.listen_for(event_type="check_suite")
 def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
     if check_suite_event.action != "completed":
@@ -36,6 +76,11 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
 
     conclusion = check_suite_event.check_suite["conclusion"]
     if conclusion in GREEN_CONCLUSIONS:
+        # A green suite may be the last one to finish after a failed suite put
+        # feedback on the queue. Re-evaluate CI completion so that feedback can
+        # drain now rather than waiting for its delayed fallback task.
+        _trigger_queued_feedback_if_ci_complete(check_suite_event)
+
         # Cheap resolve → read markers once → skip SCM if both done → confirm
         # green → run only the missing side effects. Undraft before
         # review-request: GitHub may CODEOWNERS-request after undraft; see TODO
