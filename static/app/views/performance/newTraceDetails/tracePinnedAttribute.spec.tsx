@@ -15,6 +15,7 @@ import {
   TracePinnedAttributeHeader,
   useTracePinnedAttribute,
   useTracePinnedAttributeData,
+  type TracePinnedAttributeData,
 } from 'sentry/views/performance/newTraceDetails/tracePinnedAttribute';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
@@ -112,15 +113,14 @@ describe('useTracePinnedAttributeData', () => {
       data: [{span_id: spanIds[100], 'custom.attribute': 'last'}],
     });
 
-    const {result} = renderHookWithProviders(
-      () =>
-        useTracePinnedAttributeData({
-          pinnedAttribute: 'custom.attribute',
-          spanIds,
-          traceSlug: 'trace-id',
-        }),
-      {organization: OrganizationFixture()}
-    );
+    const {result} = renderHookWithProviders(useTracePinnedAttributeData, {
+      organization: OrganizationFixture(),
+      initialProps: {
+        pinnedAttribute: 'custom.attribute',
+        spanIds,
+        traceSlug: 'trace-id',
+      },
+    });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
@@ -164,15 +164,14 @@ describe('useTracePinnedAttributeData', () => {
       },
     });
 
-    const {result} = renderHookWithProviders(
-      () =>
-        useTracePinnedAttributeData({
-          pinnedAttribute: 'custom.attribute',
-          spanIds,
-          traceSlug: 'trace-id',
-        }),
-      {organization: OrganizationFixture()}
-    );
+    const {result} = renderHookWithProviders(useTracePinnedAttributeData, {
+      organization: OrganizationFixture(),
+      initialProps: {
+        pinnedAttribute: 'custom.attribute',
+        spanIds,
+        traceSlug: 'trace-id',
+      },
+    });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(request).toHaveBeenCalledTimes(1);
@@ -202,21 +201,20 @@ describe('useTracePinnedAttributeData', () => {
       data: [{span_id: insertedSpanId, 'custom.attribute': 'inserted'}],
     });
 
-    const {result, rerender} = renderHookWithProviders(
-      ({spanIds}: {spanIds: string[]}) =>
-        useTracePinnedAttributeData({
-          pinnedAttribute: 'custom.attribute',
-          spanIds,
-          traceSlug: 'trace-id',
-        }),
-      {
-        initialProps: {spanIds: [firstSpanId, lastSpanId]},
-        organization: OrganizationFixture(),
-      }
-    );
+    const baseProps = {
+      traceSlug: 'trace-id',
+      pinnedAttribute: 'custom.attribute',
+    };
+    const {result, rerender} = renderHookWithProviders(useTracePinnedAttributeData, {
+      organization: OrganizationFixture(),
+      initialProps: {
+        ...baseProps,
+        spanIds: [firstSpanId, lastSpanId],
+      },
+    });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    rerender({spanIds: [firstSpanId, insertedSpanId, lastSpanId]});
+    rerender({...baseProps, spanIds: [firstSpanId, insertedSpanId, lastSpanId]});
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(initialRequest).toHaveBeenCalledTimes(1);
@@ -243,15 +241,14 @@ describe('useTracePinnedAttributeData', () => {
       statusCode: 500,
     });
 
-    const {result} = renderHookWithProviders(
-      () =>
-        useTracePinnedAttributeData({
-          pinnedAttribute: 'custom.attribute',
-          spanIds,
-          traceSlug: 'trace-id',
-        }),
-      {organization: OrganizationFixture()}
-    );
+    const {result} = renderHookWithProviders(useTracePinnedAttributeData, {
+      organization: OrganizationFixture(),
+      initialProps: {
+        pinnedAttribute: 'custom.attribute',
+        spanIds,
+        traceSlug: 'trace-id',
+      },
+    });
 
     await waitFor(() => expect(result.current.hasError).toBe(true));
     expect(result.current.isLoading).toBe(false);
@@ -265,22 +262,24 @@ describe('useTracePinnedAttributeData', () => {
       data: [{span_id: spanId, 'custom.attribute': 'first'}],
     });
 
-    const {result, rerender} = renderHookWithProviders(
-      ({pinnedAttribute}: {pinnedAttribute: string | null}) =>
-        useTracePinnedAttributeData({
-          pinnedAttribute,
-          spanIds: [spanId],
-          traceSlug: 'trace-id',
-        }),
-      {
-        initialProps: {pinnedAttribute: 'custom.attribute'},
-        organization: OrganizationFixture(),
-      }
-    );
+    const baseProps = {
+      spanIds: [spanId],
+      traceSlug: 'trace-id',
+    };
+    const {result, rerender} = renderHookWithProviders<
+      TracePinnedAttributeData,
+      {pinnedAttribute: string | null; spanIds: string[]; traceSlug: string | undefined}
+    >(useTracePinnedAttributeData, {
+      organization: OrganizationFixture(),
+      initialProps: {
+        ...baseProps,
+        pinnedAttribute: 'custom.attribute',
+      },
+    });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    rerender({pinnedAttribute: null});
-    rerender({pinnedAttribute: 'custom.attribute'});
+    rerender({...baseProps, pinnedAttribute: null});
+    rerender({...baseProps, pinnedAttribute: 'custom.attribute'});
     await waitFor(() => expect(result.current.valuesBySpanId.get(spanId)).toBe('first'));
 
     expect(request).toHaveBeenCalledTimes(1);
