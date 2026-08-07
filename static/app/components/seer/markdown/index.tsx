@@ -7,6 +7,7 @@ import {Link} from '@sentry/scraps/link';
 import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Heading} from '@sentry/scraps/text';
 
+import {STRUCTURED_SEER_EMBED_SCHEMAS} from './embeds/schemas';
 import {SeerEmbedRegistry} from './embeds';
 
 const ISSUE_SHORT_ID_PATTERN =
@@ -37,6 +38,7 @@ function LinkifyIssueShortIds({children}: {children: string}): ReactNode {
 }
 
 const IsInsideLinkContext = createContext(false);
+const StructuredContentContext = createContext<Record<string, unknown> | null>(null);
 
 function toRelativeHref(href: string): string {
   if (!/^https?:\/\//.test(href)) {
@@ -50,10 +52,17 @@ function toRelativeHref(href: string): string {
 }
 
 const SEER_EMBED_COMPONENTS: MarkdownProps['components'] = {
-  Tag: ({name, data, level, Default, ...rest}) => {
+  Tag: function SeerTag({name, data, level, Default, ...rest}) {
+    const structuredContent = useContext(StructuredContentContext);
     const Embed = SeerEmbedRegistry.get(name);
     if (Embed) {
-      const embed = <Embed name={name} data={data} level={level} />;
+      const embedData =
+        name in STRUCTURED_SEER_EMBED_SCHEMAS
+          ? structuredContent?.[name]
+          : data === undefined
+            ? structuredContent?.[name]
+            : data;
+      const embed = <Embed name={name} data={embedData} level={level} />;
       if (level === 'inline') {
         return embed;
       }
@@ -111,6 +120,15 @@ const SEER_EMBED_COMPONENTS: MarkdownProps['components'] = {
   ),
 };
 
-export function SeerMarkdown(props: Omit<MarkdownProps, 'components'>) {
-  return <Markdown {...props} components={SEER_EMBED_COMPONENTS} />;
+export function SeerMarkdown({
+  structuredContent = null,
+  ...props
+}: Omit<MarkdownProps, 'components'> & {
+  structuredContent?: Record<string, unknown> | null;
+}) {
+  return (
+    <StructuredContentContext.Provider value={structuredContent}>
+      <Markdown {...props} components={SEER_EMBED_COMPONENTS} />
+    </StructuredContentContext.Provider>
+  );
 }

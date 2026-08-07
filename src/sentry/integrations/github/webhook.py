@@ -89,7 +89,10 @@ from sentry.pr_metrics.webhooks import handle_review_thread as pr_metrics_handle
 from sentry.preprod.vcs.webhooks import handle_preprod_check_run_event
 from sentry.scm.private.stream_producer import produce_event_to_scm_stream
 from sentry.seer.autofix.pr_iteration.mention import handle_issue_comment_for_autofix_iteration
-from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
+from sentry.seer.autofix.webhooks import (
+    handle_github_pr_webhook_for_autofix,
+    handle_pull_requests_merged_milestone,
+)
 from sentry.seer.code_review.contributor_seats import (
     record_contributor_action,
     track_contributor_seat,
@@ -1084,6 +1087,7 @@ class PullRequestEventWebhook(GitHubWebhook):
     EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST
     WEBHOOK_EVENT_PROCESSORS = (
         _handle_pr_webhook_for_autofix_processor,
+        handle_pull_requests_merged_milestone,
         _track_contributor_action_processor,
         code_review_handle_webhook_event,
         pr_metrics_handle_attribution,
