@@ -84,6 +84,68 @@ describe('AutomationsList', () => {
     expect(within(row).getByText('1 monitor')).toBeInTheDocument();
   });
 
+  it('displays capped result counts as a lower bound', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/',
+      body: Array.from({length: 20}, (_, index) =>
+        AutomationFixture({id: `${index}`, name: `Automation ${index}`, detectorIds: []})
+      ),
+      headers: {
+        Link: '<http://localhost/api/0/organizations/org-slug/workflows/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <http://localhost/api/0/organizations/org-slug/workflows/?cursor=0:1:0>; rel="next"; results="true"; cursor="0:1:0"',
+        'X-Hits': '1000',
+        'X-Max-Hits': '1000',
+      },
+    });
+
+    render(<AutomationsList />, {organization});
+
+    expect(await screen.findByTestId('pagination')).toHaveTextContent('1-20 of 1000+');
+  });
+
+  it('falls back to the default hit ceiling when X-Max-Hits is missing', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/',
+      body: Array.from({length: 20}, (_, index) =>
+        AutomationFixture({id: `${index}`, name: `Automation ${index}`, detectorIds: []})
+      ),
+      headers: {
+        Link: '<http://localhost/api/0/organizations/org-slug/workflows/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <http://localhost/api/0/organizations/org-slug/workflows/?cursor=0:1:0>; rel="next"; results="true"; cursor="0:1:0"',
+        'X-Hits': '1000',
+      },
+    });
+
+    render(<AutomationsList />, {organization});
+
+    expect(await screen.findByTestId('pagination')).toHaveTextContent('1-20 of 1000+');
+  });
+
+  it('treats totals as capped when the page starts past X-Hits', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/',
+      body: Array.from({length: 20}, (_, index) =>
+        AutomationFixture({id: `${index}`, name: `Automation ${index}`, detectorIds: []})
+      ),
+      headers: {
+        Link: '<http://localhost/api/0/organizations/org-slug/workflows/?cursor=0:50:1>; rel="previous"; results="true"; cursor="0:50:1", <http://localhost/api/0/organizations/org-slug/workflows/?cursor=0:52:0>; rel="next"; results="true"; cursor="0:52:0"',
+        'X-Hits': '1000',
+      },
+    });
+
+    render(<AutomationsList />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/monitors/alerts/',
+          query: {cursor: '0:51:0'},
+        },
+      },
+    });
+
+    expect(await screen.findByTestId('pagination')).toHaveTextContent(
+      '1,021-1,040 of 1000+'
+    );
+  });
+
   it('displays connected detectors and projects via a single batch request', async () => {
     const project2 = ProjectFixture({id: '2', slug: 'project-2'});
     const detector2 = MetricDetectorFixture({
