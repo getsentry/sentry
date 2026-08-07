@@ -523,6 +523,7 @@ describe('CreateProject', () => {
         allowMemberProjectCreation: true,
       },
     });
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
     const frameWorkModalMockRequests = renderFrameworkModalMockRequests({
       organization,
@@ -550,6 +551,14 @@ describe('CreateProject', () => {
       1
     );
     expect(addErrorMessage).toHaveBeenCalledWith('Failed to create project apple-ios');
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'project_creation.project_details_create_clicked',
+      expect.objectContaining({variant: 'legacy'})
+    );
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'project_creation.project_details_create_failed',
+      expect.objectContaining({variant: 'legacy'})
+    );
   });
 
   it('should display success message when using member endpoint', async () => {
@@ -664,6 +673,12 @@ describe('CreateProject', () => {
     expect(trackAnalyticsSpy).toHaveBeenCalledWith(
       'project_creation.select_framework_modal_close_button_clicked',
       expect.objectContaining({variant: 'legacy'})
+    );
+    // No POST was attempted, so this must not land in the create-failure rate
+    // denominator.
+    expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
+      'project_creation.project_details_create_clicked',
+      expect.anything()
     );
   });
 

@@ -295,6 +295,13 @@ export function CreateProject() {
       }) => {
       const selectedPlatform = selectedFramework ?? platform;
 
+      // Not in handleProjectCreation: every path into configurePlatform goes on
+      // to POST, so an abandoned framework modal stays out of the denominator.
+      trackAnalytics('project_creation.project_details_create_clicked', {
+        organization,
+        variant: 'legacy',
+      });
+
       try {
         const {project, notificationRule, ruleIds} =
           await createProjectAndRules.mutateAsync({
@@ -346,6 +353,13 @@ export function CreateProject() {
         });
       } catch (error: any) {
         addErrorMessage(t('Failed to create project %s', projectName));
+
+        // Unfiltered, unlike the Sentry captures: the SCM variant counts every
+        // caught failure, so filtering here would make the two rates disagree.
+        trackAnalytics('project_creation.project_details_create_failed', {
+          organization,
+          variant: 'legacy',
+        });
 
         if (error.status === 403) {
           Sentry.withScope(scope => {
