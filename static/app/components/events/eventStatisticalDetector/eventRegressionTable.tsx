@@ -79,22 +79,25 @@ export function EventRegressionTable({
   }, [causeType]);
 
   return (
-    <SimpleTable columns={REGRESSION_COLUMNS}>
-      <SimpleTable.Header>
-        {columns.map(column => {
-          return (
-            <SimpleTable.HeaderCell
-              key={column.key}
-              style={
-                RIGHT_ALIGNED_COLUMNS.has(column.key) ? RIGHT_ALIGNED_STYLE : undefined
-              }
-            >
-              {column.name}
-            </SimpleTable.HeaderCell>
-          );
-        })}
-      </SimpleTable.Header>
-
+    <SimpleTable
+      columns={REGRESSION_COLUMNS}
+      header={
+        <SimpleTable.HeaderRow>
+          {columns.map(column => {
+            return (
+              <SimpleTable.HeaderCell
+                key={column.key}
+                style={
+                  RIGHT_ALIGNED_COLUMNS.has(column.key) ? RIGHT_ALIGNED_STYLE : undefined
+                }
+              >
+                {column.name}
+              </SimpleTable.HeaderCell>
+            );
+          })}
+        </SimpleTable.HeaderRow>
+      }
+    >
       {isLoading ? (
         <SkeletonRows columns={columns} />
       ) : error ? (

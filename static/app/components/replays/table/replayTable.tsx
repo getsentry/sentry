@@ -62,17 +62,19 @@ export function ReplayTable({
   if (isPending) {
     return (
       <StyledSimpleTable
+        header={
+          <ReplayTableHeader
+            columns={columns}
+            replays={replays}
+            onSortClick={onSortClick}
+            sort={sort}
+            stickyHeader={stickyHeader}
+          />
+        }
         data-test-id="replay-table-loading"
         ref={ref}
         style={{gridTemplateColumns}}
       >
-        <ReplayTableHeader
-          columns={columns}
-          replays={replays}
-          onSortClick={onSortClick}
-          sort={sort}
-          stickyHeader={stickyHeader}
-        />
         <SimpleTable.Empty>
           <LoadingIndicator />
         </SimpleTable.Empty>
@@ -83,18 +85,19 @@ export function ReplayTable({
   if (error) {
     return (
       <StyledSimpleTable
+        header={
+          <ReplayTableHeader
+            columns={columns}
+            replays={replays}
+            onSortClick={onSortClick}
+            sort={sort}
+            stickyHeader={stickyHeader}
+          />
+        }
         data-test-id="replay-table-errored"
         ref={ref}
         style={{gridTemplateColumns}}
       >
-        <ReplayTableHeader
-          columns={columns}
-          onSortClick={onSortClick}
-          replays={replays}
-          sort={sort}
-          stickyHeader={stickyHeader}
-        />
-
         <SimpleTable.Empty>
           <Alert variant="danger">
             {t('Sorry, the list of replays could not be loaded. ')}
@@ -107,17 +110,19 @@ export function ReplayTable({
 
   return (
     <StyledSimpleTable
+      header={
+        <ReplayTableHeader
+          columns={columns}
+          replays={replays}
+          onSortClick={onSortClick}
+          sort={sort}
+          stickyHeader={stickyHeader}
+        />
+      }
       data-test-id="replay-table"
       ref={ref}
       style={{gridTemplateColumns}}
     >
-      <ReplayTableHeader
-        columns={columns}
-        onSortClick={onSortClick}
-        replays={replays}
-        sort={sort}
-        stickyHeader={stickyHeader}
-      />
       {replays.length === 0 && (
         <SimpleTable.Empty>{t('No replays found')}</SimpleTable.Empty>
       )}

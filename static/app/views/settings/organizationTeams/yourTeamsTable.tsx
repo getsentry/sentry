@@ -89,17 +89,20 @@ export function YourTeamsTable({
   };
 
   return (
-    <TeamsTable>
-      <SimpleTable.Header>
-        <SimpleTable.HeaderCell>{t('Your Teams')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell data-column-name="role">
-          {t('Role')}
-        </SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell data-column-name="projects">
-          {t('Projects')}
-        </SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell data-column-name="actions" />
-      </SimpleTable.Header>
+    <TeamsTable
+      header={
+        <SimpleTable.HeaderRow>
+          <SimpleTable.HeaderCell>{t('Your Teams')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell data-column-name="role">
+            {t('Role')}
+          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell data-column-name="projects">
+            {t('Projects')}
+          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell data-column-name="actions" />
+        </SimpleTable.HeaderRow>
+      }
+    >
       {hasOrgRoleOverwrite({orgRole, orgRoleList, teamRoleList}) && (
         <SimpleTable.FullWidthRow>
           <RoleOverwritePanelAlert

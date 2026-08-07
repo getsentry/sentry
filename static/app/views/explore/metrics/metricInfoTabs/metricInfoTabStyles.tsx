@@ -113,7 +113,7 @@ export const StyledSimpleTableHeaderCell = styled(SimpleTable.HeaderCell)<{
         : p.theme.space.xs};
 `;
 
-export const StyledSimpleTableHeader = styled(SimpleTable.Header)`
+export const StyledSimpleTableHeader = styled(SimpleTable.HeaderRow)`
   height: 33px;
   z-index: unset;
   position: sticky;

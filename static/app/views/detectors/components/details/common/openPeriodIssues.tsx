@@ -195,14 +195,17 @@ function LatestGroupWithOpenPeriods({
   }
 
   return (
-    <SimpleTable columns={OPEN_PERIOD_COLUMNS}>
-      <SimpleTable.Header>
-        <SimpleTable.HeaderCell>{t('Issue')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Last Seen')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Assignee')}</SimpleTable.HeaderCell>
-      </SimpleTable.Header>
-
+    <SimpleTable
+      columns={OPEN_PERIOD_COLUMNS}
+      header={
+        <SimpleTable.HeaderRow>
+          <SimpleTable.HeaderCell>{t('Issue')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Last Seen')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Assignee')}</SimpleTable.HeaderCell>
+        </SimpleTable.HeaderRow>
+      }
+    >
       <SimpleTable.Row>
         <EventOrGroupCell>
           <GroupHeaderRow data={group} />

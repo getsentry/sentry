@@ -101,12 +101,16 @@ export default function AdminUsers() {
       ) : isPending ? (
         <LoadingIndicator />
       ) : (
-        <SimpleTable columns={USERS_COLUMNS}>
-          <SimpleTable.Header>
-            <SimpleTable.HeaderCell>{t('User')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell>{t('Joined')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell>{t('Last Login')}</SimpleTable.HeaderCell>
-          </SimpleTable.Header>
+        <SimpleTable
+          columns={USERS_COLUMNS}
+          header={
+            <SimpleTable.HeaderRow>
+              <SimpleTable.HeaderCell>{t('User')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>{t('Joined')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>{t('Last Login')}</SimpleTable.HeaderCell>
+            </SimpleTable.HeaderRow>
+          }
+        >
           {users?.length ? (
             users.map(user => (
               <SimpleTable.Row key={user.id}>

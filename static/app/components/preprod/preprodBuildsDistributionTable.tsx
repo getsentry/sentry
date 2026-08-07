@@ -67,12 +67,14 @@ export function PreprodBuildsDistributionTable({
     <BuildsTableGrid
       tracks={distributionTableColumns}
       showProjectColumn={showProjectColumn}
+      header={
+        <SimpleTable.HeaderRow>
+          <PreprodBuildsHeaderCells showProjectColumn={showProjectColumn} />
+          <SimpleTable.HeaderCell>{t('Download Count')}</SimpleTable.HeaderCell>
+          <PreprodBuildsCreatedHeaderCell />
+        </SimpleTable.HeaderRow>
+      }
     >
-      <SimpleTable.Header>
-        <PreprodBuildsHeaderCells showProjectColumn={showProjectColumn} />
-        <SimpleTable.HeaderCell>{t('Download Count')}</SimpleTable.HeaderCell>
-        <PreprodBuildsCreatedHeaderCell />
-      </SimpleTable.Header>
       {content ?? rows}
     </BuildsTableGrid>
   );

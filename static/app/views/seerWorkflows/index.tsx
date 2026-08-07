@@ -340,20 +340,23 @@ function SeerWorkflows() {
                 ) : null}
               </Flex>
             </Container>
-            <SimpleTable columns={RUNS_COLUMNS}>
-              <SimpleTable.Header>
-                <SimpleTable.HeaderCell />
-                <SimpleTable.HeaderCell
-                  sort={sortDirection}
-                  handleSortClick={toggleSortDirection}
-                >
-                  {t('Date')}
-                </SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell>{t('Strategy')}</SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell>{t('Result')}</SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell />
-              </SimpleTable.Header>
-
+            <SimpleTable
+              columns={RUNS_COLUMNS}
+              header={
+                <SimpleTable.HeaderRow>
+                  <SimpleTable.HeaderCell />
+                  <SimpleTable.HeaderCell
+                    sort={sortDirection}
+                    handleSortClick={toggleSortDirection}
+                  >
+                    {t('Date')}
+                  </SimpleTable.HeaderCell>
+                  <SimpleTable.HeaderCell>{t('Strategy')}</SimpleTable.HeaderCell>
+                  <SimpleTable.HeaderCell>{t('Result')}</SimpleTable.HeaderCell>
+                  <SimpleTable.HeaderCell />
+                </SimpleTable.HeaderRow>
+              }
+            >
               {sortedRows.length === 0 ? (
                 <SimpleTable.Empty>
                   {rows.length === 0

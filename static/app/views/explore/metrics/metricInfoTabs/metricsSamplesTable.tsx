@@ -86,13 +86,15 @@ export function MetricsSamplesTable({
   }, [meta, traceMetric?.unit]);
 
   return (
-    <SimpleTableGrid source={source}>
+    <SimpleTableGrid
+      header={<MetricsSamplesTableHeader columns={columns} source={source} />}
+      source={source}
+    >
       {isFetching && (
         <LoadingMaskRow>
           <TransparentLoadingMask />
         </LoadingMaskRow>
       )}
-      <MetricsSamplesTableHeader columns={columns} source={source} />
       {!overrideTableData?.length && error ? (
         <SimpleTable.Empty style={{minHeight: '140px'}}>
           <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />

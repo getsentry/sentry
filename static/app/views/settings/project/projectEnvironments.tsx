@@ -225,21 +225,25 @@ export default function ProjectEnvironments() {
       </TabsContainer>
       <ProjectPermissionAlert project={project} />
 
-      <SimpleTable columns={ENVIRONMENT_COLUMNS}>
-        <SimpleTable.Header>
-          <SimpleTable.HeaderCell>
-            {isHidden ? t('Hidden') : t('Active Environments')}
-          </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell>
-            <InfoText
-              title={t('Count of all error events from the last 30 days')}
-              variant="muted"
-            >
-              {t('Recent Error Events')}
-            </InfoText>
-          </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell>{t('Action')}</SimpleTable.HeaderCell>
-        </SimpleTable.Header>
+      <SimpleTable
+        columns={ENVIRONMENT_COLUMNS}
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>
+              {isHidden ? t('Hidden') : t('Active Environments')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>
+              <InfoText
+                title={t('Count of all error events from the last 30 days')}
+                variant="muted"
+              >
+                {t('Recent Error Events')}
+              </InfoText>
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Action')}</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      >
         {isPending ? (
           <EnvironmentTableSkeleton isHidden={isHidden} />
         ) : isError ? (

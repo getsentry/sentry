@@ -112,7 +112,7 @@ const LoadingBody = styled(TableShell.StatusBody)`
 export const InfiniteTable = {
   Table,
   Head: TableShell.Head,
-  Header: SimpleTable.Header,
+  Header: SimpleTable.HeaderRow,
   HeaderBanner,
   HeaderCell: SimpleTable.HeaderCell,
   HeaderCellRemaining,

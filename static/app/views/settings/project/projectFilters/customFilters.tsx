@@ -523,19 +523,29 @@ export function CustomFilters({project}: {project: Project}) {
       ) : isPending ? (
         <LoadingIndicator />
       ) : (
-        <SimpleTable columns={CUSTOM_FILTER_COLUMNS}>
-          <SimpleTable.Header>
-            <SimpleTable.HeaderCell divider={false}>{t('Active')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell divider={false}>{t('Name')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell divider={false}>
-              {t('Conditions')}
-            </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell divider={false}>
-              {t('Created')}
-            </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell divider={false}>{t('Edited')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell divider={false}>{t('Action')}</SimpleTable.HeaderCell>
-          </SimpleTable.Header>
+        <SimpleTable
+          columns={CUSTOM_FILTER_COLUMNS}
+          header={
+            <SimpleTable.HeaderRow>
+              <SimpleTable.HeaderCell divider={false}>
+                {t('Active')}
+              </SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell divider={false}>{t('Name')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell divider={false}>
+                {t('Conditions')}
+              </SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell divider={false}>
+                {t('Created')}
+              </SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell divider={false}>
+                {t('Edited')}
+              </SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell divider={false}>
+                {t('Action')}
+              </SimpleTable.HeaderCell>
+            </SimpleTable.HeaderRow>
+          }
+        >
           {visibleFilters.length === 0 && (
             <SimpleTable.Empty>
               {filters.length === 0

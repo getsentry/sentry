@@ -106,13 +106,17 @@ export default Storybook.story('SeerProjectSettings', story => {
             />
           </Flex>
 
-          <SimpleTable style={{gridTemplateColumns: '2fr max-content repeat(2, 1fr)'}}>
-            <SimpleTable.Header>
-              <SimpleTable.HeaderCell>{t('Project')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell>{t('Repos')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell>{t('Agent')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell>{t('Stopping Point')}</SimpleTable.HeaderCell>
-            </SimpleTable.Header>
+          <SimpleTable
+            style={{gridTemplateColumns: '2fr max-content repeat(2, 1fr)'}}
+            header={
+              <SimpleTable.HeaderRow>
+                <SimpleTable.HeaderCell>{t('Project')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Repos')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Agent')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Stopping Point')}</SimpleTable.HeaderCell>
+              </SimpleTable.HeaderRow>
+            }
+          >
             <SimpleTable.Row>
               <SimpleTable.RowCell>
                 <Text bold>{data.projectSlug}</Text>

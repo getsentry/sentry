@@ -139,7 +139,7 @@ export function DetectorsTableActions({
 
   return (
     <Fragment>
-      <SimpleTable.Header>
+      <SimpleTable.HeaderRow>
         <SimpleTable.HeaderCell variant="full-width" divider={false}>
           <Flex align="center" padding="0 xl" gap="md" width="100%">
             <Checkbox
@@ -202,7 +202,7 @@ export function DetectorsTableActions({
             </Tooltip>
           </Flex>
         </SimpleTable.HeaderCell>
-      </SimpleTable.Header>
+      </SimpleTable.HeaderRow>
       {pageSelected && !allResultsVisible && (
         <SimpleTable.FullWidthRow>
           <Alert variant="warning" system showIcon={false}>

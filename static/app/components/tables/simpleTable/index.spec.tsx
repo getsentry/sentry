@@ -5,12 +5,15 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 describe('SimpleTable component', () => {
   it('renders headers andcells', () => {
     render(
-      <SimpleTable>
-        <SimpleTable.Header>
-          <SimpleTable.HeaderCell>A</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell>B</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell>C</SimpleTable.HeaderCell>
-        </SimpleTable.Header>
+      <SimpleTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>A</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>B</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>C</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      >
         <SimpleTable.Row data-test-id="row-1">
           <SimpleTable.RowCell>0</SimpleTable.RowCell>
           <SimpleTable.RowCell>1</SimpleTable.RowCell>
@@ -41,14 +44,16 @@ describe('SimpleTable component', () => {
 
   it('announces the sort direction when a column is sorted', () => {
     render(
-      <SimpleTable>
-        <SimpleTable.Header>
-          <SimpleTable.HeaderCell sort="asc" handleSortClick={jest.fn()}>
-            A
-          </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell handleSortClick={jest.fn()}>B</SimpleTable.HeaderCell>
-        </SimpleTable.Header>
-      </SimpleTable>
+      <SimpleTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell sort="asc" handleSortClick={jest.fn()}>
+              A
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell handleSortClick={jest.fn()}>B</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      />
     );
 
     expect(screen.getByRole('columnheader', {name: 'A'})).toHaveAttribute(
@@ -62,11 +67,13 @@ describe('SimpleTable component', () => {
 
   it('keeps the interaction state layer a direct child of the sort button when sortable', () => {
     render(
-      <SimpleTable>
-        <SimpleTable.Header>
-          <SimpleTable.HeaderCell handleSortClick={jest.fn()}>A</SimpleTable.HeaderCell>
-        </SimpleTable.Header>
-      </SimpleTable>
+      <SimpleTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell handleSortClick={jest.fn()}>A</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      />
     );
 
     const button = screen.getByRole('button', {name: 'A'});
@@ -77,13 +84,15 @@ describe('SimpleTable component', () => {
   it('sorts when a sortable header is clicked', async () => {
     const handleSortClick = jest.fn();
     render(
-      <SimpleTable>
-        <SimpleTable.Header>
-          <SimpleTable.HeaderCell handleSortClick={handleSortClick}>
-            A
-          </SimpleTable.HeaderCell>
-        </SimpleTable.Header>
-      </SimpleTable>
+      <SimpleTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell handleSortClick={handleSortClick}>
+              A
+            </SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      />
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'A'}));
@@ -93,11 +102,13 @@ describe('SimpleTable component', () => {
 
   it('renders a sortable header as a button inside a real column header', () => {
     render(
-      <SimpleTable>
-        <SimpleTable.Header>
-          <SimpleTable.HeaderCell handleSortClick={jest.fn()}>A</SimpleTable.HeaderCell>
-        </SimpleTable.Header>
-      </SimpleTable>
+      <SimpleTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell handleSortClick={jest.fn()}>A</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      />
     );
 
     const header = screen.getByRole('columnheader', {name: 'A'});

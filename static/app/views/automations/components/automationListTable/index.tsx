@@ -136,7 +136,7 @@ export function AutomationListTable({
   return (
     <AutomationsSimpleTable>
       {canEditAutomations && selected.size === 0 ? (
-        <SimpleTable.Header key="header">
+        <SimpleTable.HeaderRow key="header">
           <HeaderCell sort={sort} sortKey="name">
             <Flex gap="md" align="center">
               <SelectAllHeaderCheckbox
@@ -166,7 +166,7 @@ export function AutomationListTable({
           >
             {t('Monitors')}
           </HeaderCell>
-        </SimpleTable.Header>
+        </SimpleTable.HeaderRow>
       ) : (
         <AutomationsTableActions
           key="actions"

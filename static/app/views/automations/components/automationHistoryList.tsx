@@ -99,13 +99,17 @@ export function AutomationHistoryList({
 
   return (
     <Fragment>
-      <SimpleTable columns={HISTORY_COLUMNS}>
-        <SimpleTable.Header>
-          <SimpleTable.HeaderCell>{t('Last Triggered')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell>{t('Monitor')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell>{t('Issue')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell>{t('Alerts')}</SimpleTable.HeaderCell>
-        </SimpleTable.Header>
+      <SimpleTable
+        columns={HISTORY_COLUMNS}
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{t('Last Triggered')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Monitor')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Issue')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Alerts')}</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      >
         {isLoading && <Skeletons />}
         {isError && (
           <SimpleTable.Empty>

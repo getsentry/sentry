@@ -158,17 +158,22 @@ export function PreprodBuildsSnapshotTable({
   });
 
   return (
-    <BuildsTableGrid tracks={snapshotTableColumns} showProjectColumn={showProjectColumn}>
-      <SimpleTable.Header>
-        <SimpleTable.HeaderCell>{t('Snapshot')}</SimpleTable.HeaderCell>
-        {showProjectColumn && (
-          <SimpleTable.HeaderCell>{t('Project')}</SimpleTable.HeaderCell>
-        )}
-        <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Changes')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Branch')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Created')}</SimpleTable.HeaderCell>
-      </SimpleTable.Header>
+    <BuildsTableGrid
+      tracks={snapshotTableColumns}
+      showProjectColumn={showProjectColumn}
+      header={
+        <SimpleTable.HeaderRow>
+          <SimpleTable.HeaderCell>{t('Snapshot')}</SimpleTable.HeaderCell>
+          {showProjectColumn && (
+            <SimpleTable.HeaderCell>{t('Project')}</SimpleTable.HeaderCell>
+          )}
+          <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Changes')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Branch')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Created')}</SimpleTable.HeaderCell>
+        </SimpleTable.HeaderRow>
+      }
+    >
       {content ?? rows}
     </BuildsTableGrid>
   );

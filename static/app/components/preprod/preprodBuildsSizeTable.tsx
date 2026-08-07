@@ -65,26 +65,31 @@ export function PreprodBuildsSizeTable({
   });
 
   return (
-    <BuildsTableGrid tracks={sizeTableColumns} showProjectColumn={showProjectColumn}>
-      <SimpleTable.Header>
-        <PreprodBuildsHeaderCells showProjectColumn={showProjectColumn} />
-        <SimpleTable.HeaderCell>
-          {labels.installSizeLabelTooltip ? (
-            <Tooltip title={labels.installSizeLabelTooltip}>
-              <Flex align="center" gap="xs">
-                <Text as="span" variant="muted">
-                  {labels.installSizeLabel}
-                </Text>
-                <IconQuestion size="xs" variant="muted" />
-              </Flex>
-            </Tooltip>
-          ) : (
-            labels.installSizeLabel
-          )}
-        </SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{labels.downloadSizeLabel}</SimpleTable.HeaderCell>
-        <PreprodBuildsCreatedHeaderCell />
-      </SimpleTable.Header>
+    <BuildsTableGrid
+      tracks={sizeTableColumns}
+      showProjectColumn={showProjectColumn}
+      header={
+        <SimpleTable.HeaderRow>
+          <PreprodBuildsHeaderCells showProjectColumn={showProjectColumn} />
+          <SimpleTable.HeaderCell>
+            {labels.installSizeLabelTooltip ? (
+              <Tooltip title={labels.installSizeLabelTooltip}>
+                <Flex align="center" gap="xs">
+                  <Text as="span" variant="muted">
+                    {labels.installSizeLabel}
+                  </Text>
+                  <IconQuestion size="xs" variant="muted" />
+                </Flex>
+              </Tooltip>
+            ) : (
+              labels.installSizeLabel
+            )}
+          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{labels.downloadSizeLabel}</SimpleTable.HeaderCell>
+          <PreprodBuildsCreatedHeaderCell />
+        </SimpleTable.HeaderRow>
+      }
+    >
       {content ?? rows}
     </BuildsTableGrid>
   );

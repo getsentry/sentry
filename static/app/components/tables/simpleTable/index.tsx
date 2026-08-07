@@ -21,8 +21,10 @@ import {defined} from 'sentry/utils/defined';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 
 interface TableProps extends Omit<HTMLAttributes<HTMLTableElement>, 'children'> {
-  children: ReactNode;
+  children?: ReactNode;
   columns?: TableColumnConfig[];
+  /** The header row, rendered into the table's `<thead>`. */
+  header?: ReactNode;
   ref?: RefObject<HTMLTableElement | null>;
 }
 
@@ -33,18 +35,19 @@ interface RowProps extends HTMLAttributes<HTMLTableRowElement> {
 
 type HeaderCellVariant = 'default' | 'first' | 'remaining' | 'full-width';
 
-export function SimpleTable({children, columns, ...props}: TableProps) {
+export function SimpleTable({children, columns, header, ...props}: TableProps) {
   return (
     <StyledTable columns={columns} {...props}>
       <PanelProvider>
+        {header && <Table.Head>{header}</Table.Head>}
         <Table.Body>{children}</Table.Body>
       </PanelProvider>
     </StyledTable>
   );
 }
 
-function Header({children, ...props}: HTMLAttributes<HTMLTableRowElement>) {
-  return <HeaderRow {...props}>{children}</HeaderRow>;
+function HeaderRow({children, ...props}: HTMLAttributes<HTMLTableRowElement>) {
+  return <StyledHeaderRow {...props}>{children}</StyledHeaderRow>;
 }
 
 function HeaderCell({
@@ -111,7 +114,7 @@ const StyledTable = styled(Table)`
   overflow: hidden;
 `;
 
-const HeaderRow = styled(Table.Row)`
+const StyledHeaderRow = styled(Table.Row)`
   background: ${p => p.theme.tokens.background.secondary};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: calc(${p => p.theme.radius.md} + 1px)
@@ -234,7 +237,7 @@ const Empty = styled(Table.Status)`
   ${emptyCellStyle}
 `;
 
-SimpleTable.Header = Header;
+SimpleTable.HeaderRow = HeaderRow;
 SimpleTable.HeaderCell = HeaderCell;
 SimpleTable.Row = Row;
 SimpleTable.RowCell = RowCell;

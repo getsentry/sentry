@@ -1,5 +1,6 @@
 /** Various shared components for diff tables */
 
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -77,7 +78,7 @@ export const DiffTableWithColumns = styled(SimpleTable)<{
   border-right: 0px;
 `;
 
-export const DiffTableHeader = styled(SimpleTable.Header)`
+export const diffTableHeaderStyles = css`
   border-radius: 0;
   border-left: 0px;
   border-right: 0px;

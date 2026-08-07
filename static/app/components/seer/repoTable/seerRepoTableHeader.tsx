@@ -410,7 +410,7 @@ function SelectAllCheckbox({
   );
 }
 
-const TableHeader = styled(SimpleTable.Header)<{gridColumns: string}>`
+const TableHeader = styled(SimpleTable.HeaderRow)<{gridColumns: string}>`
   grid-template-columns: ${p => p.gridColumns};
   grid-column: unset;
   grid-row: unset;

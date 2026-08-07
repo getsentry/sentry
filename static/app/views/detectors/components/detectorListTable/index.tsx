@@ -167,7 +167,7 @@ export function DetectorListTable({
         additionalColumns={additionalColumns}
       >
         {selected.size === 0 ? (
-          <SimpleTable.Header>
+          <SimpleTable.HeaderRow>
             <HeaderCell sortKey="name">
               <Flex gap="md" align="center">
                 <SelectAllHeaderCheckbox
@@ -231,7 +231,7 @@ export function DetectorListTable({
                 />
               </VisualizationExpandButtonCell>
             )}
-          </SimpleTable.Header>
+          </SimpleTable.HeaderRow>
         ) : (
           <DetectorsTableActions
             key="actions"

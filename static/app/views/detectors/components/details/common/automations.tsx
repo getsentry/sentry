@@ -95,13 +95,16 @@ function AutomationsTable({detectorId, emptyMessage}: AutomationsTableProps) {
         });
 
   const table = (
-    <SimpleTableWithColumns>
-      <SimpleTable.Header>
-        <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell data-column-name="action-filters">
-          {t('Actions')}
-        </SimpleTable.HeaderCell>
-      </SimpleTable.Header>
+    <SimpleTableWithColumns
+      header={
+        <SimpleTable.HeaderRow>
+          <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell data-column-name="action-filters">
+            {t('Actions')}
+          </SimpleTable.HeaderCell>
+        </SimpleTable.HeaderRow>
+      }
+    >
       {isPending && <Skeletons numberOfRows={AUTOMATIONS_PER_PAGE} />}
       {isError && (
         <SimpleTable.Empty>

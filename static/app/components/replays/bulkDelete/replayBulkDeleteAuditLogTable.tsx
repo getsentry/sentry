@@ -29,14 +29,18 @@ export function ReplayBulkDeleteAuditLogTable({
   rows: ReplayBulkDeleteAuditLog[] | undefined;
 }) {
   return (
-    <SimpleTable columns={AUDIT_LOG_COLUMNS}>
-      <SimpleTable.Header>
-        <SimpleTable.HeaderCell>{t('ID')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Date Created')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Query')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Count Deleted')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
-      </SimpleTable.Header>
+    <SimpleTable
+      columns={AUDIT_LOG_COLUMNS}
+      header={
+        <SimpleTable.HeaderRow>
+          <SimpleTable.HeaderCell>{t('ID')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Date Created')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Query')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Count Deleted')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
+        </SimpleTable.HeaderRow>
+      }
+    >
       {isPending ? (
         <SimpleTable.Empty>
           <LoadingIndicator />
