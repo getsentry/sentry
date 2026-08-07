@@ -97,6 +97,7 @@ export enum FieldKey {
   PLATFORM = 'platform',
   PLATFORM_NAME = 'platform.name',
   PROFILE_ID = 'profile.id',
+  PROFILER_ID = 'profiler.id',
   PROJECT = 'project',
   RELEASE = 'release',
   RELEASE_BUILD = 'release.build',
@@ -164,6 +165,7 @@ type SharedFieldKey =
   | FieldKey.PLATFORM
   | FieldKey.PLATFORM_NAME
   | FieldKey.PROFILE_ID
+  | FieldKey.PROFILER_ID
   | FieldKey.PROJECT
   | FieldKey.REPLAY_ID
   | FieldKey.TIMESTAMP
@@ -1903,6 +1905,12 @@ const SHARED_FIELD_KEY: Record<SharedFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
     allowWildcard: false,
   },
+  [FieldKey.PROFILER_ID]: {
+    desc: t('The ID of an associated continuous profile'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
   [FieldKey.PROJECT]: {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
@@ -2880,6 +2888,7 @@ export const ISSUE_EVENT_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.OS_DISTRIBUTION_NAME,
   FieldKey.OS_DISTRIBUTION_VERSION,
   FieldKey.PLATFORM_NAME,
+  FieldKey.PROFILER_ID,
   FieldKey.RELEASE_BUILD,
   FieldKey.RELEASE_PACKAGE,
   FieldKey.RELEASE_VERSION,
@@ -2954,6 +2963,7 @@ export const ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS = new Set<FieldKey>(
   FieldKey.OS_DISTRIBUTION_NAME,
   FieldKey.OS_DISTRIBUTION_VERSION,
   FieldKey.PLATFORM_NAME,
+  FieldKey.PROFILER_ID,
   FieldKey.RELEASE_BUILD,
   FieldKey.RELEASE_PACKAGE,
   FieldKey.RELEASE_VERSION,
@@ -3075,6 +3085,7 @@ export const DISCOVER_FIELDS = [
   FieldKey.TRACE_CLIENT_SAMPLE_RATE,
 
   FieldKey.PROFILE_ID,
+  FieldKey.PROFILER_ID,
 
   // Meta field that returns total count, usually for equations
   FieldKey.TOTAL_COUNT,

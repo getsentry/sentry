@@ -3301,6 +3301,18 @@ class SeatBasedSeerAutomationTestMixin(BasePostProcessGroupMixin):
 
     @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
     @with_feature({"organizations:gen-ai-features": True})
+    @override_options({"seer.post-process-issue-summary.rollout-rate": 0.0})
+    def test_seat_based_org_rollout_skips_tier_check(
+        self, mock_generate_summary_only, mock_seat_based_tier
+    ):
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        post_process_module.kick_off_seer_automation({"event": event})
+
+        mock_seat_based_tier.assert_not_called()
+        mock_generate_summary_only.assert_not_called()
+
+    @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
+    @with_feature({"organizations:gen-ai-features": True})
     def test_seat_based_org_skips_old_issues(
         self, mock_generate_summary_only, mock_seat_based_tier
     ):

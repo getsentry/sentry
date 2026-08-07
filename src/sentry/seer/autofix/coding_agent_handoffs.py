@@ -18,6 +18,7 @@ from sentry.seer.autofix.utils import (
     update_coding_agent_state,
 )
 from sentry.seer.endpoints.utils import get_seer_run
+from sentry.seer.milestones import record_has_pull_request
 from sentry.seer.models.run import (
     SeerAgentRun,
     SeerRunCodingAgentHandoff,
@@ -140,6 +141,9 @@ def sync_coding_agent_status(
                 log_context=link_log_context,
                 coding_agent_handoff=handoff,
             )
+
+            if pr_number is not None:
+                record_has_pull_request(handoff.seer_run)
 
     known_to_seer = update_coding_agent_state(
         agent_id=agent_id, status=status, agent_url=agent_url, result=result

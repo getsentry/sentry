@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
@@ -95,31 +96,35 @@ export function EventTagsTreeRow({
   );
 
   return (
-    <TreeRow hasErrors={hasTagErrors} {...props}>
-      <TreeKeyTrunk spacerCount={spacerCount}>
-        {spacerCount > 0 && (
-          <Fragment>
-            <TreeSpacer spacerCount={spacerCount} hasStem={hasStem} />
-            <TreeBranchIcon hasErrors={hasTagErrors} />
-          </Fragment>
-        )}
-        <TreeSearchKey aria-hidden>{originalTag.key}</TreeSearchKey>
-        <TreeKey hasErrors={hasTagErrors} title={originalTag.key}>
-          {tagKey}
-        </TreeKey>
-      </TreeKeyTrunk>
-      <TreeValueTrunk>
-        <TreeValue hasErrors={hasTagErrors}>
-          <EventTagsTreeValue
-            config={config}
-            content={content}
-            event={event}
-            project={project}
-          />
-        </TreeValue>
-        {!config?.disableActions && tagActions}
-      </TreeValueTrunk>
-    </TreeRow>
+    <RevealOnHover>
+      {({className}) => (
+        <TreeRow hasErrors={hasTagErrors} {...props} className={className}>
+          <TreeKeyTrunk spacerCount={spacerCount}>
+            {spacerCount > 0 && (
+              <Fragment>
+                <TreeSpacer spacerCount={spacerCount} hasStem={hasStem} />
+                <TreeBranchIcon hasErrors={hasTagErrors} />
+              </Fragment>
+            )}
+            <TreeSearchKey aria-hidden>{originalTag.key}</TreeSearchKey>
+            <TreeKey hasErrors={hasTagErrors} title={originalTag.key}>
+              {tagKey}
+            </TreeKey>
+          </TreeKeyTrunk>
+          <TreeValueTrunk>
+            <TreeValue hasErrors={hasTagErrors}>
+              <EventTagsTreeValue
+                config={config}
+                content={content}
+                event={event}
+                project={project}
+              />
+            </TreeValue>
+            {!config?.disableActions && tagActions}
+          </TreeValueTrunk>
+        </TreeRow>
+      )}
+    </RevealOnHover>
   );
 }
 
@@ -133,7 +138,7 @@ function EventTagsTreeRowDropdown({
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
   const {copy} = useCopyToClipboard();
   const {mutate: saveTag} = useUpdateProject(project);
-  const [isVisible, setIsVisible] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const originalTag = content.originalTag;
 
   if (!originalTag) {
@@ -310,20 +315,22 @@ function EventTagsTreeRowDropdown({
   ];
 
   return (
-    <TreeValueDropdown
-      preventOverflowOptions={{padding: 4}}
-      className={isVisible ? '' : 'invisible'}
-      position="bottom-end"
-      size="xs"
-      onOpenChange={isOpen => setIsVisible(isOpen)}
-      triggerProps={{
-        'aria-label': t('Tag Actions Menu'),
-        icon: <IconEllipsis />,
-        showChevron: false,
-        className: 'tag-button',
-      }}
-      items={items}
-    />
+    <RevealOnHover.Action visible={isMenuOpen}>
+      <TreeValueDropdown
+        preventOverflowOptions={{padding: 4}}
+        position="bottom-end"
+        size="xs"
+        isOpen={isMenuOpen}
+        onOpenChange={setIsMenuOpen}
+        triggerProps={{
+          'aria-label': t('Tag Actions Menu'),
+          icon: <IconEllipsis />,
+          showChevron: false,
+          className: 'tag-button',
+        }}
+        items={items}
+      />
+    </RevealOnHover.Action>
   );
 }
 
@@ -420,9 +427,16 @@ function EventTagsTreeValue({
   return isValidUrl(content.value) ? (
     <TagLinkText>
       <ExternalLink
+        tabIndex={0}
         onClick={e => {
           e.preventDefault();
           openNavigateToExternalLinkModal({linkText: content.value});
+        }}
+        onKeyDown={e => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            openNavigateToExternalLinkModal({linkText: content.value});
+          }
         }}
       >
         {content.value}
@@ -437,6 +451,9 @@ const TreeRow = styled('div')<{hasErrors: boolean}>`
   border-radius: ${p => p.theme.space.xs};
   padding-left: ${p => p.theme.space.md};
   position: relative;
+  &:focus-within {
+    z-index: 1;
+  }
   display: grid;
   align-items: center;
   grid-column: span 2;
@@ -445,15 +462,6 @@ const TreeRow = styled('div')<{hasErrors: boolean}>`
   :nth-child(odd) {
     background-color: ${p =>
       p.hasErrors ? p.theme.colors.red100 : p.theme.tokens.background.secondary};
-  }
-  .invisible {
-    visibility: hidden;
-  }
-  &:hover,
-  &:active {
-    .invisible {
-      visibility: visible;
-    }
   }
   color: ${p => (p.hasErrors ? p.theme.colors.red500 : p.theme.tokens.content.secondary)};
   background-color: ${p =>

@@ -52,6 +52,7 @@ from sentry.models.pullrequest import (
 )
 from sentry.models.repository import Repository
 from sentry.pr_metrics.webhooks import handle_check_suite as pr_metrics_handle_check_suite
+from sentry.seer.models.run import SeerRunMilestone, SeerRunMilestoneType
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase, TestCase
@@ -1974,6 +1975,70 @@ class PullRequestEventWebhookTest(APITestCase):
         assert pr.draft is None
 
         assert mock_metrics.incr.call_count == 1
+
+    def _repo_for_pull_request_events(self) -> Repository:
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=self.organization,
+                external_id="12345",
+                provider="github",
+                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+            )
+            integration.add_organization(self.project.organization.id, self.user)
+
+        return Repository.objects.create(
+            organization_id=self.project.organization.id,
+            external_id="35129377",
+            provider="integrations:github",
+            name="baxterthehacker/public-repo",
+            integration_id=integration.id,
+        )
+
+    def test_merged_records_seer_run_milestone(self) -> None:
+        repo = self._repo_for_pull_request_events()
+        seer_run = self.create_seer_run(organization=self.organization)
+        pull_request = self.create_pull_request(
+            repository_id=repo.id, organization_id=self.project.organization.id, key="1"
+        )
+        self.create_seer_run_pull_request(run=seer_run, pull_request=pull_request)
+
+        self._post_pull_request_event(PULL_REQUEST_CLOSED_EVENT_EXAMPLE)
+
+        assert SeerRunMilestone.objects.filter(
+            seer_run=seer_run, milestone=SeerRunMilestoneType.PULL_REQUESTS_MERGED
+        ).exists()
+
+    def test_merged_does_not_record_milestone_while_a_run_pull_request_is_open(self) -> None:
+        repo = self._repo_for_pull_request_events()
+        seer_run = self.create_seer_run(organization=self.organization)
+        merged_pr = self.create_pull_request(
+            repository_id=repo.id, organization_id=self.project.organization.id, key="1"
+        )
+        self.create_seer_run_pull_request(run=seer_run, pull_request=merged_pr)
+        open_pr = self.create_pull_request(
+            repository_id=repo.id, organization_id=self.project.organization.id, key="2"
+        )
+        open_pr.update(state=PullRequestLifecycleState.OPEN)
+        self.create_seer_run_pull_request(run=seer_run, pull_request=open_pr)
+
+        self._post_pull_request_event(PULL_REQUEST_CLOSED_EVENT_EXAMPLE)
+
+        assert not SeerRunMilestone.objects.filter(seer_run=seer_run).exists()
+
+    def test_closed_unmerged_does_not_record_seer_run_milestone(self) -> None:
+        repo = self._repo_for_pull_request_events()
+        seer_run = self.create_seer_run(organization=self.organization)
+        pull_request = self.create_pull_request(
+            repository_id=repo.id, organization_id=self.project.organization.id, key="1"
+        )
+        self.create_seer_run_pull_request(run=seer_run, pull_request=pull_request)
+
+        closed = json.loads(PULL_REQUEST_CLOSED_EVENT_EXAMPLE)
+        closed["pull_request"]["merged"] = False
+        self._post_pull_request_event(json.dumps(closed).encode())
+
+        assert not SeerRunMilestone.objects.filter(seer_run=seer_run).exists()
 
     @patch("sentry.integrations.github.webhook.track_contributor_seat")
     def test_pr_lifecycle_activities_are_attributed_to_acting_user(

@@ -536,7 +536,7 @@ describe('useContainerBreakpoint', () => {
 
   beforeEach(() => {
     originalResizeObserver = window.ResizeObserver;
-    window.ResizeObserver = MockResizeObserver as unknown as typeof window.ResizeObserver;
+    window.ResizeObserver = MockResizeObserver;
   });
 
   afterEach(() => {
