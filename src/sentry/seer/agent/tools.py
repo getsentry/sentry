@@ -241,7 +241,7 @@ def _validate_events_query_params(
             error_detail = _format_events_query_validation_errors(resp.data)
             logger.warning(
                 "execute_table_query: bad request",
-                extra={"org_id": organization.id, "error_detail": error_detail},
+                extra={"org_id": organization.id, "error_detail": error_detail, **params},
             )
             return ExecuteQueryErrorResponse(error=error_detail)
         return None
@@ -250,7 +250,7 @@ def _validate_events_query_params(
             error_detail = _format_events_query_validation_errors(e.body)
             logger.warning(
                 "execute_table_query: bad request",
-                extra={"org_id": organization.id, "error_detail": error_detail},
+                extra={"org_id": organization.id, "error_detail": error_detail, **params},
             )
             return ExecuteQueryErrorResponse(error=error_detail)
         logger.exception(
@@ -381,7 +381,7 @@ def execute_table_query(
             error_detail = str(detail) if detail is not None else str(e.body)
             logger.warning(
                 "execute_table_query: bad request",
-                extra={"org_id": org_id, "error_detail": error_detail},
+                extra={"org_id": org_id, "error_detail": error_detail, **params},
             )
             return ExecuteQueryErrorResponse(error=error_detail)
         raise
@@ -476,7 +476,7 @@ def execute_timeseries_query(
             error_detail = str(detail) if detail is not None else str(e.body)
             logger.warning(
                 "execute_timeseries_query: bad request",
-                extra={"org_id": org_id, "error_detail": error_detail},
+                extra={"org_id": org_id, "error_detail": error_detail, **params},
             )
             return ExecuteTimeseriesQueryErrorResponse(seer_error_detail=error_detail)
         raise
@@ -583,7 +583,7 @@ def execute_trace_table_query(
             error_detail = str(detail) if detail is not None else str(e.body)
             logger.warning(
                 "execute_trace_table_query: bad request",
-                extra={"org_id": organization_id, "error_detail": error_detail},
+                extra={"org_id": organization_id, "error_detail": error_detail, **params},
             )
             return ExecuteQueryErrorResponse(error=error_detail)
         raise
@@ -711,7 +711,16 @@ def execute_replays_query(
         error_detail = str(e)
         logger.warning(
             "execute_replays_query: bad request",
-            extra={"org_id": organization_id, "query": query, "error_detail": error_detail},
+            extra={
+                "org_id": organization_id,
+                "error_detail": error_detail,
+                "query": query,
+                "start": start,
+                "end": end,
+                "project_ids": project_ids,
+                "sort": sort,
+                "fields": fields,
+            },
         )
         return ExecuteQueryErrorResponse(error=error_detail)
 

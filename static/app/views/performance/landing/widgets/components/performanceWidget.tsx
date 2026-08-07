@@ -39,7 +39,7 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
   const setWidgetDataForKey = useCallback(
     (dataKey: string, result?: WidgetDataResult) => {
       const _widgetData = widgetDataRef.current;
-      const newWidgetData = {..._widgetData, [dataKey]: result} as T;
+      const newWidgetData = {..._widgetData, [dataKey]: result};
       widgetDataRef.current = newWidgetData;
       setWidgetData({[props.chartSetting]: newWidgetData});
     },
