@@ -432,6 +432,12 @@ function EventTagsTreeValue({
           e.preventDefault();
           openNavigateToExternalLinkModal({linkText: content.value});
         }}
+        onKeyDown={e => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            openNavigateToExternalLinkModal({linkText: content.value});
+          }
+        }}
       >
         {content.value}
       </ExternalLink>
