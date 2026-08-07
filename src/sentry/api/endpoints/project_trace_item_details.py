@@ -280,7 +280,10 @@ def _normalize_breadcrumbs(breadcrumbs: Any) -> None:
             continue
         timestamp = crumb.get("timestamp")
         if isinstance(timestamp, (int, float)) and not isinstance(timestamp, bool):
-            crumb["timestamp"] = to_datetime(timestamp)
+            try:
+                crumb["timestamp"] = to_datetime(timestamp)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
 
 def serialize_event(attributes: list[dict]) -> dict[str, Any] | None:

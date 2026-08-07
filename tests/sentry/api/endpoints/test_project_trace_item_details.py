@@ -128,6 +128,16 @@ class TestSerializeEvent:
         assert result is not None
         assert result["breadcrumbs"]["values"][0]["timestamp"] is True
 
+    def test_leaves_out_of_range_timestamp_untouched(self) -> None:
+        # A millisecond-scale epoch is out of datetime's range; degrade to the
+        # raw value instead of 500ing the whole response.
+        result = serialize_event(
+            [self._breadcrumb_attribute([{"type": "default", "timestamp": 1785955938308.0}])]
+        )
+
+        assert result is not None
+        assert result["breadcrumbs"]["values"][0]["timestamp"] == 1785955938308.0
+
     def test_passes_through_contexts_and_extra(self) -> None:
         result = serialize_event(
             [
