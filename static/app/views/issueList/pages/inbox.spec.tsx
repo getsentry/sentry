@@ -184,10 +184,7 @@ describe('InboxPage', () => {
         200,
         12
       ),
-      mockSection(
-        'issue.progress:identified is:unresolved assigned_or_suggested:me',
-        []
-      ),
+      mockSection('issue.progress:identified is:unresolved assigned_or_suggested:me', []),
       mockSection(
         'issue.progress:fix_applied is:unresolved assigned_or_suggested:me',
         []
@@ -424,7 +421,10 @@ describe('InboxPage', () => {
     mockSection('issue.progress:fix_proposed is:unresolved', [fixProposedGroup]);
     mockSection('issue.progress:diagnosed is:unresolved', [diagnosedGroup]);
     mockSection('issue.progress:assigned is:unresolved', [assignedGroup]);
-    const identifiedAllRequest = mockSection('issue.progress:identified is:unresolved', []);
+    const identifiedAllRequest = mockSection(
+      'issue.progress:identified is:unresolved',
+      []
+    );
     mockSection('issue.progress:fix_applied is:unresolved', []);
 
     render(<InboxPage />, {
@@ -1132,10 +1132,7 @@ describe('InboxPage', () => {
       mockSection('issue.progress:assigned is:unresolved assigned_or_suggested:me', [
         assignedGroup,
       ]);
-      mockSection(
-        'issue.progress:identified is:unresolved assigned_or_suggested:me',
-        []
-      );
+      mockSection('issue.progress:identified is:unresolved assigned_or_suggested:me', []);
       mockSection(
         'issue.progress:fix_applied is:unresolved assigned_or_suggested:me',
         []
