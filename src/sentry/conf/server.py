@@ -887,6 +887,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.feedback.tasks.update_user_reports",
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.hybridcloud.tasks.deliver_webhooks",
+    "sentry.hybridcloud.tasks.webhook_backlog_metrics",
     "sentry.incidents.tasks",
     "sentry.ingest.consumer.simple_event",
     "sentry.ingest.transaction_clusterer.tasks",
@@ -1273,11 +1274,11 @@ TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {
         "schedule": timedelta(seconds=10),
     },
     "webhook-backlog-metrics-control": {
-        "task": "hybridcloud.control:sentry.hybridcloud.tasks.deliver_webhooks.record_webhook_backlog_metrics",
+        "task": "hybridcloud.control:sentry.hybridcloud.tasks.webhook_backlog_metrics.record_webhook_backlog_metrics",
         "schedule": timedelta(seconds=60),
     },
     "webhook-mailbox-depth-metrics-control": {
-        "task": "hybridcloud.control:sentry.hybridcloud.tasks.deliver_webhooks.record_mailbox_depth_metrics",
+        "task": "hybridcloud.control:sentry.hybridcloud.tasks.webhook_backlog_metrics.record_mailbox_depth_metrics",
         "schedule": timedelta(minutes=5),
     },
     "relocation-find-transfer-control": {
