@@ -27,10 +27,13 @@ BATCH_RETRIGGER_TIMEOUT = timedelta(seconds=20)  # self-reschedule before the ha
 _GENERATE_PROJECT_TASK_KEY = "generate_project_derived_data"
 _GENERATE_BATCH_TASK_KEY = "generate_project_derived_data_batch"
 _REGENERATE_STALE_BATCH_TASK_KEY = "regenerate_stale_derived_data_batch"
+_CHECK_FRESH_BATCH_TASK_KEY = "check_fresh_derived_data_batch"
 _GENERATE_GROUP_TASK_KEY = "generate_group_derived_data"
+_CHECK_GROUP_TASK_KEY = "check_group_derived_data"
 
 # Cap self-rescheduling rebuilds to avoid infinite loops on very large groups.
 _MAX_GENERATION_RUNS = 20
+_MAX_CHECK_RUNS = 20
 # Maximum group IDs loaded by one project-level task invocation.
 _MAX_PROJECT_GROUPS = 10_000
 # Hard cap on distinct stale pipeline hashes handled per heal invocation.
@@ -205,6 +208,93 @@ def process_group_log_task(group_id: int, incremental: bool = False, **kwargs: o
         process_group_log(group_id, derived_metrics=derived_metrics)
     except Group.DoesNotExist:
         logger.info("process_group_log_task.group_not_found", extra={"group_id": group_id})
+
+
+@instrumented_task(
+    name="sentry.issues.derived.tasks.check_group_derived_data",
+    namespace=issues_tasks,
+    silo_mode=SiloMode.CELL,
+    processing_deadline_duration=int(BATCH_PROCESSING_DEADLINE.total_seconds()),
+)
+def check_group_derived_data(
+    group_id: int,
+    resume_check_id: str | None = None,
+    resume_generated_at: str | None = None,
+    resume_cursor_date: str | None = None,
+    resume_cursor_id: int | None = None,
+    resume_pipeline_hash: str | None = None,
+    prior_runs: int = 0,
+    **kwargs: object,
+) -> None:
+    from taskbroker_client.state import current_task
+
+    from sentry.issues.derived.check import CheckTimeout, check_derived_data
+    from sentry.issues.derived.tasks_util import _record_check_result, _resume_check_id
+    from sentry.issues.models.groupderiveddata import GroupDerivedData
+    from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
+
+    task_state = current_task()
+    activation_id = task_state.id if task_state else None
+    if activation_id and already_spawned(_CHECK_GROUP_TASK_KEY, activation_id):
+        logger.info(
+            "check_group_derived_data.duplicate_skipped",
+            extra={"group_id": group_id, "activation_id": activation_id},
+        )
+        metrics.incr(
+            "taskworker.selfchain.duplicate_skipped",
+            tags={"task": _CHECK_GROUP_TASK_KEY},
+        )
+        return
+
+    check_id = _resume_check_id(
+        group_id,
+        resume_check_id,
+        resume_generated_at,
+        resume_cursor_date,
+        resume_cursor_id,
+        resume_pipeline_hash,
+    )
+
+    derived = GroupDerivedData.objects.filter(group_id=group_id).first()
+    if derived is None:
+        _record_check_result(None)
+        return
+
+    try:
+        result = check_derived_data(
+            derived,
+            timeout=BATCH_RETRIGGER_TIMEOUT,
+            check_id=check_id,
+        )
+    except CheckTimeout as error:
+        if prior_runs + 1 >= _MAX_CHECK_RUNS:
+            logger.error(
+                "check_group_derived_data.max_runs_exceeded",
+                extra={
+                    "group_id": group_id,
+                    "check_id": error.check_id,
+                    "prior_runs": prior_runs + 1,
+                },
+            )
+            metrics.incr(
+                "issues.derived.check_group", sample_rate=1.0, tags={"result": "no_result"}
+            )
+            return
+
+        check_group_derived_data.delay(
+            group_id,
+            resume_check_id=error.check_id.invocation_id,
+            resume_generated_at=error.check_id.generated_at.isoformat(),
+            resume_cursor_date=error.check_id.cursor_date.isoformat(),
+            resume_cursor_id=error.check_id.cursor_id,
+            resume_pipeline_hash=error.check_id.pipeline_hash,
+            prior_runs=prior_runs + 1,
+        )
+        if activation_id:
+            mark_spawned(_CHECK_GROUP_TASK_KEY, activation_id)
+        return
+
+    _record_check_result(result)
 
 
 @instrumented_task(
@@ -531,6 +621,7 @@ def heal_stale_derived_data(**kwargs: object) -> None:
     """Rebuild a chunk of GroupDerivedData rows whose ``pipeline_hash`` is stale/NULL."""
     from sentry import options
     from sentry.issues.derived.processing import PIPELINE
+    from sentry.issues.derived.tasks_util import _pick_random_fresh_group_range
     from sentry.issues.models.groupderiveddata import GroupDerivedData
 
     if not options.get("issues.derived.heal-enabled"):
@@ -553,6 +644,23 @@ def heal_stale_derived_data(**kwargs: object) -> None:
     )
     if not group_ids:
         logger.info("heal_stale_derived_data.nothing_to_heal")
+        check_range = _pick_random_fresh_group_range(
+            current_hash, options.get("issues.derived.check-sample-size")
+        )
+        if check_range is not None:
+            start, end = check_range
+            check_fresh_derived_data_batch.delay(
+                group_id_start=start,
+                group_id_end=end,
+            )
+
+        logger.info(
+            "heal_stale_derived_data.checks_scheduled",
+            extra={
+                "scheduled": check_range is not None,
+                "pipeline_hash": current_hash,
+            },
+        )
         return
 
     ranges = _chunk_group_ids_into_ranges(group_ids, batch_size)[:max_tasks]
@@ -573,6 +681,120 @@ def heal_stale_derived_data(**kwargs: object) -> None:
             "pipeline_hash": current_hash,
         },
     )
+
+
+@instrumented_task(
+    name="sentry.issues.derived.tasks.check_fresh_derived_data_batch",
+    namespace=issues_tasks,
+    silo_mode=SiloMode.CELL,
+    processing_deadline_duration=int(BATCH_PROCESSING_DEADLINE.total_seconds()),
+)
+def check_fresh_derived_data_batch(
+    group_id_start: int,
+    group_id_end: int,
+    resume_check_id: str | None = None,
+    resume_generated_at: str | None = None,
+    resume_cursor_date: str | None = None,
+    resume_cursor_id: int | None = None,
+    resume_pipeline_hash: str | None = None,
+    prior_runs: int = 0,
+    **kwargs: object,
+) -> None:
+    """Check fresh GroupDerivedData rows in ``[group_id_start, group_id_end)``."""
+    from taskbroker_client.state import current_task
+
+    from sentry.issues.derived.check import CheckTimeout, check_derived_data
+    from sentry.issues.derived.processing import PIPELINE
+    from sentry.issues.derived.tasks_util import _record_check_result, _resume_check_id
+    from sentry.issues.models.groupderiveddata import GroupDerivedData
+    from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
+
+    task_state = current_task()
+    activation_id = task_state.id if task_state else None
+    if activation_id and already_spawned(_CHECK_FRESH_BATCH_TASK_KEY, activation_id):
+        logger.info(
+            "check_fresh_derived_data_batch.duplicate_skipped",
+            extra={"group_id_start": group_id_start, "activation_id": activation_id},
+        )
+        metrics.incr(
+            "taskworker.selfchain.duplicate_skipped",
+            tags={"task": _CHECK_FRESH_BATCH_TASK_KEY},
+        )
+        return
+
+    check_id = _resume_check_id(
+        group_id_start,
+        resume_check_id,
+        resume_generated_at,
+        resume_cursor_date,
+        resume_cursor_id,
+        resume_pipeline_hash,
+    )
+
+    derived_rows = GroupDerivedData.objects.filter(
+        pipeline_hash=PIPELINE.pipeline_hash,
+        group_id__gte=group_id_start,
+        group_id__lt=group_id_end,
+    ).order_by("group_id")
+    start = time.monotonic()
+    timeout_seconds = BATCH_RETRIGGER_TIMEOUT.total_seconds()
+    for derived in derived_rows.iterator():
+        remaining = timedelta(seconds=max(0, timeout_seconds - (time.monotonic() - start)))
+        try:
+            result = check_derived_data(
+                derived,
+                timeout=remaining,
+                check_id=(check_id if derived.group_id == group_id_start else None),
+            )
+        except CheckTimeout as error:
+            group_prior_runs = prior_runs if derived.group_id == group_id_start else 0
+            if group_prior_runs + 1 >= _MAX_CHECK_RUNS:
+                logger.error(
+                    "check_fresh_derived_data_batch.max_runs_exceeded",
+                    extra={"group_id": derived.group_id, "check_id": error.check_id},
+                )
+                _record_check_result(None)
+                check_fresh_derived_data_batch.delay(
+                    group_id_start=derived.group_id + 1,
+                    group_id_end=group_id_end,
+                )
+                if activation_id:
+                    mark_spawned(_CHECK_FRESH_BATCH_TASK_KEY, activation_id)
+                return
+
+            check_fresh_derived_data_batch.delay(
+                group_id_start=derived.group_id,
+                group_id_end=group_id_end,
+                resume_check_id=error.check_id.invocation_id,
+                resume_generated_at=error.check_id.generated_at.isoformat(),
+                resume_cursor_date=error.check_id.cursor_date.isoformat(),
+                resume_cursor_id=error.check_id.cursor_id,
+                resume_pipeline_hash=error.check_id.pipeline_hash,
+                prior_runs=group_prior_runs + 1,
+            )
+            metrics.incr(
+                "issues.derived.check_fresh_batch_rescheduled",
+                sample_rate=1.0,
+                tags={"reason": "group_timeout"},
+            )
+            if activation_id:
+                mark_spawned(_CHECK_FRESH_BATCH_TASK_KEY, activation_id)
+            return
+
+        _record_check_result(result)
+        if time.monotonic() - start >= timeout_seconds:
+            check_fresh_derived_data_batch.delay(
+                group_id_start=derived.group_id + 1,
+                group_id_end=group_id_end,
+            )
+            metrics.incr(
+                "issues.derived.check_fresh_batch_rescheduled",
+                sample_rate=1.0,
+                tags={"reason": "batch_timeout"},
+            )
+            if activation_id:
+                mark_spawned(_CHECK_FRESH_BATCH_TASK_KEY, activation_id)
+            return
 
 
 @instrumented_task(

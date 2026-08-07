@@ -4125,6 +4125,13 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Approximate number of fresh groups to check when there is no stale derived data to heal.
+register(
+    "issues.derived.check-sample-size",
+    default=1000,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Kill switch for Objectstore Debug Files migration
 register(
