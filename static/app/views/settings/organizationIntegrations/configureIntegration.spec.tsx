@@ -210,7 +210,7 @@ describe('ConfigureIntegration mapping removals', () => {
     );
   });
 
-  it('appends a tombstone for a removed Jira mapping when enabled', async () => {
+  it('appends a removal entry for a removed mapping', async () => {
     const postRequest = setup({features: ['jira-explicit-mapping-removals']});
 
     await deleteSecondMapping();
@@ -230,7 +230,7 @@ describe('ConfigureIntegration mapping removals', () => {
     );
   });
 
-  it('does not append tombstones for a non-Jira provider', async () => {
+  it('does not have explicit removals for a non-Jira provider', async () => {
     const postRequest = setup({
       providerKey: 'github',
       features: ['jira-explicit-mapping-removals'],
