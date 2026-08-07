@@ -377,7 +377,9 @@ class TestProcessWorkflows(BaseWorkflowTest):
 
         process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
 
-        mock_incr.assert_any_call("workflow_engine.detectors.error")
+        mock_incr.assert_any_call(
+            "workflow_engine.detectors.error", tags={"detector_type": "issue_stream"}
+        )
         mock_logger.exception.assert_called_once_with(
             "Issue stream detector not found for event",
             extra={
@@ -409,7 +411,9 @@ class TestProcessWorkflows(BaseWorkflowTest):
         self.issue_stream_detector.delete()
 
         process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
-        mock_incr.assert_called_with("workflow_engine.detectors.error")  # called twice
+        mock_incr.assert_any_call(
+            "workflow_engine.detectors.error", tags={"detector_type": "issue_stream"}
+        )
         mock_logger.exception.assert_called()  # called twice
 
     @patch("sentry.utils.metrics.incr")
