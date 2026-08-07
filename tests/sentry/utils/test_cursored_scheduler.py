@@ -353,8 +353,8 @@ class CursoredSchedulerTest(TestCase):
 
         assert self.redis_client.exists(self.pk_list_key) == 0
 
-    def test_validate_batch_filters_dispatches(self):
-        """When validate_batch is provided, only items it keeps are dispatched."""
+    def test_prevalidate_batch_filters_dispatches(self):
+        """When prevalidate_batch is provided, only items it keeps are dispatched."""
         ois = self._create_org_integrations(30)
         # Only dispatch even-indexed PKs
         even_pks = {oi.pk for oi in ois[::2]}
@@ -368,7 +368,7 @@ class CursoredSchedulerTest(TestCase):
             ),
             task=self.mock_task,
             cycle_duration=timedelta(minutes=3),
-            validate_batch=lambda ois: [oi.pk for oi in ois if oi.pk in even_pks],
+            prevalidate_batch=lambda ois: [oi.pk for oi in ois if oi.pk in even_pks],
         )
 
         scheduler.tick()
@@ -378,7 +378,7 @@ class CursoredSchedulerTest(TestCase):
             assert pk in even_pks
 
     def test_validate_item_filters_dispatches(self):
-        """The per-item predicate keeps working alongside validate_batch."""
+        """The per-item predicate keeps working alongside prevalidate_batch."""
         ois = self._create_org_integrations(30)
         even_pks = {oi.pk for oi in ois[::2]}
 
@@ -401,10 +401,10 @@ class CursoredSchedulerTest(TestCase):
         for pk in dispatched_pks:
             assert pk in even_pks
 
-    def test_validate_batch_runs_before_validate_item(self):
+    def test_validate_item_only_sees_prevalidated_items(self):
         """
-        The batch check goes first and the per-item one only sees what survived it, so
-        the per-item cost is paid for as few items as possible.
+        The batch check runs first, so the per-item one only ever sees what the snapshot
+        kept and its cost is paid for as few items as possible.
         """
         ois = self._create_org_integrations(30)
         all_pks = sorted(oi.pk for oi in ois)
@@ -425,7 +425,7 @@ class CursoredSchedulerTest(TestCase):
             task=self.mock_task,
             cycle_duration=timedelta(minutes=3),
             validate_item=record,
-            validate_batch=lambda ois: [oi.pk for oi in ois if oi.pk in kept_by_batch],
+            prevalidate_batch=lambda ois: [oi.pk for oi in ois if oi.pk in kept_by_batch],
         )
 
         scheduler.tick()
@@ -435,10 +435,10 @@ class CursoredSchedulerTest(TestCase):
         dispatched_pks = [c.args[0] for c in self.mock_task.delay.call_args_list]
         assert dispatched_pks == all_pks[:4]
 
-    def test_validators_run_once_per_cycle_not_per_tick(self):
+    def test_prevalidate_batch_runs_once_per_cycle_not_per_tick(self):
         """
-        Validation happens when the PK list is snapshotted, so later ticks in the cycle
-        dispatch from it without calling the validator again.
+        The batch check happens when the PK list is snapshotted, so later ticks in the
+        cycle dispatch from it without calling the check again.
         """
         self._create_org_integrations(30)
         calls = []
@@ -456,7 +456,7 @@ class CursoredSchedulerTest(TestCase):
             ),
             task=self.mock_task,
             cycle_duration=timedelta(minutes=3),
-            validate_batch=record,
+            prevalidate_batch=record,
         )
 
         scheduler.tick()
@@ -470,9 +470,9 @@ class CursoredSchedulerTest(TestCase):
         assert all(isinstance(item, OrganizationIntegration) for item in calls[0])
         assert self.mock_task.delay.call_count == 30
 
-    def test_validate_batch_preserves_dispatch_order(self):
+    def test_prevalidate_batch_preserves_dispatch_order(self):
         """
-        Dispatch order follows the snapshotted PK list even when validate_batch returns
+        Dispatch order follows the snapshotted PK list even when prevalidate_batch returns
         an unordered collection.
         """
         ois = self._create_org_integrations(30)
@@ -488,7 +488,7 @@ class CursoredSchedulerTest(TestCase):
             ),
             task=self.mock_task,
             cycle_duration=timedelta(minutes=3),
-            validate_batch=lambda ois: {oi.pk for oi in ois if oi.pk in keep},
+            prevalidate_batch=lambda ois: {oi.pk for oi in ois if oi.pk in keep},
         )
 
         scheduler.tick()
@@ -498,8 +498,8 @@ class CursoredSchedulerTest(TestCase):
         dispatched_pks = [c.args[0] for c in self.mock_task.delay.call_args_list]
         assert dispatched_pks == all_pks[1:-1]
 
-    def test_validate_item_skipped_when_nothing_survives_validate_batch(self):
-        """A page the batch check empties costs no per-item calls at all."""
+    def test_validate_item_skipped_when_nothing_survives_prevalidate_batch(self):
+        """A cycle the batch check empties costs no per-item calls at all."""
         self._create_org_integrations(30)
         item_called = False
 
@@ -518,7 +518,7 @@ class CursoredSchedulerTest(TestCase):
             task=self.mock_task,
             cycle_duration=timedelta(minutes=3),
             validate_item=never_called,
-            validate_batch=lambda ois: [],
+            prevalidate_batch=lambda ois: [],
         )
 
         scheduler.tick()
@@ -537,8 +537,8 @@ class CursoredSchedulerTest(TestCase):
 
     def test_rejected_items_are_not_written_to_redis(self):
         """
-        Only the items validation kept are snapshotted, so a cycle of an all-rejecting
-        validator holds no PKs and dispatches nothing.
+        Only the PKs the batch check kept are snapshotted, so a cycle of an all-rejecting
+        check holds no PKs and dispatches nothing.
         """
         self._create_org_integrations(30)
 
@@ -551,7 +551,7 @@ class CursoredSchedulerTest(TestCase):
             ),
             task=self.mock_task,
             cycle_duration=timedelta(minutes=3),
-            validate_batch=lambda ois: [],  # reject all
+            prevalidate_batch=lambda ois: [],  # reject all
         )
 
         scheduler.tick()
@@ -559,10 +559,10 @@ class CursoredSchedulerTest(TestCase):
         assert self.mock_task.delay.call_count == 0
         assert self.redis_client.llen(self.pk_list_key) == 0
 
-    def test_batch_size_is_derived_from_the_validated_pks(self):
+    def test_batch_size_is_derived_from_the_prevalidated_pks(self):
         """
-        Batch size divides what survived validation, so rejected items do not consume the
-        cycle's throughput.
+        Batch size divides what survived the batch check, so rejected items do not consume
+        the cycle's throughput.
         """
         ois = self._create_org_integrations(30)
         keep = {oi.pk for oi in ois[:15]}
@@ -576,7 +576,7 @@ class CursoredSchedulerTest(TestCase):
             ),
             task=self.mock_task,
             cycle_duration=timedelta(minutes=3),
-            validate_batch=lambda ois: [oi.pk for oi in ois if oi.pk in keep],
+            prevalidate_batch=lambda ois: [oi.pk for oi in ois if oi.pk in keep],
         )
 
         scheduler.tick()

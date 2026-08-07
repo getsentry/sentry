@@ -148,7 +148,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         with patch(f"{SCHEDULER}.CursoredScheduler") as MockScheduler:
             MockScheduler.return_value.tick.return_value = False
             schedule_per_org_calculations()
-            return MockScheduler.call_args.kwargs["validate_batch"]
+            return MockScheduler.call_args.kwargs["prevalidate_batch"]
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_validator_dispatches_only_orgs_with_the_feature(self) -> None:

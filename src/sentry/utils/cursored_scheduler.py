@@ -39,7 +39,7 @@ Usage:
 The task will be called with the PK as a positional argument:
     process_item.delay(item_pk)
 
-Optional validate_item callback, for a single per-item check:
+Optional validate_item callback, for a per-item check at dispatch time:
 
     def is_eligible(pk: int) -> bool:
         org = Organization.objects.get_from_cache(id=pk)
@@ -50,8 +50,11 @@ Optional validate_item callback, for a single per-item check:
         validate_item=is_eligible,
     )
 
-Optional validate_batch callback, for batched checks. It receives the queryset's
-rows and returns the PKs to keep:
+It runs on every item of every tick, and an item it rejects is not dispatched.
+Use it for a check that must see the state at dispatch time.
+
+Optional prevalidate_batch callback, for a batched check at cycle start. It
+receives the queryset's rows and returns the PKs to keep:
 
     def has_my_feature(orgs: Sequence[Organization]) -> Collection[int]:
         results = features.batch_has_for_organizations("organizations:my-feature", orgs)
@@ -59,18 +62,17 @@ rows and returns the PKs to keep:
 
     scheduler = CursoredScheduler(
         ...
-        validate_batch=has_my_feature,
+        prevalidate_batch=has_my_feature,
     )
+
+It runs once per cycle, when the PK list is snapshotted. Only the PKs it keeps
+reach Redis, so the rest never occupy a batch and the check costs one
+cycle-start rather than time on every tick. The tradeoff is staleness: an item
+that stops qualifying mid-cycle is still dispatched until the next snapshot.
 
 Getting the rows rather than their PKs means a check that needs more than the PK —
 a feature flag, an option — does not have to fetch them back. Setting it makes the
 cycle-start query load full rows instead of the PK column alone.
-
-Validators run once per cycle, when the PK list is snapshotted — not on every
-tick. Only the items they keep are written to Redis, so a slow check costs one
-cycle-start rather than time on every tick, and a tick does nothing but dispatch.
-The tradeoff is staleness: an item that stops qualifying mid-cycle is still
-dispatched until the next snapshot.
 """
 
 from __future__ import annotations
@@ -156,7 +158,7 @@ class CursoredScheduler[M: Model]:
         cycle_duration: timedelta,
         lock_duration: int = DEFAULT_LOCK_DURATION_SECONDS,
         validate_item: Callable[[int], bool] | None = None,
-        validate_batch: Callable[[Sequence[M]], Collection[int]] | None = None,
+        prevalidate_batch: Callable[[Sequence[M]], Collection[int]] | None = None,
         shuffle: bool = False,
     ):
         self.name = name
@@ -173,7 +175,7 @@ class CursoredScheduler[M: Model]:
         self.cache_ttl = int(cycle_duration.total_seconds() * 2)
         self.lock_duration = lock_duration
         self.validate_item = validate_item
-        self.validate_batch = validate_batch
+        self.prevalidate_batch = prevalidate_batch
         self.shuffle = shuffle
         self._metric_tags = {"scheduler": name}
 
@@ -231,12 +233,14 @@ class CursoredScheduler[M: Model]:
             )
             return False
 
-        # Every PK in the snapshot already passed validation at cycle start, so a tick
-        # only dispatches.
+        dispatched = 0
         for pk in items:
+            if self.validate_item is not None and not self.validate_item(pk):
+                continue
             self.task.delay(pk)
+            dispatched += 1
 
-        metrics.gauge("cursored_scheduler.batch_size", len(items), tags=self._metric_tags)
+        metrics.gauge("cursored_scheduler.batch_size", dispatched, tags=self._metric_tags)
 
         self._set_cursor(cursor + len(items))
 
@@ -250,30 +254,26 @@ class CursoredScheduler[M: Model]:
 
         return True
 
-    def _validated_pks(self) -> list[int]:
+    def _prevalidated_pks(self) -> list[int]:
         """
-        The PKs to schedule for this cycle.
+        The PKs to snapshot for this cycle.
 
-        Without ``validate_batch`` only the PK column is read. With it, the rows are
+        Without ``prevalidate_batch`` only the PK column is read. With it, the rows are
         loaded and handed over whole, so a check needing more than the PK — a feature
         flag, an option — works from the objects it already has rather than fetching
-        them again. ``validate_item`` runs after, on the survivors.
+        them again.
         """
         queryset = self.queryset.order_by("pk")
 
-        if self.validate_batch is None:
-            pks = list(queryset.values_list("pk", flat=True))
-        else:
-            pks = list(self.validate_batch(list(queryset)))
+        if self.prevalidate_batch is None:
+            return list(queryset.values_list("pk", flat=True))
 
-        if self.validate_item is not None:
-            pks = [pk for pk in pks if self.validate_item(pk)]
-        return pks
+        return list(self.prevalidate_batch(list(queryset)))
 
     def _initialize_cycle(self) -> int:
         init_start = time.time()
 
-        all_pks = self._validated_pks()
+        all_pks = self._prevalidated_pks()
 
         if self.shuffle:
             random.shuffle(all_pks)

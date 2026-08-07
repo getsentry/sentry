@@ -282,7 +282,7 @@ def schedule_per_org_calculations() -> None:
         ),
         task=run_calculations_per_org_task_entry,
         cycle_duration=CYCLE_DURATION,
-        validate_batch=validate_and_track,
+        prevalidate_batch=validate_and_track,
     )
     scheduler.tick()
 
