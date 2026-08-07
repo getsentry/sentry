@@ -831,7 +831,7 @@ describe('ActivitySection', () => {
     expect(screen.queryByText(/View \d+ more/)).not.toBeInTheDocument();
   });
 
-  it('does not collapse activity when rendered in the drawer', async () => {
+  it('fetches older comments outside the embedded activity window', async () => {
     const activities: GroupActivity[] = Array.from({length: 7}, (_, index) => ({
       type: GroupActivityType.NOTE,
       id: `note-${index + 1}`,
@@ -840,10 +840,18 @@ describe('ActivitySection', () => {
       user: UserFixture({id: '2'}),
       project,
     }));
+    const embeddedActivities: GroupActivity[] = Array.from({length: 100}, (_, index) => ({
+      type: GroupActivityType.SET_RESOLVED,
+      id: `resolved-${index + 1}`,
+      data: {},
+      dateCreated: tenMinutesAgo(),
+      user,
+      project,
+    }));
 
     const updatedActivityGroup = GroupFixture({
       id: '1338',
-      activity: [],
+      activity: embeddedActivities,
       numComments: activities.length,
       project,
     });

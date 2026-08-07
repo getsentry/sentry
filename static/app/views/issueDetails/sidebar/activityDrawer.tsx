@@ -32,6 +32,8 @@ interface ActivityDrawerProps {
   project: Project;
 }
 
+const GROUP_ACTIVITY_LIMIT = 100;
+
 export function ActivityDrawer({project}: ActivityDrawerProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const filter = searchParams.get('filter') ?? 'all';
@@ -46,7 +48,8 @@ export function ActivityDrawer({project}: ActivityDrawerProps) {
   const shouldFetchComments =
     filter === 'comments' &&
     group !== undefined &&
-    activityComments.length < group.numComments;
+    group.numComments > 0 &&
+    group.activity.length >= GROUP_ACTIVITY_LIMIT;
   const commentsQuery = useQuery({
     ...issueCommentsQueryOptions({
       organizationSlug: organization.slug,
