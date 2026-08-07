@@ -81,6 +81,11 @@ from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.hostname import instance_hostname
 from sentry.investigations.models import (
     Investigation,
+    InvestigationBlock,
+    InvestigationBlockDependency,
+    InvestigationBlockExecution,
+    InvestigationBlockExecutionProject,
+    InvestigationBlockParameter,
     InvestigationCell,
     InvestigationCellDependency,
     InvestigationCellExecution,
@@ -449,8 +454,20 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_block(investigation, position=0, kind="text", **kwargs):
+        return InvestigationBlock.objects.create(
+            investigation=investigation, position=position, kind=kind, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_investigation_cell_dependency(cell, depends_on):
         return InvestigationCellDependency.objects.create(cell=cell, depends_on=depends_on)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_block_dependency(block, depends_on):
+        return InvestigationBlockDependency.objects.create(block=block, depends_on=depends_on)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
@@ -464,13 +481,32 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_block_parameter(block, parameter, **kwargs):
+        return InvestigationBlockParameter.objects.create(
+            block=block, parameter=parameter, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_investigation_cell_execution(cell, **kwargs):
         return InvestigationCellExecution.objects.create(cell=cell, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_block_execution(block, **kwargs):
+        return InvestigationBlockExecution.objects.create(block=block, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_investigation_cell_execution_project(execution, project):
         return InvestigationCellExecutionProject.objects.create(
+            execution=execution, project=project
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_block_execution_project(execution, project):
+        return InvestigationBlockExecutionProject.objects.create(
             execution=execution, project=project
         )
 
