@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any, TypedDict, override
 
 from django.contrib.auth.models import AnonymousUser
+from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer
 from sentry.investigations.models import (
@@ -86,6 +87,13 @@ class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerRespon
         ):
             parameter_keys[block_id].append(key)
 
+        prefetch_related_objects(
+            item_list,
+            "current_execution__data_projects",
+            "content_execution__data_projects",
+            "result_execution__data_projects",
+        )
+
         return {
             block: {
                 "dependencies": dependencies[block.id],
@@ -93,9 +101,6 @@ class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerRespon
             }
             for block in item_list
         }
-
-    def _execution_project_ids(self, execution: InvestigationBlockExecution) -> set[int]:
-        return {project.id for project in execution.data_projects.all()}
 
     @override
     def serialize(
@@ -105,15 +110,20 @@ class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerRespon
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> InvestigationBlockSerializerResponse:
+        def is_accessible(execution: InvestigationBlockExecution | None) -> bool:
+            if execution is None:
+                return True
+            return {project.id for project in execution.data_projects.all()}.issubset(
+                self.accessible_project_ids
+            )
+
         execution = obj.current_execution
         result_execution = obj.result_execution
         content_execution = obj.content_execution
         content_restricted = bool(
             obj.kind == InvestigationBlockKind.TEXT
             and content_execution is not None
-            and not self._execution_project_ids(content_execution).issubset(
-                self.accessible_project_ids
-            )
+            and not is_accessible(content_execution)
         )
         if execution is None:
             output = None
@@ -122,12 +132,7 @@ class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerRespon
             visible_execution = (
                 result_execution if obj.kind == InvestigationBlockKind.QUERY else execution
             )
-            data_project_ids = (
-                self._execution_project_ids(visible_execution)
-                if visible_execution is not None
-                else set()
-            )
-            if not data_project_ids.issubset(self.accessible_project_ids):
+            if not is_accessible(visible_execution):
                 output = None
                 output_status = "restricted"
             else:
@@ -143,7 +148,7 @@ class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerRespon
 
         content = obj.content
         generated_content = obj.generated_content
-        if obj.kind == InvestigationBlockKind.TEXT and output_status == "restricted":
+        if content_restricted:
             content = ""
             generated_content = ""
 

@@ -9,6 +9,7 @@ from sentry.investigations.endpoints.serializers import (
     InvestigationBlockSerializerResponse,
 )
 from sentry.investigations.models import (
+    InvestigationBlock,
     InvestigationBlockExecution,
     InvestigationBlockExecutionStatus,
 )
@@ -158,3 +159,76 @@ class InvestigationBlockSerializerTest(TestCase):
 
         assert len(all_blocks) == 10
         assert len(many_queries.captured_queries) == len(few_queries.captured_queries)
+
+    def test_keeps_readable_markdown_when_a_newer_run_is_restricted(self) -> None:
+        self.block.update(
+            kind="text", content="Readable markdown", generated_content="Readable draft"
+        )
+        other_project = self.create_project(organization=self.organization)
+        content_execution = self.create_investigation_block_execution(
+            block=self.block,
+            executor="manual",
+            block_version=1,
+            input_fingerprint="a" * 64,
+            status=InvestigationBlockExecutionStatus.COMPLETED,
+            result={"schemaVersion": 1},
+        )
+        self.create_investigation_block_execution_project(
+            execution=content_execution, project=self.project
+        )
+        pending_execution = self.create_investigation_block_execution(
+            block=self.block,
+            executor="manual",
+            block_version=2,
+            input_fingerprint="b" * 64,
+        )
+        self.create_investigation_block_execution_project(
+            execution=pending_execution, project=other_project
+        )
+        self.block.update(content_execution=content_execution, current_execution=pending_execution)
+
+        result = self.serialize_block(accessible_project_ids={self.project.id})
+
+        assert result["outputStatus"] == "restricted"
+        assert result["output"] is None
+        assert result["content"] == "Readable markdown"
+        assert result["generatedContent"] == "Readable draft"
+
+    def test_query_count_is_constant_for_a_bare_queryset(self) -> None:
+        for position in range(1, 6):
+            block = self.create_investigation_block(
+                investigation=self.investigation, position=position, kind="query"
+            )
+            execution = self.create_investigation_block_execution(
+                block=block,
+                executor="manual",
+                block_version=1,
+                input_fingerprint="f" * 64,
+                status=InvestigationBlockExecutionStatus.COMPLETED,
+                result={"schemaVersion": 1},
+            )
+            self.create_investigation_block_execution_project(
+                execution=execution, project=self.project
+            )
+            block.update(
+                current_execution=execution,
+                content_execution=execution,
+                result_execution=execution,
+            )
+        self.completed_execution()
+
+        serializer = InvestigationBlockSerializer(accessible_project_ids={self.project.id})
+
+        def block_queryset() -> list[InvestigationBlock]:
+            return list(
+                InvestigationBlock.objects.filter(investigation=self.investigation).order_by("id")
+            )
+
+        with CaptureQueriesContext(connection) as one_block:
+            serialize(block_queryset()[:1], self.user, serializer)
+
+        with CaptureQueriesContext(connection) as all_blocks:
+            results = serialize(block_queryset(), self.user, serializer)
+
+        assert len(results) == 6
+        assert len(all_blocks.captured_queries) == len(one_block.captured_queries)
