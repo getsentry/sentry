@@ -79,6 +79,40 @@ export interface ToolLink {
 
 export type AgentWriteApproval = EmbedOutput<'agentWriteApproval'>;
 
+/**
+ * One Sentry API or lib call a Code Mode execute made (openspec: codemode-call-visibility).
+ *
+ * `sentry_api_execute` is a single tool name covering every action Code Mode can take, so keying
+ * rendering on the tool name (as classic tools do) says nothing useful. Seer instead reports the
+ * calls themselves and the client decides how to present them.
+ *
+ * `path` is the *templated* route (`/api/0/.../{issue_id}/`) — the key a handler matches on, and
+ * what makes a link buildable from `path_params`. `parent` nests a lib method's HTTP calls under
+ * it; `id` is unique within one execute, so correlation never depends on array position.
+ *
+ * Deliberately absent: response bodies. Seer emits the request envelope and outcome only; a
+ * handler that needs response data fetches it directly.
+ */
+export interface CallRecord {
+  id: number;
+  kind: 'api' | 'lib';
+  /** Transport-level failure (no HTTP response), e.g. `ConnectError`. */
+  error?: string;
+  method?: string;
+  /** Lib records only. */
+  name?: string;
+  parent?: number | null;
+  path?: string;
+  path_params?: Record<string, string>;
+  query_params?: Record<string, string>;
+  /** `path` with its params interpolated — the literal path that was requested. */
+  resolved_path?: string;
+  /** HTTP status. Absent when the request never completed. */
+  status?: number;
+  /** Human name for the operation, from the OpenAPI spec. Absent when it has none. */
+  title?: string;
+}
+
 export interface ToolResult {
   content: string;
   tool_call_function: string;
@@ -90,6 +124,7 @@ export interface ToolResult {
   structuredContent?: {
     agentWriteApproval?: AgentWriteApproval;
     artifacts?: Artifact[];
+    calls?: CallRecord[];
     links?: ToolLink[];
     todos?: TodoItem[];
   } | null;
@@ -115,6 +150,12 @@ export interface Block {
   timestamp: string;
   artifacts?: Artifact[];
   file_patches?: ExplorerFilePatch[] | null;
+  /**
+   * Calls the in-flight Code Mode execute has made so far, written as they happen so a long run
+   * shows progress instead of nothing. Superseded by the tool result's `structuredContent.calls`
+   * once the execute finishes.
+   */
+  live_calls?: CallRecord[] | null;
   loading?: boolean;
   merged_file_patches?: ExplorerFilePatch[] | null;
   pr_commit_shas?: Record<string, string> | null;

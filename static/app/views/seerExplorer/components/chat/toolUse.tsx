@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
 
 import {MessageRow, ToolCallIndicator, type ToolCallStatus} from '@sentry/scraps/chat';
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -16,8 +17,14 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {
+  callRecordFailure,
+  callRecordLabel,
+  callRecordUrl,
+} from 'sentry/views/seerExplorer/callRecords';
 import type {
   Block,
+  CallRecord,
   TodoItem,
   ToolLink,
   ToolResult,
@@ -168,6 +175,44 @@ function useToolLinks(block: Block) {
     return map;
   }, [block.tool_results]);
 
+  // The calls a Code Mode execute made (codemode-call-visibility). Keyed by tool_call_id like the
+  // links bus: `sentry_api_execute` is one tool name for every action, so the rows come from what
+  // the sandbox did rather than from the tool's name.
+  const callRecordsByCallId = useMemo(() => {
+    const map = new Map<string, CallRecord[]>();
+    (block.tool_results || []).forEach(result => {
+      const calls = result?.structuredContent?.calls;
+      if (result?.tool_call_id && calls?.length) {
+        map.set(result.tool_call_id, calls);
+      }
+    });
+    return map;
+  }, [block.tool_results]);
+
+  // While an execute is still running there is no tool result yet, so seer mirrors its calls onto
+  // the block itself. Those rows are what make a long run legible; they are replaced by the
+  // per-result records above the moment the execute finishes.
+  //
+  // The mirror lives on the block, not per tool call, so it can only be attributed to a call that
+  // has not reported yet. With several still in flight there is no way to tell whose calls these
+  // are, so it is shown on none of them rather than duplicated across all.
+  const liveCallsForCallId = useMemo(() => {
+    const calls = block.live_calls ?? [];
+    if (!calls.length) {
+      return new Map<string, CallRecord[]>();
+    }
+    const finished = new Set(
+      (block.tool_results ?? []).flatMap(result => result?.tool_call_id ?? [])
+    );
+    const pending = (block.message.tool_calls ?? []).flatMap(toolCall =>
+      toolCall.id && !finished.has(toolCall.id) ? [toolCall.id] : []
+    );
+
+    return pending.length === 1
+      ? new Map([[pending[0]!, calls]])
+      : new Map<string, CallRecord[]>();
+  }, [block.live_calls, block.tool_results, block.message.tool_calls]);
+
   return {
     sortedToolLinks,
     toolCallToLinkIndexMap,
@@ -175,6 +220,8 @@ function useToolLinks(block: Block) {
     rawToolLinkByCallId,
     busLinksByCallId,
     structuredContentMarkdownByCallId,
+    callRecordsByCallId,
+    liveCallsForCallId,
     organization,
     projects,
   };
@@ -194,6 +241,8 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
     rawToolLinkByCallId,
     busLinksByCallId,
     structuredContentMarkdownByCallId,
+    callRecordsByCallId,
+    liveCallsForCallId,
     organization,
     projects,
   } = useToolLinks(block);
@@ -283,6 +332,26 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
           ? structuredContentMarkdownByCallId.get(toolCall.id)
           : undefined;
 
+        // A Code Mode execute reports the calls it made; those describe the work far better than
+        // its single tool name can, so they replace the generic row when present. Until the result
+        // lands the block's live mirror stands in, so a running execute shows its progress.
+        const finishedCalls = toolCall.id
+          ? (callRecordsByCallId.get(toolCall.id) ?? [])
+          : [];
+        const live = toolCall.id ? (liveCallsForCallId.get(toolCall.id) ?? []) : [];
+        const callRows = (finishedCalls.length ? finishedCalls : live)
+          .map(record => ({
+            record,
+            label: callRecordLabel(record),
+            url: callRecordUrl(record, organization, projects),
+          }))
+          // A record we have no label for is dropped rather than rendered as a route or an
+          // internal identifier — one fewer row beats a raw string on screen.
+          .filter(
+            (row): row is {label: string; record: CallRecord; url: typeof row.url} =>
+              Boolean(row.label)
+          );
+
         return (
           <ToolCallRow
             key={toolCall.id ?? `${toolCall.function}-${idx}`}
@@ -295,6 +364,8 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
             navItems={navItems}
             structuredContentMarkdown={structuredContentMarkdown}
             onNavLinkClick={trackLinkClick}
+            callRows={callRows}
+            onCallLinkClick={trackLinkClick}
           />
         );
       })}
@@ -309,6 +380,13 @@ interface NavItem {
   url: NonNullable<ReturnType<typeof buildToolLinkUrl>>;
 }
 
+interface CallRow {
+  /** Resolved at construction, so an unlabeled record never reaches the renderer. */
+  label: string;
+  record: CallRecord;
+  url: LocationDescriptor | null;
+}
+
 function ToolCallRow({
   toolString,
   blockStatus,
@@ -319,6 +397,8 @@ function ToolCallRow({
   navItems,
   structuredContentMarkdown,
   onNavLinkClick,
+  callRows,
+  onCallLinkClick,
 }: {
   blockStatus: ToolCallStatus | undefined;
   failureTooltip: string | null;
@@ -327,10 +407,13 @@ function ToolCallRow({
   todos: TodoItem[] | null;
   toolString: string;
   toolUrl: ReturnType<typeof buildToolLinkUrl>;
+  callRows?: CallRow[];
+  onCallLinkClick?: (kind: string) => (e: React.MouseEvent) => void;
   onLinkClick?: (e: React.MouseEvent) => void;
   onNavLinkClick?: (kind: string) => (e: React.MouseEvent) => void;
 }) {
   const hasLink = toolUrl !== null;
+  const hasCallRows = Boolean(callRows?.length);
 
   const toolCallText = (
     <Tooltip title={failureTooltip ?? ''} disabled={!failureTooltip}>
@@ -354,7 +437,11 @@ function ToolCallRow({
         >
           {blockStatus && <ToolCallIndicator status={blockStatus} />}
         </Flex>
-        {hasLink ? (
+        {/* Call records describe the work better than the tool's name, so they stand in for the
+            generic row rather than sitting beneath it. The status indicator above still applies. */}
+        {hasCallRows ? (
+          <CallRows callRows={callRows!} onCallLinkClick={onCallLinkClick} />
+        ) : hasLink ? (
           <ToolCallLink to={toolUrl} onClick={onLinkClick}>
             {toolCallText}
             <ToolCallLinkIconWrapper>
@@ -375,6 +462,43 @@ function ToolCallRow({
           structuredContent={structuredContentMarkdown.structuredContent}
         />
       )}
+    </Stack>
+  );
+}
+
+function CallRows({
+  callRows,
+  onCallLinkClick,
+}: {
+  callRows: CallRow[];
+  onCallLinkClick?: (kind: string) => (e: React.MouseEvent) => void;
+}) {
+  return (
+    <Stack as="ul" gap="xs" padding="0" minWidth={0}>
+      {callRows.map(({record, label, url}) => {
+        const failure = callRecordFailure(record);
+        const text = (
+          <Tooltip title={failure ?? ''} disabled={!failure}>
+            <ToolCallText size="xs" variant="muted" monospace>
+              {label}
+            </ToolCallText>
+          </Tooltip>
+        );
+        return (
+          <Flex key={record.id} as="li" gap="sm" align="center">
+            {url ? (
+              <ToolCallLink to={url} onClick={onCallLinkClick?.(record.kind)}>
+                {text}
+                <ToolCallLinkIconWrapper>
+                  <ToolCallLinkIcon size="xs" />
+                </ToolCallLinkIconWrapper>
+              </ToolCallLink>
+            ) : (
+              <ToolCallPlainRow>{text}</ToolCallPlainRow>
+            )}
+          </Flex>
+        );
+      })}
     </Stack>
   );
 }
