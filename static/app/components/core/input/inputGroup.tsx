@@ -1,9 +1,11 @@
 import {
   createContext,
+  type Dispatch,
+  type SetStateAction,
+  useCallback,
   useContext,
   useLayoutEffect,
   useMemo,
-  useRef,
   useState,
 } from 'react';
 import {css} from '@emotion/react';
@@ -52,19 +54,23 @@ const inputStyles = ({
   size = 'md',
   theme,
 }: InputStyleProps & {theme: Theme}): StrictCSSObject => css`
-  ${leadingWidth &&
-  css`
-    padding-left: calc(
-      ${theme.form[size].paddingLeft}px + ${itemsPadding[size]}px + ${leadingWidth}px
-    );
-  `}
+  ${
+    leadingWidth &&
+    css`
+      padding-left: calc(
+        ${theme.form[size].paddingLeft}px + ${itemsPadding[size]}px + ${leadingWidth}px
+      );
+    `
+  }
 
-  ${trailingWidth &&
-  css`
-    padding-right: calc(
-      ${theme.form[size].paddingRight}px + ${itemsPadding[size]}px + ${trailingWidth}px
-    );
-  `}
+  ${
+    trailingWidth &&
+    css`
+      padding-right: calc(
+        ${theme.form[size].paddingRight}px + ${itemsPadding[size]}px + ${trailingWidth}px
+      );
+    `
+  }
 `;
 
 const StyledInput = styled(CoreInput)<InputStyleProps>`
@@ -102,8 +108,8 @@ interface InputContext {
    */
   leadingWidth?: number;
   setInputProps?: (props: Pick<InputProps, 'size' | 'disabled'>) => void;
-  setLeadingWidth?: (width: number) => void;
-  setTrailingWidth?: (width: number) => void;
+  setLeadingWidth?: Dispatch<SetStateAction<number | undefined>>;
+  setTrailingWidth?: Dispatch<SetStateAction<number | undefined>>;
   /**
    * Width of the trailing items wrap, to be added to `Input`'s padding.
    */
@@ -194,6 +200,36 @@ interface InputItemsProps extends React.HTMLAttributes<HTMLDivElement> {
   disablePointerEvents?: boolean;
 }
 
+function useInputItemsWidthRef(
+  setWidth: Dispatch<SetStateAction<number | undefined>> | undefined
+) {
+  return useCallback(
+    (node: HTMLDivElement | null) => {
+      if (!node || !setWidth) {
+        return;
+      }
+
+      const updateWidth = () => {
+        setWidth(node.offsetWidth);
+      };
+
+      // Measure synchronously when the node is mounted so the input padding is
+      // correct before the browser paints. The observer handles children that
+      // change size without replacing the items wrapper.
+      updateWidth();
+
+      const observer = new ResizeObserver(updateWidth);
+      observer.observe(node);
+
+      return () => {
+        observer.disconnect();
+        setWidth(undefined);
+      };
+    },
+    [setWidth]
+  );
+}
+
 /**
  * Container for leading input items (e.g. a search icon). To be wrapped
  * inside `InputGroup`:
@@ -203,18 +239,11 @@ interface InputItemsProps extends React.HTMLAttributes<HTMLDivElement> {
  *   </InputGroup>
  */
 function LeadingItems({children, disablePointerEvents, ...props}: InputItemsProps) {
-  const ref = useRef<HTMLDivElement | null>(null);
   const {
     inputProps: {size = 'md', disabled},
     setLeadingWidth,
   } = useContext(InputGroupContext);
-
-  useLayoutEffect(() => {
-    if (!ref.current) {
-      return;
-    }
-    setLeadingWidth?.(ref.current.offsetWidth);
-  }, [children, setLeadingWidth, size]);
+  const ref = useInputItemsWidthRef(setLeadingWidth);
 
   return (
     <StyledLeadingItemsWrap
@@ -238,18 +267,11 @@ function LeadingItems({children, disablePointerEvents, ...props}: InputItemsProp
  *   </InputGroup>
  */
 function TrailingItems({children, disablePointerEvents, ...props}: InputItemsProps) {
-  const ref = useRef<HTMLDivElement | null>(null);
   const {
     inputProps: {size = 'md', disabled},
     setTrailingWidth,
   } = useContext(InputGroupContext);
-
-  useLayoutEffect(() => {
-    if (!ref.current) {
-      return;
-    }
-    setTrailingWidth?.(ref.current.offsetWidth);
-  }, [children, setTrailingWidth, size]);
+  const ref = useInputItemsWidthRef(setTrailingWidth);
 
   return (
     <StyledTrailingItemsWrap
