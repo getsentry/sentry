@@ -135,6 +135,10 @@ def delete_replays(project_id: int, replay_ids: list[str]) -> None:
 DELETE_THREAD_POOL_SIZE = 32
 
 
+class BlobDeleteFailed(Exception):
+    """A recording blob could not be deleted."""
+
+
 def delete_filenames_concurrently(filenames: list[str]) -> None:
     if not filenames:
         return
@@ -145,13 +149,27 @@ def delete_filenames_concurrently(filenames: list[str]) -> None:
 
     max_workers = min(len(filenames), DELETE_THREAD_POOL_SIZE)
     with ContextPropagatingThreadPoolExecutor(max_workers=max_workers) as pool:
-        pool.map(_delete_if_exists, filenames)
+        # Keep the futures. `pool.map` returns a lazy iterator, so dropping its return value never
+        # retrieved a worker exception, which is why a failed blob delete has never been visible.
+        futures = [pool.submit(_delete_if_exists, filename) for filename in filenames]
+
+    failed = sum(1 for future in futures if future.exception() is not None)
+    if failed:
+        raise BlobDeleteFailed(f"{failed} of {len(filenames)} recording blobs were not deleted")
+
+
+_BLOB_DELETE_ATTEMPTS = 2
+_BLOB_DELETE_RETRY = ConditionalRetryPolicy(
+    test_function=lambda attempt, error: attempt < _BLOB_DELETE_ATTEMPTS
+    and not isinstance(error, NotFound),
+    delay_function=exponential_delay(0.5),
+)
 
 
 def _delete_if_exists(filename: str) -> None:
     """Delete the blob if it exists or silence the 404."""
     try:
-        storage_kv.delete(filename)
+        _BLOB_DELETE_RETRY(lambda: storage_kv.delete(filename))
     except NotFound:
         pass
 
@@ -250,7 +268,7 @@ def fetch_rows_matching_pattern(
     # because our most likely failure is rate limit related. Blasting Snuba with more queries will
     # increase the chance of failure not reduce it.
     policy = ConditionalRetryPolicy(
-        test_function=lambda a, e: a < 5 and e in SNUBA_RETRY_EXCEPTIONS,
+        test_function=lambda a, e: a < 5 and isinstance(e, SNUBA_RETRY_EXCEPTIONS),
         delay_function=exponential_delay(1.0),
     )
     response = policy(
@@ -281,48 +299,37 @@ def fetch_rows_matching_pattern(
     }
 
 
-def delete_seer_replay_data(organization_id: int, project_id: int, replay_ids: list[str]) -> bool:
-    """
-    Delete replay data from Seer.
+SEER_DELETE_RETRY = Retry(
+    total=1,
+    backoff_factor=1,
+    allowed_methods=None,  # Allow retry on POST, since deletion is idempotent
+    status_forcelist=[429, 500, 502, 503, 504],
+)
 
-    Returns True if the request was successful, False otherwise.
+SEER_DELETE_TIMEOUT = 30
+
+
+class SeerDeleteFailed(Exception):
+    """Seer refused to delete a set of replay summaries."""
+
+
+def delete_seer_replay_data(organization_id: int, project_id: int, replay_ids: list[str]) -> None:
+    """Delete these replays' summaries from Seer, raising if it will not.
+
+    A summary is derived from the replay's contents, so one left behind is PII left behind. Failures
+    propagate rather than being reported, so a caller cannot accidentally treat a refused deletion as
+    a completed one. The replay ids are already on the caller's Sentry scope.
     """
-    seer_request = ReplayDeleteSeerDataRequest(
-        replay_ids=replay_ids,
-        organization_id=organization_id,
-        project_id=project_id,
+    response = make_replay_delete_request(
+        ReplayDeleteSeerDataRequest(
+            replay_ids=replay_ids,
+            organization_id=organization_id,
+            project_id=project_id,
+        ),
+        timeout=SEER_DELETE_TIMEOUT,
+        retries=SEER_DELETE_RETRY,
+        viewer_context=SeerViewerContext(organization_id=organization_id),
     )
 
-    viewer_context = SeerViewerContext(organization_id=organization_id)
-
-    try:
-        response = make_replay_delete_request(
-            seer_request,
-            timeout=5,
-            retries=Retry(total=1, backoff_factor=3),  # 1 retry after a 3 second delay.
-            viewer_context=viewer_context,
-        )
-    except Exception:
-        logger.exception(
-            "Failed to delete replay data from Seer",
-            extra={
-                "organization_id": organization_id,
-                "project_id": project_id,
-                "replay_ids": replay_ids,
-            },
-        )
-        return False
-
-    response_status_ok = response.status >= 200 and response.status < 300
-    if not response_status_ok:
-        logger.error(
-            "Failed to delete replay data from Seer",
-            extra={
-                "organization_id": organization_id,
-                "project_id": project_id,
-                "replay_ids": replay_ids,
-                "status_code": response.status,
-                "response": response.data,
-            },
-        )
-    return response_status_ok
+    if not 200 <= response.status < 300:
+        raise SeerDeleteFailed(f"Seer returned {response.status} for {len(replay_ids)} replays")

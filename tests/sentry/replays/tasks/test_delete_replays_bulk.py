@@ -15,6 +15,7 @@ from sentry.replays.tasks import run_bulk_replay_delete_job
 from sentry.replays.testutils import mock_replay
 from sentry.replays.usecases.delete import (
     MatchedRows,
+    SeerDeleteFailed,
     datetime_as_start_of_day_conditions,
     day_aligned_windows,
     delete_matched_rows,
@@ -386,6 +387,28 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         mock_metrics.incr.assert_called_once_with(
             "replays.bulk_delete_job", tags={"status": "failed"}, sample_rate=1.0
         )
+
+    @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
+    def test_run_bulk_replay_delete_job_non_deadline_failure_fails_the_job(
+        self, mock_fetch_rows: MagicMock
+    ) -> None:
+        """Test a non-deadline failure fails the job even with attempts left on the counter.
+
+        `retries_remaining` is a plain attempt counter and does not consult the retry allow-list.
+        Deferring to it here would leave the job in-progress forever, because the broker will not
+        redeliver anything but the deadline, so no later attempt would ever mark it.
+        """
+        mock_fetch_rows.side_effect = ValueError("snuba is unhappy")
+
+        self.job.status = DeletionJobStatus.IN_PROGRESS
+        self.job.save()
+
+        with patch("sentry.replays.tasks.current_task", return_value=Mock(retries_remaining=2)):
+            with pytest.raises(ValueError):
+                run_bulk_replay_delete_job(self.job.id)
+
+        self.job.refresh_from_db()
+        assert self.job.status == "failed"
 
     @patch("sentry.replays.tasks.metrics")
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
@@ -810,3 +833,31 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         assert self.job.offset == 3
 
         assert mock_post.call_count == 0
+
+    @patch("sentry.replays.tasks.delete_seer_replay_data")
+    @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
+    @patch("sentry.replays.tasks.delete_matched_rows")
+    def test_run_bulk_replay_delete_job_seer_failure_fails_the_job(
+        self,
+        mock_delete_matched_rows: MagicMock,
+        mock_fetch_rows: MagicMock,
+        mock_delete_seer: MagicMock,
+    ) -> None:
+        """Test an unrecoverable Seer failure fails the job instead of completing it.
+
+        A Seer summary is derived from the replay, so one left behind is PII left behind. Reporting
+        the job complete would hide that, and there would be nothing to tell an operator which range
+        still needs running.
+        """
+        mock_fetch_rows.return_value = {
+            "rows": [{"retention_days": 90, "replay_id": "a", "max_segment_id": 1}],
+            "has_more": False,
+            "next_cursor": None,
+        }
+        mock_delete_seer.side_effect = SeerDeleteFailed("seer is unhappy")
+
+        with pytest.raises(SeerDeleteFailed):
+            run_bulk_replay_delete_job(self.job.id, has_seer_data=True)
+
+        self.job.refresh_from_db()
+        assert self.job.status == "failed"
