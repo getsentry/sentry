@@ -315,18 +315,17 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
         background="primary"
       >
         <Container width="100%" padding="sm" background="secondary" radius="sm">
-          <Disclosure.Title
-            trailingItems={
+          <Disclosure.Title aria-label={section.label}>
+            <Flex align="center" justify="between" gap="sm" width="100%">
+              <Flex align="center" gap="sm">
+                {getProgressIcon(section.progress)}
+                <Heading as="h3" size="md">
+                  {section.label}
+                </Heading>
+              </Flex>
               <Badge variant="muted">
                 <QueryCount count={count} max={maxCount} hideIfEmpty={false} hideParens />
               </Badge>
-            }
-          >
-            <Flex align="center" gap="sm">
-              {getProgressIcon(section.progress)}
-              <Heading as="h3" size="md">
-                {section.label}
-              </Heading>
             </Flex>
           </Disclosure.Title>
         </Container>

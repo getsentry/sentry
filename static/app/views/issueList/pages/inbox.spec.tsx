@@ -319,7 +319,11 @@ describe('InboxPage', () => {
         level: 4,
       })
     ).toBeInTheDocument();
-    expect(within(fixSection).getByText('2')).toBeInTheDocument();
+    expect(
+      within(within(fixSection).getByRole('button', {name: 'Fix Proposed'})).getByText(
+        '2'
+      )
+    ).toBeInTheDocument();
     expect(within(diagnosedSection).getByText('2')).toBeInTheDocument();
     expect(within(assignedSection).getByText('12')).toBeInTheDocument();
     expect(within(fixSection).getByText('Fix proposed message')).toBeInTheDocument();
