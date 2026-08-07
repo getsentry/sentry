@@ -14,7 +14,73 @@ import {UpsellButton} from 'getsentry/components/upsellButton';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import {useBillingConfig} from 'getsentry/hooks/useBillingConfig';
 import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
-import {displayPlanName} from 'getsentry/utils/billing';
+import {
+  displayPlanName,
+  isBizPlanFamily,
+  isDeveloperPlan,
+  isTeamPlanFamily,
+} from 'getsentry/utils/billing';
+
+/**
+ * Plan types an integration feature can be grouped under, ordered from least to
+ * most capable. Enterprise plans are not user selectable and so never appear in
+ * the candidate list here.
+ */
+const ORDERED_PLAN_TYPES = ['developer', 'team', 'business'] as const;
+
+type PlanType = (typeof ORDERED_PLAN_TYPES)[number];
+
+/**
+ * The cheapest plan type that offers each integration feature.
+ *
+ * Used to group the features of an integration under the plan a customer would
+ * need in order to get them. Keys are `featureGate` values, which correspond to
+ * the integration features the billing config exposes in `featureList`.
+ *
+ * A feature missing from this map cannot be attributed to a plan, so it is left
+ * out of the grouped list entirely.
+ */
+const INTEGRATION_FEATURE_PLAN_TYPE: Record<string, PlanType> = {
+  'integrations-stacktrace-link': 'developer',
+  'integrations-alert-rule': 'team',
+  'integrations-chat-unfurl': 'team',
+  'integrations-incident-management': 'team',
+  'integrations-issue-basic': 'team',
+  'integrations-issue-sync': 'team',
+  'integrations-codeowners': 'business',
+  'integrations-enterprise-alert-rule': 'business',
+  'integrations-enterprise-incident-management': 'business',
+  'integrations-event-hooks': 'business',
+  'integrations-scm-multi-org': 'business',
+  'integrations-ticket-rules': 'business',
+};
+
+function planType(plan: Plan): PlanType | null {
+  if (isDeveloperPlan(plan)) {
+    return 'developer';
+  }
+  if (isBizPlanFamily(plan)) {
+    return 'business';
+  }
+  if (isTeamPlanFamily(plan)) {
+    return 'team';
+  }
+  return null;
+}
+
+/**
+ * Whether `plan` is capable enough to include `featureGate`.
+ */
+function planOffers(plan: Plan, featureGate: string) {
+  const required = INTEGRATION_FEATURE_PLAN_TYPE[featureGate];
+  const type = planType(plan);
+
+  if (required === undefined || type === null) {
+    return false;
+  }
+
+  return ORDERED_PLAN_TYPES.indexOf(type) >= ORDERED_PLAN_TYPES.indexOf(required);
+}
 
 type IntegrationFeature = {
   description: React.ReactNode;
@@ -82,10 +148,11 @@ function mapFeatureGroups({
     plans = billingConfig.planList;
   }
 
-  // Group premium features by the plans they belong to
+  // Group premium features by the plans they belong to. `plans` is price
+  // sorted, so the first match is the cheapest plan offering the feature.
   const groupedPlanFeatures = groupBy(
     premiumFeatures,
-    feature => plans.find(p => p.features.includes(feature.featureGate))?.id
+    feature => plans.find(p => planOffers(p, feature.featureGate))?.id
   );
 
   // Transform our grouped plan features into a list of feature groups

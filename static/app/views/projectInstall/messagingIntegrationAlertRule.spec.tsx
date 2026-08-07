@@ -444,7 +444,7 @@ describe('useMessagingIntegrationAlertRule channel label reconciliation', () => 
           setIntegration: jest.fn(),
           setProvider: jest.fn(),
           ...props,
-        } as IssueAlertNotificationProps),
+        }),
       {organization}
     );
   }
@@ -526,7 +526,7 @@ describe('useMessagingIntegrationAlertRule change analytics', () => {
             setChannel: jest.fn(),
             setIntegration: jest.fn(),
             setProvider: jest.fn(),
-          } as IssueAlertNotificationProps,
+          },
           variant
         ),
       {organization}

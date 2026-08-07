@@ -132,7 +132,7 @@ const getArtifactRow = (row: RelocationArtifact) => [
 const getOrgRow = (row: Organization) => [
   <td key="customer">
     <CustomerName>
-      <OrganizationAvatar size={36} organization={row as any} />
+      <OrganizationAvatar size={36} organization={row} />
       <div>
         <strong>
           <Link to={`/_admin/customers/${row.slug}/`}>{row.name}</Link>
