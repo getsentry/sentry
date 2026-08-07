@@ -178,9 +178,12 @@ export function callRecordFailure(record: CallRecord): string | null {
  * was requested. Returns null for a lib call, which has no route of its own — its children carry
  * the requests.
  */
-export function callRecordDetail(
-  record: CallRecord
-): {params: Array<[string, string]>; request: string; response: string | null} | null {
+export function callRecordDetail(record: CallRecord): {
+  body: string | null;
+  params: Array<[string, string]>;
+  request: string;
+  response: string | null;
+} | null {
   if (record.kind !== 'api' || !record.method) {
     return null;
   }
@@ -190,17 +193,25 @@ export function callRecordDetail(
     return null;
   }
 
-  const response = record.response
-    ? record.response_truncated
-      ? `${record.response}\n…`
-      : record.response
-    : null;
-
   return {
     request: `${record.method} ${path}`,
+    // Query only. Path params are already visible in the resolved path; the query string is not,
+    // since the transport passes it separately rather than building it into the URL.
     params: Object.entries(record.query_params ?? {}),
-    response,
+    body: withEllipsis(record.body, record.body_truncated),
+    response: withEllipsis(record.response, record.response_truncated),
   };
+}
+
+/** Mark a cut-short preview so the box does not read as the whole payload. */
+function withEllipsis(
+  text: string | undefined,
+  truncated: boolean | undefined
+): string | null {
+  if (!text) {
+    return null;
+  }
+  return truncated ? `${text}\n…` : text;
 }
 
 /** The calls in a block's tool results, flattened in the order they ran. */

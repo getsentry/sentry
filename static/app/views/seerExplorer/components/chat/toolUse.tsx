@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
@@ -539,7 +539,22 @@ function CallDetail({
           {key}={value}
         </Text>
       ))}
-      {detail.response && <ResponseBox>{detail.response}</ResponseBox>}
+      {detail.body && (
+        <Fragment>
+          <Text size="xs" variant="muted" monospace>
+            {t('Body')}
+          </Text>
+          <ResponseBox>{detail.body}</ResponseBox>
+        </Fragment>
+      )}
+      {detail.response && (
+        <Fragment>
+          <Text size="xs" variant="muted" monospace>
+            {t('Response')}
+          </Text>
+          <ResponseBox>{detail.response}</ResponseBox>
+        </Fragment>
+      )}
     </Stack>
   );
 }

@@ -320,15 +320,38 @@ describe('callRecordDetail', () => {
     expect(detail?.request).toBe('GET /api/0/issues/54/tags/');
   });
 
-  it('lists query params', () => {
+  it('lists query params but not path params', () => {
+    // Path params are already visible in the resolved path; the query string is not, since the
+    // transport passes it separately rather than building it into the URL.
     const detail = callRecordDetail(
-      apiRecord({query_params: {statsPeriod: '14d', environment: 'prod'}})
+      apiRecord({
+        path_params: {issue_id: '54'},
+        query_params: {statsPeriod: '14d', environment: 'prod'},
+      })
     );
 
     expect(detail?.params).toEqual([
       ['statsPeriod', '14d'],
       ['environment', 'prod'],
     ]);
+  });
+
+  it('shows the request body', () => {
+    const detail = callRecordDetail(
+      apiRecord({method: 'PUT', body: '{\n  "status": "resolved"\n}'})
+    );
+
+    expect(detail?.body).toContain('"status": "resolved"');
+  });
+
+  it('marks a truncated body', () => {
+    const detail = callRecordDetail(apiRecord({body: '{"a":1', body_truncated: true}));
+
+    expect(detail?.body?.endsWith('…')).toBe(true);
+  });
+
+  it('has no body for a call that sent none', () => {
+    expect(callRecordDetail(apiRecord())?.body).toBeNull();
   });
 
   it('shows the response body', () => {

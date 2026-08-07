@@ -90,12 +90,17 @@ export type AgentWriteApproval = EmbedOutput<'agentWriteApproval'>;
  * what makes a link buildable from `path_params`. `parent` nests a lib method's HTTP calls under
  * it; `id` is unique within one execute, so correlation never depends on array position.
  *
- * Deliberately absent: response bodies. Seer emits the request envelope and outcome only; a
- * handler that needs response data fetches it directly.
+ * `body` and `response` are bounded previews, not the payloads — records live in the run state row,
+ * which is re-serialized on every write and re-downloaded by the poll, so seer caps both and flags
+ * when it cut them.
  */
 export interface CallRecord {
   id: number;
   kind: 'api' | 'lib';
+  /** Bounded slice of the request body, if the call had one. */
+  body?: string;
+  /** Whether `body` was cut short. */
+  body_truncated?: boolean;
   /** Transport-level failure (no HTTP response), e.g. `ConnectError`. */
   error?: string;
   method?: string;
