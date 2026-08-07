@@ -354,9 +354,7 @@ class ResolvedCheckSuite(ABC):
         """Run the side effects. Called on the longer-deadline task."""
 
 
-def record_check_suite_skip(
-    scope: SkipScope, reason: str, log_extra: dict[str, Any]
-) -> None:
+def record_check_suite_skip(scope: SkipScope, reason: str, log_extra: dict[str, Any]) -> None:
     """Record a bail-out. ``resolve`` serves both the green and red paths; ``green``
     only the green side effects."""
     key = f"autofix.pr_iteration.{scope}_check_suite.skipped"

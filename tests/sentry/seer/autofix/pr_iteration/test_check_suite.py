@@ -11,11 +11,6 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     resolve_check_suite_autofix_run,
 )
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
-from sentry.seer.autofix.pr_iteration.green_check_suite import (
-    READY_FOR_REVIEW_EXTRA,
-    REVIEW_REQUESTS_EXTRA,
-    GreenCheckSuite,
-)
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
@@ -24,6 +19,11 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPullRequestReviewComment,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
+from sentry.seer.autofix.pr_iteration.green_check_suite import (
+    READY_FOR_REVIEW_EXTRA,
+    REVIEW_REQUESTS_EXTRA,
+    GreenCheckSuite,
+)
 from sentry.seer.autofix.pr_iteration.listeners.check_suite import (
     handle_pr_iteration_check_suite,
     pr_iteration_from_check_suite_listener,
