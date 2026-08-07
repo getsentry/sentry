@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useQuery} from '@tanstack/react-query';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 import {PlatformIcon} from 'platformicons';
@@ -56,7 +57,7 @@ import {
   RuleAction,
 } from 'sentry/views/projectInstall/issueAlertOptions';
 import {useProjectCreationPageOrigin} from 'sentry/views/projectInstall/projectCreationOrigin';
-import {useValidateChannel} from 'sentry/views/projectInstall/useValidateChannel';
+import {validateChannelQueryOptions} from 'sentry/views/projectInstall/useValidateChannel';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 type FormData = {
@@ -169,11 +170,20 @@ export function CreateProject() {
     createNotificationActionParam
   );
 
-  const validateChannel = useValidateChannel({
-    channel: notificationProps.channel,
-    integrationId: notificationProps.integration?.id,
+  const validateChannel = useQuery({
+    ...validateChannelQueryOptions({
+      organizationSlug: organization.slug,
+      channel: notificationProps.channel,
+      integrationId: notificationProps.integration?.id,
+    }),
     enabled: false,
   });
+  const validateChannelError =
+    validateChannel.data?.valid === false
+      ? (validateChannel.data.detail ?? t('Channel not found or restricted'))
+      : validateChannel.error
+        ? t('Unexpected integration channel validation error')
+        : undefined;
 
   const defaultTeam = accessTeams?.[0]?.slug;
 
@@ -243,12 +253,12 @@ export function CreateProject() {
     missingValues.isMissingProjectName,
     missingValues.isMissingAlertThreshold,
     missingValues.isMissingMessagingIntegrationChannel,
-    isNotifyingViaIntegration && validateChannel.error,
+    isNotifyingViaIntegration && validateChannelError,
   ].filter(Boolean).length;
 
   const submitTooltipText =
-    isNotifyingViaIntegration && validateChannel.error
-      ? validateChannel.error
+    isNotifyingViaIntegration && validateChannelError
+      ? validateChannelError
       : getSubmitTooltipText({
           ...missingValues,
           formErrorCount,
@@ -615,7 +625,13 @@ export function CreateProject() {
                 <Button
                   data-test-id="create-project"
                   variant="primary"
-                  disabled={!(canUserCreateProject && formErrorCount === 0)}
+                  disabled={
+                    !(
+                      canUserCreateProject &&
+                      formErrorCount === 0 &&
+                      !(isNotifyingViaIntegration && validateChannel.isFetching)
+                    )
+                  }
                   busy={
                     createProjectAndRules.isPending ||
                     (isNotifyingViaIntegration && validateChannel.isFetching)
