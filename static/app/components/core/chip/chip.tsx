@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -99,7 +100,8 @@ export function Chip({
       {onDismiss ? (
         <DismissButton
           chipSize={size}
-          type="button"
+          size="zero"
+          variant="transparent"
           onClick={e => {
             // Keep dismissing a chip from also triggering click handlers on the
             // chip itself or any ancestor (e.g. click-to-edit).
@@ -135,17 +137,14 @@ const Label = styled(Text)<{tone: 'primary' | 'secondary' | 'accent'}>`
   color: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.content[p.tone]};
 `;
 
-const DismissButton = styled('button')<{chipSize: ChipSize}>`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+const DismissButton = styled(Button)<{chipSize: ChipSize}>`
   align-self: stretch;
   width: ${p => SIZES[p.chipSize].dismiss};
+  height: auto;
+  min-height: 0;
   padding: 0 ${p => p.theme.space.xs};
-  margin: 0;
   border: 0;
-  background: transparent;
-  cursor: pointer;
+  border-radius: 0;
   color: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.content.secondary};
 
   &:hover {
