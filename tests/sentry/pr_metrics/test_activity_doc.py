@@ -1111,7 +1111,7 @@ def test_abort_only_group_still_reads_as_aborted() -> None:
     _suite(doc, conclusion="cancelled", updated_at="2026-07-10T12:00:00Z")
 
     assert _group(doc)["suite_conclusion"] == "cancelled"
-    assert timeline_events_from_doc(doc)[0]["payload"]["conclusion"] == "inconclusive"
+    assert timeline_events_from_doc(doc)[0]["payload"]["conclusion"] == "cancelled"
 
 
 def test_timeline_recovered_run_excluded_from_failing_names() -> None:

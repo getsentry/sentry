@@ -711,6 +711,25 @@ def _synthesized_suite_conclusion(group: CheckGroup) -> CiVerdict:
     return _aggregate_ci_verdicts(run.get("conclusion") for run in group.get("runs", {}).values())
 
 
+def _timeline_suite_conclusion(group: CheckGroup) -> str:
+    """The judge-timeline conclusion: the stored suite conclusion, or the legacy
+    two-state derivation from runs when no suite event was ever seen.
+
+    Unlike :func:`_synthesized_suite_conclusion`, this is not inconclusive-aware:
+    the timeline should reflect the actual provider conclusion (``cancelled`` stays
+    ``cancelled``), and a group with only aborted runs derives ``success`` as it
+    always did, because the judge treats a synthesized suite like the app emitted it.
+    """
+    suite_conclusion = group.get("suite_conclusion")
+    if suite_conclusion:
+        return suite_conclusion
+
+    runs = group.get("runs", {})
+    if any(is_failing_conclusion(run.get("conclusion")) for run in runs.values()):
+        return "failure"
+    return "success"
+
+
 # Per-head CI outcomes are latest-verdict: a green rerun at the same SHA
 # overwrites a prior failure. ``inconclusive`` means no app produced a pass/fail
 # verdict for that head.
@@ -887,7 +906,7 @@ def _synthesized_check_suite_payload(group: CheckGroup) -> dict[str, Any]:
     runs = group.get("runs", {})
     return {
         "action": "completed",
-        "conclusion": _synthesized_suite_conclusion(group),
+        "conclusion": _timeline_suite_conclusion(group),
         "app_slug": group.get("app_slug", ""),
         "suite_id": group.get("suite_id", ""),
         "check_runs_count": group.get("check_runs_count", 0),
