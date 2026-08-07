@@ -64,34 +64,21 @@ interface MetricSamplesTableResult {
   meta?: EventsMetaType;
 }
 
-function useMetricsQueryKey({
-  limit,
-  traceMetric,
-  fields,
-  ingestionDelaySeconds = INGESTION_DELAY,
-  referrer,
-  queryExtras,
-}: {
-  fields: string[];
-  limit: number;
-  referrer: string;
-  ingestionDelaySeconds?: number;
-  queryExtras?: RPCQueryExtras;
-  traceMetric?: TraceMetric;
-}) {
-  const organization = useOrganization();
+/** Every field the samples table queries, including the ones it always adds itself. */
+export function getMetricSamplesFields(fields: string[]): string[] {
+  return Array.from(new Set([...AlwaysPresentTraceMetricFields, ...fields]));
+}
+
+/**
+ * The samples query has to narrow to the panel's metric itself, which the aggregate
+ * query gets for free from its aggregate arguments. Exported so exports of this table
+ * filter identically to what the table shows.
+ */
+export function useMetricSamplesQueryString(traceMetric: TraceMetric | undefined) {
   const userSearch = useQueryParamsSearch();
   const frozenSearch = useMetricsFrozenSearch();
-  const frozenTracePeriod = useMetricsFrozenTracePeriod();
-  const sortBys = useQueryParamsSortBys();
-  const {selection, isReady: pageFiltersReady} = usePageFilters();
-  const location = useLocation();
 
-  const fieldsToUse = useMemo(
-    () => Array.from(new Set([...AlwaysPresentTraceMetricFields, ...fields])),
-    [fields]
-  );
-  const queryString = useMemo(() => {
+  return useMemo(() => {
     const newSearch = userSearch.copy();
 
     if (frozenSearch) {
@@ -119,6 +106,31 @@ function useMetricsQueryKey({
 
     return newSearch.formatString();
   }, [userSearch, frozenSearch, traceMetric]);
+}
+
+function useMetricsQueryKey({
+  limit,
+  traceMetric,
+  fields,
+  ingestionDelaySeconds = INGESTION_DELAY,
+  referrer,
+  queryExtras,
+}: {
+  fields: string[];
+  limit: number;
+  referrer: string;
+  ingestionDelaySeconds?: number;
+  queryExtras?: RPCQueryExtras;
+  traceMetric?: TraceMetric;
+}) {
+  const organization = useOrganization();
+  const frozenTracePeriod = useMetricsFrozenTracePeriod();
+  const sortBys = useQueryParamsSortBys();
+  const {selection, isReady: pageFiltersReady} = usePageFilters();
+  const location = useLocation();
+
+  const fieldsToUse = useMemo(() => getMetricSamplesFields(fields), [fields]);
+  const queryString = useMetricSamplesQueryString(traceMetric);
 
   const baseDatetime = useMemo(() => {
     const datetime = frozenTracePeriod
