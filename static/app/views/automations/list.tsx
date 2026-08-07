@@ -43,7 +43,9 @@ export default function AutomationsList() {
 
   const automations = data?.json;
   const hits = data?.headers['X-Hits'] ?? 0;
-  const maxHits = data?.headers['X-Max-Hits'];
+  // OffsetPaginator currently omits X-Max-Hits. Fall back to the server's default
+  // hit ceiling so early pages can still render lower-bound totals like "1000+".
+  const maxHits = data?.headers['X-Max-Hits'] ?? 1000;
   const pageLinks = data?.headers.Link;
 
   const allResultsVisible = useCallback(() => {
@@ -56,11 +58,10 @@ export default function AutomationsList() {
 
   const offset = parseCursor(cursor)?.offset ?? 0;
   const pageStart = offset * AUTOMATION_LIST_PAGE_LIMIT + 1;
-  // If the page starts past the reported hit count, the total is a lower bound
-  // even when X-Max-Hits is missing from the response.
-  const isCappedTotal =
-    (typeof maxHits === 'number' && hits >= maxHits) || pageStart > hits;
-  const cappedTotal = isCappedTotal ? (maxHits ?? hits) : undefined;
+  // Also treat deep pages past the reported hit count as capped, in case the
+  // response omits both a useful max and a stable ceiling.
+  const isCappedTotal = hits >= maxHits || pageStart > hits;
+  const cappedTotal = isCappedTotal ? maxHits : undefined;
   const queryCount = isCappedTotal ? `${cappedTotal}+` : `${hits}`;
 
   let paginationCaption: React.ReactNode;
