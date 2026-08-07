@@ -43,6 +43,7 @@ from sentry.db.models import (
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.issues.action_log.publish import ActionLogBufferError, action_log_buffer
 from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
 from sentry.issues.priority import (
     PRIORITY_TO_GROUP_HISTORY_STATUS,
@@ -66,6 +67,7 @@ from sentry.types.group import (
 )
 from sentry.utils import metrics
 from sentry.utils.dates import outside_retention_with_modified_start
+from sentry.utils.env import in_test_environment
 from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.safe import get_path
 from sentry.utils.strings import strip, truncatechars
@@ -745,61 +747,70 @@ class GroupManager(BaseManager["Group"]):
             modified_groups_list, ["status", "substatus", "priority", "resolved_at"]
         )
 
-        for group in modified_groups_list:
-            activity = Activity.objects.create_group_activity(
-                group,
-                activity_type,
-                data=activity_data,
-                send_notification=send_activity_notification,
-                datetime=update_date,
-                detector_id=detector_id,
-            )
-            record_group_history_from_activity_type(group, activity_type.value)
-
-            if group.id in updated_priority:
-                new_priority = updated_priority[group.id]
-                Activity.objects.create_group_activity(
-                    group=group,
-                    type=ActivityType.SET_PRIORITY,
-                    data={
-                        "priority": new_priority.to_str(),
-                        "reason": PriorityChangeReason.ONGOING,
-                    },
-                    datetime=update_date,
-                    detector_id=detector_id,
-                )
-                record_group_history(group, PRIORITY_TO_GROUP_HISTORY_STATUS[new_priority])
-
-            is_status_resolved = status == GroupStatus.RESOLVED
-            is_status_unresolved = status == GroupStatus.UNRESOLVED
-
-            # The open period is only updated when a group is resolved or reopened. We don't want to
-            # update the open period when a group transitions between different substatuses within UNRESOLVED.
-            if is_status_resolved:
-                update_group_open_period(
-                    group=group,
-                    new_status=GroupStatus.RESOLVED,
-                    resolution_time=activity.datetime,
-                    resolution_activity=activity,
-                )
-            elif is_status_unresolved and should_reopen_open_period[group.id]:
-                update_group_open_period(
-                    group=group,
-                    new_status=GroupStatus.UNRESOLVED,
-                )
-
-            should_update_incident = is_status_resolved or (
-                is_status_unresolved and should_reopen_open_period[group.id]
-            )
-            # TODO (aci cleanup): remove this once we've deprecated the incident model
-            if group.type == MetricIssue.type_id and should_update_incident:
-                if detector_id is None:
-                    logger.error(
-                        "Call to update metric issue status missing detector ID",
-                        extra={"group_id": group.id},
+        try:
+            with action_log_buffer():
+                for group in modified_groups_list:
+                    activity = Activity.objects.create_group_activity(
+                        group,
+                        activity_type,
+                        data=activity_data,
+                        send_notification=send_activity_notification,
+                        datetime=update_date,
+                        detector_id=detector_id,
                     )
-                    continue
-                update_incident_based_on_open_period_status_change(group, status)
+                    record_group_history_from_activity_type(group, activity_type.value)
+
+                    if group.id in updated_priority:
+                        new_priority = updated_priority[group.id]
+                        Activity.objects.create_group_activity(
+                            group=group,
+                            type=ActivityType.SET_PRIORITY,
+                            data={
+                                "priority": new_priority.to_str(),
+                                "reason": PriorityChangeReason.ONGOING,
+                            },
+                            datetime=update_date,
+                            detector_id=detector_id,
+                        )
+                        record_group_history(group, PRIORITY_TO_GROUP_HISTORY_STATUS[new_priority])
+
+                    is_status_resolved = status == GroupStatus.RESOLVED
+                    is_status_unresolved = status == GroupStatus.UNRESOLVED
+
+                    # The open period is only updated when a group is resolved or reopened. We don't want to
+                    # update the open period when a group transitions between different substatuses within UNRESOLVED.
+                    if is_status_resolved:
+                        update_group_open_period(
+                            group=group,
+                            new_status=GroupStatus.RESOLVED,
+                            resolution_time=activity.datetime,
+                            resolution_activity=activity,
+                        )
+                    elif is_status_unresolved and should_reopen_open_period[group.id]:
+                        update_group_open_period(
+                            group=group,
+                            new_status=GroupStatus.UNRESOLVED,
+                        )
+
+                    should_update_incident = is_status_resolved or (
+                        is_status_unresolved and should_reopen_open_period[group.id]
+                    )
+                    # TODO (aci cleanup): remove this once we've deprecated the incident model
+                    if group.type == MetricIssue.type_id and should_update_incident:
+                        if detector_id is None:
+                            logger.error(
+                                "Call to update metric issue status missing detector ID",
+                                extra={"group_id": group.id},
+                            )
+                            continue
+                        update_incident_based_on_open_period_status_change(group, status)
+        except ActionLogBufferError:
+            logger.info(
+                "Failed to publish buffered activities to GALE",
+                extra={"group_ids": [group.id for group in modified_groups_list]},
+            )
+            if in_test_environment():
+                raise
 
     def from_share_id(self, share_id: str) -> Group:
         if not share_id or len(share_id) != 32:

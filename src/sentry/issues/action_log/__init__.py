@@ -4,7 +4,9 @@ from sentry.issues.action_log.base import (
 )
 from sentry.issues.action_log.publish import (
     ActionContext,
+    ActionLogBufferError,
     action_context_scope,
+    action_log_buffer,
     get_action_context,
     publish_action,
     publish_action_from_context,
@@ -19,11 +21,13 @@ from sentry.issues.action_log.types import (
 
 __all__ = [
     "ActionContext",
+    "ActionLogBufferError",
     "ActionSource",
     "GroupActionActor",
     "GroupActorType",
     "SYSTEM_ACTOR",
     "action_context_scope",
+    "action_log_buffer",
     "get_action_context",
     "publish_action",
     "publish_action_from_context",
