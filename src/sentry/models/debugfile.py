@@ -19,7 +19,6 @@ from typing import (
     Any,
     BinaryIO,
     ClassVar,
-    Literal,
 )
 
 from django.db import models
@@ -513,6 +512,13 @@ def create_dif_from_file(
     file.headers["Content-Type"] = content_type
     file.save()
 
+    metrics.distribution(
+        "storage.put.size",
+        file_size,
+        tags={"usecase": "debug_files", "compression": "none"},
+        unit="byte",
+    )
+
     objectstore_metadata: dict[str, Any] = {}
     session: Session | None = None
     storage_path: str | None = None
@@ -520,8 +526,7 @@ def create_dif_from_file(
         session = get_debug_files_session(project.organization_id, project.id)
         try:
             with file.getfile() as source:
-                storage_path = upload_dif_to_objectstore(
-                    session,
+                storage_path = session.put(
                     source,
                     compression=(
                         "zstd"
@@ -542,13 +547,6 @@ def create_dif_from_file(
                 "file_size": file_size,
                 "date_created": timezone.now(),
             }
-
-    metrics.distribution(
-        "storage.put.size",
-        file_size,
-        tags={"usecase": "debug_files", "compression": "none"},
-        unit="byte",
-    )
 
     try:
         dif = ProjectDebugFile.objects.create(
@@ -603,11 +601,10 @@ def create_dif_from_fileobj(
     session = get_debug_files_session(project.organization_id, project.id)
     storage_path: str | None = None
     try:
-        storage_path = upload_dif_to_objectstore(
-            session,
+        storage_path = session.put(
             fileobj,
-            content_type,
-            get_dif_download_filename(meta),
+            content_type=content_type,
+            filename=get_dif_download_filename(meta),
             compression=(
                 "zstd"
                 if features.has(
@@ -626,13 +623,6 @@ def create_dif_from_fileobj(
         "file_size": file_size,
         "date_created": timezone.now(),
     }
-
-    metrics.distribution(
-        "storage.put.size",
-        file_size,
-        tags={"usecase": "debug_files", "compression": "none"},
-        unit="byte",
-    )
 
     try:
         dif = ProjectDebugFile.objects.create(
