@@ -217,7 +217,7 @@ function useTraceItemDetailsPrefetch({
       traceItemType,
       referrer,
       traceId,
-      ...(defined(timestamp)
+      ...(timestamp
         ? {timestamp: normalizeTimestampToSeconds(timestamp)}
         : normalizeDateTimeParams(selection.datetime)),
     }),
