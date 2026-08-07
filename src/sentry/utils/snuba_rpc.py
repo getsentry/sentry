@@ -4,7 +4,7 @@ import logging
 import os
 from dataclasses import dataclass
 from functools import partial
-from typing import Protocol, TypeVar
+from typing import Protocol, TypeVar, cast
 
 import sentry_sdk
 import sentry_sdk.scope
@@ -52,11 +52,26 @@ from urllib3.response import BaseHTTPResponse
 
 from sentry.utils import json, metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
-from sentry.utils.snuba import SnubaError, _snuba_pool
+from sentry.utils.snuba import RetrySkipTimeout, SnubaError, _snuba_pool
 from sentry.utils.tracing import set_span_data, set_span_tag, start_span, trace
 
 logger = logging.getLogger(__name__)
 RPCResponseType = TypeVar("RPCResponseType", bound=ProtobufMessage)
+
+_TRANSIENT_UPSTREAM_STATUS_CODES = frozenset({502, 503})
+_READ_ONLY_RPC_ENDPOINTS = frozenset(
+    {
+        "AttributeValuesRequest",
+        "EndpointExportTraceItems",
+        "EndpointGetTrace",
+        "EndpointGetTraces",
+        "EndpointTimeSeries",
+        "EndpointTraceItemAttributeNames",
+        "EndpointTraceItemDetails",
+        "EndpointTraceItemStats",
+        "EndpointTraceItemTable",
+    }
+)
 
 # Show the snuba query params and the corresponding sql or errors in the server logs
 SNUBA_INFO_FILE = os.environ.get("SENTRY_SNUBA_INFO_FILE", "")
@@ -399,6 +414,43 @@ def export_logs_rpc(req: ExportTraceItemsRequest) -> ExportTraceItemsResponse:
     return response
 
 
+def _retry_policy(endpoint_name: str) -> urllib3.Retry:
+    """Add status retries to safe RPCs while preserving default connection retries."""
+    if endpoint_name not in _READ_ONLY_RPC_ENDPOINTS:
+        return cast(urllib3.Retry, _snuba_pool.retries)
+
+    return RetrySkipTimeout(
+        total=5,
+        status=2,
+        allowed_methods={"POST"},
+        status_forcelist=_TRANSIENT_UPSTREAM_STATUS_CODES,
+        backoff_factor=0.25,
+        backoff_max=1.0,
+        backoff_jitter=0.1,
+        raise_on_status=False,
+        respect_retry_after_header=False,
+    )
+
+
+def _record_status_retry_result(endpoint_name: str, http_resp: BaseHTTPResponse) -> None:
+    retries = getattr(http_resp, "retries", None)
+    history = getattr(retries, "history", ())
+    retry_statuses = [
+        item.status for item in history if item.status in _TRANSIENT_UPSTREAM_STATUS_CODES
+    ]
+    if not retry_statuses:
+        return
+
+    metrics.incr(
+        "snuba_rpc.status_retry.result",
+        tags={
+            "endpoint": endpoint_name,
+            "initial_status": retry_statuses[0],
+            "outcome": "recovered" if http_resp.status in (200, 202) else "exhausted",
+        },
+    )
+
+
 @trace
 def _make_rpc_request(
     endpoint_name: str,
@@ -416,8 +468,9 @@ def _make_rpc_request(
             "debug": debug is not False,
         }
         if isinstance(req, ProtobufMessage) and hasattr(req, "meta"):
-            logger_extra["organization_id"] = req.meta.organization_id
-            logger_extra["trace_item_type"] = req.meta.trace_item_type
+            request_meta = cast(SnubaRPCRequest, req).meta
+            logger_extra["organization_id"] = request_meta.organization_id
+            logger_extra["trace_item_type"] = request_meta.trace_item_type
         if isinstance(debug, str):
             logger_extra["debug_msg"] = debug
         logger.info(
@@ -448,19 +501,15 @@ def _make_rpc_request(
                         "POST",
                         f"/rpc/{endpoint_name}/{class_version}",
                         body=req.SerializeToString(),
-                        headers=(
-                            {
-                                "referer": referrer,
-                            }
-                            if referrer
-                            else {}
-                        ),
+                        headers={"referer": referrer} if referrer else {},
+                        retries=_retry_policy(endpoint_name),
                     )
                 except urllib3.exceptions.HTTPError as err:
                     if isinstance(err, urllib3.exceptions.ReadTimeoutError):
                         metrics.incr("snuba_rpc.read_timeout_error", tags={"referrer": referrer})
                         raise SnubaRPCTimeout(err)
                     raise SnubaRPCError(err)
+                _record_status_retry_result(endpoint_name, http_resp)
                 set_span_tag(span, "timeout", "False")
                 if http_resp.status != 200 and http_resp.status != 202:
                     error = _parse_error(http_resp)
