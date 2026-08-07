@@ -434,7 +434,10 @@ def _retry_policy(endpoint_name: str) -> urllib3.Retry:
 
 def _record_status_retry_result(endpoint_name: str, http_resp: BaseHTTPResponse) -> None:
     retries = getattr(http_resp, "retries", None)
-    history = getattr(retries, "history", ())
+    if not isinstance(retries, urllib3.Retry):
+        return
+
+    history = retries.history
     retry_statuses = [
         item.status for item in history if item.status in _TRANSIENT_UPSTREAM_STATUS_CODES
     ]
