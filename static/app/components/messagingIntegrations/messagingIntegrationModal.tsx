@@ -3,9 +3,9 @@ import {Fragment} from 'react';
 import {Stack} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {AddIntegrationRow} from 'sentry/components/messagingIntegrations/addIntegrationRow';
+import type {MessagingIntegrationAnalyticsView} from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
 import type {IntegrationProvider} from 'sentry/types/integrations';
-import {AddIntegrationRow} from 'sentry/views/alerts/rules/issue/addIntegrationRow';
-import type {MessagingIntegrationAnalyticsView} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
 type Props = ModalRenderProps & {

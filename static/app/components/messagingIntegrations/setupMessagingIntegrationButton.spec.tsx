@@ -8,11 +8,11 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import {registerOverride} from 'sentry/overrideRegistry';
 import {
   MessagingIntegrationAnalyticsView,
   SetupMessagingIntegrationButton,
-} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
+} from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
+import {registerOverride} from 'sentry/overrideRegistry';
 
 describe('SetupAlertIntegrationButton', () => {
   const organization = OrganizationFixture();

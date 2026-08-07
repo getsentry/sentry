@@ -8,7 +8,7 @@ import {selectEvent} from 'sentry-test/selectEvent';
 
 import {makeCloseButton} from '@sentry/scraps/modal';
 
-import {SentryAppRuleModal} from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
+import {SentryAppRuleModal} from 'sentry/views/automations/components/actions/sentryAppRuleModal';
 import type {
   FieldFromSchema,
   SchemaFormConfig,

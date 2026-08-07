@@ -1,13 +1,13 @@
 import {useCallback, useState} from 'react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import type {MessagingIntegrationAnalyticsView} from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
 import {openPipelineModal} from 'sentry/components/pipeline/modal';
 import type {ProvidersByType} from 'sentry/components/pipeline/registry';
 import {t} from 'sentry/locale';
 import type {IntegrationProvider, IntegrationWithConfig} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {isScmProvider, trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import type {MessagingIntegrationAnalyticsView} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 
 export interface AddIntegrationParams {
   onInstall: (data: IntegrationWithConfig) => void;

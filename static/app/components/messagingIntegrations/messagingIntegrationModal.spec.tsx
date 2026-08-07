@@ -10,8 +10,8 @@ import {
   ModalFooter,
 } from '@sentry/scraps/modal';
 
-import {MessagingIntegrationModal} from 'sentry/views/alerts/rules/issue/messagingIntegrationModal';
-import {MessagingIntegrationAnalyticsView} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
+import {MessagingIntegrationModal} from 'sentry/components/messagingIntegrations/messagingIntegrationModal';
+import {MessagingIntegrationAnalyticsView} from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
 
 jest.mock('sentry/actionCreators/modal');
 

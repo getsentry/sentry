@@ -3,8 +3,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {AddIntegrationRow} from 'sentry/components/messagingIntegrations/addIntegrationRow';
 import * as pipelineModal from 'sentry/components/pipeline/modal';
-import {AddIntegrationRow} from 'sentry/views/alerts/rules/issue/addIntegrationRow';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
 jest.mock('sentry/actionCreators/modal');
