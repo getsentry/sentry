@@ -256,13 +256,8 @@ class CursoredScheduler[M: Model]:
 
     def _prevalidated_pks(self) -> list[int]:
         """
-        The PKs to snapshot for this cycle, in PK order.
-
-        Without ``prevalidate_batch`` only the PK column is read. With it, the rows are
-        loaded and handed over whole, so a check needing more than the PK — a feature
-        flag, an option — works from the objects it already has rather than fetching
-        them again. The order is the queryset's, whatever order the check returns, so a
-        check that returns a set does not scramble the cycle.
+        Apply the batch prevalidation function to the queryset.
+        If no prevalidation function is provided, return the PKs in queryset order.
         """
         queryset = self.queryset.order_by("pk")
 
