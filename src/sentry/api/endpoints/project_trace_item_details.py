@@ -259,6 +259,37 @@ def serialize_meta(
     return meta_result
 
 
+# Attribute name -> `event` field name
+_SERIALIZED_EVENT_ATTRIBUTES: dict[str, str] = {
+    "sentry.event.serialized_contexts": "contexts",
+    "sentry.event.serialized_extra": "extra",
+    "sentry.event.serialized_breadcrumbs": "breadcrumbs",
+}
+
+
+def serialize_event(attributes: list[dict]) -> dict[str, Any] | None:
+    """A few event fields (contexts, extra, breadcrumbs) are stored as
+    JSON-serialized strings under internal `sentry.event.serialized_*`
+    attributes. Parse any that are present back into JSON and return them,
+    wrapped in a single `event` dict."""
+    result: dict[str, Any] = {}
+    for attribute in attributes:
+        event_key = _SERIALIZED_EVENT_ATTRIBUTES.get(attribute["name"])
+        if event_key is None:
+            continue
+
+        value = attribute.get("value", {}).get("valStr", None)
+        if value is None:
+            continue
+
+        try:
+            result[event_key] = json.loads(value)
+        except json.JSONDecodeError as e:
+            sentry_sdk.capture_exception(e)
+
+    return result or None
+
+
 def serialize_links(attributes: list[dict]) -> list[dict] | None:
     """Links are temporarily stored in `sentry.links` so lets parse that back out and return separately"""
     link_attribute = None
@@ -440,6 +471,10 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
             "meta": serialize_meta(resp["attributes"], item_type),
             "links": serialize_links(resp["attributes"]),
         }
+
+        event = serialize_event(resp["attributes"])
+        if event is not None:
+            resp_dict["event"] = event
 
         if debug:
             resp_dict["meta"]["debug_info"] = {
