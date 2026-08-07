@@ -4,10 +4,10 @@ import type {z} from 'zod';
 import {NODE_ENV} from 'sentry/constants/env';
 
 import type {SeerEmbedProps} from './registry';
-import {SEER_EMBED_SCHEMAS, type SeerEmbedName} from './schemas';
+import {ALL_SEER_EMBED_SCHEMAS, type SeerEmbedName} from './schemas';
 
 export type EmbedOutput<N extends SeerEmbedName> = z.output<
-  (typeof SEER_EMBED_SCHEMAS)[N]['schema']
+  (typeof ALL_SEER_EMBED_SCHEMAS)[N]['schema']
 >;
 
 interface DefineSeerEmbedOptions<N extends SeerEmbedName> {
@@ -19,7 +19,7 @@ export function defineSeerEmbed<N extends SeerEmbedName>({
   name,
   render,
 }: DefineSeerEmbedOptions<N>) {
-  const {schema} = SEER_EMBED_SCHEMAS[name];
+  const {schema} = ALL_SEER_EMBED_SCHEMAS[name];
 
   function Embed({data, level}: SeerEmbedProps) {
     const parsed = schema.safeParse(data);
