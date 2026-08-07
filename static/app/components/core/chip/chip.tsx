@@ -102,6 +102,7 @@ export function Chip({
           chipSize={size}
           size="zero"
           variant="transparent"
+          icon={<IconClose size="xs" />}
           onClick={e => {
             // Keep dismissing a chip from also triggering click handlers on the
             // chip itself or any ancestor (e.g. click-to-edit).
@@ -109,9 +110,7 @@ export function Chip({
             onDismiss();
           }}
           aria-label={t('Remove')}
-        >
-          <IconClose size="xs" />
-        </DismissButton>
+        />
       ) : null}
     </ChipRoot>
   );
