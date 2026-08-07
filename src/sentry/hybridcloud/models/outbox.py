@@ -89,9 +89,16 @@ class OutboxBase(Model):
         return outbox_model
 
     @classmethod
-    def next_object_identifiers(cls, count: int) -> list[int]:
-        if count < 0:
-            raise ValueError("count must be non-negative")
+    def reserve_object_identifiers_for_bulk_create(cls, count: int) -> list[int]:
+        """Reserve IDs for one bounded ``bulk_create`` operation.
+
+        WARNING: PostgreSQL sequence values are a global, non-transactional resource. Every
+        value reserved here is consumed permanently, even if the transaction rolls back or the
+        caller does not use it. Use with caution and prefer ``next_object_identifier`` where
+        possible.
+        """
+        if not 0 <= count <= 10_000:
+            raise ValueError("bulk identifier reservation count must be between 0 and 10,000")
         if count == 0:
             return []
 
@@ -107,7 +114,7 @@ class OutboxBase(Model):
 
     @classmethod
     def next_object_identifier(cls) -> int:
-        return cls.next_object_identifiers(1)[0]
+        return cls.reserve_object_identifiers_for_bulk_create(1)[0]
 
     @classmethod
     def find_scheduled_shards(cls, low: int = 0, hi: int | None = None) -> list[Mapping[str, Any]]:
