@@ -63,33 +63,6 @@ export function loadOrganizationTags(
 }
 
 /**
- * Fetch tags for an organization or a subset or projects.
- */
-export function fetchOrganizationTags(
-  api: Client,
-  orgId: string,
-  projectIds: string[] | null,
-  addAlert: AddAlert
-) {
-  TagStore.reset();
-
-  const url = `/organizations/${orgId}/tags/`;
-  const query: Query = {use_cache: '1'};
-  if (projectIds) {
-    query.project = projectIds;
-  }
-
-  const promise = api.requestPromise(url, {
-    method: 'GET',
-    query,
-  });
-
-  promise.then(tags => tagFetchSuccess(tags, addAlert));
-
-  return promise;
-}
-
-/**
  * Fetch tag values for an organization.
  * The `projectIds` argument can be used to subset projects.
  */

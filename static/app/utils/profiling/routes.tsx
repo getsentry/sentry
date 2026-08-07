@@ -183,7 +183,7 @@ export function generateProfileRouteFromProfileReference({
         frameName,
         framePackage,
         eventId,
-        tid: reference.thread_id as unknown as string,
+        tid: reference.thread_id,
       }),
     });
   }
