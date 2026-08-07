@@ -493,7 +493,7 @@ def update_cell(
     user_id: int,
     values: dict[str, Any],
 ) -> InvestigationBlock:
-    with transaction.atomic(using=router.db_for_write(InvestigationBlock)):
+    with transaction.atomic(using=router.db_for_write(Investigation)):
         investigation = lock_investigation(block.investigation, expected_investigation_version)
         locked = InvestigationBlock.objects.select_for_update().get(id=block.id)
         if investigation.status != InvestigationStatus.ACTIVE:
@@ -545,13 +545,16 @@ def mark_downstream_blocks_stale(
 def delete_cell(
     *, block: InvestigationBlock, expected_investigation_version: int, expected_block_version: int
 ) -> None:
-    with transaction.atomic(using=router.db_for_write(InvestigationBlock)):
+    with transaction.atomic(using=router.db_for_write(Investigation)):
         investigation = lock_investigation(block.investigation, expected_investigation_version)
         locked = InvestigationBlock.objects.select_for_update().get(id=block.id)
         if investigation.status != InvestigationStatus.ACTIVE:
             raise InvestigationValidationError({"detail": "Archived investigations are read-only."})
         if locked.version != expected_block_version:
             raise InvestigationConflictError("Block has changed.")
+        mark_downstream_blocks_stale(
+            investigation_id=investigation.id, upstream_block_ids={locked.id}
+        )
         locked.deleted_at = timezone.now()
         locked.version += 1
         locked.save(update_fields=["deleted_at", "version", "date_updated"])
@@ -560,8 +563,8 @@ def delete_cell(
             .filter(investigation=investigation, deleted_at__isnull=True)
             .order_by("position", "id")
         )
-        for position, active_cell in enumerate(active_blocks):
-            active_cell.position = position
+        for position, active_block in enumerate(active_blocks):
+            active_block.position = position
         InvestigationBlock.objects.bulk_update(active_blocks, ["position"])
         bump_investigation_version(investigation)
 

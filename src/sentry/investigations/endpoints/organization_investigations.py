@@ -328,6 +328,7 @@ class OrganizationInvestigationBlocksEndpoint(OrganizationInvestigationBase):
     def post(
         self, request: Request, organization: Organization, investigation: Investigation
     ) -> Response:
+        user_id = _require_authenticated_user(request)
         serializer = CellCreateSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -338,7 +339,7 @@ class OrganizationInvestigationBlocksEndpoint(OrganizationInvestigationBase):
             block = create_cell(
                 investigation=investigation,
                 expected_investigation_version=investigation_version,
-                user_id=_user_id(request),
+                user_id=user_id,
                 values=values,
             )
         except Exception as error:
@@ -368,6 +369,7 @@ class OrganizationInvestigationBlockDetailsEndpoint(OrganizationInvestigationBlo
         investigation: Investigation,
         block: InvestigationBlock,
     ) -> Response:
+        user_id = _require_authenticated_user(request)
         if block.deleted_at is not None:
             raise ResourceDoesNotExist
         serializer = CellUpdateSerializer(data=request.data, context={"block": block})
@@ -383,7 +385,7 @@ class OrganizationInvestigationBlockDetailsEndpoint(OrganizationInvestigationBlo
                 block=block,
                 expected_investigation_version=expected_investigation_version,
                 expected_block_version=expected_block_version,
-                user_id=_user_id(request),
+                user_id=user_id,
                 values=values,
             )
         except Exception as error:
@@ -406,6 +408,7 @@ class OrganizationInvestigationBlockDetailsEndpoint(OrganizationInvestigationBlo
         investigation: Investigation,
         block: InvestigationBlock,
     ) -> Response:
+        _require_authenticated_user(request)
         if block.deleted_at is not None:
             raise ResourceDoesNotExist
         serializer = CellDeleteSerializer(data=request.data)
@@ -433,6 +436,7 @@ class OrganizationInvestigationBlockOrderEndpoint(OrganizationInvestigationBase)
     def put(
         self, request: Request, organization: Organization, investigation: Investigation
     ) -> Response:
+        _require_authenticated_user(request)
         serializer = CellOrderSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -24,7 +24,7 @@ class InvestigationBlockEndpointTest(APITestCase):
         )
         self.create_investigation_permissions(investigation=self.investigation)
 
-    def cells_url(self) -> str:
+    def blocks_url(self) -> str:
         return reverse(
             "sentry-api-0-organization-investigation-blocks",
             kwargs={
@@ -43,9 +43,9 @@ class InvestigationBlockEndpointTest(APITestCase):
             },
         )
 
-    def test_create_update_and_soft_delete_cell(self) -> None:
+    def test_create_update_and_soft_delete_block(self) -> None:
         response = self.client.post(
-            self.cells_url(),
+            self.blocks_url(),
             data={
                 "investigationVersion": 1,
                 "kind": "query",
@@ -141,7 +141,7 @@ class InvestigationBlockEndpointTest(APITestCase):
 
     def test_display_validation(self) -> None:
         response = self.client.post(
-            self.cells_url(),
+            self.blocks_url(),
             data={
                 "investigationVersion": self.investigation.version,
                 "kind": "query",
@@ -152,7 +152,7 @@ class InvestigationBlockEndpointTest(APITestCase):
         assert response.status_code == 400
 
         response = self.client.post(
-            self.cells_url(),
+            self.blocks_url(),
             data={
                 "investigationVersion": self.investigation.version,
                 "kind": "text",
@@ -163,7 +163,7 @@ class InvestigationBlockEndpointTest(APITestCase):
         assert response.status_code == 400
 
         response = self.client.post(
-            self.cells_url(),
+            self.blocks_url(),
             data={
                 "investigationVersion": self.investigation.version,
                 "kind": "query",
@@ -181,7 +181,7 @@ class InvestigationBlockEndpointTest(APITestCase):
 
     def test_text_display_accepts_persisted_prompt_collapse(self) -> None:
         response = self.client.post(
-            self.cells_url(),
+            self.blocks_url(),
             data={
                 "investigationVersion": self.investigation.version,
                 "kind": "text",
@@ -235,7 +235,7 @@ class InvestigationBlockEndpointTest(APITestCase):
         )
         assert response.status_code == 400
 
-    def test_drag_reorder_rejects_missing_deleted_and_foreign_cells_without_changes(self) -> None:
+    def test_drag_reorder_rejects_missing_deleted_and_foreign_blocks_without_changes(self) -> None:
         first = self.create_investigation_block(
             investigation=self.investigation, position=0, kind="text"
         )
@@ -279,3 +279,129 @@ class InvestigationBlockEndpointTest(APITestCase):
             format="json",
         )
         assert response.status_code == 400
+
+    def test_sentry_app_cannot_mutate_blocks(self) -> None:
+        first = self.create_investigation_block(
+            investigation=self.investigation, position=0, kind="text"
+        )
+        second = self.create_investigation_block(
+            investigation=self.investigation, position=1, kind="text"
+        )
+        sentry_app_user = self.create_user(is_sentry_app=True)
+        self.create_member(
+            organization=self.organization,
+            user=sentry_app_user,
+            role="member",
+        )
+        self.login_as(sentry_app_user)
+
+        response = self.client.post(
+            self.blocks_url(),
+            data={"investigationVersion": self.investigation.version, "kind": "text"},
+            format="json",
+        )
+        assert response.status_code == 403
+
+        response = self.client.put(
+            self.block_url(first),
+            data={
+                "investigationVersion": self.investigation.version,
+                "version": first.version,
+                "content": "must not be saved",
+            },
+            format="json",
+        )
+        assert response.status_code == 403
+
+        response = self.client.delete(
+            self.block_url(first),
+            data={
+                "investigationVersion": self.investigation.version,
+                "version": first.version,
+            },
+            format="json",
+        )
+        assert response.status_code == 403
+
+        order_url = reverse(
+            "sentry-api-0-organization-investigation-block-order",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": self.investigation.id,
+            },
+        )
+        response = self.client.put(
+            order_url,
+            data={
+                "investigationVersion": self.investigation.version,
+                "blockIds": [second.id, first.id],
+            },
+            format="json",
+        )
+        assert response.status_code == 403
+
+        first.refresh_from_db()
+        second.refresh_from_db()
+        assert first.content == ""
+        assert first.deleted_at is None
+        assert (first.position, second.position) == (0, 1)
+
+    def test_delete_marks_transitive_downstream_blocks_stale(self) -> None:
+        upstream = self.create_investigation_block(
+            investigation=self.investigation, position=0, kind="query"
+        )
+        child = self.create_investigation_block(
+            investigation=self.investigation, position=1, kind="query"
+        )
+        grandchild = self.create_investigation_block(
+            investigation=self.investigation, position=2, kind="text"
+        )
+        unrelated = self.create_investigation_block(
+            investigation=self.investigation, position=3, kind="text"
+        )
+        self.create_investigation_block_dependency(block=child, depends_on=upstream)
+        self.create_investigation_block_dependency(block=grandchild, depends_on=child)
+
+        response = self.client.delete(
+            self.block_url(upstream),
+            data={
+                "investigationVersion": self.investigation.version,
+                "version": upstream.version,
+            },
+            format="json",
+        )
+        assert response.status_code == 204
+
+        upstream.refresh_from_db()
+        child.refresh_from_db()
+        grandchild.refresh_from_db()
+        unrelated.refresh_from_db()
+        assert upstream.deleted_at is not None
+        assert child.stale_at is not None
+        assert grandchild.stale_at is not None
+        assert unrelated.stale_at is None
+        assert (child.position, grandchild.position, unrelated.position) == (0, 1, 2)
+
+    def test_failed_delete_does_not_mark_downstream_blocks_stale(self) -> None:
+        upstream = self.create_investigation_block(
+            investigation=self.investigation, position=0, kind="query"
+        )
+        downstream = self.create_investigation_block(
+            investigation=self.investigation, position=1, kind="text"
+        )
+        self.create_investigation_block_dependency(block=downstream, depends_on=upstream)
+
+        response = self.client.delete(
+            self.block_url(upstream),
+            data={
+                "investigationVersion": self.investigation.version,
+                "version": upstream.version + 1,
+            },
+            format="json",
+        )
+        assert response.status_code == 409
+
+        upstream.refresh_from_db()
+        downstream.refresh_from_db()
+        assert upstream.deleted_at is None
+        assert downstream.stale_at is None
