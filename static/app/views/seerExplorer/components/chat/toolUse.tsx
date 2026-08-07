@@ -1,7 +1,8 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import {Button} from '@sentry/scraps/button';
 import {MessageRow, ToolCallIndicator, type ToolCallStatus} from '@sentry/scraps/chat';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Disclosure} from '@sentry/scraps/disclosure';
@@ -12,7 +13,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {AgentWriteApprovalProvider} from 'sentry/components/seer/markdown/embeds/components/agentWriteApproval';
-import {IconLink} from 'sentry/icons';
+import {IconChevron, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -512,7 +513,19 @@ function CallRows({
                 </Disclosure.Content>
               </Disclosure>
             ) : (
-              <Flex gap="sm" align="center">
+              // Reserve the chevron's footprint with the chevron itself rather than guessing at
+              // padding: it lives inside a Button, so its width is icon + button padding + icon
+              // gap. Without this a non-expandable row starts further left than its siblings and
+              // the column of labels comes apart.
+              <Flex align="center">
+                <ChevronSpacer aria-hidden>
+                  <Button
+                    size="sm"
+                    variant="transparent"
+                    aria-label=""
+                    icon={<IconChevron direction="right" />}
+                  />
+                </ChevronSpacer>
                 {row}
               </Flex>
             )}
@@ -539,22 +552,7 @@ function CallDetail({
           {key}={value}
         </Text>
       ))}
-      {detail.body && (
-        <Fragment>
-          <Text size="xs" variant="muted" monospace>
-            {t('Body')}
-          </Text>
-          <ResponseBox>{detail.body}</ResponseBox>
-        </Fragment>
-      )}
-      {detail.response && (
-        <Fragment>
-          <Text size="xs" variant="muted" monospace>
-            {t('Response')}
-          </Text>
-          <ResponseBox>{detail.response}</ResponseBox>
-        </Fragment>
-      )}
+      {detail.body && <PayloadBox>{detail.body}</PayloadBox>}
     </Stack>
   );
 }
@@ -653,6 +651,9 @@ function TodoList({todos}: {todos: TodoItem[]}) {
 const ToolCallText = styled(Text)`
   white-space: normal;
   overflow: visible;
+  /* Disclosure.Title renders its children inside a Button, which centres wrapped text. These rows
+     read as a list, so a title long enough to wrap must stay left-aligned like its siblings. */
+  text-align: left;
   text-decoration: underline;
   text-decoration-color: transparent;
 `;
@@ -696,7 +697,7 @@ const ToolCallLinkIcon = styled(IconLink)`
 
 // Capped and scrollable rather than unbounded: the preview is already truncated server-side, but
 // even 2KB of JSON would otherwise push the rest of the conversation off screen.
-const ResponseBox = styled('pre')`
+const PayloadBox = styled('pre')`
   margin: 0;
   padding: ${p => p.theme.space.md};
   max-height: 240px;
@@ -708,6 +709,16 @@ const ResponseBox = styled('pre')`
   font-size: ${p => p.theme.font.size.xs};
   white-space: pre-wrap;
   word-break: break-word;
+`;
+
+// Holds the space a Disclosure's chevron occupies so a non-expandable row's label lines up with
+// its expandable siblings. Built from the same Button the Disclosure uses rather than from padding
+// tokens: the chevron sits inside a button whose icon gap is inherited, so the footprint cannot be
+// reproduced by hand without drifting the moment button styling changes.
+const ChevronSpacer = styled('span')`
+  visibility: hidden;
+  flex-shrink: 0;
+  pointer-events: none;
 `;
 
 const ToolCallPlainRow = styled('span')`

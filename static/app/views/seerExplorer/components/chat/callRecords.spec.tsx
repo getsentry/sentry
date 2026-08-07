@@ -354,26 +354,17 @@ describe('callRecordDetail', () => {
     expect(callRecordDetail(apiRecord())?.body).toBeNull();
   });
 
-  it('shows the response body', () => {
-    const detail = callRecordDetail(apiRecord({response: '{\n  "id": "1"\n}'}));
-
-    expect(detail?.response).toContain('"id": "1"');
-  });
-
-  it('marks a truncated response so the box does not look complete', () => {
-    const detail = callRecordDetail(
-      apiRecord({response: '{"a":1', response_truncated: true})
-    );
-
-    expect(detail?.response?.endsWith('…')).toBe(true);
-  });
-
-  it('has no response when the call did not return one', () => {
-    expect(callRecordDetail(apiRecord({response: undefined}))?.response).toBeNull();
-  });
-
-  it('has no detail for a lib call, which has no route of its own', () => {
-    expect(callRecordDetail({id: 1, kind: 'lib', name: 'get_issue_details'})).toBeNull();
+  it('has no detail for a lib call, even when it carries arguments', () => {
+    // A lib row is a heading for the api rows nested under it, and those carry the detail — an
+    // expander here would reveal less than what is already visible below.
+    expect(
+      callRecordDetail({
+        id: 1,
+        kind: 'lib',
+        name: 'get_issue_details',
+        params: {org: 'acme', issue_id: '54'},
+      })
+    ).toBeNull();
   });
 });
 

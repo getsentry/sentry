@@ -182,8 +182,9 @@ export function callRecordDetail(record: CallRecord): {
   body: string | null;
   params: Array<[string, string]>;
   request: string;
-  response: string | null;
 } | null {
+  // A lib call is a heading for the api calls nested under it, and those carry the detail. Giving
+  // it its own expander would add a control that reveals less than the rows already below it.
   if (record.kind !== 'api' || !record.method) {
     return null;
   }
@@ -199,7 +200,6 @@ export function callRecordDetail(record: CallRecord): {
     // since the transport passes it separately rather than building it into the URL.
     params: Object.entries(record.query_params ?? {}),
     body: withEllipsis(record.body, record.body_truncated),
-    response: withEllipsis(record.response, record.response_truncated),
   };
 }
 

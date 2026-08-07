@@ -106,6 +106,8 @@ export interface CallRecord {
   method?: string;
   /** Lib records only. */
   name?: string;
+  /** Lib records only: the call's scalar arguments, which name what it acted on. */
+  params?: Record<string, string>;
   parent?: number | null;
   path?: string;
   path_params?: Record<string, string>;
