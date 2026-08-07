@@ -3,6 +3,7 @@ import {Fragment} from 'react';
 import {FeatureBadge} from '@sentry/scraps/badge';
 
 import {t} from 'sentry/locale';
+import {orgHasSeerAccess} from 'sentry/utils/seer/orgHasSeerAccess';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useInboxIssueCount} from 'sentry/views/issueList/queries/useInboxIssueCount';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
@@ -19,6 +20,8 @@ function InboxCountBadge() {
 export function IssuesSecondaryNavigation() {
   const organization = useOrganization();
   const baseUrl = `/organizations/${organization.slug}/issues`;
+  const hasProgressUi = organization.features.includes('issue-stream-progress-ui');
+  const hasInbox = hasProgressUi && orgHasSeerAccess(organization);
   return (
     <Fragment>
       <SecondaryNavigation.Header>{t('Issues')}</SecondaryNavigation.Header>
@@ -34,7 +37,7 @@ export function IssuesSecondaryNavigation() {
                 {t('Feed')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
-            {organization.features.includes('issue-stream-progress-ui') && (
+            {hasInbox && (
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
                   to={`${baseUrl}/inbox/`}
