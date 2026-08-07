@@ -120,7 +120,7 @@ interface LogsSearchSectionProps {
   datePageFilterProps: DatePageFilterProps;
 }
 
-const LogsSearchSection = memo(function LogsSearchSection({
+const LogsSearchSection = memo(function LogsSearchSectionImpl({
   datePageFilterProps,
 }: LogsSearchSectionProps) {
   const logsSearch = useQueryParamsSearch();

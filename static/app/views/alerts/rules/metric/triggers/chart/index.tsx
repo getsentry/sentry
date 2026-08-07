@@ -289,7 +289,7 @@ class TriggersChart extends PureComponent<Props, State> {
     });
 
     let queryDataset = queryExtras.dataset as undefined | DiscoverDatasets;
-    const queryOverride = (queryExtras.query as string | undefined) ?? query;
+    const queryOverride = queryExtras.query ?? query;
 
     if (shouldUseErrorsDiscoverDataset(query, dataset, organization)) {
       queryDataset = DiscoverDatasets.ERRORS;

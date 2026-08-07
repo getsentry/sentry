@@ -4,66 +4,42 @@
 
 ## Command Execution Guide
 
-This section contains critical command execution instructions that apply across all Sentry development.
+Critical command instructions that apply across all Sentry development.
 
 ### Python Command Execution Requirements
 
-**CRITICAL**: When running Python commands (pytest, mypy, prek, etc.), you MUST use the virtual environment.
-
-#### For AI Agents (automated commands)
-
-Use the full relative path to virtualenv executables:
+**CRITICAL**: Python commands (pytest, mypy, prek, etc.) MUST run in the virtualenv. Prefix the full relative path, or source the activate script:
 
 ```bash
 cd /path/to/sentry && .venv/bin/pytest tests/...
-cd /path/to/sentry && .venv/bin/python -m mypy ...
-```
-
-Or source the activate script in your command:
-
-```bash
 cd /path/to/sentry && source .venv/bin/activate && pytest tests/...
 ```
 
-**Important for AI agents:**
-
-- Always use `required_permissions: ['all']` when running Python commands to avoid sandbox permission issues
-- The `.venv/bin/` prefix ensures you're using the correct Python interpreter and dependencies
+For AI agents: always use `required_permissions: ['all']` for Python commands to avoid sandbox permission issues.
 
 ### Backend Development Commands
 
 #### Setup
 
 ```bash
-# Refreshes dependencies.
-# SENTRY_DEVENV_FRONTEND_ONLY=1 skips over migrations which is not needed for pytest. HIGHLY RECOMMENDED.
+# Refreshes dependencies. SENTRY_DEVENV_FRONTEND_ONLY=1 skips migrations
+# (not needed for pytest). HIGHLY RECOMMENDED.
 SENTRY_DEVENV_FRONTEND_ONLY=1 devenv sync
 
-# refresh dependencies, apply migrations
-# Only relevant if you want a working development server.
+# Refresh dependencies AND apply migrations (only for a working dev server).
 devenv sync
 
 direnv allow    # activate the environment
 devservices up  # bring up services
 ```
 
-That is all that is required to run `pytest`.
+That is all that is required to run `pytest`. `devservices serve` starts the development server. For full environment setup/troubleshooting, use the **`setup-dev`** skill.
 
-`devservices serve` starts the development server.
-
-When the devserver is running, its full console output (all honcho-managed processes — `server`, `taskworker`, kafka consumers, webpack/watchers, etc.) is teed to `.artifacts/dev.log`, ANSI-stripped and gitignored. Agents can't see the devserver terminal, so `tail`/`grep` this file to inspect what's happening (startup, reloads, request logs, tracebacks). The file is truncated on each devserver process start (in-process granian reloads keep appending); override its path with `SENTRY_DEV_LOG_FILE`. Dev-only — this teeing lives in `sentry devserver` and is not used in production.
+When the devserver runs, its full console output is teed to `.artifacts/dev.log` (ANSI-stripped, gitignored, truncated per process start; override with `SENTRY_DEV_LOG_FILE`). Agents can't see the devserver terminal — `tail`/`grep` this file to inspect startup, reloads, request logs, and tracebacks. Dev-only.
 
 #### Linting
 
-prek is the single entrypoint for all lint, format, and type-checking tools.
-
-Before considering a task complete, run:
-
-```bash
-cd /path/to/sentry && .venv/bin/prek run -q
-```
-
-prek detects changed files automatically. To run a specific hook:
+prek is the single entrypoint for all lint, format, and type-checking tools. Before considering a task complete, run `.venv/bin/prek run -q` (detects changed files automatically). To run a specific hook:
 
 ```bash
 SENTRY_MYPY_PRE_PUSH=1 .venv/bin/prek run -q mypy --files src/sentry/foo/bar.py --stage pre-push
@@ -74,85 +50,46 @@ If a hook fails, fix the issues, stage changes, then re-run until it passes.
 
 #### Testing
 
-For backend-scoped changes, prioritize running the individual relevant pytest files or nodeids locally. `make test-selective` is not optimized for routine local development, so use it only when it is useful for a particular investigation. If a PR's backend CI fails, inspect the `select-tests` job in `.github/workflows/backend.yml` and its selected-test output to identify the exact nodeids CI ran, then run those nodeids locally.
+For backend-scoped changes, prioritize running the individual relevant pytest files or nodeids locally. `make test-selective` is not optimized for routine local development, so use it only when useful for a particular investigation. If a PR's backend CI fails, inspect the `select-tests` job in `.github/workflows/backend.yml` and its selected-test output to identify the exact nodeids CI ran, then run those locally.
 
 ```bash
-# Run a specific test file.
-# Do not run pytest by itself; it'll take forever!
+# Run a specific test file. Do not run pytest by itself; it'll take forever!
 .venv/bin/pytest -n3 -svv --reuse-db tests/sentry/api/test_base.py
 ```
 
 #### Database Operations
 
-```bash
-# Run migrations
-sentry django migrate
-
-# Create new migration
-sentry django makemigrations
-
-# Update migration after rebase conflict (handles renaming, dependencies, lockfile)
-./bin/update-migration <migration_name_or_number> <app_label>
-# Example: ./bin/update-migration 0101_workflow_when_condition_group_unique workflow_engine
-
-# Reset database
-make reset-db
-```
+Creating/applying migrations and resolving rebase conflicts (`makemigrations`, `django migrate`, `update-migration`) → use the **`generate-migration`** skill. To reset the database (`make reset-db`) or other environment tasks → use the **`setup-dev`** skill.
 
 ### Frontend Development Commands
 
 #### Development Setup
 
 ```bash
-# Start the full development server (requires devservices up)
-pnpm run dev
-
-# Start only the UI development server with hot reload
-# Proxies API requests to production sentry.io
-pnpm run dev-ui
+pnpm run dev     # full dev server (requires devservices up)
+pnpm run dev-ui  # UI-only with hot reload; proxies API to production sentry.io
 ```
 
-**Dev server URLs:**
-
-- Full devserver: http://dev.getsentry.net:8000
-- Frontend-only (`dev-ui`): https://sentry.dev.getsentry.net:7999/
+Dev server URLs: full devserver `http://dev.getsentry.net:8000`; frontend-only `https://sentry.dev.getsentry.net:7999/`.
 
 #### Typechecking
 
-To typecheck frontend code, run `pnpm typecheck` script.
-It checks the whole project and does not accept file paths.
-DO NOT use `tsc` directly.
-
-```bash
-pnpm run typecheck
-```
+Run the `pnpm run typecheck` script. It checks the whole project and does not accept file paths. DO NOT use `tsc` directly.
 
 #### Linting
 
 ```bash
-# JavaScript/TypeScript linting
-pnpm run lint:js
-
-# Linting for specific file(s)
-pnpm run lint:js components/avatar.tsx [...other files]
-
-# Fix linting issues
-pnpm run fix
+pnpm run lint:js                          # all JS/TS
+pnpm run lint:js components/avatar.tsx    # specific file(s)
+pnpm run fix                              # auto-fix
 ```
 
 #### Testing
 
 ```bash
-# Run JavaScript tests
-pnpm test-ci <file_path>
-
-# Run specific test file(s)
-pnpm test-ci components/avatar.spec.tsx
+pnpm test-ci <file_path>                       # run tests
+pnpm test-ci components/avatar.spec.tsx        # specific file(s)
 ```
-
-### Git worktrees
-
-Each worktree has its own `.venv`. When you create a new worktree with `git worktree add`, a post-checkout hook runs `devenv sync` in the new worktree to setup the dev environment. Otherwise run `devenv sync` once in the new worktree, then `direnv allow` to validate and activate the dev environment.
 
 ### Context-Aware Loading
 
@@ -177,49 +114,9 @@ Skills under `.agents/skills/` should follow the same current-practice conventio
 - Keep skill descriptions aligned with natural user requests like PR review, branch audit, and Warden follow-up.
 - If a downstream review harness controls the final response shape, do not hardcode a competing output format in the skill. Specify required evidence instead.
 
-## Backend
-
-For backend development patterns, security guidelines, and architecture, see `src/AGENTS.md`.
-For backend testing patterns and best practices, see `tests/AGENTS.md`.
-
-## Frontend
-
-For frontend development patterns, design system guidelines, and React testing best practices, see `static/AGENTS.md`.
-
 ## Feature Flags (FlagPole)
 
-New features should be gated behind a feature flag.
-
-1. **Register** the flag in `src/sentry/features/temporary.py`:
-
-   ```python
-   manager.add("organizations:my-feature", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-   ```
-
-   Use `api_expose=True` if the frontend needs to check the flag. Use `ProjectFeature` and a `projects:` prefix for project-scoped flags.
-
-2. **Python check**:
-
-   ```python
-   if features.has("organizations:my-feature", organization, actor=user):
-   ```
-
-3. **Frontend check** (requires `api_expose=True`):
-
-   ```typescript
-   organization.features.includes('my-feature');
-   ```
-
-4. **Tests**:
-
-   ```python
-   with self.feature("organizations:my-feature"):
-       ...
-   ```
-
-5. **Rollout**: FlagPole YAML config lives in the `sentry-options-automator` repo, not here.
-
-See https://develop.sentry.dev/feature-flags/ for full docs.
+New features should be gated behind a flag: register in `src/sentry/features/temporary.py`, check with `features.has(...)` (Python) or `organization.features.includes(...)` (frontend). For the full workflow (registration, `api_expose`, tests, rollout) → use the **`feature-flags`** skill, or see https://develop.sentry.dev/feature-flags/.
 
 ## Customer Information
 

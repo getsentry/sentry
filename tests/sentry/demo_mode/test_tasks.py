@@ -269,11 +269,12 @@ class SyncArtifactBundlesTest(TestCase):
             data={"features": ["debug"]},
         )
 
-        _sync_project_debug_files(
-            source_org=self.source_org,
-            target_org=self.target_org,
-            cutoff_date=self.last_three_days(),
-        )
+        with self.feature("organizations:objectstore-debugfiles-compression"):
+            _sync_project_debug_files(
+                source_org=self.source_org,
+                target_org=self.target_org,
+                cutoff_date=self.last_three_days(),
+            )
 
         target_project_debug_file = ProjectDebugFile.objects.get(
             project_id=self.target_proj_foo.id,
@@ -287,6 +288,11 @@ class SyncArtifactBundlesTest(TestCase):
         assert target_project_debug_file.file_size == len(content)
         assert target_project_debug_file.date_created == date_created
         assert target_project_debug_file.get_file().read() == content
+        target_metadata = get_debug_files_session(self.target_org.id, self.target_proj_foo.id).head(
+            target_project_debug_file.storage_path
+        )
+        assert target_metadata is not None
+        assert target_metadata.compression == "zstd"
 
         target_project_debug_file.delete()
         source_project_debug_file.refresh_from_db()
