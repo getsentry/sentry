@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
@@ -76,11 +78,11 @@ export function Chip({
 
   return (
     <ChipRoot chipSize={size} dismissable={Boolean(onDismiss)} {...rest}>
-      <Content>
+      <Flex align="center" gap="xs" padding="2xs 0">
         {isQuery && property !== undefined && <Label tone="primary">{property}</Label>}
         {isQuery && operator && <Label tone="secondary">{operator}</Label>}
         {value !== undefined && <Label tone={valueTone}>{value}</Label>}
-      </Content>
+      </Flex>
       {onDismiss ? (
         <DismissButton
           chipSize={size}
@@ -109,13 +111,6 @@ const ChipRoot = styled('div')<{chipSize: ChipSize; dismissable: boolean}>`
   box-shadow: 0 1px 0 0 ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
   font-size: ${p => SIZES[p.chipSize].font};
   line-height: 16px;
-`;
-
-const Content = styled('div')`
-  display: inline-flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  padding-block: ${p => p.theme.space['2xs']};
 `;
 
 const Label = styled('span')<{tone: 'primary' | 'secondary' | 'accent'}>`
