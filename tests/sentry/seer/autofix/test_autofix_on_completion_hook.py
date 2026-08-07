@@ -1,6 +1,7 @@
 from typing import TypedDict
 from unittest.mock import MagicMock, patch
 
+from sentry.models.activity import Activity
 from sentry.seer.agent.client_models import (
     AgentFilePatch,
     Artifact,
@@ -32,6 +33,7 @@ from sentry.seer.models.run import SeerRunMilestone, SeerRunMilestoneType
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.types.activity import ActivityType
 
 
 def run_state(run_id=123, blocks: list[MemoryBlock] | None = None, metadata=None):
@@ -610,6 +612,14 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         self, mock_broadcast, mock_has_access, mock_process_autofix_updates, mock_analytics
     ):
         mock_has_access.return_value = True
+
+        def assert_activity_exists(**_kwargs: object) -> None:
+            assert Activity.objects.filter(
+                group=self.group,
+                type=ActivityType.SEER_ITERATION_COMPLETED.value,
+            ).exists()
+
+        mock_process_autofix_updates.side_effect = assert_activity_exists
         state = run_state(
             blocks=[
                 root_cause_memory_block(),
@@ -642,10 +652,9 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         assert call_kwargs["payload"]["pull_requests"][0]["provider"] == "github"
         assert call_kwargs["payload"]["pull_requests"][0]["pull_request"]["pr_number"] == 7
         mock_process_autofix_updates.assert_called_once()
-        assert (
-            mock_process_autofix_updates.call_args.kwargs["kwargs"]["activity_datetime"]
-            == state.updated_at
-        )
+        task_kwargs = mock_process_autofix_updates.call_args.kwargs["kwargs"]
+        assert task_kwargs["activity_already_recorded"] is True
+        assert "activity_datetime" not in task_kwargs
         assert (
             mock_analytics.call_args.args[0].referrer
             == AutofixReferrer.GROUP_AUTOFIX_ENDPOINT.value
