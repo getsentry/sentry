@@ -1,5 +1,4 @@
 import {useState} from 'react';
-import styled from '@emotion/styled';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -9,6 +8,7 @@ import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -29,6 +29,15 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+const CUSTOM_FILTER_COLUMNS: TableColumnConfig[] = [
+  {key: 'active', width: 'max-content'},
+  {key: 'name', width: 'minmax(0, 1fr)'},
+  {key: 'conditions', width: 'minmax(0, 2fr)'},
+  {key: 'created', width: 'max-content'},
+  {key: 'edited', width: 'max-content'},
+  {key: 'action', width: 'max-content'},
+];
 
 // Condition types accepted by the custom inbound filters API. The values match
 // the `type` field on the backend serializer exactly.
@@ -514,19 +523,29 @@ export function CustomFilters({project}: {project: Project}) {
       ) : isPending ? (
         <LoadingIndicator />
       ) : (
-        <CustomFiltersTable>
-          <SimpleTable.Header>
-            <SimpleTable.HeaderCell divider={false}>{t('Active')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell divider={false}>{t('Name')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell divider={false}>
-              {t('Conditions')}
-            </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell divider={false}>
-              {t('Created')}
-            </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell divider={false}>{t('Edited')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell divider={false}>{t('Action')}</SimpleTable.HeaderCell>
-          </SimpleTable.Header>
+        <SimpleTable
+          columns={CUSTOM_FILTER_COLUMNS}
+          header={
+            <SimpleTable.HeaderRow>
+              <SimpleTable.HeaderCell divider={false}>
+                {t('Active')}
+              </SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell divider={false}>{t('Name')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell divider={false}>
+                {t('Conditions')}
+              </SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell divider={false}>
+                {t('Created')}
+              </SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell divider={false}>
+                {t('Edited')}
+              </SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell divider={false}>
+                {t('Action')}
+              </SimpleTable.HeaderCell>
+            </SimpleTable.HeaderRow>
+          }
+        >
           {visibleFilters.length === 0 && (
             <SimpleTable.Empty>
               {filters.length === 0
@@ -605,14 +624,8 @@ export function CustomFilters({project}: {project: Project}) {
               </SimpleTable.RowCell>
             </SimpleTable.Row>
           ))}
-        </CustomFiltersTable>
+        </SimpleTable>
       )}
     </Stack>
   );
 }
-
-const CustomFiltersTable = styled(SimpleTable)`
-  grid-template-columns:
-    max-content minmax(0, 1fr) minmax(0, 2fr) max-content max-content
-    max-content;
-`;

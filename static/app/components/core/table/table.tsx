@@ -79,12 +79,19 @@ interface TableContextValue {
   onResizeMove: (delta: number) => void;
   onResizeStart: (index: number, cell: HTMLElement | null) => void;
   resizableByIndex: boolean[];
+  tableRef: RefObject<HTMLTableElement | null>;
 }
 
 const TableContext = createContext<TableContextValue | null>(null);
 
 function useTableContext() {
   return useContext(TableContext);
+}
+
+const DETACHED_TABLE_REF: RefObject<HTMLTableElement | null> = {current: null};
+
+export function useTableElement() {
+  return useTableContext()?.tableRef ?? DETACHED_TABLE_REF;
 }
 
 const EMPTY_COLUMNS: TableColumnConfig[] = [];
@@ -213,9 +220,11 @@ export function Table({
       onResizeMove,
       onResizeStart,
       resizableByIndex: columns.map(column => column.resizable !== false),
+      tableRef: gridRef,
     }),
     [
       columns,
+      gridRef,
       minimumColumnWidth,
       onResetColumnSize,
       onResizeEnd,

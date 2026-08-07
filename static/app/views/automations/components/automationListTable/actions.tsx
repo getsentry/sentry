@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -133,66 +132,71 @@ export function AutomationsTableActions({
 
   return (
     <Fragment>
-      <SimpleTable.Header>
-        <Flex align="center" padding="0 xl" gap="md" width="100%" column="1 / -1">
-          <Checkbox
-            checked={pageSelected || (anySelected ? 'indeterminate' : false)}
-            onChange={s => {
-              togglePageSelected(s.target.checked);
-              setAllInQuerySelected(false);
-            }}
-          />
-          {canEnable && (
-            <Button
-              size="xs"
-              onClick={() => handleUpdate({enabled: true})}
-              disabled={isUpdating}
-            >
-              {t('Enable')}
-            </Button>
-          )}
-          {canDisable && (
-            <Button
-              size="xs"
-              onClick={() => handleUpdate({enabled: false})}
-              disabled={isUpdating}
-            >
-              {t('Disable')}
-            </Button>
-          )}
-          <Button size="xs" variant="danger" onClick={handleDelete} disabled={isDeleting}>
-            {t('Delete')}
-          </Button>
-        </Flex>
-      </SimpleTable.Header>
-      {pageSelected && !allResultsVisible && (
-        <FullWidthAlert variant="warning" system showIcon={false}>
-          <Flex justify="center" wrap="wrap" gap="md">
-            {allInQuerySelected ? (
-              tct('Selected all [count] alerts that match this search query.', {
-                count: queryCount,
-              })
-            ) : (
-              <Fragment>
-                {tn(
-                  '%s alert on this page selected.',
-                  '%s alerts on this page selected.',
-                  selected.size
-                )}
-                <Button variant="link" onClick={() => setAllInQuerySelected(true)}>
-                  {tct('Select all [count] alerts that match this search query.', {
-                    count: queryCount,
-                  })}
-                </Button>
-              </Fragment>
+      <SimpleTable.HeaderRow>
+        <SimpleTable.HeaderCell variant="full-width" divider={false}>
+          <Flex align="center" padding="0 xl" gap="md" width="100%">
+            <Checkbox
+              checked={pageSelected || (anySelected ? 'indeterminate' : false)}
+              onChange={s => {
+                togglePageSelected(s.target.checked);
+                setAllInQuerySelected(false);
+              }}
+            />
+            {canEnable && (
+              <Button
+                size="xs"
+                onClick={() => handleUpdate({enabled: true})}
+                disabled={isUpdating}
+              >
+                {t('Enable')}
+              </Button>
             )}
+            {canDisable && (
+              <Button
+                size="xs"
+                onClick={() => handleUpdate({enabled: false})}
+                disabled={isUpdating}
+              >
+                {t('Disable')}
+              </Button>
+            )}
+            <Button
+              size="xs"
+              variant="danger"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {t('Delete')}
+            </Button>
           </Flex>
-        </FullWidthAlert>
+        </SimpleTable.HeaderCell>
+      </SimpleTable.HeaderRow>
+      {pageSelected && !allResultsVisible && (
+        <SimpleTable.FullWidthRow>
+          <Alert variant="warning" system showIcon={false}>
+            <Flex justify="center" wrap="wrap" gap="md">
+              {allInQuerySelected ? (
+                tct('Selected all [count] alerts that match this search query.', {
+                  count: queryCount,
+                })
+              ) : (
+                <Fragment>
+                  {tn(
+                    '%s alert on this page selected.',
+                    '%s alerts on this page selected.',
+                    selected.size
+                  )}
+                  <Button variant="link" onClick={() => setAllInQuerySelected(true)}>
+                    {tct('Select all [count] alerts that match this search query.', {
+                      count: queryCount,
+                    })}
+                  </Button>
+                </Fragment>
+              )}
+            </Flex>
+          </Alert>
+        </SimpleTable.FullWidthRow>
       )}
     </Fragment>
   );
 }
-
-const FullWidthAlert = styled(Alert)`
-  grid-column: 1 / -1;
-`;
