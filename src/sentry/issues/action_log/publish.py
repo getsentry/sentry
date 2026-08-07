@@ -303,7 +303,9 @@ def publish_actions_from_context_bulk(
 
     using = router.db_for_write(GroupActionLogOutbox)
     with outbox_context(transaction.atomic(using=using)):
-        object_identifiers = GroupActionLogOutbox.next_object_identifiers(len(payloads))
+        object_identifiers = GroupActionLogOutbox.reserve_object_identifiers_for_bulk_create(
+            len(payloads)
+        )
 
         outboxes = [
             GroupActionLogOutbox(
