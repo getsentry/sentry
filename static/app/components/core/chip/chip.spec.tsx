@@ -16,7 +16,7 @@ describe('Chip', () => {
   });
 
   it('renders only the value for the value variant', () => {
-    render(<Chip variant="value" property="browser" value="Chrome" />);
+    render(<Chip variant="value" value="Chrome" />);
     expect(screen.getByText('Chrome')).toBeInTheDocument();
     expect(screen.queryByText('browser')).not.toBeInTheDocument();
     expect(screen.queryByText('is')).not.toBeInTheDocument();
