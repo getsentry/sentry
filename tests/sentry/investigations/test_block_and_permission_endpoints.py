@@ -74,7 +74,12 @@ class InvestigationBlockEndpointTest(APITestCase):
         assert response.data["version"] == 2
         assert response.data["staleAt"] is not None
 
+        block.refresh_from_db()
         self.investigation.refresh_from_db()
+        assert block.content == "updated query"
+        assert block.version == 2
+        assert block.stale_at is not None
+        assert self.investigation.version == 3
         response = self.client.delete(
             self.block_url(block),
             data={"investigationVersion": self.investigation.version, "version": 2},
@@ -178,6 +183,37 @@ class InvestigationBlockEndpointTest(APITestCase):
             format="json",
         )
         assert response.status_code == 201, response.data
+
+    def test_versioned_display_rejects_invalid_field_types(self) -> None:
+        response = self.client.post(
+            self.blocks_url(),
+            data={
+                "investigationVersion": self.investigation.version,
+                "kind": "query",
+                "display": {
+                    "version": 1,
+                    "type": "table",
+                    "stacked": "yes",
+                },
+            },
+            format="json",
+        )
+        assert response.status_code == 400
+
+        response = self.client.post(
+            self.blocks_url(),
+            data={
+                "investigationVersion": self.investigation.version,
+                "kind": "query",
+                "display": {
+                    "version": 1,
+                    "type": "table",
+                    "topN": True,
+                },
+            },
+            format="json",
+        )
+        assert response.status_code == 400
 
     def test_text_display_accepts_persisted_prompt_collapse(self) -> None:
         response = self.client.post(
@@ -381,6 +417,56 @@ class InvestigationBlockEndpointTest(APITestCase):
         assert grandchild.stale_at is not None
         assert unrelated.stale_at is None
         assert (child.position, grandchild.position, unrelated.position) == (0, 1, 2)
+
+        detail_url = reverse(
+            "sentry-api-0-organization-investigation-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": self.investigation.id,
+            },
+        )
+        detail_response = self.client.get(detail_url)
+        assert detail_response.status_code == 200
+        blocks_by_id = {block["id"]: block for block in detail_response.data["blocks"]}
+        assert str(upstream.id) not in blocks_by_id
+        assert blocks_by_id[str(child.id)]["dependencies"] == []
+        assert blocks_by_id[str(grandchild.id)]["dependencies"] == [str(child.id)]
+
+    def test_update_marks_transitive_downstream_blocks_stale(self) -> None:
+        upstream = self.create_investigation_block(
+            investigation=self.investigation, position=0, kind="query"
+        )
+        child = self.create_investigation_block(
+            investigation=self.investigation, position=1, kind="query"
+        )
+        grandchild = self.create_investigation_block(
+            investigation=self.investigation, position=2, kind="text"
+        )
+        unrelated = self.create_investigation_block(
+            investigation=self.investigation, position=3, kind="text"
+        )
+        self.create_investigation_block_dependency(block=child, depends_on=upstream)
+        self.create_investigation_block_dependency(block=grandchild, depends_on=child)
+
+        response = self.client.put(
+            self.block_url(upstream),
+            data={
+                "investigationVersion": self.investigation.version,
+                "version": upstream.version,
+                "content": "updated input",
+            },
+            format="json",
+        )
+        assert response.status_code == 200
+
+        upstream.refresh_from_db()
+        child.refresh_from_db()
+        grandchild.refresh_from_db()
+        unrelated.refresh_from_db()
+        assert upstream.stale_at is not None
+        assert child.stale_at is not None
+        assert grandchild.stale_at is not None
+        assert unrelated.stale_at is None
 
     def test_failed_delete_does_not_mark_downstream_blocks_stale(self) -> None:
         upstream = self.create_investigation_block(
