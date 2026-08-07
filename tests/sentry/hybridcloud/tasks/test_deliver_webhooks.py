@@ -14,6 +14,7 @@ from sentry import options
 from sentry.hybridcloud.models.webhookpayload import MAX_ATTEMPTS, WebhookPayload
 from sentry.hybridcloud.tasks import deliver_webhooks
 from sentry.hybridcloud.tasks.deliver_webhooks import (
+    BACKLOG_AGE_QUERY_TIMEOUT,
     MAILBOX_DEPTH_QUERY_TIMEOUT,
     MAX_MAILBOX_DRAIN,
     SLOW_DELIVERY_THRESHOLD,
@@ -1314,6 +1315,49 @@ class WebhookBacklogMetricsTest(TestCase):
         assert any(
             "pg_class" in q["sql"] and WebhookPayload._meta.db_table in q["sql"] for q in queries
         ), [q["sql"] for q in queries]
+
+    def test_age_lookup_runs_under_a_statement_timeout(self) -> None:
+        create_payloads(1, "github:123", provider="github")
+        replica = WebhookPayload.objects.using_replica()
+
+        with CaptureQueriesContext(connections[replica.db]) as queries:
+            record_webhook_backlog_metrics()
+
+        # Walking the primary key past delivery's dead index entries is not free, and
+        # its cost follows vacuum lag rather than anything this task controls.
+        timeout_ms = int(BACKLOG_AGE_QUERY_TIMEOUT.total_seconds() * 1000)
+        assert any(
+            "statement_timeout" in q["sql"] and str(timeout_ms) in q["sql"] for q in queries
+        ), [q["sql"] for q in queries]
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_age_timeout_still_reports_the_estimate(self, mock_metrics: MagicMock) -> None:
+        create_payloads(1, "github:123", provider="github")
+
+        with patch(
+            "sentry.hybridcloud.tasks.deliver_webhooks._statement_timeout",
+            side_effect=OperationalError("canceling statement due to statement timeout"),
+        ):
+            record_webhook_backlog_metrics()
+
+        # Losing the age must not cost us the size signal, which needs no scan at all.
+        assert (
+            len(
+                gauge_calls(
+                    mock_metrics, "hybridcloud.webhookpayload.backlog.pending_count_estimate"
+                )
+            )
+            == 1
+        )
+        assert (
+            gauge_calls(
+                mock_metrics, "hybridcloud.webhookpayload.backlog.oldest_pending_age_seconds"
+            )
+            == []
+        )
+        mock_metrics.incr.assert_called_once_with(
+            "hybridcloud.webhookpayload.backlog.age_query_failed", sample_rate=1.0
+        )
 
     def test_oldest_age_lookup_does_not_scan(self) -> None:
         # A LIMIT-1 read in primary-key order is what keeps this task's cost flat as the

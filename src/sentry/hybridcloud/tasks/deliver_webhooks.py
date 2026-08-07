@@ -1,7 +1,9 @@
 import datetime
 import logging
 from collections import defaultdict
+from collections.abc import Generator
 from concurrent.futures import as_completed
+from contextlib import contextmanager
 
 import orjson
 import sentry_sdk
@@ -254,15 +256,42 @@ def schedule_webhook_delivery() -> None:
             drain_mailbox.delay(record["id"])
 
 
+BACKLOG_AGE_QUERY_TIMEOUT = datetime.timedelta(seconds=5)
+"""
+Ceiling on the oldest-payload lookup below.
+
+Reading the lowest live id walks past whatever dead index entries delivery has left
+at the head of the primary key, so its cost tracks vacuum lag rather than backlog
+size. Measured at ~830 buffers against a 2.6M row table, but nothing in the design
+bounds it, so it gets an explicit bound.
+"""
+
 MAILBOX_DEPTH_QUERY_TIMEOUT = datetime.timedelta(seconds=30)
 """
 Ceiling on the per-mailbox aggregate below.
 
-The aggregate is the only backlog query whose cost grows with the backlog, so it is
+The aggregate is the one backlog query whose cost grows with the backlog, so it is
 the one that could turn this monitor into a second incident. Bounding it means a
 pathological table loses the per-provider breakdown rather than pinning a control
-replica; `backlog.*` still reports because it never scans.
+replica; the far cheaper `backlog.*` signals still report.
 """
+
+
+@contextmanager
+def _statement_timeout(alias: str, timeout: datetime.timedelta) -> Generator[None]:
+    """
+    Bound every query in this block server-side.
+
+    A task deadline alone would abandon the query while the database kept executing
+    it. `SET LOCAL` cancels it for real, and confines the setting to the surrounding
+    transaction so it cannot leak into other work that reuses the connection.
+    """
+    with transaction.atomic(using=alias):
+        with connections[alias].cursor() as cursor:
+            cursor.execute(
+                "SET LOCAL statement_timeout = %s", [int(timeout.total_seconds() * 1000)]
+            )
+        yield
 
 
 @instrumented_task(
@@ -273,12 +302,12 @@ replica; `backlog.*` still reports because it never scans.
 )
 def record_webhook_backlog_metrics() -> None:
     """
-    Emit the two backlog signals that cost the same no matter how deep the backlog is.
+    Emit the backlog signals cheap enough to keep reporting during a deep backlog.
 
     Every row in the table is a webhook we still owe a cell, so the backlog is the
-    whole table. Size comes from the planner's row estimate and age from the single
-    lowest-id row, so neither reads more than a handful of pages. That is what makes
-    this safe to run frequently during the backlog it exists to report on.
+    whole table. Size comes from the planner's row estimate and age from the lowest
+    live id, which together cost ~1/1000th of the per-mailbox aggregate. That is what
+    makes these safe to run frequently during the backlog they exist to report on.
     """
     replica = WebhookPayload.objects.using_replica()
 
@@ -288,18 +317,25 @@ def record_webhook_backlog_metrics() -> None:
             [WebhookPayload._meta.db_table],
         )
         row = cursor.fetchone()
-    # Maintained by autovacuum, so it trails reality on a churning table. Good enough
-    # for the growth trend this feeds; `mailbox.pending_count` carries the exact value.
+    # Autovacuum-maintained, so it trails reality on a churning table — measured 0.13%
+    # below an exact count mid-backlog. `mailbox.pending_count` carries the exact value.
     metrics.gauge(
         "hybridcloud.webhookpayload.backlog.pending_count_estimate",
         row[0] if row else 0,
         sample_rate=1.0,
     )
 
-    # Ids are monotonic, so the lowest id in the table is the oldest undelivered
-    # payload. Reading it in primary-key order stops after one index tuple instead of
+    # Ids are monotonic, so the lowest live id is the oldest undelivered payload.
+    # Reading it in primary-key order stops at the first live row rather than
     # aggregating date_added, which has no index.
-    oldest = replica.order_by("id").values_list("date_added", flat=True).first()
+    try:
+        with _statement_timeout(replica.db, BACKLOG_AGE_QUERY_TIMEOUT):
+            oldest = replica.order_by("id").values_list("date_added", flat=True).first()
+    except OperationalError:
+        metrics.incr("hybridcloud.webhookpayload.backlog.age_query_failed", sample_rate=1.0)
+        logger.exception("deliver_webhook.backlog_age_query_failed")
+        return
+
     if oldest is None:
         # Nothing pending. Reporting an age of zero would read as "fully caught up"
         # rather than "nothing to be caught up on"; the estimate above covers liveness.
@@ -333,14 +369,7 @@ def record_mailbox_depth_metrics() -> None:
     )
 
     try:
-        # SET LOCAL confines the timeout to this transaction, so it cannot leak into
-        # other work that reuses the connection.
-        with transaction.atomic(using=replica.db):
-            with connections[replica.db].cursor() as cursor:
-                cursor.execute(
-                    "SET LOCAL statement_timeout = %s",
-                    [int(MAILBOX_DEPTH_QUERY_TIMEOUT.total_seconds() * 1000)],
-                )
+        with _statement_timeout(replica.db, MAILBOX_DEPTH_QUERY_TIMEOUT):
             rows = list(mailboxes)
     except OperationalError:
         metrics.incr("hybridcloud.webhookpayload.mailbox.aggregate_failed", sample_rate=1.0)
