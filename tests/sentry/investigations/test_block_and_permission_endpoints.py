@@ -379,8 +379,13 @@ class InvestigationBlockEndpointTest(APITestCase):
             format="json",
         )
         assert response.status_code == 200, response.data
+        parameter.refresh_from_db()
         first.refresh_from_db()
         second.refresh_from_db()
+        self.investigation.refresh_from_db()
+        assert parameter.saved_value == "production"
+        assert parameter.version == 2
+        assert self.investigation.version == 2
         assert first.stale_at is not None
         assert second.stale_at is not None
 
