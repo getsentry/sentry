@@ -334,11 +334,6 @@ export type SentryAppWebhookRequest = {
   responseCode: number;
   sentryAppSlug: string;
   webhookUrl: string;
-  /**
-   * The fields below are snake_case to match the API, and are only present for
-   * failed requests (4xx/5xx and timeouts). See
-   * SentryAppWebhookRequestSerializer on the backend.
-   */
   error_id?: string | null;
   organization?: {
     id: number;

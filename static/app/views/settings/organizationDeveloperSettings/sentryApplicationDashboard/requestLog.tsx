@@ -98,7 +98,7 @@ export function RequestLog({app}: RequestLogProps) {
   const [eventType, setEventType] = useState(ALL_EVENTS);
 
   const {slug, status} = app;
-  const hasOrganization = status !== 'internal';
+  const isInternal = status === 'internal';
 
   const {
     data: requests = [],
@@ -164,11 +164,11 @@ export function RequestLog({app}: RequestLogProps) {
       {isError ? (
         <LoadingError />
       ) : (
-        <RequestLogTable hasOrganization={hasOrganization}>
+        <RequestLogTable isInternal={isInternal}>
           <SimpleTable.Header>
             <SimpleTable.HeaderCell>{t('Time')}</SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell>{t('Status Code')}</SimpleTable.HeaderCell>
-            {hasOrganization && (
+            {!isInternal && (
               <SimpleTable.HeaderCell>{t('Organization')}</SimpleTable.HeaderCell>
             )}
             <SimpleTable.HeaderCell>{t('Event Type')}</SimpleTable.HeaderCell>
@@ -201,7 +201,7 @@ export function RequestLog({app}: RequestLogProps) {
                 <SimpleTable.RowCell>
                   <ResponseCode code={request.responseCode} />
                 </SimpleTable.RowCell>
-                {hasOrganization && (
+                {!isInternal && (
                   <SimpleTable.RowCell>
                     <Text ellipsis>{request.organization?.name}</Text>
                   </SimpleTable.RowCell>
@@ -238,8 +238,8 @@ export function RequestLog({app}: RequestLogProps) {
 }
 
 const RequestLogTable = styled(SimpleTable, {
-  shouldForwardProp: prop => prop !== 'hasOrganization',
-})<{hasOrganization: boolean}>`
+  shouldForwardProp: prop => prop !== 'isInternal',
+})<{isInternal: boolean}>`
   grid-template-columns: ${p =>
-    p.hasOrganization ? '1fr 0.5fr 1fr 1fr 1fr' : '1fr 0.5fr 1fr 1fr'};
+    p.isInternal ? '1fr 0.5fr 1fr 1fr' : '1fr 0.5fr 1fr 1fr 1fr'};
 `;
