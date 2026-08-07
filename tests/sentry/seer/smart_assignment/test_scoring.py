@@ -58,7 +58,7 @@ class RecordPredictionScoringTest(ScoringTestBase):
     def test_exact_when_prediction_matches_user(self, mock_metrics: MagicMock) -> None:
         user = self.create_user()
         run = self._run(actual_assignee_user_id=user.id)
-        record_prediction(run, [user.id])
+        record_prediction(run, [user.id], user.id)
 
         self._assert_result(mock_metrics, SmartAssignmentScore.EXACT, hit_rank=1)
         run.refresh_from_db()
@@ -71,12 +71,12 @@ class RecordPredictionScoringTest(ScoringTestBase):
         alice = self.create_user()
         self.create_member(user=alice, organization=self.organization, teams=[team])
         run = self._run(actual_assignee_team_id=team.id)
-        record_prediction(run, [alice.id])
+        record_prediction(run, [alice.id], alice.id)
 
         self._assert_result(mock_metrics, SmartAssignmentScore.TEAM)
 
     @patch(METRICS_PATH)
-    def test_team_when_predicted_shares_team_with_actual_user(
+    def test_shared_team_when_predicted_shares_team_with_actual_user(
         self, mock_metrics: MagicMock
     ) -> None:
         team = self.create_team(organization=self.organization)
@@ -85,9 +85,9 @@ class RecordPredictionScoringTest(ScoringTestBase):
         self.create_member(user=alice, organization=self.organization, teams=[team])
         self.create_member(user=bob, organization=self.organization, teams=[team])
         run = self._run(actual_assignee_user_id=bob.id)
-        record_prediction(run, [alice.id])
+        record_prediction(run, [alice.id], alice.id)
 
-        self._assert_result(mock_metrics, SmartAssignmentScore.TEAM)
+        self._assert_result(mock_metrics, SmartAssignmentScore.SHARED_TEAM)
 
     @patch(METRICS_PATH)
     def test_miss_when_no_team_overlap(self, mock_metrics: MagicMock) -> None:
@@ -98,7 +98,48 @@ class RecordPredictionScoringTest(ScoringTestBase):
         self.create_member(user=alice, organization=self.organization, teams=[team_a])
         self.create_member(user=bob, organization=self.organization, teams=[team_b])
         run = self._run(actual_assignee_user_id=bob.id)
-        record_prediction(run, [alice.id])
+        record_prediction(run, [alice.id], alice.id)
+
+        self._assert_result(mock_metrics, SmartAssignmentScore.MISS)
+
+    @patch(METRICS_PATH)
+    def test_exact_when_selected_user_follows_an_unmapped_candidate(
+        self, mock_metrics: MagicMock
+    ) -> None:
+        # The top candidate never mapped to an org user, so completion suggested the
+        # second one -- the pick that reached the issue is the pick we grade.
+        alice = self.create_user()
+        run = self._run(actual_assignee_user_id=alice.id)
+        record_prediction(run, [None, alice.id], alice.id)
+
+        self._assert_result(mock_metrics, SmartAssignmentScore.EXACT, hit_rank=2)
+
+    @patch(METRICS_PATH)
+    def test_shared_team_when_selected_user_follows_an_unmapped_candidate(
+        self, mock_metrics: MagicMock
+    ) -> None:
+        team = self.create_team(organization=self.organization)
+        alice = self.create_user()
+        bob = self.create_user()
+        self.create_member(user=alice, organization=self.organization, teams=[team])
+        self.create_member(user=bob, organization=self.organization, teams=[team])
+        run = self._run(actual_assignee_user_id=bob.id)
+        record_prediction(run, [None, alice.id], alice.id)
+
+        self._assert_result(mock_metrics, SmartAssignmentScore.SHARED_TEAM)
+
+    def test_records_the_selected_candidate(self) -> None:
+        alice = self.create_user()
+        run = self._run()
+        record_prediction(run, [None, alice.id], alice.id)
+
+        run.refresh_from_db()
+        assert run.extras["selected_assignee_user_id"] == alice.id
+
+    @patch(METRICS_PATH)
+    def test_miss_when_no_candidate_maps_to_a_user(self, mock_metrics: MagicMock) -> None:
+        run = self._run(actual_assignee_user_id=self.create_user().id)
+        record_prediction(run, [None, None], None)
 
         self._assert_result(mock_metrics, SmartAssignmentScore.MISS)
 
@@ -109,7 +150,7 @@ class RecordPredictionScoringTest(ScoringTestBase):
         alice = self.create_user()
         bob = self.create_user()
         run = self._run(actual_assignee_user_id=bob.id)
-        record_prediction(run, [alice.id, bob.id])
+        record_prediction(run, [alice.id, bob.id], alice.id)
 
         self._assert_result(mock_metrics, SmartAssignmentScore.MISS, hit_rank=2)
 
@@ -118,27 +159,15 @@ class RecordPredictionScoringTest(ScoringTestBase):
         alice = self.create_user()
         bob = self.create_user()
         run = self._run(actual_assignee_user_id=bob.id)
-        record_prediction(run, [alice.id])
+        record_prediction(run, [alice.id], alice.id)
 
         self._assert_result(mock_metrics, SmartAssignmentScore.MISS, hit_rank=0)
-
-    @patch(METRICS_PATH)
-    def test_unresolved_top_pick_is_miss_but_lower_candidate_still_hits(
-        self, mock_metrics: MagicMock
-    ) -> None:
-        # Top pick couldn't be mapped to an org user (None), so the coarse outcome is a
-        # miss, but the actual assignee is the rank-2 candidate -- still a hit.
-        bob = self.create_user()
-        run = self._run(actual_assignee_user_id=bob.id)
-        record_prediction(run, [None, bob.id])
-
-        self._assert_result(mock_metrics, SmartAssignmentScore.MISS, hit_rank=2)
 
     @patch(METRICS_PATH)
     def test_unresolved_top_pick_alone_is_miss(self, mock_metrics: MagicMock) -> None:
         bob = self.create_user()
         run = self._run(actual_assignee_user_id=bob.id)
-        record_prediction(run, [None])
+        record_prediction(run, [None], None)
 
         self._assert_result(mock_metrics, SmartAssignmentScore.MISS, hit_rank=0)
 
@@ -148,7 +177,7 @@ class RecordPredictionScoringTest(ScoringTestBase):
         # match on the None == None comparison.
         team = self.create_team(organization=self.organization)
         run = self._run(actual_assignee_team_id=team.id)
-        record_prediction(run, [None])
+        record_prediction(run, [None], None)
 
         self._assert_result(mock_metrics, SmartAssignmentScore.MISS, hit_rank=0)
 
@@ -156,19 +185,19 @@ class RecordPredictionScoringTest(ScoringTestBase):
     def test_noop_without_both_sides(self, mock_metrics: MagicMock) -> None:
         # Prediction but no ground truth yet.
         run = self._run()
-        record_prediction(run, [7])
+        record_prediction(run, [7], 7)
         # Ground truth but no (resolvable) prediction (separate group).
         other = self.create_group()
         other_run = self._run(group=other, actual_assignee_user_id=9)
-        record_prediction(other_run, [])
+        record_prediction(other_run, [], None)
         mock_metrics.incr.assert_not_called()
 
     @patch(METRICS_PATH)
     def test_scores_only_once(self, mock_metrics: MagicMock) -> None:
         user = self.create_user()
         run = self._run(actual_assignee_user_id=user.id)
-        record_prediction(run, [user.id])
-        record_prediction(run, [user.id])
+        record_prediction(run, [user.id], user.id)
+        record_prediction(run, [user.id], user.id)
         assert mock_metrics.incr.call_count == 1
 
 
@@ -206,6 +235,18 @@ class RecordGroundTruthTest(ScoringTestBase):
         assert not SeerAgentRun.objects.filter(
             group_id=self.group.id, source=SEER_FEATURE_ID
         ).exists()
+
+    def test_scores_a_prediction_recorded_before_the_selected_field(self) -> None:
+        # A run whose prediction landed before `selected_assignee_user_id` existed still
+        # scores, off its top slot.
+        alice = self.create_user()
+        run = self._run(predicted_assignee_user_ids=[alice.id])
+        GroupAssignee.objects.create(group=self.group, project=self.group.project, user_id=alice.id)
+        record_ground_truth(self.group, ActivityType.ASSIGNED, self._assigned_activity(alice.id))
+
+        run.refresh_from_db()
+        assert run.extras["result"] == SmartAssignmentScore.EXACT
+        assert run.extras["hit_rank"] == 1
 
     def test_records_assignee_user(self) -> None:
         run = self._run()
