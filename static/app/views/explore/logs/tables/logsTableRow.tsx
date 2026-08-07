@@ -382,7 +382,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
   const [caseInsensitivity] = useCaseInsensitivity();
 
   const observedTimestamp = traceItemAttributes?.find(
-    a => a.name === 'sentry.observed_timestamp_nanos'
+    a => a.name === OurLogKnownFieldKey.OBSERVED_TIMESTAMP_NANOS
   );
 
   const rendererExtra: RendererExtra = {

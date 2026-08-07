@@ -214,7 +214,7 @@ function useTraceItemDetailsPrefetch({
   const [traceItemAttributes, setTraceItemAttributes] = useState<
     TraceItemResponseAttribute[] | undefined
   >();
-  const [isPending, setIsPending] = useState(true);
+  const [isPending, setIsPending] = useState(false);
 
   const prefetch = useCallback(() => {
     const currentProject = projectRef.current;
@@ -233,6 +233,7 @@ function useTraceItemDetailsPrefetch({
       traceId,
       ...timeQueryParams,
     });
+    setIsPending(true);
     queryClient.fetchQuery(options).then(
       response => {
         setTraceItemMeta(response?.json?.meta);
