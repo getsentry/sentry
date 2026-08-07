@@ -7,6 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -249,11 +250,7 @@ export function SampleTableRow({
     const target = getTraceDetailsUrl({
       organization,
       traceSlug: traceId,
-      dateSelection: {
-        start: selection.datetime.start,
-        end: selection.datetime.end,
-        statsPeriod: selection.datetime.period,
-      },
+      dateSelection: normalizeDateTimeParams(selection.datetime),
       timestamp,
       location: strippedLocation,
       source: TraceViewSources.TRACE_METRICS,

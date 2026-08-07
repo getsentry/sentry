@@ -4,7 +4,8 @@ import logging
 from datetime import timedelta
 
 import sentry_sdk
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, F, OuterRef
+from django.db.models.functions import Mod
 from taskbroker_client.retry import Retry
 
 from sentry.constants import ObjectStatus
@@ -67,6 +68,9 @@ CYCLE_DURATION = timedelta(minutes=10)
     name="sentry.dynamic_sampling.per_org.run_calculations_per_org",
     namespace=telemetry_experience_tasks,
     processing_deadline_duration=2 * 60,  # 2 minute timeout per org
+    # A task still queued a cycle after dispatch would compute sample rates from a stale
+    # window, and the next cycle's task for the same org supersedes it. Drop it instead.
+    expires=CYCLE_DURATION,
     silo_mode=SiloMode.CELL,
 )
 def run_calculations_per_org_task_entry(org_id: OrganizationId) -> None:
@@ -250,10 +254,13 @@ def schedule_per_org_calculations() -> None:
                 )
             ),
             status=OrganizationStatus.ACTIVE,
-        ),
+        )
+        .annotate(_order_bucket=Mod(F("id"), 10))
+        .order_by("_order_bucket", "id"),
         task=run_calculations_per_org_task_entry,
         cycle_duration=CYCLE_DURATION,
         validate_item=validate_and_track,
+        preserve_queryset_order=True,
     )
     scheduler.tick()
 

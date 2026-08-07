@@ -1047,6 +1047,62 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.redirect_chain == [("/auth/login/", 302)]
         self.assertTemplateUsed(resp, "sentry/login.html")
 
+    def test_sso_pipeline_rejects_different_org(self) -> None:
+        AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
+
+        other_org = self.create_organization(name="other-org")
+        AuthProvider.objects.create(organization_id=other_org.id, provider="dummy")
+        other_path = reverse("sentry-auth-organization", args=[other_org.slug])
+
+        resp = self.client.post(self.path, {"init": True})
+        assert resp.status_code == 200
+
+        resp = self.client.post(other_path)
+        assert resp.status_code == 302
+        assert resp["Location"] == other_path
+
+    def test_sso_pipeline_rejects_cross_org_newuser(self) -> None:
+        """Pipeline initialized for org A must not accept op=newuser
+        posted to org B."""
+        AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
+
+        other_org = self.create_organization(name="other-org")
+        AuthProvider.objects.create(organization_id=other_org.id, provider="dummy")
+        other_path = reverse("sentry-auth-organization", args=[other_org.slug])
+
+        resp = self.client.post(self.path, {"init": True})
+        assert resp.status_code == 200
+
+        resp = self.client.post(other_path, {"op": "newuser"})
+        assert resp.status_code == 302
+        assert resp["Location"] == other_path
+
+    def test_sso_pipeline_rejects_cross_org_with_same_provider_type(self) -> None:
+        """Both orgs use the same provider type (identical pipeline signature)
+        but the org_id check must still reject."""
+        AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
+
+        other_org = self.create_organization(name="other-org")
+        AuthProvider.objects.create(organization_id=other_org.id, provider="dummy")
+        other_path = reverse("sentry-auth-organization", args=[other_org.slug])
+
+        resp = self.client.post(self.path, {"init": True})
+        assert resp.status_code == 200
+
+        resp = self.client.post(other_path, {"op": "confirm"})
+        assert resp.status_code == 302
+        assert resp["Location"] == other_path
+
+    def test_sso_pipeline_valid_when_same_org(self) -> None:
+        """Normal flow: init and resume on the same org should work."""
+        AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
+
+        resp = self.client.post(self.path, {"init": True})
+        assert resp.status_code == 200
+
+        resp = self.client.post(self.path)
+        assert resp.status_code == 200
+
 
 @control_silo_test
 class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):

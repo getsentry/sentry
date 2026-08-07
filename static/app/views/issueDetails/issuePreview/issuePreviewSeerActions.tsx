@@ -149,7 +149,7 @@ function getAutofixPrimaryAction(autofix: ExplorerAutofix): SeerAction | null {
 
   switch (nextStep?.action) {
     case 'create_pr':
-      return {...AUTOFIX_ANALYTICS.create_pr, kind: 'create_pr', label: t('Draft a PR')};
+      return {...AUTOFIX_ANALYTICS.create_pr, kind: 'create_pr', label: t('Create PR')};
     case 'code_changes':
       return {
         ...AUTOFIX_ANALYTICS.code_changes,

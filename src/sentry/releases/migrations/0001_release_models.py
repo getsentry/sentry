@@ -27,7 +27,7 @@ class Migration(CheckedMigration):
     initial = True
 
     dependencies = [
-        ("sentry", "0972_commit_comparison_drop_unique"),
+        ("sentry", "0001_squashed_1118_add_group_derived_data"),
     ]
 
     operations = [

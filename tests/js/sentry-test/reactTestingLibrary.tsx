@@ -417,7 +417,7 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
 
   const {initialProps, ...rest} = options;
 
-  const hookResult = rtl.renderHook(callback as (initialProps: Props) => Result, {
+  const hookResult = rtl.renderHook(callback, {
     ...(rest as Omit<rtl.RenderHookOptions<Props>, 'wrapper'>),
     initialProps,
     wrapper: Wrapper,
