@@ -9,12 +9,8 @@ import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {formatMetricUsingUnit} from 'sentry/utils/number/formatMetricUsingUnit';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
-import type {CombinedAlerts, Incident} from 'sentry/views/alerts/types';
-import {AlertRuleStatus, CombinedAlertType} from 'sentry/views/alerts/types';
-
-export function isIssueAlert(data: CombinedAlerts) {
-  return data.type === CombinedAlertType.ISSUE;
-}
+import type {Incident} from 'sentry/views/alerts/types';
+import {AlertRuleStatus} from 'sentry/views/alerts/types';
 
 export function hasMetricAlerts(organization: Organization): boolean {
   return organization.features.includes('incidents');
@@ -103,21 +99,4 @@ export function getTeamParams(team?: string | string[]): string[] {
   }
 
   return toArray(team);
-}
-
-/**
- * Normalize an alert type string
- */
-export function getQueryAlertType(alertType?: string | string[]): CombinedAlertType[] {
-  if (alertType === undefined) {
-    return [];
-  }
-
-  if (alertType === '') {
-    return [];
-  }
-
-  const validTypes = new Set(Object.values(CombinedAlertType));
-
-  return [...validTypes.intersection(new Set(toArray(alertType)))];
 }
