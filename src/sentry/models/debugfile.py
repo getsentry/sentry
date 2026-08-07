@@ -975,7 +975,11 @@ def create_debug_file_from_dif(
                     continue
                 file = File.objects.create(name=meta.debug_id)
                 file.putfile(f)
-                dif, created = create_dif_from_file(project, meta, file)
+                try:
+                    dif, created = create_dif_from_file(project, meta, file)
+                except Exception:
+                    file.delete()
+                    raise
                 if not created:
                     file.delete()
             if created:

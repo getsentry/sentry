@@ -17,6 +17,7 @@ from django.utils import timezone
 from sentry.models.debugfile import (
     DifMeta,
     ProjectDebugFile,
+    create_debug_file_from_dif,
     create_dif_from_file,
     create_dif_from_fileobj,
     create_files_from_dif_zip,
@@ -468,6 +469,17 @@ class CreateDebugFileTest(APITestCase):
         assert sleep.call_count == 2
         assert not ProjectDebugFile.objects.filter(project_id=self.project.id).exists()
         assert not File.objects.filter(type="project.dif").exists()
+
+    @patch("sentry.models.debugfile.create_dif_from_file", side_effect=RuntimeError)
+    def test_create_debug_file_cleans_up_legacy_file_after_create_error(self, create_dif) -> None:
+        with tempfile.NamedTemporaryFile() as file:
+            file.write(b"debug symbols")
+            file.flush()
+
+            with pytest.raises(RuntimeError):
+                create_debug_file_from_dif([self._create_meta(path=file.name)], self.project)
+
+        assert not File.objects.filter(name=self._create_meta().debug_id).exists()
 
     def test_legacy_zip_reupload_skips_file_creation(self) -> None:
         archive = BytesIO()
