@@ -299,29 +299,44 @@ class OutboxDrainTest(TransactionTestCase):
 
 
 class CellOutboxTest(TestCase):
-    def test_next_object_identifiers(self) -> None:
+    def test_reserve_object_identifiers_for_bulk_create(self) -> None:
         with self.assertNumQueries(1):
-            identifiers = CellOutbox.next_object_identifiers(3)
+            identifiers = CellOutbox.reserve_object_identifiers_for_bulk_create(3)
 
         assert len(identifiers) == 3
         assert len(set(identifiers)) == 3
 
-    def test_next_object_identifiers_empty(self) -> None:
+    def test_reserve_object_identifiers_for_bulk_create_empty(self) -> None:
         with self.assertNumQueries(0):
-            assert CellOutbox.next_object_identifiers(0) == []
+            assert CellOutbox.reserve_object_identifiers_for_bulk_create(0) == []
 
-    def test_next_object_identifiers_rejects_negative_count(self) -> None:
+    def test_reserve_object_identifiers_for_bulk_create_rejects_negative_count(self) -> None:
         with (
             self.assertNumQueries(0),
-            pytest.raises(ValueError, match="count must be non-negative"),
+            pytest.raises(
+                ValueError,
+                match="bulk identifier reservation count must be between 0 and 10,000",
+            ),
         ):
-            CellOutbox.next_object_identifiers(-1)
+            CellOutbox.reserve_object_identifiers_for_bulk_create(-1)
 
-    def test_next_object_identifier_delegates_to_batch_allocator(self) -> None:
-        with patch.object(CellOutbox, "next_object_identifiers", return_value=[42]) as allocate:
+    def test_reserve_object_identifiers_for_bulk_create_rejects_above_maximum(self) -> None:
+        with (
+            self.assertNumQueries(0),
+            pytest.raises(
+                ValueError,
+                match="bulk identifier reservation count must be between 0 and 10,000",
+            ),
+        ):
+            CellOutbox.reserve_object_identifiers_for_bulk_create(10_001)
+
+    def test_next_object_identifier(self) -> None:
+        with patch.object(
+            CellOutbox, "reserve_object_identifiers_for_bulk_create", return_value=[42]
+        ) as reserve:
             assert CellOutbox.next_object_identifier() == 42
 
-        allocate.assert_called_once_with(1)
+        reserve.assert_called_once_with(1)
 
     def test_schedule_drain_on_commit(self) -> None:
         outbox = Organization(id=10).outbox_for_update()

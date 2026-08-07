@@ -290,7 +290,7 @@ def publish_actions_from_context_bulk(
 
     using = router.db_for_write(CellOutbox)
     with outbox_context(transaction.atomic(using=using)):
-        object_identifiers = CellOutbox.next_object_identifiers(len(payloads))
+        object_identifiers = CellOutbox.reserve_object_identifiers_for_bulk_create(len(payloads))
 
         outboxes = [
             CellOutbox(
