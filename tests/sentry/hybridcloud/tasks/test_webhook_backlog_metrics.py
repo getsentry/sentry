@@ -17,6 +17,13 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.silo import control_silo_test
 
+BACKLOG_ESTIMATE_METRIC = "hybridcloud.webhookpayload.backlog.pending_count_estimate"
+BACKLOG_AGE_METRIC = "hybridcloud.webhookpayload.backlog.oldest_pending_age_seconds"
+MAILBOX_PENDING_METRIC = "hybridcloud.webhookpayload.mailbox.pending_count"
+MAILBOX_ACTIVE_METRIC = "hybridcloud.webhookpayload.mailbox.active_count"
+MAILBOX_MAX_DEPTH_METRIC = "hybridcloud.webhookpayload.mailbox.max_depth"
+MAILBOX_AGE_METRIC = "hybridcloud.webhookpayload.mailbox.oldest_pending_age_seconds"
+
 
 def create_payloads(num: int, mailbox: str, provider: str | None = None) -> None:
     for _ in range(0, num):
@@ -40,17 +47,9 @@ class WebhookBacklogMetricsTest(TestCase):
 
         # The estimate must be emitted unconditionally: it is the only signal that
         # distinguishes a drained backlog from a task that has stopped running.
-        estimates = gauge_calls(
-            mock_metrics, "hybridcloud.webhookpayload.backlog.pending_count_estimate"
-        )
-        assert len(estimates) == 1
+        assert len(gauge_calls(mock_metrics, BACKLOG_ESTIMATE_METRIC)) == 1
         # An age of zero would read as "caught up" rather than "nothing pending".
-        assert (
-            gauge_calls(
-                mock_metrics, "hybridcloud.webhookpayload.backlog.oldest_pending_age_seconds"
-            )
-            == []
-        )
+        assert gauge_calls(mock_metrics, BACKLOG_AGE_METRIC) == []
 
     @patch("sentry.hybridcloud.tasks.webhook_backlog_metrics.metrics")
     def test_oldest_age_tracks_lowest_id_across_providers(self, mock_metrics: MagicMock) -> None:
@@ -69,9 +68,7 @@ class WebhookBacklogMetricsTest(TestCase):
 
         record_webhook_backlog_metrics()
 
-        ages = gauge_calls(
-            mock_metrics, "hybridcloud.webhookpayload.backlog.oldest_pending_age_seconds"
-        )
+        ages = gauge_calls(mock_metrics, BACKLOG_AGE_METRIC)
         assert len(ages) == 1
         assert ages[0][0] == pytest.approx(timedelta(hours=3).total_seconds(), abs=60)
 
@@ -112,20 +109,8 @@ class WebhookBacklogMetricsTest(TestCase):
             record_webhook_backlog_metrics()
 
         # Losing the age must not cost us the size signal, which needs no scan at all.
-        assert (
-            len(
-                gauge_calls(
-                    mock_metrics, "hybridcloud.webhookpayload.backlog.pending_count_estimate"
-                )
-            )
-            == 1
-        )
-        assert (
-            gauge_calls(
-                mock_metrics, "hybridcloud.webhookpayload.backlog.oldest_pending_age_seconds"
-            )
-            == []
-        )
+        assert len(gauge_calls(mock_metrics, BACKLOG_ESTIMATE_METRIC)) == 1
+        assert gauge_calls(mock_metrics, BACKLOG_AGE_METRIC) == []
         mock_metrics.incr.assert_called_once_with(
             "hybridcloud.webhookpayload.backlog.age_query_failed", sample_rate=1.0
         )
@@ -154,22 +139,16 @@ class MailboxDepthMetricsTest(TestCase):
 
         record_mailbox_depth_metrics()
 
-        assert sorted(
-            gauge_calls(mock_metrics, "hybridcloud.webhookpayload.mailbox.pending_count")
-        ) == [
+        assert sorted(gauge_calls(mock_metrics, MAILBOX_PENDING_METRIC)) == [
             (2, {"provider": "gitlab"}),
             (4, {"provider": "github"}),
         ]
-        assert sorted(
-            gauge_calls(mock_metrics, "hybridcloud.webhookpayload.mailbox.active_count")
-        ) == [
+        assert sorted(gauge_calls(mock_metrics, MAILBOX_ACTIVE_METRIC)) == [
             (1, {"provider": "gitlab"}),
             (2, {"provider": "github"}),
         ]
         # The deepest github mailbox holds 3 of its 4 payloads.
-        assert sorted(
-            gauge_calls(mock_metrics, "hybridcloud.webhookpayload.mailbox.max_depth")
-        ) == [
+        assert sorted(gauge_calls(mock_metrics, MAILBOX_MAX_DEPTH_METRIC)) == [
             (2, {"provider": "gitlab"}),
             (3, {"provider": "github"}),
         ]
@@ -180,9 +159,7 @@ class MailboxDepthMetricsTest(TestCase):
 
         record_mailbox_depth_metrics()
 
-        assert gauge_calls(mock_metrics, "hybridcloud.webhookpayload.mailbox.pending_count") == [
-            (1, {"provider": "unknown"})
-        ]
+        assert gauge_calls(mock_metrics, MAILBOX_PENDING_METRIC) == [(1, {"provider": "unknown"})]
 
     @patch("sentry.hybridcloud.tasks.webhook_backlog_metrics.metrics")
     def test_bucketed_mailboxes_roll_up_to_one_provider(self, mock_metrics: MagicMock) -> None:
@@ -191,12 +168,8 @@ class MailboxDepthMetricsTest(TestCase):
 
         record_mailbox_depth_metrics()
 
-        assert gauge_calls(mock_metrics, "hybridcloud.webhookpayload.mailbox.pending_count") == [
-            (3, {"provider": "github"})
-        ]
-        assert gauge_calls(mock_metrics, "hybridcloud.webhookpayload.mailbox.active_count") == [
-            (2, {"provider": "github"})
-        ]
+        assert gauge_calls(mock_metrics, MAILBOX_PENDING_METRIC) == [(3, {"provider": "github"})]
+        assert gauge_calls(mock_metrics, MAILBOX_ACTIVE_METRIC) == [(2, {"provider": "github"})]
 
     @patch("sentry.hybridcloud.tasks.webhook_backlog_metrics.metrics")
     def test_oldest_age_is_per_provider(self, mock_metrics: MagicMock) -> None:
@@ -222,10 +195,7 @@ class MailboxDepthMetricsTest(TestCase):
         record_mailbox_depth_metrics()
 
         ages = {
-            tags["provider"]: value
-            for value, tags in gauge_calls(
-                mock_metrics, "hybridcloud.webhookpayload.mailbox.oldest_pending_age_seconds"
-            )
+            tags["provider"]: value for value, tags in gauge_calls(mock_metrics, MAILBOX_AGE_METRIC)
         }
         assert ages["github"] == pytest.approx(timedelta(hours=2).total_seconds(), abs=60)
         assert ages["gitlab"] == pytest.approx(timedelta(minutes=5).total_seconds(), abs=60)
@@ -258,7 +228,7 @@ class MailboxDepthMetricsTest(TestCase):
         ):
             record_mailbox_depth_metrics()
 
-        assert gauge_calls(mock_metrics, "hybridcloud.webhookpayload.mailbox.pending_count") == []
+        assert gauge_calls(mock_metrics, MAILBOX_PENDING_METRIC) == []
         mock_metrics.incr.assert_called_once_with(
             "hybridcloud.webhookpayload.mailbox.aggregate_failed", sample_rate=1.0
         )

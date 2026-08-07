@@ -94,7 +94,7 @@ def record_webhook_backlog_metrics() -> None:
             oldest = replica.order_by("id").values_list("date_added", flat=True).first()
     except OperationalError:
         metrics.incr("hybridcloud.webhookpayload.backlog.age_query_failed", sample_rate=1.0)
-        logger.exception("deliver_webhook.backlog_age_query_failed")
+        logger.exception("webhook_backlog_metrics.age_query_failed")
         return
 
     if oldest is None:
@@ -134,7 +134,7 @@ def record_mailbox_depth_metrics() -> None:
             rows = list(mailboxes)
     except OperationalError:
         metrics.incr("hybridcloud.webhookpayload.mailbox.aggregate_failed", sample_rate=1.0)
-        logger.exception("deliver_webhook.mailbox_depth_aggregate_failed")
+        logger.exception("webhook_backlog_metrics.mailbox_depth_aggregate_failed")
         return
 
     now = timezone.now()
@@ -145,13 +145,11 @@ def record_mailbox_depth_metrics() -> None:
     for row in rows:
         # The column is nullable, and rows predating it still drain through here.
         provider = row["provider"] or "unknown"
-        depth = row["depth"]
+        depth, row_oldest = row["depth"], row["oldest"]
         pending[provider] += depth
         mailbox_count[provider] += 1
         max_depth[provider] = max(max_depth[provider], depth)
-        row_oldest = row["oldest"]
-        if provider not in oldest or row_oldest < oldest[provider]:
-            oldest[provider] = row_oldest
+        oldest[provider] = min(oldest.get(provider, row_oldest), row_oldest)
 
     for provider, pending_count in pending.items():
         tags = {"provider": provider}
