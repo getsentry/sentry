@@ -185,11 +185,15 @@ def assemble_file_blobs(task, org_or_project, name, checksum, chunks) -> IO[byte
 
     temp_file = tempfile.NamedTemporaryFile()
     assembled_checksum = hashlib.sha1()
-    for blob in file_blobs:
-        with blob.getfile() as blobfile:
-            for chunk in blobfile.chunks():
-                assembled_checksum.update(chunk)
-                temp_file.write(chunk)
+    try:
+        for blob in file_blobs:
+            with blob.getfile() as blobfile:
+                for chunk in blobfile.chunks():
+                    assembled_checksum.update(chunk)
+                    temp_file.write(chunk)
+    except Exception:
+        temp_file.close()
+        raise
 
     if checksum != assembled_checksum.hexdigest():
         temp_file.close()
