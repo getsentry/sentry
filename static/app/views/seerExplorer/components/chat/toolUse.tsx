@@ -728,6 +728,9 @@ const PayloadBox = styled('pre')`
 // back to the line box; the chevron and hover target are unaffected.
 const CompactDisclosure = styled('div')`
   button {
+    /* Button sets an explicit height from theme.form, so padding alone leaves the control at its
+       full size. Both have to go for the row to collapse to its text. */
+    height: auto;
     min-height: 0;
     padding-top: 0;
     padding-bottom: 0;
@@ -743,8 +746,9 @@ const ChevronSpacer = styled('span')`
   flex-shrink: 0;
   pointer-events: none;
 
-  /* Matches CompactDisclosure so the reserved width equals the real chevron's. */
+  /* Matches CompactDisclosure so the reserved box equals the real chevron's. */
   button {
+    height: auto;
     min-height: 0;
     padding-top: 0;
     padding-bottom: 0;
