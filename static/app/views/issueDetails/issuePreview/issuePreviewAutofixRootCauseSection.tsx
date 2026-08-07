@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
@@ -12,6 +14,7 @@ import {AutofixEvidence} from 'sentry/components/events/autofix/v3/autofixEviden
 import {useAutofixSectionEvidence} from 'sentry/components/events/autofix/v3/useAutofixSectionEvidence';
 import {t} from 'sentry/locale';
 
+import {CopySectionMarkdown} from './copySectionMarkdown';
 import {IssuePreviewSection} from './issuePreviewSection';
 import {RetryableAutofixSection} from './retryableAutofixSection';
 import {WorkingIndicator} from './workingIndicator';
@@ -34,7 +37,14 @@ export function IssuePreviewAutofixRootCauseSection({
   return (
     <RetryableAutofixSection autofix={autofix} section={section} step="root_cause">
       <IssuePreviewSection aria-label={t('Root Cause')} defaultExpanded={defaultExpanded}>
-        <IssuePreviewSection.Title trailingItems={<RetryableAutofixSection.Button />}>
+        <IssuePreviewSection.Title
+          trailingItems={
+            <Fragment>
+              <RetryableAutofixSection.Button />
+              <CopySectionMarkdown section={section} />
+            </Fragment>
+          }
+        >
           {t('Root Cause')}
         </IssuePreviewSection.Title>
         <IssuePreviewSection.Summary>

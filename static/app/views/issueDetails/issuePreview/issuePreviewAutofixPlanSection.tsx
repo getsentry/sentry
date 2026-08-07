@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
@@ -10,6 +12,7 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {t} from 'sentry/locale';
 
+import {CopySectionMarkdown} from './copySectionMarkdown';
 import {IssuePreviewSection} from './issuePreviewSection';
 import {RetryableAutofixSection} from './retryableAutofixSection';
 import {WorkingIndicator} from './workingIndicator';
@@ -32,7 +35,14 @@ export function IssuePreviewAutofixPlanSection({
         aria-label={t('Implementation Plan')}
         defaultExpanded={defaultExpanded}
       >
-        <IssuePreviewSection.Title trailingItems={<RetryableAutofixSection.Button />}>
+        <IssuePreviewSection.Title
+          trailingItems={
+            <Fragment>
+              <RetryableAutofixSection.Button />
+              <CopySectionMarkdown section={section} />
+            </Fragment>
+          }
+        >
           {t('Implementation Plan')}
         </IssuePreviewSection.Title>
         <IssuePreviewSection.Summary>
