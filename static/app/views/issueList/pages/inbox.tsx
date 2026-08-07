@@ -319,7 +319,7 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
             aria-label={section.label}
             aria-describedby={`inbox-section-${section.key}-count`}
           >
-            <Flex align="center" justify="between" gap="sm" width="100%">
+            <Flex align="center" justify="between" gap="sm" flex={1}>
               <Flex align="center" gap="sm">
                 {getProgressIcon(section.progress)}
                 <Heading as="h3" size="md">
