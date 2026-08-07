@@ -1359,7 +1359,7 @@ function buildRoutes(): RouteObject[] {
               path: ':ruleId/',
               component: make(
                 () =>
-                  import('sentry/views/alerts/workflowEngineRedirectWrappers/alertEdit')
+                  import('sentry/views/alerts/workflowEngineRedirectWrappers/issueAlertRuleEditRedirect')
               ),
             },
           ],
@@ -1492,7 +1492,8 @@ function buildRoutes(): RouteObject[] {
         {
           path: ':alertType/',
           component: make(
-            () => import('sentry/views/alerts/workflowEngineRedirectWrappers/alertCreate')
+            () =>
+              import('sentry/views/alerts/workflowEngineRedirectWrappers/monitorCreateRedirect')
           ),
         },
       ],
@@ -1512,7 +1513,10 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           path: 'new/',
-          component: make(() => import('sentry/views/alerts/create')),
+          component: make(
+            () =>
+              import('sentry/views/alerts/workflowEngineRedirectWrappers/monitorCreateRedirect')
+          ),
         },
         {
           path: 'wizard/',
