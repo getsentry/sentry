@@ -41,7 +41,7 @@ describe('AutogroupNodeDetails', () => {
     render(
       <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
         <AutogroupNodeDetails
-          node={node as any}
+          node={node}
           organization={organization}
           onTabScrollToNode={jest.fn()}
           onParentClick={jest.fn()}

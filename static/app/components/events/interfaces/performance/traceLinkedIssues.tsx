@@ -17,7 +17,13 @@ import {
   useTraceLinkedIssues,
 } from './useTraceLinkedIssues';
 
-export function TraceLinkedIssues({event}: {event: Event}) {
+export function TraceLinkedIssues({
+  event,
+  source = 'issue-details-trace-preview',
+}: {
+  event: Event;
+  source?: string;
+}) {
   const organization = useOrganization();
   const {groups, isError, isPending, query, queryParams, totalHits} =
     useTraceLinkedIssues({event});
@@ -33,7 +39,7 @@ export function TraceLinkedIssues({event}: {event: Event}) {
     <GroupList
       query={query}
       queryParams={queryParams}
-      source="issue-details-trace-preview"
+      source={source}
       canSelectGroups={false}
       withChart
       withColumns={['event', 'firstSeen', 'lastSeen']}

@@ -62,6 +62,7 @@ export function getLinkedPullRequestActivityIds(group: Group) {
 
 interface LinkedPullRequestsProps {
   group: Group;
+  showChecksAndReview?: boolean;
   showEmptyState?: boolean;
 }
 
@@ -231,7 +232,13 @@ function SeerAttributionAvatar() {
   );
 }
 
-export function useLinkedPullRequests({group}: {group: Group}) {
+export function useLinkedPullRequests({
+  group,
+  includeChecksAndReview = true,
+}: {
+  group: Group;
+  includeChecksAndReview?: boolean;
+}) {
   const organization = useOrganization();
 
   return useQuery(
@@ -239,15 +246,22 @@ export function useLinkedPullRequests({group}: {group: Group}) {
       '/organizations/$organizationIdOrSlug/issues/$issueId/pull-requests/',
       {
         path: {organizationIdOrSlug: organization.slug, issueId: group.id},
-        query: {expand: 'checksAndReview'},
+        query: includeChecksAndReview ? {expand: 'checksAndReview'} : undefined,
         staleTime: 30_000,
       }
     )
   );
 }
 
-export function LinkedPullRequests({group, showEmptyState}: LinkedPullRequestsProps) {
-  const {data, isError, isPending} = useLinkedPullRequests({group});
+export function LinkedPullRequests({
+  group,
+  showChecksAndReview = true,
+  showEmptyState,
+}: LinkedPullRequestsProps) {
+  const {data, isError, isPending} = useLinkedPullRequests({
+    group,
+    includeChecksAndReview: showChecksAndReview,
+  });
   const activityPullRequestIds = getLinkedPullRequestActivityIds(group);
 
   if (isError) {

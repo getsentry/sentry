@@ -380,6 +380,41 @@ class SeerOperatorTest(TestCase):
             cache_payload=cache_payload,
         )
 
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    @patch("sentry.seer.entrypoints.cache.SeerOperatorAutofixCache.get")
+    def test_process_autofix_updates_with_activity_already_recorded(
+        self, mock_autofix_cache_get, _mock_has_access
+    ):
+        cache_payload = self.entrypoint.create_autofix_cache_payload()
+        mock_autofix_cache_get.return_value = SeerOperatorCacheResult(
+            payload=cache_payload, source="run_id", key="abc"
+        )
+        mock_entrypoint_cls = Mock(spec=SeerAutofixEntrypoint)
+        mock_entrypoint_cls.has_access.return_value = True
+        event_type = SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED
+        event_payload = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
+
+        with patch.dict(
+            "sentry.seer.entrypoints.operator.autofix_entrypoint_registry.registrations",
+            {MockAutofixEntrypoint.key: mock_entrypoint_cls},
+            clear=True,
+        ):
+            process_autofix_updates(
+                event_type=event_type,
+                event_payload=event_payload,
+                organization_id=self.organization.id,
+                activity_already_recorded=True,
+            )
+
+        assert not Activity.objects.filter(
+            group=self.group, type=ActivityType.SEER_RCA_COMPLETED.value
+        ).exists()
+        mock_entrypoint_cls.on_autofix_update.assert_called_once_with(
+            event_type=event_type,
+            event_payload=event_payload,
+            cache_payload=cache_payload,
+        )
+
     def test_process_autofix_updates_no_operator_access(self) -> None:
         mock_entrypoint_cls = Mock(spec=SeerAutofixEntrypoint)
         event_type = SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED

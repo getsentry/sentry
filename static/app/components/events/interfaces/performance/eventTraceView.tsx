@@ -1,128 +1,13 @@
-import {useMemo} from 'react';
-import styled from '@emotion/styled';
-
-import {LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
-
-import {
-  eventHasSyntheticTrace,
-  isWebVitalsEvent,
-  TRACE_WATERFALL_PREFERENCES_KEY,
-} from 'sentry/components/events/interfaces/performance/utils';
-import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/utils';
-import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/events/issueDetailsLazyRender';
-import {LazyRender} from 'sentry/components/lazyRender';
-import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
+import {eventHasSyntheticTrace} from 'sentry/components/events/interfaces/performance/utils';
 import {t} from 'sentry/locale';
 import {type Event} from 'sentry/types/event';
 import {type Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {useLocation} from 'sentry/utils/useLocation';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
-import {IssuesTraceWaterfall} from 'sentry/views/performance/newTraceDetails/issuesTraceWaterfall';
-import {getTraceLinkForIssue} from 'sentry/views/performance/newTraceDetails/issuesTraceWaterfallOverlay';
-import {useIssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceApi/useIssuesTraceTree';
-import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
-import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {
-  getInitialTracePreferences,
-  type TracePreferencesState,
-} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
-import {useTraceEventView} from 'sentry/views/performance/newTraceDetails/useTraceEventView';
-import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
-import {useTraceStateAnalytics} from 'sentry/views/performance/newTraceDetails/useTraceStateAnalytics';
 
-import {TraceLinkedIssues} from './traceLinkedIssues';
-
-const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
-  drawer: {
-    minimized: true,
-    sizes: {
-      'drawer left': 0.33,
-      'drawer right': 0.33,
-      'drawer bottom': 0.4,
-    },
-    layoutOptions: [],
-  },
-  missing_instrumentation: true,
-  autogroup: {
-    parent: true,
-    sibling: true,
-  },
-  compressed_timeline: false,
-  layout: 'drawer bottom',
-  list: {
-    width: 0.5,
-  },
-};
-
-interface EventTraceViewInnerProps {
-  event: Event;
-  organization: Organization;
-  traceId: string;
-}
-
-function EventTraceViewInner({event, organization, traceId}: EventTraceViewInnerProps) {
-  const timestamp = isWebVitalsEvent(event)
-    ? undefined
-    : getEventTimestampInSeconds(event);
-
-  const trace = useTrace({
-    timestamp,
-    traceSlug: traceId,
-    limit: 10000,
-    targetEventId: event.id,
-    referrer: 'api.trace-view.issues.get-events',
-  });
-  const params = useTraceQueryParams({
-    timestamp,
-  });
-  const tree = useIssuesTraceTree({trace, replay: null});
-
-  useTraceStateAnalytics({
-    trace,
-    organization,
-    traceTreeSource: 'issue_details_trace_preview',
-    tree,
-  });
-
-  const rootEventResults = useTraceRootEvent({
-    tree,
-    logs: undefined,
-    timestamp,
-    traceId,
-  });
-
-  const traceEventView = useTraceEventView(traceId, params);
-
-  if (!traceId) {
-    return null;
-  }
-
-  return (
-    <IssuesTraceContainer>
-      <IssuesTraceWaterfall
-        tree={tree}
-        trace={trace}
-        traceSlug={traceId}
-        rootEventResults={rootEventResults}
-        organization={organization}
-        traceEventView={traceEventView}
-        source="issues"
-        replay={null}
-        event={event}
-      />
-    </IssuesTraceContainer>
-  );
-}
-
-const IssuesTraceContainer = styled('div')`
-  position: relative;
-`;
+import {TracePreview, TracePreviewFullTraceButton} from './tracePreview';
 
 interface EventTraceViewProps {
   event: Event;
@@ -132,72 +17,26 @@ interface EventTraceViewProps {
 
 export function EventTraceView({group, event, organization}: EventTraceViewProps) {
   const traceId = event.contexts.trace?.trace_id;
-  const location = useLocation();
   const issueTypeConfig = getConfigForIssueType(group, group.project);
-
-  // Span Evidence section contains the trace view already
-  const preferences = useMemo(
-    () =>
-      getInitialTracePreferences(
-        TRACE_WATERFALL_PREFERENCES_KEY,
-        DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES,
-        'issues'
-      ),
-    []
-  );
 
   // Performance issues have a Span Evidence section that contains the trace view
   if (!traceId || eventHasSyntheticTrace(event) || issueTypeConfig.spanEvidence.enabled) {
     return null;
   }
 
-  const traceTarget = generateTraceTarget(
-    event,
-    organization,
-    {
-      ...location,
-      query: {
-        groupId: event.groupID,
-        referrer: location.query.referrer,
-      },
-    },
-    TraceViewSources.ISSUE_DETAILS
-  );
-
-  const hasTracePreviewFeature = organization.features.includes('profiling');
-
   return (
     <FoldSection
       sectionKey={SectionKey.TRACE}
       title={t('Trace Preview')}
       actions={
-        <Grid flow="column" align="center" gap="md">
-          <LinkButton
-            size="xs"
-            to={getTraceLinkForIssue(traceTarget)}
-            analyticsEventName="Issue Details: View Full Trace Action Button Clicked"
-            analyticsEventKey="issue_details.view_full_trace_action_button_clicked"
-          >
-            {t('View Full Trace')}
-          </LinkButton>
-        </Grid>
+        <TracePreviewFullTraceButton
+          event={event}
+          organization={organization}
+          source="issues"
+        />
       }
     >
-      <TraceLinkedIssues event={event} />
-      <LazyRender observerOptions={ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS}>
-        {hasTracePreviewFeature && (
-          <TraceStateProvider
-            initialPreferences={preferences}
-            preferencesStorageKey={TRACE_WATERFALL_PREFERENCES_KEY}
-          >
-            <EventTraceViewInner
-              event={event}
-              organization={organization}
-              traceId={traceId}
-            />
-          </TraceStateProvider>
-        )}
-      </LazyRender>
+      <TracePreview event={event} organization={organization} source="issues" />
     </FoldSection>
   );
 }

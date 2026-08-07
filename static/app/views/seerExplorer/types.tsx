@@ -1,6 +1,7 @@
 import {z} from 'zod';
 
 import {isFilePatch, type FilePatch} from 'sentry/components/events/autofix/types';
+import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 
 /**
  * Where the Seer Explorer sidebar docks. `auto` picks right/bottom based on
@@ -76,15 +77,22 @@ export interface ToolLink {
   params: Record<string, any>;
 }
 
+export type AgentWriteApproval = EmbedOutput<'agentWriteApproval'>;
+
 export interface ToolResult {
   content: string;
   tool_call_function: string;
   tool_call_id: string;
-  // MCP-style structured payload carried from seer (code-mode-effects-registry).
-  // The links bus: a tool result's own deep-links as a {kind, params} list — one result can
-  // carry many, so there's no index alignment. Optional — absent on old seer responses, in
-  // which case the frontend falls back to the positional block.tool_links.
-  structuredContent?: {links?: ToolLink[]} | null;
+  // MCP-style structured payload carried from seer (codemode-structured-content-only). Code Mode
+  // returns every surface it produces here rather than on a bespoke block field, so a renderer
+  // resolves a surface from this *and* the legacy field. Keys are optional and additive — absent on
+  // old seer responses, in which case only the legacy field is read.
+  structuredContent?: {
+    agentWriteApproval?: AgentWriteApproval;
+    artifacts?: Artifact[];
+    links?: ToolLink[];
+    todos?: TodoItem[];
+  } | null;
 }
 
 export interface ToolCall {
@@ -151,7 +159,11 @@ export function isExplorerCodingAgentState(
 export type PendingUserInput = {
   data: Record<string, any>;
   id: string;
-  input_type: 'file_change_approval' | 'ask_user_question' | 'reauth_monitoring_provider';
+  input_type:
+    | 'file_change_approval'
+    | 'agent_write_approval'
+    | 'ask_user_question'
+    | 'reauth_monitoring_provider';
 };
 
 export interface ReauthMonitoringProviderData {

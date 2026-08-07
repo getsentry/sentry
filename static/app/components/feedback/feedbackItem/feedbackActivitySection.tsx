@@ -28,7 +28,7 @@ export function FeedbackActivitySection(props: Props) {
 
   return (
     <ActivitySection
-      group={{...feedbackItem, activity: filteredActivity} as unknown as Group}
+      group={{...feedbackItem, activity: filteredActivity}}
       onCommentCreated={handleCommentChange}
       onCommentDeleted={handleCommentChange}
       onCommentEdited={handleCommentChange}

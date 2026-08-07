@@ -389,6 +389,7 @@ export function computeChartTooltip(
      */
     position(pos, _params, dom, _rec, size) {
       // Types seem to be broken on dom
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       dom = dom as HTMLDivElement;
       // Center the tooltip slightly above the cursor.
       const [tipWidth, tipHeight] = size.contentSize;

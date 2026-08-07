@@ -595,8 +595,6 @@ const CheckboxHeaderContainer = styled(Flex)`
   justify-content: center;
   align-items: center;
   gap: ${p => p.theme.space.md};
-
-  margin: 0 -${p => p.theme.space.md} 0 -${p => p.theme.space.xs};
 `;
 
 const CheckboxClickCapture = styled('div')`
@@ -614,7 +612,6 @@ const CheckboxCellContainer = styled('div')`
   gap: ${p => p.theme.space.xs};
 
   padding: ${p => p.theme.space.xs} 0 0 0;
-  margin: 0 -${p => p.theme.space.md} 0 -${p => p.theme.space.xs};
 `;
 
 const CheckboxClickTarget = styled('label')`
