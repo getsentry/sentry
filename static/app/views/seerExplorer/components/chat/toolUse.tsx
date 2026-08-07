@@ -2,7 +2,6 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import {Button} from '@sentry/scraps/button';
 import {MessageRow, ToolCallIndicator, type ToolCallStatus} from '@sentry/scraps/chat';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Disclosure} from '@sentry/scraps/disclosure';
@@ -13,7 +12,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {AgentWriteApprovalProvider} from 'sentry/components/seer/markdown/embeds/components/agentWriteApproval';
-import {IconChevron, IconLink} from 'sentry/icons';
+import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -523,21 +522,9 @@ function CallRows({
                 </Disclosure.Content>
               </Disclosure>
             ) : (
-              // Reserve the chevron's footprint with the chevron itself rather than guessing at
-              // padding: it lives inside a Button, so its width is icon + button padding + icon
-              // gap. Without this a non-expandable row starts further left than its siblings and
-              // the column of labels comes apart.
-              <Flex align="center">
-                <ChevronSpacer aria-hidden>
-                  <Button
-                    size="xs"
-                    variant="transparent"
-                    aria-label=""
-                    icon={<IconChevron direction="right" />}
-                  />
-                </ChevronSpacer>
-                {row}
-              </Flex>
+              // Only a lib call lands here, and it is the parent of the api rows beneath it — so
+              // sitting at a different indent than its children reads as the hierarchy it is.
+              <Flex align="center">{row}</Flex>
             )}
           </Stack>
         );
@@ -719,16 +706,6 @@ const PayloadBox = styled('pre')`
   font-size: ${p => p.theme.font.size.xs};
   white-space: pre-wrap;
   word-break: break-word;
-`;
-
-// Holds the space a Disclosure's chevron occupies so a non-expandable row's label lines up with
-// its expandable siblings. Built from the same Button at the same size rather than from padding
-// tokens: the chevron sits inside a button whose icon gap is inherited, so the footprint cannot be
-// reproduced by hand without drifting the moment button styling changes.
-const ChevronSpacer = styled('span')`
-  visibility: hidden;
-  flex-shrink: 0;
-  pointer-events: none;
 `;
 
 const ToolCallPlainRow = styled('span')`
