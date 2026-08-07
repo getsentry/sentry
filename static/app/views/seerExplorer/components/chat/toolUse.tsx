@@ -516,12 +516,14 @@ function CallRows({
         return (
           <Stack key={record.id} as="li" gap="xs" minWidth={0}>
             {detail ? (
-              <Disclosure size="sm">
-                <Disclosure.Title>{row}</Disclosure.Title>
-                <Disclosure.Content>
-                  <CallDetail detail={detail} />
-                </Disclosure.Content>
-              </Disclosure>
+              <CompactDisclosure>
+                <Disclosure size="xs">
+                  <Disclosure.Title>{row}</Disclosure.Title>
+                  <Disclosure.Content>
+                    <CallDetail detail={detail} />
+                  </Disclosure.Content>
+                </Disclosure>
+              </CompactDisclosure>
             ) : (
               // Reserve the chevron's footprint with the chevron itself rather than guessing at
               // padding: it lives inside a Button, so its width is icon + button padding + icon
@@ -530,7 +532,7 @@ function CallRows({
               <Flex align="center">
                 <ChevronSpacer aria-hidden>
                   <Button
-                    size="sm"
+                    size="xs"
                     variant="transparent"
                     aria-label=""
                     icon={<IconChevron direction="right" />}
@@ -721,14 +723,32 @@ const PayloadBox = styled('pre')`
   word-break: break-word;
 `;
 
+// A Disclosure titles itself with a Button, whose vertical padding makes the row roughly twice the
+// height of the plain text rows beside it. These read as a dense list, so the button is stripped
+// back to the line box; the chevron and hover target are unaffected.
+const CompactDisclosure = styled('div')`
+  button {
+    min-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+`;
+
 // Holds the space a Disclosure's chevron occupies so a non-expandable row's label lines up with
-// its expandable siblings. Built from the same Button the Disclosure uses rather than from padding
+// its expandable siblings. Built from the same Button at the same size rather than from padding
 // tokens: the chevron sits inside a button whose icon gap is inherited, so the footprint cannot be
 // reproduced by hand without drifting the moment button styling changes.
 const ChevronSpacer = styled('span')`
   visibility: hidden;
   flex-shrink: 0;
   pointer-events: none;
+
+  /* Matches CompactDisclosure so the reserved width equals the real chevron's. */
+  button {
+    min-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
 `;
 
 const ToolCallPlainRow = styled('span')`
