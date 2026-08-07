@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from django.db.models import Count, Exists, OuterRef, Q, QuerySet
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
@@ -16,10 +17,19 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import DateTimePaginator
+from sentry.investigations.agent import (
+    interrupt_run,
+    start_execution_run,
+    synchronize_execution,
+    synchronize_title,
+)
 from sentry.investigations.models import (
     Investigation,
     InvestigationBlock,
     InvestigationBlockComment,
+    InvestigationBlockExecution,
+    InvestigationBlockExecutionStatus,
+    InvestigationBlockKind,
     InvestigationFavoriteUser,
     InvestigationReaction,
     InvestigationSourceType,
@@ -32,6 +42,7 @@ from sentry.investigations.permissions import (
 from sentry.investigations.serializers import (
     BlockCreateSerializer,
     BlockDeleteSerializer,
+    BlockExecutionStartSerializer,
     BlockOrderSerializer,
     BlockUpdateSerializer,
     CommentSerializer,
@@ -54,12 +65,14 @@ from sentry.investigations.services import (
     InvestigationValidationError,
     archive_investigation,
     create_block,
+    create_block_execution,
     create_comment,
     create_manual_investigation,
     create_template_investigation,
     delete_block,
     delete_comment,
     duplicate_investigation,
+    mark_block_execution_dispatch_failed,
     reorder_blocks,
     set_block_reaction,
     set_comment_reaction,
@@ -73,6 +86,9 @@ from sentry.investigations.services import (
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
+from sentry.seer.agent.client import SeerAgentClient
+from sentry.seer.agent.client_utils import AgentUpdateRequest, make_agent_update_request
+from sentry.utils import metrics
 
 FEATURE = "organizations:investigations"
 QUERY_EXECUTION_FEATURE = "organizations:investigations-query-execution"
@@ -892,6 +908,240 @@ class OrganizationInvestigationFavoriteEndpoint(OrganizationInvestigationBase):
                 investigation=investigation, user_id=user_id
             ).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@extend_schema(tags=["Investigations"])
+@cell_silo_endpoint
+class OrganizationInvestigationBlockExecuteEndpoint(OrganizationInvestigationBlockBase):
+    publish_status = {"POST": ApiPublishStatus.PRIVATE}
+
+    def post(
+        self,
+        request: Request,
+        organization: Organization,
+        investigation: Investigation,
+        block: InvestigationBlock,
+    ) -> Response:
+        user_id = _require_authenticated_user(request)
+        if not _query_execution_enabled(request, organization):
+            raise ResourceDoesNotExist
+        serializer = BlockExecutionStartSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        accessible_project_ids = _accessible_project_ids(self, request, organization)
+        selected_project_ids = set(
+            investigation.projects.order_by("id").values_list("id", flat=True)
+        )
+        if selected_project_ids:
+            if not selected_project_ids.issubset(accessible_project_ids):
+                return Response(
+                    {"detail": "One or more investigation projects are inaccessible."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+            project_ids = sorted(selected_project_ids)
+        elif block.kind == InvestigationBlockKind.QUERY:
+            project_ids = sorted(accessible_project_ids)
+        else:
+            project_ids = []
+        projects = list(
+            Project.objects.filter(
+                organization=organization,
+                id__in=project_ids,
+            ).order_by("id")
+        )
+
+        # Constructing the client performs the normal Seer entitlement check before
+        # we create durable state that could never be dispatched.
+        client = SeerAgentClient(organization, request.user)
+        try:
+            execution, created = create_block_execution(
+                block=block,
+                expected_investigation_version=serializer.validated_data["investigation_version"],
+                expected_block_version=serializer.validated_data["version"],
+                user_id=user_id,
+                project_ids=[project.id for project in projects],
+                project_slugs=[project.slug for project in projects],
+                accessible_project_ids=accessible_project_ids,
+                request_id=serializer.validated_data.get("request_id"),
+            )
+        except Exception as execution_error:
+            response = _service_error(execution_error)
+            if response is not None:
+                return response
+            raise
+
+        if created:
+            metric_namespace = (
+                "investigations.query_execution"
+                if block.kind == InvestigationBlockKind.QUERY
+                else "investigations.text_execution"
+            )
+            try:
+                start_execution_run(execution, organization, request.user, client=client)
+                metrics.incr(
+                    f"{metric_namespace}.started",
+                    tags={"executor": execution.executor},
+                )
+            except Exception as dispatch_error:
+                mark_block_execution_dispatch_failed(execution, error=str(dispatch_error))
+                metrics.incr(f"{metric_namespace}.dispatch_failed")
+                raise
+
+        execution = InvestigationBlockExecution.objects.get(id=execution.id)
+        return Response(
+            {"id": str(execution.id), "status": execution.status},
+            status=status.HTTP_202_ACCEPTED,
+        )
+
+
+@extend_schema(tags=["Investigations"])
+@cell_silo_endpoint
+class OrganizationInvestigationBlockExecutionEndpoint(OrganizationInvestigationBlockBase):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+        "PATCH": ApiPublishStatus.PRIVATE,
+        "DELETE": ApiPublishStatus.PRIVATE,
+    }
+
+    def _execution(
+        self, block: InvestigationBlock, execution_id: str
+    ) -> InvestigationBlockExecution:
+        try:
+            return InvestigationBlockExecution.objects.select_related("seer_run").get(
+                id=execution_id, block=block
+            )
+        except (InvestigationBlockExecution.DoesNotExist, ValueError):
+            raise ResourceDoesNotExist
+
+    def get(
+        self,
+        request: Request,
+        organization: Organization,
+        investigation: Investigation,
+        block: InvestigationBlock,
+        execution_id: str,
+    ) -> Response:
+        if not _query_execution_enabled(request, organization):
+            raise ResourceDoesNotExist
+        execution = self._execution(block, execution_id)
+        pending = None
+        partial_markdown = None
+        if execution.seer_run and execution.seer_run.seer_run_state_id:
+            state = SeerAgentClient(organization, request.user).get_run(
+                execution.seer_run.seer_run_state_id
+            )
+            synchronize_execution(execution, state)
+            execution.refresh_from_db()
+            pending = state.pending_user_input.dict() if state.pending_user_input else None
+            if block.kind == InvestigationBlockKind.TEXT:
+                partial_markdown = next(
+                    (
+                        block.message.content
+                        for block in reversed(state.blocks)
+                        if block.message.role == "assistant" and block.message.content
+                    ),
+                    None,
+                )
+        return Response(
+            {
+                "id": str(execution.id),
+                "status": execution.status,
+                "blocks": execution.transcript,
+                "transcriptTruncated": execution.transcript_truncated,
+                "pendingUserInput": pending,
+                "partialMarkdown": partial_markdown,
+                "error": execution.error,
+            }
+        )
+
+    def patch(
+        self,
+        request: Request,
+        organization: Organization,
+        investigation: Investigation,
+        block: InvestigationBlock,
+        execution_id: str,
+    ) -> Response:
+        if not _query_execution_enabled(request, organization):
+            raise ResourceDoesNotExist
+        execution = self._execution(block, execution_id)
+        if not execution.seer_run or not execution.seer_run.seer_run_state_id:
+            return Response({"detail": "The run has not started."}, status=409)
+        input_id = request.data.get("inputId")
+        if not input_id or "responseData" not in request.data:
+            return Response({"detail": "inputId and responseData are required."}, status=400)
+        response = make_agent_update_request(
+            AgentUpdateRequest(
+                run_id=execution.seer_run.seer_run_state_id,
+                organization_id=organization.id,
+                payload={
+                    "type": "user_input_response",
+                    "input_id": input_id,
+                    "response_data": request.data["responseData"],
+                },
+            )
+        )
+        if response.status >= 400:
+            return Response({"detail": "Unable to resume the run."}, status=502)
+        InvestigationBlockExecution.objects.filter(id=execution.id).update(
+            status=InvestigationBlockExecutionStatus.RUNNING
+        )
+        return Response(status=202)
+
+    def delete(
+        self,
+        request: Request,
+        organization: Organization,
+        investigation: Investigation,
+        block: InvestigationBlock,
+        execution_id: str,
+    ) -> Response:
+        if not _query_execution_enabled(request, organization):
+            raise ResourceDoesNotExist
+        execution = self._execution(block, execution_id)
+        if not execution.seer_run or not execution.seer_run.seer_run_state_id:
+            return Response(status=204)
+        InvestigationBlockExecution.objects.filter(id=execution.id).update(
+            status=InvestigationBlockExecutionStatus.STOPPING
+        )
+        interrupt_run(organization, execution.seer_run.seer_run_state_id)
+        InvestigationBlockExecution.objects.filter(id=execution.id).update(
+            status=InvestigationBlockExecutionStatus.CANCELLED,
+            completed_at=timezone.now(),
+        )
+        return Response(status=202)
+
+
+@extend_schema(tags=["Investigations"])
+@cell_silo_endpoint
+class OrganizationInvestigationTitleGenerationEndpoint(OrganizationInvestigationBase):
+    publish_status = {"GET": ApiPublishStatus.PRIVATE}
+
+    def get(
+        self,
+        request: Request,
+        organization: Organization,
+        investigation: Investigation,
+    ) -> Response:
+        if not _query_execution_enabled(request, organization):
+            raise ResourceDoesNotExist
+        preview = None
+        if investigation.title_seer_run and investigation.title_seer_run.seer_run_state_id:
+            state = SeerAgentClient(organization, request.user).get_run(
+                investigation.title_seer_run.seer_run_state_id
+            )
+            synchronize_title(investigation, state)
+            investigation.refresh_from_db()
+            preview = next(
+                (
+                    block.message.content
+                    for block in reversed(state.blocks)
+                    if block.message.role == "assistant" and block.message.content
+                ),
+                None,
+            )
+        return Response({"status": investigation.title_generation_status, "preview": preview})
 
 
 @extend_schema(tags=["Investigations"])

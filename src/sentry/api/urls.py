@@ -295,6 +295,8 @@ from sentry.integrations.api.endpoints.organization_repository_settings import (
 )
 from sentry.investigations.endpoints.organization_investigations import (
     OrganizationInvestigationBlockDetailsEndpoint,
+    OrganizationInvestigationBlockExecuteEndpoint,
+    OrganizationInvestigationBlockExecutionEndpoint,
     OrganizationInvestigationBlockOrderEndpoint,
     OrganizationInvestigationBlockReactionEndpoint,
     OrganizationInvestigationBlocksEndpoint,
@@ -307,6 +309,7 @@ from sentry.investigations.endpoints.organization_investigations import (
     OrganizationInvestigationParametersEndpoint,
     OrganizationInvestigationPermissionsEndpoint,
     OrganizationInvestigationsEndpoint,
+    OrganizationInvestigationTitleGenerationEndpoint,
 )
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
@@ -2411,6 +2414,21 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/blocks/(?P<block_id>[^/]+)/$",
         OrganizationInvestigationBlockDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-block-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/blocks/(?P<block_id>[^/]+)/execute/$",
+        OrganizationInvestigationBlockExecuteEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-block-execute",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/blocks/(?P<block_id>[^/]+)/executions/(?P<execution_id>[^/]+)/$",
+        OrganizationInvestigationBlockExecutionEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-block-execution",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/title-generation/$",
+        OrganizationInvestigationTitleGenerationEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-title-generation",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/parameters/$",

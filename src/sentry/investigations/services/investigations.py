@@ -13,6 +13,8 @@ from sentry.investigations.models import (
     Investigation,
     InvestigationBlock,
     InvestigationBlockDependency,
+    InvestigationBlockExecution,
+    InvestigationBlockExecutionStatus,
     InvestigationBlockParameter,
     InvestigationParameter,
     InvestigationParameterSource,
@@ -449,6 +451,19 @@ def update_investigation(
 def archive_investigation(*, investigation: Investigation, expected_version: int) -> Investigation:
     with transaction.atomic(using=router.db_for_write(Investigation)):
         locked = lock_investigation(investigation, expected_version)
+        if InvestigationBlockExecution.objects.filter(
+            block__investigation=locked,
+            block__deleted_at__isnull=True,
+            status__in=(
+                InvestigationBlockExecutionStatus.PENDING,
+                InvestigationBlockExecutionStatus.RUNNING,
+                InvestigationBlockExecutionStatus.AWAITING_INPUT,
+                InvestigationBlockExecutionStatus.STOPPING,
+            ),
+        ).exists():
+            raise InvestigationValidationError(
+                {"detail": "Stop active block runs before archiving this investigation."}
+            )
         locked.status = InvestigationStatus.ARCHIVED
         bump_investigation_version(locked)
         if locked.source_key is not None:
@@ -553,6 +568,17 @@ def delete_block(
             raise InvestigationValidationError({"detail": "Archived investigations are read-only."})
         if locked.version != expected_block_version:
             raise InvestigationConflictError("Block has changed.")
+        if locked.executions.filter(
+            status__in=(
+                InvestigationBlockExecutionStatus.PENDING,
+                InvestigationBlockExecutionStatus.RUNNING,
+                InvestigationBlockExecutionStatus.AWAITING_INPUT,
+                InvestigationBlockExecutionStatus.STOPPING,
+            )
+        ).exists():
+            raise InvestigationValidationError(
+                {"detail": "Stop the active run before deleting this block."}
+            )
         locked.deleted_at = timezone.now()
         locked.version += 1
         locked.save(update_fields=["deleted_at", "version", "date_updated"])
