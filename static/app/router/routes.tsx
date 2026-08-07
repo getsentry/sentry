@@ -1335,6 +1335,15 @@ function buildRoutes(): RouteObject[] {
       path: 'rules/',
       children: [
         {
+          // Kept as a redirect: the MS Teams installation card links here, and
+          // Adaptive Card buttons cannot be rewritten once delivered.
+          index: true,
+          component: make(
+            () =>
+              import('sentry/views/alerts/workflowEngineRedirectWrappers/alertRulesListRedirect')
+          ),
+        },
+        {
           path: 'details/:ruleId/',
           component: make(
             () =>
