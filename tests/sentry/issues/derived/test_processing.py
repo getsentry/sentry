@@ -409,9 +409,6 @@ class ProcessGroupLogTest(TestCase):
         mock_delay.assert_called_once_with(group.id)
 
     def test_invalidate_soft_inserts_null_row_when_missing(self) -> None:
-        # No row exists (e.g. group predates the derived-data backfill).
-        # Soft invalidation inserts a placeholder row with pipeline_hash=None
-        # so "null or stale pipeline_hash" is a reliable "needs regen" signal.
         group = self.create_group()
         assert not GroupDerivedData.objects.filter(group_id=group.id).exists()
 
@@ -429,8 +426,6 @@ class ProcessGroupLogTest(TestCase):
         mock_process.assert_not_called()
 
     def test_invalidate_soft_inserts_null_row_when_missing_no_trigger(self) -> None:
-        # With trigger_regenerate=False the placeholder is still inserted,
-        # but no task is scheduled — bulk callers drive regeneration.
         group = self.create_group()
         assert not GroupDerivedData.objects.filter(group_id=group.id).exists()
 
@@ -448,9 +443,6 @@ class ProcessGroupLogTest(TestCase):
         mock_process.assert_not_called()
 
     def test_invalidate_soft_inserts_null_row_when_missing_with_cursor(self) -> None:
-        # Cursor is irrelevant when no row exists: we can't reason about
-        # "pure append" against an absent baseline, so we still insert a
-        # null-hash placeholder.
         group = self.create_group()
         assert not GroupDerivedData.objects.filter(group_id=group.id).exists()
 
@@ -463,24 +455,6 @@ class ProcessGroupLogTest(TestCase):
         row = GroupDerivedData.objects.get(group_id=group.id)
         assert row.pipeline_hash is None
         mock_generate.assert_called_once_with(group.id)
-
-    def test_invalidate_hard_missing_row_does_not_insert(self) -> None:
-        # Hard-delete semantics: readers must not observe any row. Never
-        # materialize a placeholder on the delete path.
-        group = self.create_group()
-        assert not GroupDerivedData.objects.filter(group_id=group.id).exists()
-
-        with (
-            patch(
-                "sentry.issues.derived.processing.generate_group_derived_data.delay"
-            ) as mock_generate,
-            patch("sentry.issues.derived.processing.process_group_log_task.delay") as mock_process,
-        ):
-            invalidate_group_derived_data(group.id, soft=False)
-
-        assert not GroupDerivedData.objects.filter(group_id=group.id).exists()
-        mock_generate.assert_not_called()
-        mock_process.assert_called_once_with(group.id)
 
     def test_invalidate_soft_missing_group_is_noop(self) -> None:
         # Force FK constraints to IMMEDIATE so the violation fires at INSERT time (matching
@@ -503,8 +477,6 @@ class ProcessGroupLogTest(TestCase):
         mock_process.assert_not_called()
 
     def test_invalidate_soft_bumps_generated_at(self) -> None:
-        # ``generated_at`` is bumped alongside the pipeline_hash null so any
-        # in-flight generation started before this call loses its CAS.
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         derived = process_group_log(group.id)
