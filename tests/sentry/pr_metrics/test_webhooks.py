@@ -1919,6 +1919,7 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
         conclusion: str = "success",
         head_sha: str = "headsha1",
         app_slug: str = "github-actions",
+        suite_id: int = 12345,
         check_runs_count: int = 4,
         pr_numbers: tuple[int, ...] = (42,),
         foreign_pr_numbers: tuple[int, ...] = (),
@@ -1927,6 +1928,7 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
         event: dict[str, Any] = {
             "action": action,
             "check_suite": {
+                "id": suite_id,
                 "head_sha": head_sha,
                 "status": "completed",
                 "conclusion": conclusion,
@@ -1951,6 +1953,7 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
         check_name: str = "build",
         head_sha: str = "headsha1",
         app_slug: str = "github-actions",
+        suite_id: int = 12345,
         pr_numbers: tuple[int, ...] = (42,),
         foreign_pr_numbers: tuple[int, ...] = (),
         webhook_id: str | None = "delivery-1",
@@ -1963,6 +1966,7 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
                 "status": "completed",
                 "conclusion": conclusion,
                 "app": {"slug": app_slug},
+                "check_suite": {"id": suite_id},
                 "pull_requests": self._pull_request_refs(pr_numbers, foreign_pr_numbers),
             },
             "sender": {"id": 5, "login": "ci-bot", "type": "Bot"},
@@ -1985,6 +1989,7 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
         assert activity.webhook_id == "delivery-1"
         assert activity.payload["conclusion"] == "success"
         assert activity.payload["app_slug"] == "github-actions"
+        assert activity.payload["suite_id"] == "12345"
         assert activity.payload["check_runs_count"] == 6
 
     def test_check_suite_non_completed_action_skipped(self) -> None:
@@ -2075,6 +2080,7 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
         assert activity.payload["check_name"] == "lint"
         assert activity.payload["conclusion"] == "failure"
         assert activity.payload["app_slug"] == "github-actions"
+        assert activity.payload["suite_id"] == "12345"
 
     def test_check_run_non_completed_action_skipped(self) -> None:
         for action in ("created", "rerequested", "requested_action"):

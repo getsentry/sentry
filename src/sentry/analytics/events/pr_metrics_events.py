@@ -122,6 +122,14 @@ class PrCloseMetricsEvent(analytics.Event):
     # derived by the judge. Examples include "superseded", "ci_failing_at_close", etc.
     diagnosis_labels: list[str] | None = None
 
+    # Ordered JSON list of per-head CI results following ``sync_chain`` insertion
+    # order. Each item retains sequence, head/before SHA, sender login/type, derived
+    # actor, whole-head outcome, and ``has_ci``. Opening and synchronize heads with
+    # no checks are included; check heads missing from the bounded chain are
+    # appended with null sequence/identity. Null means unavailable (legacy storage
+    # or no authoring attribution), while ``[]`` means an available empty document.
+    ci_head_results: str | None = None
+
     # --- Conversation judge (set only on a judged close/merge row) ---
     # One of several judges' outputs. Columns are prefixed ``conversation_`` so a
     # future judge's columns sit alongside without collision, and to disambiguate

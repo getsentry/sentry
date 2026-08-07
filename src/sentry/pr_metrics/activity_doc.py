@@ -5,8 +5,9 @@ No DB access in this module: functions take and mutate plain dicts, so stored
 docs can be re-folded through the same reducer (emit-time parity check, corpus
 rebuilds). :func:`apply_activity` dispatches three event families: lifecycle
 **entries** (appended to ``events`` in arrival order, deduped by ``webhook_id``,
-synchronize links folded into ``sync_chain``), **checks** (collapsed into
-per-``(head_sha, app_slug)`` rollups), and **comments** (folded into
+the opening head stored in ``open_head`` and synchronize links folded into
+``sync_chain``), **checks** (collapsed into
+per-``(head_sha, app_slug, suite_id)`` rollups), and **comments** (folded into
 ``participants`` only, never stored).
 """
 
@@ -14,8 +15,8 @@ from __future__ import annotations
 
 import logging
 from collections import Counter
-from collections.abc import Mapping
-from typing import Any, TypedDict
+from collections.abc import Iterable, Mapping
+from typing import Any, Literal, TypedDict
 
 from sentry.models.pullrequest import PullRequestActivityType
 from sentry.utils import metrics
@@ -32,7 +33,7 @@ MAX_EVENTS = 500
 # the events cap: below MAX_SYNC_CHAIN the chain is complete; past it the NEWEST
 # links — the ones the head-anchored commit-chain walk starts from — are retained.
 MAX_SYNC_CHAIN = 500
-# Check-rollup bounds: distinct ``(head_sha, app_slug)`` groups per PR, and
+# Check-rollup bounds: distinct CI suite groups per PR, and
 # ever-failing runs tracked per group. Both are pathology backstops.
 MAX_CHECK_GROUPS = 100
 MAX_RUNS_PER_GROUP = 50
@@ -42,6 +43,15 @@ MAX_RUNS_PER_GROUP = 50
 # is non-empty — a failure.
 NON_FAILING_CONCLUSIONS = frozenset({"success", "neutral", "skipped"})
 ABORTED_CONCLUSIONS = frozenset({"cancelled", "stale"})
+
+# Conclusions that unambiguously mean the check errored out, as opposed to
+# cancelled/skipped/stale (never ran to completion, not a failure verdict),
+# neutral (a soft pass), or action_required (blocked on approval, not broken).
+# Narrower than ``is_failing_conclusion``, which treats every unrecognized
+# conclusion as a failure; use this where a false failure would be misread.
+FAILING_CHECK_CONCLUSIONS = frozenset({"failure", "timed_out", "startup_failure"})
+
+CiVerdict = Literal["failure", "success", "inconclusive"]
 
 # Comment events fold into ``participants`` only — no entry, no count — because
 # their per-comment volume is exactly what this design sheds.
@@ -62,6 +72,8 @@ class CheckRun(TypedDict):
 class CheckGroup(TypedDict):
     head_sha: str
     app_slug: str
+    # Stable GitHub numeric suite ID. Absent on groups in legacy stored documents.
+    suite_id: str
     suite_conclusion: str | None
     suite_updated_at: str | None
     check_runs_count: int
@@ -76,6 +88,12 @@ class ActivityEntry(TypedDict):
     event_at: str | None
     webhook_id: str | None
     payload: dict[str, Any]
+
+
+class OpenHead(TypedDict):
+    head_sha: str
+    sender_login: str | None
+    sender_type: str | None
 
 
 class ActivityDoc(TypedDict):
@@ -93,10 +111,15 @@ class ActivityDoc(TypedDict):
     participants: dict[str, str]
     counts: dict[str, int]
     events_dropped: int
-    # A list of ``[after_sha, before_sha_or_null]`` pairs in arrival order, NOT an
-    # object keyed by after_sha: Postgres jsonb does not preserve object key order,
-    # and eviction at the cap must drop the OLDEST link, which needs insertion
-    # order. jsonb preserves array order, so a list keeps eviction correct.
+    # The head and sender from the pull request's opening event. Legacy documents
+    # written before this field existed simply omit it.
+    open_head: OpenHead | None
+    # A list of ``[after_sha, before_sha_or_null, sender_login, sender_type]`` entries
+    # in arrival order, NOT an object keyed by after_sha: Postgres jsonb does not
+    # preserve object key order, and eviction at the cap must drop the OLDEST link,
+    # which needs insertion order. jsonb preserves array order, so a list keeps
+    # eviction correct. Entries written before the sender slots existed have
+    # length 2 and read as an unknown pusher.
     sync_chain: list[list[str | None]]
 
 
@@ -146,6 +169,7 @@ def new_document() -> ActivityDoc:
         "participants": {},
         "counts": {},
         "events_dropped": 0,
+        "open_head": None,
         "sync_chain": [],
     }
 
@@ -250,7 +274,9 @@ def _apply_entry(
     if webhook_id and _is_duplicate(doc, webhook_id):
         return
 
-    if event_type == PullRequestActivityType.SYNCHRONIZED:
+    if event_type == PullRequestActivityType.OPENED:
+        _fold_open_head(doc, payload)
+    elif event_type == PullRequestActivityType.SYNCHRONIZED:
         _fold_sync_chain(doc, payload)
 
     doc["counts"][event_type] = doc["counts"].get(event_type, 0) + 1
@@ -282,6 +308,19 @@ def _is_duplicate(doc: ActivityDoc, webhook_id: str) -> bool:
     return any(entry.get("webhook_id") == webhook_id for entry in doc["events"])
 
 
+def _fold_open_head(doc: ActivityDoc, payload: Mapping[str, Any]) -> None:
+    """Store the opening head separately from subsequent synchronize links."""
+    head_sha = payload.get("head_sha") or ""
+    if not head_sha:
+        return
+
+    doc["open_head"] = {
+        "head_sha": head_sha,
+        "sender_login": payload.get("sender_login") or None,
+        "sender_type": payload.get("sender_type") or None,
+    }
+
+
 def _fold_sync_chain(doc: ActivityDoc, payload: Mapping[str, Any]) -> None:
     """Record a synchronize's ``before_sha`` → ``after_sha`` link in ``sync_chain``.
 
@@ -290,17 +329,18 @@ def _fold_sync_chain(doc: ActivityDoc, payload: Mapping[str, Any]) -> None:
     independent of the events cap: the newest links — the ones the head-anchored
     walk starts from — must survive even when the synchronize entry is dropped from
     ``events`` (an auto-rebase bot is exactly the synchronize-heavy pathology that
-    fills the cap). Idempotent: a redelivery or a re-reported ``after_sha`` already
-    present is a no-op. At the cap the oldest pair is evicted (logged + metered,
+    fills the cap). Exact webhook redeliveries are deduplicated by ``webhook_id``
+    before this function. Distinct synchronize events with the same ``after_sha``
+    are intentionally retained as separate head observations, such as when the head
+    returns to a prior SHA. At the cap the oldest pair is evicted (logged + metered,
     like every cap in this module). ``setdefault`` because a stored document written
     by a build predating this field lacks the key; the fold creates it in place.
     """
     after = payload.get("after_sha") or ""
     if not after:
         return
+
     chain = doc.setdefault("sync_chain", [])
-    if any(pair[0] == after for pair in chain):
-        return
     if len(chain) >= MAX_SYNC_CHAIN:
         chain.pop(0)
         logger.warning(
@@ -308,13 +348,21 @@ def _fold_sync_chain(doc: ActivityDoc, payload: Mapping[str, Any]) -> None:
             extra={"after_sha": after},
         )
         metrics.incr("pr_metrics.activity_doc.sync_chain_capped")
-    chain.append([after, payload.get("before_sha") or None])
+
+    chain.append(
+        [
+            after,
+            payload.get("before_sha") or None,
+            payload.get("sender_login") or None,
+            payload.get("sender_type") or None,
+        ]
+    )
 
 
 def _apply_check_suite(
     doc: ActivityDoc, payload: Mapping[str, Any], suite_updated_at: str | None
 ) -> None:
-    """Fold a completed ``check_suite`` into its ``(head_sha, app_slug)`` group.
+    """Fold a completed ``check_suite`` into its distinct suite group.
 
     The suite carries the aggregate conclusion (latest verdict wins on
     ``updated_at`` — see :func:`_wins_conclusion` for why an aborted suite does not
@@ -396,7 +444,12 @@ def _apply_check_run(
 
 
 def _get_or_create_group(doc: ActivityDoc, payload: Mapping[str, Any]) -> CheckGroup:
-    """The rollup for a check payload's ``(head_sha, app_slug)``.
+    """Resolve a check payload's suite rollup.
+
+    New payloads use GitHub's stable suite ID in addition to head/app, so two
+    workflow suites from the same app cannot overwrite each other. Payloads and
+    stored documents written before suite IDs existed retain the legacy
+    ``head_sha|app_slug`` key and remain readable without a migration.
 
     Existing groups always resolve. A new group beyond ``MAX_CHECK_GROUPS`` evicts
     the least-recently-updated group (by ``last_event_at``) to make room rather than
@@ -407,11 +460,18 @@ def _get_or_create_group(doc: ActivityDoc, payload: Mapping[str, Any]) -> CheckG
     """
     head_sha = payload.get("head_sha") or ""
     app_slug = payload.get("app_slug") or ""
-    key = f"{head_sha}|{app_slug}"
+    suite_id = str(payload.get("suite_id") or "")
+    legacy_key = f"{head_sha}|{app_slug}"
+    key = f"{legacy_key}|suite:{suite_id}" if suite_id else legacy_key
     checks = doc["checks"]
     group = checks.get(key)
     if group is not None:
         return group
+
+    # Never rekey a legacy app/head aggregate to a suite: its contributing suite
+    # identity is unknowable. Keeping it separate avoids falsely attributing its
+    # historical verdict to whichever suite-aware webhook happens to arrive first.
+
     if len(checks) >= MAX_CHECK_GROUPS:
         evicted_key = min(checks, key=lambda existing: checks[existing].get("last_event_at") or "")
         del checks[evicted_key]
@@ -420,9 +480,11 @@ def _get_or_create_group(doc: ActivityDoc, payload: Mapping[str, Any]) -> CheckG
             extra={"head_sha": head_sha, "app_slug": app_slug, "evicted_key": evicted_key},
         )
         metrics.incr("pr_metrics.activity_doc.check_groups_capped")
+
     group = {
         "head_sha": head_sha,
         "app_slug": app_slug,
+        "suite_id": suite_id,
         "suite_conclusion": None,
         "suite_updated_at": None,
         "check_runs_count": 0,
@@ -629,24 +691,217 @@ def commit_shas_from_doc(doc: ActivityDoc, head_sha: str | None) -> set[str]:
     return shas
 
 
-def _synthesized_suite_conclusion(group: CheckGroup) -> str:
-    """The group's aggregate conclusion: the latest suite conclusion, or one derived
-    from the failing runs when no suite event was ever seen."""
-    conclusion = group.get("suite_conclusion")
-    if conclusion:
-        return conclusion
+def _aggregate_ci_verdicts(conclusions: Iterable[str | None]) -> CiVerdict:
+    """Collapse CI conclusions using failure, success, inconclusive precedence."""
+    has_success = False
+    for conclusion in conclusions:
+        if conclusion in FAILING_CHECK_CONCLUSIONS:
+            return "failure"
+        if conclusion != "inconclusive" and has_verdict(conclusion):
+            has_success = True
+    return "success" if has_success else "inconclusive"
+
+
+def _synthesized_suite_conclusion(group: CheckGroup) -> CiVerdict:
+    """Reduce a suite and its runs to failure, success, or inconclusive."""
+    suite_conclusion = group.get("suite_conclusion")
+    if suite_conclusion:
+        return _aggregate_ci_verdicts([suite_conclusion])
+
+    return _aggregate_ci_verdicts(run.get("conclusion") for run in group.get("runs", {}).values())
+
+
+def _timeline_suite_conclusion(group: CheckGroup) -> str:
+    """The judge-timeline conclusion: the stored suite conclusion, or the legacy
+    two-state derivation from runs when no suite event was ever seen.
+
+    Unlike :func:`_synthesized_suite_conclusion`, this is not inconclusive-aware:
+    the timeline should reflect the actual provider conclusion (``cancelled`` stays
+    ``cancelled``), and a group with only aborted runs derives ``success`` as it
+    always did, because the judge treats a synthesized suite like the app emitted it.
+    """
+    suite_conclusion = group.get("suite_conclusion")
+    if suite_conclusion:
+        return suite_conclusion
+
     runs = group.get("runs", {})
     if any(is_failing_conclusion(run.get("conclusion")) for run in runs.values()):
         return "failure"
     return "success"
 
 
+# Per-head CI outcomes are latest-verdict: a green rerun at the same SHA
+# overwrites a prior failure. ``inconclusive`` means no app produced a pass/fail
+# verdict for that head.
+
+# Normalized (lowercase, ``[bot]`` stripped) GitHub logins for our apps. Login is
+# all the activity doc stores — user-id matching from attribution isn't available
+# at this grain. Includes the short ``seer`` form tests/fixtures use.
+_OUR_GITHUB_BOT_LOGINS = frozenset(
+    {
+        "sentry",
+        "seer-by-sentry",
+        "seer-dev-testing",
+        "seer",
+    }
+)
+
+
+def _normalize_github_login(login: str) -> str:
+    return login.lower().removesuffix("[bot]")
+
+
+def ci_head_outcomes_from_doc(doc: ActivityDoc) -> dict[str, CiVerdict]:
+    """Map each check-rollup ``head_sha`` to a single latest CI outcome.
+
+    Multiple ``(head_sha, app_slug)`` groups collapse to one outcome per SHA:
+    any failing app → ``failure``; else any app with a pass/fail verdict →
+    ``success``; else ``inconclusive``. Empty ``head_sha`` groups are skipped.
+    """
+    groups_by_sha: dict[str, list[CheckGroup]] = {}
+    for group in doc.get("checks", {}).values():
+        sha = group.get("head_sha") or ""
+        if not sha:
+            continue
+        groups_by_sha.setdefault(sha, []).append(group)
+
+    return {
+        sha: _aggregate_ci_verdicts(_synthesized_suite_conclusion(group) for group in groups)
+        for sha, groups in groups_by_sha.items()
+    }
+
+
+def head_sha_pushers_from_doc(doc: ActivityDoc) -> dict[str, tuple[str, str]]:
+    """Map head SHA → ``(sender_login, sender_type)`` for every head we can attribute.
+
+    Reads the dedicated ``open_head`` item and sender slots on ``sync_chain``.
+    A SHA neither source covers stays unmapped (callers treat it as ``unknown``).
+
+    ``events`` is deliberately *not* consulted, even though it carries the same
+    senders, because its cap drops the newest entries while ``sync_chain`` drops
+    the oldest. Legacy documents without these dedicated fields remain readable
+    with unknown attribution.
+    """
+    pushers: dict[str, tuple[str, str]] = {}
+
+    open_head = doc.get("open_head")
+    if open_head:
+        pushers[open_head["head_sha"]] = (
+            open_head.get("sender_login") or "",
+            open_head.get("sender_type") or "",
+        )
+
+    for pair in doc.get("sync_chain", []):
+        after = pair[0]
+        if not after or len(pair) < 4:
+            continue
+
+        pushers[after] = (pair[2] or "", pair[3] or "")
+
+    return pushers
+
+
+def classify_ci_head_actor(
+    sender_login: str, sender_type: str
+) -> Literal["seer", "human", "bot", "unknown"]:
+    """Bucket a head's webhook sender into seer / human / bot / unknown."""
+    if not sender_type:
+        return "unknown"
+    if sender_type != "Bot":
+        return "human"
+    if _normalize_github_login(sender_login) in _OUR_GITHUB_BOT_LOGINS:
+        return "seer"
+    return "bot"
+
+
+class CiHeadResult(TypedDict):
+    """One observed PR head, retaining order and attribution inputs."""
+
+    sequence: int | None
+    head_sha: str
+    before_sha: str | None
+    outcome: CiVerdict
+    has_ci: bool
+    sender_login: str | None
+    sender_type: str | None
+    actor: Literal["seer", "human", "bot", "unknown"]
+
+
+def ci_head_results_from_doc(doc: ActivityDoc) -> list[CiHeadResult]:
+    """Return the opening head followed by synchronize heads in insertion order.
+
+    Every head observation is retained, including repeated SHAs caused by force
+    pushes. Heads without checks are explicit ``has_ci=False`` / ``inconclusive``.
+    Check heads absent from the bounded history are appended in sorted SHA order
+    with ``sequence=None`` so CI data is not silently lost and no false arrival
+    order is invented. Legacy documents may lack ``open_head`` or sender slots.
+    """
+    outcomes = ci_head_outcomes_from_doc(doc)
+    results: list[CiHeadResult] = []
+    observed_shas: set[str] = set()
+
+    observations: list[tuple[str, str | None, str | None, str | None]] = []
+    open_head = doc.get("open_head")
+    if open_head:
+        observations.append(
+            (
+                open_head["head_sha"],
+                None,
+                open_head.get("sender_login"),
+                open_head.get("sender_type"),
+            )
+        )
+
+    observations.extend(
+        (
+            pair[0] or "",
+            pair[1] if len(pair) > 1 else None,
+            pair[2] if len(pair) > 2 else None,
+            pair[3] if len(pair) > 3 else None,
+        )
+        for pair in doc.get("sync_chain", [])
+    )
+
+    for sequence, (head_sha, before_sha, sender_login, sender_type) in enumerate(observations):
+        if not head_sha:
+            continue
+        observed_shas.add(head_sha)
+        results.append(
+            {
+                "sequence": sequence,
+                "head_sha": head_sha,
+                "before_sha": before_sha,
+                "outcome": outcomes.get(head_sha, "inconclusive"),
+                "has_ci": head_sha in outcomes,
+                "sender_login": sender_login,
+                "sender_type": sender_type,
+                "actor": classify_ci_head_actor(sender_login or "", sender_type or ""),
+            }
+        )
+
+    for head_sha in sorted(outcomes.keys() - observed_shas):
+        results.append(
+            {
+                "sequence": None,
+                "head_sha": head_sha,
+                "before_sha": None,
+                "outcome": outcomes[head_sha],
+                "has_ci": True,
+                "sender_login": None,
+                "sender_type": None,
+                "actor": "unknown",
+            }
+        )
+    return results
+
+
 def _synthesized_check_suite_payload(group: CheckGroup) -> dict[str, Any]:
     runs = group.get("runs", {})
     return {
         "action": "completed",
-        "conclusion": _synthesized_suite_conclusion(group),
+        "conclusion": _timeline_suite_conclusion(group),
         "app_slug": group.get("app_slug", ""),
+        "suite_id": group.get("suite_id", ""),
         "check_runs_count": group.get("check_runs_count", 0),
         # Additive keys the legacy row forward never carried (Seer ignores unknown
         # payload keys, so this doesn't change the wire contract).
