@@ -16,7 +16,7 @@ import sentry_sdk
 from django.conf import settings
 from requests.exceptions import RequestException
 
-from sentry import options
+from sentry import features, options
 from sentry.attachments.base import CachedAttachment
 from sentry.lang.native.sources import (
     get_internal_artifact_lookup_source,
@@ -242,7 +242,10 @@ class Symbolicator:
                 "platform": platform,
                 "sources": sources,
                 "scraping": scraping_config,
-                "options": {"dif_candidates": True},
+                "options": {
+                    "dif_candidates": True,
+                    "extract_variables": self._should_extract_variables(),
+                },
                 "symbolicate": {
                     "type": "minidump",
                     "rewrite_first_module": rewrite_first_module,
@@ -262,7 +265,9 @@ class Symbolicator:
             "platform": orjson.dumps(platform).decode(),
             "sources": orjson.dumps(sources).decode(),
             "scraping": orjson.dumps(scraping_config).decode(),
-            "options": '{"dif_candidates": true}',
+            "options": orjson.dumps(
+                {"dif_candidates": True, "extract_variables": self._should_extract_variables()}
+            ).decode(),
             "rewrite_first_module": orjson.dumps(rewrite_first_module).decode(),
         }
         files = {"upload_file_minidump": minidump.load_data(self.project)}
@@ -281,7 +286,10 @@ class Symbolicator:
                 "platform": platform,
                 "sources": sources,
                 "scraping": scraping_config,
-                "options": {"dif_candidates": True},
+                "options": {
+                    "dif_candidates": True,
+                    "extract_variables": self._should_extract_variables(),
+                },
                 "symbolicate": {
                     "type": "applecrashreport",
                 },
@@ -300,7 +308,9 @@ class Symbolicator:
             "platform": orjson.dumps(platform).decode(),
             "sources": orjson.dumps(sources).decode(),
             "scraping": orjson.dumps(scraping_config).decode(),
-            "options": '{"dif_candidates": true}',
+            "options": orjson.dumps(
+                {"dif_candidates": True, "extract_variables": self._should_extract_variables()}
+            ).decode(),
         }
         files = {"apple_crash_report": report.load_data(self.project)}
 
@@ -331,6 +341,7 @@ class Symbolicator:
                 "dif_candidates": True,
                 "apply_source_context": apply_source_context,
                 "frame_order": frame_order.value,
+                "extract_variables": self._should_extract_variables(),
             },
             "stacktraces": stacktraces,
             "modules": modules,
@@ -370,6 +381,7 @@ class Symbolicator:
             "options": {
                 "apply_source_context": apply_source_context,
                 "frame_order": frame_order.value,
+                "extract_variables": self._should_extract_variables(),
             },
             "scraping": scraping_config,
         }
@@ -419,6 +431,7 @@ class Symbolicator:
             "options": {
                 "apply_source_context": apply_source_context,
                 "frame_order": frame_order.value,
+                "extract_variables": self._should_extract_variables(),
             },
         }
 
@@ -426,6 +439,13 @@ class Symbolicator:
             json["release_package"] = release_package
 
         return self._process("symbolicate_jvm_stacktraces", "symbolicate-jvm", json=json)
+
+    def _should_extract_variables(self) -> bool:
+        """Helper for determining whether to extract variables.
+
+        This just reads the "organizations:native-variable-extraction" feature flag.
+        """
+        return features.has("organizations:native-variable-extraction", self.project.organization)
 
 
 class TaskIdNotFound(Exception):

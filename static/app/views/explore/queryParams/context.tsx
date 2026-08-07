@@ -202,13 +202,23 @@ export function useAddSearchFilter() {
       key,
       value,
       negated,
+      op,
     }: {
       key: string;
       value: string | number | boolean;
       negated?: boolean;
+      /**
+       * Comparison operator for numeric filters. When set, replaces any
+       * existing filter on `key` with `key:>{value}` / `key:<{value}`.
+       */
+      op?: '>' | '<';
     }) => {
       const newSearch = search.copy();
-      newSearch.addFilterValue(`${negated ? '!' : ''}${key}`, String(value));
+      if (op) {
+        newSearch.setFilterValues(key, [`${op}${value}`]);
+      } else {
+        newSearch.addFilterValue(`${negated ? '!' : ''}${key}`, String(value));
+      }
       setSearch(newSearch);
     },
     [setSearch, search]

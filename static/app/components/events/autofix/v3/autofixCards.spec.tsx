@@ -1841,7 +1841,7 @@ describe('ArtifactCard', () => {
         <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
-            [makeCodingAgent({provider: 'unknown_provider' as any})],
+            [makeCodingAgent({provider: 'unknown_provider'})],
           ])}
         />
       );

@@ -226,7 +226,7 @@ function isInsideButton(element: Element | null): boolean {
   return false;
 }
 
-export const LogRowContent = memo(function LogRowContent({
+export const LogRowContent = memo(function LogRowContentImpl({
   dataRow,
   embedded = false,
   embeddedOptions,
@@ -393,7 +393,7 @@ export const LogRowContent = memo(function LogRowContent({
       ...(observedTimestamp && {
         [OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE]: String(observedTimestamp.value),
       }),
-    } as OurLogsResponseItem,
+    },
     attributeTypes: meta?.fields ?? {},
     theme,
     projectSlug,

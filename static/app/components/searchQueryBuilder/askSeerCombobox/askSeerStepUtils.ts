@@ -112,38 +112,21 @@ const STEP_LABELS: Record<string, StepLabel[]> = {
 };
 
 /**
- * Convert a step key to a grammatically correct phrase.
- * e.g., "get_field_values" -> "Getting field values"
- *       "search_spans" -> "Searching spans"
+ * Format unknown step keys without trying to conjugate arbitrary English verbs.
  */
 function formatStepKey(key: string, isLoading: boolean): string {
-  const words = key.split('_');
-  const verb = words[0];
-  if (!verb) {
+  const humanizedKey = key.split('_').join(' ');
+  if (!humanizedKey) {
     return key;
   }
 
-  const rest = words.slice(1).join(' ');
+  const capitalizedKey = humanizedKey.charAt(0).toUpperCase() + humanizedKey.slice(1);
 
   if (isLoading) {
-    // Convert verb to -ing form
-    let ingVerb = verb;
-    if (verb.endsWith('e') && !verb.endsWith('ee')) {
-      ingVerb = verb.slice(0, -1) + 'ing';
-    } else if (verb.match(/[aeiou][^aeiou]$/)) {
-      // Double consonant for short vowel + consonant (e.g., run -> running)
-      ingVerb = verb + verb.slice(-1) + 'ing';
-    } else {
-      ingVerb = verb + 'ing';
-    }
-    // Capitalize first letter
-    ingVerb = ingVerb.charAt(0).toUpperCase() + ingVerb.slice(1);
-    return rest ? `${ingVerb} ${rest}...` : `${ingVerb}...`;
+    return t('Running step: %s...', capitalizedKey);
   }
 
-  // For completed state, capitalize first letter
-  const capitalized = verb.charAt(0).toUpperCase() + verb.slice(1);
-  return rest ? `${capitalized} ${rest}` : capitalized;
+  return t('Finished step: %s', capitalizedKey);
 }
 
 /**
