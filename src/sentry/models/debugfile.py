@@ -14,7 +14,7 @@ import uuid
 import zipfile
 from collections.abc import Container, Iterable, Mapping
 from datetime import datetime
-from typing import IO, TYPE_CHECKING, Any, BinaryIO, ClassVar, Literal
+from typing import IO, TYPE_CHECKING, Any, BinaryIO, ClassVar
 
 from django.db import models
 from django.db.models import ProtectedError, Q
@@ -438,25 +438,6 @@ def detect_single_dif_from_path(
     return result[0]
 
 
-def upload_dif_to_objectstore(
-    session: Session,
-    fileobj: IO[bytes],
-    content_type: str,
-    filename: str,
-    *,
-    key: str | None = None,
-    compression: Literal["none", "zstd"] = "none",
-) -> str:
-    """Uploads a debug file to Objectstore, returning the key under which the file was uploaded."""
-    return session.put(
-        fileobj,
-        key=key,
-        compression=compression,
-        content_type=content_type,
-        filename=filename,
-    )
-
-
 def _get_dif_object_name(meta: DifMeta) -> str:
     if meta.file_format == "proguard":
         return "proguard-mapping"
@@ -582,11 +563,8 @@ def create_dif_from_id(
                 assert fileobj is not None
                 source_cm = contextlib.nullcontext(fileobj)
             with source_cm as source:
-                storage_path = upload_dif_to_objectstore(
-                    session,
+                storage_path = session.put(
                     source,
-                    content_type,
-                    get_dif_download_filename(meta),
                     compression=(
                         "zstd"
                         if features.has(
@@ -594,6 +572,8 @@ def create_dif_from_id(
                         )
                         else "none"
                     ),
+                    content_type=content_type,
+                    filename=get_dif_download_filename(meta),
                 )
         except Exception:
             if exclusive_objectstore_write:
