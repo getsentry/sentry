@@ -112,6 +112,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:expose-migrated-discover-queries", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable GenAI features such as Autofix and Issue Summary
     manager.add("organizations:gen-ai-features", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable organization investigation notebooks.
+    manager.add("organizations:investigations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the 'translate' functionality for GenAI on the explore > traces page
     manager.add("organizations:gen-ai-search-agent-translate", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable AI search bar on the explore > metrics tab
@@ -361,8 +363,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:session-replay-recording-scrubbing", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable core Session Replay link in the sidebar
     manager.add("organizations:session-replay-ui", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
-    # Enable v2 issue activity feed UI
-    manager.add("organizations:issue-activity-feed-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable new stack trace component for issue details
     manager.add("organizations:issue-details-new-stack-trace", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable double-reading from EAP for issue feed search queries
