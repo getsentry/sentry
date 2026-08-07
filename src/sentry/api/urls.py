@@ -532,6 +532,9 @@ from sentry.seer.endpoints.organization_seer_agent_pr_groups import (
 from sentry.seer.endpoints.organization_seer_agent_update import (
     OrganizationSeerAgentUpdateEndpoint,
 )
+from sentry.seer.endpoints.organization_seer_explorer_stream import (
+    OrganizationSeerExplorerStreamCredentialsEndpoint,
+)
 from sentry.seer.endpoints.organization_seer_onboarding_check import OrganizationSeerOnboardingCheck
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
 from sentry.seer.endpoints.organization_seer_runs import OrganizationSeerRunsEndpoint
@@ -2401,6 +2404,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-chat/(?P<run_id>[^/]+)/$",
         OrganizationSeerAgentChatEndpoint.as_view(),
         name="sentry-api-0-organization-seer-explorer-chat-run-id",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-chat/(?P<run_id>[^/]+)/stream-credentials/$",
+        OrganizationSeerExplorerStreamCredentialsEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-explorer-stream-credentials",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/runs/$",

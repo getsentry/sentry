@@ -248,6 +248,7 @@ const ESM_NODE_MODULES = [
   'color',
   'marked',
   '@sentry\\+sqlish',
+  'conduit-client',
 ];
 
 const config: Config.InitialOptions = {
@@ -283,6 +284,13 @@ const config: Config.InitialOptions = {
     // conditions. Jest's CJS resolver can't follow them without explicit mapping.
     '^@sentry/sqlish/react$': '<rootDir>/node_modules/@sentry/sqlish/dist/react.js',
     '^@sentry/sqlish$': '<rootDir>/node_modules/@sentry/sqlish/dist/index.js',
+
+    // conduit-client's `main`/`require` both point at dist/index.cjs, which its
+    // published tarball does not contain — so Jest's CJS resolution fails outright.
+    // Point at the ESM build (transformed via ESM_NODE_MODULES below), which is
+    // what rspack resolves anyway. Removable once the package ships the CJS build
+    // it claims to have.
+    '^conduit-client$': '<rootDir>/node_modules/conduit-client/dist/index.js',
 
     // Disabled @sentry/toolbar in tests. It depends on iframes and global
     // window/cookies state.

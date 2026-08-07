@@ -581,6 +581,11 @@ if ENVIRONMENT == "development":
         "ws://127.0.0.1:8000",
         "http://localhost:8969/stream",
         "webpack-internal:",
+        # Conduit gateway (Seer agent streaming). The browser opens this SSE
+        # connection directly rather than through Sentry, so it needs its own
+        # connect-src entry. Ports match CONDUIT_GATEWAY_URL's default.
+        "http://127.0.0.1:9096",
+        "http://localhost:9096",
     ]
 
 # Before enforcing Content Security Policy, we recommend creating a separate

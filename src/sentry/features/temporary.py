@@ -315,6 +315,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Enable thinking + tool-call summaries in Seer Agent
     manager.add("organizations:seer-explorer-thinking-summary", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:seer-explorer-stream", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Deliver Seer Agent output over Conduit (SSE) instead of polling the state endpoint
+    manager.add("organizations:seer-explorer-conduit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable structured LLM context (JSON snapshot) instead of ASCII DOM snapshot
     manager.add("organizations:context-engine-structured-page-context", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable browser notifications for autofix runs
