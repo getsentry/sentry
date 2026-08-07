@@ -6,7 +6,7 @@ import time
 import zipfile
 from io import BytesIO
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.core.files.base import ContentFile
