@@ -414,17 +414,19 @@ function InboxSection({
       >
         <Container width="100%" padding="sm" background="secondary" radius="sm">
           <Disclosure.Title
-            trailingItems={
-              <Badge variant="muted">
+            aria-label={section.label}
+            aria-describedby={`inbox-section-${section.key}-count`}
+          >
+            <Flex align="center" justify="between" gap="sm" flex={1}>
+              <Flex align="center" gap="sm">
+                {getProgressIcon(section.progress)}
+                <Heading as="h3" size="md">
+                  {section.label}
+                </Heading>
+              </Flex>
+              <Badge id={`inbox-section-${section.key}-count`} variant="muted">
                 <QueryCount count={count} max={maxCount} hideIfEmpty={false} hideParens />
               </Badge>
-            }
-          >
-            <Flex align="center" gap="sm">
-              {getProgressIcon(section.progress)}
-              <Heading as="h3" size="md">
-                {section.label}
-              </Heading>
             </Flex>
           </Disclosure.Title>
         </Container>
