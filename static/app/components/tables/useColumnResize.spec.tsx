@@ -4,8 +4,40 @@ import {dragHandle} from 'sentry-test/dragMove';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {triggerResizeObservers} from 'sentry-test/resizeObserver';
 
-import {ColumnResizer} from 'sentry/components/tables/columnResizer';
+import {useDragMove} from '@sentry/scraps/dragHandle';
+
 import {useColumnResize} from 'sentry/components/tables/useColumnResize';
+import {useObservedColumnSize} from 'sentry/components/tables/useObservedColumnSize';
+
+interface HandleProps {
+  columnIndex: number;
+  onResizeEnd: () => void;
+  onResizeMove: (delta: number) => void;
+  onResizeStart: (columnIndex: number, cell: HTMLElement | null) => void;
+}
+
+// Stands in for whatever a shell renders on the column edge.
+function Handle({columnIndex, onResizeEnd, onResizeMove, onResizeStart}: HandleProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const {max, width} = useObservedColumnSize(ref);
+  const {moveProps} = useDragMove({
+    onMove: onResizeMove,
+    onMoveEnd: onResizeEnd,
+    onMoveStart: () => onResizeStart(columnIndex, ref.current?.closest('th') ?? null),
+    orientation: 'horizontal',
+  });
+
+  return (
+    <div
+      {...moveProps}
+      aria-valuemax={max || undefined}
+      aria-valuenow={width || undefined}
+      ref={ref}
+      role="separator"
+      tabIndex={0}
+    />
+  );
+}
 
 interface TestTableProps {
   getResizeTemplate?: (columnIndex: number, newWidth: number) => string;
@@ -29,7 +61,7 @@ function TestTable({
         <tr>
           <th>
             <div>Column</div>
-            <ColumnResizer
+            <Handle
               columnIndex={0}
               onResizeEnd={onResizeEnd}
               onResizeMove={onResizeMove}
@@ -142,6 +174,7 @@ describe('useColumnResize', () => {
 
     act(triggerResizeObservers);
 
+    // A separator has no value attribute, so the jest-dom rule does not apply.
     // eslint-disable-next-line jest-dom/prefer-to-have-value
     expect(resizer()).toHaveAttribute('aria-valuenow', '150');
   });
