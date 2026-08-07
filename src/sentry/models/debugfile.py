@@ -978,7 +978,10 @@ def create_debug_file_from_dif(
                 try:
                     dif, created = create_dif_from_file(project, meta, file)
                 except Exception:
-                    file.delete()
+                    try:
+                        file.delete()
+                    except ProtectedError:
+                        pass
                     raise
                 if not created:
                     file.delete()
