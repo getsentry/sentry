@@ -82,8 +82,9 @@ function AgentWriteApprovalContent({
   const [submittedDecision, setSubmittedDecision] = useState<'approve' | 'reject' | null>(
     null
   );
+  const isActive =
+    pendingInput?.input_type === 'agent_write_approval' && pendingInput.id === inputId;
   const pendingApproval = getPendingAgentWriteApproval(pendingInput, inputId);
-  const isActive = pendingApproval !== null;
   const canRespond =
     status === 'pending' && isActive && !readOnly && !!respondToUserInput;
   let displayStatus = status;
@@ -196,7 +197,7 @@ function AgentWriteApprovalContent({
               variant="primary"
               onClick={handleApprove}
               busy={isSubmitting || submittedDecision === 'approve'}
-              disabled={submittedDecision === 'reject'}
+              disabled={!pendingApproval || submittedDecision === 'reject'}
             >
               {t('Approve')}
             </Button>

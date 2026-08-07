@@ -240,6 +240,30 @@ describe('ToolUseBlock', () => {
     });
   });
 
+  it('allows an active approval with invalid grant data to be rejected', async () => {
+    const respondToUserInput = jest.fn();
+    const pendingInput = createPendingAgentApproval();
+    pendingInput.data = {};
+
+    render(
+      <BlockComponent
+        block={createAgentApprovalBlock()}
+        blockIndex={0}
+        pendingInput={pendingInput}
+        respondToUserInput={respondToUserInput}
+      />
+    );
+
+    expect(screen.getByRole('button', {name: 'Reject'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'Approve'})).toBeDisabled();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Reject'}));
+
+    expect(respondToUserInput).toHaveBeenCalledWith(APPROVAL_ID, {
+      decision: 'reject',
+    });
+  });
+
   it('does not resume with approval when only some scopes are granted', async () => {
     const organization = OrganizationFixture();
     const respondToUserInput = jest.fn();
