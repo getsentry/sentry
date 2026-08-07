@@ -5,9 +5,10 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {SpanFields} from 'sentry/views/insights/types';
 
+import type {ConversationApiResponse, ConversationApiSpan} from './useConversation';
 import {useConversation} from './useConversation';
 
-const BASE_SPAN = {
+const BASE_SPAN: ConversationApiSpan = {
   'gen_ai.conversation.id': 'conv-123',
   parent_span: 'parent-1',
   'precise.finish_ts': 1000.5,
@@ -21,10 +22,10 @@ const BASE_SPAN = {
   'gen_ai.operation.type': 'ai_client',
 };
 
-function envelope(
-  spans: Array<Record<string, unknown>>,
+function conversationResponse(
+  spans: ConversationApiSpan[],
   title: string | null = null
-): Record<string, unknown> {
+): ConversationApiResponse {
   return {
     conversationId: spans[0]?.['gen_ai.conversation.id'] ?? '',
     title,
@@ -57,7 +58,7 @@ describe('useConversation', () => {
   it('returns the conversation title from the envelope', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-title/`,
-      body: envelope(
+      body: conversationResponse(
         [{...BASE_SPAN, 'gen_ai.conversation.id': 'conv-title', span_id: 'span-title'}],
         'My great conversation'
       ),
@@ -76,7 +77,7 @@ describe('useConversation', () => {
   it('returns a null title when the envelope has none', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
-      body: envelope([BASE_SPAN]),
+      body: conversationResponse([BASE_SPAN]),
     });
 
     const {result} = renderHookWithProviders(
@@ -94,7 +95,7 @@ describe('useConversation', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
-      body: envelope([
+      body: conversationResponse([
         {
           'gen_ai.conversation.id': 'conv-123',
           parent_span: 'parent-1',
@@ -138,7 +139,7 @@ describe('useConversation', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-output/`,
-      body: envelope([
+      body: conversationResponse([
         {
           'gen_ai.conversation.id': 'conv-output',
           parent_span: 'parent-1',
@@ -179,7 +180,7 @@ describe('useConversation', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-456/`,
-      body: envelope([
+      body: conversationResponse([
         {
           'gen_ai.conversation.id': 'conv-456',
           parent_span: 'parent-1',
@@ -216,7 +217,7 @@ describe('useConversation', () => {
   it('uses empty string for missing optional fields', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-789/`,
-      body: envelope([
+      body: conversationResponse([
         {
           'gen_ai.conversation.id': 'conv-789',
           parent_span: 'parent-1',
@@ -255,7 +256,7 @@ describe('useConversation', () => {
   it('uses conversation timestamps when provided', async () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-timestamps/`,
-      body: envelope([
+      body: conversationResponse([
         {
           'gen_ai.conversation.id': 'conv-timestamps',
           parent_span: 'parent-1',
@@ -310,7 +311,7 @@ describe('useConversation', () => {
   it('uses span.name for description and name fields', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-name/`,
-      body: envelope([
+      body: conversationResponse([
         {
           'gen_ai.conversation.id': 'conv-name',
           parent_span: 'parent-1',
@@ -346,7 +347,7 @@ describe('useConversation', () => {
   it('sorts nodes by start timestamp for AI spans list', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-sort/`,
-      body: envelope([
+      body: conversationResponse([
         {
           'gen_ai.conversation.id': 'conv-sort',
           parent_span: 'parent-1',
@@ -396,7 +397,7 @@ describe('useConversation', () => {
 
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
-      body: envelope([BASE_SPAN]),
+      body: conversationResponse([BASE_SPAN]),
     });
 
     const {result} = renderHookWithProviders(
@@ -426,7 +427,7 @@ describe('useConversation', () => {
 
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
-      body: envelope([BASE_SPAN]),
+      body: conversationResponse([BASE_SPAN]),
     });
 
     const {result} = renderHookWithProviders(
@@ -453,7 +454,7 @@ describe('useConversation', () => {
   it('falls back to ALL_ACCESS_PROJECTS with no time params when no filters are set', async () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
-      body: envelope([BASE_SPAN]),
+      body: conversationResponse([BASE_SPAN]),
     });
 
     const {result} = renderHookWithProviders(
@@ -490,7 +491,7 @@ describe('useConversation', () => {
 
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-123/`,
-      body: envelope([BASE_SPAN]),
+      body: conversationResponse([BASE_SPAN]),
     });
 
     const {result} = renderHookWithProviders(
@@ -516,7 +517,7 @@ describe('useConversation', () => {
   it('filters to only gen_ai spans', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-filter/`,
-      body: envelope([
+      body: conversationResponse([
         {
           'gen_ai.conversation.id': 'conv-filter',
           parent_span: 'parent-1',
@@ -563,7 +564,7 @@ describe('useConversation', () => {
   it('maps errors and occurrences from the response onto the node', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-issues/`,
-      body: envelope([
+      body: conversationResponse([
         {
           ...BASE_SPAN,
           'gen_ai.conversation.id': 'conv-issues',
@@ -617,7 +618,7 @@ describe('useConversation', () => {
   it('defaults to no issues when the response omits errors and occurrences', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-no-issues/`,
-      body: envelope([
+      body: conversationResponse([
         {...BASE_SPAN, 'gen_ai.conversation.id': 'conv-no-issues', span_id: 'span-x'},
       ]),
     });
