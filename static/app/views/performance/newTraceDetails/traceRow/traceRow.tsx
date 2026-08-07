@@ -33,6 +33,11 @@ export interface TraceRowProps<T extends TraceTree.Node> {
   onRowKeyDown: (e: React.KeyboardEvent) => void;
   onSpanArrowClick: (e: React.MouseEvent) => void;
   onZoomIn: (e: React.MouseEvent) => void;
+  /**
+   * The pinned attribute column, rendered as a direct child of `.TraceRow`
+   * (never inside `.TraceLeftColumn`). Null when no attribute is pinned.
+   */
+  pinnedColumns: React.ReactNode;
   previouslyFocusedNodeRef: React.MutableRefObject<BaseNode | null>;
   projects: Record<string, PlatformKey | undefined>;
   registerListColumnRef: (e: HTMLDivElement | null) => void;

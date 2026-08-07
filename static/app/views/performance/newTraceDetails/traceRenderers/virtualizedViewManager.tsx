@@ -97,6 +97,14 @@ export class VirtualizedViewManager {
   scrolling_source: 'list' | 'fake scrollbar' | null = null;
   start_virtualized_index = 0;
 
+  // Shared horizontal scroll offset for the pinned attribute column. Applied to
+  // every cell's inner element so the whole column scrolls as one unit.
+  pinned_column_translate = 0;
+  // Width of the pinned attribute column (0 when none). The column overlays the
+  // right edge of the tree, so this is subtracted from the tree's visible width
+  // when clamping its horizontal scroll and sizing the horizontal scrollbar.
+  pinned_column_width = 0;
+
   // HTML refs that we need to keep track of such
   // that rendering can be done programmatically
   reset_zoom_button: HTMLButtonElement | null = null;
@@ -213,6 +221,8 @@ export class VirtualizedViewManager {
     this.onDividerMouseUp = this.onDividerMouseUp.bind(this);
     this.onDividerMouseMove = this.onDividerMouseMove.bind(this);
     this.onSyncedScrollbarScroll = this.onSyncedScrollbarScroll.bind(this);
+    this.onPinnedColumnScroll = this.onPinnedColumnScroll.bind(this);
+    this.registerPinnedColumnRef = this.registerPinnedColumnRef.bind(this);
     this.onWheel = this.onWheel.bind(this);
     this.onWheelEnd = this.onWheelEnd.bind(this);
     this.onWheelStart = this.onWheelStart.bind(this);
@@ -974,8 +984,17 @@ export class VirtualizedViewManager {
   }
 
   clampRowTransform(transform: number): number {
-    const columnWidth =
-      this.columns.list.width * this.view.trace_container_physical_space.width;
+    // The pinned attribute column overlays the right edge of the tree, so the
+    // tree's visible width is reduced by it. Subtracting it here lets the tree
+    // scroll far enough to reveal content hidden behind the pinned column.
+    // Clamp at 0: on narrow viewports or when the list column is dragged small,
+    // the fixed pinned width can exceed the list width and would otherwise
+    // produce a negative viewport that inflates the scroll range.
+    const columnWidth = Math.max(
+      0,
+      this.columns.list.width * this.view.trace_container_physical_space.width -
+        this.pinned_column_width
+    );
     const max = this.row_measurer.max - columnWidth + this.ROW_PADDING_PX;
 
     if (this.row_measurer.queue.length > 0) {
@@ -995,6 +1014,120 @@ export class VirtualizedViewManager {
     }
 
     return transform;
+  }
+
+  // Registers a pinned attribute column cell. Applies the current shared scroll
+  // offset (so cells mounted mid-scroll stay in sync) and wires up the wheel
+  // listener that scrolls the whole column together. Returns a cleanup that
+  // removes the listener when the (virtualized) cell unmounts, so remounts and
+  // Strict Mode don't leave handlers attached to detached DOM.
+  registerPinnedColumnRef(ref: HTMLElement | null) {
+    if (!ref) {
+      return;
+    }
+    const inner = ref.children[0] as HTMLElement | undefined;
+    if (inner) {
+      inner.style.transform = `translateX(${this.pinned_column_translate}px)`;
+    }
+    ref.addEventListener('wheel', this.onPinnedColumnScroll, {passive: false});
+    return () => {
+      ref.removeEventListener('wheel', this.onPinnedColumnScroll);
+    };
+  }
+
+  // Max leftward scroll (a positive number) needed to reveal the widest currently
+  // rendered pinned value. Computed from visible cells so it adapts as the pinned
+  // attribute changes without needing to reset stored measurements.
+  getPinnedColumnMaxScroll(): number {
+    let max = 0;
+    const cells = document.querySelectorAll<HTMLElement>('.TraceRow .TracePinnedColumn');
+    for (const cell of cells) {
+      const inner = cell.children[0] as HTMLElement | undefined;
+      if (inner) {
+        max = Math.max(max, inner.scrollWidth - cell.clientWidth);
+      }
+    }
+    return max;
+  }
+
+  clampPinnedColumnTransform(transform: number): number {
+    if (transform > 0) {
+      return 0;
+    }
+    const max = this.getPinnedColumnMaxScroll();
+    if (transform < -max) {
+      return -max;
+    }
+    return transform;
+  }
+
+  onPinnedColumnScroll(event: WheelEvent) {
+    // Holding shift key allows for horizontal scrolling
+    const distance = event.shiftKey
+      ? getHorizontalDelta(event.deltaX, event.deltaY)
+      : event.deltaX;
+
+    if (
+      event.shiftKey ||
+      (!event.shiftKey && Math.abs(event.deltaX) > Math.abs(event.deltaY))
+    ) {
+      // Prevents firing back/forward navigation
+      event.preventDefault();
+    } else {
+      // Let vertical wheel scroll the list as usual
+      return;
+    }
+
+    const newTransform = this.clampPinnedColumnTransform(
+      this.pinned_column_translate - distance
+    );
+    if (newTransform === this.pinned_column_translate) {
+      return;
+    }
+    this.pinned_column_translate = newTransform;
+    this.applyPinnedColumnTransform();
+  }
+
+  applyPinnedColumnTransform() {
+    const inners = document.querySelectorAll<HTMLElement>(
+      '.TraceRow .TracePinnedColumn > div'
+    );
+    for (const inner of inners) {
+      inner.style.transform = `translateX(${this.pinned_column_translate}px)`;
+    }
+  }
+
+  // Resets the pinned column scroll offset, e.g. when the pinned attribute changes.
+  resetPinnedColumnScroll() {
+    this.pinned_column_translate = 0;
+    this.applyPinnedColumnTransform();
+  }
+
+  // Updates the pinned column width (0 when unpinned) and re-clamps the tree's
+  // horizontal scroll so its content is reachable around the now (un)covered area.
+  setPinnedColumnWidth(width: number) {
+    if (this.pinned_column_width === width) {
+      return;
+    }
+    this.pinned_column_width = width;
+
+    const clamped = this.clampRowTransform(this.columns.list.translate[0]);
+    if (clamped !== this.columns.list.translate[0]) {
+      this.columns.list.translate[0] = clamped;
+      const rows = document.querySelectorAll<HTMLElement>(
+        '.TraceRow .TraceLeftColumn > div'
+      );
+      for (const row of rows) {
+        row.style.transform = `translateX(${clamped}px)`;
+      }
+      if (this.horizontal_scrollbar_container) {
+        this.horizontal_scrollbar_container.scrollLeft = -Math.round(clamped);
+      }
+    }
+
+    // Refresh the horizontal scrollbar width, which also depends on the pinned
+    // column width.
+    this.draw();
   }
 
   private getViewCalculationContext(): TraceViewCalculationContext {
@@ -2059,6 +2192,13 @@ export class VirtualizedViewManager {
       );
       this.last_span_column_width = options.span_list_width;
     }
+    // Exposed so wrapper-positioned overlays (the pinned column header + border
+    // line) can offset by the vertical scrollbar width and stay aligned with the
+    // per-row cells, which live inside the scrollbar-narrowed scroll container.
+    if (this.last_scrollbar_width_var !== this.scrollbar_width) {
+      container.style.setProperty('--trace-scrollbar-width', `${this.scrollbar_width}px`);
+      this.last_scrollbar_width_var = this.scrollbar_width;
+    }
 
     if (this.indicator_container) {
       const correction =
@@ -2083,8 +2223,13 @@ export class VirtualizedViewManager {
       ) / 10;
 
     if (this.horizontal_scrollbar_container) {
+      // The pinned column covers the right edge of the tree, so the scrollbar's
+      // viewport (and thus its scroll range) is the tree width minus that column.
       this.horizontal_scrollbar_container.style.width =
-        (dividerPosition / this.view.trace_container_physical_space.width) * 100 + '%';
+        (Math.max(0, dividerPosition - this.pinned_column_width) /
+          this.view.trace_container_physical_space.width) *
+          100 +
+        '%';
     }
 
     if (this.divider) {
@@ -2095,6 +2240,7 @@ export class VirtualizedViewManager {
 
   last_list_column_width = 0;
   last_span_column_width = 0;
+  last_scrollbar_width_var = -1;
   drawInvisibleBars() {
     for (let i = 0; i < this.invisible_bars.length; i++) {
       const invisible_bar = this.invisible_bars[i];

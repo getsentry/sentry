@@ -78,6 +78,9 @@ interface AttributesTreeProps<
   columnCount?: number;
   config?: AttributesTreeRowConfig;
   getAdjustedAttributeKey?: (attribute: TraceItemResponseAttribute) => string;
+  // If provided, renders the returned node immediately after the attribute key
+  // (e.g. an icon indicating the attribute's state). Return null for no suffix.
+  getAttributeKeySuffix?: (content: AttributesTreeContent) => React.ReactNode;
   getCustomActions?: (content: AttributesTreeContent) => MenuItemProps[];
 }
 
@@ -102,6 +105,7 @@ interface AttributesTreeRowProps<
   attributeKey: string;
   content: AttributesTreeContent;
   config?: AttributesTreeRowConfig;
+  getAttributeKeySuffix?: (content: AttributesTreeContent) => React.ReactNode;
   getCustomActions?: (content: AttributesTreeContent) => MenuItemProps[];
   isLast?: boolean;
   spacerCount?: number;
@@ -173,6 +177,7 @@ function getAttributesTreeRows<RendererExtra extends RenderFunctionBaggage>({
   isLast = false,
   config = {},
   getCustomActions,
+  getAttributeKeySuffix,
 }: AttributesTreeRowProps<RendererExtra> &
   AttributesFieldRender<RendererExtra> & {
     uniqueKey: string;
@@ -190,6 +195,7 @@ function getAttributesTreeRows<RendererExtra extends RenderFunctionBaggage>({
         config,
         rendererExtra,
         getCustomActions,
+        getAttributeKeySuffix,
       });
       return rows.concat(branchRows);
     },
@@ -207,6 +213,7 @@ function getAttributesTreeRows<RendererExtra extends RenderFunctionBaggage>({
       isLast={isLast}
       config={config}
       getCustomActions={getCustomActions}
+      getAttributeKeySuffix={getAttributeKeySuffix}
     />,
     ...subtreeRows,
   ];
@@ -224,6 +231,7 @@ function AttributesTreeColumns<RendererExtra extends RenderFunctionBaggage>({
   config = {},
   getCustomActions,
   getAdjustedAttributeKey,
+  getAttributeKeySuffix,
 }: AttributesTreeColumnsProps<RendererExtra>) {
   const assembledColumns = useMemo(() => {
     if (!attributes) {
@@ -254,6 +262,7 @@ function AttributesTreeColumns<RendererExtra extends RenderFunctionBaggage>({
         rendererExtra: renderExtra,
         config,
         getCustomActions,
+        getAttributeKeySuffix,
       })
     );
 
@@ -300,6 +309,7 @@ function AttributesTreeColumns<RendererExtra extends RenderFunctionBaggage>({
     config,
     getCustomActions,
     getAdjustedAttributeKey,
+    getAttributeKeySuffix,
   ]);
 
   return <Fragment>{assembledColumns}</Fragment>;
@@ -329,11 +339,13 @@ function AttributesTreeRow<RendererExtra extends RenderFunctionBaggage>({
   isLast = false,
   config = {},
   getCustomActions,
+  getAttributeKeySuffix,
   ...props
 }: AttributesTreeRowProps<RendererExtra>) {
   const originalAttribute = content.originalAttribute;
   const hasErrors = false; // No error handling in this simplified version
   const hasStem = !isLast && isEmptyObject(content.subtree);
+  const keySuffix = getAttributeKeySuffix?.(content);
 
   if (!originalAttribute) {
     return (
@@ -372,6 +384,7 @@ function AttributesTreeRow<RendererExtra extends RenderFunctionBaggage>({
           data-test-id={`tree-key-${content.originalAttribute?.original_attribute_key}`}
         >
           {attributeKey}
+          {keySuffix}
         </TreeKey>
       </TreeKeyTrunk>
       <TreeValueTrunk>

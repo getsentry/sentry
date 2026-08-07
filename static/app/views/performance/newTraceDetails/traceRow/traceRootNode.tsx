@@ -64,6 +64,7 @@ export function TraceRootRow(props: TraceRowProps<TraceNode>) {
         className={props.spanColumnClassName}
         onDoubleClick={props.onRowDoubleClick}
       />
+      {props.pinnedColumns}
     </div>
   );
 }

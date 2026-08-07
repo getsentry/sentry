@@ -61,6 +61,15 @@ import {
   type RovingTabIndexUserActions,
 } from './traceState/traceRovingTabIndex';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
+import {isEAPSpan} from './traceGuards';
+import {
+  PINNED_COLUMN_WIDTH,
+  TracePinnedAttributeColumn,
+  TracePinnedAttributeHeader,
+  type TracePinnedAttributeData,
+  useTracePinnedAttribute,
+  useTracePinnedAttributeData,
+} from './tracePinnedAttribute';
 import type {TraceReducerState} from './traceState';
 
 const traceIssueIconBackgroundStyles = css`
@@ -117,6 +126,16 @@ function snapshotVisibleTraceItems(nodes: BaseNode[], _version: number): BaseNod
   return nodes.slice();
 }
 
+function collectTraceSpanIds(nodes: BaseNode[]): string[] {
+  const spanIds: string[] = [];
+  for (const node of nodes) {
+    if (isEAPSpan(node.value)) {
+      spanIds.push(node.value.event_id);
+    }
+  }
+  return spanIds;
+}
+
 interface TraceProps {
   forceRerender: number;
   isLoading: boolean;
@@ -156,6 +175,7 @@ export function Trace({
   const organization = useOrganization();
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
+  const {pinnedAttribute} = useTracePinnedAttribute();
   const {theme: colorMode} = useLegacyStore(ConfigStore);
 
   const rerenderRef = useRef(rerender);
@@ -182,10 +202,27 @@ export function Trace({
     TRACE_WATERFALL_TIME_COMPRESSION_FEATURE
   );
 
+  // Reset the pinned column's horizontal scroll when the pinned attribute changes
+  // so a new (potentially shorter) attribute isn't rendered mid-scroll, and keep
+  // the tree's scroll clamp aware of the width the pinned column covers.
+  useLayoutEffect(() => {
+    manager.setPinnedColumnWidth(pinnedAttribute ? PINNED_COLUMN_WIDTH : 0);
+    manager.resetPinnedColumnScroll();
+  }, [manager, pinnedAttribute]);
+
   const visibleTraceItems = useMemo(
     () => snapshotVisibleTraceItems(trace.list, forceRerender),
     [trace.list, forceRerender]
   );
+  const pinnedAttributeSpanIds = useMemo(
+    () => (pinnedAttribute ? collectTraceSpanIds(visibleTraceItems) : []),
+    [visibleTraceItems, pinnedAttribute]
+  );
+  const pinnedAttributeData = useTracePinnedAttributeData({
+    pinnedAttribute,
+    spanIds: pinnedAttributeSpanIds,
+    traceSlug: trace_id,
+  });
 
   const timeCompressionOptions = useMemo((): TraceTimeCompressionManagerOptions => {
     const traceSpace: [start: number, duration: number] = [traceStart, traceDuration];
@@ -410,6 +447,8 @@ export function Trace({
           onRowKeyDown={onRowKeyDown}
           tree={trace}
           trace_id={trace_id}
+          pinnedAttribute={pinnedAttribute}
+          pinnedAttributeData={pinnedAttributeData}
         />
       );
     },
@@ -431,14 +470,22 @@ export function Trace({
       theme,
       trace.type,
       forceRerender,
+      pinnedAttribute,
+      pinnedAttributeData,
     ]
   );
 
+  // While the trace is loading the virtualized list renders TraceLoadingRow,
+  // which has no pinned attribute cell. Derive the loading state once so the
+  // pinned column header and border line only render alongside real rows,
+  // never orphaned above the loading placeholders.
+  const isTraceLoading = trace.type !== 'trace' || isLoading;
+
   const render = useMemo(() => {
-    return trace.type !== 'trace' || isLoading
+    return isTraceLoading
       ? (r: any) => renderLoadingRow(r)
       : (r: any) => renderVirtualizedRow(r);
-  }, [isLoading, renderLoadingRow, renderVirtualizedRow, trace.type]);
+  }, [isTraceLoading, renderLoadingRow, renderVirtualizedRow]);
 
   const traceNode = trace.root.children[0];
   const traceStartTimestamp = traceNode?.space?.[0];
@@ -458,7 +505,7 @@ export function Trace({
       className={`
         ${trace.root.space[1] === 0 ? 'Empty' : ''}
         ${trace.indicators.length > 0 ? 'WithIndicators' : ''}
-        ${trace.type !== 'trace' || isLoading ? 'Loading' : ''}
+        ${isTraceLoading ? 'Loading' : ''}
         ${ConfigStore.get('theme')}`}
     >
       <div
@@ -468,6 +515,15 @@ export function Trace({
         <div className="TraceScrollbarScroller" />
       </div>
       <div className="TraceDivider" ref={manager.registerDividerRef} />
+      {pinnedAttribute && !isTraceLoading ? (
+        <Fragment>
+          <div className="TracePinnedColumnLine" />
+          <TracePinnedAttributeHeader
+            pinnedAttribute={pinnedAttribute}
+            hasError={pinnedAttributeData.hasError}
+          />
+        </Fragment>
+      ) : null}
       <div
         className="TraceIndicatorsContainer"
         ref={manager.registerIndicatorContainerRef}
@@ -520,7 +576,7 @@ export function Trace({
         {manager.interval_bars.map((_, i) => {
           const indicatorTimestamp = manager.intervals[i] ?? 0;
 
-          if (trace.type !== 'trace' || isLoading) {
+          if (isTraceLoading) {
             return null;
           }
 
@@ -539,8 +595,7 @@ export function Trace({
             </div>
           );
         })}
-        {trace.type === 'trace' &&
-          !isLoading &&
+        {!isTraceLoading &&
           timeCompression.gaps.map((gap, i) => (
             <CollapsedGapMarker
               key={`${gap.start}-${gap.end}`}
@@ -592,6 +647,8 @@ function RenderTraceRow(props: {
   onRowKeyDown: (event: React.KeyboardEvent, index: number, node: BaseNode) => void;
   onZoomIn: (event: React.MouseEvent, node: BaseNode, value: boolean) => void;
   organization: Organization;
+  pinnedAttribute: string | null;
+  pinnedAttributeData: TracePinnedAttributeData;
   previouslyFocusedNodeRef: React.MutableRefObject<BaseNode | null>;
   projects: Record<Project['slug'], Project['platform']>;
   searchResultsIteratorIndex: number | null;
@@ -690,6 +747,19 @@ function RenderTraceRow(props: {
     paddingLeft: TraceTree.Depth(node) * props.manager.row_depth_padding,
   };
 
+  const spanId = isEAPSpan(node.value) ? node.value.event_id : undefined;
+  const pinnedColumns = props.pinnedAttribute ? (
+    <TracePinnedAttributeColumn
+      value={spanId ? props.pinnedAttributeData.valuesBySpanId.get(spanId) : undefined}
+      isLoading={
+        spanId !== undefined &&
+        props.pinnedAttributeData.isLoading &&
+        !props.pinnedAttributeData.resolvedSpanIds.has(spanId)
+      }
+      manager={props.manager}
+    />
+  ) : null;
+
   const rowProps: TraceRowProps<BaseNode> = {
     onExpand,
     onZoomIn,
@@ -715,6 +785,7 @@ function RenderTraceRow(props: {
     registerListColumnRef,
     registerSpanColumnRef,
     registerSpanArrowRef,
+    pinnedColumns,
   };
 
   return node.renderWaterfallRow(rowProps);
@@ -1516,6 +1587,15 @@ const TraceStylingWrapper = styled('div')`
       .TraceLeftColumn {
         box-shadow: inset 0px 0 0px 1px ${p => p.theme.tokens.focus.default} !important;
       }
+
+      /* The opaque pinned column covers the row's inset outline, so redraw its
+         top and bottom edges (the left/right edges are already the pinned column
+         line and the divider). */
+      .TracePinnedColumn {
+        box-shadow:
+          inset 0 1px 0 0 ${p => p.theme.tokens.focus.default},
+          inset 0 -1px 0 0 ${p => p.theme.tokens.focus.default};
+      }
     }
 
     &.Highlight,
@@ -1526,6 +1606,12 @@ const TraceStylingWrapper = styled('div')`
 
       .TraceRightColumn.Odd {
         background-color: transparent !important;
+      }
+
+      /* The pinned column is opaque (it scrolls over the tree), so match the
+         row's focused background instead of leaving a plain block behind. */
+      .TracePinnedColumn {
+        background-color: var(--row-background-focused);
       }
     }
 
@@ -1540,6 +1626,11 @@ const TraceStylingWrapper = styled('div')`
       .TraceRightColumn.Odd {
         background-color: transparent !important;
       }
+      .TracePinnedColumn {
+        box-shadow:
+          inset 0 1px 0 0 var(--row-outline),
+          inset 0 -1px 0 0 var(--row-outline);
+      }
     }
 
     &.SearchResult {
@@ -1547,6 +1638,10 @@ const TraceStylingWrapper = styled('div')`
 
       .TraceRightColumn {
         background-color: transparent;
+      }
+
+      .TracePinnedColumn {
+        background-color: ${p => p.theme.colors.yellow100};
       }
     }
 
@@ -1592,6 +1687,10 @@ const TraceStylingWrapper = styled('div')`
         .TraceLeftColumnInner {
           padding-left: 0 !important;
         }
+      }
+
+      .TracePinnedColumn {
+        background-color: ${p => p.theme.tokens.background.secondary};
       }
     }
   }
@@ -1641,6 +1740,106 @@ const TraceStylingWrapper = styled('div')`
         opacity: 1;
         transition: 300ms 300ms ease-out;
         pointer-events: auto;
+      }
+    }
+  }
+
+  /*
+   * The pinned attribute column is absolutely positioned at the right edge of the
+   * tree (just left of the divider). It consumes no flex width, so the span-bar
+   * coordinate system and divider math are untouched. It must be a direct child
+   * of .TraceRow (never inside .TraceLeftColumn, which is horizontally scrolled).
+   *
+   * The left border is drawn once as a full-height line (.TracePinnedColumnLine)
+   * so it stays continuous below the last row, matching the full-height divider on
+   * the right. The per-row cells and header therefore do not draw their own left
+   * border.
+   */
+  .TracePinnedColumnLine {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    width: 1px;
+    /* The header and this line are positioned against the wrapper (full width),
+       while the per-row cells live in the scrollbar-narrowed scroll container.
+       Offset by listFraction * scrollbarWidth so they align with the cells. */
+    right: calc(
+      var(--span-column-width) * 100% + var(--list-column-width) *
+        var(--trace-scrollbar-width, 0px) + ${PINNED_COLUMN_WIDTH}px
+    );
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    background-color: ${p => p.theme.tokens.border.primary};
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .TracePinnedColumnHeader {
+    position: absolute;
+    top: 0;
+    height: 38px;
+    right: calc(
+      var(--span-column-width) * 100% + var(--list-column-width) *
+        var(--trace-scrollbar-width, 0px)
+    );
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: ${p => p.theme.space.xs};
+    padding-left: ${p => p.theme.space.md};
+    padding-right: ${p => p.theme.space.xs};
+    background-color: ${p => p.theme.tokens.background.primary};
+    border-right: 1px solid ${p => p.theme.tokens.border.primary};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+    color: ${p => p.theme.tokens.content.secondary};
+    font-size: ${p => p.theme.font.size.sm};
+
+    .TracePinnedColumnHeaderLabel {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
+      flex: 1 1 auto;
+      color: ${p => p.theme.tokens.content.primary};
+      font-weight: ${p => p.theme.font.weight.sans.medium};
+    }
+  }
+
+  .TracePinnedColumn {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    right: calc(var(--span-column-width) * 100%);
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    background-color: ${p => p.theme.tokens.background.primary};
+    /* Keep the column's text uniform instead of inheriting the row's semantic
+       (error/warning) color. The background still tracks the row's focused,
+       search, and collapsed states (see the row-state rules above) so the column
+       matches the row rather than leaving a plain block behind. */
+    color: ${p => p.theme.tokens.content.primary};
+
+    /* Inner element the view manager translates so the whole column scrolls
+       horizontally together. Horizontal padding lives here (not on the cell) so
+       the cell's clientWidth equals the full column width and the manager's
+       max-scroll math reveals the trailing edge of the value. */
+    .TracePinnedColumnInner {
+      display: flex;
+      align-items: center;
+      height: 100%;
+      white-space: nowrap;
+      padding-left: ${p => p.theme.space.md};
+      padding-right: ${p => p.theme.space.sm};
+      will-change: transform;
+      transform-origin: left center;
+    }
+
+    .TracePinnedColumnValue {
+      white-space: nowrap;
+
+      &.Empty {
+        color: ${p => p.theme.tokens.content.secondary};
       }
     }
   }

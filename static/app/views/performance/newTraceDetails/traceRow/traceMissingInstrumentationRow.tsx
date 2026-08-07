@@ -56,6 +56,7 @@ export function TraceMissingInstrumentationRow(
           <TraceIcons.Chevron direction="left" />
         </button>
       </div>
+      {props.pinnedColumns}
     </div>
   );
 }
