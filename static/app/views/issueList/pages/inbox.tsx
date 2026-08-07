@@ -557,7 +557,8 @@ const InboxSectionContent = styled(Disclosure.Content)`
 `;
 
 const StickySectionHeader = styled(Container)`
-  z-index: 1;
+  /* Buttons are position: relative, so load-more paints over a z-index: 1 header. */
+  z-index: 2;
 `;
 
 const ResizeHandle = styled('div')<{atMaxWidth: boolean; atMinWidth: boolean}>`
