@@ -14,10 +14,17 @@ import {
   makeAutomationEditPathname,
 } from 'sentry/views/automations/pathnames';
 import {
+  makeMonitorBasePathname,
   makeMonitorCreatePathname,
   makeMonitorDetailsPathname,
   makeMonitorEditPathname,
 } from 'sentry/views/detectors/pathnames';
+
+export function MonitorsListRedirect() {
+  const organization = useOrganization();
+
+  return <Redirect to={makeMonitorBasePathname(organization.slug)} />;
+}
 
 interface AlertRuleWorkflow {
   alertRuleId: string | null;

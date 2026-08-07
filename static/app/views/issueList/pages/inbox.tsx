@@ -1,4 +1,5 @@
-import {useRef} from 'react';
+import {useEffectEvent, useLayoutEffect, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useInfiniteQuery} from '@tanstack/react-query';
 import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
@@ -30,6 +31,7 @@ import {getMessage, getTitle} from 'sentry/utils/events';
 import {useMembers} from 'sentry/utils/members/useMembers';
 import {orgHasSeerAccess} from 'sentry/utils/seer/orgHasSeerAccess';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useResizable} from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
@@ -53,8 +55,8 @@ const INBOX_MAX_SIZE = 640;
 type AssignmentFilter = (typeof ASSIGNMENT_FILTERS)[number];
 
 const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
-  me: ' assigned:me',
-  my_teams: ' assigned:[me,my_teams]',
+  me: ' assigned_or_suggested:me',
+  my_teams: ' assigned_or_suggested:[me,my_teams]',
   all: '',
 };
 interface InboxSectionContext {
@@ -133,7 +135,56 @@ export default function InboxPage() {
   );
 }
 
+function useSelectFirstLoadedIssue({
+  disabled,
+  onSelect,
+  resetKey,
+  sections,
+}: {
+  disabled: boolean;
+  onSelect: (issueId: string) => void;
+  resetKey: AssignmentFilter;
+  sections: InboxSectionConfig[];
+}) {
+  const sectionResults = useRef(new Map<string, string | null>());
+  const hasFinished = useRef(disabled);
+  const previousResetKey = useRef(resetKey);
+
+  if (previousResetKey.current !== resetKey) {
+    previousResetKey.current = resetKey;
+    sectionResults.current.clear();
+    hasFinished.current = disabled;
+  }
+
+  return (sectionKey: string, firstIssueId: string | null) => {
+    if (hasFinished.current) {
+      return;
+    }
+    if (disabled) {
+      hasFinished.current = true;
+      return;
+    }
+
+    sectionResults.current.set(sectionKey, firstIssueId);
+    for (const section of sections) {
+      if (!sectionResults.current.has(section.key)) {
+        return;
+      }
+
+      const issueId = sectionResults.current.get(section.key);
+      if (issueId) {
+        hasFinished.current = true;
+        onSelect(issueId);
+        return;
+      }
+    }
+    hasFinished.current = true;
+  };
+}
+
 function InboxContent() {
+  const theme = useTheme();
+  const isDesktop = useMedia(`(min-width: ${theme.breakpoints.md})`);
   const {layout} = usePrimaryNavigation();
   const isMobile = layout === 'mobile';
   const resizableContainerRef = useRef<HTMLDivElement>(null);
@@ -142,12 +193,15 @@ function InboxContent() {
   const [assignmentFilter, setAssignmentFilter] = useQueryState(
     ASSIGNMENT_QUERY_PARAM,
     parseAsStringLiteral(ASSIGNMENT_FILTERS)
-      .withDefault('my_teams')
+      .withDefault('me')
       .withOptions({history: 'replace'})
   );
   const [selectedIssueId, setSelectedIssueId] = useQueryState(
     SELECTED_ISSUE_QUERY_PARAM,
     parseAsString.withOptions({history: 'replace'})
+  );
+  const sections = SECTIONS.filter(
+    section => !section.hidden?.({assignmentFilter, hasSeer})
   );
   const [storedSize, setStoredSize] = useSyncedLocalStorageState(
     INBOX_SPLIT_SIZE_STORAGE_KEY,
@@ -159,6 +213,13 @@ function InboxContent() {
     minWidth: INBOX_MIN_SIZE,
     maxWidth: INBOX_MAX_SIZE,
     onResizeEnd: setStoredSize,
+  });
+
+  const handleInitialSectionResult = useSelectFirstLoadedIssue({
+    disabled: !isDesktop || selectedIssueId !== null,
+    onSelect: issueId => void setSelectedIssueId(issueId),
+    resetKey: assignmentFilter,
+    sections,
   });
 
   return (
@@ -207,14 +268,13 @@ function InboxContent() {
             </SegmentedControl>
           </Flex>
           <Stack flex={1} minHeight={0} overflowY="auto" overscrollBehavior="contain">
-            {SECTIONS.filter(
-              section => !section.hidden?.({assignmentFilter, hasSeer})
-            ).map(section => (
+            {sections.map(section => (
               <InboxSection
                 key={section.key}
                 section={section}
                 assignmentFilter={assignmentFilter}
                 selectedIssueId={selectedIssueId}
+                onInitialResult={handleInitialSectionResult}
               />
             ))}
           </Stack>
@@ -272,11 +332,17 @@ function InboxContent() {
 
 interface InboxSectionProps {
   assignmentFilter: AssignmentFilter;
+  onInitialResult: (sectionKey: string, firstIssueId: string | null) => void;
   section: InboxSectionConfig;
   selectedIssueId: string | null;
 }
 
-function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSectionProps) {
+function InboxSection({
+  assignmentFilter,
+  onInitialResult,
+  section,
+  selectedIssueId,
+}: InboxSectionProps) {
   const organization = useOrganization();
   const queryResult = useInfiniteQuery({
     ...apiOptions.asInfinite<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
@@ -298,6 +364,17 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
   const maxCount = queryResult.data?.pages[0]?.headers['X-Max-Hits'];
   const {data: members = []} = useMembers();
   const membersById = new Map(members.map(member => [member.id, member]));
+  const hasReportedInitialResult = useRef(false);
+  const reportInitialResult = useEffectEvent(() => {
+    onInitialResult(section.key, groups[0]?.id ?? null);
+  });
+
+  useLayoutEffect(() => {
+    if (queryResult.isSuccess && !hasReportedInitialResult.current) {
+      hasReportedInitialResult.current = true;
+      reportInitialResult();
+    }
+  }, [queryResult.isSuccess]);
 
   return (
     <Disclosure
@@ -479,7 +556,8 @@ const InboxSectionContent = styled(Disclosure.Content)`
 `;
 
 const StickySectionHeader = styled(Container)`
-  z-index: 1;
+  /* Buttons are position: relative, so load-more paints over a z-index: 1 header. */
+  z-index: 2;
 `;
 
 const ResizeHandle = styled('div')<{atMaxWidth: boolean; atMinWidth: boolean}>`

@@ -20,9 +20,12 @@ import {
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {ProgressState} from 'sentry/types/group';
+import {useMedia} from 'sentry/utils/useMedia';
 import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/queries/inbox';
 
 import InboxPage from './inbox';
+
+jest.mock('sentry/utils/useMedia');
 
 describe('InboxPage', () => {
   const organization = OrganizationFixture({
@@ -125,6 +128,7 @@ describe('InboxPage', () => {
   });
 
   beforeEach(() => {
+    jest.mocked(useMedia).mockReturnValue(false);
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
@@ -143,7 +147,8 @@ describe('InboxPage', () => {
     query: string,
     body: unknown,
     statusCode = 200,
-    total = Array.isArray(body) ? body.length : 0
+    total = Array.isArray(body) ? body.length : 0,
+    asyncDelay?: number
   ) {
     return MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
@@ -153,47 +158,53 @@ describe('InboxPage', () => {
       body,
       headers: {'X-Hits': String(total)},
       statusCode,
+      asyncDelay,
     });
   }
 
   function mockSuccessfulSections() {
     return [
       mockSection(
-        'issue.progress:fix_proposed is:unresolved assigned:[me,my_teams]',
+        'issue.progress:fix_proposed is:unresolved assigned_or_suggested:me',
         [fixProposedGroup],
         200,
         2
       ),
       mockSection(
-        'issue.progress:diagnosed is:unresolved assigned:[me,my_teams]',
+        'issue.progress:diagnosed is:unresolved assigned_or_suggested:me',
         [diagnosedGroup],
         200,
         2
       ),
       mockSection(
-        'issue.progress:assigned is:unresolved assigned:[me,my_teams]',
+        'issue.progress:assigned is:unresolved assigned_or_suggested:me',
         [assignedGroup],
         200,
         12
       ),
-      mockSection('issue.progress:fix_applied is:unresolved assigned:[me,my_teams]', []),
+      mockSection(
+        'issue.progress:fix_applied is:unresolved assigned_or_suggested:me',
+        []
+      ),
     ];
   }
 
   function mockIssuePreview({
+    group = fixProposedGroup,
     markSeenResponse = {...fixProposedGroup, hasSeen: true},
     markSeenStatusCode = 200,
   }: {
+    group?: typeof fixProposedGroup;
     markSeenResponse?: typeof fixProposedGroup;
     markSeenStatusCode?: number;
   } = {}) {
-    let previewHasSeen = fixProposedGroup.hasSeen;
+    let previewHasSeen = group.hasSeen;
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/`,
-      body: () => ({...fixProposedGroup, hasSeen: previewHasSeen}),
+      url: `/organizations/org-slug/issues/${group.id}/`,
+      body: () => ({...group, hasSeen: previewHasSeen}),
     });
     const markSeenRequest = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/`,
+      url: `/organizations/org-slug/issues/${group.id}/`,
       method: 'PUT',
       body: () => {
         if (markSeenStatusCode < 400) {
@@ -204,7 +215,7 @@ describe('InboxPage', () => {
       statusCode: markSeenStatusCode,
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/autofix/setup/`,
+      url: `/organizations/org-slug/issues/${group.id}/autofix/setup/`,
       body: {
         integration: {ok: false, reason: null},
         billing: {hasAutofixQuota: false},
@@ -213,23 +224,27 @@ describe('InboxPage', () => {
     });
     mockAutofixResponse(ExplorerAutofixResponseFixture({autofix: null}));
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/attachments/`,
+      url: `/organizations/org-slug/issues/${group.id}/autofix/`,
+      body: ExplorerAutofixResponseFixture({autofix: null}),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/attachments/`,
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/tags/`,
+      url: `/organizations/org-slug/issues/${group.id}/tags/`,
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/external-issues/`,
+      url: `/organizations/org-slug/issues/${group.id}/external-issues/`,
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/integrations/`,
+      url: `/organizations/org-slug/issues/${group.id}/integrations/`,
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/pull-requests/`,
+      url: `/organizations/org-slug/issues/${group.id}/pull-requests/`,
       body: {pullRequests: []},
     });
     MockApiClient.addMockResponse({
@@ -282,10 +297,10 @@ describe('InboxPage', () => {
     expect(screen.getByRole('heading', {name: 'Issues', level: 2})).toBeInTheDocument();
 
     for (const [index, query] of [
-      'issue.progress:fix_proposed is:unresolved assigned:[me,my_teams]',
-      'issue.progress:diagnosed is:unresolved assigned:[me,my_teams]',
-      'issue.progress:assigned is:unresolved assigned:[me,my_teams]',
-      'issue.progress:fix_applied is:unresolved assigned:[me,my_teams]',
+      'issue.progress:fix_proposed is:unresolved assigned_or_suggested:me',
+      'issue.progress:diagnosed is:unresolved assigned_or_suggested:me',
+      'issue.progress:assigned is:unresolved assigned_or_suggested:me',
+      'issue.progress:fix_applied is:unresolved assigned_or_suggested:me',
     ].entries()) {
       await waitFor(() =>
         expect(requests[index]).toHaveBeenCalledWith(
@@ -390,19 +405,19 @@ describe('InboxPage', () => {
       url: '/organizations/org-slug/issues/',
       match: [
         MockApiClient.matchQuery({
-          query: `issue.progress:fix_proposed is:unresolved assigned:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`,
+          query: `issue.progress:fix_proposed is:unresolved assigned_or_suggested:me${INBOX_AUTOFIX_CATEGORY_FILTER}`,
         }),
       ],
       body: [fixProposedGroup],
       headers: {'X-Hits': '1000', 'X-Max-Hits': '1000'},
     });
-    mockSection('issue.progress:diagnosed is:unresolved assigned:[me,my_teams]', [
+    mockSection('issue.progress:diagnosed is:unresolved assigned_or_suggested:me', [
       diagnosedGroup,
     ]);
-    mockSection('issue.progress:assigned is:unresolved assigned:[me,my_teams]', [
+    mockSection('issue.progress:assigned is:unresolved assigned_or_suggested:me', [
       assignedGroup,
     ]);
-    mockSection('issue.progress:fix_applied is:unresolved assigned:[me,my_teams]', []);
+    mockSection('issue.progress:fix_applied is:unresolved assigned_or_suggested:me', []);
 
     render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
 
@@ -440,13 +455,23 @@ describe('InboxPage', () => {
   it('filters sections by the selected assignee', async () => {
     mockSuccessfulSections();
     mockIssuePreview();
-    const meRequests = [
-      mockSection('issue.progress:fix_proposed is:unresolved assigned:me', [
-        fixProposedGroup,
-      ]),
-      mockSection('issue.progress:diagnosed is:unresolved assigned:me', [diagnosedGroup]),
-      mockSection('issue.progress:assigned is:unresolved assigned:me', [assignedGroup]),
-      mockSection('issue.progress:fix_applied is:unresolved assigned:me', []),
+    const myTeamsRequests = [
+      mockSection(
+        'issue.progress:fix_proposed is:unresolved assigned_or_suggested:[me,my_teams]',
+        [fixProposedGroup]
+      ),
+      mockSection(
+        'issue.progress:diagnosed is:unresolved assigned_or_suggested:[me,my_teams]',
+        [diagnosedGroup]
+      ),
+      mockSection(
+        'issue.progress:assigned is:unresolved assigned_or_suggested:[me,my_teams]',
+        [assignedGroup]
+      ),
+      mockSection(
+        'issue.progress:fix_applied is:unresolved assigned_or_suggested:[me,my_teams]',
+        []
+      ),
     ];
     const allRequests = [
       mockSection('issue.progress:fix_proposed is:unresolved', [fixProposedGroup]),
@@ -464,16 +489,16 @@ describe('InboxPage', () => {
     const meFilter = screen.getByRole('radio', {name: 'Me'});
     const myTeamsFilter = screen.getByRole('radio', {name: 'My Teams'});
     const allFilter = screen.getByRole('radio', {name: 'All'});
-    expect(meFilter).not.toBeChecked();
-    expect(myTeamsFilter).toBeChecked();
+    expect(meFilter).toBeChecked();
+    expect(myTeamsFilter).not.toBeChecked();
     expect(allFilter).not.toBeChecked();
     expect(await screen.findByText('Fix proposed issue')).toBeInTheDocument();
 
-    await userEvent.click(meFilter);
+    await userEvent.click(myTeamsFilter);
 
-    expect(meFilter).toBeChecked();
-    expect(router.location.query.assignment).toBe('me');
-    for (const request of meRequests) {
+    expect(myTeamsFilter).toBeChecked();
+    expect(router.location.query.assignment).toBe('my_teams');
+    for (const request of myTeamsRequests) {
       await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
     }
 
@@ -557,7 +582,7 @@ describe('InboxPage', () => {
       url: '/organizations/org-slug/issues/',
       match: [
         MockApiClient.matchQuery({
-          query: `issue.progress:fix_proposed is:unresolved assigned:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`,
+          query: `issue.progress:fix_proposed is:unresolved assigned_or_suggested:me${INBOX_AUTOFIX_CATEGORY_FILTER}`,
         }),
       ],
       body: [fixProposedGroup],
@@ -570,7 +595,7 @@ describe('InboxPage', () => {
       url: '/organizations/org-slug/issues/',
       match: [
         MockApiClient.matchQuery({
-          query: `issue.progress:fix_proposed is:unresolved assigned:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`,
+          query: `issue.progress:fix_proposed is:unresolved assigned_or_suggested:me${INBOX_AUTOFIX_CATEGORY_FILTER}`,
           cursor: '0:10:0',
         }),
       ],
@@ -578,13 +603,13 @@ describe('InboxPage', () => {
       headers: {'X-Hits': '2'},
       asyncDelay: 100,
     });
-    mockSection('issue.progress:diagnosed is:unresolved assigned:[me,my_teams]', [
+    mockSection('issue.progress:diagnosed is:unresolved assigned_or_suggested:me', [
       diagnosedGroup,
     ]);
-    mockSection('issue.progress:assigned is:unresolved assigned:[me,my_teams]', [
+    mockSection('issue.progress:assigned is:unresolved assigned_or_suggested:me', [
       assignedGroup,
     ]);
-    mockSection('issue.progress:fix_applied is:unresolved assigned:[me,my_teams]', []);
+    mockSection('issue.progress:fix_applied is:unresolved assigned_or_suggested:me', []);
 
     render(<InboxPage />, {organization, initialRouterConfig});
 
@@ -982,5 +1007,70 @@ describe('InboxPage', () => {
     });
 
     expect(screen.getByText('Page Not Found')).toBeInTheDocument();
+  });
+
+  describe('on desktop', () => {
+    beforeEach(() => {
+      jest.mocked(useMedia).mockImplementation(query => query.startsWith('(min-width:'));
+    });
+
+    it('auto-selects the first issue', async () => {
+      mockSuccessfulSections();
+      mockIssuePreview();
+
+      const {router, unmount} = render(<InboxPage />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      await waitFor(() => {
+        expect(router.location.query.preview).toBe(fixProposedGroup.id);
+      });
+      expect(router.location.query).toEqual({
+        project: project.id,
+        environment: 'production',
+        statsPeriod: '7d',
+        preview: fixProposedGroup.id,
+      });
+      expect(
+        within(screen.getByRole('region', {name: 'Fix Proposed'})).getByRole('link', {
+          name: /Fix proposed issue/,
+        })
+      ).toHaveAttribute('aria-current', 'true');
+      unmount();
+    });
+
+    it('follows section order even when a later section resolves first', async () => {
+      // Diagnosed resolves immediately, Fix Proposed only after a delay. Both
+      // have issues, so taking whichever result arrives first would select the
+      // Diagnosed issue; section priority must win instead.
+      mockSection(
+        'issue.progress:fix_proposed is:unresolved assigned_or_suggested:me',
+        [fixProposedGroup],
+        200,
+        1,
+        100
+      );
+      mockSection('issue.progress:diagnosed is:unresolved assigned_or_suggested:me', [
+        diagnosedGroup,
+      ]);
+      mockSection('issue.progress:assigned is:unresolved assigned_or_suggested:me', [
+        assignedGroup,
+      ]);
+      mockSection(
+        'issue.progress:fix_applied is:unresolved assigned_or_suggested:me',
+        []
+      );
+      mockIssuePreview();
+
+      const {router} = render(<InboxPage />, {
+        organization: seerOrganization,
+        initialRouterConfig,
+      });
+
+      await waitFor(() => {
+        expect(router.location.query.preview).toBe(fixProposedGroup.id);
+      });
+    });
   });
 });

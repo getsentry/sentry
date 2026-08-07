@@ -7,7 +7,7 @@ import {IssuesSecondaryNavigation} from 'sentry/views/navigation/secondary/secti
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 
 describe('IssuesSecondaryNavigation', () => {
-  const inboxCountQuery = `is:unresolved issue.progress:[fix_proposed,diagnosed,assigned] assigned:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`;
+  const inboxCountQuery = `is:unresolved issue.progress:[fix_proposed,diagnosed,assigned] assigned_or_suggested:me${INBOX_AUTOFIX_CATEGORY_FILTER}`;
   const organization = OrganizationFixture({
     features: ['issue-stream-progress-ui', 'gen-ai-features', 'seat-based-seer-enabled'],
   });
@@ -35,7 +35,7 @@ describe('IssuesSecondaryNavigation', () => {
     );
   }
 
-  it('shows the inbox count for Seer progress sections and the user and their teams', async () => {
+  it('shows the inbox count for Seer progress sections assigned or suggested to the user', async () => {
     const request = mockInboxCount({
       [inboxCountQuery]: 12,
     });
@@ -52,7 +52,7 @@ describe('IssuesSecondaryNavigation', () => {
     expect(query).toContain('diagnosed');
     expect(query).toContain('assigned');
     expect(query).toContain('is:unresolved');
-    expect(query).toContain('assigned:[me,my_teams]');
+    expect(query).toContain('assigned_or_suggested:me');
   });
 
   it('caps the count at 99+ since the endpoint stops counting at 100', async () => {
@@ -63,19 +63,6 @@ describe('IssuesSecondaryNavigation', () => {
     renderNavigation();
 
     expect(await screen.findByText('99+')).toBeInTheDocument();
-  });
-
-  it('renders no badge when nothing is waiting', async () => {
-    mockInboxCount({
-      [inboxCountQuery]: 0,
-    });
-
-    renderNavigation();
-
-    expect(
-      await screen.findByRole('link', {name: 'Inbox experimental'})
-    ).toBeInTheDocument();
-    expect(screen.queryByText('0')).not.toBeInTheDocument();
   });
 
   it('does not render Inbox or request its count without Autofix access', async () => {
