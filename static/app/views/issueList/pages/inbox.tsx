@@ -66,7 +66,12 @@ interface InboxSectionContext {
 }
 
 interface InboxSectionConfig {
-  analyticsKey: 'num_fix_proposed' | 'num_diagnosed' | 'num_assigned';
+  analyticsKey:
+    | 'num_fix_proposed'
+    | 'num_diagnosed'
+    | 'num_assigned'
+    | 'num_identified'
+    | 'num_fix_applied';
   defaultExpanded: boolean;
   emptyMessage: string;
   key: string;
@@ -107,6 +112,7 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     hidden: ({hasSeer}) => !hasSeer,
   },
   {
+    analyticsKey: 'num_identified',
     key: 'identified',
     label: t('Identified'),
     query: 'issue.progress:identified is:unresolved',
@@ -116,6 +122,7 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     hidden: ({assignmentFilter, hasSeer}) => !hasSeer || assignmentFilter !== 'all',
   },
   {
+    analyticsKey: 'num_fix_applied',
     key: 'fix-applied',
     label: t('Fix Applied'),
     query: 'issue.progress:fix_applied is:unresolved',
