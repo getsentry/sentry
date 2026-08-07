@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+from urllib3 import HTTPConnectionPool
 from urllib3.exceptions import ReadTimeoutError
 
 from sentry.replays.usecases.delete import (
@@ -57,12 +58,9 @@ def test_a_refused_delete_raises(mock_seer_request: MagicMock) -> None:
 
 def test_the_retry_applies_to_this_request() -> None:
     """Test the retry covers the failures Seer actually produces."""
-    assert (
-        SEER_DELETE_RETRY.increment(
-            method="POST", url="/delete", error=ReadTimeoutError(None, "/delete", "timed out")
-        ).total
-        == SEER_DELETE_RETRY.total - 1
-    )
+    # A read timeout on a POST is retried rather than re-raised, spending the one attempt.
+    timed_out = ReadTimeoutError(HTTPConnectionPool("seer"), "/delete", "timed out")
+    assert SEER_DELETE_RETRY.increment(method="POST", url="/delete", error=timed_out).total == 0
 
     assert SEER_DELETE_RETRY.is_retry("POST", 429)
     assert SEER_DELETE_RETRY.is_retry("POST", 503)
