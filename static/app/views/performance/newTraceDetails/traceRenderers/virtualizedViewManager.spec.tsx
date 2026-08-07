@@ -134,7 +134,7 @@ describe('VirtualizedViewManger', () => {
       width: 520,
       height: 238,
       toJSON: () => ({}),
-    } as DOMRect);
+    });
 
     let dispatchedContainerPhysicalSpace: [number, number, number, number] | null = null;
     scheduler.on('set container physical space', containerPhysicalSpace => {
@@ -430,11 +430,11 @@ describe('VirtualizedViewManger', () => {
       );
 
       manager.view.setTraceSpace([0, 0, 1000, 1]);
-      manager.view.setTracePhysicalSpace([0, 0, 20, 1], [0, 0, 20, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 100, 1], [0, 0, 100, 1]);
       manager.time_compression = TraceTimeCompression.FromVisibleItems({
         enabled: true,
         traceSpace: [0, 1000],
-        physicalWidth: 20,
+        physicalWidth: 100,
         nodes: [
           {type: 'span', space: [100, 0]},
           {type: 'span', space: [900, 0]},
@@ -1389,7 +1389,7 @@ describe('VirtualizedViewManger', () => {
           }
           return compressedOffset + removedDuration;
         },
-      } as TraceTimeCompression;
+      };
       manager.recomputeSpanToPXMatrix();
 
       const markerRef = document.createElement('div');

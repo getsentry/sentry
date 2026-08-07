@@ -6,9 +6,7 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.utils.snuba_rpc import table_rpc
-from tests.snuba.api.endpoints.test_organization_events import (
-    OrganizationEventsEndpointTestBase,
-)
+from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
 class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestBase):
@@ -981,3 +979,40 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         assert meta["fields"]["per_minute_if(`release:abcdef`,value)"] == "rate"
         assert meta["units"]["per_minute_if(`release:abcdef`,value)"] == "1/minute"
         assert meta["dataset"] == "tracemetrics"
+
+    def test_segment_name_mapped_to_transaction(self) -> None:
+        trace_metrics = [
+            self.create_trace_metric(
+                "request_duration",
+                100.0,
+                "distribution",
+                attributes={"sentry.segment.name": "/api/users"},
+            ),
+            self.create_trace_metric(
+                "request_duration",
+                200.0,
+                "distribution",
+                attributes={"sentry.segment.name": "/api/orders"},
+            ),
+            self.create_trace_metric(
+                "request_duration",
+                300.0,
+                "distribution",
+                attributes={"sentry.segment.name": "/api/users"},
+            ),
+        ]
+        self.store_eap_items(trace_metrics)
+
+        response = self.do_request(
+            {
+                "field": ["transaction", "sum(value)"],
+                "query": "transaction:/api/users",
+                "orderby": "transaction",
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["transaction"] == "/api/users"
+        assert data[0]["sum(value)"] == 400

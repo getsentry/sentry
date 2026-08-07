@@ -141,6 +141,29 @@ ALL_KILLSWITCH_OPTIONS = {
             "project_id": "A project ID to filter events by.",
         },
     ),
+    "post_process.disable-pipeline-steps": KillswitchInfo(
+        description="""
+        Skip individual steps of the post_process_group pipeline.
+
+        `pipeline_step` is the name of the step function as it appears in
+        GROUP_CATEGORY_POST_PROCESS_PIPELINE / GENERIC_POST_PROCESS_PIPELINE,
+        e.g. `kick_off_seer_automation`. Leaving it unset is a wildcard that
+        disables *every* step, i.e. all of post-processing.
+
+        The same step function runs in more than one pipeline (e.g.
+        process_snoozes runs for both error and feedback issues). Set
+        `issue_category` to target only one of them.
+
+        Work skipped this way is dropped for good, nothing catches up when the
+        switch is turned off again.
+        """,
+        fields={
+            "pipeline_step": "Name of the post-process step function, e.g. kick_off_seer_automation.",
+            "project_id": "A project ID to filter events by.",
+            "organization_id": "An organization ID to filter events by.",
+            "issue_category": "Lowercased GroupCategory name, e.g. error or feedback.",
+        },
+    ),
     "reprocessing2.drop-delete-old-primary-hash": KillswitchInfo(
         description="""
         Drop per-event messages emitted from delete_old_primary_hash. This message is currently lacking batching, and for the time being we should be able to drop it on a whim.

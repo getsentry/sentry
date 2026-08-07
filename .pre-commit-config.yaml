@@ -40,7 +40,6 @@ repos:
         entry: uv run flake8 --select=S
         language: system
         types: [python]
-        log_file: '.artifacts/flake8.pycodestyle.log'
         require_serial: true
       - id: mypy
         name: mypy
