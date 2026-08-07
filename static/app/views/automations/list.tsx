@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {Fragment, useCallback} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -6,7 +6,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
 
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
-import {QueryCount} from 'sentry/components/queryCount';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {AlertsMonitorsShowcaseButton} from 'sentry/components/workflowEngine/alertsMonitorsShowcaseButton';
 import {WorkflowEngineListLayout as ListLayout} from 'sentry/components/workflowEngine/layout/list';
@@ -55,14 +54,17 @@ export default function AutomationsList() {
   }, [pageLinks]);
 
   const paginationCaption =
-    isLoading || !automations
-      ? undefined
-      : getPaginationCaption({
+    isLoading || !automations ? undefined : (
+      <Fragment>
+        {getPaginationCaption({
           cursor,
           limit: AUTOMATION_LIST_PAGE_LIMIT,
           pageLength: automations.length,
-          total: <QueryCount count={hits} max={maxHits} hideIfEmpty={false} hideParens />,
-        });
+          total: hits,
+        })}
+        {hits >= maxHits ? '+' : null}
+      </Fragment>
+    );
 
   return (
     <SentryDocumentTitle title={t('Alerts')}>

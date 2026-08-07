@@ -115,7 +115,7 @@ export function getPaginationCaption({
   cursor: string | string[] | undefined | null;
   limit: number;
   pageLength: number;
-  total: React.ReactNode;
+  total: number;
 }): React.ReactNode {
   if (pageLength === 0) {
     return '';
@@ -129,7 +129,7 @@ export function getPaginationCaption({
   return tct('[start]-[end] of [total]', {
     start: start.toLocaleString(),
     end: end.toLocaleString(),
-    total: typeof total === 'number' ? total.toLocaleString() : total,
+    total: total.toLocaleString(),
   });
 }
 
