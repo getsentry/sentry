@@ -300,10 +300,10 @@ def _http_response(
     return HTTPResponse(status=status, body=body, retries=retries)
 
 
-def test_read_only_rpc_retries_transient_upstream_statuses() -> None:
+def test_table_rpc_retries_transient_upstream_status_once() -> None:
     retry = snuba_rpc._retry_policy("EndpointTraceItemTable")
 
-    assert retry.status == 2
+    assert retry.status == 1
     assert retry.status_forcelist == snuba_rpc._TRANSIENT_UPSTREAM_STATUS_CODES
     assert retry.allowed_methods == frozenset({"POST"})
     assert retry.raise_on_status is False
@@ -314,7 +314,12 @@ def test_read_only_rpc_retries_transient_upstream_statuses() -> None:
 
 @pytest.mark.parametrize(
     "endpoint_name",
-    ["EndpointDeleteTraceItems", "EndpointCreateSubscription", "UnknownEndpoint"],
+    [
+        "EndpointDeleteTraceItems",
+        "EndpointCreateSubscription",
+        "EndpointTimeSeries",
+        "UnknownEndpoint",
+    ],
 )
 def test_mutating_and_unknown_rpcs_do_not_retry_statuses(endpoint_name: str) -> None:
     retry = snuba_rpc._retry_policy(endpoint_name)
@@ -330,7 +335,7 @@ def test_make_rpc_request_passes_retry_policy_for_read_only_rpc() -> None:
         snuba_rpc._make_rpc_request("EndpointTraceItemTable", "v1", _meta().referrer, _request())
 
     retry = urlopen.call_args.kwargs["retries"]
-    assert retry.status == 2
+    assert retry.status == 1
     assert retry.status_forcelist == snuba_rpc._TRANSIENT_UPSTREAM_STATUS_CODES
 
 
@@ -346,6 +351,15 @@ def test_make_rpc_request_disables_status_retries_for_mutating_rpc() -> None:
     retry = urlopen.call_args.kwargs["retries"]
     assert retry is _snuba_pool.retries
     assert retry.status_forcelist == set()
+
+
+def test_retry_observability_ignores_response_without_retry_history() -> None:
+    response = mock.Mock(status=429)
+
+    with mock.patch("sentry.utils.snuba_rpc.metrics.incr") as incr:
+        snuba_rpc._record_status_retry_result("EndpointTraceItemTable", response)
+
+    incr.assert_not_called()
 
 
 def test_make_rpc_request_does_not_retry_read_timeout() -> None:

@@ -59,19 +59,7 @@ logger = logging.getLogger(__name__)
 RPCResponseType = TypeVar("RPCResponseType", bound=ProtobufMessage)
 
 _TRANSIENT_UPSTREAM_STATUS_CODES = frozenset({502, 503})
-_READ_ONLY_RPC_ENDPOINTS = frozenset(
-    {
-        "AttributeValuesRequest",
-        "EndpointExportTraceItems",
-        "EndpointGetTrace",
-        "EndpointGetTraces",
-        "EndpointTimeSeries",
-        "EndpointTraceItemAttributeNames",
-        "EndpointTraceItemDetails",
-        "EndpointTraceItemStats",
-        "EndpointTraceItemTable",
-    }
-)
+_STATUS_RETRY_RPC_ENDPOINTS = frozenset({"EndpointTraceItemTable"})
 
 # Show the snuba query params and the corresponding sql or errors in the server logs
 SNUBA_INFO_FILE = os.environ.get("SENTRY_SNUBA_INFO_FILE", "")
@@ -416,12 +404,12 @@ def export_logs_rpc(req: ExportTraceItemsRequest) -> ExportTraceItemsResponse:
 
 def _retry_policy(endpoint_name: str) -> urllib3.Retry:
     """Add status retries to safe RPCs while preserving default connection retries."""
-    if endpoint_name not in _READ_ONLY_RPC_ENDPOINTS:
+    if endpoint_name not in _STATUS_RETRY_RPC_ENDPOINTS:
         return cast(urllib3.Retry, _snuba_pool.retries)
 
     return RetrySkipTimeout(
         total=5,
-        status=2,
+        status=1,
         allowed_methods={"POST"},
         status_forcelist=_TRANSIENT_UPSTREAM_STATUS_CODES,
         backoff_factor=0.25,

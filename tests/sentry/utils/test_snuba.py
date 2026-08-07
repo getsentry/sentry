@@ -515,7 +515,7 @@ def test_retries() -> None:
     assert connection_mock.request.call_count == 1
 
 
-def test_retries_transient_status_until_success() -> None:
+def test_retries_transient_status_once_until_success() -> None:
     connection_mock = mock.Mock()
     snuba_pool = FakeConnectionPool(
         connection=connection_mock,
@@ -527,12 +527,11 @@ def test_retries_transient_status_until_success() -> None:
     )
     connection_mock.getresponse.side_effect = [
         HTTPResponse(status=503, body=b"no healthy upstream", headers={}),
-        HTTPResponse(status=503, body=b"no healthy upstream", headers={}),
         HTTPResponse(status=200, body=b"ok", headers={}),
     ]
     retry = RetrySkipTimeout(
         total=5,
-        status=2,
+        status=1,
         status_forcelist={502, 503},
         allowed_methods={"POST"},
         backoff_factor=0,
@@ -542,12 +541,12 @@ def test_retries_transient_status_until_success() -> None:
     response = snuba_pool.urlopen("POST", "/rpc/EndpointTraceItemTable/v1", retries=retry)
 
     assert response.status == 200
-    assert connection_mock.request.call_count == 3
+    assert connection_mock.request.call_count == 2
     assert response.retries is not None
-    assert [item.status for item in response.retries.history] == [503, 503]
+    assert [item.status for item in response.retries.history] == [503]
 
 
-def test_exhausted_status_retries_return_final_response() -> None:
+def test_exhausted_status_retry_returns_final_response() -> None:
     connection_mock = mock.Mock()
     snuba_pool = FakeConnectionPool(
         connection=connection_mock,
@@ -558,11 +557,11 @@ def test_exhausted_status_retries_return_final_response() -> None:
         maxsize=10,
     )
     connection_mock.getresponse.side_effect = [
-        HTTPResponse(status=503, body=b"no healthy upstream", headers={}) for _ in range(3)
+        HTTPResponse(status=503, body=b"no healthy upstream", headers={}) for _ in range(2)
     ]
     retry = RetrySkipTimeout(
         total=5,
-        status=2,
+        status=1,
         status_forcelist={502, 503},
         allowed_methods={"POST"},
         backoff_factor=0,
@@ -572,9 +571,9 @@ def test_exhausted_status_retries_return_final_response() -> None:
     response = snuba_pool.urlopen("POST", "/rpc/EndpointTraceItemTable/v1", retries=retry)
 
     assert response.status == 503
-    assert connection_mock.request.call_count == 3
+    assert connection_mock.request.call_count == 2
     assert response.retries is not None
-    assert [item.status for item in response.retries.history] == [503, 503]
+    assert [item.status for item in response.retries.history] == [503]
 
 
 class SnubaQueryRateLimitTest(TestCase):
