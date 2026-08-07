@@ -246,7 +246,7 @@ function WorkingIndicator({children}: {children: React.ReactNode}) {
 // Summary container is always displayed event if Disclosure is closed
 // Left padding needs to match the indent of Disclosure.Content
 const SummaryContainer = styled(Container)`
-  padding: 0 ${p => p.theme.space.md} ${p => p.theme.space.md} 26px;
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md} ${p => p.theme.space.md} 26px;
 `;
 
 const WorkingSpinner = styled(LoadingIndicator)`
