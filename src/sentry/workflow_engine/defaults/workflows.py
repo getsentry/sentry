@@ -127,6 +127,9 @@ def create_priority_workflow(org: Organization) -> Workflow:
 def create_and_connect_pull_request_workflow(
     organization: Organization, detector: Detector
 ) -> Workflow:
+    """
+    Creates the default PR workflow and connects it to a given detector.
+    """
     with transaction.atomic(router.db_for_write(Workflow)):
         when_condition_group = DataConditionGroup.objects.create(
             logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT, organization=organization
