@@ -1,12 +1,12 @@
-import {Fragment, useRef, useState} from 'react';
-import type {SerializedStyles, Theme} from '@emotion/react';
-import {css} from '@emotion/react';
+import {useRef, useState} from 'react';
+import {css, type SerializedStyles, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import type {DistributedOmit} from 'type-fest';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -29,6 +29,8 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
 const AlertPanel = styled('div')<AlertProps>`
   position: relative;
   display: grid;
+  width: 100%;
+  container-type: inline-size;
   grid-template-columns: ${p => getAlertGridLayout(p)};
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   border-width: ${p => (p.system ? '0px 0px 1px 0px' : '1px')};
@@ -153,7 +155,7 @@ const StyledTrailingItems = styled('div')`
     align-self: center;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+  @container (min-width: ${p => p.theme.container.sm}) {
     grid-area: auto;
     align-items: start;
   }
@@ -180,22 +182,6 @@ const StyledIconWrapper = styled('div')<{variant: AlertProps['variant']}>`
       : p.variant === 'muted'
         ? p.theme.tokens.content.primary
         : p.theme.colors.black};
-`;
-
-const StyledExpandContainer = styled('div')<{
-  showIcon: boolean;
-  showTrailingItems: boolean;
-}>`
-  color: ${p => p.theme.tokens.content.secondary};
-  grid-row: ${p => (p.showTrailingItems ? 3 : 2)};
-
-  grid-column: 1 / -1;
-  align-self: flex-start;
-  cursor: auto;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-row: 2;
-  }
 `;
 
 export function Alert({
@@ -267,15 +253,17 @@ export function Alert({
           </Flex>
         )}
         {isExpanded && (
-          <Fragment>
-            <StyledExpandContainer
-              ref={expandRef}
-              showIcon={!!showIcon}
-              showTrailingItems={!!trailingItems}
-            >
+          <Container
+            ref={expandRef}
+            row={{zero: trailingItems ? '3' : '2', xl: '2'}}
+            column="1 / -1"
+            alignSelf="flex-start"
+            cursor="auto"
+          >
+            <Text as="div" variant="muted">
               {expand}
-            </StyledExpandContainer>
-          </Fragment>
+            </Text>
+          </Container>
         )}
       </PanelProvider>
     </AlertPanel>
@@ -303,13 +291,15 @@ function AlertIcon({variant}: {variant: AlertProps['variant']}): React.ReactNode
 /**
  * Manages margins of Alert components
  */
-const Container = styled('div')`
+const AlertContainer = styled('div')`
+  width: 100%;
+
   > div {
     margin-bottom: ${p => p.theme.space.xl};
   }
 `;
 
-Alert.Container = Container;
+Alert.Container = AlertContainer;
 
 function AlertButton(props: DistributedOmit<ButtonProps, 'size'>) {
   return <Button {...props} size="zero" />;

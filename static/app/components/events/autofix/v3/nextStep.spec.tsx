@@ -91,13 +91,14 @@ function defaultArtifacts(step: string): AutofixSection['artifacts'] {
 
 function makeSection(
   step: string,
-  artifacts?: AutofixSection['artifacts']
+  artifacts?: AutofixSection['artifacts'],
+  status: AutofixSection['status'] = 'completed'
 ): AutofixSection {
   return {
     step,
     artifacts: artifacts ?? defaultArtifacts(step),
     blocks: [],
-    status: 'completed',
+    status,
   };
 }
 
@@ -127,6 +128,18 @@ describe('SeerDrawerNextStep', () => {
         autofix={autofix}
       />
     );
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('does not render a next-step button while a section is processing', () => {
+    const {container} = render(
+      <SeerDrawerNextStep
+        group={GroupFixture()}
+        sections={[makeSection('root_cause', undefined, 'processing')]}
+        autofix={makeAutofix({isPolling: true})}
+      />
+    );
+
     expect(container).toBeEmptyDOMElement();
   });
 
@@ -647,7 +660,7 @@ describe('SeerDrawerNextStep', () => {
 
   describe('PullRequestNextStep', () => {
     const prIterationOrganization = OrganizationFixture({
-      features: ['autofix-pr-iteration'],
+      features: ['autofix-pr-iteration-manual'],
     });
 
     function makePrIterationAutofix(

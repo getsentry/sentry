@@ -450,7 +450,7 @@ describe('getOrderedAutofixSections', () => {
 
   function makeBlock(
     overrides: Omit<Partial<Block>, 'message'> & {message?: Partial<Block['message']>}
-  ) {
+  ): Block {
     const {message, ...rest} = overrides;
     return {
       id: `block-${blockId++}`,
@@ -461,7 +461,7 @@ describe('getOrderedAutofixSections', () => {
         ...message,
       },
       ...rest,
-    } as Block;
+    };
   }
 
   function makePatch(repoName: string, path: string, diff = 'diff'): ExplorerFilePatch {
@@ -632,7 +632,7 @@ describe('isPrIterationBlock', () => {
       id: 'block-1',
       timestamp: '2026-01-01T00:00:00Z',
       message: {content: 'hello', role: 'assistant', metadata},
-    } as Block;
+    };
   }
 
   it('is true only for blocks whose step is pr_iteration', () => {
@@ -643,10 +643,16 @@ describe('isPrIterationBlock', () => {
 });
 
 describe('isRunValidForPrIteration', () => {
-  it('is true only when the autofix-pr-iteration feature is enabled', () => {
+  it('is true only when the autofix-pr-iteration-manual feature is enabled', () => {
+    expect(
+      isRunValidForPrIteration(
+        OrganizationFixture({features: ['autofix-pr-iteration-manual']})
+      )
+    ).toBe(true);
+    // Automated CI iteration does not enable the manual feedback form.
     expect(
       isRunValidForPrIteration(OrganizationFixture({features: ['autofix-pr-iteration']}))
-    ).toBe(true);
+    ).toBe(false);
     expect(isRunValidForPrIteration(OrganizationFixture({features: []}))).toBe(false);
   });
 });
@@ -662,7 +668,7 @@ describe('isLastStepPrIteration', () => {
         role: 'assistant',
         metadata: step ? {step} : undefined,
       },
-    } as Block;
+    };
   }
   function state(blocks: Block[]): ExplorerAutofixState {
     return {

@@ -345,7 +345,7 @@ export function ScmPlatformFeaturesCore({
         value: info.id,
         label: info.name,
         textValue: `${info.name} ${info.id}`,
-        leadingItems: <PlatformIcon platform={info.id} size={16} />,
+        leadingItems: <PlatformIcon platform={info.id} size={16} alt="" />,
       },
       ...platformOptions,
     ];

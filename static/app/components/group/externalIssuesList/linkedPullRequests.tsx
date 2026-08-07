@@ -32,6 +32,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {
   getPullRequestStatusLabel,
+  PullRequestChecksBadge,
+  PullRequestReviewBadge,
   PullRequestStatusBadge,
 } from './pullRequestStatusBadge';
 
@@ -60,6 +62,7 @@ export function getLinkedPullRequestActivityIds(group: Group) {
 
 interface LinkedPullRequestsProps {
   group: Group;
+  showChecksAndReview?: boolean;
   showEmptyState?: boolean;
 }
 
@@ -99,6 +102,8 @@ function LinkedPullRequestRow({
           trackAnalytics('issue_details.external_issue_pull_request_clicked', {
             organization,
             attribution_type: pullRequest.attribution?.type,
+            checks_status: pullRequest.checksStatus,
+            review_status: pullRequest.reviewStatus,
             pull_request_id: pullRequest.id,
             pull_request_status: pullRequest.status,
             repository_id: pullRequest.repository.id,
@@ -126,6 +131,12 @@ function LinkedPullRequestRow({
             </PullRequestTitle>
             <Flex align="center" gap="xs">
               <PullRequestStatusBadge status={pullRequest.status} />
+              {pullRequest.checksStatus && (
+                <PullRequestChecksBadge status={pullRequest.checksStatus} />
+              )}
+              {pullRequest.reviewStatus && (
+                <PullRequestReviewBadge status={pullRequest.reviewStatus} />
+              )}
               {pullRequest.attribution ? (
                 <PullRequestAttributionAvatar attribution={pullRequest.attribution} />
               ) : author ? (
@@ -221,7 +232,13 @@ function SeerAttributionAvatar() {
   );
 }
 
-export function useLinkedPullRequests({group}: {group: Group}) {
+export function useLinkedPullRequests({
+  group,
+  includeChecksAndReview = true,
+}: {
+  group: Group;
+  includeChecksAndReview?: boolean;
+}) {
   const organization = useOrganization();
 
   return useQuery(
@@ -229,14 +246,22 @@ export function useLinkedPullRequests({group}: {group: Group}) {
       '/organizations/$organizationIdOrSlug/issues/$issueId/pull-requests/',
       {
         path: {organizationIdOrSlug: organization.slug, issueId: group.id},
+        query: includeChecksAndReview ? {expand: 'checksAndReview'} : undefined,
         staleTime: 30_000,
       }
     )
   );
 }
 
-export function LinkedPullRequests({group, showEmptyState}: LinkedPullRequestsProps) {
-  const {data, isError, isPending} = useLinkedPullRequests({group});
+export function LinkedPullRequests({
+  group,
+  showChecksAndReview = true,
+  showEmptyState,
+}: LinkedPullRequestsProps) {
+  const {data, isError, isPending} = useLinkedPullRequests({
+    group,
+    includeChecksAndReview: showChecksAndReview,
+  });
   const activityPullRequestIds = getLinkedPullRequestActivityIds(group);
 
   if (isError) {

@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/react';
 
+import {localStorageWrapper as localStorage} from 'sentry/utils/localStorage';
 import {clamp} from 'sentry/utils/number/clamp';
 import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
 
