@@ -181,7 +181,10 @@ def validate_channel_id(name: str, integration_id: int, input_channel_id: str) -
         )
 
         if unpack_slack_api_error(e) == CHANNEL_NOT_FOUND:
-            raise ValidationError("Channel not found. Invalid ID provided.") from e
+            raise ValidationError(
+                "Channel not found. Invalid ID provided. "
+                "Ensure the channel exists and that you’ve invited Sentry to it by running /invite @Sentry"
+            ) from e
         elif unpack_slack_api_error(e) == RATE_LIMITED:
             raise ValidationError("Rate limited") from e
 

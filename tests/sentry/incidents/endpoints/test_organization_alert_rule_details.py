@@ -2230,7 +2230,13 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
             assert resp.status_code == 400
             assert resp.data == {
                 "nonFieldErrors": [
-                    ErrorDetail(string="Channel not found. Invalid ID provided.", code="invalid")
+                    ErrorDetail(
+                        string=(
+                            "Channel not found. Invalid ID provided. "
+                            "Ensure the channel exists and that you’ve invited Sentry to it by running /invite @Sentry"
+                        ),
+                        code="invalid",
+                    )
                 ]
             }
 
