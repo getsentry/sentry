@@ -89,7 +89,7 @@ describe('useColumnResize', () => {
     await waitFor(() => expect(getResizeTemplate).toHaveBeenCalledWith(0, 60));
   });
 
-  it('commits the final width when the drag ends', async () => {
+  it('commits the final width when the drag ends', () => {
     const onColumnResizeEnd = jest.fn();
     render(<TestTable onColumnResizeEnd={onColumnResizeEnd} />);
 
@@ -110,7 +110,7 @@ describe('useColumnResize', () => {
     expect(getResizeTemplate).not.toHaveBeenCalled();
   });
 
-  it('does not start a resize from a non-primary button', async () => {
+  it('does not start a resize from a non-primary button', () => {
     const onColumnResizeEnd = jest.fn();
     render(<TestTable onColumnResizeEnd={onColumnResizeEnd} />);
 
@@ -174,6 +174,7 @@ describe('useColumnResize', () => {
 
     act(triggerResizeObservers);
 
+    // eslint-disable-next-line jest-dom/prefer-to-have-value
     expect(resizer()).toHaveAttribute('aria-valuenow', '150');
   });
 

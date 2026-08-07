@@ -135,7 +135,7 @@ describe('Table', () => {
     await waitFor(() => expect(gridTemplate()).toBe('90px 150px minmax(90px, auto)'));
   });
 
-  it('reports the final width to onColumnResize when a drag ends', async () => {
+  it('reports the final width to onColumnResize when a drag ends', () => {
     const onColumnResize = jest.fn();
     render(<TestTable onColumnResize={onColumnResize} />);
 
@@ -197,7 +197,7 @@ describe('Table', () => {
     expect(onColumnResize).toHaveBeenCalledWith(0, 90);
   });
 
-  it('does not commit a resize when a handle is right-clicked', async () => {
+  it('does not commit a resize when a handle is right-clicked', () => {
     const onColumnResize = jest.fn();
     render(<TestTable onColumnResize={onColumnResize} />);
 
