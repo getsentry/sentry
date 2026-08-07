@@ -356,7 +356,7 @@ export const TraceMetricsConfig: DatasetConfig<
       } else if (timeSeries.yAxis.includes('per_minute(')) {
         acc[timeSeries.yAxis] = RateUnit.PER_MINUTE;
       } else {
-        acc[timeSeries.yAxis] = timeSeries.meta.valueUnit as DataUnit;
+        acc[timeSeries.yAxis] = timeSeries.meta.valueUnit;
       }
       return acc;
     }, {});
