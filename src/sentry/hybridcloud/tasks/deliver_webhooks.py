@@ -1,12 +1,12 @@
 import datetime
 import logging
 from collections import defaultdict
-from collections.abc import Mapping
 from concurrent.futures import as_completed
 
 import orjson
 import sentry_sdk
 from django.core.cache import cache
+from django.db import OperationalError, connections, transaction
 from django.db.models import Case, CharField, Count, Min, Subquery, Value, When
 from django.utils import timezone
 from requests import Response
@@ -254,115 +254,142 @@ def schedule_webhook_delivery() -> None:
             drain_mailbox.delay(record["id"])
 
 
-def _mailbox_provider(mailbox_name: str) -> str:
-    """
-    Provider a mailbox belongs to, derived from its name.
+MAILBOX_DEPTH_QUERY_TIMEOUT = datetime.timedelta(seconds=30)
+"""
+Ceiling on the per-mailbox aggregate below.
 
-    `WebhookPayload.create_from_request` builds every mailbox name as
-    `f"{provider}:{identifier}"`, so the prefix is the provider and its values stay
-    bounded by the request parser registry. Reading the `provider` column instead
-    would cost a heap fetch per row in the aggregate below.
-    """
-    provider, separator, _ = mailbox_name.partition(":")
-    return provider if separator else "unknown"
-
-
-def _oldest_pending_ages(head_ids: Mapping[str, int]) -> dict[str, float]:
-    """
-    Age in seconds of each provider's oldest undelivered payload.
-
-    Ids are monotonic, so the lowest id a provider still holds is its oldest payload.
-    Fetching `date_added` for those few rows by primary key avoids a `Min` over the
-    whole table on a column that has no index.
-    """
-    date_added_by_id = dict(
-        WebhookPayload.objects.using_replica()
-        .filter(id__in=head_ids.values())
-        .values_list("id", "date_added")
-    )
-    now = timezone.now()
-    ages = {}
-    for provider, head_id in head_ids.items():
-        date_added = date_added_by_id.get(head_id)
-        # The head can be delivered between the two queries, leaving nothing to age.
-        if date_added is not None:
-            ages[provider] = (now - date_added).total_seconds()
-    return ages
+The aggregate is the only backlog query whose cost grows with the backlog, so it is
+the one that could turn this monitor into a second incident. Bounding it means a
+pathological table loses the per-provider breakdown rather than pinning a control
+replica; `backlog.*` still reports because it never scans.
+"""
 
 
 @instrumented_task(
-    name="sentry.hybridcloud.tasks.deliver_webhooks.record_mailbox_backlog_metrics",
+    name="sentry.hybridcloud.tasks.deliver_webhooks.record_webhook_backlog_metrics",
     namespace=hybridcloud_control_tasks,
-    processing_deadline_duration=60,
+    processing_deadline_duration=20,
     silo_mode=SiloMode.CONTROL,
 )
-def record_mailbox_backlog_metrics() -> None:
+def record_webhook_backlog_metrics() -> None:
     """
-    Emit depth and age gauges for the undelivered webhook backlog.
+    Emit the two backlog signals that cost the same no matter how deep the backlog is.
 
     Every row in the table is a webhook we still owe a cell, so the backlog is the
-    whole table. This runs on its own schedule rather than inside
-    `schedule_webhook_delivery` so that aggregating a deep backlog can never delay
-    the delivery it is measuring.
+    whole table. Size comes from the planner's row estimate and age from the single
+    lowest-id row, so neither reads more than a handful of pages. That is what makes
+    this safe to run frequently during the backlog it exists to report on.
     """
-    WebhookPayloadReplica = WebhookPayload.objects.using_replica()
+    replica = WebhookPayload.objects.using_replica()
 
-    # Grouping by mailbox_name and aggregating only id keeps this an index-only scan
-    # of webhookpayload_mailbox_id_idx. Selecting any other column would add a heap
-    # fetch per row, which is unaffordable on the deep backlogs this exists to catch.
-    mailboxes = (
-        WebhookPayloadReplica.all()
-        .values("mailbox_name")
-        .annotate(depth=Count("id"), head_id=Min("id"))
+    with connections[replica.db].cursor() as cursor:
+        cursor.execute(
+            "SELECT CAST(GREATEST(reltuples, 0) AS BIGINT) FROM pg_class WHERE relname = %s",
+            [WebhookPayload._meta.db_table],
+        )
+        row = cursor.fetchone()
+    # Maintained by autovacuum, so it trails reality on a churning table. Good enough
+    # for the growth trend this feeds; `mailbox.pending_count` carries the exact value.
+    metrics.gauge(
+        "hybridcloud.webhookpayload.backlog.pending_count_estimate",
+        row[0] if row else 0,
+        sample_rate=1.0,
     )
 
-    total_pending = 0
+    # Ids are monotonic, so the lowest id in the table is the oldest undelivered
+    # payload. Reading it in primary-key order stops after one index tuple instead of
+    # aggregating date_added, which has no index.
+    oldest = replica.order_by("id").values_list("date_added", flat=True).first()
+    if oldest is None:
+        # Nothing pending. Reporting an age of zero would read as "fully caught up"
+        # rather than "nothing to be caught up on"; the estimate above covers liveness.
+        return
+    metrics.gauge(
+        "hybridcloud.webhookpayload.backlog.oldest_pending_age_seconds",
+        (timezone.now() - oldest).total_seconds(),
+        sample_rate=1.0,
+        unit="second",
+    )
+
+
+@instrumented_task(
+    name="sentry.hybridcloud.tasks.deliver_webhooks.record_mailbox_depth_metrics",
+    namespace=hybridcloud_control_tasks,
+    processing_deadline_duration=int(MAILBOX_DEPTH_QUERY_TIMEOUT.total_seconds() + 30),
+    silo_mode=SiloMode.CONTROL,
+)
+def record_mailbox_depth_metrics() -> None:
+    """
+    Emit the per-provider backlog breakdown, including how deep the worst mailbox is.
+
+    Delivery is ordered within a mailbox, so a single deep mailbox stalls every payload
+    behind it while the totals still look healthy — `max_depth` is what makes that
+    visible. Establishing it means aggregating every row, so this runs on a slower
+    schedule than `record_webhook_backlog_metrics` and under a statement timeout.
+    """
+    replica = WebhookPayload.objects.using_replica()
+    mailboxes = replica.values("provider", "mailbox_name").annotate(
+        depth=Count("id"), oldest=Min("date_added")
+    )
+
+    try:
+        # SET LOCAL confines the timeout to this transaction, so it cannot leak into
+        # other work that reuses the connection.
+        with transaction.atomic(using=replica.db):
+            with connections[replica.db].cursor() as cursor:
+                cursor.execute(
+                    "SET LOCAL statement_timeout = %s",
+                    [int(MAILBOX_DEPTH_QUERY_TIMEOUT.total_seconds() * 1000)],
+                )
+            rows = list(mailboxes)
+    except OperationalError:
+        metrics.incr("hybridcloud.webhookpayload.mailbox.aggregate_failed", sample_rate=1.0)
+        logger.exception("deliver_webhook.mailbox_depth_aggregate_failed")
+        return
+
+    now = timezone.now()
     pending: dict[str, int] = defaultdict(int)
     mailbox_count: dict[str, int] = defaultdict(int)
     max_depth: dict[str, int] = defaultdict(int)
-    head_ids: dict[str, int] = {}
-    for row in mailboxes:
-        provider = _mailbox_provider(row["mailbox_name"])
-        depth, head_id = row["depth"], row["head_id"]
-        total_pending += depth
+    oldest: dict[str, datetime.datetime] = {}
+    for row in rows:
+        # The column is nullable, and rows predating it still drain through here.
+        provider = row["provider"] or "unknown"
+        depth = row["depth"]
         pending[provider] += depth
         mailbox_count[provider] += 1
         max_depth[provider] = max(max_depth[provider], depth)
-        head_ids[provider] = min(head_ids.get(provider, head_id), head_id)
+        row_oldest = row["oldest"]
+        if provider not in oldest or row_oldest < oldest[provider]:
+            oldest[provider] = row_oldest
 
-    # Emitted even when empty so a drained backlog is distinguishable from a task that
-    # has stopped reporting.
-    metrics.gauge("hybridcloud.webhookpayload.total_pending_count", total_pending, sample_rate=1.0)
-    if not total_pending:
-        return
-
-    oldest_ages = _oldest_pending_ages(head_ids)
     for provider, pending_count in pending.items():
         tags = {"provider": provider}
         metrics.gauge(
-            "hybridcloud.webhookpayload.pending_count", pending_count, tags=tags, sample_rate=1.0
+            "hybridcloud.webhookpayload.mailbox.pending_count",
+            pending_count,
+            tags=tags,
+            sample_rate=1.0,
         )
         metrics.gauge(
-            "hybridcloud.webhookpayload.mailbox_count",
+            "hybridcloud.webhookpayload.mailbox.active_count",
             mailbox_count[provider],
             tags=tags,
             sample_rate=1.0,
         )
         metrics.gauge(
-            "hybridcloud.webhookpayload.max_mailbox_depth",
+            "hybridcloud.webhookpayload.mailbox.max_depth",
             max_depth[provider],
             tags=tags,
             sample_rate=1.0,
         )
-        oldest_age = oldest_ages.get(provider)
-        if oldest_age is not None:
-            metrics.gauge(
-                "hybridcloud.webhookpayload.oldest_pending_age_seconds",
-                oldest_age,
-                tags=tags,
-                sample_rate=1.0,
-                unit="second",
-            )
+        metrics.gauge(
+            "hybridcloud.webhookpayload.mailbox.oldest_pending_age_seconds",
+            (now - oldest[provider]).total_seconds(),
+            tags=tags,
+            sample_rate=1.0,
+            unit="second",
+        )
 
 
 @instrumented_task(

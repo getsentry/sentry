@@ -5,6 +5,8 @@ from unittest.mock import MagicMock, PropertyMock, patch
 import orjson
 import pytest
 import responses
+from django.db import OperationalError, connections
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from requests.exceptions import ConnectionError, ReadTimeout
 
@@ -12,12 +14,14 @@ from sentry import options
 from sentry.hybridcloud.models.webhookpayload import MAX_ATTEMPTS, WebhookPayload
 from sentry.hybridcloud.tasks import deliver_webhooks
 from sentry.hybridcloud.tasks.deliver_webhooks import (
+    MAILBOX_DEPTH_QUERY_TIMEOUT,
     MAX_MAILBOX_DRAIN,
     SLOW_DELIVERY_THRESHOLD,
     drain_mailbox,
     drain_mailbox_parallel,
     maybe_trigger_drain,
-    record_mailbox_backlog_metrics,
+    record_mailbox_depth_metrics,
+    record_webhook_backlog_metrics,
     schedule_webhook_delivery,
 )
 from sentry.testutils.cases import TestCase
@@ -1257,47 +1261,130 @@ def gauge_calls(mock_metrics: MagicMock, key: str) -> list[tuple[float, dict[str
 
 
 @control_silo_test
-class MailboxBacklogMetricsTest(TestCase):
+class WebhookBacklogMetricsTest(TestCase):
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
-    def test_empty_backlog_reports_zero(self, mock_metrics: MagicMock) -> None:
-        record_mailbox_backlog_metrics()
+    def test_reports_estimate_when_backlog_is_empty(self, mock_metrics: MagicMock) -> None:
+        record_webhook_backlog_metrics()
 
-        assert gauge_calls(mock_metrics, "hybridcloud.webhookpayload.total_pending_count") == [
-            (0, {})
-        ]
-        assert gauge_calls(mock_metrics, "hybridcloud.webhookpayload.pending_count") == []
+        # The estimate must be emitted unconditionally: it is the only signal that
+        # distinguishes a drained backlog from a task that has stopped running.
+        estimates = gauge_calls(
+            mock_metrics, "hybridcloud.webhookpayload.backlog.pending_count_estimate"
+        )
+        assert len(estimates) == 1
+        # An age of zero would read as "caught up" rather than "nothing pending".
         assert (
-            gauge_calls(mock_metrics, "hybridcloud.webhookpayload.oldest_pending_age_seconds") == []
+            gauge_calls(
+                mock_metrics, "hybridcloud.webhookpayload.backlog.oldest_pending_age_seconds"
+            )
+            == []
         )
 
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_oldest_age_tracks_lowest_id_across_providers(self, mock_metrics: MagicMock) -> None:
+        self.create_webhook_payload(
+            mailbox_name="github:123",
+            cell_name="us",
+            provider="github",
+            date_added=timezone.now() - timedelta(hours=3),
+        )
+        self.create_webhook_payload(
+            mailbox_name="gitlab:789",
+            cell_name="us",
+            provider="gitlab",
+            date_added=timezone.now() - timedelta(minutes=1),
+        )
+
+        record_webhook_backlog_metrics()
+
+        ages = gauge_calls(
+            mock_metrics, "hybridcloud.webhookpayload.backlog.oldest_pending_age_seconds"
+        )
+        assert len(ages) == 1
+        assert ages[0][0] == pytest.approx(timedelta(hours=3).total_seconds(), abs=60)
+
+    def test_estimate_is_read_for_the_webhookpayload_table(self) -> None:
+        # The pg_class lookup is raw SQL, so nothing else would catch it drifting off
+        # the model's table — it would just return no row and pin the gauge to zero.
+        replica = WebhookPayload.objects.using_replica()
+
+        with CaptureQueriesContext(connections[replica.db]) as queries:
+            record_webhook_backlog_metrics()
+
+        assert any(
+            "pg_class" in q["sql"] and WebhookPayload._meta.db_table in q["sql"] for q in queries
+        ), [q["sql"] for q in queries]
+
+    def test_oldest_age_lookup_does_not_scan(self) -> None:
+        # A LIMIT-1 read in primary-key order is what keeps this task's cost flat as the
+        # backlog grows; an aggregate over the unindexed date_added would not be.
+        create_payloads(3, "github:123", provider="github")
+        replica = WebhookPayload.objects.using_replica()
+
+        with CaptureQueriesContext(connections[replica.db]) as queries:
+            record_webhook_backlog_metrics()
+
+        head_query = next(q["sql"] for q in queries if "date_added" in q["sql"])
+        assert "LIMIT 1" in head_query
+        assert "MIN(" not in head_query.upper()
+
+
+@control_silo_test
+class MailboxDepthMetricsTest(TestCase):
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
     def test_depth_is_grouped_by_provider(self, mock_metrics: MagicMock) -> None:
         create_payloads(3, "github:123", provider="github")
         create_payloads(1, "github:456", provider="github")
         create_payloads(2, "gitlab:789", provider="gitlab")
 
-        record_mailbox_backlog_metrics()
+        record_mailbox_depth_metrics()
 
-        assert gauge_calls(mock_metrics, "hybridcloud.webhookpayload.total_pending_count") == [
-            (6, {})
-        ]
-        assert sorted(gauge_calls(mock_metrics, "hybridcloud.webhookpayload.pending_count")) == [
+        assert sorted(
+            gauge_calls(mock_metrics, "hybridcloud.webhookpayload.mailbox.pending_count")
+        ) == [
             (2, {"provider": "gitlab"}),
             (4, {"provider": "github"}),
         ]
-        assert sorted(gauge_calls(mock_metrics, "hybridcloud.webhookpayload.mailbox_count")) == [
+        assert sorted(
+            gauge_calls(mock_metrics, "hybridcloud.webhookpayload.mailbox.active_count")
+        ) == [
             (1, {"provider": "gitlab"}),
             (2, {"provider": "github"}),
         ]
+        # The deepest github mailbox holds 3 of its 4 payloads.
         assert sorted(
-            gauge_calls(mock_metrics, "hybridcloud.webhookpayload.max_mailbox_depth")
+            gauge_calls(mock_metrics, "hybridcloud.webhookpayload.mailbox.max_depth")
         ) == [
             (2, {"provider": "gitlab"}),
             (3, {"provider": "github"}),
         ]
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
-    def test_oldest_pending_age_uses_oldest_payload(self, mock_metrics: MagicMock) -> None:
+    def test_null_provider_is_reported_as_unknown(self, mock_metrics: MagicMock) -> None:
+        create_payloads(1, "github:123", provider=None)
+
+        record_mailbox_depth_metrics()
+
+        assert gauge_calls(mock_metrics, "hybridcloud.webhookpayload.mailbox.pending_count") == [
+            (1, {"provider": "unknown"})
+        ]
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_bucketed_mailboxes_roll_up_to_one_provider(self, mock_metrics: MagicMock) -> None:
+        create_payloads(2, "github:123:7:pull_request", provider="github")
+        create_payloads(1, "github:123:8:push", provider="github")
+
+        record_mailbox_depth_metrics()
+
+        assert gauge_calls(mock_metrics, "hybridcloud.webhookpayload.mailbox.pending_count") == [
+            (3, {"provider": "github"})
+        ]
+        assert gauge_calls(mock_metrics, "hybridcloud.webhookpayload.mailbox.active_count") == [
+            (2, {"provider": "github"})
+        ]
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_oldest_age_is_per_provider(self, mock_metrics: MagicMock) -> None:
         self.create_webhook_payload(
             mailbox_name="github:123",
             cell_name="us",
@@ -1317,37 +1404,46 @@ class MailboxBacklogMetricsTest(TestCase):
             date_added=timezone.now() - timedelta(minutes=5),
         )
 
-        record_mailbox_backlog_metrics()
+        record_mailbox_depth_metrics()
 
         ages = {
             tags["provider"]: value
             for value, tags in gauge_calls(
-                mock_metrics, "hybridcloud.webhookpayload.oldest_pending_age_seconds"
+                mock_metrics, "hybridcloud.webhookpayload.mailbox.oldest_pending_age_seconds"
             )
         }
         assert ages["github"] == pytest.approx(timedelta(hours=2).total_seconds(), abs=60)
         assert ages["gitlab"] == pytest.approx(timedelta(minutes=5).total_seconds(), abs=60)
 
+    def test_aggregate_runs_under_a_statement_timeout(self) -> None:
+        create_payloads(1, "github:123", provider="github")
+        replica = WebhookPayload.objects.using_replica()
+
+        with CaptureQueriesContext(connections[replica.db]) as queries:
+            record_mailbox_depth_metrics()
+
+        # Without this the aggregate is unbounded, and it is the one backlog query
+        # whose cost grows with the backlog it is meant to report on.
+        timeout_ms = int(MAILBOX_DEPTH_QUERY_TIMEOUT.total_seconds() * 1000)
+        assert any(
+            "statement_timeout" in q["sql"] and str(timeout_ms) in q["sql"] for q in queries
+        ), [q["sql"] for q in queries]
+
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
-    def test_mailbox_without_provider_prefix_is_unknown(self, mock_metrics: MagicMock) -> None:
-        create_payloads(1, "mailbox-with-no-separator")
+    def test_aggregate_timeout_is_reported_and_does_not_raise(
+        self, mock_metrics: MagicMock
+    ) -> None:
+        create_payloads(1, "github:123", provider="github")
 
-        record_mailbox_backlog_metrics()
+        # A backlog deep enough to blow the statement timeout must cost us the
+        # breakdown, not the task — record_webhook_backlog_metrics still reports.
+        with patch(
+            "sentry.hybridcloud.tasks.deliver_webhooks.transaction.atomic",
+            side_effect=OperationalError("canceling statement due to statement timeout"),
+        ):
+            record_mailbox_depth_metrics()
 
-        assert gauge_calls(mock_metrics, "hybridcloud.webhookpayload.pending_count") == [
-            (1, {"provider": "unknown"})
-        ]
-
-    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
-    def test_bucketed_mailboxes_roll_up_to_one_provider(self, mock_metrics: MagicMock) -> None:
-        create_payloads(2, "github:123:7:pull_request", provider="github")
-        create_payloads(1, "github:123:8:push", provider="github")
-
-        record_mailbox_backlog_metrics()
-
-        assert gauge_calls(mock_metrics, "hybridcloud.webhookpayload.pending_count") == [
-            (3, {"provider": "github"})
-        ]
-        assert gauge_calls(mock_metrics, "hybridcloud.webhookpayload.mailbox_count") == [
-            (2, {"provider": "github"})
-        ]
+        assert gauge_calls(mock_metrics, "hybridcloud.webhookpayload.mailbox.pending_count") == []
+        mock_metrics.incr.assert_called_once_with(
+            "hybridcloud.webhookpayload.mailbox.aggregate_failed", sample_rate=1.0
+        )
