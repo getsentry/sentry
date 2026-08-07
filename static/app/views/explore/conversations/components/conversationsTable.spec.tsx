@@ -175,6 +175,52 @@ describe('ConversationsTable', () => {
       expect(router.location.pathname).toContain('conv-1');
     });
   });
+
+  it('opens the conversation in a new tab on cmd/ctrl+click', async () => {
+    mockConversations([{...BASE_CONVERSATION, title: 'Open me'}]);
+
+    const openSpy = jest.spyOn(window, 'open').mockReturnValue(null);
+
+    const user = userEvent.setup();
+    const {router} = renderTable();
+    const initialPath = router.location.pathname;
+
+    // Hold both Meta (mac) and Control (other platforms) so the modifier is
+    // detected regardless of the test platform. A single `user` instance is
+    // required so the held keys carry into the click event.
+    await user.keyboard('{Meta>}{Control>}');
+    await user.click(await screen.findByText('Open me'));
+    await user.keyboard('{/Control}{/Meta}');
+
+    expect(openSpy).toHaveBeenCalledWith(expect.stringContaining('conv-1'), '_blank');
+    // Modifier+click must not also navigate the current tab.
+    expect(router.location.pathname).toBe(initialPath);
+
+    openSpy.mockRestore();
+  });
+
+  it('opens the conversation in a new window on shift+click', async () => {
+    mockConversations([{...BASE_CONVERSATION, title: 'Open me'}]);
+
+    const openSpy = jest.spyOn(window, 'open').mockReturnValue(null);
+
+    const user = userEvent.setup();
+    const {router} = renderTable();
+    const initialPath = router.location.pathname;
+
+    await user.keyboard('{Shift>}');
+    await user.click(await screen.findByText('Open me'));
+    await user.keyboard('{/Shift}');
+
+    expect(openSpy).toHaveBeenCalledWith(
+      expect.stringContaining('conv-1'),
+      '_blank',
+      'noopener,noreferrer'
+    );
+    expect(router.location.pathname).toBe(initialPath);
+
+    openSpy.mockRestore();
+  });
 });
 
 describe('collapseToolsColumnWhenUnused', () => {
