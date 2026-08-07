@@ -620,7 +620,7 @@ def create_dif_from_fileobj(
     try:
         storage_path = ConditionalRetryPolicy(
             test_function=lambda attempt_number, _: attempt_number <= 2,
-            delay_function=lambda attempt_number: 5**attempt_number,
+            delay_function=lambda attempt_number: 3**attempt_number,
         )(upload)
     except Exception:
         logger.exception("Failed to write debug file to Objectstore")

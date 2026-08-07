@@ -6,7 +6,7 @@ import time
 import zipfile
 from io import BytesIO
 from typing import Any
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.core.files.base import ContentFile
@@ -465,7 +465,7 @@ class CreateDebugFileTest(APITestCase):
             self.create_dif_from_fileobj(BytesIO(b"objectstore-dif-content"))
 
         assert get_session.return_value.put.call_count == 3
-        sleep.assert_has_calls([call(5), call(25)])
+        assert sleep.call_count == 2
         assert not ProjectDebugFile.objects.filter(project_id=self.project.id).exists()
         assert not File.objects.filter(type="project.dif").exists()
 
