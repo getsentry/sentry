@@ -31,6 +31,7 @@ from sentry.issues.derived.check import (
     CheckInvalidated,
     CheckPassed,
     CheckTimeout,
+    FeatureDifference,
     check_derived_data,
 )
 from sentry.issues.derived.features import (
@@ -157,7 +158,9 @@ class ProcessGroupLogTest(TestCase):
             group_id=group.id,
             cursor_date=derived.cursor_date,
             cursor_id=derived.cursor_id,
-            features=frozenset({VIEW_COUNT.name}),
+            differences={
+                VIEW_COUNT: FeatureDifference(expected=1, actual=0),
+            },
         )
 
     def test_check_derived_data_reports_features_missing_from_state(self) -> None:
@@ -176,7 +179,12 @@ class ProcessGroupLogTest(TestCase):
                 group_id=group.id,
                 cursor_date=derived.cursor_date,
                 cursor_id=derived.cursor_id,
-                features=frozenset({VIEW_COUNT.name}),
+                differences={
+                    VIEW_COUNT: FeatureDifference(
+                        expected=VIEW_COUNT.initial_value(),
+                        actual={"state": "missing"},
+                    ),
+                },
             )
 
     def test_check_derived_data_skips_stale_pipeline(self) -> None:

@@ -23,7 +23,9 @@ def _record_check_result(result: CheckResult) -> None:
                 "group_id": result.group_id,
                 "cursor_date": result.cursor_date.isoformat(),
                 "cursor_id": result.cursor_id,
-                "features": sorted(result.features),
+                "differences": {
+                    feature.name: difference for feature, difference in result.differences.items()
+                },
             },
         )
     metrics.incr(

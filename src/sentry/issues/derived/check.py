@@ -1,10 +1,10 @@
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import NamedTuple
+from typing import Any, NamedTuple, TypedDict
 from uuid import uuid4
 
-from sentry.issues.derived.framework import Pipeline
+from sentry.issues.derived.framework import Feature, Pipeline
 from sentry.issues.derived.processing import DEFAULT_BATCH_SIZE
 from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
@@ -14,26 +14,65 @@ from sentry.workflow_engine.caches.mapping import CacheMapping
 
 @dataclass(frozen=True)
 class CheckPassed:
+    """A check that found no differences."""
+
     pass
 
 
 @dataclass(frozen=True)
 class CheckInvalidated:
+    """A check invalidated by changes to its target."""
+
     pass
+
+
+class FeatureDifference(TypedDict):
+    """JSON-safe expected and actual feature values for diagnostics."""
+
+    expected: object
+    actual: object
 
 
 @dataclass(frozen=True)
 class CheckFailure:
+    """Feature differences found by a completed check."""
+
     group_id: int
     cursor_date: datetime
     cursor_id: int
-    features: frozenset[str]
+    differences: dict[Feature[Any], FeatureDifference]
 
 
 type CheckResult = CheckPassed | CheckFailure | CheckInvalidated
 
 
+def compare_derived_data(
+    pipeline: Pipeline,
+    expected: GroupDerivedData,
+    actual: GroupDerivedData,
+) -> dict[Feature[Any], FeatureDifference]:
+    """Compare two derived-data values using a pipeline's features."""
+    expected_state = GroupDerivedDataStore.load(pipeline, expected)
+    actual_state = GroupDerivedDataStore.load(pipeline, actual)
+    features = expected_state.features | actual_state.features | frozenset(pipeline.features)
+    missing = {"state": "missing"}
+    return {
+        feature: FeatureDifference(
+            expected=(
+                feature.to_json(expected_state[feature]) if feature in expected_state else missing
+            ),
+            actual=(feature.to_json(actual_state[feature]) if feature in actual_state else missing),
+        )
+        for feature in features
+        if feature not in expected_state
+        or feature not in actual_state
+        or expected_state[feature] != actual_state[feature]
+    }
+
+
 class CheckId(NamedTuple):
+    """The immutable identity and target of a resumable check."""
+
     invocation_id: str
     group_id: int
     generated_at: datetime
@@ -43,6 +82,7 @@ class CheckId(NamedTuple):
 
     @classmethod
     def new_for_derived_data(cls, target: GroupDerivedData) -> "CheckId":
+        """Create an ID for a new check of the target."""
         assert target.pipeline_hash is not None
         return cls(
             uuid4().hex,
@@ -54,6 +94,7 @@ class CheckId(NamedTuple):
         )
 
     def matches(self, target: GroupDerivedData) -> bool:
+        """Return whether the target still matches this check."""
         return (
             self.group_id == target.group_id
             and self.generated_at == target.generated_at
@@ -74,6 +115,8 @@ _check_cache = CacheMapping[CheckId, GroupDerivedData](
 
 
 class CheckTimeout(Exception):
+    """A resumable check exceeded its time limit."""
+
     def __init__(self, check_id: CheckId) -> None:
         self.check_id = check_id
         super().__init__(check_id)
@@ -109,6 +152,7 @@ def check_derived_data(
     check_id: CheckId | None = None,
     batch_size: int = DEFAULT_BATCH_SIZE,
 ) -> CheckResult:
+    """Replay and compare the derived data for a target."""
     if target.pipeline_hash != pipeline.pipeline_hash:
         return CheckInvalidated()
 
@@ -150,21 +194,14 @@ def check_derived_data(
         _check_cache.delete(check_id)
         return CheckInvalidated()
 
-    replayed = GroupDerivedDataStore.load(pipeline, replayed_derived)
-    stored = GroupDerivedDataStore.load(pipeline, target)
-    features = replayed.features | stored.features | frozenset(pipeline.features)
-    different_features = frozenset(
-        feature.name
-        for feature in features
-        if feature not in replayed or feature not in stored or replayed[feature] != stored[feature]
-    )
+    differences = compare_derived_data(pipeline, replayed_derived, target)
     _check_cache.delete(check_id)
-    if not different_features:
+    if not differences:
         return CheckPassed()
 
     return CheckFailure(
         group_id=target.group_id,
         cursor_date=target.cursor_date,
         cursor_id=target.cursor_id,
-        features=different_features,
+        differences=differences,
     )

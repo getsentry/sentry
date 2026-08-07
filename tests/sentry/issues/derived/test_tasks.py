@@ -94,7 +94,9 @@ class CheckGroupDerivedDataTest(DerivedDataTaskTestBase):
                 "group_id": group.id,
                 "cursor_date": derived.cursor_date.isoformat(),
                 "cursor_id": derived.cursor_id,
-                "features": ["view_count"],
+                "differences": {
+                    "view_count": {"expected": 1, "actual": 0},
+                },
             },
         )
 
