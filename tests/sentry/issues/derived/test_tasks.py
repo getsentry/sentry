@@ -16,7 +16,7 @@ from sentry.issues.derived.tasks import (
     heal_stale_derived_data,
     regenerate_stale_derived_data_batch,
 )
-from sentry.issues.derived.tasks_util import _pick_random_fresh_group_range
+from sentry.issues.derived.tasks_util import _pick_random_fresh_group_ranges
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
@@ -361,28 +361,34 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
             heal_stale_derived_data()
 
         mock_regenerate.assert_not_called()
+        # One anchor + contiguous fan-out; 2 groups fit in a single default batch.
         mock_check.assert_called_once_with(
             group_id_start=group_ids[0],
             group_id_end=group_ids[-1] + 1,
         )
 
-    def test_checks_random_configured_group_range(self) -> None:
+    def test_schedules_contiguous_ranges_from_one_anchor(self) -> None:
         groups = self.create_unprocessed_groups(4)
         group_ids = sorted(group.id for group in groups)
         for group_id in group_ids:
             process_group_log(group_id)
 
         with (
-            override_options({"issues.derived.check-sample-size": 2}),
-            patch("sentry.issues.derived.tasks_util.random.randint", return_value=group_ids[1]),
+            override_options(
+                {
+                    "issues.derived.check-task-count": 2,
+                    "issues.derived.heal-batch-size": 2,
+                }
+            ),
+            patch("sentry.issues.derived.tasks_util.random.randint", return_value=group_ids[0]),
             patch.object(check_fresh_derived_data_batch, "delay") as mock_check,
         ):
             heal_stale_derived_data()
 
-        mock_check.assert_called_once_with(
-            group_id_start=group_ids[1],
-            group_id_end=group_ids[2] + 1,
-        )
+        assert mock_check.call_args_list == [
+            call(group_id_start=group_ids[0], group_id_end=group_ids[1] + 1),
+            call(group_id_start=group_ids[2], group_id_end=group_ids[3] + 1),
+        ]
 
     def test_respects_killswitch(self) -> None:
         groups = self.create_unprocessed_groups(1)
@@ -554,33 +560,61 @@ class CheckFreshDerivedDataBatchTest(DerivedDataTaskTestBase):
 
 
 @with_feature("projects:issue-action-log-write-to-db")
-class PickRandomFreshGroupRangeTest(DerivedDataTaskTestBase):
-    def test_returns_range_with_up_to_target_size(self) -> None:
-        groups = self.create_unprocessed_groups(4)
+class PickRandomFreshGroupRangesTest(DerivedDataTaskTestBase):
+    def test_returns_contiguous_ranges_from_anchor(self) -> None:
+        groups = self.create_unprocessed_groups(6)
         group_ids = sorted(group.id for group in groups)
         for group_id in group_ids:
             process_group_log(group_id)
 
         with patch("sentry.issues.derived.tasks_util.random.randint", return_value=group_ids[1]):
-            result = _pick_random_fresh_group_range(PIPELINE.pipeline_hash, target_size=2)
+            result = _pick_random_fresh_group_ranges(
+                PIPELINE.pipeline_hash, batch_size=2, task_count=2
+            )
 
-        assert result == (group_ids[1], group_ids[2] + 1)
+        # need=4 and 5 rows remain at/after anchor → no slide.
+        assert result == [
+            (group_ids[1], group_ids[2] + 1),
+            (group_ids[3], group_ids[4] + 1),
+        ]
 
-    def test_returns_shorter_range_near_upper_bound(self) -> None:
+    def test_slides_window_to_fill_near_upper_bound(self) -> None:
+        groups = self.create_unprocessed_groups(5)
+        group_ids = sorted(group.id for group in groups)
+        for group_id in group_ids:
+            process_group_log(group_id)
+
+        with patch("sentry.issues.derived.tasks_util.random.randint", return_value=group_ids[-1]):
+            result = _pick_random_fresh_group_ranges(
+                PIPELINE.pipeline_hash, batch_size=2, task_count=1
+            )
+
+        # need=2 but only 1 row forward of the anchor → last 2 fresh rows.
+        assert result == [(group_ids[-2], group_ids[-1] + 1)]
+
+    def test_slides_to_all_rows_when_table_smaller_than_need(self) -> None:
         groups = self.create_unprocessed_groups(3)
         group_ids = sorted(group.id for group in groups)
         for group_id in group_ids:
             process_group_log(group_id)
 
         with patch("sentry.issues.derived.tasks_util.random.randint", return_value=group_ids[-1]):
-            result = _pick_random_fresh_group_range(PIPELINE.pipeline_hash, target_size=2)
+            result = _pick_random_fresh_group_ranges(
+                PIPELINE.pipeline_hash, batch_size=2, task_count=2
+            )
 
-        assert result == (group_ids[-1], group_ids[-1] + 1)
+        assert result == [
+            (group_ids[0], group_ids[1] + 1),
+            (group_ids[2], group_ids[2] + 1),
+        ]
 
-    def test_returns_none_without_fresh_rows(self) -> None:
-        assert _pick_random_fresh_group_range(PIPELINE.pipeline_hash, target_size=1000) is None
+    def test_returns_empty_without_fresh_rows(self) -> None:
+        assert (
+            _pick_random_fresh_group_ranges(PIPELINE.pipeline_hash, batch_size=1000, task_count=5)
+            == []
+        )
 
-    def test_caps_target_size(self) -> None:
+    def test_caps_total_groups(self) -> None:
         groups = self.create_unprocessed_groups(3)
         group_ids = sorted(group.id for group in groups)
         for group_id in group_ids:
@@ -590,9 +624,11 @@ class PickRandomFreshGroupRangeTest(DerivedDataTaskTestBase):
             patch("sentry.issues.derived.tasks_util._MAX_CHECK_GROUPS", 2),
             patch("sentry.issues.derived.tasks_util.random.randint", return_value=group_ids[0]),
         ):
-            result = _pick_random_fresh_group_range(PIPELINE.pipeline_hash, target_size=1000)
+            result = _pick_random_fresh_group_ranges(
+                PIPELINE.pipeline_hash, batch_size=1000, task_count=5
+            )
 
-        assert result == (group_ids[0], group_ids[1] + 1)
+        assert result == [(group_ids[0], group_ids[1] + 1)]
 
 
 @with_feature("projects:issue-action-log-write-to-db")

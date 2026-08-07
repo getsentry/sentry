@@ -621,7 +621,7 @@ def heal_stale_derived_data(**kwargs: object) -> None:
     """Rebuild a chunk of GroupDerivedData rows whose ``pipeline_hash`` is stale/NULL."""
     from sentry import options
     from sentry.issues.derived.processing import PIPELINE
-    from sentry.issues.derived.tasks_util import _pick_random_fresh_group_range
+    from sentry.issues.derived.tasks_util import _pick_random_fresh_group_ranges
     from sentry.issues.models.groupderiveddata import GroupDerivedData
 
     if not options.get("issues.derived.heal-enabled"):
@@ -644,11 +644,12 @@ def heal_stale_derived_data(**kwargs: object) -> None:
     )
     if not group_ids:
         logger.info("heal_stale_derived_data.nothing_to_heal")
-        check_range = _pick_random_fresh_group_range(
-            current_hash, options.get("issues.derived.check-sample-size")
+        check_ranges = _pick_random_fresh_group_ranges(
+            current_hash,
+            batch_size=batch_size,
+            task_count=options.get("issues.derived.check-task-count"),
         )
-        if check_range is not None:
-            start, end = check_range
+        for start, end in check_ranges:
             check_fresh_derived_data_batch.delay(
                 group_id_start=start,
                 group_id_end=end,
@@ -657,7 +658,7 @@ def heal_stale_derived_data(**kwargs: object) -> None:
         logger.info(
             "heal_stale_derived_data.checks_scheduled",
             extra={
-                "scheduled": check_range is not None,
+                "task_count": len(check_ranges),
                 "pipeline_hash": current_hash,
             },
         )

@@ -33,28 +33,39 @@ def _record_check_result(result: CheckResult | None) -> None:
     )
 
 
-def _pick_random_fresh_group_range(pipeline_hash: str, target_size: int) -> tuple[int, int] | None:
-    """Pick a random range containing up to ``target_size`` fresh rows."""
-    target_size = min(target_size, _MAX_CHECK_GROUPS)
-    if target_size <= 0:
-        return None
+def _pick_random_fresh_group_ranges(
+    pipeline_hash: str, *, batch_size: int, task_count: int
+) -> list[tuple[int, int]]:
+    """Pick contiguous check ranges from one random anchor (slide-to-fill if short)."""
+    if batch_size <= 0 or task_count <= 0:
+        return []
 
+    need = min(batch_size * task_count, _MAX_CHECK_GROUPS)
     fresh = GroupDerivedData.objects.filter(pipeline_hash=pipeline_hash)
     bounds = fresh.aggregate(min_group_id=Min("group_id"), max_group_id=Max("group_id"))
     min_group_id = bounds["min_group_id"]
     max_group_id = bounds["max_group_id"]
     if min_group_id is None or max_group_id is None:
-        return None
+        return []
 
     random_start = random.randint(min_group_id, max_group_id)
     group_ids = list(
         fresh.filter(group_id__gte=random_start)
         .order_by("group_id")
-        .values_list("group_id", flat=True)[:target_size]
+        .values_list("group_id", flat=True)[:need]
     )
+    if len(group_ids) < need:
+        # Short forward tail: take the last ``need`` fresh rows (one contiguous band).
+        group_ids = list(fresh.order_by("-group_id").values_list("group_id", flat=True)[:need])
+        group_ids.reverse()
     if not group_ids:
-        return None
-    return group_ids[0], group_ids[-1] + 1
+        return []
+
+    ranges: list[tuple[int, int]] = []
+    for i in range(0, len(group_ids), batch_size):
+        chunk = group_ids[i : i + batch_size]
+        ranges.append((chunk[0], chunk[-1] + 1))
+    return ranges
 
 
 def _resume_check_id(
