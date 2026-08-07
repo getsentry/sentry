@@ -1,14 +1,14 @@
 import {Fragment, useCallback, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Grid} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconEllipsis} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {IconChat, IconEllipsis} from 'sentry/icons';
+import {t, tn} from 'sentry/locale';
 import {
   GroupActivityType,
   SEER_ACTIVITY_TYPES,
@@ -33,7 +33,6 @@ import {ActivityNoteInput} from 'sentry/views/issueDetails/activitySection/activ
 import {useMutateActivity} from 'sentry/views/issueDetails/activitySection/useMutateActivity';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
-import {SidebarSectionTitle} from 'sentry/views/issueDetails/sidebar/sidebar';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
@@ -43,6 +42,7 @@ interface ActivityFeedRowProps {
   inputVariant: 'compact' | 'full';
   item: ActivityFeedItem;
   onCommentEdited?: (activity: GroupActivity[]) => void;
+  showConnector?: boolean;
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }
 
@@ -52,13 +52,19 @@ function ActivityFeedRow({
   onCommentEdited,
   group,
   inputVariant,
+  showConnector,
   timestampUnitStyle,
 }: ActivityFeedRowProps) {
   const {activity} = item;
 
   if (!isActivityNote(activity)) {
     return (
-      <ActivityLine item={item} group={group} timestampUnitStyle={timestampUnitStyle} />
+      <ActivityLine
+        item={item}
+        group={group}
+        showConnector={showConnector}
+        timestampUnitStyle={timestampUnitStyle}
+      />
     );
   }
 
@@ -69,6 +75,7 @@ function ActivityFeedRow({
       inputVariant={inputVariant}
       onDelete={() => handleDelete(activity)}
       onCommentEdited={onCommentEdited}
+      showConnector={showConnector}
       timestampUnitStyle={timestampUnitStyle}
     />
   );
@@ -76,6 +83,10 @@ function ActivityFeedRow({
 
 interface ActivitySectionProps {
   group: Group;
+  /**
+   * Activity to render instead of the activity embedded in the group response.
+   */
+  activities?: GroupActivity[];
   /**
    * Whether to filter the activity to only show comments.
    */
@@ -159,6 +170,7 @@ function removeAdjacentDuplicatePullRequestActivities(activities: GroupActivity[
 
 export function ActivitySection({
   group,
+  activities: providedActivities,
   filterComments,
   onCommentCreated,
   onCommentDeleted,
@@ -167,11 +179,11 @@ export function ActivitySection({
   minHeight = 96,
   placeholder = t('Add a comment\u2026'),
 }: ActivitySectionProps) {
-  const theme = useTheme();
   const organization = useOrganization();
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
   const [inputId, setInputId] = useState(() => uniqueId());
+  const activities = providedActivities ?? group.activity;
 
   const noteProps = {
     minHeight,
@@ -186,7 +198,7 @@ export function ActivitySection({
 
   const handleDelete = useCallback(
     async (item: GroupActivity): Promise<void> => {
-      const filteredActivity = group.activity.filter(a => a.id !== item.id);
+      const filteredActivity = activities.filter(a => a.id !== item.id);
       await mutators.handleDelete(item.id, {
         onSuccess: () => {
           trackAnalytics('issue_details.comment_deleted', {organization});
@@ -195,7 +207,7 @@ export function ActivitySection({
         },
       });
     },
-    [group.activity, mutators, onCommentDeleted, organization]
+    [activities, mutators, onCommentDeleted, organization]
   );
 
   const activityLink = {
@@ -205,13 +217,20 @@ export function ActivitySection({
       cursor: undefined,
     },
   };
+  const commentsLink = {
+    pathname: activityLink.pathname,
+    query: {
+      ...activityLink.query,
+      filter: 'comments',
+    },
+  };
 
   const showSeerActivities = organization.features.includes(
     'display-seer-actions-as-issue-activities'
   );
   const visibleActivities = showSeerActivities
-    ? group.activity
-    : group.activity.filter(item => !SEER_ACTIVITY_TYPES.has(item.type));
+    ? activities
+    : activities.filter(item => !SEER_ACTIVITY_TYPES.has(item.type));
 
   const {activities: deduplicatedActivities, actorActivityById} =
     removeAdjacentDuplicatePullRequestActivities(visibleActivities);
@@ -225,7 +244,7 @@ export function ActivitySection({
   const inputVariant = variant === 'sidebar' ? 'compact' : 'full';
   const timestampUnitStyle = variant === 'sidebar' ? 'short' : undefined;
 
-  const renderActivityItem = (item: ActivityFeedItem) => (
+  const renderActivityItem = (item: ActivityFeedItem, showConnector: boolean) => (
     <ActivityFeedRow
       item={item}
       handleDelete={handleDelete}
@@ -233,6 +252,7 @@ export function ActivitySection({
       group={group}
       key={item.activity.id}
       inputVariant={inputVariant}
+      showConnector={showConnector}
       timestampUnitStyle={timestampUnitStyle}
     />
   );
@@ -252,7 +272,9 @@ export function ActivitySection({
 
   const timeline = (
     <ActivityLineList data-test-id="activity-timeline">
-      {displayedActivities.map(renderActivityItem)}
+      {displayedActivities.map((item, index) =>
+        renderActivityItem(item, index < displayedActivities.length - 1)
+      )}
     </ActivityLineList>
   );
   const hiddenActivityCount =
@@ -261,7 +283,7 @@ export function ActivitySection({
     hiddenActivityCount > 0 ? displayedActivities.slice(0, 3) : displayedActivities;
   const sidebarActivityItems = (
     <Fragment>
-      {sidebarVisibleActivities.map(renderActivityItem)}
+      {sidebarVisibleActivities.map(item => renderActivityItem(item, true))}
       <MoreActivityRow>
         <MoreActivityIcon>
           <RotatedEllipsisIcon direction="up" />
@@ -300,9 +322,24 @@ export function ActivitySection({
   return (
     <SidebarFoldSection
       title={
-        <SidebarSectionTitle style={{gap: theme.space.sm, margin: 0}}>
+        <Heading as="h3" size="md">
           {t('Activity')}
-        </SidebarSectionTitle>
+        </Heading>
+      }
+      titleTrailingItems={
+        group.numComments > 0 ? (
+          <LinkButton
+            aria-label={tn('View %s comment', 'View %s comments', group.numComments)}
+            icon={<IconChat />}
+            size="zero"
+            variant="transparent"
+            to={commentsLink}
+            replace
+            preventScrollReset
+          >
+            {tn('%s comment', '%s comments', group.numComments)}
+          </LinkButton>
+        ) : null
       }
       sectionKey={SectionKey.ACTIVITY}
     >
@@ -328,16 +365,6 @@ const MoreActivityRow = styled('div')`
   align-items: center;
   grid-template-columns: 22px minmax(0, 1fr);
   grid-column-gap: ${p => p.theme.space.md};
-
-  &::after {
-    content: '';
-    position: absolute;
-    left: 10.5px;
-    top: 50%;
-    bottom: 0;
-    width: 1px;
-    background: ${p => p.theme.tokens.background.primary};
-  }
 `;
 
 const MoreActivityIcon = styled('div')`

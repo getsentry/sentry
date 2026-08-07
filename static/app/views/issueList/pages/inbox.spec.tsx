@@ -644,6 +644,7 @@ describe('InboxPage', () => {
     mockSection('issue.progress:assigned is:unresolved assigned_or_suggested:me', [
       assignedGroup,
     ]);
+    mockSection('issue.progress:identified is:unresolved assigned_or_suggested:me', []);
     mockSection('issue.progress:fix_applied is:unresolved assigned_or_suggested:me', []);
 
     render(<InboxPage />, {organization, initialRouterConfig});

@@ -40,6 +40,8 @@ function ActivityLineDot() {
 }
 
 const LeadingCells = styled('div')`
+  position: relative;
+  z-index: 1;
   grid-column: 1;
   grid-row: 1;
   display: grid;
