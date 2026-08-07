@@ -137,7 +137,7 @@ export function IssueStreamDetectorFixture(
     id: '4',
     type: 'issue_stream',
     ...params,
-  } as IssueStreamDetector;
+  };
 }
 
 export function AllProjectsDetectorFixture(
