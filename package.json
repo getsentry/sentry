@@ -282,7 +282,7 @@
     "tinyglobby": "0.2.16",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "typescript-7": "npm:typescript@^7.0.2",
-    "typescript-eslint": "8.58.0"
+    "typescript-eslint": "8.66.0"
   },
   "optionalDependencies": {
     "fsevents": "^2.3.3"

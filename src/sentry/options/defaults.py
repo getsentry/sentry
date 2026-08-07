@@ -1092,6 +1092,13 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "seer.post-process-issue-summary.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "seer.similarity-killswitch.enabled",
     default=False,
     type=Bool,
@@ -4069,7 +4076,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Issues derived data — process_project_derived_data task
+# Issues derived data — generate_project_derived_data task
 # Number of groups per batch task when fanning out project-wide processing.
 register(
     "issues.derived.project-batch-size",
@@ -4084,18 +4091,26 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Number of projects to schedule for reprocessing per heal_stale_derived_data invocation.
-register(
-    "issues.derived.heal-project-limit",
-    default=3,
-    type=Int,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Kill switch for heal_stale_derived_data task.
 register(
     "issues.derived.heal-enabled",
     default=True,
     type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Number of groups per batch task when fanning out heal_stale_derived_data.
+register(
+    "issues.derived.heal-batch-size",
+    default=500,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Maximum number of batch tasks a single heal_stale_derived_data invocation
+# may schedule. Overflow waits for the next invocation.
+register(
+    "issues.derived.heal-max-tasks",
+    default=100,
+    type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

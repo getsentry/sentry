@@ -44,8 +44,8 @@ function getAIEnhancedDescription(node: EapSpanNode): string | undefined {
   }
 
   if (opType === GenAiOperationType.TOOL) {
-    const toolName = getStringAttr(node as any, SpanFields.GEN_AI_TOOL_NAME);
-    const inputPreview = getToolInputPreview(node as any);
+    const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
+    const inputPreview = getToolInputPreview(node);
     if (toolName && inputPreview) {
       return `${toolName}: ${inputPreview}`;
     }
@@ -53,7 +53,7 @@ function getAIEnhancedDescription(node: EapSpanNode): string | undefined {
   }
 
   if (opType === GenAiOperationType.AI_CLIENT) {
-    const responseModel = getStringAttr(node as any, SpanFields.GEN_AI_RESPONSE_MODEL);
+    const responseModel = getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL);
     return responseModel ?? undefined;
   }
 
