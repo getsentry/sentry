@@ -1,7 +1,6 @@
 import {ATTRIBUTE_METADATA} from '@sentry/conventions';
 
 import {t, td} from 'sentry/locale';
-import type {TagCollection} from 'sentry/types/group';
 import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from 'sentry/utils/discover/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -3108,7 +3107,7 @@ export const DISCOVER_FIELDS = [
   FieldKey.OTA_UPDATES_UPDATE_ID,
 ];
 
-export enum ReplayFieldKey {
+enum ReplayFieldKey {
   ACTIVITY = 'activity',
   BROWSER_NAME = 'browser.name',
   BROWSER_VERSION = 'browser.version',
@@ -3139,7 +3138,7 @@ export enum ReplayFieldKey {
   VIEWED_BY_ME = 'viewed_by_me',
 }
 
-export enum ReplayClickFieldKey {
+enum ReplayClickFieldKey {
   CLICK_ALT = 'click.alt',
   CLICK_CLASS = 'click.class',
   CLICK_ID = 'click.id',
@@ -3749,15 +3748,6 @@ export const getFieldDefinition = (
 ): FieldDefinition | null => {
   return _getFieldFromMappings(type, key, kind) ?? null;
 };
-
-export function makeTagCollection(fieldKeys: FieldKey[]): TagCollection {
-  return Object.fromEntries(
-    fieldKeys.map(fieldKey => [
-      fieldKey,
-      {key: fieldKey, name: fieldKey, kind: getFieldDefinition(fieldKey)?.kind},
-    ])
-  );
-}
 
 export function isDeviceClass(key: any): boolean {
   return key === FieldKey.DEVICE_CLASS;

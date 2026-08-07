@@ -1,6 +1,8 @@
 # Python Testing Guide
 
 > For test commands (`make test-selective`, `pytest`), see the "Command Execution Guide" section in `/AGENTS.md` in the repository root.
+>
+> This guide covers Python tests. For frontend React/TypeScript tests (`*.spec.tsx`, RTL, `MockApiClient`), use the **`react-testing`** skill.
 
 ## How to Determine Where to Add New Test Cases
 

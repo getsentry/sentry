@@ -745,9 +745,6 @@ export function formatTagKey(key: string): string {
   return key;
 }
 
-// Allows for a less strict field key definition in cases we are returning custom strings as fields
-export type LooseFieldKey = FieldKey | string | '';
-
 type MeasurementType =
   | FieldValueType.DURATION
   | FieldValueType.NUMBER
