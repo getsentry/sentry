@@ -141,7 +141,7 @@ export function useLogsSearchQueryBuilderProps({
       booleanAttributes: validatedBooleanAttributes,
       numberAttributes: validatedNumberAttributes,
       stringAttributes: validatedStringAttributes,
-      itemType: TraceItemDataset.LOGS as TraceItemDataset.LOGS,
+      itemType: TraceItemDataset.LOGS,
       booleanSecondaryAliases,
       numberSecondaryAliases,
       stringSecondaryAliases,

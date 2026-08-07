@@ -20,7 +20,6 @@ import {useAlertBuilderOutlet} from 'sentry/views/alerts/builder/projectProvider
 
 import {CronRulesEdit} from './rules/crons/edit';
 import IssueEditor from './rules/issue';
-import {MetricRulesEdit} from './rules/metric/edit';
 import {UptimeRulesEdit} from './rules/uptime/edit';
 import {CombinedAlertType} from './types';
 
@@ -59,7 +58,6 @@ export default function ProjectAlertsEditor() {
   const [title, setTitle] = useState('');
 
   const alertTypeUrls = [
-    {url: '/alerts/metric-rules/', type: CombinedAlertType.METRIC},
     {url: '/alerts/uptime-rules/', type: CombinedAlertType.UPTIME},
     {url: '/alerts/crons-rules/', type: CombinedAlertType.CRONS},
     {url: '/alerts/rules/', type: CombinedAlertType.ISSUE},
@@ -116,19 +114,6 @@ export default function ProjectAlertsEditor() {
                 onChangeTitle={setTitle}
                 userTeamIds={teams.map(({id}) => id)}
                 members={members}
-              />
-            )}
-            {alertType === CombinedAlertType.METRIC && (
-              <MetricRulesEdit
-                location={location}
-                params={params}
-                router={router}
-                routes={routes}
-                route={{}}
-                routeParams={params}
-                organization={organization}
-                project={project}
-                onChangeTitle={setTitle}
               />
             )}
             {alertType === CombinedAlertType.UPTIME && (

@@ -32,6 +32,7 @@ import type {StepProps} from './types';
 
 interface ScmPlatformFeaturesProps {
   createdProjectSlug: string | undefined;
+  deferProjectCreation: boolean;
   onComplete: StepProps['onComplete'];
   onFeaturesChange: (features: ProductSolution[] | undefined) => void;
   onPlatformChange: (platform: OnboardingSelectedSDK | undefined) => void;
@@ -44,6 +45,7 @@ interface ScmPlatformFeaturesProps {
 
 export function ScmPlatformFeatures({
   createdProjectSlug,
+  deferProjectCreation,
   onComplete,
   onFeaturesChange,
   onPlatformChange,
@@ -91,9 +93,10 @@ export function ScmPlatformFeatures({
     ? projects.find(p => p.slug === createdProjectSlug)
     : undefined;
 
-  // Continue auto-creates the project, which needs the teams and projects
-  // stores loaded.
-  const autoCreateDataPending = isLoadingTeams || !projectsLoaded;
+  // Control auto-creates the project and needs both stores loaded. Treatment
+  // only stages platform/features here; its messaging step owns creation.
+  const autoCreateDataPending =
+    !deferProjectCreation && (isLoadingTeams || !projectsLoaded);
 
   async function handleContinue() {
     if (isCompletingRef.current) {
@@ -116,6 +119,11 @@ export function ScmPlatformFeatures({
       return;
     }
     const platform = selectedPlatform ?? toSelectedSdk(info);
+
+    if (deferProjectCreation) {
+      onComplete(platform, {product: currentFeatures});
+      return;
+    }
 
     // If a project was already created for this platform (e.g. the user
     // went back after the project received its first event), reuse it.

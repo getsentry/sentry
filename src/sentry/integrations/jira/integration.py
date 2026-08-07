@@ -683,7 +683,17 @@ class JiraIntegration(IssueSyncIntegration):
         )
         sync_status_forward = {}
 
-        project_mappings = self._filter_active_projects(project_mappings)
+        try:
+            project_mappings = self._filter_active_projects(project_mappings)
+        except ApiError as e:
+            logger.info(
+                "jira.get-config-data.filter-active-projects-failed",
+                extra={
+                    "org_id": self.organization_id,
+                    "integration_id": self.model.id,
+                    "error": str(e),
+                },
+            )
 
         for pm in project_mappings:
             sync_status_forward[pm.external_id] = {
