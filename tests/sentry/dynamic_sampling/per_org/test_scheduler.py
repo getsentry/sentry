@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from unittest.mock import DEFAULT, Mock, patch
+from unittest.mock import DEFAULT, Mock, call, patch
 
 from django.core.exceptions import ObjectDoesNotExist
 
 from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org import cache as per_org_recalibration_cache
+from sentry.dynamic_sampling.per_org.calculations import Recalibration, RecalibrationSource
 from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
 from sentry.dynamic_sampling.per_org.gate import is_org_in_rollout
 from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts
@@ -41,7 +42,7 @@ TRANSACTION_BALANCING = f"{SCHEDULER}.run_transaction_balancing"
 CACHED_PROJECT_RATES = f"{SCHEDULER}.get_cached_rebalanced_project_sample_rates"
 COMPARE_PROJECTS = f"{SCHEDULER}.compare_rebalanced_projects_with_cache"
 CACHED_FACTOR = f"{SCHEDULER}.get_cached_recalibration_factor"
-COMPARE_FACTOR = f"{SCHEDULER}.compare_recalibration_factor_with_cache"
+COMPARE_FACTOR = f"{SCHEDULER}.compare_recalibrations_with_cache"
 
 
 def _assert_called_once_with_config(
@@ -60,7 +61,9 @@ class PerOrgRecalibrationCacheTest(TestCase):
         org = self.create_organization()
         redis = get_redis_client_for_ds()
         legacy_key = legacy_recalibration_cache.generate_recalibrate_orgs_cache_key(org.id)
-        per_org_key = per_org_recalibration_cache.generate_recalibrate_orgs_cache_key(org.id)
+        per_org_key = per_org_recalibration_cache.generate_recalibrate_orgs_cache_key(
+            org.id, RecalibrationSource.EAP
+        )
         self.addCleanup(redis.delete, legacy_key, per_org_key)
         redis.delete(legacy_key, per_org_key)
 
@@ -68,25 +71,64 @@ class PerOrgRecalibrationCacheTest(TestCase):
 
         redis.set(legacy_key, 2.5)
         assert legacy_recalibration_cache.get_adjusted_factor(org.id) == 2.5
-        assert per_org_recalibration_cache.get_adjusted_factor(org.id) == 1.0
+        assert (
+            per_org_recalibration_cache.get_adjusted_factor(org.id, RecalibrationSource.EAP) == 1.0
+        )
 
         redis.delete(legacy_key)
         redis.set(per_org_key, 3.5)
-        assert per_org_recalibration_cache.get_adjusted_factor(org.id) == 3.5
+        assert (
+            per_org_recalibration_cache.get_adjusted_factor(org.id, RecalibrationSource.EAP) == 3.5
+        )
         assert legacy_recalibration_cache.get_adjusted_factor(org.id) == 1.0
+
+    def test_per_org_cache_keeps_a_factor_per_source(self) -> None:
+        org = self.create_organization()
+        redis = get_redis_client_for_ds()
+        keys = [
+            per_org_recalibration_cache.generate_recalibrate_orgs_cache_key(org.id, source)
+            for source in RecalibrationSource
+        ]
+        self.addCleanup(redis.delete, *keys)
+        redis.delete(*keys)
+
+        assert len(set(keys)) == len(keys)
+
+        per_org_recalibration_cache.set_guarded_adjusted_factor(
+            org.id, RecalibrationSource.EAP, 2.5
+        )
+        assert (
+            per_org_recalibration_cache.get_adjusted_factor(org.id, RecalibrationSource.EAP) == 2.5
+        )
+        assert (
+            per_org_recalibration_cache.get_adjusted_factor(org.id, RecalibrationSource.OUTCOMES)
+            == 1.0
+        )
 
     def test_per_org_cache_sets_and_deletes_adjusted_factor(self) -> None:
         org = self.create_organization()
         redis = get_redis_client_for_ds()
-        cache_key = per_org_recalibration_cache.generate_recalibrate_orgs_cache_key(org.id)
+        cache_key = per_org_recalibration_cache.generate_recalibrate_orgs_cache_key(
+            org.id, RecalibrationSource.OUTCOMES
+        )
         self.addCleanup(redis.delete, cache_key)
         redis.delete(cache_key)
 
-        per_org_recalibration_cache.set_guarded_adjusted_factor(org.id, 2.5)
-        assert per_org_recalibration_cache.get_adjusted_factor(org.id) == 2.5
+        per_org_recalibration_cache.set_guarded_adjusted_factor(
+            org.id, RecalibrationSource.OUTCOMES, 2.5
+        )
+        assert (
+            per_org_recalibration_cache.get_adjusted_factor(org.id, RecalibrationSource.OUTCOMES)
+            == 2.5
+        )
 
-        per_org_recalibration_cache.set_guarded_adjusted_factor(org.id, 1.0)
-        assert per_org_recalibration_cache.get_adjusted_factor(org.id) == 1.0
+        per_org_recalibration_cache.set_guarded_adjusted_factor(
+            org.id, RecalibrationSource.OUTCOMES, 1.0
+        )
+        assert (
+            per_org_recalibration_cache.get_adjusted_factor(org.id, RecalibrationSource.OUTCOMES)
+            == 1.0
+        )
 
 
 class SchedulePerOrgCalculationsTest(TestCase):
@@ -372,7 +414,10 @@ class RunCalculationsPerOrgTest(TestCase):
         mocks[TRANSACTION_BALANCING].assert_called_once_with(
             transaction_config, project_volumes, transaction_volumes
         )
-        mocks[SET_FACTOR].assert_called_once_with(org.id, 4.0)
+        assert mocks[SET_FACTOR].call_args_list == [
+            call(org.id, RecalibrationSource.EAP, 4.0),
+            call(org.id, RecalibrationSource.OUTCOMES, 4.0),
+        ]
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_skips_project_mode_without_project_rates(self) -> None:
@@ -453,9 +498,32 @@ class RunCalculationsPerOrgTest(TestCase):
         mocks[TRANSACTION_BALANCING].assert_called_once_with(
             transaction_config, project_volumes, transaction_volumes
         )
+        # Both sources see the same 5-minute organization volume: the EAP one because the
+        # scheduler hands it the volume it already fetched, the outcomes one because its
+        # query is mocked with the same value here.
         assert project_config.organization_recalibration_factor == 4.0
-        mocks[SET_FACTOR].assert_called_once_with(org.id, 4.0)
-        mocks[COMPARE_FACTOR].assert_called_once_with(project_config, 4.0, 1.0)
+        assert mocks[SET_FACTOR].call_args_list == [
+            call(org.id, RecalibrationSource.EAP, 4.0),
+            call(org.id, RecalibrationSource.OUTCOMES, 4.0),
+        ]
+        mocks[COMPARE_FACTOR].assert_called_once_with(
+            project_config,
+            [
+                Recalibration(
+                    source=RecalibrationSource.EAP,
+                    volume=org_volume,
+                    effective_sample_rate=0.25,
+                    factor=4.0,
+                ),
+                Recalibration(
+                    source=RecalibrationSource.OUTCOMES,
+                    volume=org_volume,
+                    effective_sample_rate=0.25,
+                    factor=4.0,
+                ),
+            ],
+            1.0,
+        )
 
     @override_options(
         {
@@ -463,7 +531,7 @@ class RunCalculationsPerOrgTest(TestCase):
             "dynamic-sampling.per_org.recalibration-rollout-rate": 1.0,
         }
     )
-    def test_run_calculations_per_org_skips_recalibration_without_valid_5_minute_volume(
+    def test_run_calculations_per_org_skips_the_org_factor_without_span_outcomes(
         self,
     ) -> None:
         org = self.create_organization()
@@ -498,11 +566,29 @@ class RunCalculationsPerOrgTest(TestCase):
 
         assert result is None
         project_config = _assert_called_once_with_config(mocks[PROJECT_VOLUMES], org.id)
+        # Without span outcomes there is no organization factor, even though EAP still
+        # produced its comparison factor from the organization volume.
         assert project_config.organization_recalibration_factor is None
         mocks[SAMPLED_VOLUME].assert_called_once()
-        mocks[SET_FACTOR].assert_not_called()
-        # The comparison still runs, so the legacy factor is reported next to no EAP factor.
-        mocks[COMPARE_FACTOR].assert_called_once_with(project_config, None, 1.0)
+        assert mocks[SET_FACTOR].call_args_list == [call(org.id, RecalibrationSource.EAP, 2.0)]
+        mocks[COMPARE_FACTOR].assert_called_once_with(
+            project_config,
+            [
+                Recalibration(
+                    source=RecalibrationSource.EAP,
+                    volume=org_volume,
+                    effective_sample_rate=0.25,
+                    factor=2.0,
+                ),
+                Recalibration(
+                    source=RecalibrationSource.OUTCOMES,
+                    volume=None,
+                    effective_sample_rate=None,
+                    factor=None,
+                ),
+            ],
+            1.0,
+        )
 
     @override_options(
         {

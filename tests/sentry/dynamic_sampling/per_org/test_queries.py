@@ -6,7 +6,9 @@ from typing import Any
 from unittest.mock import patch
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
+from snuba_sdk import Column, Condition, Op
 
+from sentry.constants import DataCategory
 from sentry.dynamic_sampling.per_org.configuration import (
     BaseDynamicSamplingConfiguration,
     get_configuration,
@@ -188,6 +190,11 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         assert (
             raw_snql_query.call_args.kwargs["referrer"]
             == "dynamic_sampling.per_org.get_outcomes_org_volume"
+        )
+        # Only the indexed category carries a dynamic sampling drop. Querying `span` instead
+        # would report every span as accepted, putting the effective sample rate at 100%.
+        assert (
+            Condition(Column("category"), Op.EQ, DataCategory.SPAN_INDEXED) in request.query.where
         )
 
     def test_get_outcomes_organization_sampled_volume_without_traffic(self) -> None:

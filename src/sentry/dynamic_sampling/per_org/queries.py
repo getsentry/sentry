@@ -156,10 +156,23 @@ def get_outcomes_organization_sampled_volume(
     time_interval: timedelta = OUTCOMES_ORGANIZATION_VOLUME_DEFAULT_TIME_INTERVAL,
 ) -> OrganizationDataVolume | None:
     """
-    Volume of an org from outcomes, split into the volume before sampling (``total``) and
-    the volume that sampling kept (``indexed``). Recalibration needs both to derive the
-    effective sample rate, which ``get_outcomes_organization_volume`` cannot give: that
-    one counts accepted outcomes only.
+    Volume of an org from span outcomes, split into the volume that reached the sampling
+    decision (``total``) and the volume sampling kept (``indexed``). Recalibration needs
+    both to derive the effective sample rate, which ``get_outcomes_organization_volume``
+    cannot give: that one counts accepted outcomes only.
+
+    The category is ``span_indexed`` because that is the only one a dynamic sampling drop
+    is reported under. Relay hands the total category over to the extracted metrics before
+    it rejects the payload, so the drop counts towards the indexed category alone (see
+    ``processing/spans/dynamic_sampling.rs`` and ``processing/transactions/process.rs`` in
+    relay). ``span`` would therefore report every span as accepted and put the effective
+    sample rate at 100%.
+
+    Both plan families are covered: AM3 sends spans directly, and a dropped AM2 transaction
+    reports its extracted spans under ``span_indexed`` as well. Note that the quantities are
+    spans, not segments, so this rate is span-weighted while the legacy pipeline's is
+    segment-weighted. Traces of different sizes being kept at different rates move the two
+    apart without either being wrong.
     """
     end_time = datetime.now(UTC)
     start_time = end_time - time_interval
@@ -190,7 +203,7 @@ def get_outcomes_organization_sampled_volume(
                     Condition(Column("timestamp"), Op.GTE, start_time),
                     Condition(Column("timestamp"), Op.LT, end_time),
                     Condition(Column("org_id"), Op.EQ, org_id),
-                    Condition(Column("category"), Op.EQ, DataCategory.TRANSACTION),
+                    Condition(Column("category"), Op.EQ, DataCategory.SPAN_INDEXED),
                 ],
                 granularity=Granularity(60),
                 limit=Limit(1),
