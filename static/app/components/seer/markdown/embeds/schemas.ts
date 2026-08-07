@@ -1,5 +1,7 @@
 import {z} from 'zod';
 
+import {API_ACCESS_SCOPES} from 'sentry/constants/apiAccessScopes';
+
 const isoTimestampSchema = z.iso.datetime({offset: true});
 
 const chartSeriesDataSchema = z
@@ -240,7 +242,25 @@ export const SEER_EMBED_SCHEMAS = {
   },
 } as const satisfies Record<string, SeerEmbedSchema>;
 
-export type SeerEmbedName = keyof typeof SEER_EMBED_SCHEMAS;
+export const STRUCTURED_SEER_EMBED_SCHEMAS = {
+  agentWriteApproval: {
+    description: 'Request browser-session approval for Sentry API write scopes.',
+    level: ['block'],
+    schema: z.object({
+      inputId: z.string().uuid(),
+      requiredScopes: z.array(z.enum(API_ACCESS_SCOPES)).min(1),
+      sessionId: z.string().min(1),
+      status: z.enum(['pending', 'approved', 'rejected']),
+    }),
+  },
+} as const satisfies Record<string, SeerEmbedSchema>;
+
+export const ALL_SEER_EMBED_SCHEMAS = {
+  ...SEER_EMBED_SCHEMAS,
+  ...STRUCTURED_SEER_EMBED_SCHEMAS,
+};
+
+export type SeerEmbedName = keyof typeof ALL_SEER_EMBED_SCHEMAS;
 
 export function seerEmbedsToJsonSchemas(): Array<{
   body: Record<string, unknown>;

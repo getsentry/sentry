@@ -69,6 +69,7 @@ function defaultProps(state: StateOverrides = {}) {
     selectedPlatform: state.selectedPlatform,
     selectedFeatures: state.selectedFeatures,
     createdProjectSlug: state.createdProjectSlug,
+    deferProjectCreation: false,
     onPlatformChange: jest.fn(),
     onFeaturesChange: jest.fn(),
     onProjectCreated: jest.fn(),
@@ -623,6 +624,31 @@ describe('ScmPlatformFeatures', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/teams/`,
         body: [adminTeam],
+      });
+    });
+
+    it('defers project creation for the messaging treatment', async () => {
+      const createRequest = MockApiClient.addMockResponse({
+        url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
+        method: 'POST',
+        body: ProjectFixture(),
+      });
+      const props = {
+        ...defaultProps({
+          selectedPlatform: nextJsPlatform,
+          selectedFeatures: [ProductSolution.ERROR_MONITORING],
+        }),
+        deferProjectCreation: true,
+      };
+
+      render(<ScmPlatformFeatures {...props} />, {organization});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+      expect(createRequest).not.toHaveBeenCalled();
+      expect(props.onProjectCreated).not.toHaveBeenCalled();
+      expect(props.onComplete).toHaveBeenCalledWith(nextJsPlatform, {
+        product: [ProductSolution.ERROR_MONITORING],
       });
     });
 
