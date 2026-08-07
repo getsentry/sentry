@@ -89,7 +89,7 @@ export function EAPSampledEventsTab() {
       'performance_views.transactionEvents.display_filter_dropdown.selection',
       {
         organization,
-        action: newFilterName as string,
+        action: newFilterName,
       }
     );
 

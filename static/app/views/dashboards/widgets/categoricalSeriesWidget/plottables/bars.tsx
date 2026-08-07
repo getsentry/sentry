@@ -36,8 +36,6 @@ interface BarsConfig extends CategoricalDataSeriesConfig {
  * A plottable that renders a categorical bar series.
  */
 export class Bars
-  // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
   extends CategoricalDataSeries<BarsConfig>
   implements CategoricalPlottable
 {
@@ -95,12 +93,11 @@ export class Bars
         itemStyle: {
           opacity: 1,
         },
-        data: this.categoricalSeries.values.map(
-          item =>
-            // This name must match with the `data` setting of the `xAxis` config
-            // in ECharts. ECharts wants both a full list of the categories for
-            // the X axis, and for the series data points to specify the name.
-            [formatXAxisValue(item.category), item.value]
+        data: this.categoricalSeries.values.map(item =>
+          // This name must match with the `data` setting of the `xAxis` config
+          // in ECharts. ECharts wants both a full list of the categories for
+          // the X axis, and for the series data points to specify the name.
+          [formatXAxisValue(item.category), item.value]
         ),
       }),
     ];

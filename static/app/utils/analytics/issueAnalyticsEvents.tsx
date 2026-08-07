@@ -1,5 +1,5 @@
 import type {FieldValue} from 'sentry/components/forms/model';
-import type {PriorityLevel} from 'sentry/types/group';
+import type {PriorityLevel, ProgressState} from 'sentry/types/group';
 import type {
   IntegrationType,
   PullRequestAttribution,
@@ -192,6 +192,15 @@ export type IssueEventParameters = {
     value: string;
     platform?: string;
   };
+  'issue_inbox.assignment_filter_changed': {
+    assignment_filter: 'me' | 'my_teams' | 'all';
+  };
+  'issue_inbox.item_clicked': {
+    assignment_filter: 'me' | 'my_teams' | 'all';
+    group_id: string;
+    last_progressed_at: string | null;
+    progress: ProgressState | undefined;
+  };
   'issue_search.empty': {
     query: string;
     search_source: string;
@@ -362,6 +371,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_views.star_view': 'Issue Views: Star View',
   'issue_search.failed': 'Issue Search: Failed',
   'issue_search.empty': 'Issue Search: Empty',
+  'issue_inbox.assignment_filter_changed': 'Issue Inbox: Assignment Filter Changed',
+  'issue_inbox.item_clicked': 'Issue Inbox: Item Clicked',
   'issues_stream.archived': 'Issues Stream: Archived',
   'issues_stream.updated_priority': 'Issues Stream: Updated Priority',
   'issues_stream.realtime_clicked': 'Issues Stream: Realtime Clicked',

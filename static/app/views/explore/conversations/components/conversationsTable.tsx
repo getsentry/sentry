@@ -14,6 +14,7 @@ import {Count} from 'sentry/components/count';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {
+  COL_WIDTH_MINIMUM,
   COL_WIDTH_UNDEFINED,
   GridEditable,
   type GridColumnHeader,
@@ -24,6 +25,7 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconFire, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {markdownToPlainText} from 'sentry/utils/marked/marked';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {isUUID} from 'sentry/utils/string/isUUID';
@@ -83,7 +85,7 @@ const COLUMN_DEFAULTS: Record<ColumnKey, {name: string; width: number}> = {
   messages: {name: t('Messages'), width: 120},
   errors: {name: t('Errors'), width: 100},
   cost: {name: t('Cost'), width: 120},
-  tools: {name: t('Tools'), width: 300},
+  tools: {name: t('Tools'), width: 220},
   age: {name: t('Age'), width: 110},
 };
 
@@ -124,6 +126,28 @@ export function UserNotInstrumentedTooltip() {
   );
 }
 
+/**
+ * When no conversation on the page has tools, the tools column only ever renders
+ * a placeholder, so collapse it to the grid's minimum width and let the flexible
+ * conversation column absorb the freed space. This only kicks in while the column
+ * is still at its default width — once the user has resized it we respect their
+ * choice and leave it alone. The passed-in resize state is never mutated, so the
+ * column returns to its default width once a page with tools loads.
+ */
+export function collapseToolsColumnWhenUnused(
+  columnOrder: Array<GridColumnOrder<ColumnKey>>,
+  hasNoTools: boolean
+): Array<GridColumnOrder<ColumnKey>> {
+  const toolsColumn = columnOrder.find(column => column.key === 'tools');
+  const toolsColumnAtDefault = toolsColumn?.width === COLUMN_DEFAULTS.tools.width;
+  if (!hasNoTools || !toolsColumnAtDefault) {
+    return columnOrder;
+  }
+  return columnOrder.map(column =>
+    column.key === 'tools' ? {...column, width: COL_WIDTH_MINIMUM} : column
+  );
+}
+
 export function ConversationsTable() {
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -144,6 +168,17 @@ export function ConversationsTable() {
       })),
   });
 
+  const hasNoTools = useMemo(
+    () =>
+      data.length > 0 && data.every(conversation => conversation.toolNames.length === 0),
+    [data]
+  );
+
+  const displayedColumns = useMemo(
+    () => collapseToolsColumnWhenUnused(columnOrder, hasNoTools),
+    [columnOrder, hasNoTools]
+  );
+
   const handlePaginate: typeof setCursor = (cursor, path, query, pageDelta) => {
     trackAnalytics('conversations.table.paginate', {
       organization,
@@ -153,8 +188,24 @@ export function ConversationsTable() {
   };
 
   const handleRowClick = useCallback(
-    (dataRow: Conversation) => {
-      navigate(getConversationDetailUrl(organization.slug, dataRow, selection.projects));
+    (dataRow: Conversation, _key: number, event: React.MouseEvent) => {
+      const url = getConversationDetailUrl(
+        organization.slug,
+        dataRow,
+        selection.projects
+      );
+      // Mirror native link behavior instead of navigating in place: Cmd/Ctrl+click
+      // opens a new tab (no features string) and Shift+click opens a new window
+      // (a features string makes browsers open a window rather than a tab).
+      if (event.shiftKey) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      if (isCtrlKeyPressed(event)) {
+        window.open(url, '_blank');
+        return;
+      }
+      navigate(url);
     },
     [navigate, organization.slug, selection.projects]
   );
@@ -190,7 +241,7 @@ export function ConversationsTable() {
           isLoading={isFetching}
           error={error}
           data={data}
-          columnOrder={columnOrder}
+          columnOrder={displayedColumns}
           columnSortBy={[]}
           stickyHeader
           // GridEditable's Panel body has a default bottom margin; drop it so

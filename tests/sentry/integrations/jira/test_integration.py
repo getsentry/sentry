@@ -19,6 +19,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.shared_integrations.exceptions import (
+    ApiError,
     IntegrationConfigurationError,
     IntegrationError,
     IntegrationFormError,
@@ -1262,6 +1263,67 @@ class JiraIntegrationTest(APITestCase):
         # Building the response must not rewrite the stored config, which keeps a bool here.
         assert installation.org_integration is not None
         assert installation.org_integration.config["sync_status_forward"] is True
+
+    def test_get_config_data_returns_mappings_when_jira_api_fails(self) -> None:
+        integration = self.create_provider_integration(
+            provider="jira",
+            name="Example Jira",
+            metadata={
+                "oauth_client_id": "oauth-client-id",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+                "base_url": "https://example.atlassian.net",
+                "domain_name": "example.atlassian.net",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+
+        org_integration.config = {
+            "sync_comments": True,
+            "sync_forward_assignment": True,
+            "sync_reverse_assignment": True,
+            "sync_status_reverse": True,
+            "sync_status_forward": True,
+        }
+        org_integration.save()
+
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+            external_id="12345",
+            unresolved_status="in_progress",
+            resolved_status="done",
+        )
+
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+            external_id="67890",
+            unresolved_status="todo",
+            resolved_status="resolved",
+        )
+
+        installation = integration.get_installation(self.organization.id)
+
+        with mock.patch.object(
+            installation, "_filter_active_projects", side_effect=ApiError("Jira is down")
+        ):
+            config = installation.get_config_data()
+
+        assert config == {
+            "sync_comments": True,
+            "sync_forward_assignment": True,
+            "sync_reverse_assignment": True,
+            "sync_status_reverse": True,
+            "sync_status_forward": {
+                "12345": {"on_resolve": "done", "on_unresolve": "in_progress"},
+                "67890": {"on_resolve": "resolved", "on_unresolve": "todo"},
+            },
+            "issues_ignored_fields": "",
+        }
 
     @responses.activate
     def test_get_config_data_filters_via_paginated_endpoint_with_flag(self) -> None:

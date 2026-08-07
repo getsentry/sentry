@@ -239,8 +239,6 @@ export const useSeerExplorer = () => {
     onError: (e, params) => {
       if (params.runId !== null) {
         // API data is disabled for null runId (new runs).
-        // Will be fixed soon when we get rid of setApiQueryData.
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
         setApiQueryData<SeerExplorerResponse>(
           queryClient,
           makeSeerExplorerQueryKey(params.orgSlug, params.runId),
@@ -308,8 +306,6 @@ export const useSeerExplorer = () => {
       if (params.runId !== null) {
         // API data is disabled for null runId (new runs).
 
-        // Will be fixed soon when we get rid of setApiQueryData.
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
         setApiQueryData<SeerExplorerResponse>(
           queryClient,
           makeSeerExplorerQueryKey(params.orgSlug, params.runId),
