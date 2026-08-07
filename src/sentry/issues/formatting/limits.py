@@ -1,4 +1,4 @@
-"""Per-section size limits, mirroring Seer's ``EventFormatLimits``. Sections apply these caps
+"""Per-section size limits. Sections apply these caps
 as they render, so output stays bounded. ``None`` means no cap; ``max_frames``/
 ``max_breadcrumbs``/``max_threads`` are count caps.
 """

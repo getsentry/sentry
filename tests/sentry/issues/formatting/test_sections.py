@@ -374,7 +374,7 @@ def test_format_issue_xml() -> None:
 
 
 def test_detector_sections_render_when_present() -> None:
-    # tags match Seer's <detection_context> / <troubleshooting_hint> so migrating keeps parity
+    # detector-backed issue types are the only ones that carry these two fields
     event = EventObject(
         title="t",
         detection_context="Opened by a Sentry detector, not an exception.",
@@ -430,7 +430,7 @@ def test_user_identifiers_are_opt_in() -> None:
 
 
 def test_bare_stacktrace_entry_renders() -> None:
-    # events with no exception can still carry a top-level stacktrace entry (matches Seer)
+    # events with no exception can still carry a top-level stacktrace entry
     event = EventObject(
         title="t",
         stacktrace=Stacktrace(frames=[Frame(function="do_thing", filename="app.py", line_no=12)]),

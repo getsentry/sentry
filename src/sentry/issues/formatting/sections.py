@@ -1,6 +1,5 @@
 """Section functions (each renders one block), the default section order (``EVENT_SECTIONS``),
-and the public ``format_issue`` entry point. Sections apply the size caps as they render;
-content mirrors Seer's per-section output.
+and the public ``format_issue`` entry point. Sections apply the size caps as they render.
 """
 
 from __future__ import annotations
@@ -83,7 +82,7 @@ def _render_frame(frame: Frame) -> str:
 
 def _select_frames(frames: Sequence[Frame], max_frames: int) -> list[Frame]:
     """Cap the frame count, trimming system frames first and keeping the head and tail of each
-    group, so app frames survive a deep stack (mirrors Seer's ``Stacktrace._trim_frames``).
+    group, so app frames survive a deep stack.
     """
     if len(frames) <= max_frames:
         return list(frames)
@@ -97,8 +96,8 @@ def _select_frames(frames: Sequence[Frame], max_frames: int) -> list[Frame]:
     def head_and_tail(group: list[int], allowance: int) -> list[int]:
         if len(group) <= allowance:
             return group
-        # split the allowance exactly, giving an odd slot to the head; Seer halves it instead,
-        # which silently drops a frame that fits whenever the allowance is odd
+        # split the allowance exactly, giving the odd slot to the head; halving it instead
+        # silently drops a frame that fits whenever the allowance is odd
         head = (allowance + 1) // 2
         tail = allowance - head
         return group[:head] + (group[-tail:] if tail else [])
@@ -112,7 +111,7 @@ def _select_frames(frames: Sequence[Frame], max_frames: int) -> list[Frame]:
 
 
 def _render_stacktrace(stacktrace: Stacktrace, limits: Limits) -> str:
-    # most-recent frame first, capped to max_frames (matches Seer)
+    # most-recent frame first, capped to max_frames
     frames = reversed(_select_frames(stacktrace.frames, limits.max_frames))
     body = "\n------\n".join(_render_frame(f) for f in frames)
     return _truncate(body, limits.max_stacktrace_chars)
@@ -145,7 +144,7 @@ def stacktrace_section(model: EventObject, fmt: Formatter, limits: Limits) -> st
 
 
 def title_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
-    # transaction and date mirror the line Seer's format_event opens with
+    # transaction and date belong on the title line rather than blocks of their own
     lines = [model.title]
     if model.transaction_name:
         lines.append(fmt.field("Transaction", model.transaction_name))
@@ -159,7 +158,7 @@ def title_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
 
 
 def message_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
-    # only render the message when it adds something beyond the title (matches Seer)
+    # only render the message when it adds something beyond the title
     if not model.message or model.message in model.title:
         return ""
     return fmt.block("Message", model.message)
@@ -245,13 +244,13 @@ def user_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
 def threads_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
     blocks: list[str] = []
     for thread in model.threads:
-        # only threads that carry a stacktrace are worth rendering (matches Seer)
+        # only threads that carry a stacktrace are worth rendering
         st = thread.stacktrace
         if not (st and st.frames):
             continue
         # checked before appending, not after: testing at the bottom lets a zero cap through
         # with one thread already rendered
-        if len(blocks) >= limits.max_threads:  # bound total output by thread count (matches Seer)
+        if len(blocks) >= limits.max_threads:  # bound total output by thread count
             break
         label = thread.name or (str(thread.id) if thread.id is not None else "Thread")
         parts = [label]

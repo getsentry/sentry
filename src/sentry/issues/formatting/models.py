@@ -1,6 +1,5 @@
-"""The flat model the formatter renders from: ``EventObject`` plus its nested pieces. Adapted
-from Seer's ``EventDetails`` but defined here in Sentry, and kept flat so one section list
-renders any issue type. Trace models omitted for now.
+"""The flat model the formatter renders from: ``EventObject`` plus its nested pieces. Kept
+flat so one section list renders any issue type. Trace models omitted for now.
 """
 
 from __future__ import annotations
@@ -64,8 +63,8 @@ class Frame(BaseModel):
     def _trim_vars(
         cls, vars: dict[str, Any] | None, values: dict[str, Any]
     ) -> dict[str, Any] | None:
-        """Keep only the vars the frame's source mentions, minus scrubbed values (mirrors Seer's
-        ``StacktraceFrame._trim_vars``, except scrubbed values go even without source context).
+        """Keep only the vars the frame's source mentions, minus scrubbed values. Scrubbed
+        values go even when the frame carries no source context to narrow against.
         """
         if not vars:
             return vars
