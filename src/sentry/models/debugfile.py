@@ -46,6 +46,7 @@ from sentry.models.files.utils import clear_cached_files
 from sentry.objectstore import get_debug_files_session, get_download_redirect_url
 from sentry.objectstore.metrics import measure_storage_operation
 from sentry.utils import json, metrics
+from sentry.utils.retries import ConditionalRetryPolicy
 from sentry.utils.zip import safe_extract_zip
 
 if TYPE_CHECKING:
@@ -600,8 +601,10 @@ def create_dif_from_fileobj(
     content_type = DIF_MIMETYPES[meta.file_format]
     session = get_debug_files_session(project.organization_id, project.id)
     storage_path: str | None = None
-    try:
-        storage_path = session.put(
+
+    def upload() -> str:
+        fileobj.seek(0)
+        return session.put(
             fileobj,
             content_type=content_type,
             filename=get_dif_download_filename(meta),
@@ -613,6 +616,12 @@ def create_dif_from_fileobj(
                 else "none"
             ),
         )
+
+    try:
+        storage_path = ConditionalRetryPolicy(
+            test_function=lambda attempt_number, _: attempt_number <= 2,
+            delay_function=lambda attempt_number: 5**attempt_number,
+        )(upload)
     except Exception:
         logger.exception("Failed to write debug file to Objectstore")
         raise

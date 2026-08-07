@@ -6,7 +6,7 @@ import time
 import zipfile
 from io import BytesIO
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 from django.core.files.base import ContentFile
@@ -452,17 +452,20 @@ class CreateDebugFileTest(APITestCase):
         get_session.return_value.delete.assert_called_once_with("storage-path")
 
     @requires_objectstore
-    def test_exclusive_objectstore_write_failure_does_not_create_file(self) -> None:
+    @patch("sentry.utils.retries.time.sleep")
+    @patch("sentry.models.debugfile.get_debug_files_session")
+    def test_exclusive_objectstore_write_failure_does_not_create_file(
+        self, get_session, sleep
+    ) -> None:
+        get_session.return_value.put.side_effect = RuntimeError
         with (
             self.feature("organizations:objectstore-debugfiles-exclusive-write"),
-            patch(
-                "sentry.models.debugfile.get_debug_files_session",
-                return_value=MagicMock(put=MagicMock(side_effect=RuntimeError)),
-            ),
             pytest.raises(RuntimeError),
         ):
             self.create_dif_from_fileobj(BytesIO(b"objectstore-dif-content"))
 
+        assert get_session.return_value.put.call_count == 3
+        sleep.assert_has_calls([call(5), call(25)])
         assert not ProjectDebugFile.objects.filter(project_id=self.project.id).exists()
         assert not File.objects.filter(type="project.dif").exists()
 
