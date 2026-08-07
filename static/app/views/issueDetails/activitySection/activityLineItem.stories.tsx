@@ -1,6 +1,5 @@
 import type {ReactNode} from 'react';
 import {useId, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -19,6 +18,7 @@ import {
   collapseSeerActivityPairs,
   type ActivityFeedItem,
 } from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
+import {ActivityLineList} from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
 import {
   ActivityLineNote,
   isActivityNote,
@@ -467,7 +467,7 @@ function ActivityExamples({items}: {items: GroupActivity[]}) {
 
 function ActivityFeedExamples({items}: {items: ActivityFeedItem[]}) {
   return (
-    <ActivityList gap="md">
+    <ActivityLineList>
       {items.map((item, index) =>
         item.type === 'activity' && isActivityNote(item.activity) ? (
           <ActivityLineNote
@@ -476,17 +476,19 @@ function ActivityFeedExamples({items}: {items: ActivityFeedItem[]}) {
             group={group}
             inputVariant="compact"
             onDelete={async () => {}}
+            showConnector={index < items.length - 1}
           />
         ) : (
           <ActivityLine
             key={`${item.activity.id}-${index}`}
             group={group}
             item={item}
+            showConnector={index < items.length - 1}
             timestampUnitStyle="short"
           />
         )
       )}
-    </ActivityList>
+    </ActivityLineList>
   );
 }
 
@@ -498,28 +500,13 @@ function CommentExample() {
   }
 
   return (
-    <ActivityList gap="md">
+    <ActivityLineList>
       <ActivityLineNote
         activity={{...note, user: activeUser}}
         group={group}
         inputVariant="full"
         onDelete={async () => {}}
       />
-    </ActivityList>
+    </ActivityLineList>
   );
 }
-
-const ActivityList = styled(Stack)`
-  position: relative;
-  container-name: activity-list;
-  container-type: inline-size;
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: 10.5px;
-    top: 11px;
-    bottom: 0;
-    border-left: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
-  }
-`;
