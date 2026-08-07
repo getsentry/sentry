@@ -6,7 +6,13 @@ from django.db import models
 
 from sentry import features, roles
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedAutoField, FlexibleForeignKey, cell_silo_model, sane_repr
+from sentry.db.models import (
+    BoundedAutoField,
+    BoundedBigIntegerField,
+    FlexibleForeignKey,
+    cell_silo_model,
+    sane_repr,
+)
 from sentry.hybridcloud.models.outbox import CellOutboxBase
 from sentry.hybridcloud.outbox.base import CellOutboxProducingManager, ReplicatedCellModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
@@ -26,6 +32,9 @@ class OrganizationMemberTeam(ReplicatedCellModel):
     category = OutboxCategory.ORGANIZATION_MEMBER_TEAM_UPDATE
 
     id = BoundedAutoField(primary_key=True)
+    # Shadow column for the in-progress widening of `id` to int8; swapped into the
+    # primary key once backfilled. Nothing reads or writes it yet.
+    new_id = BoundedBigIntegerField(null=True)
     team = FlexibleForeignKey("sentry.Team")
     organizationmember = FlexibleForeignKey("sentry.OrganizationMember")
     # an inactive membership simply removes the team from the default list
