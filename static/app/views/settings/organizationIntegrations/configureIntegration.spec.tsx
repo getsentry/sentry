@@ -252,7 +252,7 @@ describe('ConfigureIntegration mapping removals', () => {
     const postRequest = setup({features: ['jira-explicit-mapping-removals']});
 
     await userEvent.click(await screen.findByText('Open'));
-    await userEvent.click(await screen.findByText('To Do'));
+    await userEvent.click(await screen.findByRole('option', {name: 'To Do'}));
 
     await waitFor(() =>
       expect(postRequest).toHaveBeenCalledWith(
@@ -277,10 +277,11 @@ describe('ConfigureIntegration mapping removals', () => {
 
     await userEvent.click(await screen.findByText('Add Project'));
     await userEvent.click(await screen.findByRole('option', {name: 'Project A'}));
+    const emptySelects = await screen.findAllByText('Select...');
+    await userEvent.click(emptySelects[0]!);
+    await userEvent.click(await screen.findByRole('option', {name: 'Open'}));
     await userEvent.click(await screen.findByText('Select...'));
-    await userEvent.click(await screen.findByText('Open'));
-    await userEvent.click(await screen.findByText('Select...'));
-    await userEvent.click(await screen.findByText('Closed'));
+    await userEvent.click(await screen.findByRole('option', {name: 'Closed'}));
 
     await waitFor(() =>
       expect(postRequest).toHaveBeenCalledWith(
