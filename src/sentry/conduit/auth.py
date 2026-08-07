@@ -67,21 +67,32 @@ def generate_conduit_token(
 def get_conduit_credentials(
     org_id: int,
     gateway_url: str | None = None,
+    channel_id: str | None = None,
+    referrer: str = "unknown",
 ) -> ConduitCredentials:
     """
     Generate all credentials needed to connect to Conduit.
+
+    Args:
+        channel_id: The channel to authorize. Omit for a fresh one-shot stream. Pass
+            an explicit value when the channel is derived from something longer-lived
+            than the connection (see ``sentry.conduit.channel``), so that reconnects
+            and additional tabs resume the same stream instead of starting new ones.
+        referrer: What the credentials are for, as a metrics tag.
 
     Returns:
         ConduitCredentials containing authentication details
     """
     if gateway_url is None:
         gateway_url = settings.CONDUIT_GATEWAY_URL
-    channel_id = generate_channel_id()
+    if channel_id is None:
+        channel_id = generate_channel_id()
     token = generate_conduit_token(org_id, channel_id)
 
     metrics.incr(
         "conduit.credentials.generated",
         sample_rate=1.0,
+        tags={"referrer": referrer},
     )
 
     return ConduitCredentials(
