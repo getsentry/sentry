@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("explore", "0009_add_trace_item_attribute_value_context"),
+        ("explore", "0001_squashed_0009_add_trace_item_attribute_value_context"),
     ]
 
     operations = [

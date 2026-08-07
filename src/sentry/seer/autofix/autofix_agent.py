@@ -55,7 +55,7 @@ from sentry.seer.entrypoints.operator import (
     SeerAutofixOperator,
     process_autofix_updates,
 )
-from sentry.seer.models import SeerRepoDefinition
+from sentry.seer.models import SeerApiError, SeerRepoDefinition
 from sentry.seer.models.run import SeerRun
 from sentry.seer.models.seer_api_models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
 from sentry.sentry_apps.event_types import SentryAppEventType
@@ -226,6 +226,92 @@ def get_step_webhook_action_type(step: AutofixStep, is_completed: bool) -> SeerA
         },
     }
     return step_to_action_type[step][is_completed]
+
+
+def _handle_step_started_events(
+    group: Group,
+    step: AutofixStep,
+    run_id: int,
+    sentry_run_uuid: str,
+    referrer: AutofixReferrer,
+    activity_datetime: str,
+    iteration_index: int | None = None,
+    actor_user_id: int | None = None,
+) -> None:
+    config = STEP_CONFIGS[step]
+    if config.started_event is not None:
+        analytics.record(
+            config.started_event(
+                organization_id=group.organization.id,
+                project_id=group.project_id,
+                group_id=group.id,
+                referrer=referrer.value,
+                run_id=run_id,
+                iteration_index=iteration_index,
+            )
+        )
+
+    payload: dict[str, Any] = {
+        "run_id": run_id,
+        "sentry_run_id": sentry_run_uuid,
+        "group_id": group.id,
+    }
+    if iteration_index is not None:
+        payload["iteration_index"] = iteration_index
+
+    webhook_action_type = get_step_webhook_action_type(step, is_completed=False)
+    event_name = webhook_action_type.value
+
+    event_type = f"seer.{event_name}"
+    try:
+        sentry_app_event_type = SentryAppEventType(event_type)
+        if SeerAutofixOperator.has_access(organization=group.organization):
+            task_kwargs: dict[str, Any] = {
+                "event_type": sentry_app_event_type,
+                "event_payload": payload,
+                "organization_id": group.organization.id,
+                "activity_datetime": activity_datetime,
+            }
+            if step == AutofixStep.PR_ITERATION:
+                activity_attribution: SeerActivityAttribution = {"referrer": referrer}
+                if actor_user_id is not None:
+                    activity_attribution["actor_user_id"] = actor_user_id
+                task_kwargs["activity_attribution"] = activity_attribution
+            process_autofix_updates.apply_async(kwargs=task_kwargs)
+    except ValueError:
+        logger.exception(
+            "autofix.trigger.webhook_invalid_event_type",
+            extra={"event_type": event_type},
+        )
+
+    try:
+        broadcast_webhooks_for_organization.delay(
+            resource_name="seer",
+            event_name=event_name,
+            organization_id=group.organization.id,
+            payload=payload,
+        )
+    except Exception:
+        logger.exception(
+            "autofix.trigger.webhook_failed",
+            extra={
+                "organization_id": group.organization.id,
+                "webhook_event": event_name,
+                "step": step.value,
+                "run_id": run_id,
+                "group_id": group.id,
+                "iteration_index": iteration_index,
+            },
+        )
+
+    metrics.incr(
+        "autofix.explorer.trigger",
+        tags={
+            "step": step.value,
+            "referrer": referrer.value,
+            "iteration_index": iteration_index,
+        },
+    )
 
 
 @dataclass(frozen=True)
@@ -427,6 +513,44 @@ def trigger_autofix_agent(
         if not has_budget:
             raise NoSeerQuotaException()
 
+    use_seer_rca_feature = features.has(
+        "organizations:autofix-rca-in-seer", group.organization, actor=user
+    )
+    if step == AutofixStep.ROOT_CAUSE and run_id is None and use_seer_rca_feature:
+        # Local import avoids a circular import (dispatch imports this module).
+        from sentry.seer.autofix_rca.dispatch import trigger_autofix_rca_feature
+
+        feature_run = trigger_autofix_rca_feature(
+            group,
+            referrer=referrer,
+            user_context=user_context,
+            stopping_point=stopping_point,
+        )
+        feature_run_id = feature_run.seer_run_state_id
+        if feature_run_id is None:
+            # flush=True populates this on success; guard defensively.
+            raise SeerApiError("autofix_rca feature run has no run id", 500)
+
+        logger.info(
+            "autofix.trigger.routed_to_rca_feature",
+            extra={
+                "group_id": group.id,
+                "organization_id": group.organization.id,
+                "run_id": feature_run_id,
+                "referrer": referrer.value,
+            },
+        )
+
+        _handle_step_started_events(
+            group,
+            AutofixStep.ROOT_CAUSE,
+            feature_run_id,
+            str(feature_run.uuid),
+            referrer,
+            activity_datetime=timezone.now().isoformat(),
+        )
+        return feature_run
+
     config = STEP_CONFIGS[step]
 
     # Either flag enables the PR_ITERATION step itself: automated CI iteration runs
@@ -517,83 +641,15 @@ def trigger_autofix_agent(
 
     activity_datetime = timezone.now().isoformat()
 
-    # Emit the started event after run_id is resolved so it can be joined to
-    # downstream completed/PR events.
-    if config.started_event is not None:
-        analytics.record(
-            config.started_event(
-                organization_id=group.organization.id,
-                project_id=group.project_id,
-                group_id=group.id,
-                referrer=referrer.value,
-                run_id=run_id,
-                iteration_index=iteration_index,
-            )
-        )
-
-    payload: dict[str, Any] = {
-        "run_id": run_id,
-        "sentry_run_id": str(run.uuid),
-        "group_id": group.id,
-    }
-    if iteration_index is not None:
-        payload["iteration_index"] = iteration_index
-
-    webhook_action_type = get_step_webhook_action_type(step, is_completed=False)
-    event_name = webhook_action_type.value
-
-    event_type = f"seer.{event_name}"
-    try:
-        sentry_app_event_type = SentryAppEventType(event_type)
-        if SeerAutofixOperator.has_access(organization=group.organization):
-            task_kwargs: dict[str, Any] = {
-                "event_type": sentry_app_event_type,
-                "event_payload": payload,
-                "organization_id": group.organization.id,
-                "activity_datetime": activity_datetime,
-            }
-            if is_iteration_step:
-                activity_attribution: SeerActivityAttribution = {
-                    "referrer": referrer,
-                }
-                if actor_user_id is not None:
-                    activity_attribution["actor_user_id"] = actor_user_id
-                task_kwargs["activity_attribution"] = activity_attribution
-            process_autofix_updates.apply_async(kwargs=task_kwargs)
-    except ValueError:
-        logger.exception(
-            "autofix.trigger.webhook_invalid_event_type",
-            extra={"event_type": event_type},
-        )
-
-    # Send "started" webhook after we have the run_id
-    try:
-        broadcast_webhooks_for_organization.delay(
-            resource_name="seer",
-            event_name=event_name,
-            organization_id=group.organization.id,
-            payload=payload,
-        )
-    except Exception:
-        logger.exception(
-            "autofix.trigger.webhook_failed",
-            extra={
-                "organization_id": group.organization.id,
-                "webhook_event": event_name,
-                "step": step.value,
-                "run_id": run_id,
-                "group_id": group.id,
-                "iteration_index": iteration_index,
-            },
-        )
-
-    metrics.incr(
-        "autofix.explorer.trigger",
-        tags={
-            "step": step.value,
-            "referrer": referrer.value,
-            "iteration_index": iteration_index,
-        },
+    _handle_step_started_events(
+        group,
+        step,
+        run_id,
+        str(run.uuid),
+        referrer,
+        activity_datetime,
+        iteration_index,
+        actor_user_id,
     )
 
     return run

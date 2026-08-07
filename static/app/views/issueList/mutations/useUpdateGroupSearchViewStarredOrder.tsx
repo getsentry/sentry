@@ -7,7 +7,6 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {starredGroupSearchViewsApiOptions} from 'sentry/views/issueList/queries/starredGroupSearchViews';
 import {groupSearchViewsApiOptions} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
-import type {StarredGroupSearchView} from 'sentry/views/issueList/types';
 
 type UpdateGroupSearchViewStarredOrderVariables = {
   orgSlug: string;
@@ -38,10 +37,7 @@ export const useUpdateGroupSearchViewStarredOrder = () => {
 
       queryClient.setQueryData(
         starredGroupSearchViewsApiOptions({orgSlug: parameters.orgSlug}).queryKey,
-        prevData =>
-          prevData
-            ? {...prevData, json: newViewsOrder as StarredGroupSearchView[]}
-            : prevData
+        prevData => (prevData ? {...prevData, json: newViewsOrder} : prevData)
       );
     },
     onError: () => {

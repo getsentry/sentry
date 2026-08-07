@@ -16,7 +16,11 @@ from sentry.models.pullrequest import (
     PullRequestMetrics,
     PullRequestVerdict,
 )
-from sentry.pr_metrics.utils import is_activity_tracking_enabled, org_has_coding_agent_for_provider
+from sentry.pr_metrics.utils import (
+    is_activity_tracking_enabled,
+    org_has_coding_agent_for_provider,
+    unattributed_activity_cutoff,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
@@ -183,6 +187,31 @@ class IsActivityTrackingEnabledTest(TestCase):
             assert not is_activity_tracking_enabled(
                 self.organization, pr=pr, for_terminal_event=True
             )
+
+
+class UnattributedActivityCutoffTest(TestCase):
+    def setUp(self) -> None:
+        self.repo = self.create_repo(
+            self.project, name="getsentry/sentry", provider="integrations:github"
+        )
+
+    def test_is_one_attribution_buffer_back(self) -> None:
+        now = timezone.now()
+        with freeze_time(now):
+            assert unattributed_activity_cutoff() == now - timedelta(hours=30)
+
+    def test_boundary_matches_the_tracking_gate(self) -> None:
+        # The cutoff is only sound because the gate has stopped writing by the time a
+        # PR's activity reaches it; the two must not drift apart.
+        now = timezone.now()
+        with freeze_time(now - timedelta(hours=31)):
+            pr = self.create_pull_request(
+                organization_id=self.organization.id, repository_id=self.repo.id
+            )
+        with freeze_time(now):
+            assert pr.date_added < unattributed_activity_cutoff()
+            with self.feature("organizations:pr-metrics-activity"):
+                assert not is_activity_tracking_enabled(self.organization, pr=pr)
 
 
 class OrgHasCodingAgentForProviderTest(TestCase):

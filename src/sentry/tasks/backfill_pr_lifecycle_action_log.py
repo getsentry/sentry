@@ -134,7 +134,7 @@ def _backfill_project(
     activation_id: str | None = None,
 ) -> None:
     from sentry.issues.action_log.backfill import backfill_group_pr_lifecycle
-    from sentry.issues.derived.tasks import process_project_derived_data
+    from sentry.issues.derived.tasks import generate_project_derived_data
 
     batch_size: int = options.get("issues.backfill_pr_lifecycle_action_log.batch_size")
     inter_batch_delay_s: int = options.get(
@@ -165,7 +165,7 @@ def _backfill_project(
             "backfill_pr_lifecycle_action_log.project_completed",
             extra={"project_id": project.id},
         )
-        process_project_derived_data.delay(project_id=project.id)
+        generate_project_derived_data.delay(project_id=project.id)
         return
 
     total_created = 0
@@ -202,4 +202,4 @@ def _backfill_project(
             "backfill_pr_lifecycle_action_log.project_completed",
             extra={"project_id": project.id},
         )
-        process_project_derived_data.delay(project_id=project.id)
+        generate_project_derived_data.delay(project_id=project.id)
