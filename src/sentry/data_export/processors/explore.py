@@ -6,7 +6,7 @@ from sentry_protos.snuba.v1.endpoint_trace_items_pb2 import (
     ExportTraceItemsRequest,
     ExportTraceItemsResponse,
 )
-from sentry_protos.snuba.v1.request_common_pb2 import PageToken, RequestMeta, TraceItemType
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken, RequestMeta
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
 from sentry.api.utils import get_date_range_from_params
@@ -16,9 +16,12 @@ from sentry.data_export.writers import OutputMode
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.eap.constants import SUPPORTED_TRACE_ITEM_TYPE_MAP
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
+from sentry.search.eap.trace_metrics.config import TraceMetricsSearchResolverConfig
+from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
 from sentry.search.eap.types import (
     EAPResponse,
     FieldsACL,
@@ -30,6 +33,7 @@ from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import TableQuery
 from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.utils.snuba_rpc import export_logs_rpc
 from sentry.utils.tracing import set_span_data, start_span
 
@@ -38,11 +42,23 @@ logger = logging.getLogger(__name__)
 SUPPORTED_TRACE_ITEM_DATASETS = {
     "spans": Spans,
     "logs": OurLogs,
+    "tracemetrics": TraceMetrics,
 }
+
+# The wide JSONL export goes through Snuba's `EndpointExportTraceItems`, which has not been
+# verified against every trace item type, so it stays a subset of the datasets above.
+FULL_EXPORT_TRACE_ITEM_DATASETS = ("spans", "logs")
 
 DEFINITIONS_MAP = {
     Spans: SPAN_DEFINITIONS,
     OurLogs: OURLOG_DEFINITIONS,
+    TraceMetrics: TRACE_METRICS_DEFINITIONS,
+}
+
+DATASET_TO_TRACE_ITEM_TYPE = {
+    "spans": SupportedTraceItemType.SPANS,
+    "logs": SupportedTraceItemType.LOGS,
+    "tracemetrics": SupportedTraceItemType.TRACEMETRICS,
 }
 
 
@@ -75,16 +91,8 @@ class ExploreProcessor:
 
         dataset: str = explore_query["dataset"]
         self.scoped_dataset = SUPPORTED_TRACE_ITEM_DATASETS[dataset]
-        self.trace_item_type = (
-            TraceItemType.TRACE_ITEM_TYPE_SPAN
-            if dataset == "spans"
-            else TraceItemType.TRACE_ITEM_TYPE_LOG
-        )
-        self._supported_trace_item_type = (
-            SupportedTraceItemType.LOGS
-            if self.trace_item_type == TraceItemType.TRACE_ITEM_TYPE_LOG
-            else SupportedTraceItemType.SPANS
-        )
+        self._supported_trace_item_type = DATASET_TO_TRACE_ITEM_TYPE[dataset]
+        self.trace_item_type = SUPPORTED_TRACE_ITEM_TYPE_MAP[self._supported_trace_item_type]
 
         use_aggregate_conditions = explore_query.get("allowAggregateConditions", "1") == "1"
         disable_extrapolation = explore_query.get("disableAggregateExtrapolation", "0") == "1"
@@ -92,6 +100,16 @@ class ExploreProcessor:
         if self.scoped_dataset == OurLogs:
             self.config = SearchResolverConfig(
                 use_aggregate_conditions=use_aggregate_conditions,
+            )
+        elif self.scoped_dataset == TraceMetrics:
+            # The metric being exported is encoded in the aggregate arguments
+            # (e.g. `sum(value,llm.token_usage,distribution,-)`), which the config recovers
+            # from the selected columns, so there is no separate metric to pass here.
+            self.config = TraceMetricsSearchResolverConfig(
+                metric=None,
+                use_aggregate_conditions=use_aggregate_conditions,
+                auto_fields=True,
+                disable_aggregate_extrapolation=disable_extrapolation,
             )
         else:
             self.config = SearchResolverConfig(
