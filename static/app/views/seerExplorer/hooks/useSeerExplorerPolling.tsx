@@ -4,6 +4,7 @@ import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTimeout} from 'sentry/utils/useTimeout';
+import {useSeerExplorerStream} from 'sentry/views/seerExplorer/hooks/useSeerExplorerStream';
 import type {PollingState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import type {
   SeerExplorerResponse,
@@ -19,6 +20,18 @@ const POLL_INTERVAL = 500; // Poll every 500ms
 const ERROR_POLL_INTERVAL = 2500; // Poll every 2500ms on 5xx errors
 const MAX_ERROR_POLL_COUNT = Math.ceil(60_000 / ERROR_POLL_INTERVAL);
 const STALE_TIME_MS = 120_000;
+
+/**
+ * Poll interval while a Conduit stream is delivering this run's output.
+ *
+ * Not `false`. The stream already carries every update, so this is pure
+ * redundancy -- but at 1/30th the request volume it costs almost nothing, and it
+ * makes "the stream silently stopped delivering" impossible to experience as a
+ * frozen UI. Worth revisiting once production metrics show the stream is
+ * reliable; until then a 97% reduction that cannot strand a user beats a 100%
+ * reduction that can.
+ */
+const STREAMING_SAFETY_NET_INTERVAL = 15_000;
 
 /** Checks if session is in a terminal state where the agent is done processing. */
 const isResponseComplete = (sessionData: SeerExplorerResponse['session'] | undefined) =>
@@ -72,6 +85,11 @@ const getPollingState = (
  * Drives Seer session polling via `useApiQuery` with a dynamic refetch interval.
  * Called exclusively by `SeerExplorerChatStateProvider`, which dispatches the
  * derived polling state into context for all consumers.
+ *
+ * When the org has Conduit streaming enabled, this also opens the stream and
+ * drops the poll to a slow safety net while it stays healthy. The polling state
+ * machine below is untouched by that: it remains exactly what the stream falls
+ * back to, so a Conduit outage degrades to the behaviour we ship today.
  */
 export const useSeerExplorerPolling = ({runId}: {runId: SeerExplorerRunId | null}) => {
   const organization = useOrganization({allowNull: true});
@@ -85,6 +103,21 @@ export const useSeerExplorerPolling = ({runId}: {runId: SeerExplorerRunId | null
     prevRunIdRef.current = runId;
     errorPollCountRef.current = 0;
   }
+
+  const {isStreaming} = useSeerExplorerStream({
+    runId,
+    enabled:
+      !!runId &&
+      isSeerExplorerEnabled(organization) &&
+      !!organization?.features.includes('seer-explorer-conduit'),
+  });
+
+  // Read inside refetchInterval, which React Query calls outside of render and
+  // so does not re-run when this value changes.
+  const isStreamingRef = useRef(isStreaming);
+  useEffect(() => {
+    isStreamingRef.current = isStreaming;
+  }, [isStreaming]);
 
   const {
     data: apiData,
@@ -113,6 +146,10 @@ export const useSeerExplorerPolling = ({runId}: {runId: SeerExplorerRunId | null
       }
       if (state === 'polling') {
         errorPollCountRef.current = 0;
+        if (isStreamingRef.current) {
+          // The stream is delivering; this is only here to catch a stall.
+          return STREAMING_SAFETY_NET_INTERVAL;
+        }
         return POLL_INTERVAL;
       }
       return false;
