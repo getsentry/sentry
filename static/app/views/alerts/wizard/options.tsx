@@ -1,18 +1,9 @@
-import {FeatureBadge} from '@sentry/scraps/badge';
-
 import {t} from 'sentry/locale';
-import {ConfigStore} from 'sentry/stores/configStore';
-import type {Organization} from 'sentry/types/organization';
 import {
   Dataset,
   EventTypes,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
-import {hasLogAlerts, hasTraceMetricsAlerts} from 'sentry/views/alerts/wizard/utils';
-import {
-  deprecateTransactionAlerts,
-  hasEAPAlerts,
-} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 export type AlertType =
   | 'issues'
@@ -83,97 +74,6 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   trace_item_logs: t('Logs'),
   trace_item_metrics: t('Custom Metrics'),
   crons_monitor: t('Cron Monitor'),
-};
-
-/**
- * Additional elements to render after the name of the alert rule type. Useful
- * for adding feature badges or other call-outs for newer alert types.
- */
-export const AlertWizardExtraContent: Partial<Record<AlertType, React.ReactNode>> = {
-  uptime_monitor: <FeatureBadge type="new" />,
-  trace_item_metrics: <FeatureBadge type="new" />,
-};
-
-type AlertWizardCategory = {
-  categoryHeading: string;
-  options: AlertType[];
-};
-export const getAlertWizardCategories = (org: Organization) => {
-  const result: AlertWizardCategory[] = [
-    {
-      categoryHeading: t('Errors'),
-      options: ['issues', 'num_errors', 'users_experiencing_errors'],
-    },
-  ];
-  const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
-  if (!isSelfHostedErrorsOnly) {
-    if (org.features.includes('crash-rate-alerts')) {
-      result.push({
-        categoryHeading: t('Sessions'),
-        options: ['crash_free_sessions', 'crash_free_users'] satisfies AlertType[],
-      });
-    }
-    const deprecatedTransactionAggregationOptions: AlertType[] = [
-      'throughput',
-      'trans_duration',
-      'apdex',
-      'failure_rate',
-      'lcp',
-      'fid',
-      'cls',
-    ];
-
-    const traceItemAggregationOptions: AlertType[] = [
-      'trace_item_throughput',
-      'trace_item_duration',
-      'trace_item_failure_rate',
-      'trace_item_lcp',
-    ];
-    result.push({
-      categoryHeading: t('Performance'),
-      options: [
-        ...(deprecateTransactionAlerts(org) && hasEAPAlerts(org)
-          ? traceItemAggregationOptions
-          : deprecatedTransactionAggregationOptions),
-
-        ...(hasEAPAlerts(org) ? ['eap_metrics' as const] : []),
-      ],
-    });
-
-    if (hasLogAlerts(org)) {
-      result.push({
-        categoryHeading: t('Logs'),
-        options: ['trace_item_logs' as const],
-      });
-    }
-
-    if (hasTraceMetricsAlerts(org)) {
-      result.push({
-        categoryHeading: t('Application Metrics'),
-        options: ['trace_item_metrics' as const],
-      });
-    }
-
-    if (org.features.includes('uptime')) {
-      result.push({
-        categoryHeading: t('Uptime Monitoring'),
-        options: ['uptime_monitor'],
-      });
-    }
-
-    result.push({
-      categoryHeading: t('Cron Monitoring'),
-      options: ['crons_monitor'],
-    });
-
-    if (!deprecateTransactionAlerts(org)) {
-      result.push({
-        categoryHeading: t('Custom'),
-        options: ['custom_transactions'],
-      });
-    }
-  }
-  return result;
 };
 
 export type WizardRuleTemplate = {

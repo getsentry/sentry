@@ -1470,14 +1470,8 @@ function buildRoutes(): RouteObject[] {
       path: 'wizard/',
       component: make(
         () =>
-          import('sentry/views/alerts/workflowEngineRedirectWrappers/alertBuilderProjectProvider')
+          import('sentry/views/alerts/workflowEngineRedirectWrappers/monitorCreateRedirect')
       ),
-      children: [
-        {
-          index: true,
-          component: make(() => import('sentry/views/alerts/wizard')),
-        },
-      ],
     },
     {
       path: 'new/',
@@ -1505,24 +1499,18 @@ function buildRoutes(): RouteObject[] {
       ),
     },
     {
-      path: ':projectId/',
+      path: ':projectId/new/',
       component: make(
         () =>
-          import('sentry/views/alerts/workflowEngineRedirectWrappers/alertBuilderProjectProvider')
+          import('sentry/views/alerts/workflowEngineRedirectWrappers/monitorCreateRedirect')
       ),
-      children: [
-        {
-          path: 'new/',
-          component: make(
-            () =>
-              import('sentry/views/alerts/workflowEngineRedirectWrappers/monitorCreateRedirect')
-          ),
-        },
-        {
-          path: 'wizard/',
-          component: make(() => import('sentry/views/alerts/wizard')),
-        },
-      ],
+    },
+    {
+      path: ':projectId/wizard/',
+      component: make(
+        () =>
+          import('sentry/views/alerts/workflowEngineRedirectWrappers/monitorCreateRedirect')
+      ),
     },
   ];
   const alertRoutes: SentryRouteObject = {
