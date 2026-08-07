@@ -320,20 +320,18 @@ describe('callRecordDetail', () => {
     expect(detail?.request).toBe('GET /api/0/issues/54/tags/');
   });
 
-  it('lists query params but not path params', () => {
-    // Path params are already visible in the resolved path; the query string is not, since the
-    // transport passes it separately rather than building it into the URL.
+  it('shows the query string as part of the request line', () => {
+    // Seer composes it into resolved_path, so the URL is the request — no param list beside it.
     const detail = callRecordDetail(
       apiRecord({
-        path_params: {issue_id: '54'},
-        query_params: {statsPeriod: '14d', environment: 'prod'},
+        resolved_path:
+          '/api/0/organizations/sentry/issues/?query=is%3Aunresolved&limit=25',
       })
     );
 
-    expect(detail?.params).toEqual([
-      ['statsPeriod', '14d'],
-      ['environment', 'prod'],
-    ]);
+    expect(detail?.request).toBe(
+      'GET /api/0/organizations/sentry/issues/?query=is%3Aunresolved&limit=25'
+    );
   });
 
   it('shows the request body', () => {

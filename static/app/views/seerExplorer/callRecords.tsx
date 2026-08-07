@@ -180,7 +180,6 @@ export function callRecordFailure(record: CallRecord): string | null {
  */
 export function callRecordDetail(record: CallRecord): {
   body: string | null;
-  params: Array<[string, string]>;
   request: string;
 } | null {
   // A lib call is a heading for the api calls nested under it, and those carry the detail. Giving
@@ -194,11 +193,10 @@ export function callRecordDetail(record: CallRecord): {
     return null;
   }
 
+  // Seer composes the query string into `resolved_path`, so the request line is the whole URL —
+  // a list of params underneath would restate what the URL already says.
   return {
     request: `${record.method} ${path}`,
-    // Query only. Path params are already visible in the resolved path; the query string is not,
-    // since the transport passes it separately rather than building it into the URL.
-    params: Object.entries(record.query_params ?? {}),
     body: withEllipsis(record.body, record.body_truncated),
   };
 }

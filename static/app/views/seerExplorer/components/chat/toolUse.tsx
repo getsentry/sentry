@@ -545,11 +545,6 @@ function CallDetail({
       <Text size="xs" variant="muted" monospace>
         {detail.request}
       </Text>
-      {detail.params.map(([key, value]) => (
-        <Text key={key} size="xs" variant="muted" monospace>
-          {key}={value}
-        </Text>
-      ))}
       {detail.body && <CodeBlock language="json">{detail.body}</CodeBlock>}
     </Stack>
   );
