@@ -476,7 +476,9 @@ describe('AskSeerComboBox', () => {
     await userEvent.type(input, 'test{Enter}');
 
     const groupBy = await screen.findByText('span.name');
-    expect(getEmotionRules(groupBy).join(' ')).toContain('width: fit-content');
+    // The value renders in a Chip, which is inline-flex and therefore sizes to
+    // its content rather than stretching to fill the row.
+    expect(getEmotionRules(groupBy.closest('div')).join(' ')).toContain('inline-flex');
   });
 
   it('hides the feedback option when the rework is enabled', async () => {

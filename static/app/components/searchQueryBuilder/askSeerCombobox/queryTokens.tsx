@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Chip} from '@sentry/scraps/chip';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -232,20 +233,11 @@ function ExploreParamTitle({children}: {children: React.ReactNode}) {
   );
 }
 
-const ExploreVisualizes = styled('span')`
-  font-size: ${p => p.theme.form.sm.fontSize};
-  background: ${p => p.theme.tokens.background.primary};
-  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
-  border: 1px solid ${p => p.theme.tokens.border.secondary};
-  border-radius: ${p => p.theme.radius.md};
-  min-height: 24px;
-  width: fit-content;
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  white-space: normal;
-  display: inline-flex;
-  align-items: center;
-`;
+function ExploreValueChip({children}: {children: string}) {
+  return <Chip variant="value" size="sm" value={children} />;
+}
+
+const ExploreVisualizes = ExploreValueChip;
 
 const ExploreGroupBys = ExploreVisualizes;
 
