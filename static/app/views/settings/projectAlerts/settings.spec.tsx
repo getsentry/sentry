@@ -37,6 +37,10 @@ describe('ProjectAlertSettings', () => {
     expect(
       screen.getByRole('slider', {name: 'Maximum delivery interval'})
     ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'View Alert Rules'})).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/monitors/alerts/?project=${project.id}`
+    );
   });
 
   it('surfaces the digest min/max error on the maximum delay field', async () => {
