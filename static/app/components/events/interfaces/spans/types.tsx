@@ -1,4 +1,4 @@
-import type {FuseResult} from 'fuse.js';
+import type {FuseResult} from 'fuse.js/basic';
 
 import type {SpanTreeModel} from './spanTreeModel';
 

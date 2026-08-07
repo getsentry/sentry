@@ -1,6 +1,6 @@
 import {useMemo, type ReactNode} from 'react';
 import {useQuery} from '@tanstack/react-query';
-import type {FuseResult, IFuseOptions} from 'fuse.js';
+import type {FuseResult, IFuseOptions} from 'fuse.js/basic';
 
 import {
   useSearchQueryBuilderAI,

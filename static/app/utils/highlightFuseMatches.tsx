@@ -1,4 +1,4 @@
-import type {FuseResultMatch} from 'fuse.js';
+import type {FuseResultMatch} from 'fuse.js/basic';
 
 type Match = FuseResultMatch;
 

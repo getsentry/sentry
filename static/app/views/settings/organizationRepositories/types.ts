@@ -1,4 +1,4 @@
-import type {FuseResultMatch} from 'fuse.js';
+import type {FuseResultMatch} from 'fuse.js/basic';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 

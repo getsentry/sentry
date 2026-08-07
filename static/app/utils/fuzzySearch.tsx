@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
-import type Fuse from 'fuse.js';
-import type {IFuseOptions} from 'fuse.js';
+import type Fuse from 'fuse.js/basic';
+import type {IFuseOptions} from 'fuse.js/basic';
 
 // See http://fusejs.io/ for more information
 const DEFAULT_FUSE_OPTIONS: IFuseOptions<any> = {
@@ -20,7 +20,7 @@ export async function createFuzzySearch<T = string>(
     throw new Error('You need to define `options.keys`');
   }
 
-  const fuseImported = await import('fuse.js');
+  const fuseImported = await import('fuse.js/basic');
   const fuse = {Fuse: fuseImported.default};
 
   return new fuse.Fuse(objects, {

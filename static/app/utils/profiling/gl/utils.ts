@@ -1,5 +1,5 @@
 import {useLayoutEffect} from 'react';
-import type {RangeTuple} from 'fuse.js';
+import type {RangeTuple} from 'fuse.js/basic';
 import {mat3, vec2} from 'gl-matrix';
 
 import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';

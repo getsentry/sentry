@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import type {FuseResultMatch} from 'fuse.js';
+import type {FuseResultMatch} from 'fuse.js/basic';
 
 import {getFuseMatches, highlightFuseMatches} from 'sentry/utils/highlightFuseMatches';
 
