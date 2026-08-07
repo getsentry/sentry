@@ -499,7 +499,7 @@ def _discover_stale_pipeline_hashes(current_hash: str, limit: int) -> list[str]:
     # just less exotic.
 
     results: list[str] = []
-    cursor = ""
+    cursor: str | None = ""
     while len(results) < limit:
         cursor = (
             GroupDerivedData.objects.filter(pipeline_hash__gt=cursor)

@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from datetime import datetime, timezone
 from unittest.mock import patch
 
@@ -457,7 +458,7 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
 
 @with_feature("projects:issue-action-log-write-to-db")
 class DiscoverStalePipelineHashesTest(DerivedDataTaskTestBase):
-    def _seed_hashes(self, hashes: list[str | None], per_hash: int = 1) -> None:
+    def _seed_hashes(self, hashes: Sequence[str | None], per_hash: int = 1) -> None:
         for h in hashes:
             groups = self.create_unprocessed_groups(per_hash)
             for group in groups:
