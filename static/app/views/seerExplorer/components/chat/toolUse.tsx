@@ -4,6 +4,7 @@ import type {LocationDescriptor} from 'history';
 
 import {MessageRow, ToolCallIndicator, type ToolCallStatus} from '@sentry/scraps/chat';
 import {Checkbox} from '@sentry/scraps/checkbox';
+import {CodeBlock} from '@sentry/scraps/code';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -549,7 +550,7 @@ function CallDetail({
           {key}={value}
         </Text>
       ))}
-      {detail.body && <PayloadBox>{detail.body}</PayloadBox>}
+      {detail.body && <CodeBlock language="json">{detail.body}</CodeBlock>}
     </Stack>
   );
 }
@@ -690,22 +691,6 @@ const ToolCallLinkIcon = styled(IconLink)`
   ${ToolCallLink}:hover & {
     color: ${p => p.theme.tokens.interactive.link.accent.hover};
   }
-`;
-
-// Capped and scrollable rather than unbounded: the preview is already truncated server-side, but
-// even 2KB of JSON would otherwise push the rest of the conversation off screen.
-const PayloadBox = styled('pre')`
-  margin: 0;
-  padding: ${p => p.theme.space.md};
-  max-height: 240px;
-  overflow: auto;
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  background: ${p => p.theme.tokens.background.secondary};
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.xs};
-  white-space: pre-wrap;
-  word-break: break-word;
 `;
 
 const ToolCallPlainRow = styled('span')`
