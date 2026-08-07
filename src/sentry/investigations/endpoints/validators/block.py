@@ -57,7 +57,11 @@ def validate_display(kind: str, display: dict[str, Any]) -> dict[str, Any]:
         "defaultView",
         "queryCollapsed",
     }
-    if display.get("version") != 1 or set(display) - allowed:
+    if (
+        display.get("version") != 1
+        or isinstance(display.get("version"), bool)
+        or set(display) - allowed
+    ):
         raise serializers.ValidationError("Invalid versioned query-block display.")
     if display_type not in {"table", "line", "bar", "area"}:
         raise serializers.ValidationError("Invalid visualization type.")
@@ -66,12 +70,21 @@ def validate_display(kind: str, display: dict[str, Any]) -> dict[str, Any]:
     for flag in ("queryCollapsed", "stacked", "showLegend"):
         if flag in display and not isinstance(display[flag], bool):
             raise serializers.ValidationError(f"{flag} must be a boolean.")
+    for field in ("title", "subtitle", "seriesField", "axisLabel"):
+        if field in display and display[field] is not None and not isinstance(display[field], str):
+            raise serializers.ValidationError(f"{field} must be a string or null.")
     if display.get("unit", "number") not in {"number", "percentage", "duration", "bytes"}:
         raise serializers.ValidationError("Invalid visualization unit.")
     if display.get("sort", "none") not in {"none", "ascending", "descending"}:
         raise serializers.ValidationError("Invalid visualization sort.")
-    if "topN" in display and (
-        not isinstance(display["topN"], int) or not 1 <= display["topN"] <= 20
+    if (
+        "topN" in display
+        and display["topN"] is not None
+        and (
+            isinstance(display["topN"], bool)
+            or not isinstance(display["topN"], int)
+            or not 1 <= display["topN"] <= 20
+        )
     ):
         raise serializers.ValidationError("topN must be between 1 and 20.")
     if display_type == "table":
