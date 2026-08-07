@@ -2,6 +2,7 @@ import type React from 'react';
 import {Fragment, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
 import {Tag} from '@sentry/scraps/badge';
 import {InfoText} from '@sentry/scraps/info';
@@ -18,6 +19,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconCalendar, IconFire, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -74,6 +76,24 @@ export function ConversationSummary({
   const user = useMemo(() => getConversationUser(nodes), [nodes]);
   const userDisplayName = user ? getUserDisplayName(user) : null;
 
+  const errorsUrl = useMemo(
+    () =>
+      getConversationErrorsUrl({
+        organization,
+        selection,
+        conversationId,
+        errorIssueIds: aggregates.errorIssueIds,
+        errorCount: aggregates.errorCount,
+      }),
+    [
+      organization,
+      selection,
+      conversationId,
+      aggregates.errorIssueIds,
+      aggregates.errorCount,
+    ]
+  );
+
   const displayId = isUUID(conversationId) ? conversationId.slice(0, 8) : conversationId;
   // Prefer the human-readable title; fall back to the (possibly truncated) id.
   const headingText = title || displayId;
@@ -81,12 +101,6 @@ export function ConversationSummary({
   // A UUID id is truncated to 8 chars, so it always needs the tooltip to reveal
   // the full value; a title or non-UUID id only needs it when it overflows.
   const headingTooltipOnlyOnOverflow = title ? true : !isUUID(conversationId);
-
-  const errorsUrl = getExploreUrl({
-    organization,
-    selection,
-    query: `gen_ai.conversation.id:"${escapeDoubleQuotes(conversationId)}" span.status:[internal_error,error]`,
-  });
 
   // Distinct traces the conversation spans, keyed by trace ID with a
   // representative span ID to deep-link into the trace view.
@@ -255,9 +269,9 @@ export function ConversationSummary({
               />
             ) : undefined
           }
-          to={aggregates.errorCount > 0 ? errorsUrl : undefined}
+          to={errorsUrl}
           onClick={
-            aggregates.errorCount > 0
+            errorsUrl
               ? () =>
                   trackAnalytics('conversations.detail.click-errors-link', {organization})
               : undefined
@@ -336,6 +350,7 @@ function Stat({
 
 interface ConversationAggregates {
   errorCount: number;
+  errorIssueIds: string[];
   erroredToolNames: Set<string>;
   llmCalls: number;
   /** When the conversation began, or null when no span carries a start time. */
@@ -344,6 +359,48 @@ interface ConversationAggregates {
   toolNames: string[];
   totalCost: number;
   totalTokens: number;
+}
+
+// Linked error issues live in the issue stream; span-status errors without a
+// linked issue fall back to the traces explorer. Undefined when there are none.
+function getConversationErrorsUrl({
+  organization,
+  selection,
+  conversationId,
+  errorIssueIds,
+  errorCount,
+}: {
+  conversationId: string;
+  errorCount: number;
+  errorIssueIds: string[];
+  organization: Organization;
+  selection: ReturnType<typeof usePageFilters>['selection'];
+}): string | undefined {
+  if (errorIssueIds.length > 0) {
+    const {start, end, period: statsPeriod, utc} = selection.datetime;
+    const query = {
+      // Trace-linked errors can live in any project, so scope to all of them.
+      project: '-1',
+      query: `issue.id:[${errorIssueIds.join(',')}]`,
+      statsPeriod: statsPeriod ?? undefined,
+      start: start ? new Date(start).toISOString() : undefined,
+      end: end ? new Date(end).toISOString() : undefined,
+      utc: utc ? 'true' : undefined,
+    };
+    return normalizeUrl(
+      `/organizations/${organization.slug}/issues/?${qs.stringify(query, {skipNull: true})}`
+    );
+  }
+
+  if (errorCount > 0) {
+    return getExploreUrl({
+      organization,
+      selection,
+      query: `gen_ai.conversation.id:"${escapeDoubleQuotes(conversationId)}" span.status:[internal_error,error]`,
+    });
+  }
+
+  return undefined;
 }
 
 function getGenAiOpType(node: AITraceSpanNode): string | undefined {
@@ -359,6 +416,7 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
   let startTimestamp: number | null = null;
   const toolNameSet = new Set<string>();
   const erroredToolNameSet = new Set<string>();
+  const errorIssueIdSet = new Set<string>();
 
   for (const node of nodes) {
     const opType = getGenAiOpType(node);
@@ -368,6 +426,12 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
     const [nodeStart] = node.space;
     if (nodeStart > 0 && (startTimestamp === null || nodeStart < startTimestamp)) {
       startTimestamp = nodeStart;
+    }
+
+    for (const issue of node.errors) {
+      if (issue.issue_id) {
+        errorIssueIdSet.add(String(issue.issue_id));
+      }
     }
 
     if (getIsAiGenerationSpan(opType)) {
@@ -402,6 +466,7 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
     toolCalls,
     errorCount,
     startTimestamp,
+    errorIssueIds: Array.from(errorIssueIdSet),
     erroredToolNames: erroredToolNameSet,
     totalTokens,
     totalCost,
@@ -454,11 +519,23 @@ export function ConversationAggregatesBar({
   const {selection} = usePageFilters();
   const aggregates = useMemo(() => calculateAggregates(nodes), [nodes]);
 
-  const errorsUrl = getExploreUrl({
-    organization,
-    selection,
-    query: `gen_ai.conversation.id:"${escapeDoubleQuotes(conversationId)}" span.status:[internal_error,error]`,
-  });
+  const errorsUrl = useMemo(
+    () =>
+      getConversationErrorsUrl({
+        organization,
+        selection,
+        conversationId,
+        errorIssueIds: aggregates.errorIssueIds,
+        errorCount: aggregates.errorCount,
+      }),
+    [
+      organization,
+      selection,
+      conversationId,
+      aggregates.errorIssueIds,
+      aggregates.errorCount,
+    ]
+  );
 
   // minHeight matches the tool Tag height so the row stays the same height whether or not tools render
   return (
@@ -471,9 +548,9 @@ export function ConversationAggregatesBar({
       <AggregateItem
         label={t('Errors')}
         value={<Count value={aggregates.errorCount} />}
-        to={aggregates.errorCount > 0 ? errorsUrl : undefined}
+        to={errorsUrl}
         isLoading={isLoading}
-        onClick={aggregates.errorCount > 0 ? onErrorsLinkClick : undefined}
+        onClick={errorsUrl ? onErrorsLinkClick : undefined}
       />
       <AggregateItem
         label={t('Tokens')}

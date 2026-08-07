@@ -269,4 +269,61 @@ describe('ConversationDetailPage summary errors', () => {
     expect(await screen.findByText('First answer')).toBeInTheDocument();
     expect(screen.queryByTestId('conversation-error-icon')).not.toBeInTheDocument();
   });
+
+  it('links the errors count to the linked error issues in the issue stream', async () => {
+    mockApis(null, [
+      ...CONVERSATION_BODY,
+      spanFixture({
+        span_id: 'span-error',
+        'span.name': 'failed turn',
+        'precise.start_ts': 3000,
+        'precise.finish_ts': 3000.5,
+        errors: [
+          {
+            event_id: 'event-1',
+            event_type: 'error',
+            issue_id: 42,
+            level: 'error',
+            project_id: 1,
+            project_slug: 'test-project',
+            start_timestamp: 3000,
+            transaction: 'failed turn',
+          },
+        ],
+      }),
+    ]);
+    renderPage();
+
+    expect(await screen.findByTestId('conversation-error-icon')).toBeInTheDocument();
+
+    // Linked issues resolve to the issue stream across all projects.
+    const errorsLink = screen.getByRole('link', {name: /1/});
+    const href = errorsLink.getAttribute('href')!;
+    expect(href).toContain('/organizations/org-slug/issues/');
+    expect(href).toContain(encodeURIComponent('issue.id:[42]'));
+    expect(href).toContain('project=-1');
+  });
+
+  it('links the errors count to the traces explorer for span-status errors with no linked issue', async () => {
+    mockApis(null, [
+      ...CONVERSATION_BODY,
+      spanFixture({
+        span_id: 'span-error',
+        'span.name': 'failed turn',
+        'span.status': 'internal_error',
+        'precise.start_ts': 3000,
+        'precise.finish_ts': 3000.5,
+      }),
+    ]);
+    renderPage();
+
+    expect(await screen.findByTestId('conversation-error-icon')).toBeInTheDocument();
+
+    // Span-status-only errors fall back to the traces explorer.
+    const errorsLink = screen.getByRole('link', {name: /1/});
+    const href = errorsLink.getAttribute('href')!;
+    expect(href).toContain('/traces/');
+    expect(href).toContain(encodeURIComponent('span.status:[internal_error,error]'));
+    expect(href).not.toContain('/issues/');
+  });
 });
