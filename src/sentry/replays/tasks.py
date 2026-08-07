@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import sentry_sdk
 from django.utils import timezone
 from taskbroker_client.constants import CompressionType
 from taskbroker_client.retry import Retry
@@ -248,6 +249,28 @@ def run_bulk_replay_delete_job(
 
     window_start, window_end = windows[window_offset_days]
 
+    sentry_sdk.set_context(
+        "ReplayDeletionJobModel",
+        {
+            "id": job.id,
+            "organization_id": job.organization_id,
+            "project_id": job.project_id,
+            "range_start": job.range_start.isoformat(),
+            "range_end": job.range_end.isoformat(),
+            "status": job.status,
+        },
+    )
+    sentry_sdk.set_context(
+        "replay_delete_window",
+        {
+            "window_start": window_start.isoformat(),
+            "window_end": window_end.isoformat(),
+            "window_offset_days": window_offset_days,
+            "after_replay_id_hash": after_replay_id_hash,
+            "limit": limit,
+        },
+    )
+
     try:
         # Delete the replays within a limited range. If more replays exist a cursor to seek the next
         # page from is returned.
@@ -263,27 +286,25 @@ def run_bulk_replay_delete_job(
 
         # Delete the matched rows if any rows were returned.
         if len(results["rows"]) > 0:
+            replay_ids = [row["replay_id"] for row in results["rows"]]
+
             delete_matched_rows(job.project_id, results["rows"])
             # Track job progress with a state transition metric
             metrics.incr("replays.bulk_delete_job", tags={"status": "in_progress"}, sample_rate=1.0)
             # Track the count of deleted rows separately
             metrics.incr(
                 "replays.bulk_delete_job.rows_deleted",
-                amount=len(results["rows"]),
+                amount=len(replay_ids),
                 sample_rate=1.0,
             )
             if has_seer_data:
-                delete_seer_replay_data(
-                    job.organization_id,
-                    job.project_id,
-                    [row["replay_id"] for row in results["rows"]],
-                )
+                delete_seer_replay_data(job.organization_id, job.project_id, replay_ids)
+
     except ProcessingDeadlineExceeded:
-        # A BaseException, so it escapes the handler below. Once retries run out the broker
-        # discards the activation, which leaves the job reporting "in-progress" forever with
-        # nothing left to advance it.
+        # Catch `ProcessingDeadlineExceeded` so we can mark the job correctly in the database,
+        # then re-raise so the re-try fires.
         task = current_task()
-        if task is not None and not task.retries_remaining:
+        if task is None or not task.retries_remaining:
             logger.warning("Bulk delete replays exhausted its processing deadline retries.")
             metrics.incr("replays.bulk_delete_job", tags={"status": "failed"}, sample_rate=1.0)
             _transition_status(job.id, DeletionJobStatus.IN_PROGRESS, DeletionJobStatus.FAILED)
