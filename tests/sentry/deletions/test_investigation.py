@@ -1,11 +1,11 @@
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.investigations.models import (
     Investigation,
-    InvestigationCell,
-    InvestigationCellDependency,
-    InvestigationCellExecution,
-    InvestigationCellExecutionProject,
-    InvestigationCellParameter,
+    InvestigationBlock,
+    InvestigationBlockDependency,
+    InvestigationBlockExecution,
+    InvestigationBlockExecutionProject,
+    InvestigationBlockParameter,
     InvestigationFavoriteUser,
     InvestigationParameter,
     InvestigationProject,
@@ -37,24 +37,24 @@ class DeleteInvestigationTest(TransactionTestCase, HybridCloudTestMixin):
             position=0,
         )
 
-        self.cell = self.create_investigation_cell(investigation=self.investigation, position=0)
-        self.upstream_cell = self.create_investigation_cell(
+        self.block = self.create_investigation_block(investigation=self.investigation, position=0)
+        self.upstream_block = self.create_investigation_block(
             investigation=self.investigation, position=1
         )
-        self.dependency = self.create_investigation_cell_dependency(
-            cell=self.cell, depends_on=self.upstream_cell
+        self.dependency = self.create_investigation_block_dependency(
+            block=self.block, depends_on=self.upstream_block
         )
-        self.cell_parameter = self.create_investigation_cell_parameter(
-            cell=self.cell, parameter=self.parameter
+        self.block_parameter = self.create_investigation_block_parameter(
+            block=self.block, parameter=self.parameter
         )
 
-        self.execution = self.create_investigation_cell_execution(
-            cell=self.cell, executor="manual", cell_version=1, input_fingerprint="f" * 64
+        self.execution = self.create_investigation_block_execution(
+            block=self.block, executor="manual", block_version=1, input_fingerprint="f" * 64
         )
-        self.execution_project = self.create_investigation_cell_execution_project(
+        self.execution_project = self.create_investigation_block_execution_project(
             execution=self.execution, project=self.project
         )
-        self.cell.update(
+        self.block.update(
             current_execution=self.execution,
             content_execution=self.execution,
             result_execution=self.execution,
@@ -65,13 +65,13 @@ class DeleteInvestigationTest(TransactionTestCase, HybridCloudTestMixin):
         assert not InvestigationProject.objects.filter(id=self.investigation_project.id).exists()
         assert not InvestigationFavoriteUser.objects.filter(id=self.favorite.id).exists()
         assert not InvestigationParameter.objects.filter(id=self.parameter.id).exists()
-        assert not InvestigationCell.objects.filter(
-            id__in=[self.cell.id, self.upstream_cell.id]
+        assert not InvestigationBlock.objects.filter(
+            id__in=[self.block.id, self.upstream_block.id]
         ).exists()
-        assert not InvestigationCellDependency.objects.filter(id=self.dependency.id).exists()
-        assert not InvestigationCellParameter.objects.filter(id=self.cell_parameter.id).exists()
-        assert not InvestigationCellExecution.objects.filter(id=self.execution.id).exists()
-        assert not InvestigationCellExecutionProject.objects.filter(
+        assert not InvestigationBlockDependency.objects.filter(id=self.dependency.id).exists()
+        assert not InvestigationBlockParameter.objects.filter(id=self.block_parameter.id).exists()
+        assert not InvestigationBlockExecution.objects.filter(id=self.execution.id).exists()
+        assert not InvestigationBlockExecutionProject.objects.filter(
             id=self.execution_project.id
         ).exists()
 
@@ -85,7 +85,7 @@ class DeleteInvestigationTest(TransactionTestCase, HybridCloudTestMixin):
 
     def test_leaves_sibling_investigation_intact(self) -> None:
         other = self.create_investigation(organization=self.organization, title="Other")
-        other_cell = self.create_investigation_cell(investigation=other)
+        other_block = self.create_investigation_block(investigation=other)
 
         self.ScheduledDeletion.schedule(instance=self.investigation, days=0)
 
@@ -94,7 +94,7 @@ class DeleteInvestigationTest(TransactionTestCase, HybridCloudTestMixin):
 
         self.assert_investigation_deleted()
         assert Investigation.objects.filter(id=other.id).exists()
-        assert InvestigationCell.objects.filter(id=other_cell.id).exists()
+        assert InvestigationBlock.objects.filter(id=other_block.id).exists()
 
     def test_delete_organization_cascades_to_investigations(self) -> None:
         org = self.organization
@@ -117,11 +117,11 @@ class DeleteInvestigationTest(TransactionTestCase, HybridCloudTestMixin):
 
         assert not Project.objects.filter(id=project.id).exists()
         assert not InvestigationProject.objects.filter(id=self.investigation_project.id).exists()
-        assert not InvestigationCellExecutionProject.objects.filter(
+        assert not InvestigationBlockExecutionProject.objects.filter(
             id=self.execution_project.id
         ).exists()
 
         # The investigation itself is org-scoped and outlives any one project.
         assert Investigation.objects.filter(id=self.investigation.id).exists()
-        assert InvestigationCell.objects.filter(id=self.cell.id).exists()
-        assert InvestigationCellExecution.objects.filter(id=self.execution.id).exists()
+        assert InvestigationBlock.objects.filter(id=self.block.id).exists()
+        assert InvestigationBlockExecution.objects.filter(id=self.execution.id).exists()

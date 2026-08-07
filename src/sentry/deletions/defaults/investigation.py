@@ -8,10 +8,10 @@ from sentry.deletions.base import (
 )
 from sentry.investigations.models import (
     Investigation,
-    InvestigationCell,
-    InvestigationCellDependency,
-    InvestigationCellExecutionProject,
-    InvestigationCellParameter,
+    InvestigationBlock,
+    InvestigationBlockDependency,
+    InvestigationBlockExecutionProject,
+    InvestigationBlockParameter,
     InvestigationFavoriteUser,
     InvestigationParameter,
     InvestigationProject,
@@ -25,16 +25,16 @@ class InvestigationDeletionTask(ModelDeletionTask[Investigation]):
         bulk_relations = (
             (InvestigationProject, "investigation_id"),
             (InvestigationFavoriteUser, "investigation_id"),
-            (InvestigationCellDependency, "cell__investigation_id"),
-            (InvestigationCellParameter, "cell__investigation_id"),
-            (InvestigationCellExecutionProject, "execution__cell__investigation_id"),
+            (InvestigationBlockDependency, "block__investigation_id"),
+            (InvestigationBlockParameter, "block__investigation_id"),
+            (InvestigationBlockExecutionProject, "execution__block__investigation_id"),
         )
         relations: list[BaseRelation] = [
             ModelRelation(model, {lookup: instance.id}, BulkModelDeletionTask)
             for model, lookup in bulk_relations
         ]
 
-        relations.append(ModelRelation(InvestigationCell, {"investigation_id": instance.id}))
+        relations.append(ModelRelation(InvestigationBlock, {"investigation_id": instance.id}))
         relations.append(
             ModelRelation(
                 InvestigationParameter, {"investigation_id": instance.id}, BulkModelDeletionTask

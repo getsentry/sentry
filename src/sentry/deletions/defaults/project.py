@@ -19,7 +19,7 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
             RepositoryProjectPathConfig,
         )
         from sentry.investigations.models import (
-            InvestigationCellExecutionProject,
+            InvestigationBlockExecutionProject,
             InvestigationProject,
         )
         from sentry.models.activity import Activity
@@ -97,7 +97,7 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
             DiscoverSavedQueryProject,
             IncidentProject,
             InvestigationProject,
-            InvestigationCellExecutionProject,
+            InvestigationBlockExecutionProject,
         ):
             relations.append(ModelRelation(m1, {"project_id": instance.id}, BulkModelDeletionTask))
 
