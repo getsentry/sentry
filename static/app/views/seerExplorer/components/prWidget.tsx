@@ -315,7 +315,7 @@ export function PRWidget({
   }
 
   return (
-    <Button ref={ref as any} onClick={onToggleMenu}>
+    <Button ref={ref} onClick={onToggleMenu}>
       <Flex align="center" gap="md">
         <Flex>
           <Text variant="success" monospace>

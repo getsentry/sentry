@@ -12,6 +12,7 @@ from sentry.testutils.cases import (
     SnubaTestCase,
     SpanTestCase,
     TraceAttachmentTestCase,
+    TraceMetricsTestCase,
 )
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
@@ -24,6 +25,7 @@ class ProjectTraceItemDetailsEndpointTest(
     OurLogTestCase,
     SpanTestCase,
     TraceAttachmentTestCase,
+    TraceMetricsTestCase,
     OccurrenceTestCase,
 ):
     def setUp(self) -> None:
@@ -776,3 +778,27 @@ class ProjectTraceItemDetailsEndpointTest(
         response = self.do_request("logs", item_id)
         assert response.status_code == 429
         assert b"Rate limit exceeded" in response.content
+
+    def test_trace_metric_segment_name_mapped_to_transaction(self) -> None:
+        trace_metric = self.create_trace_metric(
+            metric_name="request_duration",
+            metric_value=100.0,
+            metric_type="distribution",
+            trace_id=self.trace_uuid,
+            attributes={"sentry.segment.name": "/api/users"},
+        )
+        self.store_eap_items([trace_metric])
+        item_id = uuid.UUID(bytes=trace_metric.item_id).hex
+
+        response = self.do_request(
+            "tracemetrics",
+            item_id,
+            features={**self.features, "organizations:tracemetrics-enabled": True},
+        )
+        assert response.status_code == 200, response.content
+
+        by_name = {attr["name"]: attr for attr in response.data["attributes"]}
+        assert "transaction" in by_name
+        assert by_name["transaction"]["value"] == "/api/users"
+        assert by_name["transaction"]["type"] == "str"
+        assert "sentry.segment.name" not in by_name
