@@ -103,6 +103,17 @@ x-sentry-service-config:
       description: Memcached used for caching
     spotlight:
       description: Spotlight server for local debugging
+    # Shared with seer, which declares the same remote dependency: seer publishes
+    # agent output to Conduit's publish service and browsers consume it as SSE from
+    # its gateway, so both must reach the same broker. devservices runs one clone
+    # per remote repo, so declaring it in both repos yields one instance, not two.
+    conduit:
+      description: Real-time delivery platform used to stream Seer agent output to the browser
+      remote:
+        repo_name: conduit
+        branch: main
+        repo_link: https://github.com/getsentry/conduit.git
+        mode: containerized
     # Local Relays used only by the `cell-routing` mode to exercise Relay's
     # advertised-upstream routing without touching the relay repo or the default
     # `relay` config. relay-cell replaces the plain `relay` in this mode.
@@ -180,6 +191,14 @@ x-sentry-service-config:
   modes:
     default: [snuba, postgres, relay, spotlight, objectstore]
     migrations: [postgres, redis]
+    # Streams Seer agent output over SSE instead of polling. Opt-in rather than
+    # part of `default`: the feature is flagged off, so the containers would
+    # otherwise be idle processes for everyone not working on it.
+    #
+    # Conduit's own containerized mode brings the redis-cluster its broker needs,
+    # so this must NOT also list sentry's `redis-cluster` -- the two use identical
+    # images and both bind 7000-7005, so running both fails to start.
+    conduit: [snuba, postgres, relay, spotlight, objectstore, conduit]
     acceptance-ci: [postgres, snuba, chartcuterie]
     chartcuterie: [postgres, snuba, chartcuterie, spotlight]
     launchpad:
