@@ -317,7 +317,7 @@ const AggregatesStyledHeaderCell = styled(StyledSimpleTableHeaderCell)<{
   ${p =>
     p.isAggregate &&
     css`
-      min-width: max-content;
+      min-width: min-content;
     `}
 `;
 
@@ -329,7 +329,7 @@ const AggregatesStyledRowCell = styled(StyledSimpleTableRowCell)<{
     p.isAggregate &&
     css`
       justify-content: flex-end;
-      min-width: max-content;
+      min-width: min-content;
     `}
   ${p =>
     p.offset &&
