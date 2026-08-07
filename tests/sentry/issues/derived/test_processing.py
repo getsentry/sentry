@@ -160,6 +160,25 @@ class ProcessGroupLogTest(TestCase):
             features=frozenset({VIEW_COUNT.name}),
         )
 
+    def test_check_derived_data_reports_features_missing_from_state(self) -> None:
+        group = self.create_group()
+        derived = process_group_log(group.id)
+        replayed_values = {feature: feature.initial_value() for feature in PIPELINE.features}
+        stored_values = replayed_values.copy()
+        del stored_values[VIEW_COUNT]
+
+        with patch.object(
+            GroupDerivedDataStore,
+            "load",
+            side_effect=[State(replayed_values), State(stored_values)],
+        ):
+            assert check_derived_data(derived, PIPELINE) == CheckFailure(
+                group_id=group.id,
+                cursor_date=derived.cursor_date,
+                cursor_id=derived.cursor_id,
+                features=frozenset({VIEW_COUNT.name}),
+            )
+
     def test_check_derived_data_skips_stale_pipeline(self) -> None:
         group = self.create_group()
         derived = process_group_log(group.id)
@@ -222,7 +241,7 @@ class ProcessGroupLogTest(TestCase):
         entries = list(GroupActionLogEntry.objects.filter(group_id=group.id))
 
         with patch(
-            "sentry.issues.derived.check._entries_after_cursor", side_effect=[entries]
+            "sentry.issues.derived.check._entries_through_target_cursor", side_effect=[entries]
         ) as get:
             assert check_derived_data(derived, PIPELINE, batch_size=2) == CheckPassed()
 

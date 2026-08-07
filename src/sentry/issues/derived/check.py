@@ -41,6 +41,27 @@ class CheckId(NamedTuple):
     cursor_id: int
     pipeline_hash: str
 
+    @classmethod
+    def new_for_derived_data(cls, target: GroupDerivedData) -> "CheckId":
+        assert target.pipeline_hash is not None
+        return cls(
+            uuid4().hex,
+            target.group_id,
+            target.generated_at,
+            target.cursor_date,
+            target.cursor_id,
+            target.pipeline_hash,
+        )
+
+    def matches(self, target: GroupDerivedData) -> bool:
+        return (
+            self.group_id == target.group_id
+            and self.generated_at == target.generated_at
+            and self.cursor_date == target.cursor_date
+            and self.cursor_id == target.cursor_id
+            and self.pipeline_hash == target.pipeline_hash
+        )
+
 
 _check_cache = CacheMapping[CheckId, GroupDerivedData](
     lambda key: (
@@ -58,9 +79,10 @@ class CheckTimeout(Exception):
         super().__init__(check_id)
 
 
-def _entries_after_cursor(
-    derived: GroupDerivedData, target: CheckId, batch_size: int
+def _entries_through_target_cursor(
+    replayed: GroupDerivedData, target: CheckId, batch_size: int
 ) -> list[GroupActionLogEntry]:
+    assert replayed.group_id == target.group_id
     return list(
         GroupActionLogEntry.objects.filter(group_id=target.group_id)
         .extra(
@@ -69,8 +91,8 @@ def _entries_after_cursor(
                 'ROW("date_added", "id") <= ROW(%s, %s)',
             ],
             params=[
-                derived.cursor_date,
-                derived.cursor_id,
+                replayed.cursor_date,
+                replayed.cursor_id,
                 target.cursor_date,
                 target.cursor_id,
             ],
@@ -80,43 +102,35 @@ def _entries_after_cursor(
 
 
 def check_derived_data(
-    derived: GroupDerivedData,
+    target: GroupDerivedData,
     pipeline: Pipeline,
     timeout: timedelta | None = None,
     *,
     check_id: CheckId | None = None,
     batch_size: int = DEFAULT_BATCH_SIZE,
 ) -> CheckResult:
-    if derived.pipeline_hash != pipeline.pipeline_hash:
+    if target.pipeline_hash != pipeline.pipeline_hash:
         return CheckInvalidated()
 
-    target_fields = (
-        derived.group_id,
-        derived.generated_at,
-        derived.cursor_date,
-        derived.cursor_id,
-        derived.pipeline_hash,
-    )
     if check_id is not None:
-        if check_id[1:] != target_fields:
+        if not check_id.matches(target):
             _check_cache.delete(check_id)
             return CheckInvalidated()
-        target = check_id
     else:
-        target = CheckId(uuid4().hex, *target_fields)
+        check_id = CheckId.new_for_derived_data(target)
 
-    replayed_derived = _check_cache.get(target) if check_id is not None else None
+    replayed_derived = _check_cache.get(check_id)
     if replayed_derived is None:
         replayed_derived = GroupDerivedData(
-            group_id=derived.group_id,
+            group_id=target.group_id,
             cursor_date=EPOCH,
             cursor_id=0,
             data={},
-            pipeline_hash=derived.pipeline_hash,
+            pipeline_hash=target.pipeline_hash,
         )
 
     deadline = time.monotonic() + timeout.total_seconds() if timeout is not None else None
-    while entries := _entries_after_cursor(replayed_derived, target, batch_size):
+    while entries := _entries_through_target_cursor(replayed_derived, check_id, batch_size):
         replayed = pipeline.run(
             entries, state=GroupDerivedDataStore.load(pipeline, replayed_derived)
         )
@@ -128,35 +142,29 @@ def check_derived_data(
         if len(entries) < batch_size:
             break
         if deadline is not None and time.monotonic() >= deadline:
-            _check_cache.set(target, replayed_derived)
-            raise CheckTimeout(target)
+            _check_cache.set(check_id, replayed_derived)
+            raise CheckTimeout(check_id)
 
-    current = (
-        GroupDerivedData.objects.filter(group_id=target.group_id)
-        .values_list("generated_at", "cursor_date", "cursor_id", "pipeline_hash")
-        .first()
-    )
-    if current != (
-        target.generated_at,
-        target.cursor_date,
-        target.cursor_id,
-        target.pipeline_hash,
-    ):
-        _check_cache.delete(target)
+    current = GroupDerivedData.objects.filter(group_id=check_id.group_id).first()
+    if current is None or not check_id.matches(current):
+        _check_cache.delete(check_id)
         return CheckInvalidated()
 
     replayed = GroupDerivedDataStore.load(pipeline, replayed_derived)
-    stored = GroupDerivedDataStore.load(pipeline, derived)
+    stored = GroupDerivedDataStore.load(pipeline, target)
+    features = replayed.features | stored.features | frozenset(pipeline.features)
     different_features = frozenset(
-        feature.name for feature in pipeline.features if replayed[feature] != stored[feature]
+        feature.name
+        for feature in features
+        if feature not in replayed or feature not in stored or replayed[feature] != stored[feature]
     )
-    _check_cache.delete(target)
+    _check_cache.delete(check_id)
     if not different_features:
         return CheckPassed()
 
     return CheckFailure(
-        group_id=derived.group_id,
-        cursor_date=derived.cursor_date,
-        cursor_id=derived.cursor_id,
+        group_id=target.group_id,
+        cursor_date=target.cursor_date,
+        cursor_id=target.cursor_id,
         features=different_features,
     )
