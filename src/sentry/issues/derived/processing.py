@@ -101,15 +101,18 @@ def _ensure_derived(group_id: int, pipeline_hash: str) -> GroupDerivedData:
         pass
 
     try:
-        derived, _created = GroupDerivedData.objects.get_or_create(
-            group_id=group_id,
-            defaults={
-                "cursor_date": EPOCH,
-                "cursor_id": 0,
-                "data": {},
-                "pipeline_hash": pipeline_hash,
-            },
-        )
+        # Contain a possible foreign-key violation so callers can continue using
+        # their transaction after we translate it to Group.DoesNotExist.
+        with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
+            derived, _created = GroupDerivedData.objects.get_or_create(
+                group_id=group_id,
+                defaults={
+                    "cursor_date": EPOCH,
+                    "cursor_id": 0,
+                    "data": {},
+                    "pipeline_hash": pipeline_hash,
+                },
+            )
     except IntegrityError:
         raise Group.DoesNotExist(f"Group {group_id} does not exist")
     return derived
@@ -279,8 +282,7 @@ def process_group_log(
     """
     p = pipeline or PIPELINE
 
-    with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
-        derived = _ensure_derived(group_id, p.pipeline_hash)
+    derived = _ensure_derived(group_id, p.pipeline_hash)
 
     if timeout is not None:
         drained = _drain_log(
@@ -326,8 +328,7 @@ def trigger_group_log_processing(group_id: int, *, strategy: ProcessingStrategy)
 
     with metrics.timer("issues.derived.inline_processing"):
         try:
-            with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
-                derived = _ensure_derived(group_id, pipeline.pipeline_hash)
+            derived = _ensure_derived(group_id, pipeline.pipeline_hash)
         except ObjectDoesNotExist:
             return
 
