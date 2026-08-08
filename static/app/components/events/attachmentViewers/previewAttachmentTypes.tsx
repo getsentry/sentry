@@ -15,7 +15,7 @@ export const imageMimeTypes = [
   'image/avif',
 ];
 
-const logFileMimeTypes = [
+export const logFileMimeTypes = [
   'text/css',
   'text/csv',
   'text/html',
@@ -23,7 +23,7 @@ const logFileMimeTypes = [
   'text/plain',
 ];
 
-const jsonMimeTypes = [
+export const jsonMimeTypes = [
   'application/json',
   'application/ld+json',
   'text/json',
@@ -50,7 +50,7 @@ export const getImageAttachmentRenderer = (
   return undefined;
 };
 
-const nonPreviewableExtensions = ['.prosperodmp', '.prosperomemdmp'];
+export const nonPreviewableExtensions = ['.prosperodmp', '.prosperomemdmp'];
 
 export const getInlineAttachmentRenderer = (
   attachment: IssueAttachment
