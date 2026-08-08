@@ -2,9 +2,13 @@ from unittest import TestCase, mock
 
 import pytest
 
+from sentry.exceptions import RestrictedIPAddress
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.integrations.utils.metrics import IntegrationEventLifecycleMetric
+from sentry.integrations.utils.metrics import (
+    IntegrationEventLifecycleMetric,
+    _has_connectivity_error_in_chain,
+)
 from sentry.testutils.silo import no_silo_test
 
 
@@ -493,3 +497,152 @@ class IntegrationEventLifecycleMetricTest(TestCase):
 
         # Should log since default is 1.0
         mock_logger.warning.assert_called_once()
+
+
+class HasConnectivityErrorInChainTest(TestCase):
+    """Unit tests for the _has_connectivity_error_in_chain helper."""
+
+    def test_returns_false_for_none(self) -> None:
+        assert not _has_connectivity_error_in_chain(None)
+
+    def test_returns_false_for_unrelated_exception(self) -> None:
+        assert not _has_connectivity_error_in_chain(ValueError("unrelated"))
+
+    def test_detects_timeout_error_directly(self) -> None:
+        assert _has_connectivity_error_in_chain(TimeoutError("timed out"))
+
+    def test_detects_connection_refused_directly(self) -> None:
+        assert _has_connectivity_error_in_chain(ConnectionRefusedError("refused"))
+
+    def test_detects_connection_reset_directly(self) -> None:
+        assert _has_connectivity_error_in_chain(ConnectionResetError("reset"))
+
+    def test_detects_connection_error_subtype_via_explicit_cause(self) -> None:
+        """Explicit chaining: raise Wrapper() from TimeoutError()"""
+        inner = TimeoutError("timed out")
+        outer = RuntimeError("wrapper")
+        outer.__cause__ = inner
+        assert _has_connectivity_error_in_chain(outer)
+
+    def test_detects_timeout_via_implicit_context(self) -> None:
+        """Implicit chaining: raise Wrapper() inside except TimeoutError block."""
+        inner = TimeoutError("timed out")
+        outer = RuntimeError("wrapper")
+        outer.__context__ = inner
+        assert _has_connectivity_error_in_chain(outer)
+
+    def test_detects_connectivity_error_two_levels_deep(self) -> None:
+        """Chain: OuterError -> MiddleError -> TimeoutError (all implicit)."""
+        root = TimeoutError("TCP connect timed out")
+        middle = RuntimeError("P4Exception wrapping the OS error")
+        middle.__context__ = root
+        outer = RuntimeError("ApiError wrapping P4Exception")
+        outer.__context__ = middle
+        assert _has_connectivity_error_in_chain(outer)
+
+    def test_does_not_detect_unrelated_oserror_subtype(self) -> None:
+        """PermissionError is an OSError but not a connectivity error."""
+        assert not _has_connectivity_error_in_chain(PermissionError("permission denied"))
+
+    def test_handles_cycle_in_exception_chain(self) -> None:
+        """Guard against a cyclic __context__ chain (should not loop forever)."""
+        exc_a = RuntimeError("a")
+        exc_b = RuntimeError("b")
+        exc_a.__context__ = exc_b
+        exc_b.__context__ = exc_a  # cycle
+        # Neither is a connectivity error; must not infinite-loop.
+        assert not _has_connectivity_error_in_chain(exc_a)
+
+
+@no_silo_test
+class IntegrationEventLifecycleConnectivityHaltTest(TestCase):
+    """Tests that IntegrationEventLifecycle halts (not fails) on connectivity errors."""
+
+    class TestLifecycleMetric(IntegrationEventLifecycleMetric):
+        def get_integration_domain(self) -> IntegrationDomain:
+            return IntegrationDomain.SOURCE_CODE_MANAGEMENT
+
+        def get_integration_name(self) -> str:
+            return "perforce"
+
+        def get_interaction_type(self) -> str:
+            return "sync_repos"
+
+    def setUp(self) -> None:
+        patcher = mock.patch("sentry.integrations.utils.metrics.options.get", return_value=False)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    @mock.patch("sentry.integrations.utils.metrics.sentry_sdk")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_timeout_error_in_chain_records_halt_not_failure(
+        self, mock_metrics: mock.MagicMock, mock_sentry_sdk: mock.MagicMock
+    ) -> None:
+        """A TimeoutError anywhere in the exception chain should halt, not fail."""
+        root = TimeoutError("TCP connect timed out")
+        middle = RuntimeError("P4Exception: connect to server failed")
+        middle.__context__ = root
+        outer = RuntimeError("ApiError: Failed to connect to Perforce")
+        outer.__context__ = middle
+
+        metric_obj = self.TestLifecycleMetric()
+        with pytest.raises(RuntimeError):
+            with metric_obj.capture():
+                raise outer
+
+        # Must record a halt, not a failure
+        assert mock_metrics.incr.call_args_list[-1][0][0] == "integrations.slo.halted"
+        # Must NOT call capture_exception (no Sentry issue created)
+        mock_sentry_sdk.capture_exception.assert_not_called()
+
+    @mock.patch("sentry.integrations.utils.metrics.sentry_sdk")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_connection_refused_in_chain_records_halt(
+        self, mock_metrics: mock.MagicMock, mock_sentry_sdk: mock.MagicMock
+    ) -> None:
+        """A ConnectionRefusedError in the chain should halt, not fail."""
+        root = ConnectionRefusedError("Connection refused")
+        outer = RuntimeError("ApiError wrapping connection refusal")
+        outer.__context__ = root
+
+        metric_obj = self.TestLifecycleMetric()
+        with pytest.raises(RuntimeError):
+            with metric_obj.capture():
+                raise outer
+
+        assert mock_metrics.incr.call_args_list[-1][0][0] == "integrations.slo.halted"
+        mock_sentry_sdk.capture_exception.assert_not_called()
+
+    @mock.patch("sentry.integrations.utils.metrics.sentry_sdk")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_unrelated_exception_still_records_failure(
+        self, mock_metrics: mock.MagicMock, mock_sentry_sdk: mock.MagicMock
+    ) -> None:
+        """Exceptions unrelated to connectivity must still create Sentry issues."""
+        mock_sentry_sdk.capture_exception.return_value = "test-event-id"
+
+        metric_obj = self.TestLifecycleMetric()
+        with pytest.raises(ValueError):
+            with metric_obj.capture():
+                raise ValueError("unexpected internal error")
+
+        assert mock_metrics.incr.call_args_list[-1][0][0] == "integrations.slo.failure"
+        mock_sentry_sdk.capture_exception.assert_called_once()
+
+    @mock.patch("sentry.integrations.utils.metrics.sentry_sdk")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_restricted_ip_address_in_cause_records_halt(
+        self, mock_metrics: mock.MagicMock, mock_sentry_sdk: mock.MagicMock
+    ) -> None:
+        """RestrictedIPAddress via explicit __cause__ still records a halt (existing behavior)."""
+        inner = RestrictedIPAddress("blocked")
+        outer = RuntimeError("ApiHostError: restricted")
+        outer.__cause__ = inner  # explicit chaining
+
+        metric_obj = self.TestLifecycleMetric()
+        with pytest.raises(RuntimeError):
+            with metric_obj.capture():
+                raise outer
+
+        assert mock_metrics.incr.call_args_list[-1][0][0] == "integrations.slo.halted"
+        mock_sentry_sdk.capture_exception.assert_not_called()
