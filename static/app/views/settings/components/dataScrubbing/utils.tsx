@@ -331,7 +331,7 @@ export class TraceItemFieldSelector {
     selector: string
   ): boolean {
     const prefix = TraceItemFieldSelector.datasetSelectorMap[dataset];
-    return prefix ? selector.startsWith(prefix) : false;
+    return prefix ? selector === prefix || selector.startsWith(prefix + '.') : false;
   }
 
   static fromRule(rule: Rule): TraceItemFieldSelector | null {
@@ -355,7 +355,9 @@ export class TraceItemFieldSelector {
 
   private static determineDataset(selector: string): AllowedDataScrubbingDatasets {
     const dataset = Object.entries(TraceItemFieldSelector.datasetSelectorMap).find(
-      ([_, includes]) => selector.startsWith(includes ?? '')
+      ([_, includes]) =>
+        includes !== null &&
+        (selector === includes || selector.startsWith(includes + '.'))
     );
     if (dataset) {
       return dataset[0] as AllowedDataScrubbingDatasets;
