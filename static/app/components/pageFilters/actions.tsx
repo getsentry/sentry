@@ -320,14 +320,26 @@ export function initializeUrlState({
 
     if (pageFilters.datetime.period) {
       const parsedPeriod = parseStatsPeriod(pageFilters.datetime.period);
-      start = parsedPeriod.start;
-      end = parsedPeriod.end;
+      if (parsedPeriod) {
+        start = parsedPeriod.start;
+        end = parsedPeriod.end;
+      } else {
+        // Invalid period string (e.g. a URL path ended up in the stats period);
+        // clear the invalid period and fall back to the default.
+        pageFilters.datetime = {
+          period: null,
+          start: null,
+          end: null,
+          utc: pageFilters.datetime.utc,
+        };
+      }
     }
 
     if (start && end) {
       const periodStart = new Date(start);
       const periodEnd = new Date(end);
-      const maxPeriod = parseStatsPeriod(`${maxPickableDays}d`);
+      // maxPickableDays is always a number so `${maxPickableDays}d` is always valid
+      const maxPeriod = parseStatsPeriod(`${maxPickableDays}d`)!;
       const maxTimeRange = (maxDateRange ?? maxPickableDays) * 24 * 60 * 60 * 1000;
       const maxStart = new Date(maxPeriod.start);
       if (maxDateRange) {
