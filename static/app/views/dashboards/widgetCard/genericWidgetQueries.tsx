@@ -62,6 +62,11 @@ export type GenericWidgetQueriesResult = {
   dataScanned?: 'full' | 'partial';
   errorMessage?: string;
   heatmapResults?: HeatMapSeries;
+  /**
+   * The query was rejected for reaching outside of retention. Render an empty
+   * state rather than surfacing `errorMessage` as a failure.
+   */
+  isOutsideRetention?: boolean;
   isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;
   pageLinks?: string;

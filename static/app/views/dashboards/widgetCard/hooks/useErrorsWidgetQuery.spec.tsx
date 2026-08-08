@@ -244,6 +244,49 @@ describe('useErrorsSeriesQuery', () => {
     });
     expect(mockRequest2).toHaveBeenCalled();
   });
+
+  it('flags a query rejected for reaching outside of retention', async () => {
+    const widget = WidgetFixture({displayType: DisplayType.LINE});
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      statusCode: 400,
+      body: {detail: 'Invalid date range. Please try a more recent date range.'},
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useErrorsSeriesQuery({widget, organization, pageFilters, enabled: true})
+    );
+
+    await waitFor(() => {
+      expect(result.current.isOutsideRetention).toBe(true);
+    });
+
+    // `errorMessage` has to stay set, otherwise `loading` never resolves
+    expect(result.current.errorMessage).toBeDefined();
+    expect(result.current.loading).toBe(false);
+  });
+
+  it('does not flag other 400s as outside of retention', async () => {
+    const widget = WidgetFixture({displayType: DisplayType.LINE});
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      statusCode: 400,
+      body: {detail: 'Invalid query. Argument to function is wrong type.'},
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useErrorsSeriesQuery({widget, organization, pageFilters, enabled: true})
+    );
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.isOutsideRetention).toBe(false);
+    expect(result.current.errorMessage).toBeDefined();
+  });
 });
 
 describe('useErrorsTableQuery', () => {
