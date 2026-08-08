@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Mapping
 from typing import Any, Sequence
 
@@ -17,6 +18,8 @@ from sentry.notifications.notification_action.group_type_notification_registry.h
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.workflow_engine.models import Action, ActionAlertRuleTriggerAction
+
+logger = logging.getLogger(__name__)
 
 
 class WorkflowEngineActionSerializer(Serializer[dict[str, Any]]):
@@ -57,9 +60,15 @@ class WorkflowEngineActionSerializer(Serializer[dict[str, Any]]):
         type_value: int | None = ActionService.get_value(obj.type)
         target = attrs.get("target")
 
-        target_type: int = obj.config.get("target_type")
+        target_type: int | None = obj.config.get("target_type")
         target_identifier: str | None = obj.config.get("target_identifier")
         target_display: str | None = obj.config.get("target_display")
+
+        if target_type is None:
+            logger.warning(
+                "workflow_engine_action.missing_target_type",
+                extra={"action_id": obj.id, "action_type": obj.type},
+            )
 
         sentry_app_id = None
         sentry_app_config = None
@@ -75,7 +84,9 @@ class WorkflowEngineActionSerializer(Serializer[dict[str, Any]]):
             ),
             "alertRuleTriggerId": str(alert_rule_trigger_id),
             "type": obj.type,
-            "targetType": ACTION_TARGET_TYPE_TO_STRING[ActionTarget(target_type)],
+            "targetType": ACTION_TARGET_TYPE_TO_STRING[ActionTarget(target_type)]
+            if target_type is not None
+            else None,
             "targetIdentifier": get_identifier_from_action(
                 type_value, str(target_identifier), target_display
             ),
