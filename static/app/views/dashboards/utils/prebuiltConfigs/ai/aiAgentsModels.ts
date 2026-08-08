@@ -116,7 +116,7 @@ const MODELS_TABLE: PrebuiltWidget = {
       fields: [
         SpanFields.GEN_AI_RESPONSE_MODEL,
         'count()',
-        'equation|count_if(span.status,equals,internal_error) + count_if(span.status,equals,error)',
+        'equation|count_if(`span.status:internal_error`) + count_if(`span.status:error`)',
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
         `sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`,
@@ -127,7 +127,7 @@ const MODELS_TABLE: PrebuiltWidget = {
       ],
       aggregates: [
         'count()',
-        'equation|count_if(span.status,equals,internal_error) + count_if(span.status,equals,error)',
+        'equation|count_if(`span.status:internal_error`) + count_if(`span.status:error`)',
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
         `sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`,
