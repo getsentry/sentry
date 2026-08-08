@@ -135,15 +135,19 @@ export function KeyRateLimitsForm({
         return (
           <form.AppForm form={form}>
             <FieldGroup title={t('Rate Limits')}>
-              <Alert variant="info" system>
-                {t(
-                  `Rate limits provide a flexible way to manage your error
-                    volume. If you have a noisy project or environment you
-                    can configure a rate limit for this key to reduce the
-                    number of errors processed. To manage your transaction
-                    volume, we recommend adjusting your sample rate in your
-                    SDK configuration.`
-                )}
+              <Alert variant="warning" system>
+                <Stack gap="xs">
+                  <Text>
+                    {t(
+                      'Applying a rate limit to your DSN may cause you to miss critical but infrequent errors.'
+                    )}
+                  </Text>
+                  <Text>
+                    {t(
+                      'This limit applies to errors and security reports sent through this DSN. Other telemetry types such as spans, metrics, and logs are not affected.'
+                    )}
+                  </Text>
+                </Stack>
               </Alert>
               {!hasFeature &&
                 typeof renderDisabled === 'function' &&
