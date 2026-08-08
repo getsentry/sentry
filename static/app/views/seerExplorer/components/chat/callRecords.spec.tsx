@@ -71,16 +71,10 @@ describe('call record rendering', () => {
     expect(screen.queryByText(/Used sentry_api_execute tool/)).not.toBeInTheDocument();
   });
 
-  it('falls back to the generic row when no records are present', () => {
+  it('never shows the tool name when a Code Mode call reported nothing', () => {
     render(<BlockComponent block={codeModeBlock(undefined)} blockIndex={0} />);
 
-    expect(screen.getByText(/Used sentry_api_execute tool/)).toBeInTheDocument();
-  });
-
-  it('falls back to the generic row when records are empty', () => {
-    render(<BlockComponent block={codeModeBlock([])} blockIndex={0} />);
-
-    expect(screen.getByText(/Used sentry_api_execute tool/)).toBeInTheDocument();
+    expect(screen.queryByText(/Used sentry_api_execute tool/)).not.toBeInTheDocument();
   });
 
   it('drops a record with no title rather than showing its route', () => {
@@ -127,15 +121,39 @@ describe('call record rendering', () => {
     expect(() => render(<BlockComponent block={block} blockIndex={0} />)).not.toThrow();
   });
 
-  it('renders lib records alongside api records', () => {
+  it('drops a lib row whose api calls say more than it does', () => {
+    const block = codeModeBlock([
+      {
+        id: 1,
+        parent: null,
+        kind: 'lib',
+        name: 'get_issue_details',
+        title: 'Retrieving details',
+      },
+      apiRecord({id: 2, parent: 1, title: 'Retrieving issue 54'}),
+    ]);
+    render(<BlockComponent block={block} blockIndex={0} />);
+
+    expect(screen.getByText('Retrieving issue 54')).toBeInTheDocument();
+    expect(screen.queryByText('Retrieving details')).not.toBeInTheDocument();
+  });
+
+  it('keeps a lib row that made no api calls of its own', () => {
+    // code_search never touches the transport, so its row is the only trace it leaves.
     const block = codeModeBlock([
       {id: 1, parent: null, kind: 'lib', name: 'code_search'},
-      apiRecord({id: 2, parent: 1}),
     ]);
     render(<BlockComponent block={block} blockIndex={0} />);
 
     expect(screen.getByText('Searched code')).toBeInTheDocument();
-    expect(screen.getByText('Retrieve an Organization')).toBeInTheDocument();
+  });
+
+  it('renders no row at all for a Code Mode call that reported nothing', () => {
+    // "Used sentry_api_execute tool" names none of the actions it covers, so it is never shown —
+    // a call with nothing to report leaves no row rather than an empty one.
+    render(<BlockComponent block={codeModeBlock([])} blockIndex={0} />);
+
+    expect(screen.queryByText(/Used sentry_api_execute tool/)).not.toBeInTheDocument();
   });
 });
 

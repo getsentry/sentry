@@ -212,6 +212,24 @@ function withEllipsis(
   return truncated ? `${text}\n…` : text;
 }
 
+/**
+ * The records worth rendering, in the order they ran.
+ *
+ * A lib call that fanned out into api calls is dropped: it is a heading for rows that each say
+ * more than it does, and keeping it means a parent with no expander sitting above indented
+ * children. A lib call with no api children is kept — the Explorer-backed helpers (`code_search`,
+ * `bash`, `ask_user_question`) never touch the transport, so their own row is the only trace they
+ * leave.
+ */
+export function visibleCallRecords(records: CallRecord[]): CallRecord[] {
+  const hasChildren = new Set(
+    records.flatMap(record =>
+      record.parent === null || record.parent === undefined ? [] : [record.parent]
+    )
+  );
+  return records.filter(record => record.kind !== 'lib' || !hasChildren.has(record.id));
+}
+
 /** The calls in a block's tool results, flattened in the order they ran. */
 export function getCallRecords(
   toolResults: Array<{structuredContent?: {calls?: CallRecord[]} | null} | null> | null

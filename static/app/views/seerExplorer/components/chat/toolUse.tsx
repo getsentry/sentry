@@ -23,6 +23,7 @@ import {
   callRecordFailure,
   callRecordLabel,
   callRecordUrl,
+  visibleCallRecords,
 } from 'sentry/views/seerExplorer/callRecords';
 import type {
   Block,
@@ -44,6 +45,11 @@ import {MessagePlaceholder, getBlockStatus, hasValidContent} from './shared';
 // target are the same link whether or not one side also reports the call failed or came back empty.
 // Excluded from linkKey so the dedupe still matches a twin when only one channel carries them.
 const LINK_STATUS_PARAMS = new Set(['is_error', 'empty_results']);
+
+// Code Mode's tool names cover every action it can take, so "Used sentry_api_execute tool" names
+// nothing. These rows are built from the calls the execute reported instead; the tool's own label
+// is never rendered, and a call that produced nothing to show renders no row at all.
+const CODE_MODE_TOOLS = new Set(['sentry_api_execute', 'sentry_api_search']);
 
 // Identity for deduping a bus link against the positional row link. Params are sorted so the key
 // does not depend on object key order — today both channels derive params from the same object, but
@@ -252,6 +258,10 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
   const blockStatus = getBlockStatus(block);
   const latestTodos = useMemo(() => findLatestTodos(blocks), [blocks]);
 
+  // Counts rows actually rendered, so the status tick lands on the first visible one rather than
+  // on a Code Mode call that was suppressed.
+  let rendered = 0;
+
   return (
     <Stack gap="md" width="100%" minWidth={0} paddingRight="lg">
       {block.message.tool_calls?.map((toolCall, idx) => {
@@ -341,7 +351,7 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
           ? (callRecordsByCallId.get(toolCall.id) ?? [])
           : [];
         const live = toolCall.id ? (liveCallsForCallId.get(toolCall.id) ?? []) : [];
-        const callRows = (finishedCalls.length ? finishedCalls : live)
+        const callRows = visibleCallRecords(finishedCalls.length ? finishedCalls : live)
           .map(record => ({
             record,
             label: callRecordLabel(record),
@@ -354,11 +364,27 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
               Boolean(row.label)
           );
 
+        const isCodeMode = CODE_MODE_TOOLS.has(toolCall.function);
+        const toolString = isCodeMode ? '' : (toolsUsed[idx] ?? '');
+
+        // Nothing to say: a Code Mode call whose label is suppressed and which reported no calls,
+        // todos, links or markdown would render an empty row with a lone status tick.
+        const hasContent =
+          Boolean(toolString) ||
+          callRows.length > 0 ||
+          navItems.length > 0 ||
+          Boolean(todos) ||
+          Boolean(structuredContentMarkdown);
+        if (!hasContent) {
+          return null;
+        }
+        rendered += 1;
+
         return (
           <ToolCallRow
             key={toolCall.id ?? `${toolCall.function}-${idx}`}
-            toolString={toolsUsed[idx] ?? ''}
-            blockStatus={idx === 0 ? blockStatus : undefined}
+            toolString={toolString}
+            blockStatus={rendered === 1 ? blockStatus : undefined}
             toolUrl={toolUrl}
             failureTooltip={failureTooltip}
             onLinkClick={handleLinkClick}
