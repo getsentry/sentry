@@ -1497,11 +1497,16 @@ export default typescript.config([
               from: {element: {type: 'scraps'}},
               allow: [{to: {element: {type: 'scraps'}}}],
             },
-            // Keep this restriction explicit. The public top-level component
-            // files below are reopened after it.
+            // TODO: Re-enable this restriction once scraps are isolated from
+            // Sentry. Scraps currently import Sentry extensively.
+            // {
+            //   from: {element: {type: 'scraps'}},
+            //   disallow: {to: {element: {type: 'sentry*'}}},
+            // },
+            // Temporary migration allowance until scraps are isolated.
             {
               from: {element: {type: 'scraps'}},
-              disallow: {to: {element: {type: 'sentry*'}}},
+              allow: [{to: {element: {type: 'sentry*'}}}],
             },
             // Top-level component files are also part of the public
             // scraps interface.
