@@ -15,7 +15,7 @@ from sentry.dynamic_sampling.per_org.calculations import (
     compare_organization_sliding_window_sample_rates,
     compare_rebalanced_projects_with_cache,
     compare_rebalanced_transactions_with_cache,
-    compare_recalibration_factor_with_cache,
+    compare_recalibrations_with_cache,
     get_cached_organization_sample_rate,
     get_cached_rebalanced_project_sample_rates,
     get_cached_rebalanced_transaction_sample_rates,
@@ -171,9 +171,11 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
         )
 
     if is_org_in_recalibration_rollout(org_id):
-        calculated_factor = config.recalibrate()
+        # The 5-minute organization volume is reused rather than re-queried, so the EAP
+        # recalibration reads the same window the rest of this cycle ran against.
+        recalibrations = config.recalibrate(org_volume_5m)
         cached_factor = get_cached_recalibration_factor(config.organization.id)
-        compare_recalibration_factor_with_cache(config, calculated_factor, cached_factor)
+        compare_recalibrations_with_cache(config, recalibrations, cached_factor)
 
     return None
 

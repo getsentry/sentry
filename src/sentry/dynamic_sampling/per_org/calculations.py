@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable
-from dataclasses import replace
+from collections.abc import Iterable, Sequence
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
-from typing import TYPE_CHECKING, cast
+from enum import StrEnum
+from typing import TYPE_CHECKING, Any, cast
 
 import orjson
 import sentry_sdk
@@ -63,59 +64,118 @@ SLIDING_WINDOW_METRIC_PREFIX = "dynamic_sampling.per_org.sliding_window"
 logger = logging.getLogger(__name__)
 
 
+class RecalibrationSource(StrEnum):
+    """The volume source an effective sample rate, and so a recalibration factor, comes from.
+
+    ``EAP`` divides the raw stored segment count by the count extrapolated from the server
+    sample rates the stored segments carry, so it estimates the pre-sampling total from what
+    survived. ``OUTCOMES`` counts the spans sampling kept and the spans it dropped, which is
+    a direct measurement rather than an estimate, but is span-weighted rather than
+    segment-weighted.
+    """
+
+    EAP = "eap"
+    OUTCOMES = "outcomes"
+
+
+@dataclass(frozen=True)
+class Recalibration:
+    """A recalibration factor next to the measurement it was derived from.
+
+    ``factor`` is None when the window carried too little volume to derive one, or when the
+    factor fell outside the rebalance bounds. The volume and the effective sample rate are
+    kept either way, so a skipped factor can still be explained from the logs.
+    """
+
+    source: RecalibrationSource
+    volume: OrganizationDataVolume | None
+    effective_sample_rate: float | None
+    factor: float | None
+
+
+def get_effective_sample_rate(data_volume: OrganizationDataVolume | None) -> float | None:
+    """
+    The share of the volume that sampling kept over the measured window. None when the
+    window carries too little volume to derive a rate from.
+    """
+    if data_volume is None or data_volume.indexed is None:
+        return None
+    if not data_volume.is_valid_for_recalibration():
+        return None
+    return data_volume.indexed / data_volume.total
+
+
 def calculate_recalibration_factor(
     data_volume: OrganizationDataVolume | None,
     previous_factor: float,
     target_sample_rate: float | None,
 ) -> float | None:
+    effective_sample_rate = get_effective_sample_rate(data_volume)
     if (
         target_sample_rate is None
         or target_sample_rate == 0.0
-        or data_volume is None
-        or not data_volume.is_valid_for_recalibration()
+        or effective_sample_rate is None
         or previous_factor == 0.0
-        or data_volume.indexed is None
-        or data_volume.indexed == 0
     ):
         return None
 
     # This formula aims at scaling the factor proportionally to the ratio of the sample rate we are targeting compared
     # to the effective sample rate of that org. An imbalance in the ratio can be introduced by many factors, including
     # biases that oversample or down sample irrespectively of the incoming volume.
-    effective_sample_rate = data_volume.indexed / data_volume.total
-    new_factor = previous_factor * (target_sample_rate / effective_sample_rate)
-    return new_factor
+    return previous_factor * (target_sample_rate / effective_sample_rate)
 
 
 def get_cached_recalibration_factor(org_id: int) -> float:
     return legacy_recalibration_cache.get_adjusted_factor(org_id)
 
 
-def compare_recalibration_factor_with_cache(
+def compare_recalibrations_with_cache(
     config: BaseDynamicSamplingConfiguration,
-    calculated_factor: float | None,
+    recalibrations: Sequence[Recalibration],
     cached_factor: float | None,
 ) -> None:
-    logger.info(
-        "dynamic_sampling.per_org.recalibration_factor_comparison",
-        extra={
-            "org_id": config.organization.id,
-            "sample_rate": config.get_sample_rate(),
-            "generic_metrics_factor": cached_factor,
-            "eap_factor": calculated_factor,
-            "relative_deviation": (
-                None
-                if calculated_factor is None
-                else get_relative_deviation(cached_factor, calculated_factor)
-            ),
-            "is_equal": calculated_factor is not None
-            and is_within_relative_tolerance(
-                cached_factor,
-                calculated_factor,
-                RECALIBRATION_FACTOR_COMPARISON_RELATIVE_TOLERANCE,
-            ),
-        },
-    )
+    """
+    One line per org per cycle with every candidate recalibration factor next to the legacy
+    (generic metrics) one, so the volume sources can be compared without joining logs.
+
+    Read ``<source>_effective_sample_rate`` before ``<source>_factor``. Only the legacy factor
+    is served, so only the legacy loop is closed: every factor is its own previous factor
+    multiplied by the error its source measured, and a factor that was never applied cannot
+    converge on the one that was. The effective sample rate is what each source measures
+    independently of its own history, which makes it the comparable signal.
+    """
+    extra: dict[str, Any] = {
+        "org_id": config.organization.id,
+        "sample_rate": config.get_sample_rate(),
+        "generic_metrics_factor": cached_factor,
+    }
+    for recalibration in recalibrations:
+        extra.update(_recalibration_log_fields(recalibration, cached_factor))
+
+    logger.info("dynamic_sampling.per_org.recalibration_factor_comparison", extra=extra)
+
+
+def _recalibration_log_fields(
+    recalibration: Recalibration, cached_factor: float | None
+) -> dict[str, Any]:
+    source = recalibration.source.value
+    volume = recalibration.volume
+    factor = recalibration.factor
+    return {
+        f"{source}_factor": factor,
+        f"{source}_effective_sample_rate": recalibration.effective_sample_rate,
+        f"{source}_total": None if volume is None else volume.total,
+        f"{source}_indexed": None if volume is None else volume.indexed,
+        f"{source}_relative_deviation": (
+            None if factor is None else get_relative_deviation(cached_factor, factor)
+        ),
+        f"{source}_is_equal": factor is not None
+        and is_within_relative_tolerance(
+            cached_factor,
+            factor,
+            RECALIBRATION_FACTOR_COMPARISON_RELATIVE_TOLERANCE,
+        ),
+    }
 
 
 def compare_organization_sliding_window_sample_rates(
