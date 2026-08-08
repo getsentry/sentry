@@ -66,4 +66,19 @@ describe('ErrorsContentSection', () => {
     expect(await screen.findByRole('button', {name: 'Export data'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Settings'})).toBeInTheDocument();
   });
+
+  it('renders the errors tables section', async () => {
+    const setControlSectionExpanded = jest.fn();
+    render(
+      <ErrorsContentSection
+        controlSectionExpanded
+        setControlSectionExpanded={setControlSectionExpanded}
+      />
+    );
+
+    expect(await screen.findByRole('tab', {name: 'Errors'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Aggregates'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Attribute Breakdowns'})).toBeInTheDocument();
+    expect(screen.getByTestId('errors-table')).toBeInTheDocument();
+  });
 });
