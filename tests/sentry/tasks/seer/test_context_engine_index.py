@@ -128,6 +128,15 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
         )
         return org
 
+    def _create_org_with_gitlab(self):
+        org = self.create_organization()
+        self.create_integration(
+            organization=org,
+            provider="gitlab",
+            external_id=f"gitlab:{org.id}",
+        )
+        return org
+
     def test_returns_only_orgs_assigned_to_current_slot(self) -> None:
         from sentry.utils.hashlib import md5_text
 
@@ -262,6 +271,45 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
                 eligible = get_allowed_org_ids_context_engine_indexing()
 
         assert org_without_github.id not in eligible
+
+    def test_includes_gitlab_org(self) -> None:
+        # GitLab orgs are candidates on the same footing as GitHub orgs; they
+        # only need the usual Seer eligibility flag.
+        org = self._create_org_with_gitlab()
+
+        TOTAL_SLOTS = 24
+        target_slot = int(md5_text(str(org.id)).hexdigest(), 16) % TOTAL_SLOTS
+        frozen_time = f"2024-01-14 {target_slot:02d}:00:00"
+
+        with freeze_time(frozen_time):
+            with self.feature(
+                {
+                    "organizations:seer-explorer-index": [org.slug],
+                }
+            ):
+                eligible = get_allowed_org_ids_context_engine_indexing()
+
+        assert org.id in eligible
+
+    def test_excludes_gitlab_org_without_seer_flags(self) -> None:
+        # A GitLab org with no Seer eligibility flag is excluded, just like GitHub.
+        org = self._create_org_with_gitlab()
+
+        TOTAL_SLOTS = 24
+        target_slot = int(md5_text(str(org.id)).hexdigest(), 16) % TOTAL_SLOTS
+        frozen_time = f"2024-01-14 {target_slot:02d}:00:00"
+
+        with freeze_time(frozen_time):
+            with self.feature(
+                {
+                    "organizations:seer-explorer-index": False,
+                    "organizations:seat-based-seer-enabled": False,
+                    "organizations:seer-added": False,
+                }
+            ):
+                eligible = get_allowed_org_ids_context_engine_indexing()
+
+        assert org.id not in eligible
 
 
 @django_db_all

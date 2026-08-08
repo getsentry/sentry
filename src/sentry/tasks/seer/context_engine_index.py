@@ -315,8 +315,9 @@ def get_allowed_org_ids_context_engine_indexing() -> list[int]:
     """
     Get the list of allowed organizations for context engine indexing.
 
-    Divides all active orgs with github integration (Seer prerequisite) into 24 buckets via md5 hash.
-    Only the bucket matching the current hour is checked for the seer-explorer-index
+    Divides all active orgs with a supported SCM integration (Seer prerequisite:
+    GitHub, GitHub Enterprise, or GitLab) into 24 buckets via md5 hash. Only the
+    bucket matching the current hour is checked for the seer-explorer-index
     feature flag, keeping feature check volume at ~1/24th of total orgs.
     """
     with start_span(
@@ -330,6 +331,7 @@ def get_allowed_org_ids_context_engine_indexing() -> list[int]:
             providers=[
                 IntegrationProviderSlug.GITHUB.value,
                 IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+                IntegrationProviderSlug.GITLAB.value,
             ],
             status=ObjectStatus.ACTIVE,
         )
