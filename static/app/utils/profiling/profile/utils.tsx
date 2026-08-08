@@ -17,9 +17,9 @@ export function createContinuousProfileFrameIndex(
 
   for (let i = 0; i < frames.length; i++) {
     const frame = frames[i]!;
-    const frameKey = `${frame.filename ?? ''}:${frame.function ?? 'unknown'}:${String(
-      frame.lineno
-    )}:${frame.instruction_addr ?? ''}`;
+    const frameKey = `${frame.filename ?? ''}:${frame.module ?? ''}:${
+      frame.function ?? 'unknown'
+    }:${String(frame.lineno)}:${frame.instruction_addr ?? ''}`;
 
     const existing = insertionCache[frameKey];
     if (existing) {
@@ -42,6 +42,7 @@ export function createContinuousProfileFrameIndex(
         symbol: frame.symbol,
         symbolAddr: frame.sym_addr,
         symbolicatorStatus: frame.status,
+        platform: frame.platform,
       },
       platform
     );
