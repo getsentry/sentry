@@ -18,7 +18,7 @@ def _record_check_result(result: CheckResult) -> None:
     if isinstance(result, CheckFailure):
         outcome = "mismatch"
         logger.warning(
-            "check_group_derived_data.mismatch",
+            "check_derived_data.mismatch",
             extra={
                 "group_id": result.group_id,
                 "cursor_date": result.cursor_date.isoformat(),

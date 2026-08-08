@@ -10,7 +10,6 @@ from sentry.issues.derived.tasks import (
     BATCH_RETRIGGER_TIMEOUT,
     _discover_stale_pipeline_hashes,
     check_fresh_derived_data_batch,
-    check_group_derived_data,
     generate_project_derived_data,
     generate_project_derived_data_batch,
     heal_stale_derived_data,
@@ -42,97 +41,6 @@ class DerivedDataTaskTestBase(TestCase):
             GroupDerivedData.objects.filter(group_id=group.id).delete()
             groups.append(group)
         return groups
-
-
-@with_feature("projects:issue-action-log-write-to-db")
-class CheckGroupDerivedDataTest(DerivedDataTaskTestBase):
-    def test_records_no_result_without_derived_data(self) -> None:
-        group = self.create_group(project=self.project)
-
-        with patch("sentry.issues.derived.tasks_util.metrics.incr") as mock_incr:
-            check_group_derived_data(group.id)
-
-        mock_incr.assert_called_once_with(
-            "issues.derived.check_group",
-            sample_rate=1.0,
-            tags={"result": "no_result"},
-        )
-
-    def test_records_success(self) -> None:
-        group = self.create_unprocessed_groups(1)[0]
-        process_group_log(group.id)
-
-        with patch("sentry.issues.derived.tasks_util.metrics.incr") as mock_incr:
-            check_group_derived_data(group.id)
-
-        mock_incr.assert_called_once_with(
-            "issues.derived.check_group",
-            sample_rate=1.0,
-            tags={"result": "success"},
-        )
-
-    def test_records_and_logs_mismatch(self) -> None:
-        group = self.create_unprocessed_groups(1)[0]
-        process_group_log(group.id)
-        GroupDerivedData.objects.filter(group_id=group.id).update(view_count=0)
-
-        with (
-            patch("sentry.issues.derived.tasks_util.metrics.incr") as mock_incr,
-            patch("sentry.issues.derived.tasks_util.logger.warning") as mock_warning,
-        ):
-            check_group_derived_data(group.id)
-
-        derived = GroupDerivedData.objects.get(group_id=group.id)
-        mock_incr.assert_called_once_with(
-            "issues.derived.check_group",
-            sample_rate=1.0,
-            tags={"result": "mismatch"},
-        )
-        assert mock_warning.call_args == call(
-            "check_group_derived_data.mismatch",
-            extra={
-                "group_id": group.id,
-                "cursor_date": derived.cursor_date.isoformat(),
-                "cursor_id": derived.cursor_id,
-                "differences": {
-                    "view_count": {"expected": 1, "actual": 0},
-                },
-            },
-        )
-
-    def test_reschedules_timeout_with_check_id(self) -> None:
-        group = self.create_unprocessed_groups(1)[0]
-        derived = process_group_log(group.id)
-        assert derived.pipeline_hash is not None
-        check_id = CheckId(
-            "invocation-id",
-            group.id,
-            derived.generated_at,
-            derived.cursor_date,
-            derived.cursor_id,
-            derived.pipeline_hash,
-        )
-
-        with (
-            patch(
-                "sentry.issues.derived.check.check_derived_data",
-                side_effect=CheckTimeout(check_id),
-            ),
-            patch.object(check_group_derived_data, "delay") as mock_delay,
-            patch("sentry.issues.derived.tasks.metrics.incr") as mock_incr,
-        ):
-            check_group_derived_data(group.id)
-
-        mock_delay.assert_called_once_with(
-            group.id,
-            resume_check_id="invocation-id",
-            resume_generated_at=derived.generated_at.isoformat(),
-            resume_cursor_date=derived.cursor_date.isoformat(),
-            resume_cursor_id=derived.cursor_id,
-            resume_pipeline_hash=derived.pipeline_hash,
-            prior_runs=1,
-        )
-        mock_incr.assert_not_called()
 
 
 @with_feature("projects:issue-action-log-write-to-db")

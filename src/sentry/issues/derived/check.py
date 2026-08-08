@@ -47,7 +47,7 @@ type CheckResult = CheckPassed | CheckFailure | CheckInvalidated
 
 
 def compare_derived_data(
-    pipeline: Pipeline,
+    pipeline: Pipeline[GroupActionLogEntry],
     expected: GroupDerivedData,
     actual: GroupDerivedData,
 ) -> dict[Feature[Any], FeatureDifference]:
@@ -146,7 +146,7 @@ def _entries_through_target_cursor(
 
 def check_derived_data(
     target: GroupDerivedData,
-    pipeline: Pipeline,
+    pipeline: Pipeline[GroupActionLogEntry],
     timeout: timedelta | None = None,
     *,
     check_id: CheckId | None = None,
