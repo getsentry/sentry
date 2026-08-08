@@ -355,6 +355,20 @@ describe('GlobalCommandPaletteActions - search recall', () => {
     ['SENTRY_DSN', /Project Settings.*Client Keys \(DSN\)/],
     ['sentry dsn', /Project Settings.*Client Keys \(DSN\)/],
     ['NEXT_PUBLIC_SENTRY_DSN', /Project Settings.*Client Keys \(DSN\)/],
+    // SDK setup and per-key rate limiting live on the Client Keys (DSN) page.
+    ['sdk setup', /Project Settings.*Client Keys \(DSN\)/],
+    ['rate limit', /Project Settings.*Client Keys \(DSN\)/],
+    // Renaming/transferring a project and the SENTRY_PROJECT env var value
+    // (the project slug) live on project General Settings.
+    ['project slug', /Project Settings.*General Settings/],
+    ['SENTRY_PROJECT', /Project Settings.*General Settings/],
+    // The SENTRY_ORG env var value (the org slug) lives on org General Settings.
+    ['SENTRY_ORG', /Settings.*General Settings/],
+    // Creating tokens routes to the token management pages.
+    ['create new token', /Organization Tokens/, /Personal Tokens/],
+    ['access token', /Organization Tokens/, /Personal Tokens/],
+    // Plural "internal integrations" should surface Custom Integrations.
+    ['internal integrations', /Settings.*Custom Integrations/],
   ])('finds expected actions for %s', async (query, ...expectedOptions) => {
     renderPalette();
 

@@ -28,6 +28,15 @@ export function getNavigationConfiguration({
           path: `${pathPrefix}/`,
           index: true,
           title: t('General Settings'),
+          keywords: [
+            t('slug'),
+            t('project slug'),
+            t('rename project'),
+            t('transfer project'),
+            // SDK/CLI environment variable whose value is the project slug —
+            // a fixed product token, not translatable prose.
+            'SENTRY_PROJECT',
+          ],
           description: t('Configure general settings for a project'),
         },
         {
@@ -189,6 +198,12 @@ export function getNavigationConfiguration({
             t('client key'),
             t('dsn key'),
             t('allowed domains'),
+            t('sdk setup'),
+            t('sdk'),
+            t('environment variables'),
+            // Per-key rate limiting is configured on this page.
+            t('rate limit'),
+            t('rate limits'),
           ],
         },
         {

@@ -76,7 +76,14 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/`,
           title: t('General Settings'),
-          keywords: [t('slug'), t('org slug'), t('organization slug')],
+          keywords: [
+            t('slug'),
+            t('org slug'),
+            t('organization slug'),
+            // SDK/CLI environment variable whose value is the org slug —
+            // a fixed product token, not translatable prose.
+            'SENTRY_ORG',
+          ],
           index: true,
           description: t('Configure general settings for an organization'),
           id: 'general',
@@ -290,8 +297,11 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           keywords: [
             t('integration'),
             t('internal integration'),
+            t('internal integrations'),
             t('developer settings'),
             t('webhooks'),
+            t('web hook'),
+            t('web hooks'),
             t('api key'),
             t('api keys'),
             'SENTRY_AUTH_TOKEN',
@@ -318,7 +328,14 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
             t('token'),
             t('credentials'),
             t('user auth tokens'),
+            t('create token'),
+            t('new token'),
+            t('create new token'),
+            t('access token'),
+            t('access tokens'),
             'SENTRY_AUTH_TOKEN',
+            // Spaced form of the env var, which some users type with spaces.
+            'Sentry Auth Token',
           ],
           description: t('Manage organization tokens'),
           id: 'auth-tokens',
@@ -336,7 +353,14 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
             t('token'),
             t('credentials'),
             t('user auth tokens'),
+            t('create token'),
+            t('new token'),
+            t('create new token'),
+            t('access token'),
+            t('access tokens'),
             'SENTRY_AUTH_TOKEN',
+            // Spaced form of the env var, which some users type with spaces.
+            'Sentry Auth Token',
           ],
           description: t(
             "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
