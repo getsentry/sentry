@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from pydantic import ValidationError
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.constants import DataCategory
@@ -11,6 +12,10 @@ from sentry.seer.agent.client_models import (
     Message,
     RepoPRState,
     SeerRunState,
+)
+from sentry.seer.autofix.artifact_schemas import (
+    AnalyzedWindow,
+    RootCauseArtifact,
 )
 from sentry.seer.autofix.autofix_agent import (
     STEP_CONFIGS,
@@ -235,6 +240,8 @@ class TestBuildStepPrompt(TestCase):
         assert "app.views.handler" in prompt
         assert "ROOT CAUSE" in prompt
         assert "root_cause artifact" in prompt
+        assert '"needs_more_context"' in prompt
+        assert "include any useful non-code action" in prompt
 
     def test_solution_prompt_contains_issue_details(self) -> None:
         prompt = build_step_prompt(AutofixStep.SOLUTION, self.group)
@@ -1756,3 +1763,108 @@ class TestTriggerPushChanges(TestCase):
             f"Fixes [PROJ2-456](https://linear.app/team/issue/PROJ2-456)"
         )
         assert body["payload"]["pr_description_suffix"] == expected
+
+
+class TestRootCauseArtifactSchema:
+    """Contract tests for RootCauseArtifact: its generated JSON schema is sent to Seer as
+    the artifact tool definition, and typed reads parse the artifact data back through it."""
+
+    _BASE_PAYLOAD = {
+        "one_line_description": "Memory leak in cache handler",
+        "five_whys": ["Cache not cleared", "No TTL set"],
+        "fixability": {
+            "assessment": "fixable",
+            "reason": "The cache implementation can be changed",
+        },
+    }
+    _WINDOW = {
+        "open_period_id": "42",
+        "start": "2024-01-01T00:00:00Z",
+        "end": "2024-01-02T00:00:00Z",
+    }
+
+    def test_parses_without_analyzed_window(self) -> None:
+        artifact = RootCauseArtifact.parse_obj(self._BASE_PAYLOAD)
+
+        assert artifact.fixability.assessment == "fixable"
+        assert artifact.fixability.reason == "The cache implementation can be changed"
+        assert artifact.analyzed_window is None
+
+    def test_not_actionable_uses_fixability_reason(self) -> None:
+        artifact = RootCauseArtifact.parse_obj(
+            {
+                **self._BASE_PAYLOAD,
+                "fixability": {
+                    "assessment": "not_actionable",
+                    "reason": "Increase database capacity; no application code change applies",
+                },
+            }
+        )
+
+        assert artifact.fixability.assessment == "not_actionable"
+        assert (
+            artifact.fixability.reason
+            == "Increase database capacity; no application code change applies"
+        )
+
+    def test_fixability_reason_is_required(self) -> None:
+        with pytest.raises(ValidationError):
+            RootCauseArtifact.parse_obj(
+                {
+                    **self._BASE_PAYLOAD,
+                    "fixability": {
+                        "assessment": "not_actionable",
+                    },
+                }
+            )
+
+    def test_analyzed_window_round_trip(self) -> None:
+        artifact = RootCauseArtifact.parse_obj(
+            {**self._BASE_PAYLOAD, "analyzed_window": self._WINDOW}
+        )
+
+        assert artifact.analyzed_window == AnalyzedWindow(
+            open_period_id="42",
+            start="2024-01-01T00:00:00Z",
+            end="2024-01-02T00:00:00Z",
+        )
+        assert artifact.dict()["analyzed_window"] == self._WINDOW
+
+    @pytest.mark.parametrize("missing_field", ["open_period_id", "start", "end"])
+    def test_analyzed_window_requires_all_fields(self, missing_field: str) -> None:
+        window = {key: value for key, value in self._WINDOW.items() if key != missing_field}
+
+        with pytest.raises(ValidationError):
+            RootCauseArtifact.parse_obj({**self._BASE_PAYLOAD, "analyzed_window": window})
+
+    def test_generated_schema_keeps_analyzed_window_optional(self) -> None:
+        schema = RootCauseArtifact.schema()
+
+        assert "analyzed_window" in schema["properties"]
+        assert "classification" not in schema["properties"]
+        assert "no_code_fix_reason" not in schema["properties"]
+        assert set(schema["required"]) == {
+            "one_line_description",
+            "five_whys",
+            "fixability",
+        }
+        assert schema["definitions"]["AnalyzedWindow"]["required"] == [
+            "open_period_id",
+            "start",
+            "end",
+        ]
+
+    def test_generated_schema_carries_llm_guidance(self) -> None:
+        schema = RootCauseArtifact.schema()
+
+        fixability_properties = schema["definitions"]["FixabilityAssessment"]["properties"]
+        assert fixability_properties["assessment"]["enum"] == [
+            "fixable",
+            "needs_more_context",
+            "not_actionable",
+        ]
+        assert "no code change applies" in fixability_properties["assessment"]["description"]
+        assert "non-code action" in fixability_properties["reason"]["description"]
+        window_properties = schema["definitions"]["AnalyzedWindow"]["properties"]
+        assert "ISO 8601" in window_properties["start"]["description"]
+        assert "ISO 8601" in window_properties["end"]["description"]
