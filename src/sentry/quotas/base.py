@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from enum import IntEnum, unique
+from enum import Enum, IntEnum, unique
 from functools import total_ordering
 from typing import TYPE_CHECKING, Any, Literal, TypedDict
 
@@ -336,16 +336,34 @@ def _limit_from_settings(x: Any) -> int | None:
     return int(x or 0) or None
 
 
+class SeatAssignmentReason(Enum):
+    """Why a seat assignment check succeeded or failed."""
+
+    ASSIGNABLE = "assignable"
+    """Seat can be assigned — quota and feature requirements are met."""
+
+    FEATURE_NOT_AVAILABLE = "feature_not_available"
+    """The data category is not available on the organization's plan."""
+
+    QUOTA_EXCEEDED = "quota_exceeded"
+    """No reserved or on-demand budget remaining for the data category."""
+
+
 @dataclass
 class SeatAssignmentResult:
-    assignable: bool
+    assignment_reason: SeatAssignmentReason = SeatAssignmentReason.ASSIGNABLE
     """
-    Can the seat assignment be made?
+    Machine-readable classification of why the seat is or is not assignable.
     """
     reason: str = ""
     """
     The human readable reason the assignment can be made or not.
     """
+
+    @property
+    def assignable(self) -> bool:
+        """Whether the seat can be assigned, derived from ``assignment_reason``."""
+        return self.assignment_reason == SeatAssignmentReason.ASSIGNABLE
 
     def __post_init__(self) -> None:
         if not self.assignable and not self.reason:
@@ -648,7 +666,7 @@ class Quota(Service):
         Determines if a monitor can be assigned a seat. If it is not possible
         to assign a monitor a seat, a reason will be included in the response
         """
-        return SeatAssignmentResult(assignable=True)
+        return SeatAssignmentResult()
 
     def check_assign_seat(self, seat_object: SeatObject) -> SeatAssignmentResult:
         """
@@ -656,14 +674,14 @@ class Quota(Service):
         If it is not possible to assign a monitor a seat, a reason
         will be included in the response.
         """
-        return SeatAssignmentResult(assignable=True)
+        return SeatAssignmentResult()
 
     def check_assign_monitor_seats(self, monitor: list[Monitor]) -> SeatAssignmentResult:
         """
         Determines if a list of monitor can be assigned seat. If it is not possible
         to assign a seat to all given monitors, a reason will be included in the response
         """
-        return SeatAssignmentResult(assignable=True)
+        return SeatAssignmentResult()
 
     def check_assign_seats(
         self,
@@ -674,7 +692,7 @@ class Quota(Service):
         If it is not possible to assign a seat to all given objects, a reason
         will be included in the response.
         """
-        return SeatAssignmentResult(assignable=True)
+        return SeatAssignmentResult()
 
     def assign_monitor_seat(self, monitor: Monitor) -> int:
         """

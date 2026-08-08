@@ -4,7 +4,13 @@ from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.projectkey import ProjectKey
 from sentry.monitors.constants import PermitCheckInStatus
 from sentry.monitors.models import Monitor
-from sentry.quotas.base import Quota, QuotaConfig, QuotaScope, SeatAssignmentResult
+from sentry.quotas.base import (
+    Quota,
+    QuotaConfig,
+    QuotaScope,
+    SeatAssignmentReason,
+    SeatAssignmentResult,
+)
 from sentry.testutils.cases import TestCase
 from sentry.utils.outcomes import Outcome
 
@@ -178,6 +184,10 @@ def test_quota_config_sort_is_deterministic_regardless_of_input_order() -> None:
 
 def test_seat_assignable_must_have_reason() -> None:
     with pytest.raises(ValueError):
-        SeatAssignmentResult(assignable=False)
-    SeatAssignmentResult(assignable=False, reason="because I said so")
-    SeatAssignmentResult(assignable=True)
+        SeatAssignmentResult(assignment_reason=SeatAssignmentReason.QUOTA_EXCEEDED)
+    result = SeatAssignmentResult(
+        assignment_reason=SeatAssignmentReason.QUOTA_EXCEEDED, reason="because I said so"
+    )
+    assert not result.assignable
+    result = SeatAssignmentResult()
+    assert result.assignable

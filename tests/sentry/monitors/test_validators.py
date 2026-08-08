@@ -25,7 +25,7 @@ from sentry.monitors.validators import (
     MonitorIncidentDetectorValidator,
     MonitorValidator,
 )
-from sentry.quotas.base import SeatAssignmentResult
+from sentry.quotas.base import SeatAssignmentReason, SeatAssignmentResult
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.types.actor import Actor
@@ -1326,7 +1326,9 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
 
     @patch(
         "sentry.quotas.backend.check_assign_seat",
-        return_value=SeatAssignmentResult(assignable=False, reason="No seats available"),
+        return_value=SeatAssignmentResult(
+            assignment_reason=SeatAssignmentReason.QUOTA_EXCEEDED, reason="No seats available"
+        ),
     )
     def test_update_enable_no_seat_available(self, mock_check_seat):
         """

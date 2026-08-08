@@ -31,7 +31,7 @@ from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.constants import ObjectStatus
 from sentry.models.files.file import File
 from sentry.models.group import Group, GroupStatus
-from sentry.quotas.base import SeatAssignmentResult
+from sentry.quotas.base import SeatAssignmentReason, SeatAssignmentResult
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
@@ -908,7 +908,9 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             mock.patch(
                 "sentry.uptime.autodetect.result_handler.update_uptime_detector",
                 side_effect=UptimeMonitorNoSeatAvailable(
-                    SeatAssignmentResult(assignable=False, reason="Testing")
+                    SeatAssignmentResult(
+                        assignment_reason=SeatAssignmentReason.QUOTA_EXCEEDED, reason="Testing"
+                    )
                 ),
             ),
             self.tasks(),
