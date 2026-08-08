@@ -31,6 +31,8 @@ class MsTeamsRequestParser(BaseRequestParser):
 
     @cached_property
     def request_data(self) -> Mapping[str, Any]:
+        if not self.request.body:
+            return {}
         data = {}
         try:
             data = orjson.loads(self.request.body)
