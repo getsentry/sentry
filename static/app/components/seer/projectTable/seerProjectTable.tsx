@@ -97,7 +97,7 @@ export function SeerProjectTable() {
   const {data: knownAgents} = useQuery(
     knownAgentIntegrationsQueryOptions({organization})
   );
-  const {data: agentSelectOptions = []} = useQuery(
+  const {data: agentSelectOptions = [], isPending: isAgentOptionsPending} = useQuery(
     seerAgentIntegrationsSelectQueryOptions({organization})
   );
   const stoppingPointOptions = useStoppingPointSelectOptions();
@@ -270,6 +270,7 @@ export function SeerProjectTable() {
                             item.integrationId
                           )}
                           agentSelectOptions={agentSelectOptions}
+                          optionsPending={isAgentOptionsPending}
                           knownAgents={knownAgents}
                           disabled={!canWrite}
                         />
@@ -321,6 +322,7 @@ interface AgentSelectCellProps {
   disabled: boolean;
   initialValue: AutofixAgentSelectOption;
   knownAgents: AgentIntegration[] | undefined;
+  optionsPending: boolean;
   projectSlug: string;
 }
 
@@ -329,6 +331,7 @@ function AgentSelectCell({
   disabled,
   initialValue,
   knownAgents,
+  optionsPending,
   projectSlug,
 }: AgentSelectCellProps) {
   const organization = useOrganization();
@@ -348,7 +351,8 @@ function AgentSelectCell({
     >
       {field => (
         <field.Select
-          disabled={disabled}
+          aria-label={t('Agent')}
+          disabled={disabled || optionsPending}
           menuPortalTarget={document.body}
           multiple={false}
           onMenuOpen={() => {
@@ -384,7 +388,16 @@ function AgentSelectCell({
             field.handleChange(newValue);
             field.handleBlur();
           }}
-          options={agentSelectOptions}
+          // The select's value comes from the row data, but its options come
+          // from agentSelectOptions. Before that query resolves there are no
+          // options to match the value against, so the select would render
+          // blank. Fall back to a single placeholder option (kept in sync
+          // with the current value) so it renders normally while disabled.
+          options={
+            optionsPending
+              ? [{value: field.state.value, label: t('Loading…')}]
+              : agentSelectOptions
+          }
           // @ts-expect-error: Select component does not have a size prop defined
           size="xs"
           value={field.state.value}
