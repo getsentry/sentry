@@ -81,6 +81,7 @@ describe('useInfiniteLogsQuery', () => {
       isReady: true,
       pinnedFilters: new Set(),
       shouldPersist: true,
+      adjustments: [],
       selection: PageFiltersFixture(),
     });
     queryClient.clear();
@@ -978,6 +979,7 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
       isReady: true,
       pinnedFilters: new Set(),
       shouldPersist: true,
+      adjustments: [],
       selection: PageFiltersFixture(),
     });
   });

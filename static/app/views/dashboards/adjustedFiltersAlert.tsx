@@ -1,0 +1,37 @@
+import {Alert} from '@sentry/scraps/alert';
+import {Text} from '@sentry/scraps/text';
+
+import {getPageFilterAdjustmentMessage} from 'sentry/components/pageFilters/adjustments';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {t} from 'sentry/locale';
+
+interface AdjustedFiltersAlertProps {
+  hasUnsavedChanges: boolean;
+}
+
+/**
+ * Explains adjustments page filters made to the selection on load.
+ *
+ * An adjustment shows up as a dirty state with a "Save" button the user didn't
+ * ask for. Rather than hide that (the selection really did change), say what
+ * happened and why.
+ */
+export function AdjustedFiltersAlert({hasUnsavedChanges}: AdjustedFiltersAlertProps) {
+  const {adjustments} = usePageFilters();
+
+  if (adjustments.length === 0) {
+    return null;
+  }
+
+  const sentences = adjustments.map(getPageFilterAdjustmentMessage);
+
+  if (hasUnsavedChanges) {
+    sentences.push(t('Save this dashboard to keep the new selection.'));
+  }
+
+  return (
+    <Alert variant="info" showIcon>
+      <Text>{sentences.join(' ')}</Text>
+    </Alert>
+  );
+}

@@ -1,5 +1,6 @@
 import {createStore} from 'reflux';
 
+import type {PageFilterAdjustment} from 'sentry/components/pageFilters/adjustments';
 import {getDefaultPageFilterSelection} from 'sentry/components/pageFilters/constants';
 import type {StrictStoreDefinition} from 'sentry/stores/types';
 import type {PageFilters, PinnedPageFilter} from 'sentry/types/core';
@@ -39,7 +40,28 @@ function datetimeHasSameValue(
   return true;
 }
 
+/**
+ * Drops adjustments for filters the user has since changed themselves.
+ */
+function clearAdjustments(
+  adjustments: PageFilterAdjustment[],
+  filters: PinnedPageFilter[]
+): PageFilterAdjustment[] {
+  if (adjustments.length === 0) {
+    return adjustments;
+  }
+
+  const cleared = adjustments.filter(adjustment => !filters.includes(adjustment.filter));
+
+  return cleared.length === adjustments.length ? adjustments : cleared;
+}
+
 export interface PageFiltersState {
+  /**
+   * Adjustments made to the requested selection during initialization, so pages
+   * can explain why the selection isn't what the user asked for.
+   */
+  adjustments: PageFilterAdjustment[];
   /**
    * Are page filters ready?
    */
@@ -61,7 +83,16 @@ export interface PageFiltersState {
 }
 
 interface PageFiltersStoreDefinition extends StrictStoreDefinition<PageFiltersState> {
-  onInitializeUrlState(newSelection: PageFilters, persist?: boolean): void;
+  /**
+   * Call this *after* the update that caused the adjustment, since updating a
+   * filter clears its adjustments.
+   */
+  addAdjustment(adjustment: PageFilterAdjustment): void;
+  onInitializeUrlState(
+    newSelection: PageFilters,
+    persist?: boolean,
+    adjustments?: PageFilterAdjustment[]
+  ): void;
   onReset(): void;
   pin(filter: PinnedPageFilter, pin: boolean): void;
   reset(selection?: PageFilters): void;
@@ -77,6 +108,7 @@ const storeConfig: PageFiltersStoreDefinition = {
     selection: getDefaultPageFilterSelection(),
     pinnedFilters: new Set(),
     shouldPersist: true,
+    adjustments: [],
   },
 
   init() {
@@ -92,19 +124,21 @@ const storeConfig: PageFiltersStoreDefinition = {
       isReady: false,
       selection: selection || getDefaultPageFilterSelection(),
       pinnedFilters: new Set(),
+      adjustments: [],
     };
   },
 
   /**
    * Initializes the page filters store data
    */
-  onInitializeUrlState(newSelection, persist = true) {
+  onInitializeUrlState(newSelection, persist = true, adjustments = []) {
     this.state = {
       ...this.state,
       isReady: true,
       selection: newSelection,
       pinnedFilters: new Set<PinnedPageFilter>(['projects', 'environments', 'datetime']),
       shouldPersist: persist,
+      adjustments,
     };
     this.trigger(this.getState());
   },
@@ -123,6 +157,20 @@ const storeConfig: PageFiltersStoreDefinition = {
     this.trigger(this.getState());
   },
 
+  addAdjustment(adjustment) {
+    const alreadyRecorded = this.state.adjustments.some(
+      existing =>
+        existing.reason === adjustment.reason && existing.filter === adjustment.filter
+    );
+
+    if (alreadyRecorded) {
+      return;
+    }
+
+    this.state = {...this.state, adjustments: [...this.state.adjustments, adjustment]};
+    this.trigger(this.getState());
+  },
+
   updateProjects(projects = [], environments = null) {
     if (valueIsEqual(this.state.selection.projects, projects)) {
       return;
@@ -134,7 +182,14 @@ const storeConfig: PageFiltersStoreDefinition = {
       environments:
         environments === null ? this.state.selection.environments : environments,
     };
-    this.state = {...this.state, selection};
+    this.state = {
+      ...this.state,
+      selection,
+      adjustments: clearAdjustments(
+        this.state.adjustments,
+        environments === null ? ['projects'] : ['projects', 'environments']
+      ),
+    };
     this.trigger(this.getState());
   },
 
@@ -149,6 +204,7 @@ const storeConfig: PageFiltersStoreDefinition = {
         ...this.state.selection,
         datetime: newDateTime,
       },
+      adjustments: clearAdjustments(this.state.adjustments, ['datetime']),
     };
     this.trigger(this.getState());
   },
@@ -164,6 +220,7 @@ const storeConfig: PageFiltersStoreDefinition = {
         ...this.state.selection,
         environments: environments ?? [],
       },
+      adjustments: clearAdjustments(this.state.adjustments, ['environments']),
     };
 
     this.trigger(this.getState());
