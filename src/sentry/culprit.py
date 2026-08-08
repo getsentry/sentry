@@ -7,12 +7,15 @@ Over time we want to fully phase out the culprit.  Until then this is the
 code that generates it.
 """
 
+from collections.abc import Mapping
+from typing import Any
+
 from sentry.constants import MAX_CULPRIT_LENGTH, NEL_CULPRITS
 from sentry.utils.safe import get_path
 from sentry.utils.strings import truncatechars
 
 
-def generate_culprit(data):
+def generate_culprit(data: Mapping[str, Any]) -> str:
     platform = data.get("platform")
     exceptions = get_path(data, "exception", "values", filter=True)
     if exceptions:
@@ -43,7 +46,9 @@ def generate_culprit(data):
     return truncatechars(culprit or "", MAX_CULPRIT_LENGTH)
 
 
-def get_stacktrace_culprit(stacktrace, platform):
+def get_stacktrace_culprit(
+    stacktrace: Mapping[str, Any], platform: str | None
+) -> str | None:
     default = None
     for frame in reversed(stacktrace["frames"]):
         if not frame:
@@ -57,7 +62,7 @@ def get_stacktrace_culprit(stacktrace, platform):
     return default
 
 
-def get_frame_culprit(frame, platform):
+def get_frame_culprit(frame: Mapping[str, Any], platform: str | None) -> str:
     # If this frame has a platform, we use it instead of the one that
     # was passed in (as that one comes from the exception which might
     # not necessarily be the same platform).
@@ -74,8 +79,8 @@ def get_frame_culprit(frame, platform):
     return "{} in {}".format(fileloc, frame.get("function") or "?")
 
 
-def get_nel_culprit(contexts):
-    ty = contexts.get("nel").get("error_type", "<missing>")
+def get_nel_culprit(contexts: Mapping[str, Any] | None) -> str:
+    ty = get_path(contexts, "nel", "error_type") or "<missing>"
     if ty == "http.error":
-        return NEL_CULPRITS[ty].format(contexts.get("response").get("status_code"))
+        return NEL_CULPRITS[ty].format(get_path(contexts, "response", "status_code"))
     return NEL_CULPRITS.get(ty, ty)
