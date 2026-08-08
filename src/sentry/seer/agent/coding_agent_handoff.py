@@ -28,10 +28,88 @@ from sentry.seer.autofix.coding_agent import (
 )
 from sentry.seer.autofix.coding_agent_handoffs import create_seer_run_coding_agent_handoff
 from sentry.seer.autofix.utils import CodingAgentState, extract_api_error_message
+from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS
 from sentry.seer.models import SeerRepoDefinition
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger(__name__)
+
+
+def resolve_repo_branch_name(
+    repo: SeerRepoDefinition,
+    organization: Organization,
+) -> SeerRepoDefinition:
+    """
+    Ensure ``repo.branch_name`` is populated for coding-agent launch.
+
+    When ``branch_name`` is missing/empty, fetch the repository's default branch
+    from GitHub via the org's installed integration. On failure, return the repo
+    unchanged so the downstream Cursor launch error surfaces as before.
+    """
+    if repo.branch_name:
+        return repo
+
+    if not repo.integration_id or repo.provider not in SEER_SUPPORTED_SCM_PROVIDERS:
+        logger.warning(
+            "explorer.coding_agent.default_branch_unresolvable",
+            extra={
+                "organization_id": organization.id,
+                "repo_name": f"{repo.owner}/{repo.name}",
+                "provider": repo.provider,
+                "has_integration_id": bool(repo.integration_id),
+            },
+        )
+        return repo
+
+    try:
+        integration = integration_service.get_integration(
+            integration_id=int(repo.integration_id),
+        )
+        if integration is None:
+            logger.warning(
+                "explorer.coding_agent.default_branch_integration_missing",
+                extra={
+                    "organization_id": organization.id,
+                    "repo_name": f"{repo.owner}/{repo.name}",
+                    "integration_id": repo.integration_id,
+                },
+            )
+            return repo
+
+        client = integration.get_installation(organization_id=organization.id).get_client()
+        response = client.get_repo(f"{repo.owner}/{repo.name}")
+        default_branch = response.get("default_branch") if isinstance(response, dict) else None
+        if not default_branch:
+            logger.warning(
+                "explorer.coding_agent.default_branch_missing_in_response",
+                extra={
+                    "organization_id": organization.id,
+                    "repo_name": f"{repo.owner}/{repo.name}",
+                    "integration_id": repo.integration_id,
+                },
+            )
+            return repo
+
+        logger.info(
+            "explorer.coding_agent.default_branch_resolved",
+            extra={
+                "organization_id": organization.id,
+                "repo_name": f"{repo.owner}/{repo.name}",
+                "default_branch": default_branch,
+            },
+        )
+        return repo.copy(update={"branch_name": default_branch})
+    except Exception:
+        logger.warning(
+            "explorer.coding_agent.default_branch_resolve_failed",
+            extra={
+                "organization_id": organization.id,
+                "repo_name": f"{repo.owner}/{repo.name}",
+                "integration_id": repo.integration_id,
+            },
+            exc_info=True,
+        )
+        return repo
 
 
 def _resolve_client(
@@ -113,6 +191,7 @@ def launch_coding_agents(
     states_to_store: list[CodingAgentState] = []
 
     for repo in repos:
+        repo = resolve_repo_branch_name(repo, organization)
         repo_name = f"{repo.owner}/{repo.name}"
 
         launch_request = CodingAgentLaunchRequest(
