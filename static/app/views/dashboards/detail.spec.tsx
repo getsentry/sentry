@@ -638,6 +638,87 @@ describe('Dashboards > Detail', () => {
       expect(within(breadcrumbs).queryAllByRole('img')).toHaveLength(0);
     });
 
+    it('moves editor actions into the redesigned dashboard breadcrumb menu', async () => {
+      const pageFrameOrganization = OrganizationFixture({
+        slug: 'org-slug',
+        features: [...organization.features, 'ui-migration-breadcrumbs'],
+      });
+
+      render(
+        <TopBar.Slot.Provider>
+          <TopBar />
+          <DashboardDetail
+            initialState={DashboardState.VIEW}
+            dashboard={DashboardFixture([], {
+              id: '1',
+              title: 'Custom Errors',
+              isFavorited: false,
+            })}
+            onDashboardUpdate={jest.fn()}
+          />
+        </TopBar.Slot.Provider>,
+        {organization: pageFrameOrganization}
+      );
+
+      expect(await screen.findByLabelText('Dashboard actions')).toBeInTheDocument();
+      expect(screen.queryByLabelText('star-dashboard')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Dashboard Revisions'})
+      ).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByLabelText('Dashboard actions'));
+
+      expect(screen.getByRole('menuitemradio', {name: 'Star Dashboard'})).toBeVisible();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Dashboard Revisions'})
+      ).toBeVisible();
+      expect(screen.getByRole('menuitemradio', {name: 'Edit Dashboard'})).toBeVisible();
+      expect(
+        screen.queryByRole('button', {name: 'edit-dashboard'})
+      ).not.toBeInTheDocument();
+      expect(screen.getByText('Editors:')).toBeVisible();
+    });
+
+    it('moves the prebuilt duplicate action into the redesigned breadcrumb menu', async () => {
+      const pageFrameOrganization = OrganizationFixture({
+        slug: 'org-slug',
+        access: ['org:read'],
+        features: [...organization.features, 'ui-migration-breadcrumbs'],
+      });
+
+      render(
+        <TopBar.Slot.Provider>
+          <TopBar />
+          <DashboardDetail
+            initialState={DashboardState.VIEW}
+            dashboard={DashboardFixture([], {
+              id: '1',
+              title: 'Frontend Overview',
+              prebuiltId: PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
+              permissions: {isEditableByEveryone: false},
+              createdBy: UserFixture({id: 'another-user'}),
+            })}
+            onDashboardUpdate={jest.fn()}
+          />
+        </TopBar.Slot.Provider>,
+        {organization: pageFrameOrganization}
+      );
+
+      expect(await screen.findByLabelText('Dashboard actions')).toBeInTheDocument();
+      expect(screen.queryByTestId('dashboard-duplicate')).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByLabelText('Dashboard actions'));
+
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Duplicate Dashboard'})
+      ).toBeVisible();
+      expect(screen.getByRole('menuitemradio', {name: 'Star Dashboard'})).toBeVisible();
+      expect(screen.getByRole('menuitemradio', {name: 'Edit Dashboard'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+
     it('renders the legacy dashboard breadcrumb in the top bar (flag off)', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',

@@ -24,15 +24,18 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import {DASHBOARD_SAVING_MESSAGE} from 'sentry/views/dashboards/constants';
+import {
+  DASHBOARD_SAVING_MESSAGE,
+  UNSAVED_FILTERS_MESSAGE,
+} from 'sentry/views/dashboards/constants';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
 import {useDuplicatePrebuiltDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {DashboardRevisionsButton} from './dashboardRevisions';
-import {UNSAVED_FILTERS_MESSAGE} from './detail';
 import {exportDashboard} from './exportDashboard';
 import type {DashboardDetails, DashboardPermissions} from './types';
 import {DashboardState, MAX_WIDGETS, PREBUILT_DASHBOARD_LABEL} from './types';
@@ -85,6 +88,7 @@ export function Controls({
   }
 
   const organization = useOrganization();
+  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
   const api = useApi();
@@ -218,40 +222,42 @@ export function Controls({
       <DashboardEditFeature>
         {hasFeature => (
           <Fragment>
-            <Tooltip title={isFavorited ? t('Starred Dashboard') : t('Star Dashboard')}>
-              <Button
-                size="sm"
-                aria-label={t('star-dashboard')}
-                icon={
-                  <IconStar
-                    variant={isFavorited ? 'warning' : 'muted'}
-                    isSolid={isFavorited}
-                    aria-label={isFavorited ? t('Unstar') : t('Star')}
-                    data-test-id={isFavorited ? 'yellow-star' : 'empty-star'}
-                  />
-                }
-                onClick={async () => {
-                  try {
-                    setIsFavorited(!isFavorited);
-                    await updateDashboardFavorite(
-                      api,
-                      queryClient,
-                      organization,
-                      dashboard.id,
-                      !isFavorited
-                    );
-                    trackAnalytics('dashboards_manage.toggle_favorite', {
-                      organization,
-                      dashboard_id: dashboard.id,
-                      favorited: !isFavorited,
-                    });
-                  } catch (error) {
-                    // If the api call fails, revert the state
-                    setIsFavorited(isFavorited);
+            {!hasNewBreadcrumbs && (
+              <Tooltip title={isFavorited ? t('Starred Dashboard') : t('Star Dashboard')}>
+                <Button
+                  size="sm"
+                  aria-label={t('star-dashboard')}
+                  icon={
+                    <IconStar
+                      variant={isFavorited ? 'warning' : 'muted'}
+                      isSolid={isFavorited}
+                      aria-label={isFavorited ? t('Unstar') : t('Star')}
+                      data-test-id={isFavorited ? 'yellow-star' : 'empty-star'}
+                    />
                   }
-                }}
-              />
-            </Tooltip>
+                  onClick={async () => {
+                    try {
+                      setIsFavorited(!isFavorited);
+                      await updateDashboardFavorite(
+                        api,
+                        queryClient,
+                        organization,
+                        dashboard.id,
+                        !isFavorited
+                      );
+                      trackAnalytics('dashboards_manage.toggle_favorite', {
+                        organization,
+                        dashboard_id: dashboard.id,
+                        favorited: !isFavorited,
+                      });
+                    } catch (error) {
+                      // If the api call fails, revert the state
+                      setIsFavorited(isFavorited);
+                    }
+                  }}
+                />
+              </Tooltip>
+            )}
             <Feature features="dashboards-import">
               <Tooltip title={t('Export Dashboard')}>
                 <Button
@@ -268,6 +274,7 @@ export function Controls({
               </Tooltip>
             </Feature>
             {hasFeature &&
+              !hasNewBreadcrumbs &&
               (isPrebuiltDashboard ? (
                 <Button
                   data-test-id="dashboard-edit"
@@ -314,7 +321,9 @@ export function Controls({
                 onChangeEditAccess={onChangeEditAccess}
               />
             )}
-            {hasFeature && <DashboardRevisionsButton dashboard={dashboard} />}
+            {hasFeature && !hasNewBreadcrumbs && (
+              <DashboardRevisionsButton dashboard={dashboard} />
+            )}
             {hasFeature && !isPrebuiltDashboard && !hideAddWidget && (
               <Tooltip
                 title={tooltipMessage}
@@ -335,7 +344,7 @@ export function Controls({
                 />
               </Tooltip>
             )}
-            {hasFeature && isPrebuiltDashboard && (
+            {hasFeature && isPrebuiltDashboard && !hasNewBreadcrumbs && (
               <DashboardCreateLimitWrapper>
                 {({
                   hasReachedDashboardLimit,
