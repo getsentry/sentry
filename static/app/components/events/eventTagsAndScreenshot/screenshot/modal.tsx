@@ -10,8 +10,7 @@ import {Stack, Grid} from '@sentry/scraps/layout';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
-import {ImageViewer} from 'sentry/components/events/attachmentViewers/imageViewer';
-import {getImageAttachmentRenderer} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
+import {ScreenshotAttachmentViewer} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
 import {KeyValueData} from 'sentry/components/keyValueData';
 import {t, tct} from 'sentry/locale';
 import type {EventAttachment} from 'sentry/types/group';
@@ -97,9 +96,6 @@ export function ScreenshotModal({
     };
   }
 
-  const AttachmentComponent =
-    getImageAttachmentRenderer(currentEventAttachment) ?? ImageViewer;
-
   return (
     <Fragment>
       <Header closeButton>
@@ -109,7 +105,7 @@ export function ScreenshotModal({
         <Stack gap="lg">
           {defined(paginationProps) && <ScreenshotPagination {...paginationProps} />}
           <AttachmentComponentWrapper>
-            <AttachmentComponent
+            <ScreenshotAttachmentViewer
               attachment={currentEventAttachment}
               orgSlug={organization.slug}
               projectSlug={projectSlug}

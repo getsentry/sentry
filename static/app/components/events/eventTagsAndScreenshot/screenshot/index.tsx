@@ -9,10 +9,9 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 import {useRole} from 'sentry/components/acl/useRole';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {ImageViewer} from 'sentry/components/events/attachmentViewers/imageViewer';
 import {
-  getImageAttachmentRenderer,
   imageMimeTypes,
+  ScreenshotAttachmentViewer,
   webmMimeTypes,
 } from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -72,7 +71,6 @@ export function Screenshot({
     onDelete(screenshotAttachmentId);
   }
 
-  const AttachmentComponent = getImageAttachmentRenderer(screenshot) ?? ImageViewer;
   const downloadUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${eventId}/attachments/${screenshot.id}/`;
 
   return (
@@ -108,7 +106,7 @@ export function Screenshot({
         <AttachmentComponentWrapper
           onClick={() => openVisualizationModal(screenshot, `${downloadUrl}?download=1`)}
         >
-          <AttachmentComponent
+          <ScreenshotAttachmentViewer
             orgSlug={organization.slug}
             projectSlug={projectSlug}
             eventId={eventId}
