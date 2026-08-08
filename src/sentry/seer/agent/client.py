@@ -608,13 +608,6 @@ class SeerAgentClient:
             opts["enable_frontend_code_search"] = True
 
         if features.has(
-            "organizations:seer-use-agent-sandbox",
-            self.organization,
-            actor=self.user,
-        ):
-            opts["use_agent_sandbox"] = True
-
-        if features.has(
             "organizations:seer-explorer-thinking-summary",
             self.organization,
             actor=self.user,
@@ -749,13 +742,6 @@ class SeerAgentClient:
             actor=self.user,
         ):
             agent_run_options["enable_frontend_code_search"] = True
-
-        if features.has(
-            "organizations:seer-use-agent-sandbox",
-            self.organization,
-            actor=self.user,
-        ):
-            agent_run_options["use_agent_sandbox"] = True
 
         if features.has(
             "organizations:seer-explorer-thinking-summary",
