@@ -84,7 +84,7 @@ class OrganizationSupergroupsByGroupEndpoint(OrganizationEndpoint):
             )
 
         try:
-            data = get_supergroups_by_group_ids(organization, group_ids, user_id=request.user.id)
+            data = get_supergroups_by_group_ids(organization, group_ids)
         except SeerApiError as exc:
             return Response({"detail": "Failed to fetch supergroups"}, status=exc.status)
 

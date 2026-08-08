@@ -6,7 +6,6 @@ from typing import Any
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
     CompareDistributionsRequest,
-    SeerViewerContext,
     make_compare_distributions_request,
 )
 from sentry.utils.json import JSONDecodeError
@@ -21,7 +20,6 @@ def compare_distributions(
     total_outliers: int,
     config: dict[str, Any],
     meta: dict[str, Any],
-    viewer_context: SeerViewerContext | None = None,
 ) -> Any:
     """
     Sends a request to seer to compare two distributions and rank their attributes by suspisiouness
@@ -35,7 +33,7 @@ def compare_distributions(
         config=config,
         meta=meta,
     )
-    response = make_compare_distributions_request(body, viewer_context=viewer_context)
+    response = make_compare_distributions_request(body)
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
     try:
