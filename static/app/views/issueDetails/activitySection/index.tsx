@@ -38,7 +38,6 @@ interface ActivityFeedRowProps {
   inputVariant: 'compact' | 'full';
   item: DisplayedActivityFeedItem;
   onCommentEdited?: (activity: GroupActivity[]) => void;
-  showConnector?: boolean;
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }
 
@@ -48,7 +47,6 @@ function ActivityFeedRow({
   onCommentEdited,
   group,
   inputVariant,
-  showConnector,
   timestampUnitStyle,
 }: ActivityFeedRowProps) {
   if (item.type === 'collapsed_status_activities') {
@@ -73,12 +71,7 @@ function ActivityFeedRow({
 
   if (!isActivityNote(activity)) {
     return (
-      <ActivityLine
-        item={item}
-        group={group}
-        showConnector={showConnector}
-        timestampUnitStyle={timestampUnitStyle}
-      />
+      <ActivityLine item={item} group={group} timestampUnitStyle={timestampUnitStyle} />
     );
   }
 
@@ -89,7 +82,6 @@ function ActivityFeedRow({
       inputVariant={inputVariant}
       onDelete={() => handleDelete(activity)}
       onCommentEdited={onCommentEdited}
-      showConnector={showConnector}
       timestampUnitStyle={timestampUnitStyle}
     />
   );
@@ -189,10 +181,7 @@ export function ActivitySection({
   const inputVariant = isStandalone ? 'full' : 'compact';
   const timestampUnitStyle = isStandalone ? undefined : 'short';
 
-  const renderActivityItem = (
-    item: DisplayedActivityFeedItem,
-    showConnector: boolean
-  ) => (
+  const renderActivityItem = (item: DisplayedActivityFeedItem) => (
     <ActivityFeedRow
       item={item}
       handleDelete={handleDelete}
@@ -200,7 +189,6 @@ export function ActivitySection({
       group={group}
       key={item.activity.id}
       inputVariant={inputVariant}
-      showConnector={showConnector}
       timestampUnitStyle={timestampUnitStyle}
     />
   );
@@ -220,9 +208,7 @@ export function ActivitySection({
 
   const timeline = (
     <ActivityLineList data-test-id="activity-timeline">
-      {displayedActivities.map((item, index) =>
-        renderActivityItem(item, index < displayedActivities.length - 1)
-      )}
+      {displayedActivities.map(renderActivityItem)}
     </ActivityLineList>
   );
   const hiddenActivityCount =
@@ -231,7 +217,7 @@ export function ActivitySection({
     hiddenActivityCount > 0 ? displayedActivities.slice(0, 3) : displayedActivities;
   const sidebarActivityItems = (
     <Fragment>
-      {sidebarVisibleActivities.map(item => renderActivityItem(item, true))}
+      {sidebarVisibleActivities.map(renderActivityItem)}
       <MoreActivityRow>
         <MoreActivityIcon>
           <RotatedEllipsisIcon direction="up" />
