@@ -1,13 +1,18 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from django.utils import timezone
 from requests import HTTPError
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.cursor.integration import CursorAgentIntegration
-from sentry.seer.agent.coding_agent_handoff import _resolve_client, launch_coding_agents
+from sentry.seer.agent.coding_agent_handoff import (
+    _resolve_client,
+    _resolve_default_branch,
+    launch_coding_agents,
+)
 from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentState
 from sentry.seer.models import SeerApiError, SeerRepoDefinition
 from sentry.seer.models.run import SeerRunCodingAgentHandoff
@@ -15,13 +20,14 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
 
 
-def _repo(owner: str, name: str) -> SeerRepoDefinition:
+def _repo(owner: str, name: str, branch_name: str | None = None) -> SeerRepoDefinition:
     """Minimal SeerRepoDefinition for tests."""
     return SeerRepoDefinition(
         provider="github",
         owner=owner,
         name=name,
         external_id="123",
+        branch_name=branch_name,
     )
 
 
@@ -361,3 +367,135 @@ class TestResolveClient(TestCase):
     def test_raises_validation_error_when_no_integration_or_provider(self) -> None:
         with pytest.raises(ValidationError):
             _resolve_client(self.organization, integration_id=None, provider=None, user_id=None)
+
+
+class TestResolveDefaultBranch(TestCase):
+    """Tests for _resolve_default_branch helper function."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization()
+
+    def test_returns_repo_unchanged_when_branch_name_already_set(self):
+        """Test that repos with existing branch_name are returned unchanged."""
+        repo = _repo("owner", "repo", branch_name="main")
+
+        resolved = _resolve_default_branch(self.organization, repo)
+
+        assert resolved.branch_name == "main"
+        assert resolved.owner == "owner"
+        assert resolved.name == "repo"
+
+    def test_returns_repo_unchanged_when_no_integration_id(self):
+        """Test that repos without integration_id are returned unchanged."""
+        repo = _repo("owner", "repo", branch_name=None)
+
+        resolved = _resolve_default_branch(self.organization, repo)
+
+        assert resolved.branch_name is None
+
+    def test_returns_repo_unchanged_for_non_github_provider(self):
+        """Test that non-GitHub repos are returned unchanged."""
+        repo = SeerRepoDefinition(
+            provider="gitlab",
+            owner="owner",
+            name="repo",
+            external_id="123",
+            branch_name=None,
+            integration_id="456",
+        )
+
+        resolved = _resolve_default_branch(self.organization, repo)
+
+        assert resolved.branch_name is None
+
+    @patch("sentry.seer.agent.coding_agent_handoff.integration_service")
+    def test_returns_repo_unchanged_when_integration_not_found(self, mock_service):
+        """Test that missing integration returns repo unchanged."""
+        mock_service.get_organization_integration.return_value = None
+        repo = SeerRepoDefinition(
+            provider="github",
+            owner="owner",
+            name="repo",
+            external_id="123",
+            branch_name=None,
+            integration_id="456",
+        )
+
+        resolved = _resolve_default_branch(self.organization, repo)
+
+        assert resolved.branch_name is None
+
+    @patch("sentry.seer.agent.coding_agent_handoff.integration_service")
+    def test_returns_repo_unchanged_when_integration_inactive(self, mock_service):
+        """Test that inactive integration returns repo unchanged."""
+        mock_org_integration = Mock()
+        mock_org_integration.id = 1
+        mock_org_integration.status = ObjectStatus.ACTIVE
+        mock_service.get_organization_integration.return_value = mock_org_integration
+        mock_service.get_integration.return_value = None
+
+        repo = SeerRepoDefinition(
+            provider="github",
+            owner="owner",
+            name="repo",
+            external_id="123",
+            branch_name=None,
+            integration_id="456",
+        )
+
+        resolved = _resolve_default_branch(self.organization, repo)
+
+        assert resolved.branch_name is None
+
+    @patch("sentry.seer.agent.coding_agent_handoff.integration_service")
+    def test_resolves_default_branch_from_github(self, mock_service):
+        """Test successful default branch resolution from GitHub."""
+        # Setup mock integration
+        mock_org_integration = Mock()
+        mock_org_integration.id = 1
+        mock_org_integration.status = ObjectStatus.ACTIVE
+
+        mock_integration = Mock()
+        mock_integration.id = 456
+
+        mock_installation = Mock()
+        mock_installation.get_repository_default_branch.return_value = "develop"
+
+        mock_integration.get_installation.return_value = mock_installation
+        mock_service.get_organization_integration.return_value = mock_org_integration
+        mock_service.get_integration.return_value = mock_integration
+
+        repo = SeerRepoDefinition(
+            provider="github",
+            owner="owner",
+            name="repo",
+            external_id="123",
+            branch_name=None,
+            integration_id="456",
+        )
+
+        resolved = _resolve_default_branch(self.organization, repo)
+
+        assert resolved.branch_name == "develop"
+        assert resolved.owner == "owner"
+        assert resolved.name == "repo"
+
+    @patch("sentry.seer.agent.coding_agent_handoff.integration_service")
+    def test_handles_exception_gracefully(self, mock_service):
+        """Test that exceptions during resolution are handled gracefully."""
+        mock_service.get_organization_integration.side_effect = Exception("API error")
+
+        repo = SeerRepoDefinition(
+            provider="github",
+            owner="owner",
+            name="repo",
+            external_id="123",
+            branch_name=None,
+            integration_id="456",
+        )
+
+        resolved = _resolve_default_branch(self.organization, repo)
+
+        assert resolved.branch_name is None
+        assert resolved.owner == "owner"

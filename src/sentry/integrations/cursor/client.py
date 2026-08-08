@@ -48,6 +48,20 @@ def _extract_failed_model_from_error(error: ApiError) -> str | None:
     return match.group(1) if match else None
 
 
+def _is_branch_resolution_error(error: ApiError) -> bool:
+    """Check if the error is a 'Failed to determine repository default branch' error."""
+    if error.code != 400:
+        return False
+    try:
+        error_json = error.json
+        if error_json is None:
+            return False
+        message = error_json.get("error", "")
+        return "Failed to determine repository default branch" in message
+    except (AttributeError, KeyError, TypeError):
+        return False
+
+
 def _get_model_family(model_name: str) -> str:
     """Extract the alphabetic family prefix from a model name.
 
@@ -201,6 +215,16 @@ class CursorAgentClient(CodingAgentClient):
         except NON_RETRYABLE_ERRORS:
             raise
         except ApiError as e:
+            # Treat branch resolution errors as non-retryable
+            if _is_branch_resolution_error(e):
+                logger.warning(
+                    "coding_agent.cursor.branch_resolution_error",
+                    extra={
+                        "error": str(e),
+                        "status_code": e.code,
+                    },
+                )
+                raise
             initial_error = e
             logger.warning(
                 "coding_agent.cursor.launch_failed_will_retry",
