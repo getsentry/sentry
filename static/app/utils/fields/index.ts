@@ -21,6 +21,7 @@ export enum FieldKind {
   METRICS = 'metric',
   NUMERIC_METRICS = 'numeric_metric',
   BOOLEAN = 'boolean',
+  ARRAY = 'array',
 }
 
 export enum FieldKey {
@@ -305,6 +306,7 @@ export enum FieldValueType {
   PERCENT_CHANGE = 'percent_change',
   SCORE = 'score',
   CURRENCY = 'currency',
+  ARRAY = 'array',
 }
 
 export enum WebVital {
@@ -3652,6 +3654,10 @@ function _getFieldFromMappings(
         return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
       }
 
+      if (kind === FieldKind.ARRAY) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.ARRAY};
+      }
+
       return null;
 
     case 'span':
@@ -3672,6 +3678,10 @@ function _getFieldFromMappings(
 
       if (kind === FieldKind.BOOLEAN) {
         return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
+      }
+
+      if (kind === FieldKind.ARRAY) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.ARRAY};
       }
 
       return null;
@@ -3696,6 +3706,10 @@ function _getFieldFromMappings(
         return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
       }
 
+      if (kind === FieldKind.ARRAY) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.ARRAY};
+      }
+
       return null;
 
     case 'tracemetric':
@@ -3716,6 +3730,10 @@ function _getFieldFromMappings(
 
       if (kind === FieldKind.BOOLEAN) {
         return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
+      }
+
+      if (kind === FieldKind.ARRAY) {
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.ARRAY};
       }
 
       return null;

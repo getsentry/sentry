@@ -80,6 +80,10 @@ export function TypeBadge({
     return <Text variant="success">{t('currency')}</Text>;
   }
 
+  if (valueType === FieldValueType.ARRAY || kind === FieldKind.ARRAY) {
+    return <Text variant="success">{t('array')}</Text>;
+  }
+
   if (
     kind === FieldKind.MEASUREMENT ||
     valueType === FieldValueType.NUMBER ||
