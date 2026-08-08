@@ -23,6 +23,7 @@ from sentry.taskworker.namespaces import integrations_tasks
 @instrumented_task(
     name="sentry.integrations.tasks.sync_status_outbound",
     namespace=integrations_tasks,
+    processing_deadline_duration=30,
     retry=Retry(times=5, delay=60 * 5, on=(Exception,), ignore=(Integration.DoesNotExist,)),
     silo_mode=SiloMode.CELL,
     silenced_exceptions=(Integration.DoesNotExist,),
