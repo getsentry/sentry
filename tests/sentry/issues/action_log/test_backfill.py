@@ -404,6 +404,23 @@ class BackfillGroupPullRequestLifecycleTest(TestCase):
             superseded_pull_request.id,
         }
         assert {entry.date_added for entry in entries} == {closed_at}
+        assert all(entry.data["is_seer_created"] is False for entry in entries)
+
+    def test_backfills_seer_created_on_closed_pull_request(self) -> None:
+        pull_request = self._create_linked_pull_request(
+            state=PullRequestLifecycleState.CLOSED,
+            closed_at=self.now - timedelta(minutes=1),
+        )
+        seer_run = self.create_seer_run(self.organization)
+        self.create_seer_run_pull_request(seer_run, pull_request)
+
+        assert self._backfill_pr_lifecycle() == 1
+
+        entry = GroupActionLogEntry.objects.get(
+            group_id=self.group.id,
+            type=GroupActionType.PULL_REQUEST_CLOSED,
+        )
+        assert entry.data["is_seer_created"] is True
 
     def test_skips_open_pull_requests(self) -> None:
         self._create_linked_pull_request(state=None)
@@ -464,7 +481,8 @@ class BackfillGroupPullRequestLifecycleTest(TestCase):
         )
 
         assert self._backfill_pr_lifecycle() == 0
-        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
+        entry = GroupActionLogEntry.objects.get(group_id=self.group.id)
+        assert entry.data["is_seer_created"] is False
 
     def test_heals_activity_backfill_with_unknown_open_pr_state(self) -> None:
         pull_request = self._create_linked_pull_request(

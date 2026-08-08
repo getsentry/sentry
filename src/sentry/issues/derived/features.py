@@ -39,7 +39,7 @@ HAS_OPEN_FIX_PR = Feature[bool]("has_open_fix_pr", default=False)
 IS_ASSIGNED = Feature[bool]("is_assigned", default=False)
 
 # Whether the issue has a root cause identified.
-HAS_ROOT_CAUSE = Feature[bool]("has_root_cause", default=False)
+HAS_ROOT_CAUSE = Feature[bool]("has_root_cause", default=False, version=1)
 
 # The furthest autofix step the issue has reached, from the latest completed
 LAST_COMPLETED_AUTOFIX_STEP = Feature[IssueAutofixStep](

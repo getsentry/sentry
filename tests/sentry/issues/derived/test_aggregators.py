@@ -22,6 +22,7 @@ from sentry.issues.action_log.types import (
 from sentry.issues.derived.aggregators import AGGREGATORS
 from sentry.issues.derived.features import (
     BLOCKER,
+    HAS_ROOT_CAUSE,
     LAST_COMPLETED_AUTOFIX_STEP,
     LAST_PROGRESSED_AT,
     PROGRESS,
@@ -92,12 +93,29 @@ def _reconcile_entry(status: IssueStatus) -> FakeEntry:
     )
 
 
-def _pr_closed(has_other: bool | None = None, *, pr_id: int = 101, hour: int = 0) -> FakeEntry:
-    """Build a PULL_REQUEST_CLOSED entry. ``has_other`` omitted -> no key."""
+def _pr_closed(
+    has_other: bool | None = None,
+    *,
+    pr_id: int = 101,
+    hour: int = 0,
+    is_seer_created: bool | None = None,
+) -> FakeEntry:
+    """Build a PULL_REQUEST_CLOSED entry. None-valued fields are omitted."""
     data: dict[str, object] = {"pull_request": pr_id}
     if has_other is not None:
         data["has_other_open_prs"] = has_other
+    if is_seer_created is not None:
+        data["is_seer_created"] = is_seer_created
     return FakeEntry(type=GroupActionType.PULL_REQUEST_CLOSED, date_added=_ts(hour=hour), data=data)
+
+
+def _seer_fix_proposed() -> list[FakeEntry]:
+    """Seer's route to fix_proposed. SEER_PR_CREATED is what marks the PR as Seer's."""
+    return [
+        FakeEntry(type=GroupActionType.SEER_RCA_COMPLETED),
+        FakeEntry(type=GroupActionType.SEER_PR_CREATED),
+        FakeEntry(type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(101)),
+    ]
 
 
 def _pr_terminal(action: GroupActionType, has_other: bool | None) -> FakeEntry:
@@ -1001,6 +1019,103 @@ def test_repropose_after_demotion_returns_to_fix_proposed() -> None:
         )
         == IssueProgressState.FIX_PROPOSED
     )
+
+
+# ---------------------------------------------------------------------------
+# A rejected Seer fix invalidates the diagnosis
+# ---------------------------------------------------------------------------
+
+
+def test_seer_pr_close_demotes_to_assigned_when_assigned() -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(type=GroupActionType.ASSIGN),
+                *_seer_fix_proposed(),
+                _pr_closed(has_other=False, is_seer_created=True),
+            ],
+        )
+        == IssueProgressState.ASSIGNED
+    )
+
+
+def test_seer_pr_close_with_another_open_pr_invalidates_root_cause() -> None:
+    entries = [
+        *_seer_fix_proposed(),
+        _pr_closed(has_other=True, is_seer_created=True),
+    ]
+    assert _run_for_feature(HAS_ROOT_CAUSE, entries) is False
+
+
+def test_pr_close_with_unknown_creator_preserves_root_cause() -> None:
+    entries = [*_seer_fix_proposed(), _pr_closed(has_other=False)]
+    assert _run_for_feature(HAS_ROOT_CAUSE, entries) is True
+
+
+@pytest.mark.parametrize(
+    "action_type",
+    [
+        GroupActionType.PULL_REQUEST_MERGED,
+        GroupActionType.PULL_REQUEST_UNLINKED,
+    ],
+)
+def test_seer_pr_merged_or_unlinked_preserves_root_cause(action_type: int) -> None:
+    # Merging is progress and unlinking is bookkeeping; neither rejects the fix.
+    entries = [
+        *_seer_fix_proposed(),
+        FakeEntry(type=action_type, data={"pull_request": 101, "has_other_open_prs": False}),
+    ]
+    assert _run_for_feature(HAS_ROOT_CAUSE, entries) is True
+
+
+def test_human_pr_close_after_seer_workflow_preserves_root_cause() -> None:
+    entries = [
+        FakeEntry(type=GroupActionType.ASSIGN),
+        *_seer_fix_proposed(),
+        FakeEntry(
+            type=GroupActionType.PULL_REQUEST_MERGED,
+            data={"pull_request": 101, "has_other_open_prs": False},
+        ),
+        FakeEntry(type=GroupActionType.RESOLVE),
+        FakeEntry(type=GroupActionType.UNRESOLVE),
+        FakeEntry(type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(202)),
+        _pr_closed(has_other=False, pr_id=202, is_seer_created=False),
+    ]
+    assert _run_for_feature(PROGRESS, entries) == IssueProgressState.DIAGNOSED
+
+
+def test_seer_rerun_after_rejected_fix_restores_diagnosed() -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                *_seer_fix_proposed(),
+                _pr_closed(has_other=False, is_seer_created=True),
+                FakeEntry(type=GroupActionType.SEER_RCA_COMPLETED),
+            ],
+        )
+        == IssueProgressState.DIAGNOSED
+    )
+
+
+def test_seer_pr_close_demotes_and_reopen_keeps_diagnosis_cleared() -> None:
+    p = _pipeline(targets=(PROGRESS,))
+    state = p.run(_seer_fix_proposed())
+    assert state[PROGRESS] == IssueProgressState.FIX_PROPOSED
+
+    state = p.step(state, _pr_closed(has_other=False, is_seer_created=True))
+    assert state[PROGRESS] == IssueProgressState.IDENTIFIED
+
+    # Reopening restores the open-PR flag, but the diagnosis stays cleared.
+    state = p.step(
+        state,
+        FakeEntry(type=GroupActionType.PULL_REQUEST_REOPENED, data={"pull_request": 101}),
+    )
+    assert state[PROGRESS] == IssueProgressState.FIX_PROPOSED
+
+    state = p.step(state, _pr_closed(has_other=False, is_seer_created=True))
+    assert state[PROGRESS] == IssueProgressState.IDENTIFIED
 
 
 def test_last_progressed_at_updated_on_demotion() -> None:

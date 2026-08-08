@@ -35,6 +35,7 @@ from sentry.models.pullrequest import (
     PullRequestLifecycleState,
     is_open_pull_request_state,
 )
+from sentry.seer.models.run import SeerRunPullRequest
 from sentry.utils import json, metrics
 from sentry.utils.action_log.activity_translator import activity_to_action
 
@@ -256,16 +257,22 @@ def _latest_pr_lifecycle_actions(
     return latest_actions
 
 
-def _heal_has_other_open_prs(
+def _heal_pr_lifecycle_fields(
     *,
     entry: GroupActionLogEntry,
     has_other_open_prs: bool,
+    is_seer_created: bool,
 ) -> bool:
-    """Heal the has_other_open_prs field on any action where it is present but null."""
-    if "has_other_open_prs" not in entry.data or entry.data["has_other_open_prs"] is not None:
+    """Heal fields that historical pull request lifecycle actions could not provide."""
+    data = entry.data
+    if "has_other_open_prs" in data and data["has_other_open_prs"] is None:
+        data = {**data, "has_other_open_prs": has_other_open_prs}
+    if entry.type == GroupActionType.PULL_REQUEST_CLOSED and data.get("is_seer_created") is None:
+        data = {**data, "is_seer_created": is_seer_created}
+    if data == entry.data:
         return False
 
-    entry.data = {**entry.data, "has_other_open_prs": has_other_open_prs}
+    entry.data = data
     entry.save(update_fields=["data", "date_updated"])
     invalidate_group_derived_data(entry.group_id, cursor=(entry.date_added, entry.id))
     return True
@@ -276,6 +283,7 @@ def _get_new_pr_lifecycle_action(
     pull_request: _PullRequestLifecycleDetails,
     latest_action_type: int | None,
     has_other_open_prs: bool,
+    is_seer_created: bool,
     group_id: int,
     project_id: int,
 ) -> (
@@ -324,6 +332,7 @@ def _get_new_pr_lifecycle_action(
                 PullRequestClosedAction(
                     pull_request=pull_request.id,
                     has_other_open_prs=has_other_open_prs,
+                    is_seer_created=is_seer_created,
                 ),
                 pull_request.closed_at,
             )
@@ -392,6 +401,12 @@ def backfill_group_pr_lifecycle(*, group_id: int, project_id: int) -> int:
         for pull_request in pull_requests
         if is_open_pull_request_state(pull_request.state)
     }
+    seer_created_pull_request_ids = set(
+        SeerRunPullRequest.objects.filter(
+            pull_request_id__in=pull_request_ids,
+            coding_agent_handoff__isnull=True,
+        ).values_list("pull_request_id", flat=True)
+    )
 
     latest_actions = _latest_pr_lifecycle_actions(group_id=group_id, project_id=project_id)
 
@@ -403,14 +418,16 @@ def backfill_group_pr_lifecycle(*, group_id: int, project_id: int) -> int:
             pull_request=pull_request,
             latest_action_type=latest_action.type if latest_action is not None else None,
             has_other_open_prs=has_other_open_prs,
+            is_seer_created=pull_request.id in seer_created_pull_request_ids,
             group_id=group_id,
             project_id=project_id,
         )
         if action_and_date is None:
             if latest_action is not None:
-                _heal_has_other_open_prs(
+                _heal_pr_lifecycle_fields(
                     entry=latest_action,
                     has_other_open_prs=has_other_open_prs,
+                    is_seer_created=pull_request.id in seer_created_pull_request_ids,
                 )
             continue
         action, date_added = action_and_date

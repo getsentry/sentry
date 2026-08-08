@@ -474,7 +474,27 @@ class PullRequestLifecycleSignalTest(TestCase):
         assert activity.data == {
             "pull_request": self.pull_request.id,
             "has_other_open_prs": False,
+            "is_seer_created": False,
         }
+
+    def test_closed_seer_created_pr_is_attributed(self) -> None:
+        seer_run = self.create_seer_run(self.organization)
+        self.create_seer_run_pull_request(seer_run, self.pull_request)
+
+        with capture_action_log() as action_log:
+            self._save_with_state(PullRequestLifecycleState.CLOSED)
+
+        activity = Activity.objects.get(
+            group=self.group, type=ActivityType.PULL_REQUEST_CLOSED.value
+        )
+        assert activity.data["is_seer_created"] is True
+        action_log.assert_logged(
+            PullRequestClosedAction,
+            group_id=self.group.id,
+            pull_request=self.pull_request.id,
+            has_other_open_prs=False,
+            is_seer_created=True,
+        )
 
     @with_feature({"organizations:pr-lifecycle-activity": False})
     def test_flag_disabled_still_emits_closed_activity(self) -> None:
@@ -594,12 +614,14 @@ class PullRequestLifecycleSignalTest(TestCase):
         assert activity.data == {
             "pull_request": self.pull_request.id,
             "has_other_open_prs": False,
+            "is_seer_created": False,
         }
         action_log.assert_logged(
             PullRequestClosedAction,
             group_id=self.group.id,
             pull_request=self.pull_request.id,
             has_other_open_prs=False,
+            is_seer_created=False,
         )
 
     def test_reopened_emits_activity(self) -> None:

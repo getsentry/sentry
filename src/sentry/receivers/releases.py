@@ -39,6 +39,7 @@ from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
 from sentry.notifications.types import GroupSubscriptionReason
+from sentry.seer.models.run import SeerRunPullRequest
 from sentry.signals import buffer_incr_complete
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 from sentry.types.activity import ActivityType
@@ -370,11 +371,19 @@ def _create_pull_request_activities(
             has_other_open_prs_by_group = _groups_with_other_open_prs(
                 [group.id for group in groups], pull_request_id=pull_request_id
             )
+        is_seer_created = activity_type == ActivityType.PULL_REQUEST_CLOSED and (
+            SeerRunPullRequest.objects.filter(
+                pull_request_id=pull_request_id,
+                coding_agent_handoff__isnull=True,
+            ).exists()
+        )
 
         for group in groups:
             data: dict[str, int | bool] = {"pull_request": pull_request_id}
             if has_other_open_prs_by_group is not None:
                 data["has_other_open_prs"] = group.id in has_other_open_prs_by_group
+            if activity_type == ActivityType.PULL_REQUEST_CLOSED:
+                data["is_seer_created"] = is_seer_created
 
             Activity.objects.create(
                 project_id=group.project_id,
