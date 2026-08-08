@@ -358,7 +358,8 @@ export class TraceItemFieldSelector {
   private static determineDataset(selector: string): AllowedDataScrubbingDatasets {
     const dataset = Object.entries(TraceItemFieldSelector.datasetSelectorMap).find(
       ([_, includes]) =>
-        includes !== null && (selector === includes || selector.startsWith(includes + '.'))
+        includes !== null &&
+        (selector === includes || selector.startsWith(includes + '.'))
     );
     if (dataset) {
       return dataset[0] as AllowedDataScrubbingDatasets;
