@@ -50,7 +50,7 @@ export interface MentionSource<TSuggestion> {
   renderSuggestion?: (suggestion: TSuggestion) => React.ReactNode;
 }
 
-export type MentionTextProps = Pick<
+type MentionTextProps = Pick<
   TextProps<'span'>,
   | 'aria-label'
   | 'bold'

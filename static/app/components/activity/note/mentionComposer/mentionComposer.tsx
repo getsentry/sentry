@@ -33,7 +33,7 @@ import {useMembers} from 'sentry/utils/members/useMembers';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 
-export interface MentionComposerProps<T = MentionEntity> {
+interface MentionComposerProps<T = MentionEntity> {
   initialValue?: string;
   minHeight?: number;
   onSubmit?: (data: NoteType) => Promise<void>;
@@ -47,7 +47,7 @@ export interface MentionComposerProps<T = MentionEntity> {
 
 type EditorMode = 'write' | 'preview';
 
-export type MentionEntity = {kind: 'member'; user: User} | {kind: 'team'; team: Team};
+type MentionEntity = {kind: 'member'; user: User} | {kind: 'team'; team: Team};
 
 const mentionComposerSchema = z.object({
   text: z.string(),
