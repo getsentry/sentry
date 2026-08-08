@@ -22,6 +22,7 @@ import {
   callRecordDetail,
   callRecordFailure,
   callRecordLabel,
+  callRecordStatus,
   callRecordUrl,
   visibleCallRecords,
 } from 'sentry/views/seerExplorer/callRecords';
@@ -262,8 +263,12 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
   // on a Code Mode call that was suppressed.
   let rendered = 0;
 
+  // The Stack below uses `xs` to match the gap between call rows *within* one tool call. A block
+  // often holds a single Code Mode execute whose rows are the whole list, so a wider gap between
+  // tool calls only splits that list at a boundary the reader cannot see.
+
   return (
-    <Stack gap="md" width="100%" minWidth={0} paddingRight="lg">
+    <Stack gap="xs" width="100%" minWidth={0} paddingRight="lg">
       {block.message.tool_calls?.map((toolCall, idx) => {
         const correspondingLinkIndex = toolCallToLinkIndexMap.get(idx);
         const toolLinkParams = toolCall.id
@@ -453,26 +458,22 @@ function ToolCallRow({
 
   return (
     <Stack gap="xs">
-      {/* Call rows begin with a chevron button that carries its own left padding, so the row gap
-          that separates the indicator from a bare text label would double up into a visible gulf.
-          Let the button's padding do the spacing in that case. */}
-      <Flex
-        display="inline-flex"
-        align="start"
-        gap={hasCallRows ? '0' : 'md'}
-        maxWidth="100%"
-      >
-        <Flex
-          display="inline-flex"
-          align="center"
-          justify="center"
-          width="12px"
-          height="12px"
-          flexShrink={0}
-          style={{transform: 'translateY(0.15em)'}}
-        >
-          {blockStatus && <ToolCallIndicator status={blockStatus} />}
-        </Flex>
+      <Flex display="inline-flex" align="start" gap="md" maxWidth="100%">
+        {/* Call rows each carry their own tick, so a block-level one would be a second, coarser
+            answer to the same question — and the wrong one when some calls failed. */}
+        {!hasCallRows && (
+          <Flex
+            display="inline-flex"
+            align="center"
+            justify="center"
+            width="12px"
+            height="12px"
+            flexShrink={0}
+            style={{transform: 'translateY(0.15em)'}}
+          >
+            {blockStatus && <ToolCallIndicator status={blockStatus} />}
+          </Flex>
+        )}
         {/* Call records describe the work better than the tool's name, so they stand in for the
             generic row rather than sitting beneath it. The status indicator above still applies. */}
         {hasCallRows ? (
@@ -516,6 +517,7 @@ function CallRows({
     // spaces this list from its siblings — leaving it adds a gap nothing asked for.
     <Stack as="ul" gap="xs" padding="0" margin="0" minWidth={0}>
       {callRows.map(({record, label, url}) => {
+        const status = callRecordStatus(record);
         const failure = callRecordFailure(record);
         const text = (
           <Tooltip title={failure ?? ''} disabled={!failure}>
@@ -541,18 +543,25 @@ function CallRows({
         // than adding a second line beneath it. A row with nothing to show stays plain.
         return (
           <Stack key={record.id} as="li" gap="xs" minWidth={0}>
-            {detail ? (
-              <Disclosure size="xs">
-                <Disclosure.Title>{row}</Disclosure.Title>
-                <Disclosure.Content>
-                  <CallDetail detail={detail} />
-                </Disclosure.Content>
-              </Disclosure>
-            ) : (
-              // Only a lib call lands here, and it is the parent of the api rows beneath it — so
-              // sitting at a different indent than its children reads as the hierarchy it is.
-              <Flex align="center">{row}</Flex>
-            )}
+            {/* One tick per call: a lib helper that fans out into three requests is three separate
+                outcomes, and a single tick above the group cannot say which of them failed. */}
+            <Flex gap="sm" align="center" minWidth={0}>
+              <StatusSlot>
+                <ToolCallIndicator status={status} />
+              </StatusSlot>
+              {detail ? (
+                <Disclosure size="xs">
+                  <Disclosure.Title>{row}</Disclosure.Title>
+                  <Disclosure.Content>
+                    <CallDetail detail={detail} />
+                  </Disclosure.Content>
+                </Disclosure>
+              ) : (
+                <Flex align="center" minWidth={0}>
+                  {row}
+                </Flex>
+              )}
+            </Flex>
           </Stack>
         );
       })}
@@ -712,6 +721,16 @@ const ToolCallLinkIcon = styled(IconLink)`
   ${ToolCallLink}:hover & {
     color: ${p => p.theme.tokens.interactive.link.accent.hover};
   }
+`;
+
+// Matches the block-level indicator's box so a call row's tick sits on the same vertical rhythm.
+const StatusSlot = styled('span')`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
 `;
 
 const ToolCallPlainRow = styled('span')`

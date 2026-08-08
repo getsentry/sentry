@@ -160,6 +160,21 @@ export function callRecordLabel(record: CallRecord): string | null {
   return record.title?.trim() || null;
 }
 
+/**
+ * How one call turned out, for the tick beside its row.
+ *
+ * Every row carries its own: a lib call that fans out into three requests is three separate
+ * outcomes, and one tick over the group cannot say which of them failed.
+ */
+export function callRecordStatus(record: CallRecord): 'loading' | 'success' | 'failure' {
+  if (record.error || (record.status && record.status >= 400)) {
+    return 'failure';
+  }
+  // No status yet means the request is still open — the live mirror publishes a record when the
+  // call starts, not when it returns.
+  return record.status === undefined ? 'loading' : 'success';
+}
+
 /** A call that failed, for the row's tooltip. Null when it succeeded or never reported. */
 export function callRecordFailure(record: CallRecord): string | null {
   if (record.error) {

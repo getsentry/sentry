@@ -5,6 +5,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {
   callRecordDetail,
   callRecordLabel,
+  callRecordStatus,
   callRecordUrl,
 } from 'sentry/views/seerExplorer/callRecords';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
@@ -154,6 +155,37 @@ describe('call record rendering', () => {
     render(<BlockComponent block={codeModeBlock([])} blockIndex={0} />);
 
     expect(screen.queryByText(/Used sentry_api_execute tool/)).not.toBeInTheDocument();
+  });
+});
+
+describe('callRecordStatus', () => {
+  it('reports success for a completed call', () => {
+    expect(callRecordStatus(apiRecord({status: 200}))).toBe('success');
+  });
+
+  it('reports failure for an error status', () => {
+    expect(callRecordStatus(apiRecord({status: 404}))).toBe('failure');
+  });
+
+  it('reports failure for a transport error', () => {
+    expect(callRecordStatus(apiRecord({status: undefined, error: 'ConnectError'}))).toBe(
+      'failure'
+    );
+  });
+
+  it('reports loading while the call is still open', () => {
+    expect(callRecordStatus(apiRecord({status: undefined}))).toBe('loading');
+  });
+
+  it('gives each call its own outcome', () => {
+    // One tick over a group cannot say which of three requests failed.
+    const records = [
+      apiRecord({id: 1, status: 200}),
+      apiRecord({id: 2, status: 500}),
+      apiRecord({id: 3, status: undefined}),
+    ];
+
+    expect(records.map(callRecordStatus)).toEqual(['success', 'failure', 'loading']);
   });
 });
 
