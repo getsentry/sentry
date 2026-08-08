@@ -106,6 +106,35 @@ describe('IntegrationListDirectory', () => {
         expect.objectContaining({search_term: 'legacy', num_results: 1})
       );
     });
+
+    it('suggests an internal integration when searching for webhooks', async () => {
+      render(<IntegrationListDirectory />, {organization});
+      expect(await screen.findByRole('textbox', {name: 'Filter'})).toBeInTheDocument();
+
+      await userEvent.type(screen.getByRole('textbox', {name: 'Filter'}), 'it');
+      await userEvent.keyboard('{enter}');
+
+      expect(
+        screen.queryByRole('link', {name: 'Create an internal integration'})
+      ).not.toBeInTheDocument();
+
+      await userEvent.clear(screen.getByRole('textbox', {name: 'Filter'}));
+      await userEvent.type(screen.getByRole('textbox', {name: 'Filter'}), 'webhooks');
+      await userEvent.keyboard('{enter}');
+
+      const link = screen.getByRole('link', {name: 'Create an internal integration'});
+      expect(link).toHaveAttribute(
+        'href',
+        `/settings/${organization.slug}/developer-settings/new-internal/`
+      );
+
+      await userEvent.click(link);
+
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'integrations.directory_internal_integration_banner_clicked',
+        expect.objectContaining({search_term: 'webhooks'})
+      );
+    });
   });
 
   describe('Legacy webhook entry', () => {
