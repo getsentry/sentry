@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
@@ -78,10 +78,18 @@ export function ToolUseBlock({
     return <MessagePlaceholder />;
   }
 
+  // Each row gets its own MessageRow rather than sharing one. A Code Mode execute makes several
+  // api calls under a single tool call, but the reader has no notion of that grouping — an api
+  // call is a thing that happened, exactly like a classic tool call, and packing several into one
+  // row makes an execute that made three calls look different from three that made one each.
   return (
-    <MessageRow from="assistant" density="compact">
-      <Stack gap="md" width="100%" minWidth={0} overflow="hidden">
-        {showThinking && hasValidContent(block.message.thinking_content) && (
+    <AgentWriteApprovalProvider
+      pendingInput={pendingInput ?? null}
+      readOnly={readOnly}
+      respondToUserInput={respondToUserInput}
+    >
+      {showThinking && hasValidContent(block.message.thinking_content) && (
+        <MessageRow from="assistant" density="compact">
           <Disclosure size="sm">
             <Disclosure.Title>
               <Text size="sm" variant="muted" monospace>
@@ -92,22 +100,12 @@ export function ToolUseBlock({
               <SeerMarkdown raw={block.message.thinking_content} />
             </Disclosure.Content>
           </Disclosure>
-        )}
-        <AgentWriteApprovalProvider
-          pendingInput={pendingInput ?? null}
-          readOnly={readOnly}
-          respondToUserInput={respondToUserInput}
-        >
-          {block.message.tool_calls ? (
-            <ToolCallList
-              block={block}
-              blocks={blocks}
-              getPageReferrer={getPageReferrer}
-            />
-          ) : null}
-        </AgentWriteApprovalProvider>
-      </Stack>
-    </MessageRow>
+        </MessageRow>
+      )}
+      {block.message.tool_calls ? (
+        <ToolCallList block={block} blocks={blocks} getPageReferrer={getPageReferrer} />
+      ) : null}
+    </AgentWriteApprovalProvider>
   );
 }
 
@@ -263,13 +261,12 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
   // on a Code Mode call that was suppressed.
   let rendered = 0;
 
-  // The Stack below uses `xs` to match the gap between call rows *within* one tool call. A block
-  // often holds a single Code Mode execute whose rows are the whole list, so a wider gap between
-  // tool calls only splits that list at a boundary the reader cannot see.
-
+  // `flatMap` into one row per call, each in its own MessageRow. How the run partitioned work into
+  // blocks and tool calls is invisible to the reader, so it must not show up as spacing: one
+  // execute that made three calls has to look exactly like three that made one each.
   return (
-    <Stack gap="xs" width="100%" minWidth={0} paddingRight="lg">
-      {block.message.tool_calls?.map((toolCall, idx) => {
+    <Fragment>
+      {block.message.tool_calls?.flatMap((toolCall, idx) => {
         const correspondingLinkIndex = toolCallToLinkIndexMap.get(idx);
         const toolLinkParams = toolCall.id
           ? toolLinkByCallId.get(toolCall.id)
@@ -381,28 +378,75 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
           Boolean(todos) ||
           Boolean(structuredContentMarkdown);
         if (!hasContent) {
-          return null;
+          return [];
         }
-        rendered += 1;
+        const key = toolCall.id ?? `${toolCall.function}-${idx}`;
 
-        return (
-          <ToolCallRow
-            key={toolCall.id ?? `${toolCall.function}-${idx}`}
-            toolString={toolString}
-            blockStatus={rendered === 1 ? blockStatus : undefined}
-            toolUrl={toolUrl}
-            failureTooltip={failureTooltip}
-            onLinkClick={handleLinkClick}
-            todos={todos}
-            navItems={navItems}
-            structuredContentMarkdown={structuredContentMarkdown}
-            onNavLinkClick={trackLinkClick}
-            callRows={callRows}
-            onCallLinkClick={trackLinkClick}
-          />
-        );
+        // Both sources normalize to the same row shape. A classic tool contributes one row for
+        // itself; a Code Mode call contributes one per api call it made.
+        const rows: React.ReactNode[] = callRows.length
+          ? callRows.map(({record, label, url}) => (
+              <CallRow
+                key={`${key}-${record.id}`}
+                row={{
+                  label,
+                  url,
+                  failure: callRecordFailure(record),
+                  status: callRecordStatus(record),
+                  detail: callRecordDetail(record),
+                }}
+                onLinkClick={trackLinkClick(record.kind)}
+              />
+            ))
+          : [
+              <CallRow
+                key={key}
+                row={{
+                  label: toolString,
+                  url: toolUrl,
+                  failure: failureTooltip,
+                  // Only the first classic row shows the block status; call rows carry their own.
+                  status: ++rendered === 1 ? blockStatus : undefined,
+                  detail: null,
+                }}
+                onLinkClick={handleLinkClick}
+              />,
+            ];
+
+        // Trailing per-tool-call surfaces. These belong to the call as a whole rather than to any
+        // one row, so they follow its rows rather than sitting inside one.
+        //
+        // The links bus is skipped when call rows are present: those already name and link what
+        // the execute did, so it would repeat them at coarser granularity — the tool rather than
+        // the call.
+        if (navItems.length > 0 && callRows.length === 0) {
+          rows.push(
+            <NavLinks
+              key={`${key}-links`}
+              navItems={navItems}
+              onNavLinkClick={trackLinkClick}
+            />
+          );
+        }
+        if (structuredContentMarkdown) {
+          rows.push(
+            <SeerMarkdown
+              key={`${key}-markdown`}
+              raw={structuredContentMarkdown.content}
+              structuredContent={structuredContentMarkdown.structuredContent}
+            />
+          );
+        }
+        if (todos) {
+          rows.push(<TodoList key={`${key}-todos`} todos={todos} />);
+        }
+        return rows.map((row, rowIdx) => (
+          <MessageRow key={`${key}-row-${rowIdx}`} from="assistant" density="compact">
+            {row}
+          </MessageRow>
+        ));
       })}
-    </Stack>
+    </Fragment>
   );
 }
 
@@ -413,159 +457,69 @@ interface NavItem {
   url: NonNullable<ReturnType<typeof buildToolLinkUrl>>;
 }
 
-interface CallRow {
-  /** Resolved at construction, so an unlabeled record never reaches the renderer. */
+/** A row to render, normalized from either a classic tool call or one api call. */
+interface RenderRow {
+  /** The request behind the row, when it has one to expand. */
+  detail: ReturnType<typeof callRecordDetail>;
+  failure: string | null;
+  /** Resolved at construction, so an unlabeled row never reaches the renderer. */
   label: string;
-  record: CallRecord;
+  status: ToolCallStatus | undefined;
   url: LocationDescriptor | null;
 }
 
-function ToolCallRow({
-  toolString,
-  blockStatus,
-  toolUrl,
-  failureTooltip,
+/**
+ * One row in the list — a classic tool call or a single Sentry API call, rendered identically.
+ *
+ * An api call *is* a tool call as far as the reader is concerned: something happened, it succeeded
+ * or it did not, and it may point somewhere. Giving the two shapes separate components let their
+ * spacing and alignment drift apart, so they share one.
+ */
+function CallRow({
+  row,
   onLinkClick,
-  todos,
-  navItems,
-  structuredContentMarkdown,
-  onNavLinkClick,
-  callRows,
-  onCallLinkClick,
 }: {
-  blockStatus: ToolCallStatus | undefined;
-  failureTooltip: string | null;
-  navItems: NavItem[];
-  structuredContentMarkdown: ToolResult | undefined;
-  todos: TodoItem[] | null;
-  toolString: string;
-  toolUrl: ReturnType<typeof buildToolLinkUrl>;
-  callRows?: CallRow[];
-  onCallLinkClick?: (kind: string) => (e: React.MouseEvent) => void;
+  row: RenderRow;
   onLinkClick?: (e: React.MouseEvent) => void;
-  onNavLinkClick?: (kind: string) => (e: React.MouseEvent) => void;
 }) {
-  const hasLink = toolUrl !== null;
-  const hasCallRows = Boolean(callRows?.length);
-
-  const toolCallText = (
-    <Tooltip title={failureTooltip ?? ''} disabled={!failureTooltip}>
+  const text = (
+    <Tooltip title={row.failure ?? ''} disabled={!row.failure}>
       <ToolCallText size="xs" variant="muted" monospace>
-        {toolString}
+        {row.label}
       </ToolCallText>
     </Tooltip>
   );
-
-  return (
-    <Stack gap="xs">
-      <Flex display="inline-flex" align="start" gap="md" maxWidth="100%">
-        {/* Call rows each carry their own tick, so a block-level one would be a second, coarser
-            answer to the same question — and the wrong one when some calls failed. */}
-        {!hasCallRows && (
-          <Flex
-            display="inline-flex"
-            align="center"
-            justify="center"
-            width="12px"
-            height="12px"
-            flexShrink={0}
-            style={{transform: 'translateY(0.15em)'}}
-          >
-            {blockStatus && <ToolCallIndicator status={blockStatus} />}
-          </Flex>
-        )}
-        {/* Call records describe the work better than the tool's name, so they stand in for the
-            generic row rather than sitting beneath it. The status indicator above still applies. */}
-        {hasCallRows ? (
-          <CallRows callRows={callRows!} onCallLinkClick={onCallLinkClick} />
-        ) : hasLink ? (
-          <ToolCallLink to={toolUrl} onClick={onLinkClick}>
-            {toolCallText}
-            <ToolCallLinkIconWrapper>
-              <ToolCallLinkIcon size="xs" />
-            </ToolCallLinkIconWrapper>
-          </ToolCallLink>
-        ) : (
-          <ToolCallPlainRow>{toolCallText}</ToolCallPlainRow>
-        )}
-      </Flex>
-      {/* Call records already name and link what the execute did, so the links bus for the same
-          call is a duplicate — and a coarser one, since it links the tool rather than the call. */}
-      {navItems.length > 0 && !hasCallRows && (
-        <NavLinks navItems={navItems} onNavLinkClick={onNavLinkClick} />
-      )}
-      {todos && <TodoList todos={todos} />}
-      {structuredContentMarkdown && (
-        <SeerMarkdown
-          raw={structuredContentMarkdown.content}
-          structuredContent={structuredContentMarkdown.structuredContent}
-        />
-      )}
-    </Stack>
+  const label = row.url ? (
+    <ToolCallLink to={row.url} onClick={onLinkClick}>
+      {text}
+      <ToolCallLinkIconWrapper>
+        <ToolCallLinkIcon size="xs" />
+      </ToolCallLinkIconWrapper>
+    </ToolCallLink>
+  ) : (
+    <ToolCallPlainRow>{text}</ToolCallPlainRow>
   );
-}
 
-function CallRows({
-  callRows,
-  onCallLinkClick,
-}: {
-  callRows: CallRow[];
-  onCallLinkClick?: (kind: string) => (e: React.MouseEvent) => void;
-}) {
   return (
-    // `margin="0"` because a `ul` carries a default block margin, and the enclosing Stack already
-    // spaces this list from its siblings — leaving it adds a gap nothing asked for.
-    <Stack as="ul" gap="xs" padding="0" margin="0" minWidth={0}>
-      {callRows.map(({record, label, url}) => {
-        const status = callRecordStatus(record);
-        const failure = callRecordFailure(record);
-        const text = (
-          <Tooltip title={failure ?? ''} disabled={!failure}>
-            <ToolCallText size="xs" variant="muted" monospace>
-              {label}
-            </ToolCallText>
-          </Tooltip>
-        );
-        const row = url ? (
-          <ToolCallLink to={url} onClick={onCallLinkClick?.(record.kind)}>
-            {text}
-            <ToolCallLinkIconWrapper>
-              <ToolCallLinkIcon size="xs" />
-            </ToolCallLinkIconWrapper>
-          </ToolCallLink>
-        ) : (
-          <ToolCallPlainRow>{text}</ToolCallPlainRow>
-        );
-
-        const detail = callRecordDetail(record);
-
-        // The row is the disclosure's own title, so the chevron sits inline with the label rather
-        // than adding a second line beneath it. A row with nothing to show stays plain.
-        return (
-          <Stack key={record.id} as="li" gap="xs" minWidth={0}>
-            {/* One tick per call: a lib helper that fans out into three requests is three separate
-                outcomes, and a single tick above the group cannot say which of them failed. */}
-            <Flex gap="sm" align="center" minWidth={0}>
-              <StatusSlot>
-                <ToolCallIndicator status={status} />
-              </StatusSlot>
-              {detail ? (
-                <Disclosure size="xs">
-                  <Disclosure.Title>{row}</Disclosure.Title>
-                  <Disclosure.Content>
-                    <CallDetail detail={detail} />
-                  </Disclosure.Content>
-                </Disclosure>
-              ) : (
-                <Flex align="center" minWidth={0}>
-                  {row}
-                </Flex>
-              )}
-            </Flex>
-          </Stack>
-        );
-      })}
-    </Stack>
+    <Flex gap="sm" align="center" minWidth={0} maxWidth="100%">
+      {/* One tick per row: a lib helper that fans out into three requests is three separate
+          outcomes, and a single tick above the group could not say which of them failed. */}
+      <StatusSlot>{row.status && <ToolCallIndicator status={row.status} />}</StatusSlot>
+      {row.detail ? (
+        // The label is the disclosure's own title, so the chevron sits inline with it rather than
+        // adding a second line beneath. A row with nothing to show stays plain.
+        <Disclosure size="xs">
+          <Disclosure.Title>{label}</Disclosure.Title>
+          <Disclosure.Content>
+            <CallDetail detail={row.detail} />
+          </Disclosure.Content>
+        </Disclosure>
+      ) : (
+        <Flex align="center" minWidth={0}>
+          {label}
+        </Flex>
+      )}
+    </Flex>
   );
 }
 

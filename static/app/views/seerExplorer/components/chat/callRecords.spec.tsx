@@ -149,6 +149,54 @@ describe('call record rendering', () => {
     expect(screen.getByText('Searched code')).toBeInTheDocument();
   });
 
+  it('renders calls from separate tool calls the same as calls from one', () => {
+    // How the run partitioned work into tool calls is invisible to the reader: one execute that
+    // made two calls must look exactly like two that made one each.
+    const rowsFor = (block: Block) => {
+      const {unmount} = render(<BlockComponent block={block} blockIndex={0} />);
+      const labels = screen.getAllByText(/call$/).map(node => node.textContent);
+      unmount();
+      return labels;
+    };
+
+    const together = rowsFor(
+      codeModeBlock([
+        apiRecord({id: 1, title: 'First call'}),
+        apiRecord({id: 2, title: 'Second call'}),
+      ])
+    );
+    const split = rowsFor({
+      id: 'tool-1',
+      message: {
+        role: 'tool_use',
+        content: null,
+        tool_calls: [
+          {id: 'call-1', function: 'sentry_api_execute', args: '{}'},
+          {id: 'call-2', function: 'sentry_api_execute', args: '{}'},
+        ],
+      },
+      timestamp: '2024-01-01T00:01:00Z',
+      loading: false,
+      tool_results: [
+        {
+          tool_call_id: 'call-1',
+          tool_call_function: 'sentry_api_execute',
+          content: 'ok',
+          structuredContent: {calls: [apiRecord({id: 1, title: 'First call'})]},
+        },
+        {
+          tool_call_id: 'call-2',
+          tool_call_function: 'sentry_api_execute',
+          content: 'ok',
+          structuredContent: {calls: [apiRecord({id: 2, title: 'Second call'})]},
+        },
+      ],
+    });
+
+    expect(split).toEqual(together);
+    expect(together).toEqual(['First call', 'Second call']);
+  });
+
   it('renders no row at all for a Code Mode call that reported nothing', () => {
     // "Used sentry_api_execute tool" names none of the actions it covers, so it is never shown —
     // a call with nothing to report leaves no row rather than an empty one.
