@@ -1838,6 +1838,8 @@ class GitHubPipelineAdvancerTest(IntegrationTestCase):
         resp = self.client.get(self._get_setup_install_url())
         assert resp.status_code == 200
         assert b"window.opener" in resp.content
+        assert b"_pipeline_nonce" in resp.content
+        assert b"pipeline_popup_" in resp.content
         assert b'"/extensions/github/link/?installationId=12345"' in resp.content
 
 
