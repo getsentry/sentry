@@ -27,14 +27,21 @@ LEGACY_GET_FACTOR = f"{CALCULATIONS}.legacy_recalibration_cache.get_adjusted_fac
 def patch_configuration(targets: dict[str, Any]) -> Iterator[dict[str, MagicMock]]:
     """Patch the given targets, each with the given return value.
 
-    Pass ``DEFAULT`` as the return value to patch a target without one. The yielded
-    mocks are keyed by target so that callers can assert on the calls.
+    Pass ``DEFAULT`` as the return value to patch a target without one, or an exception
+    class to raise it instead of returning. The yielded mocks are keyed by target so that
+    callers can assert on the calls.
     """
     with ExitStack() as stack:
         yield {
-            target: stack.enter_context(patch(target, return_value=return_value))
-            for target, return_value in targets.items()
+            target: stack.enter_context(_patch_with(target, value))
+            for target, value in targets.items()
         }
+
+
+def _patch_with(target: str, value: Any) -> Any:
+    if isinstance(value, type) and issubclass(value, BaseException):
+        return patch(target, side_effect=value)
+    return patch(target, return_value=value)
 
 
 def make_project_volume(project_id: int, total: int = 100, keep: int = 25) -> ProjectVolume:
@@ -46,6 +53,7 @@ def mock_configuration(
     projects: list[Project] | None = None,
     sample_rate: float | None = None,
     project_sample_rates: ProjectSampleRates | None = None,
+    serving_sample_rate: float | None = None,
 ) -> Mock:
     """A stand-in configuration whose getters return the given sample rates."""
     return Mock(
@@ -53,6 +61,7 @@ def mock_configuration(
         projects=projects or [],
         **{
             "get_sample_rate.return_value": sample_rate,
+            "get_serving_sample_rate.return_value": serving_sample_rate,
             "get_project_sample_rates.return_value": project_sample_rates or {},
         },
     )
