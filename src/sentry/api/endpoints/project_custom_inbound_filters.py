@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from enum import StrEnum
 from typing import Any, TypedDict
 
@@ -25,19 +26,36 @@ MAX_FILTERS_PER_PROJECT = 50
 
 
 class CustomInboundFilterConditionType(StrEnum):
+    ERROR_TYPE = "error_type"
     ERROR_MESSAGE = "error_message"
     LOG_MESSAGE = "log_message"
     METRIC_NAME = "metric_name"
     RELEASE = "release"
 
 
-PRIMARY_CONDITION_TYPES = frozenset(
-    (
-        CustomInboundFilterConditionType.ERROR_MESSAGE,
-        CustomInboundFilterConditionType.LOG_MESSAGE,
-        CustomInboundFilterConditionType.METRIC_NAME,
-    )
-)
+class CustomInboundFilterDataType(StrEnum):
+    ERROR = "error"
+    LOG = "log"
+    METRIC = "metric"
+
+
+# The data type each condition reads a field of. `release` is absent because every
+# data type carries a release, so it does not tie a filter to one data type.
+_DATA_TYPE_BY_CONDITION_TYPE: Mapping[
+    CustomInboundFilterConditionType, CustomInboundFilterDataType
+] = {
+    CustomInboundFilterConditionType.ERROR_TYPE: CustomInboundFilterDataType.ERROR,
+    CustomInboundFilterConditionType.ERROR_MESSAGE: CustomInboundFilterDataType.ERROR,
+    CustomInboundFilterConditionType.LOG_MESSAGE: CustomInboundFilterDataType.LOG,
+    CustomInboundFilterConditionType.METRIC_NAME: CustomInboundFilterDataType.METRIC,
+}
+
+# Ingestion feature an organization needs before a filter can target a data type.
+# Errors need none.
+_REQUIRED_FEATURE_BY_DATA_TYPE: Mapping[CustomInboundFilterDataType, str] = {
+    CustomInboundFilterDataType.LOG: "organizations:ourlogs-ingestion",
+    CustomInboundFilterDataType.METRIC: "organizations:tracemetrics-ingestion",
+}
 
 
 class CustomInboundFilterCondition(TypedDict):
@@ -85,26 +103,27 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
     def validate_conditions(self, conditions: list[dict[str, Any]]) -> list[dict[str, Any]]:
         organization = self.context["project"].organization
         request = self.context["request"]
-        condition_types = [condition["type"] for condition in conditions]
+        condition_types = {condition["type"] for condition in conditions}
 
-        primary_condition_types = PRIMARY_CONDITION_TYPES.intersection(condition_types)
-        if CustomInboundFilterConditionType.LOG_MESSAGE in condition_types and not features.has(
-            "organizations:ourlogs-ingestion", organization, actor=request.user
-        ):
+        data_types = {
+            _DATA_TYPE_BY_CONDITION_TYPE[condition_type]
+            for condition_type in condition_types
+            if condition_type in _DATA_TYPE_BY_CONDITION_TYPE
+        }
+        if len(data_types) > 1:
             raise serializers.ValidationError(
-                "Log message filters are not enabled for this organization."
+                "A filter matches one data type, so error, log, and metric conditions "
+                "cannot be combined."
             )
 
-        if CustomInboundFilterConditionType.METRIC_NAME in condition_types and not features.has(
-            "organizations:tracemetrics-ingestion", organization, actor=request.user
-        ):
-            raise serializers.ValidationError(
-                "Metric name filters are not enabled for this organization."
-            )
-        if len(primary_condition_types) > 1:
-            raise serializers.ValidationError(
-                "Only one of error_message, log_message, or metric_name can be used in a filter."
-            )
+        for data_type in data_types:
+            required_feature = _REQUIRED_FEATURE_BY_DATA_TYPE.get(data_type)
+            if required_feature and not features.has(
+                required_feature, organization, actor=request.user
+            ):
+                raise serializers.ValidationError(
+                    f"{data_type.capitalize()} filters are not enabled for this organization."
+                )
 
         return conditions
 
