@@ -365,6 +365,7 @@ class IntegrationEventLifecycle(EventLifecycle):
             # ApiHostError is raised from RestrictedIPAddress
             self.record_halt(exc_value)
             return
+
         super().__exit__(exc_type, exc_value, traceback)
 
 
