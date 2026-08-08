@@ -67,6 +67,12 @@ SCM_SYNC_PROVIDERS = [
 
 SYNC_BATCH_SIZE = 100
 
+# Chunk size for the `find_recently_active_repo_external_ids` cross-silo RPC.
+# The whole removed-repo set can be tens of thousands of external ids for large
+# GitHub orgs, which would be sent as a single unbounded request body. Kept
+# larger than SYNC_BATCH_SIZE because each chunk is one blocking round trip.
+ACTIVITY_LOOKUP_BATCH_SIZE = 500
+
 # Final safety guard before auto-disabling a repo: if it has any commit, PR,
 # or code review event row in the last DISABLE_ACTIVITY_CUTOFF_DAYS days, we
 # skip the disable even if the provider isn't returning the repo right now.
@@ -293,38 +299,41 @@ def _sync_repos_for_org(organization_integration_id: int) -> None:
             )
 
         # Filter out any repo with recent activity (commits, PRs, code review
-        # events) before disable.
-        removed_id_list = list(removed_ids)
+        # events) before disable. The lookup is chunked because it's a cross-silo
+        # RPC and the candidate set is unbounded — one request per chunk keeps the
+        # payload small instead of shipping every removed external id at once.
+        removed_id_list = sorted(eid for eid in removed_ids if eid is not None)
         active_skipped: set[str] = set()
-        if removed_id_list:
-            active_skipped = set(
+        for candidate_batch in chunked(removed_id_list, ACTIVITY_LOOKUP_BATCH_SIZE):
+            active_skipped.update(
                 repository_service.find_recently_active_repo_external_ids(
                     organization_id=rpc_org.id,
                     integration_id=integration.id,
                     provider=provider,
-                    external_ids=removed_id_list,
+                    external_ids=candidate_batch,
                     cutoff_days=DISABLE_ACTIVITY_CUTOFF_DAYS,
                 )
             )
-            if active_skipped:
-                logger.info(
-                    "scm.repo_sync.disable_skipped_due_to_activity",
-                    extra={
-                        "provider": provider_key,
-                        "integration_id": integration.id,
-                        "organization_id": rpc_org.id,
-                        "candidate_count": len(removed_id_list),
-                        "skipped_count": len(active_skipped),
-                        "skipped_ids": list(active_skipped),
-                        "cutoff_days": DISABLE_ACTIVITY_CUTOFF_DAYS,
-                    },
-                )
-                metrics.distribution(
-                    "scm.repo_sync.disable_skipped_due_to_activity",
-                    len(active_skipped),
-                    tags={"provider": provider_key},
-                    sample_rate=1.0,
-                )
+
+        if active_skipped:
+            logger.info(
+                "scm.repo_sync.disable_skipped_due_to_activity",
+                extra={
+                    "provider": provider_key,
+                    "integration_id": integration.id,
+                    "organization_id": rpc_org.id,
+                    "candidate_count": len(removed_id_list),
+                    "skipped_count": len(active_skipped),
+                    "skipped_ids": list(active_skipped),
+                    "cutoff_days": DISABLE_ACTIVITY_CUTOFF_DAYS,
+                },
+            )
+            metrics.distribution(
+                "scm.repo_sync.disable_skipped_due_to_activity",
+                len(active_skipped),
+                tags={"provider": provider_key},
+                sample_rate=1.0,
+            )
 
         safe_to_disable = [eid for eid in removed_id_list if eid not in active_skipped]
         bump_org_integration_last_sync(

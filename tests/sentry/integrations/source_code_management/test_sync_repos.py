@@ -13,6 +13,7 @@ from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIn
 from sentry.integrations.gitlab.integration import GitlabIntegration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.perforce.integration import PerforceIntegrationProvider
+from sentry.integrations.services.repository.service import repository_service
 from sentry.integrations.source_code_management.sync_repos import (
     sync_repos_for_org,
 )
@@ -181,6 +182,93 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
         with assume_test_silo_mode(SiloMode.CELL):
             still_active_repo.refresh_from_db()
             assert still_active_repo.status == ObjectStatus.ACTIVE
+
+    @responses.activate
+    @patch(
+        "sentry.integrations.source_code_management.sync_repos.ACTIVITY_LOOKUP_BATCH_SIZE",
+        2,
+    )
+    def test_activity_lookup_is_chunked(self, _: MagicMock) -> None:
+        # The activity lookup is a cross-silo RPC, so the removed-repo candidate
+        # list must be split into bounded batches instead of shipping every
+        # external id in a single request body.
+        with assume_test_silo_mode(SiloMode.CELL):
+            for external_id in ("90", "91", "92", "93", "94"):
+                repo = Repository.objects.create(
+                    organization_id=self.organization.id,
+                    name=f"getsentry/old-repo-{external_id}",
+                    external_id=external_id,
+                    provider="integrations:github",
+                    integration_id=self.integration.id,
+                    status=ObjectStatus.ACTIVE,
+                )
+                if external_id == "93":
+                    Commit.objects.create(
+                        organization_id=self.organization.id,
+                        repository_id=repo.id,
+                        key="abc123",
+                    )
+
+        # Provider no longer returns any of them
+        self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
+
+        real_find = repository_service.find_recently_active_repo_external_ids
+        batches: list[list[str]] = []
+
+        def spy(
+            *,
+            organization_id: int,
+            integration_id: int,
+            provider: str,
+            external_ids: list[str],
+            cutoff_days: int,
+        ) -> list[str]:
+            batches.append(external_ids)
+            return real_find(
+                organization_id=organization_id,
+                integration_id=integration_id,
+                provider=provider,
+                external_ids=external_ids,
+                cutoff_days=cutoff_days,
+            )
+
+        with (
+            patch.object(
+                repository_service,
+                "find_recently_active_repo_external_ids",
+                side_effect=spy,
+            ),
+            self.tasks(),
+        ):
+            sync_repos_for_org(self.oi.id)
+
+        # 5 candidates at a batch size of 2 => 3 requests, none oversized
+        assert len(batches) == 3
+        assert all(len(batch) <= 2 for batch in batches)
+        assert sorted(eid for batch in batches for eid in batch) == [
+            "90",
+            "91",
+            "92",
+            "93",
+            "94",
+        ]
+
+        # Results are accumulated across batches: the repo with recent activity
+        # stays active, everything else is disabled.
+        with assume_test_silo_mode(SiloMode.CELL):
+            statuses = dict(
+                Repository.objects.filter(
+                    organization_id=self.organization.id,
+                    external_id__in=["90", "91", "92", "93", "94"],
+                ).values_list("external_id", "status")
+            )
+        assert statuses == {
+            "90": ObjectStatus.DISABLED,
+            "91": ObjectStatus.DISABLED,
+            "92": ObjectStatus.DISABLED,
+            "93": ObjectStatus.ACTIVE,
+            "94": ObjectStatus.DISABLED,
+        }
 
     @responses.activate
     def test_re_enables_restored_repos(self, _: MagicMock) -> None:
