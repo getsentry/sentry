@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Stack} from '@sentry/scraps/layout';
 import {SplitPanel, type SplitPanelHandle} from '@sentry/scraps/splitPanel';
 
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {SeerExplorerPanel} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerPanel';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
@@ -67,7 +68,7 @@ function SeerExplorerSidebarLayoutInSidebarMode({children}: {children: React.Rea
   const defaultSeerSize = isRight ? DEFAULT_SEER_WIDTH : DEFAULT_SEER_HEIGHT;
   const seerSizeKey = SEER_EXPLORER_SIDEBAR_SEER_SIZE_KEY[orientation];
 
-  const storedSeerSize = parseInt(localStorage.getItem(seerSizeKey) ?? '', 10);
+  const storedSeerSize = parseInt(localStorageWrapper.getItem(seerSizeKey) ?? '', 10);
   const seerSize = storedSeerSize > 0 ? storedSeerSize : defaultSeerSize;
 
   // The app (sized) pane size = available − Seer's size, floored at `minContent`
@@ -96,7 +97,7 @@ function SeerExplorerSidebarLayoutInSidebarMode({children}: {children: React.Rea
       return;
     }
     const seer = Math.max(minSeer, available - contentEndSize);
-    localStorage.setItem(seerSizeKey, String(Math.round(seer)));
+    localStorageWrapper.setItem(seerSizeKey, String(Math.round(seer)));
   };
 
   // Let the routed app content scroll within its own pane instead of growing the
