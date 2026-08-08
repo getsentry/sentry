@@ -84,7 +84,19 @@ export function getUploadSourceMapsStep({
   };
 }
 
-const SENTRY_INSTRUMENT_SKILL_URL = 'https://skills.sentry.dev/instrument';
+const DOCS_ORIGIN = 'https://docs.sentry.io';
+
+/** Convert a docs path or full docs URL into a markdown export URL. */
+export function toDocsMarkdownUrl(docsPathOrUrl: string): string {
+  if (docsPathOrUrl.startsWith('http://') || docsPathOrUrl.startsWith('https://')) {
+    const url = new URL(docsPathOrUrl);
+    const cleanPath = url.pathname.replace(/\/$/, '').replace(/\.md$/, '');
+    return `${url.origin}${cleanPath || '/index'}.md`;
+  }
+
+  const cleanPath = docsPathOrUrl.replace(/^\//, '').replace(/\/$/, '').replace(/\.md$/, '');
+  return `${DOCS_ORIGIN}/${cleanPath || 'index'}.md`;
+}
 
 function CopyPromptButton({prompt}: {prompt: string}) {
   const {copy} = useCopyToClipboard();
@@ -99,9 +111,16 @@ function CopyPromptButton({prompt}: {prompt: string}) {
   );
 }
 
-export function getAISetupStep({sdkName}: {sdkName?: string}): OnboardingStep {
+export function getAISetupStep({
+  sdkName,
+  docsUrl,
+}: {
+  /** Docs path or URL for the platform setup guide (markdown export preferred). */
+  docsUrl: string;
+  sdkName?: string;
+}): OnboardingStep {
   const target = sdkName ? `the Sentry ${sdkName} SDK` : 'Sentry';
-  const prompt = `Use curl to download, read and follow ${SENTRY_INSTRUMENT_SKILL_URL} to set up ${target}.`;
+  const prompt = `Read and follow ${toDocsMarkdownUrl(docsUrl)} to set up ${target}.`;
 
   return {
     collapsible: true,
