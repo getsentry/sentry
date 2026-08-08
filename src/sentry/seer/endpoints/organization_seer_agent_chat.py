@@ -297,6 +297,8 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
             client = SeerAgentClient(
                 organization,
                 request.user,
+                category_key="ask_seer",
+                category_value="ui",
                 is_interactive=True,
                 enable_bash_tools=override_bash_mode_enabled,
                 enable_coding=enable_coding,
