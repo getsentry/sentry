@@ -5,6 +5,7 @@ import debounce from 'lodash/debounce';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {CompactNoteInput} from 'sentry/components/activity/note/compact';
 import {NoteInput} from 'sentry/components/activity/note/input';
+import {MentionComposer} from 'sentry/components/activity/note/mentionComposer';
 import type {MentionChangeEvent} from 'sentry/components/activity/note/types';
 import {t, tct} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';
@@ -25,6 +26,7 @@ type Props = {
   onLoad?: (data: string) => string;
   onSave?: (data: string) => string;
   text?: string;
+  useMentionComposer?: boolean;
   variant?: 'compact' | 'full';
 } & Omit<InputProps, 'onCreate' | 'onUpdate'>;
 
@@ -69,6 +71,7 @@ function NoteInputWithStorage({
   onCommentCreated,
   onCommentEdited,
   noteId,
+  useMentionComposer,
   ...props
 }: Props) {
   const organization = useOrganization();
@@ -170,6 +173,18 @@ function NoteInputWithStorage({
     },
     [mutators, noteId, group.activity, organization, onCommentEdited]
   );
+
+  if (useMentionComposer) {
+    return (
+      <MentionComposer
+        initialValue={value}
+        minHeight={props.minHeight}
+        placeholder={props.placeholder}
+        onSubmit={handleCreate}
+        onValueChange={save}
+      />
+    );
+  }
 
   if (variant === 'compact') {
     return (
