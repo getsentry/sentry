@@ -22,7 +22,7 @@ from snuba_sdk import (
 from snuba_sdk.conditions import And, BooleanCondition, ConditionGroup
 from snuba_sdk.orderby import Direction, OrderBy
 
-from sentry.api.event_search import SearchFilter
+from sentry.api.event_search import ParenExpression, SearchFilter
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.project import Project
@@ -475,16 +475,23 @@ def parse_conditions(
 class ReleaseHealthQueryBuilder(UnresolvedQuery):
     config_class = SessionsDatasetConfig
 
-    def _contains_wildcard_in_query(self, query: str | None) -> bool:
-        parsed_terms = self.parse_query(query)
+    def _terms_contain_wildcard(self, parsed_terms: Sequence[Any]) -> bool:
         for parsed_term in parsed_terms:
             # Since wildcards search uses the clickhouse `match` operator that works on strings, we can't
             # use it for release health, since tags are stored as integers and converted through
-            # the indexer.
-            if isinstance(parsed_term, SearchFilter) and parsed_term.value.is_wildcard():
+            # the indexer. Wildcards can be nested inside a ParenExpression (which is how the UI
+            # combines filters, and how the `Contains`/`StartsWith`/`EndsWith` operators arrive), so
+            # we have to recurse rather than only inspecting the top-level terms.
+            if isinstance(parsed_term, ParenExpression):
+                if self._terms_contain_wildcard(parsed_term.children):
+                    return True
+            elif isinstance(parsed_term, SearchFilter) and parsed_term.value.is_wildcard():
                 return True
 
         return False
+
+    def _contains_wildcard_in_query(self, query: str | None) -> bool:
+        return self._terms_contain_wildcard(self.parse_query(query))
 
     def resolve_conditions(
         self,
