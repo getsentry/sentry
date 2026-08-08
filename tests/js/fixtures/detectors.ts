@@ -27,6 +27,7 @@ import {
   Dataset,
   EventTypes,
 } from 'sentry/views/alerts/rules/metric/types';
+import {UptimeMonitorStatus} from 'sentry/views/alerts/rules/uptime/types';
 import {
   MonitorStatus,
   ScheduleType,
@@ -169,6 +170,8 @@ export function UptimeDetectorFixture(
       downtimeThreshold: 3,
     },
     dataSources: [UptimeSubscriptionDataSourceFixture()],
+    uptimeStatus: UptimeMonitorStatus.OK,
+    uptimeStatusLastChanged: null,
     ...params,
   };
 }
