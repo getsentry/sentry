@@ -17,7 +17,10 @@ from sentry.monitors.models import (
     MonitorStatus,
     ScheduleType,
 )
-from sentry.monitors.tasks.detect_broken_monitor_envs import detect_broken_monitor_envs
+from sentry.monitors.tasks.detect_broken_monitor_envs import (
+    detect_broken_monitor_envs,
+    generate_monitor_overview_url,
+)
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -28,6 +31,16 @@ from sentry.users.models.useremail import UserEmail
 
 
 class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
+    def test_generate_monitor_overview_url(self) -> None:
+        assert generate_monitor_overview_url(self.organization) == (
+            f"http://testserver/organizations/{self.organization.slug}/insights/crons/"
+        )
+
+        with self.feature("organizations:workflow-engine-ui"):
+            assert generate_monitor_overview_url(self.organization) == (
+                f"http://testserver/organizations/{self.organization.slug}/monitors/crons/"
+            )
+
     def setUp(self) -> None:
         super().setUp()
         self._run_tasks = self.tasks()
