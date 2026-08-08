@@ -794,6 +794,77 @@ class TestWorkflowValidatorUpdate(TestCase):
         assert self.workflow.when_condition_group is not None
         assert self.workflow.when_condition_group.conditions.count() == 0
 
+    def test_update__create_triggers_when_condition_group_is_none(
+        self, mock_action_validator: mock.MagicMock
+    ) -> None:
+        workflow = self.create_workflow(organization=self.organization, when_condition_group=None)
+        assert workflow.when_condition_group is None
+
+        data = {
+            "name": workflow.name,
+            "enabled": True,
+            "config": {},
+            "triggers": {
+                "logicType": "any-short",
+                "conditions": [
+                    {
+                        "type": Condition.FIRST_SEEN_EVENT,
+                        "comparison": True,
+                        "condition_result": True,
+                    },
+                ],
+            },
+            "actionFilters": [],
+        }
+        context = {**self.context, "workflow": workflow}
+        validator = WorkflowValidator(data=data, context=context)
+        assert validator.is_valid() is True
+
+        validator.update(workflow, validator.validated_data)
+        workflow.refresh_from_db()
+
+        condition_group = workflow.when_condition_group
+        assert condition_group is not None
+        assert condition_group.logic_type == DataConditionGroup.Type.ANY_SHORT_CIRCUIT
+        assert condition_group.conditions.count() == 1
+        assert condition_group.conditions.get().type == Condition.FIRST_SEEN_EVENT
+
+    def test_update__reject_trigger_id_when_condition_group_is_none(
+        self, mock_action_validator: mock.MagicMock
+    ) -> None:
+        workflow = self.create_workflow(organization=self.organization, when_condition_group=None)
+        other_condition_group = self.create_data_condition_group(
+            organization=self.organization,
+            logic_type=DataConditionGroup.Type.ANY,
+        )
+        self.create_workflow(
+            organization=self.organization, when_condition_group=other_condition_group
+        )
+        original_logic_type = other_condition_group.logic_type
+
+        data = {
+            "name": workflow.name,
+            "enabled": True,
+            "config": {},
+            "triggers": {
+                "id": str(other_condition_group.id),
+                "logicType": "any-short",
+                "conditions": [],
+            },
+            "actionFilters": [],
+        }
+        context = {**self.context, "workflow": workflow}
+        validator = WorkflowValidator(data=data, context=context)
+        assert validator.is_valid() is True
+
+        with pytest.raises(ValidationError, match="Invalid Condition Group ID"):
+            validator.update(workflow, validator.validated_data)
+
+        workflow.refresh_from_db()
+        other_condition_group.refresh_from_db()
+        assert workflow.when_condition_group is None
+        assert other_condition_group.logic_type == original_logic_type
+
     def test_update__hack_attempt_to_override_different_trigger_condition(
         self, mock_action_validator: mock.MagicMock
     ) -> None:
