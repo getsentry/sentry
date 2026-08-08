@@ -1,5 +1,5 @@
 import type {ReactEventHandler} from 'react';
-import {useState} from 'react';
+import {useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -72,7 +72,11 @@ export function Screenshot({
     onDelete(screenshotAttachmentId);
   }
 
-  const AttachmentComponent = getImageAttachmentRenderer(screenshot) ?? ImageViewer;
+  const AttachmentComponent = useMemo(
+    () => getImageAttachmentRenderer(screenshot) ?? ImageViewer,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [screenshot.mimetype]
+  );
   const downloadUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${eventId}/attachments/${screenshot.id}/`;
 
   return (
