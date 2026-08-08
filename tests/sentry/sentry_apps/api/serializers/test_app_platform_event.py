@@ -2,9 +2,11 @@ import datetime
 from typing import Any
 
 import orjson
+import pytest
 
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.models.sentry_app import MASKED_VALUE, SentryApp
+from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.webhooks import (
     ErrorActionType,
     InstallationActionType,
@@ -55,12 +57,14 @@ class AppPlatformEventSerializerTest(TestCase):
         assert result.headers["Sentry-Hook-Signature"] == signature
 
     def test_sentry_app_actor(self) -> None:
+        actor = app_service.get_sentry_app_by_id(id=self.sentry_app.id)
+        assert actor is not None
         result = AppPlatformEvent[dict[str, Any]](
             resource=SentryAppResourceType.ISSUE,
             action=IssueActionType.ASSIGNED,
             install=self.install,
             data={},
-            actor=self.sentry_app.proxy_user,
+            actor=actor,
         )
 
         assert orjson.loads(result.body)["actor"] == {
@@ -95,6 +99,20 @@ class AppPlatformEventSerializerTest(TestCase):
         assert result.headers["Content-Type"] == "application/json"
         assert result.headers["Sentry-Hook-Resource"] == "installation"
         assert result.headers["Sentry-Hook-Signature"] == signature
+
+    def test_unresolved_sentry_app_actor(self) -> None:
+        result = AppPlatformEvent[dict[str, Any]](
+            resource=SentryAppResourceType.ISSUE,
+            action=IssueActionType.ASSIGNED,
+            install=self.install,
+            data={},
+            actor=self.sentry_app.proxy_user,
+        )
+
+        with pytest.raises(
+            ValueError, match="Sentry App actors must be resolved before serialization"
+        ):
+            result.body
 
     def _event_for_app_with_headers(
         self, headers: list[str]
