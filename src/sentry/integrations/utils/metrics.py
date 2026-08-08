@@ -365,6 +365,23 @@ class IntegrationEventLifecycle(EventLifecycle):
             # ApiHostError is raised from RestrictedIPAddress
             self.record_halt(exc_value)
             return
+
+        # Network-level failures (timeout, connection refused/reset) mean the
+        # external server is unreachable — an operational condition for
+        # customer-hosted integrations such as self-hosted Perforce servers,
+        # not a Sentry code defect.  Walk the full exception chain so we catch
+        # cases where the network error is wrapped (e.g.
+        # TimeoutError → P4Exception → ApiError).
+        # TimeoutError and ConnectionError are both builtins (subclasses of
+        # OSError) — no import needed.
+        if exc_value is not None:
+            cause: BaseException | None = exc_value
+            while cause is not None:
+                if isinstance(cause, (TimeoutError, ConnectionError)):
+                    self.record_halt(exc_value)
+                    return
+                cause = cause.__cause__
+
         super().__exit__(exc_type, exc_value, traceback)
 
 
