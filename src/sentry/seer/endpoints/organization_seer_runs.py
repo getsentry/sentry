@@ -131,6 +131,7 @@ class OrganizationSeerRunsEndpoint(OrganizationEndpoint):
             query=request.GET.get("query", "").strip(),
             expand=request.GET.getlist("expand"),
             questions=request.GET.getlist("question"),
+            include_ci_status=request.GET.get("includeCiStatus") == "1",
             start=start,
             end=end,
         )
@@ -151,6 +152,7 @@ class OrganizationSeerRunsEndpoint(OrganizationEndpoint):
             query=query.strip() if isinstance(query, str) else "",
             expand=_as_str_list(data.get("expand")),
             questions=_as_str_list(data.get("question")),
+            include_ci_status=False,
             start=start,
             end=end,
         )
@@ -163,6 +165,7 @@ class OrganizationSeerRunsEndpoint(OrganizationEndpoint):
         query: str,
         expand: Sequence[str],
         questions: Sequence[str],
+        include_ci_status: bool,
         start: datetime | None,
         end: datetime | None,
     ) -> Response:
@@ -218,7 +221,9 @@ class OrganizationSeerRunsEndpoint(OrganizationEndpoint):
             return Response({"detail": str(e)}, status=400)
 
         def on_results(runs: Sequence[SeerRun]) -> list[SeerRunResponse]:
-            serialized: list[SeerRunResponse] = serialize(runs, request.user, SeerRunSerializer())
+            serialized: list[SeerRunResponse] = serialize(
+                runs, request.user, SeerRunSerializer(include_ci_status=include_ci_status)
+            )
             if include_outputs:
                 outputs_by_run_id = _fetch_run_outputs(
                     runs,
@@ -230,14 +235,14 @@ class OrganizationSeerRunsEndpoint(OrganizationEndpoint):
                     data["outputs"] = outputs_by_run_id.get(run.id, [])
             return serialized
 
+        # Outputs run one one-shot per question per run; CI status can hit GitHub once per PR.
+        small_page = include_outputs or include_ci_status
         return self.paginate(
             request=request,
             queryset=queryset,
             order_by="-last_triggered_at",
             on_results=on_results,
             paginator_cls=OffsetPaginator,
-            # Computing outputs is expensive (one one-shot per question per run),
-            # so use a small default and cap the page size when they're requested.
-            default_per_page=10 if include_outputs else 100,
-            max_per_page=10 if include_outputs else 100,
+            default_per_page=10 if small_page else 100,
+            max_per_page=10 if small_page else 100,
         )

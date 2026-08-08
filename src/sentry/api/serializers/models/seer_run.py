@@ -2,13 +2,15 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from typing import Any, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict, cast
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.pullrequest import (
     PullRequestSerializer,
     PullRequestSerializerResponse,
 )
+from sentry.models.pullrequest import PullRequest
+from sentry.seer.autofix.pr_ci_status import PullRequestCiStatus, get_pr_ci_status
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunPullRequest
 
 
@@ -26,6 +28,24 @@ class RunQuestionOutput(TypedDict):
     question: NotRequired[str]
 
 
+# Seer-local extension so the shared response type (and other endpoints' schemas) stay untouched.
+class SeerRunPullRequestResponse(PullRequestSerializerResponse):
+    ciStatus: NotRequired[PullRequestCiStatus | None]
+
+
+class SeerRunPullRequestSerializer(PullRequestSerializer):
+    def __init__(self, include_ci_status: bool = False) -> None:
+        self.include_ci_status = include_ci_status
+
+    def serialize(
+        self, obj: PullRequest, attrs: Any, user: Any, **kwargs: Any
+    ) -> SeerRunPullRequestResponse:
+        result: SeerRunPullRequestResponse = {**super().serialize(obj, attrs, user, **kwargs)}
+        if self.include_ci_status:
+            result["ciStatus"] = get_pr_ci_status(obj)
+        return result
+
+
 class SeerRunResponse(TypedDict):
     id: str
     type: str
@@ -37,7 +57,7 @@ class SeerRunResponse(TypedDict):
     source: str | None
     projectId: str | None
     groupId: str | None
-    pullRequests: list[PullRequestSerializerResponse]
+    pullRequests: list[SeerRunPullRequestResponse]
     # One-shot outputs (question answers), injected by the endpoint when
     # ?expand=questions and/or ?question= is passed; the serializer itself never
     # populates them.
@@ -46,6 +66,9 @@ class SeerRunResponse(TypedDict):
 
 @register(SeerRun)
 class SeerRunSerializer(Serializer):
+    def __init__(self, include_ci_status: bool = False) -> None:
+        self.include_ci_status = include_ci_status
+
     def get_attrs(
         self, item_list: Sequence[SeerRun], user: Any, **kwargs: Any
     ) -> dict[SeerRun, dict[str, Any]]:
@@ -63,12 +86,12 @@ class SeerRunSerializer(Serializer):
             .order_by("date_added")
         )
         prs = [link.pull_request for link in pr_links]
-        serialized_pr_by_id = {
-            pr.id: serialized
-            for pr, serialized in zip(prs, serialize(prs, user, PullRequestSerializer()))
-        }
+        pr_serializer = SeerRunPullRequestSerializer(include_ci_status=self.include_ci_status)
+        # serialize()'s generic is bound by the base class, so re-narrow to the subclass response.
+        serialized_prs = cast(list[SeerRunPullRequestResponse], serialize(prs, user, pr_serializer))
+        serialized_pr_by_id = {pr.id: serialized for pr, serialized in zip(prs, serialized_prs)}
 
-        pull_requests_by_run_id: dict[int, list[PullRequestSerializerResponse]] = defaultdict(list)
+        pull_requests_by_run_id: dict[int, list[SeerRunPullRequestResponse]] = defaultdict(list)
         for link in pr_links:
             pull_requests_by_run_id[link.seer_run_id].append(
                 serialized_pr_by_id[link.pull_request_id]
