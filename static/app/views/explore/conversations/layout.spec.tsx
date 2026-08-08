@@ -6,6 +6,7 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import ConversationsLayout from './layout';
+import {CONVERSATIONS_SIDEBAR_LABEL} from './settings';
 
 const organization = OrganizationFixture({
   features: ['performance-view', 'gen-ai-conversations'],
@@ -59,7 +60,7 @@ describe('ConversationsLayout', () => {
 
     const topBar = screen.getByRole('banner');
     expect(
-      await within(topBar).findByRole('link', {name: 'Conversations'})
+      await within(topBar).findByRole('link', {name: CONVERSATIONS_SIDEBAR_LABEL})
     ).toBeInTheDocument();
     expect(within(topBar).getByText('My saved query')).toBeInTheDocument();
   });
@@ -76,7 +77,7 @@ describe('ConversationsLayout', () => {
 
     const topBar = screen.getByRole('banner');
     expect(
-      await within(topBar).findByRole('link', {name: 'Conversations'})
+      await within(topBar).findByRole('link', {name: CONVERSATIONS_SIDEBAR_LABEL})
     ).toBeInTheDocument();
     // The saved query title is the page heading, owned by the TopBar title slot.
     expect(
@@ -97,7 +98,7 @@ describe('ConversationsLayout', () => {
     const topBar = screen.getByRole('banner');
     expect(within(topBar).queryByText('AI Conversations')).not.toBeInTheDocument();
     expect(
-      within(topBar).queryByRole('link', {name: 'Conversations'})
+      within(topBar).queryByRole('link', {name: CONVERSATIONS_SIDEBAR_LABEL})
     ).not.toBeInTheDocument();
   });
 });

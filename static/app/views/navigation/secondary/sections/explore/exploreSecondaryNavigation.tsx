@@ -148,7 +148,7 @@ export function ExploreSecondaryNavigation() {
                   analyticsItemName="explore_conversations"
                   trailingItems={<FeatureBadge type="beta" />}
                 >
-                  {t('Conversations')}
+                  {t('Agents')}
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
             </Feature>
