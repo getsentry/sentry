@@ -1,4 +1,4 @@
-import {isValidElement, memo, useState} from 'react';
+import {isValidElement, memo, useMemo, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
 import type {
@@ -130,29 +130,6 @@ function Chart({
 }: ChartProps) {
   const [seriesSelection, setSeriesSelection] = useState<Record<string, boolean>>({});
 
-  function getChartComponent(): ChartComponent {
-    if (defined(chartComponent)) {
-      return chartComponent;
-    }
-
-    if (showDaily) {
-      return BarChart;
-    }
-
-    if (timeseriesData.length > 1) {
-      switch (forceChartType || aggregateMultiPlotType(yAxis)) {
-        case 'line':
-          return LineChart;
-        case 'area':
-          return AreaChart;
-        default:
-          throw new Error(`Unknown multi plot type for ${yAxis}`);
-      }
-    }
-
-    return AreaChart;
-  }
-
   function handleLegendSelectChanged(legendChange: any) {
     const {selected} = legendChange;
     const newSeriesSelection = Object.keys(selected).reduce<Record<string, boolean>>(
@@ -170,7 +147,25 @@ function Chart({
     setSeriesSelection(newSeriesSelection);
   }
 
-  const ChartComponent = getChartComponent();
+  const ChartComponent = useMemo((): ChartComponent => {
+    if (defined(chartComponent)) {
+      return chartComponent;
+    }
+    if (showDaily) {
+      return BarChart;
+    }
+    if (timeseriesData.length > 1) {
+      switch (forceChartType || aggregateMultiPlotType(yAxis)) {
+        case 'line':
+          return LineChart;
+        case 'area':
+          return AreaChart;
+        default:
+          throw new Error(`Unknown multi plot type for ${yAxis}`);
+      }
+    }
+    return AreaChart;
+  }, [chartComponent, showDaily, timeseriesData.length, forceChartType, yAxis]);
 
   const data = [
     ...(currentSeriesNames.length > 0 ? currentSeriesNames : [t('Current')]),
