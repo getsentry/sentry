@@ -11,6 +11,12 @@ import {Markdown} from '@sentry/scraps/markdown';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Text} from '@sentry/scraps/text';
 
+import {
+  type Mention,
+  MentionInput,
+  type MentionInputValue,
+  type MentionSource,
+} from 'sentry/components/mentionInput';
 import {IconMarkdown} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';
@@ -19,15 +25,7 @@ import type {AvatarUser} from 'sentry/types/user';
 import {useOrganizationMemberSearch} from 'sentry/utils/members/useOrganizationMemberSearch';
 import {useTeams} from 'sentry/utils/useTeams';
 
-import {
-  MentionInput,
-  type MentionSource,
-  type MentionSuggestion,
-  type MentionValue,
-  serializeMentions,
-} from './mentionInput';
-
-export interface MentionComposerProps {
+export interface MentionComposerProps<T = MentionEntity> {
   initialValue?: string;
   minHeight?: number;
   onSubmit?: (data: NoteType) => Promise<void>;
@@ -36,12 +34,14 @@ export interface MentionComposerProps {
   /**
    * Overrides the organization member and team sources.
    */
-  sources?: readonly MentionSource[];
+  sources?: ReadonlyArray<MentionSource<T>>;
 }
 
 type EditorMode = 'write' | 'preview';
 
-type MentionEntity = {kind: 'member'; user: AvatarUser} | {kind: 'team'; team: Team};
+export type MentionEntity =
+  | {kind: 'member'; user: AvatarUser}
+  | {kind: 'team'; team: Team};
 
 const mentionComposerSchema = z.object({
   text: z.string(),
@@ -51,9 +51,12 @@ const mentionComposerSchema = z.object({
  * Composes MentionInput with the note editor controls. Passing `sources` makes
  * the component data-agnostic; omitting them connects organization data.
  */
-export function MentionComposer(props: MentionComposerProps) {
-  if (props.sources) {
-    return <Composer {...props} sources={props.sources} />;
+export function MentionComposer<T = MentionEntity>({
+  sources,
+  ...props
+}: MentionComposerProps<T>) {
+  if (sources) {
+    return <Composer {...props} sources={sources} />;
   }
 
   return <ConnectedMentionComposer {...props} />;
@@ -63,26 +66,16 @@ function ConnectedMentionComposer(props: Omit<MentionComposerProps, 'sources'>) 
   const {members, onSearch: searchMembers} = useOrganizationMemberSearch();
   const {teams} = useTeams();
 
-  const memberSuggestions = useMemo<readonly MentionSuggestion[]>(
-    () =>
-      members.map(user => ({
-        id: `user:${user.id}`,
-        label: user.name || user.email || user.username || user.id,
-        payload: {kind: 'member', user} satisfies MentionEntity,
-      })),
+  const memberSuggestions = useMemo<readonly MentionEntity[]>(
+    () => members.map(user => ({kind: 'member', user})),
     [members]
   );
-  const teamSuggestions = useMemo<readonly MentionSuggestion[]>(
-    () =>
-      teams.map(team => ({
-        id: `team:${team.id}`,
-        label: `#${team.slug}`,
-        payload: {kind: 'team', team} satisfies MentionEntity,
-      })),
+  const teamSuggestions = useMemo<readonly MentionEntity[]>(
+    () => teams.map(team => ({kind: 'team', team})),
     [teams]
   );
 
-  const sources = useMemo<readonly MentionSource[]>(
+  const sources = useMemo<ReadonlyArray<MentionSource<MentionEntity>>>(
     () => [
       {
         id: 'members',
@@ -93,14 +86,11 @@ function ConnectedMentionComposer(props: Omit<MentionComposerProps, 'sources'>) 
           const normalizedQuery = query.trim().toLocaleLowerCase();
 
           return memberSuggestions.filter(suggestion =>
-            suggestion.label.toLocaleLowerCase().includes(normalizedQuery)
+            getMentionLabel(suggestion).toLocaleLowerCase().includes(normalizedQuery)
           );
         },
-        getReplacement: suggestion => `@${suggestion.label}`,
-        getMarkup: (_suggestion, replacement) => `**${replacement}**`,
-        renderMention: (suggestion, replacement) => (
-          <MentionIdentity suggestion={suggestion} text={replacement} />
-        ),
+        getId: getMentionId,
+        getText: suggestion => `@${getMentionLabel(suggestion)}`,
         renderSuggestion: suggestion => <MentionIdentity suggestion={suggestion} />,
       },
       {
@@ -110,14 +100,11 @@ function ConnectedMentionComposer(props: Omit<MentionComposerProps, 'sources'>) 
         getSuggestions: query => {
           const normalizedQuery = query.trim().toLocaleLowerCase();
           return teamSuggestions.filter(suggestion =>
-            suggestion.label.toLocaleLowerCase().includes(normalizedQuery)
+            getMentionLabel(suggestion).toLocaleLowerCase().includes(normalizedQuery)
           );
         },
-        getReplacement: suggestion => suggestion.label,
-        getMarkup: (_suggestion, replacement) => `**${replacement}**`,
-        renderMention: (suggestion, replacement) => (
-          <MentionIdentity suggestion={suggestion} text={replacement} />
-        ),
+        getId: getMentionId,
+        getText: getMentionLabel,
         renderSuggestion: suggestion => <MentionIdentity suggestion={suggestion} />,
       },
     ],
@@ -127,44 +114,67 @@ function ConnectedMentionComposer(props: Omit<MentionComposerProps, 'sources'>) 
   return <Composer {...props} sources={sources} />;
 }
 
-function MentionIdentity({
-  suggestion,
-  text = suggestion.label,
-}: {
-  suggestion: MentionSuggestion;
-  text?: string;
-}) {
-  const payload = suggestion.payload as MentionEntity | undefined;
-
+function MentionIdentity({suggestion}: {suggestion: MentionEntity}) {
   return (
     <Flex as="span" align="center" gap="xs">
-      {payload?.kind === 'member' ? (
+      {suggestion.kind === 'member' ? (
         <span aria-hidden="true">
-          <UserAvatar user={payload.user} size={16} hasTooltip={false} />
+          <UserAvatar user={suggestion.user} size={16} hasTooltip={false} />
         </span>
-      ) : payload?.kind === 'team' ? (
+      ) : (
         <span aria-hidden="true">
-          <TeamAvatar team={payload.team} size={16} hasTooltip={false} />
+          <TeamAvatar team={suggestion.team} size={16} hasTooltip={false} />
         </span>
-      ) : null}
+      )}
       <Text as="span" size="sm">
-        {text}
+        {getMentionLabel(suggestion)}
       </Text>
     </Flex>
   );
 }
 
-function Composer({
+function getMentionLabel(suggestion: MentionEntity): string {
+  return suggestion.kind === 'member'
+    ? suggestion.user.name ||
+        suggestion.user.email ||
+        suggestion.user.username ||
+        suggestion.user.id
+    : `#${suggestion.team.slug}`;
+}
+
+function getMentionId(suggestion: MentionEntity): string {
+  return suggestion.kind === 'member'
+    ? `user:${suggestion.user.id}`
+    : `team:${suggestion.team.id}`;
+}
+
+function serializeNoteMentions<T>(value: MentionInputValue<T>): string {
+  let text = value.text;
+
+  for (const mention of value.mentions.toSorted((a, b) => b.start - a.start)) {
+    if (value.text.slice(mention.start, mention.end) !== mention.text) {
+      continue;
+    }
+
+    text = text.slice(0, mention.start) + `**${mention.text}**` + text.slice(mention.end);
+  }
+
+  return text;
+}
+
+function Composer<T>({
   sources,
   initialValue = '',
   minHeight = 140,
   onValueChange,
   onSubmit,
   placeholder = t('Add a comment.\nTag users with @, or teams with #'),
-}: MentionComposerProps & {sources: readonly MentionSource[]}) {
+}: Omit<MentionComposerProps<T>, 'sources'> & {
+  sources: ReadonlyArray<MentionSource<T>>;
+}) {
   const theme = useTheme();
   const prefersReducedMotion = useReducedMotion();
-  const [mentions, setMentions] = useState<readonly MentionValue[]>([]);
+  const [mentions, setMentions] = useState<ReadonlyArray<Mention<T>>>([]);
   const [editorMode, setEditorMode] = useState<EditorMode>('write');
 
   const [areControlsVisible, setAreControlsVisible] = useState(false);
@@ -174,9 +184,10 @@ function Composer({
       const validMentionIds = mentions.flatMap(mention =>
         value.slice(mention.start, mention.end) === mention.text ? mention.id : []
       );
+      const mentionValue = {text: value, mentions};
       const uniqueMentionIds = [...new Set(validMentionIds)];
       const data = {
-        text: serializeMentions(value, mentions),
+        text: serializeNoteMentions(mentionValue),
         mentions: uniqueMentionIds,
       };
 
@@ -218,13 +229,12 @@ function Composer({
                   ref={ref}
                   aria-label={t('Add a comment')}
                   sources={sources}
-                  mentions={mentions}
                   placeholder={placeholder}
-                  onValueChange={(value, nextMentions) => {
+                  onChange={nextValue => {
                     setAreControlsVisible(true);
-                    setMentions(nextMentions);
-                    field.handleChange(value);
-                    onValueChange?.(value);
+                    setMentions(nextValue.mentions);
+                    field.handleChange(nextValue.text);
+                    onValueChange?.(nextValue.text);
                   }}
                   onFocus={() => setAreControlsVisible(true)}
                   onKeyDown={event => {
@@ -237,7 +247,7 @@ function Composer({
                       form.handleSubmit();
                     }
                   }}
-                  value={field.state.value}
+                  value={{text: field.state.value, mentions}}
                   minHeight={minHeight}
                 />
               )}
@@ -253,7 +263,9 @@ function Composer({
               minHeight={`${minHeight}px`}
               overflow="auto"
             >
-              <Markdown raw={serializeMentions(field.state.value, mentions)} />
+              <Markdown
+                raw={serializeNoteMentions({text: field.state.value, mentions})}
+              />
             </Container>
           )
         }

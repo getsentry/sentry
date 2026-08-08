@@ -1,22 +1,6 @@
-import type {MentionValue} from './model';
-
-export const ZERO_WIDTH_SPACE = '\u200B';
-
 export interface EditorSelection {
   end: number;
   start: number;
-}
-
-interface EditorSnapshot {
-  mentions: readonly MentionValue[];
-  value: string;
-}
-
-function isMentionElement(node: Node): node is HTMLElement {
-  return (
-    node.nodeType === Node.ELEMENT_NODE &&
-    (node as HTMLElement).dataset.mentionIndex !== undefined
-  );
 }
 
 function isLineBreak(node: Node): node is HTMLBRElement {
@@ -30,32 +14,12 @@ function isLineContainer(node: Node): boolean {
   );
 }
 
-function plainText(text: string): string {
-  return text.replaceAll(ZERO_WIDTH_SPACE, '');
-}
-
-export function readEditorSnapshot(
-  root: Node,
-  currentMentions: readonly MentionValue[]
-): EditorSnapshot {
+export function readEditorValue(root: Node): string {
   let value = '';
-  const nextMentions: MentionValue[] = [];
 
   const visit = (node: Node, isRootChild = false) => {
-    if (isMentionElement(node)) {
-      const mention = currentMentions[Number(node.dataset.mentionIndex)];
-      if (!mention) {
-        return;
-      }
-
-      const start = value.length;
-      value += mention.text;
-      nextMentions.push({...mention, start, end: value.length});
-      return;
-    }
-
     if (node.nodeType === Node.TEXT_NODE) {
-      value += plainText(node.textContent ?? '');
+      value += node.textContent ?? '';
       return;
     }
 
@@ -77,15 +41,10 @@ export function readEditorSnapshot(
     root.childNodes.forEach(child => visit(child, true));
   }
 
-  return {value, mentions: nextMentions};
+  return value;
 }
 
-function getPlainOffset(
-  root: HTMLElement,
-  node: Node,
-  offset: number,
-  mentions: readonly MentionValue[]
-): number | null {
+function getTextOffset(root: HTMLElement, node: Node, offset: number): number | null {
   if (node !== root && !root.contains(node)) {
     return null;
   }
@@ -101,30 +60,17 @@ function getPlainOffset(
 
   const fragmentRoot = document.createElement('div');
   fragmentRoot.append(range.cloneContents());
-  return readEditorSnapshot(fragmentRoot, mentions).value.length;
+  return readEditorValue(fragmentRoot).length;
 }
 
-export function getEditorSelection(
-  root: HTMLElement,
-  mentions: readonly MentionValue[]
-): EditorSelection | null {
+export function getEditorSelection(root: HTMLElement): EditorSelection | null {
   const selection = window.getSelection();
   if (!selection?.anchorNode || !selection.focusNode) {
     return null;
   }
 
-  const anchor = getPlainOffset(
-    root,
-    selection.anchorNode,
-    selection.anchorOffset,
-    mentions
-  );
-  const focus = getPlainOffset(
-    root,
-    selection.focusNode,
-    selection.focusOffset,
-    mentions
-  );
+  const anchor = getTextOffset(root, selection.anchorNode, selection.anchorOffset);
+  const focus = getTextOffset(root, selection.focusNode, selection.focusOffset);
   if (anchor === null || focus === null) {
     return null;
   }
@@ -137,55 +83,32 @@ interface DOMPoint {
   offset: number;
 }
 
-function rawTextOffset(text: string, targetOffset: number): number {
-  let plainOffset = 0;
-  for (let rawOffset = 0; rawOffset < text.length; rawOffset += 1) {
-    if (text[rawOffset] !== ZERO_WIDTH_SPACE) {
-      if (plainOffset === targetOffset) {
-        return rawOffset;
-      }
-      plainOffset += 1;
-    }
-  }
-  return text.length;
-}
-
-export function getDOMPoint(
-  root: HTMLElement,
-  targetOffset: number,
-  mentions: readonly MentionValue[]
-): DOMPoint {
+export function getDOMPoint(root: HTMLElement, targetOffset: number): DOMPoint {
   let consumed = 0;
   let point: DOMPoint | null = null;
 
-  const visit = (node: Node) => {
+  const visit = (node: Node, isRootChild = false) => {
     if (point) {
       return;
     }
 
-    if (isMentionElement(node)) {
-      const mention = mentions[Number(node.dataset.mentionIndex)];
-      const length = mention?.text.length ?? 0;
+    if (isRootChild && isLineContainer(node) && consumed > 0) {
       const parent = node.parentNode;
       if (!parent) {
         return;
       }
-      const index = Array.from(parent.childNodes).indexOf(node);
-
-      if (targetOffset <= consumed) {
+      const index = Array.from(parent.childNodes).indexOf(node as ChildNode);
+      if (targetOffset <= consumed + 1) {
         point = {node: parent, offset: index};
-      } else if (targetOffset <= consumed + length) {
-        point = {node: parent, offset: index + 1};
+        return;
       }
-      consumed += length;
-      return;
+      consumed += 1;
     }
 
     if (node.nodeType === Node.TEXT_NODE) {
-      const text = node.textContent ?? '';
-      const length = plainText(text).length;
+      const length = node.textContent?.length ?? 0;
       if (length > 0 && targetOffset <= consumed + length) {
-        point = {node, offset: rawTextOffset(text, targetOffset - consumed)};
+        point = {node, offset: targetOffset - consumed};
       }
       consumed += length;
       return;
@@ -207,25 +130,21 @@ export function getDOMPoint(
       return;
     }
 
-    node.childNodes.forEach(visit);
+    node.childNodes.forEach(child => visit(child));
   };
 
-  root.childNodes.forEach(visit);
+  root.childNodes.forEach(child => visit(child, true));
   return point ?? {node: root, offset: root.childNodes.length};
 }
 
-export function setEditorSelection(
-  root: HTMLElement,
-  selection: EditorSelection,
-  mentions: readonly MentionValue[]
-) {
+export function setEditorSelection(root: HTMLElement, selection: EditorSelection) {
   const domSelection = window.getSelection();
   if (!domSelection) {
     return;
   }
 
-  const start = getDOMPoint(root, selection.start, mentions);
-  const end = getDOMPoint(root, selection.end, mentions);
+  const start = getDOMPoint(root, selection.start);
+  const end = getDOMPoint(root, selection.end);
   const range = document.createRange();
   range.setStart(start.node, start.offset);
   range.setEnd(end.node, end.offset);
@@ -238,19 +157,11 @@ const GRAPHEME_SEGMENTER = new Intl.Segmenter(undefined, {granularity: 'grapheme
 export function getDeletionSelection(
   value: string,
   selection: EditorSelection,
-  mentions: readonly MentionValue[],
   direction: 'backward' | 'forward'
 ): EditorSelection {
   let {start, end} = selection;
 
   if (start === end) {
-    const adjacentMention = mentions.find(mention =>
-      direction === 'backward' ? mention.end === start : mention.start === start
-    );
-    if (adjacentMention) {
-      return {start: adjacentMention.start, end: adjacentMention.end};
-    }
-
     if (direction === 'backward' && start > 0) {
       let previous = 0;
       for (const segment of GRAPHEME_SEGMENTER.segment(value.slice(0, start))) {
@@ -262,13 +173,6 @@ export function getDeletionSelection(
         [Symbol.iterator]()
         .next().value;
       end += segment?.segment.length ?? 1;
-    }
-  }
-
-  for (const mention of mentions) {
-    if (mention.start < end && mention.end > start) {
-      start = Math.min(start, mention.start);
-      end = Math.max(end, mention.end);
     }
   }
 

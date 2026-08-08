@@ -1,11 +1,14 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {
-  MentionComposer,
-  type MentionSource,
-} from 'sentry/components/activity/note/mentionInput';
+import {MentionComposer} from 'sentry/components/activity/note/mentionComposer';
+import type {MentionSource} from 'sentry/components/mentionInput';
 
-const SOURCES: readonly MentionSource[] = [
+interface Suggestion {
+  id: string;
+  label: string;
+}
+
+const SOURCES: ReadonlyArray<MentionSource<Suggestion>> = [
   {
     id: 'members',
     label: 'Members',
@@ -14,16 +17,18 @@ const SOURCES: readonly MentionSource[] = [
       [{id: 'user:1', label: 'Alice Example'}].filter(suggestion =>
         suggestion.label.toLocaleLowerCase().startsWith(query.toLocaleLowerCase())
       ),
-    getReplacement: suggestion => `@${suggestion.label}`,
-    getMarkup: (_suggestion, replacement) => `**${replacement}**`,
+    getId: suggestion => suggestion.id,
+    getText: suggestion => `@${suggestion.label}`,
+    renderSuggestion: suggestion => suggestion.label,
   },
   {
     id: 'teams',
     label: 'Teams',
     trigger: '#',
     getSuggestions: () => [{id: 'team:1', label: '#frontend'}],
-    getReplacement: suggestion => suggestion.label,
-    getMarkup: (_suggestion, replacement) => `**${replacement}**`,
+    getId: suggestion => suggestion.id,
+    getText: suggestion => suggestion.label,
+    renderSuggestion: suggestion => suggestion.label,
   },
 ];
 

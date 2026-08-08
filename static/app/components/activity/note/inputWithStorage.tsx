@@ -5,7 +5,7 @@ import debounce from 'lodash/debounce';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {CompactNoteInput} from 'sentry/components/activity/note/compact';
 import {NoteInput} from 'sentry/components/activity/note/input';
-import {MentionComposer} from 'sentry/components/activity/note/mentionInput';
+import {MentionComposer} from 'sentry/components/activity/note/mentionComposer';
 import type {MentionChangeEvent} from 'sentry/components/activity/note/types';
 import {t, tct} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';
