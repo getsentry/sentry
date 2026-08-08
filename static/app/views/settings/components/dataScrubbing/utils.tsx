@@ -331,9 +331,7 @@ export class TraceItemFieldSelector {
     selector: string
   ): boolean {
     const prefix = TraceItemFieldSelector.datasetSelectorMap[dataset];
-    return prefix
-      ? selector === prefix || selector.startsWith(prefix + '.')
-      : false;
+    return prefix ? selector === prefix || selector.startsWith(prefix + '.') : false;
   }
 
   static fromRule(rule: Rule): TraceItemFieldSelector | null {
