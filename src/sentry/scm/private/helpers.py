@@ -1,8 +1,10 @@
+import logging
 import time
 from typing import cast
 
 import sentry_sdk
 from django.db.models import Q
+from scm.errors import RateLimitExceeded, ResourceForbidden, SCMCodedError
 from scm.providers.github.provider import GitHubProvider
 from scm.providers.gitlab.provider import GitLabProvider
 from scm.rate_limit import RateLimitProvider
@@ -16,6 +18,18 @@ from sentry.models.repository import Repository as RepositoryModel
 from sentry.scm.private.rate_limit import DynamicRateLimiter, RedisRateLimitProvider
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import metrics
+
+logger = logging.getLogger(__name__)
+
+# SCMCodedError subclasses that represent expected external conditions (ACL
+# restrictions, rate limits, etc.) rather than application defects. These are
+# surfaced as warnings in the application log instead of being captured as
+# Sentry error events, which would pollute the error stream and obscure real
+# defects.
+_EXPECTED_EXTERNAL_CONDITION_TYPES = (
+    ResourceForbidden,
+    RateLimitExceeded,
+)
 
 
 def fetch_service_provider(
@@ -106,7 +120,28 @@ def fetch_repository(organization_id: int, repository_id: RepositoryId) -> Repos
 
 
 def report_error_to_sentry(e: Exception) -> None:
-    """Typing wrapper around sentry_sdk.capture_exception."""
+    """Capture an SCM RPC exception as a Sentry error event, or log it as a
+    warning when it represents an expected external condition.
+
+    IP allowlists, ACL restrictions (ResourceForbidden), and rate limits
+    (RateLimitExceeded) are set by the upstream service-provider or the
+    customer organization and are not application defects. Capturing them as
+    Sentry errors would pollute the error stream and make real defects harder
+    to find. They are logged at WARNING instead so they remain observable
+    without creating noise.
+
+    All other exceptions — including SCMCodedError subclasses for unexpected
+    responses and unhandled provider exceptions — are captured normally.
+    """
+    if isinstance(e, _EXPECTED_EXTERNAL_CONDITION_TYPES):
+        logger.warning(
+            "scm.rpc.expected_external_condition",
+            extra={
+                "error_code": e.code if isinstance(e, SCMCodedError) else None,
+                "detail": e.detail if isinstance(e, SCMCodedError) else str(e),
+            },
+        )
+        return
     sentry_sdk.capture_exception(e)
 
 
