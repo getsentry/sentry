@@ -20,7 +20,9 @@ from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
 from django.utils.timezone import now
 from rest_framework.request import Request
-from urllib3 import BaseHTTPResponse, HTTPConnectionPool
+from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
+from urllib3.exceptions import MaxRetryError
+from urllib3.exceptions import TimeoutError as Urllib3TimeoutError
 
 from sentry import features
 from sentry.constants import ObjectStatus
@@ -54,6 +56,15 @@ logger = logging.getLogger(__name__)
 agent_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL,
     timeout=settings.SEER_DEFAULT_TIMEOUT,
+)
+
+# Retry transient upstream failures when resolving Autofix state by PR id.
+# Multi-PR check suites can burst this endpoint and briefly overload Seer.
+AGENT_STATE_PR_RETRIES = Retry(
+    total=2,
+    backoff_factor=0.5,
+    status_forcelist=[408, 429, 502, 503, 504],
+    allowed_methods=["GET", "POST"],
 )
 
 
@@ -211,6 +222,7 @@ def make_agent_state_pr_request(
         connection_pool or agent_connection_pool,
         "/v1/automation/explorer/state/pr",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+        retries=AGENT_STATE_PR_RETRIES,
         viewer_context=viewer_context,
     )
 
@@ -325,7 +337,13 @@ def get_agent_state_from_pr_id(
     organization_id: int, provider: str, pr_id: int
 ) -> SeerRunState | None:
     body = AgentPrStateRequest(organization_id=organization_id, provider=provider, pr_id=pr_id)
-    response = make_agent_state_pr_request(body)
+    try:
+        response = make_agent_state_pr_request(body)
+    except (MaxRetryError, Urllib3TimeoutError) as e:
+        # Retries exhausted on a transient status / timeout — surface as SeerApiError
+        # so callers can treat it like any other upstream failure.
+        status = getattr(getattr(e, "reason", None), "status", None) or 503
+        raise SeerApiError("Seer request failed", status) from e
 
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)

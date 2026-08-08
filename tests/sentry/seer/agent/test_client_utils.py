@@ -1,4 +1,7 @@
+from unittest.mock import MagicMock, patch
+
 import jwt
+import pytest
 from django.test import override_settings
 
 from sentry.hybridcloud.models.outbox import CellOutbox
@@ -512,3 +515,52 @@ class EnqueueSeerRunSanitizeTest(TestCase):
         assert outbox.payload is not None
         title = outbox.payload["body"]["payload"]["candidates"][0]["title"]
         assert title == "System.FormatException: The input string '' was..."
+
+
+class GetAgentStateFromPrIdTest(TestCase):
+    @patch("sentry.seer.agent.client_utils.make_agent_state_pr_request")
+    def test_raises_seer_api_error_on_http_error(self, mock_request: MagicMock) -> None:
+        from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
+        from sentry.seer.models import SeerApiError
+
+        mock_request.return_value = MagicMock(status=503, json=MagicMock(return_value={}))
+
+        with pytest.raises(SeerApiError) as exc_info:
+            get_agent_state_from_pr_id(1, "integrations:github", 99)
+
+        assert exc_info.value.status == 503
+        assert exc_info.value.is_transient
+
+    @patch("sentry.seer.agent.client_utils.make_agent_state_pr_request")
+    def test_raises_seer_api_error_on_max_retries(self, mock_request: MagicMock) -> None:
+        from urllib3.exceptions import MaxRetryError
+
+        from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
+        from sentry.seer.models import SeerApiError
+
+        mock_request.side_effect = MaxRetryError(MagicMock(), "url", reason=None)
+
+        with pytest.raises(SeerApiError) as exc_info:
+            get_agent_state_from_pr_id(1, "integrations:github", 99)
+
+        assert exc_info.value.status == 503
+        assert exc_info.value.is_transient
+
+    @patch("sentry.seer.agent.client_utils.make_agent_state_pr_request")
+    def test_returns_none_when_no_session(self, mock_request: MagicMock) -> None:
+        from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
+
+        mock_request.return_value = MagicMock(status=200, json=MagicMock(return_value={}))
+        assert get_agent_state_from_pr_id(1, "integrations:github", 99) is None
+
+
+class SeerApiErrorTransientTest(TestCase):
+    def test_is_transient_for_server_and_rate_limit_errors(self) -> None:
+        from sentry.seer.models import SeerApiError
+
+        assert SeerApiError("x", 503).is_transient
+        assert SeerApiError("x", 500).is_transient
+        assert SeerApiError("x", 429).is_transient
+        assert SeerApiError("x", 408).is_transient
+        assert not SeerApiError("x", 400).is_transient
+        assert not SeerApiError("x", 404).is_transient

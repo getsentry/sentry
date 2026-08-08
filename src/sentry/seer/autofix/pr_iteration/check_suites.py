@@ -210,7 +210,28 @@ def resolve_check_suite_autofix_run(
                     candidate.organization_id, SEER_GITHUB_PROVIDER, pr_id
                 )
             except SeerApiError as e:
-                sentry_sdk.capture_exception(e)
+                # Multi-PR check suites burst-query Seer; 5xx/429 under load is
+                # expected. Continue looking up remaining PRs without filing a
+                # Sentry issue for transient unavailability.
+                if e.is_transient:
+                    logger.warning(
+                        "autofix.pr_iteration.check_suite.seer_transient_error",
+                        extra={
+                            "organization_id": candidate.organization_id,
+                            "pr_id": pr_id,
+                            "status_code": e.status,
+                        },
+                    )
+                    metrics.incr(
+                        "autofix.pr_iteration.check_suite.seer_error",
+                        tags={"status_code": str(e.status), "transient": "true"},
+                    )
+                else:
+                    sentry_sdk.capture_exception(e)
+                    metrics.incr(
+                        "autofix.pr_iteration.check_suite.seer_error",
+                        tags={"status_code": str(e.status), "transient": "false"},
+                    )
                 continue
 
             if state is None or not state.repo_pr_states:

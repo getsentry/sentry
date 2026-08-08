@@ -348,7 +348,8 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         from sentry.seer.models import SeerApiError
 
         mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
-        error = SeerApiError("transient", 500)
+        # Non-transient client error should still be reported.
+        error = SeerApiError("bad request", 400)
         mock_get_state.side_effect = [error, self._agent_state()]
         raw = self._raw(pull_requests=[{"id": 111}, {"id": 222}])
 
@@ -356,6 +357,39 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
 
         assert mock_get_state.call_count == 2
         mock_capture.assert_called_once_with(error)
+        mock_enqueue.assert_called_once()
+        mock_trigger_consume.assert_called_once()
+
+    @patch(f"{CHECK_SUITES_PATH}.metrics.incr")
+    @patch(f"{CHECK_SUITES_PATH}.sentry_sdk.capture_exception")
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_seer_transient_error_on_one_pr_does_not_capture(
+        self,
+        mock_resolve: MagicMock,
+        mock_get_state: MagicMock,
+        mock_enqueue: MagicMock,
+        mock_trigger_consume: MagicMock,
+        mock_capture: MagicMock,
+        mock_metrics: MagicMock,
+    ) -> None:
+        from sentry.seer.models import SeerApiError
+
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        error = SeerApiError("Seer request failed", 503)
+        mock_get_state.side_effect = [error, self._agent_state()]
+        raw = self._raw(pull_requests=[{"id": 111}, {"id": 222}])
+
+        pr_iteration_from_check_suite_listener(self._event(raw))
+
+        assert mock_get_state.call_count == 2
+        mock_capture.assert_not_called()
+        mock_metrics.assert_any_call(
+            "autofix.pr_iteration.check_suite.seer_error",
+            tags={"status_code": "503", "transient": "true"},
+        )
         mock_enqueue.assert_called_once()
         mock_trigger_consume.assert_called_once()
 
