@@ -47,6 +47,7 @@ from sentry.shared_integrations.exceptions import (
     ApiInvalidRequestError,
     ApiRateLimitedError,
     ApiRetryError,
+    IntegrationError,
     UnknownHostError,
 )
 from sentry.snuba.dataset import Dataset
@@ -169,7 +170,7 @@ class CommitContextIntegration(ABC):
         ).capture() as lifecycle:
             try:
                 client = self.get_client()
-            except Identity.DoesNotExist as e:
+            except (Identity.DoesNotExist, IntegrationError) as e:
                 lifecycle.record_failure(e)
                 sentry_sdk.capture_exception(e)
                 return []
