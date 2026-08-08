@@ -4,13 +4,12 @@ import {
   reconcileMentions,
 } from 'sentry/components/mentionInput';
 
-const MENTION: Mention<{name: string}> = {
+const MENTION: Mention = {
   id: 'user:1',
   sourceId: 'members',
   start: 6,
   end: 12,
   text: '@Alice',
-  value: {name: 'Alice'},
 };
 
 describe('mention range model', () => {

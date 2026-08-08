@@ -1,3 +1,6 @@
+import {MemberFixture} from 'sentry-fixture/member';
+import {UserFixture} from 'sentry-fixture/user';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {MentionComposer} from 'sentry/components/activity/note/mentionComposer';
@@ -33,6 +36,25 @@ const SOURCES: ReadonlyArray<MentionSource<Suggestion>> = [
 ];
 
 describe('MentionComposer', () => {
+  it('shows members returned by the active search request', async () => {
+    const user = UserFixture({id: '1', name: 'Alice Remote'});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
+    const searchRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [MemberFixture({user})],
+      match: [MockApiClient.matchQuery({query: 'ali'})],
+    });
+
+    render(<MentionComposer />);
+    await userEvent.type(screen.getByRole('combobox', {name: 'Add a comment'}), '@ali');
+
+    expect(await screen.findByRole('option', {name: 'Alice Remote'})).toBeVisible();
+    expect(searchRequest).toHaveBeenCalled();
+  });
+
   it('submits serialized markdown and structured mention IDs', async () => {
     const onSubmit = jest.fn().mockResolvedValue(undefined);
     render(<MentionComposer sources={SOURCES} onSubmit={onSubmit} />);

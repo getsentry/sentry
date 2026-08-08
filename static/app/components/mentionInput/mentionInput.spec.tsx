@@ -35,18 +35,20 @@ function ControlledMentionInput({
   initialValue = '',
   initialMentions = [],
   maxSuggestions,
+  rebuildMentionsOnChange = false,
   renderSuggestionStatus,
 }: {
-  initialMentions?: ReadonlyArray<Mention<PersonSuggestion>>;
+  initialMentions?: readonly Mention[];
   initialValue?: string;
   maxSuggestions?: number;
+  rebuildMentionsOnChange?: boolean;
   renderSuggestionStatus?: (
     status: 'empty' | 'error' | 'loading',
     context: {query: string}
   ) => React.ReactNode;
   sources?: ReadonlyArray<MentionSource<PersonSuggestion>>;
 }) {
-  const [value, setValue] = useState<MentionInputValue<PersonSuggestion>>({
+  const [value, setValue] = useState<MentionInputValue>({
     text: initialValue,
     mentions: initialMentions,
   });
@@ -59,7 +61,13 @@ function ControlledMentionInput({
         renderSuggestionStatus={renderSuggestionStatus}
         sources={sources}
         value={value}
-        onChange={setValue}
+        onChange={nextValue =>
+          setValue(
+            rebuildMentionsOnChange
+              ? {...nextValue, mentions: [...nextValue.mentions]}
+              : nextValue
+          )
+        }
       />
       <output aria-label="Editor value">
         {value.text}|{value.mentions.map(mention => mention.id).join(',')}
@@ -158,15 +166,24 @@ describe('MentionInput', () => {
     expect(textbox).toHaveTextContent('hello');
   });
 
+  it('preserves undo history when the controlled value is reconstructed', async () => {
+    render(<ControlledMentionInput rebuildMentionsOnChange />);
+
+    const textbox = screen.getByRole('combobox', {name: 'Comment'});
+    await userEvent.type(textbox, 'hello');
+    await userEvent.keyboard('{Control>}z{/Control}');
+
+    expect(textbox).toBeEmptyDOMElement();
+  });
+
   it('renders a restored structured mention on the first render', () => {
     const suggestion = {id: 'user:1', label: 'Alice Example'};
-    const restoredMention: Mention<PersonSuggestion> = {
+    const restoredMention: Mention = {
       id: suggestion.id,
       sourceId: 'members',
       start: 14,
       end: 28,
       text: '@Alice Example',
-      value: suggestion,
     };
 
     render(

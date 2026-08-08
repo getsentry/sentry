@@ -97,9 +97,8 @@ const RESTORED_MENTIONS = [
     start: RESTORED_MENTION_START,
     end: RESTORED_MENTION_START + RESTORED_MENTION_TEXT.length,
     text: RESTORED_MENTION_TEXT,
-    value: PEOPLE[0]!,
   },
-] satisfies ReadonlyArray<Mention<IdentitySuggestion>>;
+] satisfies readonly Mention[];
 
 function SuggestionIdentity({
   suggestion,
@@ -144,7 +143,7 @@ function waitForDelay(delay: number, signal: AbortSignal) {
 }
 
 export function MentionInputDemo() {
-  const [value, setValue] = useState<MentionInputValue<IdentitySuggestion>>({
+  const [value, setValue] = useState<MentionInputValue>({
     text: 'The regression is isolated to the checkout flow.\nAssign it to ',
     mentions: [],
   });
@@ -163,7 +162,7 @@ export function MentionInputDemo() {
 }
 
 export function RestoredMentionInputDemo() {
-  const [value, setValue] = useState<MentionInputValue<IdentitySuggestion>>({
+  const [value, setValue] = useState<MentionInputValue>({
     text: RESTORED_TEXT,
     mentions: RESTORED_MENTIONS,
   });
@@ -182,7 +181,7 @@ export function RestoredMentionInputDemo() {
 }
 
 export function AsyncMentionInputDemo() {
-  const [value, setValue] = useState<MentionInputValue<IdentitySuggestion>>({
+  const [value, setValue] = useState<MentionInputValue>({
     text: 'Search remote members with ',
     mentions: [],
   });
@@ -224,7 +223,7 @@ export function AsyncMentionInputDemo() {
 }
 
 export function CustomSourceDemo() {
-  const [value, setValue] = useState<MentionInputValue<ServiceSuggestion>>({
+  const [value, setValue] = useState<MentionInputValue>({
     text: 'Route this trace to ',
     mentions: [],
   });

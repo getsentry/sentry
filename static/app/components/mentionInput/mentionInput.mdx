@@ -11,7 +11,7 @@ import {
   CustomSourceDemo,
   MentionInputDemo,
   RestoredMentionInputDemo,
-} from './mentionInput/__stories__/demos';
+} from './__stories__/demos';
 
 export const documentation = import('!!type-loader!sentry/components/mentionInput');
 
@@ -21,7 +21,7 @@ export const documentation = import('!!type-loader!sentry/components/mentionInpu
 
 This example combines local member and team sources. Selected references remain editable and are emphasized while their range is valid.
 
-When sources use different value shapes, model their shared editor value as a discriminated union. Each source still receives and returns its own domain data through that union.
+When sources use different suggestion shapes, model the source collection as a discriminated union. Suggestion objects remain source-local; the controlled editor value only stores stable IDs and text ranges.
 
 <Storybook.Demo overflow="visible">
   <MentionInputDemo />

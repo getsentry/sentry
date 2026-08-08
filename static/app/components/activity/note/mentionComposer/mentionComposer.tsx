@@ -1,7 +1,9 @@
 import {useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 import {AnimatePresence, motion, useReducedMotion} from 'framer-motion';
+import uniqBy from 'lodash/uniqBy';
 import {z} from 'zod';
 
 import {TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
@@ -20,9 +22,15 @@ import {
 import {IconMarkdown} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';
-import type {Team} from 'sentry/types/organization';
-import type {AvatarUser} from 'sentry/types/user';
-import {useOrganizationMemberSearch} from 'sentry/utils/members/useOrganizationMemberSearch';
+import type {Member, Team} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {
+  memberUsersQueryOptions,
+  selectUsersFromMembers,
+} from 'sentry/utils/members/shared';
+import {useMembers} from 'sentry/utils/members/useMembers';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 
 export interface MentionComposerProps<T = MentionEntity> {
@@ -39,9 +47,7 @@ export interface MentionComposerProps<T = MentionEntity> {
 
 type EditorMode = 'write' | 'preview';
 
-export type MentionEntity =
-  | {kind: 'member'; user: AvatarUser}
-  | {kind: 'team'; team: Team};
+export type MentionEntity = {kind: 'member'; user: User} | {kind: 'team'; team: Team};
 
 const mentionComposerSchema = z.object({
   text: z.string(),
@@ -63,7 +69,9 @@ export function MentionComposer<T = MentionEntity>({
 }
 
 function ConnectedMentionComposer(props: Omit<MentionComposerProps, 'sources'>) {
-  const {members, onSearch: searchMembers} = useOrganizationMemberSearch();
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+  const {data: members = []} = useMembers();
   const {teams} = useTeams();
 
   const memberSuggestions = useMemo<readonly MentionEntity[]>(
@@ -81,12 +89,20 @@ function ConnectedMentionComposer(props: Omit<MentionComposerProps, 'sources'>) 
         id: 'members',
         label: t('Members'),
         trigger: '@',
-        getSuggestions: query => {
-          void searchMembers(query.trim());
-          const normalizedQuery = query.trim().toLocaleLowerCase();
+        getSuggestions: async (query, {signal}) => {
+          const search = query.trim();
+          if (!search) {
+            return memberSuggestions;
+          }
 
-          return memberSuggestions.filter(suggestion =>
-            getMentionLabel(suggestion).toLocaleLowerCase().includes(normalizedQuery)
+          signal.throwIfAborted();
+          const response = await queryClient.fetchQuery(
+            memberUsersQueryOptions({orgSlug: organization.slug, search})
+          );
+          signal.throwIfAborted();
+
+          return uniqBy([...getMemberUsers(response), ...members], user => user.id).map(
+            user => ({kind: 'member', user}) satisfies MentionEntity
           );
         },
         getId: getMentionId,
@@ -108,7 +124,7 @@ function ConnectedMentionComposer(props: Omit<MentionComposerProps, 'sources'>) 
         renderSuggestion: suggestion => <MentionIdentity suggestion={suggestion} />,
       },
     ],
-    [memberSuggestions, searchMembers, teamSuggestions]
+    [memberSuggestions, members, organization.slug, queryClient, teamSuggestions]
   );
 
   return <Composer {...props} sources={sources} />;
@@ -148,7 +164,11 @@ function getMentionId(suggestion: MentionEntity): string {
     : `team:${suggestion.team.id}`;
 }
 
-function serializeNoteMentions<T>(value: MentionInputValue<T>): string {
+function getMemberUsers(response: ApiResponse<Member[]> | User[]): User[] {
+  return Array.isArray(response) ? response : selectUsersFromMembers(response.json);
+}
+
+function serializeNoteMentions(value: MentionInputValue): string {
   let text = value.text;
 
   for (const mention of value.mentions.toSorted((a, b) => b.start - a.start)) {
@@ -174,7 +194,7 @@ function Composer<T>({
 }) {
   const theme = useTheme();
   const prefersReducedMotion = useReducedMotion();
-  const [mentions, setMentions] = useState<ReadonlyArray<Mention<T>>>([]);
+  const [mentions, setMentions] = useState<readonly Mention[]>([]);
   const [editorMode, setEditorMode] = useState<EditorMode>('write');
 
   const [areControlsVisible, setAreControlsVisible] = useState(false);

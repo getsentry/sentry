@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {inputStyles, type InputStylesProps} from './inputStyles';
 
-export {type InputStylesProps} from './inputStyles';
+export {inputStyles, type InputStylesProps} from './inputStyles';
 export interface InputProps
   extends
     Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'readOnly'>,

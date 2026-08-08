@@ -1,13 +1,14 @@
 import {useCallback, useLayoutEffect, useRef} from 'react';
+import isEqual from 'lodash/isEqual';
 
 import type {EditorSelection} from './dom';
 import type {MentionInputValue} from './model';
 
 export type HistoryEditKind = 'deleteBackward' | 'deleteForward' | 'insertText' | 'other';
 
-interface HistoryEntry<T> {
+interface HistoryEntry {
   selection: EditorSelection;
-  value: MentionInputValue<T>;
+  value: MentionInputValue;
 }
 
 interface CoalescedEdit {
@@ -16,49 +17,28 @@ interface CoalescedEdit {
   timestamp: number;
 }
 
-interface UseEditorHistoryOptions<T> {
-  onChange: (value: MentionInputValue<T>) => void;
+interface UseEditorHistoryOptions {
+  onChange: (value: MentionInputValue) => void;
   onRestoreSelection: (selection: EditorSelection) => void;
-  value: MentionInputValue<T>;
+  value: MentionInputValue;
 }
 
 const COALESCE_WINDOW = 1000;
 const MAX_HISTORY_ENTRIES = 100;
 
-function isSameValue<T>(
-  first: MentionInputValue<T>,
-  second: MentionInputValue<T>
-): boolean {
-  return (
-    first.text === second.text &&
-    first.mentions.length === second.mentions.length &&
-    first.mentions.every((mention, index) => {
-      const other = second.mentions[index];
-      return (
-        mention.id === other?.id &&
-        mention.sourceId === other?.sourceId &&
-        mention.start === other?.start &&
-        mention.end === other?.end &&
-        mention.text === other?.text &&
-        mention.value === other?.value
-      );
-    })
-  );
-}
-
 function isCollapsed(selection: EditorSelection): boolean {
   return selection.start === selection.end;
 }
 
-export function useEditorHistory<T>({
+export function useEditorHistory({
   onChange,
   onRestoreSelection,
   value,
-}: UseEditorHistoryOptions<T>) {
-  const undoStackRef = useRef<Array<HistoryEntry<T>>>([]);
-  const redoStackRef = useRef<Array<HistoryEntry<T>>>([]);
+}: UseEditorHistoryOptions) {
+  const undoStackRef = useRef<HistoryEntry[]>([]);
+  const redoStackRef = useRef<HistoryEntry[]>([]);
   const coalescedEditRef = useRef<CoalescedEdit | null>(null);
-  const expectedValueRef = useRef<MentionInputValue<T> | null>(null);
+  const expectedValueRef = useRef<MentionInputValue | null>(null);
 
   const breakHistoryGroup = useCallback(() => {
     coalescedEditRef.current = null;
@@ -66,7 +46,7 @@ export function useEditorHistory<T>({
 
   useLayoutEffect(() => {
     const expectedValue = expectedValueRef.current;
-    if (expectedValue && isSameValue(expectedValue, value)) {
+    if (expectedValue && isEqual(expectedValue, value)) {
       expectedValueRef.current = null;
       return;
     }
@@ -78,7 +58,7 @@ export function useEditorHistory<T>({
   }, [value]);
 
   const emit = useCallback(
-    (nextValue: MentionInputValue<T>) => {
+    (nextValue: MentionInputValue) => {
       expectedValueRef.current = nextValue;
       onChange(nextValue);
     },
@@ -87,12 +67,12 @@ export function useEditorHistory<T>({
 
   const commit = useCallback(
     (
-      nextValue: MentionInputValue<T>,
+      nextValue: MentionInputValue,
       beforeSelection: EditorSelection,
       afterSelection: EditorSelection,
       kind: HistoryEditKind = 'other'
     ) => {
-      if (isSameValue(value, nextValue)) {
+      if (isEqual(value, nextValue)) {
         return;
       }
 

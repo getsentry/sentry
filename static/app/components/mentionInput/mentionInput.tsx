@@ -51,7 +51,7 @@ function getDefaultSuggestionStatus(status: MentionSuggestionStatus): React.Reac
  * A controlled multiline contenteditable with React Aria suggestion lists.
  * Mention ranges stay separate from the plain text used by forms and drafts.
  */
-export function MentionInput<T>({
+export function MentionInput<TSuggestion>({
   ref,
   value: inputValue,
   sources,
@@ -76,7 +76,7 @@ export function MentionInput<T>({
   onSelect,
   style,
   ...editorProps
-}: MentionInputProps<T>) {
+}: MentionInputProps<TSuggestion>) {
   const normalizedInputValue = useMemo(
     () => normalizeMentionInputValue(inputValue),
     [inputValue]
@@ -269,13 +269,12 @@ export function MentionInput<T>({
     const nextValue =
       value.slice(0, activeMention.start) + insertedText + value.slice(activeMention.end);
     const retainedMentions = reconcileMentions(value, nextValue, mentions);
-    const nextMention: Mention<T> = {
+    const nextMention: Mention = {
       id: activeSource.getId(suggestion),
       sourceId: activeSource.id,
       start: activeMention.start,
       end: activeMention.start + replacement.length,
       text: replacement,
-      value: suggestion,
     };
 
     const nextCaret = activeMention.start + insertedText.length;
@@ -372,6 +371,12 @@ export function MentionInput<T>({
       return;
     }
 
+    if (event.inputType === 'insertLineBreak' || event.inputType === 'insertParagraph') {
+      event.preventDefault();
+      applyEdit(selection, '\n', 'other');
+      return;
+    }
+
     if (
       event.inputType === 'deleteContentBackward' ||
       event.inputType === 'deleteContentForward'
@@ -450,8 +455,7 @@ export function MentionInput<T>({
       <MentionEditor
         {...editorProps}
         ref={mergedInputRef}
-        minHeight={minHeight}
-        style={style}
+        style={{minHeight, ...style}}
         role="combobox"
         aria-activedescendant={activeDescendant}
         aria-autocomplete="list"
@@ -583,39 +587,6 @@ export function MentionInput<T>({
               event.preventDefault();
               dismissedRequestKeyRef.current = requestKey;
               setActiveMention(null);
-              return;
-            }
-          }
-
-          if (
-            selection &&
-            event.key === 'Enter' &&
-            !event.metaKey &&
-            !event.ctrlKey &&
-            !event.altKey
-          ) {
-            event.preventDefault();
-            applyEdit(selection, '\n', 'other', selection);
-            return;
-          }
-
-          if (selection && (event.key === 'Backspace' || event.key === 'Delete')) {
-            const deletionSelection = getDeletionSelection(
-              value,
-              selection,
-              event.key === 'Backspace' ? 'backward' : 'forward'
-            );
-            if (
-              deletionSelection.start !== selection.start ||
-              deletionSelection.end !== selection.end
-            ) {
-              event.preventDefault();
-              applyEdit(
-                deletionSelection,
-                '',
-                event.key === 'Backspace' ? 'deleteBackward' : 'deleteForward',
-                selection
-              );
               return;
             }
           }

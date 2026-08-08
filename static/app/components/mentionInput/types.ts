@@ -20,9 +20,9 @@ export interface MentionMatchContext {
   trigger: string;
 }
 
-export interface MentionSource<T> {
+export interface MentionSource<TSuggestion> {
   /** Returns a stable identity for a suggestion. */
-  getId: (suggestion: T) => string;
+  getId: (suggestion: TSuggestion) => string;
   /**
    * Returns suggestions for the text between the trigger and the caret. Async
    * sources should observe the abort signal when their data layer supports it.
@@ -30,9 +30,9 @@ export interface MentionSource<T> {
   getSuggestions: (
     query: string,
     context: {signal: AbortSignal}
-  ) => readonly T[] | Promise<readonly T[]>;
+  ) => readonly TSuggestion[] | Promise<readonly TSuggestion[]>;
   /** Returns the exact text inserted into the editor. */
-  getText: (suggestion: T) => string;
+  getText: (suggestion: TSuggestion) => string;
   /** Stable identifier for this source, such as `members` or `teams`. */
   id: string;
   /** Accessible name for this group of suggestions. */
@@ -43,11 +43,11 @@ export interface MentionSource<T> {
   findMatch?: (context: MentionMatchContext) => MentionMatch | null;
   /** Returns text inserted after the mention. Defaults to one space when needed. */
   getTrailingText?: (
-    suggestion: T,
+    suggestion: TSuggestion,
     context: {match: MentionMatch; text: string}
   ) => string;
   /** Renders an option. The source text is used when this is omitted. */
-  renderSuggestion?: (suggestion: T) => React.ReactNode;
+  renderSuggestion?: (suggestion: TSuggestion) => React.ReactNode;
 }
 
 export type MentionTextProps = Pick<
@@ -65,18 +65,18 @@ export type MentionTextProps = Pick<
 
 export type MentionSuggestionStatus = 'empty' | 'error' | 'loading';
 
-export interface MentionInputProps<T> extends Omit<
+export interface MentionInputProps<TSuggestion> extends Omit<
   React.HTMLAttributes<HTMLDivElement>,
   'children' | 'contentEditable' | 'defaultValue' | 'onBeforeInput' | 'onChange'
 > {
   /** Called with plain text and structured mention ranges after an edit. */
-  onChange: (value: MentionInputValue<T>) => void;
+  onChange: (value: MentionInputValue) => void;
   /** Suggestion sources. Sources may be synchronous or asynchronous. */
-  sources: ReadonlyArray<MentionSource<T>>;
+  sources: ReadonlyArray<MentionSource<TSuggestion>>;
   /** Controlled editor text and structured mention ranges. */
-  value: MentionInputValue<T>;
+  value: MentionInputValue;
   /** Customizes the editable inline wrapper while preserving its text. */
-  getMentionTextProps?: (mention: Mention<T>) => MentionTextProps;
+  getMentionTextProps?: (mention: Mention) => MentionTextProps;
   /** Maximum results displayed for the active source. */
   maxSuggestions?: number;
   minHeight?: number;
@@ -85,6 +85,6 @@ export interface MentionInputProps<T> extends Omit<
   /** Replaces the default loading, empty, and error messages. */
   renderSuggestionStatus?: (
     status: MentionSuggestionStatus,
-    context: {query: string; source: MentionSource<T>}
+    context: {query: string; source: MentionSource<TSuggestion>}
   ) => React.ReactNode;
 }

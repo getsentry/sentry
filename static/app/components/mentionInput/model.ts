@@ -1,4 +1,4 @@
-export interface Mention<T> {
+export interface Mention {
   /** End offset in the editor text. */
   end: number;
   /** Stable identity returned by the source. */
@@ -9,20 +9,16 @@ export interface Mention<T> {
   start: number;
   /** Exact editor text covered by this mention. */
   text: string;
-  /** Source value selected by the user. */
-  value: T;
 }
 
-export interface MentionInputValue<T> {
-  mentions: ReadonlyArray<Mention<T>>;
+export interface MentionInputValue {
+  mentions: readonly Mention[];
   text: string;
 }
 
 /** Removes stale, malformed, and overlapping mention ranges from a value. */
-export function normalizeMentionInputValue<T>(
-  value: MentionInputValue<T>
-): MentionInputValue<T> {
-  const mentions: Array<Mention<T>> = [];
+export function normalizeMentionInputValue(value: MentionInputValue): MentionInputValue {
+  const mentions: Mention[] = [];
   let previousEnd = 0;
 
   for (const mention of value.mentions.toSorted((a, b) => a.start - b.start)) {
@@ -51,11 +47,11 @@ export function normalizeMentionInputValue<T>(
  * Repositions mentions around a single plain-text edit and removes any mention
  * whose text was edited.
  */
-export function reconcileMentions<T>(
+export function reconcileMentions(
   previousValue: string,
   nextValue: string,
-  mentions: ReadonlyArray<Mention<T>>
-): ReadonlyArray<Mention<T>> {
+  mentions: readonly Mention[]
+): readonly Mention[] {
   if (previousValue === nextValue) {
     return mentions;
   }
