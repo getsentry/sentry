@@ -103,9 +103,7 @@ export default function PreprodSettings() {
               docsUrl="https://docs.sentry.io/product/build-distribution/"
               display={PreprodBuildsDisplay.DISTRIBUTION}
             />
-            <Feature features="organizations:preprod-build-distribution-pr-comments">
-              <PrCommentsToggle />
-            </Feature>
+            <PrCommentsToggle />
           </Fragment>
         )}
       </Stack>
