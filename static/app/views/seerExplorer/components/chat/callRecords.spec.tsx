@@ -208,21 +208,35 @@ describe('call record rendering', () => {
 
 describe('callRecordStatus', () => {
   it('reports success for a completed call', () => {
-    expect(callRecordStatus(apiRecord({status: 200}))).toBe('success');
+    expect(callRecordStatus(apiRecord({status: 200}), false)).toBe('success');
   });
 
   it('reports failure for an error status', () => {
-    expect(callRecordStatus(apiRecord({status: 404}))).toBe('failure');
+    expect(callRecordStatus(apiRecord({status: 404}), false)).toBe('failure');
   });
 
   it('reports failure for a transport error', () => {
-    expect(callRecordStatus(apiRecord({status: undefined, error: 'ConnectError'}))).toBe(
-      'failure'
-    );
+    expect(
+      callRecordStatus(apiRecord({status: undefined, error: 'ConnectError'}), false)
+    ).toBe('failure');
   });
 
   it('reports loading while the call is still open', () => {
-    expect(callRecordStatus(apiRecord({status: undefined}))).toBe('loading');
+    expect(callRecordStatus(apiRecord({status: undefined}), false)).toBe('loading');
+  });
+
+  it('settles a lib call that never reports a status', () => {
+    // code_search / bash / ask_user_question never reach the HTTP transport, so a
+    // completed record carries no status. Before the execute returns that means
+    // still running; once it has returned, nothing is.
+    const libRecord = {id: 1, kind: 'lib' as const, name: 'code_search'};
+    expect(callRecordStatus(libRecord, false)).toBe('loading');
+    expect(callRecordStatus(libRecord, true)).toBe('success');
+  });
+
+  it('keeps a settled failure a failure', () => {
+    const failed = {id: 1, kind: 'lib' as const, name: 'bash', error: 'RuntimeError'};
+    expect(callRecordStatus(failed, true)).toBe('failure');
   });
 
   it('gives each call its own outcome', () => {
@@ -233,7 +247,11 @@ describe('callRecordStatus', () => {
       apiRecord({id: 3, status: undefined}),
     ];
 
-    expect(records.map(callRecordStatus)).toEqual(['success', 'failure', 'loading']);
+    expect(records.map(record => callRecordStatus(record, false))).toEqual([
+      'success',
+      'failure',
+      'loading',
+    ]);
   });
 });
 

@@ -353,6 +353,8 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
           ? (callRecordsByCallId.get(toolCall.id) ?? [])
           : [];
         const live = toolCall.id ? (liveCallsForCallId.get(toolCall.id) ?? []) : [];
+        // A tool result exists, so the execute returned and nothing it reported is still running.
+        const callsAreSettled = finishedCalls.length > 0;
         const callRows = visibleCallRecords(finishedCalls.length ? finishedCalls : live)
           .map(record => ({
             record,
@@ -392,7 +394,7 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
                   label,
                   url,
                   failure: callRecordFailure(record),
-                  status: callRecordStatus(record),
+                  status: callRecordStatus(record, callsAreSettled),
                   detail: callRecordDetail(record),
                 }}
                 onLinkClick={trackLinkClick(record.kind)}

@@ -166,13 +166,24 @@ export function callRecordLabel(record: CallRecord): string | null {
  * Every row carries its own: a lib call that fans out into three requests is three separate
  * outcomes, and one tick over the group cannot say which of them failed.
  */
-export function callRecordStatus(record: CallRecord): 'loading' | 'success' | 'failure' {
+export function callRecordStatus(
+  record: CallRecord,
+  settled: boolean
+): 'loading' | 'success' | 'failure' {
   if (record.error || (record.status && record.status >= 400)) {
     return 'failure';
   }
-  // No status yet means the request is still open — the live mirror publishes a record when the
-  // call starts, not when it returns.
-  return record.status === undefined ? 'loading' : 'success';
+  if (record.status !== undefined) {
+    return 'success';
+  }
+  // No status and nothing settled means the request is still open — the live mirror publishes a
+  // record when the call starts, not when it returns.
+  //
+  // Once the execute has returned there is nothing still in flight, and a status may legitimately
+  // never arrive: the Explorer-backed lib calls (`code_search`, `bash`, `ask_user_question`) never
+  // reach the HTTP transport, so they have no status to report and only ever set `error`. Reading
+  // that as "still running" left them spinning forever.
+  return settled ? 'success' : 'loading';
 }
 
 /** A call that failed, for the row's tooltip. Null when it succeeded or never reported. */
