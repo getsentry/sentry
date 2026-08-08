@@ -1,18 +1,21 @@
 from collections.abc import Sequence
 from datetime import datetime, timezone
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 from sentry.issues.action_log.publish import publish_action
 from sentry.issues.action_log.types import ActionSource, GroupActionActor, ViewAction
+from sentry.issues.derived.check import CheckId, CheckTimeout
 from sentry.issues.derived.processing import PIPELINE, GroupLogTimeout, process_group_log
 from sentry.issues.derived.tasks import (
     BATCH_RETRIGGER_TIMEOUT,
     _discover_stale_pipeline_hashes,
+    check_fresh_derived_data_batch,
     generate_project_derived_data,
     generate_project_derived_data_batch,
     heal_stale_derived_data,
     regenerate_stale_derived_data_batch,
 )
+from sentry.issues.derived.tasks_util import _pick_random_fresh_group_ranges
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
@@ -259,10 +262,43 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
         for g in groups:
             process_group_log(g.id)
 
-        with patch.object(regenerate_stale_derived_data_batch, "delay") as mock_delay:
+        group_ids = sorted(group.id for group in groups)
+        with (
+            patch("sentry.issues.derived.tasks_util.random.randint", return_value=group_ids[0]),
+            patch.object(regenerate_stale_derived_data_batch, "delay") as mock_regenerate,
+            patch.object(check_fresh_derived_data_batch, "delay") as mock_check,
+        ):
             heal_stale_derived_data()
 
-        mock_delay.assert_not_called()
+        mock_regenerate.assert_not_called()
+        # One anchor + contiguous fan-out; 2 groups fit in a single default batch.
+        mock_check.assert_called_once_with(
+            group_id_start=group_ids[0],
+            group_id_end=group_ids[-1] + 1,
+        )
+
+    def test_schedules_contiguous_ranges_from_one_anchor(self) -> None:
+        groups = self.create_unprocessed_groups(4)
+        group_ids = sorted(group.id for group in groups)
+        for group_id in group_ids:
+            process_group_log(group_id)
+
+        with (
+            override_options(
+                {
+                    "issues.derived.check-task-count": 2,
+                    "issues.derived.heal-batch-size": 2,
+                }
+            ),
+            patch("sentry.issues.derived.tasks_util.random.randint", return_value=group_ids[0]),
+            patch.object(check_fresh_derived_data_batch, "delay") as mock_check,
+        ):
+            heal_stale_derived_data()
+
+        assert mock_check.call_args_list == [
+            call(group_id_start=group_ids[0], group_id_end=group_ids[1] + 1),
+            call(group_id_start=group_ids[2], group_id_end=group_ids[3] + 1),
+        ]
 
     def test_respects_killswitch(self) -> None:
         groups = self.create_unprocessed_groups(1)
@@ -337,6 +373,172 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
 
         # 3 chunks would be produced, but max_tasks caps to 2.
         assert mock_delay.call_count == 2
+
+
+@with_feature("projects:issue-action-log-write-to-db")
+class CheckFreshDerivedDataBatchTest(DerivedDataTaskTestBase):
+    def test_checks_only_fresh_rows_inline(self) -> None:
+        groups = self.create_unprocessed_groups(3)
+        group_ids = sorted(group.id for group in groups)
+        for group_id in group_ids:
+            process_group_log(group_id)
+        GroupDerivedData.objects.filter(group_id=group_ids[1]).update(pipeline_hash="stale")
+
+        with patch("sentry.issues.derived.tasks_util.metrics.incr") as mock_incr:
+            check_fresh_derived_data_batch(
+                group_id_start=group_ids[0],
+                group_id_end=group_ids[-1] + 1,
+            )
+
+        assert mock_incr.call_args_list == [
+            call("issues.derived.check_group", sample_rate=1.0, tags={"result": "success"}),
+            call("issues.derived.check_group", sample_rate=1.0, tags={"result": "success"}),
+        ]
+
+    def test_reschedules_timed_out_group_with_check_id(self) -> None:
+        group = self.create_unprocessed_groups(1)[0]
+        derived = process_group_log(group.id)
+        assert derived.pipeline_hash is not None
+        check_id = CheckId(
+            "invocation-id",
+            group.id,
+            derived.generated_at,
+            derived.cursor_date,
+            derived.cursor_id,
+            derived.pipeline_hash,
+        )
+
+        with (
+            patch(
+                "sentry.issues.derived.check.check_derived_data",
+                side_effect=CheckTimeout(check_id),
+            ),
+            patch.object(check_fresh_derived_data_batch, "delay") as mock_delay,
+        ):
+            check_fresh_derived_data_batch(
+                group_id_start=group.id,
+                group_id_end=group.id + 1,
+            )
+
+        mock_delay.assert_called_once_with(
+            group_id_start=group.id,
+            group_id_end=group.id + 1,
+            resume_check_id="invocation-id",
+            resume_generated_at=derived.generated_at.isoformat(),
+            resume_cursor_date=derived.cursor_date.isoformat(),
+            resume_cursor_id=derived.cursor_id,
+            resume_pipeline_hash=derived.pipeline_hash,
+            prior_runs=1,
+        )
+
+    def test_advances_after_check_retry_limit(self) -> None:
+        group = self.create_unprocessed_groups(1)[0]
+        derived = process_group_log(group.id)
+        assert derived.pipeline_hash is not None
+        check_id = CheckId(
+            "invocation-id",
+            group.id,
+            derived.generated_at,
+            derived.cursor_date,
+            derived.cursor_id,
+            derived.pipeline_hash,
+        )
+
+        with (
+            patch(
+                "sentry.issues.derived.check.check_derived_data",
+                side_effect=CheckTimeout(check_id),
+            ),
+            patch("sentry.issues.derived.tasks._MAX_CHECK_RUNS", 1),
+            patch.object(check_fresh_derived_data_batch, "delay") as mock_delay,
+            patch("sentry.issues.derived.tasks_util.metrics.incr") as mock_incr,
+        ):
+            check_fresh_derived_data_batch(
+                group_id_start=group.id,
+                group_id_end=group.id + 2,
+            )
+
+        mock_delay.assert_called_once_with(
+            group_id_start=group.id + 1,
+            group_id_end=group.id + 2,
+        )
+        mock_incr.assert_called_once_with(
+            "issues.derived.check_group",
+            sample_rate=1.0,
+            tags={"result": "no_result"},
+        )
+
+
+@with_feature("projects:issue-action-log-write-to-db")
+class PickRandomFreshGroupRangesTest(DerivedDataTaskTestBase):
+    def test_returns_contiguous_ranges_from_anchor(self) -> None:
+        groups = self.create_unprocessed_groups(6)
+        group_ids = sorted(group.id for group in groups)
+        for group_id in group_ids:
+            process_group_log(group_id)
+
+        with patch("sentry.issues.derived.tasks_util.random.randint", return_value=group_ids[1]):
+            result = _pick_random_fresh_group_ranges(
+                PIPELINE.pipeline_hash, batch_size=2, task_count=2
+            )
+
+        # need=4 and 5 rows remain at/after anchor → no slide.
+        assert result == [
+            (group_ids[1], group_ids[2] + 1),
+            (group_ids[3], group_ids[4] + 1),
+        ]
+
+    def test_slides_window_to_fill_near_upper_bound(self) -> None:
+        groups = self.create_unprocessed_groups(5)
+        group_ids = sorted(group.id for group in groups)
+        for group_id in group_ids:
+            process_group_log(group_id)
+
+        with patch("sentry.issues.derived.tasks_util.random.randint", return_value=group_ids[-1]):
+            result = _pick_random_fresh_group_ranges(
+                PIPELINE.pipeline_hash, batch_size=2, task_count=1
+            )
+
+        # need=2 but only 1 row forward of the anchor → last 2 fresh rows.
+        assert result == [(group_ids[-2], group_ids[-1] + 1)]
+
+    def test_slides_to_all_rows_when_table_smaller_than_need(self) -> None:
+        groups = self.create_unprocessed_groups(3)
+        group_ids = sorted(group.id for group in groups)
+        for group_id in group_ids:
+            process_group_log(group_id)
+
+        with patch("sentry.issues.derived.tasks_util.random.randint", return_value=group_ids[-1]):
+            result = _pick_random_fresh_group_ranges(
+                PIPELINE.pipeline_hash, batch_size=2, task_count=2
+            )
+
+        assert result == [
+            (group_ids[0], group_ids[1] + 1),
+            (group_ids[2], group_ids[2] + 1),
+        ]
+
+    def test_returns_empty_without_fresh_rows(self) -> None:
+        assert (
+            _pick_random_fresh_group_ranges(PIPELINE.pipeline_hash, batch_size=1000, task_count=5)
+            == []
+        )
+
+    def test_caps_total_groups(self) -> None:
+        groups = self.create_unprocessed_groups(3)
+        group_ids = sorted(group.id for group in groups)
+        for group_id in group_ids:
+            process_group_log(group_id)
+
+        with (
+            patch("sentry.issues.derived.tasks_util._MAX_CHECK_GROUPS", 2),
+            patch("sentry.issues.derived.tasks_util.random.randint", return_value=group_ids[0]),
+        ):
+            result = _pick_random_fresh_group_ranges(
+                PIPELINE.pipeline_hash, batch_size=1000, task_count=5
+            )
+
+        assert result == [(group_ids[0], group_ids[1] + 1)]
 
 
 @with_feature("projects:issue-action-log-write-to-db")

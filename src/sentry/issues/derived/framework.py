@@ -211,6 +211,10 @@ class State(_FeatureStore):
         """Features that aggregators have provided updates for via merge()."""
         return frozenset(self._updated)
 
+    @property
+    def features(self) -> frozenset[Feature[Any]]:
+        return frozenset(self._data)
+
     def view(self, allowed: frozenset[Feature[Any]]) -> "StateView":
         return StateView(self._data, allowed)
 
