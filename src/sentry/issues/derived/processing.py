@@ -101,8 +101,7 @@ def _ensure_derived(group_id: int, pipeline_hash: str) -> GroupDerivedData:
         pass
 
     try:
-        # Contain a possible foreign-key violation so callers can continue using
-        # their transaction after we translate it to Group.DoesNotExist.
+        # Contain a possible database error so an enclosing transaction remains usable.
         with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
             derived, _created = GroupDerivedData.objects.get_or_create(
                 group_id=group_id,
@@ -114,6 +113,10 @@ def _ensure_derived(group_id: int, pipeline_hash: str) -> GroupDerivedData:
                 },
             )
     except IntegrityError:
+        # get_or_create() retries get() after an IntegrityError and suppresses the
+        # error when a concurrent insert created the row. An error escaping it is
+        # therefore not the group_id uniqueness race, but another constraint. With
+        # this model's current constraints, that is a missing Group foreign key.
         raise Group.DoesNotExist(f"Group {group_id} does not exist")
     return derived
 
