@@ -14,7 +14,11 @@ from sentry.integrations.project_management.metrics import (
 )
 from sentry.integrations.services.integration import integration_service
 from sentry.models.group import Group, GroupStatus
-from sentry.shared_integrations.exceptions import ApiUnauthorized, IntegrationFormError
+from sentry.shared_integrations.exceptions import (
+    ApiUnauthorized,
+    IntegrationConfigurationError,
+    IntegrationFormError,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, track_group_async_operation
 from sentry.taskworker.namespaces import integrations_tasks
@@ -86,6 +90,7 @@ def sync_status_outbound(group_id: int, external_issue_id: int) -> bool | None:
         except (
             IntegrationFormError,
             ApiUnauthorized,
+            IntegrationConfigurationError,
             OrganizationIntegrationNotFound,
             InvalidIdentity,
         ) as e:
