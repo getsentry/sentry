@@ -24,15 +24,23 @@ import {
   StepLead,
 } from 'sentry/views/automations/components/stepComponents';
 import {TRIGGER_MATCH_OPTIONS} from 'sentry/views/automations/components/triggers/constants';
+import {useDataConditionsQuery} from 'sentry/views/automations/hooks';
 import {findConflictingConditions} from 'sentry/views/automations/hooks/utils';
 
 export function AutomationBuilder() {
   const {state, actions, showTriggerLogicTypeSelector} = useAutomationBuilderContext();
   const {mutationErrors} = useAutomationBuilderErrorContext();
+  const {data: triggerHandlers} = useDataConditionsQuery(
+    DataConditionHandlerGroupType.WORKFLOW_TRIGGER
+  );
 
   const conflictData = useMemo(() => {
-    return findConflictingConditions(state.triggers, state.actionFilters);
-  }, [state]);
+    return findConflictingConditions(
+      state.triggers,
+      state.actionFilters,
+      triggerHandlers
+    );
+  }, [state, triggerHandlers]);
 
   return (
     <AutomationBuilderConflictContext.Provider value={conflictData}>
