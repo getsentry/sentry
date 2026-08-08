@@ -1,0 +1,51 @@
+---
+title: Mention Input
+description: A composable note editor with inline member and team mentions.
+source: sentry/components/activity/note/mentionInput
+---
+
+import * as Storybook from 'sentry/stories';
+
+import {
+  AsyncMentionInputDemo,
+  MentionInputDemo,
+  MentionComposerDemo,
+  RestoredMentionInputDemo,
+} from './mentionInput/__stories__/demos';
+
+export const documentation =
+  import('!!type-loader!sentry/components/activity/note/mentionInput');
+
+`<MentionInput>` is a controlled multiline editor for text and inline identity tokens. A source defines how suggestions are found, displayed, and serialized, so member and team mentions can share one editing experience.
+
+## Compose with mentions
+
+Type `@` after a space to find a member, or `#` to find a team. Suggestions support pointer and keyboard selection, and the selected identity remains visible as an inline token while the rest of the note stays editable.
+
+<Storybook.Demo overflow="visible">
+  <MentionInputDemo />
+</Storybook.Demo>
+
+## Restore a draft
+
+Draft text and mention metadata can be restored together. The saved mention renders as a token immediately and continues to behave as a single editable unit.
+
+<Storybook.Demo overflow="visible">
+  <RestoredMentionInputDemo />
+</Storybook.Demo>
+
+## Load suggestions remotely
+
+Sources may return suggestions immediately or load them asynchronously. The editor keeps typing responsive and only shows results for the current query.
+
+<Storybook.Demo overflow="visible">
+  <AsyncMentionInputDemo />
+</Storybook.Demo>
+
+## Use in a note composer
+
+`<MentionComposer>` combines the mention editor with Markdown preview and note submission. The submitted value includes formatted text and the selected identity IDs.
+
+<Storybook.Demo overflow="visible">
+  <MentionComposerDemo />
+</Storybook.Demo>

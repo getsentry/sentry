@@ -107,6 +107,7 @@ interface ActivitySectionProps {
    * - `standalone`: full input, no collapse
    */
   placeholder?: string;
+  useMentionComposer?: boolean;
   variant?: 'sidebar' | 'standalone';
 }
 
@@ -120,6 +121,7 @@ export function ActivitySection({
   variant = 'sidebar',
   minHeight = 96,
   placeholder = t('Add a comment\u2026'),
+  useMentionComposer = false,
 }: ActivitySectionProps) {
   const organization = useOrganization();
   const {baseUrl} = useGroupDetailsRoute();
@@ -202,6 +204,7 @@ export function ActivitySection({
         setInputId(uniqueId());
       }}
       variant={inputVariant}
+      useMentionComposer={useMentionComposer}
       {...noteProps}
     />
   );
