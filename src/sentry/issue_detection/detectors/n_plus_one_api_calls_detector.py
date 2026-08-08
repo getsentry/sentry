@@ -131,7 +131,10 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         # Once most users update their SDKs to use the latest standard, we
         # won't have to do this, since the URLs will be sent in as `span.data`
         # in a parsed format
-        parsed_url = urlparse(str(url))
+        try:
+            parsed_url = urlparse(str(url))
+        except ValueError:
+            return False
 
         # Ignore anything that looks like an asset. Some frameworks (and apps)
         # fetch assets via XHR, which is not our concern
