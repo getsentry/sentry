@@ -83,10 +83,9 @@ def main() -> int:
         green = "\033[32m"
         red = "\033[31m"
         bold = "\033[1m"
-        subtle = "\033[2m"
         reset = "\033[m"
     else:
-        green = red = bold = subtle = reset = ""
+        green = red = bold = reset = ""
 
     with open(args.before) as f:
         before = norm(f.read())
@@ -125,7 +124,6 @@ def main() -> int:
             f"{''.join(differences)}\n"
             f"---\n\n"
             f"{bold}migrations drift detected!{reset}\n\n"
-            f"{subtle}(drift due to step 1 of deletion is normal){reset}\n\n"
             f"^^^ diff printed above ^^^"
         )
     else:

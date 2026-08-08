@@ -17,7 +17,7 @@ class SentryProjectState(ProjectState):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.pending_deletion_models: dict[tuple[str, str], type[Model]] = {}
-        self.pending_deletion_fields: dict[tuple[str, str, str], type[Field]] = {}
+        self.pending_deletion_fields: dict[tuple[str, str, str], Field] = {}
 
     def get_pending_deletion_model(self, app_label: str, model_name: str) -> type[Model]:
         model_key = (app_label.lower(), model_name.lower())
@@ -28,9 +28,7 @@ class SentryProjectState(ProjectState):
             )
         return self.pending_deletion_models[model_key]
 
-    def get_pending_deletion_field(
-        self, app_label: str, model_name: str, field_name: str
-    ) -> type[Field]:
+    def get_pending_deletion_field(self, app_label: str, model_name: str, field_name: str) -> Field:
         field_key = (app_label.lower(), model_name.lower(), field_name.lower())
         if field_key not in self.pending_deletion_fields:
             raise UnsafeOperationException(
