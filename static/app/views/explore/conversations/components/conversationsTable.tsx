@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
@@ -228,10 +228,15 @@ export function ConversationsTable() {
   );
 
   const renderBodyCell = useCallback(
-    (column: GridColumnOrder<ColumnKey>, dataRow: Conversation) => (
-      <BodyCell column={column} conversation={dataRow} />
-    ),
-    []
+    (column: GridColumnOrder<ColumnKey>, dataRow: Conversation) => {
+      const detailUrl = getConversationDetailUrl(
+        organization.slug,
+        dataRow,
+        selection.projects
+      );
+      return <BodyCell column={column} conversation={dataRow} detailUrl={detailUrl} />;
+    },
+    [organization.slug, selection.projects]
   );
 
   return (
@@ -269,13 +274,15 @@ export function ConversationsTable() {
 function BodyCell({
   column,
   conversation,
+  detailUrl,
 }: {
   column: GridColumnOrder<ColumnKey>;
   conversation: Conversation;
+  detailUrl: string;
 }) {
   switch (column.key) {
     case 'conversation':
-      return <ConversationCell conversation={conversation} />;
+      return <ConversationCell conversation={conversation} detailUrl={detailUrl} />;
     case 'duration':
       return (
         <Text tabular>
@@ -341,7 +348,13 @@ function getConversationIdLabel(conversationId: string): string {
   return isUUID(conversationId) ? conversationId.slice(0, 8) : conversationId;
 }
 
-function ConversationCell({conversation}: {conversation: Conversation}) {
+function ConversationCell({
+  conversation,
+  detailUrl,
+}: {
+  conversation: Conversation;
+  detailUrl: string;
+}) {
   // Flattening markdown to plain text renders HTML + parses it, so memoize on
   // the inputs to avoid recomputing on unrelated re-renders (hover, resize).
   const title = useMemo(
@@ -353,28 +366,30 @@ function ConversationCell({conversation}: {conversation: Conversation}) {
   });
 
   return (
-    <Stack gap="xs" minWidth={0}>
-      <Text size="lg" ellipsis>
-        {title ?? <Text variant="muted">{t('Untitled conversation')}</Text>}
-      </Text>
-      <Flex align="center" gap="sm" minWidth={0}>
-        <Flex align="center" gap="xs" minWidth={0}>
-          {project && (
-            <ProjectAvatar
-              project={project}
-              size={14}
-              hasTooltip
-              tooltip={project.slug}
-            />
-          )}
-          <Text size="sm" variant="muted" ellipsis>
-            {getConversationIdLabel(conversation.conversationId)}
-          </Text>
+    <ConversationLink to={detailUrl} onClick={event => event.stopPropagation()}>
+      <Stack gap="xs" minWidth={0}>
+        <Text size="lg" ellipsis>
+          {title ?? <Text variant="muted">{t('Untitled conversation')}</Text>}
+        </Text>
+        <Flex align="center" gap="sm" minWidth={0}>
+          <Flex align="center" gap="xs" minWidth={0}>
+            {project && (
+              <ProjectAvatar
+                project={project}
+                size={14}
+                hasTooltip
+                tooltip={project.slug}
+              />
+            )}
+            <Text size="sm" variant="muted" ellipsis>
+              {getConversationIdLabel(conversation.conversationId)}
+            </Text>
+          </Flex>
+          <CellDivider orientation="vertical" />
+          <ConversationUserLabel user={conversation.user} />
         </Flex>
-        <CellDivider orientation="vertical" />
-        <ConversationUserLabel user={conversation.user} />
-      </Flex>
-    </Stack>
+      </Stack>
+    </ConversationLink>
   );
 }
 
@@ -625,6 +640,16 @@ const FixedRowHeightGrid = styled('div')`
      size because its larger min-height wins over this fixed height. */
   tbody td {
     height: ${ROW_HEIGHT}px;
+  }
+`;
+
+const ConversationLink = styled(Link)`
+  display: block;
+  min-width: 0;
+  color: inherit;
+
+  &:hover {
+    color: inherit;
   }
 `;
 
