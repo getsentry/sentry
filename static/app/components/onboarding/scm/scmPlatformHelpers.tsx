@@ -41,7 +41,8 @@ export const platformOptions = platforms.map(platform => ({
 
 export function toSelectedSdk(info: PlatformIntegration): OnboardingSelectedSDK {
   return {
-    key: info.id,
+    key: info.sdkKey ?? info.id,
+    platformId: info.id,
     name: info.name,
     language: info.language,
     type: info.type,
