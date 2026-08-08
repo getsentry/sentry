@@ -244,10 +244,3 @@ export function visibleCallRecords(records: CallRecord[]): CallRecord[] {
   );
   return records.filter(record => record.kind !== 'lib' || !hasChildren.has(record.id));
 }
-
-/** The calls in a block's tool results, flattened in the order they ran. */
-export function getCallRecords(
-  toolResults: Array<{structuredContent?: {calls?: CallRecord[]} | null} | null> | null
-): CallRecord[] {
-  return (toolResults ?? []).flatMap(result => result?.structuredContent?.calls ?? []);
-}
