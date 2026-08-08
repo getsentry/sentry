@@ -193,7 +193,7 @@ describe('OrgSelectionStep', () => {
 
     expect(window.open).toHaveBeenCalledWith(
       'https://github.com/apps/sentry/installations/new',
-      'pipeline_popup',
+      expect.stringMatching(/^pipeline_popup_/),
       expect.any(String)
     );
   });
@@ -216,7 +216,7 @@ describe('OrgSelectionStep', () => {
 
     expect(window.open).toHaveBeenCalledWith(
       'https://github.com/apps/sentry/installations/new',
-      'pipeline_popup',
+      expect.stringMatching(/^pipeline_popup_/),
       expect.any(String)
     );
 
