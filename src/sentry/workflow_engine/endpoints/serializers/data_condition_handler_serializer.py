@@ -10,6 +10,7 @@ class DataConditionHandlerResponse(TypedDict):
     handlerGroup: str
     handlerSubgroup: NotRequired[str]
     comparisonJsonSchema: dict[str, Any]
+    incompatibleConditions: list[str]
 
 
 @register(DataConditionHandler)
@@ -28,6 +29,7 @@ class DataConditionHandlerSerializer(Serializer[DataConditionHandlerResponse]):
             "type": condition_type,
             "handlerGroup": obj.group.value,
             "comparisonJsonSchema": obj.comparison_json_schema,
+            "incompatibleConditions": kwargs.get("incompatible_conditions") or [],
         }
         if hasattr(obj, "subgroup"):
             result["handlerSubgroup"] = obj.subgroup.value

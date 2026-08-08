@@ -89,6 +89,7 @@ class OrganizationDataConditionIndexBaseTest(OrganizationDataConditionAPITestCas
             "type": Condition.REAPPEARED_EVENT.value,
             "handlerGroup": DataConditionHandler.Group.WORKFLOW_TRIGGER.value,
             "comparisonJsonSchema": {"type": "boolean"},
+            "incompatibleConditions": [],
         }
 
         response = self.get_success_response(
@@ -108,6 +109,7 @@ class OrganizationDataConditionIndexBaseTest(OrganizationDataConditionAPITestCas
                 "required": ["value"],
                 "additionalProperties": False,
             },
+            "incompatibleConditions": [],
         }
         assert response.data[1] == {
             "type": Condition.ISSUE_CATEGORY.value,
@@ -121,6 +123,7 @@ class OrganizationDataConditionIndexBaseTest(OrganizationDataConditionAPITestCas
                 "required": ["value"],
                 "additionalProperties": False,
             },
+            "incompatibleConditions": [],
         }
 
     def test_invalid_group(self) -> None:
@@ -143,3 +146,43 @@ class OrganizationDataConditionIndexBaseTest(OrganizationDataConditionAPITestCas
         )
         condition_types = [item["type"] for item in response.data]
         assert Condition.SEER_ACTIVITY_TRIGGER.value in condition_types
+
+    def test_seer_activity_trigger_incompatible_conditions(self) -> None:
+        @self.registry.register(Condition.SEER_ACTIVITY_TRIGGER)
+        @dataclass(frozen=True)
+        class TestSeerActivityTrigger(DataConditionHandler[dict[str, str]]):
+            group = DataConditionHandler.Group.WORKFLOW_TRIGGER
+            comparison_json_schema = {"type": "array", "items": {"type": "string"}}
+
+        response = self.get_success_response(
+            self.organization.slug,
+            group=DataConditionHandler.Group.WORKFLOW_TRIGGER,
+            status_code=200,
+        )
+        seer_data = next(
+            item for item in response.data if item["type"] == Condition.SEER_ACTIVITY_TRIGGER.value
+        )
+        assert sorted(seer_data["incompatibleConditions"]) == sorted(
+            [
+                Condition.EVENT_ATTRIBUTE.value,
+                Condition.TAGGED_EVENT.value,
+                Condition.LEVEL.value,
+                Condition.LATEST_RELEASE.value,
+                Condition.LATEST_ADOPTED_RELEASE.value,
+                Condition.EVENT_FREQUENCY_COUNT.value,
+                Condition.EVENT_FREQUENCY_PERCENT.value,
+                Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT.value,
+                Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT.value,
+                Condition.PERCENT_SESSIONS_COUNT.value,
+                Condition.PERCENT_SESSIONS_PERCENT.value,
+            ]
+        )
+
+    def test_non_seer_conditions_have_empty_incompatible_conditions(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            group=DataConditionHandler.Group.WORKFLOW_TRIGGER,
+            status_code=200,
+        )
+        for item in response.data:
+            assert item["incompatibleConditions"] == []
