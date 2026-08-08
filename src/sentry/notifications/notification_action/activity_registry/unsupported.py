@@ -12,11 +12,6 @@ logger = logging.getLogger(__name__)
 
 @activity_handler_registry.register(Action.Type.PAGERDUTY)
 @activity_handler_registry.register(Action.Type.OPSGENIE)
-@activity_handler_registry.register(Action.Type.GITHUB)
-@activity_handler_registry.register(Action.Type.GITHUB_ENTERPRISE)
-@activity_handler_registry.register(Action.Type.JIRA)
-@activity_handler_registry.register(Action.Type.JIRA_SERVER)
-@activity_handler_registry.register(Action.Type.AZURE_DEVOPS)
 @activity_handler_registry.register(Action.Type.PLUGIN)
 class UnsupportedActivityHandler(ActivityHandler):
     compatible_activity_types = [ActivityType(key) for key in ActivityType]
