@@ -55,6 +55,12 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
     initialDashboard ?? null
   );
 
+  const [prevDashboardId, setPrevDashboardId] = useState(dashboardId);
+  if (dashboardId && !isEqual(dashboardId, prevDashboardId)) {
+    setPrevDashboardId(dashboardId);
+    setSelectedDashboardState(null);
+  }
+
   const {
     data: dashboards,
     isPending: isDashboardsPending,
@@ -108,13 +114,6 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
       utc: selectedDashboard.utc,
     };
   }
-
-  // Clear optimistic dashboard state when the URL changes
-  useEffect(() => {
-    if (dashboardId && !isEqual(dashboardId, selectedDashboard?.id)) {
-      setSelectedDashboardState(null);
-    }
-  }, [dashboardId, selectedDashboard?.id]);
 
   useEffect(() => {
     // Only redirect if there are saved filters and none of the filters
