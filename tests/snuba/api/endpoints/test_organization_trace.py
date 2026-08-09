@@ -257,14 +257,8 @@ class OrganizationEventsTraceEndpointTest(
     def assert_performance_issues(self, root):
         """Broken in the non-spans endpoint, but we're not maintaining that anymore"""
 
-    def client_get(self, data, url=None):
-        if url is None:
-            url = self.url
-        return self.client.get(
-            url,
-            data,
-            format="json",
-        )
+    def client_get(self, data=None, url=None, **kwargs):
+        return super().client_get(data=data, url=url or self.url, **kwargs)
 
     def test_no_projects(self) -> None:
         user = self.create_user()
@@ -276,10 +270,7 @@ class OrganizationEventsTraceEndpointTest(
             kwargs={"organization_id_or_slug": org.slug, "trace_id": uuid4().hex},
         )
 
-        response = self.client.get(
-            url,
-            format="json",
-        )
+        response = self.client_get(url=url)
 
         assert response.status_code == 404, response.content
 

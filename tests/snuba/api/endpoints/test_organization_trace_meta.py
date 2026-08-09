@@ -19,14 +19,8 @@ class OrganizationEventsTraceMetaEndpointTest(
 ):
     url_name = "sentry-api-0-organization-trace-meta"
 
-    def client_get(self, data, url=None):
-        if url is None:
-            url = self.url
-        return self.client.get(
-            url,
-            data,
-            format="json",
-        )
+    def client_get(self, data=None, url=None, **kwargs):
+        return super().client_get(data=data, url=url or self.url, **kwargs)
 
     def test_no_projects(self) -> None:
         user = self.create_user()
@@ -39,10 +33,7 @@ class OrganizationEventsTraceMetaEndpointTest(
         )
 
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                url,
-                format="json",
-            )
+            response = self.client_get(url=url)
 
         assert response.status_code == 404, response.content
 
@@ -57,10 +48,7 @@ class OrganizationEventsTraceMetaEndpointTest(
         )
 
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                format="json",
-            )
+            response = self.client_get(url=self.url)
 
         assert response.status_code == 200, response.content
         data = response.data
@@ -84,11 +72,7 @@ class OrganizationEventsTraceMetaEndpointTest(
     def test_simple(self) -> None:
         self.load_trace()
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={"project": -1},
-                format="json",
-            )
+            response = self.client_get(data={"project": -1}, url=self.url)
         assert response.status_code == 200, response.content
         data = response.data
         assert data["errorsCount"] == 0
@@ -125,11 +109,7 @@ class OrganizationEventsTraceMetaEndpointTest(
             }
         ):
             with self.feature(self.FEATURES):
-                response = self.client.get(
-                    self.url,
-                    data={"project": -1},
-                    format="json",
-                )
+                response = self.client_get(data={"project": -1}, url=self.url)
         assert response.status_code == 200, response.content
         data = response.data
         assert data["errorsCount"] == 0
@@ -141,10 +121,7 @@ class OrganizationEventsTraceMetaEndpointTest(
         self.load_trace()
         self.team.delete()
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                format="json",
-            )
+            response = self.client_get(url=self.url)
         assert response.status_code == 200, response.content
         data = response.data
         assert data["errorsCount"] == 0
@@ -156,11 +133,7 @@ class OrganizationEventsTraceMetaEndpointTest(
         self.load_trace()
         self.load_errors(self.gen1_project, self.gen1_span_ids[0])
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={"project": -1},
-                format="json",
-            )
+            response = self.client_get(data={"project": -1}, url=self.url)
         assert response.status_code == 200, response.content
         data = response.data
         assert data["errorsCount"] == 3
@@ -188,11 +161,7 @@ class OrganizationEventsTraceMetaEndpointTest(
             }
         ):
             with self.feature(self.FEATURES):
-                response = self.client.get(
-                    self.url,
-                    data={"project": -1},
-                    format="json",
-                )
+                response = self.client_get(data={"project": -1}, url=self.url)
         assert response.status_code == 200, response.content
         data = response.data
         assert data["errorsCount"] == 3
@@ -220,11 +189,7 @@ class OrganizationEventsTraceMetaEndpointTest(
             }
         ):
             with self.feature(self.FEATURES):
-                response = self.client.get(
-                    self.url,
-                    data={"project": -1},
-                    format="json",
-                )
+                response = self.client_get(data={"project": -1}, url=self.url)
         assert response.status_code == 200, response.content
         data = response.data
         assert data["errorsCount"] == 1
@@ -236,11 +201,7 @@ class OrganizationEventsTraceMetaEndpointTest(
         self.load_trace()
         self.load_default()
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={"project": -1},
-                format="json",
-            )
+            response = self.client_get(data={"project": -1}, url=self.url)
         assert response.status_code == 200, response.content
         data = response.data
         assert data["errorsCount"] == 1
@@ -254,10 +215,9 @@ class OrganizationEventsTraceMetaEndpointTest(
         self.load_default()
         with self.options({"system.event-retention-days": 10}):
             with self.feature(self.FEATURES):
-                response = self.client.get(
-                    self.url,
+                response = self.client_get(
                     data={"project": -1, "timestamp": before_now(days=120).timestamp()},
-                    format="json",
+                    url=self.url,
                 )
         assert response.status_code == 400, response.content
 
@@ -287,11 +247,7 @@ class OrganizationEventsTraceMetaEndpointTest(
             ]
         )
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={"project": -1},
-                format="json",
-            )
+            response = self.client_get(data={"project": -1}, url=self.url)
         assert response.status_code == 200, response.content
         data = response.data
         assert data["metricsCount"] == 3
@@ -314,11 +270,7 @@ class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, Uptim
         uptime_result = self.create_uptime_check()
         self.store_eap_items([uptime_result])
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={"project": -1},
-                format="json",
-            )
+            response = self.client_get(data={"project": -1}, url=self.url)
 
         assert response.status_code == 200
         data = response.data
@@ -339,10 +291,9 @@ class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, Uptim
         self.store_eap_items(uptime_results)
 
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
+            response = self.client_get(
                 data={"project": "-1", "include_uptime": "1"},
-                format="json",
+                url=self.url,
             )
 
         assert response.status_code == 200
@@ -358,10 +309,9 @@ class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, Uptim
         self.load_trace()
 
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
+            response = self.client_get(
                 data={"project": "-1", "include_uptime": "1"},
-                format="json",
+                url=self.url,
             )
 
         assert response.status_code == 200
@@ -380,10 +330,9 @@ class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, Uptim
         self.store_eap_items([uptime_result])
 
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
+            response = self.client_get(
                 data={"project": "-1", "include_uptime": "1"},
-                format="json",
+                url=self.url,
             )
         assert response.status_code == 200
         data = response.data
