@@ -6,15 +6,19 @@ from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
 from sentry.seer.autofix.pr_iteration.check_suites import CheckRunsSweep, CheckSuiteAutofixRun
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
-from sentry.seer.autofix.pr_iteration.green_check_suite import (
+from sentry.seer.autofix.pr_iteration.green_check_suite import GreenCheckSuite
+from sentry.seer.autofix.pr_iteration.green_check_suite.ready_for_review import (
     READY_FOR_REVIEW_EXTRA,
-    GreenCheckSuite,
-    _mark_ready_for_review,
+    mark_ready_for_review,
 )
 from sentry.seer.autofix.pr_iteration.resolve import resolve_check_suite
 from sentry.testutils.cases import TestCase
 
+# Patch where a name is used: the green package splits the gate (``base``) from
+# the side effect (``ready_for_review``).
 GREEN_PATH = "sentry.seer.autofix.pr_iteration.green_check_suite"
+BASE_PATH = f"{GREEN_PATH}.base"
+READY_PATH = f"{GREEN_PATH}.ready_for_review"
 RESOLVE_PATH = "sentry.seer.autofix.pr_iteration.resolve"
 
 RUN_ID = 67890
@@ -79,7 +83,7 @@ def _mark_ready(event: CheckSuiteEvent | None = None) -> None:
     ctx = resolved.confirm_green()
     if ctx is None:
         return
-    _mark_ready_for_review(ctx)
+    mark_ready_for_review(ctx)
 
 
 class MarkReadyForReviewTest(TestCase):
@@ -97,14 +101,14 @@ class MarkReadyForReviewTest(TestCase):
         repos_patcher.start()
         self.addCleanup(repos_patcher.stop)
         self.get_pr = MagicMock(return_value=_pull_request_result())
-        get_pr_patcher = patch(f"{GREEN_PATH}.scm_actions.get_pull_request", self.get_pr)
+        get_pr_patcher = patch(f"{BASE_PATH}.scm_actions.get_pull_request", self.get_pr)
         get_pr_patcher.start()
         self.addCleanup(get_pr_patcher.stop)
         # MagicMock does not satisfy runtime_checkable SCM protocols.
-        proto_patcher = patch(f"{GREEN_PATH}.GetPullRequestProtocol", object)
+        proto_patcher = patch(f"{BASE_PATH}.GetPullRequestProtocol", object)
         proto_patcher.start()
         self.addCleanup(proto_patcher.stop)
-        sweep_patcher = patch(f"{GREEN_PATH}.sweep_check_runs", return_value=GREEN_SWEEP)
+        sweep_patcher = patch(f"{BASE_PATH}.sweep_check_runs", return_value=GREEN_SWEEP)
         sweep_patcher.start()
         self.addCleanup(sweep_patcher.stop)
 
@@ -128,8 +132,8 @@ class MarkReadyForReviewTest(TestCase):
         self.seer_run.refresh_from_db()
         return (self.seer_run.extras or {}).get(READY_FOR_REVIEW_EXTRA, {}).get(REPO_NAME)
 
-    @patch(f"{GREEN_PATH}.MarkPullRequestDraftStateProtocol", object)
-    @patch(f"{GREEN_PATH}.scm_actions.mark_pull_request_ready_for_review")
+    @patch(f"{READY_PATH}.MarkPullRequestDraftStateProtocol", object)
+    @patch(f"{READY_PATH}.scm_actions.mark_pull_request_ready_for_review")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
     @patch(f"{RESOLVE_PATH}.resolve_check_suite_autofix_run")
     def test_undrafts(
@@ -159,7 +163,7 @@ class MarkReadyForReviewTest(TestCase):
         mock_resolve.assert_called_once()
         assert self._marker() is None
 
-    @patch(f"{GREEN_PATH}.scm_actions.mark_pull_request_ready_for_review")
+    @patch(f"{READY_PATH}.scm_actions.mark_pull_request_ready_for_review")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
     @patch(f"{RESOLVE_PATH}.resolve_check_suite_autofix_run")
     def test_skips_stale_head(
@@ -177,10 +181,10 @@ class MarkReadyForReviewTest(TestCase):
         assert self._marker() is None
         mock_mark.assert_not_called()
 
-    @patch(f"{GREEN_PATH}.scm_actions.mark_pull_request_ready_for_review")
+    @patch(f"{READY_PATH}.scm_actions.mark_pull_request_ready_for_review")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
     @patch(
-        f"{GREEN_PATH}.sweep_check_runs",
+        f"{BASE_PATH}.sweep_check_runs",
         return_value=CheckRunsSweep(total=2, incomplete=1, failed=0),
     )
     @patch(f"{RESOLVE_PATH}.resolve_check_suite_autofix_run")
@@ -199,8 +203,8 @@ class MarkReadyForReviewTest(TestCase):
         assert self._marker() is None
         mock_mark.assert_not_called()
 
-    @patch(f"{GREEN_PATH}.MarkPullRequestDraftStateProtocol", object)
-    @patch(f"{GREEN_PATH}.scm_actions.mark_pull_request_ready_for_review")
+    @patch(f"{READY_PATH}.MarkPullRequestDraftStateProtocol", object)
+    @patch(f"{READY_PATH}.scm_actions.mark_pull_request_ready_for_review")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
     @patch(f"{RESOLVE_PATH}.resolve_check_suite_autofix_run")
     def test_undraft_failure_leaves_marker_unset(
@@ -217,8 +221,8 @@ class MarkReadyForReviewTest(TestCase):
 
         assert self._marker() is None
 
-    @patch(f"{GREEN_PATH}.MarkPullRequestDraftStateProtocol", object)
-    @patch(f"{GREEN_PATH}.scm_actions.mark_pull_request_ready_for_review")
+    @patch(f"{READY_PATH}.MarkPullRequestDraftStateProtocol", object)
+    @patch(f"{READY_PATH}.scm_actions.mark_pull_request_ready_for_review")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
     @patch(f"{RESOLVE_PATH}.resolve_check_suite_autofix_run")
     def test_skips_when_marker_exists_for_any_head(
@@ -248,8 +252,8 @@ class MarkReadyForReviewTest(TestCase):
         assert marker is not None
         assert marker["head_sha"] == "older-sha"
 
-    @patch(f"{GREEN_PATH}.MarkPullRequestDraftStateProtocol", object)
-    @patch(f"{GREEN_PATH}.scm_actions.mark_pull_request_ready_for_review")
+    @patch(f"{READY_PATH}.MarkPullRequestDraftStateProtocol", object)
+    @patch(f"{READY_PATH}.scm_actions.mark_pull_request_ready_for_review")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
     @patch(f"{RESOLVE_PATH}.resolve_check_suite_autofix_run")
     def test_skips_undraft_when_pr_not_draft(
@@ -269,8 +273,8 @@ class MarkReadyForReviewTest(TestCase):
         assert marker is not None
         assert marker["head_sha"] == HEAD_SHA
 
-    @patch(f"{GREEN_PATH}.MarkPullRequestDraftStateProtocol", object)
-    @patch(f"{GREEN_PATH}.scm_actions.mark_pull_request_ready_for_review")
+    @patch(f"{READY_PATH}.MarkPullRequestDraftStateProtocol", object)
+    @patch(f"{READY_PATH}.scm_actions.mark_pull_request_ready_for_review")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
     @patch(f"{RESOLVE_PATH}.resolve_check_suite_autofix_run")
     def test_skips_undraft_when_pr_not_open(

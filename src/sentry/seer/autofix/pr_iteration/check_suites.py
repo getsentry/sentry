@@ -8,7 +8,7 @@ machinery in ``feedback_sources/check_suite.py``.
 
 This is the leaf of the check-suite package: it holds the shared helpers and the
 ``ResolvedCheckSuite`` base, but knows nothing about the concrete handlers. The
-green/red subclasses live in ``green_check_suite``/``red_check_suite`` and
+green/red subclasses live in the ``green_check_suite`` package/``red_check_suite`` and
 ``resolve`` picks between them, so the dependency runs one way — helpers <-
 handlers <- resolve.
 """
@@ -20,7 +20,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Literal, NamedTuple
+from typing import Any, ClassVar, Literal, NamedTuple
 
 import orjson
 import sentry_sdk
@@ -45,8 +45,10 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 SEER_GITHUB_PROVIDER = "integrations:github"
-# Which stage bailed out, for the ``record_check_suite_skip`` metric/log key.
-SkipScope = Literal["resolve", "green"]
+# The ``record_check_suite_outcome`` metric/log key: what happened, and where —
+# shared resolution, or the green/red handler it dispatched to.
+CheckSuiteOutcome = Literal["skipped", "failed"]
+CheckSuiteStage = Literal["resolve", "handle"]
 
 
 class CheckSuiteConclusionType(Enum):
@@ -334,6 +336,9 @@ class ResolvedCheckSuite(ABC):
     the suite conclusion, and each one owns its own relevance gate and handling.
     """
 
+    # Which half of the fork this is; stamps every ``_skip``/``_failed`` record.
+    conclusion_type: ClassVar[CheckSuiteConclusionType]
+
     event: GithubCheckSuiteEvent
     organization: Organization
     autofix_run: CheckSuiteAutofixRun
@@ -354,13 +359,52 @@ class ResolvedCheckSuite(ABC):
     def handle(self) -> None:
         """Run the side effects. Called on the longer-deadline task."""
 
+    def _skip(self, reason: str, level: int = logging.INFO, **extra: Any) -> None:
+        """Bail out of this handler, on top of the resolved ``log_extra``."""
+        record_check_suite_outcome(
+            "skipped", "handle", reason, self.conclusion_type, {**self.log_extra, **extra}, level
+        )
 
-def record_check_suite_skip(scope: SkipScope, reason: str, log_extra: dict[str, Any]) -> None:
-    """Record a bail-out. ``resolve`` serves both the green and red paths; ``green``
-    only the green side effects."""
-    key = f"autofix.pr_iteration.{scope}_check_suite.skipped"
-    metrics.incr(key, tags={"reason": reason})
-    logger.info(key, extra={**log_extra, "reason": reason})
+    def _failed(self, reason: str, **extra: Any) -> None:
+        """Same, for something that blew up. Call from an ``except`` block only."""
+        record_check_suite_outcome(
+            "failed",
+            "handle",
+            reason,
+            self.conclusion_type,
+            {**self.log_extra, **extra},
+            logging.WARNING,
+        )
+
+
+def record_check_suite_outcome(
+    outcome: CheckSuiteOutcome,
+    stage: CheckSuiteStage,
+    reason: str,
+    conclusion_type: CheckSuiteConclusionType,
+    log_extra: Mapping[str, Any] | None = None,
+    level: int = logging.INFO,
+) -> None:
+    """Record a check suite we didn't carry all the way through.
+
+    ``skipped`` is a deliberate bail-out, ``failed`` is something that blew up — the
+    latter attaches the active exception, so only call it from an ``except`` block.
+    Raise ``level`` to ``logging.WARNING`` for anything that shouldn't be happening:
+    failures, and invariant violations (state Seer says exists but we can't find).
+
+    Always tagged with the conclusion: the same reason means "green side effects
+    skipped" on one side and "CI-failure iteration stopped" on the other, and the
+    metric is useless if you can't tell which.
+    """
+    key = f"autofix.pr_iteration.check_suite.{outcome}.{stage}"
+    conclusion = conclusion_type.value
+    metrics.incr(key, tags={"reason": reason, "conclusion": conclusion})
+    logger.log(
+        level,
+        key,
+        extra={**(log_extra or {}), "reason": reason, "conclusion": conclusion},
+        exc_info=outcome == "failed",
+    )
 
 
 @dataclass(frozen=True)

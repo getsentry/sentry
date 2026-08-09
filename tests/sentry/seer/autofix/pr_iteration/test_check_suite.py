@@ -19,11 +19,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPullRequestReviewComment,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
-from sentry.seer.autofix.pr_iteration.green_check_suite import (
-    READY_FOR_REVIEW_EXTRA,
-    REVIEW_REQUESTS_EXTRA,
-    GreenCheckSuite,
-)
+from sentry.seer.autofix.pr_iteration.green_check_suite import GreenCheckSuite
 from sentry.seer.autofix.pr_iteration.listeners.check_suite import (
     handle_pr_iteration_check_suite,
     pr_iteration_from_check_suite_listener,
@@ -37,7 +33,10 @@ CHECK_SUITES_PATH = "sentry.seer.autofix.pr_iteration.check_suites"
 # they must be patched where they are defined.
 QUEUE_PATH = "sentry.seer.autofix.pr_iteration.queue"
 CAP_EXHAUSTED_PATH = "sentry.seer.autofix.pr_iteration.cap_exhausted"
+# The green package splits the gate (``base``) from the two side effects; the
+# gate is what this file drives, so patch names where ``base`` uses them.
 GREEN_PATH = "sentry.seer.autofix.pr_iteration.green_check_suite"
+BASE_PATH = f"{GREEN_PATH}.base"
 RESOLVE_PATH = "sentry.seer.autofix.pr_iteration.resolve"
 # Lazy-imported inside the listener / handle (must not load at AppConfig.ready).
 TRIGGER_CONSUME_PATH = "sentry.tasks.seer.pr_iteration.trigger_consume_pr_iteration_feedback"
@@ -146,12 +145,14 @@ class PrIterationFromCheckSuiteListenerTest(_CheckSuiteEventFixtures):
         mock_process.delay.assert_not_called()
 
     @patch(PROCESS_CHECK_SUITE_PATH)
-    @patch(f"{GREEN_PATH}.get_run_marker", return_value=None)
+    @patch(f"{BASE_PATH}.review_request_marker", return_value=None)
+    @patch(f"{BASE_PATH}.ready_for_review_marker", return_value=None)
     @patch(f"{CHECK_PATH}.resolve_check_suite")
     def test_green_relevant_queues_process_task(
         self,
         mock_resolve: MagicMock,
-        _mock_marker: MagicMock,
+        _mock_ready_marker: MagicMock,
+        _mock_review_marker: MagicMock,
         mock_process: MagicMock,
     ) -> None:
         event = self._event(self._raw(), conclusion="success")
@@ -165,12 +166,14 @@ class PrIterationFromCheckSuiteListenerTest(_CheckSuiteEventFixtures):
         )
 
     @patch(PROCESS_CHECK_SUITE_PATH)
-    @patch(f"{GREEN_PATH}.get_run_marker", return_value={"marked": True})
+    @patch(f"{BASE_PATH}.review_request_marker", return_value={"marked": True})
+    @patch(f"{BASE_PATH}.ready_for_review_marker", return_value={"marked": True})
     @patch(f"{CHECK_PATH}.resolve_check_suite")
     def test_green_both_markers_does_not_queue(
         self,
         mock_resolve: MagicMock,
-        _mock_marker: MagicMock,
+        _mock_ready_marker: MagicMock,
+        _mock_review_marker: MagicMock,
         mock_process: MagicMock,
     ) -> None:
         mock_resolve.return_value = self._green_resolved()
@@ -283,10 +286,11 @@ class PrIterationFromCheckSuiteListenerTest(_CheckSuiteEventFixtures):
 class HandlePrIterationCheckSuiteTest(_CheckSuiteEventFixtures):
     """Longer-deadline meat: green undraft/review + failure→iterate."""
 
-    @patch(f"{GREEN_PATH}.get_run_marker", return_value=None)
-    @patch(f"{GREEN_PATH}._request_review")
-    @patch(f"{GREEN_PATH}._mark_ready_for_review")
-    @patch(f"{GREEN_PATH}.GreenCheckSuite.confirm_green")
+    @patch(f"{BASE_PATH}.review_request_marker", return_value=None)
+    @patch(f"{BASE_PATH}.ready_for_review_marker", return_value=None)
+    @patch(f"{BASE_PATH}.request_review")
+    @patch(f"{BASE_PATH}.mark_ready_for_review")
+    @patch(f"{BASE_PATH}.GreenCheckSuite.confirm_green")
     @patch(f"{CHECK_PATH}.resolve_check_suite")
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
     def test_green_conclusion_bootstraps_then_side_effects(
@@ -296,7 +300,8 @@ class HandlePrIterationCheckSuiteTest(_CheckSuiteEventFixtures):
         mock_confirm: MagicMock,
         mock_mark_ready: MagicMock,
         mock_request_review: MagicMock,
-        _mock_marker: MagicMock,
+        _mock_ready_marker: MagicMock,
+        _mock_review_marker: MagicMock,
     ) -> None:
         event = self._event(self._raw(), conclusion="success")
         resolved = self._green_resolved()
@@ -317,10 +322,12 @@ class HandlePrIterationCheckSuiteTest(_CheckSuiteEventFixtures):
         assert call_order == ["ready", "review"]
         mock_get_state.assert_not_called()
 
-    @patch(f"{GREEN_PATH}.get_run_marker")
-    @patch(f"{GREEN_PATH}._request_review")
-    @patch(f"{GREEN_PATH}._mark_ready_for_review")
-    @patch(f"{GREEN_PATH}.GreenCheckSuite.confirm_green")
+    # ready_for_review already marked; review_request still needed.
+    @patch(f"{BASE_PATH}.review_request_marker", return_value=None)
+    @patch(f"{BASE_PATH}.ready_for_review_marker", return_value={"marked": True})
+    @patch(f"{BASE_PATH}.request_review")
+    @patch(f"{BASE_PATH}.mark_ready_for_review")
+    @patch(f"{BASE_PATH}.GreenCheckSuite.confirm_green")
     @patch(f"{CHECK_PATH}.resolve_check_suite")
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
     def test_green_conclusion_runs_only_needed_side_effects(
@@ -330,16 +337,13 @@ class HandlePrIterationCheckSuiteTest(_CheckSuiteEventFixtures):
         mock_confirm: MagicMock,
         mock_mark_ready: MagicMock,
         mock_request_review: MagicMock,
-        mock_marker: MagicMock,
+        _mock_ready_marker: MagicMock,
+        _mock_review_marker: MagicMock,
     ) -> None:
         resolved = self._green_resolved()
         ctx = MagicMock()
         mock_resolve.return_value = resolved
         mock_confirm.return_value = ctx
-        # ready_for_review already marked; review_request still needed.
-        mock_marker.side_effect = lambda _run, extra_key, _repo: (
-            {"marked": True} if extra_key == READY_FOR_REVIEW_EXTRA else None
-        )
 
         with self.feature(REVIEW_REQUEST_FLAG):
             handle_pr_iteration_check_suite(self._event(self._raw(), conclusion="success"))
@@ -347,14 +351,13 @@ class HandlePrIterationCheckSuiteTest(_CheckSuiteEventFixtures):
         mock_confirm.assert_called_once_with()
         mock_mark_ready.assert_not_called()
         mock_request_review.assert_called_once_with(ctx)
-        assert mock_marker.call_args_list[0].args[1] == READY_FOR_REVIEW_EXTRA
-        assert mock_marker.call_args_list[1].args[1] == REVIEW_REQUESTS_EXTRA
         mock_get_state.assert_not_called()
 
-    @patch(f"{GREEN_PATH}.get_run_marker", return_value={"marked": True})
-    @patch(f"{GREEN_PATH}._request_review")
-    @patch(f"{GREEN_PATH}._mark_ready_for_review")
-    @patch(f"{GREEN_PATH}.GreenCheckSuite.confirm_green")
+    @patch(f"{BASE_PATH}.review_request_marker", return_value={"marked": True})
+    @patch(f"{BASE_PATH}.ready_for_review_marker", return_value={"marked": True})
+    @patch(f"{BASE_PATH}.request_review")
+    @patch(f"{BASE_PATH}.mark_ready_for_review")
+    @patch(f"{BASE_PATH}.GreenCheckSuite.confirm_green")
     @patch(f"{CHECK_PATH}.resolve_check_suite")
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
     def test_green_conclusion_skips_scm_when_both_markers_set(
@@ -364,7 +367,8 @@ class HandlePrIterationCheckSuiteTest(_CheckSuiteEventFixtures):
         mock_confirm: MagicMock,
         mock_mark_ready: MagicMock,
         mock_request_review: MagicMock,
-        _mock_marker: MagicMock,
+        _mock_ready_marker: MagicMock,
+        _mock_review_marker: MagicMock,
     ) -> None:
         mock_resolve.return_value = self._green_resolved()
 
@@ -376,10 +380,11 @@ class HandlePrIterationCheckSuiteTest(_CheckSuiteEventFixtures):
         mock_request_review.assert_not_called()
         mock_get_state.assert_not_called()
 
-    @patch(f"{GREEN_PATH}.get_run_marker", return_value=None)
-    @patch(f"{GREEN_PATH}._request_review")
-    @patch(f"{GREEN_PATH}._mark_ready_for_review")
-    @patch(f"{GREEN_PATH}.GreenCheckSuite.confirm_green", return_value=None)
+    @patch(f"{BASE_PATH}.review_request_marker", return_value=None)
+    @patch(f"{BASE_PATH}.ready_for_review_marker", return_value=None)
+    @patch(f"{BASE_PATH}.request_review")
+    @patch(f"{BASE_PATH}.mark_ready_for_review")
+    @patch(f"{BASE_PATH}.GreenCheckSuite.confirm_green", return_value=None)
     @patch(f"{CHECK_PATH}.resolve_check_suite")
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
     def test_green_conclusion_skips_side_effects_when_confirm_empty(
@@ -389,7 +394,8 @@ class HandlePrIterationCheckSuiteTest(_CheckSuiteEventFixtures):
         _mock_confirm: MagicMock,
         mock_mark_ready: MagicMock,
         mock_request_review: MagicMock,
-        _mock_marker: MagicMock,
+        _mock_ready_marker: MagicMock,
+        _mock_review_marker: MagicMock,
     ) -> None:
         mock_resolve.return_value = self._green_resolved()
         with self.feature(REVIEW_REQUEST_FLAG):
@@ -400,15 +406,17 @@ class HandlePrIterationCheckSuiteTest(_CheckSuiteEventFixtures):
         mock_get_state.assert_not_called()
 
     @patch(TRIGGER_CONSUME_PATH)
-    @patch(f"{GREEN_PATH}.peek_queued_autofix_feedback")
-    @patch(f"{GREEN_PATH}.get_run_marker", return_value={"marked": True})
-    @patch(f"{GREEN_PATH}.GreenCheckSuite.confirm_green")
+    @patch(f"{BASE_PATH}.peek_queued_autofix_feedback")
+    @patch(f"{BASE_PATH}.review_request_marker", return_value={"marked": True})
+    @patch(f"{BASE_PATH}.ready_for_review_marker", return_value={"marked": True})
+    @patch(f"{BASE_PATH}.GreenCheckSuite.confirm_green")
     @patch(f"{CHECK_PATH}.resolve_check_suite")
     def test_green_retriggers_deferred_iteration_consume(
         self,
         mock_resolve: MagicMock,
         mock_confirm: MagicMock,
-        _mock_marker: MagicMock,
+        _mock_ready_marker: MagicMock,
+        _mock_review_marker: MagicMock,
         mock_peek: MagicMock,
         mock_trigger: MagicMock,
     ) -> None:
@@ -435,13 +443,15 @@ class HandlePrIterationCheckSuiteTest(_CheckSuiteEventFixtures):
         mock_confirm.assert_not_called()
 
     @patch(TRIGGER_CONSUME_PATH)
-    @patch(f"{GREEN_PATH}.peek_queued_autofix_feedback", return_value=[])
-    @patch(f"{GREEN_PATH}.get_run_marker", return_value={"marked": True})
+    @patch(f"{BASE_PATH}.peek_queued_autofix_feedback", return_value=[])
+    @patch(f"{BASE_PATH}.review_request_marker", return_value={"marked": True})
+    @patch(f"{BASE_PATH}.ready_for_review_marker", return_value={"marked": True})
     @patch(f"{CHECK_PATH}.resolve_check_suite")
     def test_green_no_queued_feedback_does_not_retrigger(
         self,
         mock_resolve: MagicMock,
-        _mock_marker: MagicMock,
+        _mock_ready_marker: MagicMock,
+        _mock_review_marker: MagicMock,
         _mock_peek: MagicMock,
         mock_trigger: MagicMock,
     ) -> None:
@@ -453,13 +463,15 @@ class HandlePrIterationCheckSuiteTest(_CheckSuiteEventFixtures):
         mock_trigger.assert_not_called()
 
     @patch(TRIGGER_CONSUME_PATH)
-    @patch(f"{GREEN_PATH}.peek_queued_autofix_feedback")
-    @patch(f"{GREEN_PATH}.get_run_marker", return_value={"marked": True})
+    @patch(f"{BASE_PATH}.peek_queued_autofix_feedback")
+    @patch(f"{BASE_PATH}.review_request_marker", return_value={"marked": True})
+    @patch(f"{BASE_PATH}.ready_for_review_marker", return_value={"marked": True})
     @patch(f"{CHECK_PATH}.resolve_check_suite")
     def test_green_retrigger_requires_iteration_flag(
         self,
         mock_resolve: MagicMock,
-        _mock_marker: MagicMock,
+        _mock_ready_marker: MagicMock,
+        _mock_review_marker: MagicMock,
         mock_peek: MagicMock,
         mock_trigger: MagicMock,
     ) -> None:
@@ -472,6 +484,32 @@ class HandlePrIterationCheckSuiteTest(_CheckSuiteEventFixtures):
         handle_pr_iteration_check_suite(self._event(self._raw(), conclusion="success"))
 
         mock_trigger.assert_not_called()
+
+    @patch(f"{BASE_PATH}.request_review")
+    @patch(f"{BASE_PATH}.mark_ready_for_review")
+    @patch(f"{BASE_PATH}.GreenCheckSuite.confirm_green")
+    @patch(f"{BASE_PATH}.peek_queued_autofix_feedback", side_effect=ValueError("redis down"))
+    @patch(f"{BASE_PATH}.review_request_marker", return_value=None)
+    @patch(f"{BASE_PATH}.ready_for_review_marker", return_value=None)
+    @patch(f"{CHECK_PATH}.resolve_check_suite")
+    def test_green_recheck_failure_does_not_block_review_side_effects(
+        self,
+        mock_resolve: MagicMock,
+        _mock_ready_marker: MagicMock,
+        _mock_review_marker: MagicMock,
+        _mock_peek: MagicMock,
+        _mock_confirm: MagicMock,
+        mock_mark_ready: MagicMock,
+        mock_request_review: MagicMock,
+    ) -> None:
+        """The deferred-iteration recheck is independent of undraft / review."""
+        mock_resolve.return_value = self._green_resolved()
+
+        with self.feature([REVIEW_REQUEST_FLAG, "organizations:autofix-pr-iteration"]):
+            handle_pr_iteration_check_suite(self._event(self._raw(), conclusion="success"))
+
+        mock_mark_ready.assert_called_once()
+        mock_request_review.assert_called_once()
 
     @patch(QUEUE_PATH + ".try_enqueue_autofix_feedback")
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")

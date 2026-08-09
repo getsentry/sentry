@@ -6,6 +6,7 @@ import those helpers without a cycle: helpers <- handlers <- this module.
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from sentry.models.organization import Organization
@@ -14,7 +15,7 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     CHECK_SUITE_CONCLUSION_TYPES,
     CheckSuiteConclusionType,
     parse_github_check_suite_event,
-    record_check_suite_skip,
+    record_check_suite_outcome,
     resolve_check_suite_autofix_run,
     resolve_check_suite_repositories,
 )
@@ -49,7 +50,7 @@ def resolve_check_suite(
 
     event = parse_github_check_suite_event(check_suite_event)
     if event is None:
-        record_check_suite_skip("resolve", "unparseable_event", {})
+        record_check_suite_outcome("skipped", "resolve", "unparseable_event", conclusion_type)
         return None
 
     organizations: dict[int, Organization] = {}
@@ -65,8 +66,12 @@ def resolve_check_suite(
         candidate_repos.append(repo)
 
     if not candidate_repos:
-        record_check_suite_skip(
-            "resolve", "no_candidate_repos", {"repo_name": event.repository.full_name}
+        record_check_suite_outcome(
+            "skipped",
+            "resolve",
+            "no_candidate_repos",
+            conclusion_type,
+            {"repo_name": event.repository.full_name},
         )
         return None
 
@@ -76,9 +81,11 @@ def resolve_check_suite(
         tags={"found": str(autofix_run is not None).lower()},
     )
     if autofix_run is None:
-        record_check_suite_skip(
+        record_check_suite_outcome(
+            "skipped",
             "resolve",
             "no_autofix_run",
+            conclusion_type,
             {
                 "repo_name": event.repository.full_name,
                 "organization_ids": [repo.organization_id for repo in candidate_repos],
@@ -94,17 +101,39 @@ def resolve_check_suite(
         "pr_id": autofix_run.pr_id,
     }
 
+    # Past this point Seer has handed us a run for an open Autofix PR, so the PR
+    # number and the local ``SeerRun`` mirror should both exist. Bailing here is an
+    # invariant violation, not routine filtering: log loudly, and log the keys we
+    # looked up so the mismatch is diagnosable without a repro.
     repo_name = event.repository.full_name
     if not repo_name:
-        record_check_suite_skip("resolve", "missing_repo_name", log_extra)
+        record_check_suite_outcome(
+            "skipped",
+            "resolve",
+            "missing_repo_name",
+            conclusion_type,
+            log_extra,
+            level=logging.WARNING,
+        )
         return None
+
     pr_state = autofix_run.run_state.repo_pr_states.get(repo_name)
     pr_number = pr_state.pr_number if pr_state else None
     if pr_number is None:
-        record_check_suite_skip(
+        record_check_suite_outcome(
+            "skipped",
             "resolve",
             "missing_pr_number",
-            {**log_extra, "repo_name": repo_name, "has_pr_state": pr_state is not None},
+            conclusion_type,
+            {
+                **log_extra,
+                "repo_name": repo_name,
+                # The realistic failure is a key mismatch rather than a genuinely
+                # absent PR number, so record what Seer does have keys for.
+                "has_pr_state": pr_state is not None,
+                "repo_pr_state_keys": sorted(autofix_run.run_state.repo_pr_states),
+            },
+            level=logging.WARNING,
         )
         return None
 
@@ -112,8 +141,20 @@ def resolve_check_suite(
         seer_run_state_id=autofix_run.run_state.run_id, organization=organization
     ).first()
     if seer_run is None:
-        record_check_suite_skip(
-            "resolve", "missing_seer_run", {**log_extra, "repo_name": repo_name}
+        record_check_suite_outcome(
+            "skipped",
+            "resolve",
+            "missing_seer_run",
+            conclusion_type,
+            {
+                **log_extra,
+                "repo_name": repo_name,
+                # Seer knows about the run but Sentry has no mirror row: record the
+                # exact lookup keys so the missing row can be chased down directly.
+                "seer_run_state_id": autofix_run.run_state.run_id,
+                "seer_run_organization_id": organization.id,
+            },
+            level=logging.WARNING,
         )
         return None
 

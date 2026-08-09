@@ -12,7 +12,10 @@ from dataclasses import dataclass
 
 from sentry import features
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.pr_iteration.check_suites import ResolvedCheckSuite
+from sentry.seer.autofix.pr_iteration.check_suites import (
+    CheckSuiteConclusionType,
+    ResolvedCheckSuite,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +23,8 @@ logger = logging.getLogger(__name__)
 @dataclass(frozen=True)
 class RedCheckSuite(ResolvedCheckSuite):
     """CI failed: feed the failure back to Autofix so it iterates on the PR."""
+
+    conclusion_type = CheckSuiteConclusionType.RED
 
     def is_relevant(self) -> bool:
         # Automated CI iteration is gated on `autofix-pr-iteration` alone. The
