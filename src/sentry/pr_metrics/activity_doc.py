@@ -822,7 +822,16 @@ def classify_ci_head_actor(
 
 
 class CiHeadResult(TypedDict):
-    """One observed PR head, retaining order and attribution inputs."""
+    """One observed PR head, retaining order and its resolved actor.
+
+    ``sender_type`` is deliberately not carried here: it is only an input to
+    ``classify_ci_head_actor``, and ``actor`` already implies it (``bot``/``seer``
+    mean ``"Bot"``, ``human`` means a non-bot sender, ``unknown`` means absent).
+    ``sender_login`` stays because ``actor`` collapses every non-Seer pusher into
+    ``human``/``bot``, and we want the raw identity behind those: which person, or
+    which third-party bot. Seer's own logins are already known, so the login adds
+    nothing for ``actor == "seer"``.
+    """
 
     sequence: int | None
     head_sha: str
@@ -830,7 +839,6 @@ class CiHeadResult(TypedDict):
     outcome: CiVerdict
     has_ci: bool
     sender_login: str | None
-    sender_type: str | None
     actor: Literal["seer", "human", "bot", "unknown"]
 
 
@@ -881,7 +889,6 @@ def ci_head_results_from_doc(doc: ActivityDoc) -> list[CiHeadResult]:
                 "outcome": outcomes.get(head_sha, "inconclusive"),
                 "has_ci": head_sha in outcomes,
                 "sender_login": sender_login,
-                "sender_type": sender_type,
                 "actor": classify_ci_head_actor(sender_login or "", sender_type or ""),
             }
         )
@@ -895,7 +902,6 @@ def ci_head_results_from_doc(doc: ActivityDoc) -> list[CiHeadResult]:
                 "outcome": outcomes[head_sha],
                 "has_ci": True,
                 "sender_login": None,
-                "sender_type": None,
                 "actor": "unknown",
             }
         )
