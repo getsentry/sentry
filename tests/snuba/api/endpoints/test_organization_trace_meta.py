@@ -19,9 +19,6 @@ class OrganizationEventsTraceMetaEndpointTest(
 ):
     url_name = "sentry-api-0-organization-trace-meta"
 
-    def client_get(self, *args, data=None, url=None, **kwargs):
-        return super().client_get(*args, data=data, url=url or self.url, **kwargs)
-
     def test_no_projects(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)

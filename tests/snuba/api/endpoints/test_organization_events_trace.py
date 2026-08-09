@@ -223,9 +223,6 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase, O
         """Broken in the non-spans endpoint, but we're not maintaining that anymore"""
         pass
 
-    def client_get(self, *args, data=None, url=None, **kwargs):
-        return super().client_get(*args, data=data, url=url or self.url, **kwargs)
-
     def test_no_projects(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)
