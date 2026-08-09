@@ -45,15 +45,6 @@ class RepoPathParsingResponse(TypedDict):
 
 
 def unquote_source_url_path(source_url: str) -> str:
-    """
-    Percent-decode the path of a source code URL.
-
-    Providers percent-encode characters that are legal in a file name but
-    reserved in a URL, so the URL a user copies from their browser does not
-    match the raw stack trace path (e.g. `+page.svelte` appears as
-    `%2Bpage.svelte`). Only the path is decoded; the query string is left
-    untouched since providers use it for real parameters (branch, line number).
-    """
     parsed = urlparse(source_url)
     return urlunparse(parsed._replace(path=unquote(parsed.path)))
 
@@ -82,7 +73,7 @@ class PathMappingSerializer(CamelSnakeSerializer[dict[str, str]]):
         return self.context["organization_id"]
 
     def validate_source_url(self, source_url: str) -> str:
-        # URLs copied from a provider's UI are percent-encoded, but stack trace
+        # URLs copied from a provider's UI can be percent-encoded, but stack trace
         # paths are not, so decode before comparing or extracting paths
         source_url = unquote_source_url_path(source_url)
 
