@@ -42,6 +42,7 @@ from sentry.testutils.cases import (
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.discover import user_misery_formula
+from sentry.testutils.helpers.eap import EAP_DEFAULT_STATS_PERIOD
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.samples import load_data
@@ -64,11 +65,12 @@ class OrganizationEventsEndpointTestBase(
 ):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
-    # Snuba EAP outcomes routing defaults standard retention to 30 days and forces
-    # tier 8 when the query start is older than that window. API endpoints default
-    # to a 90d statsPeriod when unset, so tests that don't intentionally cover LTR
-    # must stay within 30d to keep tier-1 results.
-    default_stats_period = "14d"
+    # Match EAPClient / EAP_FULL_FIDELITY_QUERY_DAYS. Snuba forces tier 8 when the
+    # query start is older than the standard retention window (~30d). API endpoints
+    # still default unset windows to 90d, and some EAP paths (e.g. trace-meta) are
+    # not covered by EAPClient's path/dataset heuristics, so this base injects the
+    # full-fidelity window unless the test sets an explicit one.
+    default_stats_period = EAP_DEFAULT_STATS_PERIOD
 
     def setUp(self) -> None:
         super().setUp()
@@ -84,7 +86,16 @@ class OrganizationEventsEndpointTestBase(
         """Ensure EAP queries stay on tier 1 unless the test sets an explicit window."""
         query = {} if data is None else dict(data)
         has_explicit_window = any(
-            key in query for key in ("statsPeriod", "statsPeriodStart", "start", "end")
+            key in query
+            for key in (
+                "statsPeriod",
+                "statsPeriodStart",
+                "statsPeriodEnd",
+                "start",
+                "end",
+                "range",
+                "timestamp",
+            )
         )
         if not has_explicit_window:
             query["statsPeriod"] = self.default_stats_period
