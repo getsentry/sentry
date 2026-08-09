@@ -257,8 +257,8 @@ class OrganizationEventsTraceEndpointTest(
     def assert_performance_issues(self, root):
         """Broken in the non-spans endpoint, but we're not maintaining that anymore"""
 
-    def client_get(self, data=None, url=None, **kwargs):
-        return super().client_get(data=data, url=url or self.url, **kwargs)
+    def client_get(self, *args, data=None, url=None, **kwargs):
+        return super().client_get(*args, data=data, url=url or self.url, **kwargs)
 
     def test_no_projects(self) -> None:
         user = self.create_user()
