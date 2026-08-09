@@ -49,6 +49,17 @@ Do not use the **current or future UTC calendar year** as a hardcoded test “no
 
 Flake8 **S015** flags literals with year greater than or equal to the current UTC year in those scopes.
 
+## EAP / Snuba endpoint tests (30d retention)
+
+Snuba EAP outcomes routing defaults **standard retention to 30 days** and forces **tier 8** when the query start is older than that window. Sentry APIs still default unset windows to **90d**, so Snuba-integration tests that omit an explicit window under-count recent data.
+
+For suites that inherit `OrganizationEventsEndpointTestBase`:
+
+- Prefer **`client_get()` / `do_request()`** (or local helpers that call them). Do **not** call raw `self.client.get(...)` — flake8 **S020** flags it.
+- Default path injects `statsPeriod=14d` unless the test already sets `statsPeriod` / `start` / `end`.
+- Keep query windows **≤30d** unless the test intentionally covers long-term retention / downsampling.
+- If you must query **>30d**, set the window **and** either send `standard_retention_days` (up to 90) or explicitly assert tier-8 / downsampled behavior. Do not weaken assertions just to make CI green.
+
 ## Use Factories Instead of Directly Calling `Model.objects.create`
 
 In Sentry Python tests, you MUST use factory methods in this priority order:
