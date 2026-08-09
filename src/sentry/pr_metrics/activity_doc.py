@@ -675,13 +675,20 @@ def commit_shas_from_doc(doc: ActivityDoc, head_sha: str | None) -> set[str]:
     once ``sync_chain`` fills degrades identically: the walk stops at the horizon.
     Returns an empty set when the head isn't reachable from any push (e.g. no pushes
     after open).
+
+    ``sync_chain`` keeps every head observation, so one ``after_sha`` can carry
+    several ``before_sha`` values — a force push back onto an earlier head reports
+    the abandoned head as its ``before``. Only the first observation of a SHA
+    describes how it was actually built; later ones link it to whatever the branch
+    happened to point at. So the first link wins, which keeps the walk on real
+    ancestry instead of following an ``A → B → A`` loop into abandoned commits.
     """
     before_by_after: dict[str, str | None] = {}
     for pair in doc.get("sync_chain") or []:
         after = pair[0]
         if not after:
             continue
-        before_by_after[after] = pair[1]
+        before_by_after.setdefault(after, pair[1])
 
     shas: set[str] = set()
     current = head_sha or ""

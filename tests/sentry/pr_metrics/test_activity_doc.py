@@ -987,6 +987,19 @@ def test_commit_shas_from_doc_force_push_excludes_abandoned() -> None:
     assert commit_shas_from_doc(doc, "F") == {"F", "A1"}
 
 
+def test_commit_shas_from_doc_force_push_back_onto_prior_head() -> None:
+    # ``sync_chain`` keeps repeat head observations for the CI-heads reader, so A1 is
+    # recorded twice as an ``after_sha``: once built on A0, once as the target of a
+    # force push that abandons A2. Taking the later link would walk A1 -> A2 -> A1 and
+    # both pull the abandoned A2 in and lose A0; the first link wins instead.
+    doc = new_document()
+    _sync(doc, before="B0", after="A0", webhook_id="s1")
+    _sync(doc, before="A0", after="A1", webhook_id="s2")
+    _sync(doc, before="A1", after="A2", webhook_id="s3")
+    _sync(doc, before="A2", after="A1", webhook_id="s4")  # force-push back onto A1
+    assert commit_shas_from_doc(doc, "A1") == {"A1", "A0"}
+
+
 def test_commit_shas_from_doc_order_independent_no_false_force_push() -> None:
     # The bug fix: two synchronize deliveries stored out of order must NOT read as a
     # force push. The legacy reverse-arrival walker would drop A2 here; the
