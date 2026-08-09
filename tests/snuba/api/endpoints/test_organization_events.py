@@ -108,9 +108,7 @@ class OrganizationEventsEndpointTestBase(
         if len(args_list) >= 2 and isinstance(args_list[1], dict):
             args_list[1] = self.with_default_stats_period(args_list[1])
         elif data is not None and len(args_list) == 1:
-            return self.client.get(
-                args_list[0], self.with_default_stats_period(data), **kwargs
-            )
+            return self.client.get(args_list[0], self.with_default_stats_period(data), **kwargs)
         return self.client.get(*args_list, **kwargs)
 
     def reverse_url(self):
