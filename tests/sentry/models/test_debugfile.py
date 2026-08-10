@@ -370,7 +370,7 @@ class CreateDebugFileTest(APITestCase):
         )
 
         with (
-            patch("sentry.models.debugfile._find_existing_dif", return_value=None),
+            patch("sentry.models.debugfile.find_existing_dif", return_value=None),
             pytest.raises(TypeError, match="unknown dif type 'unknown'"),
         ):
             create_dif_from_id(MagicMock(), meta, fileobj=BytesIO(b"debug symbols"))
@@ -484,10 +484,12 @@ class CreateDebugFileTest(APITestCase):
     def test_exclusive_objectstore_write_failure_does_not_create_file(self) -> None:
         with (
             self.feature("organizations:objectstore-debugfiles-exclusive-write"),
-            patch("sentry.models.debugfile.get_debug_files_session") as get_session,
+            patch(
+                "sentry.models.debugfile.get_debug_files_session",
+                return_value=MagicMock(put=MagicMock(side_effect=RuntimeError)),
+            ),
             pytest.raises(RuntimeError),
         ):
-            get_session.return_value.put.side_effect = RuntimeError
             self.create_dif(fileobj=BytesIO(b"objectstore-dif-content"))
 
         assert not ProjectDebugFile.objects.filter(project_id=self.project.id).exists()
@@ -496,12 +498,13 @@ class CreateDebugFileTest(APITestCase):
     @requires_objectstore
     def test_objectstore_write_failure_preserves_legacy_dif(self) -> None:
         content = b"objectstore-dif-content"
-        session = MagicMock()
-        session.put.side_effect = RuntimeError
 
         with (
             self.feature("organizations:objectstore-debugfiles-write"),
-            patch("sentry.models.debugfile.get_debug_files_session", return_value=session),
+            patch(
+                "sentry.models.debugfile.get_debug_files_session",
+                return_value=MagicMock(put=MagicMock(side_effect=RuntimeError)),
+            ),
         ):
             dif, created = self.create_dif(fileobj=BytesIO(content))
 
@@ -557,7 +560,7 @@ class CreateDebugFileTest(APITestCase):
         assert created
         with (
             self.feature("organizations:objectstore-debugfiles-read"),
-            patch.object(dif, "_get_objectstore_session") as get_session,
+            patch.object(dif, "get_objectstore_session") as get_session,
         ):
             get_session.return_value.get.side_effect = RuntimeError("Objectstore unavailable")
             with pytest.raises(RuntimeError):
