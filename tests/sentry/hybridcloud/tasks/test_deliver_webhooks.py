@@ -973,7 +973,10 @@ class DeliveryTimeMetricsTest(TestCase):
             if c[0][0] == "hybridcloud.deliver_webhooks.delivery_time_ms"
         ]
         assert len(delivery_time_ms_calls) == 1
-        assert delivery_time_ms_calls[0][1].get("tags", {}).get("region_sent_to") == "us"
+        tags = delivery_time_ms_calls[0][1].get("tags", {})
+        assert tags.get("region_sent_to") == "us"
+        # Rows predating the provider column still drain through here.
+        assert tags.get("provider") == "unknown"
 
     @responses.activate
     @override_cells(cell_config)
@@ -1004,6 +1007,7 @@ class DeliveryTimeMetricsTest(TestCase):
         assert len(delivery_time_ms_calls) == 1
         tags = delivery_time_ms_calls[0][1].get("tags", {})
         assert tags.get("region_sent_to") == "us"
+        assert tags.get("provider") == "github"
         assert tags.get("github_event_and_action") == "pull_request.opened"
 
     @responses.activate
@@ -1062,6 +1066,7 @@ class DeliveryTimeMetricsTest(TestCase):
         assert len(delivery_time_ms_calls) == 1
         tags = delivery_time_ms_calls[0][1].get("tags", {})
         assert tags.get("region_sent_to") == "us"
+        assert tags.get("provider") == "stripe"
         assert "github_event_and_action" not in tags
 
 
