@@ -178,8 +178,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:onboarding", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enable the agentic setup interstitial on the onboarding welcome step
     manager.add("organizations:onboarding-agentic-setup", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable copy setup instructions button on project creation getting-started page
-    manager.add("organizations:onboarding-copy-setup-instructions-project-creation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable SCM-first onboarding flow with provider connection, platform detection, and feature selection steps
     manager.add("organizations:onboarding-scm", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Experiment: SCM onboarding A/B test measuring conversion impact
