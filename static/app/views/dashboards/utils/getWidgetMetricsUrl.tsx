@@ -42,9 +42,9 @@ export function getWidgetMetricsUrl(
         // Use flatMap because of the queries type, but for an equation we will only have one
         // true query. The other metric queries filters are parsed out from the equation string.
         return widget.queries.flatMap(query => {
-          const groupByFields: GroupBy[] = query.columns.map(
-            (col): GroupBy => ({groupBy: col})
-          );
+          const groupByFields: GroupBy[] = query.columns.map((col): GroupBy => ({
+            groupBy: col,
+          }));
           const queryString =
             applyDashboardFilters(
               query.conditions,
@@ -74,9 +74,9 @@ export function getWidgetMetricsUrl(
           applyDashboardFilters(query.conditions, dashboardFilters, widget.widgetType) ??
           '';
 
-        const groupByFields: GroupBy[] = query.columns.map(
-          (col): GroupBy => ({groupBy: col})
-        );
+        const groupByFields: GroupBy[] = query.columns.map((col): GroupBy => ({
+          groupBy: col,
+        }));
 
         const aggregateSortBys = query.orderby ? decodeSorts(query.orderby) : [];
 
