@@ -3,7 +3,6 @@ import type {SelectValue} from '@sentry/scraps/select';
 
 import type {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {ChoiceMapperProps} from 'sentry/components/forms/fields/choiceMapperField';
-import type {SelectAsyncFieldProps} from 'sentry/components/forms/fields/selectAsyncField';
 import type {FormModel} from 'sentry/components/forms/model';
 import type {SliderProps} from 'sentry/components/slider';
 import type {AvatarProject, Project} from 'sentry/types/project';
@@ -28,8 +27,7 @@ type FieldType =
   | 'url'
   | 'table'
   | 'project_mapper'
-  | 'sentry_project_selector'
-  | 'select_async';
+  | 'sentry_project_selector';
 
 export type FieldValue = any;
 
@@ -196,18 +194,9 @@ type SentryProjectSelectorType = {
   avatarSize?: number;
 };
 
-type SentryMemberSelectorType = {
-  type: 'sentry_member_selector';
-  multiple?: boolean;
-};
-
 type SentryOrganizationRoleSelectorType = {
   type: 'sentry_organization_role_selector';
 };
-
-type SelectAsyncType = {
-  type: 'select_async';
-} & SelectAsyncFieldProps;
 
 export type Field = (
   | CollapsibleSectionType
@@ -220,9 +209,7 @@ export type Field = (
   | TableType
   | ProjectMapperType
   | SentryProjectSelectorType
-  | SentryMemberSelectorType
   | SentryOrganizationRoleSelectorType
-  | SelectAsyncType
   | ChoiceMapperType
   | {type: FieldType}
   | FileType
