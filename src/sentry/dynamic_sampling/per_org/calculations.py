@@ -93,6 +93,7 @@ def get_cached_recalibration_factor(org_id: int) -> float:
 
 def compare_recalibration_factor_with_cache(
     config: BaseDynamicSamplingConfiguration,
+    org_volume: OrganizationDataVolume | None,
     calculated_factor: float | None,
     cached_factor: float | None,
 ) -> None:
@@ -103,6 +104,8 @@ def compare_recalibration_factor_with_cache(
             "sample_rate": config.get_sample_rate(),
             "generic_metrics_factor": cached_factor,
             "eap_factor": calculated_factor,
+            "total_transactions": None if org_volume is None else org_volume.total,
+            "stored_segments": None if org_volume is None else org_volume.indexed,
             "relative_deviation": (
                 None
                 if calculated_factor is None
