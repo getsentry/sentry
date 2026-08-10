@@ -85,7 +85,7 @@ const config: KnipConfig = {
   // Loaded by the standalone lint runner across the intentionally excluded
   // Oxlint plugin workspace boundary.
   ignoreIssues: {
-    'static/eslint/eslintPluginSentry/typeAwareRules.ts': ['files'],
+    'static/eslint/eslintPluginSentry/unnecessaryTypeAnnotation.ts': ['files'],
   },
   ignoreExportsUsedInFile: isProductionMode,
   rules: {

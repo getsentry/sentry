@@ -151,7 +151,7 @@ const coreComponentFiles = ['static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}
  * 2. `boundaries/dependencies` controls the architecture of local modules such
  *    as Sentry, GetSentry, admin, tests, stories, and Scraps.
  */
-export default defineConfig({
+const config = defineConfig({
   plugins: ['import', 'react', 'typescript', 'unicorn'],
   jsPlugins: [
     {
@@ -1780,3 +1780,6 @@ export default defineConfig({
     },
   ],
 });
+
+export const oxlintIgnorePatterns = config.ignorePatterns ?? [];
+export default config;

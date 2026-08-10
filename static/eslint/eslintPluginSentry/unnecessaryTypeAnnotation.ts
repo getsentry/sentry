@@ -1,35 +1,30 @@
 import ts from 'typescript';
 
+export type UnnecessaryTypeAnnotation = ts.VariableDeclaration & {
+  initializer: ts.Expression;
+  name: ts.Identifier;
+  type: ts.TypeNode;
+};
+
 const escapeHatchTypeFlags = ts.TypeFlags.Any | ts.TypeFlags.Unknown | ts.TypeFlags.Never;
 
-function isEscapeHatch(type: ts.Type): boolean {
-  return (type.flags & escapeHatchTypeFlags) !== 0;
-}
-
-function containsUntypedFunction(node: ts.Node): boolean {
+function dependsOnContextualType(node: ts.Node): boolean {
   if (ts.isArrowFunction(node) || ts.isFunctionExpression(node)) {
     if (node.parameters.some(parameter => !parameter.type)) {
       return true;
     }
 
-    // Functions declared inside a block body are not contextually typed by the
-    // variable annotation outside that body.
+    // The outer variable annotation does not contextually type functions
+    // declared inside a block body.
     if (ts.isBlock(node.body)) {
       return false;
     }
   }
 
-  let found = false;
-  ts.forEachChild(node, child => {
-    if (!found && containsUntypedFunction(child)) {
-      found = true;
-    }
-  });
-  return found;
+  return Boolean(ts.forEachChild(node, dependsOnContextualType));
 }
 
-/** Create the semantic checks shared by the standalone lint runner and its tests. */
-export function createTypeAwareRuleChecks(checker: ts.TypeChecker) {
+export function createUnnecessaryTypeAnnotationFinder(checker: ts.TypeChecker) {
   const containsAnyCache = new Map<ts.Type, boolean>();
 
   function typeContainsAny(type: ts.Type, seen = new Set<ts.Type>()): boolean {
@@ -56,11 +51,10 @@ export function createTypeAwareRuleChecks(checker: ts.TypeChecker) {
     return containsAny;
   }
 
-  function typesAreIdentical(a: ts.Type, b: ts.Type): boolean {
+  function typesAreEquivalent(a: ts.Type, b: ts.Type): boolean {
     if (a === b) {
       return true;
     }
-
     if (!checker.isTypeAssignableTo(a, b) || !checker.isTypeAssignableTo(b, a)) {
       return false;
     }
@@ -83,7 +77,9 @@ export function createTypeAwareRuleChecks(checker: ts.TypeChecker) {
     );
   }
 
-  function isUnnecessaryTypeAnnotation(node: ts.VariableDeclaration): boolean {
+  function isUnnecessary(
+    node: ts.VariableDeclaration
+  ): node is UnnecessaryTypeAnnotation {
     const declarationFlags = ts.getCombinedNodeFlags(node.parent);
     const isConst = (declarationFlags & ts.NodeFlags.Const) !== 0;
     const isLet = (declarationFlags & ts.NodeFlags.Let) !== 0;
@@ -95,13 +91,13 @@ export function createTypeAwareRuleChecks(checker: ts.TypeChecker) {
       !node.initializer ||
       ts.isObjectLiteralExpression(node.initializer) ||
       ts.isArrayLiteralExpression(node.initializer) ||
-      containsUntypedFunction(node.initializer)
+      dependsOnContextualType(node.initializer)
     ) {
       return false;
     }
 
     const annotationType = checker.getTypeFromTypeNode(node.type);
-    if (isEscapeHatch(annotationType)) {
+    if ((annotationType.flags & escapeHatchTypeFlags) !== 0) {
       return false;
     }
 
@@ -114,9 +110,36 @@ export function createTypeAwareRuleChecks(checker: ts.TypeChecker) {
     }
 
     return (
-      !typeContainsAny(inferredType) && typesAreIdentical(annotationType, inferredType)
+      !typeContainsAny(inferredType) && typesAreEquivalent(annotationType, inferredType)
     );
   }
 
-  return {isUnnecessaryTypeAnnotation};
+  return function findUnnecessaryTypeAnnotations(
+    sourceFile: ts.SourceFile
+  ): UnnecessaryTypeAnnotation[] {
+    const declarations: UnnecessaryTypeAnnotation[] = [];
+
+    function visit(node: ts.Node): void {
+      if (ts.isVariableDeclaration(node) && isUnnecessary(node)) {
+        declarations.push(node);
+      }
+      ts.forEachChild(node, visit);
+    }
+
+    visit(sourceFile);
+    return declarations;
+  };
+}
+
+export function removeUnnecessaryTypeAnnotations(
+  sourceFile: ts.SourceFile,
+  declarations: UnnecessaryTypeAnnotation[]
+): string {
+  let output = sourceFile.text;
+
+  for (const declaration of declarations.toSorted((a, b) => b.name.end - a.name.end)) {
+    output = output.slice(0, declaration.name.end) + output.slice(declaration.type.end);
+  }
+
+  return output;
 }

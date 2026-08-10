@@ -1,4 +1,5 @@
 import {spawn} from 'node:child_process';
+import {existsSync, statSync} from 'node:fs';
 import path from 'node:path';
 
 const repositoryRoot = path.resolve(import.meta.dirname, '..');
@@ -8,6 +9,7 @@ const sentryTypeAnnotationLintPath = path.join(
   'scripts/lintSentryTypeAnnotations.ts'
 );
 const args = process.argv.slice(2);
+const sourceFilePattern = /\.(?:[cm]?[jt]sx?|mdx)$/u;
 
 function run(command: string, commandArgs: string[]): Promise<number> {
   const child = spawn(command, commandArgs, {
@@ -33,7 +35,25 @@ const oxlintArgs = args.includes('--type-aware') ? args : ['--type-aware', ...ar
 const commands = [run(oxlintPath, oxlintArgs)];
 
 if (!informationalRun) {
-  commands.push(run(process.execPath, [sentryTypeAnnotationLintPath, ...args]));
+  const inputPaths = args.filter(argument => {
+    if (argument.startsWith('-')) {
+      return false;
+    }
+
+    const absolutePath = path.resolve(repositoryRoot, argument);
+    return (
+      sourceFilePattern.test(argument) ||
+      (existsSync(absolutePath) && statSync(absolutePath).isDirectory())
+    );
+  });
+
+  commands.push(
+    run(process.execPath, [
+      sentryTypeAnnotationLintPath,
+      ...(args.includes('--fix') ? ['--fix'] : []),
+      ...inputPaths,
+    ])
+  );
 }
 
 const exitCodes = await Promise.all(commands);
