@@ -238,6 +238,19 @@ default_manager.add(events.IntegrationEditAuditLogEvent())
 default_manager.add(events.IntegrationRemoveAuditLogEvent())
 default_manager.add(
     AuditLogEvent(
+        event_id=114,
+        name="INTEGRATION_PROJECT_MAPPINGS_UPDATE",
+        api_name="integration.project-mappings-update",
+        # `removed_project_mappings` carries the prior values of anything removed, so a
+        # mapping cleared by mistake can be rebuilt from this entry.
+        template=(
+            "updated project status mappings for the {provider} integration "
+            "({added_count} added, {updated_count} updated, {removed_count} removed)"
+        ),
+    )
+)
+default_manager.add(
+    AuditLogEvent(
         event_id=113,
         name="SENTRY_APP_ADD",
         api_name="sentry-app.add",

@@ -7,6 +7,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {CombinedAlertType, type UptimeAlert} from 'sentry/views/alerts/types';
+import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
 /**
  * When no uptime alert rules exist, takes the user to create a new alert. If
@@ -46,19 +47,7 @@ export default function ExistingOrCreate() {
 
     // Has multiple existing alert rules
     if (existingRules.length > 1) {
-      const url = makeAlertsPathname({
-        path: '/rules/',
-        organization,
-      });
-      navigate(
-        {
-          pathname: url,
-          query: {
-            alertType: CombinedAlertType.UPTIME,
-          },
-        },
-        {replace: true}
-      );
+      navigate(makeMonitorBasePathname(organization.slug), {replace: true});
       return;
     }
 

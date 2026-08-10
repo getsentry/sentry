@@ -1,4 +1,5 @@
-import {type ComponentProps, useRef} from 'react';
+import {type ComponentProps, useEffectEvent, useLayoutEffect, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useInfiniteQuery} from '@tanstack/react-query';
 import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
@@ -28,16 +29,21 @@ import {t, tct, tn} from 'sentry/locale';
 import {ProgressState, type Group} from 'sentry/types/group';
 import type {PullRequestStatus} from 'sentry/types/integrations';
 import type {User} from 'sentry/types/user';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useMembers} from 'sentry/utils/members/useMembers';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {orgHasSeerAccess} from 'sentry/utils/seer/orgHasSeerAccess';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useResizable} from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {IssuePreview} from 'sentry/views/issueDetails/issuePreview/issuePreview';
 import {IssueListContainer} from 'sentry/views/issueList';
 import {useInboxPreviewPrefetch} from 'sentry/views/issueList/pages/useInboxPreviewPrefetch';
+import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/queries/inbox';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {getProgressIcon} from 'sentry/views/issueList/utils/progress';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
@@ -54,17 +60,22 @@ const INBOX_MAX_SIZE = 640;
 type AssignmentFilter = (typeof ASSIGNMENT_FILTERS)[number];
 
 const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
-  me: ' assigned:me',
-  my_teams: ' assigned:[me,my_teams]',
+  me: ' assigned_or_suggested:me',
+  my_teams: ' assigned_or_suggested:[me,my_teams]',
   all: '',
 };
-
 interface InboxSectionContext {
   assignmentFilter: AssignmentFilter;
   hasSeer: boolean;
 }
 
 interface InboxSectionConfig {
+  analyticsKey:
+    | 'num_fix_proposed'
+    | 'num_diagnosed'
+    | 'num_assigned'
+    | 'num_identified'
+    | 'num_fix_applied';
   defaultExpanded: boolean;
   emptyMessage: string;
   key: string;
@@ -76,6 +87,7 @@ interface InboxSectionConfig {
 
 const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
   {
+    analyticsKey: 'num_fix_proposed',
     key: 'fix-proposed',
     label: t('Fix Proposed'),
     query: 'issue.progress:fix_proposed is:unresolved',
@@ -84,6 +96,7 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     defaultExpanded: true,
   },
   {
+    analyticsKey: 'num_diagnosed',
     key: 'diagnosed',
     label: t('Diagnosed'),
     query: 'issue.progress:diagnosed is:unresolved',
@@ -93,6 +106,7 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     hidden: ({hasSeer}) => !hasSeer,
   },
   {
+    analyticsKey: 'num_assigned',
     key: 'assigned',
     label: t('Assigned'),
     query: 'issue.progress:assigned is:unresolved',
@@ -102,15 +116,17 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     hidden: ({hasSeer}) => !hasSeer,
   },
   {
+    analyticsKey: 'num_identified',
     key: 'identified',
     label: t('Identified'),
     query: 'issue.progress:identified is:unresolved',
     emptyMessage: t('No identified issues'),
     progress: ProgressState.IDENTIFIED,
     defaultExpanded: false,
-    hidden: ({assignmentFilter, hasSeer}) => !hasSeer || assignmentFilter !== 'all',
+    hidden: ({hasSeer}) => !hasSeer,
   },
   {
+    analyticsKey: 'num_fix_applied',
     key: 'fix-applied',
     label: t('Fix Applied'),
     query: 'issue.progress:fix_applied is:unresolved',
@@ -122,8 +138,9 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
 
 export default function InboxPage() {
   const organization = useOrganization();
+  const hasProgressUi = organization.features.includes('issue-stream-progress-ui');
 
-  if (!organization.features.includes('issue-stream-progress-ui')) {
+  if (!hasProgressUi || !orgHasSeerAccess(organization)) {
     return <NotFound />;
   }
 
@@ -134,24 +151,73 @@ export default function InboxPage() {
   );
 }
 
+function useSelectFirstLoadedIssue({
+  disabled,
+  onSelect,
+  resetKey,
+  sections,
+}: {
+  disabled: boolean;
+  onSelect: (issueId: string) => void;
+  resetKey: AssignmentFilter;
+  sections: InboxSectionConfig[];
+}) {
+  const sectionResults = useRef(new Map<string, string | null>());
+  const hasFinished = useRef(disabled);
+  const previousResetKey = useRef(resetKey);
+
+  if (previousResetKey.current !== resetKey) {
+    previousResetKey.current = resetKey;
+    sectionResults.current.clear();
+    hasFinished.current = disabled;
+  }
+
+  return (sectionKey: string, firstIssueId: string | null) => {
+    if (hasFinished.current) {
+      return;
+    }
+    if (disabled) {
+      hasFinished.current = true;
+      return;
+    }
+
+    sectionResults.current.set(sectionKey, firstIssueId);
+    for (const section of sections) {
+      if (!sectionResults.current.has(section.key)) {
+        return;
+      }
+
+      const issueId = sectionResults.current.get(section.key);
+      if (issueId) {
+        hasFinished.current = true;
+        onSelect(issueId);
+        return;
+      }
+    }
+    hasFinished.current = true;
+  };
+}
+
 function InboxContent() {
+  const theme = useTheme();
+  const isDesktop = useMedia(`(min-width: ${theme.breakpoints.md})`);
   const {layout} = usePrimaryNavigation();
   const isMobile = layout === 'mobile';
   const resizableContainerRef = useRef<HTMLDivElement>(null);
   const organization = useOrganization();
-  const hasSeer =
-    !organization.hideAiFeatures &&
-    (organization.features.includes('seat-based-seer-enabled') ||
-      organization.features.includes('seer-added'));
+  const hasSeer = orgHasSeerAccess(organization);
   const [assignmentFilter, setAssignmentFilter] = useQueryState(
     ASSIGNMENT_QUERY_PARAM,
     parseAsStringLiteral(ASSIGNMENT_FILTERS)
-      .withDefault('my_teams')
+      .withDefault('me')
       .withOptions({history: 'replace'})
   );
   const [selectedIssueId, setSelectedIssueId] = useQueryState(
     SELECTED_ISSUE_QUERY_PARAM,
     parseAsString.withOptions({history: 'replace'})
+  );
+  const sections = SECTIONS.filter(
+    section => !section.hidden?.({assignmentFilter, hasSeer})
   );
   const [storedSize, setStoredSize] = useSyncedLocalStorageState(
     INBOX_SPLIT_SIZE_STORAGE_KEY,
@@ -164,6 +230,21 @@ function InboxContent() {
     maxWidth: INBOX_MAX_SIZE,
     onResizeEnd: setStoredSize,
   });
+
+  const handleInitialSectionResult = useSelectFirstLoadedIssue({
+    disabled: !isDesktop || selectedIssueId !== null,
+    onSelect: issueId => void setSelectedIssueId(issueId),
+    resetKey: assignmentFilter,
+    sections,
+  });
+
+  const handleAssignmentFilterChange = (filter: AssignmentFilter) => {
+    trackAnalytics('issue_inbox.assignment_filter_changed', {
+      organization,
+      assignment_filter: filter,
+    });
+    setAssignmentFilter(filter);
+  };
 
   return (
     <Stack flex={1} minHeight={0} contain="size" overflow="hidden">
@@ -201,7 +282,7 @@ function InboxContent() {
               aria-label={t('Issue assignee')}
               size="xs"
               value={assignmentFilter}
-              onChange={setAssignmentFilter}
+              onChange={handleAssignmentFilterChange}
             >
               <SegmentedControl.Item key="me">{t('Me')}</SegmentedControl.Item>
               <SegmentedControl.Item key="my_teams">
@@ -211,14 +292,13 @@ function InboxContent() {
             </SegmentedControl>
           </Flex>
           <Stack flex={1} minHeight={0} overflowY="auto" overscrollBehavior="contain">
-            {SECTIONS.filter(
-              section => !section.hidden?.({assignmentFilter, hasSeer})
-            ).map(section => (
+            {sections.map(section => (
               <InboxSection
                 key={section.key}
                 section={section}
                 assignmentFilter={assignmentFilter}
                 selectedIssueId={selectedIssueId}
+                onInitialResult={handleInitialSectionResult}
               />
             ))}
           </Stack>
@@ -276,18 +356,24 @@ function InboxContent() {
 
 interface InboxSectionProps {
   assignmentFilter: AssignmentFilter;
+  onInitialResult: (sectionKey: string, firstIssueId: string | null) => void;
   section: InboxSectionConfig;
   selectedIssueId: string | null;
 }
 
-function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSectionProps) {
+function InboxSection({
+  assignmentFilter,
+  onInitialResult,
+  section,
+  selectedIssueId,
+}: InboxSectionProps) {
   const organization = useOrganization();
   const queryResult = useInfiniteQuery({
     ...apiOptions.asInfinite<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
       path: {organizationIdOrSlug: organization.slug},
       query: {
         project: [-1],
-        query: `${section.query}${ASSIGNMENT_QUERY_SUFFIXES[assignmentFilter]}`,
+        query: `${section.query}${ASSIGNMENT_QUERY_SUFFIXES[assignmentFilter]}${INBOX_AUTOFIX_CATEGORY_FILTER}`,
         sort: IssueSortOptions.PROGRESS,
         limit: ISSUE_LIMIT,
         collapse: ['stats', 'unhandled'],
@@ -300,8 +386,20 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
   const groups = queryResult.data?.pages.flatMap(page => page.json) ?? [];
   const count = queryResult.data?.pages[0]?.headers['X-Hits'] ?? groups.length;
   const maxCount = queryResult.data?.pages[0]?.headers['X-Max-Hits'];
+  useRouteAnalyticsParams({[section.analyticsKey]: count});
   const {data: members = []} = useMembers();
   const membersById = new Map(members.map(member => [member.id, member]));
+  const hasReportedInitialResult = useRef(false);
+  const reportInitialResult = useEffectEvent(() => {
+    onInitialResult(section.key, groups[0]?.id ?? null);
+  });
+
+  useLayoutEffect(() => {
+    if (queryResult.isSuccess && !hasReportedInitialResult.current) {
+      hasReportedInitialResult.current = true;
+      reportInitialResult();
+    }
+  }, [queryResult.isSuccess]);
 
   return (
     <Disclosure
@@ -363,6 +461,7 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
             {groups.map(group => (
               <Container key={group.id} padding="0 xs">
                 <InboxIssueCard
+                  assignmentFilter={assignmentFilter}
                   group={group}
                   progressLabel={section.label}
                   selected={selectedIssueId === group.id}
@@ -385,6 +484,9 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
                   busy={queryResult.isFetchingNextPage}
                   onClick={() => void queryResult.fetchNextPage()}
                   icon={<IconChevron direction="down" />}
+                  analyticsEventKey="issue_inbox.show_more_clicked"
+                  analyticsEventName="Issue Inbox: Show More Clicked"
+                  analyticsParams={{progress: section.progress}}
                 >
                   {tn('Show %s more', 'Show %s more', ISSUE_LIMIT)}
                 </Button>
@@ -398,12 +500,14 @@ function InboxSection({assignmentFilter, section, selectedIssueId}: InboxSection
 }
 
 function InboxIssueCard({
+  assignmentFilter,
   assignedUser,
   group,
   progressLabel,
   selected,
   showPullRequests,
 }: {
+  assignmentFilter: AssignmentFilter;
   group: Group;
   progressLabel: string;
   selected: boolean;
@@ -411,6 +515,7 @@ function InboxIssueCard({
   assignedUser?: User;
 }) {
   const location = useLocation();
+  const organization = useOrganization();
   const {title} = getTitle(group);
   const message = getMessage(group);
   const prefetchHoverProps = useInboxPreviewPrefetch(group.id);
@@ -425,6 +530,15 @@ function InboxIssueCard({
           pathname: location.pathname,
           query: {...location.query, [SELECTED_ISSUE_QUERY_PARAM]: group.id},
         }}
+        onClick={() =>
+          trackAnalytics('issue_inbox.item_clicked', {
+            organization,
+            assignment_filter: assignmentFilter,
+            group_id: group.id,
+            progress: group.derivedData?.progress,
+            last_progressed_at: group.derivedData?.lastProgressedAt ?? null,
+          })
+        }
       >
         <InteractionStateLayer />
         <Grid columns="8px minmax(0, 1fr) max-content" gap="md" align="stretch">
@@ -531,7 +645,8 @@ const InboxSectionContent = styled(Disclosure.Content)`
 `;
 
 const StickySectionHeader = styled(Container)`
-  z-index: 1;
+  /* Buttons are position: relative, so load-more paints over a z-index: 1 header. */
+  z-index: 2;
 `;
 
 const PullRequestBadgePositioner = styled('div')`

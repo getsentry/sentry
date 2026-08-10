@@ -1,6 +1,5 @@
 import round from 'lodash/round';
 
-import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {SessionFieldWithOperation} from 'sentry/types/organization';
 import {toArray} from 'sentry/utils/array/toArray';
@@ -9,109 +8,15 @@ import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {formatMetricUsingUnit} from 'sentry/utils/number/formatMetricUsingUnit';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import {
-  Dataset,
-  Datasource,
-  EventTypes,
-  SessionsAggregate,
-} from 'sentry/views/alerts/rules/metric/types';
-import type {CombinedAlerts, Incident} from 'sentry/views/alerts/types';
-import {AlertRuleStatus, CombinedAlertType} from 'sentry/views/alerts/types';
-
-export function isIssueAlert(data: CombinedAlerts) {
-  return data.type === CombinedAlertType.ISSUE;
-}
+import {SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
+import type {Incident} from 'sentry/views/alerts/types';
+import {AlertRuleStatus} from 'sentry/views/alerts/types';
 
 export function hasMetricAlerts(organization: Organization): boolean {
   return organization.features.includes('incidents');
 }
 
-export const DATA_SOURCE_LABELS = {
-  [Dataset.ERRORS]: t('Errors'),
-  [Dataset.TRANSACTIONS]: t('Transactions'),
-  [Datasource.ERROR_DEFAULT]: 'event.type:error OR event.type:default',
-  [Datasource.ERROR]: 'event.type:error',
-  [Datasource.DEFAULT]: 'event.type:default',
-  [Datasource.TRANSACTION]: 'event.type:transaction',
-};
-
 // Maps a datasource to the relevant dataset and event_types for the backend to use
-export const DATA_SOURCE_TO_SET_AND_EVENT_TYPES = {
-  [Datasource.ERROR_DEFAULT]: {
-    dataset: Dataset.ERRORS,
-    eventTypes: [EventTypes.ERROR, EventTypes.DEFAULT],
-  },
-  [Datasource.ERROR]: {
-    dataset: Dataset.ERRORS,
-    eventTypes: [EventTypes.ERROR],
-  },
-  [Datasource.DEFAULT]: {
-    dataset: Dataset.ERRORS,
-    eventTypes: [EventTypes.DEFAULT],
-  },
-  [Datasource.TRANSACTION]: {
-    dataset: Dataset.TRANSACTIONS,
-    eventTypes: [EventTypes.TRANSACTION],
-  },
-};
-
-// Converts the given dataset and event types array to a datasource for the datasource dropdown
-export function convertDatasetEventTypesToSource(
-  dataset: Dataset,
-  eventTypes: EventTypes[]
-) {
-  // transactions and generic_metrics only have one datasource option regardless of event type
-  if (dataset === Dataset.TRANSACTIONS || dataset === Dataset.GENERIC_METRICS) {
-    return Datasource.TRANSACTION;
-  }
-  // if no event type was provided use the default datasource
-  if (!eventTypes) {
-    return Datasource.ERROR;
-  }
-
-  if (eventTypes.includes(EventTypes.DEFAULT) && eventTypes.includes(EventTypes.ERROR)) {
-    return Datasource.ERROR_DEFAULT;
-  }
-  if (eventTypes.includes(EventTypes.DEFAULT)) {
-    return Datasource.DEFAULT;
-  }
-  return Datasource.ERROR;
-}
-
-/**
- * Attempt to guess the data source of a discover query
- *
- * @returns An object containing the datasource and new query without the datasource.
- * Returns null on no datasource.
- */
-export function getQueryDatasource(
-  query: string
-): {query: string; source: Datasource} | null {
-  let match = query.match(
-    /\(?\bevent\.type:(error|default|transaction)\)?\WOR\W\(?event\.type:(error|default|transaction)\)?/i
-  );
-  if (match) {
-    // should be [error, default] or [default, error]
-    const eventTypes = match.slice(1, 3).sort().join(',');
-    if (eventTypes !== 'default,error') {
-      return null;
-    }
-
-    return {source: Datasource.ERROR_DEFAULT, query: query.replace(match[0], '').trim()};
-  }
-
-  match = query.match(/(^|\s)event\.type:(error|default|transaction)/i);
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  if (match && Datasource[match[2]!.toUpperCase()]) {
-    return {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      source: Datasource[match[2]!.toUpperCase()],
-      query: query.replace(match[0], '').trim(),
-    };
-  }
-
-  return null;
-}
 
 export function isSessionAggregate(aggregate: string) {
   return Object.values(SessionsAggregate).includes(aggregate as SessionsAggregate);
@@ -194,21 +99,4 @@ export function getTeamParams(team?: string | string[]): string[] {
   }
 
   return toArray(team);
-}
-
-/**
- * Normalize an alert type string
- */
-export function getQueryAlertType(alertType?: string | string[]): CombinedAlertType[] {
-  if (alertType === undefined) {
-    return [];
-  }
-
-  if (alertType === '') {
-    return [];
-  }
-
-  const validTypes = new Set(Object.values(CombinedAlertType));
-
-  return [...validTypes.intersection(new Set(toArray(alertType)))];
 }

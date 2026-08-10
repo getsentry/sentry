@@ -21,7 +21,7 @@ type State = {
 };
 
 export const TimePicker = styled(
-  class TimePicker extends Component<Props, State> {
+  class TimePickerImpl extends Component<Props, State> {
     state: State = {
       focused: false,
     };

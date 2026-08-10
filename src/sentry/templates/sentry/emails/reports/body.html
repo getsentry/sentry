@@ -383,11 +383,6 @@
     </table>
     {% endif %}
 
-    {% if notification_settings_link and user_project_count > 5 %}
-      <div style="padding: 16px 16px 12px; margin: 16px 0 16px; background-color: #f8f8f9; border-radius: 4px; font-size: 14px; color: #80708F;">
-        Want to choose the projects you see in the weekly report? <a href="{% absolute_uri notification_settings_link %}">Customize your project preferences here!</a>
-      </div>
-    {% endif %}
 
     {% if issue_summary.total_substatus_count > 0 %}
     <table class="issue-breakdown">

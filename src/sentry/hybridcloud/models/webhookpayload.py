@@ -4,7 +4,7 @@ import datetime
 from typing import Any, Self
 
 from django.db import models
-from django.db.models import Case, ExpressionWrapper, F, IntegerField, Q, TextChoices, Value, When
+from django.db.models import Q, TextChoices
 from django.http import HttpRequest
 from django.utils import timezone
 
@@ -68,18 +68,6 @@ class WebhookPayload(Model):
                 fields=["mailbox_name", "id"],
                 name="webhookpayload_mailbox_id_idx",
             ),
-            models.Index(
-                ExpressionWrapper(
-                    Case(
-                        When(provider="stripe", then=Value(1)),
-                        default=Value(10),
-                        output_field=IntegerField(),
-                    ),
-                    output_field=IntegerField(),
-                ),
-                F("id"),
-                name="webhookpayload_priority_idx",
-            ),
         )
 
         constraints = [
@@ -124,7 +112,7 @@ class WebhookPayload(Model):
         request: HttpRequest,
         integration_id: int | None = None,
     ) -> Self:
-        metrics.incr("hybridcloud.deliver_webhooks.saved")
+        metrics.incr("hybridcloud.deliver_webhooks.saved", tags={"provider": provider})
         return cls.objects.create(
             mailbox_name=f"{provider}:{identifier}",
             provider=provider,
