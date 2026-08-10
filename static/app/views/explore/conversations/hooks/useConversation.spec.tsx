@@ -172,6 +172,46 @@ describe('useConversation', () => {
     expect(attrs?.[SpanFields.GEN_AI_OUTPUT_MESSAGES]).toBe(outputMessages);
   });
 
+  it('maps gen_ai.embeddings.input to node attributes', async () => {
+    // Real embeddings spans report gen_ai.operation.type: "ai_client" (that
+    // attribute has no "embeddings" bucket) — the embeddings input attribute
+    // is the only signal distinguishing them, so it must survive this mapping.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/ai-conversations/conv-embedding/`,
+      body: envelope([
+        {
+          'gen_ai.conversation.id': 'conv-embedding',
+          parent_span: 'parent-1',
+          'precise.finish_ts': 1000.5,
+          'precise.start_ts': 1000,
+          project: 'test-project',
+          'project.id': 1,
+          'span.name': 'gen_ai.embeddings',
+          'span.status': 'ok',
+          span_id: 'span-embedding',
+          trace: 'trace-embedding',
+          'gen_ai.operation.type': 'ai_client',
+          'gen_ai.embeddings.input': 'search query text',
+        },
+      ]),
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useConversation({conversationId: 'conv-embedding'}),
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.nodes).toHaveLength(1);
+    const node = result.current.nodes[0];
+    const attrs = (node?.value as {additional_attributes?: Record<string, unknown>})
+      .additional_attributes;
+    expect(attrs?.[SpanFields.GEN_AI_EMBEDDINGS_INPUT]).toBe('search query text');
+  });
+
   it('maps gen_ai.request.messages to node attributes', async () => {
     const requestMessages = JSON.stringify([
       {role: 'user', content: 'Hello from request'},
