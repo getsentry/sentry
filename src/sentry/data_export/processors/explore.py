@@ -102,9 +102,6 @@ class ExploreProcessor:
                 use_aggregate_conditions=use_aggregate_conditions,
             )
         elif self.scoped_dataset == TraceMetrics:
-            # The metric being exported is encoded in the aggregate arguments
-            # (e.g. `sum(value,llm.token_usage,distribution,-)`), which the config recovers
-            # from the selected columns, so there is no separate metric to pass here.
             self.config = TraceMetricsSearchResolverConfig(
                 metric=None,
                 use_aggregate_conditions=use_aggregate_conditions,
