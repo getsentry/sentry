@@ -122,6 +122,8 @@ def validate_template_parameters(
     for spec in specs:
         if spec.key in supplied:
             value = supplied[spec.key]
+            if value is None and spec.required:
+                raise ParameterValidationError(f"Missing required parameter: {spec.key}.")
         elif spec.default_value is not None:
             value = spec.default_value
         elif spec.required:

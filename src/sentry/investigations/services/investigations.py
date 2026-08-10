@@ -9,6 +9,7 @@ from django.db import IntegrityError, router, transaction
 from django.db.models import Max
 from django.utils import timezone
 
+from sentry.db.models.fields.bounded import I64_MAX
 from sentry.investigations.models import (
     Investigation,
     InvestigationBlock,
@@ -31,6 +32,7 @@ from sentry.investigations.services.parameters import (
 )
 from sentry.investigations.templates import InvestigationTemplateSpec, get_investigation_template
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 
 
 class InvestigationServiceError(Exception):
@@ -94,10 +96,23 @@ def _validate_template_graph(template: InvestigationTemplateSpec) -> None:
 
 
 def _create_project_links(investigation: Investigation, project_ids: Iterable[int]) -> None:
+    requested = sorted(set(project_ids))
+    if not requested:
+        return
+    known = set(
+        Project.objects.filter(
+            id__in=requested, organization_id=investigation.organization_id
+        ).values_list("id", flat=True)
+    )
+    unknown = [project_id for project_id in requested if project_id not in known]
+    if unknown:
+        raise InvestigationValidationError(
+            {"projectIds": "One or more projects are not in this organization."}
+        )
     InvestigationProject.objects.bulk_create(
         [
             InvestigationProject(investigation=investigation, project_id=project_id)
-            for project_id in sorted(set(project_ids))
+            for project_id in requested
         ]
     )
 
@@ -185,7 +200,9 @@ def duplicate_investigation(*, investigation: Investigation, user_id: int) -> In
                     block=blocks_by_id[link.block_id],
                     parameter=parameters_by_id[link.parameter_id],
                 )
-                for link in InvestigationBlockParameter.objects.filter(block_id__in=blocks_by_id)
+                for link in InvestigationBlockParameter.objects.filter(
+                    block_id__in=blocks_by_id, parameter_id__in=parameters_by_id
+                )
             ]
         )
         InvestigationBlockDependency.objects.bulk_create(
@@ -224,6 +241,8 @@ def _resolve_breached_metric_source(
         normalized_group_id = int(group_id)
         normalized_open_period_id = int(open_period_id)
     except (TypeError, ValueError):
+        raise InvestigationSourceNotFound
+    if not 0 < normalized_group_id <= I64_MAX or not 0 < normalized_open_period_id <= I64_MAX:
         raise InvestigationSourceNotFound
     source = resolve_breached_metric_sources(
         organization=organization,
@@ -297,7 +316,6 @@ def _create_template_investigation(
             accessible_project_ids=accessible_project_ids,
         )
         project_ids = [source.project_id]
-        render_context: dict[str, Any] = {}
         resolved_title = title or "Untitled investigation"
         normalized_source_ref = {
             "groupId": str(source.group.id),
@@ -369,9 +387,9 @@ def _create_template_investigation(
                 position=position,
                 kind=block_spec.kind,
                 title=block_spec.title,
-                content=block_spec.content.format(**render_context),
-                prompt=block_spec.generation_prompt.format(**render_context),
-                generated_content=block_spec.generated_content.format(**render_context),
+                content=block_spec.content,
+                prompt=block_spec.generation_prompt,
+                generated_content=block_spec.generated_content,
                 config={
                     **deepcopy(block_spec.config),
                     **({"datasetHint": source.dataset} if block_spec.kind == "query" else {}),
@@ -548,6 +566,9 @@ def delete_cell(
             raise InvestigationValidationError({"detail": "Archived investigations are read-only."})
         if locked.version != expected_block_version:
             raise InvestigationConflictError("Block has changed.")
+        mark_downstream_blocks_stale(
+            investigation_id=investigation.id, upstream_block_ids={locked.id}
+        )
         locked.deleted_at = timezone.now()
         locked.version += 1
         locked.save(update_fields=["deleted_at", "version", "date_updated"])

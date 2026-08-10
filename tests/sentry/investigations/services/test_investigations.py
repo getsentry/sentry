@@ -5,7 +5,19 @@ from unittest import mock
 import pytest
 from django.db import IntegrityError
 
-from sentry.investigations.services.investigations import create_template_investigation
+from sentry.db.models.fields.bounded import I64_MAX
+from sentry.investigations.models import InvestigationBlockDependency, InvestigationProject
+from sentry.investigations.services.investigations import (
+    InvestigationSourceNotFound,
+    InvestigationValidationError,
+    _resolve_breached_metric_source,
+    create_cell,
+    create_manual_investigation,
+    create_template_investigation,
+    delete_cell,
+    update_investigation,
+)
+from sentry.testutils.cases import TestCase
 
 TEMPLATE_KWARGS = {
     "organization": mock.sentinel.organization,
@@ -51,3 +63,111 @@ def test_template_creation_reraises_after_exhausting_retries() -> None:
             create_template_investigation(**TEMPLATE_KWARGS)
 
     assert create.call_count == 3
+
+
+class ProjectLinkScopingTest(TestCase):
+    def test_create_rejects_projects_from_another_organization(self) -> None:
+        other_organization = self.create_organization(name="other")
+        foreign_project = self.create_project(organization=other_organization)
+
+        with pytest.raises(InvestigationValidationError) as excinfo:
+            create_manual_investigation(
+                organization=self.organization,
+                user_id=self.user.id,
+                title="Investigation",
+                project_ids=[foreign_project.id],
+                filters={},
+            )
+
+        assert "projectIds" in excinfo.value.errors
+        assert not InvestigationProject.objects.filter(project_id=foreign_project.id).exists()
+
+    def test_create_accepts_projects_in_the_organization(self) -> None:
+        investigation = create_manual_investigation(
+            organization=self.organization,
+            user_id=self.user.id,
+            title="Investigation",
+            project_ids=[self.project.id],
+            filters={},
+        )
+
+        assert list(
+            InvestigationProject.objects.filter(investigation=investigation).values_list(
+                "project_id", flat=True
+            )
+        ) == [self.project.id]
+
+    def test_update_rejects_projects_from_another_organization(self) -> None:
+        other_organization = self.create_organization(name="other")
+        foreign_project = self.create_project(organization=other_organization)
+        investigation = create_manual_investigation(
+            organization=self.organization,
+            user_id=self.user.id,
+            title="Investigation",
+            project_ids=[self.project.id],
+            filters={},
+        )
+
+        with pytest.raises(InvestigationValidationError):
+            update_investigation(
+                investigation=investigation,
+                expected_version=investigation.version,
+                fields={},
+                project_ids=[foreign_project.id],
+            )
+
+        assert not InvestigationProject.objects.filter(project_id=foreign_project.id).exists()
+
+
+class DeleteBlockStalenessTest(TestCase):
+    def test_deleting_an_upstream_block_marks_its_dependents_stale(self) -> None:
+        investigation = create_manual_investigation(
+            organization=self.organization,
+            user_id=self.user.id,
+            title="Investigation",
+            project_ids=[],
+            filters={},
+        )
+        upstream = create_cell(
+            investigation=investigation,
+            expected_investigation_version=investigation.version,
+            user_id=self.user.id,
+            values={"kind": "query"},
+        )
+        investigation.refresh_from_db()
+        dependent = create_cell(
+            investigation=investigation,
+            expected_investigation_version=investigation.version,
+            user_id=self.user.id,
+            values={"kind": "text"},
+        )
+        investigation.refresh_from_db()
+        InvestigationBlockDependency.objects.create(block=dependent, depends_on=upstream)
+        assert dependent.stale_at is None
+
+        delete_cell(
+            block=upstream,
+            expected_investigation_version=investigation.version,
+            expected_block_version=upstream.version,
+        )
+
+        dependent.refresh_from_db()
+        assert dependent.stale_at is not None
+
+
+class BreachedMetricSourceRefTest(TestCase):
+    def test_out_of_range_ids_are_treated_as_a_missing_source(self) -> None:
+        with pytest.raises(InvestigationSourceNotFound):
+            _resolve_breached_metric_source(
+                organization=self.organization,
+                source_ref={"groupId": str(I64_MAX + 1), "openPeriodId": "1"},
+                accessible_project_ids={self.project.id},
+            )
+
+    def test_non_positive_ids_are_treated_as_a_missing_source(self) -> None:
+        with pytest.raises(InvestigationSourceNotFound):
+            _resolve_breached_metric_source(
+                organization=self.organization,
+                source_ref={"groupId": "0", "openPeriodId": "1"},
+                accessible_project_ids={self.project.id},
+            )
