@@ -36,6 +36,7 @@ jest.mock('@tanstack/react-virtual', () => ({
       })),
     getTotalSize: () => count * 36,
     measureElement: jest.fn(),
+    scrollToIndex: jest.fn(),
   })),
 }));
 
@@ -271,6 +272,7 @@ describe('ScmCreateProject', () => {
       origin: 'existing_org',
     });
   });
+
   it('shows all steps with the Create CTA disabled on a fresh visit', async () => {
     render(<ScmCreateProject />, {organization});
 

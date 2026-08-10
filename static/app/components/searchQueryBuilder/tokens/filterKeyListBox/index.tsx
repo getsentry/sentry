@@ -102,6 +102,7 @@ function FeedbackFooter({
         <OpenAskSeerButton ref={askSeerButtonRef} onTabForward={onAskSeerTabForward} />
       ) : null}
       <FeedbackButton
+        variant="secondary"
         size={hasAskSeerRework ? 'zero' : 'xs'}
         feedbackOptions={{
           messagePlaceholder: t('How can we make search better for you?'),

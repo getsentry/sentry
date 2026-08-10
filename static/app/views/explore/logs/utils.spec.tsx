@@ -114,8 +114,8 @@ describe('compareLogRowsBySortBys', () => {
   }
 
   function sortedIds(rows: LogTableRowItem[], sortBys: Sort[]): string[] {
-    return [...rows]
-      .sort((a, b) => compareLogRowsBySortBys(a, b, sortBys))
+    return rows
+      .toSorted((a, b) => compareLogRowsBySortBys(a, b, sortBys))
       .map(row => row[OurLogKnownFieldKey.ID]);
   }
 

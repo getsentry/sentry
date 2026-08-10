@@ -213,6 +213,8 @@ export function SeerExplorerContent({
   const blocks = useMemo(() => sessionData?.blocks || [], [sessionData?.blocks]);
   const isAwaitingUserInput = sessionData?.status === 'awaiting_user_input';
   const pendingInput = sessionData?.pending_user_input ?? null;
+  const isAgentWriteApprovalPending =
+    isAwaitingUserInput && pendingInput?.input_type === 'agent_write_approval';
   const isEmptyState = blocks.length === 0 && !(isAwaitingUserInput && pendingInput);
 
   // Whether the org has an active Slack integration installed. Slack is an
@@ -579,9 +581,14 @@ export function SeerExplorerContent({
                   runId={runId ?? undefined}
                   getPageReferrer={getPageReferrer}
                   interactionPending={
-                    isFileApprovalPending || isQuestionPending || showReauth
+                    isFileApprovalPending ||
+                    isAgentWriteApprovalPending ||
+                    isQuestionPending ||
+                    showReauth
                   }
+                  pendingInput={pendingInput}
                   readOnly={readOnly}
+                  respondToUserInput={respondToUserInput}
                   showThinking={showThinking}
                 />
               );

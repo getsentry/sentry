@@ -13,6 +13,7 @@ from django.core.cache import cache
 from django.db import models
 from django.db.models.expressions import DatabaseDefault
 from django.db.models.functions import Now
+from django.http import HttpRequest
 from django.utils import timezone
 from objectstore_client import TimeToLive
 
@@ -22,7 +23,11 @@ from sentry.db.models import BoundedBigIntegerField, Model, cell_silo_model, san
 from sentry.db.models.fields.bounded import BoundedIntegerField
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.files.utils import get_size_and_checksum, get_storage
-from sentry.objectstore import default_attachment_retention, get_attachments_session
+from sentry.objectstore import (
+    default_attachment_retention,
+    get_attachments_session,
+    get_download_redirect_url,
+)
 from sentry.objectstore.metrics import measure_storage_operation
 from sentry.options.rollout import in_random_rollout
 
@@ -159,6 +164,28 @@ class EventAttachment(Model):
 
         return rv
 
+    def uses_objectstore(self) -> bool:
+        """Whether this attachment's payload is stored in Objectstore."""
+        return self.blob_path is not None and self.blob_path.startswith(V2_PREFIX)
+
+    def get_objectstore_presigned_url(self, request: HttpRequest) -> str:
+        """
+        Returns the URL that `request` should be redirected to in order to download this
+        attachment directly from Objectstore.
+
+        This function should only be called if this attachment is Objectstore-backed, it
+        will raise an exception otherwise.
+        """
+        if not self.uses_objectstore():
+            raise ValueError("attachment is not stored in Objectstore")
+        assert self.blob_path is not None
+
+        organization_id = _get_organization(self.project_id)
+        session = get_attachments_session(organization_id, self.project_id)
+        return get_download_redirect_url(
+            request, session, organization_id, self.blob_path.removeprefix(V2_PREFIX)
+        )
+
     def getfile(self) -> IO[bytes]:
         if not self.blob_path:
             return BytesIO(b"")
@@ -195,7 +222,8 @@ class EventAttachment(Model):
         bytes can be transferred directly to the client. For all other blob types
         (inline, V1), delegates to :meth:`getfile`.
         """
-        if self.blob_path and self.blob_path.startswith(V2_PREFIX):
+        if self.uses_objectstore():
+            assert self.blob_path is not None
             key = self.blob_path.removeprefix(V2_PREFIX)
             session = get_attachments_session(_get_organization(self.project_id), self.project_id)
             response = session.get(key, accept_encoding=accept_encoding or None)

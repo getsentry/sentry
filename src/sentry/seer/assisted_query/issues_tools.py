@@ -731,7 +731,7 @@ def execute_issues_query(
             error_detail = str(detail) if detail is not None else str(e.body)
             logger.warning(
                 "execute_issues_query: bad request",
-                extra={"org_id": organization.id, "error_detail": error_detail},
+                extra={"org_id": organization.id, "error_detail": error_detail, **params},
             )
             return ExecuteQueryErrorResponse(error=error_detail)
         raise

@@ -1,29 +1,33 @@
-import {keepPreviousData, useQuery} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {orgHasSeerAccess} from 'sentry/utils/seer/orgHasSeerAccess';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ASSIGNMENT_QUERY_SUFFIXES, SECTIONS} from 'sentry/views/issueList/pages/inbox';
 
-const PROGRESS_STATES = SECTIONS.map(section => section.progress).join(', ');
+import {INBOX_AUTOFIX_CATEGORY_FILTER} from './inbox';
 
-// A separate Snuba search runs per `query` param, so all the states travel as one.
-const INBOX_COUNT_QUERY = `issue.progress:[${PROGRESS_STATES}]${ASSIGNMENT_QUERY_SUFFIXES.my_teams}`;
+// Count all issues assigned or suggested to me which are assigned or further along
+const INBOX_COUNT_QUERY = `is:unresolved issue.progress:[fix_proposed,diagnosed,assigned] assigned_or_suggested:me${INBOX_AUTOFIX_CATEGORY_FILTER}`;
+const INBOX_COUNT_QUERY_NO_SEER = `is:unresolved issue.progress:[fix_proposed] assigned_or_suggested:me${INBOX_AUTOFIX_CATEGORY_FILTER}`;
 
-/** Number of issues waiting in the inbox, for the nav badge. */
 export function useInboxIssueCount() {
   const organization = useOrganization();
+  const inboxCountQuery = orgHasSeerAccess(organization)
+    ? INBOX_COUNT_QUERY
+    : INBOX_COUNT_QUERY_NO_SEER;
 
-  const {data} = useQuery({
+  return useQuery({
     ...apiOptions.as<Record<string, number>>()(
       '/organizations/$organizationIdOrSlug/issues-count/',
       {
         path: {organizationIdOrSlug: organization.slug},
-        query: {query: [INBOX_COUNT_QUERY], project: [-1]},
+        query: {
+          query: [inboxCountQuery],
+          project: [-1],
+        },
         staleTime: 180_000,
       }
     ),
-    placeholderData: keepPreviousData,
+    select: response => response.json[inboxCountQuery] ?? 0,
   });
-
-  return data?.[INBOX_COUNT_QUERY] ?? null;
 }

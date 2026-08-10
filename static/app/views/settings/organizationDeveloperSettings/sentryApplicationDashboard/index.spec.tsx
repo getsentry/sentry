@@ -114,6 +114,21 @@ describe('Sentry Application Dashboard', () => {
       ).toBeInTheDocument();
     });
 
+    it('shows an error if the request log fails to load', async () => {
+      MockApiClient.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/webhook-requests/`,
+        statusCode: 500,
+        body: {detail: 'Internal Error'},
+      });
+
+      renderDashboard();
+
+      expect(await screen.findByTestId('loading-error')).toBeInTheDocument();
+      expect(
+        screen.queryByText('No requests found in the last 30 days.')
+      ).not.toBeInTheDocument();
+    });
+
     it('shows integration and interactions chart with a deduplicated interaction fetch', async () => {
       renderDashboard();
 

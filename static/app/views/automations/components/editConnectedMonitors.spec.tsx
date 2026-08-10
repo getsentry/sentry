@@ -1,7 +1,9 @@
 import {
+  AllProjectsDetectorFixture,
   IssueStreamDetectorFixture,
   MetricDetectorFixture,
 } from 'sentry-fixture/detectors';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -67,6 +69,52 @@ describe('EditConnectedMonitors', () => {
     expect(
       screen.getByRole('radio', {name: 'Alert on specific monitors'})
     ).toBeInTheDocument();
+  });
+
+  it('disables the all projects option with a message when the user cannot edit', async () => {
+    render(<EditConnectedMonitors connectedIds={[]} setConnectedIds={jest.fn()} />, {
+      organization: OrganizationFixture({
+        features: ['workflow-engine-all-projects-detector'],
+        access: [],
+      }),
+    });
+
+    const allProjectsRadio = await screen.findByRole('radio', {
+      name: 'Alert on all issues in all projects',
+    });
+
+    expect(allProjectsRadio).toBeDisabled();
+
+    await userEvent.hover(allProjectsRadio);
+    expect(
+      await screen.findByText(
+        'Only organization owners and managers can create global issue monitors.'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('selects all projects', async () => {
+    const model = new FormModel();
+    model.setInitialData({allProjects: false, projectIds: [], detectorIds: []});
+
+    render(
+      <Form model={model}>
+        <EditConnectedMonitors connectedIds={[]} setConnectedIds={jest.fn()} />
+      </Form>,
+      {
+        organization: OrganizationFixture({
+          features: ['workflow-engine-all-projects-detector'],
+        }),
+      }
+    );
+
+    await userEvent.click(
+      await screen.findByRole('radio', {name: 'Alert on all issues in all projects'})
+    );
+
+    expect(model.getValue('allProjects')).toBe(true);
+    expect(model.getValue('projectIds')).toBeFalsy();
+    expect(screen.queryByText('Select projects')).not.toBeInTheDocument();
   });
 
   it('defaults to "all project issues" mode when no monitors are connected', async () => {
@@ -195,6 +243,37 @@ describe('EditConnectedMonitors', () => {
         screen.getByRole('radio', {name: 'Alert on all issues in selected projects'})
       ).toBeChecked();
     });
+  });
+
+  it('shows all projects mode when connected to the all-projects detector', async () => {
+    const allProjectsDetector = AllProjectsDetectorFixture({id: '101'});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      method: 'GET',
+      body: [allProjectsDetector],
+      match: [MockApiClient.matchQuery({id: [allProjectsDetector.id]})],
+    });
+    const model = new FormModel();
+    model.setInitialData({allProjects: false, projectIds: [], detectorIds: ['101']});
+
+    render(
+      <Form model={model}>
+        <EditConnectedMonitors
+          connectedIds={[allProjectsDetector.id]}
+          setConnectedIds={jest.fn()}
+        />
+      </Form>,
+      {
+        organization: OrganizationFixture({
+          features: ['workflow-engine-all-projects-detector'],
+        }),
+      }
+    );
+
+    expect(
+      await screen.findByRole('radio', {name: 'Alert on all issues in all projects'})
+    ).toBeChecked();
+    await waitFor(() => expect(model.getValue('allProjects')).toBe(true));
   });
 
   it('switches between modes correctly', async () => {
