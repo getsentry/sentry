@@ -172,11 +172,11 @@ describe('useConversation', () => {
     expect(attrs?.[SpanFields.GEN_AI_OUTPUT_MESSAGES]).toBe(outputMessages);
   });
 
-  it('relabels an embeddings span (detected by span.op) to the embeddings op type', async () => {
-    // The real shape: gen_ai.operation.type is a closed enum with no
-    // "embeddings" bucket, so an embeddings call reports "ai_client". span.op is
-    // the reliable signal, and the bulk fetch may not include the input at all
-    // (older deploys) — the span must still be recognized as an embedding.
+  it('preserves span.op for an embeddings span without changing its op type', async () => {
+    // gen_ai.operation.type is a closed enum with no "embeddings" bucket, so an
+    // embeddings call reports "ai_client". We keep that op type (so the timeline
+    // renders it unchanged) and preserve span.op, which the transcript uses to
+    // recognize the embedding.
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-embedding/`,
       body: envelope([
@@ -211,7 +211,8 @@ describe('useConversation', () => {
     const node = result.current.nodes[0];
     const attrs = (node?.value as {additional_attributes?: Record<string, unknown>})
       .additional_attributes;
-    expect(attrs?.[SpanFields.GEN_AI_OPERATION_TYPE]).toBe('embeddings');
+    expect(attrs?.[SpanFields.SPAN_OP]).toBe('gen_ai.embeddings');
+    expect(attrs?.[SpanFields.GEN_AI_OPERATION_TYPE]).toBe('ai_client');
   });
 
   it('maps gen_ai.embeddings.input to node attributes', async () => {

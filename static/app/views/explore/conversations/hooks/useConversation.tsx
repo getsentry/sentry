@@ -9,10 +9,7 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  GenAiOperationType,
-  getGenAiOperationTypeFromSpanName,
-} from 'sentry/views/insights/pages/agents/utils/query';
+import {getGenAiOperationTypeFromSpanName} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {AiSpanDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/aiSpanDetails';
@@ -98,20 +95,9 @@ function createNodeFromApiSpan(
   apiSpan: ConversationApiSpan,
   nodeMap: Map<string, AITraceSpanNode>
 ): AITraceSpanNode {
-  // Embeddings calls don't get their own gen_ai.operation.type — that attribute
-  // is a closed, ingestion-computed enum (agent/ai_client/tool/handoff/other)
-  // with no "embeddings" bucket, so an embeddings call reports "ai_client" like
-  // any other model call. `span.op` is the reliable signal that distinguishes
-  // them, so relabel here to a synthetic "embeddings" op type the transcript and
-  // timeline can key off. (gen_ai.embeddings.input is also embeddings-only, but
-  // it isn't returned in the bulk conversation fetch on older deploys.)
-  const isEmbeddingsSpan =
-    apiSpan['span.op'] === 'gen_ai.embeddings' ||
-    Boolean(apiSpan['gen_ai.embeddings.input']);
-  const operationType = isEmbeddingsSpan
-    ? GenAiOperationType.EMBEDDINGS
-    : apiSpan['gen_ai.operation.type'] ||
-      getGenAiOperationTypeFromSpanName(apiSpan['span.name']);
+  const operationType =
+    apiSpan['gen_ai.operation.type'] ||
+    getGenAiOperationTypeFromSpanName(apiSpan['span.name']);
 
   const duration = apiSpan['precise.finish_ts'] - apiSpan['precise.start_ts'];
   const value: TraceTree.EAPSpan = {
@@ -137,6 +123,10 @@ function createNodeFromApiSpan(
     occurrences: apiSpan.occurrences ?? [],
     additional_attributes: {
       [SpanFields.GEN_AI_CONVERSATION_ID]: apiSpan['gen_ai.conversation.id'],
+      // Preserve the raw span op so the transcript can recognize embeddings
+      // spans, which don't have a dedicated gen_ai.operation.type. Kept off the
+      // op-type path so the timeline still renders them as before.
+      [SpanFields.SPAN_OP]: apiSpan['span.op'] ?? '',
       [SpanFields.GEN_AI_EMBEDDINGS_INPUT]: apiSpan['gen_ai.embeddings.input'] ?? '',
       [SpanFields.GEN_AI_INPUT_MESSAGES]: apiSpan['gen_ai.input.messages'] ?? '',
       [SpanFields.GEN_AI_OPERATION_TYPE]: operationType ?? '',

@@ -11,7 +11,6 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   getIsAiGenerationSpan,
-  getIsEmbeddingsSpan,
   getIsExecuteToolSpan,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
@@ -107,15 +106,12 @@ export function partitionSpansByType(nodes: AITraceSpanNode[]): {
 
   for (const node of nodes) {
     const opType = getGenAiOpType(node);
-    // Embeddings are checked first: `useConversation` relabels them to the
-    // synthetic "embeddings" op type (keyed off `span.op`), but a node carrying
-    // only the embeddings-only input attribute is treated as one too. Either way
-    // they must not fall through to generationSpans, where they'd be dropped for
-    // having no chat content.
-    if (
-      getIsEmbeddingsSpan(opType) ||
-      getStringAttr(node, SpanFields.GEN_AI_EMBEDDINGS_INPUT)
-    ) {
+    // Embeddings are checked first: they don't get a dedicated
+    // gen_ai.operation.type (it reports "ai_client"), so they're recognized by
+    // their span op — or, once available, the embeddings-only input attribute.
+    // Either way they must not fall through to generationSpans, where they'd be
+    // dropped for having no chat content.
+    if (getIsEmbeddingsNode(node)) {
       embeddingSpans.push(node);
     } else if (getIsAiGenerationSpan(opType)) {
       generationSpans.push(node);
@@ -502,6 +498,18 @@ function getNodeEndTimestamp(node: AITraceSpanNode): number {
 
 function getGenAiOpType(node: AITraceSpanNode): string | undefined {
   return getStringAttr(node, SpanFields.GEN_AI_OPERATION_TYPE);
+}
+
+/**
+ * Embeddings spans don't get a dedicated `gen_ai.operation.type` (it reports
+ * `ai_client`), so they're recognized by their span op instead — falling back to
+ * the embeddings-only input attribute when it's present.
+ */
+function getIsEmbeddingsNode(node: AITraceSpanNode): boolean {
+  return (
+    getStringAttr(node, SpanFields.SPAN_OP) === 'gen_ai.embeddings' ||
+    Boolean(getStringAttr(node, SpanFields.GEN_AI_EMBEDDINGS_INPUT))
+  );
 }
 
 // Prefix every line with `> ` so multi-line content forms one blockquote.

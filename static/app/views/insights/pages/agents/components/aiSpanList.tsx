@@ -8,14 +8,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
-import {
-  IconChat,
-  IconChevron,
-  IconCode,
-  IconFire,
-  IconFix,
-  IconSearch,
-} from 'sentry/icons';
+import {IconChat, IconChevron, IconCode, IconFire, IconFix} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {t} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
@@ -232,7 +225,6 @@ const TraceListItem = memo(function TraceListItemImpl({
       [GenAiOperationType.AI_CLIENT]: palette[2],
       [GenAiOperationType.HANDOFF]: palette[4],
       [GenAiOperationType.TOOL]: palette[5],
-      [GenAiOperationType.EMBEDDINGS]: palette[3],
       default: palette[1],
       error: theme.tokens.graphics.danger.vibrant,
     };
@@ -526,15 +518,6 @@ function getSpanPresentation(
         title: op,
         subtitle: description || '',
       };
-    case GenAiOperationType.EMBEDDINGS: {
-      const embeddingsInput = getStringAttr(node, SpanFields.GEN_AI_EMBEDDINGS_INPUT);
-      return {
-        icon: <IconSearch size="md" />,
-        color,
-        title: op,
-        subtitle: embeddingsInput || description || '',
-      };
-    }
     default:
       return {
         icon: <IconCode size="md" />,

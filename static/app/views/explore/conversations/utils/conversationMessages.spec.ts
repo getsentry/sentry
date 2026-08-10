@@ -66,24 +66,23 @@ function createMockToolNode(overrides: {
   };
 }
 
-// Mirrors the node `useConversation` produces for an embeddings span: it
-// relabels the op type to the synthetic "embeddings" (keyed off `span.op`,
-// since the ingestion-computed gen_ai.operation.type has no embeddings bucket
-// and reports "ai_client"). Tests exercising the input-attribute fallback path
-// override `operationType` back to "ai_client".
+// Mirrors the node `useConversation` produces for an embeddings span: the op
+// type stays "ai_client" (the ingestion-computed gen_ai.operation.type has no
+// embeddings bucket), and the span is recognized by its span op. `spanOp` can be
+// cleared to exercise the input-attribute fallback path.
 function createMockEmbeddingNode(overrides: {
   id: string;
   endTimestamp?: number;
   input?: string;
   model?: string;
-  operationType?: string;
+  spanOp?: string;
   startTimestamp?: number;
 }) {
   const {
     id,
     input = 'search query',
     model = 'text-embedding-005',
-    operationType = 'embeddings',
+    spanOp = 'gen_ai.embeddings',
     startTimestamp = 1000,
     endTimestamp,
   } = overrides;
@@ -99,7 +98,8 @@ function createMockEmbeddingNode(overrides: {
       end_timestamp: end,
     },
     attributes: {
-      [SpanFields.GEN_AI_OPERATION_TYPE]: operationType,
+      [SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client',
+      [SpanFields.SPAN_OP]: spanOp,
       [SpanFields.GEN_AI_EMBEDDINGS_INPUT]: input,
       [SpanFields.GEN_AI_RESPONSE_MODEL]: model,
     },
@@ -572,16 +572,12 @@ describe('conversationMessages utilities', () => {
       expect(result.embeddingSpans.map(s => s.id)).toEqual(['embed-1']);
     });
 
-    it('recognizes an embeddings span even though gen_ai.operation.type reports ai_client', () => {
+    it('recognizes an embeddings span by its span op even though operation.type reports ai_client', () => {
       // gen_ai.operation.type is a closed, ingestion-computed enum with no
       // "embeddings" bucket, so real embeddings spans report "ai_client" —
-      // detection must key off the embeddings-only input attribute instead,
-      // or these spans get swallowed into generationSpans and silently
-      // dropped there (no chat content to render).
-      const embeddingNode = createMockEmbeddingNode({
-        id: 'embed-1',
-        operationType: 'ai_client',
-      });
+      // detection must key off the span op instead, or these spans get swallowed
+      // into generationSpans and silently dropped there (no chat content).
+      const embeddingNode = createMockEmbeddingNode({id: 'embed-1'});
 
       const result = partitionSpansByType([embeddingNode] as any);
 
@@ -589,11 +585,8 @@ describe('conversationMessages utilities', () => {
       expect(result.generationSpans).toHaveLength(0);
     });
 
-    it('also recognizes an embeddings span when operation.type literally reports embeddings', () => {
-      const embeddingNode = createMockEmbeddingNode({
-        id: 'embed-1',
-        operationType: 'embeddings',
-      });
+    it('falls back to the embeddings input attribute when the span op is absent', () => {
+      const embeddingNode = createMockEmbeddingNode({id: 'embed-1', spanOp: ''});
 
       const result = partitionSpansByType([embeddingNode] as any);
 
