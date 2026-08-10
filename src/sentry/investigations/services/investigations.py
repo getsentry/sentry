@@ -126,7 +126,7 @@ def create_manual_investigation(
 
 
 def duplicate_investigation(*, investigation: Investigation, user_id: int) -> Investigation:
-    """Copy notebook structure without executions, comments, or collaboration state."""
+    """Copy notebook structure without executions or per-user state."""
 
     with transaction.atomic(using=router.db_for_write(Investigation)):
         source = Investigation.objects.select_for_update().get(id=investigation.id)
