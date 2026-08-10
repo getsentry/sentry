@@ -77,6 +77,8 @@ const config: KnipConfig = {
         'tslib', // subdependency of many packages, declare the latest version
         'odiff-bin', // raw binary consumed by Python backend, not a JS import
         '@swc-contrib/mut-cjs-exports', // used in jest config
+        // Loaded dynamically from the import/resolver setting in .oxlintrc.json.
+        'eslint-import-resolver-typescript',
       ],
     },
   },
