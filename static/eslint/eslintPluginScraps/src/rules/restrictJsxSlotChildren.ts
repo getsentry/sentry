@@ -30,7 +30,7 @@ import {createImportTracker} from '../ast/tracker/imports.ts';
  *   - Block-body callbacks (`() => { return <Elem>; }`) are not checked.
  *   - Variable references (`slotProp={someVar}`) are not checked.
  *
- * Example configuration (in .oxlintrc.json):
+ * Example configuration (in oxlint.config.ts):
  *
  *   '@sentry/scraps/restrict-jsx-slot-children': [
  *     'warn',

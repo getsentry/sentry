@@ -19,7 +19,7 @@ import {Flex, Stack, Grid, Container} from '@sentry/scraps/layout';
 
 /**
  * The CompactSelect slot configuration exercised in all test cases below.
- * Matches the configuration registered in .oxlintrc.json.
+ * Matches the configuration registered in oxlint.config.ts.
  */
 const COMPACT_SELECT_OPTIONS = [
   {
