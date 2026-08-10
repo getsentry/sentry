@@ -2,9 +2,8 @@ import {t} from 'sentry/locale';
 
 /**
  * The curated set of messaging providers for the SCM onboarding messaging
- * step. Single source of truth for the launch set approved in VDY-138:
- * Slack, Discord, and Microsoft Teams. PagerDuty and other on-call providers
- * are out of scope.
+ * step. Slack, Discord, and Microsoft Teams only — PagerDuty and other
+ * on-call providers are out of scope for this flow.
  */
 export const SCM_MESSAGING_PROVIDER_KEYS = ['slack', 'discord', 'msteams'] as const;
 
