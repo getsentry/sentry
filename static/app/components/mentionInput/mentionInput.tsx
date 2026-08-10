@@ -62,14 +62,13 @@ export function MentionInput<TSuggestion>({
   const isComposingRef = useRef(false);
   const pendingSelectionRef = useRef<EditorSelection | null>(null);
   const [activeMention, setActiveMention] = useState<ActiveMention | null>(null);
-  const [isFocused, setIsFocused] = useState(false);
   const [nativeEditVersion, setNativeEditVersion] = useState(0);
 
   const mergedInputRef = useMemo(() => mergeRefs(inputRef, ref), [ref]);
   const activeSource = activeMention
     ? sources.find(source => source.id === activeMention.sourceId)
     : undefined;
-  const isOpen = isFocused && activeSource !== undefined;
+  const isOpen = activeSource !== undefined;
 
   const {
     activeDescendant,
@@ -284,7 +283,6 @@ export function MentionInput<TSuggestion>({
     onBlur: (event: React.FocusEvent<HTMLDivElement>) => {
       if (!overlayRef.current?.contains(event.relatedTarget)) {
         dismissedRequestKeyRef.current = null;
-        setIsFocused(false);
         setActiveMention(null);
       }
     },
@@ -298,7 +296,6 @@ export function MentionInput<TSuggestion>({
     },
     onFocus: () => {
       dismissedRequestKeyRef.current = null;
-      setIsFocused(true);
       updateActiveMention();
     },
     onInput: (event: React.FormEvent<HTMLDivElement>) => {

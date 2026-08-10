@@ -15,7 +15,7 @@ interface SuggestionListItem<T> {
   textValue: string;
 }
 
-type SuggestionLoadStatus = 'error' | 'idle' | 'loading' | 'ready';
+type SuggestionLoadStatus = 'error' | 'loading' | 'ready';
 
 export type MentionSuggestionStatus = 'empty' | 'error' | 'loading' | 'ready';
 
@@ -35,10 +35,10 @@ interface UseMentionSuggestionsOptions<T> {
 
 const MAX_SUGGESTIONS = 50;
 
-const IDLE_SUGGESTIONS = {
+const EMPTY_SUGGESTIONS = {
   items: [],
   requestKey: null,
-  status: 'idle',
+  status: 'loading',
 } as const;
 
 function getSuggestionStatus(
@@ -53,7 +53,6 @@ function getSuggestionStatus(
         return 'empty';
       }
       return 'ready';
-    case 'idle':
     case 'loading':
       return 'loading';
   }
@@ -68,13 +67,13 @@ export function useMentionSuggestions<T>({
 }: UseMentionSuggestionsOptions<T>) {
   const initializedFocusRequestRef = useRef<string | null>(null);
   const [suggestionState, setSuggestionState] =
-    useState<SuggestionState<T>>(IDLE_SUGGESTIONS);
+    useState<SuggestionState<T>>(EMPTY_SUGGESTIONS);
   const activeQuery = activeMention?.query;
   const requestKey = activeSource ? getRequestKey(activeMention) : null;
 
   useLayoutEffect(() => {
     if (activeQuery === undefined || !activeSource || !requestKey) {
-      setSuggestionState(IDLE_SUGGESTIONS);
+      setSuggestionState(EMPTY_SUGGESTIONS);
       return;
     }
 

@@ -1,8 +1,5 @@
 import {useCallback, useMemo, useState} from 'react';
-import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
-import {AnimatePresence, motion, useReducedMotion} from 'framer-motion';
 import uniqBy from 'lodash/uniqBy';
 import {z} from 'zod';
 
@@ -30,16 +27,12 @@ import {useMembers} from 'sentry/utils/members/useMembers';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 
-interface MentionComposerProps<T = MentionEntity> {
+interface MentionComposerProps {
   initialValue?: string;
   minHeight?: number;
   onSubmit?: (data: NoteType) => Promise<void>;
   onValueChange?: (value: string) => void;
   placeholder?: string;
-  /**
-   * Overrides the organization member and team sources.
-   */
-  sources?: ReadonlyArray<MentionSource<T>>;
 }
 
 type EditorMode = 'write' | 'preview';
@@ -50,22 +43,7 @@ const mentionComposerSchema = z.object({
   text: z.string(),
 });
 
-/**
- * Composes MentionInput with the note editor controls. Passing `sources` makes
- * the component data-agnostic; omitting them connects organization data.
- */
-export function MentionComposer<T = MentionEntity>({
-  sources,
-  ...props
-}: MentionComposerProps<T>) {
-  if (sources) {
-    return <Composer {...props} sources={sources} />;
-  }
-
-  return <ConnectedMentionComposer {...props} />;
-}
-
-function ConnectedMentionComposer(props: Omit<MentionComposerProps, 'sources'>) {
+export function MentionComposer(props: MentionComposerProps) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const {data: members = []} = useMembers();
@@ -187,18 +165,16 @@ function serializeNoteMentions(value: MentionInputValue): string {
   return text;
 }
 
-function Composer<T>({
+function Composer({
   sources,
   initialValue = '',
   minHeight = 140,
   onValueChange,
   onSubmit,
   placeholder = t('Add a comment.\nTag users with @, or teams with #'),
-}: Omit<MentionComposerProps<T>, 'sources'> & {
-  sources: ReadonlyArray<MentionSource<T>>;
+}: MentionComposerProps & {
+  sources: ReadonlyArray<MentionSource<MentionEntity>>;
 }) {
-  const theme = useTheme();
-  const prefersReducedMotion = useReducedMotion();
   const [mentions, setMentions] = useState<readonly Mention[]>([]);
   const [editorMode, setEditorMode] = useState<EditorMode>('write');
 
@@ -227,20 +203,6 @@ function Composer<T>({
     validators: {onDynamic: mentionComposerSchema},
     onSubmit: ({value}) => submitNote(value.text),
   });
-
-  const controlsAnimation = prefersReducedMotion
-    ? {
-        initial: false,
-        animate: {opacity: 1, height: 'auto'},
-        exit: {opacity: 0, height: 0},
-        transition: {duration: 0},
-      }
-    : {
-        initial: {opacity: 0, y: -4, height: 0},
-        animate: {opacity: 1, y: 0, height: 'auto'},
-        exit: {opacity: 0, y: -4, height: 0},
-        transition: theme.motion.framer.enter.fast,
-      };
 
   return (
     <form.AppForm form={form}>
@@ -295,50 +257,39 @@ function Composer<T>({
           )
         }
       </form.AppField>
-      <AnimatePresence initial={false}>
-        {areControlsVisible ? (
-          <MotionControls key="composer-controls" {...controlsAnimation}>
-            <Flex align="center" justify="between" gap="md" paddingTop="sm">
-              <Flex align="center" gap="md">
-                <SegmentedControl<EditorMode>
-                  aria-label={t('Comment editor mode')}
-                  size="xs"
-                  value={editorMode}
-                  onChange={setEditorMode}
-                >
-                  <SegmentedControl.Item key="write">{t('Write')}</SegmentedControl.Item>
-                  <SegmentedControl.Item key="preview">
-                    {t('Preview')}
-                  </SegmentedControl.Item>
-                </SegmentedControl>
-                <Flex
-                  as="span"
-                  align="center"
-                  gap="xs"
-                  display={{zero: 'none', sm: 'inline-flex'}}
-                >
-                  <IconMarkdown size="sm" variant="muted" />
-                  <Text as="span" size="sm" variant="muted">
-                    {t('Markdown supported')}
-                  </Text>
-                </Flex>
-              </Flex>
-              <form.Subscribe selector={state => state.values.text.trim() === ''}>
-                {isEmpty => (
-                  <form.SubmitButton size="xs" disabled={isEmpty}>
-                    {t('Comment')}
-                  </form.SubmitButton>
-                )}
-              </form.Subscribe>
+      {areControlsVisible ? (
+        <Flex align="center" justify="between" gap="md" paddingTop="sm">
+          <Flex align="center" gap="md">
+            <SegmentedControl<EditorMode>
+              aria-label={t('Comment editor mode')}
+              size="xs"
+              value={editorMode}
+              onChange={setEditorMode}
+            >
+              <SegmentedControl.Item key="write">{t('Write')}</SegmentedControl.Item>
+              <SegmentedControl.Item key="preview">{t('Preview')}</SegmentedControl.Item>
+            </SegmentedControl>
+            <Flex
+              as="span"
+              align="center"
+              gap="xs"
+              display={{zero: 'none', sm: 'inline-flex'}}
+            >
+              <IconMarkdown size="sm" variant="muted" />
+              <Text as="span" size="sm" variant="muted">
+                {t('Markdown supported')}
+              </Text>
             </Flex>
-          </MotionControls>
-        ) : null}
-      </AnimatePresence>
+          </Flex>
+          <form.Subscribe selector={state => state.values.text.trim() === ''}>
+            {isEmpty => (
+              <form.SubmitButton size="xs" disabled={isEmpty}>
+                {t('Comment')}
+              </form.SubmitButton>
+            )}
+          </form.Subscribe>
+        </Flex>
+      ) : null}
     </form.AppForm>
   );
 }
-
-const MotionControls = styled(motion.div)`
-  overflow: hidden;
-  isolation: isolate;
-`;
