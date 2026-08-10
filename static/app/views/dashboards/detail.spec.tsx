@@ -670,13 +670,52 @@ describe('Dashboards > Detail', () => {
 
       expect(screen.getByRole('menuitemradio', {name: 'Star Dashboard'})).toBeVisible();
       expect(
-        screen.getByRole('menuitemradio', {name: 'Dashboard Revisions'})
+        screen.getByRole('menuitemradio', {name: 'Show version history'})
       ).toBeVisible();
+      expect(screen.getByRole('menuitemradio', {name: 'Edit'})).toBeVisible();
       expect(
-        screen.queryByRole('menuitemradio', {name: 'Edit Dashboard'})
+        screen.queryByRole('button', {name: 'edit-dashboard'})
       ).not.toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'edit-dashboard'})).toBeVisible();
-      expect(screen.getByText('Editors:')).toBeVisible();
+      const actionBar = screen.getByRole('region', {name: 'Dashboard controls'});
+      expect(within(actionBar).getByText('Editors:')).toBeVisible();
+      expect(within(actionBar).getByRole('button', {name: 'Add Widget'})).toBeVisible();
+    });
+
+    it('moves edit actions into the dashboard action bar', async () => {
+      const pageFrameOrganization = OrganizationFixture({
+        slug: 'org-slug',
+        features: [...organization.features, 'ui-migration-breadcrumbs'],
+      });
+
+      render(
+        <TopBar.Slot.Provider>
+          <TopBar />
+          <DashboardDetail
+            initialState={DashboardState.VIEW}
+            dashboard={DashboardFixture([], {
+              id: '1',
+              title: 'Custom Errors',
+            })}
+            onDashboardUpdate={jest.fn()}
+          />
+        </TopBar.Slot.Provider>,
+        {organization: pageFrameOrganization}
+      );
+
+      await userEvent.click(await screen.findByLabelText('Dashboard actions'));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Edit'}));
+
+      const actionBar = await screen.findByRole('region', {
+        name: 'Dashboard controls',
+      });
+      await userEvent.click(screen.getByText('Custom Errors'));
+      expect(screen.getByRole('textbox', {name: 'Edit Dashboard Name'})).toBeVisible();
+      expect(screen.queryByLabelText('Dashboard actions')).not.toBeInTheDocument();
+      expect(
+        within(actionBar).getByRole('button', {name: 'Save and Finish'})
+      ).toBeVisible();
+      expect(within(actionBar).getByRole('button', {name: 'Delete'})).toBeVisible();
+      expect(within(actionBar).getByRole('button', {name: 'Cancel'})).toBeVisible();
     });
 
     it('moves the prebuilt duplicate action into the redesigned breadcrumb menu', async () => {
@@ -715,9 +754,7 @@ describe('Dashboards > Detail', () => {
       expect(
         screen.queryByRole('menuitemradio', {name: 'Star Dashboard'})
       ).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole('menuitemradio', {name: 'Edit Dashboard'})
-      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('menuitemradio', {name: 'Edit'})).not.toBeInTheDocument();
       expect(
         screen.queryByRole('button', {name: 'edit-dashboard'})
       ).not.toBeInTheDocument();

@@ -1,9 +1,8 @@
 import {Fragment, useState} from 'react';
-import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
-import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
@@ -54,6 +53,7 @@ type Props = {
   hideAddWidget?: boolean;
   isSaving?: boolean;
   onChangeEditAccess?: (newDashboardPermissions: DashboardPermissions) => void;
+  placement?: 'action-bar' | 'top-bar';
 };
 
 export function Controls({
@@ -69,14 +69,16 @@ export function Controls({
   onCancel,
   onAddWidget,
   isSaving,
+  placement = 'top-bar',
 }: Props) {
   const [isFavorited, setIsFavorited] = useState(dashboard.isFavorited);
   const queryClient = useQueryClient();
-  function renderCancelButton(label = t('Cancel')) {
+  function renderCancelButton(label = t('Cancel'), variant?: 'transparent') {
     return (
       <Button
         data-test-id="dashboard-cancel"
         size="sm"
+        variant={variant}
         onClick={e => {
           e.preventDefault();
           onCancel();
@@ -105,10 +107,49 @@ export function Controls({
     });
 
   const isPrebuiltDashboard = defined(dashboard.prebuiltId);
+  const isActionBar = placement === 'action-bar';
+
+  if (isActionBar && !hasNewBreadcrumbs) {
+    return null;
+  }
 
   if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
+    if (hasNewBreadcrumbs !== isActionBar) {
+      return null;
+    }
+
+    const buttons = (
+      <ButtonBar key="edit-controls">
+        <Button
+          data-test-id="dashboard-commit"
+          size="sm"
+          onClick={e => {
+            e.preventDefault();
+            onCommit();
+          }}
+          variant="primary"
+        >
+          {t('Save and Finish')}
+        </Button>
+        <Confirm
+          priority="danger"
+          message={t('Are you sure you want to delete this dashboard?')}
+          onConfirm={onDelete}
+        >
+          <Button size="sm" data-test-id="dashboard-delete" variant="danger">
+            {t('Delete')}
+          </Button>
+        </Confirm>
+        {renderCancelButton(t('Cancel'), 'transparent')}
+      </ButtonBar>
+    );
+
+    if (isActionBar) {
+      return <DashboardActionBar>{buttons}</DashboardActionBar>;
+    }
+
     return (
-      <StyledButtonBar key="edit-controls">
+      <ButtonBar key="edit-controls">
         {renderCancelButton()}
         <Confirm
           priority="danger"
@@ -130,14 +171,18 @@ export function Controls({
         >
           {t('Save and Finish')}
         </Button>
-      </StyledButtonBar>
+      </ButtonBar>
     );
   }
 
   if (dashboardState === DashboardState.CREATE) {
-    return (
-      <StyledButtonBar key="create-controls">
-        {renderCancelButton()}
+    if (hasNewBreadcrumbs !== isActionBar) {
+      return null;
+    }
+
+    const buttons = (
+      <ButtonBar key="create-controls">
+        {renderCancelButton(t('Cancel'), isActionBar ? 'transparent' : undefined)}
         <Button
           data-test-id="dashboard-commit"
           size="sm"
@@ -149,13 +194,19 @@ export function Controls({
         >
           {t('Save and Finish')}
         </Button>
-      </StyledButtonBar>
+      </ButtonBar>
     );
+
+    return isActionBar ? <DashboardActionBar>{buttons}</DashboardActionBar> : buttons;
   }
 
   if (dashboardState === DashboardState.PREVIEW) {
-    return (
-      <StyledButtonBar key="preview-controls">
+    if (hasNewBreadcrumbs !== isActionBar) {
+      return null;
+    }
+
+    const buttons = (
+      <ButtonBar key="preview-controls">
         {renderCancelButton(t('Go Back'))}
 
         <DashboardCreateLimitWrapper>
@@ -182,8 +233,10 @@ export function Controls({
             </Button>
           )}
         </DashboardCreateLimitWrapper>
-      </StyledButtonBar>
+      </ButtonBar>
     );
+
+    return isActionBar ? <DashboardActionBar>{buttons}</DashboardActionBar> : buttons;
   }
 
   const defaultDataset = DataSet.ERRORS;
@@ -217,8 +270,47 @@ export function Controls({
       : null
     : t('You do not have permission to edit this dashboard');
 
+  if (isActionBar) {
+    return (
+      <DashboardActionBar>
+        <DashboardEditFeature>
+          {hasFeature => (
+            <ButtonBar>
+              {hasFeature && !isPrebuiltDashboard && !hideAddWidget && (
+                <Tooltip
+                  title={tooltipMessage}
+                  disabled={!widgetLimitReached && hasEditAccess}
+                >
+                  <DropdownMenu
+                    items={addWidgetDropdownItems}
+                    isDisabled={widgetLimitReached || !hasEditAccess}
+                    triggerLabel={t('Add Widget')}
+                    triggerProps={{
+                      'aria-label': t('Add Widget'),
+                      size: 'sm',
+                      showChevron: true,
+                      icon: <IconAdd size="sm" />,
+                      variant: 'primary',
+                    }}
+                    position="bottom-end"
+                  />
+                </Tooltip>
+              )}
+              {!isPrebuiltDashboard && hasEditAccess && (
+                <EditAccessSelector
+                  dashboard={dashboard}
+                  onChangeEditAccess={onChangeEditAccess}
+                />
+              )}
+            </ButtonBar>
+          )}
+        </DashboardEditFeature>
+      </DashboardActionBar>
+    );
+  }
+
   return (
-    <StyledButtonBar key="controls">
+    <ButtonBar key="controls">
       <DashboardEditFeature>
         {hasFeature => (
           <Fragment>
@@ -274,7 +366,7 @@ export function Controls({
               </Tooltip>
             </Feature>
             {hasFeature &&
-              (!hasNewBreadcrumbs || (hasEditAccess && !isPrebuiltDashboard)) &&
+              !hasNewBreadcrumbs &&
               (isPrebuiltDashboard ? (
                 <Button
                   data-test-id="dashboard-edit"
@@ -315,7 +407,7 @@ export function Controls({
                   size="sm"
                 />
               ))}
-            {!isPrebuiltDashboard && (!hasNewBreadcrumbs || hasEditAccess) && (
+            {!hasNewBreadcrumbs && !isPrebuiltDashboard && (
               <EditAccessSelector
                 dashboard={dashboard}
                 onChangeEditAccess={onChangeEditAccess}
@@ -324,26 +416,29 @@ export function Controls({
             {hasFeature && !hasNewBreadcrumbs && (
               <DashboardRevisionsButton dashboard={dashboard} />
             )}
-            {hasFeature && !isPrebuiltDashboard && !hideAddWidget && (
-              <Tooltip
-                title={tooltipMessage}
-                disabled={!widgetLimitReached && hasEditAccess}
-              >
-                <DropdownMenu
-                  items={addWidgetDropdownItems}
-                  isDisabled={widgetLimitReached || !hasEditAccess}
-                  triggerLabel={t('Add Widget')}
-                  triggerProps={{
-                    'aria-label': t('Add Widget'),
-                    size: 'sm',
-                    showChevron: true,
-                    icon: <IconAdd size="sm" />,
-                    variant: 'primary',
-                  }}
-                  position="bottom-end"
-                />
-              </Tooltip>
-            )}
+            {hasFeature &&
+              !hasNewBreadcrumbs &&
+              !isPrebuiltDashboard &&
+              !hideAddWidget && (
+                <Tooltip
+                  title={tooltipMessage}
+                  disabled={!widgetLimitReached && hasEditAccess}
+                >
+                  <DropdownMenu
+                    items={addWidgetDropdownItems}
+                    isDisabled={widgetLimitReached || !hasEditAccess}
+                    triggerLabel={t('Add Widget')}
+                    triggerProps={{
+                      'aria-label': t('Add Widget'),
+                      size: 'sm',
+                      showChevron: true,
+                      icon: <IconAdd size="sm" />,
+                      variant: 'primary',
+                    }}
+                    position="bottom-end"
+                  />
+                </Tooltip>
+              )}
             {hasFeature && isPrebuiltDashboard && !hasNewBreadcrumbs && (
               <DashboardCreateLimitWrapper>
                 {({
@@ -387,7 +482,25 @@ export function Controls({
           </Fragment>
         )}
       </DashboardEditFeature>
-    </StyledButtonBar>
+    </ButtonBar>
+  );
+}
+
+function DashboardActionBar({children}: {children: React.ReactNode}) {
+  return (
+    <Flex
+      as="section"
+      aria-label={t('Dashboard controls')}
+      align="center"
+      background="primary"
+      borderBottom="primary"
+      borderTop="primary"
+      padding="md 0"
+      width="100%"
+      wrap="wrap"
+    >
+      {children}
+    </Flex>
   );
 }
 
@@ -421,12 +534,6 @@ function DashboardEditFeature({
   );
 }
 
-const StyledButtonBar = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="md" {...props} />
-))`
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-auto-flow: row;
-    grid-row-gap: ${p => p.theme.space.md};
-    width: 100%;
-  }
-`;
+function ButtonBar(props: FlexProps) {
+  return <Flex align="center" gap="md" wrap="wrap" {...props} />;
+}

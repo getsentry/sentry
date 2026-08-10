@@ -5,7 +5,7 @@ import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {IconClock, IconCopy, IconEllipsis, IconStar} from 'sentry/icons';
+import {IconClock, IconCopy, IconEdit, IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
@@ -24,12 +24,14 @@ interface DashboardBreadcrumbTitleProps {
   dashboard: DashboardDetails;
   isEditing: boolean;
   onChange: (title: string) => void;
+  onEdit: () => void;
 }
 
 export function DashboardBreadcrumbTitle({
   dashboard,
   isEditing,
   onChange,
+  onEdit,
 }: DashboardBreadcrumbTitleProps) {
   const [isFavorited, setIsFavorited] = useState(dashboard.isFavorited);
   const api = useApi();
@@ -74,7 +76,7 @@ export function DashboardBreadcrumbTitle({
   const isDashboardEditor = hasEditAccess && !isPrebuiltDashboard;
   const favoriteItem = {
     key: 'favorite',
-    label: isFavorited ? t('Unstar Dashboard') : t('Star Dashboard'),
+    label: isFavorited ? t('Unstar') : t('Star Dashboard'),
     leadingItems: <IconStar isSolid={isFavorited} />,
     onAction: async () => {
       const nextIsFavorited = !isFavorited;
@@ -99,9 +101,15 @@ export function DashboardBreadcrumbTitle({
   };
   const revisionItem = {
     key: 'revisions',
-    label: t('Dashboard Revisions'),
+    label: t('Show version history'),
     leadingItems: <IconClock />,
     onAction: openDashboardRevisions,
+  };
+  const editItem = {
+    key: 'edit',
+    label: t('Edit'),
+    leadingItems: <IconEdit />,
+    onAction: onEdit,
   };
   const duplicateItem = {
     key: 'duplicate',
@@ -115,7 +123,9 @@ export function DashboardBreadcrumbTitle({
       });
     },
   };
-  const menuItems = isDashboardEditor ? [favoriteItem, revisionItem] : [duplicateItem];
+  const menuItems = isDashboardEditor
+    ? [favoriteItem, revisionItem, editItem]
+    : [duplicateItem];
 
   return (
     <BreadcrumbList.Title

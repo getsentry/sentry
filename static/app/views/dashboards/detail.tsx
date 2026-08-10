@@ -1211,6 +1211,7 @@ class DashboardDetail extends Component<Props, State> {
                               title: newTitle,
                             })
                           }
+                          onEdit={this.onEdit}
                         />
                       </TopBar.Slot>
                     </Fragment>
@@ -1268,108 +1269,125 @@ class DashboardDetail extends Component<Props, State> {
                         >
                           <Stack gap="xl">
                             {pageAlerts}
-                            <FiltersBar
-                              dashboard={modifiedDashboard ?? dashboard}
-                              filters={(modifiedDashboard ?? dashboard).filters}
-                              dashboardPermissions={dashboard.permissions}
-                              dashboardCreator={dashboard.createdBy}
-                              location={location}
-                              hasUnsavedChanges={!this.isEmbedded && hasUnsavedFilters}
-                              isEditingDashboard={
-                                dashboardState !== DashboardState.CREATE &&
-                                this.isEditingDashboard
-                              }
-                              isPreview={this.isPreview}
-                              onAddWidget={this.onAddWidget}
-                              onDashboardFilterChange={this.handleChangeFilter}
-                              shouldBusySaveButton={this.state.isSavingDashboardFilters}
-                              prebuiltDashboardId={dashboard.prebuiltId}
-                              storageNamespace={this.props.storageNamespace}
-                              widgetLimitReached={widgetLimitReached}
-                              onCancel={() => {
-                                resetPageFilters(dashboard, location, navigate);
-                                trackAnalytics('dashboards2.filter.cancel', {
-                                  organization,
-                                });
+                            <Stack gap="zero" paddingBottom="xl">
+                              <FiltersBar
+                                dashboard={modifiedDashboard ?? dashboard}
+                                filters={(modifiedDashboard ?? dashboard).filters}
+                                dashboardPermissions={dashboard.permissions}
+                                dashboardCreator={dashboard.createdBy}
+                                location={location}
+                                hasUnsavedChanges={!this.isEmbedded && hasUnsavedFilters}
+                                isEditingDashboard={
+                                  dashboardState !== DashboardState.CREATE &&
+                                  this.isEditingDashboard
+                                }
+                                isPreview={this.isPreview}
+                                onAddWidget={this.onAddWidget}
+                                onDashboardFilterChange={this.handleChangeFilter}
+                                shouldBusySaveButton={this.state.isSavingDashboardFilters}
+                                prebuiltDashboardId={dashboard.prebuiltId}
+                                storageNamespace={this.props.storageNamespace}
+                                widgetLimitReached={widgetLimitReached}
+                                onCancel={() => {
+                                  resetPageFilters(dashboard, location, navigate);
+                                  trackAnalytics('dashboards2.filter.cancel', {
+                                    organization,
+                                  });
 
-                                this.setState({
-                                  modifiedDashboard: {
-                                    ...(modifiedDashboard ?? dashboard),
-                                    filters: dashboard.filters,
-                                  },
-                                });
-                              }}
-                              onSave={async () => {
-                                const newModifiedDashboard = {
-                                  ...cloneDashboard(modifiedDashboard ?? dashboard),
-                                  ...getCurrentPageFilters(location),
-                                  filters: getMergedDashboardFilters(
-                                    (modifiedDashboard ?? dashboard).filters,
-                                    location
-                                  ),
-                                  ...(defined(dashboard.prebuiltId) && {
-                                    widgets: undefined,
-                                  }),
-                                };
-                                this.setState({
-                                  isSavingDashboardFilters: true,
-                                });
-                                addLoadingMessage(t('Saving dashboard filters'));
-                                await updateDashboard(
-                                  api,
-                                  organization.slug,
-                                  newModifiedDashboard
-                                ).then(
-                                  (newDashboard: DashboardDetails) => {
-                                    queryClient.invalidateQueries({
-                                      queryKey: getDashboardRevisionsQueryKey(
-                                        organization.slug,
-                                        newDashboard.id
-                                      ),
-                                    });
-                                    addSuccessMessage(t('Dashboard filters updated'));
-                                    trackAnalytics('dashboards2.filter.save', {
-                                      organization,
-                                    });
+                                  this.setState({
+                                    modifiedDashboard: {
+                                      ...(modifiedDashboard ?? dashboard),
+                                      filters: dashboard.filters,
+                                    },
+                                  });
+                                }}
+                                onSave={async () => {
+                                  const newModifiedDashboard = {
+                                    ...cloneDashboard(modifiedDashboard ?? dashboard),
+                                    ...getCurrentPageFilters(location),
+                                    filters: getMergedDashboardFilters(
+                                      (modifiedDashboard ?? dashboard).filters,
+                                      location
+                                    ),
+                                    ...(defined(dashboard.prebuiltId) && {
+                                      widgets: undefined,
+                                    }),
+                                  };
+                                  this.setState({
+                                    isSavingDashboardFilters: true,
+                                  });
+                                  addLoadingMessage(t('Saving dashboard filters'));
+                                  await updateDashboard(
+                                    api,
+                                    organization.slug,
+                                    newModifiedDashboard
+                                  ).then(
+                                    (newDashboard: DashboardDetails) => {
+                                      queryClient.invalidateQueries({
+                                        queryKey: getDashboardRevisionsQueryKey(
+                                          organization.slug,
+                                          newDashboard.id
+                                        ),
+                                      });
+                                      addSuccessMessage(t('Dashboard filters updated'));
+                                      trackAnalytics('dashboards2.filter.save', {
+                                        organization,
+                                      });
 
-                                    const navigateToDashboard = () => {
-                                      this.props.navigate(
-                                        normalizeUrl({
-                                          pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                                          query: omit(
-                                            location.query,
-                                            Object.values(DashboardFilterKeys)
-                                          ),
-                                        }),
-                                        {replace: true}
-                                      );
-                                    };
+                                      const navigateToDashboard = () => {
+                                        this.props.navigate(
+                                          normalizeUrl({
+                                            pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
+                                            query: omit(
+                                              location.query,
+                                              Object.values(DashboardFilterKeys)
+                                            ),
+                                          }),
+                                          {replace: true}
+                                        );
+                                      };
 
-                                    if (onDashboardUpdate) {
-                                      onDashboardUpdate(newDashboard);
-                                      this.setState(
-                                        {
-                                          modifiedDashboard: null,
-                                          isSavingDashboardFilters: false,
-                                        },
-                                        () => {
-                                          // Wait for modifiedDashboard state to update before navigating
-                                          navigateToDashboard();
-                                        }
-                                      );
-                                      return;
-                                    }
+                                      if (onDashboardUpdate) {
+                                        onDashboardUpdate(newDashboard);
+                                        this.setState(
+                                          {
+                                            modifiedDashboard: null,
+                                            isSavingDashboardFilters: false,
+                                          },
+                                          () => {
+                                            // Wait for modifiedDashboard state to update before navigating
+                                            navigateToDashboard();
+                                          }
+                                        );
+                                        return;
+                                      }
 
-                                    navigateToDashboard();
-                                    this.setState({
-                                      isSavingDashboardFilters: false,
-                                    });
-                                  },
-                                  // `updateDashboard` does its own error handling
-                                  () => {}
-                                );
-                              }}
-                            />
+                                      navigateToDashboard();
+                                      this.setState({
+                                        isSavingDashboardFilters: false,
+                                      });
+                                    },
+                                    // `updateDashboard` does its own error handling
+                                    () => {}
+                                  );
+                                }}
+                              />
+                              <Controls
+                                placement="action-bar"
+                                organization={organization}
+                                dashboard={dashboard}
+                                hasUnsavedFilters={hasUnsavedFilters}
+                                onEdit={this.onEdit}
+                                onCancel={this.onCancel}
+                                onCommit={this.onCommit}
+                                onAddWidget={this.onAddWidget}
+                                onDelete={this.onDelete(dashboard)}
+                                onChangeEditAccess={this.onChangeEditAccess}
+                                dashboardState={dashboardState}
+                                widgetLimitReached={widgetLimitReached}
+                                isSaving={isCommittingChanges}
+                              />
+                            </Stack>
                           </Stack>
 
                           <Fragment>
