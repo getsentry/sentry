@@ -1207,6 +1207,7 @@ class DashboardDetail extends Component<Props, State> {
                           dashboard={modifiedDashboard ?? dashboard}
                           hasUnsavedFilters={hasUnsavedFilters}
                           isEditing={this.isEditingDashboard}
+                          isPreview={this.isPreview}
                           isSaving={isCommittingChanges}
                           onChange={newTitle =>
                             this.setModifiedDashboard({

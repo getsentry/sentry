@@ -756,6 +756,37 @@ describe('Dashboards > Detail', () => {
       );
     });
 
+    it('does not show breadcrumb actions in dashboard preview', async () => {
+      const pageFrameOrganization = OrganizationFixture({
+        slug: 'org-slug',
+        features: [...organization.features, 'ui-migration-breadcrumbs'],
+      });
+
+      render(
+        <TopBar.Slot.Provider>
+          <TopBar />
+          <DashboardDetail
+            initialState={DashboardState.PREVIEW}
+            dashboard={DashboardFixture([], {
+              id: '1',
+              title: 'Preview Dashboard',
+            })}
+            onDashboardUpdate={jest.fn()}
+          />
+        </TopBar.Slot.Provider>,
+        {organization: pageFrameOrganization}
+      );
+
+      expect(
+        await screen.findByRole('heading', {name: 'Preview Dashboard', level: 1})
+      ).toBeVisible();
+      expect(screen.getByRole('button', {name: 'Go Back'})).toBeVisible();
+      expect(screen.getByRole('button', {name: 'Save and Finish'})).toBeVisible();
+      expect(
+        screen.queryByRole('button', {name: 'Dashboard actions'})
+      ).not.toBeInTheDocument();
+    });
+
     it('renders the legacy dashboard breadcrumb in the top bar (flag off)', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',

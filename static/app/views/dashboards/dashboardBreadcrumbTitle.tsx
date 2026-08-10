@@ -25,6 +25,7 @@ interface DashboardBreadcrumbTitleProps {
   dashboard: DashboardDetails;
   hasUnsavedFilters: boolean;
   isEditing: boolean;
+  isPreview: boolean;
   isSaving: boolean;
   onChange: (title: string) => void;
   onEdit: () => void;
@@ -34,6 +35,7 @@ export function DashboardBreadcrumbTitle({
   dashboard,
   hasUnsavedFilters,
   isEditing,
+  isPreview,
   isSaving,
   onChange,
   onEdit,
@@ -65,6 +67,17 @@ export function DashboardBreadcrumbTitle({
           errorMessage: t('Please set a title for this dashboard'),
           autoSelect: true,
           'aria-label': t('Edit Dashboard Name'),
+        }}
+      />
+    );
+  }
+
+  if (isPreview) {
+    return (
+      <BreadcrumbList.Title
+        item={{
+          type: 'page-title',
+          label: dashboard.title,
         }}
       />
     );
