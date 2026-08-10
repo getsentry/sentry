@@ -1169,6 +1169,7 @@ class DashboardDetail extends Component<Props, State> {
       onDashboardUpdate,
       pageAlerts,
       queryClient,
+      theme,
     } = this.props;
     const {
       modifiedDashboard,
@@ -1267,7 +1268,16 @@ class DashboardDetail extends Component<Props, State> {
                       forceTransactions={metricsDataSide.forceTransactionsOnly}
                     >
                       <Fragment>
-                        <DashboardControlsBody padding="0">
+                        {/* Mirrors ExploreBodySearch, the sticky controls pattern shared by Logs,
+                            Traces, and Replays. */}
+                        <Layout.Body
+                          borderBottom="primary"
+                          flexGrow={0}
+                          padding="0"
+                          position="sticky"
+                          style={{zIndex: theme.zIndex.header}}
+                          top={`var(${TOP_BAR_HEIGHT_CSS_VAR}, 0px)`}
+                        >
                           <Layout.Main width="full">
                             <Stack gap="xl">
                               {pageAlerts}
@@ -1395,7 +1405,7 @@ class DashboardDetail extends Component<Props, State> {
                               </Stack>
                             </Stack>
                           </Layout.Main>
-                        </DashboardControlsBody>
+                        </Layout.Body>
 
                         <Layout.Body>
                           <Layout.Main width="full">
@@ -1530,15 +1540,6 @@ const StyledPageHeader = styled('div')`
     grid-column-gap: ${p => p.theme.space.xl};
     height: 40px;
   }
-`;
-
-const DashboardControlsBody = styled(Layout.Body)`
-  /* Mirrors ExploreBodySearch, the sticky controls pattern shared by Logs, Traces, and Replays. */
-  flex-grow: 0;
-  position: sticky;
-  top: var(${TOP_BAR_HEIGHT_CSS_VAR}, 0px);
-  z-index: ${p => p.theme.zIndex.header};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 interface DashboardDetailWithInjectedPropsProps extends Omit<

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid, type FlexProps, type GridProps} from '@sentry/scraps/layout';
+import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
@@ -79,25 +79,21 @@ function DashboardTopBarControls({dashboardState}: Pick<Props, 'dashboardState'>
   }
 
   return (
-    <ButtonBar>
-      <DashboardEditFeature>
-        {() => (
-          <Feature features="dashboards-import">
-            <Button
-              aria-label={t('export-dashboard')}
-              onClick={event => {
-                event.preventDefault();
-                exportDashboard();
-              }}
-              icon={<IconDownload />}
-              tooltipProps={{title: t('Export Dashboard')}}
-              variant="secondary"
-              size="sm"
-            />
-          </Feature>
-        )}
-      </DashboardEditFeature>
-    </ButtonBar>
+    <Flex align="center" gap="md" wrap="wrap">
+      <Feature features="dashboards-import">
+        <Button
+          aria-label={t('export-dashboard')}
+          onClick={event => {
+            event.preventDefault();
+            exportDashboard();
+          }}
+          icon={<IconDownload />}
+          tooltipProps={{title: t('Export Dashboard')}}
+          variant="secondary"
+          size="sm"
+        />
+      </Feature>
+    </Flex>
   );
 }
 
@@ -427,65 +423,59 @@ export function DashboardActionBar({
 
   if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
     return (
-      <ActionBarLayout>
-        <ButtonBar>
-          <Button size="sm" onClick={handleCommit} variant="primary">
-            {t('Save and Finish')}
+      <DashboardControls>
+        <Button size="sm" onClick={handleCommit} variant="primary">
+          {t('Save and Finish')}
+        </Button>
+        <Confirm
+          priority="danger"
+          message={t('Are you sure you want to delete this dashboard?')}
+          onConfirm={onDelete}
+        >
+          <Button size="sm" variant="danger">
+            {t('Delete')}
           </Button>
-          <Confirm
-            priority="danger"
-            message={t('Are you sure you want to delete this dashboard?')}
-            onConfirm={onDelete}
-          >
-            <Button size="sm" variant="danger">
-              {t('Delete')}
-            </Button>
-          </Confirm>
-          <Button size="sm" variant="transparent" onClick={handleCancel}>
-            {t('Cancel')}
-          </Button>
-        </ButtonBar>
-      </ActionBarLayout>
+        </Confirm>
+        <Button size="sm" variant="transparent" onClick={handleCancel}>
+          {t('Cancel')}
+        </Button>
+      </DashboardControls>
     );
   }
 
   if (dashboardState === DashboardState.CREATE) {
     return (
-      <ActionBarLayout>
-        <ButtonBar>
-          <Button size="sm" variant="transparent" onClick={handleCancel}>
-            {t('Cancel')}
-          </Button>
-          <Button size="sm" onClick={handleCommit} variant="primary">
-            {t('Save and Finish')}
-          </Button>
-        </ButtonBar>
-      </ActionBarLayout>
+      <DashboardControls>
+        <Button size="sm" variant="transparent" onClick={handleCancel}>
+          {t('Cancel')}
+        </Button>
+        <Button size="sm" onClick={handleCommit} variant="primary">
+          {t('Save and Finish')}
+        </Button>
+      </DashboardControls>
     );
   }
 
   if (dashboardState === DashboardState.PREVIEW) {
     return (
-      <ActionBarLayout>
-        <ButtonBar>
-          <Button size="sm" onClick={handleCancel}>
-            {t('Go Back')}
-          </Button>
-          <DashboardCreateLimitWrapper>
-            {({hasReachedDashboardLimit, isLoading, limitMessage}) => (
-              <Button
-                size="sm"
-                onClick={handleCommit}
-                variant="primary"
-                disabled={hasReachedDashboardLimit || isLoading}
-                tooltipProps={{isHoverable: true, title: limitMessage}}
-              >
-                {t('Save and Finish')}
-              </Button>
-            )}
-          </DashboardCreateLimitWrapper>
-        </ButtonBar>
-      </ActionBarLayout>
+      <DashboardControls>
+        <Button size="sm" onClick={handleCancel}>
+          {t('Go Back')}
+        </Button>
+        <DashboardCreateLimitWrapper>
+          {({hasReachedDashboardLimit, isLoading, limitMessage}) => (
+            <Button
+              size="sm"
+              onClick={handleCommit}
+              variant="primary"
+              disabled={hasReachedDashboardLimit || isLoading}
+              tooltipProps={{isHoverable: true, title: limitMessage}}
+            >
+              {t('Save and Finish')}
+            </Button>
+          )}
+        </DashboardCreateLimitWrapper>
+      </DashboardControls>
     );
   }
 
@@ -508,23 +498,21 @@ export function DashboardActionBar({
         }
 
         return (
-          <ActionBarLayout>
-            <ButtonBar>
-              {showAddWidget && (
-                <AddWidgetDropdown
-                  hasEditAccess={hasEditAccess}
-                  onAddWidget={onAddWidget}
-                  widgetLimitReached={widgetLimitReached}
-                />
-              )}
-              {showEditAccess && (
-                <EditAccessSelector
-                  dashboard={dashboard}
-                  onChangeEditAccess={onChangeEditAccess}
-                />
-              )}
-            </ButtonBar>
-          </ActionBarLayout>
+          <DashboardControls>
+            {showAddWidget && (
+              <AddWidgetDropdown
+                hasEditAccess={hasEditAccess}
+                onAddWidget={onAddWidget}
+                widgetLimitReached={widgetLimitReached}
+              />
+            )}
+            {showEditAccess && (
+              <EditAccessSelector
+                dashboard={dashboard}
+                onChangeEditAccess={onChangeEditAccess}
+              />
+            )}
+          </DashboardControls>
         );
       }}
     </DashboardEditFeature>
@@ -574,7 +562,7 @@ function AddWidgetDropdown({
   );
 }
 
-function ActionBarLayout({children}: {children: React.ReactNode}) {
+function DashboardControls({children}: {children: React.ReactNode}) {
   return (
     <Flex
       as="section"
@@ -582,6 +570,7 @@ function ActionBarLayout({children}: {children: React.ReactNode}) {
       align="center"
       background="primary"
       borderTop="primary"
+      gap="md"
       padding="lg xl xl"
       width="100%"
       wrap="wrap"
@@ -619,10 +608,6 @@ function DashboardEditFeature({
       {({hasFeature}) => children(hasFeature)}
     </Feature>
   );
-}
-
-function ButtonBar(props: FlexProps) {
-  return <Flex align="center" gap="md" wrap="wrap" {...props} />;
 }
 
 const LegacyButtonBar = styled((props: GridProps) => (
