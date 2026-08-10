@@ -1329,6 +1329,38 @@ class ProviderMetricTagTest(TestCase):
             {"provider": "github"}
         ]
 
+    @responses.activate
+    @override_cells(cell_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_retry_tagged_from_failing_record_not_mailbox_head(
+        self, mock_metrics: MagicMock
+    ) -> None:
+        # The sequential drain loops over records but holds a separate reference to
+        # the mailbox head, so `retry` must read the record that actually failed.
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=200,
+            body="",
+        )
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            body=ReadTimeout(),
+        )
+        head = self.create_webhook_payload(
+            mailbox_name="github:123", cell_name="us", provider="github"
+        )
+        legacy = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+        legacy.update(provider=None)
+
+        drain_mailbox(head.id)
+
+        assert self.tags_for(mock_metrics, "hybridcloud.deliver_webhooks.delivery") == [
+            {"outcome": "ok", "provider": "github"},
+            {"outcome": "retry", "provider": "unknown"},
+        ]
+
     @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
     def test_race_provider_from_mailbox_name(self, mock_metrics: MagicMock) -> None:

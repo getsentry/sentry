@@ -376,7 +376,7 @@ def drain_mailbox(payload_id: int, mailbox_name: str | None = None) -> None:
                     failed += 1
                     metrics.incr(
                         "hybridcloud.deliver_webhooks.delivery",
-                        tags={"outcome": "retry", "provider": _provider_tag(payload)},
+                        tags={"outcome": "retry", "provider": _provider_tag(record)},
                     )
                     if not skip_on_failure:
                         # For providers that require strict ordering, stop on the
