@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import responses
+from django.conf import settings
 from django.test import override_settings
 
 from fixtures.github import (
@@ -353,7 +354,7 @@ class InstallationNewPermissionsEventWebhookTest(APITestCase):
     def setUp(self) -> None:
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
-        options.set("github-app.webhook-secret", self.secret)
+        settings.SENTRY_GITHUB_APP_WEBHOOK_SECRET = self.secret
 
     def _post(self) -> int:
         body = INSTALLATION_NEW_PERMISSIONS_EVENT_EXAMPLE
