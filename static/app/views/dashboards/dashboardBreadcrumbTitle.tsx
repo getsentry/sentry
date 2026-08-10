@@ -123,9 +123,12 @@ export function DashboardBreadcrumbTitle({
       });
     },
   };
-  const menuItems = isDashboardEditor
-    ? [favoriteItem, revisionItem, editItem]
-    : [duplicateItem];
+  const menuItems = [
+    favoriteItem,
+    revisionItem,
+    ...(isDashboardEditor ? [editItem] : []),
+    duplicateItem,
+  ];
 
   return (
     <BreadcrumbList.Title

@@ -632,10 +632,53 @@ describe('Dashboards > Detail', () => {
         screen.getByRole('heading', {name: 'Custom Errors', level: 1})
       ).toBeInTheDocument();
       expect(within(breadcrumbs).queryByText('Custom Errors')).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Dashboard actions'}));
+      expect(await screen.findByRole('menuitemradio', {name: 'Edit'})).toBeVisible();
+      expect(screen.getByRole('menuitemradio', {name: 'Duplicate'})).toBeVisible();
+
       // The redesigned BreadcrumbList hides its slash dividers from the a11y tree
       // (unlike the legacy breadcrumbs, whose divider surfaced as a visible img),
       // so there are no visible imgs in this view-only crumb.
       expect(within(breadcrumbs).queryAllByRole('img')).toHaveLength(0);
+    });
+
+    it('keeps shared breadcrumb actions on prebuilt dashboards', async () => {
+      const pageFrameOrganization = OrganizationFixture({
+        slug: 'org-slug',
+        features: [...organization.features, 'ui-migration-breadcrumbs'],
+      });
+
+      render(
+        <TopBar.Slot.Provider>
+          <TopBar />
+          <DashboardDetail
+            initialState={DashboardState.VIEW}
+            dashboard={DashboardFixture([], {
+              id: '1',
+              prebuiltId: PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
+              title: 'Prebuilt Dashboard',
+            })}
+            onDashboardUpdate={jest.fn()}
+          />
+        </TopBar.Slot.Provider>,
+        {
+          organization: pageFrameOrganization,
+        }
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Dashboard actions'})
+      );
+
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Star Dashboard'})
+      ).toBeVisible();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Show version history'})
+      ).toBeVisible();
+      expect(screen.getByRole('menuitemradio', {name: 'Duplicate'})).toBeVisible();
+      expect(screen.queryByRole('menuitemradio', {name: 'Edit'})).not.toBeInTheDocument();
     });
 
     it('renders the legacy dashboard breadcrumb in the top bar (flag off)', async () => {
