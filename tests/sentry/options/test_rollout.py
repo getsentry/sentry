@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 import pytest
+from django.conf import settings
 
 from sentry import options
 from sentry.options.rollout import in_random_rollout, in_rollout_group
@@ -85,3 +86,8 @@ def test_in_rollout_group_str(register_option) -> None:
         success, failure = run_rollout_group("feature.rollout", "another-value-123")
         assert success == 1000
         assert failure == 0
+
+
+def test_override_options_promotes_migrated_settings() -> None:
+    with override_options({"vercel.client-secret": "test-secret"}):
+        assert settings.SENTRY_VERCEL_CLIENT_SECRET == "test-secret"
