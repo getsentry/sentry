@@ -188,7 +188,7 @@ def _apply(run_id: int, updates: RunUpdates) -> bool:
             predicted_user_ids=predicted_user_ids,
             selected_user_id=extras.get(
                 "selected_assignee_user_id",
-                predicted_user_ids[0] if predicted_user_ids else None,
+                next((user_id for user_id in predicted_user_ids if user_id is not None), None),
             ),
             actual_user_id=extras.get("actual_assignee_user_id"),
             actual_team_id=extras.get("actual_assignee_team_id"),
