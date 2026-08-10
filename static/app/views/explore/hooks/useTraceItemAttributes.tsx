@@ -301,7 +301,6 @@ export function useLogItemAttributes(
   type?: TraceItemAttributeType,
   hiddenKeys?: string[]
 ): TraceItemAttributeResult {
-  // TODO: THIS NEEDS TO CHANGE AS WELL
   return useTraceItemDatasetAttributes(TraceItemDataset.LOGS, options, type, hiddenKeys);
 }
 
