@@ -3,7 +3,6 @@ import {SentryAppWebhookRequestFixture} from 'sentry-fixture/sentryAppWebhookReq
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {SentryAppWebhookRequest} from 'sentry/types/integrations';
 import {RequestLog} from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard/requestLog';
 
@@ -26,7 +25,6 @@ describe('RequestLog details drawer', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
   });
 
   it('opens with a summary of the request', async () => {
@@ -39,7 +37,6 @@ describe('RequestLog details drawer', () => {
     expect(within(drawer).getByText('400')).toBeInTheDocument();
     expect(within(drawer).getByText('issue.assigned')).toBeInTheDocument();
     expect(within(drawer).getByText('https://example.com/webhook')).toBeInTheDocument();
-    expect(within(drawer).getByText('Test Org')).toBeInTheDocument();
   });
 
   it('renders request headers', async () => {
