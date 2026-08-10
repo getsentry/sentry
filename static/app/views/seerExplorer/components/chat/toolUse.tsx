@@ -196,6 +196,14 @@ function useToolLinks(block: Block) {
     return map;
   }, [block.tool_results]);
 
+  // The tool calls that have reported back. A result means the call returned, whatever it did or
+  // did not carry, which is what tells a row whether anything is still in flight.
+  const settledCallIds = useMemo(
+    () =>
+      new Set((block.tool_results ?? []).flatMap(result => result?.tool_call_id ?? [])),
+    [block.tool_results]
+  );
+
   // While an execute is still running there is no tool result yet, so seer mirrors its calls onto
   // the block itself. Those rows are what make a long run legible; they are replaced by the
   // per-result records above the moment the execute finishes.
@@ -208,17 +216,14 @@ function useToolLinks(block: Block) {
     if (!calls.length) {
       return new Map<string, CallRecord[]>();
     }
-    const finished = new Set(
-      (block.tool_results ?? []).flatMap(result => result?.tool_call_id ?? [])
-    );
     const pending = (block.message.tool_calls ?? []).flatMap(toolCall =>
-      toolCall.id && !finished.has(toolCall.id) ? [toolCall.id] : []
+      toolCall.id && !settledCallIds.has(toolCall.id) ? [toolCall.id] : []
     );
 
     return pending.length === 1
       ? new Map([[pending[0]!, calls]])
       : new Map<string, CallRecord[]>();
-  }, [block.live_calls, block.tool_results, block.message.tool_calls]);
+  }, [block.live_calls, block.message.tool_calls, settledCallIds]);
 
   return {
     sortedToolLinks,
@@ -229,6 +234,7 @@ function useToolLinks(block: Block) {
     structuredContentMarkdownByCallId,
     callRecordsByCallId,
     liveCallsForCallId,
+    settledCallIds,
     organization,
     projects,
   };
@@ -250,6 +256,7 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
     structuredContentMarkdownByCallId,
     callRecordsByCallId,
     liveCallsForCallId,
+    settledCallIds,
     organization,
     projects,
   } = useToolLinks(block);
@@ -353,8 +360,11 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
           ? (callRecordsByCallId.get(toolCall.id) ?? [])
           : [];
         const live = toolCall.id ? (liveCallsForCallId.get(toolCall.id) ?? []) : [];
-        // A tool result exists, so the execute returned and nothing it reported is still running.
-        const callsAreSettled = finishedCalls.length > 0;
+        // A result exists, so the execute returned and nothing it reported is still running. Read
+        // off the result itself rather than off the records it carried: a call that reports none
+        // has still finished, and reading "settled" as "reported something" would leave any row
+        // built from the live mirror spinning.
+        const callsAreSettled = toolCall.id ? settledCallIds.has(toolCall.id) : false;
         const callRows = visibleCallRecords(finishedCalls.length ? finishedCalls : live)
           .map(record => {
             const link = callRecordLink(record, organization, projects);
@@ -513,15 +523,28 @@ function CallRow({
   );
 
   return (
+    // Matches the block-level indicator's box so a call row's tick sits on the same vertical
+    // rhythm.
     <Flex gap="sm" align="center" minWidth={0} maxWidth="100%">
       {/* One tick per row: a lib helper that fans out into three requests is three separate
           outcomes, and a single tick above the group could not say which of them failed. */}
-      <StatusSlot>{row.status && <ToolCallIndicator status={row.status} />}</StatusSlot>
+      <Flex align="center" justify="center" width="12px" height="12px" flexShrink={0}>
+        {row.status && <ToolCallIndicator status={row.status} />}
+      </Flex>
       {row.detail ? (
-        // The label is the disclosure's own title, so the chevron sits inline with it rather than
-        // adding a second line beneath. A row with nothing to show stays plain.
+        // The title is the disclosure's own, so the chevron sits inline with it rather than adding
+        // a second line beneath. The link cannot go inside it: the title renders as a button, and
+        // an anchor nested in a button is invalid HTML that leaves both controls sharing one click
+        // target and one tab stop. `trailingItems` puts it beside the button instead — the title
+        // expands the request, the icon navigates.
         <Disclosure size="xs">
-          <Disclosure.Title>{label}</Disclosure.Title>
+          <Disclosure.Title
+            trailingItems={
+              row.url && <RowLink url={row.url} label={row.label} onClick={onLinkClick} />
+            }
+          >
+            {text}
+          </Disclosure.Title>
           <Disclosure.Content>
             <CallDetail detail={row.detail} />
           </Disclosure.Content>
@@ -532,6 +555,29 @@ function CallRow({
         </Flex>
       )}
     </Flex>
+  );
+}
+
+/**
+ * The row's destination as a control of its own, for a row that also expands.
+ *
+ * Visible at rest, unlike the inline variant whose icon the label's hover reveals: there is no
+ * label to hover here, and an affordance that only appears under the pointer is one a keyboard
+ * user never finds.
+ */
+function RowLink({
+  url,
+  label,
+  onClick,
+}: {
+  label: string;
+  url: LocationDescriptor;
+  onClick?: (e: React.MouseEvent) => void;
+}) {
+  return (
+    <ToolCallLink to={url} onClick={onClick} aria-label={t('Open %s', label)}>
+      <ToolCallLinkIcon size="xs" />
+    </ToolCallLink>
   );
 }
 
@@ -687,16 +733,6 @@ const ToolCallLinkIcon = styled(IconLink)`
   ${ToolCallLink}:hover & {
     color: ${p => p.theme.tokens.interactive.link.accent.hover};
   }
-`;
-
-// Matches the block-level indicator's box so a call row's tick sits on the same vertical rhythm.
-const StatusSlot = styled('span')`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 12px;
-  height: 12px;
-  flex-shrink: 0;
 `;
 
 const ToolCallPlainRow = styled('span')`

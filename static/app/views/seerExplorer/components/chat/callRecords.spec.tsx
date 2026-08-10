@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
   callRecordDetail,
@@ -105,6 +105,38 @@ describe('call record rendering', () => {
       'href',
       expect.stringContaining('/issues/139458447/')
     );
+  });
+
+  describe('a row that both expands and navigates', () => {
+    /** An api call with a destination *and* a request to show — both affordances on one row. */
+    function linkable(): CallRecord {
+      return apiRecord({
+        path: '/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/',
+        resolved_path: '/api/0/organizations/acme/issues/139458447/',
+        path_params: {organization_id_or_slug: 'acme', issue_id: '139458447'},
+        title: 'Retrieve an Issue',
+      });
+    }
+
+    it('keeps the link out of the disclosure button', () => {
+      render(<BlockComponent block={codeModeBlock([linkable()])} blockIndex={0} />);
+
+      // An anchor inside a button is invalid HTML, and it leaves expand and navigate sharing one
+      // click target and one tab stop.
+      const link = screen.getByRole('link', {name: /Retrieve an Issue/});
+      const expander = screen.getByRole('button', {name: /Retrieve an Issue/});
+      expect(expander).not.toContainElement(link);
+    });
+
+    it('still expands to the request it made', async () => {
+      render(<BlockComponent block={codeModeBlock([linkable()])} blockIndex={0} />);
+
+      await userEvent.click(screen.getByRole('button', {name: /Retrieve an Issue/}));
+
+      expect(
+        screen.getByText('GET /api/0/organizations/acme/issues/139458447/')
+      ).toBeInTheDocument();
+    });
   });
 
   it('renders a record with no navigable resource as plain text', () => {
