@@ -146,7 +146,7 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
 
         assert response.status_code == 200
 
-    def test_duplicate_copies_notebook_structure_without_collaboration_or_execution(self) -> None:
+    def test_duplicate_copies_notebook_structure_without_execution_or_per_user_state(self) -> None:
         source = self.create_investigation(
             organization=self.organization,
             created_by=self.user,
