@@ -1203,6 +1203,143 @@ class DroppedDeliveryOutcomeTest(TestCase):
 
 
 @control_silo_test
+class ProviderMetricTagTest(TestCase):
+    """
+    The `$provider` dashboard selector filters on this tag, so a delivery metric
+    emitted without it silently disappears when a provider is selected.
+    """
+
+    def tags_for(self, mock_metrics: MagicMock, metric: str) -> list[dict[str, str]]:
+        return [c[1].get("tags", {}) for c in mock_metrics.incr.call_args_list if c[0][0] == metric]
+
+    @responses.activate
+    @override_cells(cell_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_delivery_tagged_with_provider(self, mock_metrics: MagicMock) -> None:
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=200,
+            body="",
+        )
+        webhook = self.create_webhook_payload(
+            mailbox_name="github:123", cell_name="us", provider="github"
+        )
+
+        drain_mailbox(webhook.id)
+
+        assert self.tags_for(mock_metrics, "hybridcloud.deliver_webhooks.delivery") == [
+            {"outcome": "ok", "provider": "github"}
+        ]
+
+    @responses.activate
+    @override_cells(cell_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_failure_tagged_with_provider(self, mock_metrics: MagicMock) -> None:
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=401,
+            body="",
+        )
+        webhook = self.create_webhook_payload(
+            mailbox_name="github:123", cell_name="us", provider="github"
+        )
+
+        drain_mailbox(webhook.id)
+
+        assert self.tags_for(mock_metrics, "hybridcloud.deliver_webhooks.failure") == [
+            {"reason": "unauthorized", "destination_region": "us", "provider": "github"}
+        ]
+
+    @responses.activate
+    @override_cells(cell_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_dropped_outcomes_tagged_with_provider(self, mock_metrics: MagicMock) -> None:
+        # `conflict` and `dropped_4xx` are delivery outcomes like any other, so they
+        # must carry the tag too or they vanish when a provider is selected.
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=409,
+            body="",
+        )
+        webhook = self.create_webhook_payload(
+            mailbox_name="github:123", cell_name="us", provider="github"
+        )
+
+        drain_mailbox(webhook.id)
+
+        assert self.tags_for(mock_metrics, "hybridcloud.deliver_webhooks.delivery") == [
+            {"outcome": "conflict", "provider": "github"}
+        ]
+
+    @responses.activate
+    @override_cells(cell_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_parallel_dropped_outcome_tagged_with_provider(self, mock_metrics: MagicMock) -> None:
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=401,
+            body="",
+        )
+        webhook = self.create_webhook_payload(
+            mailbox_name="github:123", cell_name="us", provider="github"
+        )
+
+        drain_mailbox_parallel(webhook.id)
+
+        assert self.tags_for(mock_metrics, "hybridcloud.deliver_webhooks.delivery") == [
+            {"outcome": "dropped_4xx", "provider": "github"}
+        ]
+
+    @responses.activate
+    @override_cells(cell_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_provider_falls_back_to_unknown(self, mock_metrics: MagicMock) -> None:
+        # Rows predating the provider column still drain through here.
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=200,
+            body="",
+        )
+        webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+        webhook.update(provider=None)
+
+        drain_mailbox(webhook.id)
+
+        assert self.tags_for(mock_metrics, "hybridcloud.deliver_webhooks.delivery") == [
+            {"outcome": "ok", "provider": "unknown"}
+        ]
+
+    @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_push_trigger_provider_from_mailbox_name(
+        self, mock_drain: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        # No payload row is loaded on this path, so the provider comes from the name.
+        webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+
+        maybe_trigger_drain(webhook.mailbox_name)
+
+        assert self.tags_for(mock_metrics, "hybridcloud.deliver_webhooks.push_trigger.success") == [
+            {"provider": "github"}
+        ]
+
+    @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_race_provider_from_mailbox_name(self, mock_metrics: MagicMock) -> None:
+        drain_mailbox(999999, mailbox_name="gitlab:7")
+
+        assert self.tags_for(mock_metrics, "hybridcloud.deliver_webhooks.delivery") == [
+            {"outcome": "race", "provider": "gitlab"}
+        ]
+
+
+@control_silo_test
 class PushTriggerTest(TestCase):
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
     @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
