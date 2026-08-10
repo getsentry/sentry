@@ -153,7 +153,11 @@ export const useSeerExplorer = () => {
         if (storedValue === false) {
           return 'off';
         }
-        return 'on'; // default
+        // Matches the server's own default for a flagged org. This value is sent on every
+        // request, so it is not really an override until someone picks one — leaving it at
+        // 'on' meant the server's default branch could never be reached from the UI, and
+        // flagged orgs kept getting Code Mode alongside the classic tools.
+        return 'only';
       }
     );
   const [overrideBashModeEnabled, setOverrideBashModeEnabled] = useLocalStorageState(
