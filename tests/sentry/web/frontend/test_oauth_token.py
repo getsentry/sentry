@@ -1,5 +1,6 @@
 from functools import cached_property
 
+from django.test import override_settings
 from django.utils import timezone
 
 from sentry.locks import locks
@@ -467,7 +468,7 @@ class OAuthTokenCodeTest(TestCase):
             redirect_uri="https://example.com",
             scope_list=["openid"],
         )
-        with self.options({"codecov.signing_secret": "signing_secret"}):
+        with override_settings(SENTRY_CODECOV_SIGNING_SECRET="signing_secret"):
             resp = self.client.post(
                 self.path,
                 {
@@ -500,7 +501,7 @@ class OAuthTokenCodeTest(TestCase):
             redirect_uri="https://example.com",
             scope_list=["openid", "profile", "email"],
         )
-        with self.options({"codecov.signing_secret": "signing_secret"}):
+        with override_settings(SENTRY_CODECOV_SIGNING_SECRET="signing_secret"):
             resp = self.client.post(
                 self.path,
                 {

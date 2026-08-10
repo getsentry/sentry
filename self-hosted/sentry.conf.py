@@ -189,18 +189,18 @@ SENTRY_WEB_OPTIONS = {
 
 email = env("SENTRY_EMAIL_HOST") or (env("SMTP_PORT_25_TCP_ADDR") and "smtp")
 if email:
-    SENTRY_OPTIONS["mail.backend"] = "smtp"
-    SENTRY_OPTIONS["mail.host"] = email
-    SENTRY_OPTIONS["mail.password"] = env("SENTRY_EMAIL_PASSWORD") or ""
-    SENTRY_OPTIONS["mail.username"] = env("SENTRY_EMAIL_USER") or ""
-    SENTRY_OPTIONS["mail.port"] = int(env("SENTRY_EMAIL_PORT") or 25)
-    SENTRY_OPTIONS["mail.use-tls"] = Bool(env("SENTRY_EMAIL_USE_TLS", False))
-    SENTRY_OPTIONS["mail.use-ssl"] = Bool(env("SENTRY_EMAIL_USE_SSL", False))
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = email
+    EMAIL_HOST_PASSWORD = env("SENTRY_EMAIL_PASSWORD") or ""
+    EMAIL_HOST_USER = env("SENTRY_EMAIL_USER") or ""
+    EMAIL_PORT = int(env("SENTRY_EMAIL_PORT") or 25)
+    EMAIL_USE_TLS = Bool(env("SENTRY_EMAIL_USE_TLS", False))
+    EMAIL_USE_SSL = Bool(env("SENTRY_EMAIL_USE_SSL", False))
 else:
-    SENTRY_OPTIONS["mail.backend"] = "dummy"
+    EMAIL_BACKEND = "django.core.mail.backends.dummy.EmailBackend"
 
 # The email address to send on behalf of
-SENTRY_OPTIONS["mail.from"] = env("SENTRY_SERVER_EMAIL") or "root@localhost"
+SERVER_EMAIL = env("SENTRY_SERVER_EMAIL") or "root@localhost"
 
 # If you're using mailgun for inbound mail, set your API key and configure a
 # route to forward to /api/hooks/mailgun/inbound/
@@ -208,12 +208,12 @@ SENTRY_MAILGUN_API_KEY = env("SENTRY_MAILGUN_API_KEY") or ""
 
 # If you specify a MAILGUN_API_KEY, you definitely want EMAIL_REPLIES
 if SENTRY_MAILGUN_API_KEY:
-    SENTRY_OPTIONS["mail.enable-replies"] = True
+    SENTRY_EMAIL_ENABLE_REPLIES = True
 else:
-    SENTRY_OPTIONS["mail.enable-replies"] = Bool(env("SENTRY_ENABLE_EMAIL_REPLIES", False))
+    SENTRY_EMAIL_ENABLE_REPLIES = Bool(env("SENTRY_ENABLE_EMAIL_REPLIES", False))
 
-if SENTRY_OPTIONS["mail.enable-replies"]:
-    SENTRY_OPTIONS["mail.reply-hostname"] = env("SENTRY_SMTP_HOSTNAME") or ""
+if SENTRY_EMAIL_ENABLE_REPLIES:
+    SENTRY_EMAIL_REPLY_HOSTNAME = env("SENTRY_SMTP_HOSTNAME") or ""
 
 # If this value ever becomes compromised, it's important to regenerate your
 # SENTRY_SECRET_KEY. Changing this value will result in all current sessions

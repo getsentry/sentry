@@ -3,6 +3,7 @@ from urllib.parse import quote
 
 import phonenumbers
 import requests
+from django.conf import settings
 
 from sentry import options
 
@@ -57,7 +58,7 @@ def send_sms(body: str, to: str, from_: str | None = None) -> bool:
 
     rv = requests.post(
         url,
-        auth=(account, options.get("sms.twilio-token")),
+        auth=(account, settings.SENTRY_SMS_TWILIO_TOKEN),
         data={"To": phone_number, "From": options.get("sms.twilio-number"), "Body": body},
     )
     if not rv.ok:

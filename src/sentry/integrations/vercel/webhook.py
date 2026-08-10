@@ -6,6 +6,7 @@ import logging
 from collections.abc import Mapping
 from typing import Any, TypedDict
 
+from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
@@ -17,7 +18,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import VERSION, audit_log, http, options
+from sentry import VERSION, audit_log, http
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
@@ -53,7 +54,7 @@ class _ReleasePayload(TypedDict):
 
 def verify_vercel_hmac(body: bytes, signature: str) -> bool:
     """Verify a Vercel webhook HMAC-SHA1 signature."""
-    secret = options.get("vercel.client-secret")
+    secret = settings.SENTRY_VERCEL_CLIENT_SECRET
     if not secret:
         return False
     expected = hmac.new(key=secret.encode("utf-8"), msg=body, digestmod=hashlib.sha1).hexdigest()

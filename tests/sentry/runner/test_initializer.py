@@ -185,6 +185,22 @@ def test_bootstrap_options_mail_aliases(settings) -> None:
     assert settings.EMAIL_BACKEND == "alias-for-dummy"
 
 
+def test_bootstrap_options_promotes_environment_backed_settings(settings) -> None:
+    settings.SENTRY_URL_PREFIX = "https://example.com"
+    settings.SENTRY_EMAIL_ENABLE_REPLIES = True
+    settings.SENTRY_FLYIO_CLIENT_ID = "fly-client-id"
+    settings.SENTRY_SYMBOL_SERVER_ENABLED = False
+    settings.SENTRY_SYMBOLICATOR_OPTIONS = {"url": "http://symbolicator"}
+
+    bootstrap_options(settings)
+
+    assert settings.SENTRY_OPTIONS["system.url-prefix"] == "https://example.com"
+    assert settings.SENTRY_OPTIONS["mail.enable-replies"] is True
+    assert settings.SENTRY_OPTIONS["auth-fly.client-id"] == "fly-client-id"
+    assert settings.SENTRY_OPTIONS["symbolserver.enabled"] is False
+    assert settings.SENTRY_OPTIONS["symbolicator.options"] == {"url": "http://symbolicator"}
+
+
 def test_bootstrap_options_missing_file(settings) -> None:
     bootstrap_options(settings, "this-file-does-not-exist-xxxxxxxxxxxxxx.yml")
     assert settings.SENTRY_OPTIONS == {}
