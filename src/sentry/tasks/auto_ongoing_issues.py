@@ -22,6 +22,10 @@ ITERATOR_CHUNK = 100
 CHILD_TASK_COUNT = 250
 
 
+def _schedule_limit() -> int:
+    return ITERATOR_CHUNK * CHILD_TASK_COUNT
+
+
 @instrumented_task(
     name="sentry.tasks.schedule_auto_transition_to_ongoing",
     namespace=issues_tasks,
@@ -96,7 +100,7 @@ def schedule_auto_transition_issues_new_to_ongoing(
             RangeQuerySetWrapper(
                 base_queryset,
                 step=ITERATOR_CHUNK,
-                limit=ITERATOR_CHUNK * CHILD_TASK_COUNT,
+                limit=_schedule_limit(),
                 callbacks=[get_total_count],
                 order_by="first_seen",
                 override_unique_safety_check=True,
@@ -110,7 +114,7 @@ def schedule_auto_transition_issues_new_to_ongoing(
     metrics.incr(
         "sentry.tasks.schedule_auto_transition_issues_new_to_ongoing.executed",
         sample_rate=1.0,
-        tags={"count": total_count},
+        tags={"hit_limit": str(total_count >= _schedule_limit()).lower()},
     )
 
 
@@ -192,7 +196,7 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
             RangeQuerySetWrapper(
                 base_queryset.values_list("id", flat=True),
                 step=ITERATOR_CHUNK,
-                limit=ITERATOR_CHUNK * CHILD_TASK_COUNT,
+                limit=_schedule_limit(),
                 result_value_getter=lambda item: item,
                 callbacks=[get_total_count],
             ),
@@ -205,7 +209,7 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
     metrics.incr(
         "sentry.tasks.schedule_auto_transition_issues_regressed_to_ongoing.executed",
         sample_rate=1.0,
-        tags={"count": total_count},
+        tags={"hit_limit": str(total_count >= _schedule_limit()).lower()},
     )
 
 
@@ -289,7 +293,7 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
             RangeQuerySetWrapper(
                 base_queryset.values_list("id", flat=True),
                 step=ITERATOR_CHUNK,
-                limit=ITERATOR_CHUNK * CHILD_TASK_COUNT,
+                limit=_schedule_limit(),
                 result_value_getter=lambda item: item,
                 callbacks=[get_total_count],
             ),
@@ -302,7 +306,7 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
     metrics.incr(
         "sentry.tasks.schedule_auto_transition_issues_escalating_to_ongoing.executed",
         sample_rate=1.0,
-        tags={"count": total_count},
+        tags={"hit_limit": str(total_count >= _schedule_limit()).lower()},
     )
 
 
