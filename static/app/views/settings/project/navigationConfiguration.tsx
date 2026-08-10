@@ -189,6 +189,8 @@ export function getNavigationConfiguration({
             t('token'),
             t('client key'),
             t('dsn key'),
+            t('sdk'),
+            t('sdk setup'),
             t('allowed domains'),
           ],
         },
