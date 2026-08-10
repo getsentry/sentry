@@ -15,6 +15,7 @@ from sentry_redis_tools.failover_redis import FailoverRedis
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 
 from sentry import options
+from sentry.db.postgres.transactions import in_test_assert_no_transaction
 from sentry.exceptions import InvalidConfiguration
 from sentry.options import OptionsManager
 from sentry.utils import warnings
@@ -34,6 +35,25 @@ _REDIS_DEFAULT_CLIENT_ARGS = {
 
 _pool_cache: dict[str, ConnectionPool] = {}
 _pool_lock = Lock()
+
+
+class TransactionCheckingFailoverRedis(FailoverRedis):
+    def execute_command(self, *args: Any, **kwargs: Any) -> Any:
+        in_test_assert_no_transaction("Redis commands must run outside database transactions")
+        return super().execute_command(*args, **kwargs)
+
+    def pipeline(self, *args: Any, **kwargs: Any) -> Any:
+        pipeline = super().pipeline(*args, **kwargs)
+        execute = pipeline.execute
+
+        def execute_outside_transaction(*args: Any, **kwargs: Any) -> Any:
+            in_test_assert_no_transaction(
+                "Redis pipeline commands must run outside database transactions"
+            )
+            return execute(*args, **kwargs)
+
+        pipeline.execute = execute_outside_transaction
+        return pipeline
 
 
 def _shared_pool(**opts: Any) -> ConnectionPool:
@@ -193,7 +213,7 @@ class RedisClusterManager:
                 assert len(hosts_list) > 0, "Hosts should have at least 1 entry"
                 host = dict(hosts_list[0])
                 host["decode_responses"] = decode_responses
-                return FailoverRedis(**host, **client_args)
+                return TransactionCheckingFailoverRedis(**host, **client_args)
 
         # losing some type safety: SimpleLazyObject acts like the underlying type
         return SimpleLazyObject(cluster_factory)
