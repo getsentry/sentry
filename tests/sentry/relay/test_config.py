@@ -20,9 +20,7 @@ from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.models.projectteam import ProjectTeam
-from sentry.models.transaction_threshold import TransactionMetric
 from sentry.relay.config import ProjectConfig, TransactionNameRule, get_project_config
-from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import freeze_time
@@ -86,9 +84,6 @@ DEFAULT_IGNORE_HEALTHCHECKS_RULE = {
 
 
 def _validate_project_config(config):
-    # Relay keeps BTreeSets for these, so sort here as well:
-    for rule in config.get("metricConditionalTagging", []):
-        rule["targetMetrics"] = sorted(rule["targetMetrics"])
     # Relay uses a BTreeSet for features:
     if features := config.get("features"):
         config["features"] = sorted(features)
@@ -499,26 +494,20 @@ def test_project_config_with_trace_health_checks_enabled(
 
 
 @django_db_all
-@pytest.mark.parametrize("transaction_metrics", ("with_metrics", "without_metrics"))
 @cell_silo_test
-def test_project_config_with_breakdown(
-    default_project: Project, insta_snapshot: InstaSnapshotter, transaction_metrics: str
-) -> None:
-    with Feature(
-        {
-            "organizations:transaction-metrics-extraction": transaction_metrics == "with_metrics",
+def test_project_config_with_breakdown(default_project: Project) -> None:
+    breakdowns = {
+        "span_ops": {
+            "type": "spanOperations",
+            "matches": ["http", "db", "browser", "resource", "ui"],
         }
-    ):
-        project_cfg = get_project_config(default_project)
+    }
+    default_project.update_option("sentry:breakdowns", breakdowns)
+    project_cfg = get_project_config(default_project)
 
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
-    insta_snapshot(
-        {
-            "breakdownsV2": cfg["config"]["breakdownsV2"],
-            "metricConditionalTagging": cfg["config"].get("metricConditionalTagging"),
-        }
-    )
+    assert cfg["config"]["breakdownsV2"] == breakdowns
 
 
 @django_db_all
@@ -539,47 +528,6 @@ def test_project_config_with_organizations_metrics_extraction(
         assert session_metrics == {
             "version": 2 if abnormal_mechanism_rollout else 1,
         }
-
-
-@django_db_all
-@pytest.mark.parametrize("has_project_transaction_threshold", (False, True))
-@pytest.mark.parametrize("has_project_transaction_threshold_overrides", (False, True))
-@cell_silo_test
-def test_project_config_satisfaction_thresholds(
-    default_project: Project,
-    insta_snapshot: InstaSnapshotter,
-    has_project_transaction_threshold_overrides: bool,
-    has_project_transaction_threshold: bool,
-) -> None:
-    if has_project_transaction_threshold:
-        default_project.projecttransactionthreshold_set.create(
-            organization=default_project.organization,
-            threshold=500,
-            metric=TransactionMetric.LCP.value,
-        )
-    if has_project_transaction_threshold_overrides:
-        default_project.projecttransactionthresholdoverride_set.create(
-            organization=default_project.organization,
-            transaction="foo",
-            threshold=400,
-            metric=TransactionMetric.DURATION.value,
-        )
-        default_project.projecttransactionthresholdoverride_set.create(
-            organization=default_project.organization,
-            transaction="bar",
-            threshold=600,
-            metric=TransactionMetric.LCP.value,
-        )
-    with Feature(
-        {
-            "organizations:transaction-metrics-extraction": True,
-        }
-    ):
-        project_cfg = get_project_config(default_project)
-
-    cfg = project_cfg.to_dict()
-    _validate_project_config(cfg["config"])
-    insta_snapshot(cfg["config"]["metricConditionalTagging"])
 
 
 @pytest.mark.parametrize("num_clusterer_runs", [9, 10])
@@ -674,71 +622,6 @@ def test_healthcheck_filter(default_project, health_check_set) -> None:
         assert health_check_config["isEnabled"]
         # we have some patterns
         assert len(health_check_config["patterns"]) > 1
-
-
-@django_db_all
-def test_alert_metric_extraction_rules_empty(default_project) -> None:
-    features = {
-        "organizations:transaction-metrics-extraction": True,
-        "organizations:on-demand-metrics-extraction": True,
-    }
-
-    with Feature(features):
-        config = get_project_config(default_project).to_dict()["config"]
-        _validate_project_config(config)
-        assert "metricExtraction" not in config
-
-
-@django_db_all
-def test_alert_metric_extraction_rules(default_project, factories) -> None:
-    # Alert compatible with out-of-the-box metrics. This should NOT be included
-    # in the config.
-    factories.create_alert_rule(
-        default_project.organization,
-        [default_project],
-        query="event.type:transaction environment:production",
-        dataset=Dataset.Transactions,
-    )
-
-    # Alert requiring an on-demand metric. This should be included in the config.
-    factories.create_alert_rule(
-        default_project.organization,
-        [default_project],
-        query="event.type:transaction transaction.duration:<10m",
-        dataset=Dataset.PerformanceMetrics,
-    )
-
-    features = {
-        "organizations:transaction-metrics-extraction": True,
-        "organizations:on-demand-metrics-extraction": True,
-    }
-
-    with Feature(features):
-        config = get_project_config(default_project).to_dict()["config"]
-
-        assert config["metricExtraction"] == {
-            "version": 4,
-            "metrics": [
-                {
-                    "category": "transaction",
-                    "mri": "c:transactions/on_demand@none",
-                    "field": None,
-                    "condition": {
-                        "name": "event.duration",
-                        "op": "lt",
-                        "value": 600000.0,
-                    },
-                    "tags": [{"key": "query_hash", "value": ANY}],
-                }
-            ],
-        }
-
-        normalized = normalize_project_config(config)
-        del normalized["metricExtraction"]["conditionalTagsExtended"]
-        del normalized["metricExtraction"]["spanMetricsExtended"]
-        del config["metricExtraction"]["metrics"][0]["field"]
-
-        assert normalized["metricExtraction"] == config["metricExtraction"]
 
 
 @django_db_all
