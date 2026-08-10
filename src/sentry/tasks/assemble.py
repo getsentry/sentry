@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import tempfile
 import uuid
 from datetime import datetime
 from typing import IO, TYPE_CHECKING, NamedTuple
@@ -13,6 +14,7 @@ from django.db import router
 from django.db.models import Q
 from django.utils import timezone
 
+from sentry import features
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.debug_files.artifact_bundles import (
@@ -73,26 +75,16 @@ class AssembleResult(NamedTuple):
     # File object stored in the database.
     bundle: File
     # Temporary in-memory object representing the file used for efficiency.
-    bundle_temp_file: IO
+    bundle_temp_file: IO[bytes]
 
     def delete_bundle(self):
         self.bundle.delete()
         self.bundle_temp_file.close()
 
 
-@trace
-def assemble_file(task, org_or_project, name, checksum, chunks, file_type) -> AssembleResult | None:
-    """
-    Verifies and assembles a file model from chunks.
-
-    This downloads all chunks from blob store to verify their integrity and
-    associates them with a created file model. Additionally, it assembles the
-    full file in a temporary location and verifies the complete content hash.
-
-    Returns a tuple ``(File, TempFile)`` on success, or ``None`` on error.
-    """
+def _get_assemble_file_blob_ids(task, org_or_project, name, checksum, chunks) -> list[int] | None:
+    """Validates uploaded chunks and returns their IDs in assembly order."""
     from sentry.models.files.fileblob import FileBlob
-    from sentry.models.files.utils import AssembleChecksumMismatch
 
     if isinstance(org_or_project, Project):
         organization = org_or_project.organization
@@ -142,7 +134,25 @@ def assemble_file(task, org_or_project, name, checksum, chunks, file_type) -> As
     # Ensure blobs are in the order and duplication in which they were
     # transmitted. Otherwise, we would assemble the file in the wrong order.
     ids_by_checksum = {chks: id for id, chks, _ in file_blobs}
-    file_blob_ids = [ids_by_checksum[c] for c in chunks]
+    return [ids_by_checksum[c] for c in chunks]
+
+
+@trace
+def assemble_file(task, org_or_project, name, checksum, chunks, file_type) -> AssembleResult | None:
+    """
+    Verifies and assembles a file model from chunks.
+
+    This downloads all chunks from blob store to verify their integrity and
+    associates them with a created file model. Additionally, it assembles the
+    full file in a temporary location and verifies the complete content hash.
+
+    Returns a tuple ``(File, TempFile)`` on success, or ``None`` on error.
+    """
+    from sentry.models.files.utils import AssembleChecksumMismatch
+
+    file_blob_ids = _get_assemble_file_blob_ids(task, org_or_project, name, checksum, chunks)
+    if file_blob_ids is None:
+        return None
 
     file = File.objects.create(name=name, checksum=checksum, type=file_type)
     try:
@@ -159,6 +169,50 @@ def assemble_file(task, org_or_project, name, checksum, chunks, file_type) -> As
         return None
 
     return AssembleResult(bundle=file, bundle_temp_file=temp_file)
+
+
+@trace
+def assemble_file_blobs(task, org_or_project, name, checksum, chunks) -> IO[bytes] | None:
+    """Assembles uploaded chunks into a temporary file without creating a ``File``."""
+    from sentry.models.files.fileblob import FileBlob
+
+    file_blob_ids = _get_assemble_file_blob_ids(task, org_or_project, name, checksum, chunks)
+    if file_blob_ids is None:
+        return None
+
+    blobs_by_id = FileBlob.objects.in_bulk(file_blob_ids)
+    try:
+        file_blobs = [blobs_by_id[blob_id] for blob_id in file_blob_ids]
+    except KeyError:
+        logger.exception("`FileBlob` disappeared during `assemble_file_blobs`")
+        raise
+
+    temp_file = tempfile.NamedTemporaryFile()
+    assembled_checksum = hashlib.sha1()
+    try:
+        for blob in file_blobs:
+            with blob.getfile() as blobfile:
+                for chunk in blobfile.chunks():
+                    assembled_checksum.update(chunk)
+                    temp_file.write(chunk)
+    except Exception:
+        temp_file.close()
+        raise
+
+    if checksum != assembled_checksum.hexdigest():
+        temp_file.close()
+        set_assemble_status(
+            task,
+            org_or_project.id,
+            checksum,
+            ChunkFileState.ERROR,
+            detail="Reported checksum mismatch",
+        )
+        return None
+
+    temp_file.flush()
+    temp_file.seek(0)
+    return temp_file
 
 
 def _get_cache_key(task, scope, checksum):
@@ -240,39 +294,55 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     Assembles uploaded chunks into a ``ProjectDebugFile``.
     """
     from sentry.lang.native.sources import record_last_upload
-    from sentry.models.debugfile import BadDif, create_dif_from_file
+    from sentry.models.debugfile import (
+        BadDif,
+        create_dif_from_file,
+        create_dif_from_fileobj,
+        detect_single_dif_from_path,
+    )
     from sentry.models.project import Project
 
     sentry_sdk.set_tag("project", project_id)
     sentry_sdk.set_attribute("project", project_id)
 
+    file: File | None = None
     delete_file = False
 
     try:
         project = Project.objects.filter(id=project_id).get()
         set_assemble_status(AssembleTask.DIF, project_id, checksum, ChunkFileState.ASSEMBLING)
 
-        # Assemble the chunks into a temporary file
-        rv = assemble_file(
-            AssembleTask.DIF, project, name, checksum, chunks, file_type="project.dif"
-        )
+        if features.has(
+            "organizations:objectstore-debugfiles-exclusive-write", project.organization
+        ):
+            temp_file = assemble_file_blobs(AssembleTask.DIF, project, name, checksum, chunks)
+            if temp_file is None:
+                return
+        else:
+            # Assemble the chunks into a legacy File and temporary file.
+            rv = assemble_file(
+                AssembleTask.DIF, project, name, checksum, chunks, file_type="project.dif"
+            )
 
-        # If not file has been created this means that the file failed to
-        # assemble because of bad input data. In this case, assemble_file
-        # has set the assemble status already.
-        if rv is None:
-            return
+            # If no file has been created this means that the file failed to
+            # assemble because of bad input data. In this case, assemble_file
+            # has set the assemble status already.
+            if rv is None:
+                return
 
-        file, temp_file = rv
-        delete_file = True
+            file, temp_file = rv
+            delete_file = True
 
         with temp_file:
             # We only permit split difs to hit this endpoint.
             # The client is required to split them up first or we error.
             try:
-                dif, created = create_dif_from_file(
-                    project, file, temp_file.name, name=name, debug_id=debug_id
-                )
+                meta = detect_single_dif_from_path(temp_file.name, name=name, debug_id=debug_id)
+                if file is None:
+                    temp_file.seek(0)
+                    dif, created = create_dif_from_fileobj(project, meta, temp_file)
+                else:
+                    dif, created = create_dif_from_file(project, meta, file)
             except BadDif as e:
                 set_assemble_status(
                     AssembleTask.DIF, project_id, checksum, ChunkFileState.ERROR, detail=e.args[0]
@@ -282,7 +352,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
             # We can delete the temporary file when either the new DIF is objectstore-backed (i.e. `dif.file is None`),
             # or when the new DIF references an already existing underlying `File` that's not this temporary one.
             # Only if `dif.file is file` we want to avoid the deletion, given that the new DIF will be backed by `File` that up until now we considered temporary.
-            delete_file = dif.file is not file
+            delete_file = file is not None and dif.file is not file
 
             if created:
                 record_last_upload(project)
@@ -300,7 +370,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
             AssembleTask.DIF, project_id, checksum, ChunkFileState.OK, detail=serialize(dif)
         )
     finally:
-        if delete_file:
+        if delete_file and file is not None:
             file.delete()
 
 
