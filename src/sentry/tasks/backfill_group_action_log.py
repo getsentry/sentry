@@ -1,5 +1,4 @@
 import logging
-import time
 from datetime import datetime
 
 from taskbroker_client.state import current_task
@@ -13,12 +12,13 @@ from sentry.issues.action_log.backfill import (
 from sentry.issues.action_log.types import SYSTEM_ACTOR, GroupActionActor
 from sentry.models.activity import Activity
 from sentry.models.group import Group
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
-from sentry.utils import json, metrics, redis
+from sentry.utils import json, metrics
 from sentry.utils.action_log.activity_translator import (
     activity_action_idempotency_key,
     activity_to_action,
@@ -28,9 +28,7 @@ logger = logging.getLogger(__name__)
 
 _TASK_KEY = "backfill_group_action_log_for_project"
 _COORDINATOR_TASK_KEY = "backfill_group_action_log_coordinator"
-_REDIS_CURSOR_KEY = "backfill_gal_coordinator:last_project_id"
-_REDIS_CURSOR_TTL = 7 * 24 * 60 * 60
-GAL_BACKFILL_COMPLETED_OPTION = "sentry:gal_backfill_completed"
+GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION = "sentry:group_action_log_backfill_completed"
 
 
 @instrumented_task(
@@ -180,7 +178,7 @@ def _reset_project(project: Project) -> None:
         source=BACKFILL_ACTIVITY_SOURCE,
     ).delete()
 
-    project.delete_option(GAL_BACKFILL_COMPLETED_OPTION)
+    project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, False)
 
     logger.info(
         "backfill_group_action_log.project_reset_completed",
@@ -226,7 +224,7 @@ def _backfill_project(
             "backfill_group_action_log.project_completed",
             extra={"project_id": project.id},
         )
-        project.update_option(GAL_BACKFILL_COMPLETED_OPTION, int(time.time()))
+        _mark_project_backfill_complete(project)
         process_project_derived_data.delay(project_id=project.id)
         return
 
@@ -329,24 +327,22 @@ def _backfill_project(
             "backfill_group_action_log.project_completed",
             extra={"project_id": project.id},
         )
-        project.update_option(GAL_BACKFILL_COMPLETED_OPTION, int(time.time()))
+        _mark_project_backfill_complete(project)
         process_project_derived_data.delay(project_id=project.id)
 
 
-def _get_coordinator_cursor() -> int:
-    client = redis.redis_clusters.get("default")
-    value = client.get(_REDIS_CURSOR_KEY)
-    return int(value) if value else 0
-
-
-def _set_coordinator_cursor(project_id: int) -> None:
-    client = redis.redis_clusters.get("default")
-    client.set(_REDIS_CURSOR_KEY, str(project_id), ex=_REDIS_CURSOR_TTL)
-
-
-def _clear_coordinator_cursor() -> None:
-    client = redis.redis_clusters.get("default")
-    client.delete(_REDIS_CURSOR_KEY)
+def _mark_project_backfill_complete(project: Project) -> None:
+    updated = ProjectOption.objects.filter(
+        project_id=project.id,
+        key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
+        value=False,
+    ).update(value=True)
+    if updated:
+        ProjectOption.objects.reload_cache(
+            project.id,
+            "group_action_log_backfill.completed",
+            GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
+        )
 
 
 @instrumented_task(
@@ -357,9 +353,10 @@ def _clear_coordinator_cursor() -> None:
 )
 def backfill_group_action_log_for_all_projects(
     project_reset: bool = False,
-    cursor_override: int | None = None,
+    last_project_option_id: int = 0,
     **kwargs: object,
 ) -> None:
+    """Dispatch project backfills in batches for projects explicitly marked with a false backfill option."""
     task_state = current_task()
     activation_id = task_state.id if task_state else None
     if activation_id and already_spawned(_COORDINATOR_TASK_KEY, activation_id):
@@ -386,54 +383,54 @@ def backfill_group_action_log_for_all_projects(
         )
         return
 
-    if cursor_override is not None and _get_coordinator_cursor() == 0:
-        _set_coordinator_cursor(cursor_override)
-
-    last_project_id = _get_coordinator_cursor()
-
-    project_ids = list(
-        Project.objects.filter(
-            status=ObjectStatus.ACTIVE,
-            id__gt=last_project_id,
+    project_options = list(
+        ProjectOption.objects.filter(
+            key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
+            value=False,
+            project__status=ObjectStatus.ACTIVE,
+            id__gt=last_project_option_id,
         )
         .order_by("id")
-        .values_list("id", flat=True)[:batch_size]
+        .values_list("id", "project_id")[:batch_size]
     )
 
-    if not project_ids:
+    if not project_options:
         logger.info(
             "backfill_group_action_log.coordinator.completed",
-            extra={"last_project_id": last_project_id},
+            extra={"last_project_option_id": last_project_option_id},
         )
-        _clear_coordinator_cursor()
         return
 
-    for project_id in project_ids:
+    for _, project_id in project_options:
         backfill_group_action_log_for_project.apply_async(
-            kwargs={"project_id": project_id, "reset": project_reset},
+            kwargs={
+                "project_id": project_id,
+                "reset": project_reset,
+            },
             headers={"sentry-propagate-traces": False},
         )
 
-    _set_coordinator_cursor(project_ids[-1])
-
     metrics.incr(
         "issues.backfill_group_action_log.coordinator.projects_dispatched",
-        amount=len(project_ids),
+        amount=len(project_options),
     )
 
     logger.info(
         "backfill_group_action_log.coordinator.batch_dispatched",
         extra={
-            "batch_size": len(project_ids),
-            "first_project_id": project_ids[0],
-            "last_project_id": project_ids[-1],
+            "batch_size": len(project_options),
+            "first_project_option_id": project_options[0][0],
+            "last_project_option_id": project_options[-1][0],
             "project_reset": project_reset,
         },
     )
 
-    if len(project_ids) == batch_size:
+    if len(project_options) == batch_size:
         backfill_group_action_log_for_all_projects.apply_async(
-            kwargs={"project_reset": project_reset},
+            kwargs={
+                "project_reset": project_reset,
+                "last_project_option_id": project_options[-1][0],
+            },
             countdown=inter_batch_delay_s,
             headers={"sentry-propagate-traces": False},
         )
@@ -442,6 +439,5 @@ def backfill_group_action_log_for_all_projects(
     else:
         logger.info(
             "backfill_group_action_log.coordinator.completed",
-            extra={"last_project_id": project_ids[-1]},
+            extra={"last_project_option_id": project_options[-1][0]},
         )
-        _clear_coordinator_cursor()

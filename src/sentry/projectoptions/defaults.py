@@ -27,7 +27,7 @@ register(key="sentry:secondary_grouping_config", default=None)
 # it can be flipped on in the backfill script, unlike inclusion in a getsentry feature handler.)
 register(key="sentry:similarity_backfill_completed", default=None)
 
-register(key="sentry:gal_backfill_completed", default=None)
+register(key="sentry:group_action_log_backfill_completed", default=None)
 
 
 # The JavaScript loader version that is the project default.  This option
