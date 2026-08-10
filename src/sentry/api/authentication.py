@@ -398,7 +398,12 @@ def get_payload_from_client_secret_jwt(
         raise AuthenticationFailed("Invalid Authorization header, should be Bearer <token>")
 
     try:
-        payload = jwt.decode(encoded_jwt, client_secret, algorithms=["HS256"])
+        payload = jwt.decode(
+            encoded_jwt,
+            client_secret,
+            algorithms=["HS256"],
+            options={"require": ["exp"], "verify_exp": True},
+        )
     except Exception as e:
         raise AuthenticationFailed("Could not validate JWT") from e
 

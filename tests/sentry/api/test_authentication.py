@@ -187,6 +187,24 @@ class TestJWTClientSecretAuthentication(TestCase):
         with pytest.raises(AuthenticationFailed, match="Could not validate JWT"):
             self.auth.authenticate(request)
 
+    def test_missing_expiration(self) -> None:
+        token = jwt.encode(
+            {
+                "iss": self.api_app.client_id,
+                "sub": self.api_app.client_id,
+                "iat": int(datetime.now(UTC).timestamp()),
+                "jti": str(uuid.uuid4()),
+            },
+            self.api_app.client_secret,
+            algorithm="HS256",
+        )
+        path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
+        request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+
+        with pytest.raises(AuthenticationFailed, match="Could not validate JWT"):
+            self.auth.authenticate(request)
+
     def test_missing_authorization_header(self) -> None:
         path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
         request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
