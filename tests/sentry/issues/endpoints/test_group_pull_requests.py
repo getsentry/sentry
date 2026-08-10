@@ -325,7 +325,9 @@ class GroupPullRequestsEndpointTest(APITestCase):
             "id": "seer",
         }
 
-    @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
+    @patch(
+        "sentry.integrations.source_code_management.pull_request_status_batch.integration_service.get_integration"
+    )
     def test_status_derivation_prefers_stored_lifecycle_fields(
         self, mock_get_integration: Mock
     ) -> None:
@@ -365,7 +367,9 @@ class GroupPullRequestsEndpointTest(APITestCase):
         ]
         mock_get_integration.assert_not_called()
 
-    @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
+    @patch(
+        "sentry.integrations.source_code_management.pull_request_status_batch.integration_service.get_integration"
+    )
     def test_incomplete_stored_status_falls_back_to_provider(
         self, mock_get_integration: Mock
     ) -> None:
@@ -403,7 +407,9 @@ class GroupPullRequestsEndpointTest(APITestCase):
             for call in mock_get_integration.call_args_list
         )
 
-    @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
+    @patch(
+        "sentry.integrations.source_code_management.pull_request_status_batch.integration_service.get_integration"
+    )
     def test_provider_status_fetch_failure_returns_unknown(
         self, mock_get_integration: Mock
     ) -> None:
@@ -420,7 +426,7 @@ class GroupPullRequestsEndpointTest(APITestCase):
         self.create_linked_pull_request(key="1", state=PullRequestLifecycleState.OPEN, draft=False)
 
         with patch(
-            "sentry.issues.endpoints.group_pull_requests.integration_service.get_integration"
+            "sentry.integrations.source_code_management.pull_request_status_batch.integration_service.get_integration"
         ) as mock_get_integration:
             assert self.get_checks_and_review() == [(None, None)]
 
@@ -432,14 +438,16 @@ class GroupPullRequestsEndpointTest(APITestCase):
         self.create_linked_pull_request(key="1", state=PullRequestLifecycleState.OPEN, draft=False)
 
         with patch(
-            "sentry.issues.endpoints.group_pull_requests.integration_service.get_integration"
+            "sentry.integrations.source_code_management.pull_request_status_batch.integration_service.get_integration"
         ) as mock_get_integration:
             assert self.get_checks_and_review(expand=False) == [(None, None)]
 
         mock_get_integration.assert_not_called()
 
     @with_feature("organizations:issue-pr-checks-status")
-    @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
+    @patch(
+        "sentry.integrations.source_code_management.pull_request_status_batch.integration_service.get_integration"
+    )
     def test_checks_and_review_for_open_pull_requests(self, mock_get_integration: Mock) -> None:
         self.create_linked_pull_request(
             key="1",
@@ -486,7 +494,9 @@ class GroupPullRequestsEndpointTest(APITestCase):
         assert mock_get_integration.call_count == 1
 
     @with_feature("organizations:issue-pr-checks-status")
-    @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
+    @patch(
+        "sentry.integrations.source_code_management.pull_request_status_batch.integration_service.get_integration"
+    )
     def test_checks_and_review_skipped_for_finished_pull_requests(
         self, mock_get_integration: Mock
     ) -> None:
@@ -507,7 +517,9 @@ class GroupPullRequestsEndpointTest(APITestCase):
         assert client.requested_keys == []
 
     @with_feature("organizations:issue-pr-checks-status")
-    @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
+    @patch(
+        "sentry.integrations.source_code_management.pull_request_status_batch.integration_service.get_integration"
+    )
     def test_checks_and_review_fetch_failure_is_not_fatal(self, mock_get_integration: Mock) -> None:
         pull_request, _ = self.create_linked_pull_request(
             key="1", state=PullRequestLifecycleState.OPEN, draft=False
@@ -526,8 +538,10 @@ class GroupPullRequestsEndpointTest(APITestCase):
         assert response.data["pullRequests"][0]["status"] == "open"
 
     @with_feature("organizations:issue-pr-checks-status")
-    @patch("sentry.issues.endpoints.group_pull_requests.logger")
-    @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
+    @patch("sentry.integrations.source_code_management.pull_request_status_batch.logger")
+    @patch(
+        "sentry.integrations.source_code_management.pull_request_status_batch.integration_service.get_integration"
+    )
     def test_checks_and_review_without_client_support(
         self, mock_get_integration: Mock, mock_logger: Mock
     ) -> None:
@@ -540,7 +554,9 @@ class GroupPullRequestsEndpointTest(APITestCase):
         mock_logger.info.assert_not_called()
 
     @with_feature("organizations:issue-pr-checks-status")
-    @patch("sentry.issues.endpoints.group_pull_requests.integration_service.get_integration")
+    @patch(
+        "sentry.integrations.source_code_management.pull_request_status_batch.integration_service.get_integration"
+    )
     def test_checks_and_review_without_integration(self, mock_get_integration: Mock) -> None:
         self.create_linked_pull_request(key="1", state=PullRequestLifecycleState.OPEN, draft=False)
         mock_get_integration.return_value = None

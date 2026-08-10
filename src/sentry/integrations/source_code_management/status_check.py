@@ -55,11 +55,22 @@ class AggregateReviewStatus(enum.StrEnum):
 
 
 @dataclass(frozen=True)
+class PullRequestFileSummary:
+    """One changed file, without its contents."""
+
+    path: str
+    additions: int
+    deletions: int
+    change_type: str
+
+
+@dataclass(frozen=True)
 class PullRequestStatusResult:
     """A pull request's checks and review state, as far as the provider reports it."""
 
     checks: AggregateChecksStatus | None = None
     review: AggregateReviewStatus | None = None
+    files: tuple[PullRequestFileSummary, ...] = ()
 
 
 @dataclass(frozen=True)

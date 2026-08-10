@@ -6,6 +6,7 @@ from typing import Any
 from sentry.integrations.source_code_management.status_check import (
     AggregateChecksStatus,
     AggregateReviewStatus,
+    PullRequestFileSummary,
     PullRequestStatusRequest,
     PullRequestStatusResult,
 )
@@ -21,6 +22,14 @@ fragment PullRequestStatusFields on PullRequest {
           state
         }
       }
+    }
+  }
+  files(first: 100) {
+    nodes {
+      path
+      additions
+      deletions
+      changeType
     }
   }
 }
@@ -88,12 +97,26 @@ def create_pull_request_status_query(
     return {"query": query, "variables": variables}
 
 
+def _extract_files(pull_request: Any) -> tuple[PullRequestFileSummary, ...]:
+    nodes = get_path(pull_request, "files", "nodes") or []
+    return tuple(
+        PullRequestFileSummary(
+            path=node["path"],
+            additions=node["additions"],
+            deletions=node["deletions"],
+            change_type=node["changeType"],
+        )
+        for node in nodes
+    )
+
+
 def _extract_pull_request_status(pull_request: Any) -> PullRequestStatusResult:
     state = get_path(pull_request, "commits", "nodes", 0, "commit", "statusCheckRollup", "state")
     decision = get_path(pull_request, "reviewDecision")
     return PullRequestStatusResult(
         checks=_CHECKS_STATUS_BY_STATE.get(state),
         review=_REVIEW_STATUS_BY_DECISION.get(decision),
+        files=_extract_files(pull_request),
     )
 
 

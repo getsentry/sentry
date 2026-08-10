@@ -13,13 +13,16 @@ from sentry.integrations.github.pull_request_status import (
 from sentry.integrations.source_code_management.status_check import (
     AggregateChecksStatus,
     AggregateReviewStatus,
+    PullRequestFileSummary,
     PullRequestStatusRequest,
     PullRequestStatusResult,
 )
 
 
 def response(
-    rollup: dict[str, Any] | None = None, review_decision: str | None = None
+    rollup: dict[str, Any] | None = None,
+    review_decision: str | None = None,
+    files: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "data": {
@@ -27,6 +30,7 @@ def response(
                 "pullRequest": {
                     "reviewDecision": review_decision,
                     "commits": {"nodes": [{"commit": {"statusCheckRollup": rollup}}]},
+                    "files": files,
                 }
             }
         }
@@ -133,6 +137,52 @@ def test_extract_reads_checks_and_review_from_one_response() -> None:
 def test_extract_without_ci_or_required_review() -> None:
     # No CI and no required review are absent states, not pending ones.
     assert extract_pull_request_status_from_response(response()) == PullRequestStatusResult()
+
+
+def test_query_reads_changed_files() -> None:
+    assert "files(first: 100)" in PULL_REQUEST_STATUS_FRAGMENT
+    assert "changeType" in PULL_REQUEST_STATUS_FRAGMENT
+
+
+def test_extract_files() -> None:
+    result = extract_pull_request_status_from_response(
+        response(
+            files={
+                "nodes": [
+                    {
+                        "path": "src/sentry/foo.py",
+                        "additions": 10,
+                        "deletions": 2,
+                        "changeType": "MODIFIED",
+                    },
+                    {
+                        "path": "src/sentry/bar.py",
+                        "additions": 3,
+                        "deletions": 0,
+                        "changeType": "ADDED",
+                    },
+                ]
+            }
+        )
+    )
+
+    assert result.files == (
+        PullRequestFileSummary(
+            path="src/sentry/foo.py", additions=10, deletions=2, change_type="MODIFIED"
+        ),
+        PullRequestFileSummary(
+            path="src/sentry/bar.py", additions=3, deletions=0, change_type="ADDED"
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    "files",
+    (None, {"nodes": None}, {"nodes": []}),
+    ids=("no_files", "no_nodes", "empty_nodes"),
+)
+def test_extract_files_without_nodes(files: dict[str, Any] | None) -> None:
+    assert extract_pull_request_status_from_response(response(files=files)).files == ()
 
 
 @pytest.mark.parametrize(
