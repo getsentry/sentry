@@ -373,7 +373,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 except SeerPermissionError:
                     raise PermissionDenied(SEER_PERMISSION_DENIED)
 
-                if not run_state.repo_pr_states:
+                if not run_state.get_created_pull_request_states():
                     return Response(
                         {"detail": "Cannot iterate on a PR before one has been created"},
                         status=status.HTTP_400_BAD_REQUEST,
@@ -421,7 +421,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                             return Response(status=status.HTTP_404_NOT_FOUND)
                         raise PermissionDenied(SEER_PERMISSION_DENIED)
 
-                    if run_state.repo_pr_states or run_state.coding_agents:
+                    if run_state.get_created_pull_request_states() or run_state.coding_agents:
                         return Response(
                             {
                                 "detail": "Cannot re-run a step after a pull request or coding agent has started"
