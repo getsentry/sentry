@@ -296,12 +296,6 @@ from sentry.integrations.api.endpoints.organization_repository_settings import (
 from sentry.investigations.endpoints.organization_investigations_details import (
     OrganizationInvestigationsDetailsEndpoint,
 )
-from sentry.investigations.endpoints.organization_investigations_duplicate import (
-    OrganizationInvestigationsDuplicateEndpoint,
-)
-from sentry.investigations.endpoints.organization_investigations_favorite import (
-    OrganizationInvestigationsFavoriteEndpoint,
-)
 from sentry.investigations.endpoints.organization_investigations_index import (
     OrganizationInvestigationsIndexEndpoint,
 )
@@ -2383,16 +2377,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/$",
         OrganizationInvestigationsDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-details",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/favorite/$",
-        OrganizationInvestigationsFavoriteEndpoint.as_view(),
-        name="sentry-api-0-organization-investigation-favorite",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/duplicate/$",
-        OrganizationInvestigationsDuplicateEndpoint.as_view(),
-        name="sentry-api-0-organization-investigation-duplicate",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/trace-explorer-ai/setup/$",
