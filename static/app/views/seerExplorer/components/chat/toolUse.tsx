@@ -22,8 +22,8 @@ import {
   callRecordDetail,
   callRecordFailure,
   callRecordLabel,
+  callRecordLink,
   callRecordStatus,
-  callRecordUrl,
   visibleCallRecords,
 } from 'sentry/views/seerExplorer/callRecords';
 import type {
@@ -356,17 +356,20 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
         // A tool result exists, so the execute returned and nothing it reported is still running.
         const callsAreSettled = finishedCalls.length > 0;
         const callRows = visibleCallRecords(finishedCalls.length ? finishedCalls : live)
-          .map(record => ({
-            record,
-            label: callRecordLabel(record),
-            url: callRecordUrl(record, organization, projects),
-          }))
+          .map(record => {
+            const link = callRecordLink(record, organization, projects);
+            return {
+              record,
+              label: callRecordLabel(record),
+              url: link?.url ?? null,
+              // The navigable kind, not `record.kind` — analytics keys `tool_kind` on which
+              // destination was opened, and the record's own kind is only ever api/lib.
+              linkKind: link?.kind ?? record.kind,
+            };
+          })
           // A record we have no label for is dropped rather than rendered as a route or an
           // internal identifier — one fewer row beats a raw string on screen.
-          .filter(
-            (row): row is {label: string; record: CallRecord; url: typeof row.url} =>
-              Boolean(row.label)
-          );
+          .filter(row => Boolean(row.label));
 
         const isCodeMode = CODE_MODE_TOOLS.has(toolCall.function);
         const toolString = isCodeMode ? '' : (toolsUsed[idx] ?? '');
@@ -387,7 +390,7 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
         // Both sources normalize to the same row shape. A classic tool contributes one row for
         // itself; a Code Mode call contributes one per api call it made.
         const rows: React.ReactNode[] = callRows.length
-          ? callRows.map(({record, label, url}) => (
+          ? callRows.map(({record, label, url, linkKind}) => (
               <CallRow
                 key={`${key}-${record.id}`}
                 row={{
@@ -397,23 +400,29 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
                   status: callRecordStatus(record, callsAreSettled),
                   detail: callRecordDetail(record),
                 }}
-                onLinkClick={trackLinkClick(record.kind)}
+                onLinkClick={trackLinkClick(linkKind)}
               />
             ))
-          : [
-              <CallRow
-                key={key}
-                row={{
-                  label: toolString,
-                  url: toolUrl,
-                  failure: failureTooltip,
-                  // Only the first classic row shows the block status; call rows carry their own.
-                  status: ++rendered === 1 ? blockStatus : undefined,
-                  detail: null,
-                }}
-                onLinkClick={handleLinkClick}
-              />,
-            ];
+          : toolString
+            ? [
+                <CallRow
+                  key={key}
+                  row={{
+                    label: toolString,
+                    url: toolUrl,
+                    failure: failureTooltip,
+                    // Only the first classic row shows the block status; call rows carry their own.
+                    status: ++rendered === 1 ? blockStatus : undefined,
+                    detail: null,
+                  }}
+                  onLinkClick={handleLinkClick}
+                />,
+              ]
+            : // A Code Mode call has no label of its own, so with no call rows there is nothing to
+              // put in a row — `hasContent` got us here for the trailing surfaces (todos, markdown,
+              // links), and rendering the empty label anyway is the lone status tick that guard
+              // exists to avoid.
+              [];
 
         // Trailing per-tool-call surfaces. These belong to the call as a whole rather than to any
         // one row, so they follow its rows rather than sitting inside one.

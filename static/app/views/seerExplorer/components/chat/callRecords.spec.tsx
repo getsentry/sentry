@@ -12,7 +12,7 @@ import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import type {Block, CallRecord} from 'sentry/views/seerExplorer/types';
 
 /**
- * Code Mode call records (openspec: codemode-call-visibility).
+ * Code Mode call records.
  *
  * `sentry_api_execute` covers every action Code Mode can take, so the row is built from the calls
  * the execute reported rather than from the tool's name.
@@ -195,6 +195,25 @@ describe('call record rendering', () => {
 
     expect(split).toEqual(together);
     expect(together).toEqual(['First call', 'Second call']);
+  });
+
+  it('renders no empty row when only trailing surfaces have content', () => {
+    // `toolString` is blank for Code Mode, so a block kept alive by todos or markdown alone
+    // used to render a labelless row — the lone status tick the hasContent guard exists to avoid.
+    const block = codeModeBlock([]);
+    block.tool_results![0]!.structuredContent = {
+      todos: [{content: 'Check the trace', status: 'pending'}],
+    };
+    // findLatestTodos reads the block list, so the checklist only renders when the block is
+    // reachable from it.
+    render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+    expect(screen.getByText('Check the trace')).toBeInTheDocument();
+    // The symptom is a row that exists but says nothing: an empty label beside a status tick.
+    // The tick is the only visible part, so assert it is absent — an empty label cannot be
+    // queried by text.
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    expect(screen.queryAllByRole('img', {hidden: true})).toHaveLength(0);
   });
 
   it('renders no row at all for a Code Mode call that reported nothing', () => {

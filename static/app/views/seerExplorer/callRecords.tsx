@@ -51,11 +51,11 @@ function identifies(value: string | undefined): value is string {
  * classic tool path, and duplicating that knowledge server-side would mean maintaining Sentry's
  * routing against an OpenAPI spec that says nothing about it.
  */
-export function callRecordUrl(
+export function callRecordLink(
   record: CallRecord,
   organization: Organization,
   projects?: Array<{id: string; slug: string}>
-): LocationDescriptor | null {
+): {kind: string; url: LocationDescriptor} | null {
   if (!record.path_params || !addressesItsOwnResource(record)) {
     return null;
   }
@@ -71,11 +71,25 @@ export function callRecordUrl(
     if (params.every(name => pathParams[name])) {
       const url = buildToolLinkUrl({kind, params: pathParams}, organization, projects);
       if (url) {
-        return scopeToOrganization(url, organization);
+        return {kind, url: scopeToOrganization(url, organization)};
       }
     }
   }
   return null;
+}
+
+/**
+ * The destination alone, for callers that do not report the click.
+ *
+ * The kind matters to analytics: `tool_kind` is what distinguishes an issue navigation from a
+ * trace one, and a row that reported its record kind instead would only ever say `api` or `lib`.
+ */
+export function callRecordUrl(
+  record: CallRecord,
+  organization: Organization,
+  projects?: Array<{id: string; slug: string}>
+): LocationDescriptor | null {
+  return callRecordLink(record, organization, projects)?.url ?? null;
 }
 
 /**

@@ -80,7 +80,7 @@ export interface ToolLink {
 export type AgentWriteApproval = EmbedOutput<'agentWriteApproval'>;
 
 /**
- * One Sentry API or lib call a Code Mode execute made (openspec: codemode-call-visibility).
+ * One Sentry API or lib call a Code Mode execute made.
  *
  * `sentry_api_execute` is a single tool name covering every action Code Mode can take, so keying
  * rendering on the tool name (as classic tools do) says nothing useful. Seer instead reports the
