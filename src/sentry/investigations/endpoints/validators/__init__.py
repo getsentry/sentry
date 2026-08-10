@@ -4,7 +4,6 @@ __all__ = (
     "BlockExecutionStartValidator",
     "BlockOrderValidator",
     "BlockUpdateValidator",
-    "CommentValidator",
     "FavoriteUpdateValidator",
     "InvestigationCreateValidator",
     "InvestigationDeleteValidator",
@@ -27,7 +26,6 @@ from .block import (
     VisualizationSuggestionValidator,
     validate_display,
 )
-from .collaboration import CommentValidator
 from .investigation import (
     FavoriteUpdateValidator,
     InvestigationCreateValidator,
