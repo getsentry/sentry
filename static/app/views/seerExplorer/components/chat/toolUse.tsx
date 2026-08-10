@@ -10,12 +10,18 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
+import {AgentWriteApprovalProvider} from 'sentry/components/seer/markdown/embeds/components/agentWriteApproval';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import type {Block, TodoItem, ToolLink} from 'sentry/views/seerExplorer/types';
+import type {
+  Block,
+  TodoItem,
+  ToolLink,
+  ToolResult,
+} from 'sentry/views/seerExplorer/types';
 import {
   buildToolLinkUrl,
   getToolsStringFromBlock,
@@ -48,6 +54,9 @@ export function ToolUseBlock({
   showThinking,
   blocks,
   getPageReferrer,
+  pendingInput,
+  readOnly = false,
+  respondToUserInput,
 }: ToolUseBlockProps) {
   if (block.loading && !block.message.tool_calls) {
     return <MessagePlaceholder />;
@@ -68,9 +77,19 @@ export function ToolUseBlock({
             </Disclosure.Content>
           </Disclosure>
         )}
-        {block.message.tool_calls ? (
-          <ToolCallList block={block} blocks={blocks} getPageReferrer={getPageReferrer} />
-        ) : null}
+        <AgentWriteApprovalProvider
+          pendingInput={pendingInput ?? null}
+          readOnly={readOnly}
+          respondToUserInput={respondToUserInput}
+        >
+          {block.message.tool_calls ? (
+            <ToolCallList
+              block={block}
+              blocks={blocks}
+              getPageReferrer={getPageReferrer}
+            />
+          ) : null}
+        </AgentWriteApprovalProvider>
       </Stack>
     </MessageRow>
   );
@@ -135,12 +154,27 @@ function useToolLinks(block: Block) {
     return map;
   }, [block.tool_results]);
 
+  const structuredContentMarkdownByCallId = useMemo(() => {
+    const map = new Map<string, ToolResult>();
+    (block.tool_results || []).forEach(result => {
+      if (
+        result?.tool_call_id &&
+        result.structuredContent &&
+        result.content.trimStart().startsWith('{%')
+      ) {
+        map.set(result.tool_call_id, result);
+      }
+    });
+    return map;
+  }, [block.tool_results]);
+
   return {
     sortedToolLinks,
     toolCallToLinkIndexMap,
     toolLinkByCallId,
     rawToolLinkByCallId,
     busLinksByCallId,
+    structuredContentMarkdownByCallId,
     organization,
     projects,
   };
@@ -159,6 +193,7 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
     toolLinkByCallId,
     rawToolLinkByCallId,
     busLinksByCallId,
+    structuredContentMarkdownByCallId,
     organization,
     projects,
   } = useToolLinks(block);
@@ -244,6 +279,9 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
               url: NonNullable<typeof item.url>;
             } => !!item.url && !!item.label
           );
+        const structuredContentMarkdown = toolCall.id
+          ? structuredContentMarkdownByCallId.get(toolCall.id)
+          : undefined;
 
         return (
           <ToolCallRow
@@ -255,6 +293,7 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
             onLinkClick={handleLinkClick}
             todos={todos}
             navItems={navItems}
+            structuredContentMarkdown={structuredContentMarkdown}
             onNavLinkClick={trackLinkClick}
           />
         );
@@ -278,11 +317,13 @@ function ToolCallRow({
   onLinkClick,
   todos,
   navItems,
+  structuredContentMarkdown,
   onNavLinkClick,
 }: {
   blockStatus: ToolCallStatus | undefined;
   failureTooltip: string | null;
   navItems: NavItem[];
+  structuredContentMarkdown: ToolResult | undefined;
   todos: TodoItem[] | null;
   toolString: string;
   toolUrl: ReturnType<typeof buildToolLinkUrl>;
@@ -328,6 +369,12 @@ function ToolCallRow({
         <NavLinks navItems={navItems} onNavLinkClick={onNavLinkClick} />
       )}
       {todos && <TodoList todos={todos} />}
+      {structuredContentMarkdown && (
+        <SeerMarkdown
+          raw={structuredContentMarkdown.content}
+          structuredContent={structuredContentMarkdown.structuredContent}
+        />
+      )}
     </Stack>
   );
 }

@@ -266,7 +266,7 @@ class IncidentsList extends DeprecatedAsyncComponent<
       <SentryDocumentTitle title={t('Alerts')} orgSlug={organization.slug}>
         <Stack flex={1}>
           <PageFiltersContainer>
-            <AlertHeader activeTab="stream" />
+            <AlertHeader />
             <Layout.Body>
               <Layout.Main width="full">
                 {!this.tryRenderOnboarding() && (
