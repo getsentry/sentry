@@ -11,7 +11,8 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Placeholder} from 'sentry/components/placeholder';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconSeer} from 'sentry/icons';
+import {IconBot, IconSeer} from 'sentry/icons';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import {
   GroupActivityType,
@@ -24,6 +25,7 @@ import type {
   LinkedPullRequestsResponse,
   PullRequestAuthor,
   PullRequestAttribution,
+  PullRequestAttributionAgent,
 } from 'sentry/types/integrations';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -105,6 +107,7 @@ function LinkedPullRequestRow({
         onClick={() =>
           trackAnalytics('issue_details.external_issue_pull_request_clicked', {
             organization,
+            attribution_agent: pullRequest.attribution?.agent,
             attribution_type: pullRequest.attribution?.type,
             checks_status: pullRequest.checksStatus,
             review_status: pullRequest.reviewStatus,
@@ -192,8 +195,53 @@ function PullRequestAttributionAvatar({
   attribution: PullRequestAttribution;
 }) {
   switch (attribution.type) {
-    case 'seer':
-      return <SeerAttributionAvatar />;
+    case 'seer': {
+      if (!attribution.agent) {
+        return <SeerAttributionAvatar />;
+      }
+
+      const label = getCodingAgentAttributionLabel(attribution.agent);
+      const pluginId =
+        attribution.agent === 'claude_code' || attribution.agent === 'cursor'
+          ? attribution.agent
+          : null;
+      return (
+        <Tooltip title={label} skipWrapper>
+          <Flex
+            as="span"
+            align="center"
+            aria-label={label}
+            border="primary"
+            display="inline-flex"
+            height="18px"
+            justify="center"
+            radius="full"
+            role="img"
+            title={label}
+            width="18px"
+          >
+            {pluginId ? (
+              <PluginIcon pluginId={pluginId} size={16} />
+            ) : (
+              <IconBot aria-hidden size="xs" />
+            )}
+          </Flex>
+        </Tooltip>
+      );
+    }
+  }
+}
+
+function getCodingAgentAttributionLabel(agent: PullRequestAttributionAgent) {
+  switch (agent) {
+    case 'cursor':
+      return t('Pull request created by Cursor Cloud Agent via Seer');
+    case 'github_copilot':
+      return t('Pull request created by GitHub Copilot via Seer');
+    case 'claude_code':
+      return t('Pull request created by Claude Code via Seer');
+    case 'unknown':
+      return t('Pull request created by a coding agent via Seer');
   }
 }
 

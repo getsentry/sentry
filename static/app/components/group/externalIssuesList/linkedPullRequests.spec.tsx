@@ -100,6 +100,33 @@ describe('LinkedPullRequests', () => {
     );
   });
 
+  it('renders a delegated agent attribution', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {
+        pullRequests: [
+          {
+            ...PullRequestFixture({id: '123', repository}),
+            attribution: {type: 'seer', id: 'seer', agent: 'claude_code'},
+            dateLinked: '2026-06-08T23:11:32.000000Z',
+            status: 'merged',
+          },
+        ],
+      },
+    });
+
+    render(<LinkedPullRequests group={group} />, {organization});
+
+    expect(
+      await screen.findByRole('img', {
+        name: 'Pull request created by Claude Code via Seer',
+      })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('img', {name: 'Pull request created by Seer'})
+    ).not.toBeInTheDocument();
+  });
+
   it('renders checks and review details when available', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
