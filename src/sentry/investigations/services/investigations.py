@@ -6,7 +6,7 @@ from copy import deepcopy
 from typing import Any
 
 from django.db import IntegrityError, router, transaction
-from django.db.models import Max
+from django.db.models import F, Max
 from django.utils import timezone
 
 from sentry.db.models.fields.bounded import I64_MAX
@@ -33,6 +33,8 @@ from sentry.investigations.services.parameters import (
 from sentry.investigations.templates import InvestigationTemplateSpec, get_investigation_template
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+
+UPDATABLE_INVESTIGATION_FIELDS = frozenset({"title", "status", "filters"})
 
 
 class InvestigationServiceError(Exception):
@@ -141,7 +143,10 @@ def duplicate_investigation(*, investigation: Investigation, user_id: int) -> In
     """Copy notebook structure without executions, comments, or collaboration state."""
 
     with transaction.atomic(using=router.db_for_write(Investigation)):
-        source = Investigation.objects.select_for_update().get(id=investigation.id)
+        try:
+            source = Investigation.objects.select_for_update().get(id=investigation.id)
+        except Investigation.DoesNotExist:
+            raise InvestigationSourceNotFound
         duplicate = Investigation.objects.create(
             organization=source.organization,
             created_by_id=user_id,
@@ -331,7 +336,8 @@ def _create_template_investigation(
         # uniqueness constraint remains the final guard for other writers.
         Organization.objects.select_for_update().get(id=organization.id)
         active = (
-            Investigation.objects.filter(
+            Investigation.objects.select_for_update()
+            .filter(
                 organization=organization,
                 source_type=template.source_type,
                 source_key=source_key,
@@ -421,7 +427,10 @@ def _create_template_investigation(
 
 
 def lock_investigation(investigation: Investigation, expected_version: int) -> Investigation:
-    locked = Investigation.objects.select_for_update().get(id=investigation.id)
+    try:
+        locked = Investigation.objects.select_for_update().get(id=investigation.id)
+    except Investigation.DoesNotExist:
+        raise InvestigationSourceNotFound
     if locked.version != expected_version:
         raise InvestigationConflictError("Investigation has changed.")
     return locked
@@ -450,6 +459,11 @@ def update_investigation(
             raise InvestigationConflictError(
                 "Archived source investigations cannot be reactivated; create a new revision."
             )
+        unsupported = sorted(set(fields) - UPDATABLE_INVESTIGATION_FIELDS)
+        if unsupported:
+            raise InvestigationValidationError(
+                {"fields": f"Cannot be updated: {', '.join(unsupported)}."}
+            )
         for field, value in fields.items():
             setattr(locked, field, value)
         if project_ids is not None:
@@ -469,7 +483,9 @@ def archive_investigation(*, investigation: Investigation, expected_version: int
                 organization=locked.organization,
                 source_type=locked.source_type,
                 source_key=locked.source_key,
-            ).exclude(id=locked.id).update(status=InvestigationStatus.ARCHIVED)
+            ).exclude(id=locked.id).update(
+                status=InvestigationStatus.ARCHIVED, version=F("version") + 1
+            )
     return locked
 
 
@@ -509,7 +525,10 @@ def update_block(
 ) -> InvestigationBlock:
     with transaction.atomic(using=router.db_for_write(InvestigationBlock)):
         investigation = lock_investigation(block.investigation, expected_investigation_version)
-        locked = InvestigationBlock.objects.select_for_update().get(id=block.id)
+        try:
+            locked = InvestigationBlock.objects.select_for_update().get(id=block.id)
+        except InvestigationBlock.DoesNotExist:
+            raise InvestigationSourceNotFound
         if investigation.status != InvestigationStatus.ACTIVE:
             raise InvestigationValidationError({"detail": "Archived investigations are read-only."})
         if locked.version != expected_block_version:
@@ -561,7 +580,10 @@ def delete_block(
 ) -> None:
     with transaction.atomic(using=router.db_for_write(InvestigationBlock)):
         investigation = lock_investigation(block.investigation, expected_investigation_version)
-        locked = InvestigationBlock.objects.select_for_update().get(id=block.id)
+        try:
+            locked = InvestigationBlock.objects.select_for_update().get(id=block.id)
+        except InvestigationBlock.DoesNotExist:
+            raise InvestigationSourceNotFound
         if investigation.status != InvestigationStatus.ACTIVE:
             raise InvestigationValidationError({"detail": "Archived investigations are read-only."})
         if locked.version != expected_block_version:

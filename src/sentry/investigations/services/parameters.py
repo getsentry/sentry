@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from datetime import timedelta
 from typing import Any
 
@@ -32,6 +33,8 @@ def validate_parameter_value(
     if parameter_type == InvestigationParameterType.NUMBER:
         if isinstance(value, bool) or not isinstance(value, int | float):
             raise ParameterValidationError("Must be a number.")
+        if isinstance(value, float) and not math.isfinite(value):
+            raise ParameterValidationError("Must be a finite number.")
         if "min" in constraints and value < constraints["min"]:
             raise ParameterValidationError(f"Must be at least {constraints['min']}.")
         if "max" in constraints and value > constraints["max"]:
