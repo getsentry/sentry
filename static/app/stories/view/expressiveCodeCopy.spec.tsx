@@ -1,7 +1,8 @@
 import {fireEvent, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
-import {handleExpressiveCodeCopyClick} from 'sentry/utils/expressiveCodeCopy';
+// eslint-disable-next-line boundaries/dependencies -- unit test for a Stories-only helper
+import {handleExpressiveCodeCopyClick} from 'sentry/stories/view/expressiveCodeCopy';
 
 function StoryCodeBlock() {
   return (
@@ -31,5 +32,18 @@ describe('handleExpressiveCodeCopyClick', () => {
     await waitFor(() =>
       expect(addSuccessMessage).toHaveBeenCalledWith('Copied to clipboard')
     );
+  });
+
+  it('does nothing when the Clipboard API is unavailable', () => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: undefined,
+    });
+
+    render(<StoryCodeBlock />);
+
+    expect(() =>
+      fireEvent.click(screen.getByRole('button', {name: 'Copy'}))
+    ).not.toThrow();
   });
 });

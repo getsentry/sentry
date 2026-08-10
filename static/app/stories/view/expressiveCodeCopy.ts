@@ -18,7 +18,7 @@ export function handleExpressiveCodeCopyClick(event: React.MouseEvent<HTMLElemen
   }
 
   const code = copyButton.dataset.code?.replaceAll('\u007F', '\n');
-  if (code !== undefined) {
-    copyToClipboard(code);
+  if (code !== undefined && navigator.clipboard) {
+    copyToClipboard(code).catch(() => {});
   }
 }
