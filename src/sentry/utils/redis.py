@@ -19,6 +19,7 @@ from sentry.db.postgres.transactions import in_test_assert_no_transaction
 from sentry.exceptions import InvalidConfiguration
 from sentry.options import OptionsManager
 from sentry.utils import warnings
+from sentry.utils.env import in_test_environment
 from sentry.utils.versioning import Version, check_versions
 from sentry.utils.warnings import DeprecatedSettingWarning
 
@@ -37,23 +38,34 @@ _pool_cache: dict[str, ConnectionPool] = {}
 _pool_lock = Lock()
 
 
-class TransactionCheckingFailoverRedis(FailoverRedis):
-    def execute_command(self, *args: Any, **kwargs: Any) -> Any:
+def add_transaction_checks(client: Any) -> Any:
+    if not in_test_environment():
+        return client
+
+    execute_command = client.execute_command
+
+    def execute_command_outside_transaction(*args: Any, **kwargs: Any) -> Any:
         in_test_assert_no_transaction("Redis commands must run outside database transactions")
-        return super().execute_command(*args, **kwargs)
+        return execute_command(*args, **kwargs)
 
-    def pipeline(self, *args: Any, **kwargs: Any) -> Any:
-        pipeline = super().pipeline(*args, **kwargs)
-        execute = pipeline.execute
+    pipeline_factory = client.pipeline
 
-        def execute_outside_transaction(*args: Any, **kwargs: Any) -> Any:
+    def pipeline(*args: Any, **kwargs: Any) -> Any:
+        redis_pipeline = pipeline_factory(*args, **kwargs)
+        execute_pipeline = redis_pipeline.execute
+
+        def execute_pipeline_outside_transaction(*args: Any, **kwargs: Any) -> Any:
             in_test_assert_no_transaction(
                 "Redis pipeline commands must run outside database transactions"
             )
-            return execute(*args, **kwargs)
+            return execute_pipeline(*args, **kwargs)
 
-        pipeline.execute = execute_outside_transaction
-        return pipeline
+        redis_pipeline.execute = execute_pipeline_outside_transaction
+        return redis_pipeline
+
+    client.execute_command = execute_command_outside_transaction
+    client.pipeline = pipeline
+    return client
 
 
 def _shared_pool(**opts: Any) -> ConnectionPool:
@@ -193,14 +205,14 @@ class RedisClusterManager:
             RedisCluster[bytes] | StrictRedis[bytes] | RedisCluster[str] | StrictRedis[str]
         ):
             if is_redis_cluster:
-                return RetryingRedisCluster(
+                client = RetryingRedisCluster(
                     # Intentionally copy hosts here because redis-cluster-py
                     # mutates the inner dicts and this closure can be run
                     # concurrently, as SimpleLazyObject is not threadsafe. This
                     # is likely triggered by RetryingRedisCluster running
                     # reset() after startup
                     #
-                    # https://github.com/Grokzen/redis-py-cluster/blob/73f27edf7ceb4a408b3008ef7d82dac570ab9c6a/rediscluster/nodemanager.py#L385
+                    # https://github.com/Grokzen/redis-py-cluster/issues/287
                     startup_nodes=deepcopy(hosts_list),
                     decode_responses=decode_responses,
                     skip_full_coverage_check=True,
@@ -213,7 +225,9 @@ class RedisClusterManager:
                 assert len(hosts_list) > 0, "Hosts should have at least 1 entry"
                 host = dict(hosts_list[0])
                 host["decode_responses"] = decode_responses
-                return TransactionCheckingFailoverRedis(**host, **client_args)
+                client = FailoverRedis(**host, **client_args)
+
+            return add_transaction_checks(client)
 
         # losing some type safety: SimpleLazyObject acts like the underlying type
         return SimpleLazyObject(cluster_factory)
