@@ -65,6 +65,8 @@ describe('NoteInputWithStorage', () => {
 
     const editor = screen.getByRole('combobox', {name: 'Add a comment'});
     expect(editor).toHaveTextContent('saved item');
+    // user-event does not yet recognize contenteditable="plaintext-only".
+    editor.setAttribute('contenteditable', 'true');
     await userEvent.click(editor);
     await userEvent.keyboard('{End} updated');
 

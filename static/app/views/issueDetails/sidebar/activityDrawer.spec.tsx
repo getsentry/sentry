@@ -70,6 +70,8 @@ describe('ActivityDrawer', () => {
     renderDrawer(['issue-activity-mention-input']);
 
     const editor = await screen.findByRole('combobox', {name: 'Add a comment'});
+    // user-event does not yet recognize contenteditable="plaintext-only".
+    editor.setAttribute('contenteditable', 'true');
     await userEvent.type(editor, comment);
     await userEvent.click(screen.getByRole('button', {name: 'Comment'}));
 

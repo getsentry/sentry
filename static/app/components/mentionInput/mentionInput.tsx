@@ -360,7 +360,12 @@ export function MentionInput<TSuggestion>({
       {isOpen ? (
         <PositionWrapper {...overlayProps} zIndex={theme.zIndex.dropdown}>
           <Overlay>
-            <Container minWidth="220px" maxWidth="360px" maxHeight="200px">
+            <Container
+              minWidth="220px"
+              maxWidth="360px"
+              maxHeight="200px"
+              overflowY="auto"
+            >
               {suggestionStatus === 'ready' ? (
                 <ListBox
                   id={listBoxId}
