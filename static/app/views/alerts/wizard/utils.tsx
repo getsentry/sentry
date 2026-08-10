@@ -108,7 +108,7 @@ export function hasTraceMetricsAlerts(organization: Organization): boolean {
   return canUseMetricsAlertsUI(organization);
 }
 
-export function getTraceItemTypeForDatasetAndEventType(
+function getTraceItemTypeForDatasetAndEventType(
   dataset: Dataset,
   eventTypes?: EventTypes[]
 ) {

@@ -14,7 +14,7 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectAlertsOutlet} from 'sentry/views/settings/projectAlerts';
@@ -30,7 +30,7 @@ export default function ProjectAlertSettings() {
   const {canEditRule, project} = useProjectAlertsOutlet();
 
   const alertRulesTo = {
-    pathname: makeAlertsPathname({path: '/rules/', organization}),
+    pathname: makeMonitorBasePathname(organization.slug),
     query: {project: project?.id},
   };
 

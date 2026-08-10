@@ -1092,6 +1092,13 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "seer.post-process-issue-summary.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "seer.similarity-killswitch.enabled",
     default=False,
     type=Bool,
@@ -1491,13 +1498,6 @@ register(
 # Whether Relay requests sent from internal ip addresses should be allowed even if the
 # credentials can not be verified.
 register("relay.allow_internal_ip_auth", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Tell Relay to stop extracting metrics from transaction payloads (see killswitches)
-# Example value: [{"project_id": 42}, {"project_id": 123}]
-register("relay.drop-transaction-metrics", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Tell Relay to stop extracting metrics from transaction payloads for all projects.
-register("relay.drop-transaction-metrics2", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Relay should emit a usage metric to track total spans.
 register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -2719,11 +2719,6 @@ register(
     default=50,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "on_demand.max_widget_cardinality.killswitch",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Overrides modified date and always updates the row. Can be removed if not needed later.
 register(
     "on_demand.update_on_demand_modified",
@@ -2896,19 +2891,6 @@ register(
     default=100,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Use database backed stateful extraction state
-register(
-    "on_demand_metrics.widgets.use_stateful_extraction",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Use to rollout using a cache for should_use_on_demand function, which resolves queries
-register(
-    "on_demand_metrics.cache_should_use_on_demand",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
-)
-
 # Relocation: whether or not the self-serve API for the feature is enabled. When set on a region
 # silo, this flag controls whether or not that region's API will serve relocation requests to
 # non-superuser clients. When set on the control silo, it can be used to regulate whether or not
@@ -3399,6 +3381,18 @@ register(
     "workflow_engine.group.type_id.disable_issue_stream_detector",
     type=Sequence,
     default=[8001],  # MetricIssue.type_id
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "workflow_engine.all_projects_detectors_enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "workflow_engine.all_projects_auto_creation_enabled",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -4069,7 +4063,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Issues derived data — process_project_derived_data task
+# Issues derived data — generate_project_derived_data task
 # Number of groups per batch task when fanning out project-wide processing.
 register(
     "issues.derived.project-batch-size",
@@ -4084,18 +4078,26 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Number of projects to schedule for reprocessing per heal_stale_derived_data invocation.
-register(
-    "issues.derived.heal-project-limit",
-    default=3,
-    type=Int,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Kill switch for heal_stale_derived_data task.
 register(
     "issues.derived.heal-enabled",
     default=True,
     type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Number of groups per batch task when fanning out heal_stale_derived_data.
+register(
+    "issues.derived.heal-batch-size",
+    default=500,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Maximum number of batch tasks a single heal_stale_derived_data invocation
+# may schedule. Overflow waits for the next invocation.
+register(
+    "issues.derived.heal-max-tasks",
+    default=100,
+    type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

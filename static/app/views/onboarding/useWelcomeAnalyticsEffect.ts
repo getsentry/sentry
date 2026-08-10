@@ -29,8 +29,8 @@ export function useWelcomeAnalyticsEffect() {
   }, [organization, hasScmOnboarding]);
 
   useEffect(() => {
+    // At this point the selectedSDK shall be undefined but just in case, cleaning this up here too
     if (onboardingContext.selectedPlatform) {
-      // At this point the selectedSDK shall be undefined but just in case, cleaning this up here too
       onboardingContext.resetOnboarding();
     }
   }, [onboardingContext]);

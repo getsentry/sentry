@@ -53,6 +53,7 @@ from sentry.identity.services.identity import identity_service
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import MONITORING_PROVIDERS, IntegrationProviderSlug
+from sentry.models.group import Group
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.models.repository import Repository
@@ -115,7 +116,11 @@ from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profi
 from sentry.seer.autofix.utils import read_preference_from_sentry_db
 from sentry.seer.constants import SeerSCMProvider
 from sentry.seer.endpoints.registry import SeerRpcMethod, seer_rpc
-from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
+from sentry.seer.entrypoints.operator import (
+    SeerAutofixOperator,
+    process_autofix_updates,
+    record_seer_activity,
+)
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
 from sentry.seer.fetch_issues.utils import NoProjectsForRepoError, get_repo_and_projects
 from sentry.seer.issue_detection import create_issue_occurrence
@@ -698,11 +703,30 @@ def send_seer_webhook(
         return SendSeerWebhookErrorResponse(error="Organization not found or not active")
 
     if SeerAutofixOperator.has_access(organization=organization):
+        activity_already_recorded = False
+        group_id = payload.get("group_id")
+        if group_id:
+            try:
+                group = Group.objects.get(
+                    id=group_id,
+                    project__organization_id=organization_id,
+                )
+            except Group.DoesNotExist:
+                pass
+            else:
+                record_seer_activity(
+                    group=group,
+                    event_type=sentry_app_event_type,
+                    event_payload=payload,
+                )
+                activity_already_recorded = True
+
         process_autofix_updates.apply_async(
             kwargs={
                 "event_type": sentry_app_event_type,
                 "event_payload": payload,
                 "organization_id": organization_id,
+                "activity_already_recorded": activity_already_recorded,
             }
         )
 
