@@ -9,7 +9,10 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getGenAiOperationTypeFromSpanName} from 'sentry/views/insights/pages/agents/utils/query';
+import {
+  GenAiOperationType,
+  getGenAiOperationTypeFromSpanName,
+} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {AiSpanDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/aiSpanDetails';
@@ -73,7 +76,10 @@ function isGenAiSpan(span: ConversationApiSpan): boolean {
   if (span['gen_ai.operation.type']) {
     return true;
   }
-  return span['span.name']?.startsWith('gen_ai.') ?? false;
+  return (
+    (span['span.op']?.startsWith('gen_ai.') ?? false) ||
+    (span['span.name']?.startsWith('gen_ai.') ?? false)
+  );
 }
 
 interface UseConversationResult {
@@ -92,9 +98,20 @@ function createNodeFromApiSpan(
   apiSpan: ConversationApiSpan,
   nodeMap: Map<string, AITraceSpanNode>
 ): AITraceSpanNode {
-  const operationType =
-    apiSpan['gen_ai.operation.type'] ||
-    getGenAiOperationTypeFromSpanName(apiSpan['span.name']);
+  // Embeddings calls don't get their own gen_ai.operation.type — that attribute
+  // is a closed, ingestion-computed enum (agent/ai_client/tool/handoff/other)
+  // with no "embeddings" bucket, so an embeddings call reports "ai_client" like
+  // any other model call. `span.op` is the reliable signal that distinguishes
+  // them, so relabel here to a synthetic "embeddings" op type the transcript and
+  // timeline can key off. (gen_ai.embeddings.input is also embeddings-only, but
+  // it isn't returned in the bulk conversation fetch on older deploys.)
+  const isEmbeddingsSpan =
+    apiSpan['span.op'] === 'gen_ai.embeddings' ||
+    Boolean(apiSpan['gen_ai.embeddings.input']);
+  const operationType = isEmbeddingsSpan
+    ? GenAiOperationType.EMBEDDINGS
+    : apiSpan['gen_ai.operation.type'] ||
+      getGenAiOperationTypeFromSpanName(apiSpan['span.name']);
 
   const duration = apiSpan['precise.finish_ts'] - apiSpan['precise.start_ts'];
   const value: TraceTree.EAPSpan = {

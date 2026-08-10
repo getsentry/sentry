@@ -62,20 +62,21 @@ function createMockToolNode(overrides: {
   };
 }
 
-// Real embeddings spans report `gen_ai.operation.type: "ai_client"` — that
-// attribute is a closed, ingestion-computed enum with no "embeddings" bucket.
-// `operationType` defaults to that real-world value.
+// Mirrors the node `useConversation` produces for an embeddings span: the op
+// type is relabeled to the synthetic "embeddings" (keyed off span.op, since the
+// ingestion-computed gen_ai.operation.type reports "ai_client"). `input` may be
+// absent on older deploys, in which case the row falls back to the model.
 function createMockEmbeddingNode(overrides: {
   id: string;
   endTimestamp?: number;
   input?: string;
-  operationType?: string;
+  model?: string;
   startTimestamp?: number;
 }) {
   const {
     id,
     input = 'search query',
-    operationType = 'ai_client',
+    model = 'text-embedding-005',
     startTimestamp = 1000,
     endTimestamp,
   } = overrides;
@@ -88,8 +89,9 @@ function createMockEmbeddingNode(overrides: {
     endTimestamp: end,
     value: {start_timestamp: startTimestamp, end_timestamp: end},
     attributes: {
-      [SpanFields.GEN_AI_OPERATION_TYPE]: operationType,
+      [SpanFields.GEN_AI_OPERATION_TYPE]: 'embeddings',
       [SpanFields.GEN_AI_EMBEDDINGS_INPUT]: input,
+      [SpanFields.GEN_AI_RESPONSE_MODEL]: model,
     },
     errors: new Set(),
   };
@@ -514,6 +516,27 @@ describe('MessagesPanel', () => {
     await userEvent.click(preview);
     expect(details).toHaveAttribute('open');
     expect(screen.getByText('a very specific search query')).toBeInTheDocument();
+  });
+
+  it('falls back to the model name when the embedding input is unavailable', () => {
+    // The real dev-ui/older-deploy shape: an embeddings span detected by its op,
+    // with no gen_ai.embeddings.input in the bulk response. The row must still
+    // render, using the model as its preview.
+    const embeddingNode = createMockEmbeddingNode({
+      id: 'embed-1',
+      input: '',
+      model: 'text-embedding-005',
+    });
+
+    render(
+      <MessagesPanel
+        nodes={[embeddingNode] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(screen.getByText(/Embedding\.\.\..*text-embedding-005/)).toBeInTheDocument();
   });
 
   it('positions the embedding row between the user and assistant turns around it', () => {

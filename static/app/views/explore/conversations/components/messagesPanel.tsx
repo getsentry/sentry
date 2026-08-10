@@ -298,6 +298,10 @@ const EmbeddingTurn = memo(function EmbeddingTurnImpl({
 }) {
   const organization = useOrganization();
   const input = message.embeddingInput ?? '';
+  // The input is the primary content, but it isn't always available (older
+  // deploys don't return it in the bulk fetch); fall back to the model name so
+  // the row still reads as an embedding rather than a bare label.
+  const preview = input || message.embeddingModel || '';
 
   return (
     <MessageRow from="assistant" density="compact">
@@ -310,7 +314,7 @@ const EmbeddingTurn = memo(function EmbeddingTurnImpl({
             ellipsis
             monospace
           >
-            {t('Embedding...')} {isOpen ? null : input}
+            {t('Embedding...')} {isOpen ? null : preview}
           </Text>
         )}
         meta={
@@ -335,7 +339,7 @@ const EmbeddingTurn = memo(function EmbeddingTurnImpl({
         <Flex>
           <Container paddingTop="xs" paddingBottom="xs" flex="1" minWidth={0}>
             <MessageText size="sm" align="left" variant="muted" monospace>
-              <AIContentRenderer text={input} inline autoCollapseLimit={10} />
+              <AIContentRenderer text={preview} inline autoCollapseLimit={10} />
             </MessageText>
           </Container>
           <Container width={TURN_META_WIDTH} flexShrink={0} />

@@ -51,6 +51,7 @@ export interface ConversationMessage {
   duration?: number;
   embeddingHasError?: boolean;
   embeddingInput?: string;
+  embeddingModel?: string;
   modelName?: string;
   reasoning?: string;
   toolCalls?: ToolCall[];
@@ -106,15 +107,14 @@ export function partitionSpansByType(nodes: AITraceSpanNode[]): {
 
   for (const node of nodes) {
     const opType = getGenAiOpType(node);
-    // `gen_ai.operation.type` is a closed, ingestion-computed enum (agent/
-    // ai_client/tool/handoff/other) with no "embeddings" bucket — an embeddings
-    // call is classified as "ai_client" like any other model call. The
-    // embeddings-only input attribute is what actually distinguishes it, so
-    // check that first or these spans would be swallowed into generationSpans
-    // and silently dropped there (they have no chat content to render).
+    // Embeddings are checked first: `useConversation` relabels them to the
+    // synthetic "embeddings" op type (keyed off `span.op`), but a node carrying
+    // only the embeddings-only input attribute is treated as one too. Either way
+    // they must not fall through to generationSpans, where they'd be dropped for
+    // having no chat content.
     if (
-      getStringAttr(node, SpanFields.GEN_AI_EMBEDDINGS_INPUT) ||
-      getIsEmbeddingsSpan(opType)
+      getIsEmbeddingsSpan(opType) ||
+      getStringAttr(node, SpanFields.GEN_AI_EMBEDDINGS_INPUT)
     ) {
       embeddingSpans.push(node);
     } else if (getIsAiGenerationSpan(opType)) {
@@ -143,7 +143,14 @@ export function embeddingSpansToMessages(
 
   for (const span of embeddingSpans) {
     const input = getStringAttr(span, SpanFields.GEN_AI_EMBEDDINGS_INPUT);
-    if (!input) {
+    const model =
+      getStringAttr(span, SpanFields.GEN_AI_RESPONSE_MODEL) ||
+      getStringAttr(span, SpanFields.GEN_AI_REQUEST_MODEL);
+
+    // Nothing to show for this span. The input is the primary content but isn't
+    // always present (older deploys don't return it in the bulk fetch), so fall
+    // back to the model name rather than dropping the row entirely.
+    if (!input && !model) {
       continue;
     }
 
@@ -156,7 +163,8 @@ export function embeddingSpansToMessages(
       content: '',
       timestamp: getNodeTimestamp(span),
       nodeId: span.id,
-      embeddingInput: input,
+      embeddingInput: input || undefined,
+      embeddingModel: model || undefined,
       embeddingHasError: hasError(span),
       duration: end > start ? end - start : undefined,
     });

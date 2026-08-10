@@ -67,14 +67,6 @@ export function ensureAttributeObject(
 export function getGenAiOpType(node: BaseNode): string | undefined {
   const attributeObject = node.attributes;
 
-  // gen_ai.operation.type is a closed, ingestion-computed enum (agent/
-  // ai_client/tool/handoff/other) with no "embeddings" bucket — an embeddings
-  // call is classified as "ai_client" like any other model call. The
-  // embeddings-only input attribute is what actually distinguishes it.
-  if (attributeObject?.[SpanFields.GEN_AI_EMBEDDINGS_INPUT] !== undefined) {
-    return GenAiOperationType.EMBEDDINGS;
-  }
-
   return (
     (attributeObject?.[SpanFields.GEN_AI_OPERATION_TYPE] as string | undefined) ??
     getGenAiOperationTypeFromSpanName(

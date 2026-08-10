@@ -172,10 +172,11 @@ describe('useConversation', () => {
     expect(attrs?.[SpanFields.GEN_AI_OUTPUT_MESSAGES]).toBe(outputMessages);
   });
 
-  it('maps gen_ai.embeddings.input to node attributes', async () => {
-    // Real embeddings spans report gen_ai.operation.type: "ai_client" (that
-    // attribute has no "embeddings" bucket) — the embeddings input attribute
-    // is the only signal distinguishing them, so it must survive this mapping.
+  it('relabels an embeddings span (detected by span.op) to the embeddings op type', async () => {
+    // The real shape: gen_ai.operation.type is a closed enum with no
+    // "embeddings" bucket, so an embeddings call reports "ai_client". span.op is
+    // the reliable signal, and the bulk fetch may not include the input at all
+    // (older deploys) — the span must still be recognized as an embedding.
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/ai-conversations/conv-embedding/`,
       body: envelope([
@@ -186,7 +187,46 @@ describe('useConversation', () => {
           'precise.start_ts': 1000,
           project: 'test-project',
           'project.id': 1,
-          'span.name': 'gen_ai.embeddings',
+          'span.name': 'embeddings Google Embedding',
+          'span.op': 'gen_ai.embeddings',
+          'span.status': 'ok',
+          span_id: 'span-embedding',
+          trace: 'trace-embedding',
+          'gen_ai.operation.type': 'ai_client',
+          'gen_ai.response.model': 'text-embedding-005',
+        },
+      ]),
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useConversation({conversationId: 'conv-embedding'}),
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.nodes).toHaveLength(1);
+    const node = result.current.nodes[0];
+    const attrs = (node?.value as {additional_attributes?: Record<string, unknown>})
+      .additional_attributes;
+    expect(attrs?.[SpanFields.GEN_AI_OPERATION_TYPE]).toBe('embeddings');
+  });
+
+  it('maps gen_ai.embeddings.input to node attributes', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/ai-conversations/conv-embedding-input/`,
+      body: envelope([
+        {
+          'gen_ai.conversation.id': 'conv-embedding-input',
+          parent_span: 'parent-1',
+          'precise.finish_ts': 1000.5,
+          'precise.start_ts': 1000,
+          project: 'test-project',
+          'project.id': 1,
+          'span.name': 'embeddings Google Embedding',
+          'span.op': 'gen_ai.embeddings',
           'span.status': 'ok',
           span_id: 'span-embedding',
           trace: 'trace-embedding',
@@ -197,7 +237,7 @@ describe('useConversation', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () => useConversation({conversationId: 'conv-embedding'}),
+      () => useConversation({conversationId: 'conv-embedding-input'}),
       {organization}
     );
 
