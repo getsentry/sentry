@@ -16,7 +16,9 @@ import {
 import {SeerDrawerBody} from 'sentry/components/events/autofix/v3/body';
 import {SeerDrawerContent} from 'sentry/components/events/autofix/v3/content';
 import {SeerDrawerHeader} from 'sentry/components/events/autofix/v3/header';
+import {RetryStepProvider} from 'sentry/components/events/autofix/v3/retryStepContext';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
+import {WorkflowFileWarning} from 'sentry/components/events/autofix/v3/workflowFileWarning';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -69,32 +71,37 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
   });
 
   return (
-    <Stack
-      className="seer-drawer-container"
-      position="relative"
-      height="100%"
-      overflowY="hidden"
-      background="secondary"
-    >
-      <SeerDrawerHeader
-        onCopyMarkdown={handleCopyMarkdown}
-        onOpenSeerAgent={handleOpenSeerAgent}
-        onReset={handleRestart}
-        referrer={referrer}
-      />
-      <AutofixWarnings warnings={aiAutofix.warnings} groupId={group.id} />
-      <SeerDrawerBody ref={containerRef} onScroll={onScrollHandler}>
-        {aiConfig.isAutofixSetupLoading ? (
-          <Stack data-test-id="ai-setup-loading-indicator" gap="xl">
-            <Placeholder height="10rem" />
-            <Placeholder height="15rem" />
-            <Placeholder height="15rem" />
-          </Stack>
-        ) : (
-          <SeerDrawerContent group={group} autofix={aiAutofix} aiConfig={aiConfig} />
-        )}
-      </SeerDrawerBody>
-    </Stack>
+    // The workflow-file banner points the user at the code changes card's retry
+    // prompt, so both live under the same provider.
+    <RetryStepProvider>
+      <Stack
+        className="seer-drawer-container"
+        position="relative"
+        height="100%"
+        overflowY="hidden"
+        background="secondary"
+      >
+        <SeerDrawerHeader
+          onCopyMarkdown={handleCopyMarkdown}
+          onOpenSeerAgent={handleOpenSeerAgent}
+          onReset={handleRestart}
+          referrer={referrer}
+        />
+        <AutofixWarnings warnings={aiAutofix.warnings} groupId={group.id} />
+        <WorkflowFileWarning runState={aiAutofix.runState} />
+        <SeerDrawerBody ref={containerRef} onScroll={onScrollHandler}>
+          {aiConfig.isAutofixSetupLoading ? (
+            <Stack data-test-id="ai-setup-loading-indicator" gap="xl">
+              <Placeholder height="10rem" />
+              <Placeholder height="15rem" />
+              <Placeholder height="15rem" />
+            </Stack>
+          ) : (
+            <SeerDrawerContent group={group} autofix={aiAutofix} aiConfig={aiConfig} />
+          )}
+        </SeerDrawerBody>
+      </Stack>
+    </RetryStepProvider>
   );
 }
 

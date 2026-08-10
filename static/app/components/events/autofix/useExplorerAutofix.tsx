@@ -514,6 +514,21 @@ export function isCodingAgentsSection(section: AutofixSection): boolean {
   return section.step === 'coding_agents';
 }
 
+/**
+ * The repos this run actually got a pull request onto.
+ *
+ * `repo_pr_states` also holds repos whose push failed, so a plain key count
+ * treats a failed run as one that opened PRs — which would, for instance, lock
+ * a step out of being re-run.
+ */
+export function getCreatedPullRequestStates(
+  runState: ExplorerAutofixState | null | undefined
+): RepoPRState[] {
+  return Object.values(runState?.repo_pr_states ?? {}).filter(
+    state => state.pr_creation_status !== 'error'
+  );
+}
+
 export function isRunValidForPrIteration(organization: Organization): boolean {
   return organization.features.includes('autofix-pr-iteration-manual');
 }
@@ -745,12 +760,21 @@ export function useExplorerAutofix(
         setWaitingForResponse(false);
         queryClient.setQueryData(
           explorerAutofixApiOptions(orgSlug, groupId).queryKey,
-          prev => ({
-            headers: prev?.headers ?? {},
-            json: makeErrorExplorerAutofixData(
-              e?.responseJSON?.detail ?? 'An error occurred'
-            ),
-          })
+          prev => {
+            // A step that failed to start left the run untouched, so keep
+            // showing it. Only a kickoff with nothing to fall back on gets
+            // replaced by the error placeholder — otherwise a rejected retry
+            // would blank out a run the user can still read and act on.
+            if (prev?.json?.autofix) {
+              return prev;
+            }
+            return {
+              headers: prev?.headers ?? {},
+              json: makeErrorExplorerAutofixData(
+                e?.responseJSON?.detail ?? 'An error occurred'
+              ),
+            };
+          }
         );
         throw e;
       }
