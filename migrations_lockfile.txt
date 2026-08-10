@@ -19,6 +19,8 @@ hybridcloud: 0034_drop_webhookpayload_priority_index
 
 insights: 0001_squashed_0002_backfill_team_starred
 
+investigations: 0002_add_investigation_blocks
+
 monitors: 0001_squashed_0013_delete_monitor_is_muted_field
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
@@ -31,9 +33,9 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0001_squashed_0007_organizationmember_replay_access
 
-seer: 0030_seer_run_milestone
+seer: 0032_add_extras_to_seer_run_milestone
 
-sentry: 1150_pullrequest_provider_updated_at
+sentry: 1151_pullrequest_activity_log_date_updated_index
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 

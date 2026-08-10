@@ -71,12 +71,13 @@ describe('LinkedPullRequests', () => {
     expect(linkedPullRequest).toHaveAccessibleName(
       `Pull request #123 in ${REPOSITORY_NAME}, Merged, Fix widget crash on startup`
     );
-    await userEvent.hover(within(linkedPullRequest).getByText('#123'));
-    expect(await screen.findByText('Fix widget crash on startup')).toBeInTheDocument();
+    await userEvent.hover(linkedPullRequest);
+    expect(await screen.findAllByText('Fix widget crash on startup')).toHaveLength(2);
     expect(within(list).getAllByRole('listitem')).toHaveLength(2);
-    expect(within(list).getByText('#123')).toBeInTheDocument();
-    expect(within(list).getByText('#124')).toBeInTheDocument();
-    expect(within(list).getAllByText(REPOSITORY_NAME)).toHaveLength(2);
+    expect(within(list).getByText(`${REPOSITORY_NAME}#123`)).toBeInTheDocument();
+    expect(within(list).getByText(`${REPOSITORY_NAME}#124`)).toBeInTheDocument();
+    expect(within(list).getByText('Fix widget crash on startup')).toBeInTheDocument();
+    expect(within(list).getByText('Remove unused widget fallback')).toBeInTheDocument();
     expect(within(list).getByText('Merged')).toBeInTheDocument();
     expect(within(list).getByText('Closed')).toBeInTheDocument();
     expect(within(linkedPullRequest).getByText('AL')).toBeInTheDocument();
@@ -99,7 +100,7 @@ describe('LinkedPullRequests', () => {
     );
   });
 
-  it('renders checks and review badges when available', async () => {
+  it('renders checks and review details when available', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
       body: {
@@ -127,14 +128,14 @@ describe('LinkedPullRequests', () => {
     render(<LinkedPullRequests group={group} />, {organization});
 
     const list = await screen.findByRole('list', {name: 'Linked pull requests'});
-    const withBadges = within(list).getByRole('link', {name: /Pull request #123/});
-    const withoutBadges = within(list).getByRole('link', {name: /Pull request #124/});
+    const withDetails = within(list).getByRole('link', {name: /Pull request #123/});
+    const withoutDetails = within(list).getByRole('link', {name: /Pull request #124/});
 
-    expect(within(withBadges).getByText('Checks failed')).toBeInTheDocument();
-    expect(within(withBadges).getByText('Changes requested')).toBeInTheDocument();
-    expect(within(withoutBadges).queryByText('Checks failed')).not.toBeInTheDocument();
+    expect(within(withDetails).getByText('Checks failed')).toBeInTheDocument();
+    expect(within(withDetails).getByText('Changes requested')).toBeInTheDocument();
+    expect(within(withoutDetails).queryByText('Checks failed')).not.toBeInTheDocument();
     expect(
-      within(withoutBadges).queryByText('Changes requested')
+      within(withoutDetails).queryByText('Changes requested')
     ).not.toBeInTheDocument();
   });
 

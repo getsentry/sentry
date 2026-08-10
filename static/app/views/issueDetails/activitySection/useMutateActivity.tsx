@@ -8,6 +8,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {issueCommentsQueryOptions} from 'sentry/views/issueDetails/activitySection/issueCommentsQueryOptions';
 import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 
 type TPayload = {note?: NoteType; noteId?: string};
@@ -44,7 +45,6 @@ export function useMutateActivity({organization, group}: Props) {
     organizationSlug: organization.slug,
     groupId: group.id,
   });
-
   const {mutateAsync} = useMutation<TData, TError, TVariables>({
     mutationFn: ([{note, noteId}, method]) => {
       const url =
@@ -106,6 +106,13 @@ export function useMutateActivity({organization, group}: Props) {
           return prev;
         }
       );
+
+      return queryClient.invalidateQueries({
+        queryKey: issueCommentsQueryOptions({
+          organizationSlug: organization.slug,
+          groupId: group.id,
+        }).queryKey,
+      });
     },
     gcTime: 0,
   });

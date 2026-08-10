@@ -154,10 +154,10 @@ class UserResolutionTest(AuthIdentityHandlerTest):
     def test_authenticated_user_resolves_to_session_user(self) -> None:
         """Session user takes priority over IdP email resolution."""
         session_user = self.set_up_user()
-        victim = self.create_user(email=self.email)
+        other_user = self.create_user(email=self.email)
 
         assert self.handler.user == session_user
-        assert self.handler.user != victim
+        assert self.handler.user != other_user
 
     def test_unauthenticated_with_no_email_match_resolves_to_anonymous(self) -> None:
         identity: _Identity = {
@@ -994,6 +994,86 @@ class AuthHelperTest(TestCase):
             f"Authentication error: {ERR_USER_SUSPENDED}",
         )
 
+    def test_rejects_pipeline_from_different_org(self) -> None:
+        other_org = self.create_organization()
+        other_auth_provider = AuthProvider.objects.create(
+            organization_id=other_org.id, provider=self.provider
+        )
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            other_rpc_org = serialize_rpc_organization(other_org)
+
+        helper_org_a = AuthHelper(
+            request=self.request,
+            organization=other_rpc_org,
+            auth_provider=other_auth_provider,
+            flow=FLOW_LOGIN,
+        )
+        helper_org_a.initialize()
+        assert helper_org_a.is_valid()
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            rpc_org = serialize_rpc_organization(self.organization)
+
+        helper_org_b = AuthHelper(
+            request=self.request,
+            organization=rpc_org,
+            auth_provider=self.auth_provider_inst,
+            flow=FLOW_LOGIN,
+        )
+        assert not helper_org_b.is_valid()
+
+    def test_rejects_different_provider_model(self) -> None:
+        """Even within the same org, swapping the provider_model_id is rejected."""
+        other_org = self.create_organization()
+        other_auth_provider = AuthProvider.objects.create(
+            organization_id=other_org.id, provider=self.provider
+        )
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            rpc_org = serialize_rpc_organization(self.organization)
+
+        helper_a = AuthHelper(
+            request=self.request,
+            organization=rpc_org,
+            auth_provider=self.auth_provider_inst,
+            flow=FLOW_LOGIN,
+        )
+        helper_a.initialize()
+        assert helper_a.is_valid()
+
+        helper_b = AuthHelper(
+            request=self.request,
+            organization=rpc_org,
+            auth_provider=other_auth_provider,
+            flow=FLOW_LOGIN,
+        )
+        assert not helper_b.is_valid()
+
+    def test_get_for_request_binds_to_stored_org(self) -> None:
+        """get_for_request always reconstructs from stored state,
+        so the org is bound at init time."""
+        other_org = self.create_organization()
+        other_auth_provider = AuthProvider.objects.create(
+            organization_id=other_org.id, provider=self.provider
+        )
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            other_rpc_org = serialize_rpc_organization(other_org)
+
+        helper = AuthHelper(
+            request=self.request,
+            organization=other_rpc_org,
+            auth_provider=other_auth_provider,
+            flow=FLOW_LOGIN,
+        )
+        helper.initialize()
+
+        restored = AuthHelper.get_for_request(self.request)
+        assert restored is not None
+        assert restored.is_valid()
+        assert restored.organization.id == other_org.id
+
 
 @control_silo_test
 class HasVerifiedAccountTest(AuthIdentityHandlerTest):
@@ -1256,7 +1336,7 @@ class InactiveUserIdentityTest(AuthIdentityHandlerTest):
         """Authenticated request + inactive-user identity routes through
         handle_unknown_identity and shows confirmation page, not a redirect."""
         inactive_user, auth_identity = self._create_inactive_user_with_identity()
-        attacker = self.set_up_user()
+        requesting_user = self.set_up_user()
 
         result = self.handler.handle_unknown_identity(self.state)
 
@@ -1264,7 +1344,7 @@ class InactiveUserIdentityTest(AuthIdentityHandlerTest):
         template = mock_render.call_args.args[0]
         assert template == "sentry/auth-confirm-link.html"
 
-        # AuthIdentity still points to the original inactive user, not the attacker
+        # AuthIdentity still points to the original inactive user
         auth_identity.refresh_from_db()
         assert auth_identity.user_id == inactive_user.id
-        assert auth_identity.user_id != attacker.id
+        assert auth_identity.user_id != requesting_user.id

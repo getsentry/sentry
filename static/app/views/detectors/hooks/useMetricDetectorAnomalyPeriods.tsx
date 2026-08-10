@@ -160,7 +160,7 @@ export function useMetricDetectorAnomalyPeriods({
     eventTypes,
     environment,
     projectId,
-    statsPeriod: historicalPeriod as TimePeriod,
+    statsPeriod: historicalPeriod,
     options: {
       enabled,
     },

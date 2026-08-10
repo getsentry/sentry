@@ -1,6 +1,7 @@
 from typing import TypedDict
 from unittest.mock import MagicMock, patch
 
+from sentry.models.activity import Activity
 from sentry.seer.agent.client_models import (
     AgentFilePatch,
     Artifact,
@@ -28,9 +29,11 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import AutofixHandoffPoint, SeerAutomationHandoffConfiguration
+from sentry.seer.models.run import SeerRunMilestone, SeerRunMilestoneType
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.types.activity import ActivityType
 
 
 def run_state(run_id=123, blocks: list[MemoryBlock] | None = None, metadata=None):
@@ -609,6 +612,14 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         self, mock_broadcast, mock_has_access, mock_process_autofix_updates, mock_analytics
     ):
         mock_has_access.return_value = True
+
+        def assert_activity_exists(**_kwargs: object) -> None:
+            assert Activity.objects.filter(
+                group=self.group,
+                type=ActivityType.SEER_ITERATION_COMPLETED.value,
+            ).exists()
+
+        mock_process_autofix_updates.side_effect = assert_activity_exists
         state = run_state(
             blocks=[
                 root_cause_memory_block(),
@@ -641,10 +652,9 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         assert call_kwargs["payload"]["pull_requests"][0]["provider"] == "github"
         assert call_kwargs["payload"]["pull_requests"][0]["pull_request"]["pr_number"] == 7
         mock_process_autofix_updates.assert_called_once()
-        assert (
-            mock_process_autofix_updates.call_args.kwargs["kwargs"]["activity_datetime"]
-            == state.updated_at
-        )
+        task_kwargs = mock_process_autofix_updates.call_args.kwargs["kwargs"]
+        assert task_kwargs["activity_already_recorded"] is True
+        assert "activity_datetime" not in task_kwargs
         assert (
             mock_analytics.call_args.args[0].referrer
             == AutofixReferrer.GROUP_AUTOFIX_ENDPOINT.value
@@ -1243,3 +1253,60 @@ class TestMaybeReactToCompletedIteration(TestCase):
         # :tada: is still added, but the eyes-delete is skipped entirely.
         assert mock_react.call_args.kwargs["reaction"] == "hooray"
         mock_delete_eyes.assert_not_called()
+
+
+class TestAutofixOnCompletionHookMilestones(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+        self.group = self.create_group(project=self.project)
+        self.run_id = 123
+        self.seer_run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=self.run_id
+        )
+
+    def _recorded_milestones(self) -> set[str]:
+        return set(
+            SeerRunMilestone.objects.filter(seer_run=self.seer_run).values_list(
+                "milestone", flat=True
+            )
+        )
+
+    def _run_hook(self, state) -> None:
+        AutofixOnCompletionHook._send_step_webhook(
+            self.organization, self.run_id, state, self.group
+        )
+
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_reconciles_milestones_from_state(self, mock_broadcast):
+        # The hook wires state through to reconcile_milestones; firing twice on the
+        # same state is idempotent, matching webhook redelivery.
+        state = run_state(
+            blocks=[
+                root_cause_memory_block(),
+                solution_memory_block(),
+                code_changes_memory_block(),
+            ]
+        )
+        self._run_hook(state)
+        self._run_hook(state)
+        assert self._recorded_milestones() == {
+            SeerRunMilestoneType.ROOT_CAUSE,
+            SeerRunMilestoneType.SOLUTION,
+            SeerRunMilestoneType.CODE_CHANGES,
+        }
+        assert SeerRunMilestone.objects.filter(seer_run=self.seer_run).count() == 3
+
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_skips_reconcile_when_no_step_completed(self, mock_broadcast):
+        # A block with a reached artifact but no step metadata would derive
+        # ROOT_CAUSE, but the hook returns before reconcile when no step matches.
+        block = MemoryBlock(
+            id="b",
+            message=Message(role="assistant", content="c"),
+            timestamp="2026-02-10T00:00:00Z",
+            artifacts=[Artifact(key="root_cause", data={}, reason="explorer")],
+        )
+        self._run_hook(run_state(blocks=[block]))
+        assert self._recorded_milestones() == set()

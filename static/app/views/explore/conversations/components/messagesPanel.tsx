@@ -8,11 +8,12 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
+import {CollapsibleChatRow} from 'sentry/components/ai/chat/collapsibleContent';
 import {
   AssistantMessageBlock,
   UserMessageBlock,
 } from 'sentry/components/ai/chat/messageBlock';
+import {TURN_META_WIDTH, TurnMeta} from 'sentry/components/ai/chat/turnMeta';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -20,10 +21,6 @@ import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {MessageToolCalls} from 'sentry/views/explore/conversations/components/messageToolCalls';
-import {
-  TURN_META_WIDTH,
-  TurnMeta,
-} from 'sentry/views/explore/conversations/components/turnMeta';
 import {
   type ConversationMessage,
   extractMessagesFromNodes,
@@ -149,7 +146,7 @@ export function MessagesPanel({
 
 // User turns carry no selection state, so their props never change on a
 // selection change — memoized, they render once and always bail out after.
-const UserTurn = memo(function UserTurn({
+const UserTurn = memo(function UserTurnImpl({
   content,
   hasXmlTags,
 }: {
@@ -182,7 +179,7 @@ interface AssistantTurnProps {
 // Memoized so a selection change only re-renders the turns that gain or lose
 // selection. This relies on every prop being referentially stable per turn,
 // which is why the click handler is built here rather than passed in.
-const AssistantTurn = memo(function AssistantTurn({
+const AssistantTurn = memo(function AssistantTurnImpl({
   message,
   hasXmlTags,
   isSelected,
@@ -223,7 +220,6 @@ const AssistantTurn = memo(function AssistantTurn({
       {message.reasoning && (
         <MessageRow from="assistant" density="compact">
           <ReasoningSection reasoning={message.reasoning} />
-          <Container width={TURN_META_WIDTH} flexShrink={0} />
         </MessageRow>
       )}
       {message.content === '' ? (
@@ -283,17 +279,12 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
   const organization = useOrganization();
 
   return (
-    <CollapsibleContent
-      title={
-        <Text size="sm" variant="muted" monospace>
-          {t('Thinking...')}
+    <CollapsibleChatRow
+      title={isOpen => (
+        <Text size="sm" variant="muted" ellipsis monospace>
+          {t('Thinking...')} {isOpen ? null : reasoning}
         </Text>
-      }
-      preview={
-        <Text size="sm" variant="muted" monospace>
-          {reasoning}
-        </Text>
-      }
+      )}
       onToggle={open =>
         trackAnalytics('conversations.detail.expand-thinking', {
           organization,
@@ -301,12 +292,17 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
         })
       }
     >
-      <Container padding="xs md">
-        <MessageText size="sm" align="left" variant="muted" monospace>
-          <AIContentRenderer text={reasoning} inline autoCollapseLimit={10} />
-        </MessageText>
-      </Container>
-    </CollapsibleContent>
+      <Flex>
+        <Container paddingTop="xs" paddingBottom="xs" flex="1" minWidth={0}>
+          <MessageText size="sm" align="left" variant="muted" monospace>
+            <AIContentRenderer text={reasoning} inline autoCollapseLimit={10} />
+          </MessageText>
+        </Container>
+        {/* Reasoning carries no metadata, but reserve the same column the tool
+         * rows use so the content wraps at the same width. */}
+        <Container width={TURN_META_WIDTH} flexShrink={0} />
+      </Flex>
+    </CollapsibleChatRow>
   );
 }
 
