@@ -1066,6 +1066,143 @@ class DeliveryTimeMetricsTest(TestCase):
 
 
 @control_silo_test
+class DroppedDeliveryOutcomeTest(TestCase):
+    """
+    A payload the cell permanently rejects is deleted just like a delivered one, so
+    it must not be reported as a delivery.
+    """
+
+    def delivery_outcomes(self, mock_metrics: MagicMock) -> list[str]:
+        return [
+            c[1]["tags"]["outcome"]
+            for c in mock_metrics.incr.call_args_list
+            if c[0][0] == "hybridcloud.deliver_webhooks.delivery"
+        ]
+
+    def delivery_time_calls(self, mock_metrics: MagicMock) -> list[Any]:
+        return [
+            c
+            for c in mock_metrics.distribution.call_args_list
+            if c[0][0] == "hybridcloud.deliver_webhooks.delivery_time_ms"
+        ]
+
+    @responses.activate
+    @override_cells(cell_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_drain_conflict_not_counted_as_delivered(self, mock_metrics: MagicMock) -> None:
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=409,
+            body="",
+        )
+        webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+
+        drain_mailbox(webhook.id)
+
+        assert not WebhookPayload.objects.filter(id=webhook.id).exists()
+        assert self.delivery_outcomes(mock_metrics) == ["conflict"]
+        assert self.delivery_time_calls(mock_metrics) == []
+
+    @responses.activate
+    @override_cells(cell_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_drain_unauthorized_not_counted_as_delivered(self, mock_metrics: MagicMock) -> None:
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=401,
+            body="",
+        )
+        webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+
+        drain_mailbox(webhook.id)
+
+        assert not WebhookPayload.objects.filter(id=webhook.id).exists()
+        assert self.delivery_outcomes(mock_metrics) == ["dropped_4xx"]
+        assert self.delivery_time_calls(mock_metrics) == []
+
+    @responses.activate
+    @override_cells(cell_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_drain_success_still_counted_as_delivered(self, mock_metrics: MagicMock) -> None:
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=200,
+            body="",
+        )
+        webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+
+        drain_mailbox(webhook.id)
+
+        assert self.delivery_outcomes(mock_metrics) == ["ok"]
+        assert len(self.delivery_time_calls(mock_metrics)) == 1
+
+    @responses.activate
+    @override_cells(cell_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_parallel_conflict_not_counted_as_delivered(self, mock_metrics: MagicMock) -> None:
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=409,
+            body="",
+        )
+        webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+
+        drain_mailbox_parallel(webhook.id)
+
+        assert not WebhookPayload.objects.filter(id=webhook.id).exists()
+        assert self.delivery_outcomes(mock_metrics) == ["conflict"]
+        assert self.delivery_time_calls(mock_metrics) == []
+
+    @responses.activate
+    @override_cells(cell_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_parallel_unauthorized_not_counted_as_delivered(self, mock_metrics: MagicMock) -> None:
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=401,
+            body="",
+        )
+        webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+
+        drain_mailbox_parallel(webhook.id)
+
+        assert not WebhookPayload.objects.filter(id=webhook.id).exists()
+        assert self.delivery_outcomes(mock_metrics) == ["dropped_4xx"]
+        assert self.delivery_time_calls(mock_metrics) == []
+
+    @responses.activate
+    @override_cells(cell_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_dropped_payload_does_not_stall_ordered_mailbox(self, mock_metrics: MagicMock) -> None:
+        # A drop is terminal, not a retryable failure, so the drain must continue
+        # past it even for providers that stop on the first failure.
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=401,
+            body="",
+        )
+        responses.add(
+            responses.POST,
+            "http://us.testserver/extensions/github/webhook/",
+            status=200,
+            body="",
+        )
+        first = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+        second = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+
+        drain_mailbox(first.id)
+
+        assert not WebhookPayload.objects.filter(id=second.id).exists()
+        assert self.delivery_outcomes(mock_metrics) == ["dropped_4xx", "ok"]
+
+
+@control_silo_test
 class PushTriggerTest(TestCase):
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
     @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
