@@ -1,8 +1,9 @@
 import {Fragment, useState} from 'react';
+import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {Flex, Grid, type FlexProps, type GridProps} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
@@ -108,6 +109,7 @@ export function Controls({
 
   const isPrebuiltDashboard = defined(dashboard.prebuiltId);
   const isActionBar = placement === 'action-bar';
+  const ControlsBar = isActionBar ? ButtonBar : LegacyButtonBar;
 
   if (isActionBar && !hasNewBreadcrumbs) {
     return null;
@@ -119,7 +121,7 @@ export function Controls({
     }
 
     const buttons = (
-      <ButtonBar key="edit-controls">
+      <ControlsBar key="edit-controls">
         <Button
           data-test-id="dashboard-commit"
           size="sm"
@@ -141,7 +143,7 @@ export function Controls({
           </Button>
         </Confirm>
         {renderCancelButton(t('Cancel'), 'transparent')}
-      </ButtonBar>
+      </ControlsBar>
     );
 
     if (isActionBar) {
@@ -149,7 +151,7 @@ export function Controls({
     }
 
     return (
-      <ButtonBar key="edit-controls">
+      <ControlsBar key="edit-controls">
         {renderCancelButton()}
         <Confirm
           priority="danger"
@@ -171,7 +173,7 @@ export function Controls({
         >
           {t('Save and Finish')}
         </Button>
-      </ButtonBar>
+      </ControlsBar>
     );
   }
 
@@ -181,7 +183,7 @@ export function Controls({
     }
 
     const buttons = (
-      <ButtonBar key="create-controls">
+      <ControlsBar key="create-controls">
         {renderCancelButton(t('Cancel'), isActionBar ? 'transparent' : undefined)}
         <Button
           data-test-id="dashboard-commit"
@@ -194,7 +196,7 @@ export function Controls({
         >
           {t('Save and Finish')}
         </Button>
-      </ButtonBar>
+      </ControlsBar>
     );
 
     return isActionBar ? <DashboardActionBar>{buttons}</DashboardActionBar> : buttons;
@@ -206,7 +208,7 @@ export function Controls({
     }
 
     const buttons = (
-      <ButtonBar key="preview-controls">
+      <ControlsBar key="preview-controls">
         {renderCancelButton(t('Go Back'))}
 
         <DashboardCreateLimitWrapper>
@@ -233,7 +235,7 @@ export function Controls({
             </Button>
           )}
         </DashboardCreateLimitWrapper>
-      </ButtonBar>
+      </ControlsBar>
     );
 
     return isActionBar ? <DashboardActionBar>{buttons}</DashboardActionBar> : buttons;
@@ -275,7 +277,7 @@ export function Controls({
       <DashboardActionBar>
         <DashboardEditFeature>
           {hasFeature => (
-            <ButtonBar>
+            <ControlsBar>
               {hasFeature && !isPrebuiltDashboard && !hideAddWidget && (
                 <Tooltip
                   title={tooltipMessage}
@@ -302,7 +304,7 @@ export function Controls({
                   onChangeEditAccess={onChangeEditAccess}
                 />
               )}
-            </ButtonBar>
+            </ControlsBar>
           )}
         </DashboardEditFeature>
       </DashboardActionBar>
@@ -310,7 +312,7 @@ export function Controls({
   }
 
   return (
-    <ButtonBar key="controls">
+    <ControlsBar key="controls">
       <DashboardEditFeature>
         {hasFeature => (
           <Fragment>
@@ -482,7 +484,7 @@ export function Controls({
           </Fragment>
         )}
       </DashboardEditFeature>
-    </ButtonBar>
+    </ControlsBar>
   );
 }
 
@@ -537,3 +539,13 @@ function DashboardEditFeature({
 function ButtonBar(props: FlexProps) {
   return <Flex align="center" gap="md" wrap="wrap" {...props} />;
 }
+
+const LegacyButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    grid-auto-flow: row;
+    grid-row-gap: ${p => p.theme.space.md};
+    width: 100%;
+  }
+`;

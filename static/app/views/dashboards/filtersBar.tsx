@@ -228,8 +228,8 @@ export function FiltersBar({
 
   return (
     <Flex
-      align={{zero: 'stretch', xl: 'start'}}
-      direction={{zero: 'column', xl: 'row'}}
+      align={hasNewBreadcrumbs ? {zero: 'stretch', xl: 'start'} : 'start'}
+      direction={hasNewBreadcrumbs ? {zero: 'column', xl: 'row'} : 'row'}
       gap="lg"
       marginBottom={hasNewBreadcrumbs ? '0' : 'xl'}
       padding={hasNewBreadcrumbs ? 'md 0' : '0'}
