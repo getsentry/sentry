@@ -9,6 +9,7 @@ import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import {AutomationTitleCell} from 'sentry/components/workflowEngine/gridCell/automationTitleCell';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
+import {AssigneeCell} from 'sentry/views/automations/components/automationListTable/assigneeCell';
 import {AutomationListConnectedDetectors} from 'sentry/views/automations/components/automationListTable/connectedDetectors';
 import {ProjectsCell} from 'sentry/views/automations/components/automationListTable/projectsCell';
 import {useCanEditAutomation} from 'sentry/views/automations/hooks/useCanEditAutomation';
@@ -28,7 +29,7 @@ export function AutomationListRow({
   const canEditAutomations = useCanEditAutomation();
 
   const actions = getAutomationActions(automation);
-  const {enabled, lastTriggered, detectorIds} = automation;
+  const {enabled, lastTriggered, detectorIds, owner} = automation;
 
   return (
     <AutomationSimpleTableRow
@@ -58,6 +59,9 @@ export function AutomationListRow({
       <SimpleTable.RowCell data-column-name="projects">
         <ProjectsCell automation={automation} />
       </SimpleTable.RowCell>
+      <SimpleTable.RowCell data-column-name="assignee">
+        <AssigneeCell owner={owner} />
+      </SimpleTable.RowCell>
       <SimpleTable.RowCell data-column-name="connected-monitors">
         <AutomationListConnectedDetectors detectorIds={detectorIds} />
       </SimpleTable.RowCell>
@@ -78,6 +82,9 @@ export function AutomationListRowSkeleton() {
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
       <SimpleTable.RowCell data-column-name="projects">
+        <Placeholder height="20px" />
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell data-column-name="assignee">
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
       <SimpleTable.RowCell data-column-name="connected-monitors">

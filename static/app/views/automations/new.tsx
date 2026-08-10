@@ -76,6 +76,7 @@ const INITIAL_FORM_DATA_DEFAULTS = {
   environment: null,
   frequency: 0,
   enabled: true,
+  owner: null,
   projectIds: [],
   detectorIds: [],
 };

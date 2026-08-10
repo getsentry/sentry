@@ -27,6 +27,7 @@ describe('resolveDetectorIdsForProjects', () => {
       environment: null,
       frequency: 0,
       name: 'All projects alert',
+      owner: null,
       projectIds: [],
     };
     MockApiClient.addMockResponse({

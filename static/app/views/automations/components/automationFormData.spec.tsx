@@ -24,6 +24,7 @@ describe('validateAutomationBuilderState', () => {
       environment: null,
       frequency: 0,
       name: 'All projects alert',
+      owner: null,
       projectIds: [],
     };
 

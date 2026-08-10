@@ -24,6 +24,7 @@ export function AutomationFixture(params: Partial<Automation> = {}): Automation 
     actionFilters: [ActionFilterFixture()],
     detectorIds: ['1'],
     environment: 'production',
+    owner: null,
     triggers: {
       conditions: [],
       id: '1',

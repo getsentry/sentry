@@ -9,6 +9,8 @@ export interface NewAutomation {
   enabled: boolean;
   environment: string | null;
   name: string;
+  // Actor identifier, such as `user:1` or `team:1`
+  owner: string | null;
   triggers: DataConditionGroup | null;
 }
 

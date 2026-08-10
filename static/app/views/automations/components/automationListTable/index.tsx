@@ -159,6 +159,9 @@ export function AutomationListTable({
           <HeaderCell data-column-name="projects" sort={sort}>
             {t('Projects')}
           </HeaderCell>
+          <HeaderCell data-column-name="assignee" sort={sort}>
+            {t('Assignee')}
+          </HeaderCell>
           <HeaderCell
             data-column-name="connected-monitors"
             sort={sort}
@@ -232,6 +235,7 @@ const AutomationsSimpleTable = styled(SimpleTable)`
   [data-column-name='last-triggered'],
   [data-column-name='action'],
   [data-column-name='projects'],
+  [data-column-name='assignee'],
   [data-column-name='connected-monitors'] {
     display: none;
   }
@@ -245,15 +249,16 @@ const AutomationsSimpleTable = styled(SimpleTable)`
   }
 
   @container (min-width: ${p => p.theme.container.xl}) {
-    grid-template-columns: 2.5fr 1fr 1fr;
+    grid-template-columns: 2.5fr 1fr 1fr 90px;
 
-    [data-column-name='action'] {
+    [data-column-name='action'],
+    [data-column-name='assignee'] {
       display: flex;
     }
   }
 
   @container (min-width: ${p => p.theme.container['3xl']}) {
-    grid-template-columns: 2.5fr minmax(160px, 1fr) 1fr 1fr;
+    grid-template-columns: 2.5fr minmax(160px, 1fr) 1fr 1fr 90px;
 
     [data-column-name='last-triggered'] {
       display: flex;
@@ -261,7 +266,7 @@ const AutomationsSimpleTable = styled(SimpleTable)`
   }
 
   @container (min-width: ${p => p.theme.container['4xl']}) {
-    grid-template-columns: minmax(0, 3fr) minmax(160px, 1fr) 1fr 1fr 1fr;
+    grid-template-columns: minmax(0, 3fr) minmax(160px, 1fr) 1fr 1fr 90px 1fr;
 
     [data-column-name='connected-monitors'] {
       display: flex;

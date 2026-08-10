@@ -10,6 +10,7 @@ import {
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
@@ -24,6 +25,7 @@ import {
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import AutomationsList from 'sentry/views/automations/list';
 
 describe('AutomationsList', () => {
@@ -82,6 +84,27 @@ describe('AutomationsList', () => {
     expect(within(row).getByText('Slack')).toBeInTheDocument();
     // Monitors
     expect(within(row).getByText('1 monitor')).toBeInTheDocument();
+  });
+
+  it('displays the assignee, and a dash when unassigned', async () => {
+    const team = TeamFixture({id: '2', slug: 'team-slug'});
+
+    TeamStore.loadInitialData([team]);
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/',
+      body: [
+        AutomationFixture({id: '100', name: 'Assigned Automation', owner: 'team:2'}),
+        AutomationFixture({id: '101', name: 'Unassigned Automation', owner: null}),
+      ],
+    });
+
+    render(<AutomationsList />, {organization});
+
+    const rows = await screen.findAllByTestId('automation-list-row');
+
+    expect(within(rows[0]!).getByTitle('team slug')).toBeInTheDocument();
+    expect(within(rows[1]!).getByText('—')).toBeInTheDocument();
   });
 
   it('displays connected detectors and projects via a single batch request', async () => {

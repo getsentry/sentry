@@ -21,6 +21,8 @@ export interface AutomationFormData {
   environment: string | null;
   frequency: number | null;
   name: string;
+  // Actor identifier, such as `user:1` or `team:1`
+  owner: string | null;
   /**
    * Derived field used for project-based monitor selection.
    * Maps to issue stream detector IDs for the selected projects.
@@ -88,6 +90,7 @@ export function getNewAutomationData({
     },
     detectorIds: data.detectorIds,
     enabled: data.enabled,
+    owner: data.owner ?? null,
   };
 }
 
@@ -101,6 +104,7 @@ export function getAutomationFormData(
     frequency: automation.config.frequency ?? 0,
     name: automation.name,
     enabled: automation.enabled,
+    owner: automation.owner,
     projectIds: [],
   };
 }
