@@ -66,13 +66,26 @@ function createMockToolNode(overrides: {
   };
 }
 
+// Real embeddings spans (per the Python SDK's OpenAI integration) report
+// `gen_ai.operation.type: "ai_client"` — that attribute is a closed,
+// ingestion-computed enum with no "embeddings" bucket, so an embeddings call
+// is classified the same as any other model call. `operationType` defaults to
+// that real-world value; only tests exercising the operation-type fallback
+// path should override it to the literal (currently hypothetical) "embeddings".
 function createMockEmbeddingNode(overrides: {
   id: string;
   endTimestamp?: number;
   input?: string;
+  operationType?: string;
   startTimestamp?: number;
 }) {
-  const {id, input = 'search query', startTimestamp = 1000, endTimestamp} = overrides;
+  const {
+    id,
+    input = 'search query',
+    operationType = 'ai_client',
+    startTimestamp = 1000,
+    endTimestamp,
+  } = overrides;
   const end = endTimestamp ?? startTimestamp + 100;
   return {
     id,
@@ -85,7 +98,7 @@ function createMockEmbeddingNode(overrides: {
       end_timestamp: end,
     },
     attributes: {
-      [SpanFields.GEN_AI_OPERATION_TYPE]: 'embeddings',
+      [SpanFields.GEN_AI_OPERATION_TYPE]: operationType,
       [SpanFields.GEN_AI_EMBEDDINGS_INPUT]: input,
     },
     errors: new Set(),
@@ -554,6 +567,34 @@ describe('conversationMessages utilities', () => {
 
       expect(result.generationSpans.map(s => s.id)).toEqual(['gen-1']);
       expect(result.toolSpans.map(s => s.id)).toEqual(['tool-1']);
+      expect(result.embeddingSpans.map(s => s.id)).toEqual(['embed-1']);
+    });
+
+    it('recognizes an embeddings span even though gen_ai.operation.type reports ai_client', () => {
+      // gen_ai.operation.type is a closed, ingestion-computed enum with no
+      // "embeddings" bucket, so real embeddings spans report "ai_client" —
+      // detection must key off the embeddings-only input attribute instead,
+      // or these spans get swallowed into generationSpans and silently
+      // dropped there (no chat content to render).
+      const embeddingNode = createMockEmbeddingNode({
+        id: 'embed-1',
+        operationType: 'ai_client',
+      });
+
+      const result = partitionSpansByType([embeddingNode] as any);
+
+      expect(result.embeddingSpans.map(s => s.id)).toEqual(['embed-1']);
+      expect(result.generationSpans).toHaveLength(0);
+    });
+
+    it('also recognizes an embeddings span when operation.type literally reports embeddings', () => {
+      const embeddingNode = createMockEmbeddingNode({
+        id: 'embed-1',
+        operationType: 'embeddings',
+      });
+
+      const result = partitionSpansByType([embeddingNode] as any);
+
       expect(result.embeddingSpans.map(s => s.id)).toEqual(['embed-1']);
     });
   });

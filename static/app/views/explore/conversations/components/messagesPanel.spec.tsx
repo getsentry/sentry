@@ -62,13 +62,23 @@ function createMockToolNode(overrides: {
   };
 }
 
+// Real embeddings spans report `gen_ai.operation.type: "ai_client"` — that
+// attribute is a closed, ingestion-computed enum with no "embeddings" bucket.
+// `operationType` defaults to that real-world value.
 function createMockEmbeddingNode(overrides: {
   id: string;
   endTimestamp?: number;
   input?: string;
+  operationType?: string;
   startTimestamp?: number;
 }) {
-  const {id, input = 'search query', startTimestamp = 1000, endTimestamp} = overrides;
+  const {
+    id,
+    input = 'search query',
+    operationType = 'ai_client',
+    startTimestamp = 1000,
+    endTimestamp,
+  } = overrides;
   const end = endTimestamp ?? startTimestamp + 100;
   return {
     id,
@@ -78,7 +88,7 @@ function createMockEmbeddingNode(overrides: {
     endTimestamp: end,
     value: {start_timestamp: startTimestamp, end_timestamp: end},
     attributes: {
-      [SpanFields.GEN_AI_OPERATION_TYPE]: 'embeddings',
+      [SpanFields.GEN_AI_OPERATION_TYPE]: operationType,
       [SpanFields.GEN_AI_EMBEDDINGS_INPUT]: input,
     },
     errors: new Set(),

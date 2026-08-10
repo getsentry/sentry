@@ -106,12 +106,21 @@ export function partitionSpansByType(nodes: AITraceSpanNode[]): {
 
   for (const node of nodes) {
     const opType = getGenAiOpType(node);
-    if (getIsAiGenerationSpan(opType)) {
+    // `gen_ai.operation.type` is a closed, ingestion-computed enum (agent/
+    // ai_client/tool/handoff/other) with no "embeddings" bucket — an embeddings
+    // call is classified as "ai_client" like any other model call. The
+    // embeddings-only input attribute is what actually distinguishes it, so
+    // check that first or these spans would be swallowed into generationSpans
+    // and silently dropped there (they have no chat content to render).
+    if (
+      getStringAttr(node, SpanFields.GEN_AI_EMBEDDINGS_INPUT) ||
+      getIsEmbeddingsSpan(opType)
+    ) {
+      embeddingSpans.push(node);
+    } else if (getIsAiGenerationSpan(opType)) {
       generationSpans.push(node);
     } else if (getIsExecuteToolSpan(opType)) {
       toolSpans.push(node);
-    } else if (getIsEmbeddingsSpan(opType)) {
-      embeddingSpans.push(node);
     }
   }
 
