@@ -1,4 +1,5 @@
-import {AnimatePresence, motion} from 'framer-motion';
+import {useState} from 'react';
+import {AnimatePresence, motion, type Variants} from 'framer-motion';
 
 interface ScmCollapsibleRevealProps {
   children: React.ReactNode;
@@ -16,20 +17,39 @@ interface ScmCollapsibleRevealProps {
  * initial={false} renders the open state without animating on mount.
  */
 export function ScmCollapsibleReveal({open, id, children}: ScmCollapsibleRevealProps) {
+  // Clip while height is changing, then release overflow once expanded. The
+  // exit variant must own the clip because AnimatePresence freezes its child.
+  const [isSettled, setIsSettled] = useState(open);
+  const variants: Variants = {
+    collapsed: {height: 0, opacity: 0, overflow: 'hidden'},
+    expanded: {
+      height: 'auto',
+      opacity: 1,
+      overflow: isSettled ? 'visible' : 'hidden',
+    },
+  };
+
   return (
     <AnimatePresence initial={false}>
       {open && (
         <motion.div
           key="content"
           id={id}
-          // Clip content before it enters and as it exits, but allow focus
-          // rings and menus to overflow whenever the content is present.
-          // AnimatePresence exits from its last rendered props, so overflow
-          // must stay in the animation targets rather than React state.
-          initial={{height: 0, opacity: 0, overflow: 'hidden'}}
-          animate={{height: 'auto', opacity: 1, overflow: 'visible'}}
-          exit={{height: 0, opacity: 0, overflow: 'hidden'}}
+          variants={variants}
+          initial="collapsed"
+          animate="expanded"
+          exit="collapsed"
           transition={{duration: 0.2, ease: 'easeOut'}}
+          onAnimationStart={definition => {
+            if (definition === 'collapsed') {
+              setIsSettled(false);
+            }
+          }}
+          onAnimationComplete={definition => {
+            if (definition === 'expanded') {
+              setIsSettled(true);
+            }
+          }}
           style={{width: '100%'}}
         >
           {children}
