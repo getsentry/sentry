@@ -31,6 +31,7 @@ import {
   makeDetectorDetailsQueryKey,
   useDetectorQuery,
 } from 'sentry/views/detectors/hooks';
+import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 import {useUptimeMonitorSummaries} from 'sentry/views/insights/uptime/utils/useUptimeMonitorSummary';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
@@ -130,11 +131,8 @@ export default function UptimeAlertDetails() {
           <Breadcrumbs
             crumbs={[
               {
-                label: t('Alerts'),
-                to: makeAlertsPathname({
-                  path: '/rules/',
-                  organization,
-                }),
+                label: t('Monitors'),
+                to: makeMonitorBasePathname(organization.slug),
               },
               {
                 label: t('Uptime Monitor'),

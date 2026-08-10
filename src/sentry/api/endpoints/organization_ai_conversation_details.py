@@ -62,6 +62,7 @@ AI_CONVERSATION_ATTRIBUTES = [
     "gen_ai.tool.input",
     "gen_ai.tool.call.result",
     "gen_ai.tool.output",
+    "gen_ai.embeddings.input",
     "gen_ai.usage.total_tokens",
     "gen_ai.request.model",
     "gen_ai.response.model",

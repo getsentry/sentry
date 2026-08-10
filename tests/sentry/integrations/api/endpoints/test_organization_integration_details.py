@@ -14,8 +14,11 @@ from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.identity import Identity
+
+EXPLICIT_MAPPING_REMOVALS_FEATURE = "organizations:jira-explicit-mapping-removals"
 
 
 class OrganizationIntegrationDetailsTest(APITestCase):
@@ -78,6 +81,7 @@ class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest)
             data={"provider": self.integration.provider, "name": "config"},
         ).exists()
 
+    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
     def test_update_config_records_project_mapping_changes(self) -> None:
         jira = self.create_provider_integration(provider="jira", name="Example Jira")
         jira.add_organization(self.organization, self.user)
@@ -90,7 +94,9 @@ class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest)
                 unresolved_status="in_progress",
             )
 
-        self.get_success_response(self.organization.slug, jira.id, **{"sync_status_forward": {}})
+        self.get_success_response(
+            self.organization.slug, jira.id, **{"sync_status_forward": {"1": None, "2": None}}
+        )
 
         entry = AuditLogEntry.objects.get(
             organization_id=self.organization.id,
@@ -108,6 +114,43 @@ class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest)
             "updated project status mappings for the jira integration "
             "(0 added, 0 updated, 2 removed)"
         )
+
+    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
+    def test_update_config_omitting_project_mappings_records_nothing(self) -> None:
+        """
+        A payload that omits stored mappings changes nothing, so there is nothing to record --
+        the audit log is a changelog, not a snapshot of the mappings at each save.
+        """
+        jira = self.create_provider_integration(provider="jira", name="Example Jira")
+        jira.add_organization(self.organization, self.user)
+        for external_id in ("1", "2"):
+            self.create_integration_external_project(
+                organization_id=self.organization.id,
+                integration_id=jira.id,
+                external_id=external_id,
+                resolved_status="done",
+                unresolved_status="in_progress",
+            )
+
+        self.get_success_response(self.organization.slug, jira.id, **{"sync_status_forward": {}})
+
+        assert not AuditLogEntry.objects.filter(
+            organization_id=self.organization.id,
+            event=audit_log.get_event_id("INTEGRATION_PROJECT_MAPPINGS_UPDATE"),
+        ).exists()
+
+    def test_update_config_rejects_malformed_project_mappings(self) -> None:
+        """
+        A non-mapping payload used to raise `AttributeError`, which the endpoint doesn't
+        catch -- so it surfaced as a 500 rather than a 400.
+        """
+        jira = self.create_provider_integration(provider="jira", name="Example Jira")
+        jira.add_organization(self.organization, self.user)
+
+        response = self.get_error_response(
+            self.organization.slug, jira.id, status_code=400, **{"sync_status_forward": True}
+        )
+        assert "detail" in response.data
 
     def test_update_config_skips_project_mapping_entry_when_unchanged(self) -> None:
         """Providers that report no mapping changes get only the `INTEGRATION_EDIT` entry."""

@@ -1,9 +1,11 @@
 from hashlib import sha1
 from unittest.mock import MagicMock, patch
 
+import pytest
 from django.core.files.base import ContentFile
 from django.urls import reverse
 
+from sentry.api.endpoints.debug_files import _clone_proguard_debug_file_for_reupload
 from sentry.models.apitoken import ApiToken
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.files.file import File
@@ -311,13 +313,8 @@ class DifAssembleEndpoint(APITestCase):
             debug_id="11111111-1111-1111-1111-111111111111",
         )
 
-        if first_dif.uses_objectstore_for_read():
-            assert first_dif.storage_path != second_dif.storage_path
-            assert first_dif.file_id != second_dif.file_id
-            assert File.objects.filter(type="project.dif", checksum=checksum).count() == 2
-        else:
-            assert first_dif.file_id == second_dif.file_id
-            assert File.objects.filter(type="project.dif", checksum=checksum).count() == 1
+        assert first_dif.file_id == second_dif.file_id
+        assert File.objects.filter(type="project.dif", checksum=checksum).count() == 1
 
     def test_reupload_proguard_with_same_debug_id_is_idempotent(self) -> None:
         file_contents = b"proguard mapping"
@@ -421,8 +418,8 @@ class DifAssembleProguardCloneBackendTransitionTest(APITestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
 
-    def test_clone_file_backed_source_to_objectstore(self) -> None:
-        """A file-backed source (created before rollout) is cloned while the write flag is enabled, producing an Objectstore-backed clone."""
+    def test_clone_file_backed_source_remains_file_backed(self) -> None:
+        """A file-backed source produces a file-backed clone regardless of the active write flag."""
 
         file_contents = b"proguard mapping"
         checksum = sha1(file_contents).hexdigest()
@@ -450,13 +447,12 @@ class DifAssembleProguardCloneBackendTransitionTest(APITestCase):
             project_id=self.project.id,
             debug_id="11111111-1111-1111-1111-111111111111",
         )
-        # The source stays file-backed; the clone is written to both backends.
-        assert second_dif.file_id is not None
-        assert second_dif.storage_path is not None
+        assert second_dif.file_id == first_dif.file_id
+        assert second_dif.storage_path is None
         assert second_dif.get_file().read() == file_contents
 
-    def test_clone_dual_written_source_to_file(self) -> None:
-        """A dual-written source is cloned after the write flag is disabled, producing a file-backed clone."""
+    def test_clone_dual_written_source_remains_dual_written(self) -> None:
+        """A dual-written source produces a clone with its own Objectstore object."""
 
         file_contents = b"proguard mapping"
         checksum = sha1(file_contents).hexdigest()
@@ -484,7 +480,47 @@ class DifAssembleProguardCloneBackendTransitionTest(APITestCase):
             project_id=self.project.id,
             debug_id="11111111-1111-1111-1111-111111111111",
         )
-        # The source stays Objectstore-backed; the clone is written as a File.
-        assert second_dif.file_id is not None
-        assert second_dif.storage_path is None
+        assert second_dif.file_id == first_dif.file_id
+        assert second_dif.storage_path is not None
+        assert second_dif.storage_path != first_dif.storage_path
         assert second_dif.get_file().read() == file_contents
+
+    def test_clone_objectstore_source_cleans_up_after_database_error(self) -> None:
+        file_contents = b"proguard mapping"
+        checksum = sha1(file_contents).hexdigest()
+        blob = FileBlob.from_file_with_organization(ContentFile(file_contents), self.organization)
+
+        with self.feature({"organizations:objectstore-debugfiles-write": True}):
+            self._assemble_source(checksum, [blob.checksum])
+
+        source_dif = ProjectDebugFile.objects.get(
+            project_id=self.project.id,
+            debug_id="00000000-0000-0000-0000-000000000000",
+        )
+        source_fileobj = MagicMock(spec=["read", "close"])
+        objectstore_session = MagicMock()
+        objectstore_session.put.return_value = "cloned-storage-path"
+
+        with (
+            patch.object(source_dif, "get_file", return_value=source_fileobj),
+            patch.object(source_dif, "get_objectstore_session", return_value=objectstore_session),
+            patch(
+                "sentry.api.endpoints.debug_files.ProjectDebugFile.objects.create",
+                side_effect=RuntimeError,
+            ),
+            pytest.raises(RuntimeError),
+        ):
+            _clone_proguard_debug_file_for_reupload(
+                self.project,
+                source_dif,
+                "11111111-1111-1111-1111-111111111111",
+                True,
+            )
+
+        objectstore_session.put.assert_called_once_with(
+            source_fileobj,
+            content_type=source_dif.get_content_type(),
+            filename="11111111-1111-1111-1111-111111111111.txt",
+            compression="none",
+        )
+        objectstore_session.delete.assert_called_once_with("cloned-storage-path")

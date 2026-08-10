@@ -6,6 +6,7 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 
+from sentry.eventstore.models import Event
 from sentry.exceptions import InvalidSearchQuery
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import (
@@ -2399,6 +2400,132 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         assert set(results) == {self.group1, tag_event.group}
         results = self.make_query(search_filter_query="environment:production !has:server")
         assert set(results) == {no_tag_event.group}
+
+    def _store_event_with_profiler_id(
+        self,
+        *,
+        fingerprint: str,
+        module: str,
+        profiler_id: str | None,
+        event_id: str | None = None,
+    ) -> Event:
+        data = {
+            "fingerprint": [fingerprint],
+            "event_id": event_id or uuid.uuid4().hex,
+            "message": "something",
+            "environment": "production",
+            "timestamp": self.base_datetime.isoformat(),
+            "stacktrace": {"frames": [{"module": module}]},
+        }
+        if profiler_id is not None:
+            data["contexts"] = {"profile": {"type": "profile", "profiler_id": profiler_id}}
+        return self.store_event(data=data, project_id=self.project.id)
+
+    def test_error_has_continuous_profile_has_filter(self) -> None:
+        profiled = self._store_event_with_profiler_id(
+            fingerprint="has-profile",
+            module="group3",
+            profiler_id="b" * 32,
+        )
+        not_profiled = self._store_event_with_profiler_id(
+            fingerprint="no-profile",
+            module="group4",
+            profiler_id=None,
+        )
+
+        results = self.make_query(search_filter_query="environment:production has:profiler.id")
+        assert set(results) == {profiled.group}
+
+        results = self.make_query(search_filter_query="environment:production !has:profiler.id")
+        assert set(results) == {self.group1, not_profiled.group}
+
+    def test_error_has_continuous_profile_exact_value(self) -> None:
+        profiled = self._store_event_with_profiler_id(
+            fingerprint="has-profile",
+            module="group3",
+            profiler_id="b" * 32,
+        )
+        self._store_event_with_profiler_id(
+            fingerprint="no-profile",
+            module="group4",
+            profiler_id=None,
+        )
+
+        results = self.make_query(
+            search_filter_query=f"environment:production profiler.id:{'b' * 32}"
+        )
+        assert set(results) == {profiled.group}
+
+    def test_error_has_continuous_profile_wildcard_value(self) -> None:
+        profiled = self._store_event_with_profiler_id(
+            fingerprint="matching-profile-prefix",
+            module="group3",
+            profiler_id="abc123" + "0" * 26,
+        )
+        self._store_event_with_profiler_id(
+            fingerprint="non-matching-profile-prefix",
+            module="group4",
+            profiler_id="def456" + "0" * 26,
+        )
+        self._store_event_with_profiler_id(
+            fingerprint="no-profile",
+            module="group5",
+            profiler_id=None,
+        )
+
+        results = self.make_query(search_filter_query="environment:production profiler.id:abc123*")
+        assert set(results) == {profiled.group}
+
+    def test_error_has_continuous_profile_mixed_wildcard_list(self) -> None:
+        exact_profiler_id = "def456" + "0" * 26
+        prefix_profiled = self._store_event_with_profiler_id(
+            fingerprint="matching-profile-prefix",
+            module="group3",
+            profiler_id="abc123" + "0" * 26,
+        )
+        exact_profiled = self._store_event_with_profiler_id(
+            fingerprint="matching-profile-exact",
+            module="group4",
+            profiler_id=exact_profiler_id,
+        )
+        self._store_event_with_profiler_id(
+            fingerprint="no-profile",
+            module="group5",
+            profiler_id=None,
+        )
+
+        results = self.make_query(
+            search_filter_query=f"environment:production profiler.id:[abc123*, {exact_profiler_id}]"
+        )
+        assert set(results) == {prefix_profiled.group, exact_profiled.group}
+
+    def test_error_has_continuous_profile_negated_mixed_wildcard_list(self) -> None:
+        exact_profiler_id = "def456" + "0" * 26
+        self._store_event_with_profiler_id(
+            fingerprint="excluded-profile-prefix",
+            module="group3",
+            profiler_id="abc123" + "0" * 26,
+        )
+        self._store_event_with_profiler_id(
+            fingerprint="excluded-profile-exact",
+            module="group4",
+            profiler_id=exact_profiler_id,
+        )
+        unmatched_profiled = self._store_event_with_profiler_id(
+            fingerprint="included-profile",
+            module="group5",
+            profiler_id="ccc999" + "0" * 26,
+        )
+        not_profiled = self._store_event_with_profiler_id(
+            fingerprint="included-no-profile",
+            module="group6",
+            profiler_id=None,
+        )
+
+        results = self.make_query(
+            search_filter_query=f"environment:production !profiler.id:[abc123*, {exact_profiler_id}]"
+        )
+        assert set(results) == {self.group1, unmatched_profiled.group, not_profiled.group}
 
     def test_null_promoted_tags(self) -> None:
         tag_event = self.store_event(

@@ -11,6 +11,7 @@ from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.pullrequest import PullRequest
 from sentry.pr_metrics.attribution import attribute_seer_created_pull_requests
 from sentry.seer.endpoints.utils import get_seer_run
+from sentry.seer.milestones import reconcile_pull_requests_merged_milestone
 from sentry.seer.models.run import SeerRun, SeerRunCodingAgentHandoff, SeerRunPullRequest
 from sentry.seer.sentry_data_models import (
     NotifySeerPrCreatedErrorResponse,
@@ -123,6 +124,13 @@ def link_pull_request_to_seer_run(
             "seer.pr_link.created",
             extra={**log_context, "pull_request_id": resolved.pull_request.id},
         )
+        try:
+            reconcile_pull_requests_merged_milestone(seer_run)
+        except Exception:
+            logger.exception(
+                "seer.pr_link.milestone_failed",
+                extra={**log_context, "pull_request_id": resolved.pull_request.id},
+            )
 
     return resolved.pull_request
 

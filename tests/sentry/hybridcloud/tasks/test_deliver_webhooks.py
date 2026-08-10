@@ -326,89 +326,6 @@ class DrainMailboxTest(TestCase):
         assert len(responses.calls) == 0
 
     @responses.activate
-    @override_cells(cell_config)
-    @override_options({"hybridcloud.webhookpayload.claim_dispatch_rollout": 1.0})
-    def test_drain_reads_primary_when_replica_lags(self) -> None:
-        responses.add(
-            responses.POST,
-            "http://us.testserver/extensions/github/webhook/",
-            status=200,
-            body="",
-        )
-        webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
-
-        # The dispatcher claimed this batch on the primary; a lagging replica that
-        # cannot see it yet must not strand the claim until it expires.
-        lagging_replica = MagicMock()
-        lagging_replica.get.side_effect = WebhookPayload.DoesNotExist
-        with patch.object(WebhookPayload.objects, "using_replica", return_value=lagging_replica):
-            drain_mailbox(webhook.id)
-
-        assert len(responses.calls) == 1
-        assert not WebhookPayload.objects.filter(id=webhook.id).exists()
-
-    @responses.activate
-    @override_cells(cell_config)
-    @override_options({"hybridcloud.webhookpayload.claim_dispatch_rollout": 1.0})
-    def test_drain_reads_primary_when_replica_lags_mid_batch(self) -> None:
-        # The head replicated but later claimed rows have not: the replica walk
-        # runs dry before the claim bound. Concluding "complete" would strand
-        # the claimed rows — undeliverable until the claim horizon passes — so
-        # the drain must re-read the primary before giving up.
-        url = "http://us.testserver/extensions/github/webhook/"
-        responses.add(responses.POST, url, status=200, body="")
-        records = create_payloads(3, "github:123", provider="github")
-
-        lagging_replica = MagicMock()
-        lagging_replica.get.side_effect = lambda **kwargs: WebhookPayload.objects.get(**kwargs)
-        lagging_replica.filter.return_value = WebhookPayload.objects.none()
-        with patch.object(WebhookPayload.objects, "using_replica", return_value=lagging_replica):
-            drain_mailbox(records[0].id, claimed_count=3)
-
-        assert len(responses.calls) == 3
-        assert WebhookPayload.objects.count() == 0
-
-    @responses.activate
-    @override_cells(cell_config)
-    def test_drain_gives_up_on_replica_lag_while_rollout_inactive(self) -> None:
-        # claim_dispatch_rollout defaults to 0.0: deploying must not change drain
-        # behavior, so the primary fallback stays dormant and replica lag keeps
-        # counting as a lost race.
-        webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
-
-        lagging_replica = MagicMock()
-        lagging_replica.get.side_effect = WebhookPayload.DoesNotExist
-        with patch.object(WebhookPayload.objects, "using_replica", return_value=lagging_replica):
-            drain_mailbox(webhook.id)
-
-        assert len(responses.calls) == 0
-        assert WebhookPayload.objects.filter(id=webhook.id).exists()
-
-    @responses.activate
-    @override_cells(cell_config)
-    @override_options(
-        {
-            "hybridcloud.webhookpayload.push_drain_trigger": True,
-            "hybridcloud.webhookpayload.claim_dispatch_rollout": 1.0,
-        }
-    )
-    def test_drain_lease_mode_gives_up_on_replica_lag(self) -> None:
-        # A lease-mode drain (mailbox_name passed) holds no claim, so giving up on
-        # replica lag costs only the ~10s scheduler retry; it must skip the primary
-        # fallback and release its lease instead.
-        webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
-        cache.add(f"wh:drain_active:{webhook.mailbox_name}", 1, timeout=15)
-
-        lagging_replica = MagicMock()
-        lagging_replica.get.side_effect = WebhookPayload.DoesNotExist
-        with patch.object(WebhookPayload.objects, "using_replica", return_value=lagging_replica):
-            drain_mailbox(webhook.id, mailbox_name=webhook.mailbox_name)
-
-        assert len(responses.calls) == 0
-        assert WebhookPayload.objects.filter(id=webhook.id).exists()
-        assert cache.get(f"wh:drain_active:{webhook.mailbox_name}") is None
-
-    @responses.activate
     def test_drain_unknown_region(self) -> None:
         webhook_one = self.create_webhook_payload(
             mailbox_name="github:123",
@@ -1487,8 +1404,8 @@ class PushTriggerTest(TestCase):
         # lock for the drain's whole run.
         cache.add(f"wh:drain_active:{mailbox}", 1, timeout=15)
 
-        # The payload is gone from both the replica and the primary — the drain lost
-        # a race and must still release the lease it owns.
+        # The payload is gone — the drain lost a race to a concurrent drain and
+        # must still release the lease it owns.
         drain_mailbox(999999, mailbox_name=mailbox)
 
         assert cache.get(f"wh:drain_active:{mailbox}") is None

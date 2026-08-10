@@ -196,9 +196,9 @@ def _claim_and_dispatch(head_id: int, mailbox_name: str) -> DispatchOutcome:
     interleave between the due-check and the claim.
 
     Returns the dispatched drain's mode, or NOT_DUE when the head has already
-    been claimed, delivered, or moved into a retry backoff. The scheduler
-    discovers mailbox heads on a replica, so this re-check against the primary
-    is what stops a stale read from double-dispatching a drain.
+    been claimed, delivered, or moved into a retry backoff. Dispatchers discover
+    mailbox heads outside the drain lock, so this due re-check under the lock is
+    what stops two of them from double-dispatching the same head.
 
     The drain is bounded to the claimed records (`claimed_count`). Without the
     bound a fast drain walks past its claim into unclaimed rows, at which point
@@ -350,13 +350,14 @@ def schedule_webhook_delivery() -> None:
 
     Triggered frequently by task-scheduler.
     """
-    # Se use the replica for any read queries to webhook payload
-    WebhookPayloadReplica = WebhookPayload.objects.using_replica()
-
+    # Read from the primary rather than a replica. These scheduler reads run on a
+    # short interval and can scan the whole table; on a replica they contend with
+    # WAL replay and amplify replication lag, and lag also produces spurious
+    # DoesNotExist races in the drains they enqueue (see INC-2398).
     # The double call to .values() ensures that the group by includes mailbox_name
     # but only id_min is selected
     head_of_line = (
-        WebhookPayloadReplica.all()
+        WebhookPayload.objects.all()
         .values("mailbox_name")
         .annotate(id_min=Min("id"))
         .values("id_min")
@@ -365,7 +366,7 @@ def schedule_webhook_delivery() -> None:
     # Get any heads that are scheduled to run
     # Use provider field directly, with default priority for null values
     scheduled_mailboxes = (
-        WebhookPayloadReplica.filter(
+        WebhookPayload.objects.filter(
             schedule_for__lte=timezone.now(),
             id__in=Subquery(head_of_line),
         )
@@ -450,34 +451,15 @@ def drain_mailbox(
     which hand this drain ownership of the drain lock for its whole run: refreshed
     on every delivery, released on exit. Claim-mode dispatchers never send it.
     """
-    payload_source = WebhookPayload.objects.using_replica()
-    reading_primary = False
-
-    payload: WebhookPayload | None
     try:
-        payload = payload_source.get(id=payload_id)
+        payload = WebhookPayload.objects.get(id=payload_id)
     except WebhookPayload.DoesNotExist:
-        # Giving up would strand a claim-backed batch (no mailbox_name) until its
-        # horizon expires, so read the primary instead. Lease drains lose only
-        # ~10s giving up, and the rollout gate keeps deploys behavior-neutral.
-        payload = None
-        if mailbox_name is None and _claim_dispatch_active():
-            try:
-                payload = WebhookPayload.objects.get(id=payload_id)
-                payload_source = WebhookPayload.objects.all()
-                reading_primary = True
-                metrics.incr(
-                    "hybridcloud.deliver_webhooks.drain.primary_fallback",
-                    tags={"reason": "head"},
-                )
-            except WebhookPayload.DoesNotExist:
-                pass
-
-    if payload is None:
         # We could have hit a race condition. Since we've lost already return
         # and let the other process continue, or a future process.
         metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "race"})
         logger.info("deliver_webhook.potential_race", extra={"id": payload_id})
+        # Release the drain lock if we know the mailbox name. Otherwise the lock is
+        # held, blocking both push triggers and the scheduler for the full 15s TTL.
         if mailbox_name and options.get("hybridcloud.webhookpayload.push_drain_trigger"):
             _release_drain_lock(mailbox_name)
         return
@@ -513,7 +495,7 @@ def drain_mailbox(
 
             # Fetch records from the batch in slices of 100. This avoids reading
             # redundant data should we hit an error and should help keep query duration low.
-            query = payload_source.filter(
+            query = WebhookPayload.objects.filter(
                 id__gte=current_id, mailbox_name=payload.mailbox_name
             ).order_by("id")
 
@@ -545,18 +527,6 @@ def drain_mailbox(
 
             # No more messages to deliver
             if batch_count < 1:
-                if remaining is not None and remaining > 0 and not reading_primary:
-                    # The replica ran dry before the claim bound: recently written
-                    # claimed rows may not have replicated yet. Concluding
-                    # "complete" would strand them — claimed but undelivered —
-                    # until the claim horizon passes, so re-read the primary.
-                    payload_source = WebhookPayload.objects.all()
-                    reading_primary = True
-                    metrics.incr(
-                        "hybridcloud.deliver_webhooks.drain.primary_fallback",
-                        tags={"reason": "tail"},
-                    )
-                    continue
                 if failed > 0:
                     logger.info(
                         "deliver_webhook.delivery_complete_with_failures",
@@ -612,8 +582,14 @@ def _discard_if_stale(payload: WebhookPayload) -> bool:
         return False
     payload_data = payload.as_dict()
     payload.delete()
-    metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "max_age"})
-    logger.debug("deliver_webhook.max_age_discard", extra={**payload_data})
+    # Warning + unsampled: a discard permanently drops a webhook, and the count
+    # wants an exact total rather than an estimated rate.
+    metrics.incr(
+        "hybridcloud.deliver_webhooks.delivery",
+        tags={"outcome": "max_age"},
+        sample_rate=1.0,
+    )
+    logger.warning("deliver_webhook.max_age_discard", extra={**payload_data})
     return True
 
 
@@ -674,11 +650,14 @@ def _handle_parallel_delivery_result(
     if err:
         if payload_record.attempts >= MAX_ATTEMPTS:
             payload_record.delete()
+            # Unsampled: this is the count of webhooks we permanently dropped, so it
+            # wants an exact total rather than an estimated rate.
             metrics.incr(
                 "hybridcloud.deliver_webhooks.delivery",
                 tags={"outcome": "attempts_exceed"},
+                sample_rate=1.0,
             )
-            logger.info(
+            logger.warning(
                 "deliver_webhook_parallel.discard",
                 extra={**payload_data},
             )
@@ -864,8 +843,13 @@ def deliver_message(payload: WebhookPayload) -> None:
     if payload.attempts >= MAX_ATTEMPTS:
         payload.delete()
 
-        metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "attempts_exceed"})
-        logger.info("deliver_webhook.discard", extra={**payload_data})
+        # Unsampled: see the parallel discard path above.
+        metrics.incr(
+            "hybridcloud.deliver_webhooks.delivery",
+            tags={"outcome": "attempts_exceed"},
+            sample_rate=1.0,
+        )
+        logger.warning("deliver_webhook.discard", extra={**payload_data})
         return
 
     if _discard_if_stale(payload):
@@ -984,7 +968,7 @@ def perform_cell_request(cell: Cell, payload: WebhookPayload) -> None:
                     "hybridcloud.deliver_webhooks.failure",
                     tags={"reason": reason, "destination_region": cell.name},
                 )
-                logger.info(
+                logger.warning(
                     "deliver_webhooks.40x_error",
                     extra={"reason": reason, **payload.as_dict()},
                 )
