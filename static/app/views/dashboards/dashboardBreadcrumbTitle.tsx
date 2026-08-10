@@ -113,13 +113,13 @@ export function DashboardBreadcrumbTitle({
   };
   const duplicateItem = {
     key: 'duplicate',
-    label: t('Duplicate Dashboard'),
+    label: t('Duplicate'),
     leadingItems: <IconCopy />,
     onAction: () => {
       openConfirmModal({
         message: t('Are you sure you want to duplicate this dashboard?'),
         priority: 'primary',
-        onConfirm: () => duplicateDashboard(dashboard),
+        onConfirm: () => duplicateDashboard(dashboard, 'details'),
       });
     },
   };

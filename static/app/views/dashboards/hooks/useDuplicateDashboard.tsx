@@ -28,7 +28,7 @@ export function useDuplicateDashboard({onSuccess}: UseDuplicateDashboardProps) {
   const duplicateDashboard = useCallback(
     async (
       dashboard: Pick<DashboardListItem, 'id' | 'prebuiltId'>,
-      viewType?: 'table'
+      viewType: 'details' | 'table'
     ) => {
       try {
         let dashboardDetail: DashboardDetails;
@@ -62,13 +62,11 @@ export function useDuplicateDashboard({onSuccess}: UseDuplicateDashboardProps) {
           organization.slug,
           newDashboard
         );
-        if (viewType) {
-          trackAnalytics('dashboards_manage.duplicate', {
-            organization,
-            dashboard_id: parseInt(dashboard.id, 10),
-            view_type: viewType,
-          });
-        }
+        trackAnalytics('dashboards_manage.duplicate', {
+          organization,
+          dashboard_id: parseInt(dashboard.id, 10),
+          view_type: viewType,
+        });
         onSuccess?.(copiedDashboard);
         addSuccessMessage(t('Dashboard duplicated'));
       } catch (e) {

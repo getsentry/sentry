@@ -521,27 +521,36 @@ export function DashboardActionBar({
     dashboard.createdBy
   );
   return (
-    <ActionBarLayout>
-      <DashboardEditFeature>
-        {hasFeature => (
-          <ButtonBar>
-            {hasFeature && !isPrebuiltDashboard && !hideAddWidget && (
-              <AddWidgetDropdown
-                hasEditAccess={hasEditAccess}
-                onAddWidget={onAddWidget}
-                widgetLimitReached={widgetLimitReached}
-              />
-            )}
-            {!isPrebuiltDashboard && hasEditAccess && (
-              <EditAccessSelector
-                dashboard={dashboard}
-                onChangeEditAccess={onChangeEditAccess}
-              />
-            )}
-          </ButtonBar>
-        )}
-      </DashboardEditFeature>
-    </ActionBarLayout>
+    <DashboardEditFeature>
+      {hasFeature => {
+        const showAddWidget = hasFeature && !isPrebuiltDashboard && !hideAddWidget;
+        const showEditAccess = !isPrebuiltDashboard && hasEditAccess;
+
+        if (!showAddWidget && !showEditAccess) {
+          return null;
+        }
+
+        return (
+          <ActionBarLayout>
+            <ButtonBar>
+              {showAddWidget && (
+                <AddWidgetDropdown
+                  hasEditAccess={hasEditAccess}
+                  onAddWidget={onAddWidget}
+                  widgetLimitReached={widgetLimitReached}
+                />
+              )}
+              {showEditAccess && (
+                <EditAccessSelector
+                  dashboard={dashboard}
+                  onChangeEditAccess={onChangeEditAccess}
+                />
+              )}
+            </ButtonBar>
+          </ActionBarLayout>
+        );
+      }}
+    </DashboardEditFeature>
   );
 }
 
