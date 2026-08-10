@@ -1,6 +1,6 @@
 import {useEffect} from 'react';
 import * as Sentry from '@sentry/react';
-import {mutationOptions} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
@@ -12,9 +12,8 @@ import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {Project} from 'sentry/types/project';
-import {fetchMutation} from 'sentry/utils/queryClient';
+import {makeDetailedProjectApiOptions} from 'sentry/utils/project/useDetailedProject';
+import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
@@ -33,6 +32,19 @@ export default function ProjectUserFeedback() {
   const {project} = useProjectSettingsOutlet();
   const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
   const hasAiEnabled = areAiFeaturesAllowed;
+
+  // Read field values from the detailed-project query cache so AutoSaveForm's
+  // post-success reset re-seeds from the saved server value, not the stale
+  // outlet snapshot from first render.
+  const detailedProjectQueryOptions = makeDetailedProjectApiOptions({
+    orgSlug: organization.slug,
+    projectSlug: project.slug,
+  });
+  const {data: currentProject = project} = useQuery({
+    ...detailedProjectQueryOptions,
+    initialData: {headers: {}, json: project},
+  });
+  const updateProject = useUpdateProject(project);
 
   const handleClick = () => {
     Sentry.showReportDialog({
@@ -63,17 +75,12 @@ export default function ProjectUserFeedback() {
     };
   }, []);
 
-  const projectMutationOptions = mutationOptions({
+  const projectMutationOptions = {
     mutationFn: (data: Partial<UserFeedbackSchema>) =>
-      fetchMutation<Project>({
-        url: `/projects/${organization.slug}/${project.slug}/`,
-        method: 'PUT',
-        data: {options: data},
-      }),
-    onSuccess: (response: Project) => ProjectsStore.onUpdateSuccess(response),
-  });
+      updateProject.mutateAsync({options: data}),
+  };
 
-  const options = project.options ?? {};
+  const options = currentProject.options ?? {};
 
   return (
     <FormSearch route="/settings/:orgId/projects/:projectId/user-feedback/">
