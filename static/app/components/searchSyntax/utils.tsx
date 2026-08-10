@@ -352,7 +352,7 @@ export function stringifyToken(token: TokenResult<Token>): string {
     case Token.KEY_EXPLICIT_STRING_TAG:
       return `${token.prefix}[${stringifyToken(token.key)},string]`;
     case Token.KEY_EXPLICIT_ARRAY_TAG:
-      return `${token.prefix}[${stringifyToken(token.key)},array]`;
+      return `${token.prefix}[${stringifyToken(token.key)},array][*]`;
     case Token.KEY_EXPLICIT_FLAG:
       return `flags[${stringifyToken(token.key)}]`;
     case Token.KEY_EXPLICIT_NUMBER_FLAG:

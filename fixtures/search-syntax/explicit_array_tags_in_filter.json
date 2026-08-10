@@ -1,6 +1,6 @@
 [
   {
-    "query": "tags[fruit,array]:[apple, pear]",
+    "query": "tags[fruit,array][*]:[apple, pear]",
     "result": [
       {"type": "spaces", "value": ""},
       {

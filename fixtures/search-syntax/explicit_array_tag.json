@@ -1,6 +1,6 @@
 [
   {
-    "query": "tags[fruit,array]:apple release:1.2.1 tags[project_id,array]:123",
+    "query": "tags[fruit,array][*]:apple release:1.2.1 tags[project_id,array][*]:123",
     "result": [
       {"type": "spaces", "value": ""},
       {

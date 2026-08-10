@@ -303,7 +303,7 @@ explicit_boolean_tag_key
     }
 
 explicit_array_tag_key
-  = prefix:"tags" open_bracket key:escaped_key spaces comma spaces 'array' closed_bracket {
+  = prefix:"tags" open_bracket key:escaped_key spaces comma spaces 'array' closed_bracket open_bracket "*" closed_bracket {
       return tc.tokenKeyExplicitArrayTag(prefix, key)
     }
 
