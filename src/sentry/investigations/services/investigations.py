@@ -37,6 +37,9 @@ from sentry.models.project import Project
 UPDATABLE_INVESTIGATION_FIELDS = frozenset({"title", "status", "filters"})
 
 
+BLOCK_EXECUTION_INPUT_FIELDS = frozenset({"content", "prompt", "config"})
+
+
 class InvestigationServiceError(Exception):
     pass
 
@@ -534,11 +537,17 @@ def update_block(
             raise InvestigationValidationError({"detail": "Archived investigations are read-only."})
         if locked.version != expected_block_version:
             raise InvestigationConflictError("Block has changed.")
-        stale_fields = {"content", "prompt", "config"}
-        inputs_changed = bool(stale_fields.intersection(values))
+
+        changed_values = {
+            field: value for field, value in values.items() if getattr(locked, field) != value
+        }
+        if not changed_values:
+            return locked
+
+        inputs_changed = bool(BLOCK_EXECUTION_INPUT_FIELDS.intersection(changed_values))
         if inputs_changed:
             locked.stale_at = timezone.now()
-        for field, value in values.items():
+        for field, value in changed_values.items():
             setattr(locked, field, value)
         locked.last_edited_by_id = user_id
         locked.version += 1

@@ -106,6 +106,57 @@ class InvestigationBlockEndpointTest(APITestCase):
         block.refresh_from_db()
         assert block.content == ""
 
+    def test_update_rejects_version_only_payload_without_changes(self) -> None:
+        block = self.create_investigation_block(investigation=self.investigation)
+        original_investigation_version = self.investigation.version
+        original_block_version = block.version
+
+        response = self.client.put(
+            self.block_url(block),
+            data={
+                "investigationVersion": original_investigation_version,
+                "version": original_block_version,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert "detail" in response.data
+        block.refresh_from_db()
+        self.investigation.refresh_from_db()
+        assert block.version == original_block_version
+        assert self.investigation.version == original_investigation_version
+
+    def test_update_with_identical_values_does_not_change_versions_or_metadata(self) -> None:
+        original_editor = self.create_user()
+        block = self.create_investigation_block(
+            investigation=self.investigation,
+            content="unchanged",
+            last_edited_by_id=original_editor.id,
+        )
+        original_investigation_version = self.investigation.version
+        original_block_version = block.version
+        original_date_updated = block.date_updated
+
+        response = self.client.put(
+            self.block_url(block),
+            data={
+                "investigationVersion": original_investigation_version,
+                "version": original_block_version,
+                "content": "unchanged",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200
+        block.refresh_from_db()
+        self.investigation.refresh_from_db()
+        assert block.version == original_block_version
+        assert block.date_updated == original_date_updated
+        assert block.last_edited_by_id == original_editor.id
+        assert block.stale_at is None
+        assert self.investigation.version == original_investigation_version
+
     def test_block_update_rejects_server_owned_and_immutable_fields(self) -> None:
         block = self.create_investigation_block(
             investigation=self.investigation, kind="query", display={"type": "table"}
