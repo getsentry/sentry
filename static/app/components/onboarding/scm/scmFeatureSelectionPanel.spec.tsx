@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
@@ -73,8 +73,8 @@ describe('ScmFeatureSelectionPanel', () => {
     expect(screen.queryByText('5,000 errors / mo')).not.toBeInTheDocument();
   });
 
-  it('prompts for a platform without showing cards in project creation', async () => {
-    render(
+  it('reveals the cards once a platform with products is chosen', async () => {
+    const {rerender} = render(
       <ScmFeatureSelectionPanel
         {...defaultProps({
           analyticsFlow: 'project-creation',
@@ -88,21 +88,6 @@ describe('ScmFeatureSelectionPanel', () => {
     expect(
       screen.getByText('Select a platform to configure products')
     ).toBeInTheDocument();
-    expect(screen.queryByRole('checkbox', {name: /Tracing/})).not.toBeInTheDocument();
-  });
-
-  it('reveals the cards once a platform with products is chosen', async () => {
-    const {rerender} = render(
-      <ScmFeatureSelectionPanel
-        {...defaultProps({
-          analyticsFlow: 'project-creation',
-          selectedPlatform: undefined,
-        })}
-      />,
-      {organization}
-    );
-
-    expect(await screen.findByText('Products')).toBeInTheDocument();
     expect(screen.queryByRole('checkbox', {name: /Tracing/})).not.toBeInTheDocument();
 
     rerender(
@@ -120,19 +105,32 @@ describe('ScmFeatureSelectionPanel', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('drops the section and its trailing divider for a platform with no products', () => {
-    render(
+  it('drops the section and its trailing divider for a platform with no products', async () => {
+    const {rerender} = render(
       <ScmFeatureSelectionPanel
         {...defaultProps({
           analyticsFlow: 'project-creation',
-          selectedPlatform: platformWithoutProducts,
+          selectedPlatform: pythonPlatform,
           trailing: <div>Trailing divider</div>,
         })}
       />,
       {organization}
     );
 
-    expect(screen.queryByText('Products')).not.toBeInTheDocument();
+    expect(await screen.findByText('Products')).toBeInTheDocument();
+    expect(screen.getByText('Trailing divider')).toBeInTheDocument();
+
+    rerender(
+      <ScmFeatureSelectionPanel
+        {...defaultProps({
+          analyticsFlow: 'project-creation',
+          selectedPlatform: platformWithoutProducts,
+          trailing: <div>Trailing divider</div>,
+        })}
+      />
+    );
+
+    await waitForElementToBeRemoved(() => screen.queryByText('Products'));
     expect(screen.queryByText('Trailing divider')).not.toBeInTheDocument();
   });
 });

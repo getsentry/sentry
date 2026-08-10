@@ -196,7 +196,6 @@ export function ScmFeatureSelectionPanel({
   }
 
   // Project creation keeps the section open for the select-a-platform prompt.
-  // Otherwise, the reveal follows the availability of feature cards.
   const showSection = hasFeatureCards || (!isOnboarding && !currentPlatformKey);
 
   return (
