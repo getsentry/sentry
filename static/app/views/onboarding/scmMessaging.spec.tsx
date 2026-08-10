@@ -11,30 +11,51 @@ import {
 } from 'sentry/components/onboarding/onboardingContext';
 import type {ScmMessagingSetup} from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
-import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 import {ScmMessaging} from './scmMessaging';
 
-const selectedPlatform: OnboardingSelectedSDK = {
+const selectedPlatform = {
   key: 'javascript-nextjs',
   name: 'Next.js',
   language: 'javascript',
   type: 'framework',
   link: null,
   category: 'browser',
-};
+} as const;
 
+// Slack: channelId = real Slack channel ID, actionTarget = display name
+// (Slack alert rules address by name), channelName = display name (also
+// the channel-validate param for Slack).
 const selectedMessagingSetup: ScmMessagingSetup = {
   mode: 'selected',
   providerKey: 'slack',
   integrationId: '15',
   channelId: 'C123',
+  actionTarget: '#alerts',
+  channelName: '#alerts',
 };
+
+function mockIntegration(
+  overrides?: Partial<Parameters<typeof OrganizationIntegrationsFixture>[0]>
+) {
+  return MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/integrations/15/',
+    body: OrganizationIntegrationsFixture({id: '15', ...overrides}),
+  });
+}
+
+function mockChannelValidate(valid: boolean, channel = '#alerts') {
+  return MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/integrations/15/channel-validate/',
+    body: {valid},
+    match: [MockApiClient.matchQuery({channel})],
+  });
+}
 
 function renderMessaging(
   onMessagingSetupChange = jest.fn(),
-  messagingSetup = selectedMessagingSetup
+  messagingSetup: ScmMessagingSetup = selectedMessagingSetup
 ) {
   return render(
     <ScmMessaging
@@ -54,27 +75,16 @@ describe('ScmMessaging', () => {
   });
 
   it('revalidates a restored destination before showing it as selected', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/integrations/15/',
-      body: OrganizationIntegrationsFixture({id: '15'}),
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/integrations/15/channels/',
-      body: {
-        results: [{id: 'C123', name: 'alerts', display: '#alerts', type: 'text'}],
-      },
-    });
+    mockIntegration();
+    mockChannelValidate(true);
     const onMessagingSetupChange = jest.fn();
 
     renderMessaging(onMessagingSetupChange);
 
     expect(await screen.findByText('Destination selected')).toBeInTheDocument();
-    await waitFor(() => {
-      expect(onMessagingSetupChange).toHaveBeenCalledWith({
-        ...selectedMessagingSetup,
-        channelName: '#alerts',
-      });
-    });
+    // channelName is now required at selection time, so the hook has nothing
+    // to propagate back via onMessagingSetupChange once validation passes.
+    expect(onMessagingSetupChange).not.toHaveBeenCalled();
   });
 
   it('clears a missing integration with an explanation', async () => {
@@ -96,13 +106,7 @@ describe('ScmMessaging', () => {
   });
 
   it('clears an inactive integration with an explanation', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/integrations/15/',
-      body: OrganizationIntegrationsFixture({
-        id: '15',
-        organizationIntegrationStatus: 'disabled',
-      }),
-    });
+    mockIntegration({organizationIntegrationStatus: 'disabled'});
     const onMessagingSetupChange = jest.fn();
 
     renderMessaging(onMessagingSetupChange);
@@ -118,14 +122,8 @@ describe('ScmMessaging', () => {
 
   it('clears the stale channel warning once a refetch resolves the channel', async () => {
     const queryClient = makeTestQueryClient();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/integrations/15/',
-      body: OrganizationIntegrationsFixture({id: '15'}),
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/integrations/15/channels/',
-      body: {results: [{id: 'C999', name: 'general', display: '#general'}]},
-    });
+    mockIntegration();
+    mockChannelValidate(false);
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -142,29 +140,24 @@ describe('ScmMessaging', () => {
 
     // The saved destination itself never changes here, so the reference-change
     // effect cannot be what clears the warning.
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/integrations/15/channels/',
-      body: {results: [{id: 'C123', name: 'alerts', display: '#alerts'}]},
-    });
+    mockChannelValidate(true);
     await queryClient.invalidateQueries();
 
     expect(await screen.findByText('Destination selected')).toBeInTheDocument();
     expect(screen.queryByText(warning)).not.toBeInTheDocument();
   });
 
-  it('keeps an omitted channel while it cannot verify a complete list', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/integrations/15/',
-      body: OrganizationIntegrationsFixture({id: '15'}),
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/integrations/15/channels/',
-      body: {results: [{id: 'C999', name: 'general', display: '#general'}]},
-    });
+  it('marks the channel stale without resetting session state when channel-validate returns false', async () => {
+    // channel-validate/ returns false for both a missing channel and an upstream
+    // API error, so a false response is confirm-only: it marks the channel as
+    // unverifiable but does not reset the selection to unconfigured.
+    mockIntegration();
+    const validateRequest = mockChannelValidate(false);
     const onMessagingSetupChange = jest.fn();
 
     renderMessaging(onMessagingSetupChange);
 
+    await waitFor(() => expect(validateRequest).toHaveBeenCalled());
     expect(
       await screen.findByText(
         "We couldn't verify the saved channel. Choose a destination again."
@@ -174,39 +167,37 @@ describe('ScmMessaging', () => {
     expect(screen.queryByText('Destination selected')).not.toBeInTheDocument();
   });
 
-  it('keeps the saved destination when the channel list comes back empty', async () => {
+  it('uses channel ID as the channel-validate param for Discord', async () => {
+    const discordSetup: ScmMessagingSetup = {
+      mode: 'selected',
+      providerKey: 'discord',
+      integrationId: '15',
+      channelId: '1234567890',
+      actionTarget: '1234567890',
+      channelName: '#dev-alerts',
+    };
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/15/',
-      body: OrganizationIntegrationsFixture({id: '15'}),
+      body: OrganizationIntegrationsFixture({
+        id: '15',
+        provider: {key: 'discord'} as any,
+      }),
     });
-    // Every provider helper returns [] when the upstream API fails, so an empty
-    // list is indistinguishable from an outage and must not discard the
-    // selection. It stays non-submittable rather than being reset.
-    const channelsRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/integrations/15/channels/',
-      body: {results: []},
-    });
-    const onMessagingSetupChange = jest.fn();
-
-    renderMessaging(onMessagingSetupChange);
-
-    await waitFor(() => {
-      expect(channelsRequest).toHaveBeenCalled();
+    // Discord channel-validate takes the numeric channel ID, not the display name.
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/15/channel-validate/',
+      body: {valid: true},
+      match: [MockApiClient.matchQuery({channel: '1234567890'})],
     });
 
-    expect(onMessagingSetupChange).not.toHaveBeenCalled();
-    expect(screen.queryByText('Destination selected')).not.toBeInTheDocument();
-    expect(
-      screen.queryByText(
-        "We couldn't verify the saved channel. Choose a destination again."
-      )
-    ).not.toBeInTheDocument();
+    renderMessaging(jest.fn(), discordSetup);
+
+    expect(await screen.findByText('Destination selected')).toBeInTheDocument();
   });
 
   it('does not trust a cached destination while revalidating it', async () => {
     const queryClient = makeTestQueryClient();
     const integration = OrganizationIntegrationsFixture({id: '15'});
-    const channel = {id: 'C123', name: 'alerts', display: '#alerts', type: 'text'};
     const integrationOptions = apiOptions.as<OrganizationIntegration>()(
       '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
       {
@@ -214,10 +205,11 @@ describe('ScmMessaging', () => {
         staleTime: 0,
       }
     );
-    const channelsOptions = apiOptions.as<{results: Array<typeof channel>}>()(
-      '/organizations/$organizationIdOrSlug/integrations/$integrationId/channels/',
+    const validateOptions = apiOptions.as<{valid: boolean}>()(
+      '/organizations/$organizationIdOrSlug/integrations/$integrationId/channel-validate/',
       {
         path: {organizationIdOrSlug: 'org-slug', integrationId: '15'},
+        query: {channel: '#alerts'},
         staleTime: 0,
       }
     );
@@ -225,18 +217,16 @@ describe('ScmMessaging', () => {
       json: integration,
       headers: {},
     });
-    queryClient.setQueryData(channelsOptions.queryKey, {
-      json: {results: [channel]},
+    queryClient.setQueryData(validateOptions.queryKey, {
+      json: {valid: true},
       headers: {},
     });
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/15/',
       statusCode: 404,
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/integrations/15/channels/',
-      body: {results: [channel]},
-    });
+    mockChannelValidate(true);
     const onMessagingSetupChange = jest.fn();
 
     render(
@@ -260,14 +250,8 @@ describe('ScmMessaging', () => {
   });
 
   it('keeps the stale channel warning across unrelated context updates', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/integrations/15/',
-      body: OrganizationIntegrationsFixture({id: '15'}),
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/integrations/15/channels/',
-      body: {results: [{id: 'C999', name: 'general', display: '#general'}]},
-    });
+    mockIntegration();
+    mockChannelValidate(false);
 
     function Harness() {
       const {messagingSetup, setMessagingSetup, setSelectedPlatform} =
@@ -302,14 +286,8 @@ describe('ScmMessaging', () => {
   });
 
   it('keeps the stale channel warning when the messagingSetup reference changes', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/integrations/15/',
-      body: OrganizationIntegrationsFixture({id: '15'}),
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/integrations/15/channels/',
-      body: {results: [{id: 'C999', name: 'general', display: '#general'}]},
-    });
+    mockIntegration();
+    mockChannelValidate(false);
 
     function Harness() {
       const [messagingSetup, setMessagingSetup] = useState(selectedMessagingSetup);

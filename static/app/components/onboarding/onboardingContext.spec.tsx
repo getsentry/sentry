@@ -24,6 +24,8 @@ const selectedMessagingSetup = {
   providerKey: 'slack',
   integrationId: '15',
   channelId: 'C123',
+  actionTarget: '#alerts',
+  channelName: '#alerts',
 } as const satisfies ScmMessagingSetup;
 
 function StateConsumer() {
@@ -138,6 +140,8 @@ describe('OnboardingContextProvider', () => {
           providerKey: 'discord',
           integrationId: '20',
           channelId: '123456789',
+          actionTarget: '123456789',
+          channelName: '#dev-alerts',
         },
       })
     );
