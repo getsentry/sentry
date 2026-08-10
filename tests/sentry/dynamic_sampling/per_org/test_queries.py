@@ -361,6 +361,21 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
             "organization_id": organization.id
         }
 
+    def test_get_outcomes_organization_volume_covers_the_requested_window(self) -> None:
+        organization = self.create_organization()
+        config = self.get_config(organization)
+        end = before_now(minutes=90).replace(minute=26, second=37, microsecond=0)
+
+        with patch(RUN_OUTCOMES_QUERY, return_value=[{"quantity": 10}]) as run_outcomes_query:
+            for time_interval in (timedelta(hours=24), timedelta(minutes=5)):
+                get_outcomes_organization_volume(config, time_interval=time_interval, end=end)
+
+                # The window is widened outwards to whole intervals, so an unaligned end would
+                # cover up to one resolution step more than was asked for: 25 hours, or a whole
+                # hour for the 5-minute window.
+                query = run_outcomes_query.call_args.args[0]
+                assert query.end - query.start == time_interval
+
     def test_get_outcomes_organization_volume_without_traffic(self) -> None:
         organization = self.create_organization()
 

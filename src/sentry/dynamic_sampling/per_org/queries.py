@@ -172,15 +172,25 @@ def get_outcomes_organization_volume(
     end: datetime | None = None,
 ) -> OrganizationDataVolume | None:
     end_time = end or datetime.now(UTC)
+
+    # The outcomes query widens its window outwards to whole intervals. Minute resolution
+    # keeps a short window from covering a whole hour, but it cannot be used throughout: it is
+    # capped at MAX_POINTS intervals, which a 24-hour window is rejected for. The end is
+    # truncated to the resolution so that nothing is widened and the window covers the
+    # interval that was asked for, rather than up to one resolution step more.
+    if time_interval >= timedelta(hours=1):
+        interval = "1h"
+        end_time = end_time.replace(minute=0, second=0, microsecond=0)
+    else:
+        interval = "1m"
+        end_time = end_time.replace(second=0, microsecond=0)
     start_time = end_time - time_interval
 
     query = QueryDefinition(
         fields=["sum(quantity)"],
         start=start_time.isoformat(),
         end=end_time.isoformat(),
-        # The window is widened outwards to whole intervals, so anything shorter than an hour
-        # has to ask for minute resolution or it would cover a whole hour.
-        interval="1h" if time_interval >= timedelta(hours=1) else "1m",
+        interval=interval,
         organization_id=config.organization.id,
         project_ids=[project.id for project in config.projects],
         outcome=["accepted"],
