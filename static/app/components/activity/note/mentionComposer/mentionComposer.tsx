@@ -147,18 +147,26 @@ function MentionIdentity({suggestion}: {suggestion: MentionEntity}) {
 }
 
 function getMentionLabel(suggestion: MentionEntity): string {
-  return suggestion.kind === 'member'
-    ? suggestion.user.name ||
+  switch (suggestion.kind) {
+    case 'member':
+      return (
+        suggestion.user.name ||
         suggestion.user.email ||
         suggestion.user.username ||
         suggestion.user.id
-    : `#${suggestion.team.slug}`;
+      );
+    case 'team':
+      return `#${suggestion.team.slug}`;
+  }
 }
 
 function getMentionId(suggestion: MentionEntity): string {
-  return suggestion.kind === 'member'
-    ? `user:${suggestion.user.id}`
-    : `team:${suggestion.team.id}`;
+  switch (suggestion.kind) {
+    case 'member':
+      return `user:${suggestion.user.id}`;
+    case 'team':
+      return `team:${suggestion.team.id}`;
+  }
 }
 
 function getMemberUsers(response: ApiResponse<Member[]> | User[]): User[] {
