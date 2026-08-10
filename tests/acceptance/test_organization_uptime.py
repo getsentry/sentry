@@ -9,7 +9,7 @@ from sentry.testutils.silo import no_silo_test
 class OrganizationUptimeTest(AcceptanceTestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.uptime_path = f"/organizations/{self.organization.slug}/insights/uptime/"
+        self.uptime_path = f"/organizations/{self.organization.slug}/monitors/uptime/"
         self.team = self.create_team(organization=self.organization, name="Uptime Team")
 
         self.project = self.create_project(
@@ -37,11 +37,11 @@ class OrganizationUptimeTest(AcceptanceTestCase):
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
         # Verify we're on the empty state
-        self.browser.wait_until(xpath="//*[text()='The selected projects have no uptime monitors']")
+        self.browser.wait_until(xpath="//*[text()='No monitors found.']")
 
-        # Step 2: Click "Add Uptime Monitor". This redirects to the new monitor
-        # creation flow with the uptime detector type preselected.
-        self.browser.click_when_visible("a[aria-label='Add Uptime Monitor']")
+        # Step 2: Click "Create Monitor". The uptime detector type is preselected
+        # via the link's detectorType query param.
+        self.browser.click_when_visible(xpath="//a[normalize-space()='Create Monitor']")
 
         # Step 3: Detector type selection (step 1 of 2). Uptime is preselected via
         # the redirect's detectorType query param, so continue to the settings step.
@@ -92,7 +92,7 @@ class OrganizationUptimeTest(AcceptanceTestCase):
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
         # Verify the monitor is visible in the list
-        self.browser.wait_until(xpath="//h3[contains(text(), 'My Awesome Monitor')]")
+        self.browser.wait_until(xpath="//*[contains(text(), 'My Awesome Monitor')]")
 
         # Open the monitor details page
         self.browser.get(self._monitor_details_path(detector.id))

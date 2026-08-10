@@ -6,8 +6,15 @@ from sentry.models.pullrequest import (
     PullRequestAttribution,
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
+    PullRequestLifecycleState,
 )
-from sentry.seer.models.run import SeerRun, SeerRunPullRequest, SeerRunType
+from sentry.seer.models.run import (
+    SeerRun,
+    SeerRunMilestone,
+    SeerRunMilestoneType,
+    SeerRunPullRequest,
+    SeerRunType,
+)
 from sentry.seer.pull_requests import link_seer_run_pull_requests, notify_seer_pr_created
 from sentry.seer.sentry_data_models import (
     NotifySeerPrCreatedErrorResponse,
@@ -63,6 +70,47 @@ class LinkSeerRunPullRequestsTest(TestCase):
         link = SeerRunPullRequest.objects.get(pull_request=pull_request)
         assert link.seer_run_id == self.seer_run.id
         assert list(self.seer_run.pull_requests) == [pull_request]
+
+    def test_records_milestone_when_merged_pull_request_is_linked(self) -> None:
+        pull_request = self.create_pull_request(
+            repository_id=self.repo.id,
+            organization_id=self.organization.id,
+            key="42",
+        )
+        pull_request.update(state=PullRequestLifecycleState.MERGED)
+
+        self._link(self._payload())
+
+        assert SeerRunMilestone.objects.filter(
+            seer_run=self.seer_run,
+            milestone=SeerRunMilestoneType.PULL_REQUESTS_MERGED,
+        ).exists()
+
+    def test_removes_milestone_when_open_pull_request_is_linked(self) -> None:
+        merged_pull_request = self.create_pull_request(
+            repository_id=self.repo.id,
+            organization_id=self.organization.id,
+            key="42",
+        )
+        merged_pull_request.update(state=PullRequestLifecycleState.MERGED)
+        self._link(self._payload())
+        assert SeerRunMilestone.objects.filter(
+            seer_run=self.seer_run,
+            milestone=SeerRunMilestoneType.PULL_REQUESTS_MERGED,
+        ).exists()
+
+        open_pull_request = self.create_pull_request(
+            repository_id=self.repo.id,
+            organization_id=self.organization.id,
+            key="43",
+        )
+        open_pull_request.update(state=PullRequestLifecycleState.OPEN)
+        self._link(self._payload(pr_number=43))
+
+        assert not SeerRunMilestone.objects.filter(
+            seer_run=self.seer_run,
+            milestone=SeerRunMilestoneType.PULL_REQUESTS_MERGED,
+        ).exists()
 
     def test_first_run_keeps_pull_request(self) -> None:
         self._link(self._payload())

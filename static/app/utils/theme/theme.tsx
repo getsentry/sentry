@@ -649,11 +649,13 @@ function makeChartColorPalette<T extends ChartColorPalette>(
     length: Length | number | 'all'
   ): T[Length] {
     if (length === 'all') {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       return palette.at(-1) as unknown as T[Length];
     }
     // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
     // the palette is not sparse, but we should probably add a runtime check here as well.
     const index = Math.max(0, Math.min(palette.length - 1, length));
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     return palette[index] as unknown as T[Length];
   };
 }

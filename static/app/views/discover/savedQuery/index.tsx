@@ -133,7 +133,7 @@ type Props = {
   isHomepage?: boolean;
 };
 
-const SavedQueryButtonGroup = memo(function SavedQueryButtonGroup({
+const SavedQueryButtonGroup = memo(function SavedQueryButtonGroupImpl({
   disabled = false,
   organization,
 }: Props) {

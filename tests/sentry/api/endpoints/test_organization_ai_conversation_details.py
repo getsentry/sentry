@@ -20,6 +20,20 @@ from .test_organization_ai_conversations_base import BaseAIConversationsTestCase
 class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase):
     view = "sentry-api-0-organization-ai-conversation-details"
 
+    def test_agents_conversation_details_url(self) -> None:
+        conversation_id = "123"
+
+        assert (
+            reverse(
+                "sentry-api-0-organization-agent-conversation-details",
+                kwargs={
+                    "organization_id_or_slug": self.organization.slug,
+                    "conversation_id": conversation_id,
+                },
+            )
+            == f"/api/0/organizations/{self.organization.slug}/agents/conversations/{conversation_id}/"
+        )
+
     def do_request(self, conversation_id, query=None, features=None, **kwargs):
         if features is None:
             features = ["organizations:gen-ai-conversations"]

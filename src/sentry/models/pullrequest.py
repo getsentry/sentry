@@ -301,6 +301,11 @@ class PullRequest(Model):
     head_commit_sha = models.CharField(max_length=64, null=True)
     draft = models.BooleanField(null=True)
 
+    # GitHub ``pull_request.updated_at``, GitLab ``object_attributes.updated_at``.
+    # The high-water mark the SCM webhook handlers compare an incoming payload
+    # against, to drop one that describes an older state than the row already holds.
+    provider_updated_at = models.DateTimeField(null=True)
+
     objects: ClassVar[PullRequestManager] = PullRequestManager()
 
     class Meta:
@@ -526,6 +531,10 @@ class PullRequestActivityLog(DefaultFieldsModel):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_pullrequest_activity_log"
+        # Both retention paths age documents by last write: the cleanup command's
+        # entry for this model and ``sweep_unattributed_pr_activity``. Neither can
+        # afford a sequential scan of a table that carries a row per PR.
+        indexes = (models.Index(fields=["date_updated"]),)
 
     __repr__ = sane_repr("pull_request_id")
 

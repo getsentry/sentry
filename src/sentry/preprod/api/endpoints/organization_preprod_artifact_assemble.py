@@ -4,6 +4,7 @@ from typing import Any
 
 import jsonschema
 import orjson
+from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -12,6 +13,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.conf.types.sentry_config import SentryMode
 from sentry.debug_files.upload import find_missing_chunks
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
@@ -139,6 +141,12 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
         """
         Assembles a preprod artifact (mobile build, etc.) and stores it in the database.
         """
+
+        if settings.SENTRY_MODE == SentryMode.SINGLE_TENANT:
+            return Response(
+                {"detail": "Size analysis uploads are not enabled for this organization."},
+                status=403,
+            )
 
         analytics.record(
             PreprodArtifactApiAssembleEvent(

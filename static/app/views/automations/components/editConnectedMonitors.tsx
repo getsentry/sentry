@@ -8,7 +8,7 @@ import {useDrawer} from '@sentry/scraps/drawer';
 import {DrawerHeader} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
-import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
+import {RadioGroup, type RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import {SentryProjectSelectorField} from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import {FormContext} from 'sentry/components/forms/formContext';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -21,6 +21,7 @@ import {IconAdd, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
@@ -29,13 +30,14 @@ import {useConnectedDetectors} from 'sentry/views/automations/hooks/useConnected
 import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
 import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
+import {useCanEditDetectorWorkflowConnections} from 'sentry/views/detectors/utils/useCanEditDetector';
 
 const PROJECT_GROUPS = [
   {key: 'member', label: t('My Projects')},
   {key: 'all', label: t('Other')},
 ];
 
-type MonitorMode = 'project' | 'specific';
+type MonitorMode = 'allProjects' | 'project' | 'specific';
 
 interface Props {
   connectedIds: Automation['detectorIds'];
@@ -47,6 +49,10 @@ interface ContentProps extends Props {
 }
 
 function getInitialMonitorMode(connectedDetectors: Detector[]): MonitorMode {
+  if (connectedDetectors.some(d => d.type === 'issue_stream' && d.projectId === null)) {
+    return 'allProjects';
+  }
+
   if (
     !connectedDetectors.length ||
     connectedDetectors.every(d => d.type === 'issue_stream')
@@ -295,14 +301,19 @@ function EditConnectedMonitorsContent({
   const [monitorMode, setMonitorMode] = useState<MonitorMode>(initialMode);
   const {form} = useContext(FormContext);
   const errorContext = useContext(AutomationBuilderErrorContext);
+  const organization = useOrganization();
 
   const handleModeChange = useCallback(
     (newMode: MonitorMode) => {
       setMonitorMode(newMode);
       setConnectedIds([]);
       form?.setValue('projectIds', []);
+      form?.setValue('allProjects', newMode === 'allProjects');
+      if (newMode === 'allProjects') {
+        errorContext?.removeError(CONNECTED_MONITORS_ERROR_ID);
+      }
     },
-    [form, setConnectedIds]
+    [errorContext, form, setConnectedIds]
   );
   const handleProjectChange = useCallback(
     (projectIds: string[]) => {
@@ -325,6 +336,25 @@ function EditConnectedMonitorsContent({
     [setConnectedIds, errorContext]
   );
 
+  const canEditAllProjects = useCanEditDetectorWorkflowConnections({projectId: null});
+
+  const monitorModeChoices: Array<RadioOption<MonitorMode>> = [
+    ['project', t('Alert on all issues in selected projects')],
+    ['specific', t('Alert on specific monitors')],
+  ];
+
+  const disabledChoices: Array<[MonitorMode, React.ReactNode?]> = [];
+  if (organization.features.includes('workflow-engine-all-projects-detector')) {
+    monitorModeChoices.push(['allProjects', t('Alert on all issues in all projects')]);
+
+    if (!canEditAllProjects) {
+      disabledChoices.push([
+        'allProjects',
+        t('Only organization owners and managers can create global issue monitors.'),
+      ]);
+    }
+  }
+
   return (
     <WorkflowEngineContainer>
       <FormSection
@@ -337,20 +367,18 @@ function EditConnectedMonitorsContent({
           <RadioGroup
             label={t('Connected monitors mode')}
             value={monitorMode}
-            choices={[
-              ['project', t('Alert on all issues in selected projects')],
-              ['specific', t('Alert on specific monitors')],
-            ]}
+            choices={monitorModeChoices}
+            disabledChoices={disabledChoices}
             onChange={handleModeChange}
           />
           {monitorMode === 'project' ? (
             <AllProjectIssuesSection onProjectChange={handleProjectChange} />
-          ) : (
+          ) : monitorMode === 'specific' ? (
             <SpecificMonitorsSection
               connectedIds={connectedIds}
               setConnectedIds={handleSetConnectedIds}
             />
-          )}
+          ) : null}
           {errorContext?.errors[CONNECTED_MONITORS_ERROR_ID] && (
             <Alert variant="danger">
               {errorContext.errors[CONNECTED_MONITORS_ERROR_ID]}
@@ -374,6 +402,11 @@ export function EditConnectedMonitors({connectedIds, setConnectedIds}: Props) {
     }
     setFirstLoad(false);
 
+    if (initialMode === 'allProjects') {
+      form?.setValue('allProjects', true);
+      return;
+    }
+
     if (initialMode !== 'project') {
       return;
     }
@@ -382,7 +415,8 @@ export function EditConnectedMonitors({connectedIds, setConnectedIds}: Props) {
     const selectedProjectIds =
       connectedDetectors
         ?.filter(detector => connectedIds.includes(detector.id))
-        .map(d => d.projectId) ?? [];
+        .map(d => d.projectId)
+        .filter(defined) ?? [];
     if (form && selectedProjectIds.length > 0) {
       form.setValue('projectIds', selectedProjectIds);
     }

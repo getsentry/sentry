@@ -1,5 +1,7 @@
 import {z} from 'zod';
 
+import {API_ACCESS_SCOPES} from 'sentry/constants/apiAccessScopes';
+
 const isoTimestampSchema = z.iso.datetime({offset: true});
 
 const chartSeriesDataSchema = z
@@ -201,9 +203,64 @@ export const SEER_EMBED_SCHEMAS = {
       },
     ],
   },
+  autofix: {
+    featureFlag: 'organizations:seer-agent-autofix',
+    description:
+      'Render one step of a Seer Autofix run (root cause, solution, or code ' +
+      'changes) as a collapsible block linking back to the issue. ' +
+      'Emit this embed whenever the user signals intent to fix, solve, ' +
+      'debug, or resolve a problem — e.g. "fix this issue", "solve the ' +
+      'problem", "find the root cause", "why is this happening", "how do I ' +
+      'resolve this error" — or asks for the status/result of an autofix ' +
+      'run already in progress. `id` and `shortId` are the issue the run ' +
+      'belongs to, exactly as the issue API returns them. `step` is the ' +
+      'autofix step identifier exactly as the autofix API reports it — the ' +
+      'UI renders the human-readable label, so do not send a display ' +
+      'string. `result` is the full markdown write-up for that step. ' +
+      'Prefer this embed over a plaintext explanation whenever an issue ' +
+      'can be autofixed, and emit one embed per step rather than ' +
+      'combining multiple steps into one.',
+    level: ['block'],
+    schema: z.object({
+      step: z.enum(['root_cause', 'solution', 'code_changes', 'pr_iteration']),
+      result: z.string(),
+      id: z.string(),
+      shortId: z.string(),
+    }),
+    examples: [
+      {
+        label: 'Root cause',
+        data: {
+          id: '1234567890',
+          shortId: 'EXMPL-123',
+          result:
+            'The root cause of the issue is that the code is not working correctly.',
+          step: 'root_cause' as const,
+        },
+      },
+    ],
+  },
 } as const satisfies Record<string, SeerEmbedSchema>;
 
-export type SeerEmbedName = keyof typeof SEER_EMBED_SCHEMAS;
+export const STRUCTURED_SEER_EMBED_SCHEMAS = {
+  agentWriteApproval: {
+    description: 'Request browser-session approval for Sentry API write scopes.',
+    level: ['block'],
+    schema: z.object({
+      inputId: z.string().uuid(),
+      requiredScopes: z.array(z.enum(API_ACCESS_SCOPES)).min(1),
+      sessionId: z.string().min(1),
+      status: z.enum(['pending', 'approved', 'rejected']),
+    }),
+  },
+} as const satisfies Record<string, SeerEmbedSchema>;
+
+export const ALL_SEER_EMBED_SCHEMAS = {
+  ...SEER_EMBED_SCHEMAS,
+  ...STRUCTURED_SEER_EMBED_SCHEMAS,
+};
+
+export type SeerEmbedName = keyof typeof ALL_SEER_EMBED_SCHEMAS;
 
 export function seerEmbedsToJsonSchemas(): Array<{
   body: Record<string, unknown>;
@@ -219,7 +276,7 @@ export function seerEmbedsToJsonSchemas(): Array<{
       name,
       description: def.description,
       level: [...def.level],
-      body: z.toJSONSchema(def.schema) as Record<string, unknown>,
+      body: z.toJSONSchema(def.schema),
       ...(def.examples && {
         examples: def.examples.map(e => ({label: e.label, data: e.data})),
       }),
