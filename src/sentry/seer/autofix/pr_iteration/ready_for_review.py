@@ -82,7 +82,10 @@ def _emit_ready_for_review_signal(ctx: GreenCheckSuiteContext) -> None:
 
     resolved = ctx.resolved
     try:
-        group = Group.objects.get(id=resolved.autofix_run.group_id)
+        group = Group.objects.get(
+            id=resolved.autofix_run.group_id,
+            project__organization_id=resolved.organization.id,
+        )
         emit_pr_ready_for_review(
             organization=resolved.organization,
             group=group,
