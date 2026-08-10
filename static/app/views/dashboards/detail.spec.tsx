@@ -687,6 +687,36 @@ describe('Dashboards > Detail', () => {
       expect(screen.queryByRole('menuitemradio', {name: 'Edit'})).not.toBeInTheDocument();
     });
 
+    it('shows access controls to org managers without dashboard edit access', async () => {
+      const pageFrameOrganization = OrganizationFixture({
+        slug: 'org-slug',
+        access: ['org:read', 'org:write'],
+        features: [...organization.features, 'ui-migration-breadcrumbs'],
+      });
+
+      render(
+        <TopBar.Slot.Provider>
+          <TopBar />
+          <DashboardDetail
+            initialState={DashboardState.VIEW}
+            dashboard={DashboardFixture([], {
+              id: '1',
+              createdBy: UserFixture({id: 'another-user'}),
+              permissions: {
+                isEditableByEveryone: false,
+                teamsWithEditAccess: [],
+              },
+              title: 'Restricted Dashboard',
+            })}
+            onDashboardUpdate={jest.fn()}
+          />
+        </TopBar.Slot.Provider>,
+        {organization: pageFrameOrganization}
+      );
+
+      expect(await screen.findByText('Editors:')).toBeVisible();
+    });
+
     it('renders the legacy dashboard breadcrumb in the top bar (flag off)', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',

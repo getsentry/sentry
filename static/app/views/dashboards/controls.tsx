@@ -502,7 +502,7 @@ export function DashboardActionBar({
     <DashboardEditFeature>
       {hasFeature => {
         const showAddWidget = hasFeature && !isPrebuiltDashboard && !hideAddWidget;
-        const showEditAccess = !isPrebuiltDashboard && hasEditAccess;
+        const showEditAccess = !isPrebuiltDashboard;
 
         if (!showAddWidget && !showEditAccess) {
           return null;
