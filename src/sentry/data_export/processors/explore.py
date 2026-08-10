@@ -45,8 +45,6 @@ SUPPORTED_TRACE_ITEM_DATASETS = {
     "tracemetrics": TraceMetrics,
 }
 
-# The wide JSONL export goes through Snuba's `EndpointExportTraceItems`, which has not been
-# verified against every trace item type, so it stays a subset of the datasets above.
 FULL_EXPORT_TRACE_ITEM_DATASETS = ("spans", "logs")
 
 DEFINITIONS_MAP = {
