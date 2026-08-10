@@ -15,6 +15,7 @@ import {selectEvent} from 'sentry-test/selectEvent';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Action} from 'sentry/types/workflowEngine/actions';
 import {ActionGroup, ActionType} from 'sentry/types/workflowEngine/actions';
@@ -37,6 +38,10 @@ describe('AutomationNewSettings', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     MockApiClient.clearMockResponses();
+
+    // useTeams (via the assignee selector) reads the organization from the store
+    OrganizationStore.init();
+    OrganizationStore.onUpdate(organization, {replace: true});
 
     // Available actions (include Slack with a default integration)
     MockApiClient.addMockResponse({
@@ -188,6 +193,13 @@ describe('AutomationNewSettings', () => {
       body: [mockMember],
     });
 
+    // Teams for the assignee selector
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      method: 'GET',
+      body: [],
+    });
+
     // Detectors list used by EditConnectedMonitors inside the form
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/detectors/`,
@@ -217,6 +229,9 @@ describe('AutomationNewSettings', () => {
         location: {pathname: '/', query: {connectedIds: '123'}},
       },
     });
+
+    // Select an assignee
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Assign'}), 'Moo Deng');
 
     // Add an action filter (tagged event)
     await selectEvent.select(
@@ -300,7 +315,7 @@ describe('AutomationNewSettings', () => {
             config: {frequency: 0},
             detectorIds: ['123'],
             enabled: true,
-            owner: null,
+            owner: 'user:1',
           },
         })
       )

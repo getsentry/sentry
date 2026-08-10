@@ -1,5 +1,6 @@
 import {ActionFilterFixture, AutomationFixture} from 'sentry-fixture/automations';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {
   render,
@@ -9,7 +10,9 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {selectEvent} from 'sentry-test/selectEvent';
 
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {DataConditionGroupLogicType} from 'sentry/types/workflowEngine/dataConditions';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useParams} from 'sentry/utils/useParams';
@@ -21,9 +24,27 @@ jest.mock('sentry/utils/analytics');
 describe('EditAutomation', () => {
   const automation = AutomationFixture();
   const organization = OrganizationFixture();
+  const team = TeamFixture({id: '2', slug: 'team-slug'});
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+
+    // useTeams (via the assignee selector) reads the organization from the store
+    OrganizationStore.init();
+    OrganizationStore.onUpdate(organization, {replace: true});
+
+    // Members and teams for the assignee selector
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/members/`,
+      method: 'GET',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      method: 'GET',
+      body: [team],
+    });
 
     // Mock the GET request to fetch automation data
     MockApiClient.addMockResponse({
@@ -220,5 +241,57 @@ describe('EditAutomation', () => {
         `/organizations/${organization.slug}/monitors/alerts/${automation.id}/`
       )
     );
+  });
+
+  it('updates the assignee', async () => {
+    const mockUpdateAutomation = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/workflows/${automation.id}/`,
+      method: 'PUT',
+      body: automation,
+    });
+
+    render(<AutomationEdit />, {organization});
+
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Assign'}),
+      `#${team.slug}`
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    await waitFor(() => {
+      expect(mockUpdateAutomation).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({owner: `team:${team.id}`}),
+        })
+      );
+    });
+  });
+
+  it('preserves the existing assignee when it is not edited', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/workflows/${automation.id}/`,
+      method: 'GET',
+      body: AutomationFixture({owner: `team:${team.id}`}),
+    });
+    const mockUpdateAutomation = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/workflows/${automation.id}/`,
+      method: 'PUT',
+      body: automation,
+    });
+
+    render(<AutomationEdit />, {organization});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
+
+    await waitFor(() => {
+      expect(mockUpdateAutomation).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({owner: `team:${team.id}`}),
+        })
+      );
+    });
   });
 });

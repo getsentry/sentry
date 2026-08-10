@@ -90,7 +90,7 @@ export function getNewAutomationData({
     },
     detectorIds: data.detectorIds,
     enabled: data.enabled,
-    owner: data.owner ?? null,
+    owner: data.owner,
   };
 }
 

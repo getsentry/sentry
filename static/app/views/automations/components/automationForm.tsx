@@ -12,6 +12,7 @@ import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {AutomationBuilder} from 'sentry/views/automations/components/automationBuilder';
 import {EditConnectedMonitors} from 'sentry/views/automations/components/editConnectedMonitors';
 import {ActionThrottleSelectField} from 'sentry/views/automations/components/forms/actionThrottleSelectField';
+import {AssigneeSelectorField} from 'sentry/views/automations/components/forms/assigneeSelectorField';
 import {useSetAutomaticAutomationName} from 'sentry/views/automations/components/forms/useSetAutomaticAutomationName';
 
 export function AutomationForm({model}: {model: FormModel}) {
@@ -37,6 +38,11 @@ export function AutomationForm({model}: {model: FormModel}) {
           description={t('Only get alerted on Issues from these environments.')}
         >
           <EnvironmentSelector />
+        </FormSection>
+      </Card>
+      <Card>
+        <FormSection title={t('Assignee')}>
+          <AssigneeSelectorField />
         </FormSection>
       </Card>
       <Card>
