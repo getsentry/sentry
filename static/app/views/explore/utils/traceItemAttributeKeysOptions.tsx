@@ -210,10 +210,7 @@ export function getTraceItemTagCollection(
         attributeSource: attribute.attributeSource?.source_type,
       };
     } else if (attributeType === 'array') {
-      // Array attributes are queried with the `[*]` membership suffix so the
-      // backend routes them through its array_includes filter
-      // (eg. `tags[foo,array][*]:value`). Bake the suffix into the key so the
-      // autocomplete inserts the syntax the events endpoint expects.
+      // (eg. `tags[foo,array][*]:value`).
       const arrayKey = `${attribute.key}[*]`;
       arrayAttributes[arrayKey] = {
         key: arrayKey,
