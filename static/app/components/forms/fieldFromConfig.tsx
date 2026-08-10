@@ -20,7 +20,7 @@ import {TableField, type TableFieldProps} from './fields/tableField';
 import {TextareaField, type TextareaFieldProps} from './fields/textareaField';
 import {TextField, type TextFieldProps} from './fields/textField';
 
-export interface FieldFromConfigProps {
+interface FieldFromConfigProps {
   field: Field;
   access?: Set<Scope>;
 
