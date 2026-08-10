@@ -345,13 +345,9 @@ function InternalInput({
     });
   }, [attributesFilter, builderFunctionArguments, getFieldDefinition]);
 
-  const attributeItems = useAttributeItems({
-    allowedAttributes,
-    filterValue,
-  });
+  const attributeItems = useAttributeItems(allowedAttributes);
 
   const items = useMemo(() => {
-    // If this is a dropdown parameter, use the predefined options
     if (parameterDefinition?.kind === 'value' && parameterDefinition.options) {
       return parameterDefinition.options
         .filter(
@@ -369,12 +365,14 @@ function InternalInput({
         }));
     }
 
+    // Remap labels (e.g. span.duration → spans for count), then filter
+    let result = attributeItems;
     if (
       parameterDefinition?.kind === 'column' &&
       parameterDefinition.defaultLabel &&
       parameterDefinition.defaultValue
     ) {
-      return attributeItems.map(item =>
+      result = result.map(item =>
         item.value === parameterDefinition.defaultValue
           ? {
               ...item,
@@ -385,7 +383,16 @@ function InternalInput({
       );
     }
 
-    return attributeItems;
+    if (filterValue) {
+      const lower = filterValue.toLowerCase();
+      result = result.filter(
+        item =>
+          item.value.includes(filterValue) ||
+          (item.textValue?.toLowerCase().includes(lower) ?? false)
+      );
+    }
+
+    return result;
   }, [parameterDefinition, filterValue, attributeItems]);
 
   const shouldCloseOnInteractOutside = useCallback((el: Element) => {
@@ -734,29 +741,18 @@ function InternalInput({
   );
 }
 
-function useAttributeItems({
-  allowedAttributes,
-  filterValue,
-}: {
-  allowedAttributes: FunctionArgument[];
-  filterValue: string;
-}): Array<SelectOptionWithKey<string>> {
-  // TODO: use a config
-  const attributes: Array<SelectOptionWithKey<string>> = useMemo(() => {
-    const items = filterValue
-      ? allowedAttributes.filter(attr => attr.name.includes(filterValue))
-      : allowedAttributes;
-
-    return items.map(item => ({
+function useAttributeItems(
+  allowedAttributes: FunctionArgument[]
+): Array<SelectOptionWithKey<string>> {
+  return useMemo(() => {
+    return allowedAttributes.map(item => ({
       key: item.name,
       label: item.label ?? item.name,
       value: item.name,
       textValue: item.name,
       hideCheck: true,
     }));
-  }, [allowedAttributes, filterValue]);
-
-  return attributes;
+  }, [allowedAttributes]);
 }
 
 const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
