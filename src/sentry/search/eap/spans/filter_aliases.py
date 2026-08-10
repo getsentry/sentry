@@ -108,14 +108,12 @@ def _semver_filter_query(
         # the limit, make an extra query and see whether the inverse has fewer ids.
         # If so, we can do a NOT IN query with these ids instead. Otherwise, we just
         # do our best.
-        negated_operator = constants.OPERATOR_NEGATION_MAP[operator]
+        operator = constants.OPERATOR_NEGATION_MAP[operator]
         # Note that the `order_by` here is important for index usage. Postgres seems
         # to seq scan with this query if the `order_by` isn't included, so we
         # include it even though we don't really care about order for this query
         qs_flipped = (
-            Release.objects.filter_by_semver(
-                organization_id, parse_semver(version, negated_operator)
-            )
+            Release.objects.filter_by_semver(organization_id, parse_semver(version, operator))
             .order_by(*map(_flip_field_sort, order_by))
             .values_list("version", flat=True)[: constants.MAX_SEARCH_RELEASES]
         )
