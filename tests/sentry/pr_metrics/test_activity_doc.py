@@ -81,18 +81,24 @@ def _suite(
     conclusion: str = "success",
     head_sha: str = "sha1",
     app_slug: str = "github-actions",
+    check_suite_id: int | None = 1,
     check_runs_count: int = 4,
     updated_at: str = "2026-07-10T12:00:00Z",
 ) -> None:
+    payload: dict[str, Any] = {
+        "conclusion": conclusion,
+        "app_slug": app_slug,
+        "check_runs_count": check_runs_count,
+        "head_sha": head_sha,
+    }
+    if check_suite_id is not None:
+        # Mirrors the write path: the suite id is merged into the doc payload only
+        # when the webhook carried one.
+        payload["check_suite_id"] = check_suite_id
     apply_activity(
         doc,
         event_type=PullRequestActivityType.CHECK_SUITE_COMPLETED,
-        payload={
-            "conclusion": conclusion,
-            "app_slug": app_slug,
-            "check_runs_count": check_runs_count,
-            "head_sha": head_sha,
-        },
+        payload=payload,
         ts="2026-07-10T12:00:00Z",
         provider_ts=updated_at,
     )
@@ -105,24 +111,38 @@ def _run(
     conclusion: str = "failure",
     head_sha: str = "sha1",
     app_slug: str = "github-actions",
+    check_suite_id: int | None = 1,
     completed_at: str = "2026-07-10T12:00:00Z",
 ) -> None:
+    payload: dict[str, Any] = {
+        "check_name": check_name,
+        "conclusion": conclusion,
+        "app_slug": app_slug,
+        "head_sha": head_sha,
+    }
+    if check_suite_id is not None:
+        payload["check_suite_id"] = check_suite_id
     apply_activity(
         doc,
         event_type=PullRequestActivityType.CHECK_RUN_COMPLETED,
-        payload={
-            "check_name": check_name,
-            "conclusion": conclusion,
-            "app_slug": app_slug,
-            "head_sha": head_sha,
-        },
+        payload=payload,
         ts="2026-07-10T12:00:00Z",
         provider_ts=completed_at,
     )
 
 
-def _group(doc: ActivityDoc, head_sha: str = "sha1", app_slug: str = "github-actions") -> Any:
-    return doc["checks"][f"{head_sha}|{app_slug}"]
+def _group(
+    doc: ActivityDoc,
+    head_sha: str = "sha1",
+    app_slug: str = "github-actions",
+    check_suite_id: int | None = 1,
+) -> Any:
+    key = (
+        f"{head_sha}|{app_slug}"
+        if check_suite_id is None
+        else f"{head_sha}|{app_slug}|{check_suite_id}"
+    )
+    return doc["checks"][key]
 
 
 # --- document shape -------------------------------------------------------
@@ -469,6 +489,7 @@ def test_single_failing_run_creates_group_and_entry() -> None:
     group = _group(doc)
     assert group["head_sha"] == "sha1"
     assert group["app_slug"] == "github-actions"
+    assert group["check_suite_id"] == 1
     assert group["runs"] == {
         "test (3.11)": {
             "conclusion": "failure",
@@ -581,16 +602,86 @@ def test_failing_suite_sets_first_failure_at() -> None:
 # --- checks: grouping keys -------------------------------------------------
 
 
-def test_distinct_head_sha_and_app_slug_are_distinct_groups() -> None:
+def test_distinct_head_sha_app_slug_and_suite_are_distinct_groups() -> None:
     doc = new_document()
-    _run(doc, head_sha="sha1", app_slug="github-actions", check_name="t")
-    _run(doc, head_sha="sha2", app_slug="github-actions", check_name="t")
-    _run(doc, head_sha="sha1", app_slug="circleci", check_name="t")
+    _run(doc, head_sha="sha1", app_slug="github-actions", check_suite_id=1, check_name="t")
+    _run(doc, head_sha="sha2", app_slug="github-actions", check_suite_id=2, check_name="t")
+    _run(doc, head_sha="sha1", app_slug="circleci", check_suite_id=3, check_name="t")
+    # One app raises one suite per workflow run, so a single head can carry
+    # several suites from the same app — each is its own group.
+    _run(doc, head_sha="sha1", app_slug="github-actions", check_suite_id=4, check_name="t")
     assert set(doc["checks"].keys()) == {
-        "sha1|github-actions",
-        "sha2|github-actions",
-        "sha1|circleci",
+        "sha1|github-actions|1",
+        "sha2|github-actions|2",
+        "sha1|circleci|3",
+        "sha1|github-actions|4",
     }
+
+
+def test_suites_from_one_app_at_same_head_keep_their_conclusions() -> None:
+    # The regression this grouping fixes: github-actions emits one suite per
+    # workflow run, and under (head_sha, app_slug) grouping the last suite to
+    # complete overwrote every other workflow's conclusion — a failed workflow
+    # was erased by a later green one.
+    doc = new_document()
+    _suite(doc, check_suite_id=1, conclusion="failure", updated_at="2026-07-10T12:00:00Z")
+    _suite(doc, check_suite_id=2, conclusion="success", updated_at="2026-07-10T12:05:00Z")
+    assert _group(doc, check_suite_id=1)["suite_conclusion"] == "failure"
+    assert _group(doc, check_suite_id=2)["suite_conclusion"] == "success"
+
+
+def test_check_runs_count_kept_per_suite_not_max_across_workflows() -> None:
+    doc = new_document()
+    _suite(doc, check_suite_id=1, check_runs_count=10, updated_at="2026-07-10T12:00:00Z")
+    _suite(doc, check_suite_id=2, check_runs_count=4, updated_at="2026-07-10T12:05:00Z")
+    assert _group(doc, check_suite_id=1)["check_runs_count"] == 10
+    assert _group(doc, check_suite_id=2)["check_runs_count"] == 4
+
+
+def test_same_named_runs_in_different_suites_do_not_collide() -> None:
+    # Two workflows can both have a job named "test". A green completion in one
+    # suite must not read as a recovery of the other suite's failure.
+    doc = new_document()
+    _run(doc, check_suite_id=1, check_name="test", conclusion="failure")
+    _run(doc, check_suite_id=2, check_name="test", conclusion="success")
+    assert _group(doc, check_suite_id=1)["runs"]["test"]["conclusion"] == "failure"
+    assert _group(doc, check_suite_id=2)["runs"] == {}  # never-failed runs aren't tracked
+
+
+def test_event_without_suite_id_folds_into_legacy_key() -> None:
+    # A payload with no suite id (a document written before the per-suite split
+    # keeps receiving events shaped by the old code during a rolling deploy, or a
+    # provider payload lacks the id) falls back to the suite-less key and keeps
+    # converging there.
+    doc = new_document()
+    _suite(doc, check_suite_id=None, conclusion="failure", updated_at="2026-07-10T12:00:00Z")
+    assert set(doc["checks"].keys()) == {"sha1|github-actions"}
+    assert _group(doc, check_suite_id=None)["check_suite_id"] is None
+    _suite(doc, check_suite_id=None, conclusion="success", updated_at="2026-07-10T12:05:00Z")
+    assert set(doc["checks"].keys()) == {"sha1|github-actions"}
+    assert _group(doc, check_suite_id=None)["suite_conclusion"] == "success"
+
+
+def test_suite_scoped_event_leaves_pre_split_group_untouched() -> None:
+    # A stored document written before the per-suite split holds one merged group
+    # per (head_sha, app_slug), without a check_suite_id key. A new suite-scoped
+    # event must not fold into it — it would corrupt it the old way — so the
+    # merged group stays frozen next to the new per-suite groups.
+    doc = new_document()
+    legacy_group: Any = {
+        "head_sha": "sha1",
+        "app_slug": "github-actions",
+        "suite_conclusion": "failure",
+        "suite_updated_at": "2026-07-10T11:00:00Z",
+        "check_runs_count": 3,
+        "runs": {},
+        "first_failure_at": "2026-07-10T11:00:00Z",
+        "last_event_at": "2026-07-10T11:00:00Z",
+    }
+    doc["checks"]["sha1|github-actions"] = copy.deepcopy(legacy_group)
+    _suite(doc, check_suite_id=7, conclusion="success", updated_at="2026-07-10T12:00:00Z")
+    assert doc["checks"]["sha1|github-actions"] == legacy_group
+    assert _group(doc, check_suite_id=7)["suite_conclusion"] == "success"
 
 
 # --- checks: idempotency & permutation convergence ------------------------
@@ -613,8 +704,8 @@ def test_reapplying_failing_run_only_bumps_failed_attempts() -> None:
     _run(doc, check_name="test", conclusion="failure", completed_at="2026-07-10T12:00:00Z")
     after = doc["checks"]
     # Everything is identical except the accepted failed_attempts magnitude drift.
-    assert after["sha1|github-actions"]["runs"]["test"]["failed_attempts"] == 2
-    before["sha1|github-actions"]["runs"]["test"]["failed_attempts"] = 2
+    assert after["sha1|github-actions|1"]["runs"]["test"]["failed_attempts"] == 2
+    before["sha1|github-actions|1"]["runs"]["test"]["failed_attempts"] = 2
     assert after == before
 
 
@@ -668,7 +759,7 @@ def test_check_events_converge_under_any_permutation() -> None:
         assert fold(list(order)) == baseline
 
     # Sanity on the converged values.
-    group = baseline["sha1|github-actions"]
+    group = baseline["sha1|github-actions|1"]
     assert group["suite_conclusion"] == "success"  # latest updated_at
     assert group["check_runs_count"] == 8  # max
     assert group["first_failure_at"] == "2026-07-10T12:00:00Z"  # min failing ts
@@ -685,7 +776,7 @@ def test_check_events_converge_under_any_permutation() -> None:
 def test_check_group_cap_evicts_least_recent_group() -> None:
     doc = new_document()
     # Fill the cap with green CI suites on distinct SHAs, strictly increasing recency
-    # (sha0000 oldest ... sha0099 newest).
+    # (sha0000 the oldest).
     with patch(f"{MODULE}.metrics") as mock_metrics, patch(f"{MODULE}.logger") as mock_logger:
         for i in range(MAX_CHECK_GROUPS):
             _suite(
@@ -709,10 +800,10 @@ def test_check_group_cap_evicts_least_recent_group() -> None:
 
     assert len(doc["checks"]) == MAX_CHECK_GROUPS
     # The newcomer is present and carries the failure.
-    assert doc["checks"]["sha-final|github-actions"]["runs"]["build"]["conclusion"] == "failure"
+    assert doc["checks"]["sha-final|github-actions|1"]["runs"]["build"]["conclusion"] == "failure"
     # The least-recently-updated group was evicted; a newer green group survived.
-    assert "sha0000|github-actions" not in doc["checks"]
-    assert "sha0099|github-actions" in doc["checks"]
+    assert "sha0000|github-actions|1" not in doc["checks"]
+    assert "sha0001|github-actions|1" in doc["checks"]
     mock_metrics.incr.assert_any_call("pr_metrics.activity_doc.check_groups_capped")
     assert mock_logger.warning.call_count == 1
 
@@ -723,7 +814,7 @@ def test_existing_group_still_updates_after_group_cap() -> None:
         _run(doc, head_sha=f"sha{i}", check_name="t", conclusion="failure")
     # A new event for an EXISTING group is not a new group — it must still apply.
     _run(doc, head_sha="sha0", check_name="t", conclusion="failure")
-    assert doc["checks"]["sha0|github-actions"]["runs"]["t"]["failed_attempts"] == 2
+    assert doc["checks"]["sha0|github-actions|1"]["runs"]["t"]["failed_attempts"] == 2
 
 
 def test_check_runs_per_group_cap_drops_new_failing_runs() -> None:
@@ -1036,7 +1127,28 @@ def test_timeline_projects_entries_and_synthesized_suite() -> None:
     assert suite["payload"]["conclusion"] == "failure"
     assert suite["payload"]["failing_check_names"] == ["test"]
     assert suite["payload"]["head_sha"] == "sha1"
+    assert suite["payload"]["check_suite_id"] == 1
     assert suite["payload"]["first_failure_at"] == "2026-07-10T12:05:00Z"
+
+
+def test_timeline_synthesizes_one_event_per_suite() -> None:
+    # Each suite is its own group, so the judge sees one completion per suite —
+    # mirroring GitHub's own webhooks — instead of one per app whose conclusion
+    # was whatever suite happened to finish last.
+    doc = new_document()
+    _run(doc, check_suite_id=1, check_name="test", conclusion="failure")
+    _suite(doc, check_suite_id=1, conclusion="failure", updated_at="2026-07-10T12:01:00Z")
+    _suite(doc, check_suite_id=2, conclusion="success", updated_at="2026-07-10T12:05:00Z")
+
+    events = timeline_events_from_doc(doc)
+    assert [
+        (
+            e["payload"]["check_suite_id"],
+            e["payload"]["conclusion"],
+            e["payload"]["failing_check_names"],
+        )
+        for e in events
+    ] == [(1, "failure", ["test"]), (2, "success", [])]
 
 
 def test_timeline_suite_conclusion_derived_from_runs_when_absent() -> None:

@@ -6,8 +6,8 @@ docs can be re-folded through the same reducer (emit-time parity check, corpus
 rebuilds). :func:`apply_activity` dispatches three event families: lifecycle
 **entries** (appended to ``events`` in arrival order, deduped by ``webhook_id``,
 synchronize links folded into ``sync_chain``), **checks** (collapsed into
-per-``(head_sha, app_slug)`` rollups), and **comments** (folded into
-``participants`` only, never stored).
+per-``(head_sha, app_slug, check_suite_id)`` rollups), and **comments** (folded
+into ``participants`` only, never stored).
 """
 
 from __future__ import annotations
@@ -32,9 +32,12 @@ MAX_EVENTS = 500
 # the events cap: below MAX_SYNC_CHAIN the chain is complete; past it the NEWEST
 # links — the ones the head-anchored commit-chain walk starts from — are retained.
 MAX_SYNC_CHAIN = 500
-# Check-rollup bounds: distinct ``(head_sha, app_slug)`` groups per PR, and
-# ever-failing runs tracked per group. Both are pathology backstops.
-MAX_CHECK_GROUPS = 100
+# Check-rollup bounds: distinct ``(head_sha, app_slug, check_suite_id)`` groups
+# per PR, and ever-failing runs tracked per group. Both are pathology backstops.
+# Groups are per suite and one app emits one suite per workflow run (a
+# workflow-heavy repo sees tens of github-actions suites on a single head), so
+# the group cap sits well above heads x suites for a normal PR.
+MAX_CHECK_GROUPS = 500
 MAX_RUNS_PER_GROUP = 50
 
 # Conclusion vocabulary shared with Seer's ``timeline.py``: a clean pass, an
@@ -62,6 +65,11 @@ class CheckRun(TypedDict):
 class CheckGroup(TypedDict):
     head_sha: str
     app_slug: str
+    # Numeric id of the owning check suite (``check_suite.id``). Groups persisted
+    # before the per-suite split lack the key entirely (readers must ``.get``);
+    # None when the payload carried no suite id, in which case the group also
+    # keys on the suite-less legacy form (see ``_get_or_create_group``).
+    check_suite_id: int | None
     suite_conclusion: str | None
     suite_updated_at: str | None
     check_runs_count: int
@@ -314,13 +322,16 @@ def _fold_sync_chain(doc: ActivityDoc, payload: Mapping[str, Any]) -> None:
 def _apply_check_suite(
     doc: ActivityDoc, payload: Mapping[str, Any], suite_updated_at: str | None
 ) -> None:
-    """Fold a completed ``check_suite`` into its ``(head_sha, app_slug)`` group.
+    """Fold a completed ``check_suite`` into its ``(head_sha, app_slug,
+    check_suite_id)`` group.
 
     The suite carries the aggregate conclusion (latest verdict wins on
     ``updated_at`` — see :func:`_wins_conclusion` for why an aborted suite does not
-    count) and the run count (``max`` of ``latest_check_runs_count``). A failing
-    suite also lowers ``first_failure_at`` so the signal survives even for CI apps
-    that only emit suite events.
+    count) and the run count (``max`` of ``latest_check_runs_count``). Grouping is
+    per suite, so latest-wins only ever arbitrates reruns of the *same* suite,
+    never unrelated workflows from the same app. A failing suite also lowers
+    ``first_failure_at`` so the signal survives even for CI apps that only emit
+    suite events.
     """
     group = _get_or_create_group(doc, payload)
 
@@ -396,7 +407,21 @@ def _apply_check_run(
 
 
 def _get_or_create_group(doc: ActivityDoc, payload: Mapping[str, Any]) -> CheckGroup:
-    """The rollup for a check payload's ``(head_sha, app_slug)``.
+    """The rollup for a check payload's ``(head_sha, app_slug, check_suite_id)``.
+
+    Per-suite, not per-app: one GitHub App emits one check suite per workflow run
+    (a workflow-heavy repo raises many github-actions suites on a single head), so
+    folding an app's suites together let the last suite to complete overwrite every
+    other workflow's conclusion, run count, and same-named runs. The suite id keeps
+    concurrent workflows apart, while a rerun of one suite (same id) still
+    converges latest-wins.
+
+    A payload without a suite id falls back to the suite-less legacy key, so
+    documents persisted before the split keep folding such events into their
+    existing groups with no migration. Suite-scoped events never fold into a
+    legacy group: on an old document the merged group simply goes stale next to
+    the new per-suite groups — a reader may transiently re-report a failure it
+    froze on, which beats erasing one.
 
     Existing groups always resolve. A new group beyond ``MAX_CHECK_GROUPS`` evicts
     the least-recently-updated group (by ``last_event_at``) to make room rather than
@@ -407,7 +432,12 @@ def _get_or_create_group(doc: ActivityDoc, payload: Mapping[str, Any]) -> CheckG
     """
     head_sha = payload.get("head_sha") or ""
     app_slug = payload.get("app_slug") or ""
-    key = f"{head_sha}|{app_slug}"
+    check_suite_id = payload.get("check_suite_id")
+    key = (
+        f"{head_sha}|{app_slug}"
+        if check_suite_id is None
+        else f"{head_sha}|{app_slug}|{check_suite_id}"
+    )
     checks = doc["checks"]
     group = checks.get(key)
     if group is not None:
@@ -423,6 +453,7 @@ def _get_or_create_group(doc: ActivityDoc, payload: Mapping[str, Any]) -> CheckG
     group = {
         "head_sha": head_sha,
         "app_slug": app_slug,
+        "check_suite_id": check_suite_id,
         "suite_conclusion": None,
         "suite_updated_at": None,
         "check_runs_count": 0,
@@ -466,8 +497,10 @@ def _min_ts(current: str | None, candidate: str | None) -> str | None:
 # --- readers: pure projections of a stored document -----------------------
 
 # The judge forward collapses each checks group into one synthesized event and
-# caps the number forwarded, mirroring the legacy row cap. The write-time group
-# cap already bounds this; the forward cap is a defensive backstop.
+# caps the number forwarded, mirroring the legacy row cap. Per-suite grouping can
+# store more groups than this (``MAX_CHECK_GROUPS``), so past the cap only the
+# most recently updated groups — the final heads' CI state, which the judge cares
+# most about — are forwarded.
 MAX_FORWARDED_CHECK_GROUPS = 100
 
 
@@ -651,6 +684,9 @@ def _synthesized_check_suite_payload(group: CheckGroup) -> dict[str, Any]:
         # Additive keys the legacy row forward never carried (Seer ignores unknown
         # payload keys, so this doesn't change the wire contract).
         "head_sha": group.get("head_sha", ""),
+        # None for groups persisted before the per-suite split (one merged group
+        # per app) and for payloads that carried no suite id.
+        "check_suite_id": group.get("check_suite_id"),
         "failing_check_names": sorted(
             name for name, run in runs.items() if is_failing_conclusion(run.get("conclusion"))
         ),
@@ -676,7 +712,8 @@ def timeline_events_from_doc(doc: ActivityDoc) -> list[dict[str, Any]]:
     """Project the document into the judge's activity timeline, oldest first.
 
     Lifecycle entries pass through unchanged (``event_type``, ``timestamp`` = the
-    arrival ``ts``, ``payload``); each checks group collapses into one synthesized
+    arrival ``ts``, ``payload``); each checks group — one per check suite, mirroring
+    GitHub's own completion events — collapses into one synthesized
     ``check_suite_completed`` timestamped at its ``last_event_at``. The merged list
     is sorted by timestamp, matching the legacy forward's shape — only the check
     events are pre-collapsed (what Seer's timeline does anyway).
