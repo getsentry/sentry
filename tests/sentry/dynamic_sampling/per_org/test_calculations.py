@@ -10,13 +10,11 @@ import pytest
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
 from sentry.dynamic_sampling.per_org.calculations import (
-    Recalibration,
-    RecalibrationSource,
     apply_project_sample_rate_overrides,
     calculate_recalibration_factor,
     compare_rebalanced_projects_with_cache,
     compare_rebalanced_transactions_with_cache,
-    compare_recalibrations_with_cache,
+    compare_recalibration_factor_with_cache,
     get_cached_rebalanced_project_sample_rates,
     get_cached_rebalanced_transaction_sample_rates,
     get_cached_recalibration_factor,
@@ -280,26 +278,13 @@ class ProjectBalancingCalculationsTest(TestCase):
 
         assert get_cached_recalibration_factor(org.id) == 2.5
 
-    def test_compare_recalibrations_with_cache_logs_every_source(self) -> None:
+    def test_compare_recalibration_factor_with_cache_logs_the_deviation(self) -> None:
         org = self.create_organization()
         config = mock_configuration(org, sample_rate=0.5)
-        recalibrations = [
-            Recalibration(
-                source=RecalibrationSource.EAP,
-                volume=OrganizationDataVolume(org_id=org.id, total=772, indexed=288),
-                effective_sample_rate=0.373,
-                factor=2.8,
-            ),
-            Recalibration(
-                source=RecalibrationSource.OUTCOMES,
-                volume=OrganizationDataVolume(org_id=org.id, total=892, indexed=333),
-                effective_sample_rate=0.178,
-                factor=2.0,
-            ),
-        ]
+        org_volume = OrganizationDataVolume(org_id=org.id, total=772, indexed=288)
 
         with patch(LOGGER_INFO) as logger_info:
-            compare_recalibrations_with_cache(config, recalibrations, 2.0)
+            compare_recalibration_factor_with_cache(config, org_volume, 2.8, 2.0)
 
         logger_info.assert_called_once_with(
             "dynamic_sampling.per_org.recalibration_factor_comparison",
@@ -308,58 +293,31 @@ class ProjectBalancingCalculationsTest(TestCase):
                 "sample_rate": 0.5,
                 "generic_metrics_factor": 2.0,
                 "eap_factor": 2.8,
-                "eap_effective_sample_rate": 0.373,
-                "eap_total": 772,
-                "eap_indexed": 288,
-                "eap_relative_deviation": pytest.approx(0.2857142857142857),
-                "eap_is_equal": False,
-                "outcomes_factor": 2.0,
-                "outcomes_effective_sample_rate": 0.178,
-                "outcomes_total": 892,
-                "outcomes_indexed": 333,
-                "outcomes_relative_deviation": pytest.approx(0.0),
-                "outcomes_is_equal": True,
+                "effective_sample_rate": pytest.approx(0.3730569948186528),
+                "total_transactions": 772,
+                "stored_segments": 288,
+                "relative_deviation": pytest.approx(0.2857142857142857),
+                "is_equal": False,
             },
         )
 
-    def test_compare_recalibrations_with_cache_reports_a_skipped_factor(self) -> None:
+    def test_compare_recalibration_factor_with_cache_reports_a_skipped_factor(self) -> None:
         org = self.create_organization()
         config = mock_configuration(org, sample_rate=0.5)
-        recalibrations = [
-            Recalibration(
-                source=RecalibrationSource.EAP,
-                volume=None,
-                effective_sample_rate=None,
-                factor=None,
-            )
-        ]
 
         with patch(LOGGER_INFO) as logger_info:
-            compare_recalibrations_with_cache(config, recalibrations, 2.0)
+            compare_recalibration_factor_with_cache(config, None, None, 2.0)
 
         assert logger_info.call_args.kwargs["extra"] == {
             "org_id": org.id,
             "sample_rate": 0.5,
             "generic_metrics_factor": 2.0,
             "eap_factor": None,
-            "eap_effective_sample_rate": None,
-            "eap_total": None,
-            "eap_indexed": None,
-            "eap_relative_deviation": None,
-            "eap_is_equal": False,
-        }
-
-    def test_compare_recalibrations_with_cache_without_any_source(self) -> None:
-        org = self.create_organization()
-        config = mock_configuration(org, sample_rate=0.5)
-
-        with patch(LOGGER_INFO) as logger_info:
-            compare_recalibrations_with_cache(config, [], 2.0)
-
-        assert logger_info.call_args.kwargs["extra"] == {
-            "org_id": org.id,
-            "sample_rate": 0.5,
-            "generic_metrics_factor": 2.0,
+            "effective_sample_rate": None,
+            "total_transactions": None,
+            "stored_segments": None,
+            "relative_deviation": None,
+            "is_equal": False,
         }
 
 

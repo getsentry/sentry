@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 import sentry_sdk
 from django.db.models import Exists, OuterRef
@@ -14,7 +14,7 @@ from sentry.dynamic_sampling.per_org.calculations import (
     compare_organization_sliding_window_sample_rates,
     compare_rebalanced_projects_with_cache,
     compare_rebalanced_transactions_with_cache,
-    compare_recalibrations_with_cache,
+    compare_recalibration_factor_with_cache,
     get_cached_organization_sample_rate,
     get_cached_rebalanced_project_sample_rates,
     get_cached_rebalanced_transaction_sample_rates,
@@ -40,6 +40,7 @@ from sentry.dynamic_sampling.per_org.queries import (
     get_eap_organization_volume,
     get_eap_project_volumes,
     get_eap_transaction_volumes,
+    get_recalibration_organization_volume,
 )
 from sentry.dynamic_sampling.per_org.telemetry import (
     PROJECTS_BELOW_FULL_SAMPLE_RATE_METRIC,
@@ -85,7 +86,11 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
     if not config.projects:
         return DynamicSamplingStatus.ORG_HAS_NO_PROJECTS
 
-    org_volume_5m = get_eap_organization_volume(config)
+    # Recalibration pairs this volume with an outcomes query later in the task. The end is
+    # fixed here instead of taken twice from the clock, and truncated to the minute because
+    # the outcomes query widens its window to whole minutes.
+    org_volume_end = datetime.now(UTC).replace(second=0, microsecond=0)
+    org_volume_5m = get_eap_organization_volume(config, end=org_volume_end)
     if org_volume_5m is None:
         return DynamicSamplingStatus.NO_ORG_VOLUME
 
@@ -170,11 +175,14 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
         )
 
     if is_org_in_recalibration_rollout(org_id):
-        # The 5-minute organization volume is reused rather than re-queried, so the EAP
-        # recalibration reads the same window the rest of this cycle ran against.
-        recalibrations = config.recalibrate(org_volume_5m)
+        recalibration_volume = get_recalibration_organization_volume(
+            config, org_volume_5m, end=org_volume_end
+        )
+        calculated_factor = config.recalibrate(recalibration_volume)
         cached_factor = get_cached_recalibration_factor(config.organization.id)
-        compare_recalibrations_with_cache(config, recalibrations, cached_factor)
+        compare_recalibration_factor_with_cache(
+            config, recalibration_volume, calculated_factor, cached_factor
+        )
 
     return None
 

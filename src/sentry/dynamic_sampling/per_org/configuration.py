@@ -9,23 +9,14 @@ from sentry import options, quotas
 from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT, ObjectStatus
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org import cache as per_org_recalibration_cache
-from sentry.dynamic_sampling.per_org.calculations import (
-    Recalibration,
-    RecalibrationSource,
-    calculate_recalibration_factor,
-    get_effective_sample_rate,
-)
-from sentry.dynamic_sampling.per_org.queries import (
-    get_outcomes_organization_sampled_volume,
-    get_outcomes_organization_volume,
-)
+from sentry.dynamic_sampling.per_org.calculations import calculate_recalibration_factor
+from sentry.dynamic_sampling.per_org.queries import get_outcomes_organization_volume
 from sentry.dynamic_sampling.per_org.telemetry import (
     DynamicSamplingException,
     DynamicSamplingStatus,
 )
 from sentry.dynamic_sampling.rules.utils import ProjectId
 from sentry.dynamic_sampling.tasks.common import (
-    ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
     OrganizationDataVolume,
     compute_sliding_window_sample_rate,
 )
@@ -40,10 +31,6 @@ from sentry.models.project import Project
 TargetSampleRate = float | None
 ProjectSampleRates = dict[ProjectId, TargetSampleRate]
 RecalibrationFactor = float | None
-
-# Both recalibration sources must cover the same window, or their effective sample rates are
-# not comparable. This is the window the EAP organization volume already uses.
-RECALIBRATION_TIME_INTERVAL = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL
 
 
 def get_configuration(organization_id: int) -> BaseDynamicSamplingConfiguration:
@@ -123,60 +110,41 @@ class BaseDynamicSamplingConfiguration(ABC):
             Project.objects.filter(organization_id=self.organization.id, status=ObjectStatus.ACTIVE)
         )
 
-    def recalibrate(self, eap_volume: OrganizationDataVolume | None) -> list[Recalibration]:
-        """Compute this organization's candidate recalibration factors and cache them.
+    def recalibrate(self, org_volume: OrganizationDataVolume | None) -> RecalibrationFactor:
+        """Compute this organization's recalibration factor and store it in the shared cache.
 
-        One candidate per volume source: the EAP segment counts of this cycle, which the
-        caller has already fetched, and the span outcomes of the same window. Both measure
-        the same thing by different means, so running them side by side is what tells us
-        which one reproduces the legacy pipeline.
+        The caller supplies the volume, because how it is measured is a query concern; see
+        ``get_recalibration_organization_volume``.
 
-        ``organization_recalibration_factor`` follows the span outcomes, which count the
-        spans sampling kept and dropped directly. EAP has to estimate the pre-sampling total
-        from the sample rates of the spans that survived, so it stays a comparison signal.
-        Callers drive this explicitly, because it both queries outcomes and writes the cache.
-        Building a configuration stays free of those side effects.
+        Returns the new factor and leaves it on ``organization_recalibration_factor``, or
+        None when there is not enough volume to compute one. A factor outside the rebalance
+        bounds clears the cached factor instead, so that a stale one cannot keep being
+        applied.
+
+        Callers drive this explicitly, because it writes the cache. Building a configuration
+        stays free of that side effect.
         """
         self.organization_recalibration_factor = None
 
         if not self.projects or self.get_sample_rate() is None:
-            return []
+            return None
 
-        eap = self._recalibrate(RecalibrationSource.EAP, eap_volume)
-        outcomes = self._recalibrate(
-            RecalibrationSource.OUTCOMES,
-            get_outcomes_organization_sampled_volume(
-                self.organization.id, time_interval=RECALIBRATION_TIME_INTERVAL
-            ),
-        )
-        self.organization_recalibration_factor = outcomes.factor
-        return [eap, outcomes]
-
-    def _recalibrate(
-        self, source: RecalibrationSource, volume: OrganizationDataVolume | None
-    ) -> Recalibration:
-        factor = calculate_recalibration_factor(
-            volume,
-            per_org_recalibration_cache.get_adjusted_factor(self.organization.id, source),
+        adjusted_factor = calculate_recalibration_factor(
+            org_volume,
+            per_org_recalibration_cache.get_adjusted_factor(self.organization.id),
             self.get_sample_rate(),
         )
-        if factor is not None:
-            if MIN_REBALANCE_FACTOR <= factor <= MAX_REBALANCE_FACTOR:
-                per_org_recalibration_cache.set_guarded_adjusted_factor(
-                    self.organization.id, source, factor
-                )
-            else:
-                # Applying a factor this far out would recalibrate too aggressively. Drop the
-                # cached one as well, so a stale factor cannot keep being applied.
-                per_org_recalibration_cache.delete_adjusted_factor(self.organization.id, source)
-                factor = None
+        if adjusted_factor is None:
+            return None
+        if adjusted_factor < MIN_REBALANCE_FACTOR or adjusted_factor > MAX_REBALANCE_FACTOR:
+            per_org_recalibration_cache.delete_adjusted_factor(self.organization.id)
+            return None
 
-        return Recalibration(
-            source=source,
-            volume=volume,
-            effective_sample_rate=get_effective_sample_rate(volume),
-            factor=factor,
+        per_org_recalibration_cache.set_guarded_adjusted_factor(
+            self.organization.id, adjusted_factor
         )
+        self.organization_recalibration_factor = adjusted_factor
+        return adjusted_factor
 
 
 class NoDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):

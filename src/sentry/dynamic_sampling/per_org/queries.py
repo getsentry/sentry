@@ -8,10 +8,9 @@ from enum import StrEnum
 from typing import Any, Protocol
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
-from snuba_sdk import Column, Condition, Entity, Function, Granularity, Limit, Op, Query, Request
+from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query, Request
 
 from sentry import options
-from sentry.constants import DataCategory
 from sentry.dynamic_sampling.rules.utils import ProjectId
 from sentry.dynamic_sampling.tasks.common import (
     ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
@@ -30,7 +29,6 @@ from sentry.snuba.outcomes import QueryDefinition, run_outcomes_query_totals
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import LimitBy
 from sentry.snuba.spans_rpc import Spans
-from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import raw_snql_query
 
 
@@ -50,9 +48,6 @@ class DynamicSamplingQueryFields(StrEnum):
     COUNT_SAMPLE = "count_sample()"
     COUNT_UNIQUE_TRANSACTIONS = "count_unique(sentry.dsc.transaction)"
     MAX_RECEIVED = "max(received)"
-
-
-OUTCOMES_ORGANIZATION_VOLUME_DEFAULT_TIME_INTERVAL = timedelta(minutes=5)
 
 
 @dataclass(order=True)
@@ -151,79 +146,42 @@ def get_eap_organization_volume(
     return OrganizationDataVolume(org_id=config.organization.id, total=total, indexed=indexed)
 
 
-def get_outcomes_organization_sampled_volume(
-    org_id: int,
-    time_interval: timedelta = OUTCOMES_ORGANIZATION_VOLUME_DEFAULT_TIME_INTERVAL,
+def get_recalibration_organization_volume(
+    config: OrganizationVolumeConfig,
+    eap_volume: OrganizationDataVolume | None,
+    time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
+    end: datetime | None = None,
 ) -> OrganizationDataVolume | None:
     """
-    Volume of an org from span outcomes, split into the volume that reached the sampling
-    decision (``total``) and the volume sampling kept (``indexed``). Recalibration needs
-    both to derive the effective sample rate, which ``get_outcomes_organization_volume``
-    cannot give: that one counts accepted outcomes only.
+    The volume recalibration derives an effective sample rate from, taken from two sources.
 
-    The category is ``span_indexed`` because that is the only one a dynamic sampling drop
-    is reported under. Relay hands the total category over to the extracted metrics before
-    it rejects the payload, so the drop counts towards the indexed category alone (see
-    ``processing/spans/dynamic_sampling.rs`` and ``processing/transactions/process.rs`` in
-    relay). ``span`` would therefore report every span as accepted and put the effective
-    sample rate at 100%.
+    ``total`` is the accepted transaction outcomes of the window. Relay reports that category
+    before the sampling decision, so it counts what reached the decision. ``indexed`` is the
+    segments EAP stored, which is what survived the decision. The difference is what sampling
+    dropped.
 
-    Both plan families are covered: AM3 sends spans directly, and a dropped AM2 transaction
-    reports its extracted spans under ``span_indexed`` as well. Note that the quantities are
-    spans, not segments, so this rate is span-weighted while the legacy pipeline's is
-    segment-weighted. Traces of different sizes being kept at different rates move the two
-    apart without either being wrong.
+    The stored side does not come from indexed transaction outcomes, because that category is
+    going away. It does not come from the EAP extrapolated count either: that count estimates
+    the pre-sampling total from the server sample rates the stored segments carry, so the
+    ratio of the two EAP counts only reports the sample rates Relay applied, not the volume
+    that arrived.
+
+    ``eap_volume`` is passed in so that the caller's organization volume of this cycle is
+    reused instead of queried again. Pass the ``end`` it was fetched with: both sources must
+    cover the same window, or their ratio is not a sample rate.
     """
-    end_time = datetime.now(UTC)
-    start_time = end_time - time_interval
-
-    accepted_outcome = Function("equals", [Column("outcome"), Outcome.ACCEPTED])
-    sampled_outcome = Function(
-        "and",
-        [
-            Function("equals", [Column("outcome"), Outcome.FILTERED]),
-            Function("startsWith", [Column("reason"), "Sampled:"]),
-        ],
-    )
-    result = raw_snql_query(
-        Request(
-            dataset=Dataset.OutcomesRaw.value,
-            app_id="dynamic_sampling",
-            query=Query(
-                match=Entity("outcomes_raw"),
-                select=[
-                    Function(
-                        "sumIf",
-                        [Column("quantity"), Function("or", [accepted_outcome, sampled_outcome])],
-                        "total",
-                    ),
-                    Function("sumIf", [Column("quantity"), accepted_outcome], "indexed"),
-                ],
-                where=[
-                    Condition(Column("timestamp"), Op.GTE, start_time),
-                    Condition(Column("timestamp"), Op.LT, end_time),
-                    Condition(Column("org_id"), Op.EQ, org_id),
-                    Condition(Column("category"), Op.EQ, DataCategory.SPAN_INDEXED),
-                ],
-                granularity=Granularity(60),
-                limit=Limit(1),
-            ),
-            tenant_ids={"organization_id": org_id},
-        ),
-        referrer="dynamic_sampling.per_org.get_outcomes_org_volume",
-    )
-
-    data = result.get("data")
-    if not data:
+    if eap_volume is None or eap_volume.indexed is None:
         return None
 
-    row = data[0]
-    total = _get_aggregate_int(row, "total")
-    if total <= 0:
+    outcomes_volume = get_outcomes_organization_volume(config, time_interval=time_interval, end=end)
+    if outcomes_volume is None:
         return None
-    indexed = _get_aggregate_int(row, "indexed")
 
-    return OrganizationDataVolume(org_id=org_id, total=total, indexed=indexed)
+    return OrganizationDataVolume(
+        org_id=config.organization.id,
+        total=outcomes_volume.total,
+        indexed=eap_volume.indexed,
+    )
 
 
 def get_outcomes_organization_volume(
@@ -238,6 +196,9 @@ def get_outcomes_organization_volume(
         fields=["sum(quantity)"],
         start=start_time.isoformat(),
         end=end_time.isoformat(),
+        # The window is widened outwards to whole intervals, so anything shorter than an hour
+        # has to ask for minute resolution or it would cover a whole hour.
+        interval="1h" if time_interval >= timedelta(hours=1) else "1m",
         organization_id=config.organization.id,
         project_ids=[project.id for project in config.projects],
         outcome=["accepted"],
@@ -259,8 +220,6 @@ def get_generic_metrics_organization_volume(
     time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
     end: datetime | None = None,
 ) -> OrganizationDataVolume | None:
-    from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query, Request
-
     end_time = end or datetime.now(UTC)
     start_time = end_time - time_interval
 
