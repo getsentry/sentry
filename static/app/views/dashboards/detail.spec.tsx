@@ -26,6 +26,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
+import {UNSAVED_FILTERS_MESSAGE} from 'sentry/views/dashboards/constants';
 import CreateDashboard from 'sentry/views/dashboards/create';
 import {DashboardDetailWithInjectedProps as DashboardDetail} from 'sentry/views/dashboards/detail';
 import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
@@ -816,10 +817,10 @@ describe('Dashboards > Detail', () => {
       await userEvent.click(
         await screen.findByRole('button', {name: 'Dashboard actions'})
       );
-      expect(await screen.findByRole('menuitemradio', {name: 'Edit'})).toHaveAttribute(
-        'aria-disabled',
-        'true'
-      );
+      const edit = await screen.findByRole('menuitemradio', {name: 'Edit'});
+      expect(edit).toHaveAttribute('aria-disabled', 'true');
+      await userEvent.hover(edit);
+      expect(await screen.findByText(UNSAVED_FILTERS_MESSAGE)).toBeVisible();
     });
 
     it('does not show breadcrumb actions in dashboard preview', async () => {

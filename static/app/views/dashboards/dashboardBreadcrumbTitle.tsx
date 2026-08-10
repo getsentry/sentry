@@ -23,6 +23,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+import {
+  DASHBOARD_SAVING_MESSAGE,
+  UNSAVED_FILTERS_MESSAGE,
+} from 'sentry/views/dashboards/constants';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {useOpenDashboardRevisions} from 'sentry/views/dashboards/dashboardRevisions';
 import {exportDashboard} from 'sentry/views/dashboards/exportDashboard';
@@ -141,6 +145,11 @@ export function DashboardBreadcrumbTitle({
     label: t('Edit'),
     leadingItems: <IconEdit />,
     disabled: hasUnsavedFilters || isSaving,
+    tooltip: isSaving
+      ? DASHBOARD_SAVING_MESSAGE
+      : hasUnsavedFilters
+        ? UNSAVED_FILTERS_MESSAGE
+        : null,
     onAction: onEdit,
   };
   const exportItem = {
