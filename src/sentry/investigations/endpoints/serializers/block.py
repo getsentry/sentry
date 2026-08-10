@@ -121,6 +121,7 @@ class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerRespon
             )
 
         execution = obj.current_execution
+        execution_accessible = is_accessible(execution)
         result_execution = obj.result_execution
         content_execution = obj.content_execution
         content_restricted = bool(
@@ -173,7 +174,7 @@ class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerRespon
                     "schemaVersion": execution.result_schema_version,
                     "startedAt": execution.started_at,
                     "completedAt": execution.completed_at,
-                    "error": execution.error,
+                    "error": execution.error if execution_accessible else None,
                 }
                 if execution is not None
                 else None

@@ -48,6 +48,9 @@ def _reject_unsupported_fields(values: dict[str, Any], allowed: frozenset[str]) 
         raise InvestigationValidationError({"fields": f"Cannot be set: {', '.join(unsupported)}."})
 
 
+BLOCK_EXECUTION_INPUT_FIELDS = frozenset({"content", "prompt", "config"})
+
+
 class InvestigationServiceError(Exception):
     pass
 
@@ -557,11 +560,16 @@ def update_block(
         if locked.version != expected_block_version:
             raise InvestigationConflictError("Block has changed.")
         _reject_unsupported_fields(values, UPDATABLE_BLOCK_FIELDS)
-        stale_fields = {"content", "prompt", "config"}
-        inputs_changed = bool(stale_fields.intersection(values))
+        changed_values = {
+            field: value for field, value in values.items() if getattr(locked, field) != value
+        }
+        if not changed_values:
+            return locked
+
+        inputs_changed = bool(BLOCK_EXECUTION_INPUT_FIELDS.intersection(changed_values))
         if inputs_changed:
             locked.stale_at = timezone.now()
-        for field, value in values.items():
+        for field, value in changed_values.items():
             setattr(locked, field, value)
         locked.last_edited_by_id = user_id
         locked.version += 1
