@@ -115,6 +115,9 @@ def result_transformer(result):
         if token["type"] == "keyExplicitBooleanTag":
             return SearchKey(name=f"tags[{token['key']['value']},boolean]")
 
+        if token["type"] == "keyExplicitArrayTag":
+            return SearchKey(name=f"tags[{token['key']['value']},array]")
+
         if token["type"] == "keyExplicitFlag":
             return SearchKey(name=f"flags[{token['key']['value']}]")
 
@@ -276,6 +279,10 @@ shared_tests_skipped = [
     "invalid_aggregate_column_with_duration_filter",
     "invalid_numeric_aggregate_filter",
     "disallow_wildcard_filter",
+    # The frontend parses array IN-list membership (tags[foo,array][*]:[a,b]) as a
+    # textIn filter, but the backend array_includes filter only supports a single
+    # value today, so this shared fixture is skipped on the backend parser.
+    "explicit_array_tags_in_filter",
 ]
 
 register_fixture_tests(ParseSearchQueryTest, shared_tests_skipped)
