@@ -225,6 +225,7 @@
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
+    "@boundaries/eslint-plugin": "7.2.0",
     "@e18e/eslint-plugin": "0.8.0",
     "@emotion/server": "^11.11.0",
     "@figma/code-connect": "^1.4.8",
@@ -244,7 +245,7 @@
     "@types/d3-zoom": "^3.0.8",
     "@types/gettext-parser": "8.0.0",
     "@types/node": "24.13.2",
-    "eslint-plugin-boundaries": "6.0.2",
+    "eslint-import-resolver-typescript": "4.4.5",
     "eslint-plugin-import": "2.32.0",
     "eslint-plugin-jest-dom": "5.10.1",
     "eslint-plugin-react": "7.37.5",

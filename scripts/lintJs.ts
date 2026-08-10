@@ -3,9 +3,9 @@ import path from 'node:path';
 
 const repositoryRoot = path.resolve(import.meta.dirname, '..');
 const oxlintPath = path.join(repositoryRoot, 'node_modules/.bin/oxlint');
-const sentryTypeAwareLintPath = path.join(
+const sentryTypeAnnotationLintPath = path.join(
   repositoryRoot,
-  'scripts/lintSentryTypeAware.ts'
+  'scripts/lintSentryTypeAnnotations.ts'
 );
 const args = process.argv.slice(2);
 
@@ -33,7 +33,7 @@ const oxlintArgs = args.includes('--type-aware') ? args : ['--type-aware', ...ar
 const commands = [run(oxlintPath, oxlintArgs)];
 
 if (!informationalRun) {
-  commands.push(run(process.execPath, [sentryTypeAwareLintPath, ...args]));
+  commands.push(run(process.execPath, [sentryTypeAnnotationLintPath, ...args]));
 }
 
 const exitCodes = await Promise.all(commands);

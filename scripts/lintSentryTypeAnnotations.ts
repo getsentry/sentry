@@ -7,13 +7,12 @@ import ts from 'typescript';
 import {createTypeAwareRuleChecks} from '../static/eslint/eslintPluginSentry/typeAwareRules.ts';
 
 const unnecessaryTypeAnnotationRuleId = '@sentry/no-unnecessary-type-annotation';
-const unnecessaryTypeNarrowingRuleId = '@sentry/no-unnecessary-type-narrowing';
 
 type TypeAwareFinding = {
   end: number;
   message: string;
   node: ts.Node;
-  ruleId: typeof unnecessaryTypeAnnotationRuleId | typeof unnecessaryTypeNarrowingRuleId;
+  ruleId: typeof unnecessaryTypeAnnotationRuleId;
   start: number;
 };
 
@@ -223,21 +222,6 @@ function collectTypeAwareFindings(
       });
     }
 
-    if (ts.isAsExpression(node) && checks.isUnnecessaryTypeNarrowing(node)) {
-      const assertionText = sourceFile.text.slice(node.expression.end, node.end);
-      const asKeyword = /\s+as\b/u.exec(assertionText);
-      if (asKeyword) {
-        findings.push({
-          ruleId: unnecessaryTypeNarrowingRuleId,
-          message:
-            'Type assertion is unnecessary: the original type is already assignable to the expected type.',
-          node: node.type,
-          start: node.expression.end + asKeyword.index,
-          end: node.end,
-        });
-      }
-    }
-
     ts.forEachChild(node, visit);
   }
 
@@ -273,7 +257,7 @@ function applyFixes(sourceFile: ts.SourceFile, findings: TypeAwareFinding[]) {
   return unfixed;
 }
 
-export function runSentryTypeAwareLint(args: string[]): number {
+export function runSentryTypeAnnotationLint(args: string[]): number {
   const fix = args.includes('--fix');
   const rawSelectors = extractSelectors(args);
   const selectors = normalizeSelectors(rawSelectors);
@@ -293,6 +277,21 @@ export function runSentryTypeAwareLint(args: string[]): number {
 
   for (const configPath of projectConfigPaths) {
     const {parsed} = loadProject(configPath);
+    const selectedFileNames = parsed.fileNames.filter(fileName => {
+      const absoluteFileName = path.resolve(fileName);
+      const relativeFileName = path.relative(repositoryRoot, absoluteFileName);
+      return (
+        !visitedFiles.has(absoluteFileName) &&
+        !relativeFileName.startsWith(`..${path.sep}`) &&
+        hasTypeScriptExtension(absoluteFileName) &&
+        !isIgnored(relativeFileName) &&
+        isSelected(absoluteFileName, selectors)
+      );
+    });
+    if (!selectedFileNames.length) {
+      continue;
+    }
+
     const program = ts.createProgram({
       rootNames: parsed.fileNames,
       options: parsed.options,
@@ -300,20 +299,13 @@ export function runSentryTypeAwareLint(args: string[]): number {
     });
     const checks = createTypeAwareRuleChecks(program.getTypeChecker());
 
-    for (const sourceFile of program.getSourceFiles()) {
-      const absoluteFileName = path.resolve(sourceFile.fileName);
-      const relativeFileName = path.relative(repositoryRoot, absoluteFileName);
-      if (
-        sourceFile.isDeclarationFile ||
-        visitedFiles.has(absoluteFileName) ||
-        relativeFileName.startsWith(`..${path.sep}`) ||
-        !hasTypeScriptExtension(absoluteFileName) ||
-        isIgnored(relativeFileName) ||
-        !isSelected(absoluteFileName, selectors)
-      ) {
+    for (const fileName of selectedFileNames) {
+      const sourceFile = program.getSourceFile(fileName);
+      if (!sourceFile) {
         continue;
       }
 
+      const absoluteFileName = path.resolve(sourceFile.fileName);
       visitedFiles.add(absoluteFileName);
       const findings = collectTypeAwareFindings(sourceFile, checks).filter(
         finding => !isSuppressed(sourceFile, finding)
@@ -332,7 +324,7 @@ export function runSentryTypeAwareLint(args: string[]): number {
     console.error(formatFinding(sourceFile, finding));
   }
   if (remainingFindings.length) {
-    console.error(`\nFound ${remainingFindings.length} Sentry type-aware error(s).`);
+    console.error(`\nFound ${remainingFindings.length} Sentry type-annotation error(s).`);
     return 1;
   }
   return 0;
@@ -343,7 +335,7 @@ if (
   import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href
 ) {
   try {
-    process.exitCode = runSentryTypeAwareLint(process.argv.slice(2));
+    process.exitCode = runSentryTypeAnnotationLint(process.argv.slice(2));
   } catch (error) {
     console.error(error instanceof Error ? error.message : error);
     process.exitCode = 2;
