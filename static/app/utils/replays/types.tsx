@@ -265,7 +265,7 @@ export function isPaintFrame(frame: SpanFrame): frame is PaintFrame {
 
 export function isDeadClick(frame: SlowClickFrame) {
   return (
-    ['a', 'button', 'input'].includes(frame.data.node?.tagName.toLowerCase() ?? '') &&
+    ['a', 'button', 'input'].includes(frame.data.node?.tagName?.toLowerCase() ?? '') &&
     frame.data.endReason === 'timeout'
   );
 }
