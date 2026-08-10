@@ -359,6 +359,41 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert workflow.when_condition_group is not None
         assert workflow.when_condition_group.conditions.count() == 0
 
+    def test_update_triggers_when_workflow_has_no_when_condition_group(self) -> None:
+        """Test that updating triggers on a workflow without a when_condition_group connects
+        the newly created condition group to the workflow"""
+        workflow = self.create_workflow(
+            organization=self.organization,
+            when_condition_group=None,
+        )
+
+        assert workflow.when_condition_group is None
+
+        data = {
+            **self.valid_workflow,
+            "triggers": {
+                "logicType": "any-short",
+                "conditions": [
+                    {"type": "every_event", "comparison": True, "conditionResult": True},
+                ],
+            },
+        }
+
+        response = self.get_success_response(self.organization.slug, workflow.id, raw_data=data)
+
+        assert response.status_code == 200
+        assert response.data["triggers"] is not None
+        assert response.data["triggers"]["logicType"] == "any-short"
+        assert len(response.data["triggers"]["conditions"]) == 1
+        assert response.data["triggers"]["conditions"][0]["type"] == "every_event"
+
+        workflow.refresh_from_db()
+
+        assert workflow.when_condition_group is not None
+        assert workflow.when_condition_group.logic_type == DataConditionGroup.Type.ANY_SHORT_CIRCUIT
+        assert workflow.when_condition_group.organization_id == self.organization.id
+        assert workflow.when_condition_group.conditions.count() == 1
+
     def test_update_detectors_add_detector(self) -> None:
         detector1 = self.create_detector(project=self.project)
         detector2 = self.create_detector(project=self.project, type=MetricIssue.slug)

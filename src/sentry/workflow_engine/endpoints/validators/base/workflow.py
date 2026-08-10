@@ -236,7 +236,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
 
     def update_or_create_data_condition_group(
         self,
-        condition_group_data: InputData,
+        condition_group_data: InputData | None,
         instance: DataConditionGroup | None = None,
     ) -> DataConditionGroup:
         validator = BaseDataConditionGroupValidator(context=self.context)
@@ -319,8 +319,15 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         with transaction.atomic(router.db_for_write(Workflow)):
             # Update the Workflow.when_condition_group
             triggers = validated_data.pop("triggers", None)
+
             if triggers is not None:
-                self.update_or_create_data_condition_group(triggers, instance.when_condition_group)
+                when_condition_group = self.update_or_create_data_condition_group(
+                    triggers, instance.when_condition_group
+                )
+
+                # Bind new condition group to workflow if it didn't have one before
+                if instance.when_condition_group_id is None:
+                    instance.when_condition_group = when_condition_group
 
             # Update the Action Filters and Actions
             action_filters = validated_data.pop("action_filters", None)
