@@ -300,6 +300,7 @@ describe('AutomationNewSettings', () => {
             config: {frequency: 0},
             detectorIds: ['123'],
             enabled: true,
+            owner: null,
           },
         })
       )
