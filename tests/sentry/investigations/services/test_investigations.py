@@ -11,10 +11,10 @@ from sentry.investigations.services.investigations import (
     InvestigationSourceNotFound,
     InvestigationValidationError,
     _resolve_breached_metric_source,
-    create_cell,
+    create_block,
     create_manual_investigation,
     create_template_investigation,
-    delete_cell,
+    delete_block,
     update_investigation,
 )
 from sentry.testutils.cases import TestCase
@@ -128,14 +128,14 @@ class DeleteBlockStalenessTest(TestCase):
             project_ids=[],
             filters={},
         )
-        upstream = create_cell(
+        upstream = create_block(
             investigation=investigation,
             expected_investigation_version=investigation.version,
             user_id=self.user.id,
             values={"kind": "query"},
         )
         investigation.refresh_from_db()
-        dependent = create_cell(
+        dependent = create_block(
             investigation=investigation,
             expected_investigation_version=investigation.version,
             user_id=self.user.id,
@@ -145,7 +145,7 @@ class DeleteBlockStalenessTest(TestCase):
         InvestigationBlockDependency.objects.create(block=dependent, depends_on=upstream)
         assert dependent.stale_at is None
 
-        delete_cell(
+        delete_block(
             block=upstream,
             expected_investigation_version=investigation.version,
             expected_block_version=upstream.version,

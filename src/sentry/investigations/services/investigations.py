@@ -473,7 +473,7 @@ def archive_investigation(*, investigation: Investigation, expected_version: int
     return locked
 
 
-def create_cell(
+def create_block(
     *,
     investigation: Investigation,
     expected_investigation_version: int,
@@ -499,7 +499,7 @@ def create_cell(
     return block
 
 
-def update_cell(
+def update_block(
     *,
     block: InvestigationBlock,
     expected_investigation_version: int,
@@ -556,7 +556,7 @@ def mark_downstream_blocks_stale(
     return stale_ids
 
 
-def delete_cell(
+def delete_block(
     *, block: InvestigationBlock, expected_investigation_version: int, expected_block_version: int
 ) -> None:
     with transaction.atomic(using=router.db_for_write(InvestigationBlock)):
@@ -577,13 +577,13 @@ def delete_cell(
             .filter(investigation=investigation, deleted_at__isnull=True)
             .order_by("position", "id")
         )
-        for position, active_cell in enumerate(active_blocks):
-            active_cell.position = position
+        for position, active_block in enumerate(active_blocks):
+            active_block.position = position
         InvestigationBlock.objects.bulk_update(active_blocks, ["position"])
         bump_investigation_version(investigation)
 
 
-def reorder_cells(
+def reorder_blocks(
     *, investigation: Investigation, expected_version: int, block_ids: list[int]
 ) -> Investigation:
     with transaction.atomic(using=router.db_for_write(Investigation)):
@@ -597,10 +597,10 @@ def reorder_cells(
         )
         existing = {block.id: block for block in blocks}
         if len(block_ids) != len(set(block_ids)):
-            raise InvestigationValidationError({"cellIds": "Block IDs must be unique."})
+            raise InvestigationValidationError({"blockIds": "Block IDs must be unique."})
         if set(block_ids) != set(existing):
             raise InvestigationValidationError(
-                {"cellIds": "Must contain every active block exactly once."}
+                {"blockIds": "Must contain every active block exactly once."}
             )
         ordered = [existing[block_id] for block_id in block_ids]
         for position, block in enumerate(ordered):
