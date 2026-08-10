@@ -398,6 +398,7 @@ export function GlobalCommandPaletteActions() {
             display={{
               label: getDiscoverDeprecation(organization) ? t('Errors') : t('Discover'),
             }}
+            keywords={[t('discover')]}
             to={
               getDiscoverDeprecation(organization)
                 ? `${prefix}/explore/errors/homepage/`
@@ -442,7 +443,13 @@ export function GlobalCommandPaletteActions() {
           ))}
         </CMDKAction>
 
-        <CMDKAction display={{label: t('Dashboards'), icon: <IconDashboard />}}>
+        <CMDKAction
+          display={{label: t('Dashboards'), icon: <IconDashboard />}}
+          // Once Insights moves under Dashboards, route "insights" searches here
+          // so the query keeps resolving for rolled-out orgs where the dedicated
+          // Insights section is hidden.
+          keywords={hasInsightsRollout ? [t('insights')] : undefined}
+        >
           <CMDKAction
             display={{label: t('All Dashboards')}}
             to={`${prefix}/dashboards/`}
@@ -677,6 +684,7 @@ export function GlobalCommandPaletteActions() {
                 'SENTRY_DSN',
                 'Sentry DSN',
                 'NEXT_PUBLIC_SENTRY_DSN',
+                'EXPO_PUBLIC_SENTRY_DSN',
                 project.slug,
               ]}
               to={`/settings/${organization.slug}/projects/${project.slug}/keys/`}
@@ -949,6 +957,8 @@ export function GlobalCommandPaletteActions() {
           t('switch project'),
           t('go to project'),
           t('subproject'),
+          t('project slug'),
+          'SENTRY_PROJECT',
         ]}
         prompt={t('Search for a project...')}
         limit={4}

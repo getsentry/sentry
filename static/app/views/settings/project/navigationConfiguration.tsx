@@ -184,6 +184,7 @@ export function getNavigationConfiguration({
             'SENTRY_DSN',
             'Sentry DSN',
             'NEXT_PUBLIC_SENTRY_DSN',
+            'EXPO_PUBLIC_SENTRY_DSN',
             t('auth'),
             t('token'),
             t('client key'),
