@@ -462,7 +462,7 @@ class TestInvalidationTask:
         wraps=_schedule_invalidate_project_config,
     )
     @mock.patch("django.db.transaction.on_commit", wraps=transaction.on_commit)
-    def test_project_config_invalidations_outside_transaction(
+    def test_project_config_invalidations_after_commit(
         self,
         oncommit,
         schedule_inner,
@@ -472,7 +472,7 @@ class TestInvalidationTask:
             trigger="test", project_id=default_project.id, countdown=2
         )
 
-        assert oncommit.call_count == 0
+        assert oncommit.call_count == 1
         assert schedule_inner.call_count == 1
         assert schedule_inner.call_args == mock.call(
             trigger="test",
