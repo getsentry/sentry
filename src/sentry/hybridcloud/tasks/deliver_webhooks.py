@@ -105,6 +105,23 @@ class DeliveryFailed(Exception):
     pass
 
 
+class DeliveryDropped(Exception):
+    """
+    Signals that the cell rejected the payload in a way retrying cannot fix, so
+    it is discarded instead of rescheduled.
+
+    Distinct from `DeliveryFailed`, which is retryable. Both end in the payload
+    being deleted, but only this one means the webhook never reached the cell,
+    so callers must not count it as a delivery.
+
+    `outcome` is the `delivery` metric tag describing why it was dropped.
+    """
+
+    def __init__(self, outcome: str) -> None:
+        super().__init__(outcome)
+        self.outcome = outcome
+
+
 def _drain_lock_key(mailbox_name: str) -> str:
     return f"wh:drain_active:{mailbox_name}"
 
@@ -328,8 +345,8 @@ def drain_mailbox(payload_id: int, mailbox_name: str | None = None) -> None:
                 if mailbox_name and options.get("hybridcloud.webhookpayload.push_drain_trigger"):
                     _refresh_drain_lock(payload.mailbox_name)
                 try:
-                    deliver_message(record)
-                    delivered += 1
+                    if deliver_message(record):
+                        delivered += 1
                 except DeliveryFailed:
                     failed += 1
                     metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "retry"})
@@ -462,6 +479,12 @@ def _handle_parallel_delivery_result(
     Returns (request_failed, should_reraise).
     """
     payload_data = payload_record.as_dict()
+    if isinstance(err, DeliveryDropped):
+        # Permanently rejected, so it is neither a delivery nor a retryable failure:
+        # drop it and let the drain continue to the next record.
+        payload_record.delete()
+        metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": err.outcome})
+        return (False, False)
     if err:
         if payload_record.attempts >= MAX_ATTEMPTS:
             payload_record.delete()
@@ -625,8 +648,14 @@ def deliver_message_parallel(payload: WebhookPayload) -> tuple[WebhookPayload, E
         return (payload, err)
 
 
-def deliver_message(payload: WebhookPayload) -> None:
-    """Deliver a message if it still has delivery attempts remaining"""
+def deliver_message(payload: WebhookPayload) -> bool:
+    """
+    Deliver a message if it still has delivery attempts remaining.
+
+    Returns whether the payload actually reached the cell. A payload that was
+    discarded — attempts exhausted, or permanently rejected — returns False even
+    though it was removed from the mailbox.
+    """
     payload_data = payload.as_dict()
     if payload.attempts >= MAX_ATTEMPTS:
         payload.delete()
@@ -638,16 +667,24 @@ def deliver_message(payload: WebhookPayload) -> None:
             sample_rate=1.0,
         )
         logger.warning("deliver_webhook.discard", extra={**payload_data})
-        return
+        return False
 
     payload.schedule_next_attempt()
-    perform_request(payload)
+    try:
+        perform_request(payload)
+    except DeliveryDropped as err:
+        # The cell rejected the payload permanently. Delete it like a delivery, but
+        # don't record delivery time or count it as one — it never arrived.
+        payload.delete()
+        metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": err.outcome})
+        return False
     date_added = payload.date_added
     payload.delete()
     _record_delivery_time_metrics(payload)
     if timezone.now() - date_added >= SLOW_DELIVERY_THRESHOLD:
         logger.warning("deliver_webhook.slow_delivery", extra=payload_data)
     metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "ok"})
+    return True
 
 
 def perform_request(payload: WebhookPayload) -> None:
@@ -721,6 +758,7 @@ def perform_cell_request(cell: Cell, payload: WebhookPayload) -> None:
             extra={"conflict_text": err.text, **payload.as_dict()},
         )
         # We don't retry conflicts as those are explicit failure code to drop webhook.
+        raise DeliveryDropped("conflict") from err
     except (ApiTimeoutError, ApiConnectionResetError) as err:
         metrics.incr(
             "hybridcloud.deliver_webhooks.failure",
@@ -757,7 +795,7 @@ def perform_cell_request(cell: Cell, payload: WebhookPayload) -> None:
                     "deliver_webhooks.40x_error",
                     extra={"reason": reason, **payload.as_dict()},
                 )
-                return
+                raise DeliveryDropped("dropped_4xx") from err
 
         # Other ApiErrors should be retried
         metrics.incr(
