@@ -162,12 +162,13 @@ def build_snapshot_images_zip(
                 extra={"preprod_artifact_id": artifact_id, "key": key},
             )
         else:
-            manifest = _load_manifest(session, manifest_key)
+            manifest, manifest_size_bytes = _load_manifest(session, manifest_key)
             logger.info(
                 "preprod_snapshot_zip.manifest_loaded",
                 extra={
                     "preprod_artifact_id": artifact_id,
                     "image_count": len(manifest.images),
+                    "manifest_size_bytes": manifest_size_bytes,
                 },
             )
             with NamedTemporaryFile() as tmp:
@@ -221,12 +222,16 @@ def build_snapshot_images_zip(
     _send_archive_email(organization, user_id, artifact_id, ready=True)
 
 
-def _load_manifest(session: Session, manifest_key: str) -> SnapshotManifest:
+def _load_manifest(session: Session, manifest_key: str) -> tuple[SnapshotManifest, int]:
+    """Return the validated manifest and its original objectstore payload size in bytes."""
     response = session.get(manifest_key)
     if response is None:
         raise FileNotFoundError("Manifest does not exist in objectstore")
     try:
-        manifest_data = orjson.loads(response.payload.read())
+        manifest_bytes = response.payload.read()
+        manifest_size_bytes = len(manifest_bytes)
+        manifest_data = orjson.loads(manifest_bytes)
+        del manifest_bytes
     finally:
         response.payload.close()
-    return SnapshotManifest(**manifest_data)
+    return SnapshotManifest(**manifest_data), manifest_size_bytes
