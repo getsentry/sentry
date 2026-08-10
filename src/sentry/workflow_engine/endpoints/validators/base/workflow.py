@@ -236,7 +236,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
 
     def update_or_create_data_condition_group(
         self,
-        condition_group_data: InputData | None,
+        condition_group_data: InputData,
         instance: DataConditionGroup | None = None,
     ) -> DataConditionGroup:
         validator = BaseDataConditionGroupValidator(context=self.context)
