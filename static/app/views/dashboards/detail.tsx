@@ -1530,6 +1530,7 @@ const StyledPageHeader = styled('div')`
 `;
 
 const DashboardControlsBody = styled(Layout.Body)`
+  /* Mirrors ExploreBodySearch, the sticky controls pattern shared by Logs, Traces, and Replays. */
   flex-grow: 0;
   position: sticky;
   top: var(${TOP_BAR_HEIGHT_CSS_VAR}, 0px);
