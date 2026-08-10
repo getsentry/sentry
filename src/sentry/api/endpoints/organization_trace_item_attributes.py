@@ -215,7 +215,9 @@ EXPAND_QUERY_PARAM = OpenApiParameter(
     many=True,
     type=str,
     enum=["context"],
-    # Internal-only for now, so exclude it from the public OpenAPI spec.
+    # Withheld from the public OpenAPI spec because the context shape it returns
+    # is still evolving. The matching half is the ``exclude_fields=["context"]``
+    # on ``TraceItemAttributeKey``, which keeps that shape out of the spec too.
     exclude=True,
     description=(
         "Optional fields to expand. Pass `context` to include attribute metadata "
