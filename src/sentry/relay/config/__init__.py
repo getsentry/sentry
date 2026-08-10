@@ -19,12 +19,11 @@ from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.ingest.inbound_filters import (
     FilterStatKeys,
     FilterTypes,
+    InboundFilterFeatures,
     _FilterSpec,
     get_all_filter_specs,
     get_filter_key,
     get_generic_filters,
-    get_log_messages_generic_filter,
-    get_trace_metric_names_generic_filter,
 )
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.meta import get_clusterer_meta
@@ -39,7 +38,6 @@ from sentry.models.projectkey import ProjectKey
 from sentry.quotas.base import RETENTIONS_CONFIG_MAPPING
 from sentry.relay.config.experimental import TimeChecker, add_experimental_config
 from sentry.relay.datascrubbing import get_datascrubbing_settings, get_pii_config
-from sentry.relay.types.generic_filters import GenericFilter
 from sentry.relay.utils import to_camel_case_name
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
@@ -137,37 +135,22 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         if settings is not None and settings.get("isEnabled", True):
             filter_settings[filter_id] = settings
 
-    base_generic_filters: list[GenericFilter] = []
+    organization = project.organization
+    filter_features = InboundFilterFeatures(
+        custom_inbound_filters=features.has("projects:custom-inbound-filters", project),
+        logs=features.has("organizations:ourlogs-ingestion", organization),
+        metrics=features.has("organizations:tracemetrics-ingestion", organization),
+        custom_inbound_filters_v2=features.has("organizations:inbound-filters-v2", organization),
+    )
 
-    error_messages: list[str] = []
-
-    if features.has("projects:custom-inbound-filters", project):
+    if filter_features.custom_inbound_filters:
         invalid_releases = project.get_option(f"sentry:{FilterTypes.RELEASES}")
         if invalid_releases:
             filter_settings["releases"] = {"releases": invalid_releases}
 
-        error_messages += project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}") or []
-
-        if features.has("organizations:ourlogs-ingestion", project.organization):
-            log_messages = project.get_option(f"sentry:{FilterTypes.LOG_MESSAGES}") or []
-            if log_messages:
-                log_messages_filter = get_log_messages_generic_filter(log_messages)
-                if log_messages_filter:
-                    base_generic_filters.append(log_messages_filter)
-
-        if features.has("organizations:tracemetrics-ingestion", project.organization):
-            trace_metric_names = (
-                project.get_option(f"sentry:{FilterTypes.TRACE_METRIC_NAMES}") or []
-            )
-            if trace_metric_names:
-                trace_metric_names_filter = get_trace_metric_names_generic_filter(
-                    trace_metric_names
-                )
-                if trace_metric_names_filter:
-                    base_generic_filters.append(trace_metric_names_filter)
-
-    if error_messages:
-        filter_settings["errorMessages"] = {"patterns": error_messages}
+        error_messages = project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}")
+        if error_messages:
+            filter_settings["errorMessages"] = {"patterns": error_messages}
 
     blacklisted_ips = project.get_option("sentry:blacklisted_ips")
     if blacklisted_ips:
@@ -181,9 +164,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         filter_settings["csp"] = {"disallowedSources": csp_disallowed_sources}
 
     try:
-        # At the end we compute the generic inbound filters, which are inbound filters expressible with a
-        # conditional DSL that Relay understands.
-        generic_filters = get_generic_filters(project, base_generic_filters)
+        generic_filters = get_generic_filters(project, filter_features)
         if generic_filters is not None:
             filter_settings["generic"] = generic_filters
     except Exception as e:
