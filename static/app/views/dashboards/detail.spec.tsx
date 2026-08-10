@@ -654,7 +654,7 @@ describe('Dashboards > Detail', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Dashboard actions'}));
       expect(await screen.findByRole('menuitemradio', {name: 'Edit'})).toBeVisible();
-      expect(screen.getByRole('menuitemradio', {name: 'Star Dashboard'})).toBeVisible();
+      expect(screen.getByRole('menuitemradio', {name: 'Star'})).toBeVisible();
       expect(
         screen.getByRole('menuitemradio', {name: 'Show version history'})
       ).toBeVisible();
@@ -697,9 +697,7 @@ describe('Dashboards > Detail', () => {
         await screen.findByRole('button', {name: 'Dashboard actions'})
       );
 
-      expect(
-        await screen.findByRole('menuitemradio', {name: 'Star Dashboard'})
-      ).toBeVisible();
+      expect(await screen.findByRole('menuitemradio', {name: 'Star'})).toBeVisible();
       expect(screen.getByRole('menuitemradio', {name: 'Duplicate'})).toBeVisible();
       expect(screen.queryByRole('menuitemradio', {name: 'Edit'})).not.toBeInTheDocument();
       expect(

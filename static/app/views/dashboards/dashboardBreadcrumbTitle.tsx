@@ -107,7 +107,7 @@ export function DashboardBreadcrumbTitle({
     organization.features.includes('dashboards-edit');
   const favoriteItem = {
     key: 'favorite',
-    label: isFavorited ? t('Unstar') : t('Star Dashboard'),
+    label: isFavorited ? t('Unstar') : t('Star'),
     leadingItems: <IconStar isSolid={isFavorited} />,
     onAction: async () => {
       const nextIsFavorited = !isFavorited;
