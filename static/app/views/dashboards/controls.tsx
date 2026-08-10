@@ -54,10 +54,56 @@ type Props = {
   hideAddWidget?: boolean;
   isSaving?: boolean;
   onChangeEditAccess?: (newDashboardPermissions: DashboardPermissions) => void;
-  placement?: 'action-bar' | 'top-bar';
 };
 
-export function Controls({
+export function Controls(props: Props) {
+  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
+
+  if (hasNewBreadcrumbs) {
+    return <DashboardTopBarControls dashboardState={props.dashboardState} />;
+  }
+
+  return <LegacyDashboardControls {...props} />;
+}
+
+function DashboardTopBarControls({dashboardState}: Pick<Props, 'dashboardState'>) {
+  if (
+    [
+      DashboardState.EDIT,
+      DashboardState.PENDING_DELETE,
+      DashboardState.CREATE,
+      DashboardState.PREVIEW,
+    ].includes(dashboardState)
+  ) {
+    return null;
+  }
+
+  return (
+    <ButtonBar>
+      <DashboardEditFeature>
+        {() => (
+          <Feature features="dashboards-import">
+            <Tooltip title={t('Export Dashboard')}>
+              <Button
+                data-test-id="dashboard-export"
+                aria-label={t('export-dashboard')}
+                onClick={event => {
+                  event.preventDefault();
+                  exportDashboard();
+                }}
+                icon={<IconDownload />}
+                variant="secondary"
+                size="sm"
+              />
+            </Tooltip>
+          </Feature>
+        )}
+      </DashboardEditFeature>
+    </ButtonBar>
+  );
+}
+
+function LegacyDashboardControls({
   dashboardState,
   dashboard,
   hasUnsavedFilters,
@@ -70,7 +116,6 @@ export function Controls({
   onCancel,
   onAddWidget,
   isSaving,
-  placement = 'top-bar',
 }: Props) {
   const [isFavorited, setIsFavorited] = useState(dashboard.isFavorited);
   const queryClient = useQueryClient();
@@ -91,7 +136,6 @@ export function Controls({
   }
 
   const organization = useOrganization();
-  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
   const api = useApi();
@@ -108,50 +152,10 @@ export function Controls({
     });
 
   const isPrebuiltDashboard = defined(dashboard.prebuiltId);
-  const isActionBar = placement === 'action-bar';
-  const ControlsBar = isActionBar ? ButtonBar : LegacyButtonBar;
-
-  if (isActionBar && !hasNewBreadcrumbs) {
-    return null;
-  }
 
   if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
-    if (hasNewBreadcrumbs !== isActionBar) {
-      return null;
-    }
-
-    const buttons = (
-      <ControlsBar key="edit-controls">
-        <Button
-          data-test-id="dashboard-commit"
-          size="sm"
-          onClick={e => {
-            e.preventDefault();
-            onCommit();
-          }}
-          variant="primary"
-        >
-          {t('Save and Finish')}
-        </Button>
-        <Confirm
-          priority="danger"
-          message={t('Are you sure you want to delete this dashboard?')}
-          onConfirm={onDelete}
-        >
-          <Button size="sm" data-test-id="dashboard-delete" variant="danger">
-            {t('Delete')}
-          </Button>
-        </Confirm>
-        {renderCancelButton(t('Cancel'), 'transparent')}
-      </ControlsBar>
-    );
-
-    if (isActionBar) {
-      return <DashboardActionBar>{buttons}</DashboardActionBar>;
-    }
-
     return (
-      <ControlsBar key="edit-controls">
+      <LegacyButtonBar key="edit-controls">
         {renderCancelButton()}
         <Confirm
           priority="danger"
@@ -173,18 +177,14 @@ export function Controls({
         >
           {t('Save and Finish')}
         </Button>
-      </ControlsBar>
+      </LegacyButtonBar>
     );
   }
 
   if (dashboardState === DashboardState.CREATE) {
-    if (hasNewBreadcrumbs !== isActionBar) {
-      return null;
-    }
-
-    const buttons = (
-      <ControlsBar key="create-controls">
-        {renderCancelButton(t('Cancel'), isActionBar ? 'transparent' : undefined)}
+    return (
+      <LegacyButtonBar key="create-controls">
+        {renderCancelButton()}
         <Button
           data-test-id="dashboard-commit"
           size="sm"
@@ -196,19 +196,13 @@ export function Controls({
         >
           {t('Save and Finish')}
         </Button>
-      </ControlsBar>
+      </LegacyButtonBar>
     );
-
-    return isActionBar ? <DashboardActionBar>{buttons}</DashboardActionBar> : buttons;
   }
 
   if (dashboardState === DashboardState.PREVIEW) {
-    if (hasNewBreadcrumbs !== isActionBar) {
-      return null;
-    }
-
-    const buttons = (
-      <ControlsBar key="preview-controls">
+    return (
+      <LegacyButtonBar key="preview-controls">
         {renderCancelButton(t('Go Back'))}
 
         <DashboardCreateLimitWrapper>
@@ -235,13 +229,9 @@ export function Controls({
             </Button>
           )}
         </DashboardCreateLimitWrapper>
-      </ControlsBar>
+      </LegacyButtonBar>
     );
-
-    return isActionBar ? <DashboardActionBar>{buttons}</DashboardActionBar> : buttons;
   }
-
-  const defaultDataset = DataSet.ERRORS;
 
   const hasEditAccess = checkUserHasEditAccess(
     currentUser,
@@ -251,107 +241,45 @@ export function Controls({
     dashboard.createdBy
   );
 
-  const addWidgetDropdownItems: MenuItemProps[] = [
-    {
-      key: 'create-custom-widget',
-      label: t('Create Custom Widget'),
-      onAction: () => onAddWidget(defaultDataset, false),
-    },
-    {
-      key: 'from-widget-library',
-      label: t('From Widget Library'),
-      onAction: () => onAddWidget(defaultDataset, true),
-    },
-  ];
-
-  const tooltipMessage = hasEditAccess
-    ? widgetLimitReached
-      ? tct('Max widgets ([maxWidgets]) per dashboard reached.', {
-          maxWidgets: MAX_WIDGETS,
-        })
-      : null
-    : t('You do not have permission to edit this dashboard');
-
-  if (isActionBar) {
-    return (
-      <DashboardActionBar>
-        <DashboardEditFeature>
-          {hasFeature => (
-            <ControlsBar>
-              {hasFeature && !isPrebuiltDashboard && !hideAddWidget && (
-                <Tooltip
-                  title={tooltipMessage}
-                  disabled={!widgetLimitReached && hasEditAccess}
-                >
-                  <DropdownMenu
-                    items={addWidgetDropdownItems}
-                    isDisabled={widgetLimitReached || !hasEditAccess}
-                    triggerLabel={t('Add Widget')}
-                    triggerProps={{
-                      'aria-label': t('Add Widget'),
-                      size: 'sm',
-                      showChevron: true,
-                      icon: <IconAdd size="sm" />,
-                      variant: 'primary',
-                    }}
-                    position="bottom-end"
-                  />
-                </Tooltip>
-              )}
-              {!isPrebuiltDashboard && hasEditAccess && (
-                <EditAccessSelector
-                  dashboard={dashboard}
-                  onChangeEditAccess={onChangeEditAccess}
-                />
-              )}
-            </ControlsBar>
-          )}
-        </DashboardEditFeature>
-      </DashboardActionBar>
-    );
-  }
-
   return (
-    <ControlsBar key="controls">
+    <LegacyButtonBar key="controls">
       <DashboardEditFeature>
         {hasFeature => (
           <Fragment>
-            {!hasNewBreadcrumbs && (
-              <Tooltip title={isFavorited ? t('Starred Dashboard') : t('Star Dashboard')}>
-                <Button
-                  size="sm"
-                  aria-label={t('star-dashboard')}
-                  icon={
-                    <IconStar
-                      variant={isFavorited ? 'warning' : 'muted'}
-                      isSolid={isFavorited}
-                      aria-label={isFavorited ? t('Unstar') : t('Star')}
-                      data-test-id={isFavorited ? 'yellow-star' : 'empty-star'}
-                    />
+            <Tooltip title={isFavorited ? t('Starred Dashboard') : t('Star Dashboard')}>
+              <Button
+                size="sm"
+                aria-label={t('star-dashboard')}
+                icon={
+                  <IconStar
+                    variant={isFavorited ? 'warning' : 'muted'}
+                    isSolid={isFavorited}
+                    aria-label={isFavorited ? t('Unstar') : t('Star')}
+                    data-test-id={isFavorited ? 'yellow-star' : 'empty-star'}
+                  />
+                }
+                onClick={async () => {
+                  try {
+                    setIsFavorited(!isFavorited);
+                    await updateDashboardFavorite(
+                      api,
+                      queryClient,
+                      organization,
+                      dashboard.id,
+                      !isFavorited
+                    );
+                    trackAnalytics('dashboards_manage.toggle_favorite', {
+                      organization,
+                      dashboard_id: dashboard.id,
+                      favorited: !isFavorited,
+                    });
+                  } catch (error) {
+                    // If the api call fails, revert the state
+                    setIsFavorited(isFavorited);
                   }
-                  onClick={async () => {
-                    try {
-                      setIsFavorited(!isFavorited);
-                      await updateDashboardFavorite(
-                        api,
-                        queryClient,
-                        organization,
-                        dashboard.id,
-                        !isFavorited
-                      );
-                      trackAnalytics('dashboards_manage.toggle_favorite', {
-                        organization,
-                        dashboard_id: dashboard.id,
-                        favorited: !isFavorited,
-                      });
-                    } catch (error) {
-                      // If the api call fails, revert the state
-                      setIsFavorited(isFavorited);
-                    }
-                  }}
-                />
-              </Tooltip>
-            )}
+                }}
+              />
+            </Tooltip>
             <Feature features="dashboards-import">
               <Tooltip title={t('Export Dashboard')}>
                 <Button
@@ -368,7 +296,6 @@ export function Controls({
               </Tooltip>
             </Feature>
             {hasFeature &&
-              !hasNewBreadcrumbs &&
               (isPrebuiltDashboard ? (
                 <Button
                   data-test-id="dashboard-edit"
@@ -409,39 +336,21 @@ export function Controls({
                   size="sm"
                 />
               ))}
-            {!hasNewBreadcrumbs && !isPrebuiltDashboard && (
+            {!isPrebuiltDashboard && (
               <EditAccessSelector
                 dashboard={dashboard}
                 onChangeEditAccess={onChangeEditAccess}
               />
             )}
-            {hasFeature && !hasNewBreadcrumbs && (
-              <DashboardRevisionsButton dashboard={dashboard} />
+            {hasFeature && <DashboardRevisionsButton dashboard={dashboard} />}
+            {hasFeature && !isPrebuiltDashboard && !hideAddWidget && (
+              <AddWidgetDropdown
+                hasEditAccess={hasEditAccess}
+                onAddWidget={onAddWidget}
+                widgetLimitReached={widgetLimitReached}
+              />
             )}
-            {hasFeature &&
-              !hasNewBreadcrumbs &&
-              !isPrebuiltDashboard &&
-              !hideAddWidget && (
-                <Tooltip
-                  title={tooltipMessage}
-                  disabled={!widgetLimitReached && hasEditAccess}
-                >
-                  <DropdownMenu
-                    items={addWidgetDropdownItems}
-                    isDisabled={widgetLimitReached || !hasEditAccess}
-                    triggerLabel={t('Add Widget')}
-                    triggerProps={{
-                      'aria-label': t('Add Widget'),
-                      size: 'sm',
-                      showChevron: true,
-                      icon: <IconAdd size="sm" />,
-                      variant: 'primary',
-                    }}
-                    position="bottom-end"
-                  />
-                </Tooltip>
-              )}
-            {hasFeature && isPrebuiltDashboard && !hasNewBreadcrumbs && (
+            {hasFeature && isPrebuiltDashboard && (
               <DashboardCreateLimitWrapper>
                 {({
                   hasReachedDashboardLimit,
@@ -484,11 +393,203 @@ export function Controls({
           </Fragment>
         )}
       </DashboardEditFeature>
-    </ControlsBar>
+    </LegacyButtonBar>
   );
 }
 
-function DashboardActionBar({children}: {children: React.ReactNode}) {
+export function DashboardActionBar({
+  dashboard,
+  dashboardState,
+  hideAddWidget = false,
+  onAddWidget,
+  onCancel,
+  onChangeEditAccess,
+  onCommit,
+  onDelete,
+  widgetLimitReached,
+}: Props) {
+  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
+  const organization = useOrganization();
+  const currentUser = useUser();
+  const {teams: userTeams} = useUserTeams();
+
+  if (!hasNewBreadcrumbs) {
+    return null;
+  }
+
+  function handleCancel(event: React.MouseEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    onCancel();
+  }
+
+  function handleCommit(event: React.MouseEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    onCommit();
+  }
+
+  if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
+    return (
+      <ActionBarLayout>
+        <ButtonBar>
+          <Button
+            data-test-id="dashboard-commit"
+            size="sm"
+            onClick={handleCommit}
+            variant="primary"
+          >
+            {t('Save and Finish')}
+          </Button>
+          <Confirm
+            priority="danger"
+            message={t('Are you sure you want to delete this dashboard?')}
+            onConfirm={onDelete}
+          >
+            <Button size="sm" data-test-id="dashboard-delete" variant="danger">
+              {t('Delete')}
+            </Button>
+          </Confirm>
+          <Button
+            data-test-id="dashboard-cancel"
+            size="sm"
+            variant="transparent"
+            onClick={handleCancel}
+          >
+            {t('Cancel')}
+          </Button>
+        </ButtonBar>
+      </ActionBarLayout>
+    );
+  }
+
+  if (dashboardState === DashboardState.CREATE) {
+    return (
+      <ActionBarLayout>
+        <ButtonBar>
+          <Button
+            data-test-id="dashboard-cancel"
+            size="sm"
+            variant="transparent"
+            onClick={handleCancel}
+          >
+            {t('Cancel')}
+          </Button>
+          <Button
+            data-test-id="dashboard-commit"
+            size="sm"
+            onClick={handleCommit}
+            variant="primary"
+          >
+            {t('Save and Finish')}
+          </Button>
+        </ButtonBar>
+      </ActionBarLayout>
+    );
+  }
+
+  if (dashboardState === DashboardState.PREVIEW) {
+    return (
+      <ActionBarLayout>
+        <ButtonBar>
+          <Button data-test-id="dashboard-cancel" size="sm" onClick={handleCancel}>
+            {t('Go Back')}
+          </Button>
+          <DashboardCreateLimitWrapper>
+            {({hasReachedDashboardLimit, isLoading, limitMessage}) => (
+              <Button
+                data-test-id="dashboard-commit"
+                size="sm"
+                onClick={handleCommit}
+                variant="primary"
+                disabled={hasReachedDashboardLimit || isLoading}
+                tooltipProps={{isHoverable: true, title: limitMessage}}
+              >
+                {t('Save and Finish')}
+              </Button>
+            )}
+          </DashboardCreateLimitWrapper>
+        </ButtonBar>
+      </ActionBarLayout>
+    );
+  }
+
+  const isPrebuiltDashboard = defined(dashboard.prebuiltId);
+  const hasEditAccess = checkUserHasEditAccess(
+    currentUser,
+    userTeams,
+    organization,
+    dashboard.permissions,
+    dashboard.createdBy
+  );
+  return (
+    <ActionBarLayout>
+      <DashboardEditFeature>
+        {hasFeature => (
+          <ButtonBar>
+            {hasFeature && !isPrebuiltDashboard && !hideAddWidget && (
+              <AddWidgetDropdown
+                hasEditAccess={hasEditAccess}
+                onAddWidget={onAddWidget}
+                widgetLimitReached={widgetLimitReached}
+              />
+            )}
+            {!isPrebuiltDashboard && hasEditAccess && (
+              <EditAccessSelector
+                dashboard={dashboard}
+                onChangeEditAccess={onChangeEditAccess}
+              />
+            )}
+          </ButtonBar>
+        )}
+      </DashboardEditFeature>
+    </ActionBarLayout>
+  );
+}
+
+function AddWidgetDropdown({
+  hasEditAccess,
+  onAddWidget,
+  widgetLimitReached,
+}: Pick<Props, 'onAddWidget' | 'widgetLimitReached'> & {hasEditAccess: boolean}) {
+  const items: MenuItemProps[] = [
+    {
+      key: 'create-custom-widget',
+      label: t('Create Custom Widget'),
+      onAction: () => onAddWidget(DataSet.ERRORS, false),
+    },
+    {
+      key: 'from-widget-library',
+      label: t('From Widget Library'),
+      onAction: () => onAddWidget(DataSet.ERRORS, true),
+    },
+  ];
+  const tooltip = hasEditAccess
+    ? widgetLimitReached
+      ? tct('Max widgets ([maxWidgets]) per dashboard reached.', {
+          maxWidgets: MAX_WIDGETS,
+        })
+      : null
+    : t('You do not have permission to edit this dashboard');
+
+  return (
+    <Tooltip title={tooltip} disabled={!widgetLimitReached && hasEditAccess}>
+      <DropdownMenu
+        items={items}
+        isDisabled={widgetLimitReached || !hasEditAccess}
+        triggerLabel={t('Add Widget')}
+        triggerProps={{
+          'aria-label': t('Add Widget'),
+          size: 'sm',
+          showChevron: true,
+          icon: <IconAdd size="sm" />,
+          variant: 'primary',
+        }}
+        position="bottom-end"
+      />
+    </Tooltip>
+  );
+}
+
+function ActionBarLayout({children}: {children: React.ReactNode}) {
   return (
     <Flex
       as="section"

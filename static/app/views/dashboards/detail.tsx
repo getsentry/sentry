@@ -81,7 +81,7 @@ import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 import {PrebuiltDashboardOnboardingGate} from './components/prebuiltDashboardOnboardingGate';
-import {Controls} from './controls';
+import {Controls, DashboardActionBar} from './controls';
 import {validateDashboardAndRecordMetrics} from './createFromSeerUtils';
 import {Dashboard} from './dashboard';
 import {DashboardBreadcrumbTitle} from './dashboardBreadcrumbTitle';
@@ -1375,8 +1375,7 @@ class DashboardDetail extends Component<Props, State> {
                                   );
                                 }}
                               />
-                              <Controls
-                                placement="action-bar"
+                              <DashboardActionBar
                                 organization={organization}
                                 dashboard={dashboard}
                                 hasUnsavedFilters={hasUnsavedFilters}
