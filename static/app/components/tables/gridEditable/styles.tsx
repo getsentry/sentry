@@ -317,6 +317,8 @@ export const GridResizer = styled('div')`
   padding-right: 5px;
 
   cursor: col-resize;
+  touch-action: none;
+  user-select: none;
   z-index: ${Z_INDEX_GRID_RESIZER};
 
   /**
