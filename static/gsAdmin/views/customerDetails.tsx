@@ -562,7 +562,7 @@ export function CustomerDetails() {
           {
             key: 'startTrial',
             name: isTrial(subscription) ? 'Extend Trial' : 'Start Trial',
-            help: 'Start or extend a trial for this account.',
+            help: 'Start or extend a Business trial for this account. This will not change quota limits.',
             confirmModalOpts: {
               renderModalSpecificContent: deps => (
                 <TrialSubscriptionAction subscription={subscription} {...deps} />
