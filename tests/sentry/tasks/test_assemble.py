@@ -19,6 +19,7 @@ from sentry.models.artifactbundle import (
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
+from sentry.models.files.fileblobindex import FileBlobIndex
 from sentry.models.files.fileblobowner import FileBlobOwner
 from sentry.tasks.assemble import (
     ArtifactBundlePostAssembler,
@@ -96,6 +97,25 @@ class AssembleDifTest(BaseAssembleTest):
 
         assert (dif.file or dif.storage_path) is not None
         assert dif.get_content_type() == "text/x-breakpad"
+
+    def test_exclusive_objectstore_dif_avoids_creating_file(self) -> None:
+        sym_file = self.load_fixture("crash.sym")
+        blob = FileBlob.from_file_with_organization(ContentFile(sym_file), self.organization)
+        checksum = sha1(sym_file).hexdigest()
+
+        with self.feature("organizations:objectstore-debugfiles-exclusive-write"):
+            assemble_dif(
+                project_id=self.project.id,
+                name="crash.sym",
+                checksum=checksum,
+                chunks=[blob.checksum],
+            )
+
+        dif = ProjectDebugFile.objects.get(project_id=self.project.id, checksum=checksum)
+        assert dif.file_id is None
+        assert dif.storage_path is not None
+        assert not File.objects.filter(type="project.dif", checksum=checksum).exists()
+        assert not FileBlobIndex.objects.exists()
 
     def test_assemble_from_files(self) -> None:
         files = []
