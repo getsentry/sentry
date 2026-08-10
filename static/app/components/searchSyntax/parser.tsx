@@ -48,6 +48,7 @@ export enum Token {
   KEY_EXPLICIT_BOOLEAN_TAG = 'keyExplicitBooleanTag',
   KEY_EXPLICIT_NUMBER_TAG = 'keyExplicitNumberTag',
   KEY_EXPLICIT_STRING_TAG = 'keyExplicitStringTag',
+  KEY_EXPLICIT_ARRAY_TAG = 'keyExplicitArrayTag',
   KEY_AGGREGATE = 'keyAggregate',
   KEY_AGGREGATE_ARGS = 'keyAggregateArgs',
   KEY_AGGREGATE_PARAMS = 'keyAggregateParam',
@@ -181,6 +182,7 @@ const textKeys = [
   Token.KEY_SIMPLE,
   Token.KEY_EXPLICIT_TAG,
   Token.KEY_EXPLICIT_STRING_TAG,
+  Token.KEY_EXPLICIT_ARRAY_TAG,
   Token.KEY_EXPLICIT_FLAG,
   Token.KEY_EXPLICIT_STRING_FLAG,
 ] as const;
@@ -610,6 +612,16 @@ export class TokenConverter {
     key,
   });
 
+  tokenKeyExplicitArrayTag = (
+    prefix: string,
+    key: ReturnType<TokenConverter['tokenKeySimple']>
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KEY_EXPLICIT_ARRAY_TAG as const,
+    prefix,
+    key,
+  });
+
   tokenKeyAggregateParam = (value: string, quoted: boolean) => ({
     ...this.defaultTokenFields,
     type: Token.KEY_AGGREGATE_PARAMS as const,
@@ -902,6 +914,7 @@ export class TokenConverter {
         Token.KEY_EXPLICIT_BOOLEAN_TAG,
         Token.KEY_EXPLICIT_NUMBER_TAG,
         Token.KEY_EXPLICIT_STRING_TAG,
+        Token.KEY_EXPLICIT_ARRAY_TAG,
         Token.KEY_EXPLICIT_FLAG,
         Token.KEY_EXPLICIT_NUMBER_FLAG,
         Token.KEY_EXPLICIT_STRING_FLAG,
@@ -977,6 +990,7 @@ export class TokenConverter {
     if (
       key.type === Token.KEY_EXPLICIT_TAG ||
       key.type === Token.KEY_EXPLICIT_STRING_TAG ||
+      key.type === Token.KEY_EXPLICIT_ARRAY_TAG ||
       key.type === Token.KEY_EXPLICIT_FLAG ||
       key.type === Token.KEY_EXPLICIT_STRING_FLAG
     ) {
