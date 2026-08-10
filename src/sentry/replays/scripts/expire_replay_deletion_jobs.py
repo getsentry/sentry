@@ -24,8 +24,15 @@ def expire_replay_deletion_jobs(
     as not found rather than expired.
 
     Returns the IDs that were (or, on a dry run, would have been) transitioned.
+
+    Raises `Project.DoesNotExist` for an unknown `project_id`. An operator supplies that ID by hand,
+    so a typo has to fail the run loudly rather than report zero jobs expired and look like success.
     """
-    project = Project.objects.get(id=project_id)
+    project = Project.objects.filter(id=project_id).first()
+    if project is None:
+        raise Project.DoesNotExist(
+            f"expire_replay_deletion_jobs got project_id={project_id}, which does not exist"
+        )
 
     jobs = list(
         ReplayDeletionJobModel.objects.filter(

@@ -52,7 +52,7 @@ class TestExpireReplayDeletionJobs(TestCase):
         assert job.status == DeletionJobStatus.COMPLETED
 
     def test_unknown_project_id_raises(self) -> None:
-        with pytest.raises(Project.DoesNotExist):
+        with pytest.raises(Project.DoesNotExist, match="project_id=1234567"):
             expire_replay_deletion_jobs(1234567, [1], dry_run=False)
 
     def test_dry_run_mutates_nothing(self) -> None:
