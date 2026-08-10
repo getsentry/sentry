@@ -253,7 +253,7 @@ describe('EditAutomation', () => {
     render(<AutomationEdit />, {organization});
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Assign'}),
+      await screen.findByRole('textbox', {name: 'Assign'}),
       `#${team.slug}`
     );
 
