@@ -14,6 +14,7 @@ import {
   UserMessageBlock,
 } from 'sentry/components/ai/chat/messageBlock';
 import {TURN_META_WIDTH, TurnMeta} from 'sentry/components/ai/chat/turnMeta';
+import {Count} from 'sentry/components/count';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -298,28 +299,31 @@ const EmbeddingTurn = memo(function EmbeddingTurnImpl({
 }) {
   const organization = useOrganization();
   const input = message.embeddingInput ?? '';
-  // The input is the primary content, but it isn't always available (older
-  // deploys don't return it in the bulk fetch); fall back to the model name so
-  // the row still reads as an embedding rather than a bare label.
-  const preview = input || message.embeddingModel || '';
+  const tokens = message.embeddingTokens;
 
   return (
     <MessageRow from="assistant" density="compact">
       <CollapsibleChatRow
         defaultOpen={isSelected}
-        title={isOpen => (
+        title={
           <Text
             size="sm"
             variant={message.embeddingHasError ? 'danger' : 'muted'}
             ellipsis
             monospace
           >
-            {t('Embedding...')} {isOpen ? null : preview}
+            {t('Created embedding...')}
           </Text>
-        )}
+        }
         meta={
           <TurnMeta
-            metric={null}
+            metric={
+              tokens === undefined || tokens <= 0 ? null : (
+                <Text size="xs" variant="muted" tabular align="right">
+                  <Count value={tokens} /> {t('tokens')}
+                </Text>
+              )
+            }
             duration={
               message.duration === undefined || message.duration <= 0 ? null : (
                 <Text size="xs" variant="muted" tabular align="right">
@@ -339,7 +343,7 @@ const EmbeddingTurn = memo(function EmbeddingTurnImpl({
         <Flex>
           <Container paddingTop="xs" paddingBottom="xs" flex="1" minWidth={0}>
             <MessageText size="sm" align="left" variant="muted" monospace>
-              <AIContentRenderer text={preview} inline autoCollapseLimit={10} />
+              <AIContentRenderer text={input} inline autoCollapseLimit={10} />
             </MessageText>
           </Container>
           <Container width={TURN_META_WIDTH} flexShrink={0} />

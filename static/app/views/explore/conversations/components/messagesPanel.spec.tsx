@@ -72,6 +72,7 @@ function createMockEmbeddingNode(overrides: {
   input?: string;
   model?: string;
   startTimestamp?: number;
+  tokens?: number;
 }) {
   const {
     id,
@@ -79,6 +80,7 @@ function createMockEmbeddingNode(overrides: {
     model = 'text-embedding-005',
     startTimestamp = 1000,
     endTimestamp,
+    tokens,
   } = overrides;
   const end = endTimestamp ?? startTimestamp + 100;
   return {
@@ -93,6 +95,7 @@ function createMockEmbeddingNode(overrides: {
       [SpanFields.SPAN_OP]: 'gen_ai.embeddings',
       [SpanFields.GEN_AI_EMBEDDINGS_INPUT]: input,
       [SpanFields.GEN_AI_RESPONSE_MODEL]: model,
+      ...(tokens === undefined ? {} : {[SpanFields.GEN_AI_USAGE_TOTAL_TOKENS]: tokens}),
     },
     errors: new Set(),
   };
@@ -493,10 +496,10 @@ describe('MessagesPanel', () => {
     expect(
       screen.queryByText("This conversation doesn't include any inference spans")
     ).not.toBeInTheDocument();
-    expect(screen.getByText(/Embedding\.\.\./)).toBeInTheDocument();
+    expect(screen.getByText('Created embedding...')).toBeInTheDocument();
   });
 
-  it('renders a collapsed embedding row that expands to show the full input', async () => {
+  it('shows no preview in the toggle and reveals the input only when expanded', async () => {
     const embeddingNode = createMockEmbeddingNode({
       id: 'embed-1',
       input: 'a very specific search query',
@@ -510,19 +513,26 @@ describe('MessagesPanel', () => {
       />
     );
 
-    const preview = screen.getByText(/Embedding\.\.\..*a very specific search query/);
-    const details = preview.closest('details');
+    // The toggle label carries no preview of the input — the input lives in the
+    // collapsible body (kept in the DOM by the native <details>), not the summary.
+    const toggle = screen.getByText('Created embedding...');
+    const summary = toggle.closest('summary');
+    expect(summary).not.toBeNull();
+    const details = toggle.closest('details');
     expect(details).not.toHaveAttribute('open');
 
-    await userEvent.click(preview);
+    const inputEl = screen.getByText('a very specific search query');
+    expect(summary).not.toContainElement(inputEl);
+
+    await userEvent.click(toggle);
     expect(details).toHaveAttribute('open');
-    expect(screen.getByText('a very specific search query')).toBeInTheDocument();
+    expect(inputEl).toBeInTheDocument();
   });
 
-  it('falls back to the model name when the embedding input is unavailable', () => {
-    // The real dev-ui/older-deploy shape: an embeddings span detected by its op,
-    // with no gen_ai.embeddings.input in the bulk response. The row must still
-    // render, using the model as its preview.
+  it('does not render an embedding row when the input is unavailable', () => {
+    // The dev-ui/older-deploy shape: an embeddings span with no
+    // gen_ai.embeddings.input in the bulk response. Without the input there's
+    // nothing worth showing, so the row is dropped entirely.
     const embeddingNode = createMockEmbeddingNode({
       id: 'embed-1',
       input: '',
@@ -537,7 +547,26 @@ describe('MessagesPanel', () => {
       />
     );
 
-    expect(screen.getByText(/Embedding\.\.\..*text-embedding-005/)).toBeInTheDocument();
+    expect(screen.queryByText('Created embedding...')).not.toBeInTheDocument();
+  });
+
+  it('shows the token count in the embedding meta when available', () => {
+    const embeddingNode = createMockEmbeddingNode({
+      id: 'embed-1',
+      input: 'find docs',
+      tokens: 6,
+    });
+
+    render(
+      <MessagesPanel
+        nodes={[embeddingNode] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(screen.getByText('tokens')).toBeInTheDocument();
+    expect(screen.getByText('6')).toBeInTheDocument();
   });
 
   it('positions the embedding row between the user and assistant turns around it', () => {
@@ -571,7 +600,11 @@ describe('MessagesPanel', () => {
     );
 
     const text = container.textContent ?? '';
-    expect(text.indexOf('Find the docs')).toBeLessThan(text.indexOf('Embedding...'));
-    expect(text.indexOf('Embedding...')).toBeLessThan(text.indexOf('Here they are'));
+    expect(text.indexOf('Find the docs')).toBeLessThan(
+      text.indexOf('Created embedding...')
+    );
+    expect(text.indexOf('Created embedding...')).toBeLessThan(
+      text.indexOf('Here they are')
+    );
   });
 });

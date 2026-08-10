@@ -6,6 +6,7 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {
   AGENT_NAME_FIELDS,
+  getNumberAttr,
   getStringAttr,
   hasError,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
@@ -50,7 +51,7 @@ export interface ConversationMessage {
   duration?: number;
   embeddingHasError?: boolean;
   embeddingInput?: string;
-  embeddingModel?: string;
+  embeddingTokens?: number;
   modelName?: string;
   reasoning?: string;
   toolCalls?: ToolCall[];
@@ -139,19 +140,17 @@ export function embeddingSpansToMessages(
 
   for (const span of embeddingSpans) {
     const input = getStringAttr(span, SpanFields.GEN_AI_EMBEDDINGS_INPUT);
-    const model =
-      getStringAttr(span, SpanFields.GEN_AI_RESPONSE_MODEL) ||
-      getStringAttr(span, SpanFields.GEN_AI_REQUEST_MODEL);
 
-    // Nothing to show for this span. The input is the primary content but isn't
-    // always present (older deploys don't return it in the bulk fetch), so fall
-    // back to the model name rather than dropping the row entirely.
-    if (!input && !model) {
+    // The input is the whole point of the row, so drop the span when it wasn't
+    // captured rather than showing an empty "Created embedding..." entry. (It's
+    // absent until the bulk conversation fetch returns gen_ai.embeddings.input.)
+    if (!input) {
       continue;
     }
 
     const start = getNodeStartTimestamp(span);
     const end = getNodeEndTimestamp(span);
+    const tokens = getNumberAttr(span, SpanFields.GEN_AI_USAGE_TOTAL_TOKENS);
 
     messages.push({
       id: `embedding-${span.id}`,
@@ -159,8 +158,8 @@ export function embeddingSpansToMessages(
       content: '',
       timestamp: getNodeTimestamp(span),
       nodeId: span.id,
-      embeddingInput: input || undefined,
-      embeddingModel: model || undefined,
+      embeddingInput: input,
+      embeddingTokens: tokens && tokens > 0 ? tokens : undefined,
       embeddingHasError: hasError(span),
       duration: end > start ? end - start : undefined,
     });

@@ -77,6 +77,7 @@ function createMockEmbeddingNode(overrides: {
   model?: string;
   spanOp?: string;
   startTimestamp?: number;
+  tokens?: number;
 }) {
   const {
     id,
@@ -85,6 +86,7 @@ function createMockEmbeddingNode(overrides: {
     spanOp = 'gen_ai.embeddings',
     startTimestamp = 1000,
     endTimestamp,
+    tokens,
   } = overrides;
   const end = endTimestamp ?? startTimestamp + 100;
   return {
@@ -102,6 +104,7 @@ function createMockEmbeddingNode(overrides: {
       [SpanFields.SPAN_OP]: spanOp,
       [SpanFields.GEN_AI_EMBEDDINGS_INPUT]: input,
       [SpanFields.GEN_AI_RESPONSE_MODEL]: model,
+      ...(tokens === undefined ? {} : {[SpanFields.GEN_AI_USAGE_TOTAL_TOKENS]: tokens}),
     },
     errors: new Set(),
   };
@@ -599,6 +602,7 @@ describe('conversationMessages utilities', () => {
       const node = createMockEmbeddingNode({
         id: 'embed-1',
         input: 'search query',
+        tokens: 6,
         startTimestamp: 1000,
         endTimestamp: 1200,
       });
@@ -612,39 +616,23 @@ describe('conversationMessages utilities', () => {
         content: '',
         nodeId: 'embed-1',
         embeddingInput: 'search query',
+        embeddingTokens: 6,
         embeddingHasError: false,
         duration: 200,
       });
     });
 
-    it('falls back to the model name when the input is not available', () => {
-      // Older deploys don't return gen_ai.embeddings.input in the bulk fetch, so
-      // the row falls back to the model rather than being dropped.
+    it('skips spans with no captured input', () => {
+      // The input is the whole point of the row, so a span without it (e.g. the
+      // bulk fetch didn't return gen_ai.embeddings.input) produces no message.
       const node = {
         id: 'embed-1',
         value: {start_timestamp: 1000, end_timestamp: 1200},
         attributes: {
-          [SpanFields.GEN_AI_OPERATION_TYPE]: 'embeddings',
+          [SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client',
+          [SpanFields.SPAN_OP]: 'gen_ai.embeddings',
           [SpanFields.GEN_AI_RESPONSE_MODEL]: 'text-embedding-005',
         },
-        errors: new Set(),
-      };
-
-      const messages = embeddingSpansToMessages([node as any]);
-
-      expect(messages).toHaveLength(1);
-      expect(messages[0]).toMatchObject({
-        role: 'embedding',
-        embeddingInput: undefined,
-        embeddingModel: 'text-embedding-005',
-      });
-    });
-
-    it('skips spans with neither input nor model', () => {
-      const node = {
-        id: 'embed-1',
-        value: {start_timestamp: 1000, end_timestamp: 1200},
-        attributes: {[SpanFields.GEN_AI_OPERATION_TYPE]: 'embeddings'},
         errors: new Set(),
       };
 
