@@ -597,6 +597,104 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         )
         assert len(response.data) == 0
 
+    def test_query_by_assignee_user_email(self) -> None:
+        user = self.create_user(email="assignee@example.com")
+        self.create_member(organization=self.organization, user=user)
+        self.workflow.update(owner_user_id=user.id)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": f"assignee:{user.email}"}
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.workflow.id)
+
+    def test_query_by_assignee_user_username(self) -> None:
+        user = self.create_user(username="assigneeuser")
+        self.create_member(organization=self.organization, user=user)
+        self.workflow.update(owner_user_id=user.id)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": f"assignee:{user.username}"}
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.workflow.id)
+
+    def test_query_by_assignee_team(self) -> None:
+        self.workflow.update(owner_team_id=self.team.id)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": f"assignee:#{self.team.slug}"}
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.workflow.id)
+
+    def test_query_by_assignee_me(self) -> None:
+        self.workflow.update(owner_user_id=self.user.id)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "assignee:me"}
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.workflow.id)
+
+    def test_query_by_assignee_my_teams(self) -> None:
+        self.workflow.update(owner_team_id=self.team.id)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "assignee:my_teams"}
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.workflow.id)
+
+    def test_query_by_assignee_none(self) -> None:
+        self.workflow.update(owner_user_id=self.user.id)
+        self.workflow_two.update(owner_team_id=self.team.id)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "assignee:none"}
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.workflow_three.id)
+
+    def test_query_by_assignee_multiple_values(self) -> None:
+        user = self.create_user(email="assignee@example.com")
+        self.create_member(organization=self.organization, user=user)
+        self.workflow.update(owner_user_id=user.id)
+        self.workflow_two.update(owner_team_id=self.team.id)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"query": f"assignee:[{user.email}, #{self.team.slug}]"},
+        )
+        assert len(response.data) == 2
+        assert {w["id"] for w in response.data} == {
+            str(self.workflow.id),
+            str(self.workflow_two.id),
+        }
+
+    def test_query_by_assignee_negation(self) -> None:
+        user = self.create_user(email="assignee@example.com")
+        self.create_member(organization=self.organization, user=user)
+        self.workflow.update(owner_user_id=user.id)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": f"!assignee:{user.email}"}
+        )
+        assert len(response.data) == 2
+        assert {w["id"] for w in response.data} == {
+            str(self.workflow_two.id),
+            str(self.workflow_three.id),
+        }
+
+    def test_query_by_assignee_invalid_user(self) -> None:
+        self.workflow.update(owner_user_id=self.user.id)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"query": "assignee:nonexistent@example.com"},
+        )
+        assert len(response.data) == 0
+
 
 @cell_silo_test
 class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkflowTest):

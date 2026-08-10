@@ -58,7 +58,7 @@ from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
     WorkflowSerializer,
     WorkflowSerializerResponse,
 )
-from sentry.workflow_engine.endpoints.utils.filters import apply_filter
+from sentry.workflow_engine.endpoints.utils.filters import apply_filter, convert_assignee_values
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
@@ -88,7 +88,7 @@ SORT_COL_MAP = {
 workflow_search_config = SearchConfig.create_from(
     default_config,
     text_operator_keys={"name", "action"},
-    allowed_keys={"name", "action", "created_by"},
+    allowed_keys={"name", "action", "created_by", "assignee"},
     allow_boolean=False,
     free_text_key="query",
 )
@@ -172,6 +172,10 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             detector_ids = to_valid_int_id_list("detector", raw_detectorlist)
             queryset = queryset.filter(detectorworkflow__detector_id__in=detector_ids).distinct()
 
+        # Use include_all_accessible=True to get all projects the user can access,
+        # not just those explicitly requested
+        projects = self.get_projects(request, organization, include_all_accessible=True)
+
         if raw_query := request.GET.get("query"):
             try:
                 parsed_query = parse_workflow_query(raw_query)
@@ -204,6 +208,20 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                             queryset = queryset.exclude(created_by_q)
                         else:
                             queryset = queryset.filter(created_by_q)
+                    case SearchFilter(key=SearchKey("assignee"), operator=("=" | "IN" | "!=")):
+                        # Filter values can be emails, team slugs, "me", "my_teams", "none"
+                        values = (
+                            filter.value.value
+                            if isinstance(filter.value.value, list)
+                            else [filter.value.value]
+                        )
+
+                        assignee_q = convert_assignee_values(values, projects, request.user)
+
+                        if filter.operator == "!=":
+                            queryset = queryset.exclude(assignee_q)
+                        else:
+                            queryset = queryset.filter(assignee_q)
                     case SearchFilter(key=SearchKey("query"), operator="="):
                         # 'query' is our free text key; all free text gets returned here
                         # as '=', and we search any relevant fields for it.
@@ -217,10 +235,8 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                         # TODO: What about unrecognized keys?
                         pass
 
-        # Use include_all_accessible=True to get all projects the user can access,
-        # not just those explicitly requested. This filter is ALWAYS applied to ensure
-        # users with no project access only see org-level workflows.
-        projects = self.get_projects(request, organization, include_all_accessible=True)
+        # This filter is ALWAYS applied to ensure users with no project access
+        # only see org-level workflows.
         accessible_workflows = Q(detectorworkflow__detector__project__in=projects) | Q(
             detectorworkflow__isnull=True
         )
