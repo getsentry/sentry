@@ -51,7 +51,8 @@ def expire_replay_deletion_jobs(
             "status": job.status,
             "range_start": job.range_start,
             "range_end": job.range_end,
-            "query": job.query,
+            # `job.query` is deliberately absent: it is a customer-authored search string and can
+            # carry PII like `user.email:`. `tasks.py` leaves it out of its Sentry context too.
             "offset": job.offset,
             "dry_run": dry_run,
         }
