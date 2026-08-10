@@ -140,17 +140,20 @@ def semver_filter_converter(
         )
 
     raw_values: list[str] = to_list(search_filter.value.raw_value)
+    is_negated = search_filter.operator == "NOT IN"
     operator = "=" if search_filter.operator in ("IN", "NOT IN") else search_filter.operator
 
-    final_operator: Literal["IN", "NOT IN"] = "IN"
+    final_operator: Literal["IN", "NOT IN"] = "NOT IN" if is_negated else "IN"
     if len(raw_values) == 1:
         versions, final_operator = _semver_filter_query(
             organization_id, raw_values[0], operator, params.project_ids
         )
+        if is_negated:
+            final_operator = "NOT IN" if final_operator == "IN" else "IN"
     else:
         versions = []
         for version in raw_values:
-            v, _ = _semver_filter_query(organization_id, version, operator, params.project_ids)
+            v, _ = _semver_filter_query(organization_id, version, "=", params.project_ids)
             versions.extend(v)
 
     if not validate_snuba_array_parameter(versions):
@@ -244,7 +247,14 @@ def semver_build_filter_converter(
         # XXX: Just return a filter that will return no results if we have no versions
         all_versions = [constants.SEMVER_EMPTY_RELEASE]
 
-    return [SearchFilter(SearchKey(constants.RELEASE_ALIAS), "IN", SearchValue(all_versions))]
+    build_final_operator: Literal["IN", "NOT IN"] = (
+        "NOT IN" if search_filter.operator == "NOT IN" else "IN"
+    )
+    return [
+        SearchFilter(
+            SearchKey(constants.RELEASE_ALIAS), build_final_operator, SearchValue(all_versions)
+        )
+    ]
 
 
 def trace_filter_converter(

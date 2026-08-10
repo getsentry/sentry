@@ -5942,6 +5942,16 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             },
         ]
 
+        response = self.do_request({**request, "query": "!release.version:[3.0.1, 3.0.3]"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@3.0.2",
+            },
+        ]
+
     def test_semver_package(self) -> None:
         release_1 = self.create_release(version="test1@1.2.1")
         release_2 = self.create_release(version="test2@1.2.1")
@@ -6103,6 +6113,16 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                 "id": span3["span_id"],
                 "project.name": self.project.slug,
                 "release": "test@3.0.0+503",
+            },
+        ]
+
+        response = self.do_request({**request, "query": "!release.build:[501, 503]"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@3.0.0+502",
             },
         ]
 
