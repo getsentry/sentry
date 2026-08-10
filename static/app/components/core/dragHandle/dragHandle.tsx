@@ -7,7 +7,7 @@ import {useDragMove} from './useDragMove';
 
 export type Orientation = 'horizontal' | 'vertical';
 
-export type DragHandleAppearance = 'always' | 'hover';
+export type DragHandleVariant = 'solid' | 'ghost';
 
 export const DRAG_HANDLE_SIZE = 1;
 
@@ -45,14 +45,14 @@ export type DragHandleProps = {
   onMove: (delta: number) => void;
   orientation: Orientation;
   value: number;
-  appearance?: DragHandleAppearance;
+  variant?: DragHandleVariant;
   onKeyDown?: React.KeyboardEventHandler<HTMLElement>;
   onMoveEnd?: () => void;
   onMoveStart?: () => void;
 };
 
 export function DragHandle({
-  appearance = 'always',
+  variant = 'solid',
   isSizedFirst,
   max,
   min,
@@ -88,7 +88,7 @@ export function DragHandle({
           aria-valuemax={Number.isFinite(max) ? max : undefined}
           aria-valuemin={min}
           aria-valuenow={value}
-          data-appearance={appearance}
+          data-variant={variant}
           data-is-held={isHeld}
           data-orientation={orientation}
           role="separator"
@@ -159,9 +159,9 @@ const DragHandleLine = styled('div')<{$cursor: React.CSSProperties['cursor']}>`
     }
   }
 
-  &[data-appearance='hover'] {
+  &[data-variant='ghost'] {
     border-color: transparent;
-    transition: border-color ${p => p.theme.motion.smooth.slow} 0.1s;
+    transition: border-color ${p => p.theme.motion.smooth.slow};
 
     &:hover,
     &:focus-visible,
