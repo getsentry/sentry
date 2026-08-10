@@ -79,21 +79,19 @@ function DashboardTopBarControls({dashboardState}: Pick<Props, 'dashboardState'>
   }
 
   return (
-    <Flex align="center" gap="md" wrap="wrap">
-      <Feature features="dashboards-import">
-        <Button
-          aria-label={t('export-dashboard')}
-          onClick={event => {
-            event.preventDefault();
-            exportDashboard();
-          }}
-          icon={<IconDownload />}
-          tooltipProps={{title: t('Export Dashboard')}}
-          variant="secondary"
-          size="sm"
-        />
-      </Feature>
-    </Flex>
+    <Feature features="dashboards-import">
+      <Button
+        aria-label={t('export-dashboard')}
+        onClick={event => {
+          event.preventDefault();
+          exportDashboard();
+        }}
+        icon={<IconDownload />}
+        tooltipProps={{title: t('Export Dashboard')}}
+        variant="secondary"
+        size="sm"
+      />
+    </Feature>
   );
 }
 
