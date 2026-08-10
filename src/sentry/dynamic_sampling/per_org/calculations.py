@@ -63,36 +63,28 @@ SLIDING_WINDOW_METRIC_PREFIX = "dynamic_sampling.per_org.sliding_window"
 logger = logging.getLogger(__name__)
 
 
-def get_effective_sample_rate(data_volume: OrganizationDataVolume | None) -> float | None:
-    """
-    The share of the volume that sampling kept over the measured window. None when the
-    window carries too little volume to derive a rate from.
-    """
-    if data_volume is None or data_volume.indexed is None:
-        return None
-    if not data_volume.is_valid_for_recalibration():
-        return None
-    return data_volume.indexed / data_volume.total
-
-
 def calculate_recalibration_factor(
     data_volume: OrganizationDataVolume | None,
     previous_factor: float,
     target_sample_rate: float | None,
 ) -> float | None:
-    effective_sample_rate = get_effective_sample_rate(data_volume)
     if (
         target_sample_rate is None
         or target_sample_rate == 0.0
-        or effective_sample_rate is None
+        or data_volume is None
+        or not data_volume.is_valid_for_recalibration()
         or previous_factor == 0.0
+        or data_volume.indexed is None
+        or data_volume.indexed == 0
     ):
         return None
 
     # This formula aims at scaling the factor proportionally to the ratio of the sample rate we are targeting compared
     # to the effective sample rate of that org. An imbalance in the ratio can be introduced by many factors, including
     # biases that oversample or down sample irrespectively of the incoming volume.
-    return previous_factor * (target_sample_rate / effective_sample_rate)
+    effective_sample_rate = data_volume.indexed / data_volume.total
+    new_factor = previous_factor * (target_sample_rate / effective_sample_rate)
+    return new_factor
 
 
 def get_cached_recalibration_factor(org_id: int) -> float:
@@ -105,20 +97,6 @@ def compare_recalibration_factor_with_cache(
     calculated_factor: float | None,
     cached_factor: float | None,
 ) -> None:
-    """
-    One line per org per cycle with the new recalibration factor next to the legacy (generic
-    metrics) one, and the volume the new factor was derived from.
-
-    Read ``effective_sample_rate`` before ``eap_factor``. Only the legacy factor is served, so
-    only the legacy loop is closed: every factor is its own previous factor multiplied by the
-    error it measured, and a factor that was never applied cannot converge on the one that
-    was. The effective sample rate is measured independently of that history, which makes it
-    the comparable signal.
-
-    ``total_transactions`` comes from outcomes and ``stored_segments`` from EAP, so a
-    deviation that shows up in the counts rather than in the factor points at the two sources
-    disagreeing, not at the formula.
-    """
     logger.info(
         "dynamic_sampling.per_org.recalibration_factor_comparison",
         extra={
@@ -126,7 +104,6 @@ def compare_recalibration_factor_with_cache(
             "sample_rate": config.get_sample_rate(),
             "generic_metrics_factor": cached_factor,
             "eap_factor": calculated_factor,
-            "effective_sample_rate": get_effective_sample_rate(org_volume),
             "total_transactions": None if org_volume is None else org_volume.total,
             "stored_segments": None if org_volume is None else org_volume.indexed,
             "relative_deviation": (

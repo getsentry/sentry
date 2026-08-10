@@ -18,7 +18,6 @@ from sentry.dynamic_sampling.per_org.calculations import (
     get_cached_rebalanced_project_sample_rates,
     get_cached_rebalanced_transaction_sample_rates,
     get_cached_recalibration_factor,
-    get_effective_sample_rate,
     is_within_relative_tolerance,
     run_project_balancing,
     run_transaction_balancing,
@@ -250,25 +249,6 @@ class ProjectBalancingCalculationsTest(TestCase):
         adjusted_factor = calculate_recalibration_factor(org_volume, 1.4, 0.5)
         assert adjusted_factor == 2.8
 
-    def test_get_effective_sample_rate(self) -> None:
-        assert get_effective_sample_rate(
-            OrganizationDataVolume(org_id=1, total=100, indexed=25)
-        ) == pytest.approx(0.25)
-
-    def test_get_effective_sample_rate_without_a_usable_volume(self) -> None:
-        assert get_effective_sample_rate(None) is None
-        assert (
-            get_effective_sample_rate(OrganizationDataVolume(org_id=1, total=100, indexed=None))
-            is None
-        )
-        assert (
-            get_effective_sample_rate(OrganizationDataVolume(org_id=1, total=100, indexed=0))
-            is None
-        )
-        assert (
-            get_effective_sample_rate(OrganizationDataVolume(org_id=1, total=0, indexed=0)) is None
-        )
-
     def test_get_cached_recalibration_factor_reads_the_legacy_cache(self) -> None:
         org = self.create_organization()
         cache_key = legacy_recalibration_cache.generate_recalibrate_orgs_cache_key(org.id)
@@ -293,7 +273,6 @@ class ProjectBalancingCalculationsTest(TestCase):
                 "sample_rate": 0.5,
                 "generic_metrics_factor": 2.0,
                 "eap_factor": 2.8,
-                "effective_sample_rate": pytest.approx(0.3730569948186528),
                 "total_transactions": 772,
                 "stored_segments": 288,
                 "relative_deviation": pytest.approx(0.2857142857142857),
@@ -313,7 +292,6 @@ class ProjectBalancingCalculationsTest(TestCase):
             "sample_rate": 0.5,
             "generic_metrics_factor": 2.0,
             "eap_factor": None,
-            "effective_sample_rate": None,
             "total_transactions": None,
             "stored_segments": None,
             "relative_deviation": None,

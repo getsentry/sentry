@@ -152,24 +152,6 @@ def get_recalibration_organization_volume(
     time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
     end: datetime | None = None,
 ) -> OrganizationDataVolume | None:
-    """
-    The volume recalibration derives an effective sample rate from, taken from two sources.
-
-    ``total`` is the accepted transaction outcomes of the window. Relay reports that category
-    before the sampling decision, so it counts what reached the decision. ``indexed`` is the
-    segments EAP stored, which is what survived the decision. The difference is what sampling
-    dropped.
-
-    The stored side does not come from indexed transaction outcomes, because that category is
-    going away. It does not come from the EAP extrapolated count either: that count estimates
-    the pre-sampling total from the server sample rates the stored segments carry, so the
-    ratio of the two EAP counts only reports the sample rates Relay applied, not the volume
-    that arrived.
-
-    ``eap_volume`` is passed in so that the caller's organization volume of this cycle is
-    reused instead of queried again. Pass the ``end`` it was fetched with: both sources must
-    cover the same window, or their ratio is not a sample rate.
-    """
     if eap_volume is None or eap_volume.indexed is None:
         return None
 
