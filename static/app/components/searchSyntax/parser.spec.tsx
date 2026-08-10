@@ -484,4 +484,28 @@ describe('searchSyntax/parser', () => {
       ]);
     });
   });
+
+  describe('array typed tags', () => {
+    it('parses an array typed tag with the [*] membership suffix', () => {
+      const result = parseSearch('tags[csv_headers,array][*]:foo');
+
+      if (result === null) {
+        throw new Error('Parsed result as null');
+      }
+
+      const filter = result.find(token => token.type === Token.FILTER);
+
+      expect(filter).toEqual(
+        expect.objectContaining({
+          type: Token.FILTER,
+          key: expect.objectContaining({
+            type: Token.KEY_EXPLICIT_ARRAY_TAG,
+            text: 'tags[csv_headers,array][*]',
+            key: expect.objectContaining({type: Token.KEY_SIMPLE, value: 'csv_headers'}),
+          }),
+          value: expect.objectContaining({type: Token.VALUE_TEXT, value: 'foo'}),
+        })
+      );
+    });
+  });
 });
