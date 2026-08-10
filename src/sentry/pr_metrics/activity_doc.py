@@ -738,10 +738,8 @@ def timeline_events_from_doc(doc: ActivityDoc) -> list[dict[str, Any]]:
     is sorted by timestamp, matching the legacy forward's shape — only the check
     events are pre-collapsed (what Seer's timeline does anyway).
 
-    Check groups are trimmed per head (``MAX_FORWARDED_GROUPS_PER_HEAD``), never
-    dropping a whole head and keeping failures over fresher greens
-    (``_forward_priority``), so the fail → push → green iteration story always
-    reaches the judge.
+    Check groups are trimmed per head (``MAX_FORWARDED_GROUPS_PER_HEAD``,
+    failures kept first — see ``_forward_priority``); no head is ever dropped.
     """
     events: list[dict[str, Any]] = [
         {
