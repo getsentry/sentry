@@ -12,7 +12,7 @@ FEATURE = "organizations:investigations"
 
 
 @with_feature(FEATURE)
-class OrganizationInvestigationsDetailsTest(APITestCase):
+class OrganizationInvestigationDetailsTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)

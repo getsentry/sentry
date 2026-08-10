@@ -10,7 +10,8 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
-from sentry.investigations.endpoints.bases import (
+from sentry.investigations.endpoints.base import (
+    OrganizationInvestigationEndpoint,
     OrganizationInvestigationsBaseEndpoint,
     accessible_project_ids,
     require_authenticated_user,
@@ -18,10 +19,15 @@ from sentry.investigations.endpoints.bases import (
     user_id,
 )
 from sentry.investigations.endpoints.serializers import (
+    InvestigationBlockSerializer,
     InvestigationDetailsSerializer,
     InvestigationSerializer,
 )
-from sentry.investigations.endpoints.validators import InvestigationCreateValidator
+from sentry.investigations.endpoints.validators import (
+    BlockCreateValidator,
+    BlockOrderValidator,
+    InvestigationCreateValidator,
+)
 from sentry.investigations.models import (
     Investigation,
     InvestigationFavoriteUser,
@@ -29,8 +35,10 @@ from sentry.investigations.models import (
     InvestigationStatus,
 )
 from sentry.investigations.services import (
+    create_block,
     create_manual_investigation,
     create_template_investigation,
+    reorder_blocks,
 )
 from sentry.models.organization import Organization
 
@@ -126,4 +134,78 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
                 InvestigationDetailsSerializer(accessible_project_ids=project_ids),
             ),
             status=status.HTTP_201_CREATED,
+        )
+
+
+@extend_schema(tags=["Investigations"])
+@cell_silo_endpoint
+class OrganizationInvestigationBlocksEndpoint(OrganizationInvestigationEndpoint):
+    publish_status = {"POST": ApiPublishStatus.PRIVATE}
+
+    def post(
+        self, request: Request, organization: Organization, investigation: Investigation
+    ) -> Response:
+        actor_id = require_authenticated_user(request)
+        validator = BlockCreateValidator(data=request.data)
+        if not validator.is_valid():
+            return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        values = dict(validator.validated_data)
+        investigation_version = values.pop("investigation_version")
+        values["prompt"] = values.pop("generation_prompt", "")
+        try:
+            block = create_block(
+                investigation=investigation,
+                expected_investigation_version=investigation_version,
+                user_id=actor_id,
+                values=values,
+            )
+        except Exception as error:
+            response = service_error(error)
+            if response is not None:
+                return response
+            raise
+
+        project_ids = accessible_project_ids(self, request, organization)
+        return Response(
+            serialize(
+                block,
+                request.user,
+                InvestigationBlockSerializer(accessible_project_ids=project_ids),
+            ),
+            status=status.HTTP_201_CREATED,
+        )
+
+
+@extend_schema(tags=["Investigations"])
+@cell_silo_endpoint
+class OrganizationInvestigationBlockOrderEndpoint(OrganizationInvestigationEndpoint):
+    publish_status = {"PUT": ApiPublishStatus.PRIVATE}
+
+    def put(
+        self, request: Request, organization: Organization, investigation: Investigation
+    ) -> Response:
+        require_authenticated_user(request)
+        validator = BlockOrderValidator(data=request.data)
+        if not validator.is_valid():
+            return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            updated = reorder_blocks(
+                investigation=investigation,
+                expected_version=validator.validated_data["investigation_version"],
+                block_ids=validator.validated_data["block_ids"],
+            )
+        except Exception as error:
+            response = service_error(error)
+            if response is not None:
+                return response
+            raise
+
+        project_ids = accessible_project_ids(self, request, organization)
+        return Response(
+            serialize(
+                updated,
+                request.user,
+                InvestigationDetailsSerializer(accessible_project_ids=project_ids),
+            )
         )
