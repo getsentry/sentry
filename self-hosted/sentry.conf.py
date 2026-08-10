@@ -204,10 +204,10 @@ SENTRY_OPTIONS["mail.from"] = env("SENTRY_SERVER_EMAIL") or "root@localhost"
 
 # If you're using mailgun for inbound mail, set your API key and configure a
 # route to forward to /api/hooks/mailgun/inbound/
-SENTRY_OPTIONS["mail.mailgun-api-key"] = env("SENTRY_MAILGUN_API_KEY") or ""
+SENTRY_MAILGUN_API_KEY = env("SENTRY_MAILGUN_API_KEY") or ""
 
 # If you specify a MAILGUN_API_KEY, you definitely want EMAIL_REPLIES
-if SENTRY_OPTIONS["mail.mailgun-api-key"]:
+if SENTRY_MAILGUN_API_KEY:
     SENTRY_OPTIONS["mail.enable-replies"] = True
 else:
     SENTRY_OPTIONS["mail.enable-replies"] = Bool(env("SENTRY_ENABLE_EMAIL_REPLIES", False))

@@ -107,6 +107,7 @@ self_hosted_options_mapper = {
     "analytics.backend": "SENTRY_ANALYTICS_BACKEND",
     "analytics.options": "SENTRY_ANALYTICS_OPTIONS",
     "mail.list-namespace": "SENTRY_MAIL_LIST_NAMESPACE",
+    "mail.mailgun-api-key": "SENTRY_MAILGUN_API_KEY",
     "filestore.backend": "SENTRY_FILE_STORAGE_BACKEND",
     "filestore.options": "SENTRY_FILE_STORAGE_CONFIG",
     "filestore.relocation-backend": "SENTRY_RELOCATION_FILE_STORAGE_BACKEND",

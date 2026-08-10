@@ -24,6 +24,7 @@ def settings():
         SENTRY_OPTIONS={},
         SENTRY_DEFAULT_OPTIONS={},
         SENTRY_EMAIL_BACKEND_ALIASES={"dummy": "alias-for-dummy"},
+        SENTRY_MAILGUN_API_KEY="",
         SENTRY_SELF_HOSTED=False,
     )
 
@@ -290,6 +291,16 @@ def test_self_hosted_filestore_config_yml_promoted(settings, config_yml) -> None
     assert settings.SENTRY_FILE_STORAGE_CONFIG == {"bucket_name": "my-bucket"}
 
 
+def test_self_hosted_mailgun_config_yml_promoted(settings, config_yml) -> None:
+    """config.yml Mailgun keys are promoted to Django settings on self-hosted."""
+    settings.SENTRY_SELF_HOSTED = True
+
+    config_yml.write("mail.mailgun-api-key: configured-key\n")
+    bootstrap_options(settings, str(config_yml))
+
+    assert settings.SENTRY_MAILGUN_API_KEY == "configured-key"
+
+
 def test_non_self_hosted_filestore_config_yml_not_promoted(settings, config_yml) -> None:
     """config.yml filestore keys are not promoted to Django settings on SaaS."""
     settings.SENTRY_SELF_HOSTED = False
@@ -306,7 +317,11 @@ def test_non_self_hosted_filestore_config_yml_not_promoted(settings, config_yml)
 def test_self_hosted_validate_options_skips_migrated_keys(settings) -> None:
     """validate_options does not warn about migrated option keys on self-hosted."""
     settings.SENTRY_SELF_HOSTED = True
-    settings.SENTRY_OPTIONS = {"filestore.backend": "gcs", "mail.list-namespace": "example.com"}
+    settings.SENTRY_OPTIONS = {
+        "filestore.backend": "gcs",
+        "mail.list-namespace": "example.com",
+        "mail.mailgun-api-key": "configured-key",
+    }
 
     # Should not raise UnknownOption or emit warnings for the migrated keys.
     import warnings as _warnings
