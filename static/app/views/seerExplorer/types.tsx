@@ -112,8 +112,10 @@ export interface CallRecord {
   parent?: number | null;
   path?: string;
   path_params?: Record<string, string>;
-  query_params?: Record<string, string>;
-  /** `path` with its params interpolated — the literal path that was requested. */
+  /**
+   * `path` with its params interpolated and the query string appended — the literal path that was
+   * requested. Seer carries the query only here, so this is the whole URL.
+   */
   resolved_path?: string;
   /** HTTP status. Absent when the request never completed. */
   status?: number;
