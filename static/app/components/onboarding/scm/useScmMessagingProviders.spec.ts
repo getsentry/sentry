@@ -5,6 +5,7 @@ import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegr
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useScmMessagingProviders} from 'sentry/components/onboarding/scm/useScmMessagingProviders';
+import type {OrganizationIntegration} from 'sentry/types/integrations';
 
 const organization = OrganizationFixture();
 
@@ -18,7 +19,7 @@ function mockProviders() {
   });
 }
 
-function mockIntegrations(bodies: Array<Record<PropertyKey, unknown>>) {
+function mockIntegrations(bodies: OrganizationIntegration[]) {
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/integrations/`,
     body: bodies,
