@@ -1,18 +1,5 @@
 import ts from 'typescript';
 
-export const unnecessaryTypeAnnotationRuleId = '@sentry/no-unnecessary-type-annotation';
-export const unnecessaryTypeNarrowingRuleId = '@sentry/no-unnecessary-type-narrowing';
-
-export type TypeAwareFinding = {
-  end: number;
-  message: string;
-  node: ts.Node;
-  ruleId: typeof unnecessaryTypeAnnotationRuleId | typeof unnecessaryTypeNarrowingRuleId;
-  start: number;
-};
-
-export type TypeAwareRuleChecks = ReturnType<typeof createTypeAwareRuleChecks>;
-
 const escapeHatchTypeFlags = ts.TypeFlags.Any | ts.TypeFlags.Unknown | ts.TypeFlags.Never;
 
 function isEscapeHatch(type: ts.Type): boolean {
@@ -277,48 +264,4 @@ export function createTypeAwareRuleChecks(checker: ts.TypeChecker) {
   }
 
   return {isUnnecessaryTypeAnnotation, isUnnecessaryTypeNarrowing};
-}
-
-export function collectTypeAwareFindings(
-  sourceFile: ts.SourceFile,
-  checks: TypeAwareRuleChecks
-): TypeAwareFinding[] {
-  const findings: TypeAwareFinding[] = [];
-
-  function visit(node: ts.Node): void {
-    if (
-      ts.isVariableDeclaration(node) &&
-      node.type &&
-      ts.isIdentifier(node.name) &&
-      checks.isUnnecessaryTypeAnnotation(node)
-    ) {
-      findings.push({
-        ruleId: unnecessaryTypeAnnotationRuleId,
-        message: 'Type annotation is unnecessary — TypeScript infers the same type.',
-        node: node.type,
-        start: node.name.end,
-        end: node.type.end,
-      });
-    }
-
-    if (ts.isAsExpression(node) && checks.isUnnecessaryTypeNarrowing(node)) {
-      const assertionText = sourceFile.text.slice(node.expression.end, node.end);
-      const asKeyword = /\s+as\b/u.exec(assertionText);
-      if (asKeyword) {
-        findings.push({
-          ruleId: unnecessaryTypeNarrowingRuleId,
-          message:
-            'Type assertion is unnecessary: the original type is already assignable to the expected type.',
-          node: node.type,
-          start: node.expression.end + asKeyword.index,
-          end: node.end,
-        });
-      }
-    }
-
-    ts.forEachChild(node, visit);
-  }
-
-  visit(sourceFile);
-  return findings;
 }

@@ -4,11 +4,20 @@ import {pathToFileURL} from 'node:url';
 
 import ts from 'typescript';
 
-import {
-  collectTypeAwareFindings,
-  createTypeAwareRuleChecks,
-  type TypeAwareFinding,
-} from '../static/eslint/eslintPluginSentry/typeAwareRules.ts';
+import {createTypeAwareRuleChecks} from '../static/eslint/eslintPluginSentry/typeAwareRules.ts';
+
+const unnecessaryTypeAnnotationRuleId = '@sentry/no-unnecessary-type-annotation';
+const unnecessaryTypeNarrowingRuleId = '@sentry/no-unnecessary-type-narrowing';
+
+type TypeAwareFinding = {
+  end: number;
+  message: string;
+  node: ts.Node;
+  ruleId: typeof unnecessaryTypeAnnotationRuleId | typeof unnecessaryTypeNarrowingRuleId;
+  start: number;
+};
+
+type TypeAwareRuleChecks = ReturnType<typeof createTypeAwareRuleChecks>;
 
 const repositoryRoot = path.resolve(import.meta.dirname, '..');
 const projectConfigPaths = [
@@ -190,6 +199,50 @@ function isSuppressed(sourceFile: ts.SourceFile, finding: TypeAwareFinding): boo
     (nextLineMatch && ruleListContains(nextLineMatch[1]!, finding.ruleId)) ||
     (sameLineMatch && ruleListContains(sameLineMatch[1]!, finding.ruleId))
   );
+}
+
+function collectTypeAwareFindings(
+  sourceFile: ts.SourceFile,
+  checks: TypeAwareRuleChecks
+): TypeAwareFinding[] {
+  const findings: TypeAwareFinding[] = [];
+
+  function visit(node: ts.Node): void {
+    if (
+      ts.isVariableDeclaration(node) &&
+      node.type &&
+      ts.isIdentifier(node.name) &&
+      checks.isUnnecessaryTypeAnnotation(node)
+    ) {
+      findings.push({
+        ruleId: unnecessaryTypeAnnotationRuleId,
+        message: 'Type annotation is unnecessary — TypeScript infers the same type.',
+        node: node.type,
+        start: node.name.end,
+        end: node.type.end,
+      });
+    }
+
+    if (ts.isAsExpression(node) && checks.isUnnecessaryTypeNarrowing(node)) {
+      const assertionText = sourceFile.text.slice(node.expression.end, node.end);
+      const asKeyword = /\s+as\b/u.exec(assertionText);
+      if (asKeyword) {
+        findings.push({
+          ruleId: unnecessaryTypeNarrowingRuleId,
+          message:
+            'Type assertion is unnecessary: the original type is already assignable to the expected type.',
+          node: node.type,
+          start: node.expression.end + asKeyword.index,
+          end: node.end,
+        });
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+  return findings;
 }
 
 function formatFinding(sourceFile: ts.SourceFile, finding: TypeAwareFinding): string {
