@@ -11,7 +11,7 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import {SeerDrawer} from 'sentry/views/issueDetails/sidebar/seerDrawer';
+import {SeerDrawer} from 'sentry/components/events/autofix/v3/drawer';
 
 function makeExplorerBlock({
   id = 'block-1',
