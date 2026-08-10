@@ -158,7 +158,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Enable inviting members to organizations.
     manager.add("organizations:invite-members", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
     # Enable rate limits for inviting members.
-    manager.add("organizations:invite-members-rate-limits", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=False)
+    manager.add("organizations:invite-members-rate-limits", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=False)
     # Enables higher limit for alert rules
     manager.add("organizations:more-fast-alerts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:more-slow-alerts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
@@ -242,7 +242,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:api-fetch-v2", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=True)
     manager.add("organizations:sourcemap-issue-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable profiling
-    manager.add("organizations:profiling", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
+    manager.add("organizations:profiling", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables dropping of profiles that may come from buggy sdks
     manager.add("organizations:profiling-reject-sdks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable global suspect functions in profiling
