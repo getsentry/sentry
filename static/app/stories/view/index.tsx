@@ -8,6 +8,7 @@ import {Container} from '@sentry/scraps/layout';
 import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {handleExpressiveCodeCopyClick} from 'sentry/stories/view/expressiveCodeCopy';
 import {StorySidebar} from 'sentry/stories/view/storySidebar';
 import {
   StoryTreeNode,
@@ -120,7 +121,7 @@ function StoryDetail() {
           </Alert.Container>
         </Container>
       ) : story.isSuccess ? (
-        <StoryMainContainer>
+        <StoryMainContainer onClick={handleExpressiveCodeCopyClick}>
           {story.data.map(s => {
             return <StoryExports key={s.filename} story={s} />;
           })}
