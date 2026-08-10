@@ -175,9 +175,7 @@ def _serialize_permissions(
     can_edit: bool,
     can_manage: bool,
 ) -> dict[str, Any]:
-    permissions, _ = InvestigationPermissions.objects.get_or_create(
-        investigation=investigation
-    )
+    permissions, _ = InvestigationPermissions.objects.get_or_create(investigation=investigation)
     return {
         "isEditableByEveryone": permissions.is_editable_by_everyone,
         "teamIds": sorted(permissions.teams_with_edit_access.values_list("id", flat=True)),
@@ -195,9 +193,7 @@ def _serialize_investigation(
     accessible_project_ids: set[int] | None = None,
 ) -> dict[str, Any]:
     serializer = (
-        InvestigationDetailsSerializer(
-            accessible_project_ids=accessible_project_ids or set()
-        )
+        InvestigationDetailsSerializer(accessible_project_ids=accessible_project_ids or set())
         if detailed
         else InvestigationSerializer()
     )
@@ -588,7 +584,7 @@ class OrganizationInvestigationPermissionsEndpoint(OrganizationInvestigationBase
         self, request: Request, organization: Organization, investigation: Investigation
     ) -> Response:
         _require_authenticated_user(request)
-        serializer = PermissionsUpdateSerializer(data=request.data)
+        serializer = PermissionsUpdateValidator(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         team_ids = serializer.validated_data["team_ids"]
@@ -717,7 +713,7 @@ class OrganizationInvestigationDetailsEndpoint(OrganizationInvestigationBase):
 @cell_silo_endpoint
 class OrganizationInvestigationFavoriteEndpoint(OrganizationInvestigationBase):
     publish_status = {"PUT": ApiPublishStatus.PRIVATE}
-    collaboration_endpoint = True
+    requires_investigation_edit_access = False
 
     def put(
         self, request: Request, organization: Organization, investigation: Investigation
