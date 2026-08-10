@@ -1,6 +1,5 @@
 import {
   InvestigationBlockFixture,
-  InvestigationCommentFixture,
   InvestigationDetailFixture,
 } from 'sentry-fixture/investigation';
 import {MemberFixture} from 'sentry-fixture/member';
@@ -667,72 +666,15 @@ describe('SeerInvestigation', () => {
     expect(screen.getByRole('menuitemradio', {name: 'Query'})).toBeInTheDocument();
   });
 
-  it('opens the comment popover and loads the linear comment stream', async () => {
-    const withComments = InvestigationDetailFixture({
-      blocks: [InvestigationBlockFixture({commentCount: 1})],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/investigations/${
-        detail.id
-      }/blocks/${withComments.blocks[0]!.id}/comments/`,
-      body: [InvestigationCommentFixture()],
-    });
-    renderInvestigation(withComments);
-
-    await userEvent.click(await screen.findByRole('button', {name: 'Comments, 1'}));
-
-    expect(await screen.findByText('I can reproduce this.')).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Add a comment'})).toBeInTheDocument();
-  });
-
-  it('expands reactions in place as an icon-only picker', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/investigations/${
-        detail.id
-      }/blocks/${detail.blocks[0]!.id}/comments/`,
-      body: [],
-    });
-    renderInvestigation();
-
-    await userEvent.click(await screen.findByRole('button', {name: 'Comments, 0'}));
-    expect(
-      await screen.findByRole('dialog', {name: 'Block comments'})
-    ).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Add reaction'}));
-
-    const thumbsUp = screen.getByRole('button', {name: 'Thumbs up'});
-    expect(thumbsUp).toHaveTextContent('👍');
-    expect(thumbsUp).not.toHaveTextContent('Thumbs up');
-    expect(screen.getByRole('button', {name: 'Eyes'})).toHaveTextContent('👀');
-    expect(
-      screen.queryByRole('button', {name: 'Browse all reactions'})
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('dialog', {name: 'Block comments'})
-    ).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Comments, 0'})).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', {name: 'Delete block 1'})
-    ).not.toBeInTheDocument();
-  });
-
-  it('keeps notebook edits disabled for viewers while allowing comments', async () => {
+  it('keeps notebook edits disabled for viewers', async () => {
     const readOnly = InvestigationDetailFixture({
       permissions: {...detail.permissions, canEdit: false, canManage: false},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/investigations/${
-        detail.id
-      }/blocks/${readOnly.blocks[0]!.id}/comments/`,
-      body: [],
     });
     renderInvestigation(readOnly);
 
     expect(await screen.findByText('View only')).toBeInTheDocument();
     expect(screen.getByText('Understand the regression.')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Add block'})).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Comments, 0'}));
-    expect(await screen.findByRole('textbox', {name: 'Add a comment'})).toBeEnabled();
   });
 
   it('filters and keyboard-navigates block commands in a text block', async () => {

@@ -2,10 +2,7 @@ import {InvestigationDetailFixture} from 'sentry-fixture/investigation';
 
 import {NotebookStore} from 'sentry/views/seerNotebook/stores/notebookStore';
 import type {InvestigationTransport} from 'sentry/views/seerNotebook/stores/types';
-import type {
-  InvestigationComment,
-  InvestigationQueryResult,
-} from 'sentry/views/seerNotebook/types';
+import type {InvestigationQueryResult} from 'sentry/views/seerNotebook/types';
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -389,55 +386,5 @@ describe('BlockStore', () => {
       blocks: [],
     });
     expect(block.executionStatusLabel).toBe('Stopped because of an error');
-  });
-
-  it('optimistically manages comments while preserving failed composer drafts', async () => {
-    const {block, store} = makeStore();
-    const comment: InvestigationComment = {
-      author: '1',
-      body: 'Existing',
-      dateCreated: '2026-08-03T00:00:00Z',
-      dateUpdated: '2026-08-03T00:00:00Z',
-      deletedAt: null,
-      id: 'comment-1',
-      mentions: [],
-      reactions: [],
-    };
-    store.transport.loadComments = jest
-      .fn()
-      .mockResolvedValue({items: [comment], nextCursor: 'next'});
-    await block.loadComments();
-    expect(block.comments).toEqual([comment]);
-    expect(block.commentsNextCursor).toBe('next');
-
-    const creation = deferred<InvestigationComment>();
-    store.transport.createComment = jest.fn().mockReturnValue(creation.promise);
-    const creating = block.createComment('Keep this draft', []);
-    expect(block.comments.at(-1)?.id).toContain('optimistic-comment-');
-    expect(block.commentCount).toBeGreaterThan(0);
-    creation.reject(new Error('offline'));
-    await expect(creating).rejects.toThrow('offline');
-
-    expect(block.commentDraft).toBe('Keep this draft');
-    expect(block.comments).toEqual([comment]);
-    expect(block.commentMutationError).toBe('comment_create_failed');
-  });
-
-  it('conditionally rolls back failed block reactions', async () => {
-    const {block, store} = makeStore();
-    store.transport.setBlockReaction = jest.fn().mockRejectedValue(new Error('offline'));
-
-    const toggling = block.toggleReaction('heart', true);
-    expect(block.reactions).toContainEqual({
-      reaction: 'heart',
-      count: 1,
-      reactedByMe: true,
-    });
-    await expect(toggling).rejects.toThrow('offline');
-
-    expect(block.reactions).not.toContainEqual(
-      expect.objectContaining({reaction: 'heart'})
-    );
-    expect(block.reactionError).toBe('reaction_failed');
   });
 });

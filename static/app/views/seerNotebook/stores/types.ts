@@ -1,13 +1,10 @@
 import type {BlockStoreSnapshot} from 'sentry/views/seerNotebook/stores/blockStore';
 import type {
   InvestigationBlock,
-  InvestigationComment,
   InvestigationDetail,
   InvestigationDisplay,
   InvestigationFilters,
   InvestigationPermissions,
-  InvestigationReaction,
-  InvestigationReactionName,
   InvestigationExecutionState,
 } from 'sentry/views/seerNotebook/types';
 
@@ -35,11 +32,6 @@ export type NotebookConflict = {
   operationKind: string;
 };
 
-/** @public */ export type CommentPage = {
-  items: InvestigationComment[];
-  nextCursor: string | null;
-};
-
 export interface InvestigationTransport {
   archiveInvestigation(investigationVersion: number): Promise<void>;
   createBlock(data: {
@@ -51,15 +43,10 @@ export interface InvestigationTransport {
     generationPrompt?: string;
     title?: string;
   }): Promise<InvestigationBlock>;
-  createComment(
-    blockId: string,
-    data: {body: string; mentions: string[]}
-  ): Promise<InvestigationComment>;
   deleteBlock(
     blockId: string,
     data: {investigationVersion: number; version: number}
   ): Promise<void>;
-  deleteComment(commentId: string): Promise<void>;
   executeBlock(
     blockId: string,
     data: {investigationVersion: number; requestId: string; version: number}
@@ -68,7 +55,6 @@ export interface InvestigationTransport {
     blockId: string,
     executionId: string
   ): Promise<InvestigationExecutionState>;
-  loadComments(blockId: string, pageCount: number): Promise<CommentPage>;
   loadDetail(): Promise<InvestigationDetail>;
   loadTitleGeneration(): Promise<{
     preview: string | null;
@@ -83,16 +69,6 @@ export interface InvestigationTransport {
     executionId: string,
     data: {inputId: string; responseData: unknown}
   ): Promise<void>;
-  setBlockReaction(
-    blockId: string,
-    reaction: InvestigationReactionName,
-    enabled: boolean
-  ): Promise<void>;
-  setCommentReaction(
-    commentId: string,
-    reaction: InvestigationReactionName,
-    enabled: boolean
-  ): Promise<void>;
   stopBlockExecution(blockId: string, executionId: string): Promise<void>;
   updateBlock(
     blockId: string,
@@ -105,10 +81,6 @@ export interface InvestigationTransport {
       title?: string;
     }
   ): Promise<InvestigationBlock>;
-  updateComment(
-    commentId: string,
-    data: {body: string; mentions: string[]}
-  ): Promise<InvestigationComment>;
   updateFavorite(shouldFavorite: boolean): Promise<void>;
   updateInvestigation(data: {
     investigationVersion: number;
@@ -165,23 +137,6 @@ export type NotebookRemoteEvent =
   | {
       blockId: string;
       eventId: string;
-      kind: 'block.reactions.updated';
-      payload: InvestigationReaction[];
-      sequence: number;
-      clientMutationId?: string;
-    }
-  | {
-      blockId: string;
-      commentId: string;
-      eventId: string;
-      kind: 'comment.reactions.updated';
-      payload: InvestigationReaction[];
-      sequence: number;
-      clientMutationId?: string;
-    }
-  | {
-      blockId: string;
-      eventId: string;
       kind: 'block.deleted';
       sequence: number;
       clientMutationId?: string;
@@ -206,22 +161,6 @@ export type NotebookRemoteEvent =
         | 'outputStatus'
         | 'staleAt'
       >;
-      sequence: number;
-      clientMutationId?: string;
-    }
-  | {
-      blockId: string;
-      comment: InvestigationComment;
-      eventId: string;
-      kind: 'comment.upserted';
-      sequence: number;
-      clientMutationId?: string;
-    }
-  | {
-      blockId: string;
-      commentId: string;
-      eventId: string;
-      kind: 'comment.deleted';
       sequence: number;
       clientMutationId?: string;
     };

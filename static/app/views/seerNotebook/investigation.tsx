@@ -82,7 +82,6 @@ import {
 } from 'sentry/views/seerNotebook/stores/storeContext';
 import {QueryClientInvestigationTransport} from 'sentry/views/seerNotebook/stores/transport';
 
-import {BlockComments} from './comments';
 import {
   ChartSettingsControl,
   PersistedBlockOutput,
@@ -94,9 +93,7 @@ import type {
   InvestigationBlockKind,
   InvestigationDetail,
   InvestigationFilters,
-  InvestigationReactionName,
 } from './types';
-import {INVESTIGATION_REACTIONS} from './types';
 
 const QUERY_EXAMPLE_STREAM_FRAMES = 24;
 const QUERY_EXAMPLE_STREAM_INTERVAL_MS = 16;
@@ -418,7 +415,6 @@ const InvestigationEditor = observer(
                         block={blockStore}
                         index={index}
                         disabled={readOnly}
-                        collaborationDisabled={detail.status === 'archived'}
                         onInsertAfter={kind => store.insertBlock(kind, index + 1)}
                         onRender={onBlockRender}
                         onDelete={() =>
@@ -618,7 +614,6 @@ function InvestigationHistoryModal({
 
 type SortableBlockProps = {
   block: BlockStore;
-  collaborationDisabled: boolean;
   disabled: boolean;
   index: number;
   onDelete: () => void;
@@ -731,7 +726,6 @@ function SortableBlockContent({
   dropIndicator,
   isDragActive,
   disabled,
-  collaborationDisabled,
   onInsertAfter,
   onDelete,
   onRender,
@@ -749,8 +743,6 @@ function SortableBlockContent({
   const [isEditingText, setIsEditingText] = useState(!block.content && !disabled);
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const [slashCommandIndex, setSlashCommandIndex] = useState(0);
-  const blockReactions = block.reactions;
-  const [isReactionPickerOpen, setIsReactionPickerOpen] = useState(false);
   const textInputRef = useRef<HTMLTextAreaElement>(null);
   const slashMenuRef = useRef<HTMLDivElement>(null);
   const suggestionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -871,19 +863,6 @@ function SortableBlockContent({
     }, QUERY_EXAMPLE_STREAM_INTERVAL_MS);
   };
 
-  const toggleBlockReaction = async (
-    reaction: InvestigationReactionName,
-    enabled: boolean
-  ) => {
-    try {
-      await block.toggleReaction(reaction, enabled);
-    } catch {
-      addErrorMessage(t('Unable to update the reaction.'));
-    }
-  };
-
-  const comments = <BlockComments block={block} disabled={collaborationDisabled} />;
-
   return (
     <BlockCard
       $kind={block.kind}
@@ -906,91 +885,15 @@ function SortableBlockContent({
           <DragReorderButton {...sortable.attributes} {...sortable.listeners} size="xs" />
         </BlockDragHandle>
       )}
-      {blockReactions.length ? (
-        <BlockReactionSummary $hidden={isDragActive}>
-          {blockReactions.map(reaction => {
-            const definition = INVESTIGATION_REACTIONS.find(
-              item => item.value === reaction.reaction
-            );
-            return (
-              <Tooltip
-                key={reaction.reaction}
-                title={
-                  reaction.reactedByMe
-                    ? reaction.count === 1
-                      ? t('You reacted with %s', definition?.label)
-                      : t(
-                          'You and %s others reacted with %s',
-                          reaction.count - 1,
-                          definition?.label
-                        )
-                    : t('%s people reacted with %s', reaction.count, definition?.label)
-                }
-              >
-                <ReactionPill
-                  type="button"
-                  $reacted={reaction.reactedByMe}
-                  disabled={collaborationDisabled}
-                  aria-label={t(
-                    '%s reaction, %s',
-                    definition?.label ?? reaction.reaction,
-                    reaction.count
-                  )}
-                  onClick={() =>
-                    toggleBlockReaction(reaction.reaction, !reaction.reactedByMe)
-                  }
-                >
-                  {definition?.emoji} {reaction.count}
-                </ReactionPill>
-              </Tooltip>
-            );
-          })}
-        </BlockReactionSummary>
-      ) : null}
-      <BlockActionsRail $hidden={isDragActive} $pinned={isReactionPickerOpen}>
-        {isReactionPickerOpen && !collaborationDisabled ? (
-          <InlineReactionPicker>
-            {INVESTIGATION_REACTIONS.map(reaction => (
-              <EmojiReactionButton
-                key={reaction.value}
-                type="button"
-                aria-label={reaction.label}
-                title={reaction.label}
-                onClick={() => {
-                  void toggleBlockReaction(
-                    reaction.value,
-                    !blockReactions.find(item => item.reaction === reaction.value)
-                      ?.reactedByMe
-                  );
-                  setIsReactionPickerOpen(false);
-                }}
-              >
-                {reaction.emoji}
-              </EmojiReactionButton>
-            ))}
-          </InlineReactionPicker>
-        ) : (
-          <Fragment>
-            {comments}
-            {collaborationDisabled ? null : (
-              <Button
-                size="xs"
-                variant="transparent"
-                icon={<ReactionIcon />}
-                aria-label={t('Add reaction')}
-                onClick={() => setIsReactionPickerOpen(true)}
-              />
-            )}
-            {disabled ? null : (
-              <Button
-                size="xs"
-                variant="transparent"
-                icon={<IconDelete />}
-                aria-label={t('Delete block %s', index + 1)}
-                onClick={onDelete}
-              />
-            )}
-          </Fragment>
+      <BlockActionsRail $hidden={isDragActive}>
+        {disabled ? null : (
+          <Button
+            size="xs"
+            variant="transparent"
+            icon={<IconDelete />}
+            aria-label={t('Delete block %s', index + 1)}
+            onClick={onDelete}
+          />
         )}
       </BlockActionsRail>
       <BlockSurface $isDragging={sortable.isDragging}>
@@ -1241,7 +1144,6 @@ function areSortableBlockPropsEqual(
     previous.block === next.block &&
     previous.index === next.index &&
     previous.disabled === next.disabled &&
-    previous.collaborationDisabled === next.collaborationDisabled &&
     previous.onRender === next.onRender
   );
 }
@@ -1294,27 +1196,6 @@ function BlockTypeMenu({
       position="bottom"
       trigger={trigger}
     />
-  );
-}
-
-function ReactionIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" />
-      <path
-        d="M5 9.25C5.75 10.42 6.75 11 8 11C9.25 11 10.25 10.42 11 9.25M5.5 6.5H5.51M10.5 6.5H10.51"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-    </svg>
   );
 }
 
@@ -1496,10 +1377,6 @@ const BlockCard = styled('article')<{
         : p.theme.shadow.medium
       : 'none'};
 
-  &:has([aria-label='Block comments']) {
-    z-index: 4;
-  }
-
   &::after {
     position: absolute;
     z-index: 5;
@@ -1548,14 +1425,14 @@ const BlockDragHandle = styled('div')<{
   }
 `;
 
-const BlockActionsRail = styled(Stack)<{$hidden: boolean; $pinned: boolean}>`
+const BlockActionsRail = styled(Stack)<{$hidden: boolean}>`
   position: absolute;
   z-index: 2;
   top: ${p => p.theme.space.md};
   right: -40px;
   align-items: center;
   gap: 1px;
-  opacity: ${p => (p.$hidden ? 0 : p.$pinned ? 1 : 0)};
+  opacity: 0;
   pointer-events: ${p => (p.$hidden ? 'none' : 'auto')};
   transition: opacity 120ms ease;
 
@@ -1575,70 +1452,6 @@ const BlockActionsRail = styled(Stack)<{$hidden: boolean; $pinned: boolean}>`
       width: 15px;
       height: 15px;
     }
-  }
-`;
-
-const InlineReactionPicker = styled(Flex)`
-  align-items: center;
-  gap: 2px;
-  padding: 3px;
-  border: 1px solid ${p => p.theme.tokens.border.secondary};
-  border-radius: 999px;
-  background: ${p => p.theme.tokens.background.primary};
-  box-shadow: ${p => p.theme.shadow.medium};
-  white-space: nowrap;
-`;
-
-const EmojiReactionButton = styled('button')`
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  cursor: pointer;
-  font-size: 16px;
-
-  &:hover,
-  &:focus-visible {
-    background: ${p => p.theme.tokens.background.secondary};
-    outline: none;
-  }
-`;
-
-const BlockReactionSummary = styled(Flex)<{$hidden: boolean}>`
-  position: absolute;
-  z-index: 2;
-  top: -6px;
-  right: ${p => p.theme.space.sm};
-  align-items: center;
-  gap: 3px;
-  opacity: ${p => (p.$hidden ? 0 : 1)};
-  pointer-events: ${p => (p.$hidden ? 'none' : 'auto')};
-  transition: opacity 120ms ease;
-
-  &:hover,
-  &:focus-within {
-    opacity: ${p => (p.$hidden ? 0 : 1)};
-  }
-`;
-
-const ReactionPill = styled('button')<{$reacted: boolean}>`
-  padding: 1px 6px;
-  border: 1px solid
-    ${p =>
-      p.$reacted
-        ? p.theme.tokens.border.accent.vibrant
-        : p.theme.tokens.border.secondary};
-  border-radius: 999px;
-  background: ${p =>
-    p.$reacted ? p.theme.tokens.background.secondary : p.theme.tokens.background.primary};
-  color: ${p => p.theme.tokens.content.primary};
-  cursor: pointer;
-  font-size: ${p => p.theme.font.size.xs};
-
-  &:disabled {
-    cursor: default;
   }
 `;
 

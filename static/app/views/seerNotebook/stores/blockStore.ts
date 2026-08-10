@@ -6,13 +6,9 @@ import {isQueryResult} from 'sentry/views/seerNotebook/stores/visualization';
 import type {
   InvestigationBlock,
   InvestigationBlockExecution,
-  InvestigationComment,
   InvestigationDisplay,
   InvestigationExecutionState,
-  InvestigationMention,
   InvestigationQueryResult,
-  InvestigationReaction,
-  InvestigationReactionName,
 } from 'sentry/views/seerNotebook/types';
 
 const EDITABLE_FIELDS = ['content', 'display', 'generationPrompt', 'title'] as const;
@@ -26,15 +22,12 @@ type ConfirmedBlockFields = Pick<
 export type BlockStoreSnapshot = InvestigationBlock & {
   activeView: ResultView;
   clientKey: string;
-  comments: InvestigationComment[];
   dirtyFields: BlockEditableField[];
   saveState: BlockSaveState;
 };
 
 export type BlockSaveState = 'idle' | 'scheduled' | 'saving' | 'unsaved';
 export type ResultView = 'table' | 'chart';
-export type CommentLoadState = 'idle' | 'loading' | 'ready' | 'error';
-
 export type BlockActivityEntry = {
   calls: Array<{
     code: string | null;
@@ -138,8 +131,6 @@ export class BlockStore {
   clarificationDraft = '';
   createdBy: string | null;
   lastEditedBy: string | null;
-  reactions: InvestigationReaction[];
-  commentCount: number;
   isDeleted = false;
   dirtyFields = new Set<BlockEditableField>();
   saveError: string | null = null;
@@ -149,15 +140,6 @@ export class BlockStore {
   runRequestId: string | null = null;
   failedRunRequestId: string | null = null;
   activeView: ResultView;
-  comments: InvestigationComment[] = [];
-  commentsNextCursor: string | null = null;
-  commentsPageCount = 0;
-  commentsLoadState: CommentLoadState = 'idle';
-  commentDraft = '';
-  commentDraftMentions: string[] = [];
-  commentDrafts = new Map<string, {body: string; mentions: string[]}>();
-  commentMutationError: string | null = null;
-  reactionError: string | null = null;
 
   private confirmed: ConfirmedBlockFields;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -190,8 +172,6 @@ export class BlockStore {
     this.activityExpanded = false;
     this.createdBy = block.createdBy;
     this.lastEditedBy = block.lastEditedBy;
-    this.reactions = block.reactions;
-    this.commentCount = block.commentCount;
     this.activeView =
       block.display.defaultView ??
       (isQueryResult(block.output) ? block.output.preferredView : 'table');
@@ -226,8 +206,6 @@ export class BlockStore {
       clarificationDraft: observable,
       createdBy: observable,
       lastEditedBy: observable,
-      reactions: observable.shallow,
-      commentCount: observable,
       isDeleted: observable,
       dirtyFields: observable.shallow,
       saveError: observable,
@@ -237,15 +215,6 @@ export class BlockStore {
       runRequestId: observable,
       failedRunRequestId: observable,
       activeView: observable,
-      comments: observable.shallow,
-      commentsNextCursor: observable,
-      commentsPageCount: observable,
-      commentsLoadState: observable,
-      commentDraft: observable,
-      commentDraftMentions: observable.shallow,
-      commentDrafts: observable.shallow,
-      commentMutationError: observable,
-      reactionError: observable,
       isPersisted: computed,
       isDirty: computed,
       queryIntent: computed,
@@ -278,7 +247,6 @@ export class BlockStore {
       applySlashCommand: action,
       clearQueryIntent: action,
       applyDraft: action,
-      changeCommentCount: action,
       markExecutionAccepted: action,
       beginRunRequest: action,
       markExecutionPending: action,
@@ -291,25 +259,12 @@ export class BlockStore {
       editClarificationDraft: action,
       setResultView: action,
       applyVisualizationChange: action,
-      toggleReaction: action,
-      loadComments: action,
-      loadMoreComments: action,
-      editCommentDraft: action,
-      editExistingCommentDraft: action,
-      createComment: action,
-      updateComment: action,
-      deleteComment: action,
-      toggleCommentReaction: action,
       markSaveStarted: action,
       confirmSave: action,
       failSave: action,
       applyServerSnapshot: action,
       acknowledgeRemoteSnapshot: action,
       applyExecutionUpdate: action,
-      applyRemoteComment: action,
-      removeRemoteComment: action,
-      applyRemoteReactions: action,
-      applyRemoteCommentReactions: action,
       attachServerId: action,
       markDeleted: action,
       markStale: action,
@@ -671,207 +626,6 @@ export class BlockStore {
     this.updateDisplay(values.display);
   }
 
-  changeCommentCount(delta: number) {
-    this.commentCount = Math.max(0, this.commentCount + delta);
-  }
-
-  async toggleReaction(reaction: InvestigationReactionName, enabled: boolean) {
-    if (!this.serverId) {
-      return;
-    }
-    const previous = this.reactions;
-    const optimistic = updateReaction(previous, reaction, enabled);
-    this.reactions = optimistic;
-    this.reactionError = null;
-    try {
-      await this.notebook.transport.setBlockReaction(this.serverId, reaction, enabled);
-      await this.notebook.refreshDetail();
-    } catch (error) {
-      runInAction(() => {
-        if (isEqual(this.reactions, optimistic)) {
-          this.reactions = previous;
-        }
-        this.reactionError = 'reaction_failed';
-      });
-      throw error;
-    }
-  }
-
-  loadComments(): Promise<void> {
-    return this.loadCommentPage(false);
-  }
-
-  loadMoreComments(): Promise<void> {
-    if (!this.commentsNextCursor || this.commentsLoadState === 'loading') {
-      return Promise.resolve();
-    }
-    return this.loadCommentPage(true);
-  }
-
-  editCommentDraft(body: string, mentions: string[] = this.commentDraftMentions) {
-    this.commentDraft = body;
-    this.commentDraftMentions = mentions;
-    this.commentMutationError = null;
-  }
-
-  editExistingCommentDraft(commentId: string, body: string, mentions: string[]) {
-    this.commentDrafts.set(commentId, {body, mentions});
-    this.commentMutationError = null;
-  }
-
-  async createComment(body: string, mentions: string[]): Promise<void> {
-    if (!this.serverId || !body.trim()) {
-      return;
-    }
-    this.editCommentDraft(body, mentions);
-    const temporaryId = `optimistic-comment-${this.notebook.createClientId()}`;
-    const now = new Date().toISOString();
-    const temporary: InvestigationComment = {
-      author: null,
-      body,
-      dateCreated: now,
-      dateUpdated: now,
-      deletedAt: null,
-      id: temporaryId,
-      mentions: mentionsFromTokens(mentions),
-      reactions: [],
-    };
-    this.comments = [...this.comments, temporary];
-    this.commentCount += 1;
-    this.commentMutationError = null;
-    try {
-      const created = await this.notebook.transport.createComment(this.serverId, {
-        body,
-        mentions,
-      });
-      runInAction(() => {
-        this.comments = this.comments.map(comment =>
-          comment.id === temporaryId ? created : comment
-        );
-        if (this.commentDraft === body) {
-          this.commentDraft = '';
-          this.commentDraftMentions = [];
-        }
-      });
-    } catch (error) {
-      runInAction(() => {
-        if (this.comments.some(comment => comment.id === temporaryId)) {
-          this.comments = this.comments.filter(comment => comment.id !== temporaryId);
-          this.commentCount = Math.max(0, this.commentCount - 1);
-        }
-        this.commentMutationError = 'comment_create_failed';
-      });
-      throw error;
-    }
-  }
-
-  async updateComment(
-    commentId: string,
-    body: string,
-    mentions: string[]
-  ): Promise<void> {
-    const previous = this.comments.find(comment => comment.id === commentId);
-    if (!previous || !body.trim()) {
-      return;
-    }
-    this.editExistingCommentDraft(commentId, body, mentions);
-    const optimistic = {
-      ...previous,
-      body,
-      dateUpdated: new Date().toISOString(),
-      mentions: mentionsFromTokens(mentions),
-    };
-    this.comments = this.comments.map(comment =>
-      comment.id === commentId ? optimistic : comment
-    );
-    try {
-      const updated = await this.notebook.transport.updateComment(commentId, {
-        body,
-        mentions,
-      });
-      runInAction(() => {
-        this.comments = this.comments.map(comment =>
-          comment.id === commentId ? updated : comment
-        );
-        this.commentDrafts.delete(commentId);
-      });
-    } catch (error) {
-      runInAction(() => {
-        const current = this.comments.find(comment => comment.id === commentId);
-        if (isEqual(current, optimistic)) {
-          this.comments = this.comments.map(comment =>
-            comment.id === commentId ? previous : comment
-          );
-        }
-        this.commentMutationError = 'comment_update_failed';
-      });
-      throw error;
-    }
-  }
-
-  async deleteComment(commentId: string): Promise<void> {
-    const previous = this.comments.find(comment => comment.id === commentId);
-    if (!previous) {
-      return;
-    }
-    const tombstone = {...previous, body: null, deletedAt: 'optimistic'};
-    this.comments = this.comments.map(comment =>
-      comment.id === commentId ? tombstone : comment
-    );
-    this.commentCount = Math.max(0, this.commentCount - 1);
-    try {
-      await this.notebook.transport.deleteComment(commentId);
-      runInAction(() => {
-        this.comments = this.comments.filter(comment => comment.id !== commentId);
-        this.commentDrafts.delete(commentId);
-      });
-    } catch (error) {
-      runInAction(() => {
-        const current = this.comments.find(comment => comment.id === commentId);
-        if (isEqual(current, tombstone)) {
-          this.comments = this.comments.map(comment =>
-            comment.id === commentId ? previous : comment
-          );
-          this.commentCount += 1;
-        }
-        this.commentMutationError = 'comment_delete_failed';
-      });
-      throw error;
-    }
-  }
-
-  async toggleCommentReaction(
-    commentId: string,
-    reaction: InvestigationReactionName,
-    enabled: boolean
-  ): Promise<void> {
-    const previous = this.comments.find(comment => comment.id === commentId);
-    if (!previous) {
-      return;
-    }
-    const optimistic = {
-      ...previous,
-      reactions: updateReaction(previous.reactions, reaction, enabled),
-    };
-    this.comments = this.comments.map(comment =>
-      comment.id === commentId ? optimistic : comment
-    );
-    try {
-      await this.notebook.transport.setCommentReaction(commentId, reaction, enabled);
-    } catch (error) {
-      runInAction(() => {
-        const current = this.comments.find(comment => comment.id === commentId);
-        if (isEqual(current, optimistic)) {
-          this.comments = this.comments.map(comment =>
-            comment.id === commentId ? previous : comment
-          );
-        }
-        this.commentMutationError = 'comment_reaction_failed';
-      });
-      throw error;
-    }
-  }
-
   beginRunRequest(requestId: string) {
     this.isRunRequested = true;
     this.runError = null;
@@ -1209,33 +963,6 @@ export class BlockStore {
     this.applyExecutionSnapshot({...this.toInvestigationBlock(), ...update});
   }
 
-  applyRemoteComment(comment: InvestigationComment) {
-    const existingIndex = this.comments.findIndex(item => item.id === comment.id);
-    if (existingIndex < 0) {
-      this.comments = [...this.comments, comment];
-      this.commentCount += 1;
-      return;
-    }
-    this.comments = this.comments.map(item => (item.id === comment.id ? comment : item));
-  }
-
-  removeRemoteComment(commentId: string) {
-    if (this.comments.some(comment => comment.id === commentId)) {
-      this.comments = this.comments.filter(comment => comment.id !== commentId);
-      this.commentCount = Math.max(0, this.commentCount - 1);
-    }
-  }
-
-  applyRemoteReactions(reactions: InvestigationReaction[]) {
-    this.reactions = reactions;
-  }
-
-  applyRemoteCommentReactions(commentId: string, reactions: InvestigationReaction[]) {
-    this.comments = this.comments.map(comment =>
-      comment.id === commentId ? {...comment, reactions} : comment
-    );
-  }
-
   toInvestigationBlock(): InvestigationBlock {
     return {
       id: this.serverId ?? this.clientKey,
@@ -1256,8 +983,6 @@ export class BlockStore {
       currentExecution: this.currentExecution,
       createdBy: this.createdBy,
       lastEditedBy: this.lastEditedBy,
-      reactions: this.reactions,
-      commentCount: this.commentCount,
     };
   }
 
@@ -1266,7 +991,6 @@ export class BlockStore {
       ...this.toInvestigationBlock(),
       activeView: this.activeView,
       clientKey: this.clientKey,
-      comments: [...this.comments],
       dirtyFields: [...this.dirtyFields],
       saveState: this.saveState,
     };
@@ -1306,30 +1030,6 @@ export class BlockStore {
     this.applyExecutionSnapshot(block);
     this.createdBy = block.createdBy;
     this.lastEditedBy = block.lastEditedBy;
-    this.reactions = block.reactions;
-    this.commentCount = block.commentCount;
-  }
-
-  private async loadCommentPage(loadMore: boolean): Promise<void> {
-    if (!this.serverId || this.commentsLoadState === 'loading') {
-      return;
-    }
-    const pageCount = loadMore ? this.commentsPageCount + 1 : 1;
-    this.commentsLoadState = 'loading';
-    try {
-      const page = await this.notebook.transport.loadComments(this.serverId, pageCount);
-      runInAction(() => {
-        this.comments = page.items;
-        this.commentsNextCursor = page.nextCursor;
-        this.commentsPageCount = pageCount;
-        this.commentsLoadState = 'ready';
-      });
-    } catch (error) {
-      runInAction(() => {
-        this.commentsLoadState = 'error';
-      });
-      throw error;
-    }
   }
 
   private applyExecutionSnapshot(block: InvestigationBlock) {
@@ -1439,30 +1139,4 @@ export class BlockStore {
       this.saveTimer = null;
     }
   }
-}
-
-function updateReaction(
-  reactions: InvestigationReaction[],
-  name: InvestigationReactionName,
-  enabled: boolean
-): InvestigationReaction[] {
-  const existing = reactions.find(reaction => reaction.reaction === name);
-  if (!existing) {
-    return enabled
-      ? [...reactions, {reaction: name, count: 1, reactedByMe: true}]
-      : reactions;
-  }
-  const count = Math.max(0, existing.count + (enabled ? 1 : -1));
-  return reactions
-    .map(reaction =>
-      reaction.reaction === name ? {...reaction, count, reactedByMe: enabled} : reaction
-    )
-    .filter(reaction => reaction.count > 0);
-}
-
-function mentionsFromTokens(tokens: string[]): InvestigationMention[] {
-  return tokens.flatMap(token => {
-    const [type, id] = token.split(':', 2);
-    return (type === 'user' || type === 'team') && id ? [{id, type}] : [];
-  });
 }

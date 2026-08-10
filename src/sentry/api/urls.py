@@ -300,11 +300,7 @@ from sentry.investigations.endpoints.organization_investigations import (
     OrganizationInvestigationBlockExecuteEndpoint,
     OrganizationInvestigationBlockExecutionEndpoint,
     OrganizationInvestigationBlockOrderEndpoint,
-    OrganizationInvestigationBlockReactionEndpoint,
     OrganizationInvestigationBlocksEndpoint,
-    OrganizationInvestigationCommentDetailsEndpoint,
-    OrganizationInvestigationCommentReactionEndpoint,
-    OrganizationInvestigationCommentsEndpoint,
     OrganizationInvestigationDetailsEndpoint,
     OrganizationInvestigationDuplicateEndpoint,
     OrganizationInvestigationFavoriteEndpoint,
@@ -2451,26 +2447,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/permissions/$",
         OrganizationInvestigationPermissionsEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-permissions",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/blocks/(?P<block_id>[^/]+)/comments/$",
-        OrganizationInvestigationCommentsEndpoint.as_view(),
-        name="sentry-api-0-organization-investigation-comments",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/comments/(?P<comment_id>[^/]+)/$",
-        OrganizationInvestigationCommentDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-investigation-comment-details",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/blocks/(?P<block_id>[^/]+)/reactions/(?P<reaction>[^/]+)/$",
-        OrganizationInvestigationBlockReactionEndpoint.as_view(),
-        name="sentry-api-0-organization-investigation-block-reaction",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/comments/(?P<comment_id>[^/]+)/reactions/(?P<reaction>[^/]+)/$",
-        OrganizationInvestigationCommentReactionEndpoint.as_view(),
-        name="sentry-api-0-organization-investigation-comment-reaction",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/trace-explorer-ai/setup/$",
