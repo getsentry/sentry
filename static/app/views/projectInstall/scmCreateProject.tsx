@@ -244,12 +244,7 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
       <Access access={canUserCreateProject ? ['project:read'] : ['project:admin']}>
         <Stack padding="3xl" gap="2xl" align="center">
           <LayoutGroup>
-            {/* Section rhythm is each section's own paddingBottom rather than a
-              flex gap on this Stack. ScmFeatureSelectionPanel collapses to
-              nothing when its platform has no products, and a flex gap sits
-              outside the box it tweens: it would survive the whole collapse and
-              then vanish in one step on unmount. As padding it lives inside the
-              animated box and tweens away with the content. */}
+            {/* Keep spacing inside each animated section so it collapses with it. */}
             <MotionStack
               flexGrow={1}
               gap="0"
@@ -316,9 +311,6 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                 <Separator orientation="horizontal" />
               </MotionContainer>
 
-              {/* The divider below the section is passed in so it collapses
-                with it. It carries the surrounding rhythm as padding for the
-                same reason the Stack above uses none. */}
               <ScmFeatureSelectionPanel
                 analyticsFlow="project-creation"
                 selectedRepository={selectedRepository}
@@ -347,7 +339,6 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                 <Separator orientation="horizontal" />
               </MotionContainer>
 
-              {/* Last section, so no trailing padding. */}
               <MotionContainer layout="position">
                 <ScmAlertFrequencySection
                   analyticsFlow="project-creation"

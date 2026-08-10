@@ -41,10 +41,7 @@ interface ScmFeatureSelectionPanelProps {
   selectedFeatures: ProductSolution[] | undefined;
   selectedPlatform: OnboardingSelectedSDK | undefined;
   selectedRepository: Repository | undefined;
-  // Optional element rendered after the panel content (e.g. a divider from the
-  // host). Lives inside the panel's reveal, so it is dropped — and tweens away
-  // — together with the panel when there is nothing to show, and the host never
-  // strands an orphaned divider.
+  // Kept inside the reveal so hosts do not strand a divider when the panel closes.
   trailing?: ReactNode;
 }
 
@@ -172,27 +169,42 @@ export function ScmFeatureSelectionPanel({
 
   const hasFeatureCards = featureMode !== 'none';
 
-  // Show the whole section unless a resolved platform has no configurable
-  // products. Before a platform is chosen (no resolved key), keep it visible in
-  // project creation for the select-a-platform prompt; onboarding hides both.
-  // Expressed as a flag rather than an early `return null` so the reveal below
-  // stays mounted and can tween the section in and out. AnimatePresence's
-  // `initial={false}` still renders the settled state on first mount, so a page
-  // load with a platform already resolved does not animate.
+  let featureCards: ReactNode = null;
+  if (featureMode === 'toggleable') {
+    featureCards = (
+      <ScmFeatureSelectionCards
+        availableFeatures={availableFeatures}
+        selectedFeatures={currentFeatures}
+        disabledProducts={disabledProducts}
+        onToggleFeature={handleToggleFeature}
+        featureMeta={featureMeta}
+        isVolumeLoading={isFeatureMetaLoading}
+        isOnboarding={isOnboarding}
+      />
+    );
+  } else if (featureMode === 'informational') {
+    featureCards = (
+      <ScmFeatureInfoCards
+        availableFeatures={availableFeatures}
+        disabledProducts={disabledProducts}
+        featureMeta={featureMeta}
+        platformName={currentPlatformName}
+        isVolumeLoading={isFeatureMetaLoading}
+        isOnboarding={isOnboarding}
+      />
+    );
+  }
+
+  // Project creation keeps the section open for the select-a-platform prompt.
+  // Otherwise, the reveal follows the availability of feature cards.
   const showSection = hasFeatureCards || (!isOnboarding && !currentPlatformKey);
 
   return (
     <ScmCollapsibleReveal open={showSection}>
-      {/* No gap: the section claims no spacing of its own, so everything that
-          tweens away on collapse is inside this box. Hosts own the rhythm —
-          the section above supplies the space before it, and `trailing`
-          carries the space around itself. */}
+      {/* Keep spacing inside the reveal so it collapses with the content. */}
       <Stack gap="0" width="100%">
         <MotionStack layout="position" width="100%">
-          {/* gap="0" because the spacing above the cards has to tween with
-              them: a flex gap would snap in at full size while the revealed
-              height is still 0, jumping the layout by that much. The cards own
-              it as padding inside the reveal instead. */}
+          {/* Padding, unlike a flex gap, is clipped during the card reveal. */}
           <Stack gap="0" paddingTop={isOnboarding ? 'xs' : undefined}>
             {isOnboarding ? (
               <Flex
@@ -231,31 +243,9 @@ export function ScmFeatureSelectionPanel({
               </Flex>
             )}
 
-            {/* The cards mount at their full height, so without a clipped
-                height tween they paint over the sections below while
-                framer-motion is still animating those into place. */}
             <ScmCollapsibleReveal open={hasFeatureCards}>
               <Container paddingTop={isOnboarding ? '2xl' : 'lg'}>
-                {featureMode === 'toggleable' ? (
-                  <ScmFeatureSelectionCards
-                    availableFeatures={availableFeatures}
-                    selectedFeatures={currentFeatures}
-                    disabledProducts={disabledProducts}
-                    onToggleFeature={handleToggleFeature}
-                    featureMeta={featureMeta}
-                    isVolumeLoading={isFeatureMetaLoading}
-                    isOnboarding={isOnboarding}
-                  />
-                ) : featureMode === 'informational' ? (
-                  <ScmFeatureInfoCards
-                    availableFeatures={availableFeatures}
-                    disabledProducts={disabledProducts}
-                    featureMeta={featureMeta}
-                    platformName={currentPlatformName}
-                    isVolumeLoading={isFeatureMetaLoading}
-                    isOnboarding={isOnboarding}
-                  />
-                ) : null}
+                {featureCards}
               </Container>
             </ScmCollapsibleReveal>
           </Stack>
