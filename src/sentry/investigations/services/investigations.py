@@ -35,8 +35,6 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 
 UPDATABLE_INVESTIGATION_FIELDS = frozenset({"title", "status", "filters"})
-
-
 BLOCK_EXECUTION_INPUT_FIELDS = frozenset({"content", "prompt", "config"})
 
 
