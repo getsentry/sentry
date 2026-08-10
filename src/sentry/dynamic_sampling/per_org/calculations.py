@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import logging
 from collections.abc import Iterable
-from dataclasses import replace
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, cast
 
@@ -19,7 +18,6 @@ from sentry.dynamic_sampling.models.transactions_rebalancing import (
     TransactionsRebalancingInput,
     TransactionsRebalancingModel,
 )
-from sentry.dynamic_sampling.per_org.gate import project_balancing_debug_project_ids
 from sentry.dynamic_sampling.per_org.queries import (
     ProjectTransactionCounts,
     ProjectVolume,
@@ -28,6 +26,7 @@ from sentry.dynamic_sampling.per_org.queries import (
     get_generic_metrics_transaction_volumes,
     get_outcomes_organization_volume,
 )
+from sentry.dynamic_sampling.per_org.telemetry import DynamicSamplingStatus
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.sample_rate_override import get_sample_rate_overrides
 from sentry.dynamic_sampling.tasks.common import (
@@ -52,15 +51,63 @@ if TYPE_CHECKING:
     from sentry.dynamic_sampling.per_org.configuration import (
         AutomaticDynamicSamplingConfiguration,
         BaseDynamicSamplingConfiguration,
+        ProjectSampleRates,
     )
 
 PROJECT_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
 TRANSACTION_BALANCING_COMPARISON_RELATIVE_TOLERANCE = 0.05
 RECALIBRATION_FACTOR_COMPARISON_RELATIVE_TOLERANCE = 0.05
 REBALANCE_INTENSITY = 0.8
-PROJECT_BALANCING_DEBUG_METRIC_PREFIX = "dynamic_sampling.per_org.project_balancing_debug"
 SLIDING_WINDOW_METRIC_PREFIX = "dynamic_sampling.per_org.sliding_window"
-logger = logging.getLogger(__name__)
+
+
+@dataclass
+class TransactionVolumeDebug:
+    """The raw per-transaction volumes both pipelines saw for one project."""
+
+    project_id: int
+    eap_volumes: dict[str, float]
+    generic_metrics_volumes: dict[str, float]
+
+
+@dataclass
+class PerOrgCalculations:
+    """Everything one run of the per-org pipeline queried and computed for an organization.
+
+    The pipeline fills this in step by step and stops at the first step with nothing to work
+    on, which it records in ``status``; the fields of the steps it never reached stay empty.
+    The ``cached_*`` fields hold what the legacy (generic metrics) pipeline computed for the
+    same organization, so that reporting can compare the two sides without querying again.
+    """
+
+    config: BaseDynamicSamplingConfiguration
+    status: DynamicSamplingStatus | None = None
+    project_volumes: list[ProjectVolume] = field(default_factory=list)
+    rebalanced_projects: list[RebalancedItem] = field(default_factory=list)
+    rebalanced_transactions: dict[int, tuple[list[RebalancedItem], float]] = field(
+        default_factory=dict
+    )
+    transaction_volume_debug: list[TransactionVolumeDebug] = field(default_factory=list)
+    recalibration_ran: bool = False
+    recalibration_factor: float | None = None
+    cached_organization_sample_rate: float | None = None
+    cached_project_sample_rates: dict[int, float | None] = field(default_factory=dict)
+    cached_transaction_sample_rates: dict[int, tuple[dict[str, float], float] | None] = field(
+        default_factory=dict
+    )
+    cached_recalibration_factor: float | None = None
+    # Set for the organizations that log a summary of both pipelines. The pipeline reads the
+    # legacy caches for every project instead of only the rebalanced ones when it is on.
+    summary_log_enabled: bool = False
+
+    @property
+    def project_sample_rates(self) -> ProjectSampleRates:
+        """The sample rates this run leaves the projects of the organization on."""
+        return self.config.get_project_sample_rates()
+
+    def stopped_at(self, status: DynamicSamplingStatus) -> PerOrgCalculations:
+        self.status = status
+        return self
 
 
 def calculate_recalibration_factor(
@@ -89,33 +136,6 @@ def calculate_recalibration_factor(
 
 def get_cached_recalibration_factor(org_id: int) -> float:
     return legacy_recalibration_cache.get_adjusted_factor(org_id)
-
-
-def compare_recalibration_factor_with_cache(
-    config: BaseDynamicSamplingConfiguration,
-    calculated_factor: float | None,
-    cached_factor: float | None,
-) -> None:
-    logger.info(
-        "dynamic_sampling.per_org.recalibration_factor_comparison",
-        extra={
-            "org_id": config.organization.id,
-            "sample_rate": config.get_sample_rate(),
-            "generic_metrics_factor": cached_factor,
-            "eap_factor": calculated_factor,
-            "relative_deviation": (
-                None
-                if calculated_factor is None
-                else get_relative_deviation(cached_factor, calculated_factor)
-            ),
-            "is_equal": calculated_factor is not None
-            and is_within_relative_tolerance(
-                cached_factor,
-                calculated_factor,
-                RECALIBRATION_FACTOR_COMPARISON_RELATIVE_TOLERANCE,
-            ),
-        },
-    )
 
 
 def compare_organization_sliding_window_sample_rates(
@@ -301,101 +321,6 @@ def get_relative_deviation(
     return abs(cached_sample_rate - calculated_sample_rate) / abs(calculated_sample_rate)
 
 
-def compare_rebalanced_projects_with_cache(
-    config: BaseDynamicSamplingConfiguration,
-    rebalanced_projects: list[RebalancedItem],
-    cached_sample_rates: dict[int, float | None],
-    project_volumes: list[ProjectVolume],
-) -> None:
-    rebalanced_projects_by_id = {int(project.id): project for project in rebalanced_projects}
-    project_volumes_by_id = {
-        project_volume.project_id: project_volume for project_volume in project_volumes
-    }
-    debug_project_ids = project_balancing_debug_project_ids()
-
-    for project_id, rebalanced_project in sorted(rebalanced_projects_by_id.items()):
-        eap_sample_rate = rebalanced_project.new_sample_rate
-        generic_metrics_sample_rate = cached_sample_rates.get(project_id)
-        project_volume = project_volumes_by_id.get(project_id)
-        eap_volume_without_extrapolation = (
-            project_volume.keep if project_volume is not None else None
-        )
-        logger.info(
-            "dynamic_sampling.per_org.project_balancing_comparison",
-            extra={
-                "org_id": config.organization.id,
-                "ds_proj_id": project_id,
-                "generic_metrics_sample_rate": generic_metrics_sample_rate,
-                "eap_sample_rate": eap_sample_rate,
-                "relative_deviation": get_relative_deviation(
-                    generic_metrics_sample_rate, eap_sample_rate
-                ),
-                "is_equal": is_within_relative_tolerance(
-                    generic_metrics_sample_rate, eap_sample_rate
-                ),
-                "total_volume_eap": rebalanced_project.count,
-                "total_volume_eap_without_extrapolation": eap_volume_without_extrapolation,
-            },
-        )
-        if project_id in debug_project_ids:
-            _emit_project_balancing_debug_metrics(
-                org_id=config.organization.id,
-                project_id=project_id,
-                eap_sample_rate=eap_sample_rate,
-                generic_metrics_sample_rate=generic_metrics_sample_rate,
-                eap_volume=rebalanced_project.count,
-                eap_volume_without_extrapolation=eap_volume_without_extrapolation,
-                seconds_since_last_item=(
-                    project_volume.seconds_since_last_item if project_volume is not None else None
-                ),
-            )
-
-
-def _emit_project_balancing_debug_metrics(
-    org_id: int,
-    project_id: int,
-    eap_sample_rate: float,
-    generic_metrics_sample_rate: float | None,
-    eap_volume: float,
-    eap_volume_without_extrapolation: float | None,
-    seconds_since_last_item: float | None,
-) -> None:
-    tags = {"org": str(org_id), "ds_project": str(project_id)}
-    metrics.distribution(
-        f"{PROJECT_BALANCING_DEBUG_METRIC_PREFIX}.eap_sample_rate",
-        eap_sample_rate,
-        sample_rate=1.0,
-        tags=tags,
-    )
-    if seconds_since_last_item is not None:
-        metrics.distribution(
-            f"{PROJECT_BALANCING_DEBUG_METRIC_PREFIX}.eap_seconds_since_last_item",
-            seconds_since_last_item,
-            sample_rate=1.0,
-            tags=tags,
-        )
-    if generic_metrics_sample_rate is not None:
-        metrics.distribution(
-            f"{PROJECT_BALANCING_DEBUG_METRIC_PREFIX}.generic_metrics_sample_rate",
-            generic_metrics_sample_rate,
-            sample_rate=1.0,
-            tags=tags,
-        )
-    metrics.distribution(
-        f"{PROJECT_BALANCING_DEBUG_METRIC_PREFIX}.eap_volume",
-        eap_volume,
-        sample_rate=1.0,
-        tags=tags,
-    )
-    if eap_volume_without_extrapolation is not None:
-        metrics.distribution(
-            f"{PROJECT_BALANCING_DEBUG_METRIC_PREFIX}.eap_volume_without_extrapolation",
-            eap_volume_without_extrapolation,
-            sample_rate=1.0,
-            tags=tags,
-        )
-
-
 def run_transaction_balancing(
     config: BaseDynamicSamplingConfiguration,
     project_volumes: list[ProjectVolume],
@@ -477,96 +402,33 @@ def get_cached_rebalanced_transaction_sample_rates(
     return result
 
 
-def compare_rebalanced_transactions_with_cache(
-    config: BaseDynamicSamplingConfiguration,
-    rebalanced_transactions: dict[int, tuple[list[RebalancedItem], float]],
-    cached_sample_rates: dict[int, tuple[dict[str, float], float] | None],
-) -> None:
-    for project_id, (named_rates, eap_implicit_rate) in sorted(rebalanced_transactions.items()):
-        cached = cached_sample_rates.get(project_id)
-        generic_metrics_named_rates: dict[str, float] = {} if cached is None else cached[0]
-        generic_metrics_implicit_rate = None if cached is None else cached[1]
-
-        logger.info(
-            "dynamic_sampling.per_org.transaction_balancing_implicit_comparison",
-            extra={
-                "org_id": config.organization.id,
-                "ds_proj_id": project_id,
-                "generic_metrics_implicit_rate": generic_metrics_implicit_rate,
-                "eap_implicit_rate": eap_implicit_rate,
-                "relative_deviation": get_relative_deviation(
-                    generic_metrics_implicit_rate, eap_implicit_rate
-                ),
-                "is_equal": is_within_relative_tolerance(
-                    generic_metrics_implicit_rate,
-                    eap_implicit_rate,
-                    TRANSACTION_BALANCING_COMPARISON_RELATIVE_TOLERANCE,
-                ),
-            },
-        )
-
-        for item in named_rates:
-            transaction = str(item.id)
-            generic_metrics_rate = generic_metrics_named_rates.get(transaction)
-            logger.info(
-                "dynamic_sampling.per_org.transaction_balancing_comparison",
-                extra={
-                    "org_id": config.organization.id,
-                    "ds_proj_id": project_id,
-                    "transaction": transaction,
-                    "generic_metrics_sample_rate": generic_metrics_rate,
-                    "eap_sample_rate": item.new_sample_rate,
-                    "relative_deviation": get_relative_deviation(
-                        generic_metrics_rate, item.new_sample_rate
-                    ),
-                    "is_equal": is_within_relative_tolerance(
-                        generic_metrics_rate,
-                        item.new_sample_rate,
-                        TRANSACTION_BALANCING_COMPARISON_RELATIVE_TOLERANCE,
-                    ),
-                },
-            )
-
-
-def log_transaction_volume_debug(
+def collect_transaction_volume_debug(
     config: BaseDynamicSamplingConfiguration,
     transaction_volumes: list[ProjectTransactionCounts],
     debug_project_ids: set[int],
-) -> None:
+) -> list[TransactionVolumeDebug]:
     """
-    Logs the raw per-transaction volumes EAP fed into balancing next to the legacy
+    Collects the raw per-transaction volumes EAP fed into balancing next to the legacy
     generic-metrics volumes for the same window, for every transaction on either side —
     not just the ones that survived the top-N cutoff and rebalancing model. Used to debug
-    discrepancies between the two pipelines' transaction counts directly, since
-    ``compare_rebalanced_transactions_with_cache`` only ever sees post-rebalancing sample
-    rates for the transactions EAP kept.
+    discrepancies between the two pipelines' transaction counts directly, since the
+    per-transaction comparison only ever sees post-rebalancing sample rates for the
+    transactions EAP kept.
     """
-    eap_counts_by_project = {
+    eap_volumes_by_project = {
         project_data.project_id: dict(project_data.transaction_counts)
         for project_data in transaction_volumes
         if project_data.project_id in debug_project_ids
     }
-    generic_metrics_counts_by_project = get_generic_metrics_transaction_volumes(
+    generic_metrics_volumes_by_project = get_generic_metrics_transaction_volumes(
         config.organization.id, debug_project_ids
     )
 
-    for project_id in sorted(debug_project_ids):
-        eap_counts = eap_counts_by_project.get(project_id, {})
-        generic_metrics_counts = dict(generic_metrics_counts_by_project.get(project_id, []))
-
-        transactions = {
-            transaction: {
-                "eap_volume": eap_counts.get(transaction),
-                "generic_metrics_volume": generic_metrics_counts.get(transaction),
-            }
-            for transaction in eap_counts.keys() | generic_metrics_counts.keys()
-        }
-
-        logger.info(
-            "dynamic_sampling.per_org.transaction_volume_debug",
-            extra={
-                "org_id": config.organization.id,
-                "ds_proj_id": project_id,
-                "transactions": transactions,
-            },
+    return [
+        TransactionVolumeDebug(
+            project_id=project_id,
+            eap_volumes=eap_volumes_by_project.get(project_id, {}),
+            generic_metrics_volumes=dict(generic_metrics_volumes_by_project.get(project_id, [])),
         )
+        for project_id in sorted(debug_project_ids)
+    ]
