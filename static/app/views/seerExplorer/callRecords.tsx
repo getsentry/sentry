@@ -79,20 +79,6 @@ export function callRecordLink(
 }
 
 /**
- * The destination alone, for callers that do not report the click.
- *
- * The kind matters to analytics: `tool_kind` is what distinguishes an issue navigation from a
- * trace one, and a row that reported its record kind instead would only ever say `api` or `lib`.
- */
-export function callRecordUrl(
-  record: CallRecord,
-  organization: Organization,
-  projects?: Array<{id: string; slug: string}>
-): LocationDescriptor | null {
-  return callRecordLink(record, organization, projects)?.url ?? null;
-}
-
-/**
  * Whether the route's own subject is the resource we would link to.
  *
  * Without this, every route containing `{issue_id}` links to the issue page — so fetching an

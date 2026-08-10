@@ -6,7 +6,7 @@ import {
   callRecordDetail,
   callRecordLabel,
   callRecordStatus,
-  callRecordUrl,
+  callRecordLink,
 } from 'sentry/views/seerExplorer/callRecords';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import type {Block, CallRecord} from 'sentry/views/seerExplorer/types';
@@ -301,11 +301,16 @@ describe('callRecordLabel', () => {
   });
 });
 
-describe('callRecordUrl', () => {
+/** The destination a record links to, or null — the shape these cases assert on. */
+function urlFor(...args: Parameters<typeof callRecordLink>) {
+  return callRecordLink(...args)?.url ?? null;
+}
+
+describe('callRecordLink', () => {
   const organization = OrganizationFixture();
 
   it('builds an issue URL from an issue_id path param', () => {
-    const url = callRecordUrl(
+    const url = urlFor(
       apiRecord({path_params: {organization_id_or_slug: 'acme', issue_id: '42'}}),
       organization
     );
@@ -315,7 +320,7 @@ describe('callRecordUrl', () => {
 
   it('scopes an org-less path to the organization', () => {
     // A bare `/issues/42/` only resolves under a customer domain, so it 404s on a plain host.
-    const url = callRecordUrl(apiRecord({path_params: {issue_id: '42'}}), organization);
+    const url = urlFor(apiRecord({path_params: {issue_id: '42'}}), organization);
 
     expect(url).toEqual(
       expect.objectContaining({
@@ -325,7 +330,7 @@ describe('callRecordUrl', () => {
   });
 
   it('does not double-prefix a path that is already org-scoped', () => {
-    const url = callRecordUrl(
+    const url = urlFor(
       apiRecord({
         path: '/api/0/organizations/{organization_id_or_slug}/replays/{replay_id}/',
         path_params: {organization_id_or_slug: 'acme', replay_id: 'r1'},
@@ -337,7 +342,7 @@ describe('callRecordUrl', () => {
   });
 
   it('prefers the event URL when a record names both an issue and an event', () => {
-    const url = callRecordUrl(
+    const url = urlFor(
       apiRecord({
         path_params: {issue_id: '42', event_id: 'abc123'},
       }),
@@ -350,7 +355,7 @@ describe('callRecordUrl', () => {
   it('returns null when only scope params are present', () => {
     // organization/project slugs say where a call went, not what it points at.
     expect(
-      callRecordUrl(
+      urlFor(
         apiRecord({
           path_params: {organization_id_or_slug: 'acme', project_id_or_slug: 'web'},
         }),
@@ -360,7 +365,7 @@ describe('callRecordUrl', () => {
   });
 
   it('returns null when a record has no path params', () => {
-    expect(callRecordUrl(apiRecord({path_params: undefined}), organization)).toBeNull();
+    expect(urlFor(apiRecord({path_params: undefined}), organization)).toBeNull();
   });
 
   describe('only the route its own subject', () => {
@@ -373,10 +378,7 @@ describe('callRecordUrl', () => {
     ] as const;
 
     it.each(issueRoutes)('%s links: %s', (path, shouldLink) => {
-      const url = callRecordUrl(
-        apiRecord({path, path_params: {issue_id: '54'}}),
-        organization
-      );
+      const url = urlFor(apiRecord({path, path_params: {issue_id: '54'}}), organization);
 
       expect(url === null).toBe(!shouldLink);
     });
@@ -384,7 +386,7 @@ describe('callRecordUrl', () => {
     it('gives one link across a lib call and its children', () => {
       const linked = issueRoutes
         .map(([path]) =>
-          callRecordUrl(apiRecord({path, path_params: {issue_id: '54'}}), organization)
+          urlFor(apiRecord({path, path_params: {issue_id: '54'}}), organization)
         )
         .filter(Boolean);
 
@@ -395,7 +397,7 @@ describe('callRecordUrl', () => {
     // The API resolves `latest`/`oldest`/`recommended` server-side, but the UI route needs a
     // concrete id — linking the alias straight through produces a dead page.
     it('does not link an event alias as if it were an event id', () => {
-      const url = callRecordUrl(
+      const url = urlFor(
         apiRecord({
           path: '/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/events/{event_id}/',
           path_params: {
@@ -411,7 +413,7 @@ describe('callRecordUrl', () => {
     });
 
     it('falls back to the issue when the event is an alias', () => {
-      const url = callRecordUrl(
+      const url = urlFor(
         apiRecord({path_params: {issue_id: '54', event_id: 'latest'}}),
         organization
       );
@@ -424,7 +426,7 @@ describe('callRecordUrl', () => {
     });
 
     it.each(['latest', 'oldest', 'recommended'])('rejects %s as an event id', alias => {
-      const url = callRecordUrl(
+      const url = urlFor(
         apiRecord({path_params: {issue_id: '54', event_id: alias}}),
         organization
       );
@@ -433,7 +435,7 @@ describe('callRecordUrl', () => {
     });
 
     it('still links a real event id', () => {
-      const url = callRecordUrl(
+      const url = urlFor(
         apiRecord({path_params: {issue_id: '54', event_id: 'abc123'}}),
         organization
       );

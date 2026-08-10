@@ -368,8 +368,9 @@ function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps) {
             };
           })
           // A record we have no label for is dropped rather than rendered as a route or an
-          // internal identifier — one fewer row beats a raw string on screen.
-          .filter(row => Boolean(row.label));
+          // internal identifier — one fewer row beats a raw string on screen. The predicate
+          // narrows `label` for the render below, which is why it is not a plain Boolean check.
+          .filter((row): row is typeof row & {label: string} => Boolean(row.label));
 
         const isCodeMode = CODE_MODE_TOOLS.has(toolCall.function);
         const toolString = isCodeMode ? '' : (toolsUsed[idx] ?? '');
