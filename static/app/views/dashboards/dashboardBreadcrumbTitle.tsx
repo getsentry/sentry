@@ -23,14 +23,18 @@ import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHas
 
 interface DashboardBreadcrumbTitleProps {
   dashboard: DashboardDetails;
+  hasUnsavedFilters: boolean;
   isEditing: boolean;
+  isSaving: boolean;
   onChange: (title: string) => void;
   onEdit: () => void;
 }
 
 export function DashboardBreadcrumbTitle({
   dashboard,
+  hasUnsavedFilters,
   isEditing,
+  isSaving,
   onChange,
   onEdit,
 }: DashboardBreadcrumbTitleProps) {
@@ -110,6 +114,7 @@ export function DashboardBreadcrumbTitle({
     key: 'edit',
     label: t('Edit'),
     leadingItems: <IconEdit />,
+    disabled: hasUnsavedFilters || isSaving,
     onAction: onEdit,
   };
   function renderTitle(isDuplicateDisabled = false) {

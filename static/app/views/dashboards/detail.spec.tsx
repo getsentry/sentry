@@ -717,6 +717,45 @@ describe('Dashboards > Detail', () => {
       expect(await screen.findByText('Editors:')).toBeVisible();
     });
 
+    it('disables the breadcrumb edit action with unsaved filters', async () => {
+      const pageFrameOrganization = OrganizationFixture({
+        slug: 'org-slug',
+        features: [...organization.features, 'ui-migration-breadcrumbs'],
+      });
+
+      render(
+        <TopBar.Slot.Provider>
+          <TopBar />
+          <DashboardDetail
+            initialState={DashboardState.VIEW}
+            dashboard={DashboardFixture([], {
+              id: '1',
+              projects: [1],
+              title: 'Custom Errors',
+            })}
+            onDashboardUpdate={jest.fn()}
+          />
+        </TopBar.Slot.Provider>,
+        {
+          initialRouterConfig: {
+            location: {
+              pathname: '/organizations/org-slug/dashboard/1/',
+              query: {project: '2'},
+            },
+          },
+          organization: pageFrameOrganization,
+        }
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Dashboard actions'})
+      );
+      expect(await screen.findByRole('menuitemradio', {name: 'Edit'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+
     it('renders the legacy dashboard breadcrumb in the top bar (flag off)', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
