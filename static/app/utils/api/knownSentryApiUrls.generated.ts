@@ -199,8 +199,6 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/intercom-jwt/'
   | '/organizations/$organizationIdOrSlug/investigations/'
   | '/organizations/$organizationIdOrSlug/investigations/$investigationId/'
-  | '/organizations/$organizationIdOrSlug/investigations/$investigationId/duplicate/'
-  | '/organizations/$organizationIdOrSlug/investigations/$investigationId/favorite/'
   | '/organizations/$organizationIdOrSlug/invite-requests/'
   | '/organizations/$organizationIdOrSlug/invite-requests/$memberId/'
   | '/organizations/$organizationIdOrSlug/issue-view-title/generate/'
