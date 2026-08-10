@@ -47,6 +47,7 @@ from sentry.seer.autofix.prompts import (
 from sentry.seer.autofix.types import AutofixHandoffResponse
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
+    is_free_cohort_org,
     read_preference_from_sentry_db,
 )
 from sentry.seer.entrypoints.operator import (
@@ -511,7 +512,9 @@ def trigger_autofix_agent(
         stopping_point: Where to stop the automated pipeline (only used for new runs)
     """
     # check billing quota for triggering a new autofix run
-    if run_id is None:
+    # Free cohort orgs have no Subscription so check_seer_quota returns False.
+    # Bypass the check for them — they get autofix without billing.
+    if run_id is None and not is_free_cohort_org(group.organization):
         has_budget: bool = quotas.backend.check_seer_quota(
             org_id=group.organization.id,
             data_category=DataCategory.SEER_AUTOFIX,
