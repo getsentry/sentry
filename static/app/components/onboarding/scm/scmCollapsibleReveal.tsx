@@ -22,15 +22,12 @@ export function ScmCollapsibleReveal({open, id, children}: ScmCollapsibleRevealP
         <motion.div
           key="content"
           id={id}
-          // Clip content while its height changes, then allow focus rings and
-          // menus to overflow once expanded. Keep overflow in the animation
-          // targets because AnimatePresence exits from its last rendered props.
+          // Clip content before it enters and as it exits, but allow focus
+          // rings and menus to overflow whenever the content is present.
+          // AnimatePresence exits from its last rendered props, so overflow
+          // must stay in the animation targets rather than React state.
           initial={{height: 0, opacity: 0, overflow: 'hidden'}}
-          animate={{
-            height: 'auto',
-            opacity: 1,
-            transitionEnd: {overflow: 'visible'},
-          }}
+          animate={{height: 'auto', opacity: 1, overflow: 'visible'}}
           exit={{height: 0, opacity: 0, overflow: 'hidden'}}
           transition={{duration: 0.2, ease: 'easeOut'}}
           style={{width: '100%'}}
