@@ -303,12 +303,12 @@ function HeadCell({
       {showResizer && (
         <TableResizer onContextMenu={event => event.preventDefault()}>
           <DragHandle
-            appearance="hover"
             isSizedFirst
             max={Math.max(max, context.minimumColumnWidth)}
             min={context.minimumColumnWidth}
             orientation="horizontal"
             value={Math.max(width, context.minimumColumnWidth)}
+            variant="ghost"
             onDoubleClick={event => context.onResetColumnSize(event, index)}
             onMove={context.onResizeMove}
             onMoveEnd={context.onResizeEnd}

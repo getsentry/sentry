@@ -52,17 +52,17 @@ Use `onMoveStart` and `onMoveEnd` when a drag needs to bracket its work, such as
 An `orientation` of `horizontal` lays the panes out in a row and draws a vertical divider between them.
 Set `isSizedFirst` to `false` when the pane being sized sits after the divider, so the cursor and keys still match the direction the divider can move.
 
-## Appearance
+## Variant
 
-The divider line is drawn at all times by default.
-Set `appearance="hover"` to draw it only while the handle is hovered, focused, or held, for surfaces that already have their own separators, such as the column edges of a table.
+The `solid` variant draws the divider line at all times.
+Use the `ghost` variant to draw it only while the handle is hovered, focused, or held, for surfaces that already have their own separators, such as the column edges of a table.
 
 <Storybook.Demo>
-  <DragHandleDemo appearance="hover" />
+  <DragHandleDemo variant="ghost" />
 </Storybook.Demo>
 
 ```jsx
-<DragHandle appearance="hover" {...props} />
+<DragHandle variant="ghost" {...props} />
 ```
 
 ## Accessibility
