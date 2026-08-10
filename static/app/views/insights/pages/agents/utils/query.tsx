@@ -13,6 +13,10 @@ export function getIsAiGenerationSpan(genAiOpType: string | undefined) {
   return genAiOpType === 'ai_client';
 }
 
+export function getIsEmbeddingsSpan(genAiOpType: string | undefined) {
+  return genAiOpType === 'embeddings';
+}
+
 export function getHasAiSpansFilter() {
   return 'has:gen_ai.operation.type';
 }
@@ -57,6 +61,7 @@ export enum GenAiOperationType {
   TOOL = 'tool',
   HANDOFF = 'handoff',
   AI_CLIENT = 'ai_client',
+  EMBEDDINGS = 'embeddings',
 }
 
 // Should be used only when we don't have the gen_ai.operation.type attribute available
@@ -75,6 +80,9 @@ export const getGenAiOperationTypeFromSpanName = (
   }
   if (spanName === 'gen_ai.handoff') {
     return GenAiOperationType.HANDOFF;
+  }
+  if (spanName === 'gen_ai.embeddings') {
+    return GenAiOperationType.EMBEDDINGS;
   }
   return GenAiOperationType.AI_CLIENT;
 };

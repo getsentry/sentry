@@ -272,6 +272,7 @@ export function getTimelineColorByOpType(theme: Theme): ColorByOpType {
     [GenAiOperationType.AI_CLIENT]: theme.tokens.content.success,
     [GenAiOperationType.HANDOFF]: theme.tokens.content.warning,
     [GenAiOperationType.TOOL]: theme.tokens.content.accent,
+    [GenAiOperationType.EMBEDDINGS]: theme.tokens.content.primary,
     default: theme.tokens.content.secondary,
     error: theme.tokens.content.danger,
   };

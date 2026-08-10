@@ -46,8 +46,11 @@ describe('getGenAiOperationTypeFromSpanName', () => {
     expect(getGenAiOperationTypeFromSpanName('gen_ai.completion')).toBe(
       GenAiOperationType.AI_CLIENT
     );
+  });
+
+  it('returns EMBEDDINGS for gen_ai.embeddings', () => {
     expect(getGenAiOperationTypeFromSpanName('gen_ai.embeddings')).toBe(
-      GenAiOperationType.AI_CLIENT
+      GenAiOperationType.EMBEDDINGS
     );
   });
 });

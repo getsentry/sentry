@@ -2,6 +2,7 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 import {
   buildConversationTurns,
+  embeddingSpansToMessages,
   extractMessagesFromNodes,
   getInputMessageStats,
   getNodeTimestamp,
@@ -60,6 +61,32 @@ function createMockToolNode(overrides: {
     attributes: {
       [SpanFields.GEN_AI_OPERATION_TYPE]: 'tool',
       [SpanFields.GEN_AI_TOOL_NAME]: toolName,
+    },
+    errors: new Set(),
+  };
+}
+
+function createMockEmbeddingNode(overrides: {
+  id: string;
+  endTimestamp?: number;
+  input?: string;
+  startTimestamp?: number;
+}) {
+  const {id, input = 'search query', startTimestamp = 1000, endTimestamp} = overrides;
+  const end = endTimestamp ?? startTimestamp + 100;
+  return {
+    id,
+    type: 'span' as const,
+    op: 'gen_ai.embeddings',
+    startTimestamp,
+    endTimestamp: end,
+    value: {
+      start_timestamp: startTimestamp,
+      end_timestamp: end,
+    },
+    attributes: {
+      [SpanFields.GEN_AI_OPERATION_TYPE]: 'embeddings',
+      [SpanFields.GEN_AI_EMBEDDINGS_INPUT]: input,
     },
     errors: new Set(),
   };
@@ -505,6 +532,64 @@ describe('conversationMessages utilities', () => {
 
       expect(result.generationSpans).toHaveLength(1);
       expect(result.toolSpans).toHaveLength(0);
+    });
+
+    it('separates embeddings spans from generation and tool spans', () => {
+      const generationNode = createMockNode({id: 'gen-1', startTimestamp: 1000});
+      const toolNode = createMockToolNode({
+        id: 'tool-1',
+        toolName: 'search',
+        startTimestamp: 1500,
+      });
+      const embeddingNode = createMockEmbeddingNode({
+        id: 'embed-1',
+        startTimestamp: 2000,
+      });
+
+      const result = partitionSpansByType([
+        generationNode,
+        toolNode,
+        embeddingNode,
+      ] as any);
+
+      expect(result.generationSpans.map(s => s.id)).toEqual(['gen-1']);
+      expect(result.toolSpans.map(s => s.id)).toEqual(['tool-1']);
+      expect(result.embeddingSpans.map(s => s.id)).toEqual(['embed-1']);
+    });
+  });
+
+  describe('embeddingSpansToMessages', () => {
+    it('maps an embeddings span to a standalone message', () => {
+      const node = createMockEmbeddingNode({
+        id: 'embed-1',
+        input: 'search query',
+        startTimestamp: 1000,
+        endTimestamp: 1200,
+      });
+
+      const messages = embeddingSpansToMessages([node as any]);
+
+      expect(messages).toHaveLength(1);
+      expect(messages[0]).toMatchObject({
+        id: 'embedding-embed-1',
+        role: 'embedding',
+        content: '',
+        nodeId: 'embed-1',
+        embeddingInput: 'search query',
+        embeddingHasError: false,
+        duration: 200,
+      });
+    });
+
+    it('skips spans with no embeddings input', () => {
+      const node = {
+        id: 'embed-1',
+        value: {start_timestamp: 1000, end_timestamp: 1200},
+        attributes: {[SpanFields.GEN_AI_OPERATION_TYPE]: 'embeddings'},
+        errors: new Set(),
+      };
+
+      expect(embeddingSpansToMessages([node as any])).toEqual([]);
     });
   });
 
@@ -1221,6 +1306,66 @@ describe('conversationMessages utilities', () => {
       const tool = createMockToolNode({id: 'tool-1', toolName: 'search'});
       expect(extractMessagesFromNodes([tool as any])).toEqual([]);
     });
+
+    it('positions an embeddings span between the turns around it by timestamp', () => {
+      const requestMessages = JSON.stringify([{role: 'user', content: 'Find docs'}]);
+      const gen1 = createMockNode({
+        id: 'gen-1',
+        startTimestamp: 1000,
+        attributes: {
+          [SpanFields.GEN_AI_REQUEST_MESSAGES]: requestMessages,
+          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Let me search',
+        },
+      });
+      const embedding = createMockEmbeddingNode({
+        id: 'embed-1',
+        input: 'find docs',
+        startTimestamp: 1500,
+      });
+      const gen2 = createMockNode({
+        id: 'gen-2',
+        startTimestamp: 2000,
+        attributes: {
+          [SpanFields.GEN_AI_REQUEST_MESSAGES]: requestMessages,
+          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Here is what I found',
+        },
+      });
+
+      const messages = extractMessagesFromNodes([gen1, embedding, gen2] as any);
+
+      const embeddingIndex = messages.findIndex(m => m.role === 'embedding');
+      expect(messages[embeddingIndex]).toMatchObject({
+        role: 'embedding',
+        embeddingInput: 'find docs',
+      });
+      // Sits between the two assistant turns, matching its timestamp.
+      expect(messages[embeddingIndex - 1]).toMatchObject({
+        role: 'assistant',
+        content: 'Let me search',
+      });
+      expect(messages[embeddingIndex + 1]?.timestamp).toBeGreaterThanOrEqual(
+        messages[embeddingIndex]!.timestamp
+      );
+    });
+
+    it('renders embeddings spans even with no generation spans in the conversation', () => {
+      const embedding1 = createMockEmbeddingNode({
+        id: 'embed-1',
+        input: 'doc one',
+        startTimestamp: 1000,
+      });
+      const embedding2 = createMockEmbeddingNode({
+        id: 'embed-2',
+        input: 'doc two',
+        startTimestamp: 2000,
+      });
+
+      const messages = extractMessagesFromNodes([embedding2, embedding1] as any);
+
+      expect(messages).toHaveLength(2);
+      expect(messages.every(m => m.role === 'embedding')).toBe(true);
+      expect(messages.map(m => m.embeddingInput)).toEqual(['doc one', 'doc two']);
+    });
   });
 
   describe('parseAssistantContent with reasoning', () => {
@@ -1381,6 +1526,20 @@ describe('conversationMessages utilities', () => {
       ]);
       expect(result).toContain('> Called tools: `bash`, `read`');
       expect(result).toContain('I ran the tools');
+    });
+
+    it('formats embedding messages', () => {
+      const result = messagesToMarkdown([
+        {
+          id: 'embedding-1',
+          role: 'embedding',
+          content: '',
+          timestamp: 1000,
+          nodeId: 'n1',
+          embeddingInput: 'search query',
+        },
+      ]);
+      expect(result).toBe('### Embedding\n\n> search query');
     });
 
     it('formats a full conversation with separators between messages', () => {

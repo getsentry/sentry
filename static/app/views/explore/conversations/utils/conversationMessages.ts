@@ -11,6 +11,7 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   getIsAiGenerationSpan,
+  getIsEmbeddingsSpan,
   getIsExecuteToolSpan,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
@@ -44,10 +45,12 @@ export interface ConversationMessage {
   content: string;
   id: string;
   nodeId: string;
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'embedding';
   timestamp: number;
   agentName?: string;
   duration?: number;
+  embeddingHasError?: boolean;
+  embeddingInput?: string;
   modelName?: string;
   reasoning?: string;
   toolCalls?: ToolCall[];
@@ -70,26 +73,36 @@ interface ConversationTurn {
 
 /**
  * Extracts conversation messages from trace spans:
- * 1. Partition spans into generation and tool spans
+ * 1. Partition spans into generation, tool, and embeddings spans
  * 2. Build conversation turns (user input + assistant output pairs)
  * 3. Merge turns that have no assistant response, carrying tool calls forward
  * 4. Convert turns to deduplicated, sorted messages
+ * 5. Insert embeddings spans as their own standalone messages, positioned by
+ *    timestamp — unlike tool calls, embeddings don't need a nearby generation
+ *    to show up, so they never enter the turn-building pipeline above.
  */
 export function extractMessagesFromNodes(
   nodes: AITraceSpanNode[]
 ): ConversationMessage[] {
-  const {generationSpans, toolSpans} = partitionSpansByType(nodes);
+  const {generationSpans, toolSpans, embeddingSpans} = partitionSpansByType(nodes);
   const turns = buildConversationTurns(generationSpans, toolSpans);
   const mergedTurns = mergeEmptyTurns(turns);
-  return turnsToMessages(mergedTurns);
+  const messages = [
+    ...turnsToMessages(mergedTurns),
+    ...embeddingSpansToMessages(embeddingSpans),
+  ];
+  messages.sort((a, b) => a.timestamp - b.timestamp);
+  return messages;
 }
 
 export function partitionSpansByType(nodes: AITraceSpanNode[]): {
+  embeddingSpans: AITraceSpanNode[];
   generationSpans: AITraceSpanNode[];
   toolSpans: AITraceSpanNode[];
 } {
   const generationSpans: AITraceSpanNode[] = [];
   const toolSpans: AITraceSpanNode[] = [];
+  const embeddingSpans: AITraceSpanNode[] = [];
 
   for (const node of nodes) {
     const opType = getGenAiOpType(node);
@@ -97,13 +110,50 @@ export function partitionSpansByType(nodes: AITraceSpanNode[]): {
       generationSpans.push(node);
     } else if (getIsExecuteToolSpan(opType)) {
       toolSpans.push(node);
+    } else if (getIsEmbeddingsSpan(opType)) {
+      embeddingSpans.push(node);
     }
   }
 
   generationSpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
   toolSpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
+  embeddingSpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
 
-  return {generationSpans, toolSpans};
+  return {generationSpans, toolSpans, embeddingSpans};
+}
+
+/**
+ * Maps embeddings spans directly to standalone messages, independent of the
+ * turn-building pipeline, so they render at their own timestamp regardless of
+ * whether a generation span is nearby (or exists at all in the conversation).
+ */
+export function embeddingSpansToMessages(
+  embeddingSpans: AITraceSpanNode[]
+): ConversationMessage[] {
+  const messages: ConversationMessage[] = [];
+
+  for (const span of embeddingSpans) {
+    const input = getStringAttr(span, SpanFields.GEN_AI_EMBEDDINGS_INPUT);
+    if (!input) {
+      continue;
+    }
+
+    const start = getNodeStartTimestamp(span);
+    const end = getNodeEndTimestamp(span);
+
+    messages.push({
+      id: `embedding-${span.id}`,
+      role: 'embedding',
+      content: '',
+      timestamp: getNodeTimestamp(span),
+      nodeId: span.id,
+      embeddingInput: input,
+      embeddingHasError: hasError(span),
+      duration: end > start ? end - start : undefined,
+    });
+  }
+
+  return messages;
 }
 
 export function buildConversationTurns(
@@ -454,6 +504,10 @@ export function messagesToMarkdown(messages: ConversationMessage[]): string {
     if (message.role === 'user') {
       const sender = message.userEmail || 'User';
       lines.push(`### ${sender}`);
+      lines.push(message.content);
+    } else if (message.role === 'embedding') {
+      lines.push('### Embedding');
+      lines.push(toBlockquote(message.embeddingInput ?? ''));
     } else {
       const sender = message.agentName || message.modelName || 'Assistant';
       const durationStr =
@@ -470,9 +524,10 @@ export function messagesToMarkdown(messages: ConversationMessage[]): string {
       if (message.reasoning) {
         lines.push(toBlockquote(`Thinking:\n${message.reasoning}`));
       }
+
+      lines.push(message.content);
     }
 
-    lines.push(message.content);
     blocks.push(lines.join('\n\n'));
   }
 

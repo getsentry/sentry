@@ -116,6 +116,16 @@ export function MessagesPanel({
             );
           }
 
+          if (message.role === 'embedding') {
+            return (
+              <EmbeddingTurn
+                key={message.id}
+                message={message}
+                isSelected={message.nodeId === selectedNodeId}
+              />
+            );
+          }
+
           // Pass each turn only the selection state that concerns it, rather
           // than the shared `selectedNodeId`. A turn's props stay referentially
           // stable when the selection moves to an unrelated turn, so once these
@@ -274,6 +284,66 @@ function AssistantMeta({cost, duration}: {cost?: number; duration?: number}) {
     />
   );
 }
+
+// Standalone row for an embeddings span — unlike tool calls and reasoning,
+// embeddings aren't nested inside an assistant turn: they're positioned in the
+// transcript by their own timestamp, so they render even when there's no
+// generation span nearby (or at all) to attach them to.
+const EmbeddingTurn = memo(function EmbeddingTurnImpl({
+  message,
+  isSelected,
+}: {
+  isSelected: boolean;
+  message: ConversationMessage;
+}) {
+  const organization = useOrganization();
+  const input = message.embeddingInput ?? '';
+
+  return (
+    <MessageRow from="assistant" density="compact">
+      <CollapsibleChatRow
+        defaultOpen={isSelected}
+        title={isOpen => (
+          <Text
+            size="sm"
+            variant={message.embeddingHasError ? 'danger' : 'muted'}
+            ellipsis
+            monospace
+          >
+            {t('Embedding...')} {isOpen ? null : input}
+          </Text>
+        )}
+        meta={
+          <TurnMeta
+            metric={null}
+            duration={
+              message.duration === undefined || message.duration <= 0 ? null : (
+                <Text size="xs" variant="muted" tabular align="right">
+                  {getDuration(message.duration, 2, true)}
+                </Text>
+              )
+            }
+          />
+        }
+        onToggle={open =>
+          trackAnalytics('conversations.detail.expand-embedding', {
+            organization,
+            expanded: open,
+          })
+        }
+      >
+        <Flex>
+          <Container paddingTop="xs" paddingBottom="xs" flex="1" minWidth={0}>
+            <MessageText size="sm" align="left" variant="muted" monospace>
+              <AIContentRenderer text={input} inline autoCollapseLimit={10} />
+            </MessageText>
+          </Container>
+          <Container width={TURN_META_WIDTH} flexShrink={0} />
+        </Flex>
+      </CollapsibleChatRow>
+    </MessageRow>
+  );
+});
 
 function ReasoningSection({reasoning}: {reasoning: string}) {
   const organization = useOrganization();

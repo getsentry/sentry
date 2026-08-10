@@ -3,7 +3,14 @@ import {useTheme} from '@emotion/react';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconChat, IconChevron, IconCode, IconFire, IconFix} from 'sentry/icons';
+import {
+  IconChat,
+  IconChevron,
+  IconCode,
+  IconFire,
+  IconFix,
+  IconSearch,
+} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {t} from 'sentry/locale';
 import {
@@ -25,6 +32,8 @@ function operationTypeIcon(opType: string | undefined) {
       return <IconFix size="md" />;
     case GenAiOperationType.HANDOFF:
       return <IconChevron size="md" isDouble direction="right" />;
+    case GenAiOperationType.EMBEDDINGS:
+      return <IconSearch size="md" />;
     default:
       return <IconCode size="md" />;
   }

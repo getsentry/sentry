@@ -62,6 +62,29 @@ function createMockToolNode(overrides: {
   };
 }
 
+function createMockEmbeddingNode(overrides: {
+  id: string;
+  endTimestamp?: number;
+  input?: string;
+  startTimestamp?: number;
+}) {
+  const {id, input = 'search query', startTimestamp = 1000, endTimestamp} = overrides;
+  const end = endTimestamp ?? startTimestamp + 100;
+  return {
+    id,
+    type: 'span' as const,
+    op: 'gen_ai.embeddings',
+    startTimestamp,
+    endTimestamp: end,
+    value: {start_timestamp: startTimestamp, end_timestamp: end},
+    attributes: {
+      [SpanFields.GEN_AI_OPERATION_TYPE]: 'embeddings',
+      [SpanFields.GEN_AI_EMBEDDINGS_INPUT]: input,
+    },
+    errors: new Set(),
+  };
+}
+
 // Builds a turn whose assistant message carries `toolNames.length` tool calls,
 // with the tool spans sitting between two generations so they merge onto the
 // second turn.
@@ -441,5 +464,80 @@ describe('MessagesPanel', () => {
     const details = matches[0]!.closest('details');
     expect(details).not.toBeNull();
     expect(details).not.toHaveAttribute('open');
+  });
+
+  it('renders an embeddings-only conversation instead of the no-inference-spans notice', () => {
+    const embeddingNode = createMockEmbeddingNode({id: 'embed-1', input: 'find docs'});
+
+    render(
+      <MessagesPanel
+        nodes={[embeddingNode] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(
+      screen.queryByText("This conversation doesn't include any inference spans")
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(/Embedding\.\.\./)).toBeInTheDocument();
+  });
+
+  it('renders a collapsed embedding row that expands to show the full input', async () => {
+    const embeddingNode = createMockEmbeddingNode({
+      id: 'embed-1',
+      input: 'a very specific search query',
+    });
+
+    render(
+      <MessagesPanel
+        nodes={[embeddingNode] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    const preview = screen.getByText(/Embedding\.\.\..*a very specific search query/);
+    const details = preview.closest('details');
+    expect(details).not.toHaveAttribute('open');
+
+    await userEvent.click(preview);
+    expect(details).toHaveAttribute('open');
+    expect(screen.getByText('a very specific search query')).toBeInTheDocument();
+  });
+
+  it('positions the embedding row between the user and assistant turns around it', () => {
+    // A wide generation span (1000 -> 1200) so the embedding's own timestamp
+    // (1150) falls between the user turn's timestamp (the span's start, 1000)
+    // and the assistant turn's timestamp (the span's end, 1200).
+    const node = createMockNode({
+      id: 'span-1',
+      startTimestamp: 1000,
+      endTimestamp: 1200,
+      attributes: {
+        [SpanFields.GEN_AI_REQUEST_MESSAGES]: JSON.stringify([
+          {role: 'user', content: 'Find the docs'},
+        ]),
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Here they are',
+      },
+    });
+    const embeddingNode = createMockEmbeddingNode({
+      id: 'embed-1',
+      input: 'find docs embedding',
+      startTimestamp: 1050,
+      endTimestamp: 1150,
+    });
+
+    const {container} = render(
+      <MessagesPanel
+        nodes={[node, embeddingNode] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    const text = container.textContent ?? '';
+    expect(text.indexOf('Find the docs')).toBeLessThan(text.indexOf('Embedding...'));
+    expect(text.indexOf('Embedding...')).toBeLessThan(text.indexOf('Here they are'));
   });
 });
