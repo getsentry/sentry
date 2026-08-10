@@ -312,7 +312,7 @@ const EmbeddingTurn = memo(function EmbeddingTurnImpl({
             ellipsis
             monospace
           >
-            {t('Created embedding...')}
+            {t('Creating embedding...')}
           </Text>
         }
         meta={

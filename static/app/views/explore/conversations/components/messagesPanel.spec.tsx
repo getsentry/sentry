@@ -496,7 +496,7 @@ describe('MessagesPanel', () => {
     expect(
       screen.queryByText("This conversation doesn't include any inference spans")
     ).not.toBeInTheDocument();
-    expect(screen.getByText('Created embedding...')).toBeInTheDocument();
+    expect(screen.getByText('Creating embedding...')).toBeInTheDocument();
   });
 
   it('shows no preview in the toggle and reveals the input only when expanded', async () => {
@@ -515,7 +515,7 @@ describe('MessagesPanel', () => {
 
     // The toggle label carries no preview of the input — the input lives in the
     // collapsible body (kept in the DOM by the native <details>), not the summary.
-    const toggle = screen.getByText('Created embedding...');
+    const toggle = screen.getByText('Creating embedding...');
     const summary = toggle.closest('summary');
     expect(summary).not.toBeNull();
     const details = toggle.closest('details');
@@ -547,7 +547,7 @@ describe('MessagesPanel', () => {
       />
     );
 
-    expect(screen.queryByText('Created embedding...')).not.toBeInTheDocument();
+    expect(screen.queryByText('Creating embedding...')).not.toBeInTheDocument();
   });
 
   it('shows the token count in the embedding meta when available', () => {
@@ -601,9 +601,9 @@ describe('MessagesPanel', () => {
 
     const text = container.textContent ?? '';
     expect(text.indexOf('Find the docs')).toBeLessThan(
-      text.indexOf('Created embedding...')
+      text.indexOf('Creating embedding...')
     );
-    expect(text.indexOf('Created embedding...')).toBeLessThan(
+    expect(text.indexOf('Creating embedding...')).toBeLessThan(
       text.indexOf('Here they are')
     );
   });

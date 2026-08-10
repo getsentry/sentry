@@ -142,7 +142,7 @@ export function embeddingSpansToMessages(
     const input = getStringAttr(span, SpanFields.GEN_AI_EMBEDDINGS_INPUT);
 
     // The input is the whole point of the row, so drop the span when it wasn't
-    // captured rather than showing an empty "Created embedding..." entry. (It's
+    // captured rather than showing an empty "Creating embedding..." entry. (It's
     // absent until the bulk conversation fetch returns gen_ai.embeddings.input.)
     if (!input) {
       continue;
