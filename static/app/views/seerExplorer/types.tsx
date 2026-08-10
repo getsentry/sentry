@@ -90,9 +90,10 @@ export type AgentWriteApproval = EmbedOutput<'agentWriteApproval'>;
  * what makes a link buildable from `path_params`. `parent` nests a lib method's HTTP calls under
  * it; `id` is unique within one execute, so correlation never depends on array position.
  *
- * `body` and `response` are bounded previews, not the payloads — records live in the run state row,
- * which is re-serialized on every write and re-downloaded by the poll, so seer caps both and flags
- * when it cut them.
+ * `body` is a bounded preview, not the payload — records live in the run state row, which is
+ * re-serialized on every write and re-downloaded by the poll, so seer caps it and flags when it
+ * cut it. No response body is carried: it is arbitrary customer data, it can hold a secret a write
+ * hands back, and a row reports the request rather than what came back.
  */
 export interface CallRecord {
   id: number;
@@ -114,10 +115,6 @@ export interface CallRecord {
   query_params?: Record<string, string>;
   /** `path` with its params interpolated — the literal path that was requested. */
   resolved_path?: string;
-  /** Bounded slice of the response body — a preview, not the response. */
-  response?: string;
-  /** Whether `response` was cut short of the full body. */
-  response_truncated?: boolean;
   /** HTTP status. Absent when the request never completed. */
   status?: number;
   /** Human name for the operation, from the OpenAPI spec. Absent when it has none. */
