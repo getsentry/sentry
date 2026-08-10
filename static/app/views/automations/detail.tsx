@@ -2,6 +2,7 @@ import {Fragment, useState} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -31,6 +32,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {useUserFromId} from 'sentry/utils/useUserFromId';
 import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
 import {AutomationHistoryList} from 'sentry/views/automations/components/automationHistoryList';
+import {AssigneeCell} from 'sentry/views/automations/components/automationListTable/assigneeCell';
 import {AutomationStatsChart} from 'sentry/views/automations/components/automationStatsChart';
 import {ConditionsPanel} from 'sentry/views/automations/components/conditionsPanel';
 import {ConnectedMonitorsList} from 'sentry/views/automations/components/connectedMonitorsList';
@@ -170,6 +172,25 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
             </DetailSection>
             <DetailSection title={t('Environment')}>
               {automation.environment || t('All environments')}
+            </DetailSection>
+            <DetailSection
+              title={
+                <Flex as="span" align="center" gap="xs">
+                  {t('Assignee')}
+                  <InfoTip
+                    size="sm"
+                    title={t(
+                      'This has no effect on when the alert fires or who it notifies. It is purely an organizational tool.'
+                    )}
+                  />
+                </Flex>
+              }
+            >
+              {automation.owner ? (
+                <AssigneeCell owner={automation.owner} />
+              ) : (
+                t('Unassigned')
+              )}
             </DetailSection>
             <DetailSection title={t('Throttling')}>
               {automation.config.frequency
