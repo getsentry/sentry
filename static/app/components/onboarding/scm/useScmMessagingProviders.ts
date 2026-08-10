@@ -29,11 +29,11 @@ export type ScmMessagingProviderStatus =
   | 'connected';
 
 export type ScmMessagingProviderViewModel = {
+  /** Defined when status is `connected` or `permission-limited`. */
+  integration: OrganizationIntegration | undefined;
   provider: IntegrationProvider;
   providerKey: ScmMessagingProviderKey;
   status: ScmMessagingProviderStatus;
-  /** Defined when status is `connected` or `permission-limited`. */
-  integration?: OrganizationIntegration;
 };
 
 /**
