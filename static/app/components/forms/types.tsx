@@ -100,13 +100,6 @@ interface BaseField {
 // TODO(ts): These are field specific props. May not be needed as we convert
 // the fields as we can grab the props from them
 
-interface CollapsibleSectionType {
-  fields: FieldObject[];
-  label: React.ReactNode | (() => React.ReactNode);
-  type: 'collapsible';
-  initiallyCollapsed?: boolean;
-}
-
 interface CustomType {
   Component: (arg: BaseField) => React.ReactElement;
   type: 'custom';
@@ -187,7 +180,6 @@ type ChoiceMapperType = {
 } & ChoiceMapperProps;
 
 export type Field = (
-  | CollapsibleSectionType
   | CustomType
   | SelectControlType
   | InputType

@@ -1,7 +1,3 @@
-import {
-  CollapsibleSection,
-  type CollapsibleSectionProps,
-} from 'sentry/components/forms/collapsibleSection';
 import type {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
 import {SeparatorField} from 'sentry/components/forms/fields/separatorField';
 import type {Field} from 'sentry/components/forms/types';
@@ -94,8 +90,6 @@ export function FieldFromConfig(props: FieldFromConfigProps): React.ReactElement
       return <DateTimeField {...(componentProps as DateTimeFieldProps)} />;
     case 'custom':
       return field.Component(field);
-    case 'collapsible':
-      return <CollapsibleSection {...(componentProps as CollapsibleSectionProps)} />;
     default:
       return null;
   }
