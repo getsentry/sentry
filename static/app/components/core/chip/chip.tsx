@@ -151,17 +151,22 @@ function useRovingController(
  */
 function useChipSegment(interactive: boolean): ChipSegmentProps {
   const {roving} = useChipContext('Chip section');
+  // `register` is stable, but the roving object identity changes whenever the
+  // active tab stop moves. Depend only on `register` so the registration effect
+  // runs on mount/unmount — not on every focus change, which would otherwise
+  // unregister the focused section and reset the tab stop to the first one.
+  const {enabled, register, getItemProps} = roving;
   const id = useId();
-  const active = interactive && roving.enabled;
+  const active = interactive && enabled;
 
   useEffect(() => {
     if (active) {
-      return roving.register(id);
+      return register(id);
     }
     return () => {};
-  }, [active, id, roving]);
+  }, [active, id, register]);
 
-  return active ? roving.getItemProps(id) : {};
+  return active ? getItemProps(id) : {};
 }
 
 interface ChipRootProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -257,14 +262,14 @@ function ChipSection({
   );
 
   if (!isInteractive) {
-    return <InertSegment chipSize={size}>{content}</InertSegment>;
+    return <InertSegment>{content}</InertSegment>;
   }
 
   return (
     <InteractiveSegment
       ref={ref}
       type="button"
-      chipSize={size}
+      data-chip-interactive=""
       {...mergeProps(segmentProps, rest, {onClick})}
     >
       {content}
@@ -322,6 +327,7 @@ function ChipDismiss({onClick, ref, ...rest}: ChipDismissProps) {
       variant="transparent"
       icon={<IconClose size="xs" />}
       aria-label={t('Remove')}
+      data-chip-dismiss=""
       {...mergeProps(segmentProps, rest, {
         onClick: (event: React.MouseEvent<HTMLButtonElement>) => {
           event.stopPropagation();
@@ -424,27 +430,40 @@ const ChipRootElement = styled('div')<{chipSize: ChipSize}>`
   box-sizing: border-box;
   overflow: hidden;
   height: ${p => SIZES[p.chipSize].height};
+  /* Inert layout: generous end padding, tight gap between the value parts. */
+  gap: ${p => p.theme.space.xs};
+  padding-inline: ${p => p.theme.space[SIZES[p.chipSize].pad]};
   border: 1px solid ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
   border-radius: ${p => p.theme.radius[SIZES[p.chipSize].radius]};
   background: ${p => p.theme.tokens.interactive.chonky.embossed.neutral.background};
   box-shadow: 0 1px 0 0 ${p => p.theme.tokens.interactive.chonky.embossed.neutral.chonk};
   line-height: 16px;
+
+  /* Let the trailing dismiss button sit flush against the edge. */
+  &:has([data-chip-dismiss]) {
+    padding-right: 0;
+  }
+
+  /* Interactive layout: dense, segmented buttons that own their own padding. */
+  &:has([data-chip-interactive]) {
+    gap: 0;
+    padding-inline: 0;
+  }
 `;
 
-const InertSegment = styled('div')<{chipSize: ChipSize}>`
+const InertSegment = styled('div')`
   display: inline-flex;
   align-items: center;
-  padding: 0 ${p => p.theme.space[SIZES[p.chipSize].pad]};
 `;
 
-const InteractiveSegment = styled('button')<{chipSize: ChipSize}>`
+const InteractiveSegment = styled('button')`
   display: inline-flex;
   align-items: center;
   align-self: stretch;
   margin: 0;
   border: 0;
   background: ${p => p.theme.tokens.interactive.transparent.neutral.background.rest};
-  padding: 0 ${p => p.theme.space[SIZES[p.chipSize].pad]};
+  padding: 0 ${p => p.theme.space.sm};
   color: inherit;
   cursor: pointer;
 
