@@ -9,21 +9,17 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconChat, IconEllipsis} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {
-  GroupActivityType,
-  SEER_ACTIVITY_TYPES,
-  type Group,
-  type GroupActivity,
-} from 'sentry/types/group';
+import type {Group, GroupActivity} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniqueId} from 'sentry/utils/guid';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
 import {
-  collapseSeerActivityPairs,
-  type ActivityFeedItem,
+  buildActivityFeedItems,
+  type DisplayedActivityFeedItem,
 } from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
+import {CollapsedStatusActivityRow} from 'sentry/views/issueDetails/activitySection/activityLineItem/collapsedStatusActivityRow';
 import {ActivityLineList} from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
 import {
   ActivityLineNote,
@@ -40,9 +36,8 @@ interface ActivityFeedRowProps {
   group: Group;
   handleDelete: (item: GroupActivity) => Promise<void>;
   inputVariant: 'compact' | 'full';
-  item: ActivityFeedItem;
+  item: DisplayedActivityFeedItem;
   onCommentEdited?: (activity: GroupActivity[]) => void;
-  showConnector?: boolean;
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }
 
@@ -52,19 +47,31 @@ function ActivityFeedRow({
   onCommentEdited,
   group,
   inputVariant,
-  showConnector,
   timestampUnitStyle,
 }: ActivityFeedRowProps) {
+  if (item.type === 'collapsed_status_activities') {
+    return (
+      <CollapsedStatusActivityRow eventCount={item.activities.length}>
+        {item.activities.map(activity => (
+          <ActivityFeedRow
+            item={activity}
+            handleDelete={handleDelete}
+            onCommentEdited={onCommentEdited}
+            group={group}
+            key={activity.activity.id}
+            inputVariant={inputVariant}
+            timestampUnitStyle={timestampUnitStyle}
+          />
+        ))}
+      </CollapsedStatusActivityRow>
+    );
+  }
+
   const {activity} = item;
 
   if (!isActivityNote(activity)) {
     return (
-      <ActivityLine
-        item={item}
-        group={group}
-        showConnector={showConnector}
-        timestampUnitStyle={timestampUnitStyle}
-      />
+      <ActivityLine item={item} group={group} timestampUnitStyle={timestampUnitStyle} />
     );
   }
 
@@ -75,7 +82,6 @@ function ActivityFeedRow({
       inputVariant={inputVariant}
       onDelete={() => handleDelete(activity)}
       onCommentEdited={onCommentEdited}
-      showConnector={showConnector}
       timestampUnitStyle={timestampUnitStyle}
     />
   );
@@ -102,70 +108,6 @@ interface ActivitySectionProps {
    */
   placeholder?: string;
   variant?: 'sidebar' | 'standalone';
-}
-
-function isDuplicatePullRequestActivity(
-  activity: GroupActivity,
-  adjacentActivity: GroupActivity | undefined
-): boolean {
-  switch (activity.type) {
-    // REFERENCED_IN_COMMIT should be hidden if there is an adjacent PULL_REQUEST_MERGED activity with the same pull request
-    case GroupActivityType.REFERENCED_IN_COMMIT: {
-      if (adjacentActivity?.type !== GroupActivityType.PULL_REQUEST_MERGED) {
-        return false;
-      }
-
-      const pullRequest = activity.data.commit?.pullRequest;
-      const adjacentPullRequest = adjacentActivity.data.pullRequest;
-      if (!pullRequest || !adjacentPullRequest) {
-        return false;
-      }
-
-      return (
-        pullRequest.id === adjacentPullRequest.id &&
-        pullRequest.repository.id === adjacentPullRequest.repository.id
-      );
-    }
-    case GroupActivityType.SEER_PR_CREATED: {
-      if (adjacentActivity?.type !== GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST) {
-        return false;
-      }
-
-      const adjacentPullRequest = adjacentActivity.data.pullRequest;
-      if (!adjacentPullRequest) {
-        return false;
-      }
-
-      return Boolean(
-        activity.data.pull_requests?.some(
-          pullRequest =>
-            pullRequest.pull_request.pr_url === adjacentPullRequest.externalUrl
-        )
-      );
-    }
-    default:
-      return false;
-  }
-}
-
-function removeAdjacentDuplicatePullRequestActivities(activities: GroupActivity[]): {
-  activities: GroupActivity[];
-  actorActivityById: Map<string, GroupActivity>;
-} {
-  const actorActivityById = new Map<string, GroupActivity>();
-  const filteredActivities = activities.filter((activity, index) => {
-    const duplicateActivity = [activities[index - 1], activities[index + 1]].find(
-      adjacentActivity => isDuplicatePullRequestActivity(activity, adjacentActivity)
-    );
-
-    if (activity.type === GroupActivityType.SEER_PR_CREATED && duplicateActivity) {
-      actorActivityById.set(duplicateActivity.id, activity);
-    }
-
-    return !duplicateActivity;
-  });
-
-  return {activities: filteredActivities, actorActivityById};
 }
 
 export function ActivitySection({
@@ -210,6 +152,7 @@ export function ActivitySection({
     [activities, mutators, onCommentDeleted, organization]
   );
 
+  const isStandalone = variant === 'standalone';
   const activityLink = {
     pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
     query: {
@@ -225,26 +168,20 @@ export function ActivitySection({
     },
   };
 
-  const showSeerActivities = organization.features.includes(
-    'display-seer-actions-as-issue-activities'
-  );
-  const visibleActivities = showSeerActivities
-    ? activities
-    : activities.filter(item => !SEER_ACTIVITY_TYPES.has(item.type));
-
-  const {activities: deduplicatedActivities, actorActivityById} =
-    removeAdjacentDuplicatePullRequestActivities(visibleActivities);
-  const filteredActivities = deduplicatedActivities.filter(
-    item => !filterComments || item.type === GroupActivityType.NOTE
-  );
-  const displayedActivities = collapseSeerActivityPairs(filteredActivities).map(item => {
-    const actorActivity = actorActivityById.get(item.activity.id);
-    return item.type === 'activity' && actorActivity ? {...item, actorActivity} : item;
+  const displayedActivities = buildActivityFeedItems({
+    activities,
+    filterComments,
+    showSeerActivities: organization.features.includes(
+      'display-seer-actions-as-issue-activities'
+    ),
+    showStatusFlappingRollups: organization.features.includes(
+      'issue-activity-status-flapping-rollup'
+    ),
   });
-  const inputVariant = variant === 'sidebar' ? 'compact' : 'full';
-  const timestampUnitStyle = variant === 'sidebar' ? 'short' : undefined;
+  const inputVariant = isStandalone ? 'full' : 'compact';
+  const timestampUnitStyle = isStandalone ? undefined : 'short';
 
-  const renderActivityItem = (item: ActivityFeedItem, showConnector: boolean) => (
+  const renderActivityItem = (item: DisplayedActivityFeedItem) => (
     <ActivityFeedRow
       item={item}
       handleDelete={handleDelete}
@@ -252,7 +189,6 @@ export function ActivitySection({
       group={group}
       key={item.activity.id}
       inputVariant={inputVariant}
-      showConnector={showConnector}
       timestampUnitStyle={timestampUnitStyle}
     />
   );
@@ -272,9 +208,7 @@ export function ActivitySection({
 
   const timeline = (
     <ActivityLineList data-test-id="activity-timeline">
-      {displayedActivities.map((item, index) =>
-        renderActivityItem(item, index < displayedActivities.length - 1)
-      )}
+      {displayedActivities.map(renderActivityItem)}
     </ActivityLineList>
   );
   const hiddenActivityCount =
@@ -283,7 +217,7 @@ export function ActivitySection({
     hiddenActivityCount > 0 ? displayedActivities.slice(0, 3) : displayedActivities;
   const sidebarActivityItems = (
     <Fragment>
-      {sidebarVisibleActivities.map(item => renderActivityItem(item, true))}
+      {sidebarVisibleActivities.map(renderActivityItem)}
       <MoreActivityRow>
         <MoreActivityIcon>
           <RotatedEllipsisIcon direction="up" />
@@ -310,7 +244,7 @@ export function ActivitySection({
     </Fragment>
   );
 
-  if (variant === 'standalone') {
+  if (isStandalone) {
     return (
       <Grid gap="xl">
         {noteInput}
