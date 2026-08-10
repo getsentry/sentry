@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
 import {useMembers} from 'sentry/utils/members/useMembers';
+import {useAssignedSearchValues} from 'sentry/utils/membersAndTeams/useAssignedSearchValues';
 import {getUsername} from 'sentry/utils/membersAndTeams/userUtils';
 import {ActionType} from 'sentry/views/alerts/rules/metric/types';
 
@@ -47,6 +48,16 @@ const AUTOMATION_FILTER_KEYS: Record<
       keywords: ['creator', 'author'],
     },
   },
+  assignee: {
+    predefined: true,
+    fieldDefinition: {
+      desc: 'User or team assigned to the Alert.',
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+      allowWildcard: false,
+      keywords: ['assigned', 'owner'],
+    },
+  },
 };
 
 const convertToSearchItem = (value: string) => {
@@ -63,6 +74,8 @@ export function useAutomationFilterKeys(): {
   getFieldDefinition: FieldDefinitionGetter;
 } {
   const {data: members = []} = useMembers();
+
+  const assignedValues = useAssignedSearchValues();
 
   const createdByValues: SearchGroup[] = useMemo(() => {
     const usernames = members.map(getUsername);
@@ -84,18 +97,23 @@ export function useAutomationFilterKeys(): {
   }, [members]);
 
   const filterKeys = useMemo(() => {
+    const valuesByKey: Record<string, SearchGroup[]> = {
+      created_by: createdByValues,
+      assignee: assignedValues,
+    };
+
     const entries = Object.entries(AUTOMATION_FILTER_KEYS).map(([key, config]) => [
       key,
       {
         key,
         name: key,
         predefined: config.predefined,
-        values: key === 'created_by' ? createdByValues : undefined,
+        values: valuesByKey[key],
       },
     ]);
 
     return Object.fromEntries(entries);
-  }, [createdByValues]);
+  }, [createdByValues, assignedValues]);
 
   const getFieldDefinition = useCallback<FieldDefinitionGetter>((key: string) => {
     return AUTOMATION_FILTER_KEYS[key]?.fieldDefinition ?? null;

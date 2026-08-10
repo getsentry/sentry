@@ -277,6 +277,25 @@ describe('AutomationsList', () => {
       await screen.findByText('My Automation');
       expect(mockAutomationCreatedBy).toHaveBeenCalled();
     });
+
+    it('can filter by assignee', async () => {
+      const mockAutomationAssignee = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/workflows/',
+        body: [AutomationFixture({name: 'Assigned Automation'})],
+        match: [MockApiClient.matchQuery({query: 'assignee:me'})],
+      });
+
+      render(<AutomationsList />, {organization});
+      await screen.findByText('Automation 1');
+
+      // Click through menus to select assignee:me
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'assignee'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'me'}));
+
+      await screen.findByText('Assigned Automation');
+      expect(mockAutomationAssignee).toHaveBeenCalled();
+    });
   });
 
   describe('bulk actions', () => {
