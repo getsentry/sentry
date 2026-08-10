@@ -254,6 +254,12 @@ export function getInitialFilterText(
   const keyText = getInitialFilterKeyText(key, fieldDefinition);
   const valueType = getInitialValueType(fieldDefinition);
 
+  // Array attributes filter by membership: `key[*]:value`. Append the `[*]`
+  // operator here (no wildcard) rather than baking it into the stored key.
+  if (fieldDefinition?.kind === FieldKind.ARRAY) {
+    return `${keyText}[*]:${defaultValue}`;
+  }
+
   switch (valueType) {
     case FieldValueType.INTEGER:
     case FieldValueType.NUMBER:

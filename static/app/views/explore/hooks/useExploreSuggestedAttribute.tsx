@@ -48,9 +48,9 @@ export function useExploreSuggestedAttribute({
         return explicitBooleanAttribute;
       }
 
-      // Array attributes are stored with the `[*]` membership suffix
-      // (eg. `tags[foo,array][*]`), so match that shape here.
-      const explicitArrayAttribute = `tags[${key},array][*]`;
+      // Resolve a tag array's root name to its backend key form, eg.
+      // `foo` -> `tags[foo,array]`.
+      const explicitArrayAttribute = `tags[${key},array]`;
       if (explicitArrayAttribute in arrayAttributes) {
         return explicitArrayAttribute;
       }
