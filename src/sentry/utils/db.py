@@ -20,8 +20,7 @@ def statement_timeout(alias: str, timeout: timedelta) -> Generator[None]:
     it. `SET LOCAL` cancels it for real, and confines the setting to the surrounding
     transaction so it cannot leak into other work that reuses the connection.
 
-    The bounded query raises ``OperationalError`` on expiry, so callers that are
-    reporting rather than mutating should catch it and carry on.
+    Raises ``OperationalError`` on expiry, so reporting callers should catch it.
     """
     with transaction.atomic(using=alias):
         with connections[alias].cursor() as cursor:

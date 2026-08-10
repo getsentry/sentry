@@ -49,22 +49,21 @@ DELAY_BETWEEN_RETRIES = 60  # seconds
 # hang off a PR and carry a date to age them by.
 _ActivityStore = TypeVar("_ActivityStore", PullRequestActivity, PullRequestActivityLog)
 
-# Per-run bounds on one store's sweep, guarding different things: the batch bounds
-# cap the delete pressure a run applies (50k rows), the budget caps how long it may
-# spend applying it. Size them off pr_metrics.activity_sweep.backlog_lag_seconds —
-# a run pinned at the batch cap says more work exists, not how much.
+# Per-run bounds on one store's sweep. The batch bounds cap the delete pressure a
+# run applies (50k rows); the budget caps how long it may spend applying it. Size
+# them off backlog_lag_seconds — a run pinned at the batch cap says more work
+# exists, not how much.
 _SWEEP_BATCH_SIZE = 1000
 _SWEEP_MAX_BATCHES = 50
 SWEEP_STORE_BUDGET = timedelta(seconds=240)
 
-# Both stores' budgets, plus room to report on them. Kept above the budgets rather
-# than the other way round: an overrun is a broker kill, which raises BaseException
-# and takes the run's counters and log line with it.
+# Both stores' budgets plus room to report on them. An overrun is a broker kill,
+# which raises BaseException and takes the run's counters and log line with it.
 SWEEP_PROCESSING_DEADLINE = int(2 * SWEEP_STORE_BUDGET.total_seconds()) + 60
 
-# Ceiling on the backlog lookups. The age lookup reads the head of the index, so it
-# pays for whatever dead entries and attributed rows sit there — neither under this
-# task's control. A pathological table should cost the gauges, not the deleting.
+# Ceiling on the backlog lookups: the age lookup reads the head of the index, so it
+# pays for dead entries and attributed rows that nothing here controls. A
+# pathological table should cost the gauges, not the deleting.
 SWEEP_BACKLOG_QUERY_TIMEOUT = timedelta(seconds=5)
 
 # forward_pr_to_seer_task's Seer call blocks for up to settings.SEER_DEFAULT_TIMEOUT.
@@ -207,13 +206,13 @@ def _unswept(
     """The rows this sweep may still delete, oldest first.
 
     Attributed PRs are excluded in the query rather than after it so they can't
-    occupy batch slots. They cluster at the head: the emit path sweeps them once
-    they emit, so what is left there never settled its verdict.
+    occupy batch slots. They cluster at the head, since the emit path sweeps them
+    once they emit.
 
     ``frontier`` is how far this run has advanced. Everything before it is deleted
-    or attributed, so resuming there skips both and a run stops costing the square
-    of its batch count. Inclusive, so rows sharing the boundary timestamp are
-    re-read rather than skipped.
+    or attributed, so resuming there stops a run costing the square of its batch
+    count. Inclusive, so rows sharing the boundary timestamp are re-read, not
+    skipped.
     """
     attributed = PullRequestAttribution.objects.filter(
         pull_request_id=OuterRef("pull_request_id"), is_valid=True
@@ -234,21 +233,18 @@ def _report_backlog_depth(
     """Emit how much is left, and return it for the log line.
 
     ``deleted`` and ``capped`` describe flow only: a run that fills its budget
-    reports the same whether fifty thousand rows remain or fifty million. These say
-    how far behind we are, and separate the two ways the sweep can be stuck:
+    reports the same whether fifty thousand rows remain or fifty million.
 
     - ``backlog_lag_seconds`` — how far the deletion frontier trails the cutoff.
       Zero is drained, and since the cutoff advances an hour per hour, the slope is
-      the drain ETA. It needs no row count, which matters because the only count
-      available is ``pg_class.reltuples``, and an ANALYZE re-baseline moves that by
-      more than this sweep deletes in a week.
+      the drain ETA. Needs no row count: an ANALYZE re-baseline moves
+      ``pg_class.reltuples`` by more than this sweep deletes in a week.
     - ``oldest_row_age_seconds`` — age of the oldest row of any kind. The sweep can
       never delete an attributed row, so a large age against a zero lag names the
-      prefix that every batch query walks past, on every run, forever.
+      prefix every batch query walks past.
 
-    Bounded and degraded to a counter on expiry, because measuring the work must not
-    cost us the work. Measured even when the abort switch stopped the run: two
-    single-row reads are not the pressure that switch exists to relieve.
+    Bounded and degraded to a counter on expiry: measuring the work must not cost
+    us the work.
     """
     alias = router.db_for_read(model)
     try:
@@ -274,8 +270,8 @@ def _report_backlog_depth(
         logger.exception("pr_metrics.activity_sweep.backlog_query_failed", extra={"store": store})
         return {"backlog_lag_seconds": None, "oldest_row_age_seconds": None}
 
-    # No unswept row left means the store is drained, which is a lag of zero rather
-    # than an absent reading — the whole point of the gauge is that it bottoms out.
+    # A drained store has no unswept row: that is a lag of zero, not an absent
+    # reading — the gauge is meant to bottom out.
     lag = (cutoff - oldest_unswept).total_seconds() if oldest_unswept is not None else 0.0
     metrics.gauge(
         "pr_metrics.activity_sweep.backlog_lag_seconds",
@@ -285,8 +281,7 @@ def _report_backlog_depth(
         unit="second",
     )
 
-    # An empty store has no oldest row, and reporting zero would read as "a row
-    # arrived this instant". The lag gauge above already covers liveness.
+    # An empty store has no oldest row; zero would read as "a row arrived just now".
     age = (dj_timezone.now() - oldest_row).total_seconds() if oldest_row is not None else None
     if age is not None:
         metrics.gauge(
@@ -302,24 +297,21 @@ def _report_backlog_depth(
 def _sweep_activity_store(model: type[_ActivityStore], date_field: str, cutoff: datetime) -> None:
     """Delete one store's rows for unattributed PRs, oldest first, within budget.
 
-    Each of the four ways a run can end reports distinctly, because they call for
-    different responses: drained is healthy, ``capped`` wants a bigger batch cap,
-    ``timed_out`` says the database slowed rather than that the backlog grew, and
-    ``aborted`` says someone switched the sweep off. Only ``_report_backlog_depth``
-    can say how far behind any of them leaves us.
+    The four ways a run can end report distinctly, because they call for different
+    responses: drained is healthy, ``capped`` wants a bigger batch cap, ``timed_out``
+    says the database slowed rather than that the backlog grew, and ``aborted`` says
+    someone switched the sweep off. Only ``_report_backlog_depth`` says how far
+    behind any of them leaves us.
 
-    The batch cap alone could not hold the run inside its processing deadline, since
-    a batch costs whatever the database charges for it that minute. An overrun is a
-    broker kill, which raises ``BaseException`` and so takes the counters and the log
-    line with it — the run has to end on its own terms.
+    The batch cap cannot hold the run inside its processing deadline, since a batch
+    costs whatever the database charges for it that minute — and an overrun is a
+    broker kill, which takes the counters and the log line with it.
 
-    ``cleanup.abort_execution`` stops the sweep — the same switch the cleanup command
-    honours, re-read per batch so it halts a run already in flight rather than only
-    the next one.
+    ``cleanup.abort_execution`` stops the sweep — the switch the cleanup command
+    honours, re-read per batch so it halts a run already in flight.
 
-    Counters are unsampled: 24 runs a region a day cost nothing, and ``deleted``
-    passes an ``amount``, which the default 10% rate restates as ten times one
-    surviving packet.
+    Counters are unsampled: ``deleted`` passes an ``amount``, which the default 10%
+    rate restates as ten times one surviving packet.
     """
     store = model.__name__
     started = time.monotonic()
@@ -352,9 +344,8 @@ def _sweep_activity_store(model: type[_ActivityStore], date_field: str, cutoff: 
         batches += 1
         frontier = rows[-1][1]
         if len(rows) < _SWEEP_BATCH_SIZE:
-            # A short batch means the queue is drained; stop rather than spend the
-            # remaining budget re-querying, and don't report a cap that isn't real
-            # when the work happens to end on the last iteration.
+            # A short batch drains the queue; stop rather than re-query, and don't
+            # report a cap that isn't real when work ends on the last iteration.
             capped = False
             break
 
@@ -366,9 +357,8 @@ def _sweep_activity_store(model: type[_ActivityStore], date_field: str, cutoff: 
         tags={"store": store},
         sample_rate=1.0,
     )
-    # How much of the batch cap the run spent. `capped` says only that it ran out;
-    # a store idling at a handful of batches is what says the caps elsewhere are a
-    # backlog draining rather than the steady state.
+    # `capped` says only that the cap was hit; a store idling at a handful of batches
+    # is what says the caps elsewhere are a backlog draining, not the steady state.
     metrics.gauge(
         "pr_metrics.activity_sweep.batches_used", batches, tags={"store": store}, sample_rate=1.0
     )

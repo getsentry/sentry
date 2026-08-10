@@ -337,9 +337,9 @@ class SweepUnattributedPrActivityTaskTest(TestCase):
     @patch("sentry.pr_metrics.tasks._SWEEP_BATCH_SIZE", 1)
     @patch("sentry.pr_metrics.tasks.metrics")
     def test_reports_how_much_is_left_when_the_budget_runs_out(self, mock_metrics: Any) -> None:
-        # What `capped` cannot say: it fires the same whether one batch or a million
-        # rows are left over. The lag is measured against the cutoff, so a PR quiet
-        # for 32h leaves 2h of backlog behind a cutoff that sits 30h back.
+        # The lag is measured against the cutoff, so a PR quiet for 32h leaves 2h of
+        # backlog behind a cutoff that sits 30h back. `capped` fires the same whether
+        # one batch or a million rows are left over.
         self._make_pr("1", when=timezone.now() - timedelta(hours=33))
         self._make_pr("2", when=timezone.now() - timedelta(hours=32))
 
@@ -355,7 +355,7 @@ class SweepUnattributedPrActivityTaskTest(TestCase):
     @patch("sentry.pr_metrics.tasks.metrics")
     def test_reports_zero_lag_once_a_store_is_drained(self, mock_metrics: Any) -> None:
         # Bottoming out at zero is what makes the gauge alertable, so a drained store
-        # has to report a reading rather than fall silent.
+        # reports a reading rather than falling silent.
         self._make_pr("1", when=self.quiet)
 
         sweep_unattributed_pr_activity_task()
@@ -365,8 +365,8 @@ class SweepUnattributedPrActivityTaskTest(TestCase):
     @patch("sentry.pr_metrics.tasks.metrics")
     def test_reports_the_age_of_a_row_the_sweep_can_never_delete(self, mock_metrics: Any) -> None:
         # An attributed row is excluded from every batch, so it sits at the head of
-        # the index and each batch query walks past it forever. Zero lag alongside a
-        # large age is the signature; the lag alone would read as fully healthy.
+        # the index forever. Zero lag beside a large age is the signature; the lag
+        # alone reads as healthy.
         pr = self._make_pr("1", when=timezone.now() - timedelta(hours=40))
         self._attribute(pr)
 
@@ -378,8 +378,7 @@ class SweepUnattributedPrActivityTaskTest(TestCase):
 
     @patch("sentry.pr_metrics.tasks.metrics")
     def test_omits_the_age_gauge_for_an_empty_store(self, mock_metrics: Any) -> None:
-        # No oldest row exists to be aged. Reporting zero would read as "a row landed
-        # this instant"; the lag gauge already covers liveness.
+        # Nothing to age. Zero would read as "a row landed this instant".
         sweep_unattributed_pr_activity_task()
 
         assert gauge_calls(mock_metrics, OLDEST_ROW_METRIC) == []
@@ -388,9 +387,9 @@ class SweepUnattributedPrActivityTaskTest(TestCase):
     @patch("sentry.pr_metrics.tasks._SWEEP_MAX_BATCHES", 5)
     @patch("sentry.pr_metrics.tasks._SWEEP_BATCH_SIZE", 1)
     @patch("sentry.pr_metrics.tasks.metrics")
-    def test_reports_the_budget_actually_spent(self, mock_metrics: Any) -> None:
-        # A store idling well under its budget is what says the caps seen elsewhere
-        # are a backlog draining rather than the steady state.
+    def test_reports_the_batches_actually_spent(self, mock_metrics: Any) -> None:
+        # A store idling under the cap is what says the caps seen elsewhere are a
+        # backlog draining rather than the steady state.
         for i in range(3):
             self._make_pr(str(i), when=self.quiet)
 
@@ -400,9 +399,8 @@ class SweepUnattributedPrActivityTaskTest(TestCase):
 
     @patch("sentry.pr_metrics.tasks._SWEEP_BATCH_SIZE", 1)
     def test_batches_resume_from_the_frontier_rather_than_the_head(self) -> None:
-        # Restarting at the head would make each batch re-walk the dead index entries
-        # the previous ones left, so a run would cost the square of its batch count
-        # and the per-run bounds could never be raised.
+        # Restarting at the head would re-walk the dead index entries the previous
+        # batches left, costing the square of the batch count.
         for i in range(3):
             self._make_pr(str(i), when=self.quiet)
         alias = router.db_for_read(PullRequestActivity)
@@ -422,7 +420,7 @@ class SweepUnattributedPrActivityTaskTest(TestCase):
     @patch("sentry.pr_metrics.tasks.metrics")
     def test_deleted_counter_is_unsampled(self, mock_metrics: Any) -> None:
         # It passes an `amount`, which the default 10% rate restates as ten times one
-        # surviving packet -- a per-run drain rate the run never had.
+        # surviving packet — a per-run drain rate the run never had.
         self._make_pr("1", when=self.quiet)
 
         sweep_unattributed_pr_activity_task()
@@ -438,8 +436,8 @@ class SweepUnattributedPrActivityTaskTest(TestCase):
 
     @patch("sentry.pr_metrics.tasks.metrics")
     def test_backlog_lookup_failing_still_leaves_the_sweep_done(self, mock_metrics: Any) -> None:
-        # Measuring the work must never cost us the work: a table pathological enough
-        # to blow the statement timeout is exactly one that needs the deleting.
+        # A table pathological enough to blow the statement timeout is exactly one
+        # that needs the deleting.
         pr = self._make_pr("1", when=self.quiet)
 
         with patch(
@@ -460,8 +458,8 @@ class SweepUnattributedPrActivityTaskTest(TestCase):
     def test_running_out_of_time_reports_separately_from_the_batch_cap(
         self, mock_metrics: Any
     ) -> None:
-        # Both end a run with work left over, but a database that slowed down and a
-        # backlog that outgrew the cap want opposite responses.
+        # Both end a run early, but a database that slowed down and a backlog that
+        # outgrew the cap want opposite responses.
         pr = self._make_pr("1", when=self.quiet)
 
         sweep_unattributed_pr_activity_task()
