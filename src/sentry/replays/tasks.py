@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import Any
 
 import sentry_sdk
@@ -54,7 +55,11 @@ def delete_replay(
 ) -> None:
     """Asynchronously delete a replay."""
     metrics.incr("replays.delete_replay", amount=1, tags={"status": "started"})
-    archive_replay(project_id, replay_id)
+    # It would be _much better_ to actually fetch the Replay's timestamp here,
+    # and issue `archive_replay` with a timestamp. Something to fix in the near
+    # future. Otherwise, if the delete event is too far away from the Replay it
+    # might show up as un-archived in the UI depending on the query range.
+    archive_replay(project_id, replay_id, timezone.now())
     delete_replay_recording(project_id, replay_id)
 
     if has_seer_data and organization_id is not None:
@@ -181,9 +186,9 @@ def delete_replay_recording(project_id: int, replay_id: str) -> None:
         segment_model.delete()
 
 
-def archive_replay(project_id: int, replay_id: str) -> None:
+def archive_replay(project_id: int, replay_id: str, timestamp: datetime) -> None:
     """Archive a Replay instance. The Replay is not deleted."""
-    message = archive_event(project_id, replay_id)
+    message = archive_event(project_id, replay_id, timestamp)
 
     # We publish manually here because we sometimes provide a managed Kafka
     # publisher interface which has its own setup and teardown behavior.
