@@ -391,15 +391,20 @@ def _discard_stale_mailbox_payloads(payload: WebhookPayload) -> None:
         ).values("id")[:10000]
         deleted, _ = WebhookPayload.objects.filter(id__in=stale_query).delete()
         if deleted:
-            logger.info(
+            logger.warning(
                 "deliver_webhook_parallel.max_age_discard",
                 extra={
                     **payload.as_dict(),
                     "deleted": deleted,
                 },
             )
+            # Unsampled: `amount` is scaled by 1/sample_rate, so at the default 10% a
+            # sweep is reported as either nothing or ten times what it deleted.
             metrics.incr(
-                "hybridcloud.deliver_webhooks.delivery", amount=deleted, tags={"outcome": "max_age"}
+                "hybridcloud.deliver_webhooks.delivery",
+                amount=deleted,
+                tags={"outcome": "max_age"},
+                sample_rate=1.0,
             )
 
 
@@ -460,11 +465,14 @@ def _handle_parallel_delivery_result(
     if err:
         if payload_record.attempts >= MAX_ATTEMPTS:
             payload_record.delete()
+            # Unsampled: this is the count of webhooks we permanently dropped, so it
+            # wants an exact total rather than an estimated rate.
             metrics.incr(
                 "hybridcloud.deliver_webhooks.delivery",
                 tags={"outcome": "attempts_exceed"},
+                sample_rate=1.0,
             )
-            logger.info(
+            logger.warning(
                 "deliver_webhook_parallel.discard",
                 extra={**payload_data},
             )
@@ -623,8 +631,13 @@ def deliver_message(payload: WebhookPayload) -> None:
     if payload.attempts >= MAX_ATTEMPTS:
         payload.delete()
 
-        metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "attempts_exceed"})
-        logger.info("deliver_webhook.discard", extra={**payload_data})
+        # Unsampled: see the parallel discard path above.
+        metrics.incr(
+            "hybridcloud.deliver_webhooks.delivery",
+            tags={"outcome": "attempts_exceed"},
+            sample_rate=1.0,
+        )
+        logger.warning("deliver_webhook.discard", extra={**payload_data})
         return
 
     payload.schedule_next_attempt()
@@ -740,7 +753,7 @@ def perform_cell_request(cell: Cell, payload: WebhookPayload) -> None:
                     "hybridcloud.deliver_webhooks.failure",
                     tags={"reason": reason, "destination_region": cell.name},
                 )
-                logger.info(
+                logger.warning(
                     "deliver_webhooks.40x_error",
                     extra={"reason": reason, **payload.as_dict()},
                 )
