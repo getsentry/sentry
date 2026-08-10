@@ -1,10 +1,8 @@
 import datetime
 import logging
 from collections import defaultdict
-from collections.abc import Generator
-from contextlib import contextmanager
 
-from django.db import OperationalError, connections, transaction
+from django.db import OperationalError, connections
 from django.db.models import Count, Min
 from django.utils import timezone
 
@@ -15,6 +13,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import hybridcloud_control_tasks
 from sentry.utils import metrics
+from sentry.utils.db import statement_timeout
 
 logger = logging.getLogger(__name__)
 
@@ -64,23 +63,6 @@ def _event_type_from_mailbox(provider: str, mailbox_name: str) -> str:
         return NO_EVENT_TYPE
     suffix = mailbox_name.rpartition(":")[2]
     return suffix if suffix in CELL_PROCESSED_GITHUB_EVENTS else UNKNOWN_EVENT_TYPE
-
-
-@contextmanager
-def _statement_timeout(alias: str, timeout: datetime.timedelta) -> Generator[None]:
-    """
-    Bound every query in this block server-side.
-
-    A task deadline alone would abandon the query while the database kept executing
-    it. `SET LOCAL` cancels it for real, and confines the setting to the surrounding
-    transaction so it cannot leak into other work that reuses the connection.
-    """
-    with transaction.atomic(using=alias):
-        with connections[alias].cursor() as cursor:
-            cursor.execute(
-                "SET LOCAL statement_timeout = %s", [int(timeout.total_seconds() * 1000)]
-            )
-        yield
 
 
 @instrumented_task(
@@ -135,7 +117,7 @@ def record_webhook_backlog_metrics() -> None:
     # Reading it in primary-key order stops at the first live row rather than
     # aggregating date_added, which has no index.
     try:
-        with _statement_timeout(replica.db, BACKLOG_AGE_QUERY_TIMEOUT):
+        with statement_timeout(replica.db, BACKLOG_AGE_QUERY_TIMEOUT):
             oldest = replica.order_by("id").values_list("date_added", flat=True).first()
     except OperationalError:
         metrics.incr("hybridcloud.webhookpayload.backlog.age_query_failed", sample_rate=1.0)
@@ -180,7 +162,7 @@ def record_mailbox_depth_metrics() -> None:
     )
 
     try:
-        with _statement_timeout(replica.db, MAILBOX_DEPTH_QUERY_TIMEOUT):
+        with statement_timeout(replica.db, MAILBOX_DEPTH_QUERY_TIMEOUT):
             rows = list(mailboxes)
     except OperationalError:
         metrics.incr("hybridcloud.webhookpayload.mailbox.aggregate_failed", sample_rate=1.0)
