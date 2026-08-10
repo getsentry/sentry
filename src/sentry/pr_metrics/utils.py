@@ -103,6 +103,17 @@ def is_activity_tracking_enabled(
     return True
 
 
+def unattributed_activity_cutoff() -> datetime:
+    """Activity written before this is final if the PR is still unattributed.
+
+    One attribution buffer back. Activity older than that predates a full window in
+    which attribution could have arrived and did not, and the gate in
+    ``is_activity_tracking_enabled`` has since stopped collecting for the PR — so
+    the set can neither grow nor become readable.
+    """
+    return timezone.now() - _PR_ACTIVITY_ATTRIBUTION_BUFFER
+
+
 def iso_or_none(value: datetime | None) -> str | None:
     """Serialize a persisted datetime to an ISO-8601 string, or None.
 

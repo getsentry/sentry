@@ -316,15 +316,16 @@ class DashboardWidgetSerializer(Serializer[DashboardWidgetResponse]):
                 or DashboardWidgetTypes.TYPE_NAMES[0]
             )
 
-        if (
-            obj.widget_type == DashboardWidgetTypes.DISCOVER
-            and obj.discover_widget_split is not None
-        ):
+        discover_widget_type = (
+            obj.widget_type == DashboardWidgetTypes.DISCOVER or obj.widget_type is None
+        )
+
+        if discover_widget_type and obj.discover_widget_split is not None:
             widget_type = DashboardWidgetTypes.get_type_name(obj.discover_widget_split)
 
         explore_urls = None
         if obj.widget_type == DashboardWidgetTypes.TRANSACTION_LIKE or (
-            obj.widget_type == DashboardWidgetTypes.DISCOVER
+            discover_widget_type
             and obj.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE
         ):
             try:

@@ -1,0 +1,119 @@
+---
+title: ThinkingBlock
+description: A collapsible disclosure that shows an agent's thinking progress with a live timer.
+category: chat
+source: '@sentry/scraps/chat'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/chat/thinkingBlock.tsx
+---
+
+import {useEffect, useState} from 'react';
+import {Container} from '@sentry/scraps/layout';
+import {ThinkingBlock} from '@sentry/scraps/chat';
+import {Text} from '@sentry/scraps/text';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/chat/thinkingBlock');
+
+The `ThinkingBlock` wraps a `Disclosure` with a Seer icon, a stateful title,
+and a live-counting elapsed timer. It stays expanded while the agent is
+thinking and auto-collapses when `endTime` arrives.
+
+## Active (thinking)
+
+Pass only `startTime` — the timer counts up and the block stays open.
+
+export function ActiveDemo() {
+  const [start] = useState(() => new Date());
+  return (
+    <ThinkingBlock title="Analyzing source code..." startTime={start}>
+      <Text size="sm" monospace variant="muted">
+        The user is asking about a missing span in the DSL output. Let me search the spans
+        dataset first.
+      </Text>
+    </ThinkingBlock>
+  );
+}
+
+<Storybook.Demo>
+  <ActiveDemo />
+</Storybook.Demo>
+
+```jsx
+<ThinkingBlock title="Analyzing source code..." startTime={new Date()}>
+  <Text size="sm" monospace variant="muted">
+    Thinking content here...
+  </Text>
+</ThinkingBlock>
+```
+
+## Completed (collapsed)
+
+Once `endTime` is set the timer freezes and the block collapses. The user can
+still click to re-expand.
+
+export function CompletedDemo() {
+  const [start] = useState(() => new Date(Date.now() - 56_400));
+  const [end] = useState(() => new Date());
+  return (
+    <ThinkingBlock title="Analyzed source code" startTime={start} endTime={end}>
+      <Text size="sm" monospace variant="muted">
+        Found a trace ID in the logs. The agent generated a DSL string but project scoping
+        is handled by a separate UI control.
+      </Text>
+    </ThinkingBlock>
+  );
+}
+
+<Storybook.Demo>
+  <CompletedDemo />
+</Storybook.Demo>
+
+```jsx
+<ThinkingBlock title="Analyzed source code" startTime={start} endTime={end}>
+  …
+</ThinkingBlock>
+```
+
+## Transition
+
+The title can update while thinking, and passing `endTime` triggers the
+collapse transition.
+
+export function TransitionDemo() {
+  const [start] = useState(() => new Date());
+  const [title, setTitle] = useState('Searching spans...');
+  const [end, setEnd] = useState(undefined);
+  useEffect(() => {
+    const t1 = setTimeout(() => setTitle('Found trace, pulling waterfall...'), 3000);
+    const t2 = setTimeout(() => {
+      setTitle('Analysis complete');
+      setEnd(new Date());
+    }, 6000);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, []);
+  return (
+    <ThinkingBlock title={title} startTime={start} endTime={end}>
+      <Text size="sm" monospace variant="muted">
+        Thinking content that collapses after ~6 seconds.
+      </Text>
+    </ThinkingBlock>
+  );
+}
+
+<Storybook.Demo>
+  <TransitionDemo />
+</Storybook.Demo>
+
+```jsx
+const [title, setTitle] = useState('Searching spans...');
+const [end, setEnd] = useState(undefined);
+
+// later…
+setTitle('Analysis complete');
+setEnd(new Date());
+```

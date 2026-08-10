@@ -57,6 +57,10 @@ interface FoldSectionProps {
    */
   preventCollapse?: boolean;
   ref?: React.Ref<HTMLDivElement>;
+  /**
+   * Interactive content displayed beside the title whether the section is open or closed.
+   */
+  titleTrailingItems?: React.ReactNode;
 }
 
 function useOptionalLocalStorageState(
@@ -115,6 +119,7 @@ export function FoldSection({
   children,
   title,
   actions,
+  titleTrailingItems,
   sectionKey,
   className,
   initialCollapse = false,
@@ -197,7 +202,14 @@ export function FoldSection({
       >
         <Disclosure.Title
           aria-label={`${labelPrefix} ${labelSuffix}`}
-          trailingItems={expanded ? actions : undefined}
+          trailingItems={
+            titleTrailingItems || (expanded && actions) ? (
+              <Fragment>
+                {titleTrailingItems}
+                {expanded ? actions : null}
+              </Fragment>
+            ) : undefined
+          }
         >
           <Text size="lg">{title}</Text>
         </Disclosure.Title>

@@ -33,6 +33,7 @@ export function usePersistedLogsPageParams() {
   });
 
   return useLocalStorageState(getLogsParamsStorageKey(LOGS_PARAMS_VERSION), {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     fields: defaultLogFields() as string[],
     sortBys: [logsTimestampDescendingSortBy],
   });

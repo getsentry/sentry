@@ -1,4 +1,3 @@
-/* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
 import fs from 'node:fs';
 import {createRequire} from 'node:module';
@@ -295,8 +294,10 @@ const appConfig: Configuration = {
   incremental: DEV_MODE,
   watchOptions: {
     // StoryManifestPlugin owns these watches so it can update the virtual
-    // manifest before invalidating changed and removed story dependencies.
-    ignored: ['**/*.stories.tsx', '**/*.mdx'],
+    // manifest before invalidating changed and removed story dependencies. Its
+    // virtual module must also be ignored so the filesystem watcher does not
+    // repeatedly report the intentionally nonexistent file as removed.
+    ignored: ['**/*.stories.tsx', '**/*.mdx', `**/${StoryManifestPlugin.modulePath}`],
   },
   experiments: {
     futureDefaults: true,

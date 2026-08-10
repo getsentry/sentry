@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import logging
 from collections.abc import Generator, Iterator
 from datetime import datetime, timedelta
@@ -21,6 +22,7 @@ from sentry.tasks.utils import compute_delay
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.tracing import start_span
+from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger("sentry.tasks.seer_explorer_indexer")
 
@@ -228,25 +230,33 @@ def run_explorer_index_for_projects(
 
     # Only set viewer_context when all projects in the batch share the same org
     org_ids = {org_id for _, org_id in projects}
-    viewer_context = SeerViewerContext(organization_id=org_ids.pop()) if len(org_ids) == 1 else None
+    if len(org_ids) == 1:
+        the_org_id = org_ids.pop()
+        viewer_context = SeerViewerContext(organization_id=the_org_id)
+        vc = ViewerContext(organization_id=the_org_id, actor_type=ActorType.SYSTEM)
+        scope: contextlib.AbstractContextManager[None] = viewer_context_scope(vc)
+    else:
+        viewer_context = None
+        scope = contextlib.nullcontext()
 
-    try:
-        response = make_agent_index_request(
-            payload,
-            timeout=30,
-            viewer_context=viewer_context,
-        )
-        if response.status >= 400:
-            raise SeerApiError("Seer request failed", response.status)
-    except Exception as e:
-        logger.exception(
-            "Failed to schedule explorer index tasks in seer",
-            extra={
-                "num_projects": len(projects),
-                "error": str(e),
-            },
-        )
-        raise
+    with scope:
+        try:
+            response = make_agent_index_request(
+                payload,
+                timeout=30,
+                viewer_context=viewer_context,
+            )
+            if response.status >= 400:
+                raise SeerApiError("Seer request failed", response.status)
+        except Exception as e:
+            logger.exception(
+                "Failed to schedule explorer index tasks in seer",
+                extra={
+                    "num_projects": len(projects),
+                    "error": str(e),
+                },
+            )
+            raise
 
     result = response.json()
     scheduled_count = result.get("scheduled_count", 0)

@@ -11,7 +11,7 @@ function setupCells() {
   ConfigStore.set('cells', [
     {name: 'us', locality_url: US_URL},
     {name: 'de', locality_url: DE_URL},
-  ] as any);
+  ]);
 }
 
 function renderGrid(

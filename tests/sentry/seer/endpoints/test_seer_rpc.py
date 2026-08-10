@@ -16,6 +16,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDeta
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.activity import Activity
 from sentry.models.project import Project
 from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.repository import Repository
@@ -40,6 +41,7 @@ from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test
+from sentry.types.activity import ActivityType
 from sentry.users.models.identity import Identity
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 from sentry.viewer_context import ActorType, ViewerContext, encode_viewer_context
@@ -507,8 +509,17 @@ class TestSeerRpcMethods(APITestCase):
     def test_send_seer_webhook_operator(self, mock_broadcast, mock_process_autofix_updates) -> None:
         from sentry.seer.endpoints.seer_rpc import send_seer_webhook
 
-        event_payload = {"run_id": 123}
+        group = self.create_group(project=self.project)
+        event_payload = {"run_id": 123, "group_id": group.id}
         event_name = "root_cause_completed"
+
+        def assert_activity_exists(**_kwargs: object) -> None:
+            assert Activity.objects.filter(
+                group=group,
+                type=ActivityType.SEER_RCA_COMPLETED.value,
+            ).exists()
+
+        mock_process_autofix_updates.apply_async.side_effect = assert_activity_exists
 
         with patch("sentry.seer.entrypoints.operator.has_seer_access", return_value=True):
             result = send_seer_webhook(
@@ -523,6 +534,7 @@ class TestSeerRpcMethods(APITestCase):
                 "event_type": SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED,
                 "event_payload": event_payload,
                 "organization_id": self.organization.id,
+                "activity_already_recorded": True,
             },
         )
         mock_broadcast.assert_called_once()
