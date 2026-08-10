@@ -638,7 +638,7 @@ describe('Dashboards > Detail', () => {
       expect(within(breadcrumbs).queryAllByRole('img')).toHaveLength(0);
     });
 
-    it('moves editor actions into the redesigned dashboard breadcrumb menu', async () => {
+    it('moves star and revisions into the editor breadcrumb menu', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
         features: [...organization.features, 'ui-migration-breadcrumbs'],
@@ -672,10 +672,10 @@ describe('Dashboards > Detail', () => {
       expect(
         screen.getByRole('menuitemradio', {name: 'Dashboard Revisions'})
       ).toBeVisible();
-      expect(screen.getByRole('menuitemradio', {name: 'Edit Dashboard'})).toBeVisible();
       expect(
-        screen.queryByRole('button', {name: 'edit-dashboard'})
+        screen.queryByRole('menuitemradio', {name: 'Edit Dashboard'})
       ).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'edit-dashboard'})).toBeVisible();
       expect(screen.getByText('Editors:')).toBeVisible();
     });
 
@@ -712,11 +712,15 @@ describe('Dashboards > Detail', () => {
       expect(
         screen.getByRole('menuitemradio', {name: 'Duplicate Dashboard'})
       ).toBeVisible();
-      expect(screen.getByRole('menuitemradio', {name: 'Star Dashboard'})).toBeVisible();
-      expect(screen.getByRole('menuitemradio', {name: 'Edit Dashboard'})).toHaveAttribute(
-        'aria-disabled',
-        'true'
-      );
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Star Dashboard'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Edit Dashboard'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'edit-dashboard'})
+      ).not.toBeInTheDocument();
     });
 
     it('renders the legacy dashboard breadcrumb in the top bar (flag off)', async () => {

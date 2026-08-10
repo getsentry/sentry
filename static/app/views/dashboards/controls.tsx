@@ -274,7 +274,7 @@ export function Controls({
               </Tooltip>
             </Feature>
             {hasFeature &&
-              !hasNewBreadcrumbs &&
+              (!hasNewBreadcrumbs || (hasEditAccess && !isPrebuiltDashboard)) &&
               (isPrebuiltDashboard ? (
                 <Button
                   data-test-id="dashboard-edit"
@@ -315,7 +315,7 @@ export function Controls({
                   size="sm"
                 />
               ))}
-            {!isPrebuiltDashboard && (
+            {!isPrebuiltDashboard && (!hasNewBreadcrumbs || hasEditAccess) && (
               <EditAccessSelector
                 dashboard={dashboard}
                 onChangeEditAccess={onChangeEditAccess}

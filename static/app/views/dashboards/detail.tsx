@@ -1204,16 +1204,13 @@ class DashboardDetail extends Component<Props, State> {
                       <TopBar.Slot name="title">
                         <DashboardBreadcrumbTitle
                           dashboard={modifiedDashboard ?? dashboard}
-                          hasUnsavedFilters={hasUnsavedFilters}
                           isEditing={this.isEditingDashboard}
-                          isSaving={isCommittingChanges}
                           onChange={newTitle =>
                             this.setModifiedDashboard({
                               ...(modifiedDashboard ?? dashboard),
                               title: newTitle,
                             })
                           }
-                          onEdit={this.onEdit}
                         />
                       </TopBar.Slot>
                     </Fragment>

@@ -5,8 +5,8 @@ import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {IconClock, IconCopy, IconEdit, IconEllipsis, IconStar} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {IconClock, IconCopy, IconEllipsis, IconStar} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -15,32 +15,21 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import {
-  DASHBOARD_SAVING_MESSAGE,
-  UNSAVED_FILTERS_MESSAGE,
-} from 'sentry/views/dashboards/constants';
 import {useOpenDashboardRevisions} from 'sentry/views/dashboards/dashboardRevisions';
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import type {DashboardDetails} from 'sentry/views/dashboards/types';
-import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
 
 interface DashboardBreadcrumbTitleProps {
   dashboard: DashboardDetails;
-  hasUnsavedFilters: boolean;
   isEditing: boolean;
-  isSaving: boolean;
   onChange: (title: string) => void;
-  onEdit: () => void;
 }
 
 export function DashboardBreadcrumbTitle({
   dashboard,
-  hasUnsavedFilters,
   isEditing,
-  isSaving,
   onChange,
-  onEdit,
 }: DashboardBreadcrumbTitleProps) {
   const [isFavorited, setIsFavorited] = useState(dashboard.isFavorited);
   const api = useApi();
@@ -83,28 +72,6 @@ export function DashboardBreadcrumbTitle({
   );
   const isPrebuiltDashboard = defined(dashboard.prebuiltId);
   const isDashboardEditor = hasEditAccess && !isPrebuiltDashboard;
-  const editDisabled =
-    isPrebuiltDashboard || !hasEditAccess || hasUnsavedFilters || isSaving;
-  const editTooltip = isPrebuiltDashboard
-    ? tct(
-        'This is a [label] dashboard and cannot be edited. Duplicate it to make changes.',
-        {label: PREBUILT_DASHBOARD_LABEL}
-      )
-    : hasEditAccess
-      ? isSaving
-        ? DASHBOARD_SAVING_MESSAGE
-        : hasUnsavedFilters
-          ? UNSAVED_FILTERS_MESSAGE
-          : undefined
-      : t('You do not have permission to edit this dashboard');
-  const editItem = {
-    key: 'edit',
-    label: t('Edit Dashboard'),
-    leadingItems: <IconEdit />,
-    onAction: onEdit,
-    disabled: editDisabled,
-    tooltip: editTooltip,
-  };
   const favoriteItem = {
     key: 'favorite',
     label: isFavorited ? t('Unstar Dashboard') : t('Star Dashboard'),
@@ -130,31 +97,25 @@ export function DashboardBreadcrumbTitle({
       }
     },
   };
-  const revisionItem = isPrebuiltDashboard
-    ? null
-    : {
-        key: 'revisions',
-        label: t('Dashboard Revisions'),
-        leadingItems: <IconClock />,
-        onAction: openDashboardRevisions,
-      };
-  const duplicateItem = isDashboardEditor
-    ? null
-    : {
-        key: 'duplicate',
-        label: t('Duplicate Dashboard'),
-        leadingItems: <IconCopy />,
-        onAction: () => {
-          openConfirmModal({
-            message: t('Are you sure you want to duplicate this dashboard?'),
-            priority: 'primary',
-            onConfirm: () => duplicateDashboard(dashboard, 'detail'),
-          });
-        },
-      };
-  const menuItems = [favoriteItem, revisionItem, editItem, duplicateItem].filter(
-    item => item !== null
-  );
+  const revisionItem = {
+    key: 'revisions',
+    label: t('Dashboard Revisions'),
+    leadingItems: <IconClock />,
+    onAction: openDashboardRevisions,
+  };
+  const duplicateItem = {
+    key: 'duplicate',
+    label: t('Duplicate Dashboard'),
+    leadingItems: <IconCopy />,
+    onAction: () => {
+      openConfirmModal({
+        message: t('Are you sure you want to duplicate this dashboard?'),
+        priority: 'primary',
+        onConfirm: () => duplicateDashboard(dashboard),
+      });
+    },
+  };
+  const menuItems = isDashboardEditor ? [favoriteItem, revisionItem] : [duplicateItem];
 
   return (
     <BreadcrumbList.Title
