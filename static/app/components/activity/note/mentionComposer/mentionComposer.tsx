@@ -1,11 +1,10 @@
 import {useCallback, useMemo, useState} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
-import uniqBy from 'lodash/uniqBy';
 import {z} from 'zod';
 
 import {TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Markdown} from '@sentry/scraps/markdown';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Text} from '@sentry/scraps/text';
@@ -76,7 +75,7 @@ export function MentionComposer(props: MentionComposerProps) {
           );
           signal.throwIfAborted();
 
-          return uniqBy([...getMemberUsers(response), ...members], user => user.id).map(
+          return getMemberUsers(response).map(
             user => ({kind: 'member', user}) satisfies MentionEntity
           );
         },
@@ -99,13 +98,16 @@ export function MentionComposer(props: MentionComposerProps) {
         renderSuggestion: suggestion => <MentionIdentity suggestion={suggestion} />,
       },
     ],
-    [memberSuggestions, members, organization.slug, queryClient, teamSuggestions]
+    [memberSuggestions, organization.slug, queryClient, teamSuggestions]
   );
 
   return <Composer {...props} sources={sources} />;
 }
 
 function MentionIdentity({suggestion}: {suggestion: MentionEntity}) {
+  const label = getMentionLabel(suggestion);
+  const email = suggestion.kind === 'member' ? suggestion.user.email : null;
+
   return (
     <Flex as="span" align="center" gap="xs">
       {suggestion.kind === 'member' ? (
@@ -117,9 +119,16 @@ function MentionIdentity({suggestion}: {suggestion: MentionEntity}) {
           <TeamAvatar team={suggestion.team} size={16} hasTooltip={false} />
         </span>
       )}
-      <Text as="span" size="sm">
-        {getMentionLabel(suggestion)}
-      </Text>
+      <Stack as="span" minWidth="0">
+        <Text as="span" size="sm" ellipsis>
+          {label}
+        </Text>
+        {email && email !== label ? (
+          <Text as="span" size="xs" variant="muted" ellipsis>
+            {email}
+          </Text>
+        ) : null}
+      </Stack>
     </Flex>
   );
 }

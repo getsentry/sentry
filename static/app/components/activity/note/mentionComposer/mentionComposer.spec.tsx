@@ -35,18 +35,26 @@ describe('MentionComposer', () => {
     expect(screen.getByRole('button', {name: 'Comment'})).toBeDisabled();
   });
 
-  it('shows members returned by the active search request', async () => {
-    const user = UserFixture({id: '1', name: 'Alice Remote'});
+  it('shows relevant members with their email', async () => {
+    const user = UserFixture({
+      id: '2',
+      name: 'Remote Teammate',
+      email: 'alice.remote@example.com',
+    });
     const searchRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
       body: [MemberFixture({user})],
-      match: [MockApiClient.matchQuery({query: 'ali'})],
+      match: [MockApiClient.matchQuery({query: 'alice'})],
     });
 
     render(<MentionComposer />);
-    await userEvent.type(getEditor(), '@ali');
+    await userEvent.type(getEditor(), '@alice');
 
-    expect(await screen.findByRole('option', {name: 'Alice Remote'})).toBeVisible();
+    const option = await screen.findByRole('option', {
+      name: 'Remote Teammate alice.remote@example.com',
+    });
+    expect(option).toBeVisible();
+    expect(screen.queryByRole('option', {name: /Alice Example/})).not.toBeInTheDocument();
     expect(searchRequest).toHaveBeenCalled();
   });
 
@@ -56,7 +64,7 @@ describe('MentionComposer', () => {
 
     const textbox = getEditor();
     await userEvent.type(textbox, 'Thanks @ali');
-    await userEvent.click(await screen.findByRole('option', {name: 'Alice Example'}));
+    await userEvent.click(await screen.findByRole('option', {name: /Alice Example/}));
     await userEvent.type(textbox, 'and #front');
     await userEvent.keyboard('{Enter}');
     await userEvent.click(screen.getByRole('button', {name: 'Comment'}));
