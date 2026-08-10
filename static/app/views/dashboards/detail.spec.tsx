@@ -664,7 +664,7 @@ describe('Dashboards > Detail', () => {
       expect(within(breadcrumbs).queryAllByRole('img')).toHaveLength(0);
     });
 
-    it('keeps shared breadcrumb actions on prebuilt dashboards', async () => {
+    it('keeps supported breadcrumb actions on prebuilt dashboards', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
         features: [...organization.features, 'ui-migration-breadcrumbs'],
@@ -695,11 +695,11 @@ describe('Dashboards > Detail', () => {
       expect(
         await screen.findByRole('menuitemradio', {name: 'Star Dashboard'})
       ).toBeVisible();
-      expect(
-        screen.getByRole('menuitemradio', {name: 'Show version history'})
-      ).toBeVisible();
       expect(screen.getByRole('menuitemradio', {name: 'Duplicate'})).toBeVisible();
       expect(screen.queryByRole('menuitemradio', {name: 'Edit'})).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Show version history'})
+      ).not.toBeInTheDocument();
     });
 
     it('explains why breadcrumb duplicate is disabled at the dashboard limit', async () => {

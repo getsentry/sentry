@@ -5,6 +5,7 @@ import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import {openConfirmModal} from 'sentry/components/confirm';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconClock, IconCopy, IconEdit, IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -92,6 +93,10 @@ export function DashboardBreadcrumbTitle({
   );
   const isPrebuiltDashboard = defined(dashboard.prebuiltId);
   const isDashboardEditor = hasEditAccess && !isPrebuiltDashboard;
+  const canViewRevisions =
+    Boolean(dashboard.id) &&
+    !isPrebuiltDashboard &&
+    organization.features.includes('dashboards-edit');
   const favoriteItem = {
     key: 'favorite',
     label: isFavorited ? t('Unstar') : t('Star Dashboard'),
@@ -134,7 +139,7 @@ export function DashboardBreadcrumbTitle({
     isDuplicateDisabled = false,
     duplicateDisabledReason: ReactNode = null
   ) {
-    const duplicateItem = {
+    const duplicateItem: MenuItemProps = {
       key: 'duplicate',
       label: t('Duplicate'),
       leadingItems: <IconCopy />,
@@ -150,7 +155,7 @@ export function DashboardBreadcrumbTitle({
     };
     const menuItems = [
       favoriteItem,
-      revisionItem,
+      ...(canViewRevisions ? [revisionItem] : []),
       ...(isDashboardEditor ? [editItem] : []),
       ...(isPrebuiltDashboard ? [duplicateItem] : []),
     ];
