@@ -6,19 +6,16 @@ from datetime import datetime
 from typing import Any, TypedDict, override
 
 from django.contrib.auth.models import AnonymousUser
-from django.db.models import Count, Prefetch, prefetch_related_objects
+from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer
-from sentry.investigations.endpoints.serializers.collaboration import serialize_reactions
 from sentry.investigations.models import (
     InvestigationBlock,
-    InvestigationBlockComment,
     InvestigationBlockDependency,
     InvestigationBlockExecution,
     InvestigationBlockExecutionStatus,
     InvestigationBlockKind,
     InvestigationBlockParameter,
-    InvestigationBlockReaction,
 )
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -53,8 +50,6 @@ class InvestigationBlockSerializerResponse(TypedDict):
     staleAt: datetime | None
     createdBy: str | None
     lastEditedBy: str | None
-    reactions: list[dict[str, Any]]
-    commentCount: int
 
 
 class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerResponse]):
@@ -94,20 +89,8 @@ class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerRespon
         ):
             parameter_keys[block_id].append(key)
 
-        comment_counts = dict(
-            InvestigationBlockComment.objects.filter(block__in=item_list, deleted_at__isnull=True)
-            .values("block_id")
-            .annotate(count=Count("id"))
-            .values_list("block_id", "count")
-        )
-
         prefetch_related_objects(
             item_list,
-            Prefetch(
-                "reactions",
-                queryset=InvestigationBlockReaction.objects.order_by("id"),
-                to_attr="serialized_reactions",
-            ),
             "current_execution__data_projects",
             "content_execution__data_projects",
             "result_execution__data_projects",
@@ -117,7 +100,6 @@ class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerRespon
             block: {
                 "dependencies": dependencies[block.id],
                 "parameter_keys": parameter_keys[block.id],
-                "comment_count": comment_counts.get(block.id, 0),
             }
             for block in item_list
         }
@@ -205,6 +187,4 @@ class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerRespon
             "lastEditedBy": (
                 str(obj.last_edited_by_id) if obj.last_edited_by_id is not None else None
             ),
-            "reactions": serialize_reactions(obj.serialized_reactions, user.id or 0),
-            "commentCount": attrs["comment_count"],
         }
