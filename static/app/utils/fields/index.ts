@@ -21,6 +21,7 @@ export enum FieldKind {
   METRICS = 'metric',
   NUMERIC_METRICS = 'numeric_metric',
   BOOLEAN = 'boolean',
+  ARRAY = 'array',
 }
 
 export enum FieldKey {
@@ -305,6 +306,7 @@ export enum FieldValueType {
   PERCENT_CHANGE = 'percent_change',
   SCORE = 'score',
   CURRENCY = 'currency',
+  ARRAY = 'array',
 }
 
 export enum WebVital {

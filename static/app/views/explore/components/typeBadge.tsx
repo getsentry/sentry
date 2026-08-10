@@ -109,6 +109,10 @@ export function TypeBadge({
     return <Text variant="muted">{t('equation')}</Text>;
   }
 
+  if (valueType === FieldValueType.ARRAY || kind === FieldKind.ARRAY) {
+    return <Text variant="success">{t('array')}</Text>;
+  }
+
   if (isLogicFilter) {
     return <Text variant="promotion">{t('logic')}</Text>;
   }
