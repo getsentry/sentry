@@ -389,6 +389,35 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert span["gen_ai.tool.call.result"] == "found 3 rows"
         assert span["gen_ai.tool.output"] == "tool output payload"
 
+    def test_returns_embeddings_attributes(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        trace_id = uuid4().hex
+        conversation_id = uuid4().hex
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            op="gen_ai.embeddings",
+            operation_type="embeddings",
+            trace_id=trace_id,
+            embeddings_input="search query text",
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert len(response.data["spans"]) == 1
+
+        span = response.data["spans"][0]
+        assert span["span.op"] == "gen_ai.embeddings"
+        assert span["gen_ai.operation.type"] == "embeddings"
+        assert span["gen_ai.embeddings.input"] == "search query text"
+
     def test_stats_period_is_tried_first_then_widened(self) -> None:
         timestamp_15d = before_now(days=15).replace(microsecond=0)
         trace_id = uuid4().hex
