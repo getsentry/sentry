@@ -110,15 +110,13 @@ function MentionIdentity({suggestion}: {suggestion: MentionEntity}) {
 
   return (
     <Flex as="span" align="center" gap="xs">
-      {suggestion.kind === 'member' ? (
-        <span aria-hidden="true">
+      <Flex as="span" align="center" aria-hidden="true">
+        {suggestion.kind === 'member' ? (
           <UserAvatar user={suggestion.user} size={16} hasTooltip={false} />
-        </span>
-      ) : (
-        <span aria-hidden="true">
+        ) : (
           <TeamAvatar team={suggestion.team} size={16} hasTooltip={false} />
-        </span>
-      )}
+        )}
+      </Flex>
       <Stack as="span" minWidth="0">
         <Text as="span" size="sm" ellipsis>
           {label}
