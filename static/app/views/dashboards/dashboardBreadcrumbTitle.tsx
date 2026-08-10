@@ -15,6 +15,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {useOpenDashboardRevisions} from 'sentry/views/dashboards/dashboardRevisions';
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import type {DashboardDetails} from 'sentry/views/dashboards/types';
@@ -111,40 +112,52 @@ export function DashboardBreadcrumbTitle({
     leadingItems: <IconEdit />,
     onAction: onEdit,
   };
-  const duplicateItem = {
-    key: 'duplicate',
-    label: t('Duplicate'),
-    leadingItems: <IconCopy />,
-    onAction: () => {
-      openConfirmModal({
-        message: t('Are you sure you want to duplicate this dashboard?'),
-        priority: 'primary',
-        onConfirm: () => duplicateDashboard(dashboard, 'details'),
-      });
-    },
-  };
-  const menuItems = [
-    favoriteItem,
-    revisionItem,
-    ...(isDashboardEditor ? [editItem] : []),
-    ...(isPrebuiltDashboard ? [duplicateItem] : []),
-  ];
+  function renderTitle(isDuplicateDisabled = false) {
+    const duplicateItem = {
+      key: 'duplicate',
+      label: t('Duplicate'),
+      leadingItems: <IconCopy />,
+      disabled: isDuplicateDisabled,
+      onAction: () => {
+        openConfirmModal({
+          message: t('Are you sure you want to duplicate this dashboard?'),
+          priority: 'primary',
+          onConfirm: () => duplicateDashboard(dashboard, 'details'),
+        });
+      },
+    };
+    const menuItems = [
+      favoriteItem,
+      revisionItem,
+      ...(isDashboardEditor ? [editItem] : []),
+      ...(isPrebuiltDashboard ? [duplicateItem] : []),
+    ];
+
+    return (
+      <BreadcrumbList.Title
+        item={{
+          type: 'page-title',
+          label: dashboard.title,
+          trailingActions: {
+            type: 'menu',
+            triggerLabel: t('Dashboard actions'),
+            triggerIcon: <IconEllipsis />,
+            items: menuItems,
+          },
+        }}
+      />
+    );
+  }
+
+  if (!isPrebuiltDashboard) {
+    return renderTitle();
+  }
 
   return (
-    <BreadcrumbList.Title
-      item={{
-        type: 'page-title',
-        label: dashboard.title,
-        trailingActions:
-          menuItems.length > 0
-            ? {
-                type: 'menu',
-                triggerLabel: t('Dashboard actions'),
-                triggerIcon: <IconEllipsis />,
-                items: menuItems,
-              }
-            : undefined,
-      }}
-    />
+    <DashboardCreateLimitWrapper>
+      {({hasReachedDashboardLimit, isLoading}) =>
+        renderTitle(hasReachedDashboardLimit || isLoading)
+      }
+    </DashboardCreateLimitWrapper>
   );
 }
