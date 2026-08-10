@@ -740,7 +740,7 @@ def parse_highlighted_event(
     """Attempt to parse an event to a highlighted event."""
     try:
         return as_highlighted_event(event, event_type, sampled)
-    except (AssertionError, AttributeError, KeyError, TypeError):
+    except (AssertionError, AttributeError, KeyError, TypeError, ValueError):
         logger.warning(
             "[EVENT PARSE FAIL] Could not parse identified event.",
             exc_info=True,
