@@ -77,10 +77,34 @@ class _RunMilestones:
         return extras.get("solution_artifact")
 
 
-def _pull_requests_by_run_pk(run_pks: list[int]) -> dict[int, list[dict]]:
+def _serialize_pull_request(
+    number: int,
+    url: str | None,
+    status: PullRequestStatus | None,
+    checks_and_review: PullRequestStatusResult,
+) -> dict:
+    return {
+        "number": number,
+        "url": url,
+        "status": status,
+        "checksStatus": checks_and_review.checks.value if checks_and_review.checks else None,
+        "reviewStatus": checks_and_review.review.value if checks_and_review.review else None,
+        "files": [
+            {
+                "path": file.path,
+                "additions": file.additions,
+                "deletions": file.deletions,
+                "changeType": file.change_type,
+            }
+            for file in checks_and_review.files
+        ],
+    }
+
+
+def _pull_requests_by_seer_run_id(seer_run_ids: list[int]) -> dict[int, list[dict]]:
     by_run: dict[int, list[dict]] = defaultdict(list)
     links = list(
-        SeerRunPullRequest.objects.filter(seer_run_id__in=run_pks)
+        SeerRunPullRequest.objects.filter(seer_run_id__in=seer_run_ids)
         .select_related("pull_request")
         .order_by("date_added")
     )
@@ -100,7 +124,8 @@ def _pull_requests_by_run_pk(run_pks: list[int]) -> dict[int, list[dict]]:
             return None
         provider = providers.get(provider_id)
         if provider is None:
-            provider = providers[provider_id] = registry.get(provider_id)(provider_id)
+            provider = registry.get(provider_id)(provider_id)
+            providers[provider_id] = provider
         return provider.pull_request_url(repo, pr)
 
     pull_requests = [link.pull_request for link in links]
@@ -109,7 +134,9 @@ def _pull_requests_by_run_pk(run_pks: list[int]) -> dict[int, list[dict]]:
     }
     # TODO: this hits the provider (GitHub GraphQL) on every page load. If latency
     # bites, gate it behind an `expand=checksAndReview` param like the issues endpoint.
-    checks_and_review_by_pr_id = get_checks_and_review(pull_requests, repos_by_id, status_by_pr_id)
+    checks_and_review_by_pr_id = get_checks_and_review(
+        pull_requests, repos_by_id, status_by_pr_id, include_files=True
+    )
 
     for link in links:
         pr = link.pull_request
@@ -117,28 +144,13 @@ def _pull_requests_by_run_pk(run_pks: list[int]) -> dict[int, list[dict]]:
             number = int(pr.key)
         except (TypeError, ValueError):
             continue
-        checks_and_review = checks_and_review_by_pr_id.get(pr.id, PullRequestStatusResult())
         by_run[link.seer_run_id].append(
-            {
-                "number": number,
-                "url": _external_url(pr),
-                "status": status_by_pr_id[pr.id],
-                "checksStatus": (
-                    checks_and_review.checks.value if checks_and_review.checks else None
-                ),
-                "reviewStatus": (
-                    checks_and_review.review.value if checks_and_review.review else None
-                ),
-                "files": [
-                    {
-                        "path": file.path,
-                        "additions": file.additions,
-                        "deletions": file.deletions,
-                        "changeType": file.change_type,
-                    }
-                    for file in checks_and_review.files
-                ],
-            }
+            _serialize_pull_request(
+                number=number,
+                url=_external_url(pr),
+                status=status_by_pr_id[pr.id],
+                checks_and_review=checks_and_review_by_pr_id.get(pr.id, PullRequestStatusResult()),
+            )
         )
     return by_run
 
@@ -212,17 +224,17 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
         start, end = get_date_range_from_stats_period(request.GET)
         latest_run_per_group = self._latest_run_per_group(organization, project_ids, start, end)
 
-        # Classify into sections and cap before the expensive serialize, so the
+        # Classify into milestones and cap before the expensive serialize, so the
         # Snuba/Postgres work is bounded by the cap rather than the org's history.
-        runs_by_section: dict[str, list[tuple[int, _RunMilestones]]] = {
+        capped_runs_by_milestone: dict[str, list[tuple[int, _RunMilestones]]] = {
             milestone: [] for milestone in _PIPELINE
         }
         for group_id, run in latest_run_per_group.items():
-            runs_by_section[run.furthest_milestone].append((group_id, run))
-        for pairs in runs_by_section.values():
+            capped_runs_by_milestone[run.furthest_milestone].append((group_id, run))
+        for pairs in capped_runs_by_milestone.values():
             del pairs[_MAX_RUNS_PER_MILESTONE:]
 
-        capped = [pair for pairs in runs_by_section.values() for pair in pairs]
+        capped = [pair for pairs in capped_runs_by_milestone.values() for pair in pairs]
         groups = (
             Group.objects.filter(id__in=[group_id for group_id, _ in capped])
             .select_related("project")
@@ -248,10 +260,12 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
             )
         }
 
-        pull_requests_by_run_pk = _pull_requests_by_run_pk([run.seer_run.id for _, run in capped])
+        pull_requests_by_seer_run_id = _pull_requests_by_seer_run_id(
+            [run.seer_run.id for _, run in capped]
+        )
 
         runs_by_milestone: dict[str, list[dict]] = {milestone: [] for milestone in _PIPELINE}
-        for milestone, pairs in runs_by_section.items():
+        for milestone, pairs in capped_runs_by_milestone.items():
             for group_id, run in pairs:
                 group = groups.get(group_id)
                 if group is None:
@@ -261,7 +275,7 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
                         group,
                         run,
                         serialized_by_id[str(group_id)],
-                        pull_requests_by_run_pk.get(run.seer_run.id, []),
+                        pull_requests_by_seer_run_id.get(run.seer_run.id, []),
                     )
                 )
 

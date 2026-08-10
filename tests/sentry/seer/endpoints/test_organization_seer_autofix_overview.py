@@ -31,11 +31,15 @@ class PullRequestStatusClientFake(PullRequestStatusClient):
         self.status_by_key = status_by_key or {}
         self.error = error
         self.requested_keys: list[str] = []
+        self.requested_include_files: list[bool] = []
 
     def get_pull_request_statuses(
         self, pull_requests: Sequence[PullRequestStatusRequest]
     ) -> dict[PullRequestStatusRequest, PullRequestStatusResult]:
         self.requested_keys.extend(pull_request.pull_number for pull_request in pull_requests)
+        self.requested_include_files.extend(
+            pull_request.include_files for pull_request in pull_requests
+        )
         if self.error is not None:
             raise self.error
         return {
@@ -226,7 +230,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase):
         group = self.create_group()
         run = self._run_for_group(group, "boom")
         self._pull_request_for_run(group, run, state=PullRequestLifecycleState.OPEN, draft=False)
-        self._set_provider_client(
+        client = self._set_provider_client(
             mock_get_integration,
             PullRequestStatusClientFake(
                 {
@@ -261,6 +265,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase):
             },
             {"path": "src/sentry/bar.py", "additions": 3, "deletions": 0, "changeType": "ADDED"},
         ]
+        assert client.requested_include_files == [True]
 
     @mock.patch(_INTEGRATION_SERVICE)
     def test_merged_pull_request_has_no_changed_files(self, mock_get_integration):

@@ -41,6 +41,7 @@ class PullRequestStatusClientFake(PullRequestStatusClient):
         self.status_by_key = status_by_key or {}
         self.error = error
         self.requested_keys: list[str] = []
+        self.requested_include_files: list[bool] = []
         self.request_count = 0
 
     def get_pull_request_statuses(
@@ -48,6 +49,9 @@ class PullRequestStatusClientFake(PullRequestStatusClient):
     ) -> dict[PullRequestStatusRequest, PullRequestStatusResult]:
         self.request_count += 1
         self.requested_keys.extend(pull_request.pull_number for pull_request in pull_requests)
+        self.requested_include_files.extend(
+            pull_request.include_files for pull_request in pull_requests
+        )
         if self.error is not None:
             raise self.error
         return {
@@ -490,6 +494,7 @@ class GroupPullRequestsEndpointTest(APITestCase):
             ("failure", "changes_requested"),
         ]
         assert set(client.requested_keys) == {"1", "2", "3"}
+        assert client.requested_include_files == [False, False, False]
         assert client.request_count == 1
         assert mock_get_integration.call_count == 1
 

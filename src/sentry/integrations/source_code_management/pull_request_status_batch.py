@@ -48,6 +48,8 @@ def get_checks_and_review(
     pull_requests: Sequence[PullRequest],
     repositories_by_id: Mapping[int, Repository],
     lifecycle_status_by_pr_id: Mapping[int, PullRequestStatus | None],
+    *,
+    include_files: bool = False,
 ) -> dict[int, PullRequestStatusResult]:
     """Fetch open pull requests in one provider request per integration."""
     requests_by_integration_id: dict[
@@ -64,7 +66,9 @@ def get_checks_and_review(
             continue
 
         request = PullRequestStatusRequest(
-            repo=get_pull_request_repo_name(repository), pull_number=pull_request.key
+            repo=get_pull_request_repo_name(repository),
+            pull_number=pull_request.key,
+            include_files=include_files,
         )
         requests_by_integration_id[repository.integration_id].append(
             (pull_request, repository, request)

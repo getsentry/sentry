@@ -77,6 +77,7 @@ class PullRequestStatusResult:
 class PullRequestStatusRequest:
     repo: str
     pull_number: str
+    include_files: bool = False
 
 
 class PullRequestStatusClient(ABC):

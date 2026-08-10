@@ -5,6 +5,7 @@ from typing import Any
 import pytest
 
 from sentry.integrations.github.pull_request_status import (
+    PULL_REQUEST_FILES_FRAGMENT,
     PULL_REQUEST_STATUS_FRAGMENT,
     create_pull_request_status_query,
     extract_pull_request_status_from_response,
@@ -56,6 +57,7 @@ def test_create_pull_request_status_query() -> None:
     assert "repository0: repository(owner: $owner0, name: $name0)" in query["query"]
     assert "repository1: repository(owner: $owner1, name: $name1)" in query["query"]
     assert query["query"].count("...PullRequestStatusFields") == 2
+    assert PULL_REQUEST_FILES_FRAGMENT not in query["query"]
 
 
 def test_create_pull_request_status_query_requires_a_pull_request() -> None:
@@ -139,9 +141,13 @@ def test_extract_without_ci_or_required_review() -> None:
     assert extract_pull_request_status_from_response(response()) == PullRequestStatusResult()
 
 
-def test_query_reads_changed_files() -> None:
-    assert "files(first: 100)" in PULL_REQUEST_STATUS_FRAGMENT
-    assert "changeType" in PULL_REQUEST_STATUS_FRAGMENT
+def test_query_reads_changed_files_when_requested() -> None:
+    query = create_pull_request_status_query(
+        [PullRequestStatusRequest(repo="getsentry/sentry", pull_number="42", include_files=True)]
+    )
+
+    assert "...PullRequestFilesFields" in query["query"]
+    assert PULL_REQUEST_FILES_FRAGMENT in query["query"]
 
 
 def test_extract_files() -> None:
@@ -183,6 +189,31 @@ def test_extract_files() -> None:
 )
 def test_extract_files_without_nodes(files: dict[str, Any] | None) -> None:
     assert extract_pull_request_status_from_response(response(files=files)).files == ()
+
+
+def test_extract_files_skips_partial_nodes() -> None:
+    result = extract_pull_request_status_from_response(
+        response(
+            files={
+                "nodes": [
+                    None,
+                    {"path": "missing-counts.py"},
+                    {
+                        "path": "src/sentry/valid.py",
+                        "additions": 2,
+                        "deletions": 1,
+                        "changeType": "MODIFIED",
+                    },
+                ]
+            }
+        )
+    )
+
+    assert result.files == (
+        PullRequestFileSummary(
+            path="src/sentry/valid.py", additions=2, deletions=1, change_type="MODIFIED"
+        ),
+    )
 
 
 @pytest.mark.parametrize(
