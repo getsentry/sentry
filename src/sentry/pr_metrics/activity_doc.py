@@ -404,6 +404,17 @@ def _apply_check_run(
         group["first_failure_at"] = _min_ts(group.get("first_failure_at"), completed_at)
 
 
+def _forward_priority(group: CheckGroup) -> tuple[bool, str]:
+    """Sort key shared by the within-head eviction and the judge-forward trim:
+    failing (ever-failed) groups last, then most recent — so ``min()`` evicts and
+    ``[-N:]`` drops non-failing stale groups first, and a recorded failure is
+    never displaced by a fresher green."""
+    failed = is_failing_conclusion(group.get("suite_conclusion")) or bool(
+        group.get("first_failure_at")
+    )
+    return (failed, group.get("last_event_at") or "")
+
+
 def _get_or_create_group(doc: ActivityDoc, payload: Mapping[str, Any]) -> CheckGroup:
     """The rollup for a check payload's ``(head_sha, app_slug, check_suite_id)``.
 
@@ -419,11 +430,12 @@ def _get_or_create_group(doc: ActivityDoc, payload: Mapping[str, Any]) -> CheckG
     ``_any_group_failing``) see such a head+app twice and a frozen failure is not
     cleared by suite-scoped greens — accepted over erasing a recorded failure.
 
-    A newcomer past a cap evicts the least-recently-updated group rather than
-    being dropped (the judge cares most about the *final* head's CI state):
-    ``MAX_GROUPS_PER_HEAD`` evicts within the newcomer's head, so suite spam
-    degrades only that head; ``MAX_CHECK_GROUPS`` evicts document-wide, shedding
-    the stalest head first.
+    A newcomer past a cap evicts an existing group rather than being dropped
+    (the judge cares most about the *final* head's CI state):
+    ``MAX_GROUPS_PER_HEAD`` evicts within the newcomer's head — non-failing and
+    stalest first (``_forward_priority``), so suite spam degrades only that head
+    and never displaces a recorded failure; ``MAX_CHECK_GROUPS`` evicts
+    document-wide, shedding the stalest head first.
     """
     head_sha = payload.get("head_sha") or ""
     app_slug = payload.get("app_slug") or ""
@@ -443,9 +455,7 @@ def _get_or_create_group(doc: ActivityDoc, payload: Mapping[str, Any]) -> CheckG
         if existing_group.get("head_sha") == head_sha
     ]
     if len(same_head) >= MAX_GROUPS_PER_HEAD:
-        evicted_key = min(
-            same_head, key=lambda existing: checks[existing].get("last_event_at") or ""
-        )
+        evicted_key = min(same_head, key=lambda existing: _forward_priority(checks[existing]))
         del checks[evicted_key]
         logger.warning(
             "pr_metrics.activity_doc.check_head_groups_capped",
@@ -507,9 +517,12 @@ def _min_ts(current: str | None, candidate: str | None) -> str | None:
 # --- readers: pure projections of a stored document -----------------------
 
 # The judge forward collapses each checks group into one synthesized event,
-# mirroring the legacy row cap. The store can hold more (MAX_CHECK_GROUPS);
-# past this cap only the most recently updated groups are forwarded.
-MAX_FORWARDED_CHECK_GROUPS = 100
+# trimmed per head so every head stays represented — the fail → push → green
+# iteration story must reach the judge — keeping failures over fresher greens
+# (_forward_priority). The flat cap is a backstop only: the store already
+# bounds groups to MAX_CHECK_GROUPS.
+MAX_FORWARDED_GROUPS_PER_HEAD = 20
+MAX_FORWARDED_CHECK_GROUPS = MAX_CHECK_GROUPS
 
 
 def has_commits_after_open(doc: ActivityDoc) -> bool:
@@ -724,6 +737,11 @@ def timeline_events_from_doc(doc: ActivityDoc) -> list[dict[str, Any]]:
     ``check_suite_completed`` timestamped at its ``last_event_at``. The merged list
     is sorted by timestamp, matching the legacy forward's shape — only the check
     events are pre-collapsed (what Seer's timeline does anyway).
+
+    Check groups are trimmed per head (``MAX_FORWARDED_GROUPS_PER_HEAD``), never
+    dropping a whole head and keeping failures over fresher greens
+    (``_forward_priority``), so the fail → push → green iteration story always
+    reaches the judge.
     """
     events: list[dict[str, Any]] = [
         {
@@ -734,7 +752,26 @@ def timeline_events_from_doc(doc: ActivityDoc) -> list[dict[str, Any]]:
         for entry in doc.get("events", [])
     ]
 
-    groups = list(doc.get("checks", {}).values())
+    by_head: dict[str, list[CheckGroup]] = {}
+    for group in doc.get("checks", {}).values():
+        by_head.setdefault(group.get("head_sha") or "", []).append(group)
+
+    groups: list[CheckGroup] = []
+    for head_sha, head_groups in by_head.items():
+        if len(head_groups) > MAX_FORWARDED_GROUPS_PER_HEAD:
+            logger.warning(
+                "pr_metrics.activity_doc.forward_head_groups_capped",
+                extra={
+                    "head_sha": head_sha,
+                    "dropped": len(head_groups) - MAX_FORWARDED_GROUPS_PER_HEAD,
+                },
+            )
+            metrics.incr("pr_metrics.activity_doc.forward_head_groups_capped")
+            head_groups = sorted(head_groups, key=_forward_priority)[
+                -MAX_FORWARDED_GROUPS_PER_HEAD:
+            ]
+        groups.extend(head_groups)
+
     if len(groups) > MAX_FORWARDED_CHECK_GROUPS:
         dropped = len(groups) - MAX_FORWARDED_CHECK_GROUPS
         logger.warning(
@@ -742,9 +779,7 @@ def timeline_events_from_doc(doc: ActivityDoc) -> list[dict[str, Any]]:
             extra={"check_groups": len(groups), "dropped": dropped},
         )
         metrics.incr("pr_metrics.activity_doc.forward_groups_capped")
-        groups = sorted(groups, key=lambda group: group.get("last_event_at") or "")[
-            -MAX_FORWARDED_CHECK_GROUPS:
-        ]
+        groups = sorted(groups, key=_forward_priority)[-MAX_FORWARDED_CHECK_GROUPS:]
 
     for group in groups:
         events.append(

@@ -16,6 +16,7 @@ from sentry.pr_metrics.activity_doc import (
     DOC_VERSION,
     MAX_CHECK_GROUPS,
     MAX_EVENTS,
+    MAX_FORWARDED_GROUPS_PER_HEAD,
     MAX_GROUPS_PER_HEAD,
     MAX_RUNS_PER_GROUP,
     MAX_SYNC_CHAIN,
@@ -849,6 +850,26 @@ def test_head_group_cap_evicts_within_the_head_only() -> None:
     assert mock_logger.warning.call_count == 1
 
 
+def test_head_group_cap_never_evicts_a_recorded_failure() -> None:
+    doc = new_document()
+    # The failure lands first, so it is the stalest group on the head…
+    _run(
+        doc,
+        check_suite_id=0,
+        check_name="unit",
+        conclusion="failure",
+        completed_at="2026-07-10T11:00:00Z",
+    )
+    with patch(f"{MODULE}.metrics"), patch(f"{MODULE}.logger"):
+        for i in range(1, MAX_GROUPS_PER_HEAD):
+            _suite(doc, check_suite_id=i, updated_at=f"2026-07-10T12:00:{i % 60:02d}Z")
+        _suite(doc, check_suite_id=1000, updated_at="2026-07-10T13:00:00Z")
+    # …yet the eviction takes the stalest green, not the failure.
+    assert "sha1|github-actions|0" in doc["checks"]
+    assert "sha1|github-actions|1" not in doc["checks"]
+    assert _group(doc, check_suite_id=1000)["suite_conclusion"] == "success"
+
+
 def test_existing_group_still_updates_after_group_cap() -> None:
     doc = new_document()
     for i in range(MAX_CHECK_GROUPS):
@@ -1189,6 +1210,65 @@ def test_timeline_synthesizes_one_event_per_suite() -> None:
         )
         for e in events
     ] == [(1, "failure", ["test"]), (2, "success", [])]
+
+
+def test_timeline_forward_trims_per_head_keeping_failures() -> None:
+    doc = new_document()
+    # A currently-failing suite and a fail→green recovery, both early (stalest)…
+    _suite(doc, check_suite_id=0, conclusion="failure", updated_at="2026-07-10T11:00:00Z")
+    _run(
+        doc,
+        check_suite_id=1,
+        check_name="flaky",
+        conclusion="failure",
+        completed_at="2026-07-10T11:01:00Z",
+    )
+    _run(
+        doc,
+        check_suite_id=1,
+        check_name="flaky",
+        conclusion="success",
+        completed_at="2026-07-10T11:02:00Z",
+    )
+    # …buried under a full trim window of fresher green suites.
+    for i in range(2, MAX_FORWARDED_GROUPS_PER_HEAD + 2):
+        _suite(doc, check_suite_id=i, updated_at=f"2026-07-10T12:00:{i:02d}Z")
+
+    with patch(f"{MODULE}.metrics") as mock_metrics, patch(f"{MODULE}.logger") as mock_logger:
+        events = timeline_events_from_doc(doc)
+
+    ids = [e["payload"]["check_suite_id"] for e in events]
+    assert len(ids) == MAX_FORWARDED_GROUPS_PER_HEAD
+    # Both failure-bearing groups survive; the dropped ones are the stalest greens.
+    assert 0 in ids and 1 in ids
+    assert 2 not in ids and 3 not in ids
+    mock_logger.warning.assert_called_once_with(
+        "pr_metrics.activity_doc.forward_head_groups_capped",
+        extra={"head_sha": "sha1", "dropped": 2},
+    )
+    mock_metrics.incr.assert_any_call("pr_metrics.activity_doc.forward_head_groups_capped")
+
+
+def test_timeline_forward_keeps_every_head_represented() -> None:
+    # Trimming is per head, so a quiet old head is never displaced by a busier,
+    # fresher one — the flat-cap failure mode was dropping whole heads.
+    doc = new_document()
+    _suite(
+        doc,
+        head_sha="sha-old",
+        check_suite_id=0,
+        conclusion="failure",
+        updated_at="2026-07-10T11:00:00Z",
+    )
+    for i in range(1, MAX_FORWARDED_GROUPS_PER_HEAD + 2):
+        _suite(doc, head_sha="sha-new", check_suite_id=i, updated_at=f"2026-07-10T12:00:{i:02d}Z")
+
+    with patch(f"{MODULE}.metrics"), patch(f"{MODULE}.logger"):
+        events = timeline_events_from_doc(doc)
+
+    heads = {e["payload"]["head_sha"] for e in events}
+    assert heads == {"sha-old", "sha-new"}
+    assert len(events) == 1 + MAX_FORWARDED_GROUPS_PER_HEAD
 
 
 def test_timeline_suite_conclusion_derived_from_runs_when_absent() -> None:
