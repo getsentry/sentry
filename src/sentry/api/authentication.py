@@ -4,7 +4,7 @@ import hashlib
 import hmac
 import logging
 from collections.abc import Callable, Iterable
-from typing import Any, ClassVar
+from typing import Any, ClassVar, NoReturn
 
 import sentry_sdk
 from django.conf import settings
@@ -626,21 +626,46 @@ class AgentTokenAuthentication(StandardAuthentication):
         return agent_token.is_agent_token_string(force_str(auth[1]))
 
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
+        def fail(reason: str, **extra: Any) -> NoReturn:
+            # TODO(jstanley): Temporary logging to disambiguate agent-token 401s. Every
+            # rejection below returns the same opaque message, so a rejected credential
+            # is indistinguishable from no credential at all -- and because the scope
+            # challenge (403 insufficient_scope) lives downstream of authentication, a
+            # failure here silently forecloses the write-approval flow rather than
+            # prompting for it. Mirrors viewer_context_auth.failed below.
+            # Remove once the auth issue is resolved.
+            #
+            # Deliberately free of request-derived strings. `request.path` carries the
+            # org and project slugs, and a JWT library's message can quote the token it
+            # failed on -- neither belongs in a production log. Numeric ids and the
+            # exception's class name say which of the seven rejections fired, which is
+            # the whole diagnostic need.
+            logger.warning(
+                "agent_token_auth.failed",
+                extra={"reason": reason, **extra},
+            )
+            raise AuthenticationFailed("Invalid agent token")
+
         try:
             claims = agent_token.decode_agent_token(token_str)
             # Building the token casts org and scopes too, so any missing/mis-typed claim
             # in a signed token is a clean 401 here, not a 500 downstream.
             auth_token = agent_token.build_authenticated_token(claims)
             user_id = auth_token.user_id
-            if user_id is None:
-                raise ValueError("Agent token has no user principal")
-        except (PyJWTError, KeyError, ValueError, TypeError):
-            raise AuthenticationFailed("Invalid agent token")
+        except (PyJWTError, KeyError, ValueError, TypeError) as exc:
+            fail("decode_failed", error_type=type(exc).__name__)
+
+        if user_id is None:
+            fail("no_user_principal", org_id=auth_token.organization_id)
 
         # The delegating user must still be valid even though they are not the request user.
         user = user_service.get_user(user_id=user_id)
-        if user is None or not user.is_active or getattr(user, "is_suspended", False):
-            raise AuthenticationFailed("Invalid agent token")
+        if user is None:
+            fail("user_not_found", user_id=user_id)
+        if not user.is_active:
+            fail("user_inactive", user_id=user_id)
+        if getattr(user, "is_suspended", False):
+            fail("user_suspended", user_id=user_id)
 
         org_context = organization_service.get_organization_by_id(
             id=auth_token.organization_id,
@@ -648,13 +673,15 @@ class AgentTokenAuthentication(StandardAuthentication):
             include_projects=False,
             include_teams=False,
         )
-        if org_context is None or not features.has(
+        if org_context is None:
+            fail("org_context_missing", user_id=user_id, org_id=auth_token.organization_id)
+        if not features.has(
             agent_token.FEATURE_FLAG,
             org_context.organization,
             actor=user,
             skip_experiment_exposure=True,
         ):
-            raise AuthenticationFailed("Invalid agent token")
+            fail("feature_flag_off", user_id=user_id, org_id=auth_token.organization_id)
 
         return self.transform_auth(None, auth_token)
 

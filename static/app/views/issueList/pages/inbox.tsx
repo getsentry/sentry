@@ -31,6 +31,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useMembers} from 'sentry/utils/members/useMembers';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {orgHasSeerAccess} from 'sentry/utils/seer/orgHasSeerAccess';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -119,7 +120,7 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     emptyMessage: t('No identified issues'),
     progress: ProgressState.IDENTIFIED,
     defaultExpanded: false,
-    hidden: ({assignmentFilter, hasSeer}) => !hasSeer || assignmentFilter !== 'all',
+    hidden: ({hasSeer}) => !hasSeer,
   },
   {
     analyticsKey: 'num_fix_applied',
@@ -134,8 +135,9 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
 
 export default function InboxPage() {
   const organization = useOrganization();
+  const hasProgressUi = organization.features.includes('issue-stream-progress-ui');
 
-  if (!organization.features.includes('issue-stream-progress-ui')) {
+  if (!hasProgressUi || !orgHasSeerAccess(organization)) {
     return <NotFound />;
   }
 
@@ -200,10 +202,7 @@ function InboxContent() {
   const isMobile = layout === 'mobile';
   const resizableContainerRef = useRef<HTMLDivElement>(null);
   const organization = useOrganization();
-  const hasSeer =
-    !organization.hideAiFeatures &&
-    (organization.features.includes('seat-based-seer-enabled') ||
-      organization.features.includes('seer-added'));
+  const hasSeer = orgHasSeerAccess(organization);
   const [assignmentFilter, setAssignmentFilter] = useQueryState(
     ASSIGNMENT_QUERY_PARAM,
     parseAsStringLiteral(ASSIGNMENT_FILTERS)

@@ -13,14 +13,6 @@ export enum AlertRuleTriggerType {
   RESOLVE = 'resolve',
 }
 
-export enum AlertRuleComparisonType {
-  COUNT = 'count',
-  CHANGE = 'change',
-  PERCENT = 'percent',
-  DYNAMIC = 'dynamic',
-  STATIC = 'static',
-}
-
 export enum Dataset {
   /**
    * Events include errors and transactions
