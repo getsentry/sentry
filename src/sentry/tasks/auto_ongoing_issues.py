@@ -73,12 +73,6 @@ def schedule_auto_transition_issues_new_to_ongoing(
     to be updated in a single run. However, we expect every instantiation of this task
     to chip away at the backlog of Groups and eventually update all the eligible groups.
     """
-    total_count = 0
-
-    def get_total_count(results):
-        nonlocal total_count
-        total_count += len(results)
-
     first_seen_lte_datetime = datetime.fromtimestamp(first_seen_lte, timezone.utc)
     base_queryset = Group.objects.filter(
         status=GroupStatus.UNRESOLVED,
@@ -95,18 +89,19 @@ def schedule_auto_transition_issues_new_to_ongoing(
         extra=logger_extra,
     )
 
+    scheduled = 0
     with start_span(name="iterate_chunked_group_ids"):
         for groups in chunked(
             RangeQuerySetWrapper(
                 base_queryset,
                 step=ITERATOR_CHUNK,
                 limit=_schedule_limit(),
-                callbacks=[get_total_count],
                 order_by="first_seen",
                 override_unique_safety_check=True,
             ),
             ITERATOR_CHUNK,
         ):
+            scheduled += len(groups)
             run_auto_transition_issues_new_to_ongoing.delay(
                 group_ids=[group.id for group in groups],
             )
@@ -114,7 +109,7 @@ def schedule_auto_transition_issues_new_to_ongoing(
     metrics.incr(
         "sentry.tasks.schedule_auto_transition_issues_new_to_ongoing.executed",
         sample_rate=1.0,
-        tags={"hit_limit": str(total_count >= _schedule_limit()).lower()},
+        tags={"hit_limit": str(scheduled >= _schedule_limit()).lower()},
     )
 
 
@@ -161,12 +156,6 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
     to be updated in a single run. However, we expect every instantiation of this task
     to chip away at the backlog of Groups and eventually update all the eligible groups.
     """
-    total_count = 0
-
-    def get_total_count(results):
-        nonlocal total_count
-        total_count += len(results)
-
     date_threshold = datetime.fromtimestamp(date_added_lte, timezone.utc)
 
     # Use a subquery to get the most recent REGRESSED history date for each group.
@@ -191,6 +180,7 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
         )
     )
 
+    scheduled = 0
     with start_span(name="iterate_chunked_group_ids"):
         for group_ids_with_regressed_history in chunked(
             RangeQuerySetWrapper(
@@ -198,10 +188,10 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
                 step=ITERATOR_CHUNK,
                 limit=_schedule_limit(),
                 result_value_getter=lambda item: item,
-                callbacks=[get_total_count],
             ),
             ITERATOR_CHUNK,
         ):
+            scheduled += len(group_ids_with_regressed_history)
             run_auto_transition_issues_regressed_to_ongoing.delay(
                 group_ids=group_ids_with_regressed_history,
             )
@@ -209,7 +199,7 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
     metrics.incr(
         "sentry.tasks.schedule_auto_transition_issues_regressed_to_ongoing.executed",
         sample_rate=1.0,
-        tags={"hit_limit": str(total_count >= _schedule_limit()).lower()},
+        tags={"hit_limit": str(scheduled >= _schedule_limit()).lower()},
     )
 
 
@@ -256,14 +246,6 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
     to be updated in a single run. However, we expect every instantiation of this task
     to chip away at the backlog of Groups and eventually update all the eligible groups.
     """
-    total_count = 0
-
-    def get_total_count(results):
-        nonlocal total_count
-        total_count += len(results)
-
-    from django.db.models import Max, OuterRef, Subquery
-
     date_threshold = datetime.fromtimestamp(date_added_lte, timezone.utc)
 
     # Use a subquery to get the most recent ESCALATING history date for each group.
@@ -288,6 +270,7 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
         )
     )
 
+    scheduled = 0
     with start_span(name="iterate_chunked_group_ids"):
         for new_group_ids in chunked(
             RangeQuerySetWrapper(
@@ -295,10 +278,10 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
                 step=ITERATOR_CHUNK,
                 limit=_schedule_limit(),
                 result_value_getter=lambda item: item,
-                callbacks=[get_total_count],
             ),
             ITERATOR_CHUNK,
         ):
+            scheduled += len(new_group_ids)
             run_auto_transition_issues_escalating_to_ongoing.delay(
                 group_ids=new_group_ids,
             )
@@ -306,7 +289,7 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
     metrics.incr(
         "sentry.tasks.schedule_auto_transition_issues_escalating_to_ongoing.executed",
         sample_rate=1.0,
-        tags={"hit_limit": str(total_count >= _schedule_limit()).lower()},
+        tags={"hit_limit": str(scheduled >= _schedule_limit()).lower()},
     )
 
 
