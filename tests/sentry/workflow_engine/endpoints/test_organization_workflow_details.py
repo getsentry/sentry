@@ -367,7 +367,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             when_condition_group=None,
         )
 
-        assert workflow.when_condition_group is None
+        assert workflow.when_condition_group_id is None
 
         data = {
             **self.valid_workflow,
@@ -389,10 +389,11 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         workflow.refresh_from_db()
 
-        assert workflow.when_condition_group is not None
-        assert workflow.when_condition_group.logic_type == DataConditionGroup.Type.ANY_SHORT_CIRCUIT
-        assert workflow.when_condition_group.organization_id == self.organization.id
-        assert workflow.when_condition_group.conditions.count() == 1
+        when_condition_group = workflow.when_condition_group
+        assert when_condition_group is not None
+        assert when_condition_group.logic_type == DataConditionGroup.Type.ANY_SHORT_CIRCUIT
+        assert when_condition_group.organization_id == self.organization.id
+        assert when_condition_group.conditions.count() == 1
 
     def test_update_detectors_add_detector(self) -> None:
         detector1 = self.create_detector(project=self.project)
