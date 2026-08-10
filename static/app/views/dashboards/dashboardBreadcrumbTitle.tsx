@@ -127,7 +127,7 @@ export function DashboardBreadcrumbTitle({
     favoriteItem,
     revisionItem,
     ...(isDashboardEditor ? [editItem] : []),
-    duplicateItem,
+    ...(isPrebuiltDashboard ? [duplicateItem] : []),
   ];
 
   return (
