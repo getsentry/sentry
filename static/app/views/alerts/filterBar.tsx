@@ -37,7 +37,7 @@ export function FilterBar({
   const selectedStatus = getQueryStatus(location.query.status);
 
   return (
-    <Wrapper>
+    <Grid columns={{zero: '1fr', '4xl': 'min-content 1fr'}} gap="lg" marginBottom="xl">
       <FilterButtons gap="lg">
         <TeamFilter selectedTeams={selectedTeams} handleChangeFilter={onChangeFilter} />
         <ProjectPageFilter />
@@ -88,31 +88,21 @@ export function FilterBar({
           {t('Create Alert')}
         </CreateAlertButton>
       </Grid>
-    </Wrapper>
+    </Grid>
   );
 }
-
-const Wrapper = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.lg};
-  margin-bottom: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: min-content 1fr;
-  }
-`;
 
 const FilterButtons = styled((props: GridProps) => (
   <Grid flow="column" align="center" {...props} />
 ))`
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
+  @container (max-width: ${p => p.theme.container['4xl']}) {
     display: flex;
     align-items: flex-start;
     flex-wrap: wrap;
     gap: ${p => p.theme.space.lg};
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
+  @container (min-width: ${p => p.theme.container['4xl']}) {
     display: grid;
     grid-auto-columns: max-content;
   }
