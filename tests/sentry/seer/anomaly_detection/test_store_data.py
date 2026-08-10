@@ -154,7 +154,7 @@ class AnomalyDetectionStoreDataTest(
         )
         snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
 
-        with freeze_time(before_now(days=2).replace(hour=0, minute=37, second=0, microsecond=0)):
+        with freeze_time(before_now(days=0).replace(hour=0, minute=37, second=0, microsecond=0)):
             now = datetime.now(UTC)
             time_1_dt = now - timedelta(days=2)
             time_1_ts = time_1_dt.timestamp()
