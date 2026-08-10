@@ -3676,6 +3676,10 @@ function _getFieldFromMappings(
         return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
       }
 
+      if (kind === FieldKind.ARRAY) {
+        return {kind: FieldKind.ARRAY, valueType: FieldValueType.STRING};
+      }
+
       return null;
 
     case 'log':
@@ -3698,6 +3702,10 @@ function _getFieldFromMappings(
         return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
       }
 
+      if (kind === FieldKind.ARRAY) {
+        return {kind: FieldKind.ARRAY, valueType: FieldValueType.STRING};
+      }
+
       return null;
 
     case 'tracemetric':
@@ -3718,6 +3726,10 @@ function _getFieldFromMappings(
 
       if (kind === FieldKind.BOOLEAN) {
         return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
+      }
+
+      if (kind === FieldKind.ARRAY) {
+        return {kind: FieldKind.ARRAY, valueType: FieldValueType.STRING};
       }
 
       return null;
