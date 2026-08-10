@@ -4,6 +4,7 @@ import type {LocationDescriptor} from 'history';
 import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {NAMESPACE_SYMBOL} from 'sentry/actionCreators/savedSearches';
 import type {Client} from 'sentry/api';
 import {canIncludePreviousPeriod} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
@@ -212,7 +213,34 @@ export function fetchTotalCount(
 ): Promise<number> {
   const urlParams = pick(query, Object.values(PERFORMANCE_URL_PARAM));
 
-  const queryOption = {...urlParams, query: query.query};
+  // The SearchQueryBuilder encodes wildcard operators (Contains, StartsWith,
+  // EndsWith) using Private Use Area Unicode markers (NAMESPACE_SYMBOL). The
+  // events-meta/ endpoint cannot parse these — convert them to standard glob
+  // syntax (*value*, value*, *value) before sending the request.
+  const WILDCARD_OPERATOR_PATTERN = new RegExp(
+    `${NAMESPACE_SYMBOL}(\\w+)${NAMESPACE_SYMBOL}([^\\s]*)`,
+    'g'
+  );
+  const sanitizedQuery = (query.query ?? '').replace(
+    WILDCARD_OPERATOR_PATTERN,
+    (_match, operator: string, value: string) => {
+      switch (operator) {
+        case 'Contains':
+        case 'DoesNotContain':
+          return `*${value}*`;
+        case 'StartsWith':
+        case 'DoesNotStartWith':
+          return `${value}*`;
+        case 'EndsWith':
+        case 'DoesNotEndWith':
+          return `*${value}`;
+        default:
+          return value;
+      }
+    }
+  );
+
+  const queryOption = {...urlParams, query: sanitizedQuery};
 
   type Response = {
     count: number;
