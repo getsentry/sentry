@@ -1394,7 +1394,8 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         }
 
     def get_secret(self) -> str | None:
-        return settings.SENTRY_GITHUB_APP_WEBHOOK_SECRET
+        secret = settings.SENTRY_GITHUB_APP_WEBHOOK_SECRET
+        return secret if isinstance(secret, str) else None
 
     def post(self, request: HttpRequest) -> HttpResponse:
         with action_context_scope(ActionSource.GITHUB, resolve_action_actor(request)):

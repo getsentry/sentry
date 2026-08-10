@@ -401,11 +401,12 @@ class OAuthTokenView(View):
         token_data: dict[str, Any] = {"token": api_token}
 
         # OpenID token generation (stays in endpoint)
-        if grant_has_openid and settings.SENTRY_CODECOV_SIGNING_SECRET:
+        signing_secret = settings.SENTRY_CODECOV_SIGNING_SECRET
+        if grant_has_openid and isinstance(signing_secret, str) and signing_secret:
             open_id_token = OpenIDToken(
                 application.client_id,
                 grant_user_id,
-                settings.SENTRY_CODECOV_SIGNING_SECRET,
+                signing_secret,
                 nonce=request.POST.get("nonce"),
             )
             # Use api_token.user instead of grant since grant is deleted

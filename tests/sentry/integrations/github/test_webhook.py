@@ -23,6 +23,7 @@ from fixtures.github import (
     push_event_with_author,
     push_event_with_commit_authors,
 )
+from sentry.conf.server import DEAD
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.webhook import (
     CheckSuiteWebhook,
@@ -131,6 +132,19 @@ class WebhookTest(APITestCase):
             tags={"reason": "missing_secret"},
             sample_rate=1.0,
         )
+
+    def test_dead_secret_is_treated_as_missing(self) -> None:
+        with override_settings(SENTRY_GITHUB_APP_WEBHOOK_SECRET=DEAD):
+            response = self.client.post(
+                path=self.url,
+                data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+                content_type="application/json",
+                HTTP_X_GITHUB_EVENT="push",
+                HTTP_X_HUB_SIGNATURE="sha1=2b116e7c1f7510b62727673b0f9acc0db951263a",
+                HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+            )
+
+        assert response.status_code == 401
 
     def test_missing_signature_event(self) -> None:
         response = self.client.post(

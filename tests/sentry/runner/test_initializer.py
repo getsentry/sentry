@@ -192,7 +192,19 @@ def test_bootstrap_options_promotes_environment_backed_settings(settings) -> Non
     settings.SENTRY_SYMBOL_SERVER_ENABLED = False
     settings.SENTRY_SYMBOLICATOR_OPTIONS = {"url": "http://symbolicator"}
 
-    bootstrap_options(settings)
+    with pytest.warns(DeprecatedSettingWarning) as warninfo:
+        bootstrap_options(settings)
+
+    _assert_settings_warnings(
+        warninfo,
+        {
+            ("SENTRY_EMAIL_ENABLE_REPLIES", "SENTRY_OPTIONS['mail.enable-replies']"),
+            ("SENTRY_FLYIO_CLIENT_ID", "SENTRY_OPTIONS['auth-fly.client-id']"),
+            ("SENTRY_SYMBOL_SERVER_ENABLED", "SENTRY_OPTIONS['symbolserver.enabled']"),
+            ("SENTRY_SYMBOLICATOR_OPTIONS", "SENTRY_OPTIONS['symbolicator.options']"),
+            ("SENTRY_URL_PREFIX", "SENTRY_OPTIONS['system.url-prefix']"),
+        },
+    )
 
     assert settings.SENTRY_OPTIONS["system.url-prefix"] == "https://example.com"
     assert settings.SENTRY_OPTIONS["mail.enable-replies"] is True
