@@ -605,9 +605,8 @@ function ActionBarLayout({children}: {children: React.ReactNode}) {
       aria-label={t('Dashboard controls')}
       align="center"
       background="primary"
-      borderBottom="primary"
       borderTop="primary"
-      padding="md 0"
+      padding="lg xl xl"
       width="100%"
       wrap="wrap"
     >

@@ -232,7 +232,7 @@ export function FiltersBar({
       direction={hasNewBreadcrumbs ? {zero: 'column', xl: 'row'} : 'row'}
       gap="lg"
       marginBottom={hasNewBreadcrumbs ? '0' : 'xl'}
-      padding={hasNewBreadcrumbs ? 'md 0' : '0'}
+      padding={hasNewBreadcrumbs ? 'lg xl xl' : 'lg xl'}
     >
       <FiltersRow>
         <PageFilterBar condensed>
