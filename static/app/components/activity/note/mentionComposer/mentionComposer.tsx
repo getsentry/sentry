@@ -178,8 +178,6 @@ function Composer({
   const [mentions, setMentions] = useState<readonly Mention[]>([]);
   const [editorMode, setEditorMode] = useState<EditorMode>('write');
 
-  const [areControlsVisible, setAreControlsVisible] = useState(false);
-
   const submitNote = useCallback(
     async (value: string) => {
       const validMentionIds = mentions.flatMap(mention =>
@@ -218,12 +216,10 @@ function Composer({
                   sources={sources}
                   placeholder={placeholder}
                   onChange={nextValue => {
-                    setAreControlsVisible(true);
                     setMentions(nextValue.mentions);
                     field.handleChange(nextValue.text);
                     onValueChange?.(nextValue.text);
                   }}
-                  onFocus={() => setAreControlsVisible(true)}
                   onKeyDown={event => {
                     if (
                       event.key === 'Enter' &&
@@ -257,39 +253,37 @@ function Composer({
           )
         }
       </form.AppField>
-      {areControlsVisible ? (
-        <Flex align="center" justify="between" gap="md" paddingTop="sm">
-          <Flex align="center" gap="md">
-            <SegmentedControl<EditorMode>
-              aria-label={t('Comment editor mode')}
-              size="xs"
-              value={editorMode}
-              onChange={setEditorMode}
-            >
-              <SegmentedControl.Item key="write">{t('Write')}</SegmentedControl.Item>
-              <SegmentedControl.Item key="preview">{t('Preview')}</SegmentedControl.Item>
-            </SegmentedControl>
-            <Flex
-              as="span"
-              align="center"
-              gap="xs"
-              display={{zero: 'none', sm: 'inline-flex'}}
-            >
-              <IconMarkdown size="sm" variant="muted" />
-              <Text as="span" size="sm" variant="muted">
-                {t('Markdown supported')}
-              </Text>
-            </Flex>
+      <Flex align="center" justify="between" gap="md" paddingTop="sm">
+        <Flex align="center" gap="md">
+          <SegmentedControl<EditorMode>
+            aria-label={t('Comment editor mode')}
+            size="xs"
+            value={editorMode}
+            onChange={setEditorMode}
+          >
+            <SegmentedControl.Item key="write">{t('Write')}</SegmentedControl.Item>
+            <SegmentedControl.Item key="preview">{t('Preview')}</SegmentedControl.Item>
+          </SegmentedControl>
+          <Flex
+            as="span"
+            align="center"
+            gap="xs"
+            display={{zero: 'none', sm: 'inline-flex'}}
+          >
+            <IconMarkdown size="sm" variant="muted" />
+            <Text as="span" size="sm" variant="muted">
+              {t('Markdown supported')}
+            </Text>
           </Flex>
-          <form.Subscribe selector={state => state.values.text.trim() === ''}>
-            {isEmpty => (
-              <form.SubmitButton size="xs" disabled={isEmpty}>
-                {t('Comment')}
-              </form.SubmitButton>
-            )}
-          </form.Subscribe>
         </Flex>
-      ) : null}
+        <form.Subscribe selector={state => state.values.text.trim() === ''}>
+          {isEmpty => (
+            <form.SubmitButton size="xs" disabled={isEmpty}>
+              {t('Comment')}
+            </form.SubmitButton>
+          )}
+        </form.Subscribe>
+      </Flex>
     </form.AppForm>
   );
 }

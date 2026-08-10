@@ -28,6 +28,13 @@ describe('MentionComposer', () => {
     });
   });
 
+  it('shows editor controls immediately', () => {
+    render(<MentionComposer />);
+
+    expect(screen.getByRole('radio', {name: 'Write'})).toBeVisible();
+    expect(screen.getByRole('button', {name: 'Comment'})).toBeDisabled();
+  });
+
   it('shows members returned by the active search request', async () => {
     const user = UserFixture({id: '1', name: 'Alice Remote'});
     const searchRequest = MockApiClient.addMockResponse({
