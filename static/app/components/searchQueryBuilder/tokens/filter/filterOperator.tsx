@@ -218,13 +218,19 @@ export function getOperatorInfo({
   }
 
   const keyLabel = filterToken.key.text;
-  const opLabels =
-    fieldDefinition?.kind === FieldKind.ARRAY ? ARRAY_OP_LABELS : OP_LABELS;
+  const isArrayField = fieldDefinition?.kind === FieldKind.ARRAY;
+  const opLabels = isArrayField ? ARRAY_OP_LABELS : OP_LABELS;
+
+  // Array attributes only support membership, so restrict the operators to
+  // "includes"/"does not include" instead of the full string operator set.
+  const validOps = isArrayField
+    ? [TermOperator.CONTAINS, TermOperator.DOES_NOT_CONTAIN]
+    : getValidOpsForFilter({filterToken, fieldDefinition});
 
   return {
     operator,
     label: <OpLabel>{opLabels[operator] ?? operator}</OpLabel>,
-    options: getValidOpsForFilter({filterToken, fieldDefinition})
+    options: validOps
       .filter(op => op !== TermOperator.EQUAL)
       .filter(op => !disallowNegation || !isNegationOperator(op))
       .map((op): SelectOption<TermOperator> => {
