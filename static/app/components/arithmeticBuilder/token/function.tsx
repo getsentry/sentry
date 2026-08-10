@@ -85,10 +85,25 @@ function ArgumentsGrid({
   token: functionToken,
   rowRef,
 }: ArgumentsGridProps) {
+  const {getFieldDefinition} = useArithmeticBuilder();
+
+  const resolveArgumentLabel = useCallback(
+    (index: number, fallbackLabel: string) => {
+      const fieldDefinition = getFieldDefinition(functionToken.function)?.parameters?.[
+        index
+      ];
+      if (fieldDefinition?.kind === 'column') {
+        return fieldDefinition?.defaultLabel ?? fallbackLabel;
+      }
+      return fallbackLabel;
+    },
+    [getFieldDefinition, functionToken]
+  );
+
   const [args, setArguments] = useState(
-    functionToken.attributes.map(attr => {
+    functionToken.attributes.map((attr, index) => {
       return {
-        label: attr.attribute,
+        label: resolveArgumentLabel(index, attr.attribute),
         value: attr.text,
       };
     })
@@ -97,7 +112,13 @@ function ArgumentsGrid({
   const updateArgumentAtIndex = (index: number, argument: string) => {
     setArguments(prev =>
       prev.map((item, i) =>
-        index === i ? {...item, value: argument, label: prettifyTagKey(argument)} : item
+        index === i
+          ? {
+              ...item,
+              value: argument,
+              label: resolveArgumentLabel(index, prettifyTagKey(argument)),
+            }
+          : item
       )
     );
   };
@@ -343,7 +364,22 @@ function InternalInput({
         }));
     }
 
-    // Otherwise, use the attribute-based items
+    if (
+      parameterDefinition?.kind === 'column' &&
+      parameterDefinition.defaultLabel &&
+      parameterDefinition.defaultValue
+    ) {
+      return attributeItems.map(item =>
+        item.value === parameterDefinition.defaultValue
+          ? {
+              ...item,
+              label: parameterDefinition.defaultLabel!,
+              textValue: parameterDefinition.defaultLabel!,
+            }
+          : item
+      );
+    }
+
     return attributeItems;
   }, [parameterDefinition, filterValue, attributeItems]);
 
@@ -360,11 +396,27 @@ function InternalInput({
     setIsCurrentlyEditing(false);
   }, [resetInputValue]);
 
+  const resolveValue = useCallback(
+    (raw: string): string => {
+      if (
+        parameterDefinition?.kind === 'column' &&
+        parameterDefinition.defaultLabel &&
+        parameterDefinition.defaultValue &&
+        raw === parameterDefinition.defaultLabel
+      ) {
+        return parameterDefinition.defaultValue;
+      }
+      return raw;
+    },
+    [parameterDefinition]
+  );
+
   const onTextInputBlur = useCallback(() => {
     if (inputValue) {
-      onArgumentsChange(argumentIndex, inputValue);
+      const resolved = resolveValue(inputValue);
+      onArgumentsChange(argumentIndex, resolved);
       dispatch({
-        text: `${functionToken.function}(${updateAttrsWith(inputValue)})`,
+        text: `${functionToken.function}(${updateAttrsWith(resolved)})`,
         type: 'REPLACE_TOKEN',
         token: functionToken,
         focusOverride: {
@@ -386,6 +438,7 @@ function InternalInput({
     inputValue,
     onArgumentsChange,
     resetInputValue,
+    resolveValue,
     updateAttrsWith,
   ]);
 
@@ -404,6 +457,8 @@ function InternalInput({
     if (defined(getSuggestedKey) && parameterDefinition?.kind === 'column') {
       value = getSuggestedKey(value) ?? value;
     }
+
+    value = resolveValue(value);
 
     const commitLabel =
       parameterDefinition?.kind === 'column' && parameterDefinition.defaultLabel
@@ -430,6 +485,7 @@ function InternalInput({
     argument.label,
     getSuggestedKey,
     parameterDefinition,
+    resolveValue,
     onArgumentsChange,
     argumentIndex,
     dispatch,
