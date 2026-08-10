@@ -4,7 +4,6 @@ import {fetchMutation, QUERY_API_CLIENT} from 'sentry/utils/queryClient';
 import type {
   InvestigationBlock,
   InvestigationBlockKind,
-  InvestigationComment,
   InvestigationCreate,
   InvestigationDetail,
   InvestigationDisplay,
@@ -12,7 +11,6 @@ import type {
   InvestigationListItem,
   InvestigationPermissions,
   InvestigationExecutionState,
-  InvestigationReactionName,
   InvestigationStatus,
 } from './types';
 
@@ -21,8 +19,6 @@ const DETAIL_PATH =
   '/organizations/$organizationIdOrSlug/investigations/$investigationId/' as const;
 const PERMISSIONS_PATH =
   '/organizations/$organizationIdOrSlug/investigations/$investigationId/permissions/' as const;
-const COMMENTS_PATH =
-  '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/$blockId/comments/' as const;
 
 const organizationPath = (organizationSlug: string) => ({
   organizationIdOrSlug: organizationSlug,
@@ -90,24 +86,6 @@ export function investigationDetailQueryOptions(
 ) {
   return apiOptions.as<InvestigationPermissions>()(PERMISSIONS_PATH, {
     path: investigationPath(organizationSlug, investigationId),
-    staleTime: 0,
-  });
-}
-
-export function investigationCommentsQueryOptions({
-  blockId,
-  investigationId,
-  organizationSlug,
-}: {
-  blockId: string;
-  investigationId: string;
-  organizationSlug: string;
-}) {
-  return apiOptions.asInfinite<InvestigationComment[]>()(COMMENTS_PATH, {
-    path: {
-      ...investigationPath(organizationSlug, investigationId),
-      blockId,
-    },
     staleTime: 0,
   });
 }
@@ -298,68 +276,5 @@ export function updatePermissions(
     url: `/organizations/${organizationSlug}/investigations/${investigationId}/permissions/`,
     method: 'PUT',
     data,
-  });
-}
-
-export function createComment(
-  organizationSlug: string,
-  investigationId: string,
-  blockId: string,
-  data: {body: string; mentions: string[]}
-) {
-  return fetchMutation<InvestigationComment>({
-    url: `/organizations/${organizationSlug}/investigations/${investigationId}/blocks/${blockId}/comments/`,
-    method: 'POST',
-    data,
-  });
-}
-
-export function updateComment(
-  organizationSlug: string,
-  investigationId: string,
-  commentId: string,
-  data: {body: string; mentions: string[]}
-) {
-  return fetchMutation<InvestigationComment>({
-    url: `/organizations/${organizationSlug}/investigations/${investigationId}/comments/${commentId}/`,
-    method: 'PUT',
-    data,
-  });
-}
-
-export function deleteComment(
-  organizationSlug: string,
-  investigationId: string,
-  commentId: string
-) {
-  return fetchMutation<void>({
-    url: `/organizations/${organizationSlug}/investigations/${investigationId}/comments/${commentId}/`,
-    method: 'DELETE',
-  });
-}
-
-export function setBlockReaction(
-  organizationSlug: string,
-  investigationId: string,
-  blockId: string,
-  reaction: InvestigationReactionName,
-  enabled: boolean
-) {
-  return fetchMutation<void>({
-    url: `/organizations/${organizationSlug}/investigations/${investigationId}/blocks/${blockId}/reactions/${reaction}/`,
-    method: enabled ? 'PUT' : 'DELETE',
-  });
-}
-
-export function setCommentReaction(
-  organizationSlug: string,
-  investigationId: string,
-  commentId: string,
-  reaction: InvestigationReactionName,
-  enabled: boolean
-) {
-  return fetchMutation<void>({
-    url: `/organizations/${organizationSlug}/investigations/${investigationId}/comments/${commentId}/reactions/${reaction}/`,
-    method: enabled ? 'PUT' : 'DELETE',
   });
 }

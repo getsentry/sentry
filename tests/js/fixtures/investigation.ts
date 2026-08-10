@@ -1,6 +1,5 @@
 import type {
   InvestigationBlock,
-  InvestigationComment,
   InvestigationDetail,
   InvestigationListItem,
 } from 'sentry/views/seerNotebook/types';
@@ -50,8 +49,6 @@ export function InvestigationBlockFixture(
     staleAt: null,
     createdBy: '1',
     lastEditedBy: '1',
-    reactions: [],
-    commentCount: 0,
     ...params,
   };
 }
@@ -67,22 +64,6 @@ export function InvestigationDetailFixture(
     projectIds: [],
     parameters: [],
     blocks: [InvestigationBlockFixture()],
-    ...params,
-  };
-}
-
-export function InvestigationCommentFixture(
-  params: Partial<InvestigationComment> = {}
-): InvestigationComment {
-  return {
-    id: '3bb9c52e-a446-46fa-bd7a-fc855929c8b8',
-    body: 'I can reproduce this.',
-    author: '1',
-    dateCreated: '2020-01-03T00:00:00Z',
-    dateUpdated: '2020-01-03T00:00:00Z',
-    deletedAt: null,
-    mentions: [],
-    reactions: [],
     ...params,
   };
 }

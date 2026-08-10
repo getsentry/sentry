@@ -9,22 +9,6 @@ export type InvestigationBlockKind = 'text' | 'query';
   | 'bar'
   | 'area';
 
-export type InvestigationReactionName =
-  | 'thumbs-up'
-  | 'thumbs-down'
-  | 'laugh'
-  | 'hooray'
-  | 'confused'
-  | 'heart'
-  | 'rocket'
-  | 'eyes';
-
-export type InvestigationReaction = {
-  count: number;
-  reactedByMe: boolean;
-  reaction: InvestigationReactionName;
-};
-
 export type InvestigationDisplay = {
   type: InvestigationDisplayType;
   axisLabel?: string;
@@ -159,7 +143,6 @@ export type InvestigationParameter = {
 };
 
 export type InvestigationBlock = {
-  commentCount: number;
   config: Record<string, unknown>;
   content: string;
   createdBy: string | null;
@@ -174,7 +157,6 @@ export type InvestigationBlock = {
   outputStatus: string;
   parameterKeys: string[];
   position: number;
-  reactions: InvestigationReaction[];
   staleAt: string | null;
   title: string;
   version: number;
@@ -218,22 +200,6 @@ export type InvestigationDetail = InvestigationListItem & {
   titleGeneration?: {status: string | null};
 };
 
-export type InvestigationMention = {
-  id: string;
-  type: 'user' | 'team';
-};
-
-export type InvestigationComment = {
-  author: string | null;
-  body: string | null;
-  dateCreated: string;
-  dateUpdated: string;
-  deletedAt: string | null;
-  id: string;
-  mentions: InvestigationMention[];
-  reactions: InvestigationReaction[];
-};
-
 /** @public */ export type ManualInvestigationCreate = {
   title: string;
   filters?: InvestigationFilters;
@@ -249,18 +215,3 @@ export type InvestigationComment = {
 };
 
 export type InvestigationCreate = ManualInvestigationCreate | TemplateInvestigationCreate;
-
-export const INVESTIGATION_REACTIONS: ReadonlyArray<{
-  emoji: string;
-  label: string;
-  value: InvestigationReactionName;
-}> = [
-  {value: 'thumbs-up', emoji: '👍', label: 'Thumbs up'},
-  {value: 'thumbs-down', emoji: '👎', label: 'Thumbs down'},
-  {value: 'laugh', emoji: '😄', label: 'Laugh'},
-  {value: 'hooray', emoji: '🎉', label: 'Hooray'},
-  {value: 'confused', emoji: '😕', label: 'Confused'},
-  {value: 'heart', emoji: '❤️', label: 'Heart'},
-  {value: 'rocket', emoji: '🚀', label: 'Rocket'},
-  {value: 'eyes', emoji: '👀', label: 'Eyes'},
-];

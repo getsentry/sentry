@@ -324,7 +324,7 @@ describe('NotebookStore', () => {
     store.dispose();
   });
 
-  it('applies remote insertion, order, reactions, and deletion through one boundary', async () => {
+  it('applies remote insertion, order, and deletion through one boundary', async () => {
     const detail = InvestigationDetailFixture();
     const {store} = makeStore(detail);
     await store.load();
@@ -344,25 +344,15 @@ describe('NotebookStore', () => {
       kind: 'blocks.reordered',
       sequence: 2,
     });
-    store.applyRemoteEvent({
-      blockId: inserted.id,
-      eventId: 'reaction',
-      kind: 'block.reactions.updated',
-      payload: [{reaction: 'heart', count: 2, reactedByMe: true}],
-      sequence: 3,
-    });
-
     expect(store.blocksInOrder.map(block => block.serverId)).toEqual([
       inserted.id,
       original.serverId,
     ]);
-    expect(store.blocksInOrder[0]!.reactions).toHaveLength(1);
-
     store.applyRemoteEvent({
       blockId: inserted.id,
       eventId: 'delete',
       kind: 'block.deleted',
-      sequence: 4,
+      sequence: 3,
     });
     expect(store.findBlockByServerId(inserted.id)).toBeUndefined();
   });
