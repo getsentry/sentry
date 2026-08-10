@@ -46,7 +46,7 @@ class InvestigationPermission(OrganizationPermission):
             return True
         if request.method == "GET":
             return True
-        if getattr(view, "collaboration_endpoint", False):
+        if not getattr(view, "requires_investigation_edit_access", True):
             return True
         if getattr(view, "manager_or_creator_only", False):
             return is_organization_manager(request, obj.organization) or (
