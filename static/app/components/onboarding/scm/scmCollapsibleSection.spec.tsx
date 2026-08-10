@@ -14,6 +14,20 @@ describe('ScmCollapsibleSection', () => {
     expect(screen.getByText('Body content')).toBeInTheDocument();
   });
 
+  it('allows content to overflow when expanded by default', () => {
+    render(
+      <ScmCollapsibleSection title="Section title">
+        <div>Body content</div>
+      </ScmCollapsibleSection>
+    );
+
+    const toggle = screen.getByRole('button', {name: 'Section title'});
+    const contentId = toggle.getAttribute('aria-controls');
+
+    expect(contentId).not.toBeNull();
+    expect(document.getElementById(contentId!)).toHaveStyle({overflow: 'visible'});
+  });
+
   it('starts collapsed when defaultExpanded is false', () => {
     render(
       <ScmCollapsibleSection title="Section title" defaultExpanded={false}>
