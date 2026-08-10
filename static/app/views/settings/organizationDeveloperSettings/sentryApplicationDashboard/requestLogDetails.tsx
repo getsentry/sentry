@@ -13,8 +13,6 @@ import {JsonEventData} from 'sentry/components/structuredEventData/jsonEventData
 import {t} from 'sentry/locale';
 import type {SentryAppWebhookRequest} from 'sentry/types/integrations';
 import {shouldUse24Hours} from 'sentry/utils/dates';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {decodeWebhookBody} from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard/decodeWebhookBody';
 import {ResponseCode} from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard/requestLog';
 
@@ -41,11 +39,7 @@ function BodySection({title, body}: {body: string; title: string}) {
 }
 
 function RequestLogDetails({request}: {request: SentryAppWebhookRequest}) {
-  const {error_id, project_id, request_body, request_headers, response_body} = request;
-
-  const project = useProjectFromId({
-    project_id: project_id ? String(project_id) : undefined,
-  });
+  const {request_body, request_headers, response_body} = request;
 
   const summaryItems: KeyValueDataContentProps[] = [
     {
@@ -78,36 +72,6 @@ function RequestLogDetails({request}: {request: SentryAppWebhookRequest}) {
       disableFormattedData: true,
     },
   ];
-
-  if (request.organization) {
-    summaryItems.push({
-      item: {
-        key: 'organization',
-        subject: t('Organization'),
-        value: request.organization.name,
-      },
-      disableFormattedData: true,
-    });
-  }
-
-  if (error_id) {
-    summaryItems.push({
-      item: {
-        key: 'error_id',
-        subject: t('Linked Error'),
-        value: error_id,
-        action:
-          project && request.organization
-            ? {
-                link: normalizeUrl(
-                  `/${request.organization.slug}/${project.slug}/events/${error_id}/`
-                ),
-              }
-            : undefined,
-      },
-      disableFormattedData: true,
-    });
-  }
 
   const headerItems: KeyValueDataContentProps[] = Object.entries(
     request_headers ?? {}

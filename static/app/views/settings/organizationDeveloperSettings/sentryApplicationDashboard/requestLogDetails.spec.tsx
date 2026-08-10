@@ -1,4 +1,3 @@
-import {ProjectFixture} from 'sentry-fixture/project';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 import {SentryAppWebhookRequestFixture} from 'sentry-fixture/sentryAppWebhookRequest';
 
@@ -102,29 +101,6 @@ describe('RequestLog details drawer', () => {
 
     expect(within(drawer).getByText('{"detail":"something went')).toBeInTheDocument();
     expect(within(drawer).getByText('(truncated)')).toBeInTheDocument();
-  });
-
-  it('links a captured error to its event when the project resolves', async () => {
-    ProjectsStore.loadInitialData([ProjectFixture({id: '7', slug: 'my-project'})]);
-    mockRequests(SentryAppWebhookRequestFixture({error_id: 'abc123', project_id: 7}));
-    render(<RequestLog app={sentryApp} />);
-
-    const drawer = await openDrawer();
-
-    expect(within(drawer).getByRole('link', {name: 'abc123'})).toHaveAttribute(
-      'href',
-      '/test-org/my-project/events/abc123/'
-    );
-  });
-
-  it('shows the error id as text when the project is unknown', async () => {
-    mockRequests(SentryAppWebhookRequestFixture({error_id: 'abc123', project_id: 7}));
-    render(<RequestLog app={sentryApp} />);
-
-    const drawer = await openDrawer();
-
-    expect(within(drawer).getByText('abc123')).toBeInTheDocument();
-    expect(within(drawer).queryByRole('link', {name: 'abc123'})).not.toBeInTheDocument();
   });
 
   it('shows only the summary for a request with no captured detail', async () => {

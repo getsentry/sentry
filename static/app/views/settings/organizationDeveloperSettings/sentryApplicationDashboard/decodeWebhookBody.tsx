@@ -1,8 +1,7 @@
 /**
  * Bodies in the webhook request buffer are currently double-encoded (`json.dumps()`
- * applied to a string that was already JSON) and truncated *after* encoding, with
- * no flag recording that it happened. Entries live for 30 days, so this needs to
- * exist until 30d after a fix to that.
+ * applied to a string that was already JSON) and truncated after encoding, with no
+ * flag recording that it happened.
  */
 export interface DecodedWebhookBody {
   maybeTruncated: boolean;
