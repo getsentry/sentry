@@ -79,6 +79,22 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.hostname import instance_hostname
+from sentry.investigations.models import (
+    Investigation,
+    InvestigationBlock,
+    InvestigationBlockDependency,
+    InvestigationBlockExecution,
+    InvestigationBlockExecutionProject,
+    InvestigationBlockParameter,
+    InvestigationCell,
+    InvestigationCellDependency,
+    InvestigationCellExecution,
+    InvestigationCellExecutionProject,
+    InvestigationCellParameter,
+    InvestigationFavoriteUser,
+    InvestigationParameter,
+    InvestigationProject,
+)
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.grouptype import get_group_type_by_type_id
@@ -408,6 +424,92 @@ def _set_sample_rate_from_error_sampling(normalized_data: MutableMapping[str, An
 
 # TODO(dcramer): consider moving to something more scalable like factoryboy
 class Factories:
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation(organization, created_by=None, **kwargs):
+        return Investigation.objects.create(
+            organization=organization,
+            created_by_id=created_by.id if created_by else None,
+            **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_project(investigation, project):
+        return InvestigationProject.objects.create(investigation=investigation, project=project)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_favorite(investigation, user):
+        return InvestigationFavoriteUser.objects.create(
+            investigation=investigation, user_id=user.id
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_cell(investigation, position=0, kind="text", **kwargs):
+        return InvestigationCell.objects.create(
+            investigation=investigation, position=position, kind=kind, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_block(investigation, position=0, kind="text", **kwargs):
+        return InvestigationBlock.objects.create(
+            investigation=investigation, position=position, kind=kind, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_cell_dependency(cell, depends_on):
+        return InvestigationCellDependency.objects.create(cell=cell, depends_on=depends_on)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_block_dependency(block, depends_on):
+        return InvestigationBlockDependency.objects.create(block=block, depends_on=depends_on)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_parameter(investigation, **kwargs):
+        return InvestigationParameter.objects.create(investigation=investigation, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_cell_parameter(cell, parameter, **kwargs):
+        return InvestigationCellParameter.objects.create(cell=cell, parameter=parameter, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_block_parameter(block, parameter, **kwargs):
+        return InvestigationBlockParameter.objects.create(
+            block=block, parameter=parameter, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_cell_execution(cell, **kwargs):
+        return InvestigationCellExecution.objects.create(cell=cell, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_block_execution(block, **kwargs):
+        return InvestigationBlockExecution.objects.create(block=block, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_cell_execution_project(execution, project):
+        return InvestigationCellExecutionProject.objects.create(
+            execution=execution, project=project
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_block_execution_project(execution, project):
+        return InvestigationBlockExecutionProject.objects.create(
+            execution=execution, project=project
+        )
+
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
     def create_organization(name=None, owner=None, cell: Cell | str | None = None, **kwargs):

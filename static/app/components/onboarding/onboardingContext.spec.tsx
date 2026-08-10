@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -7,6 +8,7 @@ import {
   OnboardingContextProvider,
   useOnboardingContext,
 } from 'sentry/components/onboarding/onboardingContext';
+import type {ScmMessagingSetup} from 'sentry/components/onboarding/scm/scmMessagingSetup';
 
 const platform = {
   key: 'javascript-nextjs' as const,
@@ -17,8 +19,16 @@ const platform = {
   category: 'browser' as const,
 };
 
+const selectedMessagingSetup = {
+  mode: 'selected',
+  providerKey: 'slack',
+  integrationId: '15',
+  channelId: 'C123',
+} as const satisfies ScmMessagingSetup;
+
 function StateConsumer() {
   const {
+    messagingSetup,
     selectedRepository,
     selectedPlatform,
     selectedFeatures,
@@ -32,9 +42,43 @@ function StateConsumer() {
       <div>
         {selectedFeatures ? `features:${selectedFeatures.length}` : 'no-features'}
       </div>
+      <div>{`messaging:${messagingSetup.mode}`}</div>
       <button onClick={() => setSelectedPlatform(undefined)}>Clear platform</button>
       <button onClick={() => resetOnboarding()}>Reset onboarding</button>
     </div>
+  );
+}
+
+function ExitConsumer({onExit}: {onExit: () => void}) {
+  const {discardOnboardingSession} = useOnboardingContext();
+  return (
+    <button
+      onClick={() => {
+        discardOnboardingSession();
+        onExit();
+      }}
+    >
+      Leave flow
+    </button>
+  );
+}
+
+/**
+ * Mirrors leaving the onboarding flow: one click both clears the session and
+ * unmounts the provider, giving React no render in which to process a pending
+ * state update.
+ */
+function ExitFlowHarness() {
+  const [inFlow, setInFlow] = useState(true);
+
+  if (!inFlow) {
+    return <div>left the flow</div>;
+  }
+
+  return (
+    <OnboardingContextProvider>
+      <ExitConsumer onExit={() => setInFlow(false)} />
+    </OnboardingContextProvider>
   );
 }
 
@@ -62,6 +106,7 @@ describe('OnboardingContextProvider', () => {
     expect(await screen.findByText('no-repo')).toBeInTheDocument();
     expect(screen.getByText('no-platform')).toBeInTheDocument();
     expect(screen.getByText('no-features')).toBeInTheDocument();
+    expect(screen.getByText('messaging:unconfigured')).toBeInTheDocument();
   });
 
   it('keeps a resolved repository and its derived state on load', () => {
@@ -71,6 +116,7 @@ describe('OnboardingContextProvider', () => {
           selectedRepository: RepositoryFixture({id: '42'}),
           selectedPlatform: platform,
           selectedFeatures: [ProductSolution.ERROR_MONITORING],
+          messagingSetup: selectedMessagingSetup,
         }}
       >
         <StateConsumer />
@@ -80,6 +126,37 @@ describe('OnboardingContextProvider', () => {
     expect(screen.getByText('repo:42')).toBeInTheDocument();
     expect(screen.getByText('platform:javascript-nextjs')).toBeInTheDocument();
     expect(screen.getByText('features:1')).toBeInTheDocument();
+    expect(screen.getByText('messaging:selected')).toBeInTheDocument();
+  });
+
+  it('restores messaging setup from session storage after a remount', () => {
+    sessionStorage.setItem(
+      'onboarding',
+      JSON.stringify({
+        messagingSetup: {
+          mode: 'selected',
+          providerKey: 'discord',
+          integrationId: '20',
+          channelId: '123456789',
+        },
+      })
+    );
+
+    const firstRender = render(
+      <OnboardingContextProvider>
+        <StateConsumer />
+      </OnboardingContextProvider>
+    );
+    expect(screen.getByText('messaging:selected')).toBeInTheDocument();
+
+    firstRender.unmount();
+    render(
+      <OnboardingContextProvider>
+        <StateConsumer />
+      </OnboardingContextProvider>
+    );
+
+    expect(screen.getByText('messaging:selected')).toBeInTheDocument();
   });
 });
 
@@ -94,6 +171,7 @@ describe('OnboardingContextProvider session semantics', () => {
         initialValue={{
           selectedRepository: RepositoryFixture({id: '42'}),
           selectedPlatform: platform,
+          messagingSetup: selectedMessagingSetup,
         }}
       >
         <StateConsumer />
@@ -103,12 +181,15 @@ describe('OnboardingContextProvider session semantics', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Clear platform'}));
 
     // Clearing one field must stay local to that field. This previously routed
-    // through removeOnboarding and wiped the whole session, taking the
-    // connected repository with it.
+    // through removeOnboarding and wiped the whole session, taking the connected
+    // repository with it. Messaging destinations are organization-scoped, so they
+    // must survive a platform change too.
     expect(screen.getByText('no-platform')).toBeInTheDocument();
     expect(screen.getByText('repo:42')).toBeInTheDocument();
+    expect(screen.getByText('messaging:selected')).toBeInTheDocument();
     expect(JSON.parse(sessionStorage.getItem('onboarding') ?? '{}')).toMatchObject({
       selectedRepository: {id: '42'},
+      messagingSetup: selectedMessagingSetup,
     });
   });
 
@@ -136,6 +217,31 @@ describe('OnboardingContextProvider session semantics', () => {
 
     expect(screen.getByText('no-platform')).toBeInTheDocument();
     expect(screen.getByText('no-repo')).toBeInTheDocument();
+    expect(sessionStorage.getItem('onboarding')).toBeNull();
+  });
+
+  it('clears persisted session state when the provider unmounts in the same commit', async () => {
+    // Leaving the flow clears the session and navigates away in one click, so
+    // the provider unmounts in that same commit. resetOnboarding cannot be used
+    // for this: useSessionStorage's removeItem performs the storage removal
+    // inside a setState updater, and React drops the update — and the removal
+    // with it — when the owning subtree unmounts before the queue is processed.
+    // Verified in a browser: skipping from scm-platform-features and
+    // scm-messaging left the session behind, so the next /onboarding visit
+    // silently resumed from it.
+    sessionStorage.setItem(
+      'onboarding',
+      JSON.stringify({
+        selectedRepository: RepositoryFixture({id: '42'}),
+        selectedPlatform: platform,
+      })
+    );
+
+    render(<ExitFlowHarness />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Leave flow'}));
+
+    expect(screen.getByText('left the flow')).toBeInTheDocument();
     expect(sessionStorage.getItem('onboarding')).toBeNull();
   });
 });

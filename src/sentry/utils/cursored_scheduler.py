@@ -73,6 +73,10 @@ that stops qualifying mid-cycle is still dispatched until the next snapshot.
 Getting the rows rather than their PKs means a check that needs more than the PK —
 a feature flag, an option — does not have to fetch them back. Setting it makes the
 cycle-start query load full rows instead of the PK column alone.
+
+By default, the scheduler snapshots PKs in ascending PK order. Set
+preserve_queryset_order=True to retain an explicit, deterministic ordering on
+the queryset instead.
 """
 
 from __future__ import annotations
@@ -146,7 +150,9 @@ class CursoredScheduler[M: Model]:
     Batch size is auto-calculated at the start of each cycle based on the total
     row count, cycle_duration, and the tick interval from the schedule config,
     so that one full pass through the queryset completes within approximately
-    cycle_duration.
+    cycle_duration. By default, snapshots are ordered by PK. Set
+    preserve_queryset_order=True to retain an explicit, deterministic queryset
+    ordering instead.
     """
 
     def __init__(
@@ -160,6 +166,7 @@ class CursoredScheduler[M: Model]:
         validate_item: Callable[[int], bool] | None = None,
         prevalidate_batch: Callable[[Sequence[M]], Collection[int]] | None = None,
         shuffle: bool = False,
+        preserve_queryset_order: bool = False,
     ):
         self.name = name
         self.schedule_key = schedule_key
@@ -177,6 +184,7 @@ class CursoredScheduler[M: Model]:
         self.validate_item = validate_item
         self.prevalidate_batch = prevalidate_batch
         self.shuffle = shuffle
+        self.preserve_queryset_order = preserve_queryset_order
         self._metric_tags = {"scheduler": name}
 
     @property
@@ -254,13 +262,11 @@ class CursoredScheduler[M: Model]:
 
         return True
 
-    def _prevalidated_pks(self) -> list[int]:
+    def _prevalidated_pks(self, queryset: QuerySet[M]) -> list[int]:
         """
         Apply the batch prevalidation function to the queryset.
         If no prevalidation function is provided, return the PKs in queryset order.
         """
-        queryset = self.queryset.order_by("pk")
-
         if self.prevalidate_batch is None:
             return list(queryset.values_list("pk", flat=True))
 
@@ -270,8 +276,11 @@ class CursoredScheduler[M: Model]:
 
     def _initialize_cycle(self) -> int:
         init_start = time.time()
+        queryset = self.queryset
+        if not self.preserve_queryset_order:
+            queryset = queryset.order_by("pk")
 
-        all_pks = self._prevalidated_pks()
+        all_pks = self._prevalidated_pks(queryset)
 
         if self.shuffle:
             random.shuffle(all_pks)
