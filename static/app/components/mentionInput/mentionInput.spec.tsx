@@ -2,12 +2,9 @@ import {useState} from 'react';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {
-  MentionInput,
-  type Mention,
-  type MentionInputValue,
-  type MentionSource,
-} from 'sentry/components/mentionInput';
+import {MentionInput} from 'sentry/components/mentionInput/mentionInput';
+import type {Mention, MentionInputValue} from 'sentry/components/mentionInput/model';
+import type {MentionSource} from 'sentry/components/mentionInput/types';
 
 interface PersonSuggestion {
   id: string;

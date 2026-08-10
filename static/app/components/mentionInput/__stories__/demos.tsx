@@ -1,94 +1,49 @@
-import {useMemo, useState} from 'react';
+import {useState} from 'react';
 
-import {TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
-import {Flex, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Stack} from '@sentry/scraps/layout';
 
-import {
-  type Mention,
-  MentionInput,
-  type MentionInputValue,
-  type MentionSource,
-} from 'sentry/components/mentionInput';
-import type {Actor} from 'sentry/types/core';
-import type {Team} from 'sentry/types/organization';
+import {MentionInput} from 'sentry/components/mentionInput/mentionInput';
+import type {Mention, MentionInputValue} from 'sentry/components/mentionInput/model';
+import type {MentionSource} from 'sentry/components/mentionInput/types';
 
-type IdentitySuggestion =
-  | {id: string; kind: 'member'; label: string; user: Actor}
-  | {id: string; kind: 'team'; label: string; team: Team};
-
-interface ServiceSuggestion {
+interface Suggestion {
   id: string;
-  name: string;
+  label: string;
 }
 
-const PEOPLE: readonly IdentitySuggestion[] = [
-  'Alice Example',
-  'Alex Engineer',
-  'Sam Designer',
-].map((name, index) => ({
-  id: `user:${index + 1}`,
-  kind: 'member',
-  label: name,
-  user: {id: String(index + 1), name, type: 'user'},
-}));
+const PEOPLE: readonly Suggestion[] = [
+  {id: 'user:1', label: 'Alice Example'},
+  {id: 'user:2', label: 'Alex Engineer'},
+  {id: 'user:3', label: 'Sam Designer'},
+];
 
-const TEAMS: readonly IdentitySuggestion[] = [
-  'frontend',
-  'design-systems',
-  'performance',
-].map((slug, index) => {
-  const team = {
-    id: String(index + 1),
-    slug,
-    name: slug,
-    avatar: {avatarType: 'letter_avatar', avatarUuid: null},
-    access: [],
-    externalTeams: [],
-    flags: {'idp:provisioned': false},
-    hasAccess: true,
-    isMember: true,
-    isPending: false,
-    memberCount: 8,
-    teamRole: null,
-  } satisfies Team;
+const TEAMS: readonly Suggestion[] = [
+  {id: 'team:1', label: '#frontend'},
+  {id: 'team:2', label: '#design-systems'},
+  {id: 'team:3', label: '#performance'},
+];
 
-  return {id: `team:${team.id}`, kind: 'team', label: `#${team.slug}`, team};
-});
-
-const IDENTITY_SOURCES: ReadonlyArray<MentionSource<IdentitySuggestion>> = [
+const SOURCES: ReadonlyArray<MentionSource<Suggestion>> = [
   {
     id: 'members',
     label: 'Members',
     trigger: '@',
-    getSuggestions: query =>
-      PEOPLE.filter(suggestion =>
-        suggestion.label.toLocaleLowerCase().includes(query.toLocaleLowerCase())
-      ),
+    getSuggestions: query => filterSuggestions(PEOPLE, query),
     getId: suggestion => suggestion.id,
     getText: suggestion => `@${suggestion.label}`,
-    renderSuggestion: suggestion => (
-      <SuggestionIdentity suggestion={suggestion} description="Member" />
-    ),
   },
   {
     id: 'teams',
     label: 'Teams',
     trigger: '#',
-    getSuggestions: query =>
-      TEAMS.filter(suggestion =>
-        suggestion.label.toLocaleLowerCase().includes(query.toLocaleLowerCase())
-      ),
+    getSuggestions: query => filterSuggestions(TEAMS, query),
     getId: suggestion => suggestion.id,
     getText: suggestion => suggestion.label,
-    renderSuggestion: suggestion => (
-      <SuggestionIdentity suggestion={suggestion} description="Team" />
-    ),
   },
 ];
 
 const RESTORED_TEXT = 'Continue with @Alice Example on the checkout regression.';
-const RESTORED_MENTION_TEXT = `@${PEOPLE[0]!.label}`;
+const RESTORED_MENTION_TEXT = '@Alice Example';
 const RESTORED_MENTION_START = RESTORED_TEXT.indexOf(RESTORED_MENTION_TEXT);
 const RESTORED_MENTIONS = [
   {
@@ -100,31 +55,24 @@ const RESTORED_MENTIONS = [
   },
 ] satisfies readonly Mention[];
 
-function SuggestionIdentity({
-  suggestion,
-  description,
-}: {
-  description: string;
-  suggestion: IdentitySuggestion;
-}) {
-  return (
-    <Flex as="span" align="center" gap="xs">
-      <span aria-hidden="true">
-        {suggestion.kind === 'member' ? (
-          <UserAvatar user={suggestion.user} size={16} hasTooltip={false} />
-        ) : (
-          <TeamAvatar team={suggestion.team} size={16} hasTooltip={false} />
-        )}
-      </span>
-      <Stack as="span" gap="0">
-        <Text as="span" size="sm">
-          {suggestion.label}
-        </Text>
-        <Text as="span" size="xs" variant="muted">
-          {description}
-        </Text>
-      </Stack>
-    </Flex>
+const REMOTE_SOURCES: ReadonlyArray<MentionSource<Suggestion>> = [
+  {
+    id: 'remote-members',
+    label: 'Remote members',
+    trigger: '@',
+    getSuggestions: async (query, {signal}) => {
+      await waitForDelay(500, signal);
+      return filterSuggestions(PEOPLE, query);
+    },
+    getId: suggestion => suggestion.id,
+    getText: suggestion => `@${suggestion.label}`,
+  },
+];
+
+function filterSuggestions(suggestions: readonly Suggestion[], query: string) {
+  const normalizedQuery = query.toLocaleLowerCase();
+  return suggestions.filter(suggestion =>
+    suggestion.label.toLocaleLowerCase().includes(normalizedQuery)
   );
 }
 
@@ -149,11 +97,11 @@ export function MentionInputDemo() {
   });
 
   return (
-    <Stack gap="md" width="100%" maxWidth="720px">
+    <Stack width="100%" maxWidth="720px">
       <MentionInput
         aria-label="Comment"
         minHeight={120}
-        sources={IDENTITY_SOURCES}
+        sources={SOURCES}
         value={value}
         onChange={setValue}
       />
@@ -168,11 +116,11 @@ export function RestoredMentionInputDemo() {
   });
 
   return (
-    <Stack gap="md" width="100%" maxWidth="720px">
+    <Stack width="100%" maxWidth="720px">
       <MentionInput
         aria-label="Restored comment"
         minHeight={100}
-        sources={IDENTITY_SOURCES}
+        sources={SOURCES}
         value={value}
         onChange={setValue}
       />
@@ -185,76 +133,14 @@ export function AsyncMentionInputDemo() {
     text: 'Search remote members with ',
     mentions: [],
   });
-  const sources = useMemo<ReadonlyArray<MentionSource<IdentitySuggestion>>>(
-    () => [
-      {
-        id: 'remote-members',
-        label: 'Remote members',
-        trigger: '@',
-        getSuggestions: async (query, {signal}) => {
-          await waitForDelay(500, signal);
-          if (query.toLocaleLowerCase() === 'error') {
-            throw new Error('Simulated request failure');
-          }
-          return PEOPLE.filter(suggestion =>
-            suggestion.label.toLocaleLowerCase().includes(query.toLocaleLowerCase())
-          );
-        },
-        getId: suggestion => suggestion.id,
-        getText: suggestion => `@${suggestion.label}`,
-        renderSuggestion: suggestion => (
-          <SuggestionIdentity suggestion={suggestion} description="Remote member" />
-        ),
-      },
-    ],
-    []
-  );
 
   return (
-    <Stack gap="md" width="100%" maxWidth="720px">
+    <Stack width="100%" maxWidth="720px">
       <MentionInput
         aria-label="Remote member search"
-        sources={sources}
+        sources={REMOTE_SOURCES}
         value={value}
         onChange={setValue}
-      />
-    </Stack>
-  );
-}
-
-export function CustomSourceDemo() {
-  const [value, setValue] = useState<MentionInputValue>({
-    text: 'Route this trace to ',
-    mentions: [],
-  });
-  const sources = useMemo<ReadonlyArray<MentionSource<ServiceSuggestion>>>(
-    () => [
-      {
-        id: 'services',
-        label: 'Services',
-        trigger: '~',
-        getSuggestions: query =>
-          [
-            {id: 'checkout', name: 'checkout'},
-            {id: 'payments', name: 'payments'},
-            {id: 'profiles', name: 'profiles'},
-          ].filter(service => service.name.includes(query.toLocaleLowerCase())),
-        getId: service => service.id,
-        getText: service => `~${service.name}`,
-        renderSuggestion: service => service.name,
-      },
-    ],
-    []
-  );
-
-  return (
-    <Stack gap="md" width="100%" maxWidth="720px">
-      <MentionInput
-        aria-label="Service routing"
-        sources={sources}
-        value={value}
-        onChange={setValue}
-        getMentionTextProps={() => ({bold: false, monospace: true, variant: 'accent'})}
       />
     </Stack>
   );

@@ -1,11 +1,7 @@
-import {useState} from 'react';
-
-import {CodeBlock} from '@sentry/scraps/code';
 import {Stack} from '@sentry/scraps/layout';
 
-import {MentionComposer} from 'sentry/components/activity/note/mentionComposer';
-import type {MentionSource} from 'sentry/components/mentionInput';
-import type {NoteType} from 'sentry/types/alerts';
+import {MentionComposer} from 'sentry/components/activity/note/mentionComposer/mentionComposer';
+import type {MentionSource} from 'sentry/components/mentionInput/types';
 
 interface Suggestion {
   id: string;
@@ -46,20 +42,9 @@ const SOURCES: ReadonlyArray<MentionSource<Suggestion>> = [
 ];
 
 export function MentionComposerDemo() {
-  const [submission, setSubmission] = useState<NoteType | null>(null);
-
   return (
-    <Stack gap="md" width="100%" maxWidth="720px">
-      <MentionComposer
-        sources={SOURCES}
-        onSubmit={data => {
-          setSubmission(data);
-          return Promise.resolve();
-        }}
-      />
-      <CodeBlock language="json">
-        {JSON.stringify(submission ?? {text: '', mentions: []}, null, 2)}
-      </CodeBlock>
+    <Stack width="100%" maxWidth="720px">
+      <MentionComposer sources={SOURCES} onSubmit={() => Promise.resolve()} />
     </Stack>
   );
 }

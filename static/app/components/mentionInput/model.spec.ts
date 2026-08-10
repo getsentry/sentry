@@ -2,7 +2,7 @@ import {
   type Mention,
   normalizeMentionInputValue,
   reconcileMentions,
-} from 'sentry/components/mentionInput';
+} from 'sentry/components/mentionInput/model';
 
 const MENTION: Mention = {
   id: 'user:1',

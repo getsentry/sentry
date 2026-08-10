@@ -13,12 +13,9 @@ import {Markdown} from '@sentry/scraps/markdown';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Text} from '@sentry/scraps/text';
 
-import {
-  type Mention,
-  MentionInput,
-  type MentionInputValue,
-  type MentionSource,
-} from 'sentry/components/mentionInput';
+import {MentionInput} from 'sentry/components/mentionInput/mentionInput';
+import type {Mention, MentionInputValue} from 'sentry/components/mentionInput/model';
+import type {MentionSource} from 'sentry/components/mentionInput/types';
 import {IconMarkdown} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';

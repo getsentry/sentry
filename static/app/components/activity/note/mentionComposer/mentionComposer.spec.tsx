@@ -3,8 +3,8 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {MentionComposer} from 'sentry/components/activity/note/mentionComposer';
-import type {MentionSource} from 'sentry/components/mentionInput';
+import {MentionComposer} from 'sentry/components/activity/note/mentionComposer/mentionComposer';
+import type {MentionSource} from 'sentry/components/mentionInput/types';
 
 interface Suggestion {
   id: string;

@@ -1,19 +1,19 @@
 ---
 title: Mention Input
 description: A controlled, composable editor for structured inline references.
-source: sentry/components/mentionInput
+source: sentry/components/mentionInput/mentionInput
 ---
 
 import * as Storybook from 'sentry/stories';
 
 import {
   AsyncMentionInputDemo,
-  CustomSourceDemo,
   MentionInputDemo,
   RestoredMentionInputDemo,
 } from './__stories__/demos';
 
-export const documentation = import('!!type-loader!sentry/components/mentionInput');
+export const documentation =
+  import('!!type-loader!sentry/components/mentionInput/mentionInput');
 
 `<MentionInput>` keeps editable text and structured references in one controlled value. Sources provide their own data, identity, inserted text, and suggestion presentation.
 
@@ -21,7 +21,7 @@ export const documentation = import('!!type-loader!sentry/components/mentionInpu
 
 This example combines local member and team sources. Selected references remain editable and are emphasized while their range is valid.
 
-When sources use different suggestion shapes, model the source collection as a discriminated union. Suggestion objects remain source-local; the controlled editor value only stores stable IDs and text ranges.
+Suggestion objects stay within their source. The controlled value stores only stable IDs and text ranges.
 
 <Storybook.Demo overflow="visible">
   <MentionInputDemo />
@@ -43,12 +43,4 @@ Use `maxSuggestions` to bound the collection and `renderSuggestionStatus` when a
 
 <Storybook.Demo overflow="visible">
   <AsyncMentionInputDemo />
-</Storybook.Demo>
-
-## Adapt it to another domain
-
-Sources are not limited to people. This example uses `~` to reference services and customizes the inline text presentation.
-
-<Storybook.Demo overflow="visible">
-  <CustomSourceDemo />
 </Storybook.Demo>
