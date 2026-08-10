@@ -3018,6 +3018,7 @@ class Factories:
         response = requests.post(
             settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
             files={"item_0": trace_item.SerializeToString()},
+            timeout=30,
         )
         assert response.status_code == 200
 

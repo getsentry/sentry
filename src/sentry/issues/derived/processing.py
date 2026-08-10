@@ -101,16 +101,22 @@ def _ensure_derived(group_id: int, pipeline_hash: str) -> GroupDerivedData:
         pass
 
     try:
-        derived, _created = GroupDerivedData.objects.get_or_create(
-            group_id=group_id,
-            defaults={
-                "cursor_date": EPOCH,
-                "cursor_id": 0,
-                "data": {},
-                "pipeline_hash": pipeline_hash,
-            },
-        )
+        # Contain a possible database error so an enclosing transaction remains usable.
+        with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
+            derived, _created = GroupDerivedData.objects.get_or_create(
+                group_id=group_id,
+                defaults={
+                    "cursor_date": EPOCH,
+                    "cursor_id": 0,
+                    "data": {},
+                    "pipeline_hash": pipeline_hash,
+                },
+            )
     except IntegrityError:
+        # get_or_create() retries get() after an IntegrityError and suppresses the
+        # error when a concurrent insert created the row. An error escaping it is
+        # therefore not the group_id uniqueness race, but another constraint. With
+        # this model's current constraints, that is a missing Group foreign key.
         raise Group.DoesNotExist(f"Group {group_id} does not exist")
     return derived
 
@@ -279,8 +285,7 @@ def process_group_log(
     """
     p = pipeline or PIPELINE
 
-    with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
-        derived = _ensure_derived(group_id, p.pipeline_hash)
+    derived = _ensure_derived(group_id, p.pipeline_hash)
 
     if timeout is not None:
         drained = _drain_log(
@@ -326,8 +331,7 @@ def trigger_group_log_processing(group_id: int, *, strategy: ProcessingStrategy)
 
     with metrics.timer("issues.derived.inline_processing"):
         try:
-            with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
-                derived = _ensure_derived(group_id, pipeline.pipeline_hash)
+            derived = _ensure_derived(group_id, pipeline.pipeline_hash)
         except ObjectDoesNotExist:
             return
 

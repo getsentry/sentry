@@ -482,6 +482,12 @@ describe('MetricsTabContent', () => {
     setupPageFilters();
 
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      method: 'GET',
+      body: validationBody,
+    });
+
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
       body: {data: []},

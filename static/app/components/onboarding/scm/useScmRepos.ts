@@ -30,6 +30,7 @@ export function useScmRepos(integrationId: string, selectedRepo?: Repository) {
         dropdownItems: Array<{
           disabled: boolean;
           label: string;
+          textValue: string;
           value: string;
         }>;
         reposByIdentifier: Map<string, IntegrationRepository>;
@@ -39,6 +40,9 @@ export function useScmRepos(integrationId: string, selectedRepo?: Repository) {
           acc.dropdownItems.push({
             value: repo.identifier,
             label: repo.name,
+            // The identifier includes the organization slug, which is not
+            // visible in the selector and should not affect search results.
+            textValue: repo.name,
             disabled: repo.identifier === selectedRepoSlug,
           });
           return acc;

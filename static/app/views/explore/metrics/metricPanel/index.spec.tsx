@@ -75,6 +75,20 @@ function setupMocks(orgSlug: string) {
   });
 
   MockApiClient.addMockResponse({
+    url: `/organizations/${orgSlug}/events/validate/`,
+    method: 'GET',
+    body: {
+      dataset: [],
+      environment: [],
+      field: [],
+      orderby: [],
+      projects: [],
+      query: {error: null, fields: [], valid: true},
+      valid: true,
+    },
+  });
+
+  MockApiClient.addMockResponse({
     url: `/organizations/${orgSlug}/recent-searches/`,
     method: 'GET',
     body: [],
