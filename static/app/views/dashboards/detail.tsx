@@ -58,6 +58,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
 import {getDashboardRevisionsQueryKey} from 'sentry/views/dashboards/hooks/useDashboardRevisions';
+import {getStarredDashboardsQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {
   cloneDashboard,
   getCurrentPageFilters,
@@ -959,6 +960,9 @@ class DashboardDetail extends Component<Props, State> {
                   organization.slug,
                   newDashboard.id
                 ),
+              });
+              queryClient.invalidateQueries({
+                queryKey: getStarredDashboardsQueryKey(organization),
               });
               if (onDashboardUpdate) {
                 onDashboardUpdate(newDashboard);

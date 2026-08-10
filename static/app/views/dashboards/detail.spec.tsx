@@ -30,6 +30,7 @@ import {UNSAVED_FILTERS_MESSAGE} from 'sentry/views/dashboards/constants';
 import CreateDashboard from 'sentry/views/dashboards/create';
 import {DashboardDetailWithInjectedProps as DashboardDetail} from 'sentry/views/dashboards/detail';
 import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
+import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import * as types from 'sentry/views/dashboards/types';
 import {DashboardState} from 'sentry/views/dashboards/types';
 import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
@@ -39,6 +40,11 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 
 jest.mock('sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState');
 jest.mock('sentry/actionCreators/indicator');
+
+function StarredDashboardTitle() {
+  const {data: dashboards = []} = useGetStarredDashboards();
+  return <span aria-label="Starred dashboard title">{dashboards[0]?.title}</span>;
+}
 
 class MockIntersectionObserver {
   constructor(callback: IntersectionObserverCallback) {
@@ -531,6 +537,56 @@ describe('Dashboards > Detail', () => {
 
       // Visit should not be called again on dashboard update
       expect(mockVisit).toHaveBeenCalledTimes(1);
+    });
+
+    it('updates the starred dashboard title after renaming', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        body: [DashboardFixture([], {id: '1', title: 'Custom Errors'})],
+        match: [MockApiClient.matchQuery({filter: 'onlyFavorites'})],
+      });
+
+      render(
+        <OrganizationContext value={initialData.organization}>
+          <StarredDashboardTitle />
+          <ViewEditDashboard />
+        </OrganizationContext>,
+        makeDashboardRouterConfig({
+          pathname: '/organizations/org-slug/dashboard/1/',
+          route: DASHBOARD_ROUTE,
+          query: {},
+        })
+      );
+
+      await waitFor(() =>
+        expect(screen.getByLabelText('Starred dashboard title')).toHaveTextContent(
+          'Custom Errors'
+        )
+      );
+
+      await activateDashboardEditMode();
+      const titleInput = screen.getByRole('textbox');
+      await userEvent.clear(titleInput);
+      await userEvent.type(titleInput, 'Renamed Dashboard');
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        method: 'PUT',
+        body: DashboardFixture(widgets, {id: '1', title: 'Renamed Dashboard'}),
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        body: [DashboardFixture([], {id: '1', title: 'Renamed Dashboard'})],
+        match: [MockApiClient.matchQuery({filter: 'onlyFavorites'})],
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Save and Finish'}));
+
+      await waitFor(() =>
+        expect(screen.getByLabelText('Starred dashboard title')).toHaveTextContent(
+          'Renamed Dashboard'
+        )
+      );
     });
 
     it('appends dashboard-level filters to series request', async () => {
