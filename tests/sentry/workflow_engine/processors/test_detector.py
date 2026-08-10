@@ -18,17 +18,21 @@ from sentry.models.group import GroupStatus
 from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 from sentry.utils.cache import cache
+from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 from sentry.workflow_engine.handlers.detector import DetectorStateData
 from sentry.workflow_engine.handlers.detector.stateful import get_redis_client
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.processors.detector import (
+    EventDetectors,
     associate_new_group_with_detector,
     ensure_association_with_detector,
+    get_all_projects_detector,
     get_detectors_for_event_data,
     get_preferred_detector,
     process_detectors,
@@ -1003,6 +1007,93 @@ class TestGetDetectorsForEvent(TestCase):
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
         result = get_detectors_for_event_data(event_data)
         assert result is None
+
+
+class TestEventDetectorsAllProject(TestCase):
+    def setUp(self) -> None:
+        self.issue_stream_detector = self.create_detector(
+            project=self.project, type=IssueStreamGroupType.slug
+        )
+        self.all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+
+    def test_preferred_detector_prefers_project_scoped(self) -> None:
+        ed = EventDetectors(
+            issue_stream_detectors=[self.issue_stream_detector, self.all_projects_detector],
+        )
+        assert ed.preferred_detector == self.issue_stream_detector
+
+    def test_detectors_includes_all_projects(self) -> None:
+        ed = EventDetectors(
+            issue_stream_detectors=[self.issue_stream_detector, self.all_projects_detector],
+        )
+        assert self.all_projects_detector in ed.detectors
+        assert self.issue_stream_detector in ed.detectors
+
+    def test_only_all_projects_detector_falls_back_to_preferred(self) -> None:
+        ed = EventDetectors(issue_stream_detectors=[self.all_projects_detector])
+        assert ed.preferred_detector == self.all_projects_detector
+
+    def test_only_all_projects_has_detectors(self) -> None:
+        ed = EventDetectors(issue_stream_detectors=[self.all_projects_detector])
+        assert ed.has_detectors is True
+        assert ed.detectors == {self.all_projects_detector}
+
+    def test_cached_miss_is_invalidated_when_detector_is_created(self) -> None:
+        self.all_projects_detector.delete()
+        cache.clear()
+        assert get_all_projects_detector(self.organization.id) is None
+
+        with self.captureOnCommitCallbacks(execute=True):
+            detector = Detector.objects.create(
+                project=None,
+                type=IssueStreamGroupType.slug,
+                config={"organization_id": self.organization.id},
+                name="All Projects Detector",
+            )
+
+        assert get_all_projects_detector(self.organization.id) == detector
+
+
+class TestGetDetectorsForEventAllProject(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.project = self.create_project()
+        self.group = self.create_group(project=self.project, type=ErrorGroupType.type_id)
+        self.error_detector = self.create_detector(project=self.project, type=ErrorGroupType.slug)
+        self.issue_stream_detector = self.create_detector(
+            project=self.project, type=IssueStreamGroupType.slug
+        )
+        from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
+
+        self.all_projects_detector = ensure_default_all_projects_detector(
+            self.project.organization_id
+        )
+        self.event = self.store_event(project_id=self.project.id, data={})
+        self.group_event = GroupEvent.from_event(self.event, self.group)
+
+    def test_omits_all_projects_detector_by_default(self) -> None:
+        event_data = WorkflowEventData(event=self.group_event, group=self.group)
+        result = get_detectors_for_event_data(event_data)
+        assert result is not None
+        assert self.all_projects_detector not in result.detectors
+        assert result.preferred_detector == self.error_detector
+
+    @override_options({"workflow_engine.all_projects_detectors_enabled": True})
+    def test_includes_all_projects_detector_with_option(self) -> None:
+        event_data = WorkflowEventData(event=self.group_event, group=self.group)
+        result = get_detectors_for_event_data(event_data)
+        assert result is not None
+        assert self.all_projects_detector in result.detectors
+        assert result.preferred_detector == self.error_detector
+
+    @override_options({"workflow_engine.all_projects_detectors_enabled": True})
+    def test_missing_all_projects_detector_no_effect(self) -> None:
+        self.all_projects_detector.delete()
+        event_data = WorkflowEventData(event=self.group_event, group=self.group)
+        result = get_detectors_for_event_data(event_data)
+        assert result is not None
+        assert self.all_projects_detector not in result.detectors
+        assert result.preferred_detector == self.error_detector
 
 
 class TestGetPreferredDetector(TestCase):

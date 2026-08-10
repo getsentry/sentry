@@ -51,7 +51,12 @@ from sentry.seer.autofix.utils import (
     get_automation_handoff,
 )
 from sentry.seer.autofix_rca.models import FEATURE_ID as AUTOFIX_RCA_FEATURE_ID
-from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
+from sentry.seer.entrypoints.operator import (
+    SeerAutofixOperator,
+    process_autofix_updates,
+    record_seer_activity,
+)
+from sentry.seer.milestones import reconcile_milestones
 from sentry.seer.models import (
     SeerAgentRun,
     SeerAutomationHandoffConfiguration,
@@ -442,18 +447,14 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         current_step, current_referrer = cls._get_current_step(state)
         current_referrer = current_referrer or fallback_referrer
 
-        sentry_run_id = (
-            SeerRun.objects.filter(
-                organization_id=organization.id,
-                seer_run_state_id=run_id,
-            )
-            .values_list("uuid", flat=True)
-            .first()
-        )
+        seer_run = SeerRun.objects.filter(
+            organization_id=organization.id,
+            seer_run_state_id=run_id,
+        ).first()
 
         webhook_payload = {
             "run_id": run_id,
-            "sentry_run_id": str(sentry_run_id) if sentry_run_id is not None else None,
+            "sentry_run_id": str(seer_run.uuid) if seer_run is not None else None,
             "group_id": group.id,
         }
 
@@ -512,6 +513,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         if not webhook_action_type:
             return
 
+        if seer_run is not None:
+            reconcile_milestones(seer_run, state)
+
         event_name = webhook_action_type.value
 
         event_type = f"seer.{event_name}"
@@ -522,12 +526,17 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     "autofix.on_completion_hook.process_autofix_updates",
                     tags={"event_type": str(event_type)},
                 )
+                record_seer_activity(
+                    group=group,
+                    event_type=sentry_app_event_type,
+                    event_payload=webhook_payload,
+                )
                 process_autofix_updates.apply_async(
                     kwargs={
                         "event_type": sentry_app_event_type,
                         "event_payload": webhook_payload,
                         "organization_id": organization.id,
-                        "activity_datetime": state.updated_at,
+                        "activity_already_recorded": True,
                     }
                 )
         except ValueError:

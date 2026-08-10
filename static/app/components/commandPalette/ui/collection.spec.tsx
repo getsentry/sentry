@@ -35,10 +35,10 @@ function StoreCapture({
   return null;
 }
 
-function makeStoreRef() {
-  return createRef() as React.MutableRefObject<ReturnType<
-    typeof TestCollection.useStore
-  > | null>;
+function makeStoreRef(): React.MutableRefObject<ReturnType<
+  typeof TestCollection.useStore
+> | null> {
+  return createRef();
 }
 
 describe('Collection', () => {

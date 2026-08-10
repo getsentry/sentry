@@ -20,7 +20,6 @@ import {
   useContainerBreakpoint,
   useResponsivePropValue,
   type Responsive,
-  // eslint-disable-next-line boundaries/dependencies
 } from './styles';
 
 const theme = ThemeFixture();
@@ -536,7 +535,7 @@ describe('useContainerBreakpoint', () => {
 
   beforeEach(() => {
     originalResizeObserver = window.ResizeObserver;
-    window.ResizeObserver = MockResizeObserver as unknown as typeof window.ResizeObserver;
+    window.ResizeObserver = MockResizeObserver;
   });
 
   afterEach(() => {

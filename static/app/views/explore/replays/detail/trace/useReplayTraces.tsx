@@ -147,7 +147,7 @@ export function useReplayTraces({
           indexError: indexError as Error,
           indexComplete: true,
         }));
-        cursor = {cursor: '', results: false, href: ''} as ParsedHeader;
+        cursor = {cursor: '', results: false, href: ''};
       }
     }
   }, [api, listEventView, orgSlug, start, end]);

@@ -1230,7 +1230,7 @@ class PushTriggerTest(TestCase):
         assert cache.get(f"wh:drain_active:{webhook.mailbox_name}") is None
 
     @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
-    def test_drain_releases_lock_on_replica_doesnotexist(self) -> None:
+    def test_drain_releases_lock_on_doesnotexist(self) -> None:
         from django.core.cache import cache
 
         mailbox = "github:123"
@@ -1238,8 +1238,8 @@ class PushTriggerTest(TestCase):
         cache.add(f"wh:drain_active:{mailbox}", 1, timeout=15)
 
         # Call drain_mailbox with a non-existent ID but with mailbox_name, simulating
-        # a replica replication lag race where maybe_trigger_drain found the head on
-        # the primary but drain_mailbox can't see it on the replica yet.
+        # a race where maybe_trigger_drain found the head but the payload was deleted
+        # by a concurrent drain before this task fetched it.
         drain_mailbox(999999, mailbox_name=mailbox)
 
         # Lock must be released so new webhooks and the scheduler can reach this mailbox
