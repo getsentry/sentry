@@ -55,7 +55,7 @@ class _ReleasePayload(TypedDict):
 def verify_vercel_hmac(body: bytes, signature: str) -> bool:
     """Verify a Vercel webhook HMAC-SHA1 signature."""
     secret = settings.SENTRY_VERCEL_CLIENT_SECRET
-    if not secret:
+    if not isinstance(secret, str) or not secret:
         return False
     expected = hmac.new(key=secret.encode("utf-8"), msg=body, digestmod=hashlib.sha1).hexdigest()
     return constant_time_compare(expected, signature)

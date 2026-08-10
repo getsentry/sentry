@@ -31,7 +31,11 @@ def gen_aws_client(account_number, region, aws_external_id, service_name="lambda
     aws_secret_access_key = settings.SENTRY_AWS_LAMBDA_SECRET_ACCESS_KEY
 
     # throw a configuration error if we don't have keys
-    if not aws_access_key_id or not aws_secret_access_key:
+    if (
+        not aws_access_key_id
+        or not isinstance(aws_secret_access_key, str)
+        or not aws_secret_access_key
+    ):
         raise ConfigurationError("AWS access key ID or secret access key not set")
 
     client = boto3.client(

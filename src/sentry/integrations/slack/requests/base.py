@@ -216,10 +216,14 @@ class SlackRequest:
             signing_secret = settings.SENTRY_SLACK_SIGNING_SECRET
             verification_token = settings.SENTRY_SLACK_VERIFICATION_TOKEN
 
-        if signing_secret:
+        if isinstance(signing_secret, str) and signing_secret:
             if self._check_signing_secret(signing_secret):
                 return
-        elif verification_token and self._check_verification_token(verification_token):
+        elif (
+            isinstance(verification_token, str)
+            and verification_token
+            and self._check_verification_token(verification_token)
+        ):
             return
 
         # unfortunately, we can't know which auth was supposed to succeed

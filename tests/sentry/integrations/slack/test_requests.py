@@ -8,6 +8,7 @@ from django.conf import settings
 from django.test import RequestFactory, override_settings
 from django.utils.functional import cached_property
 
+from sentry.conf.server import DEAD
 from sentry.identity.slack.provider import PREFERRED_ORGANIZATION_ID_KEY
 from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 from sentry.integrations.models.integration import Integration
@@ -197,7 +198,7 @@ class SlackEventRequestTest(TestCase):
         assert e.value.status == 401
 
     def test_use_verification_token(self) -> None:
-        with override_settings(SENTRY_SLACK_SIGNING_SECRET=None):
+        with override_settings(SENTRY_SLACK_SIGNING_SECRET=DEAD):
             self.request.data = {
                 "token": settings.SENTRY_SLACK_VERIFICATION_TOKEN,
                 "challenge": "abc123",

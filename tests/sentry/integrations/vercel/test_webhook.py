@@ -14,6 +14,7 @@ from fixtures.vercel import (
     SIGNATURE,
 )
 from sentry import VERSION
+from sentry.conf.server import DEAD
 from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -26,9 +27,10 @@ class SignatureVercelTest(APITestCase):
     webhook_url = "/extensions/vercel/webhook/"
 
     def test_get(self) -> None:
-        response = self.client.get(self.webhook_url)
-        # This will fail the signature verification
-        assert response.status_code == 401
+        with override_settings(SENTRY_VERCEL_CLIENT_SECRET=DEAD):
+            response = self.client.get(self.webhook_url)
+            # This will fail the signature verification
+            assert response.status_code == 401
 
     def test_invalid_signature(self) -> None:
         with override_settings(SENTRY_VERCEL_CLIENT_SECRET=SECRET):

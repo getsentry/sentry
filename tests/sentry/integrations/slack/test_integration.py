@@ -7,11 +7,14 @@ from urllib.parse import parse_qs, urlparse
 import orjson
 import pytest
 import responses
+from django.test import override_settings
 from django.urls import reverse
 from responses.matchers import query_string_matcher
 from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
 
+from sentry.conf.server import DEAD
+from sentry.identity.slack.provider import SlackIdentityProvider, SlackStagingIdentityProvider
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
@@ -548,6 +551,13 @@ class SlackApiPipelineTest(APITestCase):
 
     def _get_pipeline_signature(self, resp: Any) -> str:
         return resp.data["data"]["oauthUrl"].split("state=")[1].split("&")[0]
+
+    def test_unconfigured_oauth_client_secrets_are_none(self) -> None:
+        with override_settings(SENTRY_SLACK_CLIENT_SECRET=DEAD):
+            assert SlackIdentityProvider().get_oauth_client_secret() is None
+
+        with override_settings(SENTRY_SLACK_STAGING_CLIENT_SECRET=DEAD):
+            assert SlackStagingIdentityProvider().get_oauth_client_secret() is None
 
     @responses.activate
     def test_initialize_pipeline(self) -> None:

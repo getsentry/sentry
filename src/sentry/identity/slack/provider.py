@@ -36,7 +36,8 @@ class SlackIdentityProvider(OAuth2Provider):
         return options.get("slack.client-id")
 
     def get_oauth_client_secret(self):
-        return settings.SENTRY_SLACK_CLIENT_SECRET
+        secret = settings.SENTRY_SLACK_CLIENT_SECRET
+        return secret if isinstance(secret, str) else None
 
     def get_user_scopes(self):
         return self.config.get("user_scopes", self.user_scopes)
@@ -83,7 +84,8 @@ class SlackStagingIdentityProvider(SlackIdentityProvider):
         return options.get("slack-staging.client-id")
 
     def get_oauth_client_secret(self):
-        return settings.SENTRY_SLACK_STAGING_CLIENT_SECRET
+        secret = settings.SENTRY_SLACK_STAGING_CLIENT_SECRET
+        return secret if isinstance(secret, str) else None
 
     def build_identity(self, data):
         production_identity = super().build_identity(data)
