@@ -63,6 +63,13 @@ function ControlledMentionInput({
   );
 }
 
+function getEditor() {
+  const editor = screen.getByRole('combobox', {name: 'Comment'});
+  // user-event does not yet recognize contenteditable="plaintext-only".
+  editor.setAttribute('contenteditable', 'true');
+  return editor;
+}
+
 describe('MentionInput', () => {
   it('keeps the editor aligned with a controlled value that rejects an edit', async () => {
     const onChange = jest.fn();
@@ -75,7 +82,7 @@ describe('MentionInput', () => {
       />
     );
 
-    const textbox = screen.getByRole('combobox', {name: 'Comment'});
+    const textbox = getEditor();
     await userEvent.click(textbox);
     await userEvent.keyboard('{End}!');
 
@@ -86,7 +93,7 @@ describe('MentionInput', () => {
   it('selects a suggestion with the arrow keys', async () => {
     render(<ControlledMentionInput />);
 
-    const textbox = screen.getByRole('combobox', {name: 'Comment'});
+    const textbox = getEditor();
     await userEvent.type(textbox, '@al');
 
     expect(await screen.findByRole('option', {name: 'Alice Example'})).toBeVisible();
@@ -103,7 +110,7 @@ describe('MentionInput', () => {
   it('dismisses suggestions without changing the draft', async () => {
     render(<ControlledMentionInput />);
 
-    const textbox = screen.getByRole('combobox', {name: 'Comment'});
+    const textbox = getEditor();
     await userEvent.type(textbox, '@al');
     expect(
       await screen.findByRole('listbox', {name: 'Members suggestions'})
@@ -117,7 +124,7 @@ describe('MentionInput', () => {
   it('selects the current suggestion with Tab', async () => {
     render(<ControlledMentionInput />);
 
-    const textbox = screen.getByRole('combobox', {name: 'Comment'});
+    const textbox = getEditor();
     await userEvent.type(textbox, '@ali');
     await screen.findByRole('option', {name: 'Alice Example'});
     await userEvent.keyboard('{Tab}');
@@ -129,7 +136,7 @@ describe('MentionInput', () => {
   it('turns a mention into ordinary text when its label is edited', async () => {
     render(<ControlledMentionInput />);
 
-    const textbox = screen.getByRole('combobox', {name: 'Comment'});
+    const textbox = getEditor();
     await userEvent.type(textbox, '@ali');
     await screen.findByRole('option', {name: 'Alice Example'});
     await userEvent.keyboard('{Enter}{Backspace}{Backspace}');
@@ -157,12 +164,9 @@ describe('MentionInput', () => {
       />
     );
 
-    expect(screen.getByRole('combobox', {name: 'Comment'})).toHaveTextContent(
-      'Continue with @Alice Example'
-    );
-    expect(within(screen.getByRole('combobox')).getByText('@Alice Example').tagName).toBe(
-      'STRONG'
-    );
+    const textbox = getEditor();
+    expect(textbox).toHaveTextContent('Continue with @Alice Example');
+    expect(within(textbox).getByText('@Alice Example').tagName).toBe('STRONG');
     expect(screen.getByRole('status', {name: 'Editor value'})).toHaveTextContent(
       'Continue with @Alice Example|user:1'
     );
@@ -170,7 +174,7 @@ describe('MentionInput', () => {
 
   it('shows an empty state when a source has no matches', async () => {
     render(<ControlledMentionInput initialValue="@missing" />);
-    await userEvent.click(screen.getByRole('combobox', {name: 'Comment'}));
+    await userEvent.click(getEditor());
     await userEvent.keyboard('{End}');
     expect(await screen.findByText('No suggestions found')).toBeVisible();
   });
@@ -196,7 +200,7 @@ describe('MentionInput', () => {
     };
     render(<ControlledMentionInput sources={[asyncSource]} />);
 
-    const textbox = screen.getByRole('combobox', {name: 'Comment'});
+    const textbox = getEditor();
     await userEvent.type(textbox, '@a');
     await waitFor(() => expect(pending.has('a')).toBe(true));
     await userEvent.type(textbox, 'b');

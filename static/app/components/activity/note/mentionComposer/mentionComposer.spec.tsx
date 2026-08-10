@@ -35,6 +35,13 @@ const SOURCES: ReadonlyArray<MentionSource<Suggestion>> = [
   },
 ];
 
+function getEditor() {
+  const editor = screen.getByRole('combobox', {name: 'Add a comment'});
+  // user-event does not yet recognize contenteditable="plaintext-only".
+  editor.setAttribute('contenteditable', 'true');
+  return editor;
+}
+
 describe('MentionComposer', () => {
   it('shows members returned by the active search request', async () => {
     const user = UserFixture({id: '1', name: 'Alice Remote'});
@@ -49,7 +56,7 @@ describe('MentionComposer', () => {
     });
 
     render(<MentionComposer />);
-    await userEvent.type(screen.getByRole('combobox', {name: 'Add a comment'}), '@ali');
+    await userEvent.type(getEditor(), '@ali');
 
     expect(await screen.findByRole('option', {name: 'Alice Remote'})).toBeVisible();
     expect(searchRequest).toHaveBeenCalled();
@@ -59,7 +66,7 @@ describe('MentionComposer', () => {
     const onSubmit = jest.fn().mockResolvedValue(undefined);
     render(<MentionComposer sources={SOURCES} onSubmit={onSubmit} />);
 
-    const textbox = screen.getByRole('combobox', {name: 'Add a comment'});
+    const textbox = getEditor();
     await userEvent.type(textbox, 'Thanks @ali');
     await userEvent.click(await screen.findByRole('option', {name: 'Alice Example'}));
     await userEvent.type(textbox, 'and #front');
@@ -76,7 +83,7 @@ describe('MentionComposer', () => {
     const onSubmit = jest.fn().mockResolvedValue(undefined);
     render(<MentionComposer sources={SOURCES} onSubmit={onSubmit} />);
 
-    const textbox = screen.getByRole('combobox', {name: 'Add a comment'});
+    const textbox = getEditor();
     await userEvent.type(textbox, 'First line{Enter}Second line{Control>}{Enter}');
 
     expect(onSubmit).toHaveBeenCalledWith({
@@ -88,7 +95,7 @@ describe('MentionComposer', () => {
   it('renders selected mentions in Markdown preview', async () => {
     render(<MentionComposer sources={SOURCES} />);
 
-    const textbox = screen.getByRole('combobox', {name: 'Add a comment'});
+    const textbox = getEditor();
     await userEvent.type(textbox, '@ali');
     await userEvent.keyboard('{Enter}');
     await userEvent.click(screen.getByRole('radio', {name: 'Preview'}));

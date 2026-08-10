@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {ariaHideOutside} from '@react-aria/overlays';
-import {mergeRefs} from '@react-aria/utils';
+import {mergeProps, mergeRefs} from '@react-aria/utils';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 
 import {ListBox} from '@sentry/scraps/compactSelect';
@@ -24,8 +24,7 @@ import {type Mention, reconcileMentions} from './model';
 import {CaretAnchor, MentionEditor, SuggestionStatus} from './styles';
 import type {MentionInputProps} from './types';
 import {useMentionSuggestions} from './useMentionSuggestions';
-
-type MentionSuggestionStatus = 'empty' | 'error' | 'loading';
+import type {MentionSuggestionStatus} from './useMentionSuggestions';
 
 function getDefaultSuggestionStatus(status: MentionSuggestionStatus): React.ReactNode {
   switch (status) {
@@ -35,7 +34,7 @@ function getDefaultSuggestionStatus(status: MentionSuggestionStatus): React.Reac
       return t('Unable to load suggestions');
     case 'loading':
       return t('Loading suggestions…');
-    default:
+    case 'ready':
       return null;
   }
 }
@@ -51,19 +50,6 @@ export function MentionInput<TSuggestion>({
   onChange,
   minHeight,
   placeholder,
-  onBlur,
-  onCompositionEnd,
-  onCompositionStart,
-  onCopy,
-  onCut,
-  onFocus,
-  onInput,
-  onKeyDown,
-  onKeyUp,
-  onPaste,
-  onPointerUp,
-  onScroll,
-  onSelect,
   style,
   ...editorProps
 }: MentionInputProps<TSuggestion>) {
@@ -88,13 +74,13 @@ export function MentionInput<TSuggestion>({
   const {
     activeDescendant,
     collectionProps,
+    count: suggestionCount,
     focusedKey,
     getSuggestion,
-    items: collectionItems,
     listBoxId,
     listState,
     requestKey,
-    status: currentStatus,
+    status: suggestionStatus,
   } = useMentionSuggestions({
     activeMention,
     activeSource,
@@ -260,18 +246,6 @@ export function MentionInput<TSuggestion>({
     });
   };
 
-  const applyEdit = (selection: EditorSelection, replacement: string) => {
-    const nextValue =
-      value.slice(0, selection.start) + replacement + value.slice(selection.end);
-    const nextMentions = reconcileMentions(value, nextValue, mentions);
-    const nextCaret = selection.start + replacement.length;
-    const afterSelection = {start: nextCaret, end: nextCaret};
-    dismissedRequestKeyRef.current = null;
-    pendingSelectionRef.current = afterSelection;
-    onChange({text: nextValue, mentions: nextMentions});
-    setActiveMention(findActiveMention(nextValue, nextCaret, nextCaret, sources));
-  };
-
   const syncValueFromEditor = () => {
     const input = inputRef.current;
     if (!input || isComposingRef.current) {
@@ -293,170 +267,104 @@ export function MentionInput<TSuggestion>({
     );
   };
 
-  const suggestionStatus =
-    currentStatus === 'error'
-      ? 'error'
-      : currentStatus === 'ready'
-        ? collectionItems.length === 0
-          ? 'empty'
-          : null
-        : 'loading';
-  const suggestionStatusContent =
-    suggestionStatus && activeSource
-      ? getDefaultSuggestionStatus(suggestionStatus)
-      : null;
+  const inputProps = mergeProps(editorProps, {
+    ref: mergedInputRef,
+    style: {minHeight, ...style},
+    role: 'combobox',
+    'aria-activedescendant': activeDescendant,
+    'aria-autocomplete': 'list',
+    'aria-controls': isOpen ? listBoxId : undefined,
+    'aria-expanded': isOpen,
+    'aria-haspopup': 'listbox',
+    'aria-multiline': true,
+    contentEditable: 'plaintext-only' as const,
+    'data-placeholder': placeholder,
+    suppressContentEditableWarning: true,
+    tabIndex: editorProps.tabIndex ?? 0,
+    onBlur: (event: React.FocusEvent<HTMLDivElement>) => {
+      if (!overlayRef.current?.contains(event.relatedTarget)) {
+        dismissedRequestKeyRef.current = null;
+        setIsFocused(false);
+        setActiveMention(null);
+      }
+    },
+    onCompositionEnd: () => {
+      isComposingRef.current = false;
+      syncValueFromEditor();
+    },
+    onCompositionStart: () => {
+      isComposingRef.current = true;
+      setActiveMention(null);
+    },
+    onFocus: () => {
+      dismissedRequestKeyRef.current = null;
+      setIsFocused(true);
+      updateActiveMention();
+    },
+    onInput: (event: React.FormEvent<HTMLDivElement>) => {
+      if (!event.defaultPrevented) {
+        syncValueFromEditor();
+      }
+    },
+    onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (
+        event.defaultPrevented ||
+        event.nativeEvent.isComposing ||
+        isComposingRef.current
+      ) {
+        return;
+      }
+
+      if (isOpen) {
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+          collectionProps.onKeyDown?.(event);
+          return;
+        }
+
+        if ((event.key === 'Enter' || event.key === 'Tab') && focusedKey !== null) {
+          event.preventDefault();
+          selectSuggestion(focusedKey);
+          return;
+        }
+
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          dismissedRequestKeyRef.current = requestKey;
+          setActiveMention(null);
+        }
+      }
+    },
+    onKeyUp: (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (!event.defaultPrevented) {
+        updateActiveMention();
+      }
+    },
+    onPointerUp: (event: React.PointerEvent<HTMLDivElement>) => {
+      if (!event.defaultPrevented) {
+        dismissedRequestKeyRef.current = null;
+        updateActiveMention();
+      }
+    },
+    onScroll: () => {
+      positionCaretAnchor();
+      updateOverlayPosition?.();
+    },
+    onSelect: (event: React.SyntheticEvent<HTMLDivElement>) => {
+      if (!event.defaultPrevented) {
+        updateActiveMention();
+      }
+    },
+  });
 
   return (
     <Container position="relative" width="100%" minWidth="0">
-      <MentionEditor
-        {...editorProps}
-        ref={mergedInputRef}
-        style={{minHeight, ...style}}
-        role="combobox"
-        aria-activedescendant={activeDescendant}
-        aria-autocomplete="list"
-        aria-controls={isOpen ? listBoxId : undefined}
-        aria-expanded={isOpen}
-        aria-haspopup="listbox"
-        aria-multiline="true"
-        contentEditable
-        data-placeholder={placeholder}
-        suppressContentEditableWarning
-        tabIndex={editorProps.tabIndex ?? 0}
-        onBlur={event => {
-          if (!overlayRef.current?.contains(event.relatedTarget)) {
-            dismissedRequestKeyRef.current = null;
-            setIsFocused(false);
-            setActiveMention(null);
-          }
-          onBlur?.(event);
-        }}
-        onCompositionEnd={event => {
-          isComposingRef.current = false;
-          syncValueFromEditor();
-          onCompositionEnd?.(event);
-        }}
-        onCompositionStart={event => {
-          isComposingRef.current = true;
-          setActiveMention(null);
-          onCompositionStart?.(event);
-        }}
-        onCopy={event => {
-          onCopy?.(event);
-          if (event.defaultPrevented) {
-            return;
-          }
-
-          const input = inputRef.current;
-          const selection = input ? getEditorSelection(input) : null;
-          if (selection && selection.start !== selection.end) {
-            event.preventDefault();
-            event.clipboardData.setData(
-              'text/plain',
-              value.slice(selection.start, selection.end)
-            );
-          }
-        }}
-        onCut={event => {
-          onCut?.(event);
-          if (event.defaultPrevented) {
-            return;
-          }
-
-          const input = inputRef.current;
-          const selection = input ? getEditorSelection(input) : null;
-          if (selection && selection.start !== selection.end) {
-            event.preventDefault();
-            event.clipboardData.setData(
-              'text/plain',
-              value.slice(selection.start, selection.end)
-            );
-            applyEdit(selection, '');
-          }
-        }}
-        onFocus={event => {
-          dismissedRequestKeyRef.current = null;
-          setIsFocused(true);
-          updateActiveMention();
-          onFocus?.(event);
-        }}
-        onInput={event => {
-          syncValueFromEditor();
-          onInput?.(event);
-        }}
-        onKeyDown={event => {
-          onKeyDown?.(event);
-          if (
-            event.defaultPrevented ||
-            event.nativeEvent.isComposing ||
-            isComposingRef.current
-          ) {
-            return;
-          }
-
-          if (isOpen) {
-            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-              collectionProps.onKeyDown?.(event);
-              return;
-            }
-
-            if ((event.key === 'Enter' || event.key === 'Tab') && focusedKey !== null) {
-              event.preventDefault();
-              selectSuggestion(focusedKey);
-              return;
-            }
-
-            if (event.key === 'Escape') {
-              event.preventDefault();
-              dismissedRequestKeyRef.current = requestKey;
-              setActiveMention(null);
-              return;
-            }
-          }
-        }}
-        onKeyUp={event => {
-          onKeyUp?.(event);
-          if (event.defaultPrevented) {
-            return;
-          }
-          updateActiveMention();
-        }}
-        onPaste={event => {
-          onPaste?.(event);
-          if (!event.defaultPrevented) {
-            const input = inputRef.current;
-            const selection = input ? getEditorSelection(input) : null;
-            if (selection) {
-              event.preventDefault();
-              applyEdit(selection, event.clipboardData.getData('text/plain'));
-            }
-          }
-        }}
-        onPointerUp={event => {
-          onPointerUp?.(event);
-          if (!event.defaultPrevented) {
-            dismissedRequestKeyRef.current = null;
-            updateActiveMention();
-          }
-        }}
-        onScroll={event => {
-          positionCaretAnchor();
-          updateOverlayPosition?.();
-          onScroll?.(event);
-        }}
-        onSelect={event => {
-          updateActiveMention();
-          onSelect?.(event);
-        }}
-      />
+      <MentionEditor {...inputProps} />
       <CaretAnchor aria-hidden ref={mergedCaretAnchorRef} />
       {isOpen ? (
         <PositionWrapper {...overlayProps} zIndex={theme.zIndex.dropdown}>
           <Overlay>
             <Container minWidth="220px" maxWidth="360px" maxHeight="200px">
-              {suggestionStatus ? (
-                <SuggestionStatus>{suggestionStatusContent}</SuggestionStatus>
-              ) : (
+              {suggestionStatus === 'ready' ? (
                 <ListBox
                   id={listBoxId}
                   aria-label={t('%s suggestions', activeSource.label)}
@@ -468,18 +376,18 @@ export function MentionInput<TSuggestion>({
                   shouldUseVirtualFocus
                   size="sm"
                 />
+              ) : (
+                <SuggestionStatus>
+                  {getDefaultSuggestionStatus(suggestionStatus)}
+                </SuggestionStatus>
               )}
             </Container>
           </Overlay>
         </PositionWrapper>
       ) : null}
       <VisuallyHidden aria-live="polite">
-        {isOpen && currentStatus === 'ready'
-          ? tn(
-              '%s suggestion available',
-              '%s suggestions available',
-              collectionItems.length
-            )
+        {isOpen && suggestionStatus === 'ready'
+          ? tn('%s suggestion available', '%s suggestions available', suggestionCount)
           : null}
       </VisuallyHidden>
     </Container>

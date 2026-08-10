@@ -15,7 +15,7 @@ export const MentionEditor = styled('div')`
   overflow-wrap: anywhere;
 
   & [data-mention] {
-    font-weight: ${p => p.theme.font.weight.sans.bold};
+    font-weight: ${p => p.theme.font.weight.sans.medium};
   }
 
   &:empty::before {

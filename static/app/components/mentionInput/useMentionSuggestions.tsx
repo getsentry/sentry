@@ -17,6 +17,8 @@ interface SuggestionListItem<T> {
 
 type SuggestionLoadStatus = 'error' | 'idle' | 'loading' | 'ready';
 
+export type MentionSuggestionStatus = 'empty' | 'error' | 'loading' | 'ready';
+
 interface SuggestionState<T> {
   items: readonly T[];
   requestKey: string | null;
@@ -38,6 +40,24 @@ const IDLE_SUGGESTIONS = {
   requestKey: null,
   status: 'idle',
 } as const;
+
+function getSuggestionStatus(
+  loadStatus: SuggestionLoadStatus,
+  count: number
+): MentionSuggestionStatus {
+  switch (loadStatus) {
+    case 'error':
+      return 'error';
+    case 'ready':
+      if (count === 0) {
+        return 'empty';
+      }
+      return 'ready';
+    case 'idle':
+    case 'loading':
+      return 'loading';
+  }
+}
 
 export function useMentionSuggestions<T>({
   activeMention,
@@ -108,7 +128,7 @@ export function useMentionSuggestions<T>({
     () => (suggestionState.requestKey === requestKey ? suggestionState.items : []),
     [requestKey, suggestionState.items, suggestionState.requestKey]
   );
-  const status =
+  const loadStatus =
     suggestionState.requestKey === requestKey ? suggestionState.status : 'loading';
 
   const items = useMemo<ReadonlyArray<SuggestionListItem<T>>>(
@@ -184,10 +204,10 @@ export function useMentionSuggestions<T>({
     collectionProps,
     focusedKey,
     getSuggestion: (key: React.Key) => items.find(item => item.key === key)?.suggestion,
-    items,
+    count: items.length,
     listBoxId,
     listState,
     requestKey,
-    status,
+    status: getSuggestionStatus(loadStatus, items.length),
   };
 }
