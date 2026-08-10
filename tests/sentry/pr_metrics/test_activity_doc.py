@@ -850,6 +850,31 @@ def test_head_group_cap_evicts_within_the_head_only() -> None:
     assert mock_logger.warning.call_count == 1
 
 
+def test_document_group_cap_never_evicts_a_recorded_failure() -> None:
+    doc = new_document()
+    # A failing suite on the oldest head — the natural LRU victim…
+    _suite(
+        doc,
+        head_sha="sha-fail",
+        check_suite_id=0,
+        conclusion="failure",
+        updated_at="2026-07-10T10:00:00Z",
+    )
+    with patch(f"{MODULE}.metrics"), patch(f"{MODULE}.logger"):
+        for i in range(1, MAX_CHECK_GROUPS):
+            _suite(
+                doc,
+                head_sha=f"sha{i:04d}",
+                check_suite_id=i,
+                updated_at=f"2026-07-10T12:{i // 60:02d}:{i % 60:02d}Z",
+            )
+        _suite(doc, head_sha="sha-final", check_suite_id=9999, updated_at="2026-07-10T13:00:00Z")
+    # …yet the document-wide eviction takes the stalest green instead.
+    assert "sha-fail|github-actions|0" in doc["checks"]
+    assert "sha0001|github-actions|1" not in doc["checks"]
+    assert _group(doc, head_sha="sha-final", check_suite_id=9999)["suite_conclusion"] == "success"
+
+
 def test_head_group_cap_never_evicts_a_recorded_failure() -> None:
     doc = new_document()
     # The failure lands first, so it is the stalest group on the head…

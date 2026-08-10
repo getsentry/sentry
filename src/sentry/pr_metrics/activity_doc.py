@@ -431,11 +431,11 @@ def _get_or_create_group(doc: ActivityDoc, payload: Mapping[str, Any]) -> CheckG
     cleared by suite-scoped greens — accepted over erasing a recorded failure.
 
     A newcomer past a cap evicts an existing group rather than being dropped
-    (the judge cares most about the *final* head's CI state):
-    ``MAX_GROUPS_PER_HEAD`` evicts within the newcomer's head — non-failing and
-    stalest first (``_forward_priority``), so suite spam degrades only that head
-    and never displaces a recorded failure; ``MAX_CHECK_GROUPS`` evicts
-    document-wide, shedding the stalest head first.
+    (the judge cares most about the *final* head's CI state), non-failing and
+    stalest first (``_forward_priority``) so a recorded failure is never
+    displaced by fresher greens: ``MAX_GROUPS_PER_HEAD`` evicts within the
+    newcomer's head, so suite spam degrades only that head; ``MAX_CHECK_GROUPS``
+    evicts document-wide, shedding stale heads' greens first.
     """
     head_sha = payload.get("head_sha") or ""
     app_slug = payload.get("app_slug") or ""
@@ -463,7 +463,7 @@ def _get_or_create_group(doc: ActivityDoc, payload: Mapping[str, Any]) -> CheckG
         )
         metrics.incr("pr_metrics.activity_doc.check_head_groups_capped")
     elif len(checks) >= MAX_CHECK_GROUPS:
-        evicted_key = min(checks, key=lambda existing: checks[existing].get("last_event_at") or "")
+        evicted_key = min(checks, key=lambda existing: _forward_priority(checks[existing]))
         del checks[evicted_key]
         logger.warning(
             "pr_metrics.activity_doc.check_groups_capped",
