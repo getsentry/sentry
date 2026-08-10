@@ -150,6 +150,19 @@ class OpsgenieApiPipelineTest(APITestCase):
     def _advance_step(self, data: dict[str, Any]) -> Any:
         return self.client.post(self._get_pipeline_url(), data=data, format="json")
 
+    def _install(
+        self,
+        *,
+        provider: str = "cool-name",
+        base_url: str = "https://api.opsgenie.com/",
+        api_key: str | None = "123-key",
+    ) -> Any:
+        self._initialize_pipeline()
+        data = {"baseUrl": base_url, "provider": provider}
+        if api_key is not None:
+            data["apiKey"] = api_key
+        return self._advance_step(data)
+
     @with_feature(
         {
             "organizations:integrations-enterprise-alert-rule": True,
@@ -188,28 +201,29 @@ class OpsgenieApiPipelineTest(APITestCase):
         }
     )
     def test_full_pipeline_flow(self) -> None:
-        resp = self._initialize_pipeline()
-        assert resp.data["step"] == "installation_config"
-
-        resp = self._advance_step(
-            {
-                "baseUrl": "https://api.opsgenie.com/",
-                "provider": "cool-name",
-                "apiKey": "123-key",
-            }
-        )
+        resp = self._install()
         assert resp.status_code == 200
         assert resp.data["status"] == "complete"
 
         integration = Integration.objects.get(provider="opsgenie")
         assert integration.external_id == "cool-name"
         assert integration.name == "cool-name"
-        assert integration.metadata["domain_name"] == "cool-name.app.opsgenie.com"
+        assert integration.metadata == {
+            "base_url": "https://api.opsgenie.com/",
+            "domain_name": "cool-name.app.opsgenie.com",
+        }
 
-        assert OrganizationIntegration.objects.filter(
+        org_integration = OrganizationIntegration.objects.get(
             organization_id=self.organization.id,
             integration=integration,
-        ).exists()
+        )
+        assert org_integration.config["team_table"] == [
+            {
+                "id": f"{org_integration.id}-my-first-key",
+                "team": "my-first-key",
+                "integration_key": "123-key",
+            }
+        ]
 
     @with_feature(
         {
@@ -218,16 +232,193 @@ class OpsgenieApiPipelineTest(APITestCase):
         }
     )
     def test_full_pipeline_flow_no_key(self) -> None:
-        self._initialize_pipeline()
-        resp = self._advance_step(
-            {
-                "baseUrl": "https://api.opsgenie.com/",
-                "provider": "cool-name",
-            }
-        )
+        resp = self._install(api_key=None)
         assert resp.status_code == 200
         assert resp.data["status"] == "complete"
 
         integration = Integration.objects.get(provider="opsgenie")
         assert integration.external_id == "cool-name"
-        assert integration.metadata["api_key"] == ""
+        assert integration.metadata == {
+            "base_url": "https://api.opsgenie.com/",
+            "domain_name": "cool-name.app.opsgenie.com",
+        }
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id,
+            integration=integration,
+        )
+        assert org_integration.config["team_table"] == []
+
+    @with_feature(
+        {
+            "organizations:integrations-enterprise-alert-rule": True,
+            "organizations:integrations-enterprise-incident-management": True,
+        }
+    )
+    def test_new_organization_joins_existing_integration(self) -> None:
+        self._install(api_key="key-a")
+        integration = Integration.objects.get(provider="opsgenie")
+        original_name = integration.name
+        original_metadata = integration.metadata.copy()
+        org_integration_a = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id,
+            integration=integration,
+        )
+
+        organization_b = self.create_organization(owner=self.user)
+        self.organization = organization_b
+        resp = self._install(
+            base_url="https://api.eu.opsgenie.com/",
+            api_key="key-b",
+        )
+
+        assert resp.status_code == 200
+        assert Integration.objects.get(provider="opsgenie") == integration
+        integration.refresh_from_db()
+        assert integration.name == original_name
+        assert integration.metadata == original_metadata
+        org_integration_a.refresh_from_db()
+        assert org_integration_a.config["team_table"][0]["integration_key"] == "key-a"
+        org_integration_b = OrganizationIntegration.objects.get(
+            organization_id=organization_b.id,
+            integration=integration,
+        )
+        assert org_integration_b.config["team_table"] == [
+            {
+                "id": f"{org_integration_b.id}-my-first-key",
+                "team": "my-first-key",
+                "integration_key": "key-b",
+            }
+        ]
+
+    @with_feature(
+        {
+            "organizations:integrations-enterprise-alert-rule": True,
+            "organizations:integrations-enterprise-incident-management": True,
+        }
+    )
+    def test_existing_shared_integration_gains_another_organization(self) -> None:
+        self._install(api_key="key-a")
+        integration = Integration.objects.get(provider="opsgenie")
+        organization_b = self.create_organization(owner=self.user)
+        org_integration_b = integration.add_organization(organization_b, self.user)
+        assert org_integration_b is not None
+        org_integration_b.update(
+            config={
+                "team_table": [
+                    {"id": "existing-b", "team": "existing-b", "integration_key": "key-b"}
+                ]
+            }
+        )
+        original_metadata = integration.metadata.copy()
+
+        organization_c = self.create_organization(owner=self.user)
+        self.organization = organization_c
+        resp = self._install(
+            base_url="https://api.eu.opsgenie.com/",
+            api_key="key-c",
+        )
+
+        assert resp.status_code == 200
+        assert OrganizationIntegration.objects.filter(integration=integration).count() == 3
+        integration.refresh_from_db()
+        assert integration.metadata == original_metadata
+        org_integration_b.refresh_from_db()
+        assert org_integration_b.config["team_table"] == [
+            {"id": "existing-b", "team": "existing-b", "integration_key": "key-b"}
+        ]
+        org_integration_c = OrganizationIntegration.objects.get(
+            organization_id=organization_c.id,
+            integration=integration,
+        )
+        assert org_integration_c.config["team_table"][0]["integration_key"] == "key-c"
+
+    @with_feature(
+        {
+            "organizations:integrations-enterprise-alert-rule": True,
+            "organizations:integrations-enterprise-incident-management": True,
+        }
+    )
+    def test_same_organization_reinstall(self) -> None:
+        self._install(api_key="old-key")
+        integration = Integration.objects.get(provider="opsgenie")
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id,
+            integration=integration,
+        )
+        original_metadata = integration.metadata.copy()
+
+        resp = self._install(
+            base_url="https://api.eu.opsgenie.com/",
+            api_key="new-key",
+        )
+
+        assert resp.status_code == 200
+        assert Integration.objects.get(provider="opsgenie") == integration
+        integration.refresh_from_db()
+        assert integration.metadata == original_metadata
+        assert (
+            OrganizationIntegration.objects.get(
+                organization_id=self.organization.id,
+                integration=integration,
+            ).id
+            == org_integration.id
+        )
+        org_integration.refresh_from_db()
+        assert org_integration.config["team_table"][0]["integration_key"] == "new-key"
+
+    @with_feature(
+        {
+            "organizations:integrations-enterprise-alert-rule": True,
+            "organizations:integrations-enterprise-incident-management": True,
+        }
+    )
+    def test_legacy_global_key_is_not_copied(self) -> None:
+        integration = self.create_provider_integration(
+            provider="opsgenie",
+            name="cool-name",
+            external_id="cool-name",
+            metadata={
+                "api_key": "legacy-key",
+                "base_url": "https://api.opsgenie.com/",
+                "domain_name": "cool-name.app.opsgenie.com",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+        original_metadata = integration.metadata.copy()
+
+        organization_b = self.create_organization(owner=self.user)
+        self.organization = organization_b
+        resp = self._install(api_key="key-b")
+
+        assert resp.status_code == 200
+        integration.refresh_from_db()
+        assert integration.metadata == original_metadata
+        org_integration_b = OrganizationIntegration.objects.get(
+            organization_id=organization_b.id,
+            integration=integration,
+        )
+        assert org_integration_b.config["team_table"][0]["integration_key"] == "key-b"
+
+    @with_feature(
+        {
+            "organizations:integrations-enterprise-alert-rule": True,
+            "organizations:integrations-enterprise-incident-management": True,
+        }
+    )
+    def test_existing_integration_without_key(self) -> None:
+        self._install(api_key="key-a")
+        integration = Integration.objects.get(provider="opsgenie")
+        original_metadata = integration.metadata.copy()
+
+        organization_b = self.create_organization(owner=self.user)
+        self.organization = organization_b
+        resp = self._install(api_key=None)
+
+        assert resp.status_code == 200
+        integration.refresh_from_db()
+        assert integration.metadata == original_metadata
+        org_integration_b = OrganizationIntegration.objects.get(
+            organization_id=organization_b.id,
+            integration=integration,
+        )
+        assert org_integration_b.config["team_table"] == []

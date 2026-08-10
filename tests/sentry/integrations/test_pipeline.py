@@ -9,7 +9,7 @@ from sentry.integrations.example import AliasedIntegrationProvider, ExampleInteg
 from sentry.integrations.gitlab.integration import GitlabIntegrationProvider
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.pipeline import IntegrationPipeline, ensure_integration
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.absolute_url import generate_organization_url
@@ -17,7 +17,7 @@ from sentry.organizations.services.organization.serial import serialize_rpc_orga
 from sentry.pipeline.types import PipelineStepAction
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_count_of_metric, assert_success_metric
-from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
@@ -26,6 +26,68 @@ from sentry.users.models.identity import Identity
 
 def naive_build_integration(data):
     return data
+
+
+@control_silo_test
+class EnsureIntegrationTest(TestCase):
+    def test_update_existing_defaults_to_true(self) -> None:
+        integration = self.create_provider_integration(
+            provider="example",
+            external_id="shared-id",
+            name="Original",
+            metadata={"url": "https://original.example.com"},
+        )
+
+        result = ensure_integration(
+            "example",
+            {
+                "external_id": "shared-id",
+                "name": "Updated",
+                "metadata": {"url": "https://updated.example.com"},
+            },
+        )
+
+        assert result == integration
+        result.refresh_from_db()
+        assert result.name == "Updated"
+        assert result.metadata == {"url": "https://updated.example.com"}
+
+    def test_update_existing_false_leaves_existing_row_unchanged(self) -> None:
+        integration = self.create_provider_integration(
+            provider="example",
+            external_id="shared-id",
+            name="Original",
+            metadata={"url": "https://original.example.com"},
+        )
+
+        result = ensure_integration(
+            "example",
+            {
+                "external_id": "shared-id",
+                "name": "Ignored",
+                "metadata": {"url": "https://ignored.example.com"},
+                "update_existing": False,
+            },
+        )
+
+        assert result == integration
+        result.refresh_from_db()
+        assert result.name == "Original"
+        assert result.metadata == {"url": "https://original.example.com"}
+
+    def test_update_existing_false_initializes_new_row(self) -> None:
+        result = ensure_integration(
+            "example",
+            {
+                "external_id": "new-id",
+                "name": "New",
+                "metadata": {"url": "https://new.example.com"},
+                "update_existing": False,
+            },
+        )
+
+        assert result.name == "New"
+        assert result.metadata == {"url": "https://new.example.com"}
 
 
 @control_silo_test

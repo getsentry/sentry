@@ -242,10 +242,11 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
             "name": name,
             "external_id": name,
             "metadata": {
-                "api_key": api_key,
                 "base_url": base_url,
                 "domain_name": f"{name}.{OPSGENIE_BASE_URL_TO_DOMAIN_NAME[base_url]}",
             },
+            "post_install_data": {"api_key": api_key},
+            "update_existing": False,
         }
 
     def post_install(
@@ -265,7 +266,7 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
                 logger.warning("The Opsgenie post_install step failed.")
                 return
 
-            key = integration.metadata["api_key"]
+            key = extra.get("api_key", "")
             team_table = []
             if key:
                 team_name = "my-first-key"

@@ -181,6 +181,7 @@ class IntegrationData(TypedDict):
     name: NotRequired[str]
     metadata: NotRequired[dict[str, Any]]
     post_install_data: NotRequired[dict[str, Any]]
+    update_existing: NotRequired[bool]
     expect_exists: NotRequired[bool]
     idp_external_id: NotRequired[str]
     idp_config: NotRequired[dict[str, Any]]
@@ -361,6 +362,7 @@ class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
         >>>        'external_id': state['id'],
         >>>        'expect_exists': True,
         >>>    }
+
 
         """
         raise NotImplementedError
