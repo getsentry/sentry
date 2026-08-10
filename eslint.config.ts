@@ -1504,24 +1504,10 @@ export default typescript.config([
             //   disallow: {to: {element: {type: 'sentry*'}}},
             // },
             // Temporary migration allowance until scraps are isolated.
+            // TODO: remove once the above setting is enabled
             {
               from: {element: {type: 'scraps'}},
               allow: [{to: {element: {type: 'sentry*'}}}],
-            },
-            // Top-level component files are also part of the public
-            // scraps interface.
-            {
-              from: {element: {type: 'scraps'}},
-              allow: [
-                {
-                  to: {
-                    element: {
-                      type: 'sentry',
-                      fileInternalPath: 'components/*',
-                    },
-                  },
-                },
-              ],
             },
           ],
         },
