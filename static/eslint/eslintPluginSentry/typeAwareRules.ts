@@ -99,6 +99,7 @@ function isGenericCallContainer(node: ts.Node): boolean {
   );
 }
 
+/** Create the semantic checks shared by the standalone lint runner and its tests. */
 export function createTypeAwareRuleChecks(checker: ts.TypeChecker) {
   const containsAnyCache = new Map<ts.Type, boolean>();
 

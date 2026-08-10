@@ -52,6 +52,7 @@ const config: KnipConfig = {
     '.': {
       entry: [
         ...productionEntryPoints.map(entry => `${entry}!`),
+        ...(isProductionMode ? ['scripts/lintJs.ts!'] : []),
         ...testingEntryPoints,
         ...storyBookEntryPoints,
         // figma code connect files - consumed by Figma CLI
@@ -78,6 +79,11 @@ const config: KnipConfig = {
         '@swc-contrib/mut-cjs-exports', // used in jest config
       ],
     },
+  },
+  // Loaded by the standalone lint runner across the intentionally excluded
+  // Oxlint plugin workspace boundary.
+  ignoreIssues: {
+    'static/eslint/eslintPluginSentry/typeAwareRules.ts': ['files'],
   },
   ignoreExportsUsedInFile: isProductionMode,
   rules: {

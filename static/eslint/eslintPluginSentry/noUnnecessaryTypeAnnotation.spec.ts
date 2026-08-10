@@ -1,6 +1,54 @@
 import {RuleTester} from '@typescript-eslint/rule-tester';
+import {
+  ESLintUtils,
+  type ParserServicesWithTypeInformation,
+} from '@typescript-eslint/utils';
+import ts from 'typescript';
 
-import {noUnnecessaryTypeAnnotation} from './noUnnecessaryTypeAnnotation';
+import {createTypeAwareRuleChecks} from './typeAwareRules';
+
+const noUnnecessaryTypeAnnotation = ESLintUtils.RuleCreator.withoutDocs({
+  meta: {
+    type: 'suggestion',
+    docs: {
+      description: 'Disallow type annotations that match the inferred type',
+    },
+    fixable: 'code',
+    schema: [],
+    messages: {
+      unnecessary: 'Type annotation is unnecessary — TypeScript infers the same type.',
+    },
+  },
+  create(context) {
+    const {program, esTreeNodeToTSNodeMap} = context.sourceCode
+      .parserServices as Partial<ParserServicesWithTypeInformation>;
+    if (!program || !esTreeNodeToTSNodeMap) {
+      return {};
+    }
+
+    const checks = createTypeAwareRuleChecks(program.getTypeChecker());
+
+    return {
+      VariableDeclarator(node) {
+        const declaration = esTreeNodeToTSNodeMap.get(node);
+        if (
+          !declaration ||
+          !ts.isVariableDeclaration(declaration) ||
+          !node.id.typeAnnotation ||
+          !checks.isUnnecessaryTypeAnnotation(declaration)
+        ) {
+          return;
+        }
+
+        context.report({
+          node: node.id.typeAnnotation,
+          messageId: 'unnecessary',
+          fix: fixer => fixer.remove(node.id.typeAnnotation!),
+        });
+      },
+    };
+  },
+});
 
 const ruleTester = new RuleTester({
   languageOptions: {
