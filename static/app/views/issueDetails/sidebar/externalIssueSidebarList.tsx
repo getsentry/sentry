@@ -67,6 +67,7 @@ export function ExternalIssueSidebarList({event, group}: Props) {
               externalIssueData.integrations.length > 0 &&
               externalIssueData.linkedIssues.length === 0
             }
+            variant="compact"
           />
         </ErrorBoundary>
         {showEmptyIssueTrackerAction && (

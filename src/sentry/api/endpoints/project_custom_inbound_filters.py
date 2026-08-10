@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from enum import StrEnum
 from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema
@@ -17,27 +16,16 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.parameters import GlobalParams
-from sentry.models.custominboundfilter import CustomInboundFilter
+from sentry.models.custominboundfilter import (
+    PRIMARY_CONDITION_TYPES,
+    CustomInboundFilter,
+    CustomInboundFilterConditionType,
+)
 from sentry.models.project import Project
+from sentry.tasks.relay import schedule_invalidate_project_config
 
 MAX_CONDITIONS_PER_FILTER = 10
 MAX_FILTERS_PER_PROJECT = 50
-
-
-class CustomInboundFilterConditionType(StrEnum):
-    ERROR_MESSAGE = "error_message"
-    LOG_MESSAGE = "log_message"
-    METRIC_NAME = "metric_name"
-    RELEASE = "release"
-
-
-PRIMARY_CONDITION_TYPES = frozenset(
-    (
-        CustomInboundFilterConditionType.ERROR_MESSAGE,
-        CustomInboundFilterConditionType.LOG_MESSAGE,
-        CustomInboundFilterConditionType.METRIC_NAME,
-    )
-)
 
 
 class CustomInboundFilterCondition(TypedDict):
@@ -230,6 +218,7 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
             event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER"),
             data=self.get_audit_log_data(project, custom_filter, "add"),
         )
+        schedule_invalidate_project_config(project_id=project.id, trigger="custom_inbound_filters")
 
         return Response(serializer.data, status=201)
 
@@ -323,6 +312,10 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
                 event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER"),
                 data=self.get_audit_log_data(project, custom_filter, "edit", changes),
             )
+            if changes.keys() & {"active", "conditions"}:
+                schedule_invalidate_project_config(
+                    project_id=project.id, trigger="custom_inbound_filters"
+                )
 
         return Response(CustomInboundFilterSerializer(custom_filter).data)
 
@@ -358,5 +351,6 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
             event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER"),
             data=audit_log_data,
         )
+        schedule_invalidate_project_config(project_id=project.id, trigger="custom_inbound_filters")
 
         return Response(status=204)
