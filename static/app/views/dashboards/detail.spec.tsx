@@ -21,6 +21,7 @@ import * as dashboardActions from 'sentry/actionCreators/dashboards';
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import * as modals from 'sentry/actionCreators/modal';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {registerOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
@@ -291,6 +292,20 @@ describe('Dashboards > Detail', () => {
     let mockScrollIntoView!: jest.Mock;
 
     beforeEach(() => {
+      registerOverride(
+        'component:dashboards-limit-provider',
+        () =>
+          function DashboardLimitProvider({children}) {
+            return typeof children === 'function'
+              ? children({
+                  dashboardsLimit: 0,
+                  hasReachedDashboardLimit: false,
+                  isLoading: false,
+                  limitMessage: null,
+                })
+              : children;
+          }
+      );
       window.confirm = jest.fn();
       initialData = initializeOrg({
         organization,
@@ -685,6 +700,54 @@ describe('Dashboards > Detail', () => {
       ).toBeVisible();
       expect(screen.getByRole('menuitemradio', {name: 'Duplicate'})).toBeVisible();
       expect(screen.queryByRole('menuitemradio', {name: 'Edit'})).not.toBeInTheDocument();
+    });
+
+    it('explains why breadcrumb duplicate is disabled at the dashboard limit', async () => {
+      registerOverride(
+        'component:dashboards-limit-provider',
+        () =>
+          function DashboardLimitProvider({children}) {
+            return typeof children === 'function'
+              ? children({
+                  dashboardsLimit: 1,
+                  hasReachedDashboardLimit: true,
+                  isLoading: false,
+                  limitMessage: 'You have reached your dashboard limit.',
+                })
+              : children;
+          }
+      );
+      const pageFrameOrganization = OrganizationFixture({
+        slug: 'org-slug',
+        features: [...organization.features, 'ui-migration-breadcrumbs'],
+      });
+
+      render(
+        <TopBar.Slot.Provider>
+          <TopBar />
+          <DashboardDetail
+            initialState={DashboardState.VIEW}
+            dashboard={DashboardFixture([], {
+              id: '1',
+              prebuiltId: PrebuiltDashboardId.FRONTEND_SESSION_HEALTH,
+              title: 'Prebuilt Dashboard',
+            })}
+            onDashboardUpdate={jest.fn()}
+          />
+        </TopBar.Slot.Provider>,
+        {organization: pageFrameOrganization}
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Dashboard actions'})
+      );
+      const duplicate = await screen.findByRole('menuitemradio', {name: 'Duplicate'});
+      expect(duplicate).toHaveAttribute('aria-disabled', 'true');
+
+      await userEvent.hover(duplicate);
+      expect(
+        await screen.findByText('You have reached your dashboard limit.')
+      ).toBeVisible();
     });
 
     it('shows access controls to org managers without dashboard edit access', async () => {

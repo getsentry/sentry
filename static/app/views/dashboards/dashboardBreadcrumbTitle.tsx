@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useState, type ReactNode} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
@@ -130,12 +130,16 @@ export function DashboardBreadcrumbTitle({
     disabled: hasUnsavedFilters || isSaving,
     onAction: onEdit,
   };
-  function renderTitle(isDuplicateDisabled = false) {
+  function renderTitle(
+    isDuplicateDisabled = false,
+    duplicateDisabledReason: ReactNode = null
+  ) {
     const duplicateItem = {
       key: 'duplicate',
       label: t('Duplicate'),
       leadingItems: <IconCopy />,
       disabled: isDuplicateDisabled,
+      tooltip: isDuplicateDisabled ? duplicateDisabledReason : null,
       onAction: () => {
         openConfirmModal({
           message: t('Are you sure you want to duplicate this dashboard?'),
@@ -173,8 +177,8 @@ export function DashboardBreadcrumbTitle({
 
   return (
     <DashboardCreateLimitWrapper>
-      {({hasReachedDashboardLimit, isLoading}) =>
-        renderTitle(hasReachedDashboardLimit || isLoading)
+      {({hasReachedDashboardLimit, isLoading, limitMessage}) =>
+        renderTitle(hasReachedDashboardLimit || isLoading, limitMessage)
       }
     </DashboardCreateLimitWrapper>
   );

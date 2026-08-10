@@ -83,18 +83,17 @@ function DashboardTopBarControls({dashboardState}: Pick<Props, 'dashboardState'>
       <DashboardEditFeature>
         {() => (
           <Feature features="dashboards-import">
-            <Tooltip title={t('Export Dashboard')}>
-              <Button
-                aria-label={t('export-dashboard')}
-                onClick={event => {
-                  event.preventDefault();
-                  exportDashboard();
-                }}
-                icon={<IconDownload />}
-                variant="secondary"
-                size="sm"
-              />
-            </Tooltip>
+            <Button
+              aria-label={t('export-dashboard')}
+              onClick={event => {
+                event.preventDefault();
+                exportDashboard();
+              }}
+              icon={<IconDownload />}
+              tooltipProps={{title: t('Export Dashboard')}}
+              variant="secondary"
+              size="sm"
+            />
           </Feature>
         )}
       </DashboardEditFeature>
@@ -558,21 +557,20 @@ function AddWidgetDropdown({
     : t('You do not have permission to edit this dashboard');
 
   return (
-    <Tooltip title={tooltip} disabled={!widgetLimitReached && hasEditAccess}>
-      <DropdownMenu
-        items={items}
-        isDisabled={widgetLimitReached || !hasEditAccess}
-        triggerLabel={t('Add Widget')}
-        triggerProps={{
-          'aria-label': t('Add Widget'),
-          size: 'sm',
-          showChevron: true,
-          icon: <IconAdd size="sm" />,
-          variant: 'primary',
-        }}
-        position="bottom-end"
-      />
-    </Tooltip>
+    <DropdownMenu
+      items={items}
+      isDisabled={widgetLimitReached || !hasEditAccess}
+      triggerLabel={t('Add Widget')}
+      triggerProps={{
+        'aria-label': t('Add Widget'),
+        size: 'sm',
+        showChevron: true,
+        icon: <IconAdd size="sm" />,
+        tooltipProps: {title: tooltip},
+        variant: 'primary',
+      }}
+      position="bottom-end"
+    />
   );
 }
 
