@@ -997,7 +997,10 @@ def is_free_cohort_org(organization: Organization) -> bool:
     active), the org is NOT on a paid seat-based Seer plan, and the org
     option is set to True.
     """
-    if features.has("organizations:agentic-triage-free-cohort-killswitch", organization):
+    try:
+        if features.has("organizations:agentic-triage-free-cohort-killswitch", organization):
+            return False
+    except Exception:
         return False
     return not is_seer_seat_based_tier_enabled(organization) and bool(
         OrganizationOption.objects.get_value(organization, "agentic-triage-free-cohort", False)
