@@ -261,9 +261,10 @@ class ProjectBalancingCalculationsTest(TestCase):
     def test_compare_recalibration_factor_with_cache_logs_the_deviation(self) -> None:
         org = self.create_organization()
         config = mock_configuration(org, sample_rate=0.5)
+        org_volume = OrganizationDataVolume(org_id=org.id, total=772, indexed=288)
 
         with patch(LOGGER_INFO) as logger_info:
-            compare_recalibration_factor_with_cache(config, 2.8, 2.0)
+            compare_recalibration_factor_with_cache(config, org_volume, 2.8, 2.0)
 
         logger_info.assert_called_once_with(
             "dynamic_sampling.per_org.recalibration_factor_comparison",
@@ -272,6 +273,8 @@ class ProjectBalancingCalculationsTest(TestCase):
                 "sample_rate": 0.5,
                 "generic_metrics_factor": 2.0,
                 "eap_factor": 2.8,
+                "total_transactions": 772,
+                "stored_segments": 288,
                 "relative_deviation": pytest.approx(0.2857142857142857),
                 "is_equal": False,
             },
@@ -282,13 +285,15 @@ class ProjectBalancingCalculationsTest(TestCase):
         config = mock_configuration(org, sample_rate=0.5)
 
         with patch(LOGGER_INFO) as logger_info:
-            compare_recalibration_factor_with_cache(config, None, 2.0)
+            compare_recalibration_factor_with_cache(config, None, None, 2.0)
 
         assert logger_info.call_args.kwargs["extra"] == {
             "org_id": org.id,
             "sample_rate": 0.5,
             "generic_metrics_factor": 2.0,
             "eap_factor": None,
+            "total_transactions": None,
+            "stored_segments": None,
             "relative_deviation": None,
             "is_equal": False,
         }
