@@ -1,24 +1,17 @@
 import type {QueryClient} from '@tanstack/react-query';
 
-import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {
   archiveInvestigation,
   createBlock,
-  createComment,
   deleteBlock,
-  deleteComment,
   executeBlock,
-  investigationCommentsQueryOptions,
   investigationDetailQueryOptions,
   loadBlockExecution,
   loadTitleGeneration,
   reorderBlocks,
-  setBlockReaction,
-  setCommentReaction,
   respondToBlockExecution,
   stopBlockExecution,
   updateBlock,
-  updateComment,
   updateInvestigation,
   updateInvestigationFavorite,
   updateParameters,
@@ -30,7 +23,6 @@ import type {
   InvestigationDisplay,
   InvestigationFilters,
   InvestigationPermissions,
-  InvestigationReactionName,
 } from 'sentry/views/seerNotebook/types';
 
 export class QueryClientInvestigationTransport implements InvestigationTransport {
@@ -165,62 +157,5 @@ export class QueryClientInvestigationTransport implements InvestigationTransport
       investigationVersion,
       ...permissions,
     });
-  }
-
-  async loadComments(blockId: string, pageCount: number) {
-    const response = await this.queryClient.fetchInfiniteQuery({
-      ...investigationCommentsQueryOptions({
-        blockId,
-        investigationId: this.investigationId,
-        organizationSlug: this.organizationSlug,
-      }),
-      pages: pageCount,
-    });
-    const lastPage = response.pages.at(-1);
-    const next = parseLinkHeader(lastPage?.headers.Link ?? null).next;
-    return {
-      items: response.pages.flatMap(page => page.json),
-      nextCursor: next?.results ? next.cursor : null,
-    };
-  }
-
-  createComment(blockId: string, data: {body: string; mentions: string[]}) {
-    return createComment(this.organizationSlug, this.investigationId, blockId, data);
-  }
-
-  updateComment(commentId: string, data: {body: string; mentions: string[]}) {
-    return updateComment(this.organizationSlug, this.investigationId, commentId, data);
-  }
-
-  deleteComment(commentId: string) {
-    return deleteComment(this.organizationSlug, this.investigationId, commentId);
-  }
-
-  setBlockReaction(
-    blockId: string,
-    reaction: InvestigationReactionName,
-    enabled: boolean
-  ) {
-    return setBlockReaction(
-      this.organizationSlug,
-      this.investigationId,
-      blockId,
-      reaction,
-      enabled
-    );
-  }
-
-  setCommentReaction(
-    commentId: string,
-    reaction: InvestigationReactionName,
-    enabled: boolean
-  ) {
-    return setCommentReaction(
-      this.organizationSlug,
-      this.investigationId,
-      commentId,
-      reaction,
-      enabled
-    );
   }
 }

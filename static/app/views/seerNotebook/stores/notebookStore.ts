@@ -504,21 +504,6 @@ export class NotebookStore {
       this.syncExecutionPolling();
       return;
     }
-    if (event.kind === 'comment.upserted') {
-      block.applyRemoteComment(event.comment);
-      return;
-    }
-    if (event.kind === 'comment.deleted') {
-      block.removeRemoteComment(event.commentId);
-      return;
-    }
-    if (event.kind === 'block.reactions.updated') {
-      block.applyRemoteReactions(event.payload);
-      return;
-    }
-    if (event.kind === 'comment.reactions.updated') {
-      block.applyRemoteCommentReactions(event.commentId, event.payload);
-    }
   }
 
   enqueueOperation<T>(operation: Omit<NotebookOperation<T>, 'id' | 'state'>): Promise<T> {
@@ -912,8 +897,6 @@ export class NotebookStore {
         staleAt: null,
         createdBy: null,
         lastEditedBy: null,
-        reactions: [],
-        commentCount: 0,
       },
       clientKey
     );

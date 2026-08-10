@@ -19,10 +19,7 @@ import {useMemberMentionData} from 'sentry/utils/members/useMemberMentionData';
 import {useTeams} from 'sentry/utils/useTeams';
 
 type Props = {
-  controlled?: boolean;
   errorJSON?: CreateError | null;
-  /** Existing user/team actors when editing an investigation comment. */
-  mentioned?: Mentioned[];
   /**
    * This is the id of the server's note object and is meant to indicate that
    * you are editing an existing item
@@ -40,7 +37,6 @@ type Props = {
 };
 
 export function CompactNoteInput({
-  controlled = false,
   text,
   onCreate,
   onChange,
@@ -49,7 +45,6 @@ export function CompactNoteInput({
   noteId,
   errorJSON,
   placeholder,
-  mentioned = [],
 }: Props) {
   const theme = useTheme();
 
@@ -63,19 +58,14 @@ export function CompactNoteInput({
 
   const [value, setValue] = useState(text ?? '');
 
-  const [memberMentions, setMemberMentions] = useState<Mentioned[]>(() =>
-    mentioned.filter(([id]) => id.startsWith('user:'))
-  );
-  const [teamMentions, setTeamMentions] = useState<Mentioned[]>(() =>
-    mentioned.filter(([id]) => id.startsWith('team:'))
-  );
+  const [memberMentions, setMemberMentions] = useState<Mentioned[]>([]);
+  const [teamMentions, setTeamMentions] = useState<Mentioned[]>([]);
   const [isSubmitVisible, setIsSubmitVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const effectiveValue = controlled ? (text ?? '') : value;
-  const canSubmit = effectiveValue.trim() !== '';
+  const canSubmit = value.trim() !== '';
 
-  const cleanMarkdown = effectiveValue
+  const cleanMarkdown = value
     .replace(/\[sentry\.strip:member\]/g, '@')
     .replace(/\[sentry\.strip:team\]/g, '');
 
@@ -83,7 +73,7 @@ export function CompactNoteInput({
 
   // each mention looks like [id, display]
   const finalizedMentions = [...memberMentions, ...teamMentions]
-    .filter(mention => effectiveValue.includes(mention[1]))
+    .filter(mention => value.includes(mention[1]))
     .map(mention => mention[0]);
 
   const submitForm = useCallback(async () => {
@@ -173,7 +163,7 @@ export function CompactNoteInput({
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         onFocus={displaySubmitButton}
-        value={effectiveValue}
+        value={value}
         required
       >
         <Mention
