@@ -52,12 +52,12 @@ export type DragHandleProps = {
 };
 
 export function DragHandle({
+  variant = 'solid',
   isSizedFirst,
   max,
   min,
   orientation,
   value,
-  variant = 'solid',
   onDoubleClick,
   onKeyDown,
   onMove,
@@ -88,9 +88,9 @@ export function DragHandle({
           aria-valuemax={Number.isFinite(max) ? max : undefined}
           aria-valuemin={min}
           aria-valuenow={value}
+          data-variant={variant}
           data-is-held={isHeld}
           data-orientation={orientation}
-          data-variant={variant}
           role="separator"
           tabIndex={0}
         />
