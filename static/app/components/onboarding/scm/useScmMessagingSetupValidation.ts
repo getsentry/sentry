@@ -121,7 +121,7 @@ export function useScmMessagingSetupValidation({
                 integrationId: integration.id,
               }
             : skipToken,
-        query: validateParam === undefined ? skipToken : {channel: validateParam},
+        query: validateParam === undefined ? undefined : {channel: validateParam},
         staleTime: 0,
       }
     )
