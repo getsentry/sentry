@@ -72,7 +72,6 @@ export function MetricsExportModalButton({
     filenameBase,
     queryInfo,
     asyncQueryType: ExportQueryType.EXPLORE,
-    // The wide JSONL export does not support the tracemetrics dataset.
     supportsAllColumns: false,
     availableFormats: ['csv', 'jsonl'],
     estimatedRowCount,
