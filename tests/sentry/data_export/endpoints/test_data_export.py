@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+from django.urls import reverse
+
 from sentry.api.authentication import (
     ApiKeyAuthentication,
     OrgAuthTokenAuthentication,
@@ -17,6 +19,7 @@ from sentry.data_export.writers import OutputMode
 from sentry.search.utils import parse_datetime_string
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.utils import json
 from sentry.utils.snuba import MAX_FIELDS
 
 
@@ -554,12 +557,13 @@ class DataExportTest(APITestCase):
         assert query_info["field"] == ["model", "sum(value,llm.token_usage,distribution,-)"]
         assert query_info["dataset"] == "tracemetrics"
 
-    def test_full_export_invalid_dataset_tracemetrics(self) -> None:
+    def test_full_export_valid_dataset_tracemetrics(self) -> None:
         """
-        Tests that tracemetrics is rejected for full exports, which only support spans and logs
+        Tests that the tracemetrics dataset is valid for full exports
         """
         payload = {
             "query_type": ExportQueryType.TRACE_ITEM_FULL_EXPORT_STR,
+            "format": OutputMode.JSONL.value,
             "query_info": {
                 "field": [],
                 "query": "",
@@ -567,9 +571,18 @@ class DataExportTest(APITestCase):
                 "dataset": "tracemetrics",
             },
         }
+        url = reverse(
+            "sentry-api-0-organization-data-export",
+            kwargs={"organization_id_or_slug": self.org.slug},
+        )
         with self.feature("organizations:discover-query"):
-            response = self.get_error_response(self.org.slug, status_code=400, **payload)
-        assert response.data == {"non_field_errors": ["tracemetrics is not supported for exports"]}
+            response = self.client.post(
+                url, data=json.dumps(payload), content_type="application/json"
+            )
+        assert response.status_code == 201, response.content
+        data_export = ExportedData.objects.get(id=json.loads(response.content)["id"])
+        assert data_export.query_type == ExportQueryType.TRACE_ITEM_FULL_EXPORT
+        assert data_export.query_info["dataset"] == "tracemetrics"
 
     def test_explore_valid_jsonl_format(self) -> None:
         payload = self.make_payload("explore", {"format": "jsonl"})
