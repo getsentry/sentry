@@ -22,7 +22,11 @@ from sentry.seer.milestones import (
     reconcile_pull_requests_merged_milestone,
     record_has_pull_request,
 )
-from sentry.seer.models.run import SeerRunMilestone, SeerRunMilestoneType
+from sentry.seer.models.run import (
+    SeerRunMilestone,
+    SeerRunMilestoneExtras,
+    SeerRunMilestoneType,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
@@ -292,8 +296,29 @@ class ReconcileMilestonesTest(TestCase):
         )
         return _state(blocks=[block])
 
-    def _extras(self, milestone: str) -> dict[str, object]:
+    def _extras(self, milestone: str) -> SeerRunMilestoneExtras:
         return SeerRunMilestone.objects.get(seer_run=self.seer_run, milestone=milestone).extras
+
+    def test_reconcile_keeps_has_pull_request_when_a_pr_is_linked(self) -> None:
+        # A coding-agent PR recorded via record_has_pull_request may be absent from
+        # state; a still-linked PR must keep the milestone from being deleted.
+        record_has_pull_request(self.seer_run)
+        repo = self.create_repo(self.project, name="getsentry/sentry")
+        pull_request = self.create_pull_request(
+            repository_id=repo.id, organization_id=self.organization.id, key="1"
+        )
+        self.create_seer_run_pull_request(run=self.seer_run, pull_request=pull_request)
+
+        reconcile_milestones(self.seer_run, _state())
+
+        assert SeerRunMilestoneType.HAS_PULL_REQUEST in self._recorded()
+
+    def test_reconcile_deletes_has_pull_request_without_linked_pr(self) -> None:
+        record_has_pull_request(self.seer_run)
+
+        reconcile_milestones(self.seer_run, _state())
+
+        assert SeerRunMilestoneType.HAS_PULL_REQUEST not in self._recorded()
 
     def test_reconcile_writes_then_refreshes_extras_on_rerun(self) -> None:
         reconcile_milestones(self.seer_run, self._root_cause_state("first"))

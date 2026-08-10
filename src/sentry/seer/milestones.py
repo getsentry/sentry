@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Collection
 from typing import TYPE_CHECKING
 
 from django.db import router, transaction
@@ -72,6 +73,18 @@ def milestones_from_state(state: SeerRunState) -> dict[str, SeerRunMilestoneExtr
     return result
 
 
+def milestones_to_delete(seer_run: SeerRun, desired: Collection[str]) -> set[str]:
+    existing = set(
+        SeerRunMilestone.objects.filter(
+            seer_run=seer_run, milestone__in=SEER_STATE_MILESTONES
+        ).values_list("milestone", flat=True)
+    )
+    to_delete = existing - set(desired)
+    if SeerRunMilestoneType.HAS_PULL_REQUEST in to_delete and seer_run.pull_requests.exists():
+        to_delete.discard(SeerRunMilestoneType.HAS_PULL_REQUEST)
+    return to_delete
+
+
 def reconcile_milestones(seer_run: SeerRun, state: SeerRunState) -> None:
     """Make the run's SEER_STATE_MILESTONES match what ``state`` has reached,
     inserting/refreshing extras and deleting ones a re-run undid. Milestones
@@ -84,12 +97,7 @@ def reconcile_milestones(seer_run: SeerRun, state: SeerRunState) -> None:
             desired[milestone] = reached[milestone]
 
     with transaction.atomic(using=router.db_for_write(SeerRunMilestone)):
-        existing = set(
-            SeerRunMilestone.objects.filter(
-                seer_run=seer_run, milestone__in=SEER_STATE_MILESTONES
-            ).values_list("milestone", flat=True)
-        )
-        to_delete = existing - desired.keys()
+        to_delete = milestones_to_delete(seer_run, desired.keys())
         if to_delete:
             SeerRunMilestone.objects.filter(seer_run=seer_run, milestone__in=to_delete).delete()
 
@@ -113,6 +121,11 @@ def record_has_pull_request(seer_run: SeerRun) -> None:
     )
 
 
+def all_linked_pull_requests_merged(seer_run: SeerRun) -> bool:
+    states = list(seer_run.pull_requests.values_list("state", flat=True))
+    return bool(states) and all(state == PullRequestLifecycleState.MERGED for state in states)
+
+
 def reconcile_pull_requests_merged_milestone(seer_run: SeerRun) -> bool:
     """Make PULL_REQUESTS_MERGED match the current state of every linked PR.
 
@@ -122,16 +135,12 @@ def reconcile_pull_requests_merged_milestone(seer_run: SeerRun) -> bool:
     database = router.db_for_write(SeerRunMilestone)
     with transaction.atomic(using=database):
         SeerRun.objects.select_for_update().values_list("id", flat=True).get(id=seer_run.id)
-        states = list(seer_run.pull_requests.values_list("state", flat=True))
         milestone = SeerRunMilestone.objects.filter(
             seer_run=seer_run,
             milestone=SeerRunMilestoneType.PULL_REQUESTS_MERGED,
         )
 
-        all_prs_merged = bool(states) and all(
-            state == PullRequestLifecycleState.MERGED for state in states
-        )
-        if not all_prs_merged:
+        if not all_linked_pull_requests_merged(seer_run):
             milestone.delete()
             return False
 
