@@ -60,39 +60,10 @@ export function Controls(props: Props) {
   const hasNewBreadcrumbs = useHasNewBreadcrumbs();
 
   if (hasNewBreadcrumbs) {
-    return <DashboardTopBarControls dashboardState={props.dashboardState} />;
-  }
-
-  return <LegacyDashboardControls {...props} />;
-}
-
-function DashboardTopBarControls({dashboardState}: Pick<Props, 'dashboardState'>) {
-  if (
-    [
-      DashboardState.EDIT,
-      DashboardState.PENDING_DELETE,
-      DashboardState.CREATE,
-      DashboardState.PREVIEW,
-    ].includes(dashboardState)
-  ) {
     return null;
   }
 
-  return (
-    <Feature features="dashboards-import">
-      <Button
-        aria-label={t('export-dashboard')}
-        onClick={event => {
-          event.preventDefault();
-          exportDashboard();
-        }}
-        icon={<IconDownload />}
-        tooltipProps={{title: t('Export Dashboard')}}
-        variant="secondary"
-        size="sm"
-      />
-    </Feature>
-  );
+  return <LegacyDashboardControls {...props} />;
 }
 
 function LegacyDashboardControls({

@@ -618,7 +618,11 @@ describe('Dashboards > Detail', () => {
     it('renders the redesigned dashboard breadcrumb in the top bar (flag on)', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
-        features: [...organization.features, 'ui-migration-breadcrumbs'],
+        features: [
+          ...organization.features,
+          'dashboards-import',
+          'ui-migration-breadcrumbs',
+        ],
       });
 
       render(
@@ -654,6 +658,7 @@ describe('Dashboards > Detail', () => {
       expect(
         screen.getByRole('menuitemradio', {name: 'Show version history'})
       ).toBeVisible();
+      expect(screen.getByRole('menuitemradio', {name: 'Export'})).toBeVisible();
       expect(
         screen.queryByRole('menuitemradio', {name: 'Duplicate'})
       ).not.toBeInTheDocument();

@@ -6,7 +6,14 @@ import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {IconClock, IconCopy, IconEdit, IconEllipsis, IconStar} from 'sentry/icons';
+import {
+  IconClock,
+  IconCopy,
+  IconDownload,
+  IconEdit,
+  IconEllipsis,
+  IconStar,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
@@ -18,6 +25,7 @@ import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {useOpenDashboardRevisions} from 'sentry/views/dashboards/dashboardRevisions';
+import {exportDashboard} from 'sentry/views/dashboards/exportDashboard';
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import type {DashboardDetails} from 'sentry/views/dashboards/types';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
@@ -135,6 +143,12 @@ export function DashboardBreadcrumbTitle({
     disabled: hasUnsavedFilters || isSaving,
     onAction: onEdit,
   };
+  const exportItem = {
+    key: 'export',
+    label: t('Export'),
+    leadingItems: <IconDownload />,
+    onAction: exportDashboard,
+  };
   function renderTitle(
     isDuplicateDisabled = false,
     duplicateDisabledReason: ReactNode = null
@@ -158,6 +172,7 @@ export function DashboardBreadcrumbTitle({
       ...(canViewRevisions ? [revisionItem] : []),
       ...(isDashboardEditor ? [editItem] : []),
       ...(isPrebuiltDashboard ? [duplicateItem] : []),
+      ...(organization.features.includes('dashboards-import') ? [exportItem] : []),
     ];
 
     return (
