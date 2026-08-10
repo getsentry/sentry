@@ -5,7 +5,7 @@ import type {createFilter} from 'sentry/components/forms/controls/reactSelectWra
 import type {ChoiceMapperProps} from 'sentry/components/forms/fields/choiceMapperField';
 import type {FormModel} from 'sentry/components/forms/model';
 import type {SliderProps} from 'sentry/components/slider';
-import type {AvatarProject, Project} from 'sentry/types/project';
+import type {AvatarProject} from 'sentry/types/project';
 
 type FieldType =
   | 'array'
@@ -187,13 +187,6 @@ type ChoiceMapperType = {
   type: 'choice_mapper';
 } & ChoiceMapperProps;
 
-// selects a sentry project with avatars
-type SentryProjectSelectorType = {
-  projects: Project[];
-  type: 'sentry_project_selector';
-  avatarSize?: number;
-};
-
 type SentryOrganizationRoleSelectorType = {
   type: 'sentry_organization_role_selector';
 };
@@ -208,7 +201,6 @@ export type Field = (
   | RangeType
   | TableType
   | ProjectMapperType
-  | SentryProjectSelectorType
   | SentryOrganizationRoleSelectorType
   | ChoiceMapperType
   | {type: FieldType}
