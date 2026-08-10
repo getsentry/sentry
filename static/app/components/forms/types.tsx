@@ -26,8 +26,7 @@ type FieldType =
   | 'text'
   | 'url'
   | 'table'
-  | 'project_mapper'
-  | 'sentry_project_selector';
+  | 'project_mapper';
 
 export type FieldValue = any;
 
