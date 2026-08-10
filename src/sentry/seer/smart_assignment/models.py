@@ -69,8 +69,9 @@ class SmartAssignmentScore(models.TextChoices):
     """
 
     EXACT = "exact"  # predicted user is the actual assignee
-    TEAM = "team"  # predicted user isn't the assignee but is on the correct team
-    MISS = "miss"  # neither
+    TEAM = "team"  # the issue went to a team, and the predicted user is on it
+    SHARED_TEAM = "shared-team"  # predicted user shares a team with the actual assignee
+    MISS = "miss"  # none of the above
 
 
 class SmartAssignmentPayload(BaseModel):

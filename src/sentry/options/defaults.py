@@ -1499,13 +1499,6 @@ register(
 # credentials can not be verified.
 register("relay.allow_internal_ip_auth", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# Tell Relay to stop extracting metrics from transaction payloads (see killswitches)
-# Example value: [{"project_id": 42}, {"project_id": 123}]
-register("relay.drop-transaction-metrics", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Tell Relay to stop extracting metrics from transaction payloads for all projects.
-register("relay.drop-transaction-metrics2", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
 # Relay should emit a usage metric to track total spans.
 register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -2726,11 +2719,6 @@ register(
     default=50,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "on_demand.max_widget_cardinality.killswitch",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Overrides modified date and always updates the row. Can be removed if not needed later.
 register(
     "on_demand.update_on_demand_modified",
@@ -2903,19 +2891,6 @@ register(
     default=100,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Use database backed stateful extraction state
-register(
-    "on_demand_metrics.widgets.use_stateful_extraction",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Use to rollout using a cache for should_use_on_demand function, which resolves queries
-register(
-    "on_demand_metrics.cache_should_use_on_demand",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
-)
-
 # Relocation: whether or not the self-serve API for the feature is enabled. When set on a region
 # silo, this flag controls whether or not that region's API will serve relocation requests to
 # non-superuser clients. When set on the control silo, it can be used to regulate whether or not

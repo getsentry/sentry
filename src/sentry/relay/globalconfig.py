@@ -3,10 +3,6 @@ from typing import Any, TypedDict
 import sentry.options
 from sentry.relay.config.ai_model_costs import AIModelMetadataConfig, ai_model_metadata_config
 from sentry.relay.config.measurements import MeasurementsConfig, get_measurements_config
-from sentry.relay.config.metric_extraction import (
-    MetricExtractionGroups,
-    global_metric_extraction_groups,
-)
 from sentry.relay.types import GenericFiltersConfig, RuleCondition
 from sentry.utils import metrics
 
@@ -39,7 +35,6 @@ class SpanOpDefaults(TypedDict):
 class GlobalConfig(TypedDict, total=False):
     measurements: MeasurementsConfig
     aiModelMetadata: AIModelMetadataConfig | None
-    metricExtraction: MetricExtractionGroups
     filters: GenericFiltersConfig | None
     spanOpDefaults: SpanOpDefaults
     options: dict[str, Any]
@@ -78,7 +73,6 @@ def get_global_config() -> GlobalConfig:
     global_config: GlobalConfig = {
         "measurements": get_measurements_config(),
         "aiModelMetadata": ai_model_metadata_config(),
-        "metricExtraction": global_metric_extraction_groups(),
         "spanOpDefaults": span_op_defaults(),
     }
 
