@@ -108,8 +108,11 @@ def _pr_activity_timeline(pull_request: PullRequest) -> tuple[list[PrActivityEve
     can't balloon the Seer request.
 
     Document-path PRs project the same wire shape: lifecycle entries pass through,
-    and each checks group becomes one synthesized ``check_suite_completed`` (the
-    collapse Seer's timeline does anyway), so the Seer contract is unchanged.
+    and each checks group becomes one synthesized ``check_suite_completed`` — one
+    per check suite, matching the cardinality of GitHub's own completion webhooks
+    rather than a one-per-app collapse, with additive payload keys
+    (``check_suite_id``, ``failing_check_names``, ...) legacy rows never carried.
+    Seer ignores unknown payload keys, so the contract stays field-compatible.
     """
     doc = load_activity_document(pull_request)
     if doc is not None:

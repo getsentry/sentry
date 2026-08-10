@@ -192,6 +192,23 @@ class ActivityDocumentReadersTest(TestCase):
         )
         assert _ci_failing_at_close(self.pr, doc=load_activity_document(self.pr)) is True
 
+    def test_ci_failing_at_close_mixed_merged_and_suite_groups_keeps_frozen_failure(self) -> None:
+        # The rolling-deploy state: id-less events froze a failure into the
+        # merged legacy group, then suite-scoped greens landed beside it under
+        # per-suite keys. Any-failure-wins across all groups means the frozen
+        # failure is still reported for the document's whole life — the accepted
+        # over-report documented on _get_or_create_group, chosen over erasing a
+        # recorded failure.
+        self._write_doc(
+            _doc(
+                checks={
+                    "sha1|github-actions": _group(suite_conclusion="failure"),
+                    "sha1|github-actions|2": _group(check_suite_id=2, suite_conclusion="success"),
+                }
+            )
+        )
+        assert _ci_failing_at_close(self.pr, doc=load_activity_document(self.pr)) is True
+
     # --- review_activity (requested_count, results) -------------------------
 
     def test_reviews_requested_count_from_doc(self) -> None:

@@ -16,6 +16,7 @@ from sentry.pr_metrics.activity_doc import (
     DOC_VERSION,
     MAX_CHECK_GROUPS,
     MAX_EVENTS,
+    MAX_GROUPS_PER_HEAD,
     MAX_RUNS_PER_GROUP,
     MAX_SYNC_CHAIN,
     ActivityDoc,
@@ -684,6 +685,24 @@ def test_suite_scoped_event_leaves_pre_split_group_untouched() -> None:
     assert _group(doc, check_suite_id=7)["suite_conclusion"] == "success"
 
 
+def test_timeline_forwards_both_merged_and_suite_groups_for_same_head() -> None:
+    # The state a rolling deploy produces on a live PR: id-less events (from
+    # not-yet-updated processors) fold into the merged legacy group while
+    # id-carrying events build per-suite groups beside it, and the merged group
+    # then persists for the rest of the document's life. Both representations of
+    # the same head+app reach the judge, each with its own conclusion — the
+    # frozen failure is double-reported rather than erased.
+    doc = new_document()
+    _suite(doc, check_suite_id=None, conclusion="failure", updated_at="2026-07-10T12:00:00Z")
+    _suite(doc, check_suite_id=2, conclusion="success", updated_at="2026-07-10T12:05:00Z")
+
+    events = timeline_events_from_doc(doc)
+    assert [(e["payload"]["check_suite_id"], e["payload"]["conclusion"]) for e in events] == [
+        (None, "failure"),
+        (2, "success"),
+    ]
+
+
 # --- checks: idempotency & permutation convergence ------------------------
 
 
@@ -805,6 +824,37 @@ def test_check_group_cap_evicts_least_recent_group() -> None:
     assert "sha0000|github-actions|1" not in doc["checks"]
     assert "sha0001|github-actions|1" in doc["checks"]
     mock_metrics.incr.assert_any_call("pr_metrics.activity_doc.check_groups_capped")
+    assert mock_logger.warning.call_count == 1
+
+
+def test_head_group_cap_evicts_within_the_head_only() -> None:
+    doc = new_document()
+    # A real (failing) group on an old head…
+    _suite(
+        doc,
+        head_sha="sha-old",
+        check_suite_id=999,
+        conclusion="failure",
+        updated_at="2026-07-10T11:00:00Z",
+    )
+    # …then a suite-spam loop (e.g. a workflow re-trigger bot) fills a newer head
+    # to its cap, with strictly increasing recency (suite 0 the stalest).
+    with patch(f"{MODULE}.metrics") as mock_metrics, patch(f"{MODULE}.logger") as mock_logger:
+        for i in range(MAX_GROUPS_PER_HEAD):
+            _suite(
+                doc, head_sha="sha-spam", check_suite_id=i, updated_at=f"2026-07-10T12:{i:02d}:00Z"
+            )
+        assert mock_metrics.incr.call_count == 0  # filling exactly to the cap evicts nothing
+        _suite(doc, head_sha="sha-spam", check_suite_id=1000, updated_at="2026-07-10T13:00:00Z")
+
+    # The spam head evicted its own stalest suite to admit the newcomer…
+    assert "sha-spam|github-actions|0" not in doc["checks"]
+    assert _group(doc, head_sha="sha-spam", check_suite_id=1000) is not None
+    spam_groups = [g for g in doc["checks"].values() if g["head_sha"] == "sha-spam"]
+    assert len(spam_groups) == MAX_GROUPS_PER_HEAD
+    # …and the other head — far staler than anything on the spam head — survived.
+    assert _group(doc, head_sha="sha-old", check_suite_id=999)["suite_conclusion"] == "failure"
+    mock_metrics.incr.assert_any_call("pr_metrics.activity_doc.check_head_groups_capped")
     assert mock_logger.warning.call_count == 1
 
 

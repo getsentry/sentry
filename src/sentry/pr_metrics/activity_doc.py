@@ -32,12 +32,17 @@ MAX_EVENTS = 500
 # the events cap: below MAX_SYNC_CHAIN the chain is complete; past it the NEWEST
 # links — the ones the head-anchored commit-chain walk starts from — are retained.
 MAX_SYNC_CHAIN = 500
-# Check-rollup bounds: distinct ``(head_sha, app_slug, check_suite_id)`` groups
-# per PR, and ever-failing runs tracked per group. Both are pathology backstops.
-# Groups are per suite and one app emits one suite per workflow run (a
-# workflow-heavy repo sees tens of github-actions suites on a single head), so
-# the group cap sits well above heads x suites for a normal PR.
-MAX_CHECK_GROUPS = 500
+# Check-rollup bounds, each surfaced via log + metric when hit. Groups are per
+# ``(head_sha, app_slug, check_suite_id)`` and one app emits one suite per
+# workflow run. ``MAX_GROUPS_PER_HEAD`` bounds a single head's suite fan-out so
+# a suite-spam pathology (e.g. a workflow re-trigger loop) cannot evict every
+# other head out of the document; the busiest observed repo emits ~26 suites
+# across all apps on one head, so 40 sits above real CI. ``MAX_CHECK_GROUPS``
+# bounds the document across heads (~10 spam-free busiest-repo heads, ~30
+# typical ones). ``MAX_RUNS_PER_GROUP`` bounds the ever-failing runs tracked
+# per group.
+MAX_CHECK_GROUPS = 300
+MAX_GROUPS_PER_HEAD = 40
 MAX_RUNS_PER_GROUP = 50
 
 # Conclusion vocabulary shared with Seer's ``timeline.py``: a clean pass, an
@@ -416,19 +421,27 @@ def _get_or_create_group(doc: ActivityDoc, payload: Mapping[str, Any]) -> CheckG
     concurrent workflows apart, while a rerun of one suite (same id) still
     converges latest-wins.
 
-    A payload without a suite id falls back to the suite-less legacy key, so
-    documents persisted before the split keep folding such events into their
-    existing groups with no migration. Suite-scoped events never fold into a
-    legacy group: on an old document the merged group simply goes stale next to
-    the new per-suite groups — a reader may transiently re-report a failure it
-    froze on, which beats erasing one.
+    A payload without a suite id falls back to the suite-less legacy key. That
+    keeps two populations working with no migration: documents persisted before
+    the split keep resolving their merged per-app groups, and during a rolling
+    deploy — updated and not-yet-updated webhook processors interleaving on the
+    same live PR — the id-less half keeps folding into the merged group while
+    the id-carrying half builds per-suite groups beside it. Suite-scoped events
+    never fold into a merged group, so once the rollout completes the merged
+    group freezes and persists for the rest of the document's life (the document
+    is only swept after terminal emit). Readers that scan every group
+    (``_any_group_failing``) see such a head+app twice, and a failure frozen in
+    the merged group is not cleared by suite-scoped greens — over-reporting a
+    recorded failure is accepted over erasing one.
 
-    Existing groups always resolve. A new group beyond ``MAX_CHECK_GROUPS`` evicts
-    the least-recently-updated group (by ``last_event_at``) to make room rather than
-    dropping the newcomer: the judge cares most about the *final* head's CI state, so
-    a green-heavy PR that fills the cap must not freeze on stale SHAs and silently
-    drop a failing check that lands on a newer one. Each eviction is a cap hit,
-    surfaced via a log + metric — the cap is a pathology backstop, never silent.
+    Existing groups always resolve. A newcomer past a cap evicts the
+    least-recently-updated group (by ``last_event_at``) rather than being
+    dropped: the judge cares most about the *final* head's CI state, so a PR
+    that fills a cap must not freeze on stale entries and silently drop a
+    failing check that lands later. ``MAX_GROUPS_PER_HEAD`` evicts within the
+    newcomer's head, so one head's suite spam degrades only that head;
+    ``MAX_CHECK_GROUPS`` evicts document-wide, shedding the stalest head first
+    on many-push PRs. Each eviction is a cap hit, surfaced via a log + metric.
     """
     head_sha = payload.get("head_sha") or ""
     app_slug = payload.get("app_slug") or ""
@@ -442,7 +455,22 @@ def _get_or_create_group(doc: ActivityDoc, payload: Mapping[str, Any]) -> CheckG
     group = checks.get(key)
     if group is not None:
         return group
-    if len(checks) >= MAX_CHECK_GROUPS:
+    same_head = [
+        existing
+        for existing, existing_group in checks.items()
+        if existing_group.get("head_sha") == head_sha
+    ]
+    if len(same_head) >= MAX_GROUPS_PER_HEAD:
+        evicted_key = min(
+            same_head, key=lambda existing: checks[existing].get("last_event_at") or ""
+        )
+        del checks[evicted_key]
+        logger.warning(
+            "pr_metrics.activity_doc.check_head_groups_capped",
+            extra={"head_sha": head_sha, "app_slug": app_slug, "evicted_key": evicted_key},
+        )
+        metrics.incr("pr_metrics.activity_doc.check_head_groups_capped")
+    elif len(checks) >= MAX_CHECK_GROUPS:
         evicted_key = min(checks, key=lambda existing: checks[existing].get("last_event_at") or "")
         del checks[evicted_key]
         logger.warning(
