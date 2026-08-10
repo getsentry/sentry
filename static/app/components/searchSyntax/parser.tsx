@@ -49,6 +49,7 @@ export enum Token {
   KEY_EXPLICIT_NUMBER_TAG = 'keyExplicitNumberTag',
   KEY_EXPLICIT_STRING_TAG = 'keyExplicitStringTag',
   KEY_EXPLICIT_ARRAY_TAG = 'keyExplicitArrayTag',
+  KEY_ARRAY_INCLUDES = 'keyArrayIncludes',
   KEY_AGGREGATE = 'keyAggregate',
   KEY_AGGREGATE_ARGS = 'keyAggregateArgs',
   KEY_AGGREGATE_PARAMS = 'keyAggregateParam',
@@ -85,6 +86,10 @@ export enum TermOperator {
   DOES_NOT_START_WITH = '\uF00DDoesNotStartWith\uF00D',
   ENDS_WITH = '\uF00DEndsWith\uF00D',
   DOES_NOT_END_WITH = '\uF00DDoesNotEndWith\uF00D',
+  // Array membership operators. The `[*]` on the key carries the syntax, so
+  // these render with no marker text (unlike the wildcard operators).
+  INCLUDES = '\uF00DIncludes\uF00D',
+  DOES_NOT_INCLUDE = '\uF00DDoesNotInclude\uF00D',
 }
 
 /**
@@ -118,6 +123,7 @@ export enum FilterType {
   AGGREGATE_RELATIVE_DATE = 'aggregateRelativeDate',
   HAS = 'has',
   IS = 'is',
+  ARRAY_INCLUDES = 'arrayIncludes',
 }
 
 /**
@@ -154,11 +160,17 @@ export const wildcardOperators = [
 
 export type WildcardOperator = (typeof wildcardOperators)[number];
 
+const arrayIncludesOperators = [
+  TermOperator.INCLUDES,
+  TermOperator.DOES_NOT_INCLUDE,
+] as const;
+
 export const negationOperators: readonly TermOperator[] = [
   TermOperator.NOT_EQUAL,
   TermOperator.DOES_NOT_CONTAIN,
   TermOperator.DOES_NOT_START_WITH,
   TermOperator.DOES_NOT_END_WITH,
+  TermOperator.DOES_NOT_INCLUDE,
 ];
 
 /**
@@ -186,6 +198,8 @@ const textKeys = [
   Token.KEY_EXPLICIT_FLAG,
   Token.KEY_EXPLICIT_STRING_FLAG,
 ] as const;
+
+const arrayIncludesKeys = [Token.KEY_ARRAY_INCLUDES] as const;
 
 /**
  * This constant-type configuration object declares how each filter type
@@ -301,6 +315,12 @@ export const filterTypeConfig = {
   [FilterType.IS]: {
     validKeys: [Token.KEY_SIMPLE],
     validOps: basicOperators,
+    validValues: [Token.VALUE_TEXT],
+    canNegate: true,
+  },
+  [FilterType.ARRAY_INCLUDES]: {
+    validKeys: arrayIncludesKeys,
+    validOps: arrayIncludesOperators,
     validValues: [Token.VALUE_TEXT],
     canNegate: true,
   },
@@ -622,6 +642,20 @@ export class TokenConverter {
     key,
   });
 
+  // An array element-access key, eg. `foo[*]`. `index` is `*` for membership
+  // over any element (a future `[N]` would target a specific index).
+  tokenKeyArrayIncludes = (
+    key:
+      | ReturnType<TokenConverter['tokenKeySimple']>
+      | ReturnType<TokenConverter['tokenKeyExplicitArrayTag']>,
+    index: string
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KEY_ARRAY_INCLUDES as const,
+    key,
+    index,
+  });
+
   tokenKeyAggregateParam = (value: string, quoted: boolean) => ({
     ...this.defaultTokenFields,
     type: Token.KEY_AGGREGATE_PARAMS as const,
@@ -915,6 +949,7 @@ export class TokenConverter {
         Token.KEY_EXPLICIT_NUMBER_TAG,
         Token.KEY_EXPLICIT_STRING_TAG,
         Token.KEY_EXPLICIT_ARRAY_TAG,
+        Token.KEY_ARRAY_INCLUDES,
         Token.KEY_EXPLICIT_FLAG,
         Token.KEY_EXPLICIT_NUMBER_FLAG,
         Token.KEY_EXPLICIT_STRING_FLAG,

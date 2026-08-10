@@ -84,7 +84,14 @@ function getTraceItemFieldDefinitionFunction(
   tags: TagCollection
 ): FieldDefinitionGetter {
   return (key, options) => {
-    return getFieldDefinition(key, typeMap[itemType], options?.kind ?? tags[key]?.kind);
+    // Array membership keys carry a `[*]` suffix (eg. `foo[*]`). Strip it so the
+    // field definition resolves to the attribute's stored backend key.
+    const baseKey = key.endsWith('[*]') ? key.slice(0, -'[*]'.length) : key;
+    return getFieldDefinition(
+      baseKey,
+      typeMap[itemType],
+      options?.kind ?? tags[baseKey]?.kind
+    );
   };
 }
 

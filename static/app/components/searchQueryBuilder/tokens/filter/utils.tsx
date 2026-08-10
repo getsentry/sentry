@@ -30,12 +30,8 @@ export const OP_LABELS = {
   [TermOperator.DOES_NOT_START_WITH]: 'does not start with',
   [TermOperator.ENDS_WITH]: 'ends with',
   [TermOperator.DOES_NOT_END_WITH]: 'does not end with',
-};
-
-export const ARRAY_OP_LABELS = {
-  ...OP_LABELS,
-  [TermOperator.CONTAINS]: 'includes',
-  [TermOperator.DOES_NOT_CONTAIN]: 'does not include',
+  [TermOperator.INCLUDES]: 'includes',
+  [TermOperator.DOES_NOT_INCLUDE]: 'does not include',
 };
 
 export const DATE_OP_LABELS = {
@@ -286,6 +282,8 @@ export function getLabelAndOperatorFromToken(token: TokenResult<Token.FILTER>) {
 
   if (token.negated && token.operator === TermOperator.CONTAINS) {
     operator = TermOperator.DOES_NOT_CONTAIN;
+  } else if (token.negated && token.operator === TermOperator.INCLUDES) {
+    operator = TermOperator.DOES_NOT_INCLUDE;
   } else if (token.negated && token.operator === TermOperator.STARTS_WITH) {
     operator = TermOperator.DOES_NOT_START_WITH;
   } else if (token.negated && token.operator === TermOperator.ENDS_WITH) {
