@@ -30,6 +30,7 @@ from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.types import (
     DATA_SOURCE_UPTIME_SUBSCRIPTION,
 )
+from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 from sentry.workflow_engine.endpoints.organization_detector_index import convert_assignee_values
 from sentry.workflow_engine.migration_helpers.alert_rule import dual_write_alert_rule
 from sentry.workflow_engine.models import (
@@ -813,6 +814,54 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
 
 
 @cell_silo_test
+class OrganizationDetectorIndexGetAllProjectsTest(OrganizationDetectorIndexBaseTest):
+    """Tests that the all-projects detector is included when the feature flag is enabled."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+
+    @with_feature("organizations:workflow-engine-all-projects-detector")
+    def test_all_projects_detector_included_in_list(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id}
+        )
+        detector_ids = {d["id"] for d in response.data}
+        assert str(self.all_projects_detector.id) in detector_ids
+
+    @with_feature("organizations:workflow-engine-all-projects-detector")
+    def test_all_projects_detector_has_null_project_id(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id}
+        )
+        all_proj = next(d for d in response.data if d["id"] == str(self.all_projects_detector.id))
+        assert all_proj["projectId"] is None
+
+    def test_all_projects_detector_excluded_without_feature(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id}
+        )
+        detector_ids = {d["id"] for d in response.data}
+        assert str(self.all_projects_detector.id) not in detector_ids
+
+    @with_feature("organizations:workflow-engine-all-projects-detector")
+    def test_all_projects_detector_included_in_id_filter(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params=[("id", str(self.all_projects_detector.id))],
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.all_projects_detector.id)
+
+    def test_all_projects_detector_excluded_from_id_filter_without_feature(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params=[("id", str(self.all_projects_detector.id))],
+        )
+        assert len(response.data) == 0
+
+
+@cell_silo_test
 @pytest.mark.snuba_ci
 class OrganizationDetectorIndexSubscriptionFilterTest(OrganizationDetectorIndexBaseTest):
     """Tests that metric detectors are excluded from lists when their subscription is not allowed."""
@@ -1113,6 +1162,20 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
         response = self.get_error_response(
             self.organization.slug,
             qs_params={"id": "999999"},
+            enabled=False,
+            status_code=400,
+        )
+
+        assert (
+            response.data["detail"]
+            == "Some detectors were not found or you do not have permission to update them."
+        )
+
+    def test_update_detectors_all_projects_detector_not_mutable(self) -> None:
+        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+        response = self.get_error_response(
+            self.organization.slug,
+            qs_params={"id": str(all_projects_detector.id)},
             enabled=False,
             status_code=400,
         )

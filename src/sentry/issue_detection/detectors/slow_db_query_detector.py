@@ -68,7 +68,7 @@ class SlowDBQueryDetector(PerformanceDetector):
                 "cause_span_ids": [],
                 "parent_span_ids": [],
                 "offender_span_ids": spans_involved,
-                "transaction_name": self._event.get("description", ""),
+                "transaction_name": self._event.get("transaction", ""),
                 "repeating_spans": get_span_evidence_value(span)[:MAX_EVIDENCE_VALUE_LENGTH],
                 "repeating_spans_compact": get_span_evidence_value(span, include_op=False)[
                     :MAX_EVIDENCE_VALUE_LENGTH

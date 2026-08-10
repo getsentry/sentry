@@ -11,13 +11,14 @@ type IntegrationContextProps = {
       | 'integrations_directory_integration_detail'
       | 'integrations_directory'
       | 'onboarding'
-      | 'onboarding_scm'
       | 'project_creation'
       | 'seer_onboarding_github'
       | 'seer_onboarding_code_review'
       | 'test_analytics_onboarding'
       | 'test_analytics_org_selector';
     referrer?: string;
+    // Keep the experience variant separate from the flow-specific view value.
+    variant?: 'scm' | 'legacy';
   };
   installStatus: string;
   provider: IntegrationProvider;

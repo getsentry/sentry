@@ -1,6 +1,8 @@
 import type {DocIntegration} from 'sentry/types/integrations';
 
-export function DocIntegrationFixture(params = {}): DocIntegration {
+export function DocIntegrationFixture(
+  params: Partial<DocIntegration> = {}
+): DocIntegration {
   return {
     name: 'Sample Doc',
     slug: 'sample-doc',

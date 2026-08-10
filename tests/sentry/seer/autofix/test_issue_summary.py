@@ -7,33 +7,67 @@ import orjson
 import pytest
 
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
+from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, TriggerAutofixAction
 from sentry.issues.grouptype import WebVitalsGroup
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.locks import locks
+from sentry.models.activity import Activity
 from sentry.seer.autofix.constants import SeerAutomationSource
 from sentry.seer.autofix.issue_summary import (
     _apply_user_preference_upper_bound,
     _call_seer,
     _get_event,
     _get_stopping_point_from_fixability,
+    _trigger_autofix_task,
     get_and_update_group_fixability_score,
     get_automation_stopping_point,
     get_issue_summary,
-    is_group_triggering_automation,
+    is_group_eligible_for_automation,
     run_automation,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import SummarizeIssueResponse, SummarizeIssueScores
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
+from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
+from sentry.types.activity import ActivityType
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
+
+
+class TriggerAutofixTaskTest(TestCase):
+    @patch("sentry.seer.autofix.issue_summary.SeerAutofixOperator.has_access", return_value=False)
+    @patch("sentry.seer.autofix.issue_summary.trigger_autofix_agent", return_value=123)
+    def test_post_process_kickoff_creates_system_activity(
+        self, _mock_trigger_autofix, _mock_operator_access
+    ):
+        group = self.create_group()
+
+        with capture_action_log() as action_log:
+            _trigger_autofix_task(
+                group_id=group.id,
+                event_id="event-id",
+                user_id=self.user.id,
+                auto_run_source="issue_summary_on_post_process_fixability",
+                referrer="issue_summary.post_process_fixability",
+            )
+
+        activity = Activity.objects.get(group=group, type=ActivityType.TRIGGER_AUTOFIX.value)
+        assert activity.user_id is None
+        assert activity.data == {"referrer": "issue_summary.post_process_fixability"}
+        action_log.assert_logged(
+            TriggerAutofixAction,
+            group_id=group.id,
+            source=ActionSource.SYSTEM,
+            actor=SYSTEM_ACTOR,
+            referrer="issue_summary.post_process_fixability",
+        )
 
 
 @with_feature("organizations:gen-ai-features")
@@ -474,7 +508,6 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_serialize.assert_called_once()
 
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
-    @patch("sentry.seer.autofix.issue_summary.get_autofix_agent_state")
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.seer.autofix.issue_summary.get_trace_tree_for_event")
@@ -487,10 +520,8 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_get_trace_tree,
         mock_record_seer_run,
         mock_generate_fixability_score,
-        mock_get_autofix_agent_state,
         mock_trigger_autofix_task,
     ):
-        mock_get_autofix_agent_state.return_value = None
         mock_fixability_response = SummarizeIssueResponse(
             group_id=str(self.group.id),
             headline="some headline",
@@ -861,11 +892,10 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
         "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited_and_increment",
         return_value=False,
     )
-    @patch("sentry.seer.autofix.issue_summary.get_autofix_agent_state", return_value=None)
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_high_fixability_code_changes(
-        self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger, mock_seat_based_tier
+        self, mock_gen, mock_budget, mock_rate, mock_trigger, mock_seat_based_tier
     ):
         self.project.update_option("sentry:autofix_automation_tuning", "always")
         mock_gen.return_value = SummarizeIssueResponse(
@@ -885,11 +915,10 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
         "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited_and_increment",
         return_value=False,
     )
-    @patch("sentry.seer.autofix.issue_summary.get_autofix_agent_state", return_value=None)
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_medium_fixability_solution(
-        self, mock_gen, mock_budget, mock_state, mock_rate, mock_trigger, mock_seat_based_tier
+        self, mock_gen, mock_budget, mock_rate, mock_trigger, mock_seat_based_tier
     ):
         self.project.update_option("sentry:autofix_automation_tuning", "always")
         mock_gen.return_value = SummarizeIssueResponse(
@@ -909,11 +938,9 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
         "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited_and_increment",
         return_value=False,
     )
-    @patch("sentry.seer.autofix.issue_summary.is_group_triggering_automation", return_value=True)
-    @patch("sentry.seer.autofix.issue_summary.get_autofix_agent_state", return_value=None)
+    @patch("sentry.seer.autofix.issue_summary.is_group_eligible_for_automation", return_value=True)
     def test_without_seat_based_tier(
         self,
-        mock_state,
         mock_triggering,
         mock_rate,
         mock_trigger,
@@ -927,14 +954,10 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
         assert mock_trigger.call_args[1]["stopping_point"] == AutofixStoppingPoint.CODE_CHANGES
 
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
-    @patch("sentry.seer.autofix.issue_summary.is_group_triggering_automation", return_value=True)
-    @patch("sentry.seer.autofix.issue_summary.get_autofix_agent_state")
-    def test_skips_when_autofix_in_progress(
-        self, mock_state, mock_triggering, mock_trigger, mock_seat_based_tier
+    @patch("sentry.seer.autofix.issue_summary.is_group_eligible_for_automation", return_value=False)
+    def test_skips_when_group_is_ineligible(
+        self, mock_eligible, mock_trigger, mock_seat_based_tier
     ):
-        """run_automation skips triggering autofix when one is already in progress"""
-        mock_state.return_value = {"status": "in_progress"}
-
         run_automation(self.group, self.user, self.event, SeerAutomationSource.POST_PROCESS)
 
         mock_trigger.assert_not_called()
@@ -1018,14 +1041,12 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
         "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited_and_increment",
         return_value=False,
     )
-    @patch("sentry.seer.autofix.issue_summary.get_autofix_agent_state", return_value=None)
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_user_preference_limits_high_fixability(
         self,
         mock_gen,
         mock_budget,
-        mock_state,
         mock_rate,
         mock_trigger,
         mock_seat_based_tier,
@@ -1053,14 +1074,12 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
         "sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited_and_increment",
         return_value=False,
     )
-    @patch("sentry.seer.autofix.issue_summary.get_autofix_agent_state", return_value=None)
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_fixability_limits_permissive_user_preference(
         self,
         mock_gen,
         mock_budget,
-        mock_state,
         mock_rate,
         mock_trigger,
         mock_seat_based_tier,
@@ -1226,7 +1245,7 @@ class TestGetAndUpdateGroupFixabilityScore(APITestCase, SnubaTestCase):
 
 
 @with_feature("organizations:gen-ai-features")
-class TestIsGroupTriggeringAutomation(APITestCase, SnubaTestCase):
+class TestIsGroupEligibleForAutomation(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group()
@@ -1242,7 +1261,44 @@ class TestIsGroupTriggeringAutomation(APITestCase, SnubaTestCase):
         self.group.times_seen = 10
         self.group.times_seen_pending = 0
 
-        assert is_group_triggering_automation(self.group) is True
+        assert is_group_eligible_for_automation(self.group) is True
+
+    @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
+    def test_returns_false_without_seer_access(self, mock_fixability):
+        with self.feature({"organizations:gen-ai-features": False}):
+            assert is_group_eligible_for_automation(self.group) is False
+
+        mock_fixability.assert_not_called()
+
+    @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
+    def test_returns_false_when_live_autofix_run_exists(self, mock_fixability):
+        run = self.create_seer_run(
+            organization=self.organization,
+            mirror_status="live",
+            seer_run_state_id=1,
+        )
+        self.create_seer_agent_run(run, source="autofix", group=self.group)
+        assert is_group_eligible_for_automation(self.group) is False
+
+        mock_fixability.assert_not_called()
+
+    @patch("sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited")
+    @patch("sentry.quotas.backend.check_seer_quota")
+    @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
+    def test_returns_true_when_only_failed_autofix_run_exists(
+        self, mock_fixability, mock_quota, mock_rate_limit
+    ):
+        run = self.create_seer_run(
+            organization=self.organization,
+            mirror_status="failed",
+            seer_run_state_id=2,
+        )
+        self.create_seer_agent_run(run, source="autofix", group=self.group)
+        mock_fixability.return_value = 0.80
+        mock_quota.return_value = True
+        mock_rate_limit.return_value = False
+
+        assert is_group_eligible_for_automation(self.group) is True
 
     @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
     def test_returns_false_when_not_fixable(self, mock_fixability):
@@ -1252,7 +1308,7 @@ class TestIsGroupTriggeringAutomation(APITestCase, SnubaTestCase):
         # Set automation tuning to "never" to ensure fixability check triggers rejection
         self.project.update_option("sentry:autofix_automation_tuning", "never")
 
-        assert is_group_triggering_automation(self.group) is False
+        assert is_group_eligible_for_automation(self.group) is False
 
     @patch("sentry.quotas.backend.check_seer_quota")
     @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
@@ -1262,7 +1318,7 @@ class TestIsGroupTriggeringAutomation(APITestCase, SnubaTestCase):
         self.group.times_seen = 10
         self.group.times_seen_pending = 0
 
-        assert is_group_triggering_automation(self.group) is False
+        assert is_group_eligible_for_automation(self.group) is False
 
     @patch("sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited")
     @patch("sentry.quotas.backend.check_seer_quota")
@@ -1274,7 +1330,7 @@ class TestIsGroupTriggeringAutomation(APITestCase, SnubaTestCase):
         self.group.times_seen = 10
         self.group.times_seen_pending = 0
 
-        assert is_group_triggering_automation(self.group) is False
+        assert is_group_eligible_for_automation(self.group) is False
 
 
 @patch("sentry.seer.autofix.issue_summary.is_seer_seat_based_tier_enabled", return_value=True)

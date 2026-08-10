@@ -32,11 +32,10 @@ from sentry.apidocs.parameters import (
 )
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.environment import Environment
-from sentry.models.group import QUERY_STATUS_LOOKUP, Group, GroupStatus
+from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.services import eventstore
 from sentry.signals import advanced_search
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -211,18 +210,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         results = list(cursor_result)
 
         context = serialize(results, request.user, serializer)
-
-        # HACK: remove auto resolved entries
-        # TODO: We should try to integrate this into the search backend, since
-        # this can cause us to arbitrarily return fewer results than requested.
-        status = [
-            search_filter
-            for search_filter in query_kwargs.get("search_filters", [])
-            if search_filter.key.name == "status" and search_filter.operator in EQUALITY_OPERATORS
-        ]
-        if status and (GroupStatus.UNRESOLVED in status[0].value.raw_value):
-            status_labels = {QUERY_STATUS_LOOKUP[s] for s in status[0].value.raw_value}
-            context = [r for r in context if "status" not in r or r["status"] in status_labels]
 
         response = Response(context)
 

@@ -1,36 +1,59 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import type {DistributedOmit} from 'type-fest';
 
 import {Text, type TextProps} from '@sentry/scraps/text';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
-export type InfoTextProps<T extends 'span' | 'p' | 'label' | 'div' | 'time'> =
-  DistributedOmit<TextProps<T>, 'title' | 'variant'> & {
+type InfoTextBaseProps<T extends 'span' | 'p' | 'label' | 'div' | 'time'> =
+  DistributedOmit<TextProps<T>, 'title' | 'variant' | 'underline'> & {
     title: React.ReactNode;
     variant?: TooltipProps['underlineColor'] | 'inherit';
-  } & Pick<TooltipProps, 'position' | 'maxWidth'>;
+  } & Pick<TooltipProps, 'position' | 'maxWidth' | 'delay'>;
+
+export type InfoTextProps<T extends 'span' | 'p' | 'label' | 'div' | 'time'> =
+  | (InfoTextBaseProps<T> & {mode?: undefined})
+  | (DistributedOmit<InfoTextBaseProps<T>, 'display' | 'wrap'> & {
+      mode: 'overflowOnly';
+    });
 
 export function InfoText<T extends 'span' | 'p' | 'label' | 'div' | 'time' = 'span'>({
   title,
   children,
   position,
   maxWidth,
+  delay,
+  mode,
   ...textProps
 }: InfoTextProps<T>) {
+  const isOverflowOnly = mode === 'overflowOnly';
+  const [isOverflowing, setIsOverflowing] = useState(false);
+  // Text's ellipsis props are mutually exclusive with display and wrap.
+  const textPropsWithMode = {
+    ...textProps,
+    ...(isOverflowOnly ? {ellipsis: true as const} : {}),
+  } as TextProps<T>;
+
   if (!title) {
-    return <Text {...textProps}>{children}</Text>;
+    return <Text {...textPropsWithMode}>{children}</Text>;
   }
   return (
     <Tooltip
       title={title}
       position={position}
       maxWidth={maxWidth}
+      delay={delay}
+      showOnlyOnOverflow={isOverflowOnly}
+      onOverflowChange={isOverflowOnly ? setIsOverflowing : undefined}
       skipWrapper
       isHoverable
-      showUnderline
+      showUnderline={!isOverflowOnly}
       underlineColor={textProps.variant === 'inherit' ? undefined : textProps.variant}
     >
-      <StyledText {...textProps} tabIndex={0}>
+      <StyledText
+        {...textPropsWithMode}
+        tabIndex={isOverflowOnly && !isOverflowing ? undefined : 0}
+      >
         {children}
       </StyledText>
     </Tooltip>

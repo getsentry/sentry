@@ -1,4 +1,3 @@
-/* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
 import fs from 'node:fs';
 import {createRequire} from 'node:module';
@@ -22,6 +21,8 @@ import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
 // @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
 import {rehypePlugins, remarkPlugins} from './build-utils/mdx-plugins.ts';
+// @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
+import {StoryManifestPlugin} from './build-utils/story-manifest.ts';
 import packageJson from './package.json' with {type: 'json'};
 
 const {env} = process;
@@ -79,7 +80,8 @@ const HAS_WEBPACK_DEV_SERVER_CONFIG =
 
 // User/tooling configurable environment variables
 const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
-const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin (or if not dev env)
+// Type checking is resource intensive, enable it explicitly with ENABLE_TS_CHECKER=1.
+const SHOULD_CHECK_TYPES = DEV_MODE && Boolean(env.ENABLE_TS_CHECKER);
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 const SHOULD_ADD_RSDOCTOR = Boolean(env.RSDOCTOR);
 // Only entry points are eagerly built, lazy build routes. Saves memory and startup time.
@@ -116,6 +118,10 @@ const SENTRY_SPA_DSN = SENTRY_EXPERIMENTAL_SPA ? env.SENTRY_SPA_DSN : undefined;
 const sentryDjangoAppPath = path.join(import.meta.dirname, 'src/sentry/static/sentry');
 const distPath = path.join(sentryDjangoAppPath, 'dist');
 const staticPrefix = path.join(import.meta.dirname, 'static');
+const typeLoaderPath = path.resolve(
+  import.meta.dirname,
+  'static/app/stories/typeLoader.ts'
+);
 
 // Locale compilation and optimizations.
 //
@@ -195,7 +201,7 @@ const DEFINED_ENV_VARS = {
   'process.env.ENABLE_SENTRY_TOOLBAR': JSON.stringify(ENABLE_SENTRY_TOOLBAR),
 };
 
-const swcReactLoaderConfig: SwcLoaderOptions = {
+const swcReactLoaderConfig = (options: {reactCompiler: boolean}): SwcLoaderOptions => ({
   env: {
     mode: 'usage',
     // https://rspack.rs/guide/features/builtin-swc-loader#polyfill-injection
@@ -241,7 +247,9 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
     },
     transform: {
       // TODO: Enable in production
-      reactCompiler: IS_DEPLOY_PREVIEW || IS_ACCEPTANCE_TEST || IS_UI_DEV_ONLY,
+      reactCompiler:
+        options.reactCompiler &&
+        (IS_DEPLOY_PREVIEW || IS_ACCEPTANCE_TEST || IS_UI_DEV_ONLY),
       react: {
         runtime: 'automatic',
         development: DEV_MODE,
@@ -251,7 +259,7 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
     },
   },
   isModule: 'unknown',
-};
+});
 
 /**
  * Main Webpack config for Sentry React SPA.
@@ -270,10 +278,10 @@ const appConfig: Configuration = {
      *
      * The order here matters for `getsentry`
      */
-    app: ['sentry/utils/statics-setup', 'sentry'],
+    app: ['sentry/utils/setupStatics', 'sentry'],
 
     // admin interface
-    gsAdmin: ['sentry/utils/statics-setup', path.join(staticPrefix, 'gsAdmin')],
+    gsAdmin: ['sentry/utils/setupStatics', path.join(staticPrefix, 'gsAdmin')],
 
     /**
      * Legacy CSS Webpack appConfig for Django-powered views.
@@ -284,6 +292,13 @@ const appConfig: Configuration = {
   },
   context: staticPrefix,
   incremental: DEV_MODE,
+  watchOptions: {
+    // StoryManifestPlugin owns these watches so it can update the virtual
+    // manifest before invalidating changed and removed story dependencies. Its
+    // virtual module must also be ignored so the filesystem watcher does not
+    // repeatedly report the intentionally nonexistent file as removed.
+    ignored: ['**/*.stories.tsx', '**/*.mdx', `**/${StoryManifestPlugin.modulePath}`],
+  },
   experiments: {
     futureDefaults: true,
     // https://rspack.rs/config/experiments#experimentsnativewatcher
@@ -297,7 +312,7 @@ const appConfig: Configuration = {
     // Always lazy-compile type-loader modules (they run the TS compiler and are expensive)
     test(module) {
       if ('request' in module && typeof module.request === 'string') {
-        if (module.request.includes('type-loader')) {
+        if (module.request.includes(typeLoaderPath)) {
           return true;
         }
       }
@@ -311,33 +326,32 @@ const appConfig: Configuration = {
      */
     rules: [
       {
-        test: /stories[/\\]storyFrontmatterIndex\.ts$/,
-        enforce: 'pre',
-        use: [
+        test: /\.(?:tsx?|jsx?)$/,
+        oneOf: [
           {
-            loader: path.resolve(
-              import.meta.dirname,
-              './build-utils/frontmatter-index-loader.ts'
-            ),
+            include: /node_modules/,
+            // core-js: Avoids recompiling core-js based on usage imports
+            // react-select: Ships pre-compiled ESM with emotion's keyframes already
+            // compiled via swc. Re-processing with @swc/plugin-emotion causes
+            // "illegal escape sequence" warnings in dev mode.
+            exclude: /node_modules[\\/](core-js|react-select)/,
+            loader: 'builtin:swc-loader',
+            options: swcReactLoaderConfig({reactCompiler: false}),
+          },
+          {
+            // Application code only.
+            exclude: /node_modules/,
+            loader: 'builtin:swc-loader',
+            options: swcReactLoaderConfig({reactCompiler: true}),
           },
         ],
-      },
-      {
-        test: /\.(?:tsx?|jsx?)$/,
-        // core-js: Avoids recompiling core-js based on usage imports
-        // react-select: Ships pre-compiled ESM with emotion's keyframes already
-        // compiled via swc. Re-processing with @swc/plugin-emotion causes
-        // "illegal escape sequence" warnings in dev mode.
-        exclude: /node_modules[\\/](core-js|react-select)/,
-        loader: 'builtin:swc-loader',
-        options: swcReactLoaderConfig,
       },
       {
         test: /\.mdx?$/,
         use: [
           {
             loader: 'builtin:swc-loader',
-            options: swcReactLoaderConfig,
+            options: swcReactLoaderConfig({reactCompiler: false}),
           },
           {
             loader: '@mdx-js/loader',
@@ -435,7 +449,7 @@ const appConfig: Configuration = {
      */
     new rspack.DefinePlugin(DEFINED_ENV_VARS),
 
-    ...(SHOULD_FORK_TS
+    ...(SHOULD_CHECK_TYPES
       ? [
           new TsCheckerRspackPlugin({
             typescript: {
@@ -446,6 +460,8 @@ const appConfig: Configuration = {
           }),
         ]
       : []),
+
+    new StoryManifestPlugin(),
 
     ...(SHOULD_ADD_RSDOCTOR ? [new RsdoctorRspackPlugin({})] : []),
 
@@ -477,10 +493,7 @@ const appConfig: Configuration = {
 
   resolveLoader: {
     alias: {
-      'type-loader': path.resolve(
-        import.meta.dirname,
-        'static/app/stories/type-loader.ts'
-      ),
+      'type-loader': typeLoaderPath,
     },
   },
 

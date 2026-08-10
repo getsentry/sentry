@@ -111,12 +111,15 @@ def publish_action(
         callback(action, source, group_id, project, actor)
 
     action_name = action.get_type().name.lower()
+    write_to_db = features.has("projects:issue-action-log-write-to-db", project)
+
     metrics.incr(
         "issues.action_log",
         tags={
             "action": action_name,
             "source": source,
             "actor_type": actor.actor_type.name.lower(),
+            "persisted": write_to_db,
         },
     )
     logger.info(
@@ -135,7 +138,7 @@ def publish_action(
         },
     )
 
-    if not features.has("projects:issue-action-log-write-to-db", project):
+    if not write_to_db:
         return
 
     payload: GroupActionLogPayload = {
@@ -183,6 +186,7 @@ def publish_action_from_context(
         logger.error(
             "publish_action_from_context called without ActionContext",
             extra={"action": action.get_type().name.lower(), "group_id": str(group_id)},
+            stack_info=True,
         )
         source: str = ActionSource.UNKNOWN
         actor = SYSTEM_ACTOR
@@ -222,6 +226,7 @@ def publish_actions_from_context_bulk(
             extra={
                 "actions": [ap[0].get_type().name.lower() for ap in actions],
             },
+            stack_info=True,
         )
         source: str = ActionSource.UNKNOWN
         actor = SYSTEM_ACTOR

@@ -10,7 +10,6 @@ import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
 import {
   ProfilingContextMenu,
@@ -21,11 +20,8 @@ import {
 import {NODE_ENV} from 'sentry/constants';
 import {IconChevron, IconCopy, IconDocs, IconLink, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {
-  isMDXStory,
-  useStoriesLoader,
-  useStoryBookFiles,
-} from 'sentry/stories/view/useStoriesLoader';
+// eslint-disable-next-line boundaries/dependencies
+import {storyFiles, storyFrontmatterIndex} from 'sentry/stories/storyManifest.generated';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -36,6 +32,10 @@ const CURSOR_OFFSET_RIGHT = 4;
 const CURSOR_OFFSET_LEFT = 8;
 const CURSOR_OFFSET_TOP = 8;
 const CURSOR_OFFSET_BOTTOM = 4;
+const storybookFilesLookup = storyFiles.reduce<Record<string, string>>((acc, file) => {
+  acc[file] = file;
+  return acc;
+}, {});
 
 export function SentryComponentInspector() {
   const theme = useTheme();
@@ -299,16 +299,6 @@ export function SentryComponentInspector() {
     }
   };
 
-  const storybookFiles = useStoryBookFiles();
-  const storybookFilesLookup = useMemo(
-    () =>
-      storybookFiles.reduce<Record<string, string>>((acc, file) => {
-        acc[file] = file;
-        return acc;
-      }, {}),
-    [storybookFiles]
-  );
-
   if (NODE_ENV !== 'development') {
     return null;
   }
@@ -475,12 +465,9 @@ function MenuItem(props: {
   storybook: string | null;
   subMenuPortalRef: HTMLElement | null;
 }) {
-  // Load story to check for Figma link if it's an MDX file
-  const storyQuery = useStoriesLoader({
-    files: props.storybook?.endsWith('.mdx') ? [props.storybook] : [],
-  });
-
-  const story = storyQuery.data?.[0];
+  const figmaUrl = props.storybook
+    ? storyFrontmatterIndex[props.storybook]?.figma
+    : undefined;
 
   const [isOpen, _setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -600,29 +587,14 @@ function MenuItem(props: {
               <ProfilingContextMenuItemButton
                 {...props.contextMenu.getMenuItemProps({
                   onClick: () => {
-                    if (
-                      story &&
-                      isMDXStory(story) &&
-                      story.exports.frontmatter?.resources?.figma
-                    ) {
-                      window.open(story.exports.frontmatter?.resources?.figma, '_blank');
+                    if (figmaUrl) {
+                      window.open(figmaUrl, '_blank');
                       props.onAction();
                     }
                   },
                 })}
-                disabled={
-                  storyQuery.isLoading ||
-                  !story ||
-                  !isMDXStory(story) ||
-                  !story.exports.frontmatter?.resources?.figma
-                }
-                icon={
-                  storyQuery.isLoading ? (
-                    <LoadingIndicator mini size={12} />
-                  ) : (
-                    <IconOpen size="xs" />
-                  )
-                }
+                disabled={!figmaUrl}
+                icon={<IconOpen size="xs" />}
               >
                 {t('Open in Figma')}
               </ProfilingContextMenuItemButton>
@@ -710,10 +682,10 @@ function computeTooltipPosition(
   let left = x + CURSOR_OFFSET_LEFT;
 
   if (x > innerWidth * 0.7) {
-    left = x - (container.offsetWidth || 0) - CURSOR_OFFSET_RIGHT;
+    left = x - container.offsetWidth - CURSOR_OFFSET_RIGHT;
   }
   if (y > innerHeight * 0.7) {
-    top = y - (container.offsetHeight || 0) - CURSOR_OFFSET_BOTTOM;
+    top = y - container.offsetHeight - CURSOR_OFFSET_BOTTOM;
   }
 
   return {
@@ -741,7 +713,9 @@ function getSourcePath(el: unknown): string {
 }
 
 const getFileName = (path: string) => {
-  return (path.split('/').pop()?.toLowerCase() || '')
+  return path
+    .slice(path.lastIndexOf('/') + 1)
+    .toLowerCase()
     .replace(/\.stories\.tsx$/, '')
     .replace(/\.tsx$/, '')
     .replace(/\.mdx$/, '');
@@ -752,10 +726,6 @@ function getComponentStorybookFile(
   stories: Record<string, string>
 ): string | null {
   const sourcePath = getSourcePath(el);
-  if (!sourcePath) {
-    return null;
-  }
-
   const mdxSourcePath = sourcePath.replace(/\.tsx$/, '.mdx');
 
   if (stories[mdxSourcePath] && getFileName(mdxSourcePath) === getFileName(sourcePath)) {
@@ -822,7 +792,7 @@ export function serializeTraceForLLM(
   targetElement: TraceElement
 ): string {
   // Reverse the trace array to show root to leaf (trace is leaf to root)
-  const reversedTrace = [...trace].reverse();
+  const reversedTrace = trace.toReversed();
   const targetIndex = reversedTrace.indexOf(targetElement);
 
   // Only include components up to and including the target

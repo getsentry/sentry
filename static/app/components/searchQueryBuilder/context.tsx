@@ -54,6 +54,7 @@ interface SearchQueryBuilderConfigContextData {
   disabled: boolean;
   disallowFreeText: boolean;
   disallowLogicalOperators: boolean;
+  disallowNegation: boolean;
   disallowWildcard: boolean;
   filterKeyAliases: TagCollection | undefined;
   filterKeyRegistryQueryKey: QueryKey;
@@ -96,6 +97,7 @@ interface SearchQueryBuilderAIContextData {
   setAutoSubmitSeer: (enabled: boolean) => void;
   setDisplayAskSeer: (enabled: boolean) => void;
   setDisplayAskSeerFeedback: (enabled: boolean) => void;
+  skipNextSearchQueryBuilderAutoFocusRef: React.RefObject<boolean>;
 }
 
 interface SearchQueryBuilderInteractionContextData {
@@ -166,6 +168,7 @@ export function SearchQueryBuilderProvider({
   disabled = false,
   disallowLogicalOperators,
   disallowFreeText,
+  disallowNegation,
   disallowUnsupportedFilters,
   disallowWildcard,
   defaultToAskSeerOnFreeTextSearch: defaultToAskSeerOnFreeTextSearchProp,
@@ -204,6 +207,7 @@ export function SearchQueryBuilderProvider({
   const currentInputValueRef = useRef('');
   const askSeerNLQueryRef = useRef<string | null>(null);
   const askSeerSuggestedQueryRef = useRef<string | null>(null);
+  const skipNextSearchQueryBuilderAutoFocusRef = useRef(false);
 
   const organization = useOrganization();
   const enableAISearch =
@@ -273,6 +277,7 @@ export function SearchQueryBuilderProvider({
         getFilterTokenWarning,
         disallowFreeText,
         disallowLogicalOperators,
+        disallowNegation,
         disallowUnsupportedFilters,
         disallowWildcard,
         filterKeys: mergedFilterKeys,
@@ -283,6 +288,7 @@ export function SearchQueryBuilderProvider({
     [
       disallowFreeText,
       disallowLogicalOperators,
+      disallowNegation,
       disallowUnsupportedFilters,
       disallowWildcard,
       getFieldDefinitionWithTagMetadata,
@@ -393,6 +399,7 @@ export function SearchQueryBuilderProvider({
       disabled,
       disallowFreeText: Boolean(disallowFreeText),
       disallowLogicalOperators: Boolean(disallowLogicalOperators),
+      disallowNegation: Boolean(disallowNegation),
       disallowWildcard: Boolean(disallowWildcard),
       filterKeyAliases,
       filterKeyRegistryQueryKey: filterKeyRegistryQueryOptions.queryKey,
@@ -416,6 +423,7 @@ export function SearchQueryBuilderProvider({
     disabled,
     disallowFreeText,
     disallowLogicalOperators,
+    disallowNegation,
     disallowWildcard,
     filterKeyAliases,
     filterKeyRegistryQueryOptions.queryKey,
@@ -469,6 +477,7 @@ export function SearchQueryBuilderProvider({
       setAutoSubmitSeer,
       setDisplayAskSeer: setDisplayAskSeerState,
       setDisplayAskSeerFeedback,
+      skipNextSearchQueryBuilderAutoFocusRef,
     };
   }, [
     aiSearchBadgeType,
@@ -481,6 +490,7 @@ export function SearchQueryBuilderProvider({
     displayAskSeerFeedback,
     enableAISearch,
     setDisplayAskSeerFeedback,
+    skipNextSearchQueryBuilderAutoFocusRef,
   ]);
 
   const interactionValue = useMemo((): SearchQueryBuilderInteractionContextData => {

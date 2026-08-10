@@ -30,6 +30,7 @@ GitHubCheckConclusion = Literal[
 
 GITHUB_CHECK_SUITE_CONCLUSION_MAP = {**GITHUB_CONCLUSION_MAP, "startup_failure": "failure"}
 
+from sentry.integrations.github.utils import is_github_bot_login
 from sentry.scm.types import (
     CheckRunEvent,
     CheckSuiteEvent,
@@ -260,7 +261,7 @@ def deserialize_github_pull_request_review_event(
             "id": str(user.id),
             "username": user.login,
         },
-        is_bot=user.type == "Bot" if user.type else False,
+        is_bot=user.type == "Bot" or is_github_bot_login(user.login),
         subscription_event=event,
     )
 

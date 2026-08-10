@@ -11,6 +11,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.permissions import DemoSafePermission
 from sentry.api.serializers import serialize
 from sentry.auth.superuser import superuser_has_permission
+from sentry.conf.server import SENTRY_TOKEN_ONLY_SCOPES
 from sentry.constants import SentryAppStatus
 from sentry.models.apiapplication import generate_token
 from sentry.organizations.services.organization import organization_service
@@ -61,6 +62,11 @@ class SentryAppRotateSecretPermission(DemoSafePermission):
             raise Http404
 
         for scope in sentry_app.scope_list:
+            # Token-only scopes are intentionally grantable to integrations but unavailable
+            # to user roles. Rotating a secret does not grant new scopes, and the requester
+            # must still belong to the owning organization and have org:write or org:admin.
+            if scope in SENTRY_TOKEN_ONLY_SCOPES:
+                continue
             if not request.access.has_scope(scope):
                 raise SentryAppError(
                     message=f"Requested permission of {scope} exceeds requester's permission. Please contact an owner to make the requested change.",

@@ -1,0 +1,49 @@
+name: no-capitalized-function-calls
+severity: warning
+tags: [react, react-compiler, correctness]
+
+why: |
+  React treats identifiers beginning with a capital letter as components. Calling
+  one as a normal function bypasses React's component lifecycle and makes it
+  ambiguous whether hooks, reconciliation, and component identity should apply.
+  Capitalized non-component helpers create the same ambiguity for the compiler.
+
+  This convention corresponds to the React Compiler `CapitalizedCalls`
+  diagnostic (for example, "Grid may be a component").
+
+  See: https://react.dev/reference/eslint-plugin-react-hooks/lints/capitalized-calls
+
+detect: |
+  Flag a capitalized function or class invoked directly during component or hook
+  execution, such as `Widget(props)` or `Grid(options)`.
+
+  Flag both:
+    - A React component called as a function instead of rendered as JSX.
+    - A non-component helper whose capitalized name makes it look like a
+      component to React and the compiler.
+
+  Do NOT flag:
+    - Constructor calls using `new`.
+    - Static methods such as `Date.now()` or `Promise.resolve()`.
+    - Type-only references.
+    - Calls outside React components and hooks when the identifier is clearly a
+      constructor-like or namespaced API.
+
+fix: |
+  If the target is a component, render it as JSX (`<Widget {...props} />`). If it
+  is an ordinary helper, rename it to lower camel case (`grid(options)`). If it
+  is a third-party capitalized helper that cannot be renamed, wrap it in a
+  clearly lower-cased local function.
+
+  Do not blindly convert every call to JSX: chart-option factories and similar
+  APIs often return plain objects and should be renamed or wrapped instead.
+
+examples:
+  bad:
+    - 'const content = Empty({message});'
+    - 'const gridOptions = Grid({left: 8, right: 8});'
+  good:
+    - 'const content = <Empty message={message} />;'
+    - 'const gridOptions = makeGridOptions({left: 8, right: 8});'
+
+detect_command: 'bash {convention_dir}/react-compiler.detect.sh {repo_path} CapitalizedCalls'

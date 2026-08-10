@@ -66,8 +66,7 @@ export function SetupDocs({recentCreatedProject: project, genBackButton}: StepPr
                 onProductSelectionSync={
                   hasScmOnboarding ? setSelectedFeatures : undefined
                 }
-                newOrg
-                hasScmOnboarding={hasScmOnboarding}
+                docsFlow={hasScmOnboarding ? 'onboarding-scm' : 'onboarding'}
               />
             )}
           </Fragment>

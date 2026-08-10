@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
+import {useQuery} from '@tanstack/react-query';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 import {PlatformIcon} from 'platformicons';
@@ -17,6 +17,7 @@ import {Access} from 'sentry/components/acl/access';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
+import {captureProjectCreationFailure} from 'sentry/components/onboarding/captureProjectCreationFailure';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
@@ -32,6 +33,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDisabledGamingPlatform} from 'sentry/utils/platform';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {slugify} from 'sentry/utils/slugify';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
@@ -52,8 +54,10 @@ import type {
 import {
   getRequestDataFragment,
   IssueAlertOptions,
+  RuleAction,
 } from 'sentry/views/projectInstall/issueAlertOptions';
-import {useValidateChannel} from 'sentry/views/projectInstall/useValidateChannel';
+import {useProjectCreationPageOrigin} from 'sentry/views/projectInstall/projectCreationOrigin';
+import {validateChannelQueryOptions} from 'sentry/views/projectInstall/useValidateChannel';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 type FormData = {
@@ -166,11 +170,20 @@ export function CreateProject() {
     createNotificationActionParam
   );
 
-  const validateChannel = useValidateChannel({
-    channel: notificationProps.channel,
-    integrationId: notificationProps.integration?.id,
+  const validateChannel = useQuery({
+    ...validateChannelQueryOptions({
+      organizationSlug: organization.slug,
+      channel: notificationProps.channel,
+      integrationId: notificationProps.integration?.id,
+    }),
     enabled: false,
   });
+  const validateChannelError =
+    validateChannel.data?.valid === false
+      ? (validateChannel.data.detail ?? t('Channel not found or restricted'))
+      : validateChannel.error
+        ? t('Unexpected integration channel validation error')
+        : undefined;
 
   const defaultTeam = accessTeams?.[0]?.slug;
 
@@ -240,12 +253,12 @@ export function CreateProject() {
     missingValues.isMissingProjectName,
     missingValues.isMissingAlertThreshold,
     missingValues.isMissingMessagingIntegrationChannel,
-    isNotifyingViaIntegration && validateChannel.error,
+    isNotifyingViaIntegration && validateChannelError,
   ].filter(Boolean).length;
 
   const submitTooltipText =
-    isNotifyingViaIntegration && validateChannel.error
-      ? validateChannel.error
+    isNotifyingViaIntegration && validateChannelError
+      ? validateChannelError
       : getSubmitTooltipText({
           ...missingValues,
           formErrorCount,
@@ -274,6 +287,11 @@ export function CreateProject() {
     'project_creation_page.viewed',
     'Project Create: Creation page viewed'
   );
+  // Journey origin is sticky (sessionStorage seeded by
+  // ?projectCreationOrigin=org_creation from org-create). Orthogonal to
+  // `variant` and to `referrer=getting-started` autofill — back-from-docs
+  // must not reclassify an org-activation visit as existing_org.
+  useRouteAnalyticsParams({variant: 'legacy', origin: useProjectCreationPageOrigin()});
 
   const configurePlatform = useCallback(
     async ({
@@ -286,6 +304,13 @@ export function CreateProject() {
         platform: OnboardingSelectedSDK;
       }) => {
       const selectedPlatform = selectedFramework ?? platform;
+
+      // Not in handleProjectCreation: every path into configurePlatform goes on
+      // to POST, so an abandoned framework modal stays out of the denominator.
+      trackAnalytics('project_creation.project_details_create_clicked', {
+        organization,
+        variant: 'legacy',
+      });
 
       try {
         const {project, notificationRule, ruleIds} =
@@ -308,6 +333,7 @@ export function CreateProject() {
           platform: selectedPlatform.key,
           rule_ids: ruleIds,
           notification_rule_created: !!notificationRule,
+          variant: 'legacy',
         });
 
         addSuccessMessage(
@@ -326,39 +352,32 @@ export function CreateProject() {
           wasNameManuallyModified: hasUserModifiedProjectName.current,
         });
 
-        navigate(
-          normalizeUrl(
+        navigate({
+          pathname: normalizeUrl(
             makeProjectsPathname({
               path: `/${project.slug}/getting-started/`,
               organization,
             })
-          )
-        );
+          ),
+          query: {projectCreationVariant: 'legacy'},
+        });
       } catch (error: any) {
         addErrorMessage(t('Failed to create project %s', projectName));
 
-        if (error.status === 403) {
-          Sentry.withScope(scope => {
-            scope.setExtra('err', error);
-            scope.setContext('permission_context', {
-              org_slug: organization.slug,
-              team,
-              org_access: organization.access,
-              org_features: organization.features,
-              org_allow_member_project_creation: organization.allowMemberProjectCreation,
-              user_team_access: team
-                ? accessTeams.find(teamItem => teamItem.slug === team)?.access
-                : null,
-              available_teams_count: accessTeams.length,
-            });
-            Sentry.captureMessage('Project creation permission denied');
-          });
-        } else if (error.status !== 409) {
-          Sentry.withScope(scope => {
-            scope.setExtra('err', error);
-            Sentry.captureMessage('Project creation failed');
-          });
-        }
+        // Unfiltered, unlike captureProjectCreationFailure below: both variants
+        // count every caught failure, so filtering here would skew the rate.
+        trackAnalytics('project_creation.project_details_create_failed', {
+          organization,
+          variant: 'legacy',
+        });
+
+        captureProjectCreationFailure({
+          error,
+          organization,
+          team,
+          accessTeams,
+          variant: 'legacy',
+        });
       }
     },
     [
@@ -413,6 +432,7 @@ export function CreateProject() {
               {
                 platform: platform.key,
                 organization,
+                variant: 'legacy',
               }
             );
           },
@@ -497,6 +517,8 @@ export function CreateProject() {
             defaultCategory={defaultCategory}
             setPlatform={handlePlatformChange}
             organization={organization}
+            source="project-creation"
+            variant="legacy"
             showOther
             noAutoFilter
           />
@@ -512,6 +534,27 @@ export function CreateProject() {
                 ...formData.alertRule,
                 [field]: value,
               });
+              if (field === 'alertSetting') {
+                const optionMap: Record<number, string> = {
+                  [RuleAction.DEFAULT_ALERT]: 'high_priority',
+                  [RuleAction.CUSTOMIZED_ALERTS]: 'custom',
+                  [RuleAction.CREATE_ALERT_LATER]: 'create_later',
+                };
+                trackAnalytics('project_creation.project_details_alert_selected', {
+                  organization,
+                  option: optionMap[value as number] ?? String(value),
+                  variant: 'legacy',
+                });
+              } else if (
+                (field === 'threshold' || field === 'metric' || field === 'interval') &&
+                formData.alertRule?.alertSetting === RuleAction.CUSTOMIZED_ALERTS
+              ) {
+                trackAnalytics('project_creation.alert_threshold_edited', {
+                  organization,
+                  field,
+                  variant: 'legacy',
+                });
+              }
             }}
           />
           <StyledListItem>
@@ -581,7 +624,13 @@ export function CreateProject() {
                 <Button
                   data-test-id="create-project"
                   variant="primary"
-                  disabled={!(canUserCreateProject && formErrorCount === 0)}
+                  disabled={
+                    !(
+                      canUserCreateProject &&
+                      formErrorCount === 0 &&
+                      !(isNotifyingViaIntegration && validateChannel.isFetching)
+                    )
+                  }
                   busy={
                     createProjectAndRules.isPending ||
                     (isNotifyingViaIntegration && validateChannel.isFetching)

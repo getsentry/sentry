@@ -10,7 +10,6 @@ type LowValueSpanEvidencePayload = Partial<{
   avgDurationMs: unknown;
   count: unknown;
   description: unknown;
-  estimatedCostUsd: unknown;
   extrapolatedCount: unknown;
   op: unknown;
   spanOrigin: unknown;
@@ -42,7 +41,6 @@ export function getLowValueSpanEvidenceData(
     count: getNumberValue(data?.count),
     extrapolatedCount: getNumberValue(data?.extrapolatedCount),
     avgDurationMs: getNumberValue(data?.avgDurationMs),
-    estimatedCostUsd: getNumberValue(data?.estimatedCostUsd),
     spanOrigin: getStringValue(data?.spanOrigin),
   };
 }

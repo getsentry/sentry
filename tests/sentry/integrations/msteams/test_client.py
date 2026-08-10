@@ -9,7 +9,7 @@ from django.test import override_settings
 from requests import Request
 
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.msteams.client import MsTeamsClient
+from sentry.integrations.msteams.client import MsTeamsClient, OAuthMsTeamsClient
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
@@ -20,6 +20,7 @@ from sentry.silo.util import (
     PROXY_SIGNATURE_HEADER,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
 
@@ -287,3 +288,18 @@ class MsTeamsProxyApiClientTest(TestCase):
             assert request.headers[PROXY_BASE_URL_HEADER] == "https://smba.trafficmanager.net/amer"
             assert client.base_url not in request.url
             assert_proxy_request(request, is_proxy=True)
+
+
+@control_silo_test
+class OAuthMsTeamsClientTest(TestCase):
+    def test_defaults_to_botframework_authority(self) -> None:
+        client = OAuthMsTeamsClient("client-id", "client-secret")
+        assert client.base_url == "https://login.microsoftonline.com/botframework.com"
+
+    @override_options({"msteams.tenant-id": "00000000-1111-2222-3333-444444444444"})
+    def test_uses_tenant_authority_when_configured(self) -> None:
+        client = OAuthMsTeamsClient("client-id", "client-secret")
+        assert (
+            client.base_url
+            == "https://login.microsoftonline.com/00000000-1111-2222-3333-444444444444"
+        )

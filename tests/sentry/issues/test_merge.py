@@ -50,49 +50,6 @@ class HandleIssueMergeTest(TestCase):
         assert primary_group.status == GroupStatus.UNRESOLVED
         assert primary_group.substatus == GroupSubStatus.ONGOING
 
-    @patch("sentry.tasks.merge.start_merge_groups.delay")
-    def test_handle_merge_rejects_large_groups(self, merge_groups: MagicMock) -> None:
-        self.groups[0].update(times_seen=10001)
-        self.groups[0].refresh_from_db()
-
-        with self.options({"issues.merge-unmerge.max-group-times-seen": 10000}):
-            with pytest.raises(rest_framework.exceptions.ValidationError) as exc_info:
-                handle_merge(self.groups, self.project_lookup, self.user)
-
-        assert "temporarily restricted" in str(exc_info.value.detail)
-        assert not merge_groups.called
-
-    @patch("sentry.tasks.merge.start_merge_groups.delay")
-    def test_handle_merge_allows_groups_at_threshold(self, merge_groups: MagicMock) -> None:
-        for group in self.groups:
-            group.update(times_seen=10000)
-            group.refresh_from_db()
-
-        with self.options({"issues.merge-unmerge.max-group-times-seen": 10000}):
-            handle_merge(self.groups, self.project_lookup, self.user)
-        assert merge_groups.called
-
-    @patch("sentry.tasks.merge.start_merge_groups.delay")
-    def test_handle_merge_respects_custom_threshold(self, merge_groups: MagicMock) -> None:
-        self.groups[0].update(times_seen=500)
-        self.groups[0].refresh_from_db()
-
-        with self.options({"issues.merge-unmerge.max-group-times-seen": 100}):
-            with pytest.raises(rest_framework.exceptions.ValidationError):
-                handle_merge(self.groups, self.project_lookup, self.user)
-
-        assert not merge_groups.called
-
-    @patch("sentry.tasks.merge.start_merge_groups.delay")
-    def test_handle_merge_disabled_with_zero_threshold(self, merge_groups: MagicMock) -> None:
-        self.groups[0].update(times_seen=999999)
-        self.groups[0].refresh_from_db()
-
-        with self.options({"issues.merge-unmerge.max-group-times-seen": 0}):
-            handle_merge(self.groups, self.project_lookup, self.user)
-
-        assert merge_groups.called
-
     def test_handle_merge_performance_issues(self) -> None:
         group = Group.objects.create(
             project=self.project, type=PerformanceNPlusOneGroupType.type_id

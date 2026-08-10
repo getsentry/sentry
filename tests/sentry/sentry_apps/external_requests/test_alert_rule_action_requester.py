@@ -69,12 +69,11 @@ class TestSentryAppAlertRuleActionRequester(TestCase):
             status=200,
         )
 
-        with self.feature("organizations:sentry-apps-custom-webhook-headers"):
-            result = SentryAppAlertRuleActionRequester(
-                install=self.install,
-                uri="/sentry/alert-rule",
-                fields=self.fields,
-            ).run()
+        result = SentryAppAlertRuleActionRequester(
+            install=self.install,
+            uri="/sentry/alert-rule",
+            fields=self.fields,
+        ).run()
 
         assert result["success"]
         request = responses.calls[0].request

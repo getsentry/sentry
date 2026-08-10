@@ -9,7 +9,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
+import type {ColumnAlign} from 'sentry/components/tables/gridEditable';
 import {GridBodyCell, GridHeadCell} from 'sentry/components/tables/gridEditable/styles';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconStack} from 'sentry/icons/iconStack';
@@ -341,7 +341,7 @@ const TableBodyCell = styled(GridBodyCell)`
   min-height: 12px;
 `;
 
-const TableHeadCell = styled(GridHeadCell)<{align?: Alignments}>`
+const TableHeadCell = styled(GridHeadCell)<{align?: ColumnAlign}>`
   ${p =>
     p.align &&
     css`

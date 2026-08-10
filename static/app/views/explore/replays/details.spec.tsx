@@ -90,6 +90,28 @@ describe('ReplayDetails', () => {
     expect(mockUseLoadReplayReader).toHaveBeenCalled();
   });
 
+  it('renders pagination chevrons and a copy action in the replay crumb (flag on)', () => {
+    const organization = OrganizationFixture({
+      features: ['session-replay', 'ui-migration-breadcrumbs'],
+    });
+
+    render(<ReplayDetails />, {
+      organization,
+      initialRouterConfig,
+      additionalWrapper: TopBarWrapper,
+    });
+
+    expect(
+      screen.getByRole('button', {name: 'Previous replay based on search query'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Next replay based on search query'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Copy link to replay at current timestamp'})
+    ).toBeInTheDocument();
+  });
+
   it('should show access denied and not fetch data when user does not have granular replay permissions', () => {
     const organization = OrganizationFixture({
       features: ['session-replay'],

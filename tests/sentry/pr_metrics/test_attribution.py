@@ -11,7 +11,6 @@ from sentry.models.pullrequest import (
 from sentry.pr_metrics.attribution import (
     attribute_delegated_agent_pull_request,
     attribute_seer_created_pull_requests,
-    recompute_pull_request_attribution,
     record_attribution_signal,
 )
 from sentry.testutils.cases import TestCase
@@ -199,6 +198,7 @@ class AttributeDelegatedAgentPullRequestTest(TestCase):
         pr_url: str = "https://github.com/getsentry/sentry/pull/42",
         agent_id: str | None = "agent-1",
         run_id: int | None = None,
+        group_ids: list[int] | None = None,
         organization_id: int | None = None,
         has_feature: bool = True,
     ) -> None:
@@ -213,6 +213,7 @@ class AttributeDelegatedAgentPullRequestTest(TestCase):
                 pr_url=pr_url,
                 agent_id=agent_id,
                 run_id=run_id,
+                group_ids=group_ids,
             )
 
     def test_records_the_given_signal_type(self) -> None:
@@ -236,6 +237,7 @@ class AttributeDelegatedAgentPullRequestTest(TestCase):
                 "agent_id": "agent-1",
                 "pr_url": f"https://github.com/getsentry/sentry/pull/{pr_number}",
                 "run_id": None,
+                "group_ids": [],
             }
 
     def test_includes_run_id_in_signal_details(self) -> None:
@@ -250,6 +252,38 @@ class AttributeDelegatedAgentPullRequestTest(TestCase):
             "agent_id": "agent-1",
             "pr_url": "https://github.com/getsentry/sentry/pull/77",
             "run_id": 9999,
+            "group_ids": [],
+        }
+
+    def test_includes_group_ids_in_signal_details(self) -> None:
+        self._attribute(
+            pr_url="https://github.com/getsentry/sentry/pull/78",
+            run_id=9999,
+            group_ids=[self.group.id],
+        )
+
+        pull_request = PullRequest.objects.get(repository_id=self.repo.id, key="78")
+        attribution = PullRequestAttribution.objects.get(pull_request=pull_request)
+        assert attribution.signal_details == {
+            "agent_id": "agent-1",
+            "pr_url": "https://github.com/getsentry/sentry/pull/78",
+            "run_id": 9999,
+            "group_ids": [self.group.id],
+        }
+
+    def test_includes_multiple_group_ids_in_signal_details(self) -> None:
+        self._attribute(
+            pr_url="https://github.com/getsentry/sentry/pull/88",
+            group_ids=[555],
+        )
+
+        pull_request = PullRequest.objects.get(repository_id=self.repo.id, key="88")
+        attribution = PullRequestAttribution.objects.get(pull_request=pull_request)
+        assert attribution.signal_details == {
+            "agent_id": "agent-1",
+            "pr_url": "https://github.com/getsentry/sentry/pull/88",
+            "run_id": None,
+            "group_ids": [555],
         }
 
     def test_noop_when_feature_disabled(self) -> None:
@@ -419,42 +453,3 @@ class RecordAttributionSignalTest(TestCase):
         second.refresh_from_db()
         assert second.signal_details == {"run_id": 9, "group_ids": [3], "pr_url": "https://x/2"}
         assert second.is_valid is True
-
-
-class RecomputePullRequestAttributionTest(TestCase):
-    def setUp(self) -> None:
-        self.repo = self.create_repo(self.project, name=REPO_NAME)
-        self.pull_request = self.create_pull_request(
-            organization_id=self.organization.id,
-            repository_id=self.repo.id,
-            key="42",
-        )
-
-    def _add(self, signal_type: str, is_valid: bool = True) -> None:
-        PullRequestAttribution.objects.create(
-            pull_request=self.pull_request,
-            signal_type=signal_type,
-            source=PullRequestAttributionSource.WEBHOOK_DATA,
-            is_valid=is_valid,
-        )
-
-    def test_returns_none_without_signals(self) -> None:
-        assert recompute_pull_request_attribution(self.pull_request) is None
-
-    def test_picks_highest_confidence_signal(self) -> None:
-        self._add(PullRequestAttributionSignalType.SENTRY_APP)
-        self._add(PullRequestAttributionSignalType.MCP)
-
-        assert (
-            recompute_pull_request_attribution(self.pull_request)
-            == PullRequestAttributionSignalType.SENTRY_APP
-        )
-
-    def test_ignores_invalid_signals(self) -> None:
-        self._add(PullRequestAttributionSignalType.SENTRY_APP, is_valid=False)
-        self._add(PullRequestAttributionSignalType.MCP)
-
-        assert (
-            recompute_pull_request_attribution(self.pull_request)
-            == PullRequestAttributionSignalType.MCP
-        )

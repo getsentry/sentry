@@ -38,7 +38,7 @@ import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 describe('DetectorEdit', () => {
   const organization = OrganizationFixture({
-    features: ['workflow-engine-ui', 'visibility-explore-view'],
+    features: ['visibility-explore-view'],
   });
   const project = ProjectFixture({id: '1', organization, environments: ['production']});
   const initialRouterConfig = {
@@ -855,11 +855,7 @@ describe('DetectorEdit', () => {
 
     it('shows transactions dataset when editing existing transactions detector even with deprecation flag enabled', async () => {
       const organizationWithDeprecation = OrganizationFixture({
-        features: [
-          'workflow-engine-ui',
-          'visibility-explore-view',
-          'discover-saved-queries-deprecation',
-        ],
+        features: ['visibility-explore-view', 'discover-saved-queries-deprecation'],
       });
 
       const existingTransactionsDetector = MetricDetectorFixture({

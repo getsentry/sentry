@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import type {GroupActivity} from 'sentry/types/group';
-import {GroupActivityType} from 'sentry/types/group';
-import {formatProgressState, ProgressState} from 'sentry/views/issueList/utils/progress';
+import {GroupActivityType, ProgressState} from 'sentry/types/group';
+import {formatProgressState} from 'sentry/views/issueList/utils/progress';
 
 export type ActivityMarkerState = ProgressState | 'activity';
 
@@ -28,6 +28,7 @@ export function getActivityMarkerState(item: GroupActivity): ActivityMarkerState
     case GroupActivityType.SEER_CODING_COMPLETED:
     case GroupActivityType.SEER_ITERATION_STARTED:
     case GroupActivityType.SEER_ITERATION_COMPLETED:
+    case GroupActivityType.TRIGGER_AUTOFIX:
     case GroupActivityType.CREATE_ISSUE:
     case GroupActivityType.SET_PUBLIC:
     case GroupActivityType.SET_PRIVATE:

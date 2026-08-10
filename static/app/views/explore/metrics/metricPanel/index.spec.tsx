@@ -75,6 +75,20 @@ function setupMocks(orgSlug: string) {
   });
 
   MockApiClient.addMockResponse({
+    url: `/organizations/${orgSlug}/events/validate/`,
+    method: 'GET',
+    body: {
+      dataset: [],
+      environment: [],
+      field: [],
+      orderby: [],
+      projects: [],
+      query: {error: null, fields: [], valid: true},
+      valid: true,
+    },
+  });
+
+  MockApiClient.addMockResponse({
     url: `/organizations/${orgSlug}/recent-searches/`,
     method: 'GET',
     body: [],
@@ -246,7 +260,7 @@ describe('MetricPanel', () => {
 
     const equationOrg = {
       ...organization,
-      features: [...organization.features, 'data-browsing-heat-map-widget'],
+      features: [...organization.features],
     };
 
     render(
@@ -289,7 +303,7 @@ describe('MetricPanel', () => {
 
     const heatMapOrg = {
       ...organization,
-      features: [...organization.features, 'data-browsing-heat-map-widget'],
+      features: [...organization.features],
     };
 
     render(

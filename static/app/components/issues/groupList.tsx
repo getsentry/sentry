@@ -78,10 +78,12 @@ type Props = {
   renderErrorMessage?: (props: {detail: string}, retry: () => void) => React.ReactNode;
   // where the group list is rendered
   source?: string;
+  staleTime?: number;
   useFilteredStats?: boolean;
   useTintRow?: boolean;
   withChart?: boolean;
   withColumns?: GroupListColumn[];
+  withHeader?: boolean;
   withPagination?: boolean;
 };
 
@@ -94,7 +96,14 @@ type State = {
   memberList?: ReturnType<typeof indexMembersByProject>;
 };
 
-const DEFAULT_COLUMNS: GroupListColumn[] = ['graph', 'event', 'users', 'assignee'];
+const DEFAULT_COLUMNS: GroupListColumn[] = [
+  'firstSeen',
+  'lastSeen',
+  'graph',
+  'event',
+  'users',
+  'assignee',
+];
 
 export function GroupList({
   queryParams,
@@ -105,6 +114,7 @@ export function GroupList({
   customStatsPeriod,
   queryFilterDescription,
   source,
+  staleTime = 0,
   query,
   numPlaceholderRows,
   withColumns = DEFAULT_COLUMNS,
@@ -113,6 +123,7 @@ export function GroupList({
   canSelectGroups = true,
   useFilteredStats = true,
   useTintRow = true,
+  withHeader = true,
 }: Props) {
   const organization = useOrganization();
   const location = useLocation();
@@ -192,12 +203,12 @@ export function GroupList({
       ? apiOptions.as<Group[]>()(endpoint.path, {
           path: {organizationIdOrSlug: organization.slug},
           query: computedQueryParams,
-          staleTime: 0,
+          staleTime,
         })
       : apiOptions.as<Group[]>()(endpoint.path, {
           path: {organizationIdOrSlug: organization.slug, version: endpoint.version},
           query: computedQueryParams,
-          staleTime: 0,
+          staleTime,
         });
   const {
     data,
@@ -304,10 +315,7 @@ export function GroupList({
     dataUpdatedAt,
   ]);
 
-  const columns = useMemo(
-    () => [...withColumns, 'firstSeen' as const, 'lastSeen' as const],
-    [withColumns]
-  );
+  const columns = withColumns;
 
   if (hasError) {
     if (typeof renderErrorMessage === 'function' && errorData) {
@@ -340,10 +348,10 @@ export function GroupList({
   return (
     <Fragment>
       <PanelContainer>
-        <GroupListHeader withChart={!!withChart} withColumns={columns} />
+        {withHeader && <GroupListHeader withChart={!!withChart} withColumns={columns} />}
         <PanelBody>
           {loading
-            ? [...Array.from({length: numPlaceholderRows})].map((_, i) => (
+            ? Array.from({length: numPlaceholderRows}, (_, i) => (
                 <GroupPlaceholder key={i}>
                   <Placeholder height="50px" />
                 </GroupPlaceholder>

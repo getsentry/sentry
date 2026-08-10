@@ -1,4 +1,3 @@
-import logging
 from typing import Any
 from unittest.mock import patch
 
@@ -115,33 +114,16 @@ class TrackGitlabContributorSeatProcessorTest(GitLabTestCase):
         mock_track.assert_not_called()
 
     @with_feature("organizations:seer-gitlab-support")
-    @patch("sentry.seer.code_review.webhooks.seat_tracking.logger")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
-    def test_no_call_when_actor_is_not_author(self, mock_track: Any, mock_logger: Any) -> None:
+    def test_no_call_when_actor_is_not_author(self, mock_track: Any) -> None:
         # The MR author (object_attributes.author_id) and the webhook actor
         # (event.user) diverge — e.g. an MR opened via the API on behalf of
         # another author. Seeding would store the actor's username as the alias
-        # for the author's external_identifier, so we skip instead.
+        # for the author's external_identifier, so we skip silently instead.
         event = _make_event()
         event["user"]["id"] = event["object_attributes"]["author_id"] + 1
         self._call(event=event)
         mock_track.assert_not_called()
-        mock_logger.log.assert_any_call(
-            logging.WARNING,
-            "actor_author_mismatch",
-            extra={
-                "seer.webhooks.organization_id": self.organization.id,
-                "seer.webhooks.provider_name": "gitlab",
-                "seer.webhooks.repository_id": self.repo.id,
-                "seer.webhooks.integration_id": self.integration.id,
-                "seer.webhooks.merge_request_iid": event["object_attributes"]["iid"],
-                "seer.webhooks.merge_request_action": event["object_attributes"]["action"],
-                "seer.webhooks.author_id": event["object_attributes"]["author_id"],
-                "seer.webhooks.actor_id": event["user"]["id"],
-                "seer.webhooks.contributor_tracking_stage": "seat",
-            },
-            exc_info=False,
-        )
 
     @with_feature("organizations:seer-gitlab-support")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
@@ -303,11 +285,10 @@ class TrackGitlabContributorActionProcessorTest(GitLabTestCase):
         mock_record.assert_not_called()
 
     @with_feature("organizations:seer-gitlab-support")
-    @patch("sentry.seer.code_review.webhooks.seat_tracking.logger")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.record_contributor_action")
-    def test_no_call_when_actor_is_not_author(self, mock_record: Any, mock_logger: Any) -> None:
+    def test_no_call_when_actor_is_not_author(self, mock_record: Any) -> None:
         # The row is keyed by the author id but seeded with the actor's username
-        # as the alias, so skip seeding when the actor is not the author.
+        # as the alias, so skip seeding silently when the actor is not the author.
         event = _make_event()
         event["user"]["id"] = event["object_attributes"]["author_id"] + 1
         track_gitlab_contributor_action_processor(
@@ -317,22 +298,6 @@ class TrackGitlabContributorActionProcessorTest(GitLabTestCase):
             integration=self.integration,
         )
         mock_record.assert_not_called()
-        mock_logger.log.assert_any_call(
-            logging.WARNING,
-            "actor_author_mismatch",
-            extra={
-                "seer.webhooks.organization_id": self.organization.id,
-                "seer.webhooks.provider_name": "gitlab",
-                "seer.webhooks.repository_id": self.repo.id,
-                "seer.webhooks.integration_id": self.integration.id,
-                "seer.webhooks.merge_request_iid": event["object_attributes"]["iid"],
-                "seer.webhooks.merge_request_action": event["object_attributes"]["action"],
-                "seer.webhooks.author_id": event["object_attributes"]["author_id"],
-                "seer.webhooks.actor_id": event["user"]["id"],
-                "seer.webhooks.contributor_tracking_stage": "action",
-            },
-            exc_info=False,
-        )
 
     @with_feature("organizations:seer-gitlab-support")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.record_contributor_action")

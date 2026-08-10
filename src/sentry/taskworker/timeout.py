@@ -4,6 +4,10 @@ from types import FrameType
 from typing import Callable, Generator
 
 
+class InnerTimeoutError(Exception):
+    pass
+
+
 @contextlib.contextmanager
 def timeout_alarm(
     seconds: float, handler: Callable[[int, FrameType | None], None]
@@ -30,7 +34,7 @@ def timeout_alarm(
         # Undo: restore original outer timer and handler before raising
         signal.setitimer(signal.ITIMER_REAL, previous_remaining)
         signal.signal(signal.SIGALRM, original_handler)
-        raise ValueError(
+        raise InnerTimeoutError(
             f"Inner timeout ({seconds}s) must be less than outer alarm remaining ({previous_remaining}s)"
         )
     try:

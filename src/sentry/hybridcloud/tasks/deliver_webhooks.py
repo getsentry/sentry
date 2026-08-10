@@ -71,11 +71,38 @@ actions that have been made to the relevant resources.
 
 # Define priorities for different webhook providers
 # Lower number means higher priority
+#
+# Deliberately unbacked by an index. A matching expression index was tried and went
+# unused: the discovery query below must aggregate every mailbox to find the heads
+# regardless, and sorting that small result beats scanning the table in priority
+# order by orders of magnitude. Such an index also silently stops matching the
+# moment this dict gains an entry, since the two expressions must be textually
+# identical for Postgres to use it.
 PROVIDER_PRIORITY = {
     "stripe": 1,
 }
 # Default priority for providers not explicitly listed above
 DEFAULT_PROVIDER_PRIORITY = 10
+
+
+UNKNOWN_PROVIDER = "unknown"
+"""The payload predates the provider column, or the mailbox name carries no provider."""
+
+
+def _provider_tag(payload: WebhookPayload) -> str:
+    """The provider column is nullable, and rows predating it still drain through here."""
+    return payload.provider or UNKNOWN_PROVIDER
+
+
+def _provider_from_mailbox(mailbox_name: str | None) -> str:
+    """
+    Recover the provider where only the mailbox name is in hand.
+
+    Mailboxes are named `<provider>:<identifier>`, and it is the identifier that later
+    gains bucket and event-type suffixes, so the first segment stays the provider.
+    """
+    provider, separator, _ = (mailbox_name or "").partition(":")
+    return provider if separator and provider else UNKNOWN_PROVIDER
 
 
 def _set_webhook_delivery_sentry_context(payload: WebhookPayload) -> None:
@@ -96,6 +123,23 @@ class DeliveryFailed(Exception):
     """
 
     pass
+
+
+class DeliveryDropped(Exception):
+    """
+    Signals that the cell rejected the payload in a way retrying cannot fix, so
+    it is discarded instead of rescheduled.
+
+    Distinct from `DeliveryFailed`, which is retryable. Both end in the payload
+    being deleted, but only this one means the webhook never reached the cell,
+    so callers must not count it as a delivery.
+
+    `outcome` is the `delivery` metric tag describing why it was dropped.
+    """
+
+    def __init__(self, outcome: str) -> None:
+        super().__init__(outcome)
+        self.outcome = outcome
 
 
 def _drain_lock_key(mailbox_name: str) -> str:
@@ -131,6 +175,7 @@ def maybe_trigger_drain(mailbox_name: str) -> None:
         return
 
     lock_key = _drain_lock_key(mailbox_name)
+    trigger_tags = {"provider": _provider_from_mailbox(mailbox_name)}
     lock_acquired = False
     try:
         if cache.add(lock_key, 1, timeout=15):
@@ -149,20 +194,20 @@ def maybe_trigger_drain(mailbox_name: str) -> None:
                 # Mailbox is empty or head is in backoff — release the lock and let
                 # the scheduler handle it when schedule_for comes due.
                 _release_drain_lock(mailbox_name)
-                metrics.incr("hybridcloud.deliver_webhooks.push_trigger.backoff")
+                metrics.incr("hybridcloud.deliver_webhooks.push_trigger.backoff", tags=trigger_tags)
                 return
             head_id = head[0]
             drain_mailbox.delay(head_id, mailbox_name=mailbox_name)
-            metrics.incr("hybridcloud.deliver_webhooks.push_trigger.success")
+            metrics.incr("hybridcloud.deliver_webhooks.push_trigger.success", tags=trigger_tags)
         else:
-            metrics.incr("hybridcloud.deliver_webhooks.push_trigger.skipped")
+            metrics.incr("hybridcloud.deliver_webhooks.push_trigger.skipped", tags=trigger_tags)
     except Exception:
         # Only release the lock if this caller acquired it. Releasing unconditionally
         # would delete another process's lock when cache.add returned False and a
         # subsequent operation (e.g. metrics.incr) raised.
         if lock_acquired:
             _release_drain_lock(mailbox_name)
-        metrics.incr("hybridcloud.deliver_webhooks.push_trigger.error")
+        metrics.incr("hybridcloud.deliver_webhooks.push_trigger.error", tags=trigger_tags)
 
 
 @instrumented_task(
@@ -180,13 +225,14 @@ def schedule_webhook_delivery() -> None:
 
     Triggered frequently by task-scheduler.
     """
-    # Se use the replica for any read queries to webhook payload
-    WebhookPayloadReplica = WebhookPayload.objects.using_replica()
-
+    # Read from the primary rather than a replica. These scheduler reads run on a
+    # short interval and can scan the whole table; on a replica they contend with
+    # WAL replay and amplify replication lag, and lag also produces spurious
+    # DoesNotExist races in the drains they enqueue (see INC-2398).
     # The double call to .values() ensures that the group by includes mailbox_name
     # but only id_min is selected
     head_of_line = (
-        WebhookPayloadReplica.all()
+        WebhookPayload.objects.all()
         .values("mailbox_name")
         .annotate(id_min=Min("id"))
         .values("id_min")
@@ -195,7 +241,7 @@ def schedule_webhook_delivery() -> None:
     # Get any heads that are scheduled to run
     # Use provider field directly, with default priority for null values
     scheduled_mailboxes = (
-        WebhookPayloadReplica.filter(
+        WebhookPayload.objects.filter(
             schedule_for__lte=timezone.now(),
             id__in=Subquery(head_of_line),
         )
@@ -231,7 +277,7 @@ def schedule_webhook_delivery() -> None:
         # Reschedule the records that we will attempt to deliver next.
         # We update schedule_for in an attempt to minimize races for potentially in-flight batches.
         mailbox_batch = (
-            WebhookPayloadReplica.filter(id__gte=record["id"], mailbox_name=record["mailbox_name"])
+            WebhookPayload.objects.filter(id__gte=record["id"], mailbox_name=record["mailbox_name"])
             .order_by("id")
             .values("id")[:MAX_MAILBOX_DRAIN]
         )
@@ -259,21 +305,19 @@ def drain_mailbox(payload_id: int, mailbox_name: str | None = None) -> None:
     Once messages have successfully been delivered or discarded, they are deleted.
 
     `mailbox_name` is passed explicitly so we can release the drain lock in the
-    DoesNotExist early-return path (replication lag) without fetching the payload
-    a second time.
+    DoesNotExist early-return path without fetching the payload a second time.
     """
-    WebhookPayloadReplica = WebhookPayload.objects.using_replica()
-
     try:
-        payload = WebhookPayloadReplica.get(id=payload_id)
+        payload = WebhookPayload.objects.get(id=payload_id)
     except WebhookPayload.DoesNotExist:
         # We could have hit a race condition. Since we've lost already return
         # and let the other process continue, or a future process.
-        metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "race"})
+        metrics.incr(
+            "hybridcloud.deliver_webhooks.delivery",
+            tags={"outcome": "race", "provider": _provider_from_mailbox(mailbox_name)},
+        )
         logger.info("deliver_webhook.potential_race", extra={"id": payload_id})
-        # Release the drain lock if we know the mailbox name. This can happen when
-        # maybe_trigger_drain queries the primary for head_id then drain_mailbox fetches
-        # from the replica — replication lag causes DoesNotExist, but the lock is still
+        # Release the drain lock if we know the mailbox name. Otherwise the lock is
         # held, blocking both push triggers and the scheduler for the full 15s TTL.
         if mailbox_name and options.get("hybridcloud.webhookpayload.push_drain_trigger"):
             _release_drain_lock(mailbox_name)
@@ -303,13 +347,14 @@ def drain_mailbox(payload_id: int, mailbox_name: str | None = None) -> None:
                     },
                 )
                 metrics.incr(
-                    "hybridcloud.deliver_webhooks.delivery", tags={"outcome": "delivery_deadline"}
+                    "hybridcloud.deliver_webhooks.delivery",
+                    tags={"outcome": "delivery_deadline", "provider": _provider_tag(payload)},
                 )
                 break
 
             # Fetch records from the batch in slices of 100. This avoids reading
             # redundant data should we hit an error and should help keep query duration low.
-            query = WebhookPayloadReplica.filter(
+            query = WebhookPayload.objects.filter(
                 id__gte=current_id, mailbox_name=payload.mailbox_name
             ).order_by("id")
 
@@ -325,11 +370,14 @@ def drain_mailbox(payload_id: int, mailbox_name: str | None = None) -> None:
                 if mailbox_name and options.get("hybridcloud.webhookpayload.push_drain_trigger"):
                     _refresh_drain_lock(payload.mailbox_name)
                 try:
-                    deliver_message(record)
-                    delivered += 1
+                    if deliver_message(record):
+                        delivered += 1
                 except DeliveryFailed:
                     failed += 1
-                    metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "retry"})
+                    metrics.incr(
+                        "hybridcloud.deliver_webhooks.delivery",
+                        tags={"outcome": "retry", "provider": _provider_tag(record)},
+                    )
                     if not skip_on_failure:
                         # For providers that require strict ordering, stop on the
                         # first failure so subsequent messages are not delivered
@@ -388,15 +436,20 @@ def _discard_stale_mailbox_payloads(payload: WebhookPayload) -> None:
         ).values("id")[:10000]
         deleted, _ = WebhookPayload.objects.filter(id__in=stale_query).delete()
         if deleted:
-            logger.info(
+            logger.warning(
                 "deliver_webhook_parallel.max_age_discard",
                 extra={
                     **payload.as_dict(),
                     "deleted": deleted,
                 },
             )
+            # Unsampled: `amount` is scaled by 1/sample_rate, so at the default 10% a
+            # sweep is reported as either nothing or ten times what it deleted.
             metrics.incr(
-                "hybridcloud.deliver_webhooks.delivery", amount=deleted, tags={"outcome": "max_age"}
+                "hybridcloud.deliver_webhooks.delivery",
+                amount=deleted,
+                tags={"outcome": "max_age", "provider": _provider_tag(payload)},
+                sample_rate=1.0,
             )
 
 
@@ -454,47 +507,74 @@ def _handle_parallel_delivery_result(
     Returns (request_failed, should_reraise).
     """
     payload_data = payload_record.as_dict()
+    if isinstance(err, DeliveryDropped):
+        # Permanently rejected, so it is neither a delivery nor a retryable failure:
+        # drop it and let the drain continue to the next record.
+        payload_record.delete()
+        metrics.incr(
+            "hybridcloud.deliver_webhooks.delivery",
+            tags={"outcome": err.outcome, "provider": _provider_tag(payload_record)},
+        )
+        return (False, False)
     if err:
         if payload_record.attempts >= MAX_ATTEMPTS:
             payload_record.delete()
+            # Unsampled: this is the count of webhooks we permanently dropped, so it
+            # wants an exact total rather than an estimated rate.
             metrics.incr(
                 "hybridcloud.deliver_webhooks.delivery",
-                tags={"outcome": "attempts_exceed"},
+                tags={"outcome": "attempts_exceed", "provider": _provider_tag(payload_record)},
+                sample_rate=1.0,
             )
-            logger.info(
+            logger.warning(
                 "deliver_webhook_parallel.discard",
                 extra={**payload_data},
             )
             request_failed = False
         else:
-            metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "retry"})
+            metrics.incr(
+                "hybridcloud.deliver_webhooks.delivery",
+                tags={"outcome": "retry", "provider": _provider_tag(payload_record)},
+            )
             payload_record.schedule_next_attempt()
             request_failed = True
         return (request_failed, not isinstance(err, DeliveryFailed))
     date_added = payload_record.date_added
     payload_record.delete()
     _record_delivery_time_metrics(payload_record)
-    metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "ok"})
+    metrics.incr(
+        "hybridcloud.deliver_webhooks.delivery",
+        tags={"outcome": "ok", "provider": _provider_tag(payload_record)},
+    )
     if timezone.now() - date_added >= SLOW_DELIVERY_THRESHOLD:
         logger.warning("deliver_webhook.slow_delivery", extra=payload_data)
     return (False, False)
 
 
 def _run_parallel_delivery_batch(
-    payload: WebhookPayload, worker_threads: int
-) -> tuple[int, bool, bool]:
+    mailbox_name: str, start_id: int, worker_threads: int
+) -> tuple[int, bool, int | None]:
     """
     Run one batch of parallel deliveries for the mailbox.
-    Returns (delivered_count, request_failed, no_more_messages).
+
+    Returns (delivered_count, request_failed, next_start_id).
+    `next_start_id` is one past the highest id attempted in this batch so callers
+    can advance past failed rows when continuing (e.g. skip-on-failure providers).
+    Returns `next_start_id=None` when the mailbox has no rows at/after `start_id`.
     """
-    query = WebhookPayload.objects.filter(
-        id__gte=payload.id, mailbox_name=payload.mailbox_name
-    ).order_by("id")
+    records = list(
+        WebhookPayload.objects.filter(id__gte=start_id, mailbox_name=mailbox_name).order_by("id")[
+            :worker_threads
+        ]
+    )
+    if not records:
+        return (0, False, None)
+
+    # Capture before delivery — successful deletes clear pk on the in-memory instance.
+    next_start_id = records[-1].id + 1
 
     with ContextPropagatingThreadPoolExecutor(max_workers=worker_threads) as threadpool:
-        futures = {
-            threadpool.submit(deliver_message_parallel, record) for record in query[:worker_threads]
-        }
+        futures = {threadpool.submit(deliver_message_parallel, record) for record in records}
         delivered = 0
         request_failed = False
         for future in as_completed(futures):
@@ -507,8 +587,7 @@ def _run_parallel_delivery_batch(
                 raise err
             if err is None:
                 delivered += 1
-        no_more_messages = len(futures) < 1
-    return (delivered, request_failed, no_more_messages)
+    return (delivered, request_failed, next_start_id)
 
 
 @instrumented_task(
@@ -526,10 +605,10 @@ def drain_mailbox_parallel(payload_id: int, mailbox_name: str | None = None) -> 
     Because of the sequential delivery in a mailbox we can't get higher throughput
     by scheduling batches in parallel.
 
-    Messages will be delivered in small batches until one fails, the batch
-    delay timeout is reached, or a message with a schedule_for greater than
-    the current time is encountered. A message with a higher schedule_for value
-    indicates that we have hit the start of another batch that has been scheduled.
+    Messages will be delivered in small batches until a non-skippable failure
+    occurs or the batch delay timeout is reached. Providers in
+    `hybridcloud.webhookpayload.skip_on_failure_providers` (e.g. github) continue
+    past retryable failures in the same way as sequential `drain_mailbox`.
 
     `mailbox_name` is passed when the drain was push-triggered so the lock can be
     released on completion (mirroring `drain_mailbox`). Scheduler-triggered calls
@@ -540,7 +619,10 @@ def drain_mailbox_parallel(payload_id: int, mailbox_name: str | None = None) -> 
     except WebhookPayload.DoesNotExist:
         # We could have hit a race condition. Since we've lost already return
         # and let the other process continue, or a future process.
-        metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "race"})
+        metrics.incr(
+            "hybridcloud.deliver_webhooks.delivery",
+            tags={"outcome": "race", "provider": _provider_from_mailbox(mailbox_name)},
+        )
         logger.info("deliver_webhook_parallel.potential_race", extra={"id": payload_id})
         if mailbox_name and options.get("hybridcloud.webhookpayload.push_drain_trigger"):
             _release_drain_lock(mailbox_name)
@@ -549,9 +631,15 @@ def drain_mailbox_parallel(payload_id: int, mailbox_name: str | None = None) -> 
     _set_webhook_delivery_sentry_context(payload)
     _discard_stale_mailbox_payloads(payload)
 
+    skip_on_failure_providers = frozenset(
+        options.get("hybridcloud.webhookpayload.skip_on_failure_providers") or ()
+    )
+    skip_on_failure = payload.provider in skip_on_failure_providers
+
     worker_threads = options.get("hybridcloud.webhookpayload.worker_threads")
     deadline = timezone.now() + BATCH_SCHEDULE_OFFSET
     delivered = 0
+    current_id = payload.id
     extra = {**payload.as_dict(), "delivered": delivered}
     try:
         while True:
@@ -560,21 +648,28 @@ def drain_mailbox_parallel(payload_id: int, mailbox_name: str | None = None) -> 
             if timezone.now() >= deadline:
                 logger.info("deliver_webhook_parallel.delivery_deadline", extra=extra)
                 metrics.incr(
-                    "hybridcloud.deliver_webhooks.delivery", tags={"outcome": "delivery_deadline"}
+                    "hybridcloud.deliver_webhooks.delivery",
+                    tags={"outcome": "delivery_deadline", "provider": _provider_tag(payload)},
                 )
                 break
 
-            delivered_batch, request_failed, no_more_messages = _run_parallel_delivery_batch(
-                payload, worker_threads
+            delivered_batch, request_failed, next_id = _run_parallel_delivery_batch(
+                payload.mailbox_name, current_id, worker_threads
             )
             delivered += delivered_batch
             extra["delivered"] = delivered
 
-            if no_more_messages:
+            if next_id is None:
                 logger.info("deliver_webhook_parallel.task_complete", extra=extra)
                 break
 
-            if request_failed:
+            # Advance past this batch so failed rows (left with a future
+            # schedule_for) are not immediately re-attempted when we continue.
+            current_id = next_id
+
+            if request_failed and not skip_on_failure:
+                # For providers that require stricter mailbox behavior, stop on
+                # the first batch that had a retryable failure.
                 logger.info("deliver_webhook_parallel.delivery_request_failed", extra=extra)
                 return
     finally:
@@ -594,24 +689,49 @@ def deliver_message_parallel(payload: WebhookPayload) -> tuple[WebhookPayload, E
         return (payload, err)
 
 
-def deliver_message(payload: WebhookPayload) -> None:
-    """Deliver a message if it still has delivery attempts remaining"""
+def deliver_message(payload: WebhookPayload) -> bool:
+    """
+    Deliver a message if it still has delivery attempts remaining.
+
+    Returns whether the payload actually reached the cell. A payload that was
+    discarded — attempts exhausted, or permanently rejected — returns False even
+    though it was removed from the mailbox.
+    """
     payload_data = payload.as_dict()
     if payload.attempts >= MAX_ATTEMPTS:
         payload.delete()
 
-        metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "attempts_exceed"})
-        logger.info("deliver_webhook.discard", extra={**payload_data})
-        return
+        # Unsampled: see the parallel discard path above.
+        metrics.incr(
+            "hybridcloud.deliver_webhooks.delivery",
+            tags={"outcome": "attempts_exceed", "provider": _provider_tag(payload)},
+            sample_rate=1.0,
+        )
+        logger.warning("deliver_webhook.discard", extra={**payload_data})
+        return False
 
     payload.schedule_next_attempt()
-    perform_request(payload)
+    try:
+        perform_request(payload)
+    except DeliveryDropped as err:
+        # The cell rejected the payload permanently. Delete it like a delivery, but
+        # don't record delivery time or count it as one — it never arrived.
+        payload.delete()
+        metrics.incr(
+            "hybridcloud.deliver_webhooks.delivery",
+            tags={"outcome": err.outcome, "provider": _provider_tag(payload)},
+        )
+        return False
     date_added = payload.date_added
     payload.delete()
     _record_delivery_time_metrics(payload)
     if timezone.now() - date_added >= SLOW_DELIVERY_THRESHOLD:
         logger.warning("deliver_webhook.slow_delivery", extra=payload_data)
-    metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "ok"})
+    metrics.incr(
+        "hybridcloud.deliver_webhooks.delivery",
+        tags={"outcome": "ok", "provider": _provider_tag(payload)},
+    )
+    return True
 
 
 def perform_request(payload: WebhookPayload) -> None:
@@ -652,7 +772,11 @@ def perform_cell_request(cell: Cell, payload: WebhookPayload) -> None:
     except ApiHostError as err:
         metrics.incr(
             "hybridcloud.deliver_webhooks.failure",
-            tags={"reason": "host_error", "destination_region": cell.name},
+            tags={
+                "reason": "host_error",
+                "destination_region": cell.name,
+                "provider": _provider_tag(payload),
+            },
         )
         with sentry_sdk.isolation_scope() as scope:
             scope.set_context(
@@ -678,17 +802,26 @@ def perform_cell_request(cell: Cell, payload: WebhookPayload) -> None:
     except ApiConflictError as err:
         metrics.incr(
             "hybridcloud.deliver_webhooks.failure",
-            tags={"reason": "conflict", "destination_region": cell.name},
+            tags={
+                "reason": "conflict",
+                "destination_region": cell.name,
+                "provider": _provider_tag(payload),
+            },
         )
         logger.warning(
             "deliver_webhooks.conflict_occurred",
             extra={"conflict_text": err.text, **payload.as_dict()},
         )
         # We don't retry conflicts as those are explicit failure code to drop webhook.
+        raise DeliveryDropped("conflict") from err
     except (ApiTimeoutError, ApiConnectionResetError) as err:
         metrics.incr(
             "hybridcloud.deliver_webhooks.failure",
-            tags={"reason": "timeout_reset", "destination_region": cell.name},
+            tags={
+                "reason": "timeout_reset",
+                "destination_region": cell.name,
+                "provider": _provider_tag(payload),
+            },
         )
         logger.warning("deliver_webhooks.timeout_error", extra=payload.as_dict())
         raise DeliveryFailed() from err
@@ -715,18 +848,26 @@ def perform_cell_request(cell: Cell, payload: WebhookPayload) -> None:
                     reason = "forbidden"
                 metrics.incr(
                     "hybridcloud.deliver_webhooks.failure",
-                    tags={"reason": reason, "destination_region": cell.name},
+                    tags={
+                        "reason": reason,
+                        "destination_region": cell.name,
+                        "provider": _provider_tag(payload),
+                    },
                 )
-                logger.info(
+                logger.warning(
                     "deliver_webhooks.40x_error",
                     extra={"reason": reason, **payload.as_dict()},
                 )
-                return
+                raise DeliveryDropped("dropped_4xx") from err
 
         # Other ApiErrors should be retried
         metrics.incr(
             "hybridcloud.deliver_webhooks.failure",
-            tags={"reason": "api_error", "destination_region": cell.name},
+            tags={
+                "reason": "api_error",
+                "destination_region": cell.name,
+                "provider": _provider_tag(payload),
+            },
         )
         logger.warning(
             "deliver_webhooks.api_error",

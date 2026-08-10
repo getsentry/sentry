@@ -9,6 +9,7 @@ from django.conf import settings
 from django.core.cache import cache
 
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
+from sentry.integrations.github.webhook import PullRequestEventWebhook
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.issues.constants import ISSUE_VIEW_CACHE_KEY_TTL, cache_key_for_issue_view
 from sentry.models.grouplink import GroupLink
@@ -450,7 +451,8 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         row = mock_record.call_args_list[-1].args[0]
         assert row.close_action == "closed"
         assert row.verdict == "closed_unmerged"
-        assert row.diagnosis_labels is None
+        # No check activity was ever recorded for this PR.
+        assert row.diagnosis_labels == ["no_ci_events"]
 
     def _add_check_suite(self, *, conclusion: str, webhook_id: str) -> None:
         PullRequestActivity.objects.create(
@@ -468,7 +470,9 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         self._call(merged=False)
         row = mock_record.call_args_list[-1].args[0]
         assert row.verdict == "closed_unmerged"
-        assert row.diagnosis_labels == ["ci_failing_at_close"]
+        # No commits after open, so the failing check is both "at close" and "at
+        # open" — the same one and only head.
+        assert row.diagnosis_labels == ["ci_failing_at_close", "ci_failed_at_open"]
 
     @patch("sentry.analytics.record")
     def test_closed_unmerged_with_passing_ci_has_no_diagnosis_label(
@@ -481,14 +485,18 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         assert row.diagnosis_labels is None
 
     @patch("sentry.analytics.record")
-    def test_merged_with_failing_ci_has_no_diagnosis_label(self, mock_record: MagicMock) -> None:
-        # The deterministic CI-failure label is scoped to CLOSED_UNMERGED; a clean
-        # merge never carries it even if a check suite failed along the way.
+    def test_merged_with_failing_ci_at_open_only_sets_ci_failed_at_open(
+        self, mock_record: MagicMock
+    ) -> None:
+        # The deterministic close-time CI-failure label is scoped to
+        # CLOSED_UNMERGED; a clean merge never carries it even if a check suite
+        # failed along the way. But ci_failed_at_open isn't verdict-scoped: the
+        # failing check recorded before any push is still the opening head's.
         self._add_check_suite(conclusion="failure", webhook_id="check-1")
         self._call(merged=True)
         row = mock_record.call_args_list[-1].args[0]
         assert row.verdict == "merged_unchanged"
-        assert row.diagnosis_labels is None
+        assert row.diagnosis_labels == ["ci_failed_at_open"]
 
     def _add_synchronize(self) -> None:
         # A push to the PR branch after it opened — makes a merge non-deterministic.
@@ -879,6 +887,75 @@ class HandleWebhookForPrMetricsCountersTest(TestCase):
         )
         assert PullRequestMetrics.objects.count() == 0
 
+    def test_stale_replay_after_merge_does_not_regress_counters(self) -> None:
+        # The merge landed first, so the row already reads merged (written by
+        # PullRequestEventWebhook before this processor runs). The retried
+        # `synchronize` carries pre-merge counters; applying them would leave
+        # select_verdict reading zero discussion off a PR that had reviewer
+        # engagement and emitting a permanent CLOSED_UNMERGED.
+        self.pull_request.update(
+            state=PullRequestLifecycleState.MERGED,
+            provider_updated_at=datetime(2015, 5, 5, 23, 45, tzinfo=timezone.utc),
+        )
+        self._call(
+            action="closed",
+            state="closed",
+            merged=True,
+            updated_at="2015-05-05T23:45:00Z",
+            comments=4,
+            review_comments=6,
+            commits=3,
+        )
+
+        self._call(
+            action="synchronize",
+            state="open",
+            updated_at="2015-05-05T23:41:00Z",
+            comments=0,
+            review_comments=0,
+            commits=1,
+        )
+
+        metrics_row = PullRequestMetrics.objects.get(pull_request=self.pull_request)
+        assert metrics_row.comments_count == 4
+        assert metrics_row.review_comments_count == 6
+        assert metrics_row.commits_count == 3
+
+    def test_stale_replay_after_close_does_not_regress_counters(self) -> None:
+        # Closed unmerged, so the terminal-state rule can't fire — only the payload
+        # timestamp separates this replay from a real reopen.
+        self.pull_request.update(
+            state=PullRequestLifecycleState.CLOSED,
+            provider_updated_at=datetime(2015, 5, 5, 23, 45, tzinfo=timezone.utc),
+        )
+        self._call(action="closed", state="closed", updated_at="2015-05-05T23:45:00Z", comments=4)
+
+        self._call(
+            action="synchronize", state="open", updated_at="2015-05-05T23:41:00Z", comments=0
+        )
+
+        metrics_row = PullRequestMetrics.objects.get(pull_request=self.pull_request)
+        assert metrics_row.comments_count == 4
+
+    def test_newer_payload_still_refreshes_counters(self) -> None:
+        # The guard rejects only older snapshots; counters must keep tracking a PR
+        # that is still moving forward.
+        self.pull_request.update(
+            state=PullRequestLifecycleState.OPEN,
+            provider_updated_at=datetime(2015, 5, 5, 23, 40, tzinfo=timezone.utc),
+        )
+        self._call(action="opened", state="open", updated_at="2015-05-05T23:40:00Z", comments=1)
+
+        self.pull_request.update(
+            provider_updated_at=datetime(2015, 5, 5, 23, 50, tzinfo=timezone.utc)
+        )
+        self._call(
+            action="synchronize", state="open", updated_at="2015-05-05T23:50:00Z", comments=7
+        )
+
+        metrics_row = PullRequestMetrics.objects.get(pull_request=self.pull_request)
+        assert metrics_row.comments_count == 7
+
 
 @with_feature("organizations:pr-metrics-activity")
 @cell_silo_test
@@ -972,6 +1049,24 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
         assert activity.payload["deletions"] == 8
         assert activity.payload["changed_files"] == 4
         assert activity.payload["commits"] == 3
+
+    def test_opened_payload_captures_repo_visibility(self) -> None:
+        self._call(action="opened", extra_event={"repository": {"private": True}})
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.payload["is_private"] is True
+
+    def test_opened_payload_captures_public_repo_visibility(self) -> None:
+        self._call(action="opened", extra_event={"repository": {"private": False}})
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.payload["is_private"] is False
+
+    def test_opened_payload_visibility_null_when_repository_key_absent(self) -> None:
+        self._call(action="opened")
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.payload["is_private"] is None
 
     def test_synchronize_writes_synchronized_activity(self) -> None:
         self._call(action="synchronize", before="old-sha", after="new-sha")
@@ -2111,7 +2206,7 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
             )
         self._run_scheduled_cooldown()
 
-    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
+    @patch("sentry.pr_metrics.tasks.forward_pr_to_seer_task.delay")
     @patch("sentry.analytics.record")
     def test_claims_sentinel_and_enqueues_forward(
         self, mock_record: MagicMock, mock_delay: MagicMock
@@ -2128,7 +2223,7 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
             repository_id=self.repo.id,
         )
 
-    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
+    @patch("sentry.pr_metrics.tasks.forward_pr_to_seer_task.delay")
     @patch("sentry.analytics.record")
     def test_redelivery_forwards_only_once(
         self, mock_record: MagicMock, mock_delay: MagicMock
@@ -2138,7 +2233,7 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
         # The sentinel claim coalesces the redelivery, so Seer is forwarded to once.
         assert mock_delay.call_count == 1
 
-    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
+    @patch("sentry.pr_metrics.tasks.forward_pr_to_seer_task.delay")
     @patch("sentry.analytics.record")
     def test_forwards_when_metrics_row_missing(
         self, mock_record: MagicMock, mock_delay: MagicMock
@@ -2153,7 +2248,7 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
         )
         mock_delay.assert_called_once()
 
-    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
+    @patch("sentry.pr_metrics.tasks.forward_pr_to_seer_task.delay")
     @patch("sentry.analytics.record")
     def test_enqueue_failure_releases_claim_for_retry(
         self, mock_record: MagicMock, mock_delay: MagicMock
@@ -2172,7 +2267,7 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
         )
         assert mock_delay.call_count == 2
 
-    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
+    @patch("sentry.pr_metrics.tasks.forward_pr_to_seer_task.delay")
     @patch("sentry.analytics.record")
     def test_untracked_pr_is_not_forwarded(
         self, mock_record: MagicMock, mock_delay: MagicMock
@@ -2184,7 +2279,7 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
         assert mock_delay.call_count == 0
         assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
 
-    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
+    @patch("sentry.pr_metrics.tasks.forward_pr_to_seer_task.delay")
     @patch("sentry.analytics.record")
     def test_no_seer_access_skips_judge(
         self, mock_record: MagicMock, mock_delay: MagicMock
@@ -2195,7 +2290,7 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
         assert mock_delay.call_count == 0
         assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
 
-    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
+    @patch("sentry.pr_metrics.tasks.forward_pr_to_seer_task.delay")
     @patch("sentry.analytics.record")
     def test_ineligible_attribution_emits_merged_with_iteration(
         self, mock_record: MagicMock, mock_delay: MagicMock
@@ -2411,6 +2506,7 @@ class HandleDelegatedAgentDetectionTest(TestCase):
             "agent_id": "agent-1",
             "pr_url": "https://github.com/org/repo/pull/42",
             "run_id": 123,
+            "group_ids": [self.group.id],
         }
         assert self._candidate_outcome(mock_incr) == {
             "provider": "claude_code",
@@ -2657,3 +2753,21 @@ class HandleDelegatedAgentDetectionTest(TestCase):
             "provider": "claude_code",
             "outcome": "bad_repo",
         }
+
+
+def test_pull_request_processor_order_contract() -> None:
+    """Pin the pr_metrics ordering in ``PullRequestEventWebhook.WEBHOOK_EVENT_PROCESSORS``.
+
+    Single-delivery close handling is only correct because of this order:
+    activity runs before emission (the verdict check in ``handle_activity`` must
+    see no claimed verdict on open/sync events, and the SYNCHRONIZED rows must
+    already exist when ``select_verdict`` runs on the close event), and metrics
+    runs before emission (emission reads counters off the ``PullRequestMetrics``
+    row that ``handle_metrics`` persists). Reordering the tuple breaks the close
+    flow silently — no error, just wrong verdicts. The cross-delivery cases this
+    ordering can't cover are handled by ``is_activity_tracking_enabled``'s
+    ``for_terminal_event`` bypass instead.
+    """
+    processors = PullRequestEventWebhook.WEBHOOK_EVENT_PROCESSORS
+    assert processors.index(handle_activity) < processors.index(handle_emission)
+    assert processors.index(handle_metrics) < processors.index(handle_emission)
