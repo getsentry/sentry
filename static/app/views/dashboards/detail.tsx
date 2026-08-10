@@ -1269,10 +1269,7 @@ class DashboardDetail extends Component<Props, State> {
                         >
                           <Stack gap="xl">
                             {pageAlerts}
-                            <Stack
-                              gap="zero"
-                              paddingBottom={hasNewBreadcrumbs ? 'xl' : '0'}
-                            >
+                            <Stack gap="0" paddingBottom={hasNewBreadcrumbs ? 'xl' : '0'}>
                               <FiltersBar
                                 dashboard={modifiedDashboard ?? dashboard}
                                 filters={(modifiedDashboard ?? dashboard).filters}
