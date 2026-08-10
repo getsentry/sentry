@@ -19,6 +19,8 @@ from sentry.testutils.cases import TestCase
 
 READY_FOR_REVIEW_PATH = "sentry.seer.autofix.pr_iteration.ready_for_review"
 CHECK_SUITES_PATH = "sentry.seer.autofix.pr_iteration.check_suites"
+# Imported lazily inside ``ready_for_review``, so patch it at the source.
+EMIT_PATH = "sentry.seer.autofix.pr_ready_for_review"
 
 RUN_ID = 67890
 REPO_NAME = "owner/repo"
@@ -115,7 +117,7 @@ class MarkReadyForReviewTest(TestCase):
         sweep_patcher.start()
         self.addCleanup(sweep_patcher.stop)
 
-    def _resolved(self, *, commit_sha: str = HEAD_SHA) -> CheckSuiteAutofixRun:
+    def _resolved(self, *, commit_sha: str = HEAD_SHA, group_id: int = 1) -> CheckSuiteAutofixRun:
         run_state = SeerRunState(
             run_id=RUN_ID,
             blocks=[],
@@ -128,7 +130,7 @@ class MarkReadyForReviewTest(TestCase):
             },
         )
         return CheckSuiteAutofixRun(
-            repository=self.repo, run_state=run_state, pr_id=555, group_id=1
+            repository=self.repo, run_state=run_state, pr_id=555, group_id=group_id
         )
 
     def _marker(self) -> dict | None:
@@ -292,6 +294,76 @@ class MarkReadyForReviewTest(TestCase):
 
         mock_actions.mark_pull_request_ready_for_review.assert_not_called()
         # Sticky marker so later green suites don't keep confirming + undrafting.
+        marker = self._marker()
+        assert marker is not None
+        assert marker["head_sha"] == HEAD_SHA
+
+    @patch(f"{READY_FOR_REVIEW_PATH}.MarkPullRequestDraftStateProtocol", object)
+    @patch(f"{EMIT_PATH}.emit_pr_ready_for_review")
+    @patch(f"{READY_FOR_REVIEW_PATH}.scm_actions.mark_pull_request_ready_for_review")
+    @patch("sentry.scm.factory.new", return_value=MagicMock())
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
+    def test_undraft_emits_ready_for_review(
+        self,
+        mock_resolve: MagicMock,
+        _mock_scm: MagicMock,
+        _mock_mark: MagicMock,
+        mock_emit: MagicMock,
+    ) -> None:
+        mock_resolve.return_value = self._resolved(group_id=self.group.id)
+
+        with self.feature(REVIEW_REQUEST_FLAG):
+            _mark_ready(_green_event())
+
+        mock_emit.assert_called_once()
+        kwargs = mock_emit.call_args.kwargs
+        assert kwargs["group"].id == self.group.id
+        assert kwargs["organization"].id == self.organization.id
+        assert kwargs["run_id"] == RUN_ID
+        assert kwargs["sentry_run_id"] == str(self.seer_run.uuid)
+
+    @patch(f"{READY_FOR_REVIEW_PATH}.MarkPullRequestDraftStateProtocol", object)
+    @patch(f"{EMIT_PATH}.emit_pr_ready_for_review")
+    @patch(f"{READY_FOR_REVIEW_PATH}.scm_actions.mark_pull_request_ready_for_review")
+    @patch("sentry.scm.factory.new", return_value=MagicMock())
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
+    def test_no_emit_when_pr_was_never_drafted(
+        self,
+        mock_resolve: MagicMock,
+        _mock_scm: MagicMock,
+        _mock_mark: MagicMock,
+        mock_emit: MagicMock,
+    ) -> None:
+        # An undrafted PR already emitted when it was opened; emitting on the
+        # first green suite would notify the same PR twice.
+        mock_resolve.return_value = self._resolved(group_id=self.group.id)
+        self.get_pr.return_value = _pull_request_result(draft=False)
+
+        with self.feature(REVIEW_REQUEST_FLAG):
+            _mark_ready(_green_event())
+
+        mock_emit.assert_not_called()
+
+    @patch(f"{READY_FOR_REVIEW_PATH}.MarkPullRequestDraftStateProtocol", object)
+    @patch(f"{EMIT_PATH}.emit_pr_ready_for_review")
+    @patch(f"{READY_FOR_REVIEW_PATH}.scm_actions.mark_pull_request_ready_for_review")
+    @patch("sentry.scm.factory.new", return_value=MagicMock())
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
+    def test_emit_failure_leaves_undraft_marked(
+        self,
+        mock_resolve: MagicMock,
+        _mock_scm: MagicMock,
+        _mock_mark: MagicMock,
+        mock_emit: MagicMock,
+    ) -> None:
+        # The PR is already undrafted on GitHub by this point, so a broken
+        # notification must not roll the marker back and re-undraft forever.
+        mock_resolve.return_value = self._resolved(group_id=self.group.id)
+        mock_emit.side_effect = RuntimeError("boom")
+
+        with self.feature(REVIEW_REQUEST_FLAG):
+            _mark_ready(_green_event())
+
         marker = self._marker()
         assert marker is not None
         assert marker["head_sha"] == HEAD_SHA

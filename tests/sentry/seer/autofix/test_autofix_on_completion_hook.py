@@ -21,6 +21,7 @@ from sentry.seer.autofix.on_completion_hook import (
     _group_and_referrer_from_run,
     _stopping_point_from_run,
 )
+from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubIssueComment,
@@ -777,6 +778,46 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
 
         mock_broadcast.assert_not_called()
+
+    def _pr_created_state(self):
+        state = run_state(blocks=[code_changes_memory_block()])
+        state.repo_pr_states = {
+            "test-repo": RepoPRState(
+                repo_name="test-repo",
+                provider="github",
+                pr_id=77,
+                pr_number=7,
+                pr_url="https://example.com/pull/7",
+                pr_creation_status="completed",
+            )
+        }
+        return state
+
+    @patch("sentry.seer.autofix.on_completion_hook.emit_pr_ready_for_review")
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_undrafted_pr_is_ready_on_open(self, _mock_broadcast, mock_emit):
+        # No green-CI flow, so the PR goes up ready to read and opening it is
+        # the moment a human should hear about.
+        state = self._pr_created_state()
+        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
+
+        mock_emit.assert_called_once()
+        kwargs = mock_emit.call_args.kwargs
+        assert kwargs["group"] == self.group
+        assert kwargs["run_id"] == 123
+        assert kwargs["state"] is state
+
+    @patch("sentry.seer.autofix.on_completion_hook.emit_pr_ready_for_review")
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_draft_pr_is_not_ready_on_open(self, mock_broadcast, mock_emit):
+        # With the flag on the PR opens as a draft; the green-CI undraft emits.
+        state = self._pr_created_state()
+        with self.feature(REVIEW_REQUEST_FLAG):
+            AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
+
+        mock_emit.assert_not_called()
+        # pr_created still goes out either way — external subscribers rely on it.
+        assert mock_broadcast.call_args.kwargs["event_name"] == SeerActionType.PR_CREATED.value
 
 
 class TestAutofixOnCompletionHookHandoff(TestCase):

@@ -22,6 +22,7 @@ from scm import actions as scm_actions
 from scm.types import MarkPullRequestDraftStateProtocol
 
 from sentry.locks import locks
+from sentry.models.group import Group
 from sentry.seer.autofix.pr_iteration.check_suites import (
     READY_FOR_REVIEW_EXTRA,
     GreenCheckSuiteContext,
@@ -66,6 +67,31 @@ def record_ready_for_review_marker(seer_run: SeerRun, repo_name: str, *, head_sh
         repo_name,
         {"marked_at": timezone.now().isoformat(), "head_sha": head_sha},
     )
+
+
+def _emit_ready_for_review_signal(ctx: GreenCheckSuiteContext) -> None:
+    """Tell the rest of Sentry the PR is now waiting on a human.
+
+    Only the undraft path emits: a PR opened undrafted already emitted from the
+    completion hook. Best-effort — the undraft itself is done and must stand
+    even if the signal does not go out.
+    """
+    # Lazy: ``pr_ready_for_review`` reaches the notification platform, which
+    # cycles back through the SCM integration handlers.
+    from sentry.seer.autofix.pr_ready_for_review import emit_pr_ready_for_review
+
+    resolved = ctx.resolved
+    try:
+        group = Group.objects.get(id=resolved.autofix_run.group_id)
+        emit_pr_ready_for_review(
+            organization=resolved.organization,
+            group=group,
+            run_id=resolved.autofix_run.run_state.run_id,
+            sentry_run_id=str(resolved.seer_run.uuid),
+            state=resolved.autofix_run.run_state,
+        )
+    except Exception:
+        _failed("emit_ready_signal_failed", resolved.log_extra)
 
 
 def mark_ready_for_review(ctx: GreenCheckSuiteContext) -> None:
@@ -140,6 +166,7 @@ def mark_ready_for_review(ctx: GreenCheckSuiteContext) -> None:
                     "pr_number": resolved.pr_number,
                 },
             )
+            _emit_ready_for_review_signal(ctx)
     except SeerRun.DoesNotExist:
         _skip("run_deleted", resolved.log_extra)
     except UnableToAcquireLock:
