@@ -22,7 +22,6 @@ class InvestigationBlockEndpointTest(APITestCase):
             created_by=self.user,
             title="Block tests",
         )
-        self.create_investigation_permissions(investigation=self.investigation)
 
     def blocks_url(self) -> str:
         return reverse(

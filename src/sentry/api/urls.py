@@ -293,15 +293,13 @@ from sentry.integrations.api.endpoints.organization_repository_platforms import 
 from sentry.integrations.api.endpoints.organization_repository_settings import (
     OrganizationRepositorySettingsEndpoint,
 )
-from sentry.investigations.endpoints.organization_investigation_blocks import (
+from sentry.investigations.endpoints.organization_investigation_details import (
     OrganizationInvestigationBlockDetailsEndpoint,
-    OrganizationInvestigationBlockOrderEndpoint,
-    OrganizationInvestigationBlocksEndpoint,
-)
-from sentry.investigations.endpoints.organization_investigations_details import (
     OrganizationInvestigationsDetailsEndpoint,
 )
-from sentry.investigations.endpoints.organization_investigations_index import (
+from sentry.investigations.endpoints.organization_investigation_index import (
+    OrganizationInvestigationBlockOrderEndpoint,
+    OrganizationInvestigationBlocksEndpoint,
     OrganizationInvestigationsIndexEndpoint,
 )
 from sentry.issues.endpoints import (
