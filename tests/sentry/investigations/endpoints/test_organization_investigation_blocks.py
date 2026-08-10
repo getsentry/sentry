@@ -411,6 +411,9 @@ class InvestigationBlockEndpointTest(APITestCase):
         second = self.create_investigation_block(
             investigation=self.investigation, position=1, kind="text"
         )
+        unrelated = self.create_investigation_block(
+            investigation=self.investigation, position=2, kind="text"
+        )
         self.create_investigation_block_parameter(block=first, parameter=parameter)
         self.create_investigation_block_dependency(block=second, depends_on=first)
         url = reverse(
@@ -432,12 +435,47 @@ class InvestigationBlockEndpointTest(APITestCase):
         parameter.refresh_from_db()
         first.refresh_from_db()
         second.refresh_from_db()
+        unrelated.refresh_from_db()
         self.investigation.refresh_from_db()
         assert parameter.saved_value == "production"
         assert parameter.version == 2
         assert self.investigation.version == 2
         assert first.stale_at is not None
         assert second.stale_at is not None
+        assert unrelated.stale_at is None
+
+    def test_project_parameter_update_accepts_accessible_project(self) -> None:
+        parameter = self.create_investigation_parameter(
+            investigation=self.investigation,
+            key="project",
+            label="Project",
+            type="project",
+            position=0,
+        )
+        project = self.create_project(organization=self.organization)
+        url = reverse(
+            "sentry-api-0-organization-investigation-parameters",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": self.investigation.id,
+            },
+        )
+
+        response = self.client.put(
+            url,
+            data={
+                "investigationVersion": self.investigation.version,
+                "values": {"project": project.id},
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.data
+        parameter.refresh_from_db()
+        self.investigation.refresh_from_db()
+        assert parameter.saved_value == project.id
+        assert parameter.version == 2
+        assert self.investigation.version == 2
 
     def test_project_parameter_update_rejects_inaccessible_project(self) -> None:
         parameter = self.create_investigation_parameter(
@@ -539,6 +577,23 @@ class InvestigationBlockEndpointTest(APITestCase):
         assert response.data["isEditableByEveryone"] is False
         assert response.data["canManage"] is True
 
+        manager = self.create_user()
+        self.create_member(organization=self.organization, user=manager, role="manager")
+        self.login_as(manager)
+        self.investigation.refresh_from_db()
+        response = self.client.put(
+            url,
+            data={
+                "investigationVersion": self.investigation.version,
+                "isEditableByEveryone": True,
+                "teamIds": [],
+            },
+            format="json",
+        )
+        assert response.status_code == 200
+        assert response.data["isEditableByEveryone"] is True
+        assert response.data["canManage"] is True
+
     def test_permission_update_grants_and_replaces_team_access(self) -> None:
         editor = self.create_user()
         self.create_member(organization=self.organization, user=editor, role="member")
@@ -562,7 +617,9 @@ class InvestigationBlockEndpointTest(APITestCase):
             format="json",
         )
         assert response.status_code == 200
-        assert response.data["teamIds"] == sorted([editor_team.id, other_team.id])
+        assert response.data["teamIds"] == [
+            str(team_id) for team_id in sorted([editor_team.id, other_team.id])
+        ]
         permissions = self.investigation.permissions
         permissions.refresh_from_db()
         self.investigation.refresh_from_db()
@@ -665,7 +722,9 @@ class InvestigationBlockEndpointTest(APITestCase):
         response = self.client.get(url)
 
         assert response.status_code == 200
-        assert response.data["teamIds"] == sorted([first_team.id, second_team.id])
+        assert response.data["teamIds"] == [
+            str(team_id) for team_id in sorted([first_team.id, second_team.id])
+        ]
 
     def test_sentry_app_cannot_update_parameters_or_permissions(self) -> None:
         parameter = self.create_investigation_parameter(
