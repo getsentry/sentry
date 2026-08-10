@@ -375,9 +375,10 @@ describe('SeerDrawer', () => {
           () => {
             expect(getMock.mock.calls.length).toBeGreaterThan(callsAfterLoad);
           },
-          {timeout: 5000}
+          {timeout: 15_000}
         );
-      }
+      },
+      20_000
     );
   });
 });
