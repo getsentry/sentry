@@ -176,21 +176,24 @@ def schedule_night_shift(
 
     # Free cohort orgs may not have SeerProjectRepository rows — include them
     # so they reach the eligibility checks in _get_eligible_orgs_from_batch.
-    free_cohort_org_ids = set(
-        OrganizationOption.objects.filter(
-            key="agentic-triage-free-cohort",
-            value=True,
-        ).values_list("organization_id", flat=True)
-    )
-    seer_org_ids |= free_cohort_org_ids
-    if free_cohort_org_ids:
-        logger.info(
-            "night_shift.free_cohort_org_ids",
-            extra={
-                "num_free_cohort_org_ids": len(free_cohort_org_ids),
-                "sample_org_ids": sorted(free_cohort_org_ids)[:10],
-            },
+    try:
+        free_cohort_org_ids = set(
+            OrganizationOption.objects.filter(
+                key="agentic-triage-free-cohort",
+                value=True,
+            ).values_list("organization_id", flat=True)
         )
+        seer_org_ids |= free_cohort_org_ids
+        if free_cohort_org_ids:
+            logger.info(
+                "night_shift.free_cohort_org_ids",
+                extra={
+                    "num_free_cohort_org_ids": len(free_cohort_org_ids),
+                    "sample_org_ids": sorted(free_cohort_org_ids)[:10],
+                },
+            )
+    except Exception:
+        logger.exception("night_shift.free_cohort_org_ids_failed")
 
     logger.info(
         "night_shift.schedule_org_ids_collected",
