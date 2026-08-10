@@ -1,0 +1,2206 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["import", "react", "typescript", "unicorn"],
+  "jsPlugins": [
+    {
+      "name": "e18e",
+      "specifier": "@e18e/eslint-plugin"
+    },
+    {
+      "name": "@sentry",
+      "specifier": "@sentry-internal/eslint-plugin-sentry"
+    },
+    {
+      "name": "@sentry/scraps",
+      "specifier": "@sentry-internal/eslint-plugin-scraps"
+    },
+    {
+      "name": "eslint-js",
+      "specifier": "oxlint-plugin-eslint"
+    },
+    {
+      "name": "import-js",
+      "specifier": "eslint-plugin-import"
+    },
+    {
+      "name": "react-js",
+      "specifier": "eslint-plugin-react"
+    },
+    {
+      "name": "unicorn-js",
+      "specifier": "eslint-plugin-unicorn"
+    },
+    "@tanstack/eslint-plugin-query",
+    "eslint-plugin-boundaries",
+    "eslint-plugin-jest-dom",
+    "eslint-plugin-react-you-might-not-need-an-effect",
+    "eslint-plugin-regexp",
+    "eslint-plugin-testing-library"
+  ],
+  "categories": {
+    "correctness": "off"
+  },
+  "options": {
+    "typeAware": true,
+    "reportUnusedDisableDirectives": "off"
+  },
+  "env": {
+    "builtin": true,
+    "browser": true,
+    "jest": true
+  },
+  "globals": {
+    "MockApiClient": "writable",
+    "tick": "writable"
+  },
+  "settings": {
+    "react": {
+      "version": "19.2.0",
+      "defaultVersion": "19.2"
+    },
+    "boundaries/dependency-nodes": ["import", "dynamic-import"],
+    "boundaries/elements": [
+      {
+        "type": "figma-code-connect",
+        "pattern": "**/*.figma.{tsx,jsx}",
+        "mode": "full"
+      },
+      {
+        "type": "story-files",
+        "pattern": ["static/**/*.stories.{ts,tsx}"],
+        "mode": "full"
+      },
+      {
+        "type": "story-book",
+        "pattern": ["static/app/stories", "**/__stories__"]
+      },
+      {
+        "type": "debug-tools",
+        "pattern": "static/app/debug"
+      },
+      {
+        "type": "test-sentry",
+        "pattern": [
+          "static/app/**/*.spec.{ts,js,tsx,jsx}",
+          "static/app/**/*.snapshots.tsx",
+          "tests/js/sentry-test/**/*.*",
+          "static/app/**/*{t,T}estUtils*.{js,mjs,ts,tsx}"
+        ],
+        "mode": "full"
+      },
+      {
+        "type": "test-getsentry",
+        "pattern": [
+          "static/gsApp/**/*.spec.{ts,js,tsx,jsx}",
+          "static/gsApp/**/*.snapshots.tsx",
+          "tests/js/getsentry-test/**/*.*"
+        ],
+        "mode": "full"
+      },
+      {
+        "type": "test-gsAdmin",
+        "pattern": ["static/gsAdmin/**/*.spec.{ts,js,tsx,jsx}"],
+        "mode": "full"
+      },
+      {
+        "type": "test",
+        "pattern": "tests/js"
+      },
+      {
+        "type": "core",
+        "pattern": "static/app/components/core"
+      },
+      {
+        "type": "sentry-images",
+        "pattern": "static/images"
+      },
+      {
+        "type": "sentry-locale",
+        "pattern": "(static/app/locale.tsx|src/sentry/locale/**/*.*)",
+        "mode": "full"
+      },
+      {
+        "type": "sentry-logos",
+        "pattern": "src/sentry/static/sentry/images/logos"
+      },
+      {
+        "type": "sentry-fonts",
+        "pattern": "static/fonts"
+      },
+      {
+        "type": "sentry-fixture",
+        "pattern": "tests/js/fixtures"
+      },
+      {
+        "type": "sentry",
+        "pattern": "static/app"
+      },
+      {
+        "type": "getsentry",
+        "pattern": "static/gsApp"
+      },
+      {
+        "type": "gsAdmin",
+        "pattern": "static/gsAdmin"
+      },
+      {
+        "type": "configs",
+        "pattern": "(package.json|config/**/*.*|*.config.{mjs,js,ts})",
+        "mode": "full"
+      },
+      {
+        "type": "build-utils",
+        "pattern": "build-utils"
+      },
+      {
+        "type": "scripts",
+        "pattern": "scripts"
+      },
+      {
+        "type": "eslint",
+        "pattern": "static/eslint"
+      }
+    ]
+  },
+  "ignorePatterns": [
+    ".devenv/**/*",
+    ".agents/**/*",
+    ".github/**/*",
+    ".sentry-refactor-tasks/**/*",
+    ".mypy_cache/**/*",
+    ".pytest_cache/**/*",
+    ".venv/**/*",
+    "**/*.d.ts",
+    "**/dist/**/*",
+    "tests/**/fixtures/**/*",
+    "!tests/js/**/*",
+    "**/vendor/**/*",
+    "build-utils/**/*",
+    "config/chartcuterie/config.js",
+    "figma.config.json",
+    "fixtures/artifact_bundle/**/*",
+    "fixtures/artifact_bundle_debug_ids/**/*",
+    "fixtures/artifact_bundle_duplicated_debug_ids/**/*",
+    "fixtures/profiles/embedded.js",
+    "jest.config.ts",
+    "jest.config.snapshots.ts",
+    "api-docs/**/*",
+    "src/sentry/static/sentry/js/**/*",
+    "src/sentry/templates/sentry/**/*",
+    "stylelint.config.js",
+    ".artifacts/**/*",
+    "**/*.figma.tsx",
+    "**/*.mdx"
+  ],
+  "rules": {
+    "constructor-super": "error",
+    "for-direction": "error",
+    "getter-return": "error",
+    "no-async-promise-executor": "error",
+    "no-case-declarations": "error",
+    "no-class-assign": "error",
+    "no-compare-neg-zero": "error",
+    "no-cond-assign": ["error", "always"],
+    "no-const-assign": "error",
+    "no-constant-binary-expression": "error",
+    "no-constant-condition": "error",
+    "no-control-regex": "error",
+    "no-debugger": "error",
+    "no-delete-var": "error",
+    "no-dupe-class-members": "error",
+    "no-dupe-else-if": "error",
+    "no-dupe-keys": "error",
+    "no-duplicate-case": "error",
+    "no-empty": "error",
+    "no-empty-pattern": "error",
+    "no-empty-static-block": "error",
+    "no-ex-assign": "error",
+    "no-extra-boolean-cast": "error",
+    "no-fallthrough": "error",
+    "no-func-assign": "error",
+    "no-global-assign": "error",
+    "no-import-assign": "error",
+    "no-irregular-whitespace": "error",
+    "no-loss-of-precision": "error",
+    "no-misleading-character-class": "error",
+    "no-new-native-nonconstructor": "error",
+    "no-nonoctal-decimal-escape": "error",
+    "no-obj-calls": "error",
+    "no-prototype-builtins": "error",
+    "no-redeclare": "error",
+    "no-regex-spaces": "error",
+    "no-self-assign": "error",
+    "no-setter-return": "error",
+    "no-shadow-restricted-names": "error",
+    "no-sparse-arrays": "error",
+    "no-this-before-super": "error",
+    "no-undef": "error",
+    "no-unreachable": "error",
+    "no-unsafe-finally": "error",
+    "no-unsafe-negation": "error",
+    "no-unsafe-optional-chaining": "error",
+    "no-unused-labels": "error",
+    "no-unused-private-class-members": "error",
+    "no-useless-catch": "error",
+    "no-useless-escape": "error",
+    "no-with": "error",
+    "require-yield": "error",
+    "use-isnan": "error",
+    "valid-typeof": "error",
+    "block-scoped-var": "error",
+    "eqeqeq": "error",
+    "no-alert": "error",
+    "no-caller": "error",
+    "no-console": "error",
+    "no-else-return": [
+      "error",
+      {
+        "allowElseIf": false
+      }
+    ],
+    "no-eval": "error",
+    "no-extend-native": "error",
+    "no-extra-bind": "error",
+    "no-inner-declarations": "error",
+    "no-lone-blocks": "error",
+    "no-multi-str": "error",
+    "no-new-func": "error",
+    "no-new-wrappers": "error",
+    "no-new": "error",
+    "no-proto": "error",
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": ["sentry/utils/theme*", "sentry/utils/theme"],
+            "importNames": ["lightTheme", "darkTheme", "default"],
+            "message": "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture."
+          }
+        ],
+        "paths": [
+          {
+            "name": "@testing-library/react",
+            "message": "Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase"
+          },
+          {
+            "name": "@testing-library/react-hooks",
+            "message": "Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase"
+          },
+          {
+            "name": "@testing-library/user-event",
+            "message": "Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase"
+          },
+          {
+            "name": "@sentry/browser",
+            "message": "Please import from `@sentry/react` to ensure consistency throughout the codebase."
+          },
+          {
+            "name": "marked",
+            "message": "Please import marked from 'app/utils/marked' so that we can ensure sanitation of marked output"
+          },
+          {
+            "name": "lodash",
+            "message": "Please import lodash utilities individually. e.g. `import isEqual from 'lodash/isEqual';`. See https://github.com/getsentry/frontend-handbook#lodash from for information"
+          },
+          {
+            "name": "lodash/get",
+            "message": "Optional chaining `?.` and nullish coalescing operators `??` are available and preferred over using `lodash/get`. See https://github.com/getsentry/frontend-handbook#new-syntax for more information"
+          },
+          {
+            "name": "react-router",
+            "importNames": ["withRouter"],
+            "message": "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead."
+          },
+          {
+            "name": "react-select",
+            "message": "Use 'sentry/components/forms/controls/reactSelectWrapper' instead."
+          },
+          {
+            "name": "qs",
+            "message": "Please use query-string instead of qs"
+          },
+          {
+            "name": "moment",
+            "message": "Please import moment-timezone instead of moment"
+          },
+          {
+            "name": "sentry/views/insights/common/components/insightsTimeSeriesWidget",
+            "message": "Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information"
+          },
+          {
+            "name": "sentry/views/insights/common/components/insightsLineChartWidget",
+            "message": "Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information"
+          },
+          {
+            "name": "sentry/views/insights/common/components/insightsAreaChartWidget",
+            "message": "Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information"
+          },
+          {
+            "name": "color",
+            "message": "Only @sentry/scraps is allowed to use color package, please use the values set on the team or reach out to design-engineering for help"
+          },
+          {
+            "name": "@figma/code-connect",
+            "message": "The @figma/code-connect package should only be imported in *.figma.tsx files for Figma Code Connect integration"
+          },
+          {
+            "name": "@tanstack/react-form",
+            "message": "Use @sentry/scraps/form instead"
+          },
+          {
+            "name": "framer-motion",
+            "importNames": ["Reorder"],
+            "message": "Do not use framer-motion's Reorder. Use @dnd-kit/sortable instead."
+          }
+        ]
+      }
+    ],
+    "no-return-assign": "error",
+    "no-script-url": "error",
+    "no-self-compare": "error",
+    "no-sequences": "error",
+    "object-shorthand": ["error", "properties"],
+    "prefer-arrow-callback": [
+      "error",
+      {
+        "allowNamedFunctions": true
+      }
+    ],
+    "radix": "error",
+    "yoda": "error",
+    "e18e/prefer-includes": "error",
+    "e18e/prefer-array-to-reversed": "error",
+    "e18e/prefer-array-to-sorted": "error",
+    "e18e/prefer-array-to-spliced": "error",
+    "e18e/prefer-nullish-coalescing": "error",
+    "e18e/prefer-url-canparse": "error",
+    "e18e/prefer-array-from-map": "error",
+    "e18e/prefer-date-now": "error",
+    "e18e/prefer-array-some": "error",
+    "e18e/prefer-string-fromcharcode": "error",
+    "import/export": "error",
+    "import/no-absolute-path": "error",
+    "import/no-amd": "error",
+    "import/no-anonymous-default-export": "error",
+    "import/no-named-default": "error",
+    "import/no-nodejs-modules": "error",
+    "import/no-webpack-loader-syntax": "error",
+    "@sentry/no-calling-components-as-functions": "error",
+    "@sentry/no-digits-in-tn": "error",
+    "@sentry/no-dynamic-translations": "error",
+    "@sentry/no-flag-comments": "error",
+    "@sentry/no-query-data-type-parameters": "error",
+    "@sentry/no-static-translations": "error",
+    "@sentry/no-raw-css-in-styled": "error",
+    "@sentry/no-styled-shortcut": "error",
+    "@sentry/no-useless-css-interpolation-semicolon": "error",
+    "@sentry/no-unnecessary-use-callback": "error",
+    "@sentry/scraps/no-core-import": "error",
+    "@sentry/scraps/no-double-dollar-interpolation": "error",
+    "@sentry/scraps/no-token-import": "error",
+    "@sentry/scraps/prefer-info-text": "error",
+    "@sentry/scraps/prefer-stack-for-column-flex": "error",
+    "@sentry/scraps/use-semantic-token": [
+      "error",
+      {
+        "enabledCategories": ["background", "border", "content"]
+      }
+    ],
+    "@sentry/scraps/restrict-jsx-slot-children": [
+      "error",
+      {
+        "slots": [
+          {
+            "componentNames": ["CompactSelect"],
+            "propNames": ["menuFooter"],
+            "allowed": [
+              {
+                "source": "@sentry/scraps/compactSelect",
+                "names": [
+                  "MenuComponents.CTAButton",
+                  "MenuComponents.CTALinkButton",
+                  "MenuComponents.ApplyButton",
+                  "MenuComponents.CancelButton",
+                  "MenuComponents.Alert"
+                ]
+              },
+              {
+                "source": "@sentry/scraps/layout",
+                "names": ["Flex", "Stack", "Grid", "Container"]
+              }
+            ]
+          },
+          {
+            "componentNames": ["CompactSelect"],
+            "propNames": ["menuHeaderTrailingItems"],
+            "allowed": [
+              {
+                "source": "@sentry/scraps/compactSelect",
+                "names": [
+                  "MenuComponents.HeaderButton",
+                  "MenuComponents.ClearButton",
+                  "MenuComponents.ResetButton"
+                ]
+              },
+              {
+                "source": "@sentry/scraps/layout",
+                "names": ["Flex", "Stack", "Grid", "Container"]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "@sentry/no-relative-import-paths": [
+      "error",
+      {
+        "prefix": "sentry",
+        "rootDir": "static/app",
+        "allowSameFolder": true
+      }
+    ],
+    "@tanstack/query/exhaustive-deps": [
+      "error",
+      {
+        "allowlist": {
+          "variables": ["api"],
+          "types": ["Client"]
+        }
+      }
+    ],
+    "@tanstack/query/no-rest-destructuring": "error",
+    "@tanstack/query/stable-query-client": "error",
+    "@tanstack/query/no-unstable-deps": "error",
+    "@tanstack/query/infinite-query-property-order": "error",
+    "@tanstack/query/no-void-query-fn": "error",
+    "@tanstack/query/mutation-property-order": "error",
+    "react/jsx-key": [
+      "error",
+      {
+        "checkFragmentShorthand": false,
+        "checkKeyMustBeforeSpread": false,
+        "warnOnDuplicates": false
+      }
+    ],
+    "react/jsx-no-comment-textnodes": "error",
+    "react/jsx-no-duplicate-props": "error",
+    "react/jsx-no-target-blank": "error",
+    "react/jsx-no-undef": "error",
+    "react/no-children-prop": "error",
+    "react/no-danger-with-children": "error",
+    "react/no-direct-mutation-state": "error",
+    "react/no-find-dom-node": "error",
+    "react/no-is-mounted": "error",
+    "react/no-render-return-value": "error",
+    "react/no-string-refs": "error",
+    "react/no-unknown-property": [
+      "error",
+      {
+        "ignore": ["css"]
+      }
+    ],
+    "react/require-render-return": "error",
+    "react/function-component-definition": "error",
+    "react/jsx-boolean-value": ["error", "never"],
+    "react/jsx-fragments": ["error", "element"],
+    "react/no-did-mount-set-state": "error",
+    "react/no-did-update-set-state": "error",
+    "react/no-redundant-should-component-update": "error",
+    "react/self-closing-comp": "error",
+    "react/jsx-curly-brace-presence": [
+      "error",
+      {
+        "props": "never",
+        "children": "ignore",
+        "propElementValues": "always"
+      }
+    ],
+    "no-array-constructor": "error",
+    "no-unused-expressions": [
+      "error",
+      {
+        "allowTernary": true
+      }
+    ],
+    "no-useless-constructor": "error",
+    "@sentry/no-default-exports": "error",
+    "@sentry/sort-interface-keys": [
+      "error",
+      "asc",
+      {
+        "caseSensitive": true,
+        "natural": false,
+        "requiredFirst": true
+      }
+    ],
+    "@sentry/no-vanilla-emotion": "error",
+    "@sentry/emotion-styled-import": "error",
+    "@sentry/emotion-syntax-preference": ["error", "string"],
+    "unicorn/custom-error-definition": "error",
+    "unicorn/error-message": "error",
+    "unicorn/escape-case": "error",
+    "unicorn/filename-case": [
+      "error",
+      {
+        "case": "camelCase",
+        "ignore": [
+          "jest-pegjs-transform\\.js",
+          "jest-environment\\.js",
+          "jest-environment-node\\.js",
+          "/__mocks__/",
+          "analyze-styled\\.ts$",
+          "type-coverage\\.ts$",
+          "type-coverage-diff\\.ts$",
+          "AiSetupDataConsent\\.tsx$",
+          "CredentialRow\\.tsx$",
+          "DevKitSettings\\.tsx$",
+          "DurationCell\\.tsx$",
+          "EmptyState\\.tsx$",
+          "ErrorRateCell\\.tsx$",
+          "FlamegraphWarnings\\.spec\\.tsx$",
+          "FlamegraphWarnings\\.tsx$",
+          "FormSearch\\.tsx$",
+          "GridEditableEmptyData\\.tsx$",
+          "GridEditableError\\.tsx$",
+          "GridEditableLoading\\.tsx$",
+          "ISO3166codes\\.ts$",
+          "IssueListCacheStore\\.tsx$",
+          "IssueStreamHeaderLabel\\.tsx$",
+          "NoProjectEmptyState\\.tsx$",
+          "NumberCell\\.tsx$",
+          "PinnedLogs\\.spec\\.tsx$",
+          "PinnedLogs\\.tsx$",
+          "PlayStationSettings\\.tsx$",
+          "RequestIntegrationButton\\.tsx$",
+          "RequestIntegrationModal\\.tsx$",
+          "RequestSdkAccessButton\\.tsx$",
+          "SplitInstallationIdModal\\.tsx$",
+          "ThresholdCell\\.tsx$",
+          "UIFramesRenderer2D\\.tsx$",
+          "UIFramesRenderer\\.tsx$",
+          "VirtualizedTreeNode\\.spec\\.tsx$",
+          "VirtualizedTreeNode\\.tsx$",
+          "VirtualizedTree\\.spec\\.tsx$",
+          "VirtualizedTree\\.tsx$",
+          "addEventsCTA\\.tsx$",
+          "aiIOAlert\\.tsx$",
+          "allowListIPAddresses\\.tsx$",
+          "analytics-browser\\.tsx$",
+          "asyncSDKIntegrationProvider\\.tsx$",
+          "baseRRWebReplayer\\.tsx$",
+          "browserOSIcons\\.tsx$",
+          "build-chartcuterie\\.ts$",
+          "build-js-loader\\.ts$",
+          "changeARRAction\\.spec\\.tsx$",
+          "changeARRAction\\.tsx$",
+          "containsCRLF\\.ts$",
+          "cronsBannerUpgradeCTA\\.tsx$",
+          "dashboardsMEPContext\\.tsx$",
+          "dev-ui-server\\.ts$",
+          "featureFlagCTAContent\\.tsx$",
+          "firstPartyIntegrationAdditionalCTA\\.tsx$",
+          "flagDrawerCTA\\.tsx$",
+          "flamegraphRendererWebGL\\.spec\\.tsx$",
+          "flamegraphRendererWebGL\\.tsx$",
+          "flamegraphUIFramesTooltip\\.tsx$",
+          "flamegraphUIFrames\\.tsx$",
+          "formatLLMCosts\\.tsx$",
+          "formatMongoDBQuery\\.spec\\.tsx$",
+          "formatMongoDBQuery\\.tsx$",
+          "hasEAPAlerts\\.tsx$",
+          "hydrateRRWebRecordingFrames\\.spec\\.tsx$",
+          "hydrateRRWebRecordingFrames\\.tsx$",
+          "isUUID\\.spec\\.tsx$",
+          "isUUID\\.tsx$",
+          "looksLikeAJSONArray\\.spec\\.tsx$",
+          "looksLikeAJSONArray\\.tsx$",
+          "looksLikeAJSONObject\\.spec\\.tsx$",
+          "looksLikeAJSONObject\\.tsx$",
+          "privateAPIs\\.tsx$",
+          "productUnavailableCTA\\.spec\\.tsx$",
+          "productUnavailableCTA\\.tsx$",
+          "quietZoneQRCode\\.tsx$",
+          "react-date-range\\.tsx$",
+          "react-lazyload\\.tsx$",
+          "registerLLMContext\\.tsx$",
+          "releaseHealthCTA\\.tsx$",
+          "replayInlineCTAPanel\\.tsx$",
+          "replayOnboardingCTA\\.tsx$",
+          "safeURL\\.spec\\.tsx$",
+          "safeURL\\.tsx$",
+          "sampleHTTPRequestTableData\\.ts$",
+          "sentry-jest-environment\\.d\\.ts$",
+          "setupReplaysCTA\\.spec\\.tsx$",
+          "snapshot-framework\\.ts$",
+          "snapshot-image-metadata\\.ts$",
+          "snapshot-setup\\.ts$",
+          "sourceMapsDebugIDBundlesArtifacts\\.ts$",
+          "sourceMapsDebugIDBundles\\.ts$",
+          "stripURLOrigin\\.spec\\.tsx$",
+          "stripURLOrigin\\.tsx$",
+          "traceEAPSpanRow\\.tsx$",
+          "uiFramesRendererWebGL\\.spec\\.tsx$",
+          "uiFramesRendererWebGL\\.tsx$",
+          "useAITrace\\.tsx$",
+          "useAM2ProfilingUpsellModal\\.tsx$",
+          "useAM2UpsellModal\\.tsx$",
+          "useFeedbackSDKIntegration\\.tsx$",
+          "useHasMetricUnitsUI\\.tsx$",
+          "useIsEAPTraceEnabled\\.tsx$",
+          "useModuleURL\\.tsx$",
+          "useOutdatedSDKProjects\\.tsx$",
+          "useRAF\\.tsx$",
+          "useShowMCPOnboarding\\.tsx$",
+          "widgetLLMContext\\.spec\\.tsx$",
+          "widgetLLMContext\\.tsx$"
+        ]
+      }
+    ],
+    "unicorn/new-for-builtins": "error",
+    "unicorn/no-abusive-eslint-disable": "error",
+    "unicorn/no-accessor-recursion": "error",
+    "unicorn/no-anonymous-default-export": "error",
+    "unicorn/no-await-in-promise-methods": "error",
+    "unicorn/no-console-spaces": "error",
+    "unicorn/no-empty-file": "error",
+    "unicorn/no-instanceof-builtins": "error",
+    "unicorn/no-invalid-fetch-options": "error",
+    "unicorn/no-invalid-remove-event-listener": "error",
+    "unicorn/no-negated-condition": "error",
+    "unicorn/no-negation-in-equality-check": "error",
+    "unicorn/no-new-array": "error",
+    "unicorn/no-new-buffer": "error",
+    "unicorn/no-single-promise-in-promise-methods": "warn",
+    "unicorn/no-typeof-undefined": "error",
+    "unicorn/no-unnecessary-await": "error",
+    "unicorn/no-unreadable-iife": "error",
+    "unicorn/no-useless-collection-argument": "error",
+    "unicorn/no-useless-error-capture-stack-trace": "error",
+    "unicorn/no-useless-fallback-in-spread": "error",
+    "unicorn/no-useless-iterator-to-array": "error",
+    "unicorn/no-useless-length-check": "error",
+    "unicorn/no-useless-undefined": [
+      "error",
+      {
+        "checkArguments": false
+      }
+    ],
+    "unicorn/no-zero-fractions": "error",
+    "unicorn/prefer-array-find": "error",
+    "unicorn/prefer-array-flat-map": "error",
+    "unicorn/prefer-array-index-of": "error",
+    "unicorn/prefer-array-some": "error",
+    "unicorn/prefer-blob-reading-methods": "error",
+    "unicorn/prefer-classlist-toggle": "error",
+    "unicorn/prefer-date-now": "error",
+    "unicorn/prefer-default-parameters": "warn",
+    "unicorn/prefer-event-target": "error",
+    "unicorn/prefer-includes": "error",
+    "unicorn/prefer-keyboard-event-key": "error",
+    "unicorn/prefer-math-trunc": "error",
+    "unicorn/prefer-modern-dom-apis": "error",
+    "unicorn/prefer-modern-math-apis": "error",
+    "unicorn/prefer-native-coercion-functions": "error",
+    "unicorn/prefer-negative-index": "error",
+    "unicorn/prefer-node-protocol": "error",
+    "unicorn/prefer-prototype-methods": "warn",
+    "unicorn/prefer-reflect-apply": "error",
+    "unicorn/prefer-response-static-json": "error",
+    "unicorn/prefer-set-size": "error",
+    "unicorn/prefer-string-trim-start-end": "error",
+    "unicorn/relative-url-style": "error",
+    "unicorn/require-module-attributes": "error",
+    "unicorn/require-module-specifiers": "error",
+    "unicorn/throw-new-error": "error",
+    "unicorn/no-instanceof-array": "error",
+    "regexp/confusing-quantifier": "warn",
+    "regexp/control-character-escape": "error",
+    "regexp/match-any": "error",
+    "regexp/negation": "error",
+    "regexp/no-contradiction-with-assertion": "error",
+    "regexp/no-dupe-characters-character-class": "error",
+    "regexp/no-dupe-disjunctions": "error",
+    "regexp/no-empty-alternative": "warn",
+    "regexp/no-empty-capturing-group": "error",
+    "regexp/no-empty-character-class": "error",
+    "regexp/no-empty-group": "error",
+    "regexp/no-empty-lookarounds-assertion": "error",
+    "regexp/no-empty-string-literal": "error",
+    "regexp/no-escape-backspace": "error",
+    "regexp/no-extra-lookaround-assertions": "error",
+    "regexp/no-invalid-regexp": "error",
+    "regexp/no-invisible-character": "error",
+    "regexp/no-lazy-ends": "warn",
+    "regexp/no-legacy-features": "error",
+    "regexp/no-misleading-unicode-character": "error",
+    "regexp/no-missing-g-flag": "error",
+    "regexp/no-non-standard-flag": "error",
+    "regexp/no-optional-assertion": "error",
+    "regexp/no-potentially-useless-backreference": "warn",
+    "regexp/no-trivially-nested-assertion": "error",
+    "regexp/no-trivially-nested-quantifier": "error",
+    "regexp/no-useless-assertions": "error",
+    "regexp/no-useless-backreference": "error",
+    "regexp/no-useless-character-class": "error",
+    "regexp/no-useless-dollar-replacements": "error",
+    "regexp/no-useless-escape": "error",
+    "regexp/no-useless-flag": "warn",
+    "regexp/no-useless-lazy": "error",
+    "regexp/no-useless-non-capturing-group": "error",
+    "regexp/no-useless-quantifier": "error",
+    "regexp/no-useless-range": "error",
+    "regexp/no-useless-set-operand": "error",
+    "regexp/no-useless-string-literal": "error",
+    "regexp/no-useless-two-nums-quantifier": "error",
+    "regexp/no-zero-quantifier": "error",
+    "regexp/optimal-lookaround-quantifier": "warn",
+    "regexp/prefer-character-class": "error",
+    "regexp/prefer-d": "error",
+    "regexp/prefer-plus-quantifier": "error",
+    "regexp/prefer-predefined-assertion": "error",
+    "regexp/prefer-question-quantifier": "error",
+    "regexp/prefer-range": "error",
+    "regexp/prefer-set-operation": "error",
+    "regexp/prefer-star-quantifier": "error",
+    "regexp/prefer-unicode-codepoint-escapes": "error",
+    "regexp/prefer-w": "error",
+    "regexp/simplify-set-operations": "error",
+    "regexp/sort-flags": "error",
+    "curly": "error",
+    "boundaries/dependencies": [
+      "error",
+      {
+        "default": "disallow",
+        "message": "{{from.type}} is not allowed to import {{to.type}}",
+        "rules": [
+          {
+            "from": [
+              {
+                "type": "figma-code-connect"
+              }
+            ],
+            "allow": [
+              {
+                "to": {
+                  "type": "core*"
+                }
+              }
+            ]
+          },
+          {
+            "from": [
+              {
+                "type": "sentry*"
+              }
+            ],
+            "allow": [
+              {
+                "to": {
+                  "type": "core*"
+                }
+              },
+              {
+                "to": {
+                  "type": "sentry*"
+                }
+              }
+            ]
+          },
+          {
+            "from": [
+              {
+                "type": "getsentry*"
+              }
+            ],
+            "allow": [
+              {
+                "to": {
+                  "type": "core*"
+                }
+              },
+              {
+                "to": {
+                  "type": "getsentry*"
+                }
+              },
+              {
+                "to": {
+                  "type": "sentry*"
+                }
+              }
+            ]
+          },
+          {
+            "from": [
+              {
+                "type": "gsAdmin*"
+              }
+            ],
+            "disallow": [
+              {
+                "to": {
+                  "type": "sentry-locale"
+                }
+              }
+            ],
+            "allow": [
+              {
+                "to": {
+                  "type": "core*"
+                }
+              },
+              {
+                "to": {
+                  "type": "gsAdmin*"
+                }
+              },
+              {
+                "to": {
+                  "type": "sentry*"
+                }
+              },
+              {
+                "to": {
+                  "type": "getsentry*"
+                }
+              }
+            ]
+          },
+          {
+            "from": [
+              {
+                "type": "test-sentry"
+              }
+            ],
+            "allow": [
+              {
+                "to": {
+                  "type": "test-sentry"
+                }
+              },
+              {
+                "to": {
+                  "type": "test"
+                }
+              },
+              {
+                "to": {
+                  "type": "core*"
+                }
+              },
+              {
+                "to": {
+                  "type": "sentry*"
+                }
+              }
+            ]
+          },
+          {
+            "from": [
+              {
+                "type": "test-getsentry"
+              }
+            ],
+            "allow": [
+              {
+                "to": {
+                  "type": "test-getsentry"
+                }
+              },
+              {
+                "to": {
+                  "type": "test-sentry"
+                }
+              },
+              {
+                "to": {
+                  "type": "test"
+                }
+              },
+              {
+                "to": {
+                  "type": "core*"
+                }
+              },
+              {
+                "to": {
+                  "type": "getsentry*"
+                }
+              },
+              {
+                "to": {
+                  "type": "sentry*"
+                }
+              }
+            ]
+          },
+          {
+            "from": [
+              {
+                "type": "test-gsAdmin"
+              }
+            ],
+            "allow": [
+              {
+                "to": {
+                  "type": "test-gsAdmin"
+                }
+              },
+              {
+                "to": {
+                  "type": "test-getsentry"
+                }
+              },
+              {
+                "to": {
+                  "type": "test-sentry"
+                }
+              },
+              {
+                "to": {
+                  "type": "test"
+                }
+              },
+              {
+                "to": {
+                  "type": "core*"
+                }
+              },
+              {
+                "to": {
+                  "type": "gsAdmin*"
+                }
+              },
+              {
+                "to": {
+                  "type": "sentry*"
+                }
+              },
+              {
+                "to": {
+                  "type": "getsentry*"
+                }
+              }
+            ]
+          },
+          {
+            "from": [
+              {
+                "type": "test"
+              }
+            ],
+            "allow": [
+              {
+                "to": {
+                  "type": "test"
+                }
+              },
+              {
+                "to": {
+                  "type": "test-sentry"
+                }
+              },
+              {
+                "to": {
+                  "type": "sentry*"
+                }
+              }
+            ]
+          },
+          {
+            "from": [
+              {
+                "type": "configs"
+              }
+            ],
+            "allow": [
+              {
+                "to": {
+                  "type": "configs"
+                }
+              },
+              {
+                "to": {
+                  "type": "build-utils"
+                }
+              }
+            ]
+          },
+          {
+            "from": [
+              {
+                "type": "story-files"
+              },
+              {
+                "type": "story-book"
+              }
+            ],
+            "allow": [
+              {
+                "to": {
+                  "type": "core*"
+                }
+              },
+              {
+                "to": {
+                  "type": "sentry*"
+                }
+              },
+              {
+                "to": {
+                  "type": "story-book"
+                }
+              }
+            ]
+          },
+          {
+            "from": [
+              {
+                "type": "debug-tools"
+              }
+            ],
+            "allow": [
+              {
+                "to": {
+                  "type": "core*"
+                }
+              },
+              {
+                "to": {
+                  "type": "sentry*"
+                }
+              },
+              {
+                "to": {
+                  "type": "debug-tools"
+                }
+              }
+            ]
+          },
+          {
+            "from": [
+              {
+                "type": "core"
+              }
+            ],
+            "allow": [
+              {
+                "to": {
+                  "type": "core*"
+                }
+              },
+              {
+                "to": {
+                  "type": "sentry*"
+                }
+              }
+            ]
+          },
+          {
+            "to": {
+              "type": "core",
+              "internalPath": "!(*.{ts,tsx}|*/index.{ts,tsx}|**/*.png|**/__stories__/*.{ts,tsx})"
+            },
+            "disallow": {
+              "from": {
+                "type": "*"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "boundaries/entry-point": ["error"],
+    "boundaries/external": ["error"],
+    "boundaries/no-unknown-files": "error",
+    "no-shadow": "error",
+    "no-loop-func": "error",
+    "react/exhaustive-deps": [
+      "error",
+      {
+        "additionalHooks": "(useEffectAfterFirstRender|useMemoWithPrevious)"
+      }
+    ],
+    "react/rules-of-hooks": "error",
+    "typescript/await-thenable": "error",
+    "typescript/ban-ts-comment": [
+      "error",
+      {
+        "minimumDescriptionLength": 10
+      }
+    ],
+    "typescript/no-array-delete": "error",
+    "typescript/no-base-to-string": "error",
+    "typescript/no-duplicate-enum-values": "error",
+    "typescript/no-duplicate-type-constituents": "error",
+    "typescript/no-empty-object-type": [
+      "error",
+      {
+        "allowInterfaces": "always"
+      }
+    ],
+    "typescript/no-extra-non-null-assertion": "error",
+    "typescript/no-extraneous-class": "error",
+    "typescript/no-for-in-array": "error",
+    "typescript/no-implied-eval": "error",
+    "typescript/no-meaningless-void-operator": "error",
+    "typescript/no-misused-new": "error",
+    "typescript/no-non-null-asserted-nullish-coalescing": "error",
+    "typescript/no-unnecessary-boolean-literal-compare": "error",
+    "typescript/no-unnecessary-template-expression": "error",
+    "typescript/no-unnecessary-type-arguments": "error",
+    "typescript/no-unnecessary-type-assertion": "error",
+    "typescript/no-unnecessary-type-constraint": "error",
+    "typescript/no-unnecessary-type-parameters": "error",
+    "typescript/no-unsafe-declaration-merging": "error",
+    "typescript/no-unsafe-function-type": "error",
+    "typescript/no-unsafe-unary-minus": "error",
+    "typescript/no-useless-default-assignment": "error",
+    "typescript/no-wrapper-object-types": "error",
+    "typescript/only-throw-error": "error",
+    "typescript/prefer-as-const": "error",
+    "typescript/prefer-literal-enum-member": "error",
+    "typescript/prefer-namespace-keyword": "error",
+    "typescript/prefer-promise-reject-errors": "error",
+    "typescript/prefer-reduce-type-parameter": "error",
+    "typescript/prefer-return-this-type": "error",
+    "typescript/related-getter-setter-pairs": "error",
+    "typescript/require-await": "error",
+    "typescript/return-await": ["error", "error-handling-correctness-only"],
+    "typescript/triple-slash-reference": "error",
+    "typescript/adjacent-overload-signatures": "error",
+    "typescript/array-type": [
+      "error",
+      {
+        "default": "array-simple"
+      }
+    ],
+    "typescript/ban-tslint-comment": "error",
+    "typescript/consistent-generic-constructors": "error",
+    "typescript/consistent-indexed-object-style": "error",
+    "typescript/consistent-type-assertions": "error",
+    "typescript/dot-notation": "error",
+    "typescript/no-confusing-non-null-assertion": "error",
+    "typescript/no-inferrable-types": "error",
+    "typescript/non-nullable-type-assertion-style": "error",
+    "typescript/prefer-for-of": "error",
+    "typescript/prefer-function-type": "error",
+    "typescript/prefer-optional-chain": "error",
+    "typescript/consistent-type-exports": "error",
+    "typescript/switch-exhaustiveness-check": [
+      "error",
+      {
+        "considerDefaultExhaustiveForUnions": true
+      }
+    ],
+    "typescript/no-restricted-types": [
+      "error",
+      {
+        "types": {
+          "object": {
+            "message": "The `object` type is hard to use. Use `Record<PropertyKey, unknown>` instead. See: https://github.com/typescript-eslint/typescript-eslint/pull/848",
+            "fixWith": "Record<PropertyKey, unknown>"
+          },
+          "Buffer": {
+            "message": "Use Uint8Array instead. See: https://sindresorhus.com/blog/goodbye-nodejs-buffer",
+            "suggest": ["Uint8Array"]
+          },
+          "[]": "Don't use the empty array type `[]`. It only allows empty arrays. Use `SomeType[]` instead.",
+          "[[]]": "Don't use `[[]]`. It only allows an array with a single element which is an empty array. Use `SomeType[][]` instead.",
+          "[[[]]]": "Don't use `[[[]]]`. Use `SomeType[][][]` instead."
+        }
+      }
+    ],
+    "typescript/no-useless-empty-export": "error",
+    "typescript/prefer-enum-initializers": "error",
+    "eslint-js/multiline-comment-style": ["error", "separate-lines"],
+    "eslint-js/no-octal": ["error"],
+    "eslint-js/no-octal-escape": ["error"],
+    "eslint-js/no-restricted-syntax": [
+      "error",
+      {
+        "selector": "ImportDeclaration[source.value='react'] > ImportSpecifier[imported.name='forwardRef']",
+        "message": "Since React 19, it is no longer necessary to use forwardRef - refs can be passed as a normal prop"
+      },
+      {
+        "selector": "CallExpression[callee.object.name='React'][callee.property.name='forwardRef']",
+        "message": "Since React 19, it is no longer necessary to use forwardRef - refs can be passed as a normal prop"
+      },
+      {
+        "selector": "MemberExpression[object.name='React'][property.name='Fragment']",
+        "message": "Use `import {Fragment} from 'react'` instead of `React.Fragment`"
+      },
+      {
+        "selector": "JSXMemberExpression[object.name='React'][property.name='Fragment']",
+        "message": "Use `import {Fragment} from 'react'` instead of `React.Fragment`"
+      },
+      {
+        "selector": "CallExpression[callee.object.name='jest'][callee.property.name='mock'][arguments.0.value='sentry/utils/useProjects']",
+        "message": "Please do not mock useProjects. Use `ProjectsStore.loadInitialData([ProjectFixture()])` instead. It can be used before the component is mounted or in a beforeEach hook."
+      },
+      {
+        "selector": "CallExpression[callee.object.name='jest'][callee.property.name='mock'][arguments.0.value='sentry/utils/useOrganization']",
+        "message": "Please do not mock useOrganization. Pass organization to the render options. `render(<Component />, {organization: OrganizationFixture({isSuperuser: true})})`"
+      },
+      {
+        "selector": "VariableDeclaration[kind = \"let\"]:not(ForOfStatement > VariableDeclaration, ForInStatement > VariableDeclaration) > VariableDeclarator[init = null]:not([id.typeAnnotation])",
+        "message": "Provide a type annotation"
+      },
+      {
+        "selector": "JSXExpressionContainer > CallExpression[callee.type=\"ArrowFunctionExpression\"], JSXExpressionContainer > CallExpression[callee.type=\"FunctionExpression\"], JSXSpreadAttribute > CallExpression[callee.type=\"ArrowFunctionExpression\"], JSXSpreadAttribute > CallExpression[callee.type=\"FunctionExpression\"]",
+        "message": "Do not use IIFEs inside JSX."
+      },
+      {
+        "selector": "ImportDeclaration[source.value=/^!!type-loader!/]",
+        "message": "Use dynamic import for type-loader imports (for example: `import('!!type-loader!@sentry/scraps/alert')`), not `import ... from '!!type-loader!...'`."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Link'] JSXAttribute[name.name='to'] Literal[value=/^https?:/i]",
+        "message": "Do not pass an absolute URL to Link's to=. Use ExternalLink instead."
+      }
+    ],
+    "eslint-js/spaced-comment": [
+      "error",
+      "always",
+      {
+        "line": {
+          "markers": ["/"],
+          "exceptions": ["-", "+"]
+        },
+        "block": {
+          "exceptions": ["*"],
+          "balanced": true
+        }
+      }
+    ],
+    "import-js/no-extraneous-dependencies": [
+      "error",
+      {
+        "includeTypes": true,
+        "devDependencies": true
+      }
+    ],
+    "react-js/no-deprecated": ["error"],
+    "react-js/no-typos": ["error"],
+    "react-js/sort-comp": ["error"],
+    "@sentry/naming-convention": "error",
+    "unicorn-js/expiring-todo-comments": [
+      "error",
+      {
+        "terms": ["todo", "fixme", "xxx"],
+        "ignore": [],
+        "ignoreDates": false,
+        "ignoreDatesOnPullRequests": true,
+        "allowWarningComments": true
+      }
+    ],
+    "unicorn-js/no-array-push-push": ["error"],
+    "unicorn-js/no-unnecessary-polyfills": ["error"],
+    "unicorn-js/prefer-simple-condition-first": ["error"]
+  },
+  "overrides": [
+    {
+      "files": ["scripts/lintSentryTypeAware.ts"],
+      "rules": {
+        "boundaries/dependencies": "off"
+      }
+    },
+    {
+      "files": ["**/*.ts", "**/*.tsx", "**/*.mts", "**/*.cts"],
+      "rules": {
+        "constructor-super": "off",
+        "getter-return": "off",
+        "no-class-assign": "off",
+        "no-const-assign": "off",
+        "no-dupe-class-members": "off",
+        "no-dupe-keys": "off",
+        "no-func-assign": "off",
+        "no-import-assign": "off",
+        "no-new-native-nonconstructor": "off",
+        "no-obj-calls": "off",
+        "no-redeclare": "off",
+        "no-setter-return": "off",
+        "no-this-before-super": "off",
+        "no-undef": "off",
+        "no-unreachable": "off",
+        "no-unsafe-negation": "off",
+        "no-var": "error",
+        "no-with": "off",
+        "prefer-const": "error",
+        "prefer-rest-params": "error"
+      }
+    },
+    {
+      "files": [
+        "*.config.*",
+        "**/__mocks__/*",
+        "static/app/stories/*Loader.ts",
+        "static/app/chartcuterie/config.tsx",
+        "static/eslint/eslintPluginSentry/index.ts",
+        "static/eslint/eslintPluginScraps/index.ts",
+        "static/eslint/oxlintCompat/*.ts",
+        "tests/js/*-transform.*",
+        "tests/js/test-*/*"
+      ],
+      "rules": {
+        "@sentry/no-default-exports": "off"
+      }
+    },
+    {
+      "files": ["static/app/serviceWorker/worker/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["sentry/utils/theme*", "sentry/utils/theme"],
+                "importNames": ["lightTheme", "darkTheme", "default"],
+                "message": "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture."
+              }
+            ],
+            "paths": [
+              {
+                "name": "@testing-library/react",
+                "message": "Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase"
+              },
+              {
+                "name": "@testing-library/react-hooks",
+                "message": "Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase"
+              },
+              {
+                "name": "@testing-library/user-event",
+                "message": "Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase"
+              },
+              {
+                "name": "marked",
+                "message": "Please import marked from 'app/utils/marked' so that we can ensure sanitation of marked output"
+              },
+              {
+                "name": "lodash",
+                "message": "Please import lodash utilities individually. e.g. `import isEqual from 'lodash/isEqual';`. See https://github.com/getsentry/frontend-handbook#lodash from for information"
+              },
+              {
+                "name": "lodash/get",
+                "message": "Optional chaining `?.` and nullish coalescing operators `??` are available and preferred over using `lodash/get`. See https://github.com/getsentry/frontend-handbook#new-syntax for more information"
+              },
+              {
+                "name": "react-router",
+                "importNames": ["withRouter"],
+                "message": "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead."
+              },
+              {
+                "name": "react-select",
+                "message": "Use 'sentry/components/forms/controls/reactSelectWrapper' instead."
+              },
+              {
+                "name": "qs",
+                "message": "Please use query-string instead of qs"
+              },
+              {
+                "name": "moment",
+                "message": "Please import moment-timezone instead of moment"
+              },
+              {
+                "name": "sentry/views/insights/common/components/insightsTimeSeriesWidget",
+                "message": "Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information"
+              },
+              {
+                "name": "sentry/views/insights/common/components/insightsLineChartWidget",
+                "message": "Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information"
+              },
+              {
+                "name": "sentry/views/insights/common/components/insightsAreaChartWidget",
+                "message": "Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information"
+              },
+              {
+                "name": "color",
+                "message": "Only @sentry/scraps is allowed to use color package, please use the values set on the team or reach out to design-engineering for help"
+              },
+              {
+                "name": "@figma/code-connect",
+                "message": "The @figma/code-connect package should only be imported in *.figma.tsx files for Figma Code Connect integration"
+              },
+              {
+                "name": "@tanstack/react-form",
+                "message": "Use @sentry/scraps/form instead"
+              },
+              {
+                "name": "framer-motion",
+                "importNames": ["Reorder"],
+                "message": "Do not use framer-motion's Reorder. Use @dnd-kit/sortable instead."
+              }
+            ]
+          }
+        ],
+        "import-js/no-extraneous-dependencies": "off"
+      }
+    },
+    {
+      "files": ["static/app/chartcuterie/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["sentry/utils/theme*", "sentry/utils/theme"],
+                "importNames": ["lightTheme", "darkTheme", "default"],
+                "message": "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture."
+              },
+              {
+                "group": [
+                  "sentry/utils/use*",
+                  "sentry/stores/*",
+                  "sentry/actionCreators/*"
+                ],
+                "message": "Chartcuterie runs server-side in Node.js. This import is not available."
+              }
+            ],
+            "paths": [
+              {
+                "name": "@testing-library/react",
+                "message": "Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase"
+              },
+              {
+                "name": "@testing-library/react-hooks",
+                "message": "Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase"
+              },
+              {
+                "name": "@testing-library/user-event",
+                "message": "Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase"
+              },
+              {
+                "name": "@sentry/browser",
+                "message": "Please import from `@sentry/react` to ensure consistency throughout the codebase."
+              },
+              {
+                "name": "marked",
+                "message": "Please import marked from 'app/utils/marked' so that we can ensure sanitation of marked output"
+              },
+              {
+                "name": "lodash",
+                "message": "Please import lodash utilities individually. e.g. `import isEqual from 'lodash/isEqual';`. See https://github.com/getsentry/frontend-handbook#lodash from for information"
+              },
+              {
+                "name": "lodash/get",
+                "message": "Optional chaining `?.` and nullish coalescing operators `??` are available and preferred over using `lodash/get`. See https://github.com/getsentry/frontend-handbook#new-syntax for more information"
+              },
+              {
+                "name": "react-router",
+                "importNames": ["withRouter"],
+                "message": "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead."
+              },
+              {
+                "name": "react-select",
+                "message": "Use 'sentry/components/forms/controls/reactSelectWrapper' instead."
+              },
+              {
+                "name": "qs",
+                "message": "Please use query-string instead of qs"
+              },
+              {
+                "name": "moment",
+                "message": "Please import moment-timezone instead of moment"
+              },
+              {
+                "name": "sentry/views/insights/common/components/insightsTimeSeriesWidget",
+                "message": "Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information"
+              },
+              {
+                "name": "sentry/views/insights/common/components/insightsLineChartWidget",
+                "message": "Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information"
+              },
+              {
+                "name": "sentry/views/insights/common/components/insightsAreaChartWidget",
+                "message": "Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information"
+              },
+              {
+                "name": "color",
+                "message": "Only @sentry/scraps is allowed to use color package, please use the values set on the team or reach out to design-engineering for help"
+              },
+              {
+                "name": "@figma/code-connect",
+                "message": "The @figma/code-connect package should only be imported in *.figma.tsx files for Figma Code Connect integration"
+              },
+              {
+                "name": "@tanstack/react-form",
+                "message": "Use @sentry/scraps/form instead"
+              },
+              {
+                "name": "framer-motion",
+                "importNames": ["Reorder"],
+                "message": "Do not use framer-motion's Reorder. Use @dnd-kit/sortable instead."
+              },
+              {
+                "name": "react",
+                "message": "Chartcuterie runs server-side in Node.js. This import is not available."
+              },
+              {
+                "name": "react-dom",
+                "message": "Chartcuterie runs server-side in Node.js. This import is not available."
+              },
+              {
+                "name": "react-dom/client",
+                "message": "Chartcuterie runs server-side in Node.js. This import is not available."
+              },
+              {
+                "name": "react-dom/server",
+                "message": "Chartcuterie runs server-side in Node.js. This import is not available."
+              },
+              {
+                "name": "@sentry/react",
+                "message": "Chartcuterie runs server-side in Node.js. This import is not available."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.spec.{ts,js,tsx,jsx}", "tests/js/**/*.{ts,js,tsx,jsx}"],
+      "rules": {
+        "jest/expect-expect": "off",
+        "jest/no-alias-methods": "error",
+        "jest/no-commented-out-tests": "warn",
+        "jest/no-conditional-expect": "off",
+        "jest/no-deprecated-functions": "error",
+        "jest/no-disabled-tests": "error",
+        "jest/no-done-callback": "error",
+        "jest/no-export": "error",
+        "jest/no-focused-tests": "error",
+        "jest/no-identical-title": "error",
+        "jest/no-interpolation-in-snapshots": "error",
+        "jest/no-jasmine-globals": "error",
+        "jest/no-mocks-import": "error",
+        "jest/no-standalone-expect": [
+          "error",
+          {
+            "additionalTestBlockFunctions": ["it.isKnownFlake"]
+          }
+        ],
+        "jest/no-test-prefixes": "error",
+        "jest/valid-describe-callback": "error",
+        "jest/valid-expect": "error",
+        "jest/valid-expect-in-promise": "error",
+        "jest/valid-title": "error",
+        "jest/prefer-to-be": "error",
+        "jest/prefer-to-contain": "error",
+        "jest/prefer-to-have-length": "error",
+        "jest/max-nested-describe": "error",
+        "jest/no-duplicate-hooks": "error",
+        "jest/no-large-snapshots": [
+          "error",
+          {
+            "maxSize": 2000
+          }
+        ],
+        "jest/prefer-jest-mocked": "error",
+        "jest-dom/prefer-checked": "error",
+        "jest-dom/prefer-empty": "error",
+        "jest-dom/prefer-enabled-disabled": "error",
+        "jest-dom/prefer-focus": "error",
+        "jest-dom/prefer-in-document": "error",
+        "jest-dom/prefer-required": "error",
+        "jest-dom/prefer-to-have-attribute": "error",
+        "jest-dom/prefer-to-have-class": "error",
+        "jest-dom/prefer-to-have-style": "error",
+        "jest-dom/prefer-to-have-text-content": "error",
+        "jest-dom/prefer-to-have-value": "error",
+        "testing-library/await-async-events": [
+          "error",
+          {
+            "eventModule": "userEvent"
+          }
+        ],
+        "testing-library/await-async-queries": "error",
+        "testing-library/await-async-utils": "error",
+        "testing-library/no-await-sync-events": [
+          "error",
+          {
+            "eventModules": ["fire-event"]
+          }
+        ],
+        "testing-library/no-await-sync-queries": "error",
+        "testing-library/no-container": "error",
+        "testing-library/no-debugging-utils": "warn",
+        "testing-library/no-dom-import": ["error", "react"],
+        "testing-library/no-global-regexp-flag-in-query": "error",
+        "testing-library/no-manual-cleanup": "error",
+        "testing-library/no-node-access": "error",
+        "testing-library/no-promise-in-fire-event": "error",
+        "testing-library/no-render-in-lifecycle": "error",
+        "testing-library/no-unnecessary-act": "off",
+        "testing-library/no-wait-for-multiple-assertions": "error",
+        "testing-library/no-wait-for-side-effects": "error",
+        "testing-library/no-wait-for-snapshot": "error",
+        "testing-library/prefer-find-by": "error",
+        "testing-library/prefer-presence-queries": "error",
+        "testing-library/prefer-query-by-disappearance": "error",
+        "testing-library/prefer-screen-queries": "error",
+        "testing-library/render-result-naming-convention": "off"
+      },
+      "plugins": ["jest"]
+    },
+    {
+      "files": ["**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"],
+      "rules": {
+        "react-you-might-not-need-an-effect/no-derived-state": "error",
+        "react-you-might-not-need-an-effect/no-chain-state-updates": "off",
+        "react-you-might-not-need-an-effect/no-event-handler": "off",
+        "react-you-might-not-need-an-effect/no-adjust-state-on-prop-change": "off",
+        "react-you-might-not-need-an-effect/no-reset-all-state-on-prop-change": "off",
+        "react-you-might-not-need-an-effect/no-pass-live-state-to-parent": "off",
+        "react-you-might-not-need-an-effect/no-pass-data-to-parent": "off",
+        "react-you-might-not-need-an-effect/no-initialize-state": "off",
+        "react-you-might-not-need-an-effect/no-manage-parent": "off",
+        "react-you-might-not-need-an-effect/no-empty-effect": "off"
+      }
+    },
+    {
+      "files": ["**/*.config.*"],
+      "rules": {
+        "import/no-nodejs-modules": "off"
+      },
+      "env": {
+        "node": true
+      }
+    },
+    {
+      "files": ["tests/js/fixtures/*.{ts,js,tsx,jsx}"],
+      "rules": {
+        "@sentry/no-calling-components-as-functions": "off"
+      }
+    },
+    {
+      "files": [
+        "static/eslint/**/*.js",
+        "scripts/**/*.{js,ts}",
+        "tests/js/test-balancer/*.ts"
+      ],
+      "rules": {
+        "no-console": "off",
+        "import/no-nodejs-modules": "off"
+      },
+      "env": {
+        "node": true
+      }
+    },
+    {
+      "files": [
+        "tests/js/jest-pegjs-transform.js",
+        "tests/js/sentry-test/jest-environment.js",
+        "tests/js/sentry-test/jest-environment-node.js",
+        "tests/js/sentry-test/wrapWithStructuredClone.js",
+        "tests/js/sentry-test/mocks/*",
+        "tests/js/sentry-test/loadFixtures.ts",
+        "tests/js/setup.ts"
+      ],
+      "rules": {
+        "import/no-nodejs-modules": "off"
+      },
+      "env": {
+        "node": true
+      }
+    },
+    {
+      "files": ["static/app/views/insights/common/components/widgets/*.tsx"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "@testing-library/react",
+                "message": "Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase"
+              },
+              {
+                "name": "@testing-library/react-hooks",
+                "message": "Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase"
+              },
+              {
+                "name": "@testing-library/user-event",
+                "message": "Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase"
+              },
+              {
+                "name": "@sentry/browser",
+                "message": "Please import from `@sentry/react` to ensure consistency throughout the codebase."
+              },
+              {
+                "name": "marked",
+                "message": "Please import marked from 'app/utils/marked' so that we can ensure sanitation of marked output"
+              },
+              {
+                "name": "lodash",
+                "message": "Please import lodash utilities individually. e.g. `import isEqual from 'lodash/isEqual';`. See https://github.com/getsentry/frontend-handbook#lodash from for information"
+              },
+              {
+                "name": "lodash/get",
+                "message": "Optional chaining `?.` and nullish coalescing operators `??` are available and preferred over using `lodash/get`. See https://github.com/getsentry/frontend-handbook#new-syntax for more information"
+              },
+              {
+                "name": "react-router",
+                "importNames": ["withRouter"],
+                "message": "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead."
+              },
+              {
+                "name": "react-select",
+                "message": "Use 'sentry/components/forms/controls/reactSelectWrapper' instead."
+              },
+              {
+                "name": "qs",
+                "message": "Please use query-string instead of qs"
+              },
+              {
+                "name": "moment",
+                "message": "Please import moment-timezone instead of moment"
+              },
+              {
+                "name": "color",
+                "message": "Only @sentry/scraps is allowed to use color package, please use the values set on the team or reach out to design-engineering for help"
+              },
+              {
+                "name": "@figma/code-connect",
+                "message": "The @figma/code-connect package should only be imported in *.figma.tsx files for Figma Code Connect integration"
+              },
+              {
+                "name": "@tanstack/react-form",
+                "message": "Use @sentry/scraps/form instead"
+              },
+              {
+                "name": "framer-motion",
+                "importNames": ["Reorder"],
+                "message": "Do not use framer-motion's Reorder. Use @dnd-kit/sortable instead."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["sentry/utils/theme*", "sentry/utils/theme"],
+                "importNames": ["lightTheme", "darkTheme", "default"],
+                "message": "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture."
+              }
+            ],
+            "paths": [
+              {
+                "name": "@testing-library/react",
+                "message": "Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase"
+              },
+              {
+                "name": "@testing-library/react-hooks",
+                "message": "Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase"
+              },
+              {
+                "name": "@testing-library/user-event",
+                "message": "Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase"
+              },
+              {
+                "name": "@sentry/browser",
+                "message": "Please import from `@sentry/react` to ensure consistency throughout the codebase."
+              },
+              {
+                "name": "marked",
+                "message": "Please import marked from 'app/utils/marked' so that we can ensure sanitation of marked output"
+              },
+              {
+                "name": "lodash",
+                "message": "Please import lodash utilities individually. e.g. `import isEqual from 'lodash/isEqual';`. See https://github.com/getsentry/frontend-handbook#lodash from for information"
+              },
+              {
+                "name": "lodash/get",
+                "message": "Optional chaining `?.` and nullish coalescing operators `??` are available and preferred over using `lodash/get`. See https://github.com/getsentry/frontend-handbook#new-syntax for more information"
+              },
+              {
+                "name": "react-router",
+                "importNames": ["withRouter"],
+                "message": "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead."
+              },
+              {
+                "name": "react-select",
+                "message": "Use 'sentry/components/forms/controls/reactSelectWrapper' instead."
+              },
+              {
+                "name": "qs",
+                "message": "Please use query-string instead of qs"
+              },
+              {
+                "name": "moment",
+                "message": "Please import moment-timezone instead of moment"
+              },
+              {
+                "name": "sentry/views/insights/common/components/insightsTimeSeriesWidget",
+                "message": "Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information"
+              },
+              {
+                "name": "sentry/views/insights/common/components/insightsLineChartWidget",
+                "message": "Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information"
+              },
+              {
+                "name": "sentry/views/insights/common/components/insightsAreaChartWidget",
+                "message": "Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information"
+              },
+              {
+                "name": "@figma/code-connect",
+                "message": "The @figma/code-connect package should only be imported in *.figma.tsx files for Figma Code Connect integration"
+              },
+              {
+                "name": "@tanstack/react-form",
+                "message": "Use @sentry/scraps/form instead"
+              },
+              {
+                "name": "framer-motion",
+                "importNames": ["Reorder"],
+                "message": "Do not use framer-motion's Reorder. Use @dnd-kit/sortable instead."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.figma.{tsx,jsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "@testing-library/react",
+                "message": "Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase"
+              },
+              {
+                "name": "@testing-library/react-hooks",
+                "message": "Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase"
+              },
+              {
+                "name": "@testing-library/user-event",
+                "message": "Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase"
+              },
+              {
+                "name": "@sentry/browser",
+                "message": "Please import from `@sentry/react` to ensure consistency throughout the codebase."
+              },
+              {
+                "name": "marked",
+                "message": "Please import marked from 'app/utils/marked' so that we can ensure sanitation of marked output"
+              },
+              {
+                "name": "lodash",
+                "message": "Please import lodash utilities individually. e.g. `import isEqual from 'lodash/isEqual';`. See https://github.com/getsentry/frontend-handbook#lodash from for information"
+              },
+              {
+                "name": "lodash/get",
+                "message": "Optional chaining `?.` and nullish coalescing operators `??` are available and preferred over using `lodash/get`. See https://github.com/getsentry/frontend-handbook#new-syntax for more information"
+              },
+              {
+                "name": "react-router",
+                "importNames": ["withRouter"],
+                "message": "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead."
+              },
+              {
+                "name": "react-select",
+                "message": "Use 'sentry/components/forms/controls/reactSelectWrapper' instead."
+              },
+              {
+                "name": "qs",
+                "message": "Please use query-string instead of qs"
+              },
+              {
+                "name": "moment",
+                "message": "Please import moment-timezone instead of moment"
+              },
+              {
+                "name": "sentry/views/insights/common/components/insightsTimeSeriesWidget",
+                "message": "Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information"
+              },
+              {
+                "name": "sentry/views/insights/common/components/insightsLineChartWidget",
+                "message": "Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information"
+              },
+              {
+                "name": "sentry/views/insights/common/components/insightsAreaChartWidget",
+                "message": "Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information"
+              },
+              {
+                "name": "color",
+                "message": "Only @sentry/scraps is allowed to use color package, please use the values set on the team or reach out to design-engineering for help"
+              },
+              {
+                "name": "@tanstack/react-form",
+                "message": "Use @sentry/scraps/form instead"
+              },
+              {
+                "name": "framer-motion",
+                "importNames": ["Reorder"],
+                "message": "Do not use framer-motion's Reorder. Use @dnd-kit/sortable instead."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.spec.{ts,js,tsx,jsx}", "tests/js/**/*.{ts,js,tsx,jsx}"],
+      "rules": {
+        "no-loss-of-precision": "off",
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["sentry/utils/theme*", "sentry/utils/theme"],
+                "importNames": ["lightTheme", "darkTheme", "default"],
+                "message": "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture."
+              }
+            ],
+            "paths": [
+              {
+                "name": "@testing-library/react",
+                "message": "Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase"
+              },
+              {
+                "name": "@testing-library/react-hooks",
+                "message": "Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase"
+              },
+              {
+                "name": "@testing-library/user-event",
+                "message": "Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase"
+              },
+              {
+                "name": "@sentry/browser",
+                "message": "Please import from `@sentry/react` to ensure consistency throughout the codebase."
+              },
+              {
+                "name": "marked",
+                "message": "Please import marked from 'app/utils/marked' so that we can ensure sanitation of marked output"
+              },
+              {
+                "name": "lodash",
+                "message": "Please import lodash utilities individually. e.g. `import isEqual from 'lodash/isEqual';`. See https://github.com/getsentry/frontend-handbook#lodash from for information"
+              },
+              {
+                "name": "lodash/get",
+                "message": "Optional chaining `?.` and nullish coalescing operators `??` are available and preferred over using `lodash/get`. See https://github.com/getsentry/frontend-handbook#new-syntax for more information"
+              },
+              {
+                "name": "react-router",
+                "importNames": ["withRouter"],
+                "message": "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead."
+              },
+              {
+                "name": "react-select",
+                "message": "Use 'sentry/components/forms/controls/reactSelectWrapper' instead."
+              },
+              {
+                "name": "qs",
+                "message": "Please use query-string instead of qs"
+              },
+              {
+                "name": "moment",
+                "message": "Please import moment-timezone instead of moment"
+              },
+              {
+                "name": "sentry/views/insights/common/components/insightsTimeSeriesWidget",
+                "message": "Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information"
+              },
+              {
+                "name": "sentry/views/insights/common/components/insightsLineChartWidget",
+                "message": "Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information"
+              },
+              {
+                "name": "sentry/views/insights/common/components/insightsAreaChartWidget",
+                "message": "Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information"
+              },
+              {
+                "name": "color",
+                "message": "Only @sentry/scraps is allowed to use color package, please use the values set on the team or reach out to design-engineering for help"
+              },
+              {
+                "name": "@figma/code-connect",
+                "message": "The @figma/code-connect package should only be imported in *.figma.tsx files for Figma Code Connect integration"
+              },
+              {
+                "name": "@tanstack/react-form",
+                "message": "Use @sentry/scraps/form instead"
+              },
+              {
+                "name": "framer-motion",
+                "importNames": ["Reorder"],
+                "message": "Do not use framer-motion's Reorder. Use @dnd-kit/sortable instead."
+              },
+              {
+                "name": "sentry/locale",
+                "message": "Translations are not needed in tests."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.stories.tsx"],
+      "rules": {
+        "import/no-webpack-loader-syntax": "off",
+        "no-loss-of-precision": "off"
+      }
+    },
+    {
+      "files": ["**/js-sdk-loader.ts"],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["static/gsApp/**/*.{js,mjs,ts,jsx,tsx}"],
+      "rules": {
+        "@sentry/no-relative-import-paths": [
+          "error",
+          {
+            "prefix": "getsentry",
+            "rootDir": "static/gsApp",
+            "allowSameFolder": true
+          }
+        ]
+      }
+    },
+    {
+      "files": ["static/gsAdmin/**/*.{js,mjs,ts,jsx,tsx}"],
+      "rules": {
+        "@sentry/no-relative-import-paths": [
+          "error",
+          {
+            "prefix": "admin",
+            "rootDir": "static/gsAdmin",
+            "allowSameFolder": true
+          }
+        ],
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["sentry/utils/theme*", "sentry/utils/theme"],
+                "importNames": ["lightTheme", "darkTheme", "default"],
+                "message": "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture."
+              },
+              {
+                "group": ["sentry/locale"],
+                "message": "Do not import locale into gsAdmin. No translations required."
+              }
+            ],
+            "paths": [
+              {
+                "name": "@testing-library/react",
+                "message": "Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase"
+              },
+              {
+                "name": "@testing-library/react-hooks",
+                "message": "Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase"
+              },
+              {
+                "name": "@testing-library/user-event",
+                "message": "Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase"
+              },
+              {
+                "name": "@sentry/browser",
+                "message": "Please import from `@sentry/react` to ensure consistency throughout the codebase."
+              },
+              {
+                "name": "marked",
+                "message": "Please import marked from 'app/utils/marked' so that we can ensure sanitation of marked output"
+              },
+              {
+                "name": "lodash",
+                "message": "Please import lodash utilities individually. e.g. `import isEqual from 'lodash/isEqual';`. See https://github.com/getsentry/frontend-handbook#lodash from for information"
+              },
+              {
+                "name": "lodash/get",
+                "message": "Optional chaining `?.` and nullish coalescing operators `??` are available and preferred over using `lodash/get`. See https://github.com/getsentry/frontend-handbook#new-syntax for more information"
+              },
+              {
+                "name": "react-router",
+                "importNames": ["withRouter"],
+                "message": "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead."
+              },
+              {
+                "name": "react-select",
+                "message": "Use 'sentry/components/forms/controls/reactSelectWrapper' instead."
+              },
+              {
+                "name": "qs",
+                "message": "Please use query-string instead of qs"
+              },
+              {
+                "name": "moment",
+                "message": "Please import moment-timezone instead of moment"
+              },
+              {
+                "name": "sentry/views/insights/common/components/insightsTimeSeriesWidget",
+                "message": "Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information"
+              },
+              {
+                "name": "sentry/views/insights/common/components/insightsLineChartWidget",
+                "message": "Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information"
+              },
+              {
+                "name": "sentry/views/insights/common/components/insightsAreaChartWidget",
+                "message": "Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information"
+              },
+              {
+                "name": "color",
+                "message": "Only @sentry/scraps is allowed to use color package, please use the values set on the team or reach out to design-engineering for help"
+              },
+              {
+                "name": "@figma/code-connect",
+                "message": "The @figma/code-connect package should only be imported in *.figma.tsx files for Figma Code Connect integration"
+              },
+              {
+                "name": "@tanstack/react-form",
+                "message": "Use @sentry/scraps/form instead"
+              },
+              {
+                "name": "framer-motion",
+                "importNames": ["Reorder"],
+                "message": "Do not use framer-motion's Reorder. Use @dnd-kit/sortable instead."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["tests/js/getsentry-test/**/*.{js,mjs,ts,jsx,tsx}"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    },
+    {
+      "files": ["static/app/components/core/inspector.tsx"],
+      "rules": {
+        "boundaries/dependencies": "off"
+      }
+    },
+    {
+      "files": ["static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}"],
+      "rules": {
+        "typescript/no-non-null-assertion": "error",
+        "typescript/no-unsafe-argument": "error",
+        "typescript/no-unsafe-call": "error",
+        "typescript/no-unsafe-enum-comparison": "error",
+        "typescript/no-unsafe-member-access": "error",
+        "typescript/no-unsafe-return": "error"
+      },
+      "excludeFiles": ["**/*.spec.{js,mjs,ts,jsx,tsx}"]
+    }
+  ]
+}

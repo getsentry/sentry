@@ -221,6 +221,7 @@ class DashboardDetail extends Component<Props, State> {
     if (this.isWidgetBuilder()) {
       const {location} = this.props;
       const shouldOpenTemplates = decodeBoolean(location.query.openWidgetTemplates);
+      // oxlint-disable-next-line react/no-did-mount-set-state -- Legacy class lifecycle.
       this.setState({
         isWidgetBuilderOpen: true,
         openWidgetTemplates: shouldOpenTemplates,
@@ -235,6 +236,7 @@ class DashboardDetail extends Component<Props, State> {
     if (!this.state.isWidgetBuilderOpen && this.isWidgetBuilder()) {
       const {location} = this.props;
       const shouldOpenTemplates = decodeBoolean(location.query.openWidgetTemplates);
+      // oxlint-disable-next-line react/no-did-update-set-state -- Legacy class lifecycle.
       this.setState({
         isWidgetBuilderOpen: true,
         openWidgetTemplates: shouldOpenTemplates,
@@ -243,11 +245,13 @@ class DashboardDetail extends Component<Props, State> {
 
     if (prevProps.initialState !== this.props.initialState) {
       // Widget builder can toggle Edit state when saving
+      // oxlint-disable-next-line react/no-did-update-set-state -- Legacy class lifecycle.
       this.setState({dashboardState: this.props.initialState});
     }
 
     // Update modified dashboard to trigger re-render when dashboard prop changes in preview state
     if (prevProps.dashboard !== this.props.dashboard && this.isPreview) {
+      // oxlint-disable-next-line react/no-did-update-set-state -- Legacy class lifecycle.
       this.setState({
         modifiedDashboard: cloneDashboard(this.props.dashboard),
         widgetLimitReached: this.props.dashboard.widgets.length >= MAX_WIDGETS,
@@ -275,6 +279,7 @@ class DashboardDetail extends Component<Props, State> {
       prevProps.navigate !== this.props.navigate ||
       prevProps.dashboard !== this.props.dashboard
     ) {
+      // oxlint-disable-next-line react/no-did-update-set-state -- Legacy class lifecycle.
       this.setState({
         widgetLegendState: new WidgetLegendSelectionState({
           organization: this.props.organization,
@@ -523,7 +528,7 @@ class DashboardDetail extends Component<Props, State> {
     // Don't confirm preview cancellation regardless of dashboard state
     if (hasDashboardChanged && !this.isPreview) {
       // Ignore no-alert here, so that the confirm on cancel matches onUnload & onRouteLeave
-      /* eslint no-alert:0 */
+      // eslint-disable-next-line no-alert
       if (!confirm(UNSAVED_MESSAGE)) {
         return;
       }

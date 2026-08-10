@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {useTheme} from '@emotion/react';
 import type {LocationDescriptor} from 'history';
 

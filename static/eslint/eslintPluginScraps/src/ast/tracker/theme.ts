@@ -11,7 +11,7 @@
 
 import type {TSESTree} from '@typescript-eslint/utils';
 
-import type {ThemeBinding, ThemeTracker} from '../extractor/types';
+import type {ThemeBinding, ThemeTracker} from '../extractor/types.ts';
 
 /**
  * Creates a theme tracker that monitors theme variable bindings across scopes.

@@ -111,13 +111,13 @@ export function NextBillCard({
           )}
         </Flex>,
         isLoading ? (
-          <Placeholder style={{flexGrow: 1}} />
+          <Placeholder key="content" style={{flexGrow: 1}} />
         ) : isError ? (
-          <Alert variant="danger">
+          <Alert key="content" variant="danger">
             {t('Could not compute next bill. Please try again later.')}
           </Alert>
         ) : (
-          <Stack gap="lg" width="100%">
+          <Stack key="content" gap="lg" width="100%">
             <Text size="2xl" variant="accent" bold>
               {displayPriceWithCents({cents: nextBill?.billedAmount ?? 0})}
             </Text>

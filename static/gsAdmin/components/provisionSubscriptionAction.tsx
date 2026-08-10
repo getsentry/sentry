@@ -175,6 +175,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
 
   componentDidMount() {
     this.initializeState();
+    // oxlint-disable-next-line react/no-did-mount-set-state -- Legacy class lifecycle.
     this.setState({isLoading: false});
   }
 

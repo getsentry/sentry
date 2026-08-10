@@ -6,9 +6,9 @@ import {ESLintUtils} from '@typescript-eslint/utils';
  * CSS properties based on their semantic category.
  */
 
-import {createStyleCollector, shouldAnalyze} from '../ast/extractor/index';
-import type {StyleDeclaration} from '../ast/extractor/types';
-import {findRuleForToken, PROPERTY_TO_RULE} from '../config/tokenRules';
+import {createStyleCollector, shouldAnalyze} from '../ast/extractor/index.ts';
+import type {StyleDeclaration} from '../ast/extractor/types.ts';
+import {findRuleForToken, PROPERTY_TO_RULE} from '../config/tokenRules.ts';
 
 export interface Options {
   enabledCategories?: string[];

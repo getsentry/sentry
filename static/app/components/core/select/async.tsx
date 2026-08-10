@@ -1,5 +1,5 @@
 // we need forwardRef for class components
-// eslint-disable-next-line no-restricted-syntax
+// eslint-disable-next-line eslint-js/no-restricted-syntax
 import {Component, forwardRef} from 'react';
 import debounce from 'lodash/debounce';
 
@@ -129,6 +129,6 @@ class SelectAsyncControl<TData = unknown> extends Component<
   }
 }
 
-export const SelectAsync = forwardRef((p: any, ref: any) => {
+export const SelectAsync = forwardRef(function SelectAsync(p: any, ref: any) {
   return <SelectAsyncControl {...p} forwardedRef={ref} />;
 });

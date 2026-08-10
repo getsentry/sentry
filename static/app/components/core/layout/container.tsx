@@ -24,7 +24,7 @@ import {
 
 type Margin = SpaceSize | 'auto' | '0';
 
-/* eslint-disable typescript-sort-keys/interface */
+/* eslint-disable @sentry/sort-interface-keys */
 interface ContainerLayoutProps {
   background?: Responsive<Exclude<SurfaceVariant, 'overlay'>>;
   display?: Responsive<
@@ -139,7 +139,7 @@ interface ContainerLayoutProps {
   marginRight?: Responsive<Margin>;
 }
 
-/* eslint-enable typescript-sort-keys/interface */
+/* eslint-enable @sentry/sort-interface-keys */
 export type ContainerElement =
   | 'article'
   | 'aside'

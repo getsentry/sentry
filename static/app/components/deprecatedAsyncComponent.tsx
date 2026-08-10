@@ -30,7 +30,7 @@ function wrapErrorHandling<T extends any[], U>(
   component: DeprecatedAsyncComponent,
   fn: (...args: T) => U
 ) {
-  return (...args: T): U | null => {
+  return function (...args: T): U | null {
     try {
       return fn(...args);
     } catch (error: any) {
@@ -104,7 +104,7 @@ export class DeprecatedAsyncComponent<
    * becomes visible again. This will set the loading and reloading state, but
    * will not render a loading state during reloading.
    *
-   * eslint-disable-next-line react/sort-comp
+   * eslint-disable-next-line react-js/sort-comp
    */
   reloadOnVisible = false;
 
@@ -113,7 +113,7 @@ export class DeprecatedAsyncComponent<
    * the reloading. This is useful if your component only needs to reload when
    * becoming visible during certain states.
    *
-   * eslint-disable-next-line react/sort-comp
+   * eslint-disable-next-line react-js/sort-comp
    */
   shouldReloadOnVisible = false;
 

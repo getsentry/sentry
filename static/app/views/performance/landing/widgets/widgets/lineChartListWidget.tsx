@@ -553,6 +553,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   const getItems = (provided: ComponentData) =>
     provided.widgetData.list.data.map(listItem => {
       const transaction = (listItem.transaction as string | undefined) ?? '';
+      const listItemKey = `${listItem['project.id']}:${transaction}:${listItem['issue.id'] ?? listItem[SpanFields.SPAN_DOMAIN] ?? listItem[SpanFields.SPAN_GROUP] ?? ''}`;
 
       const additionalQuery: Record<string, string> = {};
 
@@ -600,7 +601,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
       switch (props.chartSetting) {
         case PerformanceWidgetSetting.MOST_RELATED_ISSUES:
           return (
-            <Fragment>
+            <Fragment key={listItemKey}>
               <GrowLink to={transactionTarget}>
                 <Truncate value={transaction} maxLength={40} />
               </GrowLink>
@@ -629,7 +630,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           );
         case PerformanceWidgetSetting.MOST_RELATED_ERRORS:
           return (
-            <Fragment>
+            <Fragment key={listItemKey}>
               <GrowLink to={transactionTarget}>
                 <Truncate value={transaction} maxLength={40} />
               </GrowLink>
@@ -654,7 +655,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           );
         case PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS:
           return (
-            <Fragment>
+            <Fragment key={listItemKey}>
               <StyledTextOverflow>
                 <DomainCell
                   projectId={listItem[SpanFields.PROJECT_ID]!.toString()}
@@ -700,7 +701,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           const timeSpentOp = isQueriesWidget ? 'op' : undefined;
 
           return (
-            <Fragment>
+            <Fragment key={listItemKey}>
               <StyledTextOverflow>
                 <SpanDescriptionCell
                   projectId={projectID}
@@ -740,7 +741,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           );
 
           return (
-            <Fragment>
+            <Fragment key={listItemKey}>
               <GrowLink to={target}>
                 <Truncate value={transaction} maxLength={40} />
               </GrowLink>
@@ -763,7 +764,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
         default:
           if (typeof rightValue === 'number') {
             return (
-              <Fragment>
+              <Fragment key={listItemKey}>
                 <GrowLink to={transactionTarget}>
                   <Truncate value={transaction} maxLength={40} />
                 </GrowLink>
@@ -786,7 +787,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             );
           }
           return (
-            <Fragment>
+            <Fragment key={listItemKey}>
               <GrowLink to={transactionTarget}>
                 <Truncate value={transaction} maxLength={40} />
               </GrowLink>

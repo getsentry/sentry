@@ -12,11 +12,11 @@
 
 import type {TSESLint, TSESTree} from '@typescript-eslint/utils';
 
-import {normalizePropertyName} from '../utils/normalizePropertyName';
-import {getStyledCallInfo} from '../utils/styled';
+import {normalizePropertyName} from '../utils/normalizePropertyName.ts';
+import {getStyledCallInfo} from '../utils/styled.ts';
 
-import type {ExtractorContext, StyleDeclaration} from './types';
-import {decomposeValue} from './valueDecomposer';
+import type {ExtractorContext, StyleDeclaration} from './types.ts';
+import {decomposeValue} from './valueDecomposer.ts';
 
 /**
  * Creates the styled/css extractor with ESLint visitors.

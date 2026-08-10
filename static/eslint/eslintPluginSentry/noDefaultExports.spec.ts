@@ -1,6 +1,10 @@
 import {RuleTester} from '@typescript-eslint/rule-tester';
 
-import {mayContainDynamicImport, noDefaultExports} from './noDefaultExports';
+import {
+  collectLazyImportSpecifiers,
+  mayContainDynamicImport,
+  noDefaultExports,
+} from './noDefaultExports';
 
 describe.each([
   ['direct call', "import('component')"],
@@ -33,6 +37,32 @@ it.each([
   ['line-comment overlap', `import ${'\r\n//'.repeat(10_000)}`],
 ])('handles adversarial %s input', (_description, source) => {
   expect(mayContainDynamicImport(source)).toBe(true);
+});
+
+it.each([
+  ['awaited import', "async function load() { return await import('./component'); }"],
+  [
+    'parenthesized awaited import',
+    "async function load() { return await ((import('./component'))); }",
+  ],
+  ['arrow import', "const load = () => import('./component');"],
+  ['commented arrow import', "const load = () => /* webpack */ import('./component');"],
+])('collects a lazy %s', (_description, source) => {
+  expect(collectLazyImportSpecifiers(source)).toEqual(['./component']);
+});
+
+it.each([
+  ['bare import', "import('./component');"],
+  ['static import', "import Component from './component';"],
+  ['nested arrow expression', "const load = () => ready ? import('./component') : null;"],
+  ['chained arrow import', "const load = () => import('./component').then(load);"],
+  ['non-literal import', 'const load = () => import(component);'],
+  [
+    'import with options',
+    "const load = () => import('./component', {with: {type: 'json'}});",
+  ],
+])('does not collect a %s', (_description, source) => {
+  expect(collectLazyImportSpecifiers(source)).toEqual([]);
 });
 
 const ruleTester = new RuleTester({

@@ -74,7 +74,7 @@ function _apiOptions<
 }
 
 function parsePageParam<TQueryFnData = unknown>(dir: 'previous' | 'next') {
-  return ({headers}: ApiResponse<TQueryFnData>) => {
+  return function ({headers}: ApiResponse<TQueryFnData>) {
     const parsed = parseLinkHeader(headers.Link ?? null);
     return parsed[dir]?.results ? parsed[dir] : null;
   };

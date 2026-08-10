@@ -253,9 +253,11 @@ function GlobalStoryStyles() {
   const styles = css`
     /* match body background with header story styles */
     body {
-      background-color: ${isIndex
-        ? darkTheme.tokens.background.secondary
-        : theme.tokens.background.secondary};
+      background-color: ${
+        isIndex
+          ? darkTheme.tokens.background.secondary
+          : theme.tokens.background.secondary
+      };
     }
     /* fixed position color block to match overscroll color to story background */
     body::after {

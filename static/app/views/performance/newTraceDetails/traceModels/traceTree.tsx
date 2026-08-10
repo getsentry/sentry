@@ -956,8 +956,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         const next = node.children[index + 1];
 
         if (
-          next &&
-          next.canAutogroup &&
+          next?.canAutogroup &&
           current.canAutogroup &&
           next.children.length === 0 &&
           current.children.length === 0 &&

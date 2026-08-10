@@ -5,7 +5,7 @@ import {
   type TSESTree,
 } from '@typescript-eslint/utils';
 
-import {createImportTracker} from '../ast/tracker/imports';
+import {createImportTracker} from '../ast/tracker/imports.ts';
 
 const LAYOUT_SOURCE = '@sentry/scraps/layout';
 
