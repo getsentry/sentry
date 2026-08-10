@@ -181,7 +181,11 @@ def assemble_file_blobs(task, org_or_project, name, checksum, chunks) -> IO[byte
         return None
 
     blobs_by_id = FileBlob.objects.in_bulk(file_blob_ids)
-    file_blobs = [blobs_by_id[blob_id] for blob_id in file_blob_ids]
+    try:
+        file_blobs = [blobs_by_id[blob_id] for blob_id in file_blob_ids]
+    except KeyError:
+        logger.exception("`FileBlob` disappeared during `assemble_file_blobs`")
+        raise
 
     temp_file = tempfile.NamedTemporaryFile()
     assembled_checksum = hashlib.sha1()

@@ -973,7 +973,11 @@ def create_debug_file_from_dif(
                 checksum, _ = _get_fileobj_checksum_and_size(f)
                 if find_existing_dif(project, meta, checksum) is not None:
                     continue
-                file = File.objects.create(name=meta.debug_id)
+                file = File.objects.create(
+                    name=meta.debug_id,
+                    type="project.dif",
+                    headers={"Content-Type": DIF_MIMETYPES[meta.file_format]},
+                )
                 file.putfile(f)
                 try:
                     dif, created = create_dif_from_file(project, meta, file)
