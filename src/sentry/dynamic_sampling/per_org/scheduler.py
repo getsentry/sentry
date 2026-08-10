@@ -176,7 +176,10 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
 
     if is_org_in_recalibration_rollout(org_id):
         recalibration_volume = get_recalibration_organization_volume(
-            config, org_volume_5m, end=org_volume_end
+            config,
+            org_volume_5m,
+            time_interval=timedelta(minutes=5),
+            end=org_volume_end,
         )
         calculated_factor = config.recalibrate(recalibration_volume)
         cached_factor = get_cached_recalibration_factor(config.organization.id)
