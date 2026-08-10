@@ -1,15 +1,8 @@
-import {memo} from 'react';
 import styled from '@emotion/styled';
 
 import {inputStyles} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-
-export const CompositionRenderBlocker = memo(
-  ({children}: {children: React.ReactNode; isComposing: boolean}) => children,
-  (previousProps, nextProps) =>
-    nextProps.isComposing || previousProps.children === nextProps.children
-);
 
 export const MentionEditor = styled('div')`
   ${inputStyles};
@@ -20,6 +13,10 @@ export const MentionEditor = styled('div')`
   line-height: ${p => p.theme.font.lineHeight.comfortable};
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+
+  & [data-mention] {
+    font-weight: ${p => p.theme.font.weight.sans.bold};
+  }
 
   &:empty::before {
     color: ${p => p.theme.tokens.content.secondary};

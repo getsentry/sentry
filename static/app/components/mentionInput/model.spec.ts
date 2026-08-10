@@ -1,8 +1,4 @@
-import {
-  type Mention,
-  normalizeMentionInputValue,
-  reconcileMentions,
-} from 'sentry/components/mentionInput/model';
+import {type Mention, reconcileMentions} from 'sentry/components/mentionInput/model';
 
 const MENTION: Mention = {
   id: 'user:1',
@@ -21,14 +17,5 @@ describe('mention range model', () => {
 
   it('drops mention metadata when its display text is edited', () => {
     expect(reconcileMentions('Hello @Alice', 'Hello @Alicia', [MENTION])).toEqual([]);
-  });
-
-  it('removes stale and overlapping restored mentions', () => {
-    expect(
-      normalizeMentionInputValue({
-        text: 'Hello @Alice',
-        mentions: [{...MENTION, text: '@Alicia'}, MENTION, {...MENTION, id: 'duplicate'}],
-      })
-    ).toEqual({text: 'Hello @Alice', mentions: [MENTION]});
   });
 });

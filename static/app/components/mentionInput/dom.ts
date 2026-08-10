@@ -3,6 +3,17 @@ export interface EditorSelection {
   start: number;
 }
 
+interface DOMPoint {
+  node: Node;
+  offset: number;
+}
+
+interface TextRun {
+  end: DOMPoint;
+  start: DOMPoint;
+  text: string;
+}
+
 function isLineBreak(node: Node): node is HTMLBRElement {
   return node.nodeType === Node.ELEMENT_NODE && (node as Element).tagName === 'BR';
 }
@@ -14,36 +25,112 @@ function isLineContainer(node: Node): boolean {
   );
 }
 
-export function readEditorValue(root: Node): string {
-  let value = '';
+function isPlaceholderLine(node: Node) {
+  return (
+    isLineContainer(node) &&
+    node.childNodes.length === 1 &&
+    isLineBreak(node.childNodes[0]!)
+  );
+}
+
+function getTextRuns(root: Node): TextRun[] {
+  if (root.childNodes.length === 1 && isLineBreak(root.childNodes[0]!)) {
+    return [];
+  }
+
+  const runs: TextRun[] = [];
+  let length = 0;
+  let endsWithLineBreak = false;
+
+  const append = (text: string, start: DOMPoint, end: DOMPoint) => {
+    if (!text) {
+      return;
+    }
+
+    runs.push({text, start, end});
+    length += text.length;
+    endsWithLineBreak = text.endsWith('\n');
+  };
 
   const visit = (node: Node, isRootChild = false) => {
     if (node.nodeType === Node.TEXT_NODE) {
-      value += node.textContent ?? '';
+      const text = node.textContent ?? '';
+      append(text, {node, offset: 0}, {node, offset: text.length});
       return;
     }
 
     if (isLineBreak(node)) {
-      value += '\n';
+      const parent = node.parentNode;
+      if (parent) {
+        const index = Array.from(parent.childNodes).indexOf(node);
+        append('\n', {node: parent, offset: index}, {node: parent, offset: index + 1});
+      }
       return;
     }
 
-    if (isRootChild && isLineContainer(node) && value && !value.endsWith('\n')) {
-      value += '\n';
+    if (isRootChild && isLineContainer(node)) {
+      const parent = node.parentNode;
+      if (parent && length > 0 && !endsWithLineBreak) {
+        const index = Array.from(parent.childNodes).indexOf(node as ChildNode);
+        append('\n', {node: parent, offset: index}, {node, offset: 0});
+      }
+
+      if (isPlaceholderLine(node)) {
+        return;
+      }
     }
 
     node.childNodes.forEach(child => visit(child));
   };
 
-  const isEmptyPlaceholder =
-    root.childNodes.length === 1 && isLineBreak(root.childNodes[0]!);
-  if (!isEmptyPlaceholder) {
-    root.childNodes.forEach(child => visit(child, true));
-  }
-
-  return value;
+  root.childNodes.forEach(child => visit(child, true));
+  return runs;
 }
 
+/** Flattens contenteditable DOM into the plain-text value owned by MentionInput. */
+export function readEditorValue(root: Node): string {
+  return getTextRuns(root)
+    .map(run => run.text)
+    .join('');
+}
+
+/** Writes the controlled value without making React own contenteditable children. */
+export function writeEditorValue(
+  root: HTMLElement,
+  value: string,
+  mentions: ReadonlyArray<{end: number; start: number; text: string}>
+) {
+  if (
+    mentions.length === 0 &&
+    !root.querySelector('[data-mention]') &&
+    readEditorValue(root) === value
+  ) {
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  let offset = 0;
+
+  for (const mention of mentions.toSorted((a, b) => a.start - b.start)) {
+    if (mention.start > offset) {
+      fragment.append(value.slice(offset, mention.start));
+    }
+
+    const element = document.createElement('strong');
+    element.dataset.mention = '';
+    element.textContent = mention.text;
+    fragment.append(element);
+    offset = mention.end;
+  }
+
+  if (offset < value.length) {
+    fragment.append(value.slice(offset));
+  }
+
+  root.replaceChildren(fragment);
+}
+
+/** Converts a DOM boundary point into an offset in the normalized editor string. */
 function getTextOffset(root: HTMLElement, node: Node, offset: number): number | null {
   if (node !== root && !root.contains(node)) {
     return null;
@@ -63,6 +150,7 @@ function getTextOffset(root: HTMLElement, node: Node, offset: number): number | 
   return readEditorValue(fragmentRoot).length;
 }
 
+/** Reads the browser selection as an ordered range of flat string offsets. */
 export function getEditorSelection(root: HTMLElement): EditorSelection | null {
   const selection = window.getSelection();
   if (!selection?.anchorNode || !selection.focusNode) {
@@ -78,65 +166,29 @@ export function getEditorSelection(root: HTMLElement): EditorSelection | null {
   return {start: Math.min(anchor, focus), end: Math.max(anchor, focus)};
 }
 
-interface DOMPoint {
-  node: Node;
-  offset: number;
-}
-
+/** Converts a flat string offset back into a browser Range boundary point. */
 export function getDOMPoint(root: HTMLElement, targetOffset: number): DOMPoint {
   let consumed = 0;
-  let point: DOMPoint | null = null;
 
-  const visit = (node: Node, isRootChild = false) => {
-    if (point) {
-      return;
-    }
-
-    if (isRootChild && isLineContainer(node) && consumed > 0) {
-      const parent = node.parentNode;
-      if (!parent) {
-        return;
-      }
-      const index = Array.from(parent.childNodes).indexOf(node as ChildNode);
-      if (targetOffset <= consumed + 1) {
-        point = {node: parent, offset: index};
-        return;
-      }
-      consumed += 1;
-    }
-
-    if (node.nodeType === Node.TEXT_NODE) {
-      const length = node.textContent?.length ?? 0;
-      if (length > 0 && targetOffset <= consumed + length) {
-        point = {node, offset: targetOffset - consumed};
-      }
-      consumed += length;
-      return;
-    }
-
-    if (isLineBreak(node)) {
-      const parent = node.parentNode;
-      if (!parent) {
-        return;
-      }
-      const index = Array.from(parent.childNodes).indexOf(node);
-      if (targetOffset <= consumed + 1) {
-        point = {
-          node: parent,
-          offset: targetOffset <= consumed ? index : index + 1,
+  for (const run of getTextRuns(root)) {
+    const end = consumed + run.text.length;
+    if (targetOffset <= end) {
+      if (run.start.node.nodeType === Node.TEXT_NODE) {
+        return {
+          node: run.start.node,
+          offset: Math.max(0, Math.min(run.text.length, targetOffset - consumed)),
         };
       }
-      consumed += 1;
-      return;
+
+      return targetOffset <= consumed ? run.start : run.end;
     }
+    consumed = end;
+  }
 
-    node.childNodes.forEach(child => visit(child));
-  };
-
-  root.childNodes.forEach(child => visit(child, true));
-  return point ?? {node: root, offset: root.childNodes.length};
+  return {node: root, offset: root.childNodes.length};
 }
 
+/** Restores a flat editor selection after React renders the controlled value. */
 export function setEditorSelection(root: HTMLElement, selection: EditorSelection) {
   const domSelection = window.getSelection();
   if (!domSelection) {
@@ -150,31 +202,4 @@ export function setEditorSelection(root: HTMLElement, selection: EditorSelection
   range.setEnd(end.node, end.offset);
   domSelection.removeAllRanges();
   domSelection.addRange(range);
-}
-
-const GRAPHEME_SEGMENTER = new Intl.Segmenter(undefined, {granularity: 'grapheme'});
-
-export function getDeletionSelection(
-  value: string,
-  selection: EditorSelection,
-  direction: 'backward' | 'forward'
-): EditorSelection {
-  let {start, end} = selection;
-
-  if (start === end) {
-    if (direction === 'backward' && start > 0) {
-      let previous = 0;
-      for (const segment of GRAPHEME_SEGMENTER.segment(value.slice(0, start))) {
-        previous = segment.index;
-      }
-      start = previous;
-    } else if (direction === 'forward' && end < value.length) {
-      const segment = GRAPHEME_SEGMENTER.segment(value.slice(end))
-        [Symbol.iterator]()
-        .next().value;
-      end += segment?.segment.length ?? 1;
-    }
-  }
-
-  return {start, end};
 }

@@ -1,6 +1,13 @@
 import {useState} from 'react';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {MentionInput} from 'sentry/components/mentionInput/mentionInput';
 import type {Mention, MentionInputValue} from 'sentry/components/mentionInput/model';
@@ -31,18 +38,9 @@ function ControlledMentionInput({
   sources = [MEMBER_SOURCE],
   initialValue = '',
   initialMentions = [],
-  maxSuggestions,
-  rebuildMentionsOnChange = false,
-  renderSuggestionStatus,
 }: {
   initialMentions?: readonly Mention[];
   initialValue?: string;
-  maxSuggestions?: number;
-  rebuildMentionsOnChange?: boolean;
-  renderSuggestionStatus?: (
-    status: 'empty' | 'error' | 'loading',
-    context: {query: string}
-  ) => React.ReactNode;
   sources?: ReadonlyArray<MentionSource<PersonSuggestion>>;
 }) {
   const [value, setValue] = useState<MentionInputValue>({
@@ -54,17 +52,9 @@ function ControlledMentionInput({
     <div>
       <MentionInput
         aria-label="Comment"
-        maxSuggestions={maxSuggestions}
-        renderSuggestionStatus={renderSuggestionStatus}
         sources={sources}
         value={value}
-        onChange={nextValue =>
-          setValue(
-            rebuildMentionsOnChange
-              ? {...nextValue, mentions: [...nextValue.mentions]}
-              : nextValue
-          )
-        }
+        onChange={setValue}
       />
       <output aria-label="Editor value">
         {value.text}|{value.mentions.map(mention => mention.id).join(',')}
@@ -74,6 +64,25 @@ function ControlledMentionInput({
 }
 
 describe('MentionInput', () => {
+  it('keeps the editor aligned with a controlled value that rejects an edit', async () => {
+    const onChange = jest.fn();
+    render(
+      <MentionInput
+        aria-label="Comment"
+        sources={[MEMBER_SOURCE]}
+        value={{text: 'Fixed', mentions: []}}
+        onChange={onChange}
+      />
+    );
+
+    const textbox = screen.getByRole('combobox', {name: 'Comment'});
+    await userEvent.click(textbox);
+    await userEvent.keyboard('{End}!');
+
+    expect(onChange).toHaveBeenCalledWith({text: 'Fixed!', mentions: []});
+    expect(textbox).toHaveTextContent('Fixed');
+  });
+
   it('selects a suggestion with the arrow keys', async () => {
     render(<ControlledMentionInput />);
 
@@ -131,48 +140,6 @@ describe('MentionInput', () => {
     );
   });
 
-  it('undoes and redoes a selected mention as one edit', async () => {
-    render(<ControlledMentionInput />);
-
-    const textbox = screen.getByRole('combobox', {name: 'Comment'});
-    await userEvent.type(textbox, '@ali');
-    await screen.findByRole('option', {name: 'Alice Example'});
-    await userEvent.keyboard('{Enter}');
-
-    await userEvent.keyboard('{Control>}z{/Control}');
-    expect(textbox).toHaveTextContent('@ali');
-    await userEvent.keyboard('{Escape}');
-    expect(screen.getByRole('status', {name: 'Editor value'})).toHaveTextContent('@ali|');
-
-    await userEvent.keyboard('{Control>}{Shift>}z{/Shift}{/Control}');
-    expect(textbox).toHaveTextContent('@Alice Example');
-    expect(screen.getByRole('status', {name: 'Editor value'})).toHaveTextContent(
-      '@Alice Example |user:1'
-    );
-  });
-
-  it('coalesces consecutive typing into one undo step', async () => {
-    render(<ControlledMentionInput />);
-
-    const textbox = screen.getByRole('combobox', {name: 'Comment'});
-    await userEvent.type(textbox, 'hello');
-    await userEvent.keyboard('{Control>}z{/Control}');
-    expect(textbox).toBeEmptyDOMElement();
-
-    await userEvent.keyboard('{Control>}{Shift>}z{/Shift}{/Control}');
-    expect(textbox).toHaveTextContent('hello');
-  });
-
-  it('preserves undo history when the controlled value is reconstructed', async () => {
-    render(<ControlledMentionInput rebuildMentionsOnChange />);
-
-    const textbox = screen.getByRole('combobox', {name: 'Comment'});
-    await userEvent.type(textbox, 'hello');
-    await userEvent.keyboard('{Control>}z{/Control}');
-
-    expect(textbox).toBeEmptyDOMElement();
-  });
-
   it('renders a restored structured mention on the first render', () => {
     const suggestion = {id: 'user:1', label: 'Alice Example'};
     const restoredMention: Mention = {
@@ -193,72 +160,19 @@ describe('MentionInput', () => {
     expect(screen.getByRole('combobox', {name: 'Comment'})).toHaveTextContent(
       'Continue with @Alice Example'
     );
+    expect(within(screen.getByRole('combobox')).getByText('@Alice Example').tagName).toBe(
+      'STRONG'
+    );
     expect(screen.getByRole('status', {name: 'Editor value'})).toHaveTextContent(
       'Continue with @Alice Example|user:1'
     );
   });
 
-  it('supports source-defined matching and insertion behavior', async () => {
-    const emojiSource: MentionSource<PersonSuggestion> = {
-      id: 'emoji',
-      label: 'Emoji',
-      trigger: ':',
-      findMatch: ({selectionEnd, selectionStart, text}) => {
-        if (selectionStart !== selectionEnd) {
-          return null;
-        }
-
-        const start = text.lastIndexOf(':', selectionStart - 1);
-        if (start < 0) {
-          return null;
-        }
-
-        return {start, end: selectionStart, query: text.slice(start + 1)};
-      },
-      getSuggestions: query =>
-        [{id: 'wave', label: 'Wave'}].filter(suggestion =>
-          suggestion.label.toLocaleLowerCase().startsWith(query.toLocaleLowerCase())
-        ),
-      getId: suggestion => suggestion.id,
-      getText: () => '👋',
-      getTrailingText: () => '',
-      renderSuggestion: suggestion => suggestion.label,
-    };
-    render(<ControlledMentionInput sources={[emojiSource]} />);
-
-    const textbox = screen.getByRole('combobox', {name: 'Comment'});
-    await userEvent.type(textbox, 'Status:wa');
-    await screen.findByRole('option', {name: 'Wave'});
-    await userEvent.keyboard('{Enter}');
-
-    expect(textbox).toHaveTextContent('Status👋');
-    expect(screen.getByRole('status', {name: 'Editor value'})).toHaveTextContent(
-      'Status👋|wave'
-    );
-  });
-
-  it('limits results and renders a source-aware empty state', async () => {
-    const {unmount} = render(
-      <ControlledMentionInput maxSuggestions={1} initialValue="@al" />
-    );
-
-    const textbox = screen.getByRole('combobox', {name: 'Comment'});
-    await userEvent.click(textbox);
-    await userEvent.keyboard('{End}');
-    expect(await screen.findAllByRole('option')).toHaveLength(1);
-
-    unmount();
-    render(
-      <ControlledMentionInput
-        initialValue="@missing"
-        renderSuggestionStatus={(status, {query}) =>
-          status === 'empty' ? `No matches for ${query}` : status
-        }
-      />
-    );
+  it('shows an empty state when a source has no matches', async () => {
+    render(<ControlledMentionInput initialValue="@missing" />);
     await userEvent.click(screen.getByRole('combobox', {name: 'Comment'}));
     await userEvent.keyboard('{End}');
-    expect(await screen.findByText('No matches for missing')).toBeVisible();
+    expect(await screen.findByText('No suggestions found')).toBeVisible();
   });
 
   it('keeps stale async suggestions out of the current results', async () => {

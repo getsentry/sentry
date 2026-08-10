@@ -1,12 +1,11 @@
 import {useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {ariaHideOutside} from '@react-aria/overlays';
-import {mergeRefs, useEvent} from '@react-aria/utils';
+import {mergeRefs} from '@react-aria/utils';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 
 import {ListBox} from '@sentry/scraps/compactSelect';
 import {Container} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {t, tn} from 'sentry/locale';
@@ -14,25 +13,19 @@ import {useOverlay} from 'sentry/utils/useOverlay';
 
 import {
   type EditorSelection,
-  getDeletionSelection,
   getDOMPoint,
   getEditorSelection,
   readEditorValue,
   setEditorSelection,
+  writeEditorValue,
 } from './dom';
 import {findActiveMention, getRequestKey, type ActiveMention} from './matching';
-import {type Mention, normalizeMentionInputValue, reconcileMentions} from './model';
-import {
-  CaretAnchor,
-  CompositionRenderBlocker,
-  MentionEditor,
-  SuggestionStatus,
-} from './styles';
-import type {MentionInputProps, MentionSuggestionStatus} from './types';
-import {useEditorHistory} from './useEditorHistory';
+import {type Mention, reconcileMentions} from './model';
+import {CaretAnchor, MentionEditor, SuggestionStatus} from './styles';
+import type {MentionInputProps} from './types';
 import {useMentionSuggestions} from './useMentionSuggestions';
 
-const DEFAULT_MAX_SUGGESTIONS = 50;
+type MentionSuggestionStatus = 'empty' | 'error' | 'loading';
 
 function getDefaultSuggestionStatus(status: MentionSuggestionStatus): React.ReactNode {
   switch (status) {
@@ -56,11 +49,8 @@ export function MentionInput<TSuggestion>({
   value: inputValue,
   sources,
   onChange,
-  getMentionTextProps,
-  maxSuggestions = DEFAULT_MAX_SUGGESTIONS,
   minHeight,
   placeholder,
-  renderSuggestionStatus,
   onBlur,
   onCompositionEnd,
   onCompositionStart,
@@ -77,11 +67,7 @@ export function MentionInput<TSuggestion>({
   style,
   ...editorProps
 }: MentionInputProps<TSuggestion>) {
-  const normalizedInputValue = useMemo(
-    () => normalizeMentionInputValue(inputValue),
-    [inputValue]
-  );
-  const {mentions, text: value} = normalizedInputValue;
+  const {mentions, text: value} = inputValue;
   const theme = useTheme();
   const inputRef = useRef<HTMLDivElement>(null);
   const caretAnchorRef = useRef<HTMLSpanElement>(null);
@@ -89,10 +75,9 @@ export function MentionInput<TSuggestion>({
   const dismissedRequestKeyRef = useRef<string | null>(null);
   const isComposingRef = useRef(false);
   const pendingSelectionRef = useRef<EditorSelection | null>(null);
-  const compositionStartSelectionRef = useRef<EditorSelection | null>(null);
   const [activeMention, setActiveMention] = useState<ActiveMention | null>(null);
-  const [isComposing, setIsComposing] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [nativeEditVersion, setNativeEditVersion] = useState(0);
 
   const mergedInputRef = useMemo(() => mergeRefs(inputRef, ref), [ref]);
   const activeSource = activeMention
@@ -116,21 +101,6 @@ export function MentionInput<TSuggestion>({
     inputRef,
     isOpen,
     listBoxRef,
-    maxSuggestions: Math.max(1, maxSuggestions),
-  });
-
-  const restoreSelection = useCallback((selection: EditorSelection) => {
-    pendingSelectionRef.current = selection;
-  }, []);
-  const {
-    breakHistoryGroup,
-    commit: commitHistory,
-    redo,
-    undo,
-  } = useEditorHistory({
-    value: normalizedInputValue,
-    onChange,
-    onRestoreSelection: restoreSelection,
   });
 
   const updateActiveMention = (nextValue = value) => {
@@ -221,6 +191,12 @@ export function MentionInput<TSuggestion>({
   }, [positionCaretAnchor, updateOverlayPosition]);
 
   useLayoutEffect(() => {
+    if (inputRef.current && !isComposingRef.current) {
+      writeEditorValue(inputRef.current, value, mentions);
+    }
+  }, [mentions, nativeEditVersion, value]);
+
+  useLayoutEffect(() => {
     const pendingSelection = pendingSelectionRef.current;
     if (pendingSelection === null || !inputRef.current) {
       return;
@@ -260,11 +236,7 @@ export function MentionInput<TSuggestion>({
     }
 
     const replacement = activeSource.getText(suggestion);
-    const trailingText =
-      activeSource.getTrailingText?.(suggestion, {
-        match: activeMention,
-        text: value,
-      }) ?? (/\s/.test(value[activeMention.end] ?? '') ? '' : ' ');
+    const trailingText = /\s/.test(value[activeMention.end] ?? '') ? '' : ' ';
     const insertedText = replacement + trailingText;
     const nextValue =
       value.slice(0, activeMention.start) + insertedText + value.slice(activeMention.end);
@@ -278,31 +250,17 @@ export function MentionInput<TSuggestion>({
     };
 
     const nextCaret = activeMention.start + insertedText.length;
-    const input = inputRef.current;
-    const beforeSelection = (input ? getEditorSelection(input) : null) ?? {
-      start: activeMention.end,
-      end: activeMention.end,
-    };
     const afterSelection = {start: nextCaret, end: nextCaret};
     pendingSelectionRef.current = afterSelection;
     dismissedRequestKeyRef.current = null;
     setActiveMention(null);
-    commitHistory(
-      {
-        text: nextValue,
-        mentions: [...retainedMentions, nextMention].sort((a, b) => a.start - b.start),
-      },
-      beforeSelection,
-      afterSelection
-    );
+    onChange({
+      text: nextValue,
+      mentions: [...retainedMentions, nextMention].sort((a, b) => a.start - b.start),
+    });
   };
 
-  const applyEdit = (
-    selection: EditorSelection,
-    replacement: string,
-    kind: Parameters<typeof commitHistory>[3] = 'other',
-    beforeSelection = selection
-  ) => {
+  const applyEdit = (selection: EditorSelection, replacement: string) => {
     const nextValue =
       value.slice(0, selection.start) + replacement + value.slice(selection.end);
     const nextMentions = reconcileMentions(value, nextValue, mentions);
@@ -310,16 +268,11 @@ export function MentionInput<TSuggestion>({
     const afterSelection = {start: nextCaret, end: nextCaret};
     dismissedRequestKeyRef.current = null;
     pendingSelectionRef.current = afterSelection;
-    commitHistory(
-      {text: nextValue, mentions: nextMentions},
-      beforeSelection,
-      afterSelection,
-      kind
-    );
+    onChange({text: nextValue, mentions: nextMentions});
     setActiveMention(findActiveMention(nextValue, nextCaret, nextCaret, sources));
   };
 
-  const syncValueFromEditor = (beforeSelection?: EditorSelection | null) => {
+  const syncValueFromEditor = () => {
     const input = inputRef.current;
     if (!input || isComposingRef.current) {
       return;
@@ -328,109 +281,17 @@ export function MentionInput<TSuggestion>({
     const nextValue = readEditorValue(input);
     const nextMentions = reconcileMentions(value, nextValue, mentions);
     const selection = getEditorSelection(input);
-    const nextSelection = selection ?? {start: nextValue.length, end: nextValue.length};
     if (selection) {
       pendingSelectionRef.current = selection;
     }
-    commitHistory(
-      {text: nextValue, mentions: nextMentions},
-      beforeSelection ?? nextSelection,
-      nextSelection
-    );
+    setNativeEditVersion(version => version + 1);
+    onChange({text: nextValue, mentions: nextMentions});
     setActiveMention(
       selection
         ? findActiveMention(nextValue, selection.start, selection.end, sources)
         : null
     );
   };
-
-  useEvent(inputRef, 'beforeinput', event => {
-    if (event.defaultPrevented || event.isComposing || isComposingRef.current) {
-      return;
-    }
-
-    const input = inputRef.current;
-    const selection = input ? getEditorSelection(input) : null;
-    if (!selection) {
-      return;
-    }
-
-    if (event.inputType === 'historyUndo' || event.inputType === 'historyRedo') {
-      event.preventDefault();
-      const restored =
-        event.inputType === 'historyUndo' ? undo(selection) : redo(selection);
-      if (restored) {
-        setActiveMention(null);
-      }
-      return;
-    }
-
-    if (event.inputType === 'insertText' && event.data !== null) {
-      event.preventDefault();
-      applyEdit(selection, event.data, 'insertText');
-      return;
-    }
-
-    if (event.inputType === 'insertLineBreak' || event.inputType === 'insertParagraph') {
-      event.preventDefault();
-      applyEdit(selection, '\n', 'other');
-      return;
-    }
-
-    if (
-      event.inputType === 'deleteContentBackward' ||
-      event.inputType === 'deleteContentForward'
-    ) {
-      event.preventDefault();
-      const direction =
-        event.inputType === 'deleteContentBackward' ? 'backward' : 'forward';
-      applyEdit(
-        getDeletionSelection(value, selection, direction),
-        '',
-        direction === 'backward' ? 'deleteBackward' : 'deleteForward',
-        selection
-      );
-    }
-  });
-
-  const editorContent = useMemo(() => {
-    const content: React.ReactNode[] = [];
-    let offset = 0;
-
-    for (const mention of mentions.toSorted((a, b) => a.start - b.start)) {
-      if (
-        mention.start < offset ||
-        mention.end <= mention.start ||
-        value.slice(mention.start, mention.end) !== mention.text
-      ) {
-        continue;
-      }
-
-      if (mention.start > offset) {
-        content.push(value.slice(offset, mention.start));
-      }
-
-      const mentionTextProps = getMentionTextProps?.(mention);
-      content.push(
-        <Text
-          as="span"
-          bold
-          variant="inherit"
-          key={`${mention.sourceId}:${mention.id}:${mention.start}`}
-          {...mentionTextProps}
-        >
-          {mention.text}
-        </Text>
-      );
-      offset = mention.end;
-    }
-
-    if (offset < value.length) {
-      content.push(value.slice(offset));
-    }
-
-    return content;
-  }, [getMentionTextProps, mentions, value]);
 
   const suggestionStatus =
     currentStatus === 'error'
@@ -442,12 +303,7 @@ export function MentionInput<TSuggestion>({
         : 'loading';
   const suggestionStatusContent =
     suggestionStatus && activeSource
-      ? renderSuggestionStatus
-        ? renderSuggestionStatus(suggestionStatus, {
-            query: activeMention?.query ?? '',
-            source: activeSource,
-          })
-        : getDefaultSuggestionStatus(suggestionStatus)
+      ? getDefaultSuggestionStatus(suggestionStatus)
       : null;
 
   return (
@@ -468,7 +324,6 @@ export function MentionInput<TSuggestion>({
         suppressContentEditableWarning
         tabIndex={editorProps.tabIndex ?? 0}
         onBlur={event => {
-          breakHistoryGroup();
           if (!overlayRef.current?.contains(event.relatedTarget)) {
             dismissedRequestKeyRef.current = null;
             setIsFocused(false);
@@ -478,18 +333,11 @@ export function MentionInput<TSuggestion>({
         }}
         onCompositionEnd={event => {
           isComposingRef.current = false;
-          setIsComposing(false);
-          syncValueFromEditor(compositionStartSelectionRef.current);
-          compositionStartSelectionRef.current = null;
+          syncValueFromEditor();
           onCompositionEnd?.(event);
         }}
         onCompositionStart={event => {
           isComposingRef.current = true;
-          compositionStartSelectionRef.current = inputRef.current
-            ? getEditorSelection(inputRef.current)
-            : null;
-          breakHistoryGroup();
-          setIsComposing(true);
           setActiveMention(null);
           onCompositionStart?.(event);
         }}
@@ -523,7 +371,7 @@ export function MentionInput<TSuggestion>({
               'text/plain',
               value.slice(selection.start, selection.end)
             );
-            applyEdit(selection, '', 'other', selection);
+            applyEdit(selection, '');
           }
         }}
         onFocus={event => {
@@ -544,31 +392,6 @@ export function MentionInput<TSuggestion>({
             isComposingRef.current
           ) {
             return;
-          }
-
-          const input = inputRef.current;
-          const selection = input ? getEditorSelection(input) : null;
-          const key = event.key.toLocaleLowerCase();
-          const hasCommandModifier = event.metaKey || event.ctrlKey;
-          const isUndo = hasCommandModifier && key === 'z' && !event.shiftKey;
-          const isRedo =
-            hasCommandModifier &&
-            ((key === 'z' && event.shiftKey) || (key === 'y' && !event.shiftKey));
-          if (selection && (isUndo || isRedo)) {
-            event.preventDefault();
-            const restored = isUndo ? undo(selection) : redo(selection);
-            if (restored) {
-              setActiveMention(null);
-            }
-            return;
-          }
-
-          if (
-            event.key.startsWith('Arrow') ||
-            event.key === 'Home' ||
-            event.key === 'End'
-          ) {
-            breakHistoryGroup();
           }
 
           if (isOpen) {
@@ -605,19 +428,13 @@ export function MentionInput<TSuggestion>({
             const selection = input ? getEditorSelection(input) : null;
             if (selection) {
               event.preventDefault();
-              applyEdit(
-                selection,
-                event.clipboardData.getData('text/plain'),
-                'other',
-                selection
-              );
+              applyEdit(selection, event.clipboardData.getData('text/plain'));
             }
           }
         }}
         onPointerUp={event => {
           onPointerUp?.(event);
           if (!event.defaultPrevented) {
-            breakHistoryGroup();
             dismissedRequestKeyRef.current = null;
             updateActiveMention();
           }
@@ -631,11 +448,7 @@ export function MentionInput<TSuggestion>({
           updateActiveMention();
           onSelect?.(event);
         }}
-      >
-        <CompositionRenderBlocker isComposing={isComposing}>
-          {editorContent}
-        </CompositionRenderBlocker>
-      </MentionEditor>
+      />
       <CaretAnchor aria-hidden ref={mergedCaretAnchorRef} />
       {isOpen ? (
         <PositionWrapper {...overlayProps} zIndex={theme.zIndex.dropdown}>

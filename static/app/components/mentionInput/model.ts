@@ -16,33 +16,6 @@ export interface MentionInputValue {
   text: string;
 }
 
-/** Removes stale, malformed, and overlapping mention ranges from a value. */
-export function normalizeMentionInputValue(value: MentionInputValue): MentionInputValue {
-  const mentions: Mention[] = [];
-  let previousEnd = 0;
-
-  for (const mention of value.mentions.toSorted((a, b) => a.start - b.start)) {
-    if (
-      !Number.isInteger(mention.start) ||
-      !Number.isInteger(mention.end) ||
-      mention.start < previousEnd ||
-      mention.end <= mention.start ||
-      mention.end > value.text.length ||
-      value.text.slice(mention.start, mention.end) !== mention.text
-    ) {
-      continue;
-    }
-
-    mentions.push(mention);
-    previousEnd = mention.end;
-  }
-
-  return mentions.length === value.mentions.length &&
-    mentions.every((mention, index) => mention === value.mentions[index])
-    ? value
-    : {text: value.text, mentions};
-}
-
 /**
  * Repositions mentions around a single plain-text edit and removes any mention
  * whose text was edited.

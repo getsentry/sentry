@@ -29,8 +29,9 @@ interface UseMentionSuggestionsOptions<T> {
   inputRef: React.RefObject<HTMLDivElement | null>;
   isOpen: boolean;
   listBoxRef: React.RefObject<HTMLUListElement | null>;
-  maxSuggestions: number;
 }
+
+const MAX_SUGGESTIONS = 50;
 
 const IDLE_SUGGESTIONS = {
   items: [],
@@ -44,7 +45,6 @@ export function useMentionSuggestions<T>({
   inputRef,
   isOpen,
   listBoxRef,
-  maxSuggestions,
 }: UseMentionSuggestionsOptions<T>) {
   const initializedFocusRequestRef = useRef<string | null>(null);
   const [suggestionState, setSuggestionState] =
@@ -73,7 +73,7 @@ export function useMentionSuggestions<T>({
 
     if (Array.isArray(suggestions)) {
       setSuggestionState({
-        items: suggestions.slice(0, maxSuggestions),
+        items: suggestions.slice(0, MAX_SUGGESTIONS),
         requestKey,
         status: 'ready',
       });
@@ -88,7 +88,7 @@ export function useMentionSuggestions<T>({
 
         startTransition(() => {
           setSuggestionState({
-            items: items.slice(0, maxSuggestions),
+            items: items.slice(0, MAX_SUGGESTIONS),
             requestKey,
             status: 'ready',
           });
@@ -102,7 +102,7 @@ export function useMentionSuggestions<T>({
     );
 
     return () => abortController.abort();
-  }, [activeQuery, activeSource, maxSuggestions, requestKey]);
+  }, [activeQuery, activeSource, requestKey]);
 
   const currentSuggestions = useMemo(
     () => (suggestionState.requestKey === requestKey ? suggestionState.items : []),

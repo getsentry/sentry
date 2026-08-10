@@ -1,4 +1,10 @@
-import type {MentionMatch, MentionMatchContext, MentionSource} from './types';
+import type {MentionSource} from './types';
+
+interface MentionMatch {
+  end: number;
+  query: string;
+  start: number;
+}
 
 export interface ActiveMention extends MentionMatch {
   sourceId: string;
@@ -12,12 +18,12 @@ function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function findDefaultMatch({
-  selectionEnd,
-  selectionStart,
-  text,
-  trigger,
-}: MentionMatchContext): MentionMatch | null {
+function findDefaultMatch(
+  text: string,
+  selectionStart: number,
+  selectionEnd: number,
+  trigger: string
+): MentionMatch | null {
   if (selectionStart !== selectionEnd) {
     return null;
   }
@@ -46,10 +52,7 @@ export function findActiveMention<T>(
   let activeMention: ActiveMention | null = null;
 
   for (const source of sources) {
-    const context = {text, selectionStart, selectionEnd, trigger: source.trigger};
-    const match = source.findMatch
-      ? source.findMatch(context)
-      : findDefaultMatch(context);
+    const match = findDefaultMatch(text, selectionStart, selectionEnd, source.trigger);
     if (!match || match.start < 0 || match.end < match.start || match.end > text.length) {
       continue;
     }
