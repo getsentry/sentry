@@ -378,8 +378,8 @@ function InternalInput({
         item.value === parameterDefinition.defaultValue
           ? {
               ...item,
-              label: parameterDefinition.defaultLabel!,
-              textValue: parameterDefinition.defaultLabel!,
+              label: parameterDefinition.defaultLabel,
+              textValue: parameterDefinition.defaultLabel,
             }
           : item
       );
