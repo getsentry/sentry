@@ -69,5 +69,22 @@ describe('Chip', () => {
       ),
       {tags: {variant: 'value', dismissable: 'true', area: 'core'}}
     );
+
+    it.snapshot(
+      'interactive-sections',
+      () => (
+        <ThemeProvider theme={themes[themeName]}>
+          <div style={{padding: 8}}>
+            <Chip.Root size="sm">
+              <Chip.Property onClick={() => {}}>browser</Chip.Property>
+              <Chip.Operator onClick={() => {}}>is</Chip.Operator>
+              <Chip.Value onClick={() => {}}>Chrome</Chip.Value>
+              <Chip.Dismiss onClick={() => {}} />
+            </Chip.Root>
+          </div>
+        </ThemeProvider>
+      ),
+      {tags: {variant: 'query', interactive: 'true', area: 'core'}}
+    );
   });
 });
