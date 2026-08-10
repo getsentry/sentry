@@ -162,6 +162,10 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         Project filtering is ALWAYS applied to ensure users can only
         access workflows connected to projects they have access to.
         """
+
+        if not request.user.is_authenticated:
+            return Workflow.objects.none()
+
         queryset: QuerySet[Workflow] = Workflow.objects.filter(organization_id=organization.id)
 
         if raw_idlist := request.GET.getlist("id"):
