@@ -187,10 +187,6 @@ type ChoiceMapperType = {
   type: 'choice_mapper';
 } & ChoiceMapperProps;
 
-type SentryOrganizationRoleSelectorType = {
-  type: 'sentry_organization_role_selector';
-};
-
 export type Field = (
   | CollapsibleSectionType
   | CustomType
@@ -201,7 +197,6 @@ export type Field = (
   | RangeType
   | TableType
   | ProjectMapperType
-  | SentryOrganizationRoleSelectorType
   | ChoiceMapperType
   | {type: FieldType}
   | FileType

@@ -20,7 +20,6 @@ import {RadioField, type RadioFieldProps} from './fields/radioField';
 import {RangeField, type RangeFieldProps} from './fields/rangeField';
 import {SecretField, type SecretFieldProps} from './fields/secretField';
 import {SelectField, type SelectFieldProps} from './fields/selectField';
-import {SentryOrganizationRoleSelectorField} from './fields/sentryOrganizationRoleSelectorField';
 import {TableField, type TableFieldProps} from './fields/tableField';
 import {TextareaField, type TextareaFieldProps} from './fields/textareaField';
 import {TextField, type TextFieldProps} from './fields/textField';
@@ -89,14 +88,6 @@ export function FieldFromConfig(props: FieldFromConfigProps): React.ReactElement
       return <TableField {...(componentProps as TableFieldProps)} />;
     case 'project_mapper':
       return <ProjectMapperField {...(componentProps as ProjectMapperProps)} />;
-    case 'sentry_organization_role_selector':
-      return (
-        <SentryOrganizationRoleSelectorField
-          {...(componentProps as React.ComponentProps<
-            typeof SentryOrganizationRoleSelectorField
-          >)}
-        />
-      );
     case 'file':
       return <FileField {...(componentProps as FileFieldProps)} />;
     case 'datetime':
