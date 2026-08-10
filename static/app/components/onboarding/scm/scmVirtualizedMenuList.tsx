@@ -36,7 +36,7 @@ export function ScmVirtualizedMenuList({
   innerRef,
   innerProps,
 }: ScmVirtualizedMenuListProps) {
-  const items = Array.isArray(children) ? children : [];
+  const items: React.ReactNode[] = Array.isArray(children) ? children : [];
   const scrollRef = useRef<HTMLDivElement>(null);
   const combinedRef = mergeRefs(scrollRef, innerRef ?? null);
   const visibleOptionCount = Math.max(
