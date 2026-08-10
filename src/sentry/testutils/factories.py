@@ -93,8 +93,6 @@ from sentry.investigations.models import (
     InvestigationCellParameter,
     InvestigationFavoriteUser,
     InvestigationParameter,
-    InvestigationPermissions,
-    InvestigationPermissionsTeam,
     InvestigationProject,
 )
 from sentry.issue_detection.performance_problem import PerformanceProblem
@@ -446,18 +444,6 @@ class Factories:
         return InvestigationFavoriteUser.objects.create(
             investigation=investigation, user_id=user.id
         )
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
-    def create_investigation_permissions(investigation, teams=None, **kwargs):
-        permissions = InvestigationPermissions.objects.create(investigation=investigation, **kwargs)
-        InvestigationPermissionsTeam.objects.bulk_create(
-            [
-                InvestigationPermissionsTeam(permissions=permissions, team=team)
-                for team in teams or []
-            ]
-        )
-        return permissions
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

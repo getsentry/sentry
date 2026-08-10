@@ -193,9 +193,6 @@ class Fixtures:
     def create_investigation_favorite(self, *args, **kwargs):
         return Factories.create_investigation_favorite(*args, **kwargs)
 
-    def create_investigation_permissions(self, *args, **kwargs):
-        return Factories.create_investigation_permissions(*args, **kwargs)
-
     def create_investigation_cell(self, *args, **kwargs):
         return Factories.create_investigation_cell(*args, **kwargs)
 
