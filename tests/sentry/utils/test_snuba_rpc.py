@@ -2,6 +2,7 @@ from typing import Any
 from unittest import mock
 
 import pytest
+from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import (
     CreateSubscriptionRequest,
     CreateSubscriptionResponse,
@@ -147,6 +148,29 @@ def _export_logs_response() -> ExportTraceItemsResponse:
     response.trace_items.add()
     response.trace_items.add()
     return response
+
+
+def test_export_trace_items_defaults_to_highest_accuracy() -> None:
+    request = ExportTraceItemsRequest(meta=_meta())
+
+    snuba_rpc._set_export_trace_items_default_sampling(request)
+
+    assert (
+        request.meta.downsampled_storage_config.mode
+        == DownsampledStorageConfig.MODE_HIGHEST_ACCURACY_FLEXTIME
+    )
+
+
+def test_export_trace_items_preserves_explicit_sampling_mode() -> None:
+    request = ExportTraceItemsRequest(meta=_meta())
+    request.meta.downsampled_storage_config.mode = DownsampledStorageConfig.MODE_HIGHEST_ACCURACY
+
+    snuba_rpc._set_export_trace_items_default_sampling(request)
+
+    assert (
+        request.meta.downsampled_storage_config.mode
+        == DownsampledStorageConfig.MODE_HIGHEST_ACCURACY
+    )
 
 
 @pytest.mark.parametrize(

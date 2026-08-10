@@ -13,6 +13,7 @@ from google.protobuf.json_format import MessageToJson
 from google.protobuf.message import DecodeError as ProtobufDecodeError
 from google.protobuf.message import Message as ProtobufMessage
 from rest_framework.exceptions import NotFound
+from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import (
     CreateSubscriptionRequest,
     CreateSubscriptionResponse,
@@ -399,6 +400,18 @@ def export_logs_rpc(req: ExportTraceItemsRequest) -> ExportTraceItemsResponse:
     return response
 
 
+def _set_export_trace_items_default_sampling(req: SnubaRPCRequest) -> None:
+    """Use the highest-accuracy tier when an export request has no sampling mode."""
+    if not isinstance(req, ExportTraceItemsRequest) or req.meta.HasField(
+        "downsampled_storage_config"
+    ):
+        return
+
+    req.meta.downsampled_storage_config.mode = (
+        DownsampledStorageConfig.MODE_HIGHEST_ACCURACY_FLEXTIME
+    )
+
+
 @trace
 def _make_rpc_request(
     endpoint_name: str,
@@ -409,6 +422,8 @@ def _make_rpc_request(
     thread_current_scope: sentry_sdk.Scope | None = None,
     debug: str | bool = False,
 ) -> BaseHTTPResponse:
+    _set_export_trace_items_default_sampling(req)
+
     try:
         logger_extra: dict[str, object] = {
             "rpc_query": json.loads(MessageToJson(req)),  # type: ignore[arg-type]
