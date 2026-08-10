@@ -33,8 +33,9 @@ declare global {
   }
 
   namespace React {
-    interface DOMAttributes<_T> {
-      'data-test-id'?: string;
+    interface DOMAttributes<T> {
+      // Keep T referenced because declaration merging requires this to exactly match React's generic.
+      'data-test-id'?: string | (T & never);
     }
   }
 }
