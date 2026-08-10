@@ -93,8 +93,7 @@ def _suite(
         "head_sha": head_sha,
     }
     if check_suite_id is not None:
-        # Mirrors the write path: the suite id is merged into the doc payload only
-        # when the webhook carried one.
+        # Mirrors the write path: the suite id is only merged in when present.
         payload["check_suite_id"] = check_suite_id
     apply_activity(
         doc,
@@ -620,10 +619,8 @@ def test_distinct_head_sha_app_slug_and_suite_are_distinct_groups() -> None:
 
 
 def test_suites_from_one_app_at_same_head_keep_their_conclusions() -> None:
-    # The regression this grouping fixes: github-actions emits one suite per
-    # workflow run, and under (head_sha, app_slug) grouping the last suite to
-    # complete overwrote every other workflow's conclusion — a failed workflow
-    # was erased by a later green one.
+    # The regression this fixes: one app emits one suite per workflow run, and
+    # per-app grouping let the last suite to complete overwrite the others.
     doc = new_document()
     _suite(doc, check_suite_id=1, conclusion="failure", updated_at="2026-07-10T12:00:00Z")
     _suite(doc, check_suite_id=2, conclusion="success", updated_at="2026-07-10T12:05:00Z")
@@ -650,10 +647,8 @@ def test_same_named_runs_in_different_suites_do_not_collide() -> None:
 
 
 def test_event_without_suite_id_folds_into_legacy_key() -> None:
-    # A payload with no suite id (a document written before the per-suite split
-    # keeps receiving events shaped by the old code during a rolling deploy, or a
-    # provider payload lacks the id) falls back to the suite-less key and keeps
-    # converging there.
+    # No suite id (pre-split documents, old processors during the rolling
+    # deploy, or a payload lacking the id) → the suite-less legacy key.
     doc = new_document()
     _suite(doc, check_suite_id=None, conclusion="failure", updated_at="2026-07-10T12:00:00Z")
     assert set(doc["checks"].keys()) == {"sha1|github-actions"}
@@ -664,10 +659,9 @@ def test_event_without_suite_id_folds_into_legacy_key() -> None:
 
 
 def test_suite_scoped_event_leaves_pre_split_group_untouched() -> None:
-    # A stored document written before the per-suite split holds one merged group
-    # per (head_sha, app_slug), without a check_suite_id key. A new suite-scoped
-    # event must not fold into it — it would corrupt it the old way — so the
-    # merged group stays frozen next to the new per-suite groups.
+    # A pre-split document holds one merged group per (head_sha, app_slug) with
+    # no check_suite_id key. Suite-scoped events must not fold into it — it
+    # stays frozen beside the new per-suite groups.
     doc = new_document()
     legacy_group: Any = {
         "head_sha": "sha1",
@@ -686,12 +680,9 @@ def test_suite_scoped_event_leaves_pre_split_group_untouched() -> None:
 
 
 def test_timeline_forwards_both_merged_and_suite_groups_for_same_head() -> None:
-    # The state a rolling deploy produces on a live PR: id-less events (from
-    # not-yet-updated processors) fold into the merged legacy group while
-    # id-carrying events build per-suite groups beside it, and the merged group
-    # then persists for the rest of the document's life. Both representations of
-    # the same head+app reach the judge, each with its own conclusion — the
-    # frozen failure is double-reported rather than erased.
+    # The rolling-deploy state: id-less events fold into the merged group while
+    # id-carrying events build per-suite groups beside it. Both reach the judge,
+    # each with its own conclusion — the frozen failure is reported, not erased.
     doc = new_document()
     _suite(doc, check_suite_id=None, conclusion="failure", updated_at="2026-07-10T12:00:00Z")
     _suite(doc, check_suite_id=2, conclusion="success", updated_at="2026-07-10T12:05:00Z")
@@ -1182,9 +1173,8 @@ def test_timeline_projects_entries_and_synthesized_suite() -> None:
 
 
 def test_timeline_synthesizes_one_event_per_suite() -> None:
-    # Each suite is its own group, so the judge sees one completion per suite —
-    # mirroring GitHub's own webhooks — instead of one per app whose conclusion
-    # was whatever suite happened to finish last.
+    # One synthesized completion per suite — GitHub's own cardinality — instead
+    # of one per app carrying whichever suite finished last.
     doc = new_document()
     _run(doc, check_suite_id=1, check_name="test", conclusion="failure")
     _suite(doc, check_suite_id=1, conclusion="failure", updated_at="2026-07-10T12:01:00Z")

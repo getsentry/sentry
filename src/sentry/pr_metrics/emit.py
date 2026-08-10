@@ -233,11 +233,9 @@ _FAILING_CHECK_CONCLUSIONS = frozenset({"failure", "timed_out", "startup_failure
 def _any_group_failing(groups: Iterable[activity_doc.CheckGroup]) -> bool:
     """Whether any check-suite group's latest conclusion is a failure.
 
-    Shared by every doc-store reader over the checks rollup: groups are per check
-    suite and each keeps that suite's latest conclusion (a rerun of the suite —
-    no new push — overwrites the earlier one), so one workflow's late green never
-    masks another workflow's standing failure and this is just the
-    narrow-vocabulary failing check.
+    Shared by every doc-store reader over the checks rollup. Groups are per check
+    suite (a rerun overwrites its own suite's conclusion only), so one workflow's
+    late green never masks another workflow's standing failure.
     """
     return any(group.get("suite_conclusion") in _FAILING_CHECK_CONCLUSIONS for group in groups)
 
@@ -278,11 +276,9 @@ def _ci_failing_at_close(
     identical query, so ``doc`` is mandatory here rather than optional.
     """
     if doc is not None:
-        # Same narrow failing vocabulary and suite-only read as the legacy path
-        # (a check_run-only app has no suite conclusion and doesn't count).
-        # Deliberately sharper than the legacy latest-per-app collapse: groups
-        # are per suite, so an app running several workflows reports a failure
-        # any one of them left standing.
+        # Same narrow failing vocabulary and suite-only read as the legacy path,
+        # but per-suite: a failure any workflow left standing is reported, not
+        # just the app's latest suite to complete.
         return _any_group_failing(doc.get("checks", {}).values())
 
     rows = (

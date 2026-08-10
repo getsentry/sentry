@@ -32,15 +32,11 @@ MAX_EVENTS = 500
 # the events cap: below MAX_SYNC_CHAIN the chain is complete; past it the NEWEST
 # links — the ones the head-anchored commit-chain walk starts from — are retained.
 MAX_SYNC_CHAIN = 500
-# Check-rollup bounds, each surfaced via log + metric when hit. Groups are per
-# ``(head_sha, app_slug, check_suite_id)`` and one app emits one suite per
-# workflow run. ``MAX_GROUPS_PER_HEAD`` bounds a single head's suite fan-out so
-# a suite-spam pathology (e.g. a workflow re-trigger loop) cannot evict every
-# other head out of the document; the busiest observed repo emits ~26 suites
-# across all apps on one head, so 40 sits above real CI. ``MAX_CHECK_GROUPS``
-# bounds the document across heads (~10 spam-free busiest-repo heads, ~30
-# typical ones). ``MAX_RUNS_PER_GROUP`` bounds the ever-failing runs tracked
-# per group.
+# Check-rollup caps, each eviction surfaced via log + metric. MAX_GROUPS_PER_HEAD
+# bounds one head's suite fan-out (the busiest observed repo emits ~26 suites per
+# head across all apps) so suite spam can't evict other heads; MAX_CHECK_GROUPS
+# bounds the document across heads; MAX_RUNS_PER_GROUP bounds the ever-failing
+# runs tracked per group.
 MAX_CHECK_GROUPS = 300
 MAX_GROUPS_PER_HEAD = 40
 MAX_RUNS_PER_GROUP = 50
@@ -70,10 +66,9 @@ class CheckRun(TypedDict):
 class CheckGroup(TypedDict):
     head_sha: str
     app_slug: str
-    # Numeric id of the owning check suite (``check_suite.id``). Groups persisted
-    # before the per-suite split lack the key entirely (readers must ``.get``);
-    # None when the payload carried no suite id, in which case the group also
-    # keys on the suite-less legacy form (see ``_get_or_create_group``).
+    # Numeric id of the owning check suite (``check_suite.id``); None when the
+    # payload carried none. Absent entirely in groups persisted before the
+    # per-suite split — readers must ``.get``.
     check_suite_id: int | None
     suite_conclusion: str | None
     suite_updated_at: str | None
@@ -331,12 +326,10 @@ def _apply_check_suite(
     check_suite_id)`` group.
 
     The suite carries the aggregate conclusion (latest verdict wins on
-    ``updated_at`` — see :func:`_wins_conclusion` for why an aborted suite does not
-    count) and the run count (``max`` of ``latest_check_runs_count``). Grouping is
-    per suite, so latest-wins only ever arbitrates reruns of the *same* suite,
-    never unrelated workflows from the same app. A failing suite also lowers
-    ``first_failure_at`` so the signal survives even for CI apps that only emit
-    suite events.
+    ``updated_at`` — see :func:`_wins_conclusion`; per-suite grouping means this
+    only ever arbitrates reruns of the same suite) and the run count (``max`` of
+    ``latest_check_runs_count``). A failing suite also lowers ``first_failure_at``
+    so the signal survives even for CI apps that only emit suite events.
     """
     group = _get_or_create_group(doc, payload)
 
@@ -414,34 +407,23 @@ def _apply_check_run(
 def _get_or_create_group(doc: ActivityDoc, payload: Mapping[str, Any]) -> CheckGroup:
     """The rollup for a check payload's ``(head_sha, app_slug, check_suite_id)``.
 
-    Per-suite, not per-app: one GitHub App emits one check suite per workflow run
-    (a workflow-heavy repo raises many github-actions suites on a single head), so
-    folding an app's suites together let the last suite to complete overwrite every
-    other workflow's conclusion, run count, and same-named runs. The suite id keeps
-    concurrent workflows apart, while a rerun of one suite (same id) still
-    converges latest-wins.
+    Per-suite, not per-app: one app emits one suite per workflow run, so folding
+    an app's suites together let the last suite to complete overwrite every other
+    workflow's conclusion, run count, and same-named runs.
 
-    A payload without a suite id falls back to the suite-less legacy key. That
-    keeps two populations working with no migration: documents persisted before
-    the split keep resolving their merged per-app groups, and during a rolling
-    deploy — updated and not-yet-updated webhook processors interleaving on the
-    same live PR — the id-less half keeps folding into the merged group while
-    the id-carrying half builds per-suite groups beside it. Suite-scoped events
-    never fold into a merged group, so once the rollout completes the merged
-    group freezes and persists for the rest of the document's life (the document
-    is only swept after terminal emit). Readers that scan every group
-    (``_any_group_failing``) see such a head+app twice, and a failure frozen in
-    the merged group is not cleared by suite-scoped greens — over-reporting a
-    recorded failure is accepted over erasing one.
+    A payload without a suite id falls back to the suite-less legacy key, so
+    pre-split documents — and id-less events from not-yet-updated processors
+    during the rolling deploy — keep folding into their merged groups with no
+    migration. Suite-scoped events never fold into a merged group: it freezes and
+    persists until the post-emit sweep, so readers that scan every group (e.g.
+    ``_any_group_failing``) see such a head+app twice and a frozen failure is not
+    cleared by suite-scoped greens — accepted over erasing a recorded failure.
 
-    Existing groups always resolve. A newcomer past a cap evicts the
-    least-recently-updated group (by ``last_event_at``) rather than being
-    dropped: the judge cares most about the *final* head's CI state, so a PR
-    that fills a cap must not freeze on stale entries and silently drop a
-    failing check that lands later. ``MAX_GROUPS_PER_HEAD`` evicts within the
-    newcomer's head, so one head's suite spam degrades only that head;
-    ``MAX_CHECK_GROUPS`` evicts document-wide, shedding the stalest head first
-    on many-push PRs. Each eviction is a cap hit, surfaced via a log + metric.
+    A newcomer past a cap evicts the least-recently-updated group rather than
+    being dropped (the judge cares most about the *final* head's CI state):
+    ``MAX_GROUPS_PER_HEAD`` evicts within the newcomer's head, so suite spam
+    degrades only that head; ``MAX_CHECK_GROUPS`` evicts document-wide, shedding
+    the stalest head first.
     """
     head_sha = payload.get("head_sha") or ""
     app_slug = payload.get("app_slug") or ""
@@ -524,11 +506,9 @@ def _min_ts(current: str | None, candidate: str | None) -> str | None:
 
 # --- readers: pure projections of a stored document -----------------------
 
-# The judge forward collapses each checks group into one synthesized event and
-# caps the number forwarded, mirroring the legacy row cap. Per-suite grouping can
-# store more groups than this (``MAX_CHECK_GROUPS``), so past the cap only the
-# most recently updated groups — the final heads' CI state, which the judge cares
-# most about — are forwarded.
+# The judge forward collapses each checks group into one synthesized event,
+# mirroring the legacy row cap. The store can hold more (MAX_CHECK_GROUPS);
+# past this cap only the most recently updated groups are forwarded.
 MAX_FORWARDED_CHECK_GROUPS = 100
 
 
@@ -712,8 +692,7 @@ def _synthesized_check_suite_payload(group: CheckGroup) -> dict[str, Any]:
         # Additive keys the legacy row forward never carried (Seer ignores unknown
         # payload keys, so this doesn't change the wire contract).
         "head_sha": group.get("head_sha", ""),
-        # None for groups persisted before the per-suite split (one merged group
-        # per app) and for payloads that carried no suite id.
+        # None for pre-split merged groups and payloads without a suite id.
         "check_suite_id": group.get("check_suite_id"),
         "failing_check_names": sorted(
             name for name, run in runs.items() if is_failing_conclusion(run.get("conclusion"))

@@ -193,12 +193,9 @@ class ActivityDocumentReadersTest(TestCase):
         assert _ci_failing_at_close(self.pr, doc=load_activity_document(self.pr)) is True
 
     def test_ci_failing_at_close_mixed_merged_and_suite_groups_keeps_frozen_failure(self) -> None:
-        # The rolling-deploy state: id-less events froze a failure into the
-        # merged legacy group, then suite-scoped greens landed beside it under
-        # per-suite keys. Any-failure-wins across all groups means the frozen
-        # failure is still reported for the document's whole life — the accepted
-        # over-report documented on _get_or_create_group, chosen over erasing a
-        # recorded failure.
+        # Rolling-deploy state: a failure frozen in the merged legacy group,
+        # suite-scoped greens beside it. Any-failure-wins keeps reporting it for
+        # the document's life — the accepted over-report, not an erasure.
         self._write_doc(
             _doc(
                 checks={
