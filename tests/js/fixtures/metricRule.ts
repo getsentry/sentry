@@ -1,7 +1,7 @@
 import {IncidentTriggerFixture} from 'sentry-fixture/incidentTrigger';
 
 import type {SavedMetricRule} from 'sentry/views/alerts/rules/metric/types';
-import {AlertRuleComparisonType, Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 export function MetricRuleFixture(
   params: Partial<SavedMetricRule> = {}
@@ -23,7 +23,7 @@ export function MetricRuleFixture(
     thresholdType: 0,
     thresholdPeriod: 1,
     environment: null,
-    detectionType: AlertRuleComparisonType.COUNT,
+    detectionType: 'count',
     ...params,
   };
 }

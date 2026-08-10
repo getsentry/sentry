@@ -8,6 +8,8 @@ contract, and loosening them here means Seer adding a new signal source or
 confidence level can't make an otherwise-valid artifact fail to parse. `reason`
 and `confidence` are defaulted so a minimal-but-valid candidate (one that at least
 names someone) still round-trips.
+
+Also includes some utility functions for validating assignments.
 """
 
 from __future__ import annotations
@@ -17,6 +19,7 @@ from typing import Literal
 from django.db import models
 from pydantic import BaseModel, Field
 
+from sentry.models.activity import Activity, ActivityIntegration
 from sentry.types.activity import ActivityType
 
 # SeerAgentRun.source, the key we dedup/look up runs by.
@@ -36,6 +39,25 @@ RESOLUTION_ACTIVITIES = frozenset(
         ActivityType.SET_RESOLVED_IN_COMMIT,
     }
 )
+
+# We invalidate scoring against "ground truth" assignments from these sources, because they're
+# basically non-human actions: our own auto-assignment, project ownership, CODEOWNERS,
+# and the suspect commit feature. The agent is likely to make similar choices, so scoring
+# against these would inflate our success rate.
+UNSCORABLE_ASSIGNMENT_ORIGINS = frozenset(
+    {
+        ActivityIntegration.SEER_SUGGESTED.value,
+        ActivityIntegration.PROJECT_OWNERSHIP.value,
+        ActivityIntegration.CODEOWNERS.value,
+        ActivityIntegration.SUSPECT_COMMITTER.value,
+    }
+)
+
+
+def is_unscorable_assignment(activity: Activity | None) -> bool:
+    if activity is None or activity.type != ActivityType.ASSIGNED.value:
+        return False
+    return (activity.data or {}).get("integration") in UNSCORABLE_ASSIGNMENT_ORIGINS
 
 
 class SmartAssignmentScore(models.TextChoices):

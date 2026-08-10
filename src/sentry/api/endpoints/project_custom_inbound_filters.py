@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from enum import StrEnum
 from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema
@@ -18,37 +17,18 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.parameters import GlobalParams
-from sentry.models.custominboundfilter import CustomInboundFilter
+from sentry.models.custominboundfilter import (
+    DATA_TYPE_BY_CONDITION_TYPE,
+    CustomInboundFilter,
+    CustomInboundFilterConditionType,
+    CustomInboundFilterDataType,
+)
 from sentry.models.project import Project
+from sentry.tasks.relay import schedule_invalidate_project_config
 
 MAX_CONDITIONS_PER_FILTER = 10
 MAX_FILTERS_PER_PROJECT = 50
 
-
-class CustomInboundFilterConditionType(StrEnum):
-    ERROR_TYPE = "error_type"
-    ERROR_MESSAGE = "error_message"
-    LOG_MESSAGE = "log_message"
-    METRIC_NAME = "metric_name"
-    RELEASE = "release"
-
-
-class CustomInboundFilterDataType(StrEnum):
-    ERROR = "error"
-    LOG = "log"
-    METRIC = "metric"
-
-
-# The data type each condition reads a field of. `release` is absent because every
-# data type carries a release, so it does not tie a filter to one data type.
-_DATA_TYPE_BY_CONDITION_TYPE: Mapping[
-    CustomInboundFilterConditionType, CustomInboundFilterDataType
-] = {
-    CustomInboundFilterConditionType.ERROR_TYPE: CustomInboundFilterDataType.ERROR,
-    CustomInboundFilterConditionType.ERROR_MESSAGE: CustomInboundFilterDataType.ERROR,
-    CustomInboundFilterConditionType.LOG_MESSAGE: CustomInboundFilterDataType.LOG,
-    CustomInboundFilterConditionType.METRIC_NAME: CustomInboundFilterDataType.METRIC,
-}
 
 # Ingestion feature an organization needs before a filter can target a data type.
 # Errors need none.
@@ -106,9 +86,9 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
         condition_types = {condition["type"] for condition in conditions}
 
         data_types = {
-            _DATA_TYPE_BY_CONDITION_TYPE[condition_type]
+            DATA_TYPE_BY_CONDITION_TYPE[condition_type]
             for condition_type in condition_types
-            if condition_type in _DATA_TYPE_BY_CONDITION_TYPE
+            if condition_type in DATA_TYPE_BY_CONDITION_TYPE
         }
         if len(data_types) > 1:
             raise serializers.ValidationError(
@@ -249,6 +229,7 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
             event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER"),
             data=self.get_audit_log_data(project, custom_filter, "add"),
         )
+        schedule_invalidate_project_config(project_id=project.id, trigger="custom_inbound_filters")
 
         return Response(serializer.data, status=201)
 
@@ -342,6 +323,10 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
                 event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER"),
                 data=self.get_audit_log_data(project, custom_filter, "edit", changes),
             )
+            if changes.keys() & {"active", "conditions"}:
+                schedule_invalidate_project_config(
+                    project_id=project.id, trigger="custom_inbound_filters"
+                )
 
         return Response(CustomInboundFilterSerializer(custom_filter).data)
 
@@ -377,5 +362,6 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
             event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER"),
             data=audit_log_data,
         )
+        schedule_invalidate_project_config(project_id=project.id, trigger="custom_inbound_filters")
 
         return Response(status=204)

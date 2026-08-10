@@ -271,6 +271,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
             containerRef={containerRef}
             event={props.event}
             groupId={props.event.groupID}
+            source={props.source}
             tree={props.tree}
             viewManager={viewManager}
           />

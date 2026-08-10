@@ -81,7 +81,7 @@ export function generateLinkToEventInTraceView({
   if (!traceSlug) {
     Sentry.withScope(scope => {
       scope.setExtras({traceSlug, source});
-      scope.setLevel('warning' as any);
+      scope.setLevel('warning');
       Sentry.captureException(new Error('Trace slug is missing'));
     });
   }

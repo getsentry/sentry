@@ -78,7 +78,6 @@ def _register_subscription_tasks() -> None:
         @instrumented_task(
             name=f"sentry.snuba.query_subscriptions.run.process_{name}_subscription_from_kafka",
             namespace=namespace,
-            processing_deadline_duration=60,
             silo_mode=SiloMode.CELL,
         )
         def task_fn(message_bytes: bytes, _d: Dataset = dataset) -> None:

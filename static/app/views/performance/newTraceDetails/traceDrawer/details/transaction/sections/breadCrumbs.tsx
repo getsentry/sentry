@@ -10,7 +10,7 @@ import {BreadcrumbsTimeline} from 'sentry/components/events/breadcrumbs/breadcru
 import {
   BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
   BreadcrumbTimeDisplay,
-  getEnhancedBreadcrumbs,
+  getEnhancedBreadcrumbsFromValues,
   useBreadcrumbFilters,
 } from 'sentry/components/events/breadcrumbs/utils';
 import {
@@ -21,13 +21,19 @@ import {
 } from 'sentry/components/events/interfaces/breadcrumbs';
 import {IconFilter, IconSearch, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {EventTransaction} from 'sentry/types/event';
+import type {RawCrumb} from 'sentry/types/breadcrumbs';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 const MAX_BREADCRUMBS_HEIGHT = 400;
 
-export function BreadCrumbs({event}: {event: EventTransaction}) {
+export function BreadCrumbs({
+  breadcrumbs,
+  meta,
+}: {
+  breadcrumbs: {values: RawCrumb[]};
+  meta?: Record<number, any>;
+}) {
   const theme = useTheme();
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const [search, setSearch] = useState('');
@@ -42,15 +48,16 @@ export function BreadCrumbs({event}: {event: EventTransaction}) {
   );
 
   const enhancedCrumbs = useMemo(
-    () => getEnhancedBreadcrumbs(event, theme),
-    [event, theme]
+    () =>
+      getEnhancedBreadcrumbsFromValues({breadcrumbs: breadcrumbs.values, theme, meta}),
+    [breadcrumbs, meta, theme]
   );
 
   const {filterOptions, applyFilters} = useBreadcrumbFilters(enhancedCrumbs);
 
   const displayCrumbs = useMemo(() => {
     const sortedCrumbs =
-      sort === BreadcrumbSort.OLDEST ? enhancedCrumbs : [...enhancedCrumbs].reverse();
+      sort === BreadcrumbSort.OLDEST ? enhancedCrumbs : enhancedCrumbs.toReversed();
     const filteredCrumbs = applyFilters(sortedCrumbs, filters);
     const searchedCrumbs = applyBreadcrumbSearch(filteredCrumbs, search);
     return searchedCrumbs;

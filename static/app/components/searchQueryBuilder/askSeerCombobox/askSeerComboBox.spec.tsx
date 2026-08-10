@@ -166,6 +166,39 @@ describe('AskSeerComboBox', () => {
     expect(header).toBeInTheDocument();
   });
 
+  it('shows a processing status while Seer is thinking', async () => {
+    const reworkedOrganization = {
+      ...organization,
+      features: [...organization.features, 'gen-ai-ask-seer-ux-rework'],
+    };
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-explorer-ai/query/',
+      method: 'POST',
+      body: new Promise(() => {}),
+    });
+
+    render(
+      <SearchQueryBuilderProvider {...defaultProps}>
+        <AskSeerComboBox
+          initialQuery=""
+          askSeerMutationOptions={askSeerMutationOptions}
+          applySeerSearchQuery={() => {}}
+        />
+      </SearchQueryBuilderProvider>,
+      {organization: reworkedOrganization}
+    );
+
+    const input = await screen.findByRole('combobox', {
+      name: 'Ask Seer with Natural Language',
+    });
+    await userEvent.type(input, 'test{Enter}');
+
+    expect(await screen.findByText('Let me think about that...')).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', {name: 'Seer is processing your query'})
+    ).toBeInTheDocument();
+  });
+
   it('only shows the reworked footer after results are displayed', async () => {
     const reworkedOrganization = {
       ...organization,
@@ -304,6 +337,73 @@ describe('AskSeerComboBox', () => {
     expect(filter).toBeInTheDocument();
     expect(screen.getByText('Do any of these look right to you?')).toBeInTheDocument();
     expect(screen.queryByText('Time Range')).not.toBeInTheDocument();
+  });
+
+  it('shows a success status after a reworked Seer search completes', async () => {
+    const reworkedOrganization = {
+      ...organization,
+      features: [...organization.features, 'gen-ai-ask-seer-ux-rework'],
+    };
+
+    render(
+      <SearchQueryBuilderProvider {...defaultProps}>
+        <AskSeerComboBox
+          initialQuery=""
+          askSeerMutationOptions={askSeerMutationOptions}
+          applySeerSearchQuery={() => {}}
+        />
+      </SearchQueryBuilderProvider>,
+      {organization: reworkedOrganization}
+    );
+
+    const input = await screen.findByRole('combobox', {
+      name: 'Ask Seer with Natural Language',
+    });
+    await userEvent.type(input, 'test{Enter}');
+
+    expect(await screen.findByText('Filter')).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', {name: 'Seer processed your query'})
+    ).toBeInTheDocument();
+  });
+
+  it('shows a warning status when Seer returns an unsupported reason', async () => {
+    const reworkedOrganization = {
+      ...organization,
+      features: [...organization.features, 'gen-ai-ask-seer-ux-rework'],
+    };
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-explorer-ai/query/',
+      method: 'POST',
+      body: {
+        status: 'ok',
+        queries: [],
+        unsupported_reason: 'This query type is not supported yet',
+      },
+    });
+
+    render(
+      <SearchQueryBuilderProvider {...defaultProps}>
+        <AskSeerComboBox
+          initialQuery=""
+          askSeerMutationOptions={askSeerMutationOptions}
+          applySeerSearchQuery={() => {}}
+        />
+      </SearchQueryBuilderProvider>,
+      {organization: reworkedOrganization}
+    );
+
+    const input = await screen.findByRole('combobox', {
+      name: 'Ask Seer with Natural Language',
+    });
+    await userEvent.type(input, 'test{Enter}');
+
+    expect(
+      await screen.findByText('This query type is not supported yet')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', {name: 'Seer does not support this query'})
+    ).toBeInTheDocument();
   });
 
   it('middle-ellipsizes long query tokens', async () => {
@@ -517,8 +617,11 @@ describe('AskSeerComboBox', () => {
     expect(errorMessage).toBeInTheDocument();
     expect(screen.getByRole('img', {name: 'Error'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Give Feedback'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', {name: 'Seer could not process your query'})
+    ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Try again'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Try again'}));
 
     await waitFor(() => expect(queryRequest).toHaveBeenCalledTimes(2));
   });
@@ -552,6 +655,9 @@ describe('AskSeerComboBox', () => {
     expect(screen.queryByRole('img', {name: 'Error'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Try again'})).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Give Feedback'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('img', {name: 'Seer could not process your query'})
+    ).not.toBeInTheDocument();
   });
 
   it('does not render if the organization does not have the gen-ai-features feature', () => {

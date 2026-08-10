@@ -70,7 +70,7 @@ export function initializeOrg<RouterParams = {orgId: string; projectId: string}>
    */
   const routerProps: RouteComponentProps<RouterParams> = {
     params: router.params as any,
-    routeParams: router.params as any,
+    routeParams: router.params,
     router,
     route: router.routes[0]!,
     routes: router.routes,

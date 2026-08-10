@@ -14,8 +14,10 @@ from sentry.models.rule import Rule
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import TaskRunner
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
+from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.models import (
     Action,
@@ -59,6 +61,23 @@ class OrganizationWorkflowIndexGetTest(OrganizationWorkflowDetailsBaseTest):
         workflow.save()
         self.get_error_response(self.organization.slug, workflow.id, status_code=404)
 
+    @with_feature("organizations:workflow-engine-all-projects-detector")
+    def test_all_projects_workflow(self) -> None:
+        workflow = self.create_workflow(organization_id=self.organization.id)
+        detector = ensure_default_all_projects_detector(self.organization.id)
+        self.create_detector_workflow(workflow=workflow, detector=detector)
+
+        response = self.get_success_response(self.organization.slug, workflow.id)
+
+        assert response.data["id"] == str(workflow.id)
+
+    def test_all_projects_workflow_without_feature(self) -> None:
+        workflow = self.create_workflow(organization_id=self.organization.id)
+        detector = ensure_default_all_projects_detector(self.organization.id)
+        self.create_detector_workflow(workflow=workflow, detector=detector)
+
+        self.get_error_response(self.organization.slug, workflow.id, status_code=403)
+
 
 @cell_silo_test
 class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWorkflowTest):
@@ -98,6 +117,26 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         assert response.status_code == 200
         assert updated_workflow.name == "Updated Workflow"
+
+    def test_all_projects_workflow_requires_org_write(self) -> None:
+        detector = ensure_default_all_projects_detector(self.organization.id)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        member = self.create_user()
+        self.create_member(
+            user=member, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.organization.update_option("sentry:alerts_member_write", True)
+        self.login_as(member)
+
+        self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data={**self.valid_workflow, "name": "Unauthorized update"},
+            status_code=403,
+        )
+
+        self.workflow.refresh_from_db()
+        assert self.workflow.name != "Unauthorized update"
 
     def test_update_action_filter_with_string_encoded_id(self) -> None:
         dcg = DataConditionGroup.objects.create(
@@ -937,6 +976,21 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         self.workflow.refresh_from_db()
         assert self.workflow.status == ObjectStatus.PENDING_DELETION
 
+    def test_all_projects_workflow_requires_org_write(self) -> None:
+        detector = ensure_default_all_projects_detector(self.organization.id)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        member = self.create_user()
+        self.create_member(
+            user=member, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.organization.update_option("sentry:alerts_member_write", True)
+        self.login_as(member)
+
+        self.get_error_response(self.organization.slug, self.workflow.id, status_code=403)
+
+        self.workflow.refresh_from_db()
+        assert self.workflow.status != ObjectStatus.PENDING_DELETION
+
     def test_audit_entry(self) -> None:
         with outbox_runner():
             self.get_success_response(self.organization.slug, self.workflow.id)
@@ -1149,3 +1203,37 @@ class OrganizationWorkflowDetailsProjectAccessTest(APITestCase, ProjectAccessTes
             multi_project_workflow.id,
         )
         assert response.data["id"] == str(multi_project_workflow.id)
+
+    @with_feature("organizations:workflow-engine-all-projects-detector")
+    def test_all_projects_connection_grants_org_level_read_access(self) -> None:
+        self.login_as(self.limited_user)
+        workflow = self.create_workflow(
+            organization_id=self.organization.id, name="All-Projects Workflow"
+        )
+        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+        self.create_detector_workflow(workflow=workflow, detector=all_projects_detector)
+        self.create_detector_workflow(workflow=workflow, detector=self.other_detector)
+
+        response = self.get_success_response(self.organization.slug, workflow.id)
+
+        assert response.data["id"] == str(workflow.id)
+
+    def test_cannot_remove_detector_from_inaccessible_project(self) -> None:
+        self.login_as(self.limited_user)
+        multi_project_workflow = self.create_workflow(
+            organization_id=self.organization.id, name="Multi-Project Workflow"
+        )
+        self.create_detector_workflow(workflow=multi_project_workflow, detector=self.user_detector)
+        self.create_detector_workflow(workflow=multi_project_workflow, detector=self.other_detector)
+
+        self.get_error_response(
+            self.organization.slug,
+            multi_project_workflow.id,
+            method="PUT",
+            raw_data={"name": multi_project_workflow.name, "detectorIds": [self.user_detector.id]},
+            status_code=403,
+        )
+
+        assert DetectorWorkflow.objects.filter(
+            workflow=multi_project_workflow, detector=self.other_detector
+        ).exists()
