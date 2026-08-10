@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {useIsStuck} from 'sentry/utils/useIsStuck';
@@ -13,16 +13,16 @@ import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
  * for additional styling when the element becomes stuck.
  */
 function TaggedSticky(props: React.ComponentProps<'div'>) {
-  const elementRef = useRef<HTMLDivElement>(null);
+  const [element, setElement] = useState<HTMLDivElement | null>(null);
   const {pageContentTop} = useTopOffset();
 
-  const isStuck = useIsStuck(elementRef.current, {
+  const isStuck = useIsStuck(element, {
     offset: Number.parseInt(pageContentTop, 10) ?? 0,
   });
 
   const stuckProps = isStuck ? {'data-stuck': ''} : {};
 
-  return <div ref={elementRef} {...stuckProps} {...props} />;
+  return <div ref={setElement} {...stuckProps} {...props} />;
 }
 
 const Sticky = styled(TaggedSticky)`
