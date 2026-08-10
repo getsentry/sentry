@@ -204,6 +204,7 @@ class RedisClusterManager:
         def cluster_factory() -> (
             RedisCluster[bytes] | StrictRedis[bytes] | RedisCluster[str] | StrictRedis[str]
         ):
+            client: Any
             if is_redis_cluster:
                 client = RetryingRedisCluster(
                     # Intentionally copy hosts here because redis-cluster-py
