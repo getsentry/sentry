@@ -45,7 +45,9 @@ interface FlamegraphDrawerProps {
   transactionSpan?: TransactionSpan;
 }
 
-const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerProps) {
+const FlamegraphDrawer = memo(function FlamegraphDrawerImpl(
+  props: FlamegraphDrawerProps
+) {
   const params = useParams();
   const orgSlug = useOrganization().slug;
   const flamegraphPreferences = useFlamegraphPreferences();

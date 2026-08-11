@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import functools
 import logging
-import uuid
 from collections.abc import Sequence
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from snuba_sdk import (
     Column,
@@ -19,12 +18,19 @@ from snuba_sdk import (
     Query,
 )
 
-from sentry import features, options
+from sentry import features
 from sentry.api.event_search import QueryToken, parse_search_query
 from sentry.models.organization import Organization
 from sentry.replays.query import replay_url_parser_config
 from sentry.replays.tasks import archive_replay, delete_replays_script_async
-from sentry.replays.usecases.delete import SNUBA_RETRY_EXCEPTIONS, delete_seer_replay_data
+from sentry.replays.usecases.delete import (
+    SNUBA_RETRY_EXCEPTIONS,
+    MatchedRow,
+    datetime_as_start_of_day_conditions,
+    day_aligned_windows,
+    delete_seer_replay_data,
+    snuba_timestamp_as_utc,
+)
 from sentry.replays.usecases.query import execute_query, handle_search_filters
 from sentry.replays.usecases.query.configs.scalar import scalar_search_config
 from sentry.snuba.referrer import Referrer
@@ -41,6 +47,10 @@ def delete_replays(
     tags: list[str],
     start_utc: datetime,
     end_utc: datetime,
+    *,
+    archive: bool = True,
+    delete_seer_data: bool = True,
+    delete_blobs: bool = True,
 ) -> None:
     """Delete a set of replays from a query."""
     search_filters = translate_cli_tags_param_to_snuba_tag_param(tags)
@@ -54,16 +64,7 @@ def delete_replays(
     # Running tally of replays to be deleted, accumulated across windows and pages
     total_replays = 0
 
-    # Chunk the range into fixed-size windows
-    chunk_size_days = options.get("replay.bulk_delete_job.chunk_size_days") or 7
-
-    window_offset_days = 0
-    while True:
-        window_start = start_utc + timedelta(days=window_offset_days)
-        if window_start >= end_utc:
-            break
-        window_end = min(window_start + timedelta(days=chunk_size_days), end_utc)
-
+    for window_start, window_end in day_aligned_windows(start_utc, end_utc):
         # Reset per window because the cursor space is scoped to the window's result set
         cursor = None
 
@@ -93,6 +94,9 @@ def delete_replays(
                     "window_end": window_end,
                     "has_more": has_more,
                     "total_replays": total_replays,
+                    "archive": archive,
+                    "delete_seer_data": delete_seer_data,
+                    "delete_blobs": delete_blobs,
                 }
                 if dry_run:
                     logger.info(
@@ -105,9 +109,10 @@ def delete_replays(
                         rows=replays,
                         has_seer_data=has_seer_data,
                         total_replays=total_replays,
+                        archive=archive,
+                        delete_seer_data=delete_seer_data,
+                        delete_blobs=delete_blobs,
                     )
-
-        window_offset_days += chunk_size_days
 
 
 def translate_cli_tags_param_to_snuba_tag_param(tags: list[str]) -> Sequence[QueryToken]:
@@ -117,51 +122,73 @@ def translate_cli_tags_param_to_snuba_tag_param(tags: list[str]) -> Sequence[Que
 def delete_replay_ids(
     project_id: int,
     organization_id: int,
-    rows: list[tuple[int, str, int]],
+    rows: list[MatchedRow],
     has_seer_data: bool,
     total_replays: int,
+    *,
+    archive: bool = True,
+    delete_seer_data: bool = True,
+    delete_blobs: bool = True,
 ) -> None:
     """Delete a set of replay-ids for a specific project."""
     logging_context = {
         "project_id": project_id,
         "num_replays": len(rows),
         "total_replays": total_replays,
+        "archive": archive,
+        "delete_seer_data": delete_seer_data,
+        "delete_blobs": delete_blobs,
     }
-    logger.info("Archiving %d replays.", len(rows), extra=logging_context)
 
-    # Bulk produce archived replay rows to the ingest-replay-events topic before flushing.
-    #
-    # This operation is fast enough that it can be performed synchronously. Archiving
-    # synchronously gives the script runner the feeling that the script executed to completion
-    # and will allow them to immediately spot-check before moving on with their day. In a
-    # purely asynchronous world the script runner will have to continually worry if their tasks
-    # executed.
-    #
-    # This also gives us reasonable assurances that if the script ran to completion the customer
-    # will not be able to access their deleted data even if the actual deletion takes place some
-    # time later
-    for _, replay_id, _ in rows:
-        archive_replay(project_id, replay_id)
+    if archive:
+        logger.info("Archiving %d Replays.", len(rows), extra=logging_context)
 
-    if has_seer_data:
-        # The finder strips dashes from `replay_id`; Seer keys on the dashed UUID
-        replay_ids = [str(uuid.UUID(replay_id)) for _, replay_id, _ in rows]
+        # Bulk produce archived replay rows to the ingest-replay-events topic before flushing.
+        #
+        # This operation is fast enough that it can be performed synchronously. Archiving
+        # synchronously gives the script runner the feeling that the script executed to completion
+        # and will allow them to immediately spot-check before moving on with their day. In a
+        # purely asynchronous world the script runner will have to continually worry if their tasks
+        # executed.
+        #
+        # This also gives us reasonable assurances that if the script ran to completion the customer
+        # will not be able to access their deleted data even if the actual deletion takes place some
+        # time later
+        for row in rows:
+            archive_replay(project_id, row["replay_id"].replace("-", ""), row["timestamp"])
+    else:
+        # Archiving is the only step the customer can observe. Without it they keep their Replays.
+        logger.warning(
+            "Not archiving %d Replays; they remain visible to the customer.",
+            len(rows),
+            extra=logging_context,
+        )
+
+    if has_seer_data and delete_seer_data:
+        logger.info("Deleting Seer data for %d Replays.", len(rows), extra=logging_context)
+        replay_ids = [row["replay_id"] for row in rows]
+        # Raises once the request's retries are spent, which aborts the run!
         delete_seer_replay_data(organization_id, project_id, replay_ids)
 
-    logger.info("Scheduling %d replays for deletion.", len(rows), extra=logging_context)
+    if delete_blobs:
+        logger.info("Scheduling %d Replays for blob deletion.", len(rows), extra=logging_context)
 
-    # Asynchronously delete RRWeb recording data.
-    #
-    # Because this operation could involve millions of requests to the blob storage provider we
-    # schedule the tasks to run on a cluster of workers. This allows us to parallelize the work
-    # and complete the task as quickly as possible.
-    for retention_days, replay_id, max_segment_id in rows:
-        delete_replays_script_async.delay(retention_days, project_id, replay_id, max_segment_id)
+        # Asynchronously delete RRWeb recording data.
+        #
+        # Because this operation could involve millions of requests to the blob storage provider we
+        # schedule the tasks to run on a cluster of workers. This allows us to parallelize the work
+        # and complete the task as quickly as possible.
+        for row in rows:
+            delete_replays_script_async.delay(
+                row["retention_days"],
+                project_id,
+                row["replay_id"].replace("-", ""),
+                row["max_segment_id"],
+            )
 
-    logger.info("%d replays were successfully deleted.", len(rows), extra=logging_context)
     logger.info(
-        "The customer will no longer have access to the replays passed to this function. Deletion "
-        "of RRWeb data will complete asynchronously.",
+        "Finished processing %d Replays.",
+        len(rows),
         extra=logging_context,
     )
 
@@ -175,7 +202,7 @@ def _get_rows_matching_deletion_pattern(
     start: datetime,
     search_filters: Sequence[QueryToken],
     environment: list[str],
-) -> tuple[list[tuple[int, str, int]], bool, int | None]:
+) -> tuple[list[MatchedRow], bool, int | None]:
     where = handle_search_filters(scalar_search_config, search_filters)
 
     if environment:
@@ -201,6 +228,7 @@ def _get_rows_matching_deletion_pattern(
             Function("any", parameters=[Column("retention_days")], alias="retention_days"),
             Column("replay_id"),
             Function("max", parameters=[Column("segment_id")], alias="max_segment_id"),
+            Function("max", parameters=[Column("timestamp")], alias="finished_at"),
             replay_id_hash_column,
         ],
         where=[
@@ -208,6 +236,7 @@ def _get_rows_matching_deletion_pattern(
             Condition(Column("timestamp"), Op.LT, end),
             Condition(Column("timestamp"), Op.GTE, start),
             Condition(Column("segment_id"), Op.IS_NOT_NULL),
+            *datetime_as_start_of_day_conditions(start, end),
             *where,
         ],
         # Group by both the `replay_id` and `cityHash64(replay_id)` so we are able
@@ -239,7 +268,12 @@ def _get_rows_matching_deletion_pattern(
 
     return (
         [
-            (item["retention_days"], item["replay_id"].replace("-", ""), item["max_segment_id"])
+            {
+                "retention_days": item["retention_days"],
+                "replay_id": item["replay_id"],
+                "max_segment_id": item["max_segment_id"],
+                "timestamp": snuba_timestamp_as_utc(item["finished_at"]),
+            }
             for item in data
             if item["max_segment_id"] is not None
         ],

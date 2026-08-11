@@ -63,6 +63,7 @@ import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 export interface GetExploreUrlArgs {
   organization: Organization;
   aggregateField?: Array<GroupBy | BaseVisualize>;
+  aggregateSort?: string;
   caseInsensitive?: CaseInsensitive;
   chartSelection?: ChartSelectionQueryParam;
   crossEvents?: CrossEvent[];
@@ -91,6 +92,7 @@ export function getExploreUrl({
   query,
   groupBy,
   sort,
+  aggregateSort,
   field,
   id,
   table,
@@ -115,6 +117,7 @@ export function getExploreUrl({
     visualize: visualize?.map(v => JSON.stringify(v)),
     groupBy,
     sort,
+    aggregateSort,
     field,
     utc,
     id,

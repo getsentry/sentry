@@ -135,6 +135,9 @@ export function treeResultLocator<T>({
       case Token.KEY_EXPLICIT_STRING_TAG:
         nodeVisitor(token.key);
         break;
+      case Token.KEY_EXPLICIT_ARRAY_TAG:
+        nodeVisitor(token.key);
+        break;
       case Token.KEY_EXPLICIT_BOOLEAN_TAG:
         nodeVisitor(token.key);
         break;
@@ -191,6 +194,7 @@ export const getKeyName = (
     | Token.KEY_EXPLICIT_BOOLEAN_TAG
     | Token.KEY_EXPLICIT_NUMBER_TAG
     | Token.KEY_EXPLICIT_STRING_TAG
+    | Token.KEY_EXPLICIT_ARRAY_TAG
     | Token.KEY_EXPLICIT_FLAG
     | Token.KEY_EXPLICIT_NUMBER_FLAG
     | Token.KEY_EXPLICIT_STRING_FLAG
@@ -212,6 +216,8 @@ export const getKeyName = (
     case Token.KEY_EXPLICIT_NUMBER_TAG:
       return key.text;
     case Token.KEY_EXPLICIT_STRING_TAG:
+      return key.text;
+    case Token.KEY_EXPLICIT_ARRAY_TAG:
       return key.text;
     case Token.KEY_EXPLICIT_FLAG:
       return key.text;
@@ -238,6 +244,7 @@ export const getKeyLabel = (
     | Token.KEY_EXPLICIT_BOOLEAN_TAG
     | Token.KEY_EXPLICIT_NUMBER_TAG
     | Token.KEY_EXPLICIT_STRING_TAG
+    | Token.KEY_EXPLICIT_ARRAY_TAG
     | Token.KEY_EXPLICIT_FLAG
     | Token.KEY_EXPLICIT_NUMBER_FLAG
     | Token.KEY_EXPLICIT_STRING_FLAG
@@ -255,6 +262,8 @@ export const getKeyLabel = (
     case Token.KEY_EXPLICIT_NUMBER_TAG:
       return key.key.value;
     case Token.KEY_EXPLICIT_STRING_TAG:
+      return key.key.value;
+    case Token.KEY_EXPLICIT_ARRAY_TAG:
       return key.key.value;
     case Token.KEY_EXPLICIT_FLAG:
       return key.text;
@@ -342,6 +351,8 @@ export function stringifyToken(token: TokenResult<Token>): string {
       return `${token.prefix}[${stringifyToken(token.key)},number]`;
     case Token.KEY_EXPLICIT_STRING_TAG:
       return `${token.prefix}[${stringifyToken(token.key)},string]`;
+    case Token.KEY_EXPLICIT_ARRAY_TAG:
+      return `${token.prefix}[${stringifyToken(token.key)},array][*]`;
     case Token.KEY_EXPLICIT_FLAG:
       return `flags[${stringifyToken(token.key)}]`;
     case Token.KEY_EXPLICIT_NUMBER_FLAG:

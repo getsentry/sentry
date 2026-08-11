@@ -39,6 +39,7 @@ interface ConversationApiSpan {
   errors?: TraceTree.EAPError[];
   'gen_ai.agent.name'?: string;
   'gen_ai.cost.total_tokens'?: number;
+  'gen_ai.embeddings.input'?: string;
   'gen_ai.input.messages'?: string;
   'gen_ai.operation.type'?: string;
   'gen_ai.output.messages'?: string;
@@ -72,7 +73,10 @@ function isGenAiSpan(span: ConversationApiSpan): boolean {
   if (span['gen_ai.operation.type']) {
     return true;
   }
-  return span['span.name']?.startsWith('gen_ai.') ?? false;
+  return (
+    (span['span.op']?.startsWith('gen_ai.') ?? false) ||
+    (span['span.name']?.startsWith('gen_ai.') ?? false)
+  );
 }
 
 interface UseConversationResult {
@@ -119,6 +123,11 @@ function createNodeFromApiSpan(
     occurrences: apiSpan.occurrences ?? [],
     additional_attributes: {
       [SpanFields.GEN_AI_CONVERSATION_ID]: apiSpan['gen_ai.conversation.id'],
+      // Preserve the raw span op so the transcript can recognize embeddings
+      // spans, which don't have a dedicated gen_ai.operation.type. Kept off the
+      // op-type path so the timeline still renders them as before.
+      [SpanFields.SPAN_OP]: apiSpan['span.op'] ?? '',
+      [SpanFields.GEN_AI_EMBEDDINGS_INPUT]: apiSpan['gen_ai.embeddings.input'] ?? '',
       [SpanFields.GEN_AI_INPUT_MESSAGES]: apiSpan['gen_ai.input.messages'] ?? '',
       [SpanFields.GEN_AI_OPERATION_TYPE]: operationType ?? '',
       [SpanFields.GEN_AI_OUTPUT_MESSAGES]: apiSpan['gen_ai.output.messages'] ?? '',
@@ -254,7 +263,7 @@ export function useConversation(
     isError,
   } = useInfiniteQuery(
     apiOptions.asInfinite<ConversationApiResponse>()(
-      '/organizations/$organizationIdOrSlug/ai-conversations/$conversationId/',
+      '/organizations/$organizationIdOrSlug/agents/conversations/$conversationId/',
       {
         path: conversation.conversationId
           ? {

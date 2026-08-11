@@ -1,0 +1,25 @@
+export const API_ACCESS_SCOPES = [
+  'alerts:read',
+  'alerts:write',
+  'event:admin',
+  'event:read',
+  'event:write',
+  'member:admin',
+  'member:read',
+  'member:write',
+  'org:admin',
+  'org:ci',
+  'org:integrations',
+  'org:read',
+  'org:write',
+  'project:admin',
+  'project:distribution',
+  'project:read',
+  'project:releases',
+  'project:write',
+  'team:admin',
+  'team:read',
+  'team:write',
+] as const;
+
+export type ApiAccessScope = (typeof API_ACCESS_SCOPES)[number];

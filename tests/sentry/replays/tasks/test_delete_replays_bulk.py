@@ -6,6 +6,7 @@ from collections.abc import Generator
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+from snuba_sdk import Column, Condition, Function, Op
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, StorageBlob
@@ -14,19 +15,31 @@ from sentry.replays.tasks import run_bulk_replay_delete_job
 from sentry.replays.testutils import mock_replay
 from sentry.replays.usecases.delete import (
     MatchedRows,
+    SeerDeleteFailed,
+    datetime_as_start_of_day_conditions,
+    day_aligned_windows,
     delete_matched_rows,
     fetch_rows_matching_pattern,
 )
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.helpers import TaskRunner
+from sentry.utils import json
+
+# Stand-in for rows whose timestamp the test does not care about.
+EPOCH = datetime.datetime(1970, 1, 1, tzinfo=datetime.UTC)
 
 
 class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project(name="test_project")
-        self.range_start = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=1)
-        self.range_end = datetime.datetime.now(tz=datetime.UTC)
+        # Exactly one UTC day, so the job is a single window. These tests are about status
+        # transitions, checkpointing and Seer rather than windowing, and a range crossing midnight
+        # would make each of them chain an extra activation.
+        self.range_start = datetime.datetime.now(tz=datetime.UTC).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        self.range_end = self.range_start + datetime.timedelta(days=1)
         self.query = ""
         self.environments = ["prod"]
 
@@ -58,11 +71,13 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
                     "retention_days": 90,
                     "replay_id": "a",
                     "max_segment_id": 1,
+                    "timestamp": EPOCH,
                 },
                 {
                     "retention_days": 90,
                     "replay_id": "b",
                     "max_segment_id": 0,
+                    "timestamp": EPOCH,
                 },
             ],
             "has_more": True,
@@ -122,11 +137,13 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
                     "retention_days": 90,
                     "replay_id": "a",
                     "max_segment_id": 1,
+                    "timestamp": EPOCH,
                 },
                 {
                     "retention_days": 90,
                     "replay_id": "b",
                     "max_segment_id": None,
+                    "timestamp": EPOCH,
                 },
             ],
             "has_more": False,
@@ -208,7 +225,9 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
     def test_run_bulk_replay_delete_job_chained_runs(self) -> None:
         project = self.create_project()
 
-        t1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
+        # Inside the job's window rather than relative to now, which lands in the previous UTC day
+        # when the suite runs just after midnight.
+        t1 = self.range_start + datetime.timedelta(seconds=10)
         replay_id1 = uuid.uuid4().hex
         replay_id2 = uuid.uuid4().hex
         replay_id3 = uuid.uuid4().hex
@@ -267,7 +286,9 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
     ) -> None:
         """Test a duplicate activation behind the checkpoint does not rewind progress"""
         mock_fetch_rows.return_value = {
-            "rows": [{"retention_days": 90, "replay_id": "a", "max_segment_id": 1}],
+            "rows": [
+                {"retention_days": 90, "replay_id": "a", "max_segment_id": 1, "timestamp": EPOCH}
+            ],
             "has_more": True,
             "next_cursor": 1234,
         }
@@ -290,7 +311,9 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
     ) -> None:
         """Test an activation killed between checkpointing and enqueueing still finishes"""
         mock_fetch_rows.return_value = {
-            "rows": [{"retention_days": 90, "replay_id": "a", "max_segment_id": 1}],
+            "rows": [
+                {"retention_days": 90, "replay_id": "a", "max_segment_id": 1, "timestamp": EPOCH}
+            ],
             "has_more": False,
             "next_cursor": 1234,
         }
@@ -312,7 +335,9 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
     ) -> None:
         """Test a checkpoint written by a further-along chain is not overwritten"""
         mock_fetch_rows.return_value = {
-            "rows": [{"retention_days": 90, "replay_id": "a", "max_segment_id": 1}],
+            "rows": [
+                {"retention_days": 90, "replay_id": "a", "max_segment_id": 1, "timestamp": EPOCH}
+            ],
             "has_more": True,
             "next_cursor": 1234,
         }
@@ -377,6 +402,28 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
             "replays.bulk_delete_job", tags={"status": "failed"}, sample_rate=1.0
         )
 
+    @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
+    def test_run_bulk_replay_delete_job_non_deadline_failure_fails_the_job(
+        self, mock_fetch_rows: MagicMock
+    ) -> None:
+        """Test a non-deadline failure fails the job even with attempts left on the counter.
+
+        `retries_remaining` is a plain attempt counter and does not consult the retry allow-list.
+        Deferring to it here would leave the job in-progress forever, because the broker will not
+        redeliver anything but the deadline, so no later attempt would ever mark it.
+        """
+        mock_fetch_rows.side_effect = ValueError("snuba is unhappy")
+
+        self.job.status = DeletionJobStatus.IN_PROGRESS
+        self.job.save()
+
+        with patch("sentry.replays.tasks.current_task", return_value=Mock(retries_remaining=2)):
+            with pytest.raises(ValueError):
+                run_bulk_replay_delete_job(self.job.id)
+
+        self.job.refresh_from_db()
+        assert self.job.status == "failed"
+
     @patch("sentry.replays.tasks.metrics")
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     def test_run_bulk_replay_delete_job_failure_preserves_offset(
@@ -408,7 +455,9 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
     ) -> None:
         """Test a chain finishing after another completed the job leaves it completed"""
         mock_fetch_rows.return_value = {
-            "rows": [{"retention_days": 90, "replay_id": "a", "max_segment_id": 1}],
+            "rows": [
+                {"retention_days": 90, "replay_id": "a", "max_segment_id": 1, "timestamp": EPOCH}
+            ],
             "has_more": True,
             "next_cursor": 1234,
         }
@@ -450,6 +499,10 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         )
         assert len(result["rows"]) == 1
         assert result["rows"][0]["replay_id"] == str(uuid.UUID(replay_id))
+        # The replay's own timestamp comes back so the archive event can be stamped with it.
+        # `mock_replay` writes `int(timestamp.timestamp())` and the column is a ClickHouse
+        # `DateTime`, so `t3` arrives truncated to the second.
+        assert result["rows"][0]["timestamp"] == t3.replace(tzinfo=datetime.UTC, microsecond=0)
 
     def test_fetch_rows_matching_pattern_keyset_pagination(self) -> None:
         """Test paging by `cityHash64(replay_id)` returns every replay exactly once.
@@ -516,6 +569,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
                     "retention_days": retention_days,
                     "replay_id": str(uuid.UUID(replay_id)),
                     "max_segment_id": max_segment_id,
+                    "timestamp": EPOCH,
                 }
             ],
         )
@@ -533,6 +587,34 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
                 is None
             )
 
+    @patch("sentry.replays.usecases.delete.publish_replay_event")
+    def test_delete_matched_rows_archives_in_the_replays_own_range(
+        self, mock_publish: MagicMock
+    ) -> None:
+        """The archive event carries the replay's own timestamp, not "now".
+
+        Replay queries aggregate `is_archived` per replay within a timestamp window, so an archive
+        row stamped "now" leaves a replay deleted today still looking un-archived to anyone querying
+        the range it was actually recorded in.
+        """
+        timestamp = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=30)
+
+        delete_matched_rows(
+            self.project.id,
+            [
+                {
+                    "retention_days": 30,
+                    "replay_id": str(uuid.uuid4()),
+                    "max_segment_id": None,
+                    "timestamp": timestamp,
+                }
+            ],
+        )
+
+        message = json.loads(mock_publish.call_args[0][0])
+        assert message["payload"]["timestamp"] == timestamp.timestamp()
+        assert message["payload"]["is_archived"] is True
+
     @patch("sentry.replays.usecases.delete.make_replay_delete_request")
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     @patch("sentry.replays.tasks.delete_matched_rows")
@@ -549,11 +631,13 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
                         "retention_days": 90,
                         "replay_id": "a",
                         "max_segment_id": 1,
+                        "timestamp": EPOCH,
                     },
                     {
                         "retention_days": 90,
                         "replay_id": "b",
                         "max_segment_id": 0,
+                        "timestamp": EPOCH,
                     },
                 ],
                 "has_more": True,
@@ -565,6 +649,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
                         "retention_days": 90,
                         "replay_id": "c",
                         "max_segment_id": 1,
+                        "timestamp": EPOCH,
                     },
                 ],
                 "has_more": False,
@@ -603,74 +688,90 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
             "project_id": self.job.project_id,
         }
 
-    @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
-    @patch("sentry.replays.tasks.delete_matched_rows")
-    def test_run_bulk_replay_delete_job_time_window_chunking(
-        self, mock_delete_matched_rows: MagicMock, mock_fetch_rows: MagicMock
-    ) -> None:
-        """Test that wide date ranges are chunked into 7-day windows."""
-        # Create a job spanning 20 days so it requires 3 windows (7 + 7 + 6).
-        range_start = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=20)
-        range_end = datetime.datetime.now(tz=datetime.UTC)
-        job = ReplayDeletionJobModel.objects.create(
-            organization_id=self.project.organization.id,
-            project_id=self.project.id,
-            range_start=range_start,
-            range_end=range_end,
-            query="",
-            environments=["prod"],
-            status="pending",
-        )
+    def test_day_aligned_windows_open_and_close_on_the_range(self) -> None:
+        """Test a mid-day range is split on UTC days without escaping the range at either end.
 
-        # Each window returns rows with has_more=False so the task advances to the next window.
-        def row_generator() -> Generator[MatchedRows]:
-            # Window 1: range_start to range_start + 7 days
-            yield {
-                "rows": [{"retention_days": 90, "replay_id": "a", "max_segment_id": 1}],
-                "has_more": False,
-                "next_cursor": 1234,
-            }
-            # Window 2: range_start + 7 days to range_start + 14 days
-            yield {
-                "rows": [{"retention_days": 90, "replay_id": "b", "max_segment_id": 1}],
-                "has_more": False,
-                "next_cursor": 1234,
-            }
-            # Window 3: range_start + 14 days to range_end
-            yield {
-                "rows": [{"retention_days": 90, "replay_id": "c", "max_segment_id": 1}],
-                "has_more": False,
-                "next_cursor": 1234,
-            }
+        Whole days rather than range-start-plus-a-day is what keeps a window inside one UTC day, so
+        `datetime_as_start_of_day_conditions` can assert it. The range's own bounds still win: the first window opens
+        at 17:00, not at midnight.
+        """
+        range_start = datetime.datetime(2026, 7, 23, 17, 0, tzinfo=datetime.UTC)
+        range_end = datetime.datetime(2026, 7, 26, 9, 30, tzinfo=datetime.UTC)
 
-        mock_fetch_rows.side_effect = row_generator()
+        assert day_aligned_windows(range_start, range_end) == [
+            (range_start, datetime.datetime(2026, 7, 24, tzinfo=datetime.UTC)),
+            (
+                datetime.datetime(2026, 7, 24, tzinfo=datetime.UTC),
+                datetime.datetime(2026, 7, 25, tzinfo=datetime.UTC),
+            ),
+            (
+                datetime.datetime(2026, 7, 25, tzinfo=datetime.UTC),
+                datetime.datetime(2026, 7, 26, tzinfo=datetime.UTC),
+            ),
+            (datetime.datetime(2026, 7, 26, tzinfo=datetime.UTC), range_end),
+        ]
 
-        with TaskRunner():
-            run_bulk_replay_delete_job.delay(job.id, limit=100)
+    def test_day_aligned_windows_never_escape_a_utc_day(self) -> None:
+        """Test windows tile the range without gaps and each stays inside one UTC day."""
+        cases = [
+            (
+                datetime.datetime(2026, 7, 23, tzinfo=datetime.UTC),
+                datetime.datetime(2026, 7, 26, tzinfo=datetime.UTC),
+            ),
+            (
+                datetime.datetime(2026, 7, 23, 14, 30, tzinfo=datetime.UTC),
+                datetime.datetime(2026, 7, 26, tzinfo=datetime.UTC),
+            ),
+            (
+                datetime.datetime(2026, 7, 23, 14, 30, tzinfo=datetime.UTC),
+                datetime.datetime(2026, 7, 25, 9, 15, tzinfo=datetime.UTC),
+            ),
+            (
+                datetime.datetime(2026, 7, 23, 3, tzinfo=datetime.UTC),
+                datetime.datetime(2026, 7, 23, 6, tzinfo=datetime.UTC),
+            ),
+        ]
+        for range_start, range_end in cases:
+            windows = day_aligned_windows(range_start, range_end)
 
-        job.refresh_from_db()
-        assert job.status == "completed"
-        assert mock_fetch_rows.call_count == 3
-        assert mock_delete_matched_rows.call_count == 3
-        # countDeleted must reflect all three windows (1 replay each).
-        assert job.offset == 3
-        # range_start must never be mutated — the API always returns the original value.
-        assert job.range_start == range_start
+            assert windows[0][0] == range_start
+            assert windows[-1][1] == range_end
+            for start, end in windows:
+                assert start < end
+                assert start.date() == (end - datetime.timedelta(microseconds=1)).date()
+            for earlier, later in zip(windows, windows[1:]):
+                assert earlier[1] == later[0]
 
-        # Verify each call used the correct window boundaries.
-        calls = mock_fetch_rows.call_args_list
-        # Window 1
-        assert calls[0].kwargs["start"] == range_start
-        assert calls[0].kwargs["end"] == range_start + datetime.timedelta(days=7)
-        assert calls[0].kwargs["after_replay_id_hash"] is None
-        # Window 2
-        assert calls[1].kwargs["start"] == range_start + datetime.timedelta(days=7)
-        assert calls[1].kwargs["end"] == range_start + datetime.timedelta(days=14)
-        assert calls[1].kwargs["after_replay_id_hash"] is None
-        # Window 3
-        assert calls[2].kwargs["start"] == range_start + datetime.timedelta(days=14)
-        assert calls[2].kwargs["end"] == range_end
-        assert calls[2].kwargs["after_replay_id_hash"] is None
+    def test_datetime_as_start_of_day_conditions_bound_the_days_a_range_touches(self) -> None:
+        """Test a range is restated as its first and last UTC day, whatever its width."""
+        day = datetime.datetime(2025, 6, 2, tzinfo=datetime.UTC)
+        next_day = day + datetime.timedelta(days=1)
+        start_of_day = Function("toStartOfDay", parameters=[Column("timestamp")])
+
+        # A whole day bounds that day from both sides, which the index reads as an equality.
+        assert datetime_as_start_of_day_conditions(day, next_day) == [
+            Condition(start_of_day, Op.GTE, day),
+            Condition(start_of_day, Op.LTE, day),
+        ]
+        # So does any range inside it.
+        assert datetime_as_start_of_day_conditions(
+            day + datetime.timedelta(hours=3), day + datetime.timedelta(hours=20)
+        ) == [
+            Condition(start_of_day, Op.GTE, day),
+            Condition(start_of_day, Op.LTE, day),
+        ]
+        # A range crossing midnight bounds both days rather than giving up on the sort key.
+        assert datetime_as_start_of_day_conditions(
+            day + datetime.timedelta(hours=3), next_day + datetime.timedelta(hours=3)
+        ) == [
+            Condition(start_of_day, Op.GTE, day),
+            Condition(start_of_day, Op.LTE, next_day),
+        ]
+        # `end` is exclusive, so ending exactly at midnight must not reach that day.
+        assert datetime_as_start_of_day_conditions(day, day + datetime.timedelta(days=2)) == [
+            Condition(start_of_day, Op.GTE, day),
+            Condition(start_of_day, Op.LTE, next_day),
+        ]
 
     @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
     @patch("sentry.replays.tasks.delete_matched_rows")
@@ -678,8 +779,8 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         self, mock_delete_matched_rows: MagicMock, mock_fetch_rows: MagicMock
     ) -> None:
         """Test pagination within a time window followed by advancing to the next window."""
-        range_start = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=10)
-        range_end = datetime.datetime.now(tz=datetime.UTC)
+        range_start = datetime.datetime(2025, 6, 1, tzinfo=datetime.UTC)
+        range_end = datetime.datetime(2025, 6, 3, tzinfo=datetime.UTC)
         job = ReplayDeletionJobModel.objects.create(
             organization_id=self.project.organization.id,
             project_id=self.project.id,
@@ -693,13 +794,27 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         def row_generator() -> Generator[MatchedRows]:
             # Window 1, page 1: has_more=True triggers pagination within the same window
             yield {
-                "rows": [{"retention_days": 90, "replay_id": "a", "max_segment_id": 1}],
+                "rows": [
+                    {
+                        "retention_days": 90,
+                        "replay_id": "a",
+                        "max_segment_id": 1,
+                        "timestamp": EPOCH,
+                    }
+                ],
                 "has_more": True,
                 "next_cursor": 1234,
             }
             # Window 1, page 2: no more rows, advance to next window
             yield {
-                "rows": [{"retention_days": 90, "replay_id": "b", "max_segment_id": 1}],
+                "rows": [
+                    {
+                        "retention_days": 90,
+                        "replay_id": "b",
+                        "max_segment_id": 1,
+                        "timestamp": EPOCH,
+                    }
+                ],
                 "has_more": False,
                 "next_cursor": 1234,
             }
@@ -724,16 +839,17 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         assert job.range_start == range_start
 
         calls = mock_fetch_rows.call_args_list
+        midnight_2 = datetime.datetime(2025, 6, 2, tzinfo=datetime.UTC)
         # Window 1, page 1 — no cursor yet
         assert calls[0].kwargs["start"] == range_start
-        assert calls[0].kwargs["end"] == range_start + datetime.timedelta(days=7)
+        assert calls[0].kwargs["end"] == midnight_2
         assert calls[0].kwargs["after_replay_id_hash"] is None
         # Window 1, page 2 — seeks from the cursor page 1 returned
         assert calls[1].kwargs["start"] == range_start
-        assert calls[1].kwargs["end"] == range_start + datetime.timedelta(days=7)
+        assert calls[1].kwargs["end"] == midnight_2
         assert calls[1].kwargs["after_replay_id_hash"] == 1234
         # Window 2 — cursor reset, because it is a position within a window's result set
-        assert calls[2].kwargs["start"] == range_start + datetime.timedelta(days=7)
+        assert calls[2].kwargs["start"] == midnight_2
         assert calls[2].kwargs["end"] == range_end
         assert calls[2].kwargs["after_replay_id_hash"] is None
 
@@ -750,11 +866,13 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
                         "retention_days": 90,
                         "replay_id": "a",
                         "max_segment_id": 1,
+                        "timestamp": EPOCH,
                     },
                     {
                         "retention_days": 90,
                         "replay_id": "b",
                         "max_segment_id": 0,
+                        "timestamp": EPOCH,
                     },
                 ],
                 "has_more": True,
@@ -766,6 +884,7 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
                         "retention_days": 90,
                         "replay_id": "c",
                         "max_segment_id": 1,
+                        "timestamp": EPOCH,
                     },
                 ],
                 "has_more": False,
@@ -783,3 +902,33 @@ class TestDeleteReplaysBulk(APITestCase, ReplaysSnubaTestCase):
         assert self.job.offset == 3
 
         assert mock_post.call_count == 0
+
+    @patch("sentry.replays.tasks.delete_seer_replay_data")
+    @patch("sentry.replays.tasks.fetch_rows_matching_pattern")
+    @patch("sentry.replays.tasks.delete_matched_rows")
+    def test_run_bulk_replay_delete_job_seer_failure_fails_the_job(
+        self,
+        mock_delete_matched_rows: MagicMock,
+        mock_fetch_rows: MagicMock,
+        mock_delete_seer: MagicMock,
+    ) -> None:
+        """Test an unrecoverable Seer failure fails the job instead of completing it.
+
+        A Seer summary is derived from the replay, so one left behind is PII left behind. Reporting
+        the job complete would hide that, and there would be nothing to tell an operator which range
+        still needs running.
+        """
+        mock_fetch_rows.return_value = {
+            "rows": [
+                {"retention_days": 90, "replay_id": "a", "max_segment_id": 1, "timestamp": EPOCH}
+            ],
+            "has_more": False,
+            "next_cursor": None,
+        }
+        mock_delete_seer.side_effect = SeerDeleteFailed("seer is unhappy")
+
+        with pytest.raises(SeerDeleteFailed):
+            run_bulk_replay_delete_job(self.job.id, has_seer_data=True)
+
+        self.job.refresh_from_db()
+        assert self.job.status == "failed"

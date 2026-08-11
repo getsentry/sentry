@@ -514,7 +514,7 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: 'rules/',
-          redirectTo: '/organizations/:orgId/alerts/rules/',
+          redirectTo: '/organizations/:orgId/monitors/',
         },
         {
           path: 'rules/new/',
@@ -1338,8 +1338,13 @@ function buildRoutes(): RouteObject[] {
       path: 'rules/',
       children: [
         {
+          // Kept as a redirect: the MS Teams installation card links here, and
+          // Adaptive Card buttons cannot be rewritten once delivered.
           index: true,
-          component: make(() => import('sentry/views/alerts/list/rules/alertRulesList')),
+          component: make(
+            () =>
+              import('sentry/views/alerts/workflowEngineRedirectWrappers/alertRulesListRedirect')
+          ),
         },
         {
           path: 'details/:ruleId/',
@@ -1355,14 +1360,14 @@ function buildRoutes(): RouteObject[] {
             {
               index: true,
               redirectTo: forCustomerDomain
-                ? '/alerts/rules/'
-                : '/organizations/:orgId/alerts/rules/',
+                ? '/monitors/'
+                : '/organizations/:orgId/monitors/',
             },
             {
               path: ':ruleId/',
               component: make(
                 () =>
-                  import('sentry/views/alerts/workflowEngineRedirectWrappers/alertEdit')
+                  import('sentry/views/alerts/workflowEngineRedirectWrappers/issueAlertRuleEditRedirect')
               ),
             },
           ],
@@ -1412,8 +1417,8 @@ function buildRoutes(): RouteObject[] {
         {
           index: true,
           redirectTo: forCustomerDomain
-            ? '/alerts/rules/'
-            : '/organizations/:orgId/alerts/rules/',
+            ? '/monitors/'
+            : '/organizations/:orgId/monitors/',
         },
         {
           path: ':projectId/',
@@ -1422,14 +1427,14 @@ function buildRoutes(): RouteObject[] {
             {
               index: true,
               redirectTo: forCustomerDomain
-                ? '/alerts/rules/'
-                : '/organizations/:orgId/alerts/rules/',
+                ? '/monitors/'
+                : '/organizations/:orgId/monitors/',
             },
             {
               path: ':ruleId/',
               component: make(
                 () =>
-                  import('sentry/views/alerts/workflowEngineRedirectWrappers/metricAlertRuleEdit')
+                  import('sentry/views/alerts/workflowEngineRedirectWrappers/metricAlertRuleEditRedirect')
               ),
             },
           ],
@@ -1473,14 +1478,8 @@ function buildRoutes(): RouteObject[] {
       path: 'wizard/',
       component: make(
         () =>
-          import('sentry/views/alerts/workflowEngineRedirectWrappers/alertBuilderProjectProvider')
+          import('sentry/views/alerts/workflowEngineRedirectWrappers/monitorCreateRedirect')
       ),
-      children: [
-        {
-          index: true,
-          component: make(() => import('sentry/views/alerts/wizard')),
-        },
-      ],
     },
     {
       path: 'new/',
@@ -1495,7 +1494,8 @@ function buildRoutes(): RouteObject[] {
         {
           path: ':alertType/',
           component: make(
-            () => import('sentry/views/alerts/workflowEngineRedirectWrappers/alertCreate')
+            () =>
+              import('sentry/views/alerts/workflowEngineRedirectWrappers/monitorCreateRedirect')
           ),
         },
       ],
@@ -1507,21 +1507,18 @@ function buildRoutes(): RouteObject[] {
       ),
     },
     {
-      path: ':projectId/',
+      path: ':projectId/new/',
       component: make(
         () =>
-          import('sentry/views/alerts/workflowEngineRedirectWrappers/alertBuilderProjectProvider')
+          import('sentry/views/alerts/workflowEngineRedirectWrappers/monitorCreateRedirect')
       ),
-      children: [
-        {
-          path: 'new/',
-          component: make(() => import('sentry/views/alerts/create')),
-        },
-        {
-          path: 'wizard/',
-          component: make(() => import('sentry/views/alerts/wizard')),
-        },
-      ],
+    },
+    {
+      path: ':projectId/wizard/',
+      component: make(
+        () =>
+          import('sentry/views/alerts/workflowEngineRedirectWrappers/monitorCreateRedirect')
+      ),
     },
   ];
   const alertRoutes: SentryRouteObject = {

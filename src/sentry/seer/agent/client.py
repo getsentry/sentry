@@ -585,6 +585,27 @@ class SeerAgentClient:
             flush=flush,
         )
 
+    def _embed_widgets_enabled(self) -> bool:
+        """Whether to tell the agent it may emit embed widgets.
+
+        Code Mode ships the embed surface itself, so a run using it renders the same
+        widgets whether or not the org holds the embeds flag. Gating on the flag alone
+        would leave those runs emitting plain text where the rest of the product shows a
+        widget — a difference the user sees but cannot explain.
+
+        Widening this changes only what the agent is told it may emit: rendering is not
+        flag-gated on the frontend, and per-widget flags still apply in
+        ``get_embed_widgets``. ``enable_embeds`` remains the hard opt-out for surfaces
+        that cannot render Markdoc, such as Slack.
+        """
+        if not self.enable_embeds:
+            return False
+        if self.enable_code_mode_tools != "off":
+            return True
+        return features.has(
+            "organizations:seer-explorer-embeds", self.organization, actor=self.user
+        )
+
     def _build_agent_run_options(self, *, override_ce_enable: bool = True) -> dict[str, Any]:
         """Resolve org-flag-driven agent run options, shared by start_run and start_feature_run."""
         opts: dict[str, Any] = {}
@@ -621,11 +642,7 @@ class SeerAgentClient:
         ):
             opts["enable_tool_summary"] = True
 
-        if self.enable_embeds and features.has(
-            "organizations:seer-explorer-embeds",
-            self.organization,
-            actor=self.user,
-        ):
+        if self._embed_widgets_enabled():
             opts["embed_widgets"] = get_embed_widgets(self.organization, self.user)
 
         if features.has(
@@ -764,11 +781,7 @@ class SeerAgentClient:
         ):
             agent_run_options["enable_tool_summary"] = True
 
-        if self.enable_embeds and features.has(
-            "organizations:seer-explorer-embeds",
-            self.organization,
-            actor=self.user,
-        ):
+        if self._embed_widgets_enabled():
             agent_run_options["embed_widgets"] = get_embed_widgets(self.organization, self.user)
 
         if features.has(
