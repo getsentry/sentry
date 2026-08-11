@@ -21,7 +21,6 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 
 FEATURE = "organizations:investigations"
-QUERY_EXECUTION_FEATURE = "organizations:investigations-query-execution"
 
 
 def feature_enabled(request: Request, organization: Organization) -> bool:
@@ -33,17 +32,6 @@ def feature_enabled(request: Request, organization: Organization) -> bool:
         features.has(FEATURE, organization, actor=request.user)
         and request.access.has_open_membership
     )
-
-
-def query_execution_enabled(request: Request, organization: Organization) -> bool:
-    return features.has(QUERY_EXECUTION_FEATURE, organization, actor=request.user)
-
-
-def require_breached_metric_feature(request: Request, organization: Organization) -> None:
-    if not feature_enabled(request, organization) or not query_execution_enabled(
-        request, organization
-    ):
-        raise ResourceDoesNotExist
 
 
 def service_error(error: Exception) -> Response | None:

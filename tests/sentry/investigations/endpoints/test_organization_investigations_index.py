@@ -13,8 +13,12 @@ from sentry.investigations.templates.types import (
     InvestigationTemplateSpec,
     TemplateBlockSpec,
 )
+from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 FEATURE = "organizations:investigations"
 
@@ -186,3 +190,25 @@ class OrganizationInvestigationsIndexTest(APITestCase):
         )
         response = self.client.get(self.collection_url)
         assert [item["id"] for item in response.data] == [str(third.id)]
+
+    def test_org_auth_token_can_list_investigations(self) -> None:
+        self.create_investigation(
+            organization=self.organization, created_by=self.user, title="Listed"
+        )
+        token = generate_token(self.organization.slug, "")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrgAuthToken.objects.create(
+                organization_id=self.organization.id,
+                name="token",
+                token_hashed=hash_token(token),
+                token_last_characters=token[-4:],
+                scope_list=["org:read"],
+                date_last_used=None,
+            )
+            self.client.logout()
+
+        response = self.client.get(self.collection_url, HTTP_AUTHORIZATION=f"Bearer {token}")
+
+        assert response.status_code == 200, response.data
+        assert [item["title"] for item in response.data] == ["Listed"]
+        assert response.data[0]["isFavorited"] is False

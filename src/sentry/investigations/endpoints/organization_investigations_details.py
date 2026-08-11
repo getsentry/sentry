@@ -62,9 +62,10 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
                 {"detail": "One or more projects are inaccessible."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if investigation.status == InvestigationStatus.ARCHIVED and values != {
-            "status": InvestigationStatus.ACTIVE
-        }:
+        restoring_only = (
+            values == {"status": InvestigationStatus.ACTIVE} and requested_project_ids is None
+        )
+        if investigation.status == InvestigationStatus.ARCHIVED and not restoring_only:
             return Response(
                 {"detail": "Archived investigations are read-only."},
                 status=status.HTTP_400_BAD_REQUEST,

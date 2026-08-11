@@ -4,6 +4,8 @@ from django.urls import reverse
 
 from sentry.investigations.models import (
     Investigation,
+    InvestigationProject,
+    InvestigationStatus,
 )
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -106,3 +108,72 @@ class OrganizationInvestigationsDetailsTest(APITestCase):
         assert response.status_code == 409
         investigation = Investigation.objects.get(id=created["id"])
         assert investigation.title == "After"
+
+    def archived_investigation(self) -> Investigation:
+        investigation = self.create_investigation(
+            organization=self.organization, created_by=self.user, title="Archived"
+        )
+        self.create_investigation_project(investigation=investigation, project=self.project)
+        Investigation.objects.filter(id=investigation.id).update(
+            status=InvestigationStatus.ARCHIVED
+        )
+        investigation.refresh_from_db()
+        return investigation
+
+    def details_url(self, investigation: Investigation) -> str:
+        return reverse(
+            "sentry-api-0-organization-investigation-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": investigation.id,
+            },
+        )
+
+    def test_restoring_an_archived_investigation_cannot_also_change_projects(self) -> None:
+        investigation = self.archived_investigation()
+        other_project = self.create_project(organization=self.organization)
+
+        response = self.client.put(
+            self.details_url(investigation),
+            data={
+                "investigationVersion": investigation.version,
+                "status": "active",
+                "projectIds": [other_project.id],
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400
+        investigation.refresh_from_db()
+        assert investigation.status == InvestigationStatus.ARCHIVED
+        assert list(
+            InvestigationProject.objects.filter(investigation=investigation).values_list(
+                "project_id", flat=True
+            )
+        ) == [self.project.id]
+
+    def test_restoring_an_archived_investigation_by_status_alone_is_allowed(self) -> None:
+        investigation = self.archived_investigation()
+
+        response = self.client.put(
+            self.details_url(investigation),
+            data={"investigationVersion": investigation.version, "status": "active"},
+            format="json",
+        )
+
+        assert response.status_code == 200, response.data
+        investigation.refresh_from_db()
+        assert investigation.status == InvestigationStatus.ACTIVE
+
+    def test_archived_investigations_reject_other_edits(self) -> None:
+        investigation = self.archived_investigation()
+
+        response = self.client.put(
+            self.details_url(investigation),
+            data={"investigationVersion": investigation.version, "title": "Renamed"},
+            format="json",
+        )
+
+        assert response.status_code == 400
+        investigation.refresh_from_db()
+        assert investigation.title == "Archived"

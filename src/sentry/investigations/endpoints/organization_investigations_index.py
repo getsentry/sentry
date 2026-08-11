@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from django.db.models import Count, Exists, OuterRef, Q
+from django.db.models import Exists, OuterRef, Q
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
@@ -24,7 +24,6 @@ from sentry.investigations.endpoints.serializers import (
 from sentry.investigations.endpoints.validators import InvestigationCreateValidator
 from sentry.investigations.models import (
     Investigation,
-    InvestigationFavoriteUser,
     InvestigationSourceType,
     InvestigationStatus,
 )
@@ -46,9 +45,6 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
             return Response(
                 {"detail": "Must be active or archived."}, status=status.HTTP_400_BAD_REQUEST
             )
-        favorite = InvestigationFavoriteUser.objects.filter(
-            investigation_id=OuterRef("id"), user_id=user_id(request)
-        )
         # A source-backed investigation supersedes earlier revisions of the same
         # lineage, so only the newest revision is listed.
         newer_lineage_revision = Investigation.objects.filter(
@@ -58,16 +54,9 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
             status=requested_status,
             source_revision__gt=OuterRef("source_revision"),
         )
-        investigations = (
-            Investigation.objects.filter(organization=organization, status=requested_status)
-            .filter(Q(source_type=InvestigationSourceType.MANUAL) | ~Exists(newer_lineage_revision))
-            .annotate(
-                active_block_count=Count(
-                    "blocks", filter=Q(blocks__deleted_at__isnull=True), distinct=True
-                ),
-                is_favorited=Exists(favorite),
-            )
-        )
+        investigations = Investigation.objects.filter(
+            organization=organization, status=requested_status
+        ).filter(Q(source_type=InvestigationSourceType.MANUAL) | ~Exists(newer_lineage_revision))
         query = request.GET.get("query")
         if query:
             investigations = investigations.filter(title__icontains=query)
