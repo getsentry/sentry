@@ -35,6 +35,16 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 
 UPDATABLE_INVESTIGATION_FIELDS = frozenset({"title", "status", "filters"})
+MAX_INVESTIGATION_TITLE_LENGTH = 255
+
+CREATABLE_BLOCK_FIELDS = frozenset({"kind", "title", "content", "prompt", "config", "display"})
+UPDATABLE_BLOCK_FIELDS = CREATABLE_BLOCK_FIELDS - {"kind"}
+
+
+def _reject_unsupported_fields(values: dict[str, Any], allowed: frozenset[str]) -> None:
+    unsupported = sorted(set(values) - allowed)
+    if unsupported:
+        raise InvestigationValidationError({"fields": f"Cannot be set: {', '.join(unsupported)}."})
 
 
 class InvestigationServiceError(Exception):
@@ -139,6 +149,11 @@ def create_manual_investigation(
     return investigation
 
 
+def _copy_title(title: str) -> str:
+    prefix = "Copy of "
+    return prefix + title[: MAX_INVESTIGATION_TITLE_LENGTH - len(prefix)]
+
+
 def duplicate_investigation(*, investigation: Investigation, user_id: int) -> Investigation:
     """Copy notebook structure without executions, comments, or collaboration state."""
 
@@ -150,7 +165,7 @@ def duplicate_investigation(*, investigation: Investigation, user_id: int) -> In
         duplicate = Investigation.objects.create(
             organization=source.organization,
             created_by_id=user_id,
-            title=f"Copy of {source.title}",
+            title=_copy_title(source.title),
             template_key=source.template_key,
             template_version=source.template_version,
             source_type=InvestigationSourceType.MANUAL,
@@ -191,9 +206,9 @@ def duplicate_investigation(*, investigation: Investigation, user_id: int) -> In
                 position=block.position,
                 kind=block.kind,
                 title=block.title,
-                content=block.content,
+                content="" if block.content_execution_id else block.content,
                 prompt=block.prompt,
-                generated_content=block.generated_content,
+                generated_content="" if block.content_execution_id else block.generated_content,
                 config=deepcopy(block.config),
                 display=deepcopy(block.display),
             )
@@ -476,6 +491,8 @@ def update_investigation(
 def archive_investigation(*, investigation: Investigation, expected_version: int) -> Investigation:
     with transaction.atomic(using=router.db_for_write(Investigation)):
         locked = lock_investigation(investigation, expected_version)
+        if locked.status == InvestigationStatus.ARCHIVED:
+            return locked
         locked.status = InvestigationStatus.ARCHIVED
         bump_investigation_version(locked)
         if locked.source_key is not None:
@@ -500,6 +517,7 @@ def create_block(
         locked = lock_investigation(investigation, expected_investigation_version)
         if locked.status != InvestigationStatus.ACTIVE:
             raise InvestigationValidationError({"detail": "Archived investigations are read-only."})
+        _reject_unsupported_fields(values, CREATABLE_BLOCK_FIELDS)
         maximum = InvestigationBlock.objects.filter(
             investigation=locked, deleted_at__isnull=True
         ).aggregate(maximum=Max("position"))["maximum"]
@@ -533,6 +551,7 @@ def update_block(
             raise InvestigationValidationError({"detail": "Archived investigations are read-only."})
         if locked.version != expected_block_version:
             raise InvestigationConflictError("Block has changed.")
+        _reject_unsupported_fields(values, UPDATABLE_BLOCK_FIELDS)
         stale_fields = {"content", "prompt", "config"}
         inputs_changed = bool(stale_fields.intersection(values))
         if inputs_changed:
