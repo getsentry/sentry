@@ -31,7 +31,6 @@ from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 logger = logging.getLogger(__name__)
 
-ALL_PROJECTS_TIMER_METRIC = "workflow_engine.all_projects_detector_fetch"
 
 _DETECTOR_SENTINEL = object()
 
@@ -41,7 +40,7 @@ def _get_all_projects_detector_cache_key(organization_id: int) -> str:
 
 
 def get_all_projects_detector(organization_id: int) -> Detector | None:
-    with metrics.timer(ALL_PROJECTS_TIMER_METRIC) as metrics_tags:
+    with metrics.timer("workflow_engine.cache.all_projects_detector") as metrics_tags:
         cache_key = _get_all_projects_detector_cache_key(organization_id)
         cached = cache.get(cache_key, default=_DETECTOR_SENTINEL)
         if cached is not _DETECTOR_SENTINEL:
@@ -49,18 +48,14 @@ def get_all_projects_detector(organization_id: int) -> Detector | None:
             metrics_tags["detector_found"] = "true" if cached is not None else "false"
             return cached
 
-        metrics_tags["cache_hit"] = "false"
         result = Detector.objects.filter(
             project__isnull=True,
             type=IssueStreamGroupType.slug,
             config__organization_id=organization_id,
         ).first()
+        metrics_tags["cache_hit"] = "false"
+        metrics_tags["detector_found"] = "true" if result is not None else "false"
         cache.set(cache_key, result, Detector.CACHE_TTL)
-
-        if result is not None:
-            metrics_tags["detector_found"] = "true"
-        else:
-            metrics_tags["detector_found"] = "false"
 
     return result
 
