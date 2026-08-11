@@ -144,12 +144,12 @@ class InvestigationExecutionServiceTest(TestCase):
         assert execution.input_snapshot["projectSlugs"] == [project.slug for project in expected]
 
     def test_revalidates_project_parameter_access(self) -> None:
-        cases: list[tuple[InvestigationParameterType, Callable[[int], Any]]] = [
+        cases: list[tuple[str, Callable[[int], Any]]] = [
             (InvestigationParameterType.PROJECT, lambda project_id: project_id),
             (InvestigationParameterType.PROJECT_LIST, lambda project_id: [project_id]),
         ]
         for position, (parameter_type, saved_value) in enumerate(cases):
-            with self.subTest(parameter_type=parameter_type.value):
+            with self.subTest(parameter_type=parameter_type):
                 revoked_project = self.create_project(organization=self.organization)
                 parameter = self.create_investigation_parameter(
                     investigation=self.investigation,
