@@ -30,6 +30,10 @@ from django.utils.dateparse import parse_datetime
 from pydantic import ValidationError
 
 from sentry import features, options
+from sentry.integrations.github.check_payloads import (
+    is_own_repo_pull_request,
+    pull_request_base_repo_id,
+)
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.issues.constants import cache_key_for_issue_view
@@ -926,6 +930,7 @@ def handle_check_suite(
                 head_sha=check_suite.get("head_sha"),
                 check_suite_id=check_suite.get("id"),
             )
+            _record_check_activity_metric(github_event)
 
 
 def handle_check_run(
@@ -975,6 +980,23 @@ def handle_check_run(
                 head_sha=check_run.get("head_sha"),
                 check_suite_id=(check_run.get("check_suite") or {}).get("id"),
             )
+            _record_check_activity_metric(github_event)
+
+
+def _record_check_activity_metric(github_event: GithubWebhookType) -> None:
+    """Count the check activity this cell actually recorded.
+
+    The control parser drops check deliveries it predicts are no-ops here
+    (``ActionFilter.own_repo_pr_actions``). That prediction reads the payload alone,
+    and nothing else on this path is instrumented — ``_write_activity_row`` is a bare
+    insert — so a wrong prediction would silently stop work with no signal anywhere.
+    This is that signal: it must not move when a drop is enabled in control.
+
+    Left at the ambient sample rate rather than forced to 1.0: the question it
+    answers is "did the rate change", which any consistent sampling answers at this
+    volume (~90/s). Read it as a rate, never as an absolute count.
+    """
+    metrics.incr("pr_metrics.check.activity_recorded", tags={"github_event": github_event.value})
 
 
 def _prs_from_check_payload(
@@ -986,16 +1008,11 @@ def _prs_from_check_payload(
 ) -> list[PullRequest]:
     """Resolve the tracked PRs a check_suite/check_run payload references.
 
-    GitHub lists a PR on a check when they share ``head_sha`` + ``head_branch``,
-    so ``pull_requests`` can include PRs that live in *other* repositories. The
-    common case: a PR opened to merge this repo's default branch into another
-    repo (e.g. a fork syncing from upstream) has its head in this repo, so it
-    matches every default-branch check here — but the PR belongs to that other
-    repo and its ``number`` is scoped to it. Each entry carries its own
-    ``base.repo``, so an entry is only ours to resolve when its base repo is the
-    one this webhook is for. Resolving a foreign entry's number against ``repo``
-    would miss, or — on a number collision — attribute another repo's PR activity
-    to ours, so it is skipped.
+    ``pull_requests`` can include PRs based in *other* repositories, and a
+    ``number`` is scoped to its base repo, so resolving a foreign entry against
+    ``repo`` would miss or — on a number collision — attribute another repo's PR
+    activity to ours. ``is_own_repo_pull_request`` holds that rule, shared with the
+    other consumers of these payloads.
 
     Numbers are deduped before resolving each to its stored row; unknown PRs are
     dropped by ``_get_pull_request``.
@@ -1006,11 +1023,7 @@ def _prs_from_check_payload(
         number = ref.get("number")
         if number is None or str(number) in seen:
             continue
-        # A PR's number is scoped to its own base repo; resolve it against
-        # ``repo`` only when the PR lives here. Entries whose base is another repo
-        # (a PR merging this repo's branch elsewhere) are not ours to record.
-        base_repo_id = ((ref.get("base") or {}).get("repo") or {}).get("id")
-        if base_repo_id is None or str(base_repo_id) != repo.external_id:
+        if not is_own_repo_pull_request(pull_request_base_repo_id(ref), repo.external_id):
             metrics.incr("pr_metrics.check.foreign_pull_request")
             continue
         seen.add(str(number))

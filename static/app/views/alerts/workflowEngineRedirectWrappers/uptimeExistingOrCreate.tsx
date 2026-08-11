@@ -1,9 +1,3 @@
-import {lazy} from 'react';
+import {UptimeMonitorCreateRedirect} from 'sentry/views/alerts/workflowEngineRedirects';
 
-import {withDetectorCreateRedirect} from 'sentry/views/alerts/workflowEngineRedirects';
-
-const UptimeExistingOrCreate = lazy(
-  () => import('sentry/views/detectors/components/uptime/existingOrCreate')
-);
-
-export default withDetectorCreateRedirect(UptimeExistingOrCreate);
+export default UptimeMonitorCreateRedirect;
