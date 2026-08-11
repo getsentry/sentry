@@ -178,7 +178,7 @@ describe('useConversation', () => {
     // renders it unchanged) and preserve span.op, which the transcript uses to
     // recognize the embedding.
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/conv-embedding/`,
+      url: `/organizations/${organization.slug}/agents/conversations/conv-embedding/`,
       body: envelope([
         {
           'gen_ai.conversation.id': 'conv-embedding',
@@ -217,7 +217,7 @@ describe('useConversation', () => {
 
   it('maps gen_ai.embeddings.input to node attributes', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/ai-conversations/conv-embedding-input/`,
+      url: `/organizations/${organization.slug}/agents/conversations/conv-embedding-input/`,
       body: envelope([
         {
           'gen_ai.conversation.id': 'conv-embedding-input',
