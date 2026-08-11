@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {useDrawerContentContext} from '@sentry/scraps/drawer';
 
 import {

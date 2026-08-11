@@ -843,10 +843,17 @@ export default typescript.config([
         {
           case: 'camelCase',
           ignore: [
-            'jest-pegjs-transform\\.js',
-            'jest-environment\\.js',
-            'jest-environment-node\\.js',
-            '/__mocks__/',
+            '^jest-pegjs-transform\\.js$',
+            '^jest-environment\\.js$',
+            '^jest-environment-node\\.js$',
+            // Mocks named after external packages must preserve the package's
+            // kebab-case basename so Jest can resolve them.
+            '^(?:analytics-browser|react-(?:date-range|lazyload))\\.tsx$',
+            // Unicorn changes capitalized abbreviations in camel-cased filenames:
+            // CTA to Cta, SDK to Sdk, and WebGL to WebGl. Keep the conventional
+            // capitalization when the rest of the filename is camel-cased.
+            '^[a-z][a-zA-Z\\d]*[A-Z]{2,}[a-zA-Z\\d]*(?:\\.[a-z\\d]+)+$',
+            '^[A-Z]{2,}[a-zA-Z\\d]*(?:\\.[a-z\\d]+)+$',
             // Shebang scripts can't use an inline disable comment (it must sit
             // on line 1, where the shebang is) and are invoked by their
             // kebab-case names from package.json/CI, so ignore them here.
