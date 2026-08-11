@@ -80,7 +80,11 @@ class GithubCheckSuitePullRequestBase(BaseModel):
 
 class GithubCheckSuitePullRequest(BaseModel):
     id: int
-    # Optional so feedback serialized before this field existed still parses.
+    # Optional so feedback serialized before this field existed still parses. Such
+    # an entry is skipped rather than kept (see `resolve_check_suite_autofix_run`), which
+    # is safe because `Config.extra = "allow"` already round-tripped `base` through
+    # the model that predates this field — GitHub always sends it, so it survived
+    # serialization as an extra and parses into this field on the way back in.
     base: GithubCheckSuitePullRequestBase | None = None
 
     class Config:
@@ -197,18 +201,6 @@ class CheckSuiteAutofixRun:
     group_id: int
 
 
-def _is_foreign_base_repo(pr: GithubCheckSuitePullRequest, repository_id: int | None) -> bool:
-    """Whether this entry's PR is based in a repository other than the suite's.
-
-    Only ``True`` when both ids are present and differ — an entry we cannot place
-    is kept, since dropping one costs a real iteration.
-    """
-    if repository_id is None:
-        return False
-    base_repo_id = pr.base.repo.id if pr.base and pr.base.repo else None
-    return base_repo_id is not None and base_repo_id != repository_id
-
-
 def resolve_check_suite_autofix_run(
     event: GithubCheckSuiteEvent, repositories: Sequence[Repository] | None = None
 ) -> CheckSuiteAutofixRun | None:
@@ -227,7 +219,18 @@ def resolve_check_suite_autofix_run(
     resolving it would bind the suite to whatever run owns that foreign PR:
     ``repository`` below is this suite's repo, not the entry's, and the first
     match wins. Skipping them keeps the own-repo entry from being shadowed.
+
+    An entry carrying no ``base.repo`` at all is skipped on the same rule (see
+    ``is_own_repo_pull_request``). Resolving by global ``pr.id`` could place it,
+    but the control parser drops payloads made only of such entries, so acting on
+    them here would be acting on events this path no longer receives.
     """
+    # `sentry.integrations.github` registers rule actions at import time, and this
+    # module is imported while the SCM stream listeners initialize in
+    # AppConfig.ready — before options init. Deferred for the same reason as
+    # `make_scm` in `confirm_green_check_suite`.
+    from sentry.integrations.github.check_payloads import is_own_repo_pull_request
+
     repos = (
         list(repositories) if repositories is not None else resolve_check_suite_repositories(event)
     )
@@ -236,7 +239,8 @@ def resolve_check_suite_autofix_run(
 
     pull_requests = []
     for pr in event.check_suite.pull_requests:
-        if _is_foreign_base_repo(pr, event.repository.id):
+        base_repo_id = pr.base.repo.id if pr.base and pr.base.repo else None
+        if not is_own_repo_pull_request(base_repo_id, event.repository.id):
             metrics.incr("autofix.pr_iteration.check_suite.foreign_pull_request")
             continue
         pull_requests.append(pr)

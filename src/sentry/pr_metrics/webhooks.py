@@ -30,6 +30,10 @@ from django.utils.dateparse import parse_datetime
 from pydantic import ValidationError
 
 from sentry import features, options
+from sentry.integrations.github.check_payloads import (
+    is_own_repo_pull_request,
+    pull_request_base_repo_id,
+)
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.issues.constants import cache_key_for_issue_view
@@ -995,7 +999,8 @@ def _prs_from_check_payload(
     ``base.repo``, so an entry is only ours to resolve when its base repo is the
     one this webhook is for. Resolving a foreign entry's number against ``repo``
     would miss, or — on a number collision — attribute another repo's PR activity
-    to ours, so it is skipped.
+    to ours, so it is skipped. ``is_own_repo_pull_request`` holds that rule, shared
+    with the other consumers of these payloads.
 
     Numbers are deduped before resolving each to its stored row; unknown PRs are
     dropped by ``_get_pull_request``.
@@ -1006,11 +1011,7 @@ def _prs_from_check_payload(
         number = ref.get("number")
         if number is None or str(number) in seen:
             continue
-        # A PR's number is scoped to its own base repo; resolve it against
-        # ``repo`` only when the PR lives here. Entries whose base is another repo
-        # (a PR merging this repo's branch elsewhere) are not ours to record.
-        base_repo_id = ((ref.get("base") or {}).get("repo") or {}).get("id")
-        if base_repo_id is None or str(base_repo_id) != repo.external_id:
+        if not is_own_repo_pull_request(pull_request_base_repo_id(ref), repo.external_id):
             metrics.incr("pr_metrics.check.foreign_pull_request")
             continue
         seen.add(str(number))
