@@ -63,7 +63,6 @@ def _materialize_dependency_context(
     links = list(
         block.dependency_links.select_related(
             "depends_on__content_execution",
-            "depends_on__current_execution",
             "depends_on__result_execution",
         )
         .prefetch_related(
@@ -222,6 +221,18 @@ def build_block_execution_snapshot(
     projects: list[Project],
     accessible_project_ids: set[int],
 ) -> tuple[dict[str, Any], str]:
+    dataset_hint = None
+    if block.kind == InvestigationBlockKind.QUERY:
+        dataset_hint = block.config.get("datasetHint")
+        if dataset_hint is not None and dataset_hint not in {
+            "errors",
+            "issues",
+            "spans",
+            "logs",
+            "metrics",
+        }:
+            raise InvestigationValidationError({"detail": "The template dataset hint is invalid."})
+
     prompt = (block.prompt or block.content).strip()
     parameters: dict[str, Any] = {}
     for link in block.parameter_links.select_related("parameter").order_by("parameter__key"):
@@ -261,7 +272,6 @@ def build_block_execution_snapshot(
         "blockVersion": block.version,
         "investigationVersion": block.investigation.version,
     }
-    dataset_hint = block.config.get("datasetHint")
     if dataset_hint is not None:
         snapshot["datasetHint"] = dataset_hint
     return snapshot, _fingerprint(snapshot)
@@ -337,33 +347,20 @@ def create_block_execution(
             projects=projects,
             accessible_project_ids=accessible_project_ids,
         )
-        current = locked.current_execution
-        if (
-            request_id is None
-            and current is not None
-            and current.block_version == locked.version
-            and current.input_fingerprint == fingerprint
-            and current.status
-            in {
-                InvestigationBlockExecutionStatus.PENDING,
-                InvestigationBlockExecutionStatus.RUNNING,
-                InvestigationBlockExecutionStatus.AWAITING_INPUT,
-                InvestigationBlockExecutionStatus.STOPPING,
-            }
-        ):
-            return current, False
-
-        dataset_hint = (
-            snapshot.get("datasetHint") if locked.kind == InvestigationBlockKind.QUERY else None
-        )
-        if dataset_hint is not None and dataset_hint not in {
-            "errors",
-            "issues",
-            "spans",
-            "logs",
-            "metrics",
-        }:
-            raise InvestigationValidationError({"detail": "The template dataset hint is invalid."})
+        if request_id is None and (current := locked.current_execution) is not None:
+            current.refresh_from_db(fields=["status"])
+            if (
+                current.block_version == locked.version
+                and current.input_fingerprint == fingerprint
+                and current.status
+                in {
+                    InvestigationBlockExecutionStatus.PENDING,
+                    InvestigationBlockExecutionStatus.RUNNING,
+                    InvestigationBlockExecutionStatus.AWAITING_INPUT,
+                    InvestigationBlockExecutionStatus.STOPPING,
+                }
+            ):
+                return current, False
         execution_values: dict[str, Any] = {
             "block": locked,
             "triggered_by_id": user_id,

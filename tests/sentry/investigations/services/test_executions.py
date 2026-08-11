@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from typing import Any
+from unittest import mock
 from uuid import uuid4
 
 import pytest
@@ -88,6 +89,7 @@ class InvestigationExecutionServiceTest(TestCase):
             position=2,
             kind=InvestigationBlockKind.TEXT,
             prompt="Summarize this notebook",
+            config={"datasetHint": "issues"},
         )
         first = self.create_block(position=1, title="first")
         second = self.create_block(position=1, title="second")
@@ -101,6 +103,13 @@ class InvestigationExecutionServiceTest(TestCase):
         ]
         assert execution.input_snapshot["blockVersion"] == target.version
         assert "cellVersion" not in execution.input_snapshot
+        assert "datasetHint" not in execution.input_snapshot
+
+    def test_rejects_invalid_query_dataset_hint(self) -> None:
+        block = self.create_block(config={"datasetHint": "invalid"})
+
+        with pytest.raises(InvestigationValidationError):
+            self.run_block(block)
 
     def test_rejects_duplicate_project_scope(self) -> None:
         block = self.create_block()
@@ -189,6 +198,28 @@ class InvestigationExecutionServiceTest(TestCase):
 
         with pytest.raises(InvestigationValidationError):
             self.run_block(second, request_id=request_id)
+
+    def test_does_not_reuse_execution_that_failed_while_snapshotting(self) -> None:
+        block = self.create_block()
+        failed_execution, created = self.run_block(block)
+        assert created
+
+        original_build_snapshot = build_block_execution_snapshot
+
+        def fail_current_execution(**kwargs: Any) -> tuple[dict[str, Any], str]:
+            mark_block_execution_dispatch_failed(failed_execution)
+            return original_build_snapshot(**kwargs)
+
+        with mock.patch(
+            "sentry.investigations.services.executions.build_block_execution_snapshot",
+            side_effect=fail_current_execution,
+        ):
+            replacement, replacement_created = self.run_block(block)
+
+        failed_execution.refresh_from_db()
+        assert failed_execution.status == InvestigationBlockExecutionStatus.FAILED
+        assert replacement_created
+        assert replacement.id != failed_execution.id
 
     def test_rejects_deleted_dependency(self) -> None:
         dependency = self.create_block(position=0)
