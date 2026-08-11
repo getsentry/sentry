@@ -14,6 +14,7 @@ export function Onboarding({actions}: Props) {
     <OnboardingPanel
       illustration={
         <Image
+          width="auto"
           height={{zero: '150px', '2xl': 'auto'}}
           src={emptyStateImg}
           alt={t('Illustration of a robot surrounded by warning signs')}
