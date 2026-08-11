@@ -287,7 +287,7 @@ function HeadCell({
   const cellRef = useRef<HTMLTableCellElement>(null);
   const {max, width} = useObservedColumnSize(cellRef);
   const fallbackId = useId();
-  const cellId = props.id ?? fallbackId;
+  const cellId = props.id || fallbackId;
 
   return (
     <TableHeadCell

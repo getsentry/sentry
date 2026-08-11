@@ -1,4 +1,5 @@
 import type {CSSProperties} from 'react';
+import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -306,7 +307,9 @@ export function GridBodyCellStatus(props: any) {
  *
  * The right most cell does not have a resizer as resizing from that side does strange things.
  */
-export const GridResizer = styled('div')`
+export const GridResizer = styled('div', {
+  shouldForwardProp: prop => prop !== 'cursor' && isPropValid(prop),
+})<{cursor?: CSSProperties['cursor']}>`
   position: absolute;
   top: 0px;
   right: -6px;
@@ -316,7 +319,7 @@ export const GridResizer = styled('div')`
   padding-left: 5px;
   padding-right: 5px;
 
-  cursor: col-resize;
+  cursor: ${p => p.cursor ?? 'col-resize'};
   touch-action: none;
   user-select: none;
   z-index: ${Z_INDEX_GRID_RESIZER};
@@ -341,7 +344,8 @@ export const GridResizer = styled('div')`
    * the GridResizer is dragged
    */
   &:active::after,
-  &:focus::after {
+  &:focus-visible::after,
+  &[data-is-held='true']::after {
     background-color: ${p => p.theme.tokens.focus.default};
   }
 

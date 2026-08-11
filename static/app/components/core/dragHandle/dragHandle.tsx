@@ -3,39 +3,13 @@ import {mergeProps} from '@react-aria/utils';
 
 import {Container} from '@sentry/scraps/layout';
 
-import {useDragMove} from './useDragMove';
+import {useDragSeparator} from './useDragSeparator';
 
 export type Orientation = 'horizontal' | 'vertical';
 
 export type DragHandleVariant = 'solid' | 'ghost';
 
 export const DRAG_HANDLE_SIZE = 1;
-
-// At a limit the handle can only travel one way, so point the cursor that way;
-// the grow/shrink direction flips when the sized pane sits after the handle.
-function getDragHandleCursor(
-  orientation: Orientation,
-  atMin: boolean,
-  atMax: boolean,
-  isSizedFirst: boolean
-): React.CSSProperties['cursor'] {
-  if (orientation === 'horizontal') {
-    if (atMin) {
-      return isSizedFirst ? 'e-resize' : 'w-resize';
-    }
-    if (atMax) {
-      return isSizedFirst ? 'w-resize' : 'e-resize';
-    }
-    return 'ew-resize';
-  }
-  if (atMin) {
-    return isSizedFirst ? 's-resize' : 'n-resize';
-  }
-  if (atMax) {
-    return isSizedFirst ? 'n-resize' : 's-resize';
-  }
-  return 'ns-resize';
-}
 
 /**
  * A focusable `separator` is a widget, so it needs a name, or it is announced as a bare
@@ -76,37 +50,26 @@ export function DragHandle({
   onMoveEnd,
   onMoveStart,
 }: DragHandleProps) {
-  const {isHeld, moveProps} = useDragMove({
+  const {cursor, separatorProps} = useDragSeparator({
+    isSizedFirst,
+    max,
+    min,
     onMove,
     onMoveEnd,
     onMoveStart,
     orientation,
+    value,
   });
-
-  const cursor = getDragHandleCursor(
-    orientation,
-    value <= min,
-    Number.isFinite(max) && value >= max,
-    isSizedFirst
-  );
 
   return (
     <Container position="relative" flexShrink={0}>
       {containerProps => (
         <DragHandleLine
-          {...mergeProps(moveProps, containerProps, {onDoubleClick, onKeyDown})}
+          {...mergeProps(separatorProps, containerProps, {onDoubleClick, onKeyDown})}
           $cursor={cursor}
           aria-label={ariaLabel}
           aria-labelledby={ariaLabelledby}
-          aria-orientation={orientation === 'horizontal' ? 'vertical' : 'horizontal'}
-          aria-valuemax={Number.isFinite(max) ? max : undefined}
-          aria-valuemin={min}
-          aria-valuenow={value}
           data-variant={variant}
-          data-is-held={isHeld}
-          data-orientation={orientation}
-          role="separator"
-          tabIndex={0}
         />
       )}
     </Container>

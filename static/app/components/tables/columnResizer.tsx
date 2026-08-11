@@ -1,7 +1,7 @@
 import {useEffect, useId, useRef} from 'react';
 import {mergeProps} from '@react-aria/utils';
 
-import {useDragMove} from '@sentry/scraps/dragHandle';
+import {useDragSeparator} from '@sentry/scraps/dragHandle';
 
 import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
 import {useObservedColumnSize} from 'sentry/components/tables/useObservedColumnSize';
@@ -35,7 +35,7 @@ export function ColumnResizer({
   // A focusable separator is a widget, so it needs a name. The header cell already
   // carries the column's name, and pointing at it rather than repeating it as an
   // `aria-label` keeps the resizer out of that cell's own name-from-content.
-  const cellId = cell?.id ?? fallbackCellId;
+  const cellId = cell?.id || fallbackCellId;
 
   useEffect(() => {
     if (cell && !cell.id) {
@@ -43,28 +43,27 @@ export function ColumnResizer({
     }
   }, [cell, fallbackCellId]);
 
-  const {moveProps} = useDragMove({
+  const {cursor, separatorProps} = useDragSeparator({
+    isSizedFirst: true,
+    max: max || undefined,
+    min: minimumColumnWidth,
     onMove: onResizeMove,
     onMoveEnd: onResizeEnd,
-    onMoveStart: () => onResizeStart(columnIndex, ref.current?.closest('th') ?? null),
+    onMoveStart: () => onResizeStart(columnIndex, cell),
     orientation: 'horizontal',
+    value: width || undefined,
   });
 
   return (
     <GridResizer
-      {...mergeProps(moveProps, {
+      {...mergeProps(separatorProps, {
         onContextMenu: (event: React.MouseEvent) => event.preventDefault(),
         onDoubleClick: (event: React.MouseEvent) =>
           onResetColumnSize?.(event, columnIndex),
       })}
       aria-labelledby={cellId}
-      aria-orientation="vertical"
-      aria-valuemax={max || undefined}
-      aria-valuemin={minimumColumnWidth}
-      aria-valuenow={width || undefined}
+      cursor={cursor}
       ref={ref}
-      role="separator"
-      tabIndex={0}
     />
   );
 }
