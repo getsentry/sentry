@@ -67,6 +67,7 @@ from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.tasks.seer.pr_iteration import (
+    UnsupportedProviderError,
     _add_comment_reaction,
     _delete_own_comment_eyes_reaction,
     _resolve_review_comment_threads,
@@ -429,21 +430,40 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             _record_completion_reaction("resolve_rate_limited")
 
         for (repo_name, pr_number), unique_ids in resolve_by_repo_pr.items():
-            result = _resolve_review_comment_threads(
-                scm_by_repo[repo_name],
-                pr_number=pr_number,
-                comment_unique_ids=unique_ids,
-            )
-            if result.unsupported_provider:
-                outcomes = {"resolve_unsupported_provider": 1}
-            elif result.failed:
-                outcomes = {"resolve_failed": 1}
-            else:
-                outcomes = {
-                    "resolved": result.resolved,
-                    "resolve_skipped_already_resolved": result.already_resolved,
-                    "resolve_thread_not_found": result.not_found,
-                }
+            log_extra = {
+                "run_id": run_id,
+                "organization_id": organization.id,
+                "repo_name": repo_name,
+                "pr_number": pr_number,
+                "comment_count": len(unique_ids),
+            }
+            try:
+                result = _resolve_review_comment_threads(
+                    scm_by_repo[repo_name],
+                    pr_number=pr_number,
+                    comment_unique_ids=unique_ids,
+                )
+            except UnsupportedProviderError:
+                logger.warning(
+                    "autofix.on_completion_hook.completion_reaction.resolve_unsupported_provider",
+                    extra=log_extra,
+                    exc_info=True,
+                )
+                _record_completion_reaction("resolve_unsupported_provider")
+                continue
+            except Exception:
+                logger.exception(
+                    "autofix.on_completion_hook.completion_reaction.resolve_failed",
+                    extra=log_extra,
+                )
+                _record_completion_reaction("resolve_failed")
+                continue
+
+            outcomes = {
+                "resolved": result.resolved,
+                "resolve_skipped_already_resolved": result.already_resolved,
+                "resolve_thread_not_found": result.not_found,
+            }
             for outcome, amount in outcomes.items():
                 if amount:
                     _record_completion_reaction(outcome, amount)

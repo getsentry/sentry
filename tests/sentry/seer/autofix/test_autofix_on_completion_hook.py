@@ -32,7 +32,10 @@ from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import AutofixHandoffPoint, SeerAutomationHandoffConfiguration
 from sentry.seer.models.run import SeerRunMilestone, SeerRunMilestoneType
 from sentry.sentry_apps.utils.webhooks import SeerActionType
-from sentry.tasks.seer.pr_iteration import ResolveReviewThreadsResult
+from sentry.tasks.seer.pr_iteration import (
+    ResolveReviewThreadsResult,
+    UnsupportedProviderError,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.types.activity import ActivityType
@@ -1072,6 +1075,13 @@ class TestMaybeReactToCompletedIteration(TestCase):
                 self.organization, 123, state
             )
 
+    def _reaction_outcomes(self, mock_incr: MagicMock) -> list[str]:
+        return [
+            call.kwargs["tags"]["outcome"]
+            for call in mock_incr.call_args_list
+            if call.args[0] == "autofix.on_completion_hook.completion_reaction"
+        ]
+
     @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=False)
     @patch(f"{REACT_PATH}._resolve_review_comment_threads")
     @patch(f"{REACT_PATH}.make_scm")
@@ -1350,6 +1360,43 @@ class TestMaybeReactToCompletedIteration(TestCase):
         # :eyes: removal still happens for the inline comment.
         assert mock_delete_eyes.call_count == 1
         assert mock_delete_eyes.call_args.kwargs["comment_id"] == 222
+
+    @patch(f"{REACT_PATH}.metrics.incr")
+    @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=False)
+    @patch(f"{REACT_PATH}._resolve_review_comment_threads")
+    @patch(f"{REACT_PATH}._delete_own_comment_eyes_reaction")
+    @patch(f"{REACT_PATH}.make_scm")
+    @patch(f"{REACT_PATH}._add_comment_reaction")
+    def test_records_resolve_unsupported_provider(
+        self, mock_react, mock_make_scm, mock_delete_eyes, mock_resolve, mock_sensitive, mock_incr
+    ):
+        # A provider that can't resolve threads is a logged non-failure: the hook
+        # records the outcome instead of propagating.
+        mock_make_scm.return_value = MagicMock()
+        mock_resolve.side_effect = UnsupportedProviderError("StubScm")
+        state = self._state_with([self._review_source(222, unique_id="PRRC_222")])
+
+        self._run(state)
+
+        assert self._reaction_outcomes(mock_incr) == ["resolve_unsupported_provider"]
+
+    @patch(f"{REACT_PATH}.metrics.incr")
+    @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=False)
+    @patch(f"{REACT_PATH}._resolve_review_comment_threads")
+    @patch(f"{REACT_PATH}._delete_own_comment_eyes_reaction")
+    @patch(f"{REACT_PATH}.make_scm")
+    @patch(f"{REACT_PATH}._add_comment_reaction")
+    def test_records_resolve_failure(
+        self, mock_react, mock_make_scm, mock_delete_eyes, mock_resolve, mock_sensitive, mock_incr
+    ):
+        # An SCM failure must not bubble out of the completion hook.
+        mock_make_scm.return_value = MagicMock()
+        mock_resolve.side_effect = RuntimeError("boom")
+        state = self._state_with([self._review_source(222, unique_id="PRRC_222")])
+
+        self._run(state)
+
+        assert self._reaction_outcomes(mock_incr) == ["resolve_failed"]
 
     @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=True)
     @patch(f"{REACT_PATH}._resolve_review_comment_threads")

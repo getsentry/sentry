@@ -386,13 +386,15 @@ def _delete_own_comment_eyes_reaction(
         logger.exception("autofix.pr_iteration.completion_reaction.delete_eyes_failed")
 
 
+class UnsupportedProviderError(Exception):
+    """The SCM provider can't resolve review threads."""
+
+
 @dataclass
 class ResolveReviewThreadsResult:
     resolved: int = 0
     already_resolved: int = 0
     not_found: int = 0
-    unsupported_provider: bool = False
-    failed: bool = False
 
 
 def _resolve_review_comment_threads(
@@ -401,54 +403,54 @@ def _resolve_review_comment_threads(
     pr_number: int,
     comment_unique_ids: Collection[str],
 ) -> ResolveReviewThreadsResult:
-    """Resolve the review threads of this iteration's inline comments (CW-1688)."""
+    """Resolve the review threads of this iteration's inline comments (CW-1688).
+
+    Raises ``UnsupportedProviderError`` when the provider lacks the review-thread
+    protocols, and lets SCM failures propagate; the caller logs both with its own
+    run/org/repo context.
+    """
     if not (
         isinstance(scm, ResolveReviewThreadProtocol)
         and isinstance(scm, GetPullRequestReviewThreadsProtocol)
     ):
-        logger.warning("autofix.pr_iteration.completion_reaction.unsupported_provider")
-        return ResolveReviewThreadsResult(unsupported_provider=True)
+        raise UnsupportedProviderError(type(scm).__name__)
 
-    try:
-        threads: list[ReviewThread] = []
-        # Empty starting cursor so GitHub's GraphQL first page is `after: null`.
-        for page in iter_all_pages(
-            lambda pagination: scm_actions.get_pull_request_review_threads(
-                scm, str(pr_number), pagination
-            ),
-            per_page=100,
-            cursor="",
-        ):
-            threads.extend(page["data"])
+    threads: list[ReviewThread] = []
+    # Empty starting cursor so GitHub's GraphQL first page is `after: null`.
+    for page in iter_all_pages(
+        lambda pagination: scm_actions.get_pull_request_review_threads(
+            scm, str(pr_number), pagination
+        ),
+        per_page=100,
+        cursor="",
+    ):
+        threads.extend(page["data"])
 
-        thread_by_comment: dict[str, ReviewThread] = {}
-        for thread in threads:
-            for comment in thread["comments"]:
-                unique_id = comment.get("unique_id")
-                if unique_id is not None:
-                    thread_by_comment[unique_id] = thread
+    thread_by_comment: dict[str, ReviewThread] = {}
+    for thread in threads:
+        for comment in thread["comments"]:
+            unique_id = comment.get("unique_id")
+            if unique_id is not None:
+                thread_by_comment[unique_id] = thread
 
-        outcome = ResolveReviewThreadsResult()
-        thread_ids_to_resolve: set[ResourceId] = set()
-        already_resolved_ids: set[ResourceId] = set()
-        for comment_unique_id in comment_unique_ids:
-            owning_thread = thread_by_comment.get(comment_unique_id)
-            if owning_thread is None:
-                outcome.not_found += 1
-                continue
-            if owning_thread["is_resolved"]:
-                already_resolved_ids.add(owning_thread["id"])
-            else:
-                thread_ids_to_resolve.add(owning_thread["id"])
+    outcome = ResolveReviewThreadsResult()
+    thread_ids_to_resolve: set[ResourceId] = set()
+    already_resolved_ids: set[ResourceId] = set()
+    for comment_unique_id in comment_unique_ids:
+        owning_thread = thread_by_comment.get(comment_unique_id)
+        if owning_thread is None:
+            outcome.not_found += 1
+            continue
+        if owning_thread["is_resolved"]:
+            already_resolved_ids.add(owning_thread["id"])
+        else:
+            thread_ids_to_resolve.add(owning_thread["id"])
 
-        outcome.already_resolved = len(already_resolved_ids)
-        for thread_id in thread_ids_to_resolve:
-            scm_actions.resolve_review_thread(scm, str(pr_number), str(thread_id))
-            outcome.resolved += 1
-        return outcome
-    except Exception:
-        logger.exception("autofix.pr_iteration.completion_reaction.resolve_failed")
-        return ResolveReviewThreadsResult(failed=True)
+    outcome.already_resolved = len(already_resolved_ids)
+    for thread_id in thread_ids_to_resolve:
+        scm_actions.resolve_review_thread(scm, str(pr_number), str(thread_id))
+        outcome.resolved += 1
+    return outcome
 
 
 def _comment_pr_iteration_ineligible(

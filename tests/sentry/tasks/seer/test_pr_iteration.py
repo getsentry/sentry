@@ -2,6 +2,7 @@ from datetime import timedelta
 from typing import Any, Literal
 from unittest.mock import MagicMock, patch
 
+import pytest
 from scm.types import ReviewComment
 
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
@@ -24,6 +25,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeed
 from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
 from sentry.seer.models import SeerApiError
 from sentry.tasks.seer.pr_iteration import (
+    UnsupportedProviderError,
     _build_review_feedback,
     _delete_own_comment_eyes_reaction,
     _ineligible_pr_iteration_comment_body,
@@ -1274,29 +1276,28 @@ class ResolveReviewCommentThreadsTest(TestCase):
         mock_scm_actions.resolve_review_thread.assert_called_once_with(scm, "7", "PRRT_2")
 
     @patch(f"{TASK_PATH}.scm_actions")
-    def test_noop_for_unsupported_provider(self, mock_scm_actions: MagicMock) -> None:
+    def test_raises_for_unsupported_provider(self, mock_scm_actions: MagicMock) -> None:
         # A mock missing one protocol method fails the isinstance guard.
         scm = MagicMock(
             spec=["resolve_review_thread", "get_thread_id_from_review_comment_unique_id"]
         )
 
-        result = _resolve_review_comment_threads(scm, pr_number=7, comment_unique_ids=["PRRC_a"])
+        with pytest.raises(UnsupportedProviderError):
+            _resolve_review_comment_threads(scm, pr_number=7, comment_unique_ids=["PRRC_a"])
 
-        assert result.unsupported_provider is True
         mock_scm_actions.get_pull_request_review_threads.assert_not_called()
         mock_scm_actions.resolve_review_thread.assert_not_called()
 
     @patch(f"{TASK_PATH}.scm_actions")
-    def test_swallows_exceptions(self, mock_scm_actions: MagicMock) -> None:
+    def test_propagates_exceptions(self, mock_scm_actions: MagicMock) -> None:
         scm = self._scm()
         mock_scm_actions.get_pull_request_review_threads.return_value = self._page(
             [self._thread("PRRT_1", ["PRRC_a"])]
         )
         mock_scm_actions.resolve_review_thread.side_effect = RuntimeError("boom")
 
-        result = _resolve_review_comment_threads(scm, pr_number=7, comment_unique_ids=["PRRC_a"])
-
-        assert result.failed is True
+        with pytest.raises(RuntimeError):
+            _resolve_review_comment_threads(scm, pr_number=7, comment_unique_ids=["PRRC_a"])
 
 
 class BuildReviewFeedbackTest(TestCase):
