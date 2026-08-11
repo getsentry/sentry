@@ -37,7 +37,17 @@ function getDragHandleCursor(
   return 'ns-resize';
 }
 
-export type DragHandleProps = {
+/**
+ * A focusable `separator` is a widget, so it needs a name, or it is announced as a bare
+ * value with no subject. Prefer `aria-labelledby` when the handle sits inside an element
+ * that is named from its content, such as a table header cell: an `aria-label` there
+ * would also become part of that element's own name.
+ */
+type DragHandleNameProps =
+  | {'aria-label': string; 'aria-labelledby'?: never}
+  | {'aria-labelledby': string; 'aria-label'?: never};
+
+export type DragHandleProps = DragHandleNameProps & {
   isSizedFirst: boolean;
   max: number;
   min: number;
@@ -52,6 +62,8 @@ export type DragHandleProps = {
 };
 
 export function DragHandle({
+  'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledby,
   variant = 'solid',
   isSizedFirst,
   max,
@@ -84,6 +96,8 @@ export function DragHandle({
         <DragHandleLine
           {...mergeProps(moveProps, containerProps, {onDoubleClick, onKeyDown})}
           $cursor={cursor}
+          aria-label={ariaLabel}
+          aria-labelledby={ariaLabelledby}
           aria-orientation={orientation === 'horizontal' ? 'vertical' : 'horizontal'}
           aria-valuemax={Number.isFinite(max) ? max : undefined}
           aria-valuemin={min}
@@ -118,7 +132,7 @@ const DragHandleLine = styled('div')<{$cursor: React.CSSProperties['cursor']}>`
     z-index: ${p => p.theme.zIndex.drawer};
     opacity: 0.8;
     background: transparent;
-    transition: background ${p => p.theme.motion.smooth.slow} 0.1s;
+    transition: background ${p => p.theme.motion.smooth.slow};
   }
 
   &:hover::after,
