@@ -513,7 +513,9 @@ function useFilterSuggestions({
             return tag;
           }
           return (
-            (Object.hasOwn(filterKeys, prettyKey) ? filterKeys[prettyKey] : undefined) ?? {
+            (Object.hasOwn(filterKeys, prettyKey)
+              ? filterKeys[prettyKey]
+              : undefined) ?? {
               ...tag,
               key: prettyKey,
               name: prettyKey,

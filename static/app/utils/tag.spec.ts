@@ -62,10 +62,6 @@ describe('getHasTag', () => {
       },
     });
 
-    expect(hasTag.values).toEqual([
-      'tags[foo,number]',
-      'tags[foo,string]',
-      'user.email',
-    ]);
+    expect(hasTag.values).toEqual(['tags[foo,number]', 'tags[foo,string]', 'user.email']);
   });
 });
