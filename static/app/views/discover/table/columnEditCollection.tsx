@@ -733,14 +733,16 @@ const RowContainer = styled('div')<{
     p.showAliasField &&
     css`
       align-items: flex-start;
-      grid-template-columns: ${p.singleColumn
-        ? '1fr'
-        : `${p.theme.space['2xl']} 1fr 40px 40px`};
+      grid-template-columns: ${
+        p.singleColumn ? '1fr' : `${p.theme.space['2xl']} 1fr 40px 40px`
+      };
 
       @container (min-width: ${p.theme.container.xl}) {
-        grid-template-columns: ${p.singleColumn
-          ? `1fr calc(200px + ${p.theme.space.md})`
-          : `${p.theme.space['2xl']} 1fr calc(200px + ${p.theme.space.md}) 40px 40px`};
+        grid-template-columns: ${
+          p.singleColumn
+            ? `1fr calc(200px + ${p.theme.space.md})`
+            : `${p.theme.space['2xl']} 1fr calc(200px + ${p.theme.space.md}) 40px 40px`
+        };
       }
     `}
 `;

@@ -34,7 +34,8 @@ declare global {
 
   namespace React {
     interface DOMAttributes<T> {
-      'data-test-id'?: string;
+      // Keep T referenced because declaration merging requires this to exactly match React's generic.
+      'data-test-id'?: string | (T & never);
     }
   }
 }
@@ -625,7 +626,9 @@ type CamelToSnake<
  * Example: DATA_CATEGORY_INFO.MONITOR_SEAT (plural: "monitorSeats") -> "ondemand_monitor_seats"
  */
 type OnDemandInvoiceItemType = {
-  [K in keyof typeof DATA_CATEGORY_INFO]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
+  [
+    K in keyof typeof DATA_CATEGORY_INFO
+  ]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
     ? `ondemand_${CamelToSnake<(typeof DATA_CATEGORY_INFO)[K]['plural']>}`
     : never;
 }[keyof typeof DATA_CATEGORY_INFO];
@@ -639,7 +642,9 @@ type OnDemandInvoiceItemType = {
  * Example: DATA_CATEGORY_INFO.MONITOR_SEAT (plural: "monitorSeats") -> "reserved_monitor_seats"
  */
 type ReservedInvoiceItemType = {
-  [K in keyof typeof DATA_CATEGORY_INFO]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
+  [
+    K in keyof typeof DATA_CATEGORY_INFO
+  ]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
     ? `reserved_${CamelToSnake<(typeof DATA_CATEGORY_INFO)[K]['plural']>}`
     : never;
 }[keyof typeof DATA_CATEGORY_INFO];
@@ -812,7 +817,9 @@ export type PreviewInvoiceItem = BaseInvoiceItem & {
  * Example: DATA_CATEGORY_INFO.LOG_BYTE (singular: "logByte") -> "log_byte"
  */
 type DynamicCreditType = {
-  [K in keyof typeof DATA_CATEGORY_INFO]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
+  [
+    K in keyof typeof DATA_CATEGORY_INFO
+  ]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
     ? CamelToSnake<(typeof DATA_CATEGORY_INFO)[K]['singular']>
     : never;
 }[keyof typeof DATA_CATEGORY_INFO];
