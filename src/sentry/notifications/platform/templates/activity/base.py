@@ -1,6 +1,7 @@
 from typing import Any
 from urllib.parse import urlencode
 
+from sentry import features
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.group import Group
@@ -181,15 +182,20 @@ def build_activity_notification_data(
         except Workflow.DoesNotExist:
             raise ValueError(f"Workflow not found: {workflow_id}")
 
-    issue_url_params: dict[str, str] = {}
+    issue_url = group.get_absolute_url()
     if ActivityType(activity.type) in SEER_ACTIVITY_TYPES:
-        issue_url_params.update({"seerDrawer": "true"})
+        issue_url = group.get_absolute_url(params={"seerDrawer": "true"})
+        if features.has("organizations:issue-stream-progress-ui", organization):
+            issue_url = organization.absolute_url(
+                f"organizations/{organization.slug}/issues/inbox/",
+                query=urlencode({"project": project.id, "preview": group.id}),
+            )
 
     action_data = dict(
         source=source,
         activity_type=activity.type,
         issue_short_id=group.qualified_short_id,
-        issue_url=absolute_uri(group.get_absolute_url(params=issue_url_params)),
+        issue_url=absolute_uri(issue_url),
         issue_title=build_attachment_title(group) or "",
         issue_culprit=group.culprit,
         issue_description=build_attachment_text(group),
