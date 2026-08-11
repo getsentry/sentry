@@ -43,3 +43,10 @@ export const canUseMetricsPiiScrubbingUI = (organization: Organization) => {
 export const canUseMetricsHeatMap = (organization: Organization) => {
   return canUseMetricsUI(organization);
 };
+
+export const canUseMetricDescriptions = (organization: Organization) => {
+  return (
+    canUseMetricsUI(organization) &&
+    organization.features.includes('data-browsing-attribute-context')
+  );
+};

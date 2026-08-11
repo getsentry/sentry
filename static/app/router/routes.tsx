@@ -2158,6 +2158,10 @@ function buildRoutes(): RouteObject[] {
       index: true,
       component: make(() => import('sentry/views/explore/metrics/content')),
     },
+    {
+      path: 'descriptions/',
+      component: make(() => import('sentry/views/explore/metrics/metricDescriptions')),
+    },
     traceView,
   ];
 
@@ -2257,6 +2261,10 @@ function buildRoutes(): RouteObject[] {
       path: 'metrics/',
       component: make(() => import('sentry/views/explore/metrics')),
       children: metricsChildren,
+    },
+    {
+      path: 'attributes/descriptions/',
+      component: make(() => import('sentry/views/explore/attributeDescriptions')),
     },
     {
       path: `${CONVERSATIONS_LANDING_SUB_PATH}/`,
