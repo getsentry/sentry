@@ -129,7 +129,7 @@ class GenerateProjectDerivedDataBatchResumeTest(DerivedDataTaskTestBase):
         resume_generated_at = datetime(2024, 1, 1, tzinfo=timezone.utc).isoformat()
         resume_pipeline_hash = "prevhash"
 
-        with patch("sentry.issues.derived.processing.build_and_promote_derived_data") as mock_build:
+        with patch("sentry.issues.derived.promote.build_and_promote_derived_data") as mock_build:
             generate_project_derived_data_batch(
                 project_id=self.project.id,
                 group_id_start=group_a,
@@ -387,7 +387,7 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
         gid = groups[0].id
         process_group_log(gid)
 
-        with patch("sentry.issues.derived.processing.build_and_promote_derived_data") as mock_build:
+        with patch("sentry.issues.derived.promote.build_and_promote_derived_data") as mock_build:
             regenerate_stale_derived_data_batch(
                 stale_pipeline_hashes=[self._stale()],
                 group_id_start=gid,
@@ -405,14 +405,14 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
         GroupDerivedData.objects.filter(group_id__in=group_ids).update(pipeline_hash=stale)
 
         with (
-            patch("sentry.issues.derived.tasks.time") as mock_time,
-            patch("sentry.issues.derived.processing.build_and_promote_derived_data") as mock_build,
+            patch("sentry.issues.derived.promote.time") as mock_time,
+            patch("sentry.issues.derived.promote.build_and_promote_derived_data") as mock_build,
             patch.object(regenerate_stale_derived_data_batch, "delay") as mock_delay,
         ):
             expired = BATCH_RETRIGGER_TIMEOUT.total_seconds() + 1
-            # Outer start(), helper start(), iter 1 remaining, iter 1 deadline
-            # check (triggers reschedule), then outer log message elapsed.
-            mock_time.monotonic.side_effect = [0.0, 0.0, 0.0, expired, expired]
+            # Helper start(), iter 1 remaining, iter 1 deadline check
+            # (triggers reschedule after the first group).
+            mock_time.monotonic.side_effect = [0.0, 0.0, expired]
 
             regenerate_stale_derived_data_batch(
                 stale_pipeline_hashes=[stale],
@@ -438,7 +438,7 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
 
         with (
             patch(
-                "sentry.issues.derived.processing.build_and_promote_derived_data",
+                "sentry.issues.derived.promote.build_and_promote_derived_data",
                 side_effect=GroupLogTimeout(0),
             ),
             patch.object(regenerate_stale_derived_data_batch, "delay") as mock_delay,
