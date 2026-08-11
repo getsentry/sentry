@@ -672,8 +672,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             str(self.workflow_two.id),
         }
 
-    def test_query_by_assignee_multiple_values_with_me(self) -> None:
-        """`me` resolves to the requester no matter what precedes it in the list."""
+    def test_query_by_assignee_multiple_same_values(self) -> None:
         user = self.create_user(email="assignee@example.com")
         self.create_member(organization=self.organization, user=user)
         self.workflow.update(owner_user_id=user.id)

@@ -285,9 +285,9 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                         # TODO: What about unrecognized keys?
                         pass
 
-        # This filter is ALWAYS applied to ensure users with no project access
-        # only see org-level workflows. Use include_all_accessible=True to get all
-        # projects the user can access, not just those explicitly requested.
+        # Use include_all_accessible=True to get all projects the user can access,
+        # not just those explicitly requested. This filter is ALWAYS applied to ensure
+        # users with no project access only see org-level workflows.
         projects = self.get_projects(request, organization, include_all_accessible=True)
         accessible_workflows = Q(detectorworkflow__detector__project__in=projects) | Q(
             detectorworkflow__isnull=True
